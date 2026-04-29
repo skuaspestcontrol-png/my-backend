@@ -35,9 +35,6 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
-app.use(express.json());
-app.use(cors(corsOptions));
-app.options(/.*/, cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 const PORT = Math.max(1, Number(process.env.PORT || 5000) || 5000);
 const SERVER_ORIGIN = String(process.env.SERVER_ORIGIN || '').trim();
