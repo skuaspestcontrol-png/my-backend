@@ -31,10 +31,6 @@ app.get('/api/health', (req, res) => {
     service: 'skuas-backend'
   });
 });
-
-app.get("/", (req, res) => {
-  res.send("SKUAS Backend Running 🚀");
-});
 const defaultAllowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -67,9 +63,16 @@ const dataDir = path.join(__dirname, 'data');
 [uploadsDir, dataDir].forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir); });
 
 app.use('/uploads', express.static(uploadsDir));
+const backendPublicDir = path.join(__dirname, 'public');
+const backendPublicIndexFile = path.join(backendPublicDir, 'index.html');
 const frontendDistDir = path.join(__dirname, '..', 'frontend', 'dist');
-const frontendIndexFile = path.join(frontendDistDir, 'index.html');
-if (fs.existsSync(frontendDistDir) && fs.existsSync(frontendIndexFile)) {
+const frontendDistIndexFile = path.join(frontendDistDir, 'index.html');
+const hasBackendPublicBuild = fs.existsSync(backendPublicDir) && fs.existsSync(backendPublicIndexFile);
+const hasFrontendDistBuild = fs.existsSync(frontendDistDir) && fs.existsSync(frontendDistIndexFile);
+
+if (hasBackendPublicBuild) {
+  app.use(express.static(backendPublicDir));
+} else if (hasFrontendDistBuild) {
   app.use(express.static(frontendDistDir));
 }
 
@@ -2931,9 +2934,13 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   res.json({ imageUrl: `${resolveServerOrigin(req)}/uploads/${req.file.filename}` });
 });
 
-if (fs.existsSync(frontendDistDir) && fs.existsSync(frontendIndexFile)) {
+if (hasBackendPublicBuild || hasFrontendDistBuild) {
   app.get(/^\/(?!api|uploads).*/, (req, res) => {
-    res.sendFile(frontendIndexFile);
+    if (hasBackendPublicBuild) {
+      res.sendFile(backendPublicIndexFile);
+      return;
+    }
+    res.sendFile(frontendDistIndexFile);
   });
 }
 
