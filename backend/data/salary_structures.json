@@ -1,0 +1,122 @@
+[
+  {
+    "_id": "SAL-DEFAULT-EMP-8437",
+    "employeeId": "1776948071838",
+    "effectiveDate": "2026-01-01",
+    "salaryType": "monthly",
+    "basicSalary": 32000,
+    "dailyRate": 0,
+    "hourlyRate": 0,
+    "allowances": {
+      "hra": 0,
+      "conveyance": 0,
+      "mobile": 0,
+      "bonus": 0,
+      "incentive": 0,
+      "other": 0
+    },
+    "deductions": {
+      "leave": 0,
+      "late": 0,
+      "advance": 0,
+      "loan": 0,
+      "pf": 0,
+      "esi": 0,
+      "other": 0,
+      "latePerMark": 0
+    },
+    "notes": "Initial seeded structure",
+    "createdAt": "2026-04-25T10:21:24.198Z",
+    "updatedAt": "2026-04-28T10:23:13.101Z"
+  },
+  {
+    "_id": "SAL-1777112326889",
+    "employeeId": "1776948426257",
+    "effectiveDate": "2026-04-25",
+    "salaryType": "monthly",
+    "basicSalary": 13000,
+    "dailyRate": 0,
+    "hourlyRate": 0,
+    "allowances": {
+      "hra": 0,
+      "conveyance": 0,
+      "mobile": 0,
+      "bonus": 0,
+      "incentive": 0,
+      "other": 0
+    },
+    "deductions": {
+      "leave": 0,
+      "late": 0,
+      "advance": 0,
+      "loan": 0,
+      "pf": 0,
+      "esi": 0,
+      "other": 0,
+      "latePerMark": 0
+    },
+    "notes": "Auto-created from Employee Master sync",
+    "createdAt": "2026-04-28T10:23:13.101Z",
+    "updatedAt": "2026-04-28T10:23:13.101Z"
+  },
+  {
+    "_id": "SAL-1777112326889",
+    "employeeId": "1776948634972",
+    "effectiveDate": "2026-04-25",
+    "salaryType": "monthly",
+    "basicSalary": 16000,
+    "dailyRate": 0,
+    "hourlyRate": 0,
+    "allowances": {
+      "hra": 0,
+      "conveyance": 0,
+      "mobile": 0,
+      "bonus": 0,
+      "incentive": 0,
+      "other": 0
+    },
+    "deductions": {
+      "leave": 0,
+      "late": 0,
+      "advance": 0,
+      "loan": 0,
+      "pf": 0,
+      "esi": 0,
+      "other": 0,
+      "latePerMark": 0
+    },
+    "notes": "Auto-created from Employee Master sync",
+    "createdAt": "2026-04-25T10:18:46.889Z",
+    "updatedAt": "2026-04-28T10:23:13.101Z"
+  },
+  {
+    "_id": "SAL-1777112326889",
+    "employeeId": "1776948773653",
+    "effectiveDate": "2026-04-25",
+    "salaryType": "monthly",
+    "basicSalary": 15000,
+    "dailyRate": 0,
+    "hourlyRate": 0,
+    "allowances": {
+      "hra": 0,
+      "conveyance": 0,
+      "mobile": 0,
+      "bonus": 0,
+      "incentive": 0,
+      "other": 0
+    },
+    "deductions": {
+      "leave": 0,
+      "late": 0,
+      "advance": 0,
+      "loan": 0,
+      "pf": 0,
+      "esi": 0,
+      "other": 0,
+      "latePerMark": 0
+    },
+    "notes": "Auto-created from Employee Master sync",
+    "createdAt": "2026-04-25T10:18:46.889Z",
+    "updatedAt": "2026-04-28T10:23:13.101Z"
+  }
+]

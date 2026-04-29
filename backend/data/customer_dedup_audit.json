@@ -1,0 +1,13 @@
+[
+  {
+    "_id": "CDA-1777115262036-qur3pv",
+    "action": "customer_import_uploaded",
+    "actor": "System",
+    "payload": {
+      "batchId": "CIB-1777115261991-ea44",
+      "fileName": "customers-data-skuas.csv",
+      "totalRows": 557
+    },
+    "createdAt": "2026-04-25T11:07:42.036Z"
+  }
+]

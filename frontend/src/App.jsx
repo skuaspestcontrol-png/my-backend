@@ -1,0 +1,272 @@
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
+import Login from './components/Login';
+import ModuleWorkspace from './components/ModuleWorkspace';
+
+const DashboardLayout = lazy(() => import('./components/DashboardLayout'));
+const CustomerDashboard = lazy(() => import('./components/CustomerDashboard'));
+const ContractDashboard = lazy(() => import('./components/ContractDashboard'));
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const EmployeeMaster = lazy(() => import('./components/EmployeeMaster'));
+const HRDashboard = lazy(() => import('./components/HRDashboard'));
+const Attendance = lazy(() => import('./components/Attendance'));
+const PayrollModule = lazy(() => import('./components/PayrollModule'));
+const InvoiceDashboard = lazy(() => import('./components/InvoiceDashboard'));
+const ItemsDashboard = lazy(() => import('./components/ItemsDashboard'));
+const LeadCapture = lazy(() => import('./components/LeadCapture'));
+const OperationsPortal = lazy(() => import('./components/OperationsPortal'));
+const PaymentReceivedDashboard = lazy(() => import('./components/PaymentReceivedDashboard'));
+const RenewalDashboard = lazy(() => import('./components/RenewalDashboard'));
+const ComplaintsDashboard = lazy(() => import('./components/ComplaintsDashboard'));
+const ScheduleJob = lazy(() => import('./components/ScheduleJob'));
+const SalesPortal = lazy(() => import('./components/SalesPortal'));
+const ServiceCalendar = lazy(() => import('./components/ServiceCalendar'));
+const Settings = lazy(() => import('./components/Settings'));
+const TechnicianPortal = lazy(() => import('./components/TechnicianPortal'));
+const UIDashboardPage = lazy(() => import('./pages/Dashboard'));
+const UICustomersPage = lazy(() => import('./pages/CustomersPage'));
+
+const ProtectedRoute = ({ children }) => {
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  return isLoggedIn ? children : <Navigate to="/" replace />;
+};
+
+const AppRoute = ({ element }) => (
+  <ProtectedRoute>
+    <DashboardLayout>{element}</DashboardLayout>
+  </ProtectedRoute>
+);
+
+const contractPage = <ContractDashboard />;
+
+const renewalPage = <RenewalDashboard />;
+
+const vendorsPage = (
+  <ModuleWorkspace
+    badge="Vendor Desk"
+    title="Vendors Dashboard"
+    description="Manage supplier profiles, reliability checks, and vendor engagement for smooth procurement cycles."
+    stats={[
+      { label: 'Vendor Count', value: 'Active' },
+      { label: 'Rate Stability', value: 'Tracked' },
+      { label: 'Delivery Health', value: 'Monitored' }
+    ]}
+    queueTitle="Vendor Priorities"
+    queueItems={[
+      { title: 'Vendor onboarding', description: 'Capture supplier details and procurement categories before placing orders.', meta: 'Setup', tone: 'var(--color-primary)' },
+      { title: 'Performance review', description: 'Review delivery timelines, quality consistency, and escalation history.', meta: 'Review', tone: '#0f766e' },
+      { title: 'Rate negotiation list', description: 'Prepare a shortlist of suppliers for price revision and contract updates.', meta: 'Plan', tone: '#d97706' }
+    ]}
+    actions={[
+      { label: 'Open Bills Dashboard', href: '/purchase/bills' },
+      { label: 'Open Purchase Payments', href: '/purchase/payment-received' },
+      { label: 'Back to Purchase', href: '/purchase/vendors' }
+    ]}
+    sideTitle="Vendor readiness"
+    sideText="A reliable vendor network keeps operations stable, especially during high service demand cycles."
+  />
+);
+
+const billsPage = (
+  <ModuleWorkspace
+    badge="Purchase Billing"
+    title="Bills Dashboard"
+    description="Track supplier bills, approval status, and due amounts in one focused purchase billing workspace."
+    stats={[
+      { label: 'Bills Status', value: 'Live' },
+      { label: 'Approval Queue', value: 'Running' },
+      { label: 'Due Control', value: 'Enabled' }
+    ]}
+    queueTitle="Bills Queue"
+    queueItems={[
+      { title: 'Pending bill entries', description: 'Log all supplier bills for received materials and services.', meta: 'Entry', tone: 'var(--color-primary-dark)' },
+      { title: 'Approval checks', description: 'Validate quantities, rates, and tax values before approval.', meta: 'Check', tone: '#d97706' },
+      { title: 'Upcoming due bills', description: 'Flag bills nearing due date for timely payment processing.', meta: 'Due', tone: '#dc2626' }
+    ]}
+    actions={[
+      { label: 'Open Vendors Dashboard', href: '/purchase/vendors' },
+      { label: 'Open Purchase Payments', href: '/purchase/payment-received' },
+      { label: 'Back to Purchase', href: '/purchase/vendors' }
+    ]}
+    sideTitle="Bill control"
+    sideText="Consistent bill verification helps avoid overpayment, delays, and supplier disputes."
+  />
+);
+
+const purchasePaymentReceivedPage = (
+  <ModuleWorkspace
+    badge="Payout Tracker"
+    title="Purchase Payment Received Dashboard"
+    description="Monitor supplier payment records, settlement status, and outstanding payable amounts."
+    stats={[
+      { label: 'Payment Log', value: 'Updated' },
+      { label: 'Settlement View', value: 'Clear' },
+      { label: 'Payable Risk', value: 'Low' }
+    ]}
+    queueTitle="Supplier Payment Queue"
+    queueItems={[
+      { title: 'Record supplier payouts', description: 'Log completed supplier payments against approved bills.', meta: 'Today', tone: '#15803d' },
+      { title: 'Part-payment reconciliation', description: 'Track partial settlements and remaining balances.', meta: 'Review', tone: '#0891b2' },
+      { title: 'Overdue payable list', description: 'Prepare immediate action for delayed supplier settlements.', meta: 'Urgent', tone: '#dc2626' }
+    ]}
+    actions={[
+      { label: 'Open Bills Dashboard', href: '/purchase/bills' },
+      { label: 'Open Vendors Dashboard', href: '/purchase/vendors' },
+      { label: 'Back to Purchase', href: '/purchase/vendors' }
+    ]}
+    sideTitle="Payment discipline"
+    sideText="Fast and accurate payout recording improves vendor trust and procurement continuity."
+  />
+);
+
+const whatsappPage = (
+  <ModuleWorkspace
+    badge="Campaign Desk"
+    title="WhatsApp Marketing Workspace"
+    description="Organize campaign batches, remarketing followups, and customer communication sequences in one communication hub."
+    stats={[
+      { label: 'Campaign Type', value: 'Broadcast' },
+      { label: 'Audience Mix', value: 'Leads + Clients' },
+      { label: 'Response Goal', value: 'Fast' }
+    ]}
+    queueTitle="Messaging Queue"
+    queueItems={[
+      { title: 'Followup campaign list', description: 'Prepare a clean list of leads due for reminders or proposal nudges.', meta: 'Sales', tone: '#15803d' },
+      { title: 'Service reminder copy', description: 'Draft short messages for upcoming service visits and technician arrival notices.', meta: 'Ops', tone: '#0891b2' },
+      { title: 'Reactivation push', description: 'Reconnect with customers whose previous treatment cycle is due for renewal.', meta: 'Retention', tone: '#dc2626' }
+    ]}
+    actions={[
+      { label: 'Open Leads Module', href: '/leads' },
+      { label: 'Review Customer Settings', href: '/settings' },
+      { label: 'Back to Dashboard', href: '/dashboard' }
+    ]}
+    sideTitle="Message with context"
+    sideText="The best campaigns are timely and relevant. Use lead stage, service stage, and past customer history to segment your communication."
+  />
+);
+
+const complaintsPage = <ComplaintsDashboard />;
+
+const certificatesPage = (
+  <ModuleWorkspace
+    badge="Compliance"
+    title="Certificates Workspace"
+    description="Manage service certificates, treatment proof, and client-facing documentation after jobs are completed."
+    stats={[
+      { label: 'Document State', value: 'Organized' },
+      { label: 'Delivery Mode', value: 'Digital' },
+      { label: 'Compliance Readiness', value: 'Strong' }
+    ]}
+    queueTitle="Documentation Queue"
+    queueItems={[
+      { title: 'Pending service certificates', description: 'Generate customer-facing proof after treatment completion and technician signoff.', meta: 'After job', tone: 'var(--color-primary-dark)' },
+      { title: 'Commercial account packs', description: 'Prepare formal documentation for recurring service contracts and audits.', meta: 'Commercial', tone: '#0f766e' },
+      { title: 'Archive review', description: 'Keep completed records easy to retrieve for renewals and complaint handling.', meta: 'Back office', tone: '#64748b' }
+    ]}
+    actions={[
+      { label: 'Open Field Operations', href: '/technician-portal' },
+      { label: 'Open Complaints', href: '/complaints' },
+      { label: 'Return to Dashboard', href: '/dashboard' }
+    ]}
+    sideTitle="Close the service loop"
+    sideText="Certificates should be the final polished output of a finished job, backed by technician proof and clear customer-facing details."
+  />
+);
+
+const stockPage = (
+  <ModuleWorkspace
+    badge="Inventory Control"
+    title="Stock Management Workspace"
+    description="Track chemicals, equipment, replenishment, and field consumption so operations stay supplied without overspending."
+    stats={[
+      { label: 'Inventory State', value: 'Tracked' },
+      { label: 'Field Usage', value: 'Watch' },
+      { label: 'Reorder Style', value: 'Planned' }
+    ]}
+    queueTitle="Inventory Queue"
+    queueItems={[
+      { title: 'Fast-moving stock', description: 'Review materials most frequently consumed across scheduled service jobs.', meta: 'Monitor', tone: '#475569' },
+      { title: 'Reorder threshold setup', description: 'Create simple rules for high-usage chemicals, safety gear, and consumables.', meta: 'Policy', tone: '#d97706' },
+      { title: 'Dispatch linkage', description: 'Align stock planning with scheduled field assignments to avoid service delays.', meta: 'Ops sync', tone: 'var(--color-primary)' }
+    ]}
+    actions={[
+      { label: 'Open Purchase Workspace', href: '/purchase/vendors' },
+      { label: 'Open Assign Services', href: '/schedule-job' },
+      { label: 'Return to Dashboard', href: '/dashboard' }
+    ]}
+    sideTitle="Inventory should support service"
+    sideText="This workspace is strongest when it mirrors actual technician usage patterns and upcoming service demand."
+  />
+);
+
+const hrPage = (
+  <ModuleWorkspace
+    badge="People Ops"
+    title="HR Dashboard"
+    description="See the team through roles, salary structure, field utilization, and staffing readiness across sales and operations."
+    stats={[
+      { label: 'Headcount View', value: 'Live' },
+      { label: 'Payroll Lens', value: 'Monthly' },
+      { label: 'Staffing Focus', value: 'Role Based' }
+    ]}
+    queueTitle="HR Priorities"
+    queueItems={[
+      { title: 'Role coverage', description: 'Check whether sales, field operations, and support functions are properly staffed.', meta: 'Coverage', tone: '#9333ea' },
+      { title: 'Payroll review', description: 'Use salary data from employee master to keep monthly planning visible.', meta: 'Finance', tone: '#dc2626' },
+      { title: 'Portal access cleanup', description: 'Make sure the right employees have the right visibility into ERP workflows.', meta: 'Admin', tone: 'var(--color-primary)' }
+    ]}
+    actions={[
+      { label: 'Open Employee Master', href: '/employees' },
+      { label: 'Open Attendance', href: '/attendance' },
+      { label: 'Open Payroll', href: '/payroll' },
+      { label: 'Open Settings', href: '/settings' },
+      { label: 'Return to Dashboard', href: '/dashboard' }
+    ]}
+    sideTitle="People data powers everything"
+    sideText="Hiring, field quality, and sales followups all improve when employee data is current and role assignment is clean."
+  />
+);
+
+function App() {
+  return (
+    <Router>
+      <Suspense fallback={<div style={{ padding: '16px' }}>Loading...</div>}>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/dashboard" element={<AppRoute element={<Dashboard />} />} />
+          <Route path="/ui/dashboard" element={<AppRoute element={<UIDashboardPage />} />} />
+          <Route path="/ui/customers" element={<AppRoute element={<UICustomersPage />} />} />
+          <Route path="/leads" element={<AppRoute element={<LeadCapture />} />} />
+          <Route path="/sales" element={<Navigate to="/sales/customers" replace />} />
+          <Route path="/sales/contracts" element={<AppRoute element={contractPage} />} />
+          <Route path="/sales/customers" element={<AppRoute element={<CustomerDashboard />} />} />
+          <Route path="/sales/invoices" element={<AppRoute element={<InvoiceDashboard />} />} />
+          <Route path="/sales/payment-received" element={<AppRoute element={<PaymentReceivedDashboard />} />} />
+          <Route path="/sales/renewal" element={<AppRoute element={renewalPage} />} />
+          <Route path="/purchase" element={<Navigate to="/purchase/vendors" replace />} />
+          <Route path="/purchase/vendors" element={<AppRoute element={vendorsPage} />} />
+          <Route path="/purchase/bills" element={<AppRoute element={billsPage} />} />
+          <Route path="/purchase/payment-received" element={<AppRoute element={purchasePaymentReceivedPage} />} />
+          <Route path="/whatsapp" element={<AppRoute element={whatsappPage} />} />
+          <Route path="/schedule-job" element={<AppRoute element={<ScheduleJob />} />} />
+          <Route path="/service-calendar" element={<AppRoute element={<ServiceCalendar />} />} />
+          <Route path="/technician-portal" element={<AppRoute element={<TechnicianPortal />} />} />
+          <Route path="/sales-portal" element={<AppRoute element={<SalesPortal />} />} />
+          <Route path="/operations-portal" element={<AppRoute element={<OperationsPortal />} />} />
+          <Route path="/complaints" element={<AppRoute element={complaintsPage} />} />
+          <Route path="/certificates" element={<AppRoute element={certificatesPage} />} />
+          <Route path="/stock" element={<AppRoute element={stockPage} />} />
+          <Route path="/hr-dashboard" element={<AppRoute element={<HRDashboard />} />} />
+          <Route path="/employees" element={<AppRoute element={<EmployeeMaster />} />} />
+          <Route path="/attendance" element={<AppRoute element={<Attendance />} />} />
+          <Route path="/payroll" element={<AppRoute element={<PayrollModule />} />} />
+          <Route path="/items" element={<AppRoute element={<ItemsDashboard />} />} />
+          <Route path="/settings" element={<AppRoute element={<Settings />} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </Router>
+  );
+}
+
+export default App;

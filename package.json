@@ -1,0 +1,17 @@
+{
+  "name": "skuasmaster-erp",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend start",
+    "dev": "npm run dev:backend & npm run dev:frontend",
+    "build:frontend": "npm --prefix frontend run build",
+    "start:backend": "npm --prefix backend start",
+    "start": "npm run build:frontend && npm run start:backend"
+  },
+  "dependencies": {
+    "lucide-react": "^1.8.0",
+    "react-router-dom": "^7.14.1"
+  }
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "employeeId": "1776948071838",
+    "status": "Active Employees",
+    "priority": "High",
+    "lastActivity": "2026-04-25T07:35:00.000Z",
+    "currentTask": "Daily sales review",
+    "updatedAt": "2026-04-25T07:35:00.000Z"
+  },
+  {
+    "employeeId": "1776948426257",
+    "status": "On Probation",
+    "priority": "Normal",
+    "lastActivity": "2026-04-25T07:20:00.000Z",
+    "currentTask": "Lead follow-up cycle",
+    "updatedAt": "2026-04-25T07:20:00.000Z"
+  },
+  {
+    "employeeId": "1776948634972",
+    "status": "Active Employees",
+    "priority": "High",
+    "lastActivity": "2026-04-25T07:10:00.000Z",
+    "currentTask": "Field service execution",
+    "updatedAt": "2026-04-25T07:10:00.000Z"
+  },
+  {
+    "employeeId": "1776948773653",
+    "status": "On Leave",
+    "priority": "Normal",
+    "lastActivity": "2026-04-25T06:45:00.000Z",
+    "currentTask": "Leave approved",
+    "updatedAt": "2026-04-25T06:45:00.000Z"
+  }
+]
