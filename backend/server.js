@@ -13,6 +13,18 @@ require('dotenv').config();
 
 const app = express();
 
+// ✅ HEALTH CHECK ROUTES
+app.get("/api", (req, res) => {
+  res.send("SKUAS CRM API is working ✅");
+});
+
+app.get("/api/test", (req, res) => {
+  res.json({
+    success: true,
+    message: "Backend working perfectly 🚀",
+  });
+});
+
 const defaultAllowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
