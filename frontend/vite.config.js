@@ -30,7 +30,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'https://my-backend-kafl.onrender.com',
+        target: 'http://127.0.0.1:5000',
         changeOrigin: true
       }
     }
