@@ -24,6 +24,14 @@ app.get("/api/test", (req, res) => {
   });
 });
 
+app.get('/api/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'ok',
+    service: 'skuas-backend'
+  });
+});
+
 app.get("/", (req, res) => {
   res.send("SKUAS Backend Running 🚀");
 });
