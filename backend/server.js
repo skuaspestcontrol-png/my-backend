@@ -23,6 +23,10 @@ app.get("/api/test", (req, res) => {
     message: "Backend working perfectly 🚀",
   });
 });
+
+app.get("/", (req, res) => {
+  res.send("SKUAS Backend Running 🚀");
+});
 const defaultAllowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
