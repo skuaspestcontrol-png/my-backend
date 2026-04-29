@@ -3,7 +3,7 @@ import axios from 'axios';
 import SignatureCanvas from 'react-signature-canvas';
 import { ArrowLeft, Camera, ClipboardList, FileCheck2, MapPin, UserCog } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const parseDateOnly = (value) => {
   const date = new Date(value);

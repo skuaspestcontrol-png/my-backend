@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { CalendarClock, Eye, FileText, MessageSquare, RefreshCcw, UserCheck, X } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const renewalStatuses = ['Upcoming', 'Contacted', 'Follow-up', 'Confirmed', 'Renewed', 'Lost'];
 const paymentStatuses = ['Pending', 'Partial', 'Paid'];
 const bucketOptions = [

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { CalendarDays, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, Lock, ShieldCheck, UserRoundCheck } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 const roleFlags = () => {
   const roleRaw = String(localStorage.getItem('portal_user_role') || 'Admin').trim().toLowerCase();

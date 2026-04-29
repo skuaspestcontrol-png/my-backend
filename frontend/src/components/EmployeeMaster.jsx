@@ -3,7 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Edit, Plus, Trash2, UploadCloud, UserCheck, X } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 const roles = ['Sales', 'Technician', 'Operations'];
 const genderOptions = ['Male', 'Female'];

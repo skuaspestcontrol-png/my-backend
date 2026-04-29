@@ -76,7 +76,7 @@ const INDIA_STATES = [
 ];
 const PROPERTY_TYPES = ['Residential', 'Commercial'];
 const LEAD_STATUSES = ['New Lead', 'Interested', 'Not Interested', 'Converted', 'Cancelled'];
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ALL_FILTER_VALUE = '__all__';
 const MONTH_FILTER_OPTIONS = [
   { value: '1', label: 'January' },

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import axios from 'axios';
 import { AlertTriangle, CheckCircle2, Download, FileUp, Layers, ShieldAlert, Sparkles, X } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 const steps = [
   'Upload Excel/CSV',

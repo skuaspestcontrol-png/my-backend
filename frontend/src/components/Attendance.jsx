@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Clock3, Users } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const leaveTypes = ['', 'Casual Leave', 'Sick Leave', 'Earned Leave', 'Unpaid Leave'];
 
 const shell = {
