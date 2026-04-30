@@ -250,7 +250,9 @@ const shell = {
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto', backdropFilter: 'blur(12px)' },
   modal: { background: '#fff', width: 'min(100%, 1180px)', borderRadius: '24px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', height: '92vh', display: 'flex', flexDirection: 'column' },
-  modalHeader: { padding: '16px 20px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '28px', fontWeight: 800, color: '#fff', background: 'var(--color-primary)' },
+  modalHeader: { padding: '16px 20px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '28px', fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
+  modalHeaderTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
+  modalCloseButton: { border: 'none', background: 'transparent', color: '#fff', width: '36px', height: '36px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   formBody: { padding: '18px 22px', overflowY: 'auto', overflowX: 'hidden', display: 'grid', gridAutoRows: 'max-content', alignContent: 'start', gap: '16px', flex: 1, minHeight: 0 },
   customerRow: { display: 'grid', gridTemplateColumns: '170px minmax(0, 1fr)', columnGap: '14px', rowGap: '10px', alignItems: 'center' },
   addressSplit: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '16px' },
@@ -273,10 +275,10 @@ const shell = {
   topGrid: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr) 110px minmax(0, 1fr)', columnGap: '14px', rowGap: '12px', alignItems: 'center' },
   secondGrid: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr) 140px minmax(0, 1fr)', columnGap: '14px', rowGap: '12px', alignItems: 'center' },
   subjectRow: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr)', columnGap: '14px', rowGap: '12px', alignItems: 'center' },
-  label: { fontSize: '14px', color: '#111827', fontWeight: 500 },
+  label: { fontSize: '13px', color: '#3f3f46', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
   labelRequired: { color: '#dc2626' },
-  input: { border: '1px solid #D1D5DB', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '42px', boxSizing: 'border-box' },
-  textArea: { border: '1px solid #D1D5DB', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '74px', resize: 'vertical', boxSizing: 'border-box' },
+  input: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '48px', boxSizing: 'border-box' },
+  textArea: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '84px', resize: 'vertical', boxSizing: 'border-box' },
   inputWithAction: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 42px', gap: '0' },
   inputMainWithButton: { borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' },
   inputActionButton: { border: '1px solid var(--color-primary)', borderRadius: '0 8px 8px 0', minHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', color: 'var(--color-primary)', cursor: 'pointer' },
@@ -337,9 +339,9 @@ const shell = {
   paymentTotalRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#111827', fontSize: '16px', fontWeight: 500 },
   paymentBalanceRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontSize: '16px', fontWeight: 700 },
   paymentWarn: { color: '#dc2626', fontSize: '12px', fontWeight: 700 },
-  modalFooter: { padding: '10px 14px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '8px' },
-  cancelButton: { border: '1px solid #D1D5DB', background: '#fff', color: '#334155', borderRadius: '10px', padding: '9px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
-  saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '10px', padding: '9px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
+  modalFooter: { padding: '12px 14px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#fff' },
+  cancelButton: { border: '1px solid #d1d5db', background: '#fff', color: '#2563eb', borderRadius: '18px', padding: '10px 18px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' },
+  saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '18px', padding: '10px 20px', fontSize: '16px', fontWeight: 800, cursor: 'pointer' }
 };
 
 const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -1926,6 +1928,7 @@ export default function InvoiceDashboard() {
   const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '100%', tableLayout: 'fixed' } : shell.itemTable;
   const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '100%', tableLayout: 'fixed' } : shell.serviceScheduleTable;
+  const mobileItemInlineGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' };
 
   return (
     <section style={shell.page}>
@@ -2170,7 +2173,12 @@ export default function InvoiceDashboard() {
       {showModal ? createPortal(
         <div style={modalOverlayStyle} onClick={closeInvoiceModal}>
           <form style={modalStyle} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()}>
-            <div style={modalHeaderStyle}>{editingId ? 'Edit Contract' : 'New Contract'}</div>
+            <div style={modalHeaderStyle}>
+              <h3 style={shell.modalHeaderTitle}>{editingId ? 'Edit Contract' : 'New Contract'}</h3>
+              <button type="button" style={shell.modalCloseButton} onClick={closeInvoiceModal} aria-label="Close">
+                <X size={24} />
+              </button>
+            </div>
             <div style={formBodyStyle}>
               <div style={customerRowStyle}>
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Name*</label>
@@ -2333,13 +2341,19 @@ export default function InvoiceDashboard() {
                 <div style={shell.itemTableWrap}>
                   <table style={itemTableStyle}>
                     <thead>
-                      <tr>
-                        <th style={{ ...shell.itemTh, width: '52%' }}>Item Details</th>
-                        <th style={{ ...shell.itemTh, width: '10%' }}>Quantity</th>
-                        <th style={{ ...shell.itemTh, width: '12%' }}>Rate</th>
-                        <th style={{ ...shell.itemTh, width: '12%' }}>Tax</th>
-                        <th style={{ ...shell.itemTh, width: '14%' }}>Amount</th>
-                      </tr>
+                      {isMobile ? (
+                        <tr>
+                          <th style={{ ...shell.itemTh, width: '100%' }}>Item Details</th>
+                        </tr>
+                      ) : (
+                        <tr>
+                          <th style={{ ...shell.itemTh, width: '52%' }}>Item Details</th>
+                          <th style={{ ...shell.itemTh, width: '10%' }}>Quantity</th>
+                          <th style={{ ...shell.itemTh, width: '12%' }}>Rate</th>
+                          <th style={{ ...shell.itemTh, width: '12%' }}>Tax</th>
+                          <th style={{ ...shell.itemTh, width: '14%' }}>Amount</th>
+                        </tr>
+                      )}
                     </thead>
                     <tbody>
                       {form.items.map((line, index) => {
@@ -2433,48 +2447,104 @@ export default function InvoiceDashboard() {
                                     />
                                   </div>
                                 </div>
+                                {isMobile ? (
+                                  <>
+                                    <div style={mobileItemInlineGridStyle}>
+                                      <div style={shell.itemMetaField}>
+                                        <span style={shell.itemMetaLabel}>Quantity</span>
+                                        <input
+                                          style={shell.itemMetaInput}
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          value={line.quantity}
+                                          onChange={(event) => updateLine(index, { quantity: event.target.value })}
+                                        />
+                                      </div>
+                                      <div style={shell.itemMetaField}>
+                                        <span style={shell.itemMetaLabel}>Rate</span>
+                                        <input
+                                          style={shell.itemMetaInput}
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          value={line.rate}
+                                          onChange={(event) => updateLine(index, { rate: event.target.value })}
+                                        />
+                                      </div>
+                                    </div>
+                                    <div style={mobileItemInlineGridStyle}>
+                                      <div style={shell.itemMetaField}>
+                                        <span style={shell.itemMetaLabel}>Tax</span>
+                                        <select
+                                          style={shell.itemMetaInput}
+                                          value={line.taxRate}
+                                          onChange={(event) => updateLine(index, { taxRate: event.target.value })}
+                                          disabled={form.invoiceType === 'NON GST'}
+                                        >
+                                          {(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => (
+                                            <option key={tax} value={String(tax)}>{tax}%</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <div style={shell.itemMetaField}>
+                                        <span style={shell.itemMetaLabel}>Amount</span>
+                                        <div style={{ ...shell.itemMetaInput, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                          <strong>{formatINR(amount)}</strong>
+                                          <button type="button" style={shell.iconButton} onClick={() => removeLine(index)} title="Remove row">
+                                            <Trash2 size={14} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </>
+                                ) : null}
                               </div>
                             </td>
-                            <td style={shell.itemTd}>
-                              <input
-                                style={shell.input}
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={line.quantity}
-                                onChange={(event) => updateLine(index, { quantity: event.target.value })}
-                              />
-                            </td>
-                            <td style={shell.itemTd}>
-                              <input
-                                style={shell.input}
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={line.rate}
-                                onChange={(event) => updateLine(index, { rate: event.target.value })}
-                              />
-                            </td>
-                            <td style={shell.itemTd}>
-                              <select
-                                style={shell.input}
-                                value={line.taxRate}
-                                onChange={(event) => updateLine(index, { taxRate: event.target.value })}
-                                disabled={form.invoiceType === 'NON GST'}
-                              >
-                                {(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => (
-                                  <option key={tax} value={String(tax)}>{tax}%</option>
-                                ))}
-                              </select>
-                            </td>
-                            <td style={{ ...shell.itemTd, fontWeight: 700 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                <span>{formatINR(amount)}</span>
-                                <button type="button" style={shell.iconButton} onClick={() => removeLine(index)} title="Remove row">
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </td>
+                            {!isMobile ? (
+                              <>
+                                <td style={shell.itemTd}>
+                                  <input
+                                    style={shell.input}
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={line.quantity}
+                                    onChange={(event) => updateLine(index, { quantity: event.target.value })}
+                                  />
+                                </td>
+                                <td style={shell.itemTd}>
+                                  <input
+                                    style={shell.input}
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={line.rate}
+                                    onChange={(event) => updateLine(index, { rate: event.target.value })}
+                                  />
+                                </td>
+                                <td style={shell.itemTd}>
+                                  <select
+                                    style={shell.input}
+                                    value={line.taxRate}
+                                    onChange={(event) => updateLine(index, { taxRate: event.target.value })}
+                                    disabled={form.invoiceType === 'NON GST'}
+                                  >
+                                    {(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => (
+                                      <option key={tax} value={String(tax)}>{tax}%</option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td style={{ ...shell.itemTd, fontWeight: 700 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                    <span>{formatINR(amount)}</span>
+                                    <button type="button" style={shell.iconButton} onClick={() => removeLine(index)} title="Remove row">
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </>
+                            ) : null}
                           </tr>
                         );
                       })}

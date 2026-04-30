@@ -147,7 +147,9 @@ const shell = {
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto', backdropFilter: 'blur(12px)' },
   modal: { background: '#fff', width: 'min(100%, 1220px)', borderRadius: '24px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
-  modalHeader: { padding: '16px 20px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '28px', fontWeight: 800, color: '#fff', background: 'var(--color-primary)' },
+  modalHeader: { padding: '16px 20px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '28px', fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
+  modalHeaderTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
+  modalCloseButton: { border: 'none', background: 'transparent', color: '#fff', width: '36px', height: '36px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   modalBody: { padding: '18px 20px', display: 'grid', gridTemplateColumns: '190px minmax(0, 1fr)', columnGap: '14px', rowGap: '10px', alignItems: 'center', overflowY: 'auto', background: '#fff' },
   addressSplit: { gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '20px', marginTop: '8px' },
   addressCard: { border: '1px solid var(--color-border)', borderRadius: '12px', padding: '14px', background: '#fff' },
@@ -155,16 +157,16 @@ const shell = {
   addressHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
   addressCopy: { fontSize: '14px', color: 'var(--color-primary)', fontWeight: 500, cursor: 'pointer', textDecoration: 'none', border: 'none', background: 'transparent', padding: 0, lineHeight: 1.2 },
   addressGrid: { display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', rowGap: '10px', columnGap: '10px', alignItems: 'center' },
-  label: { fontSize: '14px', color: '#111827', fontWeight: 500 },
-  input: { border: '1px solid #D1D5DB', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '44px' },
-  textarea: { border: '1px solid #D1D5DB', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '68px', resize: 'vertical' },
+  label: { fontSize: '13px', color: '#3f3f46', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
+  input: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '48px' },
+  textarea: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '84px', resize: 'vertical' },
   amountRow: { display: 'grid', gridTemplateColumns: '56px 1fr', gap: 0 },
   currencyTag: { border: '1px solid #D1D5DB', borderRight: 'none', borderRadius: '8px 0 0 8px', padding: '6px 8px', fontSize: '12px', color: '#334155', background: '#f8fafc' },
   amountInput: { border: '1px solid #D1D5DB', borderRadius: '0 8px 8px 0', padding: '6px 8px', fontSize: '12px', outline: 'none', width: '100%' },
   inlineChecks: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#111827' },
-  modalFooter: { padding: '12px 18px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '8px' },
-  cancelButton: { border: '1px solid #D1D5DB', background: '#fff', color: '#334155', borderRadius: '8px', padding: '9px 14px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' },
-  saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '8px', padding: '9px 14px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' },
+  modalFooter: { padding: '12px 18px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#fff' },
+  cancelButton: { border: '1px solid #d1d5db', background: '#fff', color: '#2563eb', borderRadius: '18px', padding: '10px 18px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' },
+  saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '18px', padding: '10px 20px', fontSize: '16px', fontWeight: 800, cursor: 'pointer' },
   historyOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.52)', zIndex: 3000, display: 'grid', placeItems: 'center', padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },
   historyModal: { width: 'min(100%, 1260px)', maxHeight: '94vh', background: '#fff', borderRadius: '12px', border: '1px solid var(--color-primary-soft)', boxShadow: '0 20px 44px rgba(15,23,42,0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
   historyHeader: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
@@ -1425,7 +1427,12 @@ export default function CustomerDashboard() {
       {showModal ? createPortal(
         <div style={modalOverlayStyle}>
           <form style={modalStyle} onSubmit={handleSubmit}>
-            <div style={modalHeaderStyle}>{editingId ? 'Edit Customer' : 'New Customer'}</div>
+            <div style={modalHeaderStyle}>
+              <h3 style={shell.modalHeaderTitle}>{editingId ? 'Edit Customer' : 'New Customer'}</h3>
+              <button type="button" style={shell.modalCloseButton} onClick={closeModal} aria-label="Close">
+                <X size={24} />
+              </button>
+            </div>
 
             <div style={modalBodyStyle}>
               <label style={shell.label}>Duplicate Check</label>
