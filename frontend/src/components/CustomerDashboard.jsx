@@ -704,6 +704,14 @@ export default function CustomerDashboard() {
     setHistoryLoading(false);
   };
 
+  const closeModal = () => {
+    if (isSaving) return;
+    setShowModal(false);
+    setEditingId(null);
+    setSaveError('');
+    setSimilarCustomers([]);
+  };
+
   const openInvoiceInInvoiceModule = (invoice) => {
     if (!invoice) return;
     navigate('/sales/invoices', {
