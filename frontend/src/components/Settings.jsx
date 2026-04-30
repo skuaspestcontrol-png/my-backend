@@ -13,6 +13,9 @@ import {
   normalizeInvoiceVisibleColumns
 } from '../utils/invoicePreferences';
 import { applyBrandingTheme, saveBrandingSettings } from '../utils/brandingTheme';
+import WhatsAppSettings from '../pages/settings/WhatsAppSettings';
+import WhatsAppTemplates from '../pages/settings/WhatsAppTemplates';
+import WhatsAppLogs from '../pages/whatsapp/WhatsAppLogs';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -118,7 +121,9 @@ const sectionMeta = [
   { key: 'nonGstCompany', label: 'Non GST Company' },
   { key: 'bankAccounts', label: 'Bank Account' },
   { key: 'documentPrefixes', label: 'Prefixes' },
-  { key: 'whatsappApi', label: 'Whatsapp API' },
+  { key: 'whatsappApiSettings', label: 'WhatsApp API Settings' },
+  { key: 'whatsappTemplates', label: 'WhatsApp Templates' },
+  { key: 'whatsappLogs', label: 'WhatsApp Logs' },
   { key: 'emailSender', label: 'Email Sender' },
   { key: 'termsConditions', label: 'Terms & Conditions' },
   { key: 'invoiceSettings', label: 'Invoice Settings' },
@@ -602,7 +607,9 @@ const getSectionCompletion = (form, securityForm) => {
       form.employeeCodeNextNumber,
       form.employeeCodePadding
     ].every(isFilled),
-    whatsappApi: [form.whatsappPhoneNumber, form.whatsappInstanceId, form.whatsappAccessToken].every(isFilled),
+    whatsappApiSettings: [form.whatsappPhoneNumber, form.whatsappInstanceId, form.whatsappAccessToken].every(isFilled),
+    whatsappTemplates: true,
+    whatsappLogs: true,
     emailSender: [form.smtpSenderName, form.smtpFromEmail, form.smtpUser, form.smtpHost, form.smtpPort].every(isFilled),
     termsConditions: [form.gstTermsAndConditions, form.nonGstTermsAndConditions].every(isFilled),
     invoiceSettings: Boolean(form.invoiceTemplate && Array.isArray(form.invoiceVisibleColumns) && form.invoiceVisibleColumns.length > 0),
@@ -2340,7 +2347,9 @@ export default function Settings() {
     if (activeSection === 'nonGstCompany') return renderNonGstCompany();
     if (activeSection === 'bankAccounts') return renderBankAccounts();
     if (activeSection === 'documentPrefixes') return renderDocumentPrefixes();
-    if (activeSection === 'whatsappApi') return renderWhatsappApi();
+    if (activeSection === 'whatsappApiSettings') return <WhatsAppSettings />;
+    if (activeSection === 'whatsappTemplates') return <WhatsAppTemplates />;
+    if (activeSection === 'whatsappLogs') return <WhatsAppLogs />;
     if (activeSection === 'emailSender') return renderEmailSender();
     if (activeSection === 'termsConditions') return renderTermsConditions();
     if (activeSection === 'invoiceSettings') return renderInvoiceSettings();

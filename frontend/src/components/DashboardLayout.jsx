@@ -16,7 +16,6 @@ import {
   MessageSquare,
   Package,
   Settings,
-  ShieldCheck,
   ShoppingCart,
   Smartphone,
   Truck,
@@ -290,10 +289,7 @@ export default function DashboardLayout({ children }) {
               </>
             ) : null}
 
-            <Link to="/whatsapp" className={isActive('/whatsapp') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/whatsapp')}><MessageSquare size={18} /> WhatsApp Marketing</Link>
-            <Link to="/settings/whatsapp" className={isActive('/settings/whatsapp') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/settings/whatsapp')}>WhatsApp API Settings</Link>
-            <Link to="/settings/whatsapp/templates" className={isActive('/settings/whatsapp/templates') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/settings/whatsapp/templates')}>WhatsApp Templates</Link>
-            <Link to="/whatsapp/logs" className={isActive('/whatsapp/logs') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/whatsapp/logs')}>WhatsApp Logs</Link>
+            <Link to="/settings" className={isActive('/settings') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/settings')}><MessageSquare size={18} /> WhatsApp & Settings</Link>
           </SidebarSection>
 
           <SidebarSection title="Operations">
@@ -312,7 +308,6 @@ export default function DashboardLayout({ children }) {
               </>
             ) : null}
             <Link to="/complaints" className={isActive('/complaints') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/complaints')}><Bell size={18} /> Complaints</Link>
-            <Link to="/certificates" className={isActive('/certificates') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/certificates')}><ShieldCheck size={18} /> Certificates</Link>
           </SidebarSection>
 
           <SidebarSection title="Inventory">
