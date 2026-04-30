@@ -18,6 +18,7 @@ const OperationsPortal = lazy(() => import('./components/OperationsPortal'));
 const PaymentReceivedDashboard = lazy(() => import('./components/PaymentReceivedDashboard'));
 const VendorDashboard = lazy(() => import('./components/VendorDashboard'));
 const VendorBillsDashboard = lazy(() => import('./components/VendorBillsDashboard'));
+const VendorPaymentDashboard = lazy(() => import('./components/VendorPaymentDashboard'));
 const RenewalDashboard = lazy(() => import('./components/RenewalDashboard'));
 const ComplaintsDashboard = lazy(() => import('./components/ComplaintsDashboard'));
 const ScheduleJob = lazy(() => import('./components/ScheduleJob'));
@@ -46,31 +47,7 @@ const renewalPage = <RenewalDashboard />;
 const vendorsPage = <VendorDashboard />;
 const billsPage = <VendorBillsDashboard />;
 
-const purchasePaymentReceivedPage = (
-  <ModuleWorkspace
-    badge="Payout Tracker"
-    title="Purchase Payment Received Dashboard"
-    description="Monitor supplier payment records, settlement status, and outstanding payable amounts."
-    stats={[
-      { label: 'Payment Log', value: 'Updated' },
-      { label: 'Settlement View', value: 'Clear' },
-      { label: 'Payable Risk', value: 'Low' }
-    ]}
-    queueTitle="Supplier Payment Queue"
-    queueItems={[
-      { title: 'Record supplier payouts', description: 'Log completed supplier payments against approved bills.', meta: 'Today', tone: '#15803d' },
-      { title: 'Part-payment reconciliation', description: 'Track partial settlements and remaining balances.', meta: 'Review', tone: '#0891b2' },
-      { title: 'Overdue payable list', description: 'Prepare immediate action for delayed supplier settlements.', meta: 'Urgent', tone: '#dc2626' }
-    ]}
-    actions={[
-      { label: 'Open Bills Dashboard', href: '/purchase/bills' },
-      { label: 'Open Vendors Dashboard', href: '/purchase/vendors' },
-      { label: 'Back to Purchase', href: '/purchase/vendors' }
-    ]}
-    sideTitle="Payment discipline"
-    sideText="Fast and accurate payout recording improves vendor trust and procurement continuity."
-  />
-);
+const purchasePaymentReceivedPage = <VendorPaymentDashboard />;
 
 const whatsappPage = (
   <ModuleWorkspace
