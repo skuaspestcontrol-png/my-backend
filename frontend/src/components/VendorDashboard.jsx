@@ -144,10 +144,11 @@ export default function VendorDashboard() {
     }
   };
 
+  const modalOverlayStyle = isMobile ? { ...shell.modalOverlay, padding: '16px 10px' } : shell.modalOverlay;
   const modalStyle = isMobile
-    ? { ...shell.modal, width: '100%', maxHeight: '100dvh', height: '100dvh', borderRadius: 0, border: 'none' }
+    ? { ...shell.modal, width: 'min(100%, 92vw)', maxHeight: '92dvh', height: '92dvh', borderRadius: '28px', border: '1px solid rgba(159, 23, 77, 0.24)' }
     : shell.modal;
-  const bodyStyle = isMobile ? { ...shell.body, paddingBottom: 'calc(130px + env(safe-area-inset-bottom))' } : shell.body;
+  const bodyStyle = isMobile ? { ...shell.body, paddingBottom: 'calc(130px + env(safe-area-inset-bottom))', padding: '16px 14px' } : shell.body;
   const gridStyle = isMobile ? { ...shell.grid, gridTemplateColumns: '1fr' } : shell.grid;
 
   return (
@@ -198,7 +199,7 @@ export default function VendorDashboard() {
       </div>
 
       {showModal ? createPortal(
-        <div style={shell.modalOverlay} onClick={closeModal}>
+        <div style={modalOverlayStyle} onClick={closeModal}>
           <form style={modalStyle} onSubmit={saveVendor} onClick={(event) => event.stopPropagation()}>
             <div style={shell.modalHeader}>
               <h3 style={shell.modalTitle}>{editingId ? 'Edit Vendor' : 'New Vendor'}</h3>

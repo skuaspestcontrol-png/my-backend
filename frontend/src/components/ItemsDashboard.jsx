@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { ChevronDown, MoreHorizontal, Plus, SlidersHorizontal, Search } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, Plus, SlidersHorizontal, Search, X } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -221,7 +221,24 @@ const shell = {
     fontSize: '18px',
     fontWeight: 800,
     color: '#fff',
-    background: 'var(--color-primary)'
+    background: 'var(--color-primary)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '10px'
+  },
+  modalHeaderTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
+  modalCloseButton: {
+    border: 'none',
+    background: 'transparent',
+    color: '#fff',
+    width: '32px',
+    height: '32px',
+    borderRadius: '8px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer'
   },
   formContent: { padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: '10px', overflowX: 'hidden' },
   topGrid: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'center' },
@@ -754,7 +771,22 @@ export default function ItemsDashboard() {
       {showAddModal ? createPortal(
         <div style={shell.modalOverlay}>
           <form style={modalStyle} onSubmit={handleAddItem}>
-            <div style={modalHeaderStyle}>{editingItemId ? 'Edit Item' : 'New Item'}</div>
+            <div style={modalHeaderStyle}>
+              <h3 style={shell.modalHeaderTitle}>{editingItemId ? 'Edit Item' : 'New Item'}</h3>
+              <button
+                type="button"
+                style={shell.modalCloseButton}
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingItemId(null);
+                  setSaveError('');
+                  setForm(emptyForm);
+                }}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
             <div style={shell.formContent}>
               <div style={topGridStyle}>

@@ -977,15 +977,15 @@ export default function CustomerDashboard() {
   const tableStyle = isMobile
     ? { ...shell.table, minWidth: `${mobileTableMinWidth}px`, tableLayout: 'auto' }
     : shell.table;
-  const modalOverlayStyle = isMobile ? { ...shell.modalOverlay, padding: '0' } : shell.modalOverlay;
+  const modalOverlayStyle = isMobile ? { ...shell.modalOverlay, padding: '16px 10px' } : shell.modalOverlay;
   const modalStyle = isMobile
     ? {
       ...shell.modal,
-      width: '100%',
-      maxHeight: '100dvh',
-      height: '100dvh',
-      borderRadius: 0,
-      border: 'none'
+      width: 'min(100%, 92vw)',
+      maxHeight: '92dvh',
+      height: '92dvh',
+      borderRadius: '28px',
+      border: '1px solid rgba(159, 23, 77, 0.24)'
     }
     : shell.modal;
   const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: isTiny ? '20px' : '22px' } : shell.modalHeader;
@@ -993,7 +993,7 @@ export default function CustomerDashboard() {
     ? {
       ...shell.modalBody,
       gridTemplateColumns: '1fr',
-      padding: '14px',
+      padding: '16px 14px',
       paddingBottom: 'calc(130px + env(safe-area-inset-bottom))',
       WebkitOverflowScrolling: 'touch'
     }

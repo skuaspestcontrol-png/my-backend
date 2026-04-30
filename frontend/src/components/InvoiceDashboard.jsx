@@ -1890,15 +1890,15 @@ export default function InvoiceDashboard() {
   const supplyRowStyle = isMobile ? { ...shell.supplyRow, gridTemplateColumns: '1fr' } : shell.supplyRow;
   const totalsWrapStyle = isMobile ? { ...shell.totalsWrap, width: '100%', marginLeft: 0 } : shell.totalsWrap;
   const paymentTotalsStyle = isMobile ? { ...shell.paymentTotals, minWidth: '100%', marginLeft: 0 } : shell.paymentTotals;
-  const modalOverlayStyle = isMobile ? { ...shell.modalOverlay, padding: '0' } : shell.modalOverlay;
+  const modalOverlayStyle = isMobile ? { ...shell.modalOverlay, padding: '16px 10px' } : shell.modalOverlay;
   const modalStyle = isMobile
     ? {
       ...shell.modal,
-      width: '100%',
-      maxHeight: '100dvh',
-      height: '100dvh',
-      borderRadius: 0,
-      border: 'none'
+      width: 'min(100%, 92vw)',
+      maxHeight: '92dvh',
+      height: '92dvh',
+      borderRadius: '28px',
+      border: '1px solid rgba(159, 23, 77, 0.24)'
     }
     : shell.modal;
   const formBodyStyle = isMobile

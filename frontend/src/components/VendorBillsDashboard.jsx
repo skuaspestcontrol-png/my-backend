@@ -221,10 +221,11 @@ export default function VendorBillsDashboard() {
     return { openAmount, paidAmount, count: bills.length };
   }, [bills]);
 
+  const modalOverlayStyle = isMobile ? { ...shell.modalOverlay, padding: '16px 10px' } : shell.modalOverlay;
   const modalStyle = isMobile
-    ? { ...shell.modal, width: '100%', maxHeight: '100dvh', height: '100dvh', borderRadius: 0, border: 'none' }
+    ? { ...shell.modal, width: 'min(100%, 92vw)', maxHeight: '92dvh', height: '92dvh', borderRadius: '28px', border: '1px solid rgba(159, 23, 77, 0.24)' }
     : shell.modal;
-  const formBodyStyle = isMobile ? { ...shell.formBody, padding: '12px', paddingBottom: 'calc(130px + env(safe-area-inset-bottom))' } : shell.formBody;
+  const formBodyStyle = isMobile ? { ...shell.formBody, padding: '16px 14px', paddingBottom: 'calc(130px + env(safe-area-inset-bottom))' } : shell.formBody;
   const row2Style = isMobile ? { ...shell.row2, gridTemplateColumns: '1fr' } : shell.row2;
   const row4Style = isMobile ? { ...shell.row4, gridTemplateColumns: '1fr' } : shell.row4;
 
@@ -282,7 +283,7 @@ export default function VendorBillsDashboard() {
       </div>
 
       {showModal ? createPortal(
-        <div style={shell.modalOverlay} onClick={closeModal}>
+        <div style={modalOverlayStyle} onClick={closeModal}>
           <form style={modalStyle} onSubmit={saveBill} onClick={(event) => event.stopPropagation()}>
             <div style={shell.modalHeader}><h3 style={shell.headerTitle}>{editingId ? 'Edit Vendor Bill' : 'New Vendor Bill'}</h3><button type="button" style={shell.closeBtn} onClick={closeModal}><X size={24} /></button></div>
             <div style={formBodyStyle}>
