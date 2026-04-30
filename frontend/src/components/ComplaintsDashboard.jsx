@@ -50,6 +50,15 @@ export default function ComplaintsDashboard() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [customerFilter, setCustomerFilter] = useState('');
   const [technicianSearch, setTechnicianSearch] = useState('');
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const isMobile = viewportWidth <= 900;
 
   const loadData = async () => {
     const [complaintsRes, invoicesRes, customersRes, employeesRes] = await Promise.all([
@@ -173,7 +182,7 @@ export default function ComplaintsDashboard() {
     <section style={{ display: 'grid', gap: 12, padding: 0, border: 'none', borderRadius: 0, background: 'transparent' }}>
       {!showNew ? (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: '#0f172a' }}>Manage Complaints</h2>
               <p style={{ margin: 0, color: '#64748b', fontWeight: 600, fontSize: 14 }}>View and manage all customer complaints</p>
@@ -181,7 +190,7 @@ export default function ComplaintsDashboard() {
             <button type="button" onClick={() => setShowNew(true)} style={{ border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#fff', borderRadius: 8, minHeight: 36, padding: '0 14px', fontWeight: 800 }}><Plus size={14} /> New Complaint</button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,minmax(0,1fr))' : 'repeat(4,minmax(0,1fr))', gap: 10 }}>
             {Object.entries(summary).map(([k, v]) => {
               const tone = k === 'Open'
                 ? { background: '#FCEAD0', color: '#EA580C' }
@@ -212,7 +221,7 @@ export default function ComplaintsDashboard() {
           </div>
 
           <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse' }}>
               <thead><tr>{['Complaint', 'Customer', 'Type', 'Priority', 'Status', 'Created', 'Actions'].map((h) => <th key={h} style={{ textAlign: 'left', padding: '11px 10px', fontSize: 12, color: '#64748b', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontWeight: 800, letterSpacing: '0.02em' }}>{h}</th>)}</tr></thead>
               <tbody>
                 {filteredComplaints.map((entry) => (
@@ -240,17 +249,17 @@ export default function ComplaintsDashboard() {
               <h2 style={{ margin: 0, fontSize: 36, fontWeight: 800, color: '#374151' }}>New Complaint</h2>
               <p style={{ margin: 0, color: '#64748b', fontWeight: 600, fontSize: 15 }}>Register a new customer complaint and assign technicians</p>
             </div>
-            <div style={{ display: 'inline-flex', gap: 10 }}>
+            <div style={{ display: 'inline-flex', gap: 10, width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
               <button type="button" onClick={() => setShowNew(false)} style={{ border: '1px solid var(--color-primary-soft)', background: '#fff', color: 'var(--color-primary)', borderRadius: 8, minHeight: 44, padding: '0 14px', fontWeight: 800, fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}><List size={15} /> View All Complaints</button>
               <button type="button" onClick={() => createComplaint(false)} style={{ border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#fff', borderRadius: 8, minHeight: 44, padding: '0 14px', fontWeight: 800, fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}><Save size={15} /> Save Complaint</button>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 12, alignItems: 'start' }}>
             <div style={{ display: 'grid', gap: 12 }}>
               <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 12, padding: 14, display: 'grid', gap: 12 }}>
                 <h3 style={{ margin: 0, fontSize: 18, color: '#374151', fontWeight: 800 }}>Customer & Property</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
                   <div>
                     <p style={{ margin: '0 0 6px 0', fontSize: 12, color: '#6b7280', fontWeight: 800 }}>SELECT CUSTOMER *</p>
                     <select value={form.customerId} onChange={(event) => {
@@ -291,7 +300,7 @@ export default function ComplaintsDashboard() {
 
               <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 12, padding: 14, display: 'grid', gap: 12 }}>
                 <h3 style={{ margin: 0, fontSize: 18, color: '#374151', fontWeight: 800 }}>Complaint Details</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
                   <div>
                     <p style={{ margin: '0 0 6px 0', fontSize: 12, color: '#6b7280', fontWeight: 800 }}>COMPLAINT TYPE</p>
                     <select value={form.type} onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value }))} style={{ width: '100%', minHeight: 42, borderRadius: 8, border: '1px solid #d1d5db', padding: '0 10px', fontSize: 14 }}>
@@ -319,7 +328,7 @@ export default function ComplaintsDashboard() {
                   <p style={{ margin: '0 0 6px 0', fontSize: 12, color: '#6b7280', fontWeight: 800 }}>DETAILED DESCRIPTION</p>
                   <textarea value={form.description} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} placeholder="Provide detailed information about the complaint..." style={{ width: '100%', minHeight: 120, borderRadius: 8, border: '1px solid #d1d5db', padding: 10, fontSize: 14 }} />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10 }}>
                   <div>
                     <p style={{ margin: '0 0 6px 0', fontSize: 12, color: '#6b7280', fontWeight: 800 }}>REPORTED BY</p>
                     <input value={form.reportedBy} onChange={(event) => setForm((prev) => ({ ...prev, reportedBy: event.target.value }))} placeholder="Person who reported" style={{ width: '100%', minHeight: 42, borderRadius: 8, border: '1px solid #d1d5db', padding: '0 10px', fontSize: 14 }} />

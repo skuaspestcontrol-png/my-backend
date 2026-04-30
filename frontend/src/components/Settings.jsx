@@ -625,14 +625,29 @@ export default function Settings() {
   const nonGstBankQrInputRef = useRef(null);
   const [securityForm, setSecurityForm] = useState(defaultSecurityForm);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [isTouchDevice, setIsTouchDevice] = useState(() => (
+    typeof window !== 'undefined'
+      && (window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window)
+  ));
   const passwordStrength = useMemo(() => getPasswordStrength(securityForm.newPassword), [securityForm.newPassword]);
   const brandingAccentOptions = ['#3B82F6', '#22C55E', '#EF4444', '#F59E0B', '#9F174D'];
   const isMobile = viewportWidth <= 768;
+  const isCompactLayout = isMobile || isTouchDevice || viewportWidth <= 1100;
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    const updateTouchMode = () => {
+      if (typeof window === 'undefined') return;
+      setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window);
+    };
+    updateTouchMode();
+    window.addEventListener('resize', updateTouchMode);
+    return () => window.removeEventListener('resize', updateTouchMode);
   }, []);
 
   useEffect(() => {
@@ -2332,50 +2347,49 @@ export default function Settings() {
     return renderSecurity();
   };
 
-  const panelStyle = isMobile
+  const panelStyle = isCompactLayout
     ? { ...shell.panel, minHeight: 'auto' }
     : shell.panel;
-  const panelHeaderStyle = isMobile
+  const panelHeaderStyle = isCompactLayout
     ? { ...shell.panelHeader, padding: '14px 14px 12px', gap: '10px' }
     : shell.panelHeader;
-  const panelTitleStyle = isMobile
+  const panelTitleStyle = isCompactLayout
     ? { ...shell.panelTitle, fontSize: '22px', lineHeight: 1.2 }
     : shell.panelTitle;
-  const panelStatusStyle = isMobile
+  const panelStatusStyle = isCompactLayout
     ? { ...shell.panelStatus, fontSize: '13px' }
     : shell.panelStatus;
-  const panelHeaderSideStyle = isMobile
+  const panelHeaderSideStyle = isCompactLayout
     ? { ...shell.panelHeaderSide, justifyItems: 'start', width: '100%' }
     : shell.panelHeaderSide;
-  const validationStyle = isMobile
+  const validationStyle = isCompactLayout
     ? { ...shell.validation, textAlign: 'left', fontSize: '13px' }
     : shell.validation;
-  const panelHeaderButtonsStyle = isMobile
+  const panelHeaderButtonsStyle = isCompactLayout
     ? { ...shell.panelHeaderButtons, width: '100%', justifyContent: 'stretch', display: 'grid', gridTemplateColumns: '1fr 1fr' }
     : shell.panelHeaderButtons;
-  const topButtonStyle = isMobile
+  const topButtonStyle = isCompactLayout
     ? { ...shell.topButton, width: '100%', padding: '0 10px' }
     : shell.topButton;
-  const settingsContentShellStyle = isMobile
+  const settingsContentShellStyle = isCompactLayout
     ? { ...shell.settingsContentShell, gridTemplateColumns: '1fr' }
     : shell.settingsContentShell;
-  const tabsRowStyle = isMobile
+  const tabsRowStyle = isCompactLayout
     ? {
       ...shell.tabsRow,
-      display: 'flex',
-      gap: '8px',
+      display: 'grid',
+      gap: '10px',
       padding: '10px',
-      overflowX: 'auto',
-      overflowY: 'hidden',
+      overflow: 'visible',
       borderRight: 'none',
       borderBottom: '1px solid var(--border)',
-      WebkitOverflowScrolling: 'touch'
+      background: '#fff'
     }
     : shell.tabsRow;
-  const tabButtonStyle = isMobile
-    ? { ...shell.tabButton, width: 'auto', minWidth: 'fit-content', whiteSpace: 'nowrap', padding: '9px 12px' }
+  const tabButtonStyle = isCompactLayout
+    ? { ...shell.tabButton, width: '100%', minWidth: 0, whiteSpace: 'normal', padding: '10px 12px' }
     : shell.tabButton;
-  const panelBodyStyle = isMobile
+  const panelBodyStyle = isCompactLayout
     ? { ...shell.panelBody, padding: '12px', overflowX: 'hidden' }
     : shell.panelBody;
 
@@ -2406,8 +2420,20 @@ export default function Settings() {
 
           <div style={settingsContentShellStyle}>
             <div style={tabsRowStyle}>
+              {isCompactLayout ? (
+                <select
+                  value={activeSection}
+                  onChange={(event) => setActiveSection(event.target.value)}
+                  style={{ ...shell.input, minHeight: '44px' }}
+                >
+                  {sectionMeta.map((section) => (
+                    <option key={section.key} value={section.key}>{section.label}</option>
+                  ))}
+                </select>
+              ) : null}
               {sectionMeta.map((section) => {
                 const isActive = section.key === activeSection;
+                if (isCompactLayout) return null;
                 return (
                   <button
                     key={section.key}
