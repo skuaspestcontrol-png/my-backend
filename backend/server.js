@@ -1261,21 +1261,57 @@ app.post('/api/employees', async (req, res) => {
   res.json(newEmp);
 });
 
-app.put('/api/employees/:id', async (req, res) => {
-  const employees = readJsonFile(employeesFile, []);
-  const employeeIndex = employees.findIndex((employee) => employee._id === req.params.id);
+const fetchEmployeeByAnyId = async (employeeId) => {
+  const target = String(employeeId || '').trim();
+  if (!target) return null;
 
-  if (employeeIndex === -1) {
-    return res.status(404).json({ error: 'Employee not found' });
+  const employees = readJsonFile(employeesFile, []);
+  const fromJson = employees.find((employee) => String(employee?._id || '').trim() === target);
+  if (fromJson) return fromJson;
+
+  try {
+    const mysqlEmployee = await withMysqlConnection(async (conn) => {
+      const isNumeric = /^\d+$/.test(target);
+      const query = isNumeric
+        ? 'SELECT payload FROM employees WHERE external_id = ? OR id = ? LIMIT 1'
+        : 'SELECT payload FROM employees WHERE external_id = ? LIMIT 1';
+      const params = isNumeric ? [target, Number(target)] : [target];
+      const [rows] = await conn.query(query, params);
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (!row?.payload) return null;
+      if (typeof row.payload === 'string') {
+        try { return JSON.parse(row.payload); } catch { return null; }
+      }
+      return row.payload;
+    });
+    if (mysqlEmployee && typeof mysqlEmployee === 'object') return mysqlEmployee;
+  } catch (error) {
+    console.error('Employee lookup in MySQL failed:', error.message);
   }
 
+  return null;
+};
+
+app.put('/api/employees/:id', async (req, res) => {
+  const employees = readJsonFile(employeesFile, []);
+  const employeeIndex = employees.findIndex((employee) => String(employee?._id || '').trim() === String(req.params.id || '').trim());
+  let baseEmployee = employeeIndex === -1 ? null : employees[employeeIndex];
+  if (!baseEmployee) {
+    baseEmployee = await fetchEmployeeByAnyId(req.params.id);
+  }
+  if (!baseEmployee) return res.status(404).json({ error: 'Employee not found' });
+
   const updatedEmployee = {
-    ...employees[employeeIndex],
+    ...baseEmployee,
     ...req.body,
-    _id: employees[employeeIndex]._id
+    _id: String(baseEmployee._id || req.params.id || '').trim()
   };
 
-  employees[employeeIndex] = updatedEmployee;
+  if (employeeIndex === -1) {
+    employees.push(updatedEmployee);
+  } else {
+    employees[employeeIndex] = updatedEmployee;
+  }
   fs.writeFileSync(employeesFile, JSON.stringify(employees, null, 2));
 
   try {
@@ -1389,14 +1425,13 @@ app.get('/api/attendance', async (req, res) => {
 });
 
 app.post('/api/attendance', async (req, res) => {
-  const employees = readJsonFile(employeesFile, []);
   const employeeId = String(req.body?.employeeId || '').trim();
   const date = String(req.body?.date || '').trim();
   if (!employeeId || !date) {
     return res.status(400).json({ error: 'employeeId and date are required' });
   }
 
-  const employee = employees.find((entry) => String(entry?._id || '').trim() === employeeId);
+  const employee = await fetchEmployeeByAnyId(employeeId);
   if (!employee) {
     return res.status(404).json({ error: 'Employee not found' });
   }
