@@ -1123,6 +1123,38 @@ export default function LeadCapture() {
     return null;
   };
 
+  const normalizeSearchText = (value) => String(value || '').trim().toLowerCase();
+
+  const buildCustomerSearchFields = (entry = {}) => ([
+    entry.customerName,
+    entry.displayName,
+    entry.companyName,
+    entry.contactPersonName,
+    entry.position,
+    entry.title,
+    getLeadMobile(entry),
+    entry.mobileNumber,
+    entry.whatsappNumber,
+    entry.address,
+    entry.searchAddress,
+    entry.billingAddress,
+    entry.shippingAddress,
+    entry.billingStreet1,
+    entry.billingStreet2,
+    entry.shippingStreet1,
+    entry.shippingStreet2,
+    entry.city,
+    entry.state,
+    entry.pincode,
+    entry.pinCode,
+    entry.billingPincode,
+    entry.shippingPincode,
+    entry.areaName,
+    entry.area,
+    entry.billingArea,
+    entry.shippingArea
+  ].map((field) => normalizeSearchText(field)).filter(Boolean));
+
   const fetchAddressFromGoogleMaps = async () => {
     const query = (form.searchAddress || form.address || '').trim();
     if (!query) {
@@ -1132,6 +1164,33 @@ export default function LeadCapture() {
 
     setIsFetchingAddress(true);
     try {
+      const queryText = normalizeSearchText(query);
+      const searchPool = [
+        ...(Array.isArray(customers) ? customers : []),
+        ...(Array.isArray(existingCustomers) ? existingCustomers : [])
+      ];
+      const filteredResults = searchPool.filter((entry) =>
+        buildCustomerSearchFields(entry).some((field) => field.includes(queryText))
+      );
+
+      if (filteredResults.length > 0) {
+        const bestMatch = filteredResults[0] || {};
+        setForm((current) => ({
+          ...current,
+          customerName: current.customerName || bestMatch.customerName || bestMatch.displayName || bestMatch.companyName || '',
+          mobile: current.mobile || normalizePhoneNumber(bestMatch.mobileNumber || getLeadMobile(bestMatch)),
+          whatsappNumber: current.whatsappNumber || normalizePhoneNumber(bestMatch.whatsappNumber || bestMatch.mobileNumber || getLeadMobile(bestMatch) || ''),
+          emailId: current.emailId || bestMatch.emailId || '',
+          searchAddress: bestMatch.searchAddress || bestMatch.address || bestMatch.billingAddress || bestMatch.shippingAddress || current.searchAddress,
+          address: bestMatch.address || bestMatch.billingAddress || bestMatch.shippingAddress || current.address,
+          areaName: bestMatch.areaName || bestMatch.area || bestMatch.billingArea || bestMatch.shippingArea || current.areaName,
+          city: bestMatch.city || current.city,
+          state: bestMatch.state || bestMatch.billingState || bestMatch.shippingState || current.state,
+          pincode: bestMatch.pincode || bestMatch.pinCode || bestMatch.billingPincode || bestMatch.shippingPincode || current.pincode
+        }));
+        return;
+      }
+
       const latLng = parseLatLngFromGoogleUrl(query);
       const response = await axios.post(`${API_BASE_URL}/api/maps/geocode`, latLng
         ? { lat: latLng.lat, lng: latLng.lng }

@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
+const mysql = require('mysql2/promise');
 const PDFDocument = require('pdfkit');
 const { generateInvoicePdfBuffer, formatINR, formatDate } = require('./invoicePdf');
 const { registerPayrollModule } = require('./payrollModule');
@@ -13,6 +14,30 @@ const { registerCustomerDedupModule } = require('./customerDedupModule');
 require('dotenv').config();
 
 const app = express();
+app.get("/api/db-test", async (req, res) => {
+  try {
+    const connection = await mysql.createConnection({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      port: Number(process.env.DB_PORT || 3306),
+    });
+
+    await connection.query("SELECT 1");
+    await connection.end();
+
+    res.json({
+      success: true,
+      message: "DB Connected ✅",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
 // ✅ TEST ROUTES
 app.get("/api", (req, res) => {
   res.send("SKUAS CRM API is working ✅");

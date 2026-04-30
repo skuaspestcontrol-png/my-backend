@@ -144,7 +144,7 @@ export default function Login() {
   };
 
   return (
-    <div style={{ minHeight: '100dvh', width: '100%', background: '#EDEFF4', display: 'flex', justifyContent: 'center', padding: isNarrow ? '18px 12px' : '32px 16px' }}>
+    <div style={{ minHeight: '100dvh', width: '100%', background: '#fff', display: 'flex', justifyContent: 'center', padding: isNarrow ? '18px 12px' : '32px 16px' }}>
       <div style={{ width: '100%', maxWidth: '560px', display: 'grid', gap: isNarrow ? '14px' : '18px', alignContent: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           {hasValidLogo ? (
@@ -255,13 +255,9 @@ export default function Login() {
             </div>
             {forgotStep === 'request' ? (
               <div style={{ display: 'grid', gap: '10px' }}>
-                <label style={{ color: '#475569', fontWeight: 700 }}>Master Email</label>
-                <input
-                  type="email"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: '#E9EEF9', border: '1px solid #CBD5E1' }}
-                />
+                <p style={{ margin: 0, color: '#475569', fontWeight: 700, fontSize: '14px' }}>
+                  Reset OTP will be sent to the registered master email.
+                </p>
                 <button
                   type="button"
                   onClick={requestResetOtp}
