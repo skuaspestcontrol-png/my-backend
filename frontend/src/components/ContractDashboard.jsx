@@ -159,6 +159,36 @@ const shell = {
 };
 
 const normalizeName = (value) => String(value || '').trim().toLowerCase();
+const normalize = (value) => String(value || '').toLowerCase().trim();
+const getSearchText = (item) => {
+  return [
+    item.name,
+    item.displayName,
+    item.customerName,
+    item.companyName,
+    item.contactPersonName,
+    item.title,
+    item.mobileNumber,
+    item.mobile,
+    item.whatsappNumber,
+    item.email,
+    item.emailId,
+    item.billingArea,
+    item.area,
+    item.areaName,
+    item.city,
+    item.state,
+    item.pincode,
+    item.billingAddress,
+    item.shippingAddress,
+    item.customer,
+    item.contractNo,
+    item.contractCode,
+    item.property
+  ]
+    .map(normalize)
+    .join(' ');
+};
 
 const parseDateOnly = (value) => {
   if (!value) return null;
@@ -487,11 +517,8 @@ export default function ContractDashboard() {
       if (filters.from && row.startDate && row.startDate < filters.from) return false;
       if (filters.to && row.startDate && row.startDate > filters.to) return false;
 
-      const q = normalizeName(filters.search);
-      if (q) {
-        const hay = normalizeName(`${row.customer} ${row.contractNo} ${row.city} ${row.property}`);
-        if (!hay.includes(q)) return false;
-      }
+      const search = normalize(filters.search);
+      if (search && !getSearchText(row).includes(search)) return false;
       return true;
     });
   }, [allContracts, filters, quickFilter]);
