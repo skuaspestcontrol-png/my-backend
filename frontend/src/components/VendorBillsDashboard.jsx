@@ -237,7 +237,7 @@ export default function VendorBillsDashboard() {
     <section style={shell.page}>
       <div style={shell.topbar}>
         <h1 style={shell.title}>Vendor Bills</h1>
-        <button type="button" style={shell.buttonPrimary} onClick={openNew}><Plus size={16} />Create New</button>
+        <button type="button" style={shell.buttonPrimary} onClick={openNew}><Plus size={16} />New Bill</button>
       </div>
 
       <div style={shell.summaryWrap}>

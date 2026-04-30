@@ -2901,11 +2901,18 @@ app.post('/api/vendors', (req, res) => {
   const companyName = String(req.body.companyName || '').trim();
   const contactPersonName = String(req.body.contactPersonName || '').trim();
   const emailId = String(req.body.emailId || '').trim();
-  const mobileNumber = String(req.body.mobileNumber || '').trim();
-  const gstNumber = String(req.body.gstNumber || '').trim();
+  const mobileNumber = String(req.body.mobileNumber || '').replace(/\D+/g, '').slice(0, 10);
+  const gstNumber = String(req.body.gstNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+  const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
 
   if (!companyName || !contactPersonName || !emailId || !mobileNumber || !gstNumber) {
     return res.status(400).json({ error: 'Company name, contact person name, email, mobile, and GST number are required.' });
+  }
+  if (mobileNumber.length !== 10) {
+    return res.status(400).json({ error: 'Mobile number must be exactly 10 digits.' });
+  }
+  if (!gstinRegex.test(gstNumber)) {
+    return res.status(400).json({ error: 'Enter a valid 15-character GSTIN (e.g., 08ABCDE9999F1Z8).' });
   }
 
   const vendor = {
@@ -2943,6 +2950,7 @@ app.put('/api/vendors/:id', (req, res) => {
   const vendors = readJsonFile(vendorsFile, []);
   const index = vendors.findIndex((entry) => String(entry._id || '') === String(req.params.id || ''));
   if (index === -1) return res.status(404).json({ error: 'Vendor not found' });
+  const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
 
   const current = vendors[index];
   const next = {
@@ -2953,13 +2961,19 @@ app.put('/api/vendors/:id', (req, res) => {
     contactPersonName: String(req.body.contactPersonName ?? current.contactPersonName ?? '').trim(),
     displayName: String(req.body.displayName ?? current.displayName ?? current.companyName ?? '').trim(),
     emailId: String(req.body.emailId ?? current.emailId ?? '').trim(),
-    mobileNumber: String(req.body.mobileNumber ?? current.mobileNumber ?? '').trim(),
-    gstNumber: String(req.body.gstNumber ?? current.gstNumber ?? '').trim(),
+    mobileNumber: String(req.body.mobileNumber ?? current.mobileNumber ?? '').replace(/\D+/g, '').slice(0, 10),
+    gstNumber: String(req.body.gstNumber ?? current.gstNumber ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15),
     updatedAt: new Date().toISOString()
   };
 
   if (!next.companyName || !next.contactPersonName || !next.emailId || !next.mobileNumber || !next.gstNumber) {
     return res.status(400).json({ error: 'Company name, contact person name, email, mobile, and GST number are required.' });
+  }
+  if (next.mobileNumber.length !== 10) {
+    return res.status(400).json({ error: 'Mobile number must be exactly 10 digits.' });
+  }
+  if (!gstinRegex.test(next.gstNumber)) {
+    return res.status(400).json({ error: 'Enter a valid 15-character GSTIN (e.g., 08ABCDE9999F1Z8).' });
   }
 
   vendors[index] = next;

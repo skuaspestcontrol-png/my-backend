@@ -50,7 +50,17 @@ const shell = {
     textTransform: 'uppercase',
     letterSpacing: '0.06em'
   },
-  td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#334155', fontSize: '13px', verticalAlign: 'top' }
+  td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#334155', fontSize: '13px', verticalAlign: 'top' },
+  actionButton: {
+    border: '1px solid rgba(220,38,38,0.25)',
+    background: '#fff5f5',
+    color: '#b91c1c',
+    borderRadius: '8px',
+    padding: '6px 10px',
+    fontSize: '12px',
+    fontWeight: 700,
+    cursor: 'pointer'
+  }
 };
 
 const toNum = (v) => {
@@ -76,6 +86,9 @@ const normalizeVendorPayments = (vendorBillsRaw) => {
       splits.forEach((split, splitIndex) => {
         rows.push({
           id: `${bill._id || `bill-${billIndex}`}-split-${splitIndex}`,
+          billId: bill._id || '',
+          splitIndex,
+          entryType: 'split',
           date: split.date || bill.updatedAt || bill.date || bill.createdAt,
           billNo: bill.billNumber || '-',
           vendorName: bill.vendorName || '-',
@@ -91,6 +104,9 @@ const normalizeVendorPayments = (vendorBillsRaw) => {
     if (paidAmount > 0) {
       rows.push({
         id: `${bill._id || `bill-${billIndex}`}-paid`,
+        billId: bill._id || '',
+        splitIndex: -1,
+        entryType: 'total',
         date: bill.updatedAt || bill.date || bill.createdAt,
         billNo: bill.billNumber || '-',
         vendorName: bill.vendorName || '-',
@@ -153,6 +169,38 @@ export default function VendorPaymentDashboard() {
     };
   }, [rows, vendorBills]);
 
+  const deletePaymentEntry = async (row) => {
+    if (!row?.billId) return;
+    if (!window.confirm('Delete this payment entry?')) return;
+    try {
+      const bill = vendorBills.find((entry) => String(entry._id || '') === String(row.billId || ''));
+      if (!bill) {
+        window.alert('Related vendor bill not found.');
+        return;
+      }
+
+      const currentSplits = Array.isArray(bill.paymentSplits) ? bill.paymentSplits : [];
+      let nextSplits = currentSplits;
+      if (row.entryType === 'split' && row.splitIndex >= 0) {
+        nextSplits = currentSplits.filter((_, idx) => idx !== row.splitIndex);
+      } else {
+        nextSplits = [];
+      }
+      const nextPaidTotal = Number(nextSplits.reduce((sum, split) => sum + toNum(split?.amount), 0).toFixed(2));
+
+      await axios.put(`${API_BASE_URL}/api/vendor-bills/${row.billId}`, {
+        ...bill,
+        paymentSplits: nextSplits,
+        paymentMadeEnabled: nextPaidTotal > 0,
+        paymentMadeTotal: nextPaidTotal
+      });
+      await loadData();
+      setStatus('Vendor payment entry deleted.');
+    } catch (error) {
+      window.alert(error?.response?.data?.error || 'Unable to delete vendor payment entry');
+    }
+  };
+
   const isMobile = viewportWidth < 768;
   const statsStyle = isMobile ? { ...shell.statsGrid, gridTemplateColumns: '1fr' } : shell.statsGrid;
 
@@ -190,12 +238,13 @@ export default function VendorPaymentDashboard() {
                 <th style={shell.th}>Mode</th>
                 <th style={shell.th}>Amount Paid</th>
                 <th style={shell.th}>Bill Status</th>
+                <th style={shell.th}>Action</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td style={shell.td} colSpan={6}>No vendor payment records available yet.</td>
+                  <td style={shell.td} colSpan={7}>No vendor payment records available yet.</td>
                 </tr>
               ) : (
                 rows.map((row) => (
@@ -206,6 +255,11 @@ export default function VendorPaymentDashboard() {
                     <td style={shell.td}>{row.mode}</td>
                     <td style={{ ...shell.td, fontWeight: 800, color: '#111827' }}>{formatINR(row.amount)}</td>
                     <td style={shell.td}>{row.status}</td>
+                    <td style={shell.td}>
+                      <button type="button" style={shell.actionButton} onClick={() => deletePaymentEntry(row)}>
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}

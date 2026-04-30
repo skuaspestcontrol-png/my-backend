@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Plus, Trash2, X, Pencil } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
 
 const emptyForm = {
   companyName: '',
@@ -49,10 +50,19 @@ const shell = {
   field: { display: 'grid', gap: '6px' },
   label: { fontSize: '13px', color: '#3f3f46', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
   input: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '48px', boxSizing: 'border-box' },
+  textarea: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '84px', resize: 'vertical', boxSizing: 'border-box' },
+  addressSplit: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '16px' },
+  addressCard: { border: '1px solid var(--color-border)', borderRadius: '16px', padding: '14px', background: '#fff' },
+  addressHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
+  addressTitle: { margin: 0, fontSize: '44px', fontWeight: 800, color: '#111827', lineHeight: 1.1 },
+  addressCopy: { fontSize: '14px', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', border: 'none', background: 'transparent', padding: 0, lineHeight: 1.2 },
+  addressGrid: { display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', rowGap: '10px', columnGap: '10px', alignItems: 'center' },
   footer: { padding: '12px 18px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#fff' },
   cancelButton: { border: '1px solid #d1d5db', background: '#fff', color: '#2563eb', borderRadius: '18px', padding: '10px 18px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' },
   saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '18px', padding: '10px 20px', fontSize: '16px', fontWeight: 800, cursor: 'pointer' }
 };
+
+const toTenDigitNumber = (value) => String(value || '').replace(/\D+/g, '').slice(0, 10);
 
 export default function VendorDashboard() {
   const [vendors, setVendors] = useState([]);
@@ -101,6 +111,15 @@ export default function VendorDashboard() {
   };
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const copyBillingToShipping = (source) => ({
+    shippingAttention: source.billingAttention,
+    shippingStreet1: source.billingStreet1,
+    shippingStreet2: source.billingStreet2,
+    shippingAddress: source.billingAddress,
+    shippingArea: source.billingArea,
+    shippingState: source.billingState,
+    shippingPincode: source.billingPincode
+  });
 
   const requiredMissing = useMemo(() => {
     return !String(form.companyName || '').trim()
@@ -116,13 +135,25 @@ export default function VendorDashboard() {
       setSaveError('Please fill all required fields.');
       return;
     }
+    const mobile = toTenDigitNumber(form.mobileNumber);
+    if (mobile.length !== 10) {
+      setSaveError('Mobile number must be exactly 10 digits.');
+      return;
+    }
+    const gstNumber = String(form.gstNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+    if (!gstinRegex.test(gstNumber)) {
+      setSaveError('Enter a valid 15-character GSTIN (e.g., 08ABCDE9999F1Z8).');
+      return;
+    }
+
     setSaveError('');
     setIsSaving(true);
     try {
+      const payload = { ...form, mobileNumber: mobile, gstNumber };
       if (editingId) {
-        await axios.put(`${API_BASE_URL}/api/vendors/${editingId}`, form);
+        await axios.put(`${API_BASE_URL}/api/vendors/${editingId}`, payload);
       } else {
-        await axios.post(`${API_BASE_URL}/api/vendors`, form);
+        await axios.post(`${API_BASE_URL}/api/vendors`, payload);
       }
       setShowModal(false);
       await loadVendors();
@@ -151,6 +182,9 @@ export default function VendorDashboard() {
   const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
   const bodyStyle = isMobile ? { ...shell.body, paddingBottom: 'calc(130px + env(safe-area-inset-bottom))', padding: '16px 14px' } : shell.body;
   const gridStyle = isMobile ? { ...shell.grid, gridTemplateColumns: '1fr' } : shell.grid;
+  const addressSplitStyle = isMobile ? { ...shell.addressSplit, gridTemplateColumns: '1fr' } : shell.addressSplit;
+  const addressGridStyle = isMobile ? { ...shell.addressGrid, gridTemplateColumns: '1fr' } : shell.addressGrid;
+  const addressTitleStyle = isMobile ? { ...shell.addressTitle, fontSize: '20px' } : { ...shell.addressTitle, fontSize: '44px' };
 
   return (
     <section style={shell.page}>
@@ -213,34 +247,66 @@ export default function VendorDashboard() {
                   <div style={shell.field}><label style={shell.label}>Company Name*</label><input style={shell.input} value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
                   <div style={shell.field}><label style={shell.label}>Contact Person Name*</label><input style={shell.input} value={form.contactPersonName} onChange={(e) => update('contactPersonName', e.target.value)} /></div>
                   <div style={shell.field}><label style={shell.label}>Email Address*</label><input style={shell.input} type="email" value={form.emailId} onChange={(e) => update('emailId', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Mobile*</label><input style={shell.input} value={form.mobileNumber} onChange={(e) => update('mobileNumber', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>GST Number*</label><input style={shell.input} value={form.gstNumber} onChange={(e) => update('gstNumber', e.target.value)} /></div>
+                  <div style={shell.field}><label style={shell.label}>Mobile*</label><input style={shell.input} inputMode="numeric" maxLength={10} value={form.mobileNumber} onChange={(e) => update('mobileNumber', toTenDigitNumber(e.target.value))} /></div>
+                  <div style={shell.field}><label style={shell.label}>GST Number*</label><input style={shell.input} inputMode="text" maxLength={15} value={form.gstNumber} onChange={(e) => update('gstNumber', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))} /></div>
                 </div>
               </div>
 
               <div style={shell.card}>
                 <p style={shell.sectionTitle}>Billing Address</p>
-                <div style={gridStyle}>
-                  <div style={shell.field}><label style={shell.label}>Billing Attention</label><input style={shell.input} value={form.billingAttention} onChange={(e) => update('billingAttention', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Billing Street 1</label><input style={shell.input} value={form.billingStreet1} onChange={(e) => update('billingStreet1', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Billing Street 2</label><input style={shell.input} value={form.billingStreet2} onChange={(e) => update('billingStreet2', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Billing Address</label><input style={shell.input} value={form.billingAddress} onChange={(e) => update('billingAddress', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Billing Area</label><input style={shell.input} value={form.billingArea} onChange={(e) => update('billingArea', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Billing State</label><input style={shell.input} value={form.billingState} onChange={(e) => update('billingState', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Billing Pincode</label><input style={shell.input} value={form.billingPincode} onChange={(e) => update('billingPincode', e.target.value)} /></div>
-                </div>
-              </div>
+                <div style={addressSplitStyle}>
+                  <div style={shell.addressCard}>
+                    <div style={shell.addressHead}>
+                      <h4 style={addressTitleStyle}>Billing Address</h4>
+                    </div>
+                    <div style={addressGridStyle}>
+                      <label style={shell.label}>Attention</label>
+                      <input style={shell.input} value={form.billingAttention} onChange={(e) => update('billingAttention', e.target.value)} />
 
-              <div style={shell.card}>
-                <p style={shell.sectionTitle}>Shipping Address</p>
-                <div style={gridStyle}>
-                  <div style={shell.field}><label style={shell.label}>Shipping Attention</label><input style={shell.input} value={form.shippingAttention} onChange={(e) => update('shippingAttention', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Shipping Street 1</label><input style={shell.input} value={form.shippingStreet1} onChange={(e) => update('shippingStreet1', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Shipping Street 2</label><input style={shell.input} value={form.shippingStreet2} onChange={(e) => update('shippingStreet2', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Shipping Address</label><input style={shell.input} value={form.shippingAddress} onChange={(e) => update('shippingAddress', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Shipping Area</label><input style={shell.input} value={form.shippingArea} onChange={(e) => update('shippingArea', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Shipping State</label><input style={shell.input} value={form.shippingState} onChange={(e) => update('shippingState', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Shipping Pincode</label><input style={shell.input} value={form.shippingPincode} onChange={(e) => update('shippingPincode', e.target.value)} /></div>
+                      <label style={shell.label}>Address</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <textarea style={shell.textarea} placeholder="Street 1" value={form.billingStreet1} onChange={(e) => update('billingStreet1', e.target.value)} />
+                        <textarea style={shell.textarea} placeholder="Street 2" value={form.billingStreet2} onChange={(e) => update('billingStreet2', e.target.value)} />
+                      </div>
+
+                      <label style={shell.label}>Area</label>
+                      <input style={shell.input} value={form.billingArea} onChange={(e) => update('billingArea', e.target.value)} />
+
+                      <label style={shell.label}>State</label>
+                      <input style={shell.input} value={form.billingState} onChange={(e) => update('billingState', e.target.value)} />
+
+                      <label style={shell.label}>Pin Code</label>
+                      <input style={shell.input} inputMode="numeric" maxLength={10} value={form.billingPincode} onChange={(e) => update('billingPincode', e.target.value.replace(/\D+/g, '').slice(0, 10))} />
+                    </div>
+                  </div>
+
+                  <div style={shell.addressCard}>
+                    <div style={shell.addressHead}>
+                      <h4 style={addressTitleStyle}>Shipping Address</h4>
+                      <button type="button" style={shell.addressCopy} onClick={() => setForm((prev) => ({ ...prev, ...copyBillingToShipping(prev) }))}>
+                        ↓ Copy billing address
+                      </button>
+                    </div>
+                    <div style={addressGridStyle}>
+                      <label style={shell.label}>Attention</label>
+                      <input style={shell.input} value={form.shippingAttention} onChange={(e) => update('shippingAttention', e.target.value)} />
+
+                      <label style={shell.label}>Address</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <textarea style={shell.textarea} placeholder="Street 1" value={form.shippingStreet1} onChange={(e) => update('shippingStreet1', e.target.value)} />
+                        <textarea style={shell.textarea} placeholder="Street 2" value={form.shippingStreet2} onChange={(e) => update('shippingStreet2', e.target.value)} />
+                      </div>
+
+                      <label style={shell.label}>Area</label>
+                      <input style={shell.input} value={form.shippingArea} onChange={(e) => update('shippingArea', e.target.value)} />
+
+                      <label style={shell.label}>State</label>
+                      <input style={shell.input} value={form.shippingState} onChange={(e) => update('shippingState', e.target.value)} />
+
+                      <label style={shell.label}>Pin Code</label>
+                      <input style={shell.input} inputMode="numeric" maxLength={10} value={form.shippingPincode} onChange={(e) => update('shippingPincode', e.target.value.replace(/\D+/g, '').slice(0, 10))} />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

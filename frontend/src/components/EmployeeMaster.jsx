@@ -166,6 +166,7 @@ const toAnnual = (value) => {
 };
 
 const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
+const toTenDigitNumber = (value) => String(value || '').replace(/\D+/g, '').slice(0, 10);
 
 const employeeDisplayName = (employee) => [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Unnamed';
 
@@ -269,6 +270,10 @@ export default function EmployeeMaster() {
   }, [annualSalary]);
 
   const updateField = (key, value) => {
+    if (key === 'mobile' || key === 'emergencyContactNumber') {
+      setForm((prev) => ({ ...prev, [key]: toTenDigitNumber(value) }));
+      return;
+    }
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -328,6 +333,14 @@ export default function EmployeeMaster() {
       setStatus('First name and mobile number are required.');
       return;
     }
+    if (toTenDigitNumber(form.mobile).length !== 10) {
+      setStatus('Mobile number must be exactly 10 digits.');
+      return;
+    }
+    if (form.emergencyContactNumber && toTenDigitNumber(form.emergencyContactNumber).length !== 10) {
+      setStatus('Emergency contact number must be exactly 10 digits.');
+      return;
+    }
 
     const anyPortalAccess = form.appAccessEnabled || form.webPortalAccessEnabled;
     if (anyPortalAccess) {
@@ -356,8 +369,8 @@ export default function EmployeeMaster() {
       maritalStatus: String(form.maritalStatus || 'Unmarried').trim(),
       bloodGroup: String(form.bloodGroup || '').trim(),
       emergencyPersonName: String(form.emergencyPersonName || '').trim(),
-      emergencyContactNumber: String(form.emergencyContactNumber || '').trim(),
-      mobile: String(form.mobile || '').trim(),
+      emergencyContactNumber: toTenDigitNumber(form.emergencyContactNumber || ''),
+      mobile: toTenDigitNumber(form.mobile || ''),
       email: String(form.email || '').trim(),
       emailId: String(form.email || '').trim(),
       permanentAddress: String(form.permanentAddress || '').trim(),
@@ -553,11 +566,11 @@ export default function EmployeeMaster() {
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Emergency Contact Number</label>
-                    <input style={shell.input} value={form.emergencyContactNumber} onChange={(event) => updateField('emergencyContactNumber', event.target.value)} />
+                    <input style={shell.input} inputMode="numeric" maxLength={10} value={form.emergencyContactNumber} onChange={(event) => updateField('emergencyContactNumber', event.target.value)} />
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Mobile Number *</label>
-                    <input style={shell.input} required value={form.mobile} onChange={(event) => updateField('mobile', event.target.value)} />
+                    <input style={shell.input} inputMode="numeric" maxLength={10} required value={form.mobile} onChange={(event) => updateField('mobile', event.target.value)} />
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Email ID</label>

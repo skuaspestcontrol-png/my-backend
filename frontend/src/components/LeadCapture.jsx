@@ -1785,7 +1785,7 @@ export default function LeadCapture() {
           <div style={registerActionsStyle}>
             <button type="button" style={buttonPrimaryStyle} onClick={openLeadModal}>
               <Plus size={16} />
-              New
+              New Lead
             </button>
             <div style={{ position: 'relative' }}>
               <button

@@ -1029,7 +1029,7 @@ export default function CustomerDashboard() {
         <div style={topActionsStyle}>
           <button type="button" style={primaryButtonStyle} onClick={openNewForm}>
             <Plus size={16} />
-            New
+            New Customer
           </button>
           <div style={{ position: 'relative' }}>
             <button

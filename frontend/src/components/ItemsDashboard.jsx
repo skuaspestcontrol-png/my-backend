@@ -648,7 +648,7 @@ export default function ItemsDashboard() {
         <div style={topActionsStyle}>
           <button type="button" style={buttonPrimaryStyle} onClick={openNewItemForm}>
             <Plus size={18} />
-            New
+            New Item
           </button>
           <div style={{ position: 'relative' }}>
             <button
