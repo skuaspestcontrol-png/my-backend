@@ -125,7 +125,9 @@ const employeesFile = path.join(dataDir, 'employees.json');
 const jobsFile = path.join(dataDir, 'jobs.json');
 const itemsFile = path.join(dataDir, 'items.json');
 const customersFile = path.join(dataDir, 'customers.json');
+const vendorsFile = path.join(dataDir, 'vendors.json');
 const invoicesFile = path.join(dataDir, 'invoices.json');
+const vendorBillsFile = path.join(dataDir, 'vendor_bills.json');
 const paymentsFile = path.join(dataDir, 'payments.json');
 const attendanceFile = path.join(dataDir, 'attendance.json');
 const renewalsFile = path.join(dataDir, 'renewals.json');
@@ -2887,6 +2889,172 @@ app.get('/api/invoices', async (req, res) => {
     console.error('MySQL invoices read failed, using JSON fallback:', error.message);
   }
   res.json(readJsonFile(invoicesFile, []));
+});
+
+app.get('/api/vendors', (req, res) => {
+  const vendors = readJsonFile(vendorsFile, []);
+  res.json(Array.isArray(vendors) ? vendors : []);
+});
+
+app.post('/api/vendors', (req, res) => {
+  const vendors = readJsonFile(vendorsFile, []);
+  const companyName = String(req.body.companyName || '').trim();
+  const contactPersonName = String(req.body.contactPersonName || '').trim();
+  const emailId = String(req.body.emailId || '').trim();
+  const mobileNumber = String(req.body.mobileNumber || '').trim();
+  const gstNumber = String(req.body.gstNumber || '').trim();
+
+  if (!companyName || !contactPersonName || !emailId || !mobileNumber || !gstNumber) {
+    return res.status(400).json({ error: 'Company name, contact person name, email, mobile, and GST number are required.' });
+  }
+
+  const vendor = {
+    _id: `VND-${Date.now()}`,
+    companyName,
+    contactPersonName,
+    displayName: String(req.body.displayName || companyName).trim(),
+    emailId,
+    mobileNumber,
+    gstNumber,
+    billingAttention: String(req.body.billingAttention || '').trim(),
+    billingStreet1: String(req.body.billingStreet1 || '').trim(),
+    billingStreet2: String(req.body.billingStreet2 || '').trim(),
+    billingAddress: String(req.body.billingAddress || '').trim(),
+    billingArea: String(req.body.billingArea || '').trim(),
+    billingState: String(req.body.billingState || '').trim(),
+    billingPincode: String(req.body.billingPincode || '').trim(),
+    shippingAttention: String(req.body.shippingAttention || '').trim(),
+    shippingStreet1: String(req.body.shippingStreet1 || '').trim(),
+    shippingStreet2: String(req.body.shippingStreet2 || '').trim(),
+    shippingAddress: String(req.body.shippingAddress || '').trim(),
+    shippingArea: String(req.body.shippingArea || '').trim(),
+    shippingState: String(req.body.shippingState || '').trim(),
+    shippingPincode: String(req.body.shippingPincode || '').trim(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  vendors.push(vendor);
+  fs.writeFileSync(vendorsFile, JSON.stringify(vendors, null, 2));
+  res.json(vendor);
+});
+
+app.put('/api/vendors/:id', (req, res) => {
+  const vendors = readJsonFile(vendorsFile, []);
+  const index = vendors.findIndex((entry) => String(entry._id || '') === String(req.params.id || ''));
+  if (index === -1) return res.status(404).json({ error: 'Vendor not found' });
+
+  const current = vendors[index];
+  const next = {
+    ...current,
+    ...req.body,
+    _id: current._id,
+    companyName: String(req.body.companyName ?? current.companyName ?? '').trim(),
+    contactPersonName: String(req.body.contactPersonName ?? current.contactPersonName ?? '').trim(),
+    displayName: String(req.body.displayName ?? current.displayName ?? current.companyName ?? '').trim(),
+    emailId: String(req.body.emailId ?? current.emailId ?? '').trim(),
+    mobileNumber: String(req.body.mobileNumber ?? current.mobileNumber ?? '').trim(),
+    gstNumber: String(req.body.gstNumber ?? current.gstNumber ?? '').trim(),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!next.companyName || !next.contactPersonName || !next.emailId || !next.mobileNumber || !next.gstNumber) {
+    return res.status(400).json({ error: 'Company name, contact person name, email, mobile, and GST number are required.' });
+  }
+
+  vendors[index] = next;
+  fs.writeFileSync(vendorsFile, JSON.stringify(vendors, null, 2));
+  res.json(next);
+});
+
+app.delete('/api/vendors/:id', (req, res) => {
+  const vendors = readJsonFile(vendorsFile, []);
+  const updated = vendors.filter((entry) => String(entry._id || '') !== String(req.params.id || ''));
+  if (updated.length === vendors.length) return res.status(404).json({ error: 'Vendor not found' });
+  fs.writeFileSync(vendorsFile, JSON.stringify(updated, null, 2));
+  res.json({ message: 'Vendor deleted' });
+});
+
+app.get('/api/vendor-bills', (req, res) => {
+  const bills = readJsonFile(vendorBillsFile, []);
+  res.json(Array.isArray(bills) ? bills : []);
+});
+
+app.post('/api/vendor-bills', (req, res) => {
+  const bills = readJsonFile(vendorBillsFile, []);
+  const amount = toNumber(req.body.amount, 0);
+  const paidAmount = Boolean(req.body.paymentMadeEnabled) ? toNumber(req.body.paymentMadeTotal, 0) : 0;
+  if (paidAmount > amount + 0.0001) {
+    return res.status(400).json({ error: 'Amount paid cannot be greater than total amount.' });
+  }
+
+  const status = paidAmount >= amount && amount > 0 ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'OPEN';
+  const newBill = {
+    _id: `VBL-${Date.now()}`,
+    vendorId: String(req.body.vendorId || '').trim(),
+    vendorName: String(req.body.vendorName || '').trim(),
+    billNumber: String(req.body.billNumber || `BILL-${Date.now()}`).trim(),
+    date: String(req.body.date || new Date().toISOString().slice(0, 10)).trim(),
+    dueDate: String(req.body.dueDate || req.body.date || new Date().toISOString().slice(0, 10)).trim(),
+    invoiceType: String(req.body.invoiceType || 'GST').trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST',
+    items: Array.isArray(req.body.items) ? req.body.items : [],
+    subtotal: toNumber(req.body.subtotal, amount),
+    totalTax: toNumber(req.body.totalTax, 0),
+    amount,
+    total: toNumber(req.body.total, amount),
+    balanceDue: Number(Math.max(amount - paidAmount, 0).toFixed(2)),
+    paymentMadeEnabled: Boolean(req.body.paymentMadeEnabled),
+    paymentSplits: Array.isArray(req.body.paymentSplits) ? req.body.paymentSplits : [],
+    paymentMadeTotal: paidAmount,
+    status,
+    notes: String(req.body.notes || '').trim(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  bills.push(newBill);
+  fs.writeFileSync(vendorBillsFile, JSON.stringify(bills, null, 2));
+  res.json(newBill);
+});
+
+app.put('/api/vendor-bills/:id', (req, res) => {
+  const bills = readJsonFile(vendorBillsFile, []);
+  const index = bills.findIndex((entry) => String(entry._id || '') === String(req.params.id || ''));
+  if (index === -1) return res.status(404).json({ error: 'Vendor bill not found' });
+
+  const current = bills[index];
+  const amount = toNumber(req.body.amount ?? current.amount, 0);
+  const paidAmount = (req.body.paymentMadeEnabled == null ? Boolean(current.paymentMadeEnabled) : Boolean(req.body.paymentMadeEnabled))
+    ? toNumber(req.body.paymentMadeTotal ?? current.paymentMadeTotal, 0)
+    : 0;
+  if (paidAmount > amount + 0.0001) {
+    return res.status(400).json({ error: 'Amount paid cannot be greater than total amount.' });
+  }
+  const status = paidAmount >= amount && amount > 0 ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'OPEN';
+
+  const next = {
+    ...current,
+    ...req.body,
+    _id: current._id,
+    amount,
+    total: toNumber(req.body.total ?? current.total, amount),
+    balanceDue: Number(Math.max(amount - paidAmount, 0).toFixed(2)),
+    paymentMadeTotal: paidAmount,
+    status,
+    updatedAt: new Date().toISOString()
+  };
+
+  bills[index] = next;
+  fs.writeFileSync(vendorBillsFile, JSON.stringify(bills, null, 2));
+  res.json(next);
+});
+
+app.delete('/api/vendor-bills/:id', (req, res) => {
+  const bills = readJsonFile(vendorBillsFile, []);
+  const updated = bills.filter((entry) => String(entry._id || '') !== String(req.params.id || ''));
+  if (updated.length === bills.length) return res.status(404).json({ error: 'Vendor bill not found' });
+  fs.writeFileSync(vendorBillsFile, JSON.stringify(updated, null, 2));
+  res.json({ message: 'Vendor bill deleted' });
 });
 
 app.post('/api/invoices', async (req, res) => {

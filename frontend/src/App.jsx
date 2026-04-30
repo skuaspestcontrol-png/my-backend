@@ -16,6 +16,8 @@ const ItemsDashboard = lazy(() => import('./components/ItemsDashboard'));
 const LeadCapture = lazy(() => import('./components/LeadCapture'));
 const OperationsPortal = lazy(() => import('./components/OperationsPortal'));
 const PaymentReceivedDashboard = lazy(() => import('./components/PaymentReceivedDashboard'));
+const VendorDashboard = lazy(() => import('./components/VendorDashboard'));
+const VendorBillsDashboard = lazy(() => import('./components/VendorBillsDashboard'));
 const RenewalDashboard = lazy(() => import('./components/RenewalDashboard'));
 const ComplaintsDashboard = lazy(() => import('./components/ComplaintsDashboard'));
 const ScheduleJob = lazy(() => import('./components/ScheduleJob'));
@@ -41,57 +43,8 @@ const contractPage = <ContractDashboard />;
 
 const renewalPage = <RenewalDashboard />;
 
-const vendorsPage = (
-  <ModuleWorkspace
-    badge="Vendor Desk"
-    title="Vendors Dashboard"
-    description="Manage supplier profiles, reliability checks, and vendor engagement for smooth procurement cycles."
-    stats={[
-      { label: 'Vendor Count', value: 'Active' },
-      { label: 'Rate Stability', value: 'Tracked' },
-      { label: 'Delivery Health', value: 'Monitored' }
-    ]}
-    queueTitle="Vendor Priorities"
-    queueItems={[
-      { title: 'Vendor onboarding', description: 'Capture supplier details and procurement categories before placing orders.', meta: 'Setup', tone: 'var(--color-primary)' },
-      { title: 'Performance review', description: 'Review delivery timelines, quality consistency, and escalation history.', meta: 'Review', tone: '#0f766e' },
-      { title: 'Rate negotiation list', description: 'Prepare a shortlist of suppliers for price revision and contract updates.', meta: 'Plan', tone: '#d97706' }
-    ]}
-    actions={[
-      { label: 'Open Bills Dashboard', href: '/purchase/bills' },
-      { label: 'Open Purchase Payments', href: '/purchase/payment-received' },
-      { label: 'Back to Purchase', href: '/purchase/vendors' }
-    ]}
-    sideTitle="Vendor readiness"
-    sideText="A reliable vendor network keeps operations stable, especially during high service demand cycles."
-  />
-);
-
-const billsPage = (
-  <ModuleWorkspace
-    badge="Purchase Billing"
-    title="Bills Dashboard"
-    description="Track supplier bills, approval status, and due amounts in one focused purchase billing workspace."
-    stats={[
-      { label: 'Bills Status', value: 'Live' },
-      { label: 'Approval Queue', value: 'Running' },
-      { label: 'Due Control', value: 'Enabled' }
-    ]}
-    queueTitle="Bills Queue"
-    queueItems={[
-      { title: 'Pending bill entries', description: 'Log all supplier bills for received materials and services.', meta: 'Entry', tone: 'var(--color-primary-dark)' },
-      { title: 'Approval checks', description: 'Validate quantities, rates, and tax values before approval.', meta: 'Check', tone: '#d97706' },
-      { title: 'Upcoming due bills', description: 'Flag bills nearing due date for timely payment processing.', meta: 'Due', tone: '#dc2626' }
-    ]}
-    actions={[
-      { label: 'Open Vendors Dashboard', href: '/purchase/vendors' },
-      { label: 'Open Purchase Payments', href: '/purchase/payment-received' },
-      { label: 'Back to Purchase', href: '/purchase/vendors' }
-    ]}
-    sideTitle="Bill control"
-    sideText="Consistent bill verification helps avoid overpayment, delays, and supplier disputes."
-  />
-);
+const vendorsPage = <VendorDashboard />;
+const billsPage = <VendorBillsDashboard />;
 
 const purchasePaymentReceivedPage = (
   <ModuleWorkspace
