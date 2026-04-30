@@ -1924,6 +1924,7 @@ export default function InvoiceDashboard() {
   const tinyGhostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
   const tinyCustomizeBtnStyle = isTiny ? { ...shell.customizeButton, padding: '7px 10px', fontSize: '11px' } : shell.customizeButton;
   const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
+  const dateInputStyle = { ...shell.input, width: '100%', minWidth: 0, boxSizing: 'border-box' };
   const tableStyle = isMobile ? { ...shell.table, minWidth: isTiny ? '700px' : '760px' } : shell.table;
   const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : shell.itemTable;
@@ -2270,7 +2271,7 @@ export default function InvoiceDashboard() {
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Invoice Date*</label>
                 <input
                   type="date"
-                  style={shell.input}
+                  style={dateInputStyle}
                   value={form.date}
                   onChange={(event) => handleDateChange(event.target.value)}
                 />
@@ -2289,7 +2290,7 @@ export default function InvoiceDashboard() {
                 <label style={shell.label}>Due Date</label>
                 <input
                   type="date"
-                  style={{ ...shell.input, textAlign: 'left' }}
+                  style={{ ...dateInputStyle, textAlign: 'left' }}
                   value={form.dueDate}
                   onChange={(event) => setFormWithTotals((prev) => ({ ...prev, dueDate: event.target.value }))}
                 />

@@ -26,6 +26,7 @@ const SalesPortal = lazy(() => import('./components/SalesPortal'));
 const ServiceCalendar = lazy(() => import('./components/ServiceCalendar'));
 const Settings = lazy(() => import('./components/Settings'));
 const TechnicianPortal = lazy(() => import('./components/TechnicianPortal'));
+const TrackTechnicians = lazy(() => import('./components/TrackTechnicians'));
 const UIDashboardPage = lazy(() => import('./pages/Dashboard'));
 const UICustomersPage = lazy(() => import('./pages/CustomersPage'));
 
@@ -179,8 +180,11 @@ function App() {
           <Route path="/purchase/payment-received" element={<AppRoute element={purchasePaymentReceivedPage} />} />
           <Route path="/whatsapp" element={<AppRoute element={whatsappPage} />} />
           <Route path="/schedule-job" element={<AppRoute element={<ScheduleJob />} />} />
+          <Route path="/operations/assign-services" element={<AppRoute element={<ScheduleJob />} />} />
           <Route path="/service-calendar" element={<AppRoute element={<ServiceCalendar />} />} />
           <Route path="/technician-portal" element={<AppRoute element={<TechnicianPortal />} />} />
+          <Route path="/operations/assigned-jobs" element={<AppRoute element={<TechnicianPortal />} />} />
+          <Route path="/operations/track-technicians" element={<AppRoute element={<TrackTechnicians />} />} />
           <Route path="/sales-portal" element={<AppRoute element={<SalesPortal />} />} />
           <Route path="/operations-portal" element={<AppRoute element={<OperationsPortal />} />} />
           <Route path="/complaints" element={<AppRoute element={complaintsPage} />} />

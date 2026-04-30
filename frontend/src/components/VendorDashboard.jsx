@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { Plus, Trash2, X, Pencil } from 'lucide-react';
+import { Trash2, X, Pencil } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
@@ -32,7 +32,7 @@ const shell = {
   page: { background: 'transparent', border: 'none', borderRadius: 0, boxShadow: 'none', overflow: 'visible', position: 'relative' },
   topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)', background: '#fff' },
   title: { margin: 0, fontSize: '30px', fontWeight: 800, letterSpacing: '-0.03em', color: '#1f2937' },
-  buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', padding: '9px 14px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px' },
+  buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', padding: '9px 14px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap', flexWrap: 'nowrap' },
   tableWrap: { overflowX: 'auto', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-border)', marginTop: '12px' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '900px' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
@@ -191,8 +191,7 @@ export default function VendorDashboard() {
       <div style={shell.topbar}>
         <h1 style={shell.title}>Vendors Dashboard</h1>
         <button type="button" style={shell.buttonPrimary} onClick={openNew}>
-          <Plus size={16} />
-          New Vendor
+          + New Vendor
         </button>
       </div>
 

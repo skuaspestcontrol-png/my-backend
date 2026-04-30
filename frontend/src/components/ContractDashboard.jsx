@@ -818,7 +818,7 @@ export default function ContractDashboard() {
               style={shell.newBtn}
               onClick={() => navigate('/sales/invoices', { state: { openNewInvoice: true } })}
             >
-              New Contract
+              + New Contract
             </button>
           </div>
         </div>

@@ -50,6 +50,7 @@ export default function DashboardLayout({ children }) {
   const [settings, setSettings] = useState({});
   const [salesMenuOpen, setSalesMenuOpen] = useState(false);
   const [purchaseMenuOpen, setPurchaseMenuOpen] = useState(false);
+  const [fieldOpsMenuOpen, setFieldOpsMenuOpen] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 992);
 
@@ -78,6 +79,9 @@ export default function DashboardLayout({ children }) {
     }
     if (location.pathname.startsWith('/purchase/')) {
       setPurchaseMenuOpen(true);
+    }
+    if (location.pathname.startsWith('/operations/')) {
+      setFieldOpsMenuOpen(true);
     }
   }, [location.pathname]);
 
@@ -110,6 +114,7 @@ export default function DashboardLayout({ children }) {
 
   const salesGroupActive = isPrefixActive('/sales/');
   const purchaseGroupActive = isPrefixActive('/purchase/');
+  const fieldOpsGroupActive = isPrefixActive('/operations/') || isActive('/schedule-job') || isActive('/technician-portal');
 
   const baseLinkStyle = (active) => ({
     display: 'flex',
@@ -289,9 +294,20 @@ export default function DashboardLayout({ children }) {
           </SidebarSection>
 
           <SidebarSection title="Operations">
-            <Link to="/schedule-job" className={isActive('/schedule-job') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/schedule-job')}><Truck size={18} /> Assign Services</Link>
-            <Link to="/service-calendar" className={isActive('/service-calendar') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/service-calendar')}><CalendarDays size={18} /> Service Calendar</Link>
-            <Link to="/technician-portal" className={isActive('/technician-portal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/technician-portal')}><Smartphone size={18} /> Field Operations</Link>
+            <button type="button" className={fieldOpsGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => setFieldOpsMenuOpen((prev) => !prev)} style={groupToggleStyle(fieldOpsGroupActive)}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+                <Smartphone size={18} /> Field Operations
+              </span>
+              {fieldOpsMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+            </button>
+            {fieldOpsMenuOpen ? (
+              <>
+                <Link to="/operations/assign-services" className={isActive('/operations/assign-services') || isActive('/schedule-job') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assign-services')}>Assign Services</Link>
+                <Link to="/operations/assigned-jobs" className={isActive('/operations/assigned-jobs') || isActive('/technician-portal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assigned-jobs')}>Assigned Jobs</Link>
+                <Link to="/operations/track-technicians" className={isActive('/operations/track-technicians') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/track-technicians')}>Track Technicians</Link>
+                <Link to="/service-calendar" className={isActive('/service-calendar') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/service-calendar')}>Service Calendar</Link>
+              </>
+            ) : null}
             <Link to="/complaints" className={isActive('/complaints') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/complaints')}><Bell size={18} /> Complaints</Link>
             <Link to="/certificates" className={isActive('/certificates') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/certificates')}><ShieldCheck size={18} /> Certificates</Link>
           </SidebarSection>
