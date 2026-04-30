@@ -16,6 +16,9 @@ import { applyBrandingTheme, saveBrandingSettings } from '../utils/brandingTheme
 import WhatsAppSettings from '../pages/settings/WhatsAppSettings';
 import WhatsAppTemplates from '../pages/settings/WhatsAppTemplates';
 import WhatsAppLogs from '../pages/whatsapp/WhatsAppLogs';
+import EmailSettings from '../pages/settings/EmailSettings';
+import EmailTemplates from '../pages/settings/EmailTemplates';
+import EmailLogs from '../pages/email/EmailLogs';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -124,7 +127,9 @@ const sectionMeta = [
   { key: 'whatsappApiSettings', label: 'WhatsApp API Settings' },
   { key: 'whatsappTemplates', label: 'WhatsApp Templates' },
   { key: 'whatsappLogs', label: 'WhatsApp Logs' },
-  { key: 'emailSender', label: 'Email Sender' },
+  { key: 'emailApiSettings', label: 'Email API Settings' },
+  { key: 'emailTemplates', label: 'Email Templates' },
+  { key: 'emailLogs', label: 'Email Logs' },
   { key: 'termsConditions', label: 'Terms & Conditions' },
   { key: 'invoiceSettings', label: 'Invoice Settings' },
   { key: 'security', label: 'Change Password' }
@@ -235,8 +240,8 @@ const shell = {
     backdropFilter: 'none'
   },
   headingWrap: { display: 'grid', gap: '4px' },
-  heading: { margin: 0, fontSize: '38px', letterSpacing: '-0.03em', color: 'var(--text)', fontWeight: 800 },
-  subHeading: { margin: 0, fontSize: '15px', color: 'var(--muted)', fontWeight: 600 },
+  heading: { margin: 0, fontSize: '30px', letterSpacing: '-0.02em', color: 'var(--text)', fontWeight: 800 },
+  subHeading: { margin: 0, fontSize: '13px', color: 'var(--muted)', fontWeight: 600 },
   workspaceShell: {
     display: 'grid',
     gap: '12px',
@@ -298,18 +303,18 @@ const shell = {
   panelHeaderMain: { minWidth: '250px', flex: '1 1 340px' },
   panelHeaderSide: { display: 'grid', justifyItems: 'end', gap: '10px' },
   panelHeaderButtons: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' },
-  panelTitle: { margin: 0, color: 'var(--text)', fontSize: '34px', fontWeight: 800, letterSpacing: '-0.02em' },
-  panelStatus: { margin: '4px 0 0 0', fontSize: '14px', fontWeight: 700, color: 'var(--muted)' },
+  panelTitle: { margin: 0, color: 'var(--text)', fontSize: '26px', fontWeight: 800, letterSpacing: '-0.01em' },
+  panelStatus: { margin: '3px 0 0 0', fontSize: '12px', fontWeight: 700, color: 'var(--muted)' },
   validation: { fontSize: '14px', fontWeight: 800, color: 'var(--sky-deep)', textAlign: 'right' },
   topButton: {
-    minHeight: '50px',
+    minHeight: '42px',
     borderRadius: '10px',
     border: '1px solid rgba(17, 17, 17, 0.2)',
     background: '#fff',
     color: 'var(--text)',
-    fontSize: '14px',
+    fontSize: '12px',
     fontWeight: 800,
-    padding: '0 20px',
+    padding: '0 14px',
     cursor: 'pointer'
   },
   topButtonPrimary: { borderColor: 'rgba(159, 23, 77, 0.52)', background: 'var(--color-primary)', color: '#ffffff' },
@@ -334,8 +339,8 @@ const shell = {
     borderRadius: '10px',
     background: 'transparent',
     color: '#4b5563',
-    padding: '10px 12px',
-    fontSize: '14px',
+    padding: '8px 10px',
+    fontSize: '12px',
     fontWeight: 800,
     cursor: 'pointer',
     textAlign: 'left',
@@ -348,7 +353,7 @@ const shell = {
     background: 'var(--color-primary-light)',
     boxShadow: 'inset 3px 0 0 var(--color-primary)'
   },
-  panelBody: { padding: '18px 24px', display: 'grid', alignContent: 'start', gap: '14px', flex: 1 },
+  panelBody: { padding: '14px 16px', display: 'grid', alignContent: 'start', gap: '10px', flex: 1 },
   sectionHeading: { margin: 0, color: '#374151', fontSize: '13px', fontWeight: 800, letterSpacing: '0.02em' },
   infoBanner: {
     borderRadius: '10px',
@@ -610,7 +615,9 @@ const getSectionCompletion = (form, securityForm) => {
     whatsappApiSettings: [form.whatsappPhoneNumber, form.whatsappInstanceId, form.whatsappAccessToken].every(isFilled),
     whatsappTemplates: true,
     whatsappLogs: true,
-    emailSender: [form.smtpSenderName, form.smtpFromEmail, form.smtpUser, form.smtpHost, form.smtpPort].every(isFilled),
+    emailApiSettings: [form.smtpSenderName, form.smtpFromEmail, form.smtpUser, form.smtpHost, form.smtpPort].every(isFilled),
+    emailTemplates: true,
+    emailLogs: true,
     termsConditions: [form.gstTermsAndConditions, form.nonGstTermsAndConditions].every(isFilled),
     invoiceSettings: Boolean(form.invoiceTemplate && Array.isArray(form.invoiceVisibleColumns) && form.invoiceVisibleColumns.length > 0),
     security: securityReady
@@ -2350,7 +2357,9 @@ export default function Settings() {
     if (activeSection === 'whatsappApiSettings') return <WhatsAppSettings />;
     if (activeSection === 'whatsappTemplates') return <WhatsAppTemplates />;
     if (activeSection === 'whatsappLogs') return <WhatsAppLogs />;
-    if (activeSection === 'emailSender') return renderEmailSender();
+    if (activeSection === 'emailApiSettings') return <EmailSettings />;
+    if (activeSection === 'emailTemplates') return <EmailTemplates />;
+    if (activeSection === 'emailLogs') return <EmailLogs />;
     if (activeSection === 'termsConditions') return renderTermsConditions();
     if (activeSection === 'invoiceSettings') return renderInvoiceSettings();
     return renderSecurity();

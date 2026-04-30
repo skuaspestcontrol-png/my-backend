@@ -30,6 +30,9 @@ const TrackTechnicians = lazy(() => import('./components/TrackTechnicians'));
 const WhatsAppSettings = lazy(() => import('./pages/settings/WhatsAppSettings'));
 const WhatsAppTemplates = lazy(() => import('./pages/settings/WhatsAppTemplates'));
 const WhatsAppLogs = lazy(() => import('./pages/whatsapp/WhatsAppLogs'));
+const EmailSettings = lazy(() => import('./pages/settings/EmailSettings'));
+const EmailTemplates = lazy(() => import('./pages/settings/EmailTemplates'));
+const EmailLogs = lazy(() => import('./pages/email/EmailLogs'));
 const UIDashboardPage = lazy(() => import('./pages/Dashboard'));
 const UICustomersPage = lazy(() => import('./pages/CustomersPage'));
 
@@ -185,6 +188,9 @@ function App() {
           <Route path="/settings/whatsapp" element={<AppRoute element={<WhatsAppSettings />} />} />
           <Route path="/settings/whatsapp/templates" element={<AppRoute element={<WhatsAppTemplates />} />} />
           <Route path="/whatsapp/logs" element={<AppRoute element={<WhatsAppLogs />} />} />
+          <Route path="/settings/email" element={<AppRoute element={<EmailSettings />} />} />
+          <Route path="/settings/email/templates" element={<AppRoute element={<EmailTemplates />} />} />
+          <Route path="/email/logs" element={<AppRoute element={<EmailLogs />} />} />
           <Route path="/schedule-job" element={<AppRoute element={<ScheduleJob />} />} />
           <Route path="/operations/assign-services" element={<AppRoute element={<ScheduleJob />} />} />
           <Route path="/service-calendar" element={<AppRoute element={<ServiceCalendar />} />} />

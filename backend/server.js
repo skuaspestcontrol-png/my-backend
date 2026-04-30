@@ -12,6 +12,7 @@ const { registerPayrollModule } = require('./payrollModule');
 const { registerHrModule } = require('./hrModule');
 const { registerCustomerDedupModule } = require('./customerDedupModule');
 const { createWhatsAppRouter } = require('./routes/whatsapp.routes');
+const { createEmailRouter } = require('./routes/email.routes');
 require('dotenv').config();
 
 const app = express();
@@ -3930,6 +3931,15 @@ registerCustomerDedupModule({
 });
 
 app.use('/api', createWhatsAppRouter({
+  dataDir,
+  uploadsDir,
+  settingsFile,
+  readJsonFile,
+  withMysqlConnection,
+  resolveServerOrigin
+}));
+
+app.use('/api', createEmailRouter({
   dataDir,
   uploadsDir,
   settingsFile,
