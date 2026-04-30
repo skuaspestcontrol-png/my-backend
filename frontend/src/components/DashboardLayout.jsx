@@ -291,6 +291,9 @@ export default function DashboardLayout({ children }) {
             ) : null}
 
             <Link to="/whatsapp" className={isActive('/whatsapp') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/whatsapp')}><MessageSquare size={18} /> WhatsApp Marketing</Link>
+            <Link to="/settings/whatsapp" className={isActive('/settings/whatsapp') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/settings/whatsapp')}>WhatsApp API Settings</Link>
+            <Link to="/settings/whatsapp/templates" className={isActive('/settings/whatsapp/templates') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/settings/whatsapp/templates')}>WhatsApp Templates</Link>
+            <Link to="/whatsapp/logs" className={isActive('/whatsapp/logs') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/whatsapp/logs')}>WhatsApp Logs</Link>
           </SidebarSection>
 
           <SidebarSection title="Operations">

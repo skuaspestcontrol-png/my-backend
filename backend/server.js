@@ -11,6 +11,7 @@ const { generateInvoicePdfBuffer, formatINR, formatDate } = require('./invoicePd
 const { registerPayrollModule } = require('./payrollModule');
 const { registerHrModule } = require('./hrModule');
 const { registerCustomerDedupModule } = require('./customerDedupModule');
+const { createWhatsAppRouter } = require('./routes/whatsapp.routes');
 require('dotenv').config();
 
 const app = express();
@@ -3927,6 +3928,15 @@ registerCustomerDedupModule({
     dedupAuditFile: customerDedupAuditFile
   }
 });
+
+app.use('/api', createWhatsAppRouter({
+  dataDir,
+  uploadsDir,
+  settingsFile,
+  readJsonFile,
+  withMysqlConnection,
+  resolveServerOrigin
+}));
 
 app.post('/api/upload', upload.single('image'), (req, res) => {
   res.json({ imageUrl: `${resolveServerOrigin(req)}/uploads/${req.file.filename}` });
