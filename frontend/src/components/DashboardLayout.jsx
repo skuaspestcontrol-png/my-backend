@@ -289,7 +289,6 @@ export default function DashboardLayout({ children }) {
               </>
             ) : null}
 
-            <Link to="/settings" className={isActive('/settings') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/settings')}><MessageSquare size={18} /> WhatsApp & Settings</Link>
           </SidebarSection>
 
           <SidebarSection title="Operations">

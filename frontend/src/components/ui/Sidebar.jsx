@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, ClipboardList, FileText, Home, Settings, Users, Wallet } from 'lucide-react';
+import { BarChart3, CalendarDays, ClipboardList, FileText, Home, Users, Wallet } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const items = [
@@ -13,7 +13,6 @@ const items = [
   ['Renewals', '/sales/renewal', CalendarDays],
   ['HR', '/hr-dashboard', Users],
   ['Reports', '/dashboard', BarChart3],
-  ['Settings', '/settings', Settings]
 ];
 
 export default function Sidebar() {
