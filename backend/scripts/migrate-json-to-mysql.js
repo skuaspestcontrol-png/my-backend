@@ -93,6 +93,8 @@ const run = async () => {
 
   try {
     const employeeCount = await upsertEmployees(conn);
+    const leadCount = await upsertLeads(conn);
+    console.log("Leads migrated:", leadCount);
 
     console.log("✅ Employees migrated:", employeeCount);
   } finally {
@@ -103,3 +105,67 @@ const run = async () => {
 run().catch((err) => {
   console.error("❌ Migration failed:", err.message);
 });
+
+const upsertLeads = async (conn) => {
+  const fs = require('fs');
+  const path = require('path');
+
+  const filePath = path.join(__dirname, '../data/leads.json');
+
+  if (!fs.existsSync(filePath)) return 0;
+
+  const rows = JSON.parse(fs.readFileSync(filePath, 'utf8') || '[]');
+
+  for (const lead of rows) {
+    await conn.query(
+      `INSERT INTO leads (
+        external_id, customer_name, company_name, contact_person_name, title,
+        mobile, whatsapp_number, email_id, address, area_name, city, state, pincode,
+        pest_issue, lead_source, lead_status, assigned_to, followup_date, payload
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        customer_name=VALUES(customer_name),
+        company_name=VALUES(company_name),
+        contact_person_name=VALUES(contact_person_name),
+        title=VALUES(title),
+        mobile=VALUES(mobile),
+        whatsapp_number=VALUES(whatsapp_number),
+        email_id=VALUES(email_id),
+        address=VALUES(address),
+        area_name=VALUES(area_name),
+        city=VALUES(city),
+        state=VALUES(state),
+        pincode=VALUES(pincode),
+        pest_issue=VALUES(pest_issue),
+        lead_source=VALUES(lead_source),
+        lead_status=VALUES(lead_status),
+        assigned_to=VALUES(assigned_to),
+        followup_date=VALUES(followup_date),
+        payload=VALUES(payload)
+      `,
+      [
+        lead._id,
+        lead.customerName,
+        lead.companyName,
+        lead.contactPersonName,
+        lead.title,
+        lead.mobile || lead.mobileNumber,
+        lead.whatsappNumber,
+        lead.emailId,
+        lead.address,
+        lead.areaName || lead.area,
+        lead.city,
+        lead.state,
+        lead.pincode,
+        lead.pestIssue,
+        lead.leadSource,
+        lead.status || lead.leadStatus,
+        lead.assignedTo,
+        lead.followupDate,
+        JSON.stringify(lead)
+      ]
+    );
+  }
+
+  return rows.length;
+};
