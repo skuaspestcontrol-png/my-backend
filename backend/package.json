@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "db:init": "node scripts/mysql-init.js",
+    "db:migrate:phase1": "node scripts/migrate-json-to-mysql.js"
   },
   "keywords": [],
   "author": "",

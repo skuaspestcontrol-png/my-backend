@@ -152,6 +152,30 @@ const readJsonFile = (filePath, fallback) => {
   }
 };
 
+const canUseMysql = () => {
+  return Boolean(
+    String(process.env.DB_HOST || '').trim()
+    && String(process.env.DB_USER || '').trim()
+    && String(process.env.DB_NAME || '').trim()
+  );
+};
+
+const withMysqlConnection = async (handler) => {
+  if (!canUseMysql()) return null;
+  const connection = await mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: Number(process.env.DB_PORT || 3306)
+  });
+  try {
+    return await handler(connection);
+  } finally {
+    await connection.end();
+  }
+};
+
 const invoiceColumnKeys = ['date', 'invoiceNumber', 'customerName', 'dueDate', 'amount', 'balanceDue', 'status'];
 const defaultInvoiceFieldSettings = {
   showSubject: true,
@@ -855,15 +879,97 @@ app.post('/api/employees/upload-document', upload.single('document'), (req, res)
   res.json({ fileUrl: `${resolveServerOrigin(req)}/uploads/${req.file.filename}` });
 });
 
-app.get('/api/leads', (req, res) => {
+app.get('/api/leads', async (req, res) => {
+  try {
+    const mysqlRows = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT payload FROM leads ORDER BY id DESC');
+      return Array.isArray(rows) ? rows : [];
+    });
+    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
+      const parsed = mysqlRows
+        .map((row) => {
+          const raw = row?.payload;
+          if (!raw) return null;
+          if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch { return null; }
+          }
+          return raw;
+        })
+        .filter(Boolean);
+      if (parsed.length > 0) return res.json(parsed);
+    }
+  } catch (error) {
+    console.error('MySQL leads read failed, using JSON fallback:', error.message);
+  }
   res.json(readJsonFile(leadsFile, []));
 });
 
-app.post('/api/leads', (req, res) => {
+app.post('/api/leads', async (req, res) => {
   const leads = readJsonFile(leadsFile, []);
   const newLead = { _id: Date.now().toString(), ...req.body, date: new Date().toISOString() };
   leads.push(newLead);
   fs.writeFileSync(leadsFile, JSON.stringify(leads, null, 2));
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await conn.query(
+        `INSERT INTO leads (
+          external_id, customer_name, display_name, company_name, contact_person_name, title, mobile,
+          whatsapp_number, email_id, address, area_name, city, state, pincode, pest_issue,
+          lead_source, lead_status, assigned_to, followup_date, payload, source_created_at, source_updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          customer_name=VALUES(customer_name),
+          display_name=VALUES(display_name),
+          company_name=VALUES(company_name),
+          contact_person_name=VALUES(contact_person_name),
+          title=VALUES(title),
+          mobile=VALUES(mobile),
+          whatsapp_number=VALUES(whatsapp_number),
+          email_id=VALUES(email_id),
+          address=VALUES(address),
+          area_name=VALUES(area_name),
+          city=VALUES(city),
+          state=VALUES(state),
+          pincode=VALUES(pincode),
+          pest_issue=VALUES(pest_issue),
+          lead_source=VALUES(lead_source),
+          lead_status=VALUES(lead_status),
+          assigned_to=VALUES(assigned_to),
+          followup_date=VALUES(followup_date),
+          payload=VALUES(payload),
+          source_created_at=VALUES(source_created_at),
+          source_updated_at=VALUES(source_updated_at)`,
+        [
+          newLead._id,
+          newLead.customerName || null,
+          newLead.displayName || newLead.customerName || null,
+          newLead.companyName || null,
+          newLead.contactPersonName || null,
+          newLead.title || newLead.position || null,
+          newLead.mobile || newLead.mobileNumber || null,
+          newLead.whatsappNumber || null,
+          newLead.emailId || null,
+          newLead.address || null,
+          newLead.areaName || newLead.area || null,
+          newLead.city || null,
+          newLead.state || null,
+          newLead.pincode || newLead.pinCode || null,
+          newLead.pestIssue || null,
+          newLead.leadSource || null,
+          newLead.status || newLead.leadStatus || null,
+          newLead.assignedTo || null,
+          newLead.followupDate || null,
+          JSON.stringify(newLead),
+          new Date(newLead.date).toISOString().slice(0, 19).replace('T', ' '),
+          new Date().toISOString().slice(0, 19).replace('T', ' ')
+        ]
+      );
+    });
+  } catch (error) {
+    console.error('MySQL leads write failed (JSON saved):', error.message);
+  }
+
   res.json(newLead);
 });
 
@@ -955,7 +1061,7 @@ app.post('/api/maps/geocode', async (req, res) => {
   }
 });
 
-app.put('/api/leads/:id', (req, res) => {
+app.put('/api/leads/:id', async (req, res) => {
   const leads = readJsonFile(leadsFile, []);
   const leadIndex = leads.findIndex((lead) => lead._id === req.params.id);
 
@@ -971,10 +1077,71 @@ app.put('/api/leads/:id', (req, res) => {
 
   leads[leadIndex] = updatedLead;
   fs.writeFileSync(leadsFile, JSON.stringify(leads, null, 2));
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await conn.query(
+        `INSERT INTO leads (
+          external_id, customer_name, display_name, company_name, contact_person_name, title, mobile,
+          whatsapp_number, email_id, address, area_name, city, state, pincode, pest_issue,
+          lead_source, lead_status, assigned_to, followup_date, payload, source_created_at, source_updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          customer_name=VALUES(customer_name),
+          display_name=VALUES(display_name),
+          company_name=VALUES(company_name),
+          contact_person_name=VALUES(contact_person_name),
+          title=VALUES(title),
+          mobile=VALUES(mobile),
+          whatsapp_number=VALUES(whatsapp_number),
+          email_id=VALUES(email_id),
+          address=VALUES(address),
+          area_name=VALUES(area_name),
+          city=VALUES(city),
+          state=VALUES(state),
+          pincode=VALUES(pincode),
+          pest_issue=VALUES(pest_issue),
+          lead_source=VALUES(lead_source),
+          lead_status=VALUES(lead_status),
+          assigned_to=VALUES(assigned_to),
+          followup_date=VALUES(followup_date),
+          payload=VALUES(payload),
+          source_created_at=VALUES(source_created_at),
+          source_updated_at=VALUES(source_updated_at)`,
+        [
+          updatedLead._id,
+          updatedLead.customerName || null,
+          updatedLead.displayName || updatedLead.customerName || null,
+          updatedLead.companyName || null,
+          updatedLead.contactPersonName || null,
+          updatedLead.title || updatedLead.position || null,
+          updatedLead.mobile || updatedLead.mobileNumber || null,
+          updatedLead.whatsappNumber || null,
+          updatedLead.emailId || null,
+          updatedLead.address || null,
+          updatedLead.areaName || updatedLead.area || null,
+          updatedLead.city || null,
+          updatedLead.state || null,
+          updatedLead.pincode || updatedLead.pinCode || null,
+          updatedLead.pestIssue || null,
+          updatedLead.leadSource || null,
+          updatedLead.status || updatedLead.leadStatus || null,
+          updatedLead.assignedTo || null,
+          updatedLead.followupDate || null,
+          JSON.stringify(updatedLead),
+          updatedLead.date ? new Date(updatedLead.date).toISOString().slice(0, 19).replace('T', ' ') : null,
+          new Date().toISOString().slice(0, 19).replace('T', ' ')
+        ]
+      );
+    });
+  } catch (error) {
+    console.error('MySQL leads update failed (JSON saved):', error.message);
+  }
+
   res.json(updatedLead);
 });
 
-app.delete('/api/leads/:id', (req, res) => {
+app.delete('/api/leads/:id', async (req, res) => {
   const leads = readJsonFile(leadsFile, []);
   const updatedLeads = leads.filter((lead) => lead._id !== req.params.id);
 
@@ -983,14 +1150,44 @@ app.delete('/api/leads/:id', (req, res) => {
   }
 
   fs.writeFileSync(leadsFile, JSON.stringify(updatedLeads, null, 2));
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await conn.query('DELETE FROM leads WHERE external_id = ?', [req.params.id]);
+    });
+  } catch (error) {
+    console.error('MySQL leads delete failed (JSON deleted):', error.message);
+  }
+
   res.json({ message: 'Lead deleted' });
 });
 
-app.get('/api/employees', (req, res) => {
+app.get('/api/employees', async (req, res) => {
+  try {
+    const mysqlRows = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT payload FROM employees ORDER BY id DESC');
+      return Array.isArray(rows) ? rows : [];
+    });
+    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
+      const parsed = mysqlRows
+        .map((row) => {
+          const raw = row?.payload;
+          if (!raw) return null;
+          if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch { return null; }
+          }
+          return raw;
+        })
+        .filter(Boolean);
+      if (parsed.length > 0) return res.json(parsed);
+    }
+  } catch (error) {
+    console.error('MySQL employees read failed, using JSON fallback:', error.message);
+  }
   res.json(readJsonFile(employeesFile, []));
 });
 
-app.post('/api/employees', (req, res) => {
+app.post('/api/employees', async (req, res) => {
   const settings = readSettings();
   const employees = readJsonFile(employeesFile, []);
   const generated = buildNextEmployeeCode(settings, employees);
@@ -1007,10 +1204,52 @@ app.post('/api/employees', (req, res) => {
   employees.push(newEmp);
   fs.writeFileSync(employeesFile, JSON.stringify(employees, null, 2));
   fs.writeFileSync(settingsFile, JSON.stringify(nextSettings, null, 2));
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await conn.query(
+        `INSERT INTO employees (
+          external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode,
+          payload, source_created_at, source_updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          emp_code=VALUES(emp_code),
+          first_name=VALUES(first_name),
+          last_name=VALUES(last_name),
+          role=VALUES(role),
+          role_name=VALUES(role_name),
+          mobile=VALUES(mobile),
+          email=VALUES(email),
+          city=VALUES(city),
+          pincode=VALUES(pincode),
+          payload=VALUES(payload),
+          source_created_at=VALUES(source_created_at),
+          source_updated_at=VALUES(source_updated_at)`,
+        [
+          newEmp._id,
+          newEmp.empCode || null,
+          newEmp.firstName || null,
+          newEmp.lastName || null,
+          newEmp.role || null,
+          newEmp.roleName || null,
+          newEmp.mobile || null,
+          newEmp.email || newEmp.emailId || null,
+          newEmp.city || null,
+          newEmp.pincode || null,
+          JSON.stringify(newEmp),
+          newEmp.createdAt ? new Date(newEmp.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
+          new Date().toISOString().slice(0, 19).replace('T', ' ')
+        ]
+      );
+    });
+  } catch (error) {
+    console.error('MySQL employees write failed (JSON saved):', error.message);
+  }
+
   res.json(newEmp);
 });
 
-app.put('/api/employees/:id', (req, res) => {
+app.put('/api/employees/:id', async (req, res) => {
   const employees = readJsonFile(employeesFile, []);
   const employeeIndex = employees.findIndex((employee) => employee._id === req.params.id);
 
@@ -1026,10 +1265,52 @@ app.put('/api/employees/:id', (req, res) => {
 
   employees[employeeIndex] = updatedEmployee;
   fs.writeFileSync(employeesFile, JSON.stringify(employees, null, 2));
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await conn.query(
+        `INSERT INTO employees (
+          external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode,
+          payload, source_created_at, source_updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          emp_code=VALUES(emp_code),
+          first_name=VALUES(first_name),
+          last_name=VALUES(last_name),
+          role=VALUES(role),
+          role_name=VALUES(role_name),
+          mobile=VALUES(mobile),
+          email=VALUES(email),
+          city=VALUES(city),
+          pincode=VALUES(pincode),
+          payload=VALUES(payload),
+          source_created_at=VALUES(source_created_at),
+          source_updated_at=VALUES(source_updated_at)`,
+        [
+          updatedEmployee._id,
+          updatedEmployee.empCode || null,
+          updatedEmployee.firstName || null,
+          updatedEmployee.lastName || null,
+          updatedEmployee.role || null,
+          updatedEmployee.roleName || null,
+          updatedEmployee.mobile || null,
+          updatedEmployee.email || updatedEmployee.emailId || null,
+          updatedEmployee.city || null,
+          updatedEmployee.pincode || null,
+          JSON.stringify(updatedEmployee),
+          updatedEmployee.createdAt ? new Date(updatedEmployee.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
+          new Date().toISOString().slice(0, 19).replace('T', ' ')
+        ]
+      );
+    });
+  } catch (error) {
+    console.error('MySQL employees update failed (JSON saved):', error.message);
+  }
+
   res.json(updatedEmployee);
 });
 
-app.delete('/api/employees/:id', (req, res) => {
+app.delete('/api/employees/:id', async (req, res) => {
   const employees = readJsonFile(employeesFile, []);
   const updatedEmployees = employees.filter((employee) => employee._id !== req.params.id);
 
@@ -1038,13 +1319,49 @@ app.delete('/api/employees/:id', (req, res) => {
   }
 
   fs.writeFileSync(employeesFile, JSON.stringify(updatedEmployees, null, 2));
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await conn.query('DELETE FROM employees WHERE external_id = ?', [req.params.id]);
+    });
+  } catch (error) {
+    console.error('MySQL employees delete failed (JSON deleted):', error.message);
+  }
+
   res.json({ message: 'Employee deleted' });
 });
 
-app.get('/api/attendance', (req, res) => {
-  const records = readJsonFile(attendanceFile, [])
-    .map((entry) => sanitizeAttendanceRecord(entry))
-    .filter((entry) => entry.employeeId && entry.date);
+app.get('/api/attendance', async (req, res) => {
+  let records = [];
+  try {
+    const mysqlRows = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT payload FROM attendance ORDER BY id DESC');
+      return Array.isArray(rows) ? rows : [];
+    });
+    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
+      records = mysqlRows
+        .map((row) => {
+          const raw = row?.payload;
+          if (!raw) return null;
+          if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch { return null; }
+          }
+          return raw;
+        })
+        .filter(Boolean)
+        .map((entry) => sanitizeAttendanceRecord(entry))
+        .filter((entry) => entry.employeeId && entry.date);
+    }
+  } catch (error) {
+    console.error('MySQL attendance read failed, using JSON fallback:', error.message);
+  }
+
+  if (records.length === 0) {
+    records = readJsonFile(attendanceFile, [])
+      .map((entry) => sanitizeAttendanceRecord(entry))
+      .filter((entry) => entry.employeeId && entry.date);
+  }
+
   const dateFilter = String(req.query.date || '').trim();
   const employeeFilter = String(req.query.employeeId || '').trim();
   const filtered = records.filter((entry) => {
@@ -1059,7 +1376,7 @@ app.get('/api/attendance', (req, res) => {
   res.json(filtered);
 });
 
-app.post('/api/attendance', (req, res) => {
+app.post('/api/attendance', async (req, res) => {
   const employees = readJsonFile(employeesFile, []);
   const employeeId = String(req.body?.employeeId || '').trim();
   const date = String(req.body?.date || '').trim();
@@ -1102,27 +1419,54 @@ app.post('/api/attendance', (req, res) => {
   }
 
   fs.writeFileSync(attendanceFile, JSON.stringify(records, null, 2));
+
+  try {
+    await syncAttendanceToMysql(nextRecord);
+  } catch (error) {
+    console.error('MySQL attendance write failed (JSON saved):', error.message);
+  }
+
   res.json(nextRecord);
 });
 
-app.get('/api/jobs', (req, res) => {
+app.get('/api/jobs', async (req, res) => {
   const includeInactive = String(req.query.includeInactive || '').toLowerCase() === 'true';
-  const jobs = readJsonFile(jobsFile, []);
-  if (includeInactive) {
-    res.json(jobs);
-    return;
+  const filterJobs = (jobs) => {
+    if (includeInactive) return jobs;
+    return jobs.filter((job) => {
+      const status = String(job?.status || '').trim().toLowerCase();
+      if (job?.isDeleted || job?.deletedAt) return false;
+      return !['completed', 'deleted', 'cancelled', 'canceled', 'archived', 'closed'].includes(status);
+    });
+  };
+
+  try {
+    const mysqlRows = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT payload FROM jobs ORDER BY id DESC');
+      return Array.isArray(rows) ? rows : [];
+    });
+    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
+      const parsed = mysqlRows
+        .map((row) => {
+          const raw = row?.payload;
+          if (!raw) return null;
+          if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch { return null; }
+          }
+          return raw;
+        })
+        .filter(Boolean);
+      if (parsed.length > 0) return res.json(filterJobs(parsed));
+    }
+  } catch (error) {
+    console.error('MySQL jobs read failed, using JSON fallback:', error.message);
   }
 
-  const filtered = jobs.filter((job) => {
-    const status = String(job?.status || '').trim().toLowerCase();
-    if (job?.isDeleted || job?.deletedAt) return false;
-    return !['completed', 'deleted', 'cancelled', 'canceled', 'archived', 'closed'].includes(status);
-  });
-
-  res.json(filtered);
+  const jobs = readJsonFile(jobsFile, []);
+  res.json(filterJobs(jobs));
 });
 
-app.post('/api/jobs', (req, res) => {
+app.post('/api/jobs', async (req, res) => {
   const settings = readSettings();
   const jobs = readJsonFile(jobsFile, []);
   const generatedJobNumber = createNextJobNumber(jobs, settings);
@@ -1139,10 +1483,17 @@ app.post('/api/jobs', (req, res) => {
   jobs.push(newJob);
   fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
   updateSettingsNextJobNumber(jobNumber, settings);
+
+  try {
+    await syncJobToMysql(newJob);
+  } catch (error) {
+    console.error('MySQL job write failed (JSON saved):', error.message);
+  }
+
   res.json(newJob);
 });
 
-app.put('/api/jobs/:id', (req, res) => {
+app.put('/api/jobs/:id', async (req, res) => {
   const jobs = readJsonFile(jobsFile, []);
   const jobIndex = jobs.findIndex((job) => job._id === req.params.id);
 
@@ -1192,6 +1543,29 @@ app.put('/api/jobs/:id', (req, res) => {
   }
 
   fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
+
+  try {
+    await syncJobToMysql(updatedJob);
+    if (nextStatus === 'completed') {
+      const scheduleKey = String(updatedJob.scheduleKey || '').trim();
+      const technicianId = String(updatedJob.technicianId || '').trim();
+      await Promise.all(
+        jobs
+          .filter((job) => {
+            if (String(job?._id || '') === String(updatedJob._id || '')) return false;
+            if (String(job?.status || '').trim().toLowerCase() !== 'completed') return false;
+            return String(job?.scheduleKey || '').trim() === scheduleKey
+              && String(job?.technicianId || '').trim() === technicianId;
+          })
+          .map(async (job) => {
+            await syncJobToMysql(job);
+          })
+      );
+    }
+  } catch (error) {
+    console.error('MySQL job update failed (JSON saved):', error.message);
+  }
+
   res.json(updatedJob);
 });
 
@@ -1344,11 +1718,32 @@ app.delete('/api/items/:id', (req, res) => {
   res.json({ message: 'Item deleted' });
 });
 
-app.get('/api/customers', (req, res) => {
+app.get('/api/customers', async (req, res) => {
+  try {
+    const mysqlRows = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT payload FROM customers ORDER BY id DESC');
+      return Array.isArray(rows) ? rows : [];
+    });
+    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
+      const parsed = mysqlRows
+        .map((row) => {
+          const raw = row?.payload;
+          if (!raw) return null;
+          if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch { return null; }
+          }
+          return raw;
+        })
+        .filter(Boolean);
+      if (parsed.length > 0) return res.json(parsed);
+    }
+  } catch (error) {
+    console.error('MySQL customers read failed, using JSON fallback:', error.message);
+  }
   res.json(readJsonFile(customersFile, []));
 });
 
-app.post('/api/customers', (req, res) => {
+app.post('/api/customers', async (req, res) => {
   const customers = readJsonFile(customersFile, []);
   const positionValue = req.body.position === 'Edit type'
     ? (req.body.positionCustom || '').trim() || 'Edit type'
@@ -1401,10 +1796,56 @@ app.post('/api/customers', (req, res) => {
 
   customers.push(newCustomer);
   fs.writeFileSync(customersFile, JSON.stringify(customers, null, 2));
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await conn.query(
+        `INSERT INTO customers (
+          external_id, display_name, customer_name, company_name, contact_person_name, mobile_number,
+          whatsapp_number, email_id, area_name, city, state, pincode, payload, source_created_at, source_updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          display_name=VALUES(display_name),
+          customer_name=VALUES(customer_name),
+          company_name=VALUES(company_name),
+          contact_person_name=VALUES(contact_person_name),
+          mobile_number=VALUES(mobile_number),
+          whatsapp_number=VALUES(whatsapp_number),
+          email_id=VALUES(email_id),
+          area_name=VALUES(area_name),
+          city=VALUES(city),
+          state=VALUES(state),
+          pincode=VALUES(pincode),
+          payload=VALUES(payload),
+          source_created_at=VALUES(source_created_at),
+          source_updated_at=VALUES(source_updated_at)`,
+        [
+          newCustomer._id,
+          newCustomer.displayName || null,
+          newCustomer.name || null,
+          newCustomer.companyName || null,
+          newCustomer.contactPersonName || null,
+          newCustomer.mobileNumber || null,
+          newCustomer.whatsappNumber || null,
+          newCustomer.emailId || null,
+          newCustomer.billingArea || newCustomer.area || null,
+          newCustomer.city || null,
+          newCustomer.state || newCustomer.billingState || null,
+          newCustomer.pincode || newCustomer.billingPincode || null,
+          JSON.stringify(newCustomer),
+          new Date(newCustomer.createdAt).toISOString().slice(0, 19).replace('T', ' '),
+          new Date(newCustomer.createdAt).toISOString().slice(0, 19).replace('T', ' ')
+        ]
+      );
+    });
+  } catch (error) {
+    console.error('MySQL customers write failed (JSON saved):', error.message);
+  }
+
   res.json(newCustomer);
 });
 
-app.put('/api/customers/:id', (req, res) => {
+app.put('/api/customers/:id', async (req, res) => {
   const customers = readJsonFile(customersFile, []);
   const customerIndex = customers.findIndex((customer) => customer._id === req.params.id);
 
@@ -1460,10 +1901,56 @@ app.put('/api/customers/:id', (req, res) => {
 
   customers[customerIndex] = updatedCustomer;
   fs.writeFileSync(customersFile, JSON.stringify(customers, null, 2));
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await conn.query(
+        `INSERT INTO customers (
+          external_id, display_name, customer_name, company_name, contact_person_name, mobile_number,
+          whatsapp_number, email_id, area_name, city, state, pincode, payload, source_created_at, source_updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          display_name=VALUES(display_name),
+          customer_name=VALUES(customer_name),
+          company_name=VALUES(company_name),
+          contact_person_name=VALUES(contact_person_name),
+          mobile_number=VALUES(mobile_number),
+          whatsapp_number=VALUES(whatsapp_number),
+          email_id=VALUES(email_id),
+          area_name=VALUES(area_name),
+          city=VALUES(city),
+          state=VALUES(state),
+          pincode=VALUES(pincode),
+          payload=VALUES(payload),
+          source_created_at=VALUES(source_created_at),
+          source_updated_at=VALUES(source_updated_at)`,
+        [
+          updatedCustomer._id,
+          updatedCustomer.displayName || null,
+          updatedCustomer.name || null,
+          updatedCustomer.companyName || null,
+          updatedCustomer.contactPersonName || null,
+          updatedCustomer.mobileNumber || null,
+          updatedCustomer.whatsappNumber || null,
+          updatedCustomer.emailId || null,
+          updatedCustomer.billingArea || updatedCustomer.area || null,
+          updatedCustomer.city || null,
+          updatedCustomer.state || updatedCustomer.billingState || null,
+          updatedCustomer.pincode || updatedCustomer.billingPincode || null,
+          JSON.stringify(updatedCustomer),
+          updatedCustomer.createdAt ? new Date(updatedCustomer.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
+          new Date().toISOString().slice(0, 19).replace('T', ' ')
+        ]
+      );
+    });
+  } catch (error) {
+    console.error('MySQL customers update failed (JSON saved):', error.message);
+  }
+
   res.json(updatedCustomer);
 });
 
-app.delete('/api/customers/:id', (req, res) => {
+app.delete('/api/customers/:id', async (req, res) => {
   const customers = readJsonFile(customersFile, []);
   const updatedCustomers = customers.filter((customer) => customer._id !== req.params.id);
 
@@ -1472,6 +1959,15 @@ app.delete('/api/customers/:id', (req, res) => {
   }
 
   fs.writeFileSync(customersFile, JSON.stringify(updatedCustomers, null, 2));
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await conn.query('DELETE FROM customers WHERE external_id = ?', [req.params.id]);
+    });
+  } catch (error) {
+    console.error('MySQL customers delete failed (JSON deleted):', error.message);
+  }
+
   res.json({ message: 'Customer deleted' });
 });
 
@@ -2035,6 +2531,156 @@ const appendFollowUpNote = (record, note, createdBy = 'System') => {
 
 const readUserMeta = (req) => String(req?.body?.updatedBy || req?.headers?.['x-user-name'] || 'System');
 
+const syncInvoiceToMysql = async (invoice) => {
+  if (!invoice || !invoice._id) return;
+  await withMysqlConnection(async (conn) => {
+    await conn.query(
+      `INSERT INTO invoices (
+        external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
+        invoice_date, due_date, total_amount, balance_due, payload, source_created_at, source_updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        customer_external_id=VALUES(customer_external_id),
+        customer_name=VALUES(customer_name),
+        invoice_number=VALUES(invoice_number),
+        invoice_type=VALUES(invoice_type),
+        invoice_status=VALUES(invoice_status),
+        invoice_date=VALUES(invoice_date),
+        due_date=VALUES(due_date),
+        total_amount=VALUES(total_amount),
+        balance_due=VALUES(balance_due),
+        payload=VALUES(payload),
+        source_created_at=VALUES(source_created_at),
+        source_updated_at=VALUES(source_updated_at)`,
+      [
+        invoice._id,
+        invoice.customerId || null,
+        invoice.customerName || null,
+        invoice.invoiceNumber || null,
+        invoice.invoiceType || null,
+        invoice.status || null,
+        invoice.date || null,
+        invoice.dueDate || null,
+        toNumber(invoice.total ?? invoice.amount, 0),
+        toNumber(invoice.balanceDue, 0),
+        JSON.stringify(invoice),
+        invoice.createdAt ? new Date(invoice.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
+        new Date().toISOString().slice(0, 19).replace('T', ' ')
+      ]
+    );
+
+    await conn.query('DELETE FROM invoice_items WHERE invoice_external_id = ?', [invoice._id]);
+    const items = Array.isArray(invoice.items) ? invoice.items : [];
+    for (let i = 0; i < items.length; i += 1) {
+      const item = items[i] || {};
+      await conn.query(
+        `INSERT INTO invoice_items (
+          invoice_external_id, line_index, item_id, item_name, description, quantity, rate, tax_rate, amount, payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          invoice._id,
+          i,
+          item.itemId || null,
+          item.itemName || item.name || null,
+          item.description || null,
+          toNumber(item.quantity, 0),
+          toNumber(item.rate, 0),
+          toNumber(item.taxRate, 0),
+          toNumber(item.amount, toNumber(item.quantity, 0) * toNumber(item.rate, 0)),
+          JSON.stringify(item)
+        ]
+      );
+    }
+  });
+};
+
+const syncJobToMysql = async (job) => {
+  if (!job || !job._id) return;
+  await withMysqlConnection(async (conn) => {
+    await conn.query(
+      `INSERT INTO jobs (
+        external_id, customer_external_id, invoice_external_id, customer_name, job_number, status,
+        service_name, service_type, area_name, city, state, pincode, scheduled_date, scheduled_time,
+        payload, source_created_at, source_updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        customer_external_id=VALUES(customer_external_id),
+        invoice_external_id=VALUES(invoice_external_id),
+        customer_name=VALUES(customer_name),
+        job_number=VALUES(job_number),
+        status=VALUES(status),
+        service_name=VALUES(service_name),
+        service_type=VALUES(service_type),
+        area_name=VALUES(area_name),
+        city=VALUES(city),
+        state=VALUES(state),
+        pincode=VALUES(pincode),
+        scheduled_date=VALUES(scheduled_date),
+        scheduled_time=VALUES(scheduled_time),
+        payload=VALUES(payload),
+        source_created_at=VALUES(source_created_at),
+        source_updated_at=VALUES(source_updated_at)`,
+      [
+        job._id,
+        job.customerId || null,
+        job.invoiceId || null,
+        job.customerName || null,
+        job.jobNumber || null,
+        job.status || null,
+        job.serviceName || null,
+        job.serviceType || null,
+        job.areaName || null,
+        job.city || null,
+        job.state || null,
+        job.pincode || null,
+        job.serviceDate || null,
+        job.serviceTime || null,
+        JSON.stringify(job),
+        job.createdAt ? new Date(job.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
+        new Date().toISOString().slice(0, 19).replace('T', ' ')
+      ]
+    );
+  });
+};
+
+const syncAttendanceToMysql = async (record) => {
+  if (!record || !record._id) return;
+  await withMysqlConnection(async (conn) => {
+    await conn.query(
+      `INSERT INTO attendance (
+        external_id, employee_external_id, employee_code, employee_name, attendance_date, status,
+        check_in, check_out, working_hours, payload, source_created_at, source_updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        employee_external_id=VALUES(employee_external_id),
+        employee_code=VALUES(employee_code),
+        employee_name=VALUES(employee_name),
+        attendance_date=VALUES(attendance_date),
+        status=VALUES(status),
+        check_in=VALUES(check_in),
+        check_out=VALUES(check_out),
+        working_hours=VALUES(working_hours),
+        payload=VALUES(payload),
+        source_created_at=VALUES(source_created_at),
+        source_updated_at=VALUES(source_updated_at)`,
+      [
+        record._id,
+        record.employeeId || null,
+        record.employeeCode || null,
+        record.employeeName || null,
+        record.date || null,
+        record.status || null,
+        record.checkIn ? `${record.checkIn}:00` : null,
+        record.checkOut ? `${record.checkOut}:00` : null,
+        toNumber(record.workingHours, 0),
+        JSON.stringify(record),
+        record.updatedAt ? new Date(record.updatedAt).toISOString().slice(0, 19).replace('T', ' ') : null,
+        new Date().toISOString().slice(0, 19).replace('T', ' ')
+      ]
+    );
+  });
+};
+
 app.get('/api/invoices/:id/pdf', async (req, res) => {
   try {
     const context = resolveInvoiceContext(req.params.id);
@@ -2213,11 +2859,32 @@ app.post('/api/invoices/:id/send-whatsapp', async (req, res) => {
   }
 });
 
-app.get('/api/invoices', (req, res) => {
+app.get('/api/invoices', async (req, res) => {
+  try {
+    const mysqlRows = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT payload FROM invoices ORDER BY id DESC');
+      return Array.isArray(rows) ? rows : [];
+    });
+    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
+      const parsed = mysqlRows
+        .map((row) => {
+          const raw = row?.payload;
+          if (!raw) return null;
+          if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch { return null; }
+          }
+          return raw;
+        })
+        .filter(Boolean);
+      if (parsed.length > 0) return res.json(parsed);
+    }
+  } catch (error) {
+    console.error('MySQL invoices read failed, using JSON fallback:', error.message);
+  }
   res.json(readJsonFile(invoicesFile, []));
 });
 
-app.post('/api/invoices', (req, res) => {
+app.post('/api/invoices', async (req, res) => {
   const invoices = readJsonFile(invoicesFile, []);
   const settings = readSettings();
   const amount = toNumber(req.body.amount, 0);
@@ -2300,10 +2967,17 @@ app.post('/api/invoices', (req, res) => {
   invoices.push(newInvoice);
   fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
   updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
+
+  try {
+    await syncInvoiceToMysql(newInvoice);
+  } catch (error) {
+    console.error('MySQL invoice write failed (JSON saved):', error.message);
+  }
+
   res.json(newInvoice);
 });
 
-app.put('/api/invoices/:id', (req, res) => {
+app.put('/api/invoices/:id', async (req, res) => {
   const invoices = readJsonFile(invoicesFile, []);
   const settings = readSettings();
   const invoiceIndex = invoices.findIndex((invoice) => invoice._id === req.params.id);
@@ -2378,10 +3052,17 @@ app.put('/api/invoices/:id', (req, res) => {
   invoices[invoiceIndex] = updatedInvoice;
   fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
   updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings);
+
+  try {
+    await syncInvoiceToMysql(updatedInvoice);
+  } catch (error) {
+    console.error('MySQL invoice update failed (JSON saved):', error.message);
+  }
+
   res.json(updatedInvoice);
 });
 
-app.delete('/api/invoices/:id', (req, res) => {
+app.delete('/api/invoices/:id', async (req, res) => {
   const invoices = readJsonFile(invoicesFile, []);
   const updatedInvoices = invoices.filter((invoice) => invoice._id !== req.params.id);
 
@@ -2390,6 +3071,16 @@ app.delete('/api/invoices/:id', (req, res) => {
   }
 
   fs.writeFileSync(invoicesFile, JSON.stringify(updatedInvoices, null, 2));
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await conn.query('DELETE FROM invoice_items WHERE invoice_external_id = ?', [req.params.id]);
+      await conn.query('DELETE FROM invoices WHERE external_id = ?', [req.params.id]);
+    });
+  } catch (error) {
+    console.error('MySQL invoice delete failed (JSON deleted):', error.message);
+  }
+
   res.json({ message: 'Invoice deleted' });
 });
 
