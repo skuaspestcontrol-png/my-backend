@@ -988,7 +988,7 @@ export default function CustomerDashboard() {
       border: '1px solid rgba(159, 23, 77, 0.24)'
     }
     : shell.modal;
-  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: isTiny ? '20px' : '22px' } : shell.modalHeader;
+  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
   const modalBodyStyle = isMobile
     ? {
       ...shell.modalBody,

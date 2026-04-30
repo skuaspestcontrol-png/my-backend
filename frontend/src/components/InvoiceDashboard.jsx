@@ -1923,10 +1923,11 @@ export default function InvoiceDashboard() {
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const tinyGhostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
   const tinyCustomizeBtnStyle = isTiny ? { ...shell.customizeButton, padding: '7px 10px', fontSize: '11px' } : shell.customizeButton;
-  const modalHeaderStyle = isTiny ? { ...shell.modalHeader, fontSize: '22px', padding: '12px 14px' } : shell.modalHeader;
+  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
   const tableStyle = isMobile ? { ...shell.table, minWidth: isTiny ? '700px' : '760px' } : shell.table;
   const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
-  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '100%', tableLayout: 'fixed' } : shell.itemTable;
+  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : shell.itemTable;
+  const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
   const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '100%', tableLayout: 'fixed' } : shell.serviceScheduleTable;
   const mobileItemInlineGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' };
 
@@ -2338,7 +2339,7 @@ export default function InvoiceDashboard() {
                     <button type="button" style={shell.actionLinkBtn} onClick={applyBulkTax}>Bulk Actions</button>
                   </div>
                 </div>
-                <div style={shell.itemTableWrap}>
+                <div style={itemTableWrapStyle}>
                   <table style={itemTableStyle}>
                     <thead>
                       {isMobile ? (

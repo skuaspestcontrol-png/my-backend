@@ -636,7 +636,7 @@ export default function ItemsDashboard() {
   const buttonPrimaryStyle = isTiny ? { ...shell.buttonPrimary, padding: '8px 12px', fontSize: '13px' } : shell.buttonPrimary;
   const buttonGhostStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
   const customizeButtonStyle = isTiny ? { ...shell.customizeButton, padding: '7px 10px', fontSize: '11px' } : shell.customizeButton;
-  const modalHeaderStyle = isTiny ? { ...shell.modalHeader, fontSize: '16px' } : shell.modalHeader;
+  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
 
   return (
     <section style={shell.page}>

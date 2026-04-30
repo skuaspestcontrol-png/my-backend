@@ -228,6 +228,10 @@ export default function VendorBillsDashboard() {
   const formBodyStyle = isMobile ? { ...shell.formBody, padding: '16px 14px', paddingBottom: 'calc(130px + env(safe-area-inset-bottom))' } : shell.formBody;
   const row2Style = isMobile ? { ...shell.row2, gridTemplateColumns: '1fr' } : shell.row2;
   const row4Style = isMobile ? { ...shell.row4, gridTemplateColumns: '1fr' } : shell.row4;
+  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
+  const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
+  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%' } : shell.itemTable;
+  const mobileItemGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' };
 
   return (
     <section style={shell.page}>
@@ -285,7 +289,7 @@ export default function VendorBillsDashboard() {
       {showModal ? createPortal(
         <div style={modalOverlayStyle} onClick={closeModal}>
           <form style={modalStyle} onSubmit={saveBill} onClick={(event) => event.stopPropagation()}>
-            <div style={shell.modalHeader}><h3 style={shell.headerTitle}>{editingId ? 'Edit Vendor Bill' : 'New Vendor Bill'}</h3><button type="button" style={shell.closeBtn} onClick={closeModal}><X size={24} /></button></div>
+            <div style={modalHeaderStyle}><h3 style={shell.headerTitle}>{editingId ? 'Edit Vendor Bill' : 'New Vendor Bill'}</h3><button type="button" style={shell.closeBtn} onClick={closeModal}><X size={24} /></button></div>
             <div style={formBodyStyle}>
               <div style={row2Style}>
                 <label style={shell.label}>Vendor Name*</label>
@@ -311,16 +315,22 @@ export default function VendorBillsDashboard() {
 
               <div style={shell.itemSection}>
                 <div style={shell.itemHead}>Item Table</div>
-                <div style={shell.itemTableWrap}>
-                  <table style={isMobile ? { ...shell.itemTable, minWidth: '100%' } : shell.itemTable}>
+                <div style={itemTableWrapStyle}>
+                  <table style={itemTableStyle}>
                     <thead>
-                      <tr>
-                        <th style={shell.itemTh}>Item Details</th>
-                        <th style={shell.itemTh}>Quantity</th>
-                        <th style={shell.itemTh}>Rate</th>
-                        <th style={shell.itemTh}>Tax</th>
-                        <th style={shell.itemTh}>Amount</th>
-                      </tr>
+                      {isMobile ? (
+                        <tr>
+                          <th style={shell.itemTh}>Item Details</th>
+                        </tr>
+                      ) : (
+                        <tr>
+                          <th style={shell.itemTh}>Item Details</th>
+                          <th style={shell.itemTh}>Quantity</th>
+                          <th style={shell.itemTh}>Rate</th>
+                          <th style={shell.itemTh}>Tax</th>
+                          <th style={shell.itemTh}>Amount</th>
+                        </tr>
+                      )}
                     </thead>
                     <tbody>
                       {form.items.map((line, index) => {
@@ -331,17 +341,38 @@ export default function VendorBillsDashboard() {
                               <div style={{ display: 'grid', gap: '8px' }}>
                                 <input style={shell.input} value={line.itemName} placeholder="Type item name" onChange={(e) => updateLine(index, { itemName: e.target.value })} />
                                 <textarea style={shell.textArea} value={line.description} placeholder="Description" onChange={(e) => updateLine(index, { description: e.target.value })} />
+                                {isMobile ? (
+                                  <>
+                                    <div style={mobileItemGridStyle}>
+                                      <input style={shell.input} type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => updateLine(index, { quantity: e.target.value })} placeholder="Quantity" />
+                                      <input style={shell.input} type="number" min="0" step="0.01" value={line.rate} onChange={(e) => updateLine(index, { rate: e.target.value })} placeholder="Rate" />
+                                    </div>
+                                    <div style={mobileItemGridStyle}>
+                                      <select style={shell.input} value={line.taxRate} onChange={(e) => updateLine(index, { taxRate: e.target.value })} disabled={form.invoiceType === 'NON GST'}>
+                                        {(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => <option key={tax} value={String(tax)}>{tax}%</option>)}
+                                      </select>
+                                      <div style={{ ...shell.input, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <strong>{formatINR(amount)}</strong>
+                                        <button type="button" style={shell.iconButton} onClick={() => removeLine(index)}><Trash2 size={14} /></button>
+                                      </div>
+                                    </div>
+                                  </>
+                                ) : null}
                               </div>
                             </td>
-                            <td style={shell.itemTd}><input style={shell.input} type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => updateLine(index, { quantity: e.target.value })} /></td>
-                            <td style={shell.itemTd}><input style={shell.input} type="number" min="0" step="0.01" value={line.rate} onChange={(e) => updateLine(index, { rate: e.target.value })} /></td>
-                            <td style={shell.itemTd}><select style={shell.input} value={line.taxRate} onChange={(e) => updateLine(index, { taxRate: e.target.value })} disabled={form.invoiceType === 'NON GST'}>{(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => <option key={tax} value={String(tax)}>{tax}%</option>)}</select></td>
-                            <td style={{ ...shell.itemTd, fontWeight: 700 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <span>{formatINR(amount)}</span>
-                                <button type="button" style={shell.iconButton} onClick={() => removeLine(index)}><Trash2 size={14} /></button>
-                              </div>
-                            </td>
+                            {!isMobile ? (
+                              <>
+                                <td style={shell.itemTd}><input style={shell.input} type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => updateLine(index, { quantity: e.target.value })} /></td>
+                                <td style={shell.itemTd}><input style={shell.input} type="number" min="0" step="0.01" value={line.rate} onChange={(e) => updateLine(index, { rate: e.target.value })} /></td>
+                                <td style={shell.itemTd}><select style={shell.input} value={line.taxRate} onChange={(e) => updateLine(index, { taxRate: e.target.value })} disabled={form.invoiceType === 'NON GST'}>{(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => <option key={tax} value={String(tax)}>{tax}%</option>)}</select></td>
+                                <td style={{ ...shell.itemTd, fontWeight: 700 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span>{formatINR(amount)}</span>
+                                    <button type="button" style={shell.iconButton} onClick={() => removeLine(index)}><Trash2 size={14} /></button>
+                                  </div>
+                                </td>
+                              </>
+                            ) : null}
                           </tr>
                         );
                       })}
