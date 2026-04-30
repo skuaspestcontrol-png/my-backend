@@ -1125,30 +1125,7 @@ export default function LeadCapture() {
 
   const normalizeSearchText = (value) => String(value || '').trim().toLowerCase();
 
-  const buildCustomerSearchFields = (entry = {}) => ([
-    entry.customerName,
-    entry.displayName,
-    entry.companyName,
-    entry.contactPersonName,
-    entry.position,
-    entry.title,
-    getLeadMobile(entry),
-    entry.mobileNumber,
-    entry.whatsappNumber,
-    entry.address,
-    entry.searchAddress,
-    entry.billingAddress,
-    entry.shippingAddress,
-    entry.billingStreet1,
-    entry.billingStreet2,
-    entry.shippingStreet1,
-    entry.shippingStreet2,
-    entry.city,
-    entry.state,
-    entry.pincode,
-    entry.pinCode,
-    entry.billingPincode,
-    entry.shippingPincode,
+  const buildAreaSearchFields = (entry = {}) => ([
     entry.areaName,
     entry.area,
     entry.billingArea,
@@ -1170,7 +1147,7 @@ export default function LeadCapture() {
         ...(Array.isArray(existingCustomers) ? existingCustomers : [])
       ];
       const filteredResults = searchPool.filter((entry) =>
-        buildCustomerSearchFields(entry).some((field) => field.includes(queryText))
+        buildAreaSearchFields(entry).some((field) => field.includes(queryText))
       );
 
       if (filteredResults.length > 0) {
@@ -2333,7 +2310,7 @@ export default function LeadCapture() {
                         value={form.searchAddress}
                         style={{ ...s.in, marginBottom: 0, flex: 1 }}
                         onChange={(e) => updateForm('searchAddress', e.target.value)}
-                        placeholder="Search property location in Google Maps"
+                        placeholder="Search by area name"
                       />
                       <button type="button" onClick={fetchAddressFromGoogleMaps} style={s.mapsButton} disabled={isFetchingAddress}>
                         <Search size={14} /> {isFetchingAddress ? 'Fetching...' : 'Search Maps'}
