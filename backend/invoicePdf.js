@@ -2,45 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 
-const defaultInvoiceFieldSettings = {
-  showSubject: true,
-  showServicePeriod: true,
-  showPaymentSummary: true,
-  showCustomerNotes: true,
-  showTermsAndConditions: true,
-  showCompanyGst: true,
-  showCompanyWebsite: true,
-  showGoogleReviewLink: true
-};
-
-const templateThemes = {
-  classic: {
-    accent: '#d92d20',
-    accentSoft: '#fef2f2',
-    border: '#f1d4d2',
-    heading: '#111827',
-    muted: '#6b7280',
-    cardBg: '#ffffff',
-    tableHead: '#fff5f5'
-  },
-  clean: {
-    accent: '#1d4ed8',
-    accentSoft: '#eff6ff',
-    border: '#c7d2fe',
-    heading: '#0f172a',
-    muted: '#64748b',
-    cardBg: '#ffffff',
-    tableHead: '#f8fafc'
-  },
-  executive: {
-    accent: '#111827',
-    accentSoft: '#f3f4f6',
-    border: '#d1d5db',
-    heading: '#111827',
-    muted: '#4b5563',
-    cardBg: '#ffffff',
-    tableHead: '#f9fafb'
-  }
+const BRAND = {
+  red: '#ef4444',
+  text: '#111827',
+  border: '#9ca3af',
+  tableHead: '#f3f4f6',
+  muted: '#6b7280'
 };
 
 const toNumber = (value, fallback = 0) => {
@@ -48,86 +15,87 @@ const toNumber = (value, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-const formatINR = (value) => `INR ${toNumber(value, 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const clean = (value) => String(value ?? '').trim();
+
+const formatINR = (value) => {
+  const n = toNumber(value, 0);
+  return `₹ ${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 const formatDate = (value) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const raw = clean(value);
+  if (!raw) return '-';
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw;
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-const clean = (value) => String(value || '').trim();
+const toWordsBelowThousand = (num) => {
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+  const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-const buildCompanyAddress = (settings = {}) => {
-  const line1 = clean(settings.companyAddress);
-  const line2 = [clean(settings.companyCity), clean(settings.companyState), clean(settings.companyPincode)]
-    .filter(Boolean)
-    .join(', ');
-  return [line1, line2].filter(Boolean);
-};
-
-const buildCustomerAddress = (invoice = {}, customer = {}) => {
-  if (clean(invoice.billingAddressText)) {
-    return clean(invoice.billingAddressText).split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  let n = num;
+  const parts = [];
+  if (n >= 100) {
+    parts.push(`${ones[Math.floor(n / 100)]} Hundred`);
+    n %= 100;
   }
-
-  const name =
-    clean(invoice.customerName) ||
-    clean(customer.displayName) ||
-    clean(customer.name) ||
-    clean(customer.companyName) ||
-    'Customer';
-
-  const line1 = clean(customer.billingAddress || customer.billingStreet1);
-  const line2 = clean(customer.billingStreet2);
-  const area = clean(customer.billingArea);
-  const statePin = [clean(customer.billingState || customer.state), clean(customer.billingPincode || customer.pincode)]
-    .filter(Boolean)
-    .join(' ');
-
-  return [name, line1, line2, area, statePin].filter(Boolean);
-};
-
-const servicePeriodText = (invoice = {}) => {
-  if (clean(invoice.servicePeriod)) return clean(invoice.servicePeriod);
-  if (clean(invoice.servicePeriodStart) || clean(invoice.servicePeriodEnd)) {
-    const start = clean(invoice.servicePeriodStart) ? formatDate(invoice.servicePeriodStart) : 'NA';
-    const end = clean(invoice.servicePeriodEnd) ? formatDate(invoice.servicePeriodEnd) : 'NA';
-    return `${start} to ${end}`;
+  if (n >= 20) {
+    parts.push(tens[Math.floor(n / 10)]);
+    n %= 10;
+  } else if (n >= 10) {
+    parts.push(teens[n - 10]);
+    n = 0;
   }
-  return '';
+  if (n > 0) parts.push(ones[n]);
+  return parts.join(' ').trim();
 };
 
-const normalizeFieldSettings = (raw) => {
-  const source = raw && typeof raw === 'object' ? raw : {};
-  const next = { ...defaultInvoiceFieldSettings };
-  Object.keys(defaultInvoiceFieldSettings).forEach((key) => {
-    if (source[key] === undefined) return;
-    next[key] = Boolean(source[key]);
-  });
-  return next;
+const numberToIndianWords = (value) => {
+  const num = Math.floor(Math.abs(toNumber(value, 0)));
+  if (num === 0) return 'Zero';
+
+  const crore = Math.floor(num / 10000000);
+  const lakh = Math.floor((num % 10000000) / 100000);
+  const thousand = Math.floor((num % 100000) / 1000);
+  const hundredBlock = num % 1000;
+
+  const parts = [];
+  if (crore) parts.push(`${toWordsBelowThousand(crore)} Crore`);
+  if (lakh) parts.push(`${toWordsBelowThousand(lakh)} Lakh`);
+  if (thousand) parts.push(`${toWordsBelowThousand(thousand)} Thousand`);
+  if (hundredBlock) parts.push(toWordsBelowThousand(hundredBlock));
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
 };
 
-const normalizeTemplate = (value) => {
-  const key = clean(value);
-  return templateThemes[key] ? key : 'classic';
+const amountToWords = (value) => {
+  const amount = Math.max(0, toNumber(value, 0));
+  const rupees = Math.floor(amount);
+  const paise = Math.round((amount - rupees) * 100);
+  const rupeesPart = `${numberToIndianWords(rupees)} Rupees`;
+  if (!paise) return `${rupeesPart} Only`;
+  return `${rupeesPart} and ${numberToIndianWords(paise)} Paise Only`;
 };
 
-const parseLogoPath = (dashboardImageUrl = '') => {
-  const raw = clean(dashboardImageUrl);
+const parseLocalAsset = (input = '') => {
+  const raw = clean(input);
   if (!raw) return '';
 
+  if (raw.startsWith('/uploads/')) {
+    const local = path.join(__dirname, raw);
+    if (fs.existsSync(local)) return local;
+  }
+
   if (raw.startsWith('/')) {
-    const direct = path.resolve(__dirname, `.${raw}`);
-    if (fs.existsSync(direct)) return direct;
+    const local = path.join(__dirname, raw);
+    if (fs.existsSync(local)) return local;
   }
 
   try {
     const url = new URL(raw);
-    const pathname = url.pathname || '';
-    if (pathname.includes('/uploads/')) {
-      const fileName = path.basename(pathname);
+    const fileName = path.basename(url.pathname || '');
+    if (fileName) {
       const local = path.join(__dirname, 'uploads', fileName);
       if (fs.existsSync(local)) return local;
     }
@@ -139,542 +107,493 @@ const parseLogoPath = (dashboardImageUrl = '') => {
 };
 
 const invoiceItems = (invoice = {}) => {
-  const rows = Array.isArray(invoice.items) ? invoice.items : [];
-  return rows.map((line, index) => {
-    const qty = toNumber(line.quantity, 0);
-    const rate = toNumber(line.rate, 0);
-    const taxRate = toNumber(line.taxRate, 0);
-    const base = qty * rate;
-    const tax = (base * taxRate) / 100;
-    const total = base + tax;
+  const items = Array.isArray(invoice.items) ? invoice.items : [];
+  return items.map((item, index) => {
+    const qty = toNumber(item.quantity, 0);
+    const rate = toNumber(item.rate, 0);
+    const baseAmount = toNumber(item.amount, qty * rate);
+    const lineTaxRate = toNumber(item.taxRate, 0);
     return {
-      index: index + 1,
-      name: clean(line.itemName) || `Item ${index + 1}`,
-      description: clean(line.description),
-      sac: clean(line.sac),
+      srNo: index + 1,
+      service: clean(item.itemName || item.name) || `Service ${index + 1}`,
+      description: clean(item.description),
+      sac: clean(item.sac || item.hsnSac || item.hsn),
       qty,
       rate,
-      taxRate,
-      total
+      lineTaxRate,
+      baseAmount,
+      igstAmount: (baseAmount * lineTaxRate) / 100
     };
   });
 };
 
-const drawBorderedCell = (doc, x, y, width, height, borderColor) => {
-  doc.save();
-  doc.lineWidth(0.7).strokeColor(borderColor).rect(x, y, width, height).stroke();
-  doc.restore();
+const resolveCompany = (settings = {}) => {
+  const state = clean(settings.gstState || settings.companyState);
+  const company = {
+    name: clean(settings.gstCompanyName || settings.companyName) || 'SKUAS Pest Control',
+    address: clean(settings.gstBillingAddress || settings.companyAddress),
+    city: clean(settings.gstCity || settings.companyCity),
+    state,
+    pincode: clean(settings.gstPincode || settings.companyPincode),
+    phone: clean(settings.gstPhone || settings.companyMobile),
+    email: clean(settings.gstEmail || settings.companyEmail),
+    website: clean(settings.companyWebsite),
+    gst: clean(settings.companyGstNumber || settings.gstRegistrationNumber),
+    logo: parseLocalAsset(settings.gstCompanyLogoUrl || settings.dashboardImageUrl),
+    signature: parseLocalAsset(settings.gstDigitalSignatureUrl),
+    stamp: parseLocalAsset(settings.gstCompanyStampUrl),
+    bankName: clean(settings.gstBankName),
+    bankAccountNumber: clean(settings.gstBankAccountNumber),
+    bankIfsc: clean(settings.gstBankIfsc),
+    bankBranch: clean(settings.gstBankBranch),
+    bankUpiId: clean(settings.gstBankUpiId),
+    termsGst: clean(settings.gstTermsAndConditions),
+    termsNonGst: clean(settings.nonGstTermsAndConditions)
+  };
+
+  const compactAddress = [company.address, [company.city, company.state, company.pincode].filter(Boolean).join(' - ')]
+    .filter(Boolean)
+    .join(', ');
+
+  return { ...company, compactAddress };
 };
 
-const drawSectionTitle = (doc, x, y, text, theme) => {
-  doc
-    .font('Helvetica-Bold')
-    .fontSize(8)
-    .fillColor(theme.accent)
-    .text(String(text || '').toUpperCase(), x, y);
-};
+const resolveBillTo = (invoice = {}, customer = {}) => {
+  const title = clean(invoice.customerName)
+    || clean(customer.displayName)
+    || clean(customer.companyName)
+    || clean(customer.name)
+    || 'Customer';
 
-const drawInfoBlock = (doc, options) => {
-  const {
-    x,
-    y,
-    width,
-    minHeight,
+  const manual = clean(invoice.billingAddressText);
+  if (manual) {
+    return {
+      title,
+      lines: manual.split(/\n+/).map((line) => line.trim()).filter(Boolean),
+      gst: clean(customer.gstNumber),
+      mobile: clean(customer.mobileNumber),
+      email: clean(customer.emailId)
+    };
+  }
+
+  const lines = [
+    clean(customer.billingAddress || customer.billingStreet1),
+    clean(customer.billingStreet2),
+    clean(customer.billingArea),
+    [clean(customer.billingCity || customer.city), clean(customer.billingState || customer.state), clean(customer.billingPincode || customer.pincode)]
+      .filter(Boolean)
+      .join(', ')
+  ].filter(Boolean);
+
+  return {
     title,
     lines,
-    theme
-  } = options;
-
-  let cursorY = y + 10;
-  drawSectionTitle(doc, x + 10, cursorY, title, theme);
-  cursorY += 14;
-
-  doc.font('Helvetica').fontSize(9).fillColor(theme.heading);
-  (Array.isArray(lines) ? lines : []).forEach((line) => {
-    if (!line) return;
-    doc.text(String(line), x + 10, cursorY, { width: width - 20, lineGap: 1 });
-    cursorY = doc.y + 2;
-  });
-
-  const boxHeight = Math.max(minHeight || 72, cursorY - y + 8);
-  doc.save();
-  doc.lineWidth(0.8).strokeColor(theme.border).rect(x, y, width, boxHeight).stroke();
-  doc.restore();
-  return boxHeight;
-};
-
-const drawTotalsBox = (doc, options) => {
-  const {
-    x,
-    y,
-    width,
-    subtotal,
-    totalTax,
-    withholdingAmount,
-    roundOff,
-    grandTotal,
-    balanceDue,
-    theme
-  } = options;
-
-  const rows = [
-    { label: 'Sub Total', value: formatINR(subtotal) },
-    { label: 'Total Tax', value: formatINR(totalTax) },
-    { label: 'Withholding', value: `- ${formatINR(withholdingAmount)}` },
-    { label: 'Round Off', value: formatINR(roundOff) },
-    { label: 'Grand Total', value: formatINR(grandTotal), grand: true },
-    { label: 'Balance Due', value: formatINR(Math.max(balanceDue, 0)) }
-  ];
-
-  const rowHeight = 21;
-  const boxHeight = rows.length * rowHeight;
-
-  rows.forEach((row, rowIndex) => {
-    const rowY = y + rowIndex * rowHeight;
-    if (row.grand) {
-      doc.save();
-      doc.fillColor(theme.accentSoft).rect(x, rowY, width, rowHeight).fill();
-      doc.restore();
-    }
-
-    drawBorderedCell(doc, x, rowY, width, rowHeight, theme.border);
-    doc
-      .font(row.grand ? 'Helvetica-Bold' : 'Helvetica')
-      .fontSize(row.grand ? 10 : 9)
-      .fillColor(theme.heading)
-      .text(row.label, x + 9, rowY + 6, { width: width / 2 - 10, align: 'left' })
-      .text(row.value, x + width / 2, rowY + 6, { width: width / 2 - 10, align: 'right' });
-  });
-
-  return boxHeight;
-};
-
-const drawTextCard = (doc, options) => {
-  const { x, y, width, title, text, theme } = options;
-  if (!clean(text)) return 0;
-
-  const headingHeight = 12;
-  const bodyHeight = doc.heightOfString(String(text), { width: width - 20, lineGap: 1, align: 'left' });
-  const boxHeight = headingHeight + bodyHeight + 16;
-
-  doc.save();
-  doc.lineWidth(0.8).strokeColor(theme.border).rect(x, y, width, boxHeight).stroke();
-  doc.restore();
-
-  drawSectionTitle(doc, x + 10, y + 8, title, theme);
-  doc
-    .font('Helvetica')
-    .fontSize(9)
-    .fillColor(theme.heading)
-    .text(String(text), x + 10, y + 22, { width: width - 20, lineGap: 1 });
-
-  return boxHeight;
-};
-
-const drawPaymentSummaryCard = (doc, options) => {
-  const { x, y, width, totalAmount, amountReceived, balanceDue, paymentSplits, theme } = options;
-
-  const splitRows = Array.isArray(paymentSplits)
-    ? paymentSplits
-      .map((split) => {
-        const mode = clean(split?.mode);
-        const depositTo = clean(split?.depositTo);
-        const amount = formatINR(toNumber(split?.amount, 0));
-        return [mode, depositTo, amount].filter(Boolean).join(' | ');
-      })
-      .filter(Boolean)
-    : [];
-
-  const baseLines = [
-    `Total Amount: ${formatINR(totalAmount)}`,
-    `Amount Received: ${formatINR(amountReceived)}`,
-    `Balance Due: ${formatINR(Math.max(balanceDue, 0))}`
-  ];
-
-  const text = [...baseLines, ...splitRows].join('\n');
-  return drawTextCard(doc, {
-    x,
-    y,
-    width,
-    title: 'Payment Summary',
-    text,
-    theme
-  });
-};
-
-const drawInvoiceHeader = (doc, options) => {
-  const {
-    x,
-    y,
-    width,
-    invoice,
-    settings,
-    customer,
-    theme,
-    fieldSettings
-  } = options;
-
-  const logoPath = parseLogoPath(settings.gstCompanyLogoUrl || settings.dashboardImageUrl);
-  const headerHeight = 102;
-
-  doc.save();
-  doc.fillColor(theme.accentSoft).rect(x, y, width, headerHeight).fill();
-  doc.restore();
-
-  const companyName = clean(settings.companyName) || 'Your Company';
-  const companyAddressLines = buildCompanyAddress(settings);
-
-  doc
-    .font('Helvetica-Bold')
-    .fontSize(21)
-    .fillColor(theme.heading)
-    .text(companyName, x + 12, y + 12, { width: width - 130, lineBreak: true });
-
-  doc.font('Helvetica').fontSize(9).fillColor(theme.muted);
-  let addressY = doc.y + 2;
-  companyAddressLines.forEach((line) => {
-    doc.text(line, x + 12, addressY, { width: width - 130, lineGap: 1 });
-    addressY = doc.y + 1;
-  });
-
-  if (fieldSettings.showCompanyGst && clean(settings.companyGstNumber)) {
-    doc.text(`GSTIN: ${clean(settings.companyGstNumber)}`, x + 12, addressY + 2, { width: width - 130 });
-    addressY = doc.y + 1;
-  }
-
-  const contactParts = [clean(settings.companyEmail), clean(settings.companyMobile)].filter(Boolean);
-  if (contactParts.length > 0) {
-    doc.text(contactParts.join(' | '), x + 12, addressY + 2, { width: width - 130 });
-  }
-
-  if (logoPath) {
-    try {
-      doc.image(logoPath, x + width - 90, y + 12, { fit: [76, 76], align: 'center', valign: 'center' });
-      doc.save();
-      doc.lineWidth(0.8).strokeColor(theme.border).rect(x + width - 93, y + 9, 82, 82).stroke();
-      doc.restore();
-    } catch (_error) {
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(9)
-        .fillColor(theme.muted)
-        .text('Logo', x + width - 72, y + 44, { width: 40, align: 'center' });
-    }
-  }
-
-  doc
-    .font('Helvetica-Bold')
-    .fontSize(11)
-    .fillColor(theme.accent)
-    .text('TAX INVOICE', x + width - 125, y + 84, { width: 115, align: 'right' });
-
-  const metaY = y + headerHeight + 8;
-  const metaWidth = width / 4;
-  const metaItems = [
-    { label: 'Invoice Number', value: clean(invoice.invoiceNumber) || '-' },
-    { label: 'Invoice Date', value: formatDate(invoice.date) },
-    { label: 'Due Date', value: formatDate(invoice.dueDate) },
-    { label: 'Status', value: String(invoice.status || 'DRAFT').toUpperCase() }
-  ];
-
-  metaItems.forEach((item, index) => {
-    const blockX = x + index * metaWidth;
-    drawBorderedCell(doc, blockX, metaY, metaWidth, 38, theme.border);
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(7)
-      .fillColor(theme.muted)
-      .text(String(item.label || '').toUpperCase(), blockX + 8, metaY + 5, { width: metaWidth - 16 });
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(9)
-      .fillColor(theme.heading)
-      .text(String(item.value || ''), blockX + 8, metaY + 18, { width: metaWidth - 16 });
-  });
-
-  const infoY = metaY + 48;
-  const customerLines = buildCustomerAddress(invoice, customer);
-  const rightLines = [
-    `Customer: ${clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || '-'}`,
-    `Terms: ${clean(invoice.terms) || '-'}`,
-    `Place of Supply: ${clean(invoice.placeOfSupply) || '-'}`
-  ];
-
-  if (fieldSettings.showServicePeriod) {
-    const period = servicePeriodText(invoice);
-    if (period) rightLines.push(`Service Period: ${period}`);
-  }
-
-  const infoWidth = (width - 12) / 2;
-  const leftHeight = drawInfoBlock(doc, {
-    x,
-    y: infoY,
-    width: infoWidth,
-    minHeight: 78,
-    title: 'Bill To',
-    lines: customerLines,
-    theme
-  });
-
-  const rightHeight = drawInfoBlock(doc, {
-    x: x + infoWidth + 12,
-    y: infoY,
-    width: infoWidth,
-    minHeight: 78,
-    title: 'Invoice Details',
-    lines: rightLines,
-    theme
-  });
-
-  return infoY + Math.max(leftHeight, rightHeight);
-};
-
-const drawItemsTable = (doc, options) => {
-  const { x, startY, width, items, theme } = options;
-
-  const columns = [
-    { key: 'index', label: '#', width: 28, align: 'center' },
-    { key: 'item', label: 'Item Details', width: 225, align: 'left' },
-    { key: 'qty', label: 'Qty', width: 50, align: 'right' },
-    { key: 'rate', label: 'Rate', width: 80, align: 'right' },
-    { key: 'tax', label: 'Tax', width: 50, align: 'right' },
-    { key: 'amount', label: 'Amount', width: 90, align: 'right' }
-  ];
-
-  let y = startY;
-
-  const drawTableHeader = () => {
-    let cursorX = x;
-    columns.forEach((column) => {
-      doc.save();
-      doc.fillColor(theme.tableHead).rect(cursorX, y, column.width, 24).fill();
-      doc.restore();
-      drawBorderedCell(doc, cursorX, y, column.width, 24, theme.border);
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(7)
-        .fillColor(theme.muted)
-        .text(column.label, cursorX + 5, y + 8, {
-          width: column.width - 10,
-          align: column.align
-        });
-      cursorX += column.width;
-    });
-    y += 24;
+    gst: clean(customer.gstNumber),
+    mobile: clean(customer.mobileNumber),
+    email: clean(customer.emailId)
   };
+};
 
-  const ensureRowSpace = (height) => {
-    const maxY = doc.page.height - doc.page.margins.bottom;
-    if (y + height <= maxY) return;
-    doc.addPage();
-    y = doc.page.margins.top;
-    drawTableHeader();
-  };
+const resolveShipTo = (invoice = {}, customer = {}) => {
+  const title = clean(invoice.customerName)
+    || clean(customer.displayName)
+    || clean(customer.companyName)
+    || clean(customer.name)
+    || 'Customer';
 
-  drawTableHeader();
-
-  if (!Array.isArray(items) || items.length === 0) {
-    drawBorderedCell(doc, x, y, width, 24, theme.border);
-    doc
-      .font('Helvetica')
-      .fontSize(9)
-      .fillColor(theme.muted)
-      .text('No items available', x, y + 8, { width, align: 'center' });
-    y += 24;
-    return y;
-  }
-
-  items.forEach((row) => {
-    const descriptionParts = [row.name, row.description, row.sac ? `SAC: ${row.sac}` : ''].filter(Boolean);
-    const description = descriptionParts.join('\n');
-    const rowHeight = Math.max(24, doc.heightOfString(description, { width: 225 - 10, lineGap: 1 }) + 8);
-    ensureRowSpace(rowHeight);
-
-    let cursorX = x;
-    const values = {
-      index: String(row.index),
-      item: description,
-      qty: row.qty.toFixed(2),
-      rate: formatINR(row.rate),
-      tax: `${row.taxRate.toFixed(2)}%`,
-      amount: formatINR(row.total)
+  const manual = clean(invoice.shippingAddressText);
+  if (manual) {
+    return {
+      title,
+      lines: manual.split(/\n+/).map((line) => line.trim()).filter(Boolean)
     };
+  }
 
-    columns.forEach((column) => {
-      drawBorderedCell(doc, cursorX, y, column.width, rowHeight, theme.border);
-      doc
-        .font(column.key === 'item' ? 'Helvetica-Bold' : 'Helvetica')
-        .fontSize(column.key === 'item' ? 9 : 8.5)
-        .fillColor(theme.heading)
-        .text(values[column.key], cursorX + 5, y + 6, {
-          width: column.width - 10,
-          align: column.align,
-          lineGap: 1
-        });
-      cursorX += column.width;
-    });
+  const lines = [
+    clean(customer.shippingAddress || customer.shippingStreet1 || customer.billingAddress),
+    clean(customer.shippingStreet2),
+    clean(customer.shippingArea || customer.billingArea),
+    [clean(customer.shippingCity || customer.city), clean(customer.shippingState || customer.state), clean(customer.shippingPincode || customer.pincode)]
+      .filter(Boolean)
+      .join(', ')
+  ].filter(Boolean);
 
-    y += rowHeight;
-  });
-
-  return y;
+  return { title, lines };
 };
 
-const resolveGrandTotal = (invoice, computedTotal) => {
-  const explicit = toNumber(invoice.total, NaN);
-  if (Number.isFinite(explicit) && explicit > 0) return explicit;
-  const amount = toNumber(invoice.amount, NaN);
-  if (Number.isFinite(amount) && amount > 0) return amount;
-  return computedTotal;
+const getServicePeriod = (invoice = {}) => {
+  if (clean(invoice.servicePeriod)) return clean(invoice.servicePeriod);
+  if (clean(invoice.servicePeriodStart) || clean(invoice.servicePeriodEnd)) {
+    return `${formatDate(invoice.servicePeriodStart)} to ${formatDate(invoice.servicePeriodEnd)}`;
+  }
+  return 'As per agreement';
+};
+
+const drawRect = (doc, x, y, w, h, borderColor = BRAND.border, fillColor = null, lineWidth = 0.8) => {
+  doc.save();
+  doc.lineWidth(lineWidth);
+  if (fillColor) {
+    doc.fillColor(fillColor).rect(x, y, w, h).fill();
+  }
+  doc.strokeColor(borderColor).rect(x, y, w, h).stroke();
+  doc.restore();
+};
+
+const textCell = (doc, text, x, y, w, h, options = {}) => {
+  const {
+    size = 8.5,
+    font = 'Helvetica',
+    color = BRAND.text,
+    align = 'left',
+    padX = 4,
+    padY = 4,
+    lineGap = 1
+  } = options;
+
+  doc.font(font).fontSize(size).fillColor(color).text(String(text || ''), x + padX, y + padY, {
+    width: w - (padX * 2),
+    height: h - (padY * 2),
+    align,
+    lineGap
+  });
+};
+
+const safeImage = (doc, imgPath, x, y, fit) => {
+  if (!imgPath) return false;
+  try {
+    doc.image(imgPath, x, y, { fit, align: 'center', valign: 'center' });
+    return true;
+  } catch (_error) {
+    return false;
+  }
+};
+
+const deriveTaxMode = ({ invoiceType, placeOfSupply, companyState }) => {
+  const nonGst = clean(invoiceType).toUpperCase() === 'NON GST';
+  if (nonGst) return 'NON_GST';
+  if (!clean(placeOfSupply) || !clean(companyState)) return 'IGST';
+  return clean(placeOfSupply).toLowerCase() === clean(companyState).toLowerCase() ? 'CGST_SGST' : 'IGST';
 };
 
 const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings = {} }) => {
-  const template = normalizeTemplate(settings.invoiceTemplate);
-  const theme = templateThemes[template];
-  const fieldSettings = normalizeFieldSettings(settings.invoiceFieldSettings);
+  const company = resolveCompany(settings);
+  const billTo = resolveBillTo(invoice, customer);
+  const shipTo = resolveShipTo(invoice, customer);
+  const rows = invoiceItems(invoice);
 
-  const items = invoiceItems(invoice);
-  const computedSubTotal = items.reduce((sum, item) => sum + item.qty * item.rate, 0);
-  const computedTax = items.reduce((sum, item) => sum + (item.total - item.qty * item.rate), 0);
-
-  const subtotal = toNumber(invoice.subtotal, computedSubTotal);
-  const totalTax = toNumber(invoice.totalTax, computedTax);
-  const withholdingAmount = toNumber(invoice.withholdingAmount, 0);
+  const subtotal = toNumber(invoice.subtotal, rows.reduce((sum, r) => sum + r.baseAmount, 0));
+  const totalTax = toNumber(invoice.totalTax, rows.reduce((sum, r) => sum + r.igstAmount, 0));
   const roundOff = toNumber(invoice.roundOff, 0);
-  const grandTotal = resolveGrandTotal(invoice, subtotal + totalTax - withholdingAmount + roundOff);
-  const amountReceived = toNumber(invoice.paymentReceivedTotal, 0);
-  const balanceDue = toNumber(invoice.balanceDue, grandTotal - amountReceived);
+  const total = toNumber(invoice.total, subtotal + totalTax + roundOff);
+  const balanceDue = toNumber(invoice.balanceDue, total);
 
-  const document = new PDFDocument({
+  const taxMode = deriveTaxMode({
+    invoiceType: invoice.invoiceType,
+    placeOfSupply: invoice.placeOfSupply,
+    companyState: company.state
+  });
+
+  const termsText = taxMode === 'NON_GST'
+    ? (company.termsNonGst || 'Payment due as per terms agreed.')
+    : (company.termsGst || 'GST payable as applicable. Payment due as per terms agreed.');
+
+  const doc = new PDFDocument({
     size: 'A4',
-    margin: 36,
+    layout: 'portrait',
+    margin: 24,
     info: {
-      Title: `Invoice ${clean(invoice.invoiceNumber)}`,
-      Author: clean(settings.companyName) || 'Invoice System'
+      Title: `Invoice ${clean(invoice.invoiceNumber) || ''}`,
+      Author: company.name
     }
   });
 
   return new Promise((resolve, reject) => {
     const chunks = [];
-    document.on('data', (chunk) => chunks.push(chunk));
-    document.on('end', () => resolve(Buffer.concat(chunks)));
-    document.on('error', reject);
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
 
-    const x = document.page.margins.left;
-    const width = document.page.width - document.page.margins.left - document.page.margins.right;
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+    const left = doc.page.margins.left;
+    const right = pageWidth - doc.page.margins.right;
+    const usableWidth = right - left;
 
-    let y = drawInvoiceHeader(document, {
-      x,
-      y: document.page.margins.top,
-      width,
-      invoice,
-      settings,
-      customer,
-      theme,
-      fieldSettings
+    let pageNo = 1;
+    const drawPageFrame = () => {
+      drawRect(doc, left, doc.page.margins.top, usableWidth, pageHeight - doc.page.margins.top - doc.page.margins.bottom, BRAND.border, null, 0.8);
+      doc.font('Helvetica').fontSize(8).fillColor(BRAND.muted).text('POWERED BY SKUAS MASTER CRM', left + 8, pageHeight - doc.page.margins.bottom - 16, {
+        width: usableWidth / 2,
+        align: 'left'
+      });
+      doc.font('Helvetica').fontSize(8).fillColor(BRAND.muted).text(`Page ${pageNo}`, right - 80, pageHeight - doc.page.margins.bottom - 16, {
+        width: 72,
+        align: 'right'
+      });
+    };
+
+    drawPageFrame();
+
+    const addPage = () => {
+      doc.addPage();
+      pageNo += 1;
+      drawPageFrame();
+    };
+
+    let y = doc.page.margins.top + 8;
+
+    const headerHeight = 118;
+    const headerY = y;
+    drawRect(doc, left + 8, headerY, usableWidth - 16, headerHeight, BRAND.border, null);
+
+    const logoX = left + 18;
+    const logoY = headerY + 12;
+    const logoW = 82;
+    const logoH = 72;
+    drawRect(doc, logoX, logoY, logoW, logoH, BRAND.border);
+    if (!safeImage(doc, company.logo, logoX + 4, logoY + 4, [logoW - 8, logoH - 8])) {
+      textCell(doc, 'LOGO', logoX, logoY, logoW, logoH, { align: 'center', color: BRAND.muted });
+    }
+
+    const companyX = logoX + logoW + 10;
+    const companyW = usableWidth - 250;
+    doc.font('Helvetica-Bold').fontSize(14).fillColor(BRAND.text).text(company.name, companyX, logoY + 2, { width: companyW });
+    doc.font('Helvetica').fontSize(9).fillColor(BRAND.text);
+    const companyLines = [
+      company.compactAddress,
+      [company.phone ? `Phone: ${company.phone}` : '', company.email ? `Email: ${company.email}` : ''].filter(Boolean).join(' | '),
+      company.website ? `Website: ${company.website}` : '',
+      company.gst ? `GSTIN: ${company.gst}` : ''
+    ].filter(Boolean);
+    let companyY = logoY + 22;
+    companyLines.forEach((line) => {
+      doc.text(line, companyX, companyY, { width: companyW, lineGap: 1 });
+      companyY = doc.y + 1;
     });
 
-    if (fieldSettings.showSubject && clean(invoice.subject)) {
-      y += 10;
-      const subjectHeight = drawTextCard(document, {
-        x,
-        y,
-        width,
-        title: 'Subject',
-        text: clean(invoice.subject),
-        theme
-      });
-      y += subjectHeight;
-    }
+    const rightMetaX = right - 210;
+    const rightMetaW = 190;
+    doc.font('Helvetica-Bold').fontSize(20).fillColor(BRAND.red).text('TAX INVOICE', rightMetaX, logoY + 4, { width: rightMetaW, align: 'right' });
 
-    y += 10;
-    y = drawItemsTable(document, {
-      x,
-      startY: y,
-      width,
-      items,
-      theme
+    const metaTop = logoY + 34;
+    const metaRows = [
+      ['Invoice #', clean(invoice.invoiceNumber) || '-'],
+      ['Invoice Date', formatDate(invoice.date)],
+      ['Place Of Supply', clean(invoice.placeOfSupply) || '-'],
+      ['Salesperson', clean(invoice.salesperson) || '-']
+    ];
+    let metaY = metaTop;
+    metaRows.forEach(([label, value]) => {
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(BRAND.muted).text(label, rightMetaX, metaY, { width: 78 });
+      doc.font('Helvetica').fontSize(8.5).fillColor(BRAND.text).text(`: ${value}`, rightMetaX + 74, metaY, { width: rightMetaW - 74, align: 'left' });
+      metaY += 14;
     });
 
-    y += 10;
-    const leftWidth = 300;
-    const rightWidth = width - leftWidth - 12;
-    let leftY = y;
+    y = headerY + headerHeight + 8;
 
-    if (fieldSettings.showPaymentSummary) {
-      const paymentHeight = drawPaymentSummaryCard(document, {
-        x,
-        y: leftY,
-        width: leftWidth,
-        totalAmount: grandTotal,
-        amountReceived,
-        balanceDue,
-        paymentSplits: invoice.paymentSplits,
-        theme
+    const twoColW = (usableWidth - 20) / 2;
+    const blockH = 112;
+
+    const billX = left + 8;
+    const shipX = billX + twoColW + 4;
+
+    drawRect(doc, billX, y, twoColW, blockH, BRAND.border);
+    drawRect(doc, shipX, y, twoColW, blockH, BRAND.border);
+
+    textCell(doc, 'Bill To', billX + 1, y + 1, twoColW - 2, 16, { font: 'Helvetica-Bold', size: 10, color: BRAND.red });
+    textCell(doc, 'Ship To', shipX + 1, y + 1, twoColW - 2, 16, { font: 'Helvetica-Bold', size: 10, color: BRAND.red });
+
+    const leftText = [billTo.title, ...billTo.lines];
+    if (billTo.gst) leftText.push(`GSTIN: ${billTo.gst}`);
+    if (billTo.mobile) leftText.push(`Mobile: ${billTo.mobile}`);
+    if (billTo.email) leftText.push(`Email: ${billTo.email}`);
+
+    textCell(doc, leftText.join('\n'), billX + 2, y + 18, twoColW - 4, blockH - 20, { size: 8.7, lineGap: 1 });
+    textCell(doc, [shipTo.title, ...shipTo.lines].join('\n'), shipX + 2, y + 18, twoColW - 4, blockH - 20, { size: 8.7, lineGap: 1 });
+
+    y += blockH + 6;
+
+    const subjectH = 40;
+    drawRect(doc, left + 8, y, usableWidth - 16, subjectH, BRAND.border);
+    textCell(doc, 'Subject', left + 10, y + 3, 120, 12, { font: 'Helvetica-Bold', size: 9, color: BRAND.red });
+    textCell(doc, clean(invoice.subject) || 'Pest control service invoice', left + 10, y + 14, usableWidth - 220, 22, { size: 9 });
+    textCell(doc, `Service Period: ${getServicePeriod(invoice)}`, right - 250, y + 14, 230, 22, { size: 9, align: 'right' });
+
+    y += subjectH + 8;
+
+    const tableX = left + 8;
+    const tableW = usableWidth - 16;
+    const cols = taxMode === 'NON_GST'
+      ? [
+          { key: 'srNo', label: 'Sr No', w: 38, align: 'center' },
+          { key: 'service', label: 'Service', w: 178, align: 'left' },
+          { key: 'sac', label: 'HSN/SAC', w: 66, align: 'center' },
+          { key: 'qty', label: 'Qty', w: 48, align: 'right' },
+          { key: 'rate', label: 'Rate', w: 70, align: 'right' },
+          { key: 'taxLabel', label: 'Tax %', w: 54, align: 'right' },
+          { key: 'taxAmt', label: 'Tax Amt', w: 72, align: 'right' },
+          { key: 'amount', label: 'Amount', w: 90, align: 'right' }
+        ]
+      : [
+          { key: 'srNo', label: 'Sr No', w: 38, align: 'center' },
+          { key: 'service', label: 'Service', w: 178, align: 'left' },
+          { key: 'sac', label: 'HSN/SAC', w: 66, align: 'center' },
+          { key: 'qty', label: 'Qty', w: 48, align: 'right' },
+          { key: 'rate', label: 'Rate', w: 70, align: 'right' },
+          { key: 'taxLabel', label: taxMode === 'IGST' ? 'IGST %' : 'GST %', w: 54, align: 'right' },
+          { key: 'taxAmt', label: taxMode === 'IGST' ? 'IGST Amt' : 'GST Amt', w: 72, align: 'right' },
+          { key: 'amount', label: 'Amount', w: 90, align: 'right' }
+        ];
+
+    const drawTableHeader = () => {
+      let cx = tableX;
+      cols.forEach((c) => {
+        drawRect(doc, cx, y, c.w, 24, BRAND.border, BRAND.tableHead);
+        textCell(doc, c.label, cx, y, c.w, 24, { font: 'Helvetica-Bold', size: 8.3, align: c.align, color: BRAND.text });
+        cx += c.w;
       });
-      if (paymentHeight > 0) leftY += paymentHeight + 8;
-    }
+      y += 24;
+    };
 
-    if (fieldSettings.showCustomerNotes) {
-      const notesHeight = drawTextCard(document, {
-        x,
-        y: leftY,
-        width: leftWidth,
-        title: 'Customer Notes',
-        text: clean(invoice.customerNotes),
-        theme
+    const ensureSpace = (h) => {
+      const bottomLimit = pageHeight - doc.page.margins.bottom - 24;
+      if (y + h <= bottomLimit) return;
+      addPage();
+      y = doc.page.margins.top + 8;
+      drawTableHeader();
+    };
+
+    drawTableHeader();
+
+    const itemRows = rows.length > 0 ? rows : [{ srNo: 1, service: 'General Service', description: '', sac: '-', qty: 1, rate: 0, lineTaxRate: 0, baseAmount: 0, igstAmount: 0 }];
+
+    itemRows.forEach((row) => {
+      const serviceText = row.description ? `${row.service}\n${row.description}` : row.service;
+      const rowHeight = Math.max(26, doc.heightOfString(serviceText, { width: cols[1].w - 8, lineGap: 1 }) + 10);
+      ensureSpace(rowHeight);
+
+      const isNonGst = taxMode === 'NON_GST';
+      const taxRate = isNonGst ? 0 : row.lineTaxRate;
+      const taxAmount = isNonGst ? 0 : (row.baseAmount * taxRate) / 100;
+      const lineAmount = row.baseAmount + taxAmount;
+
+      const rowData = {
+        srNo: String(row.srNo),
+        service: serviceText,
+        sac: row.sac || '-',
+        qty: row.qty.toFixed(2),
+        rate: formatINR(row.rate),
+        taxLabel: `${taxRate.toFixed(2)}%`,
+        taxAmt: formatINR(taxAmount),
+        amount: formatINR(lineAmount)
+      };
+
+      let cx = tableX;
+      cols.forEach((c) => {
+        drawRect(doc, cx, y, c.w, rowHeight, BRAND.border);
+        textCell(doc, rowData[c.key], cx, y, c.w, rowHeight, {
+          size: c.key === 'service' ? 8.8 : 8.2,
+          align: c.align,
+          font: c.key === 'service' ? 'Helvetica-Bold' : 'Helvetica'
+        });
+        cx += c.w;
       });
-      if (notesHeight > 0) leftY += notesHeight + 8;
-    }
 
-    if (fieldSettings.showTermsAndConditions) {
-      const termsHeight = drawTextCard(document, {
-        x,
-        y: leftY,
-        width: leftWidth,
-        title: 'Terms & Conditions',
-        text: clean(invoice.termsAndConditions),
-        theme
-      });
-      if (termsHeight > 0) leftY += termsHeight + 8;
-    }
-
-    const totalsHeight = drawTotalsBox(document, {
-      x: x + leftWidth + 12,
-      y,
-      width: rightWidth,
-      subtotal,
-      totalTax,
-      withholdingAmount,
-      roundOff,
-      grandTotal,
-      balanceDue,
-      theme
+      y += rowHeight;
     });
 
-    y = Math.max(leftY, y + totalsHeight) + 8;
+    y += 8;
 
-    const footerLines = [];
-    if (fieldSettings.showCompanyWebsite && clean(settings.companyWebsite)) {
-      footerLines.push(`Website: ${clean(settings.companyWebsite)}`);
+    const leftBoxW = Math.floor((tableW * 0.58));
+    const rightBoxW = tableW - leftBoxW - 6;
+
+    const leftBoxX = tableX;
+    const rightBoxX = leftBoxX + leftBoxW + 6;
+
+    const wordsText = amountToWords(total);
+    const bankLines = [
+      `Bank Name: ${company.bankName || '-'}`,
+      `A/C No: ${company.bankAccountNumber || '-'}`,
+      `IFSC: ${company.bankIfsc || '-'}`,
+      `Branch: ${company.bankBranch || '-'}`,
+      `UPI ID: ${company.bankUpiId || '-'}`
+    ];
+
+    const leftBlockText = [
+      `Total In Words: ${wordsText}`,
+      '',
+      'Bank Account Details:',
+      ...bankLines,
+      '',
+      `Service Period: ${getServicePeriod(invoice)}`,
+      '',
+      'Terms & Conditions:',
+      termsText
+    ].join('\n');
+
+    const leftH = Math.max(168, doc.heightOfString(leftBlockText, { width: leftBoxW - 14, lineGap: 1 }) + 14);
+    const rightH = leftH;
+
+    ensureSpace(Math.max(leftH, rightH));
+
+    drawRect(doc, leftBoxX, y, leftBoxW, leftH, BRAND.border);
+    textCell(doc, leftBlockText, leftBoxX + 2, y + 2, leftBoxW - 4, leftH - 4, { size: 8.4, lineGap: 1 });
+
+    drawRect(doc, rightBoxX, y, rightBoxW, rightH, BRAND.border);
+
+    const summaryRows = [];
+    summaryRows.push(['Sub Total', formatINR(subtotal)]);
+
+    if (taxMode === 'NON_GST') {
+      summaryRows.push(['Tax', formatINR(0)]);
+    } else if (taxMode === 'CGST_SGST') {
+      const half = totalTax / 2;
+      summaryRows.push(['CGST 9%', formatINR(half)]);
+      summaryRows.push(['SGST 9%', formatINR(half)]);
+    } else {
+      summaryRows.push(['IGST 18%', formatINR(totalTax)]);
     }
-    if (fieldSettings.showGoogleReviewLink && clean(settings.googleReviewLink)) {
-      footerLines.push(`Google Review: ${clean(settings.googleReviewLink)}`);
+
+    summaryRows.push(['Rounding', formatINR(roundOff)]);
+    summaryRows.push(['Total', formatINR(total)]);
+    summaryRows.push(['Balance Due', formatINR(balanceDue)]);
+
+    let sy = y + 8;
+    summaryRows.forEach((row, idx) => {
+      const rh = 24;
+      drawRect(doc, rightBoxX + 8, sy, rightBoxW - 16, rh, BRAND.border, row[0] === 'Total' ? BRAND.tableHead : null);
+      textCell(doc, row[0], rightBoxX + 10, sy, (rightBoxW - 20) * 0.52, rh, { font: row[0] === 'Total' ? 'Helvetica-Bold' : 'Helvetica', size: 9 });
+      textCell(doc, row[1], rightBoxX + (rightBoxW * 0.52), sy, (rightBoxW * 0.48) - 10, rh, { font: row[0] === 'Total' ? 'Helvetica-Bold' : 'Helvetica', size: 9, align: 'right' });
+      sy += rh;
+      if (idx === summaryRows.length - 1) sy += 4;
+    });
+
+    const signAreaY = y + rightH - 72;
+    drawRect(doc, rightBoxX + 8, signAreaY, rightBoxW - 16, 64, BRAND.border);
+    textCell(doc, 'For ' + company.name, rightBoxX + 12, signAreaY + 4, rightBoxW - 24, 14, { align: 'right', size: 8, font: 'Helvetica-Bold' });
+
+    const signImgX = rightBoxX + rightBoxW - 120;
+    const signImgY = signAreaY + 18;
+    const signOk = safeImage(doc, company.signature, signImgX, signImgY, [64, 24]);
+    if (!signOk) {
+      textCell(doc, 'Authorized Sign', signImgX - 14, signImgY + 6, 90, 16, { align: 'right', color: BRAND.muted, size: 8 });
     }
 
-    drawBorderedCell(document, x, y, width, 34, theme.border);
-    document
-      .font('Helvetica')
-      .fontSize(8)
-      .fillColor(theme.muted)
-      .text(
-        `This is a computer generated invoice.${footerLines.length > 0 ? ` ${footerLines.join(' | ')}` : ''}`,
-        x + 8,
-        y + 12,
-        { width: width - 16, align: 'left' }
-      );
+    if (company.stamp) {
+      safeImage(doc, company.stamp, rightBoxX + 20, signImgY - 2, [50, 30]);
+    }
 
-    document.end();
+    textCell(doc, 'Authorized Signature', rightBoxX + 12, signAreaY + 46, rightBoxW - 24, 14, { align: 'right', size: 8.2, font: 'Helvetica-Bold' });
+
+    y += Math.max(leftH, rightH) + 8;
+
+    const receiverBoxH = 42;
+    ensureSpace(receiverBoxH + 4);
+    drawRect(doc, tableX, y, tableW, receiverBoxH, BRAND.border);
+    textCell(doc, 'Receiver Signature: ____________________________', tableX + 8, y + 14, tableW / 2, 14, { size: 9 });
+    textCell(doc, 'Thank you for your business.', tableX + tableW / 2, y + 14, tableW / 2 - 8, 14, { size: 9, align: 'right', color: BRAND.muted });
+
+    doc.end();
   });
 };
 
