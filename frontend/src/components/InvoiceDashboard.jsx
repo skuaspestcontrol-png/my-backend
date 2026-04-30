@@ -606,6 +606,7 @@ export default function InvoiceDashboard() {
   const navigate = useNavigate();
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [invoices, setInvoices] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [itemsCatalog, setItemsCatalog] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -790,8 +791,12 @@ export default function InvoiceDashboard() {
 
   const loadInvoices = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/invoices`);
-      setInvoices(Array.isArray(res.data) ? res.data : []);
+      const [invoicesRes, paymentsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/invoices`),
+        axios.get(`${API_BASE_URL}/api/payments`)
+      ]);
+      setInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
+      setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
       setSelectedIds([]);
     } catch (error) {
       console.error('Failed to load invoices', error);
@@ -1791,21 +1796,44 @@ export default function InvoiceDashboard() {
       if (due < today) overdue += bal;
     });
 
-    const paid = invoices.filter((invoice) => String(invoice.status || '').toUpperCase() === 'PAID');
-    const avgDays = paid.length > 0
-      ? Math.round(
-        paid.reduce((acc, invoice) => {
-          const d1 = parseDateOnly(invoice.date);
-          const d2 = parseDateOnly(invoice.dueDate);
-          if (!d1 || !d2) return acc + 5;
-          const diff = Math.round(Math.abs((d2.getTime() - d1.getTime()) / 86400000));
-          return acc + diff;
-        }, 0) / paid.length
-      )
-      : 5;
+    const latestPaymentDateByInvoiceId = new Map();
+    (Array.isArray(payments) ? payments : []).forEach((payment) => {
+      const invoiceId = String(payment?.invoiceId || '').trim();
+      if (!invoiceId) return;
+      const paidAt = parseDateOnly(payment?.paymentDate || payment?.date || payment?.createdAt);
+      if (!paidAt) return;
+      const prev = latestPaymentDateByInvoiceId.get(invoiceId);
+      if (!prev || paidAt > prev) {
+        latestPaymentDateByInvoiceId.set(invoiceId, paidAt);
+      }
+    });
+
+    const paidInvoiceDayDiffsByCustomer = invoices.reduce((acc, invoice) => {
+      if (String(invoice?.status || '').toUpperCase() !== 'PAID') return acc;
+      const invoiceId = String(invoice?._id || '').trim();
+      const invoiceDate = parseDateOnly(invoice?.date || invoice?.createdAt);
+      const paymentDate = latestPaymentDateByInvoiceId.get(invoiceId);
+      if (!invoiceDate || !paymentDate) return acc;
+      const diff = Math.max(0, Math.round((paymentDate.getTime() - invoiceDate.getTime()) / 86400000));
+      const customerIdKey = String(invoice?.customerId || '').trim();
+      const customerNameKey = String(invoice?.customerName || '').trim().toLowerCase();
+      const customerKey = customerIdKey || customerNameKey;
+      if (!customerKey) return acc;
+      if (!acc.has(customerKey)) acc.set(customerKey, []);
+      acc.get(customerKey).push(diff);
+      return acc;
+    }, new Map());
+
+    const customerAverages = Array.from(paidInvoiceDayDiffsByCustomer.values())
+      .filter((list) => Array.isArray(list) && list.length > 0)
+      .map((list) => list.reduce((sum, days) => sum + days, 0) / list.length);
+
+    const avgDays = customerAverages.length > 0
+      ? Math.round(customerAverages.reduce((sum, avg) => sum + avg, 0) / customerAverages.length)
+      : 0;
 
     return { totalOutstanding, dueToday, dueWithin30, overdue, avgDays };
-  }, [invoices]);
+  }, [invoices, payments]);
 
   const gstDisplay = useMemo(() => {
     const rates = (form.items || [])
@@ -1957,7 +1985,7 @@ export default function InvoiceDashboard() {
               <span style={shell.summaryValue}>{formatINR(summary.overdue)}</span>
             </div>
             <div style={shell.summaryMetric}>
-              <span style={shell.summaryLabel}>Average No. of Days for Getting Paid</span>
+              <span style={shell.summaryLabel}>Average Customer Payment Day</span>
               <span style={shell.summaryValue}>{summary.avgDays} Days</span>
             </div>
           </div>
