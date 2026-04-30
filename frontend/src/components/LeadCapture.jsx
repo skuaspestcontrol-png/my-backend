@@ -1613,7 +1613,7 @@ export default function LeadCapture() {
   const viewGridStyle = isMobile ? { ...s.viewGrid, gridTemplateColumns: '1fr' } : s.viewGrid;
   const followupGridStyle = isMobile ? { ...s.followupGrid, gridTemplateColumns: '1fr' } : s.followupGrid;
   const leadModalStyle = isMobile ? { ...s.cn, width: '100%', maxWidth: '100%' } : s.cn;
-  const leadModalHeadStyle = isMobile ? { ...s.hd, flexDirection: 'column', alignItems: 'stretch' } : s.hd;
+  const leadModalHeadStyle = isMobile ? { ...s.hd, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' } : s.hd;
   const leadModalBodyStyle = isMobile ? { ...s.body, padding: '14px' } : s.body;
   const leadGridStyle = isTablet || isMobile ? { ...s.gd, gridTemplateColumns: '1fr' } : s.gd;
   const leadFieldHalfStyle = isTablet || isMobile ? { ...s.fieldHalf, gridColumn: '1 / -1' } : s.fieldHalf;

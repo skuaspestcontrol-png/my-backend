@@ -101,7 +101,7 @@ const shell = {
   },
   td: { textAlign: 'center', verticalAlign: 'middle', padding: '10px 6px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#1f2937', overflow: 'hidden', background: '#fff' },
   selectedRow: { background: 'var(--color-primary)' },
-  selectedText: { color: '#fff' },
+  selectedText: { color: '#111827' },
   subText: { marginTop: '1px', fontSize: '11px', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusPill: { borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: 800, display: 'inline-block' },
   typePill: { borderRadius: '8px', padding: '3px 7px', fontSize: '10px', fontWeight: 800, background: 'rgba(34,197,94,0.2)', color: '#15803d' },
@@ -128,6 +128,15 @@ const shell = {
   miniBtn: { border: '1px solid #F9A8D4', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', minHeight: '28px', padding: '0 8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
   ,
   customerLinkBtn: { border: 'none', background: 'transparent', padding: 0, margin: 0, fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '2px' },
+  mobileList: { display: 'grid', gap: '8px', padding: '10px' },
+  mobileCard: { border: '1px solid var(--color-border)', borderRadius: '12px', padding: '10px', background: '#fff', display: 'grid', gap: '8px' },
+  mobileCardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' },
+  mobileContractNo: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#111827' },
+  mobileCustomer: { margin: 0, fontSize: '14px', fontWeight: 700, color: '#111827' },
+  mobileMetaGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' },
+  mobileMetaLabel: { fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
+  mobileMetaValue: { fontSize: '12px', color: '#1f2937', fontWeight: 700 },
+  mobileActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' },
   modalCard: { width: 'min(860px, 100%)', maxHeight: '90vh', overflow: 'auto', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-primary-soft)', boxShadow: '0 22px 54px rgba(15,23,42,0.2)' },
   modalHead: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' },
@@ -595,7 +604,7 @@ export default function ContractDashboard() {
   const quickWrapStyle = isMobile ? { ...shell.quickWrap, alignItems: 'stretch' } : shell.quickWrap;
   const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
   const tableWrapStyle = isMobile ? { ...shell.tableWrap, WebkitOverflowScrolling: 'touch' } : shell.tableWrap;
-  const tableStyle = isMobile ? { ...shell.table, minWidth: '1080px', tableLayout: 'auto' } : shell.table;
+  const tableStyle = isMobile ? { ...shell.table, minWidth: '100%', tableLayout: 'fixed' } : shell.table;
   const footerStyle = isMobile ? { ...shell.footer, flexDirection: 'column', alignItems: 'stretch' } : shell.footer;
   const pagerStyle = isMobile ? { ...shell.pager, justifyContent: 'center' } : shell.pager;
 
@@ -663,6 +672,37 @@ export default function ContractDashboard() {
     if (sortedContracts.length === 0) {
       return <div style={shell.empty}>No contracts match your current filters.</div>;
     }
+    if (isMobile) {
+      return (
+        <div style={shell.mobileList}>
+          {sortedContracts.map((row) => {
+            const statusTone = statusStyles[row.status] || statusStyles.Active;
+            return (
+              <div key={row.id} style={shell.mobileCard}>
+                <div style={shell.mobileCardTop}>
+                  <div>
+                    <p style={shell.mobileContractNo}>{row.contractNo}</p>
+                    <p style={shell.mobileCustomer}>{row.customer}</p>
+                  </div>
+                  <span style={{ ...shell.statusPill, ...statusTone }}>{row.status.toUpperCase()}</span>
+                </div>
+                <div style={shell.mobileMetaGrid}>
+                  <div><div style={shell.mobileMetaLabel}>Property</div><div style={shell.mobileMetaValue}>{row.property || '-'}</div></div>
+                  <div><div style={shell.mobileMetaLabel}>Start</div><div style={shell.mobileMetaValue}>{formatDate(row.startDate)}</div></div>
+                  <div><div style={shell.mobileMetaLabel}>Total</div><div style={shell.mobileMetaValue}>{formatINR(row.total)}</div></div>
+                  <div><div style={shell.mobileMetaLabel}>Due</div><div style={shell.mobileMetaValue}>{formatINR(row.due)}</div></div>
+                </div>
+                <div style={shell.mobileActions}>
+                  <button type="button" style={shell.actionBtn} onClick={() => navigate('/sales/invoices', { state: { openInvoiceNumber: row.contractNo, fromContract: true } })}>View</button>
+                  <button type="button" style={shell.actionBtn} onClick={() => openInvoicePdf(row.invoiceId)}>Invoice PDF</button>
+                  <button type="button" style={shell.actionBtn} onClick={() => openContractJobCardPdf(row.invoiceId)}>Job Card</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
 
     return (
       <table style={tableStyle}>
@@ -704,7 +744,7 @@ export default function ContractDashboard() {
                 <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>{index + 1}</td>
                 {visibleColumns.contractNo ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   <div style={{ fontSize: '12px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
-                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.86)' } : {}) }}>{row.contractCode}</div>
+                  <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{row.contractCode}</div>
                 </td> : null}
                 {visibleColumns.customer ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   {row.status === 'Active' ? (
@@ -714,22 +754,22 @@ export default function ContractDashboard() {
                         event.stopPropagation();
                         openCustomerSummary(row);
                       }}
-                      style={{ ...shell.customerLinkBtn, color: selected ? '#fff' : 'var(--color-primary-dark)' }}
+                      style={{ ...shell.customerLinkBtn, color: '#111827' }}
                     >
                       {row.customer}
                     </button>
                   ) : (
                     <div style={{ fontSize: '12px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.customer}</div>
                   )}
-                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.86)' } : {}) }}>{row.mobile || '-'}</div>
+                  <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{row.mobile || '-'}</div>
                 </td> : null}
                 {visibleColumns.property ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   <div style={{ fontSize: '12px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.property || '-'}</div>
-                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.86)' } : {}) }}>{row.city || '-'}</div>
+                  <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{row.city || '-'}</div>
                 </td> : null}
                 {visibleColumns.duration ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   <div style={{ fontSize: '12px', fontWeight: 700 }}>{formatDate(row.startDate)}</div>
-                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.86)' } : {}) }}>{`to ${formatDate(row.endDate)}`}</div>
+                  <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{`to ${formatDate(row.endDate)}`}</div>
                 </td> : null}
                 {visibleColumns.services ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   <span style={{ ...shell.shownPill, background: selected ? 'rgba(255,255,255,0.18)' : '#eef2f7', color: selected ? '#fff' : '#334155', borderColor: selected ? 'rgba(255,255,255,0.2)' : 'var(--color-border)' }}>{row.services}</span>

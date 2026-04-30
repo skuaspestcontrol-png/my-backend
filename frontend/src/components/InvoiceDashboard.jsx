@@ -1896,8 +1896,8 @@ export default function InvoiceDashboard() {
   const modalHeaderStyle = isTiny ? { ...shell.modalHeader, fontSize: '22px', padding: '12px 14px' } : shell.modalHeader;
   const tableStyle = isMobile ? { ...shell.table, minWidth: isTiny ? '700px' : '760px' } : shell.table;
   const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
-  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '980px' } : shell.itemTable;
-  const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '820px' } : shell.serviceScheduleTable;
+  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '100%', tableLayout: 'fixed' } : shell.itemTable;
+  const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '100%', tableLayout: 'fixed' } : shell.serviceScheduleTable;
 
   return (
     <section style={shell.page}>

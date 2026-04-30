@@ -127,26 +127,28 @@ const invoiceItems = (invoice = {}) => {
   });
 };
 
-const resolveCompany = (settings = {}) => {
-  const state = clean(settings.gstState || settings.companyState);
+const resolveCompany = (settings = {}, invoice = {}) => {
+  const isNonGst = clean(invoice.invoiceType).toUpperCase() === 'NON GST';
+  const state = clean((isNonGst ? settings.nonGstState : settings.gstState) || settings.companyState);
   const company = {
-    name: clean(settings.gstCompanyName || settings.companyName) || 'SKUAS Pest Control',
-    address: clean(settings.gstBillingAddress || settings.companyAddress),
-    city: clean(settings.gstCity || settings.companyCity),
+    name: clean((isNonGst ? settings.nonGstCompanyName : settings.gstCompanyName) || settings.companyName) || 'SKUAS Pest Control',
+    address: clean((isNonGst ? settings.nonGstBillingAddress : settings.gstBillingAddress) || settings.companyAddress),
+    city: clean((isNonGst ? settings.nonGstCity : settings.gstCity) || settings.companyCity),
     state,
-    pincode: clean(settings.gstPincode || settings.companyPincode),
-    phone: clean(settings.gstPhone || settings.companyMobile),
-    email: clean(settings.gstEmail || settings.companyEmail),
+    pincode: clean((isNonGst ? settings.nonGstPincode : settings.gstPincode) || settings.companyPincode),
+    phone: clean((isNonGst ? settings.nonGstPhone : settings.gstPhone) || settings.companyMobile),
+    email: clean((isNonGst ? settings.nonGstEmail : settings.gstEmail) || settings.companyEmail),
     website: clean(settings.companyWebsite),
     gst: clean(settings.companyGstNumber || settings.gstRegistrationNumber),
-    logo: parseLocalAsset(settings.gstCompanyLogoUrl || settings.dashboardImageUrl),
+    tagline: clean(settings.aboutTagline),
+    logo: parseLocalAsset((isNonGst ? settings.nonGstCompanyLogoUrl : settings.gstCompanyLogoUrl) || settings.dashboardImageUrl),
     signature: parseLocalAsset(settings.gstDigitalSignatureUrl),
     stamp: parseLocalAsset(settings.gstCompanyStampUrl),
-    bankName: clean(settings.gstBankName),
-    bankAccountNumber: clean(settings.gstBankAccountNumber),
-    bankIfsc: clean(settings.gstBankIfsc),
-    bankBranch: clean(settings.gstBankBranch),
-    bankUpiId: clean(settings.gstBankUpiId),
+    bankName: clean((isNonGst ? settings.nonGstBankName : settings.gstBankName)),
+    bankAccountNumber: clean((isNonGst ? settings.nonGstBankAccountNumber : settings.gstBankAccountNumber)),
+    bankIfsc: clean((isNonGst ? settings.nonGstBankIfsc : settings.gstBankIfsc)),
+    bankBranch: clean((isNonGst ? settings.nonGstBankBranch : settings.gstBankBranch)),
+    bankUpiId: clean((isNonGst ? settings.nonGstBankUpiId : settings.gstBankUpiId)),
     termsGst: clean(settings.gstTermsAndConditions),
     termsNonGst: clean(settings.nonGstTermsAndConditions)
   };
@@ -159,11 +161,7 @@ const resolveCompany = (settings = {}) => {
 };
 
 const resolveBillTo = (invoice = {}, customer = {}) => {
-  const title = clean(invoice.customerName)
-    || clean(customer.displayName)
-    || clean(customer.companyName)
-    || clean(customer.name)
-    || 'Customer';
+  const title = clean(customer.billingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.companyName) || clean(customer.name) || 'Customer';
 
   const manual = clean(invoice.billingAddressText);
   if (manual) {
@@ -195,11 +193,7 @@ const resolveBillTo = (invoice = {}, customer = {}) => {
 };
 
 const resolveShipTo = (invoice = {}, customer = {}) => {
-  const title = clean(invoice.customerName)
-    || clean(customer.displayName)
-    || clean(customer.companyName)
-    || clean(customer.name)
-    || 'Customer';
+  const title = clean(customer.shippingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.companyName) || clean(customer.name) || 'Customer';
 
   const manual = clean(invoice.shippingAddressText);
   if (manual) {
@@ -276,7 +270,7 @@ const deriveTaxMode = ({ invoiceType, placeOfSupply, companyState }) => {
 };
 
 const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings = {} }) => {
-  const company = resolveCompany(settings);
+  const company = resolveCompany(settings, invoice);
   const billTo = resolveBillTo(invoice, customer);
   const shipTo = resolveShipTo(invoice, customer);
   const rows = invoiceItems(invoice);
@@ -350,14 +344,17 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const logoY = headerY + 12;
     const logoW = 82;
     const logoH = 72;
-    drawRect(doc, logoX, logoY, logoW, logoH, BRAND.border);
+    drawRect(doc, logoX, logoY, logoW, logoH, '#d1d5db');
     if (!safeImage(doc, company.logo, logoX + 4, logoY + 4, [logoW - 8, logoH - 8])) {
       textCell(doc, 'LOGO', logoX, logoY, logoW, logoH, { align: 'center', color: BRAND.muted });
     }
 
     const companyX = logoX + logoW + 10;
     const companyW = usableWidth - 250;
-    doc.font('Helvetica-Bold').fontSize(14).fillColor(BRAND.text).text(company.name, companyX, logoY + 2, { width: companyW });
+    doc.font('Helvetica-Bold').fontSize(24).fillColor(BRAND.text).text(company.name, companyX, logoY + 1, { width: companyW });
+    if (company.tagline) {
+      doc.font('Helvetica-Bold').fontSize(12).fillColor(BRAND.muted).text(company.tagline, companyX, logoY + 29, { width: companyW });
+    }
     doc.font('Helvetica').fontSize(9).fillColor(BRAND.text);
     const companyLines = [
       company.compactAddress,
@@ -365,7 +362,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       company.website ? `Website: ${company.website}` : '',
       company.gst ? `GSTIN: ${company.gst}` : ''
     ].filter(Boolean);
-    let companyY = logoY + 22;
+    let companyY = logoY + (company.tagline ? 45 : 32);
     companyLines.forEach((line) => {
       doc.text(line, companyX, companyY, { width: companyW, lineGap: 1 });
       companyY = doc.y + 1;
@@ -479,7 +476,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
       const rowData = {
         srNo: String(row.srNo),
-        service: serviceText,
+        service: row.service,
+        serviceDesc: row.description,
         sac: row.sac || '-',
         qty: row.qty.toFixed(2),
         rate: formatINR(row.rate),
@@ -491,11 +489,24 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       let cx = tableX;
       cols.forEach((c) => {
         drawRect(doc, cx, y, c.w, rowHeight, BRAND.border);
-        textCell(doc, rowData[c.key], cx, y, c.w, rowHeight, {
-          size: c.key === 'service' ? 8.8 : 8.2,
-          align: c.align,
-          font: c.key === 'service' ? 'Helvetica-Bold' : 'Helvetica'
-        });
+        if (c.key === 'service') {
+          textCell(doc, rowData.service, cx, y + 1, c.w, rowHeight / 2, {
+            size: 9.6,
+            align: c.align,
+            font: 'Helvetica-Bold'
+          });
+          textCell(doc, rowData.serviceDesc, cx, y + 14, c.w, rowHeight - 14, {
+            size: 7.8,
+            align: c.align,
+            font: 'Helvetica'
+          });
+        } else {
+          textCell(doc, rowData[c.key], cx, y, c.w, rowHeight, {
+            size: 8.2,
+            align: c.align,
+            font: 'Helvetica'
+          });
+        }
         cx += c.w;
       });
 
@@ -531,7 +542,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       termsText
     ].join('\n');
 
-    const leftH = Math.max(168, doc.heightOfString(leftBlockText, { width: leftBoxW - 14, lineGap: 1 }) + 14);
+    const leftH = Math.max(156, doc.heightOfString(leftBlockText, { width: leftBoxW - 14, lineGap: 1 }) + 14);
     const rightH = leftH;
 
     ensureSpace(Math.max(leftH, rightH));
@@ -587,11 +598,11 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
     y += Math.max(leftH, rightH) + 8;
 
-    const receiverBoxH = 42;
+    const receiverBoxH = 52;
     ensureSpace(receiverBoxH + 4);
     drawRect(doc, tableX, y, tableW, receiverBoxH, BRAND.border);
-    textCell(doc, 'Receiver Signature: ____________________________', tableX + 8, y + 14, tableW / 2, 14, { size: 9 });
-    textCell(doc, 'Thank you for your business.', tableX + tableW / 2, y + 14, tableW / 2 - 8, 14, { size: 9, align: 'right', color: BRAND.muted });
+    textCell(doc, 'Receiver Signature', tableX + 8, y + 28, tableW / 2 - 10, 14, { size: 9 });
+    textCell(doc, 'Authorized Signature', tableX + (tableW / 2), y + 28, tableW / 2 - 10, 14, { size: 9, align: 'right' });
 
     doc.end();
   });
