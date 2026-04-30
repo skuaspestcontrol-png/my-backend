@@ -98,11 +98,32 @@ const frontendDistDir = path.join(__dirname, '..', 'frontend', 'dist');
 const frontendDistIndexFile = path.join(frontendDistDir, 'index.html');
 const hasBackendPublicBuild = fs.existsSync(backendPublicDir) && fs.existsSync(backendPublicIndexFile);
 const hasFrontendDistBuild = fs.existsSync(frontendDistDir) && fs.existsSync(frontendDistIndexFile);
+const buildMtimeMs = (filePath) => {
+  try {
+    return fs.statSync(filePath).mtimeMs || 0;
+  } catch (error) {
+    return 0;
+  }
+};
 
-if (hasBackendPublicBuild) {
-  app.use(express.static(backendPublicDir));
+let activeFrontendBuildDir = null;
+let activeFrontendIndexFile = null;
+if (hasBackendPublicBuild && hasFrontendDistBuild) {
+  const backendPublicMtime = buildMtimeMs(backendPublicIndexFile);
+  const frontendDistMtime = buildMtimeMs(frontendDistIndexFile);
+  const useBackendPublic = backendPublicMtime >= frontendDistMtime;
+  activeFrontendBuildDir = useBackendPublic ? backendPublicDir : frontendDistDir;
+  activeFrontendIndexFile = useBackendPublic ? backendPublicIndexFile : frontendDistIndexFile;
+} else if (hasBackendPublicBuild) {
+  activeFrontendBuildDir = backendPublicDir;
+  activeFrontendIndexFile = backendPublicIndexFile;
 } else if (hasFrontendDistBuild) {
-  app.use(express.static(frontendDistDir));
+  activeFrontendBuildDir = frontendDistDir;
+  activeFrontendIndexFile = frontendDistIndexFile;
+}
+
+if (activeFrontendBuildDir) {
+  app.use(express.static(activeFrontendBuildDir));
 }
 
 const storage = multer.diskStorage({
@@ -3745,13 +3766,10 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   res.json({ imageUrl: `${resolveServerOrigin(req)}/uploads/${req.file.filename}` });
 });
 
-if (hasBackendPublicBuild || hasFrontendDistBuild) {
+if (activeFrontendBuildDir && activeFrontendIndexFile) {
   app.get(/^\/(?!api|uploads).*/, (req, res) => {
-    if (hasBackendPublicBuild) {
-      res.sendFile(backendPublicIndexFile);
-      return;
-    }
-    res.sendFile(frontendDistIndexFile);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.sendFile(activeFrontendIndexFile);
   });
 }
 
