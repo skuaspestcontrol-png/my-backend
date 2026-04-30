@@ -1660,74 +1660,202 @@ app.post('/api/complaints', (req, res) => {
   res.status(201).json(next);
 });
 
-app.get('/api/items', (req, res) => {
-  res.json(readJsonFile(itemsFile, []));
-});
-
-app.post('/api/items', (req, res) => {
-  const items = readJsonFile(itemsFile, []);
-  const isServiceItem = String(req.body.itemType || 'service').toLowerCase() === 'service';
-  const newItem = {
-    _id: `ITEM-${Date.now()}`,
-    name: req.body.name || '',
-    itemType: req.body.itemType || 'service',
-    treatmentMethod: isServiceItem ? (req.body.treatmentMethod || '') : '',
-    pestsCovered: isServiceItem ? (req.body.pestsCovered || '') : '',
-    serviceDescription: isServiceItem ? (req.body.serviceDescription || '') : '',
-    unit: req.body.unit || '',
-    sac: req.body.sac || '',
-    taxPreference: req.body.taxPreference || 'Taxable',
-    sellable: req.body.sellable !== false,
-    purchasable: req.body.purchasable !== false,
-    salesAccount: req.body.salesAccount || 'Sales',
-    purchaseAccount: req.body.purchaseAccount || 'Cost of Goods Sold',
-    preferredVendor: req.body.preferredVendor || '',
-    salesDescription: req.body.salesDescription || '',
-    purchaseInfoDescription: req.body.purchaseInfoDescription || '',
-    intraTaxRate: req.body.intraTaxRate || '18%',
-    interTaxRate: req.body.interTaxRate || '18%',
-    purchaseDescription: req.body.purchaseDescription || '',
-    purchaseRate: Number(req.body.purchaseRate || 0),
-    description: req.body.description || '',
-    rate: Number(req.body.rate || 0),
-    hsnSac: req.body.hsnSac || '',
-    createdAt: new Date().toISOString()
-  };
-
-  items.push(newItem);
-  fs.writeFileSync(itemsFile, JSON.stringify(items, null, 2));
-  res.json(newItem);
-});
-
-app.put('/api/items/:id', (req, res) => {
-  const items = readJsonFile(itemsFile, []);
-  const itemIndex = items.findIndex((item) => item._id === req.params.id);
-
-  if (itemIndex === -1) {
-    return res.status(404).json({ error: 'Item not found' });
+const parseMysqlJsonPayload = (rawPayload) => {
+  if (!rawPayload) return null;
+  if (typeof rawPayload === 'string') {
+    try { return JSON.parse(rawPayload); } catch { return null; }
   }
+  if (typeof rawPayload === 'object') return rawPayload;
+  return null;
+};
 
-  const updatedItem = {
-    ...items[itemIndex],
-    ...req.body,
-    _id: items[itemIndex]._id
+const normalizeItemRecord = (input = {}, fallbackExternalId = '') => {
+  const source = (input && typeof input === 'object') ? input : {};
+  const externalId = String(source._id || source.external_id || fallbackExternalId || `ITEM-${Date.now()}`).trim();
+  const itemType = String(source.itemType || source.item_type || 'service').trim() || 'service';
+  const isServiceItem = itemType.toLowerCase() === 'service';
+  const nowIso = new Date().toISOString();
+  return {
+    _id: externalId,
+    name: String(source.name || '').trim(),
+    itemType,
+    treatmentMethod: isServiceItem ? String(source.treatmentMethod || source.treatment_method || '').trim() : '',
+    pestsCovered: isServiceItem ? String(source.pestsCovered || source.pests_covered || '').trim() : '',
+    serviceDescription: isServiceItem ? String(source.serviceDescription || source.service_description || '').trim() : '',
+    unit: String(source.unit || '').trim(),
+    sac: String(source.sac || '').trim(),
+    hsnSac: String(source.hsnSac || source.hsn_sac || '').trim(),
+    taxPreference: String(source.taxPreference || source.tax_preference || 'Taxable').trim() || 'Taxable',
+    sellable: source.sellable !== false,
+    purchasable: source.purchasable !== false,
+    salesAccount: String(source.salesAccount || source.sales_account || 'Sales').trim() || 'Sales',
+    purchaseAccount: String(source.purchaseAccount || source.purchase_account || 'Cost of Goods Sold').trim() || 'Cost of Goods Sold',
+    preferredVendor: String(source.preferredVendor || source.preferred_vendor || '').trim(),
+    salesDescription: String(source.salesDescription || source.sales_description || '').trim(),
+    purchaseInfoDescription: String(source.purchaseInfoDescription || source.purchase_info_description || '').trim(),
+    intraTaxRate: String(source.intraTaxRate || source.intra_tax_rate || '18%').trim() || '18%',
+    interTaxRate: String(source.interTaxRate || source.inter_tax_rate || '18%').trim() || '18%',
+    purchaseDescription: String(source.purchaseDescription || source.purchase_description || '').trim(),
+    purchaseRate: Number(source.purchaseRate || source.purchase_rate || 0),
+    description: String(source.description || '').trim(),
+    rate: Number(source.rate || 0),
+    createdAt: source.createdAt || source.created_at || nowIso,
+    updatedAt: nowIso
   };
+};
 
-  items[itemIndex] = updatedItem;
-  fs.writeFileSync(itemsFile, JSON.stringify(items, null, 2));
-  res.json(updatedItem);
+const upsertItemRow = async (conn, item) => {
+  await conn.query(
+    `INSERT INTO items (
+      external_id, name, item_type, treatment_method, pests_covered, service_description,
+      unit, sac, hsn_sac, tax_preference, sellable, purchasable, sales_account, purchase_account,
+      preferred_vendor, sales_description, purchase_description, purchase_rate, description, rate, payload
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      name=VALUES(name),
+      item_type=VALUES(item_type),
+      treatment_method=VALUES(treatment_method),
+      pests_covered=VALUES(pests_covered),
+      service_description=VALUES(service_description),
+      unit=VALUES(unit),
+      sac=VALUES(sac),
+      hsn_sac=VALUES(hsn_sac),
+      tax_preference=VALUES(tax_preference),
+      sellable=VALUES(sellable),
+      purchasable=VALUES(purchasable),
+      sales_account=VALUES(sales_account),
+      purchase_account=VALUES(purchase_account),
+      preferred_vendor=VALUES(preferred_vendor),
+      sales_description=VALUES(sales_description),
+      purchase_description=VALUES(purchase_description),
+      purchase_rate=VALUES(purchase_rate),
+      description=VALUES(description),
+      rate=VALUES(rate),
+      payload=VALUES(payload)
+    `,
+    [
+      item._id,
+      item.name,
+      item.itemType,
+      item.treatmentMethod,
+      item.pestsCovered,
+      item.serviceDescription,
+      item.unit,
+      item.sac,
+      item.hsnSac,
+      item.taxPreference,
+      item.sellable ? 1 : 0,
+      item.purchasable ? 1 : 0,
+      item.salesAccount,
+      item.purchaseAccount,
+      item.preferredVendor,
+      item.salesDescription,
+      item.purchaseDescription,
+      Number.isFinite(item.purchaseRate) ? item.purchaseRate : 0,
+      item.description,
+      Number.isFinite(item.rate) ? item.rate : 0,
+      JSON.stringify(item)
+    ]
+  );
+};
+
+app.get('/api/items', async (req, res) => {
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for items module' });
+  }
+  try {
+    const mysqlRows = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT payload FROM items ORDER BY id DESC');
+      return Array.isArray(rows) ? rows : [];
+    });
+    const parsed = (Array.isArray(mysqlRows) ? mysqlRows : [])
+      .map((row) => normalizeItemRecord(parseMysqlJsonPayload(row?.payload) || {}))
+      .filter((item) => String(item._id || '').trim());
+    return res.json(parsed);
+  } catch (error) {
+    console.error('Failed to fetch items from MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch items' });
+  }
 });
 
-app.delete('/api/items/:id', (req, res) => {
-  const items = readJsonFile(itemsFile, []);
-  const updatedItems = items.filter((item) => item._id !== req.params.id);
-
-  if (updatedItems.length === items.length) {
-    return res.status(404).json({ error: 'Item not found' });
+app.post('/api/items', async (req, res) => {
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for items module' });
   }
+  try {
+    const newItem = normalizeItemRecord(req.body || {});
+    await withMysqlConnection(async (conn) => {
+      await upsertItemRow(conn, newItem);
+    });
+    return res.json(newItem);
+  } catch (error) {
+    console.error('Failed to create item in MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to create item' });
+  }
+});
 
-  fs.writeFileSync(itemsFile, JSON.stringify(updatedItems, null, 2));
-  res.json({ message: 'Item deleted' });
+app.put('/api/items/:id', async (req, res) => {
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for items module' });
+  }
+  try {
+    const itemId = String(req.params.id || '').trim();
+    const mysqlMatch = await withMysqlConnection(async (conn) => {
+      const isNumeric = /^\d+$/.test(itemId);
+      const query = isNumeric
+        ? 'SELECT payload, external_id FROM items WHERE id = ? OR external_id = ? LIMIT 1'
+        : 'SELECT payload, external_id FROM items WHERE external_id = ? LIMIT 1';
+      const params = isNumeric ? [Number(itemId), itemId] : [itemId];
+      const [rows] = await conn.query(query, params);
+      return Array.isArray(rows) && rows[0] ? rows[0] : null;
+    });
+
+    if (!mysqlMatch) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    const existing = normalizeItemRecord(parseMysqlJsonPayload(mysqlMatch.payload) || {}, mysqlMatch.external_id || itemId);
+    const merged = normalizeItemRecord({
+      ...existing,
+      ...(req.body && typeof req.body === 'object' ? req.body : {}),
+      _id: existing._id
+    }, existing._id);
+
+    await withMysqlConnection(async (conn) => {
+      await upsertItemRow(conn, merged);
+    });
+
+    return res.json(merged);
+  } catch (error) {
+    console.error('Failed to update item in MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to update item' });
+  }
+});
+
+app.delete('/api/items/:id', async (req, res) => {
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for items module' });
+  }
+  try {
+    const itemId = String(req.params.id || '').trim();
+    const deletedRows = await withMysqlConnection(async (conn) => {
+      const isNumeric = /^\d+$/.test(itemId);
+      const query = isNumeric
+        ? 'DELETE FROM items WHERE id = ? OR external_id = ?'
+        : 'DELETE FROM items WHERE external_id = ?';
+      const params = isNumeric ? [Number(itemId), itemId] : [itemId];
+      const [result] = await conn.query(query, params);
+      return Number(result?.affectedRows || 0);
+    });
+
+    if (!deletedRows) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    return res.json({ message: 'Item deleted' });
+  } catch (error) {
+    console.error('Failed to delete item in MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to delete item' });
+  }
 });
 
 app.get('/api/customers', async (req, res) => {
