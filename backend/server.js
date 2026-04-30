@@ -1745,80 +1745,75 @@ app.get('/api/customers', async (req, res) => {
       const [rows] = await conn.query('SELECT payload FROM customers ORDER BY id DESC');
       return Array.isArray(rows) ? rows : [];
     });
-    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
-      const parsed = mysqlRows
-        .map((row) => {
-          const raw = row?.payload;
-          if (!raw) return null;
-          if (typeof raw === 'string') {
-            try { return JSON.parse(raw); } catch { return null; }
-          }
-          return raw;
-        })
-        .filter(Boolean);
-      if (parsed.length > 0) return res.json(parsed);
-    }
+    const parsed = (Array.isArray(mysqlRows) ? mysqlRows : [])
+      .map((row) => {
+        const raw = row?.payload;
+        if (!raw) return null;
+        if (typeof raw === 'string') {
+          try { return JSON.parse(raw); } catch { return null; }
+        }
+        return raw;
+      })
+      .filter(Boolean);
+    return res.json(parsed);
   } catch (error) {
-    console.error('MySQL customers read failed, using JSON fallback:', error.message);
+    console.error('Failed to fetch customers from MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch customers' });
   }
-  res.json(readJsonFile(customersFile, []));
 });
 
 app.post('/api/customers', async (req, res) => {
-  const customers = readJsonFile(customersFile, []);
-  const positionValue = req.body.position === 'Edit type'
-    ? (req.body.positionCustom || '').trim() || 'Edit type'
-    : (req.body.position || '');
-  const emailValue = req.body.emailId || req.body.email || '';
-  const mobileValue = req.body.mobileNumber || req.body.workPhone || '';
-  const billingStateValue = req.body.billingState || req.body.state || req.body.placeOfSupply || '';
-  const hasGstValue = !!req.body.hasGst || !!req.body.gstRegistered;
-  const displayNameValue =
-    (req.body.displayName || '').trim() ||
-    req.body.contactPersonName ||
-    req.body.companyName ||
-    req.body.name ||
-    '';
-  const newCustomer = {
-    _id: `CUST-${Date.now()}`,
-    name: displayNameValue,
-    displayName: displayNameValue,
-    segment: req.body.segment || 'Residential',
-    companyName: req.body.companyName || req.body.name || '',
-    contactPersonName: req.body.contactPersonName || req.body.name || '',
-    position: positionValue,
-    positionCustom: req.body.positionCustom || '',
-    mobileNumber: mobileValue,
-    whatsappNumber: req.body.whatsappNumber || mobileValue,
-    altNumber: req.body.altNumber || '',
-    emailId: emailValue,
-    email: emailValue,
-    hasGst: hasGstValue,
-    gstRegistered: hasGstValue,
-    gstNumber: hasGstValue ? (req.body.gstNumber || '') : '',
-    billingAddress: req.body.billingAddress || '',
-    billingArea: req.body.billingArea || req.body.area || '',
-    billingState: billingStateValue,
-    billingPincode: req.body.billingPincode || req.body.pincode || '',
-    shippingAddress: req.body.shippingAddress || '',
-    shippingArea: req.body.shippingArea || '',
-    shippingState: req.body.shippingState || '',
-    shippingPincode: req.body.shippingPincode || '',
-    area: req.body.area || '',
-    state: billingStateValue,
-    pincode: req.body.pincode || '',
-    areaSqft: Number(req.body.areaSqft || 0),
-    workPhone: mobileValue,
-    placeOfSupply: billingStateValue,
-    receivables: Number(req.body.receivables || 0),
-    unusedCredits: Number(req.body.unusedCredits || 0),
-    createdAt: new Date().toISOString()
-  };
-
-  customers.push(newCustomer);
-  fs.writeFileSync(customersFile, JSON.stringify(customers, null, 2));
-
   try {
+    const positionValue = req.body.position === 'Edit type'
+      ? (req.body.positionCustom || '').trim() || 'Edit type'
+      : (req.body.position || '');
+    const emailValue = req.body.emailId || req.body.email || '';
+    const mobileValue = req.body.mobileNumber || req.body.workPhone || '';
+    const billingStateValue = req.body.billingState || req.body.state || req.body.placeOfSupply || '';
+    const hasGstValue = !!req.body.hasGst || !!req.body.gstRegistered;
+    const displayNameValue =
+      (req.body.displayName || '').trim() ||
+      req.body.contactPersonName ||
+      req.body.companyName ||
+      req.body.name ||
+      '';
+    const nowIso = new Date().toISOString();
+    const newCustomer = {
+      _id: `CUST-${Date.now()}`,
+      name: displayNameValue,
+      displayName: displayNameValue,
+      segment: req.body.segment || 'Residential',
+      companyName: req.body.companyName || req.body.name || '',
+      contactPersonName: req.body.contactPersonName || req.body.name || '',
+      position: positionValue,
+      positionCustom: req.body.positionCustom || '',
+      mobileNumber: mobileValue,
+      whatsappNumber: req.body.whatsappNumber || mobileValue,
+      altNumber: req.body.altNumber || '',
+      emailId: emailValue,
+      email: emailValue,
+      hasGst: hasGstValue,
+      gstRegistered: hasGstValue,
+      gstNumber: hasGstValue ? (req.body.gstNumber || '') : '',
+      billingAddress: req.body.billingAddress || '',
+      billingArea: req.body.billingArea || req.body.area || '',
+      billingState: billingStateValue,
+      billingPincode: req.body.billingPincode || req.body.pincode || '',
+      shippingAddress: req.body.shippingAddress || '',
+      shippingArea: req.body.shippingArea || '',
+      shippingState: req.body.shippingState || '',
+      shippingPincode: req.body.shippingPincode || '',
+      area: req.body.area || '',
+      state: billingStateValue,
+      pincode: req.body.pincode || '',
+      areaSqft: Number(req.body.areaSqft || 0),
+      workPhone: mobileValue,
+      placeOfSupply: billingStateValue,
+      receivables: Number(req.body.receivables || 0),
+      unusedCredits: Number(req.body.unusedCredits || 0),
+      createdAt: nowIso
+    };
+
     await withMysqlConnection(async (conn) => {
       await conn.query(
         `INSERT INTO customers (
@@ -1859,71 +1854,76 @@ app.post('/api/customers', async (req, res) => {
         ]
       );
     });
-  } catch (error) {
-    console.error('MySQL customers write failed (JSON saved):', error.message);
-  }
 
-  res.json(newCustomer);
+    return res.json(newCustomer);
+  } catch (error) {
+    console.error('Failed to create customer in MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to create customer' });
+  }
 });
 
 app.put('/api/customers/:id', async (req, res) => {
-  const customers = readJsonFile(customersFile, []);
-  const customerIndex = customers.findIndex((customer) => customer._id === req.params.id);
-
-  if (customerIndex === -1) {
-    return res.status(404).json({ error: 'Customer not found' });
-  }
-
-  const updatedCustomer = {
-    ...customers[customerIndex],
-    ...req.body,
-    _id: customers[customerIndex]._id,
-    displayName:
-      (req.body.displayName || '').trim() ||
-      req.body.contactPersonName ||
-      req.body.companyName ||
-      req.body.name ||
-      customers[customerIndex].displayName ||
-      customers[customerIndex].name ||
-      '',
-    name:
-      (req.body.displayName || '').trim() ||
-      req.body.contactPersonName ||
-      req.body.companyName ||
-      req.body.name ||
-      customers[customerIndex].name ||
-      '',
-    position:
-      req.body.position === 'Edit type'
-        ? (req.body.positionCustom || '').trim() || 'Edit type'
-        : (req.body.position ?? customers[customerIndex].position ?? ''),
-    emailId: req.body.emailId ?? req.body.email ?? customers[customerIndex].emailId ?? customers[customerIndex].email ?? '',
-    email: req.body.emailId ?? req.body.email ?? customers[customerIndex].email ?? customers[customerIndex].emailId ?? '',
-    mobileNumber: req.body.mobileNumber ?? req.body.workPhone ?? customers[customerIndex].mobileNumber ?? customers[customerIndex].workPhone ?? '',
-    workPhone: req.body.mobileNumber ?? req.body.workPhone ?? customers[customerIndex].workPhone ?? customers[customerIndex].mobileNumber ?? '',
-    billingArea: req.body.billingArea ?? req.body.area ?? customers[customerIndex].billingArea ?? customers[customerIndex].area ?? '',
-    billingState: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? customers[customerIndex].billingState ?? customers[customerIndex].state ?? customers[customerIndex].placeOfSupply ?? '',
-    billingPincode: req.body.billingPincode ?? req.body.pincode ?? customers[customerIndex].billingPincode ?? customers[customerIndex].pincode ?? '',
-    shippingArea: req.body.shippingArea ?? customers[customerIndex].shippingArea ?? '',
-    shippingState: req.body.shippingState ?? customers[customerIndex].shippingState ?? '',
-    shippingPincode: req.body.shippingPincode ?? customers[customerIndex].shippingPincode ?? '',
-    state: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? customers[customerIndex].state ?? customers[customerIndex].placeOfSupply ?? '',
-    placeOfSupply: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? customers[customerIndex].placeOfSupply ?? customers[customerIndex].state ?? '',
-    hasGst: req.body.hasGst ?? req.body.gstRegistered ?? customers[customerIndex].hasGst ?? customers[customerIndex].gstRegistered ?? false,
-    gstRegistered: req.body.hasGst ?? req.body.gstRegistered ?? customers[customerIndex].gstRegistered ?? customers[customerIndex].hasGst ?? false,
-    gstNumber:
-      (req.body.hasGst ?? req.body.gstRegistered ?? customers[customerIndex].hasGst ?? customers[customerIndex].gstRegistered)
-        ? (req.body.gstNumber ?? customers[customerIndex].gstNumber ?? '')
-        : '',
-    areaSqft: Number(req.body.areaSqft ?? customers[customerIndex].areaSqft ?? 0),
-    receivables: Number(req.body.receivables ?? customers[customerIndex].receivables ?? 0),
-    unusedCredits: Number(req.body.unusedCredits ?? customers[customerIndex].unusedCredits ?? 0)
-  };
-
-  customers[customerIndex] = updatedCustomer;
-  fs.writeFileSync(customersFile, JSON.stringify(customers, null, 2));
-
   try {
+    const existingCustomer = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT payload FROM customers WHERE external_id = ? LIMIT 1', [req.params.id]);
+      const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+      if (!row?.payload) return null;
+      if (typeof row.payload === 'string') {
+        try { return JSON.parse(row.payload); } catch { return null; }
+      }
+      return row.payload;
+    });
+
+    if (!existingCustomer) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    const updatedCustomer = {
+      ...existingCustomer,
+      ...req.body,
+      _id: existingCustomer._id || req.params.id,
+      displayName:
+        (req.body.displayName || '').trim() ||
+        req.body.contactPersonName ||
+        req.body.companyName ||
+        req.body.name ||
+        existingCustomer.displayName ||
+        existingCustomer.name ||
+        '',
+      name:
+        (req.body.displayName || '').trim() ||
+        req.body.contactPersonName ||
+        req.body.companyName ||
+        req.body.name ||
+        existingCustomer.name ||
+        '',
+      position:
+        req.body.position === 'Edit type'
+          ? (req.body.positionCustom || '').trim() || 'Edit type'
+          : (req.body.position ?? existingCustomer.position ?? ''),
+      emailId: req.body.emailId ?? req.body.email ?? existingCustomer.emailId ?? existingCustomer.email ?? '',
+      email: req.body.emailId ?? req.body.email ?? existingCustomer.email ?? existingCustomer.emailId ?? '',
+      mobileNumber: req.body.mobileNumber ?? req.body.workPhone ?? existingCustomer.mobileNumber ?? existingCustomer.workPhone ?? '',
+      workPhone: req.body.mobileNumber ?? req.body.workPhone ?? existingCustomer.workPhone ?? existingCustomer.mobileNumber ?? '',
+      billingArea: req.body.billingArea ?? req.body.area ?? existingCustomer.billingArea ?? existingCustomer.area ?? '',
+      billingState: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? existingCustomer.billingState ?? existingCustomer.state ?? existingCustomer.placeOfSupply ?? '',
+      billingPincode: req.body.billingPincode ?? req.body.pincode ?? existingCustomer.billingPincode ?? existingCustomer.pincode ?? '',
+      shippingArea: req.body.shippingArea ?? existingCustomer.shippingArea ?? '',
+      shippingState: req.body.shippingState ?? existingCustomer.shippingState ?? '',
+      shippingPincode: req.body.shippingPincode ?? existingCustomer.shippingPincode ?? '',
+      state: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? existingCustomer.state ?? existingCustomer.placeOfSupply ?? '',
+      placeOfSupply: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? existingCustomer.placeOfSupply ?? existingCustomer.state ?? '',
+      hasGst: req.body.hasGst ?? req.body.gstRegistered ?? existingCustomer.hasGst ?? existingCustomer.gstRegistered ?? false,
+      gstRegistered: req.body.hasGst ?? req.body.gstRegistered ?? existingCustomer.gstRegistered ?? existingCustomer.hasGst ?? false,
+      gstNumber:
+        (req.body.hasGst ?? req.body.gstRegistered ?? existingCustomer.hasGst ?? existingCustomer.gstRegistered)
+          ? (req.body.gstNumber ?? existingCustomer.gstNumber ?? '')
+          : '',
+      areaSqft: Number(req.body.areaSqft ?? existingCustomer.areaSqft ?? 0),
+      receivables: Number(req.body.receivables ?? existingCustomer.receivables ?? 0),
+      unusedCredits: Number(req.body.unusedCredits ?? existingCustomer.unusedCredits ?? 0)
+    };
+
     await withMysqlConnection(async (conn) => {
       await conn.query(
         `INSERT INTO customers (
@@ -1964,32 +1964,29 @@ app.put('/api/customers/:id', async (req, res) => {
         ]
       );
     });
-  } catch (error) {
-    console.error('MySQL customers update failed (JSON saved):', error.message);
-  }
 
-  res.json(updatedCustomer);
+    return res.json(updatedCustomer);
+  } catch (error) {
+    console.error('Failed to update customer in MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to update customer' });
+  }
 });
 
 app.delete('/api/customers/:id', async (req, res) => {
-  const customers = readJsonFile(customersFile, []);
-  const updatedCustomers = customers.filter((customer) => customer._id !== req.params.id);
-
-  if (updatedCustomers.length === customers.length) {
-    return res.status(404).json({ error: 'Customer not found' });
-  }
-
-  fs.writeFileSync(customersFile, JSON.stringify(updatedCustomers, null, 2));
-
   try {
-    await withMysqlConnection(async (conn) => {
-      await conn.query('DELETE FROM customers WHERE external_id = ?', [req.params.id]);
+    const deletedRows = await withMysqlConnection(async (conn) => {
+      const [result] = await conn.query('DELETE FROM customers WHERE external_id = ?', [req.params.id]);
+      return Number(result?.affectedRows || 0);
     });
-  } catch (error) {
-    console.error('MySQL customers delete failed (JSON deleted):', error.message);
-  }
 
-  res.json({ message: 'Customer deleted' });
+    if (!deletedRows) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+    return res.json({ message: 'Customer deleted' });
+  } catch (error) {
+    console.error('Failed to delete customer in MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to delete customer' });
+  }
 });
 
 const toNumber = (value, fallback = 0) => {
