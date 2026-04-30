@@ -57,7 +57,7 @@ export default function Login() {
     const role = String(roleValue || '').trim().toLowerCase();
     if (role === 'sales') return '/sales-portal';
     if (role === 'operations') return '/operations-portal';
-    if (role === 'technician') return '/technician-portal';
+    if (role === 'technician') return '/operations/assigned-jobs';
     return '/dashboard';
   };
 

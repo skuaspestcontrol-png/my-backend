@@ -86,7 +86,7 @@ const MODULES = [
   { label: 'WhatsApp Marketing', path: '/whatsapp', icon: MessageSquare, tone: 'var(--color-primary-dark)', summary: 'Run campaign lists and followups' },
   { label: 'Assign Services', path: '/schedule-job', icon: Truck, tone: 'var(--color-primary-dark)', summary: 'Dispatch jobs to field technicians' },
   { label: 'Service Calendar', path: '/service-calendar', icon: CalendarDays, tone: 'var(--color-primary)', summary: 'View schedule commitments' },
-  { label: 'Field Operations', path: '/technician-portal', icon: Building2, tone: 'var(--color-primary-dark)', summary: 'Monitor active service execution' },
+  { label: 'Field Operations', path: '/operations/assigned-jobs', icon: Building2, tone: 'var(--color-primary-dark)', summary: 'Monitor active service execution' },
   { label: 'Complaints', path: '/complaints', icon: Bell, tone: 'var(--color-primary-dark)', summary: 'Resolve escalations and callbacks' },
   { label: 'Employee Master', path: '/employees', icon: UserCheck, tone: 'var(--color-primary)', summary: 'Maintain staff records and roles' },
   { label: 'HR Dashboard', path: '/hr-dashboard', icon: LayoutDashboard, tone: 'var(--color-primary-dark)', summary: 'Eagle-eye workforce, attendance, and performance insights' },

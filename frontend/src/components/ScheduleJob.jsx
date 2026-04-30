@@ -427,7 +427,7 @@ export default function ScheduleJob() {
 
       await Promise.all(payloads.map((payload) => axios.post(`${API_BASE_URL}/api/jobs`, payload)));
       window.alert(`Assigned ${payloads.length} service job(s) successfully.`);
-      navigate('/technician-portal');
+      navigate('/operations/assigned-jobs');
     } catch (error) {
       console.error('Assign services failed', error);
       setSaveError('Failed to assign services. Please try again.');

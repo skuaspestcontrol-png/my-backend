@@ -7,7 +7,7 @@ const items = [
   ['Customers', '/ui/customers', Users],
   ['Service Schedule', '/schedule-job', ClipboardList],
   ['Calendar', '/service-calendar', CalendarDays],
-  ['Technicians', '/technician-portal', Users],
+  ['Assigned Jobs', '/operations/assigned-jobs', Users],
   ['Invoices', '/sales/invoices', FileText],
   ['Payments', '/sales/payment-received', Wallet],
   ['Renewals', '/sales/renewal', CalendarDays],

@@ -22,7 +22,7 @@ export default function OperationsPortal() {
       actions={[
         { label: 'Assign Services', href: '/schedule-job' },
         { label: 'Open Service Calendar', href: '/service-calendar' },
-        { label: 'Open Field Operations', href: '/technician-portal' },
+        { label: 'Open Assigned Jobs', href: '/operations/assigned-jobs' },
         { label: 'Open Complaints', href: '/complaints' }
       ]}
       sideTitle="Execution reliability"

@@ -495,7 +495,7 @@ export default function TechnicianPortal() {
     return (
       <section style={pageStyle}>
         <div style={shell.hero}>
-          <h2 style={titleStyle}>Technician Portal</h2>
+          <h2 style={titleStyle}>Assigned Jobs</h2>
           <p style={shell.subtitle}>
             Track upcoming services, start assigned jobs, capture photos, and close work with customer signature in one themed workspace.
           </p>

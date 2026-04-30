@@ -101,7 +101,7 @@ const certificatesPage = (
       { title: 'Archive review', description: 'Keep completed records easy to retrieve for renewals and complaint handling.', meta: 'Back office', tone: '#64748b' }
     ]}
     actions={[
-      { label: 'Open Field Operations', href: '/technician-portal' },
+      { label: 'Open Assigned Jobs', href: '/operations/assigned-jobs' },
       { label: 'Open Complaints', href: '/complaints' },
       { label: 'Return to Dashboard', href: '/dashboard' }
     ]}
@@ -194,7 +194,7 @@ function App() {
           <Route path="/schedule-job" element={<AppRoute element={<ScheduleJob />} />} />
           <Route path="/operations/assign-services" element={<AppRoute element={<ScheduleJob />} />} />
           <Route path="/service-calendar" element={<AppRoute element={<ServiceCalendar />} />} />
-          <Route path="/technician-portal" element={<AppRoute element={<TechnicianPortal />} />} />
+          <Route path="/technician-portal" element={<Navigate to="/operations/assigned-jobs" replace />} />
           <Route path="/operations/assigned-jobs" element={<AppRoute element={<TechnicianPortal />} />} />
           <Route path="/operations/track-technicians" element={<AppRoute element={<TrackTechnicians />} />} />
           <Route path="/sales-portal" element={<AppRoute element={<SalesPortal />} />} />
