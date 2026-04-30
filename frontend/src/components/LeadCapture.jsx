@@ -625,23 +625,40 @@ export default function LeadCapture() {
   });
 
   const fetchLeadsAndEmployees = async () => {
-    const [leadRes, employeeRes, customerRes] = await Promise.all([
+    const [leadRes, employeeRes, customerRes] = await Promise.allSettled([
       axios.get(`${API_BASE_URL}/api/leads`),
       axios.get(`${API_BASE_URL}/api/employees`),
       axios.get(`${API_BASE_URL}/api/customers`)
     ]);
-    setLeads(leadRes.data);
-    setEmployees(employeeRes.data);
-    setCustomers(Array.isArray(customerRes.data) ? customerRes.data : []);
+
+    if (leadRes.status === 'fulfilled') {
+      setLeads(Array.isArray(leadRes.value?.data) ? leadRes.value.data : []);
+    }
+    if (employeeRes.status === 'fulfilled') {
+      setEmployees(Array.isArray(employeeRes.value?.data) ? employeeRes.value.data : []);
+    }
+    if (customerRes.status === 'fulfilled') {
+      setCustomers(Array.isArray(customerRes.value?.data) ? customerRes.value.data : []);
+    } else {
+      setCustomers([]);
+      console.error('Customers fetch failed in lead module:', customerRes.reason);
+    }
   };
 
   const fetchEmployeesAndCustomers = async () => {
-    const [employeeRes, customerRes] = await Promise.all([
+    const [employeeRes, customerRes] = await Promise.allSettled([
       axios.get(`${API_BASE_URL}/api/employees`),
       axios.get(`${API_BASE_URL}/api/customers`)
     ]);
-    setEmployees(employeeRes.data);
-    setCustomers(Array.isArray(customerRes.data) ? customerRes.data : []);
+    if (employeeRes.status === 'fulfilled') {
+      setEmployees(Array.isArray(employeeRes.value?.data) ? employeeRes.value.data : []);
+    }
+    if (customerRes.status === 'fulfilled') {
+      setCustomers(Array.isArray(customerRes.value?.data) ? customerRes.value.data : []);
+    } else {
+      setCustomers([]);
+      console.error('Customers fetch failed in lead module:', customerRes.reason);
+    }
   };
 
   useEffect(() => {
@@ -649,16 +666,31 @@ export default function LeadCapture() {
 
     const load = async () => {
       try {
-        const [leadRes, employeeRes, customerRes] = await Promise.all([
+        const [leadRes, employeeRes, customerRes] = await Promise.allSettled([
           axios.get(`${API_BASE_URL}/api/leads`),
           axios.get(`${API_BASE_URL}/api/employees`),
           axios.get(`${API_BASE_URL}/api/customers`)
         ]);
 
         if (!mounted) return;
-        setLeads(leadRes.data);
-        setEmployees(employeeRes.data);
-        setCustomers(Array.isArray(customerRes.data) ? customerRes.data : []);
+        if (leadRes.status === 'fulfilled') {
+          setLeads(Array.isArray(leadRes.value?.data) ? leadRes.value.data : []);
+        } else {
+          setLeads([]);
+          console.error('Leads fetch failed', leadRes.reason);
+        }
+        if (employeeRes.status === 'fulfilled') {
+          setEmployees(Array.isArray(employeeRes.value?.data) ? employeeRes.value.data : []);
+        } else {
+          setEmployees([]);
+          console.error('Employees fetch failed', employeeRes.reason);
+        }
+        if (customerRes.status === 'fulfilled') {
+          setCustomers(Array.isArray(customerRes.value?.data) ? customerRes.value.data : []);
+        } else {
+          setCustomers([]);
+          console.error('Customers fetch failed', customerRes.reason);
+        }
       } catch (error) {
         console.error('Data fetch failed', error);
       }

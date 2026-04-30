@@ -1736,21 +1736,23 @@ app.get('/api/customers', async (req, res) => {
       const [rows] = await conn.query('SELECT payload FROM customers ORDER BY id DESC');
       return Array.isArray(rows) ? rows : [];
     });
-    const parsed = (Array.isArray(mysqlRows) ? mysqlRows : [])
-      .map((row) => {
-        const raw = row?.payload;
-        if (!raw) return null;
-        if (typeof raw === 'string') {
-          try { return JSON.parse(raw); } catch { return null; }
-        }
-        return raw;
-      })
-      .filter(Boolean);
-    return res.json(parsed);
+    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
+      const parsed = mysqlRows
+        .map((row) => {
+          const raw = row?.payload;
+          if (!raw) return null;
+          if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch { return null; }
+          }
+          return raw;
+        })
+        .filter(Boolean);
+      if (parsed.length > 0) return res.json(parsed);
+    }
   } catch (error) {
-    console.error('Failed to fetch customers from MySQL:', error.message);
-    return res.status(500).json({ error: 'Failed to fetch customers' });
+    console.error('MySQL customers read failed, using JSON fallback:', error.message);
   }
+  res.json(readJsonFile(customersFile, []));
 });
 
 app.post('/api/customers', async (req, res) => {
