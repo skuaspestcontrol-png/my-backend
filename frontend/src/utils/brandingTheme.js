@@ -76,3 +76,29 @@ export const applyBrandingTheme = (settings = {}) => {
     root.style.setProperty('--color-white', '#FFFFFF');
   }
 };
+
+export const BRANDING_STORAGE_KEY = 'skuas_branding_settings';
+
+export const pickBrandingSettings = (settings = {}) => ({
+  brandingAppearance: String(settings.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
+  brandingAccentColor: normalizeHex(settings.brandingAccentColor || '#9F174D')
+});
+
+export const saveBrandingSettings = (settings = {}) => {
+  try {
+    const safe = pickBrandingSettings(settings);
+    localStorage.setItem(BRANDING_STORAGE_KEY, JSON.stringify(safe));
+  } catch (_error) {
+    // Ignore localStorage errors in private mode / restricted environments.
+  }
+};
+
+export const loadBrandingSettings = () => {
+  try {
+    const raw = localStorage.getItem(BRANDING_STORAGE_KEY);
+    if (!raw) return null;
+    return pickBrandingSettings(JSON.parse(raw));
+  } catch (_error) {
+    return null;
+  }
+};

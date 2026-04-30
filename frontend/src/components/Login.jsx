@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { applyBrandingTheme, saveBrandingSettings } from '../utils/brandingTheme';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 export default function Login() {
+  const masterResetEmail = 'skuaspestcontrol@gmail.com';
   const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState('request');
+  const [forgotEmail, setForgotEmail] = useState(masterResetEmail);
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [settings, setSettings] = useState({});
   const [employees, setEmployees] = useState([]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
@@ -19,6 +28,8 @@ export default function Login() {
           axios.get(`${API_BASE_URL}/api/employees`)
         ]);
         setSettings(settingsRes.data || {});
+        applyBrandingTheme(settingsRes.data || {});
+        saveBrandingSettings(settingsRes.data || {});
         setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
       } catch (error) {
         console.error('Could not load settings', error);
@@ -80,6 +91,53 @@ export default function Login() {
     }
 
     alert('Invalid credentials');
+  };
+
+  const requestResetOtp = async () => {
+    const email = String(forgotEmail || '').trim().toLowerCase();
+    if (email !== masterResetEmail) {
+      alert(`Use master email only: ${masterResetEmail}`);
+      return;
+    }
+    try {
+      setForgotLoading(true);
+      await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email });
+      setForgotStep('reset');
+      alert(`OTP sent to ${masterResetEmail}`);
+    } catch (error) {
+      alert(error?.response?.data?.error || 'Could not send OTP');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const submitResetPassword = async () => {
+    if (newPassword.length < 6) {
+      alert('New password must be at least 6 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+    try {
+      setForgotLoading(true);
+      await axios.post(`${API_BASE_URL}/api/auth/reset-password`, {
+        email: masterResetEmail,
+        otp: forgotOtp,
+        newPassword
+      });
+      alert('Password reset successful. Please login with new password.');
+      setForgotOpen(false);
+      setForgotStep('request');
+      setForgotOtp('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      alert(error?.response?.data?.error || 'Could not reset password');
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   return (
@@ -157,9 +215,94 @@ export default function Login() {
             >
               Sign In
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setForgotOpen(true);
+                setForgotStep('request');
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--color-primary)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                textAlign: 'center',
+                marginTop: '2px'
+              }}
+            >
+              Forgot Password?
+            </button>
           </form>
         </div>
       </div>
+      {forgotOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: '14px' }}>
+          <div style={{ width: '100%', maxWidth: '430px', background: '#fff', borderRadius: '14px', border: '1px solid #D9DEE8', padding: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, color: '#1E293B' }}>Reset Password</h3>
+              <button
+                type="button"
+                onClick={() => setForgotOpen(false)}
+                style={{ border: 'none', background: 'transparent', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+            {forgotStep === 'request' ? (
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <label style={{ color: '#475569', fontWeight: 700 }}>Master Email</label>
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: '#E9EEF9', border: '1px solid #CBD5E1' }}
+                />
+                <button
+                  type="button"
+                  onClick={requestResetOtp}
+                  disabled={forgotLoading}
+                  style={{ minHeight: '44px', background: 'var(--color-primary)', color: '#fff', border: '1px solid var(--color-primary)', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  {forgotLoading ? 'Sending OTP...' : 'Send OTP'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <label style={{ color: '#475569', fontWeight: 700 }}>OTP</label>
+                <input
+                  type="text"
+                  value={forgotOtp}
+                  onChange={(e) => setForgotOtp(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: '#E9EEF9', border: '1px solid #CBD5E1' }}
+                />
+                <label style={{ color: '#475569', fontWeight: 700 }}>New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: '#E9EEF9', border: '1px solid #CBD5E1' }}
+                />
+                <label style={{ color: '#475569', fontWeight: 700 }}>Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: '#E9EEF9', border: '1px solid #CBD5E1' }}
+                />
+                <button
+                  type="button"
+                  onClick={submitResetPassword}
+                  disabled={forgotLoading}
+                  style={{ minHeight: '44px', background: 'var(--color-primary)', color: '#fff', border: '1px solid var(--color-primary)', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  {forgotLoading ? 'Resetting...' : 'Reset Password'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
@@ -57,6 +58,9 @@ app.use(express.json({ limit: '10mb' }));
 const PORT = Math.max(1, Number(process.env.PORT || 5000) || 5000);
 const SERVER_ORIGIN = String(process.env.SERVER_ORIGIN || '').trim();
 const resolveServerOrigin = (req) => SERVER_ORIGIN || `${req.protocol}://${req.get('host')}`;
+const MASTER_RESET_EMAIL = String(process.env.MASTER_RESET_EMAIL || 'skuaspestcontrol@gmail.com').trim().toLowerCase();
+const RESET_OTP_TTL_MS = 10 * 60 * 1000;
+const resetOtpStore = new Map();
 
 const uploadsDir = path.join(__dirname, 'uploads');
 const dataDir = path.join(__dirname, 'data');
@@ -745,6 +749,70 @@ app.post('/api/settings/save', (req, res) => {
   });
   fs.writeFileSync(settingsFile, JSON.stringify(next, null, 2));
   res.json({ message: 'Saved', settings: next });
+});
+
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const incomingEmail = String(req.body?.email || '').trim().toLowerCase();
+    if (!incomingEmail) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    if (incomingEmail !== MASTER_RESET_EMAIL) {
+      return res.status(403).json({ error: 'Only master email can reset admin password' });
+    }
+
+    const otp = String(crypto.randomInt(100000, 1000000));
+    const expiresAt = Date.now() + RESET_OTP_TTL_MS;
+    resetOtpStore.set(incomingEmail, { otp, expiresAt });
+
+    await sendPasswordResetOtpEmail({
+      settings: readSettings(),
+      recipient: incomingEmail,
+      otp
+    });
+
+    res.json({ message: 'OTP sent to master email' });
+  } catch (error) {
+    console.error('Failed to send reset OTP:', error.message);
+    res.status(500).json({ error: 'Could not send reset OTP. Check SMTP settings in backend.' });
+  }
+});
+
+app.post('/api/auth/reset-password', (req, res) => {
+  const incomingEmail = String(req.body?.email || '').trim().toLowerCase();
+  const otp = String(req.body?.otp || '').trim();
+  const newPassword = String(req.body?.newPassword || '').trim();
+
+  if (!incomingEmail || !otp || !newPassword) {
+    return res.status(400).json({ error: 'Email, OTP and new password are required' });
+  }
+  if (incomingEmail !== MASTER_RESET_EMAIL) {
+    return res.status(403).json({ error: 'Only master email can reset admin password' });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  }
+
+  const saved = resetOtpStore.get(incomingEmail);
+  if (!saved) {
+    return res.status(400).json({ error: 'OTP not found. Request a new OTP.' });
+  }
+  if (Date.now() > saved.expiresAt) {
+    resetOtpStore.delete(incomingEmail);
+    return res.status(400).json({ error: 'OTP expired. Request a new OTP.' });
+  }
+  if (saved.otp !== otp) {
+    return res.status(400).json({ error: 'Invalid OTP' });
+  }
+
+  const current = readSettings();
+  const next = sanitizeSettings({
+    ...current,
+    adminPassword: newPassword
+  });
+  fs.writeFileSync(settingsFile, JSON.stringify(next, null, 2));
+  resetOtpStore.delete(incomingEmail);
+  res.json({ message: 'Password reset successful' });
 });
 
 app.post('/api/settings/upload-dashboard-image', upload.single('dashboardImage'), (req, res) => {
@@ -1639,6 +1707,33 @@ const resolveEmailConfig = (settings = {}) => ({
   pass: settings.smtpPass || process.env.SMTP_PASS || '',
   fromEmail: settings.smtpFromEmail || process.env.SMTP_FROM_EMAIL || settings.companyEmail || ''
 });
+
+const sendPasswordResetOtpEmail = async ({ settings, recipient, otp }) => {
+  const mailConfig = resolveEmailConfig(settings);
+  if (mailConfig.active === 'No') {
+    throw new Error('Email sender is disabled in settings.');
+  }
+  if (!mailConfig.host || !mailConfig.user || !mailConfig.pass || !mailConfig.fromEmail) {
+    throw new Error('SMTP settings are incomplete.');
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: mailConfig.host,
+    port: mailConfig.port,
+    secure: mailConfig.secure,
+    auth: { user: mailConfig.user, pass: mailConfig.pass }
+  });
+
+  await transporter.sendMail({
+    from: mailConfig.fromName
+      ? `"${String(mailConfig.fromName).replace(/"/g, '\\"')}" <${mailConfig.fromEmail}>`
+      : mailConfig.fromEmail,
+    to: recipient,
+    subject: 'SKUAS CRM Password Reset OTP',
+    text: `Your SKUAS CRM password reset OTP is ${otp}. It will expire in 10 minutes.`,
+    html: `<p>Your SKUAS CRM password reset OTP is <b>${otp}</b>.</p><p>This OTP will expire in 10 minutes.</p>`
+  });
+};
 
 const resolveWhatsappConfig = (settings = {}) => ({
   apiVersion: settings.whatsappApiVersion || process.env.WHATSAPP_API_VERSION || 'v23.0',

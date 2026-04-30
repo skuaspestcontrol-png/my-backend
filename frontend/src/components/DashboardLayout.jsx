@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { applyBrandingTheme } from '../utils/brandingTheme';
+import { applyBrandingTheme, saveBrandingSettings } from '../utils/brandingTheme';
 import {
   CalendarClock,
   Bell,
@@ -59,6 +59,7 @@ export default function DashboardLayout({ children }) {
         const res = await axios.get(`${API_BASE_URL}/api/settings`);
         setSettings(res.data);
         applyBrandingTheme(res.data || {});
+        saveBrandingSettings(res.data || {});
       } catch (error) {
         console.error(error);
       }

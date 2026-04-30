@@ -1,6 +1,6 @@
 import AppCard from './AppCard';
 
-export default function DashboardStatCard({ title, value, icon, tone = '#9F174D' }) {
+export default function DashboardStatCard({ title, value, icon, tone = 'var(--color-primary)' }) {
   return (
     <AppCard style={{ padding: 0 }}>
       <div style={{ padding: 16, display: 'grid', gap: 10 }}>

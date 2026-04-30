@@ -22,7 +22,7 @@ export default function Sidebar() {
       <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', padding: 12 }}>CRM Portal</div>
       <nav style={{ display: 'grid', gap: 4 }}>
         {items.map(([label, path, Icon]) => (
-          <NavLink key={label} to={path} style={({ isActive }) => ({ minHeight: 40, borderRadius: 12, textDecoration: 'none', color: isActive ? '#fff' : '#111827', background: isActive ? '#9F174D' : 'transparent', display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', fontWeight: 600 })}>
+          <NavLink key={label} to={path} style={({ isActive }) => ({ minHeight: 40, borderRadius: 12, textDecoration: 'none', color: isActive ? '#fff' : '#111827', background: isActive ? 'var(--color-primary)' : 'transparent', display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', fontWeight: 600 })}>
             <Icon size={18} /> {label}
           </NavLink>
         ))}

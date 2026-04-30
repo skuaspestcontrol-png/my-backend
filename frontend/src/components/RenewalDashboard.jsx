@@ -69,6 +69,7 @@ const csvEscape = (value) => {
 
 export default function RenewalDashboard() {
   const role = useMemo(() => parseRoleFlags(), []);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [renewals, setRenewals] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,12 @@ export default function RenewalDashboard() {
   const [form, setForm] = useState({ status: 'Upcoming', paymentStatus: 'Pending', lostReason: '', followUpNote: '', quoteAmount: '', quoteValidTill: '', quoteNotes: '', reminderMessage: '', technicians: [] });
   const [filters, setFilters] = useState({ from: '', to: '', customer: '', serviceType: '', technician: '', status: 'all', paymentStatus: 'all', bucket: 'all' });
   const [historyDrawer, setHistoryDrawer] = useState({ open: false, row: null });
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const loadData = async () => {
     try {
@@ -155,6 +162,12 @@ export default function RenewalDashboard() {
     const d30 = renewals.filter((entry) => Number(entry.daysToExpiry) >= 0 && Number(entry.daysToExpiry) <= 30).length;
     return { today, d7, d15, d30 };
   }, [renewals]);
+  const isMobile = viewportWidth <= 768;
+  const cardGridStyle = isMobile ? { ...shell.cardGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.cardGrid;
+  const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
+  const tableWrapStyle = isMobile ? { ...shell.tableWrap, WebkitOverflowScrolling: 'touch' } : shell.tableWrap;
+  const tableStyle = isMobile ? { ...shell.table, minWidth: '1040px' } : shell.table;
+  const detailGridStyle = isMobile ? { ...shell.detailGrid, gridTemplateColumns: '1fr' } : shell.detailGrid;
 
   const technicianOptions = useMemo(
     () => employees.filter((entry) => String(entry.role || '').trim().toLowerCase() === 'technician'),
@@ -356,7 +369,7 @@ export default function RenewalDashboard() {
         </div>
       </div>
 
-      <div style={shell.cardGrid}>
+      <div style={cardGridStyle}>
         <div style={shell.card}><div style={shell.cardLabel}>Expiring Today</div><div style={shell.cardValue}>{counts.today}</div></div>
         <div style={shell.card}><div style={shell.cardLabel}>Within 7 Days</div><div style={shell.cardValue}>{counts.d7}</div></div>
         <div style={shell.card}><div style={shell.cardLabel}>Within 15 Days</div><div style={shell.cardValue}>{counts.d15}</div></div>
@@ -368,7 +381,7 @@ export default function RenewalDashboard() {
           <h3 style={shell.panelTitle}>Renewal Pipeline</h3>
           <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>{role.canWrite ? 'Role Access: Admin/Staff (Write)' : 'Role Access: Technician (Read Only)'}</span>
         </div>
-        <div style={shell.filterGrid}>
+        <div style={filterGridStyle}>
           <div style={shell.field}><p style={shell.label}>From</p><input type="date" style={shell.input} value={filters.from} onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>To</p><input type="date" style={shell.input} value={filters.to} onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Customer</p><input style={shell.input} value={filters.customer} onChange={(event) => setFilters((prev) => ({ ...prev, customer: event.target.value }))} placeholder="name or mobile" /></div>
@@ -379,12 +392,12 @@ export default function RenewalDashboard() {
           <div style={shell.field}><p style={shell.label}>Expiry Bucket</p><select style={shell.input} value={filters.bucket} onChange={(event) => setFilters((prev) => ({ ...prev, bucket: event.target.value }))}>{bucketOptions.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></div>
         </div>
 
-        <div style={shell.tableWrap}>
+        <div style={tableWrapStyle}>
           {loading ? <div style={shell.empty}>Loading renewals...</div> : null}
           {!loading && loadError ? <div style={shell.empty}>{loadError}</div> : null}
           {!loading && !loadError && filtered.length === 0 ? <div style={shell.empty}>No renewal records match current filters.</div> : null}
           {!loading && !loadError && filtered.length > 0 ? (
-            <table style={shell.table}>
+            <table style={tableStyle}>
               <thead>
                 <tr>
                   <th style={shell.th}>Customer</th>
@@ -439,7 +452,7 @@ export default function RenewalDashboard() {
             <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>{busy ? 'Saving...' : 'Ready'}</span>
           </div>
           <div style={shell.detail}>
-            <div style={shell.detailGrid}>
+            <div style={detailGridStyle}>
               <div style={shell.subGrid}>
                 <p style={shell.label}>Renewal Status</p>
                 <select style={shell.input} value={form.status} disabled={!role.canWrite || busy} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value }))}>
@@ -462,7 +475,7 @@ export default function RenewalDashboard() {
               </div>
             </div>
 
-            <div style={shell.detailGrid}>
+            <div style={detailGridStyle}>
               <div style={shell.subGrid}>
                 <p style={shell.label}>Follow-up Note</p>
                 <input style={shell.input} value={form.followUpNote} disabled={!role.canWrite || busy} onChange={(event) => setForm((prev) => ({ ...prev, followUpNote: event.target.value }))} placeholder="Call summary / next action" />
@@ -487,7 +500,7 @@ export default function RenewalDashboard() {
               <button type="button" style={shell.actionBtn} onClick={convertToInvoice} disabled={!role.canWrite || busy}>Convert to Invoice</button>
             </div>
 
-            <div style={shell.detailGrid}>
+            <div style={detailGridStyle}>
               <div style={shell.subGrid}>
                 <p style={shell.label}>Assign Technician(s) After Renewal</p>
                 <select
@@ -532,8 +545,8 @@ export default function RenewalDashboard() {
               {historyLoading ? <div style={shell.empty}>Loading history...</div> : null}
               {!historyLoading && history.length === 0 ? <div style={shell.empty}>No contract renewal history available.</div> : null}
               {!historyLoading && history.length > 0 ? (
-                <div style={shell.tableWrap}>
-                  <table style={shell.table}>
+                <div style={tableWrapStyle}>
+                  <table style={tableStyle}>
                     <thead>
                       <tr>
                         <th style={shell.th}>Invoice#</th>
@@ -573,8 +586,8 @@ export default function RenewalDashboard() {
             {historyLoading ? <div style={shell.empty}>Loading history...</div> : null}
             {!historyLoading && history.length === 0 ? <div style={shell.empty}>No contract renewal history available.</div> : null}
             {!historyLoading && history.length > 0 ? (
-              <div style={shell.tableWrap}>
-                <table style={shell.table}>
+              <div style={tableWrapStyle}>
+                <table style={tableStyle}>
                   <thead><tr><th style={shell.th}>Invoice#</th><th style={shell.th}>Start</th><th style={shell.th}>End</th><th style={shell.th}>Status</th><th style={shell.th}>Amount</th></tr></thead>
                   <tbody>{history.map((entry) => <tr key={entry.invoiceId || entry.invoiceNumber}><td style={shell.td}>{entry.invoiceNumber || '-'}</td><td style={shell.td}>{formatDate(entry.contractStartDate)}</td><td style={shell.td}>{formatDate(entry.contractEndDate)}</td><td style={shell.td}>{entry.status || '-'}</td><td style={shell.td}>{formatINR(entry.totalAmount)}</td></tr>)}</tbody>
                 </table>

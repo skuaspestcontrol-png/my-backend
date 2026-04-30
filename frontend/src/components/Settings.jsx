@@ -12,7 +12,7 @@ import {
   normalizeInvoiceTemplate,
   normalizeInvoiceVisibleColumns
 } from '../utils/invoicePreferences';
-import { applyBrandingTheme } from '../utils/brandingTheme';
+import { applyBrandingTheme, saveBrandingSettings } from '../utils/brandingTheme';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -624,8 +624,16 @@ export default function Settings() {
   const gstBankQrInputRef = useRef(null);
   const nonGstBankQrInputRef = useRef(null);
   const [securityForm, setSecurityForm] = useState(defaultSecurityForm);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const passwordStrength = useMemo(() => getPasswordStrength(securityForm.newPassword), [securityForm.newPassword]);
   const brandingAccentOptions = ['#3B82F6', '#22C55E', '#EF4444', '#F59E0B', '#9F174D'];
+  const isMobile = viewportWidth <= 768;
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -758,6 +766,7 @@ export default function Settings() {
         setSecurityForm(defaultSecurityForm);
         setStatus('All changes saved.');
         applyBrandingTheme(next);
+        saveBrandingSettings(next);
       } catch (error) {
         console.error('Load settings failed', error);
         setStatus('Could not load settings. Please check backend server.');
@@ -1087,6 +1096,7 @@ export default function Settings() {
       localStorage.setItem('invoice_sync_tick', String(Date.now()));
       localStorage.setItem('branding_sync_tick', String(Date.now()));
       applyBrandingTheme(saved);
+      saveBrandingSettings(saved);
       setStatus('All changes saved.');
     } catch (error) {
       console.error('Save settings failed', error);
@@ -2322,6 +2332,53 @@ export default function Settings() {
     return renderSecurity();
   };
 
+  const panelStyle = isMobile
+    ? { ...shell.panel, minHeight: 'auto' }
+    : shell.panel;
+  const panelHeaderStyle = isMobile
+    ? { ...shell.panelHeader, padding: '14px 14px 12px', gap: '10px' }
+    : shell.panelHeader;
+  const panelTitleStyle = isMobile
+    ? { ...shell.panelTitle, fontSize: '22px', lineHeight: 1.2 }
+    : shell.panelTitle;
+  const panelStatusStyle = isMobile
+    ? { ...shell.panelStatus, fontSize: '13px' }
+    : shell.panelStatus;
+  const panelHeaderSideStyle = isMobile
+    ? { ...shell.panelHeaderSide, justifyItems: 'start', width: '100%' }
+    : shell.panelHeaderSide;
+  const validationStyle = isMobile
+    ? { ...shell.validation, textAlign: 'left', fontSize: '13px' }
+    : shell.validation;
+  const panelHeaderButtonsStyle = isMobile
+    ? { ...shell.panelHeaderButtons, width: '100%', justifyContent: 'stretch', display: 'grid', gridTemplateColumns: '1fr 1fr' }
+    : shell.panelHeaderButtons;
+  const topButtonStyle = isMobile
+    ? { ...shell.topButton, width: '100%', padding: '0 10px' }
+    : shell.topButton;
+  const settingsContentShellStyle = isMobile
+    ? { ...shell.settingsContentShell, gridTemplateColumns: '1fr' }
+    : shell.settingsContentShell;
+  const tabsRowStyle = isMobile
+    ? {
+      ...shell.tabsRow,
+      display: 'flex',
+      gap: '8px',
+      padding: '10px',
+      overflowX: 'auto',
+      overflowY: 'hidden',
+      borderRight: 'none',
+      borderBottom: '1px solid var(--border)',
+      WebkitOverflowScrolling: 'touch'
+    }
+    : shell.tabsRow;
+  const tabButtonStyle = isMobile
+    ? { ...shell.tabButton, width: 'auto', minWidth: 'fit-content', whiteSpace: 'nowrap', padding: '9px 12px' }
+    : shell.tabButton;
+  const panelBodyStyle = isMobile
+    ? { ...shell.panelBody, padding: '12px', overflowX: 'hidden' }
+    : shell.panelBody;
+
   return (
     <section style={shell.page}>
       <div style={shell.headingWrap}>
@@ -2330,32 +2387,32 @@ export default function Settings() {
       </div>
 
       <div style={shell.workspaceShell}>
-        <div style={shell.panel}>
-          <header style={shell.panelHeader}>
+        <div style={panelStyle}>
+          <header style={panelHeaderStyle}>
             <div style={shell.panelHeaderMain}>
-              <h3 style={shell.panelTitle}>Company Profile</h3>
-              <p style={{ ...shell.panelStatus, ...statusTone }}>{status || 'All changes saved.'}</p>
+              <h3 style={panelTitleStyle}>Company Profile</h3>
+              <p style={{ ...panelStatusStyle, ...statusTone }}>{status || 'All changes saved.'}</p>
             </div>
-            <div style={shell.panelHeaderSide}>
-              <span style={shell.validation}>{validationSummary}</span>
-              <div style={shell.panelHeaderButtons}>
-                <button type="button" style={shell.topButton} onClick={discardChanges}>Discard</button>
-                <button type="button" style={{ ...shell.topButton, ...shell.topButtonPrimary }} onClick={saveAll} disabled={isSaving}>
+            <div style={panelHeaderSideStyle}>
+              <span style={validationStyle}>{validationSummary}</span>
+              <div style={panelHeaderButtonsStyle}>
+                <button type="button" style={topButtonStyle} onClick={discardChanges}>Discard</button>
+                <button type="button" style={{ ...topButtonStyle, ...shell.topButtonPrimary }} onClick={saveAll} disabled={isSaving}>
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
           </header>
 
-          <div style={shell.settingsContentShell}>
-            <div style={shell.tabsRow}>
+          <div style={settingsContentShellStyle}>
+            <div style={tabsRowStyle}>
               {sectionMeta.map((section) => {
                 const isActive = section.key === activeSection;
                 return (
                   <button
                     key={section.key}
                     type="button"
-                    style={{ ...shell.tabButton, ...(isActive ? shell.tabButtonActive : {}) }}
+                    style={{ ...tabButtonStyle, ...(isActive ? shell.tabButtonActive : {}) }}
                     onClick={() => setActiveSection(section.key)}
                   >
                     {section.label}
@@ -2364,7 +2421,7 @@ export default function Settings() {
               })}
             </div>
 
-            <div style={shell.panelBody}>{renderSectionContent()}</div>
+            <div style={panelBodyStyle}>{renderSectionContent()}</div>
           </div>
         </div>
       </div>

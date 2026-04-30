@@ -222,6 +222,7 @@ const openContractJobCardPdf = (invoiceId) => {
 
 export default function ContractDashboard() {
   const navigate = useNavigate();
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [quickFilter, setQuickFilter] = useState('All');
   const [filters, setFilters] = useState({ status: 'All Status', type: 'All Type', from: '', to: '', search: '' });
   const [activeTab, setActiveTab] = useState('Overview');
@@ -249,6 +250,12 @@ export default function ContractDashboard() {
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
   const [resizeState, setResizeState] = useState(null);
   const [customerSummary, setCustomerSummary] = useState({ open: false, row: null, showHistory: false });
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -584,6 +591,13 @@ export default function ContractDashboard() {
     { key: 'paid', label: 'Paid (₹)' },
     { key: 'due', label: 'Due (₹)' }
   ];
+  const isMobile = viewportWidth <= 768;
+  const quickWrapStyle = isMobile ? { ...shell.quickWrap, alignItems: 'stretch' } : shell.quickWrap;
+  const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
+  const tableWrapStyle = isMobile ? { ...shell.tableWrap, WebkitOverflowScrolling: 'touch' } : shell.tableWrap;
+  const tableStyle = isMobile ? { ...shell.table, minWidth: '1080px', tableLayout: 'auto' } : shell.table;
+  const footerStyle = isMobile ? { ...shell.footer, flexDirection: 'column', alignItems: 'stretch' } : shell.footer;
+  const pagerStyle = isMobile ? { ...shell.pager, justifyContent: 'center' } : shell.pager;
 
   const startColumnResize = (column, event) => {
     event.preventDefault();
@@ -651,7 +665,7 @@ export default function ContractDashboard() {
     }
 
     return (
-      <table style={shell.table}>
+      <table style={tableStyle}>
         <thead>
           <tr>
             <th style={{ ...shell.th, width: '2%' }}>#</th>
@@ -769,7 +783,7 @@ export default function ContractDashboard() {
           </div>
         </div>
 
-        <div style={shell.quickWrap}>
+        <div style={quickWrapStyle}>
           <span style={shell.quickLabel}>Quick Filters:</span>
           {quickFilters.map((entry) => {
             const Icon = entry.icon;
@@ -819,7 +833,7 @@ export default function ContractDashboard() {
         </div>
 
         <div style={shell.filtersBox}>
-          <div style={shell.filterGrid}>
+          <div style={filterGridStyle}>
             <div style={shell.filterField}>
               <label style={shell.filterLabel}>Status</label>
               <select style={shell.input} value={filters.status} onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}>
@@ -869,11 +883,11 @@ export default function ContractDashboard() {
           </div>
         </div>
 
-        <div style={shell.tableWrap}>{renderBody()}</div>
+        <div style={tableWrapStyle}>{renderBody()}</div>
 
-        <div style={shell.footer}>
+        <div style={footerStyle}>
           <span style={shell.footText}>{`Showing 1 to ${filteredContracts.length} of ${filteredContracts.length} entries`}</span>
-          <div style={shell.pager}>
+          <div style={pagerStyle}>
             <button type="button" style={shell.pageBtn}>«</button>
             <button type="button" style={shell.pageBtn}>‹</button>
             <button type="button" style={{ ...shell.pageBtn, ...shell.pageBtnActive }}>1</button>

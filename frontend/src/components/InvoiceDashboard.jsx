@@ -1851,21 +1851,52 @@ export default function InvoiceDashboard() {
       ? { ...shell.summaryGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
       : shell.summaryGrid;
   const toolbarStyle = isMobile ? { ...shell.toolbar, flexDirection: 'column', alignItems: 'stretch', padding: isTiny ? '8px 12px' : shell.toolbar.padding } : shell.toolbar;
-  const modalStyle = isMobile ? { ...shell.modal, width: 'min(100%, 96vw)', height: 'auto', maxHeight: '96vh', borderRadius: isTiny ? '14px' : shell.modal.borderRadius } : shell.modal;
   const customerRowStyle = isMobile ? { ...shell.customerRow, gridTemplateColumns: '1fr' } : shell.customerRow;
   const addressSplitStyle = isMobile ? { ...shell.addressSplit, gridTemplateColumns: '1fr' } : shell.addressSplit;
   const topGridStyle = isMobile ? { ...shell.topGrid, gridTemplateColumns: '1fr' } : shell.topGrid;
   const secondGridStyle = isMobile ? { ...shell.secondGrid, gridTemplateColumns: '1fr' } : shell.secondGrid;
   const subjectRowStyle = isMobile ? { ...shell.subjectRow, gridTemplateColumns: '1fr' } : shell.subjectRow;
+  const supplyRowStyle = isMobile ? { ...shell.supplyRow, gridTemplateColumns: '1fr' } : shell.supplyRow;
   const totalsWrapStyle = isMobile ? { ...shell.totalsWrap, width: '100%', marginLeft: 0 } : shell.totalsWrap;
   const paymentTotalsStyle = isMobile ? { ...shell.paymentTotals, minWidth: '100%', marginLeft: 0 } : shell.paymentTotals;
-  const modalFooterStyle = isMobile ? { ...shell.modalFooter, flexWrap: 'wrap' } : shell.modalFooter;
+  const modalOverlayStyle = isMobile ? { ...shell.modalOverlay, padding: '0' } : shell.modalOverlay;
+  const modalStyle = isMobile
+    ? {
+      ...shell.modal,
+      width: '100%',
+      maxHeight: '100dvh',
+      height: '100dvh',
+      borderRadius: 0,
+      border: 'none'
+    }
+    : shell.modal;
+  const formBodyStyle = isMobile
+    ? {
+      ...shell.formBody,
+      padding: isTiny ? '10px 12px' : '12px 14px',
+      paddingBottom: 'calc(130px + env(safe-area-inset-bottom))',
+      WebkitOverflowScrolling: 'touch'
+    }
+    : shell.formBody;
+  const modalFooterStyle = isMobile
+    ? {
+      ...shell.modalFooter,
+      flexWrap: 'wrap',
+      position: 'sticky',
+      bottom: 0,
+      background: '#fff',
+      paddingBottom: 'calc(10px + env(safe-area-inset-bottom))'
+    }
+    : shell.modalFooter;
   const miniPrefsGridStyle = isMobile ? { ...shell.miniPrefsGrid, gridTemplateColumns: '1fr', paddingLeft: 0 } : shell.miniPrefsGrid;
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const tinyGhostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
   const tinyCustomizeBtnStyle = isTiny ? { ...shell.customizeButton, padding: '7px 10px', fontSize: '11px' } : shell.customizeButton;
   const modalHeaderStyle = isTiny ? { ...shell.modalHeader, fontSize: '22px', padding: '12px 14px' } : shell.modalHeader;
   const tableStyle = isMobile ? { ...shell.table, minWidth: isTiny ? '700px' : '760px' } : shell.table;
+  const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
+  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '980px' } : shell.itemTable;
+  const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '820px' } : shell.serviceScheduleTable;
 
   return (
     <section style={shell.page}>
@@ -2080,10 +2111,10 @@ export default function InvoiceDashboard() {
       </div>
 
       {showModal ? createPortal(
-        <div style={shell.modalOverlay} onClick={closeInvoiceModal}>
+        <div style={modalOverlayStyle} onClick={closeInvoiceModal}>
           <form style={modalStyle} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()}>
             <div style={modalHeaderStyle}>{editingId ? 'Edit Contract' : 'New Contract'}</div>
-            <div style={shell.formBody}>
+            <div style={formBodyStyle}>
               <div style={customerRowStyle}>
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Name*</label>
                 <select
@@ -2133,7 +2164,7 @@ export default function InvoiceDashboard() {
                 </div>
               </div>
 
-              <div style={shell.supplyRow}>
+              <div style={supplyRowStyle}>
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Place of Supply*</label>
                 <select
                   style={shell.input}
@@ -2243,7 +2274,7 @@ export default function InvoiceDashboard() {
                   </div>
                 </div>
                 <div style={shell.itemTableWrap}>
-                  <table style={shell.itemTable}>
+                  <table style={itemTableStyle}>
                     <thead>
                       <tr>
                         <th style={{ ...shell.itemTh, width: '52%' }}>Item Details</th>
@@ -2282,7 +2313,7 @@ export default function InvoiceDashboard() {
                                 <span style={shell.tinyText}>
                                   {line.itemType?.toUpperCase() || 'SERVICE'} SAC: {line.sac || '-'}
                                 </span>
-                                <div style={shell.itemMetaGrid}>
+                                <div style={itemMetaGridStyle}>
                                   <div style={shell.itemMetaField}>
                                     <span style={shell.itemMetaLabel}>Contract Period</span>
                                     <select
@@ -2511,7 +2542,7 @@ export default function InvoiceDashboard() {
                   </div>
                   {generatedServiceSchedules.length > 0 ? (
                     <div style={shell.serviceScheduleTableWrap}>
-                      <table style={shell.serviceScheduleTable}>
+                      <table style={serviceScheduleTableStyle}>
                         <thead>
                           <tr>
                             <th style={shell.serviceScheduleTh}>Service #</th>
@@ -2851,7 +2882,15 @@ export default function InvoiceDashboard() {
                 </button>
               </div>
             </div>
-            <div style={{ ...shell.miniModalBody, display: 'grid', gridTemplateColumns: '170px minmax(0, 1fr)', columnGap: '12px', rowGap: '10px' }}>
+            <div
+              style={{
+                ...shell.miniModalBody,
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '170px minmax(0, 1fr)',
+                columnGap: '12px',
+                rowGap: '10px'
+              }}
+            >
               <label style={shell.label}>Label</label>
               <input
                 style={shell.input}

@@ -967,15 +967,42 @@ export default function CustomerDashboard() {
   const tableStyle = isMobile
     ? { ...shell.table, minWidth: `${mobileTableMinWidth}px`, tableLayout: 'auto' }
     : shell.table;
-  const modalStyle = isMobile ? { ...shell.modal, width: 'min(100%, 96vw)', borderRadius: isTiny ? '14px' : shell.modal.borderRadius } : shell.modal;
+  const modalOverlayStyle = isMobile ? { ...shell.modalOverlay, padding: '0' } : shell.modalOverlay;
+  const modalStyle = isMobile
+    ? {
+      ...shell.modal,
+      width: '100%',
+      maxHeight: '100dvh',
+      height: '100dvh',
+      borderRadius: 0,
+      border: 'none'
+    }
+    : shell.modal;
   const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: isTiny ? '20px' : '22px' } : shell.modalHeader;
-  const modalBodyStyle = isMobile ? { ...shell.modalBody, gridTemplateColumns: '1fr', padding: '14px' } : shell.modalBody;
+  const modalBodyStyle = isMobile
+    ? {
+      ...shell.modalBody,
+      gridTemplateColumns: '1fr',
+      padding: '14px',
+      paddingBottom: 'calc(130px + env(safe-area-inset-bottom))',
+      WebkitOverflowScrolling: 'touch'
+    }
+    : shell.modalBody;
   const addressSplitStyle = isMobile ? { ...shell.addressSplit, gridTemplateColumns: '1fr' } : shell.addressSplit;
   const addressGridStyle = isMobile ? { ...shell.addressGrid, gridTemplateColumns: '1fr' } : shell.addressGrid;
   const historyModalStyle = isMobile ? { ...shell.historyModal, width: 'min(100%, 96vw)' } : shell.historyModal;
   const historyHeaderStyle = isMobile ? { ...shell.historyHeader, flexDirection: 'column', alignItems: 'stretch' } : shell.historyHeader;
   const historyTitleStyle = isMobile ? { ...shell.historyTitle, fontSize: '22px' } : shell.historyTitle;
-  const modalFooterStyle = isMobile ? { ...shell.modalFooter, flexWrap: 'wrap' } : shell.modalFooter;
+  const modalFooterStyle = isMobile
+    ? {
+      ...shell.modalFooter,
+      flexWrap: 'wrap',
+      position: 'sticky',
+      bottom: 0,
+      background: '#fff',
+      paddingBottom: 'calc(12px + env(safe-area-inset-bottom))'
+    }
+    : shell.modalFooter;
   const duplicateModalBodyStyle = isTablet || isMobile ? { ...modalBodyStyle, display: 'grid', gap: '10px' } : { ...shell.modalBody, display: 'grid', gap: '10px' };
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const ghostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
@@ -1396,7 +1423,7 @@ export default function CustomerDashboard() {
       ) : null}
 
       {showModal ? createPortal(
-        <div style={shell.modalOverlay}>
+        <div style={modalOverlayStyle}>
           <form style={modalStyle} onSubmit={handleSubmit}>
             <div style={modalHeaderStyle}>{editingId ? 'Edit Customer' : 'New Customer'}</div>
 
@@ -1725,7 +1752,7 @@ export default function CustomerDashboard() {
       ) : null}
 
       {showDuplicateReport ? createPortal(
-        <div style={shell.modalOverlay}>
+        <div style={modalOverlayStyle}>
           <div style={{ ...modalStyle, width: 'min(1180px, 100%)' }}>
             <div style={modalHeaderStyle}>Duplicate Report & Data Health</div>
             <div style={duplicateModalBodyStyle}>
