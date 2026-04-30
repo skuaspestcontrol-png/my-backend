@@ -51,6 +51,16 @@ const shell = {
     letterSpacing: '0.06em'
   },
   td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#334155', fontSize: '13px', verticalAlign: 'top' }
+  , actionButton: {
+    border: '1px solid #fecaca',
+    background: '#fff1f2',
+    color: '#b91c1c',
+    borderRadius: '8px',
+    padding: '6px 10px',
+    fontSize: '12px',
+    fontWeight: 700,
+    cursor: 'pointer'
+  }
 };
 
 const toNum = (v) => {
@@ -112,6 +122,15 @@ export default function PaymentReceivedDashboard() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [status, setStatus] = useState('Loading payments...');
 
+  const loadPaymentsData = async () => {
+    const [paymentsRes, invoicesRes] = await Promise.all([
+      axios.get(`${API_BASE_URL}/api/payments`),
+      axios.get(`${API_BASE_URL}/api/invoices`)
+    ]);
+    setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
+    setInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
+  };
+
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
@@ -122,13 +141,8 @@ export default function PaymentReceivedDashboard() {
     let mounted = true;
     const load = async () => {
       try {
-        const [paymentsRes, invoicesRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/payments`),
-          axios.get(`${API_BASE_URL}/api/invoices`)
-        ]);
+        await loadPaymentsData();
         if (!mounted) return;
-        setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
-        setInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
         setStatus('Live payment data');
       } catch (error) {
         if (!mounted) return;
@@ -141,6 +155,19 @@ export default function PaymentReceivedDashboard() {
       mounted = false;
     };
   }, []);
+
+  const deletePayment = async (paymentId) => {
+    if (!paymentId) return;
+    const sure = window.confirm('Delete this payment entry?');
+    if (!sure) return;
+    try {
+      await axios.delete(`${API_BASE_URL}/api/payments/${paymentId}`);
+      await loadPaymentsData();
+    } catch (error) {
+      console.error('Delete payment failed', error);
+      alert(error?.response?.data?.error || 'Unable to delete payment');
+    }
+  };
 
   const rows = useMemo(() => normalizePayments(payments, invoices), [payments, invoices]);
 
@@ -190,7 +217,7 @@ export default function PaymentReceivedDashboard() {
                 <th style={shell.th}>Customer</th>
                 <th style={shell.th}>Mode</th>
                 <th style={shell.th}>Amount</th>
-                <th style={shell.th}>Notes</th>
+                <th style={shell.th}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -206,7 +233,11 @@ export default function PaymentReceivedDashboard() {
                     <td style={shell.td}>{row.customerName}</td>
                     <td style={shell.td}>{row.mode}</td>
                     <td style={{ ...shell.td, fontWeight: 800, color: '#111827' }}>{formatINR(row.amount)}</td>
-                    <td style={shell.td}>{row.note}</td>
+                    <td style={shell.td}>
+                      <button type="button" style={shell.actionButton} onClick={() => deletePayment(row.id)}>
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
