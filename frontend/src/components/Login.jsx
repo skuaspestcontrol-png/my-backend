@@ -16,6 +16,7 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [settings, setSettings] = useState({});
+  const [logoBroken, setLogoBroken] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export default function Login() {
           axios.get(`${API_BASE_URL}/api/employees`)
         ]);
         setSettings(settingsRes.data || {});
+        setLogoBroken(false);
         applyBrandingTheme(settingsRes.data || {});
         saveBrandingSettings(settingsRes.data || {});
         setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
@@ -45,6 +47,7 @@ export default function Login() {
   }, []);
 
   const isNarrow = viewportWidth <= 480;
+  const hasValidLogo = Boolean(settings.dashboardImageUrl) && !logoBroken;
 
   const handleChange = (e) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
@@ -144,10 +147,11 @@ export default function Login() {
     <div style={{ minHeight: '100dvh', width: '100%', background: '#EDEFF4', display: 'flex', justifyContent: 'center', padding: isNarrow ? '18px 12px' : '32px 16px' }}>
       <div style={{ width: '100%', maxWidth: '560px', display: 'grid', gap: isNarrow ? '14px' : '18px', alignContent: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          {settings.dashboardImageUrl ? (
+          {hasValidLogo ? (
             <img
               src={settings.dashboardImageUrl}
               alt="Company Logo"
+              onError={() => setLogoBroken(true)}
               style={{
                 width: isNarrow ? '220px' : '320px',
                 maxWidth: '92%',
