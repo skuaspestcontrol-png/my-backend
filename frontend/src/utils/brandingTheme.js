@@ -1,4 +1,5 @@
 export const accentPalette = {
+  '#0F766E': { primary: '#0F766E', dark: '#115E59', deep: '#134E4A', light: '#F0FDFA', soft: '#CCFBF1' },
   '#3B82F6': { primary: '#3B82F6', dark: '#1D4ED8', deep: '#1E3A8A', light: '#EFF6FF', soft: '#DBEAFE' },
   '#22C55E': { primary: '#22C55E', dark: '#15803D', deep: '#166534', light: '#F0FDF4', soft: '#DCFCE7' },
   '#EF4444': { primary: '#EF4444', dark: '#B91C1C', deep: '#991B1B', light: '#FEF2F2', soft: '#FEE2E2' },
@@ -8,13 +9,13 @@ export const accentPalette = {
 
 const normalizeHex = (value) => {
   const raw = String(value || '').trim().toUpperCase();
-  if (!raw) return '#9F174D';
+  if (!raw) return '#0F766E';
   if (/^#[0-9A-F]{6}$/.test(raw)) return raw;
   if (/^#[0-9A-F]{3}$/.test(raw)) {
     const [r, g, b] = raw.slice(1).split('');
     return `#${r}${r}${g}${g}${b}${b}`;
   }
-  return '#9F174D';
+  return '#0F766E';
 };
 
 const hexToRgb = (hex) => {
@@ -51,9 +52,9 @@ const derivePaletteFromAccent = (accent) => {
 
 export const applyBrandingTheme = (settings = {}) => {
   const root = document.documentElement;
-  const accent = normalizeHex(settings.brandingAccentColor || '#9F174D');
+  const accent = normalizeHex(settings.brandingAccentColor || '#0F766E');
   const palette = accentPalette[accent] || derivePaletteFromAccent(accent);
-  const neutralLight = '#F3F4F6';
+  const neutralLight = '#F8FAFC';
   const neutralSoft = '#E5E7EB';
   root.style.setProperty('--color-primary', palette.primary);
   root.style.setProperty('--color-primary-dark', palette.dark);
@@ -81,7 +82,7 @@ export const BRANDING_STORAGE_KEY = 'skuas_branding_settings';
 
 export const pickBrandingSettings = (settings = {}) => ({
   brandingAppearance: String(settings.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
-  brandingAccentColor: normalizeHex(settings.brandingAccentColor || '#9F174D')
+  brandingAccentColor: normalizeHex(settings.brandingAccentColor || '#0F766E')
 });
 
 export const saveBrandingSettings = (settings = {}) => {
