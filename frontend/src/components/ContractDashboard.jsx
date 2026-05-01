@@ -82,8 +82,8 @@ const shell = {
   input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff' },
   clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', borderRadius: '14px', border: '1px solid var(--color-border)' },
-  table: { width: '100%', minWidth: '920px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  th: { textAlign: 'center', verticalAlign: 'middle', fontSize: '11px', fontWeight: 800, color: '#6b7280', padding: '10px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc' },
+  table: { width: '100%', minWidth: '1120px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
+  th: { textAlign: 'center', verticalAlign: 'middle', fontSize: '11px', fontWeight: 800, color: '#6b7280', padding: '10px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis' },
   sortBtn: {
     border: 'none',
     background: 'transparent',
@@ -97,9 +97,13 @@ const shell = {
     cursor: 'pointer',
     color: 'inherit',
     font: 'inherit',
-    lineHeight: 1
+    lineHeight: 1,
+    maxWidth: '100%',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
   },
-  td: { textAlign: 'center', verticalAlign: 'middle', padding: '10px 6px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#1f2937', overflow: 'hidden', background: '#fff' },
+  td: { textAlign: 'center', verticalAlign: 'middle', padding: '10px 6px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#fff' },
   selectedRow: { background: 'var(--color-primary)' },
   selectedText: { color: '#111827' },
   subText: { marginTop: '1px', fontSize: '11px', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
@@ -755,14 +759,14 @@ export default function ContractDashboard() {
                 <span onMouseDown={(event) => startColumnResize('customer', event)} style={{ position: 'absolute', right: 0, top: 0, width: '8px', height: '100%', cursor: 'col-resize' }} />
               </th>
             ) : null}
-            {visibleColumns.property ? <th style={{ ...shell.th, width: '10%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('property')}>Property <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.duration ? <th style={{ ...shell.th, width: '11%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('duration')}>Duration <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.services ? <th style={{ ...shell.th, width: '8%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('services')}>Services <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.status ? <th style={{ ...shell.th, width: '8%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('status')}>Status <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.total ? <th style={{ ...shell.th, width: '8%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('total')}>Total (₹) <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.paid ? <th style={{ ...shell.th, width: '7%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('paid')}>Paid (₹) <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.due ? <th style={{ ...shell.th, width: '7%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('due')}>Due (₹) <ArrowUpDown size={11} /></button></th> : null}
-            <th style={{ ...shell.th, width: '15%' }}>Actions</th>
+            {visibleColumns.property ? <th style={{ ...shell.th, width: '11%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('property')}>Property <ArrowUpDown size={11} /></button></th> : null}
+            {visibleColumns.duration ? <th style={{ ...shell.th, width: '13%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('duration')}>Duration <ArrowUpDown size={11} /></button></th> : null}
+            {visibleColumns.services ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('services')}>Services <ArrowUpDown size={11} /></button></th> : null}
+            {visibleColumns.status ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('status')}>Status <ArrowUpDown size={11} /></button></th> : null}
+            {visibleColumns.total ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('total')}>Total (₹) <ArrowUpDown size={11} /></button></th> : null}
+            {visibleColumns.paid ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('paid')}>Paid (₹) <ArrowUpDown size={11} /></button></th> : null}
+            {visibleColumns.due ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('due')}>Due (₹) <ArrowUpDown size={11} /></button></th> : null}
+            <th style={{ ...shell.th, width: '12%' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
