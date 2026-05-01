@@ -3531,16 +3531,36 @@ app.get('/api/vendor-bills', async (req, res) => {
       await ensureVendorFinanceTables(conn);
       const [rows] = await conn.query('SELECT * FROM vendor_bills ORDER BY id DESC');
       const [itemRows] = await conn.query('SELECT * FROM vendor_bill_items ORDER BY line_index ASC, id ASC');
+      const [catalogRows] = await conn.query('SELECT external_id, name, description, rate, payload FROM items');
+      const itemCatalogById = new Map();
+      const itemCatalogByName = new Map();
+      (Array.isArray(catalogRows) ? catalogRows : []).forEach((catalogRow) => {
+        const catalogPayload = readMysqlPayload(catalogRow.payload);
+        const externalId = String(catalogRow.external_id || catalogPayload._id || '').trim();
+        const name = String(catalogRow.name || catalogPayload.name || '').trim();
+        const normalized = {
+          _id: externalId,
+          name,
+          description: String(catalogRow.description || catalogPayload.description || '').trim(),
+          rate: toNumber(catalogRow.rate ?? catalogPayload.rate, 0)
+        };
+        if (externalId) itemCatalogById.set(externalId, normalized);
+        if (name) itemCatalogByName.set(name.toLowerCase(), normalized);
+      });
       const itemsByBill = (Array.isArray(itemRows) ? itemRows : []).reduce((acc, itemRow) => {
         const key = String(itemRow.bill_external_id || '').trim();
         if (!acc[key]) acc[key] = [];
         const itemPayload = readMysqlPayload(itemRow.payload);
+        const itemId = String(itemPayload.itemId || itemPayload._id || '').trim();
+        const itemName = String(itemRow.item_name ?? itemPayload.itemName ?? '').trim();
+        const catalogMatch = itemCatalogById.get(itemId) || itemCatalogByName.get(itemName.toLowerCase()) || null;
         acc[key].push({
           ...itemPayload,
-          itemName: String(itemRow.item_name ?? itemPayload.itemName ?? '').trim(),
-          description: String(itemRow.description ?? itemPayload.description ?? '').trim(),
+          itemId: itemId || String(catalogMatch?._id || '').trim(),
+          itemName: itemName || String(catalogMatch?.name || '').trim(),
+          description: String(itemRow.description ?? itemPayload.description ?? catalogMatch?.description ?? '').trim(),
           quantity: toNumber(itemRow.quantity ?? itemPayload.quantity, 0),
-          rate: toNumber(itemRow.rate ?? itemPayload.rate, 0),
+          rate: toNumber(itemRow.rate ?? itemPayload.rate ?? catalogMatch?.rate, 0),
           taxRate: toNumber(itemRow.tax_rate ?? itemPayload.taxRate, 0),
           amount: toNumber(itemRow.amount ?? itemPayload.amount, 0)
         });
