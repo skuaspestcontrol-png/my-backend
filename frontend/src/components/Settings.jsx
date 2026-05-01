@@ -648,15 +648,6 @@ export default function Settings() {
   const brandingAccentOptions = ['#3B82F6', '#22C55E', '#EF4444', '#F59E0B', '#9F174D'];
   const isMobile = viewportWidth <= 768;
   const isCompactLayout = isMobile || isTouchDevice || viewportWidth <= 1100;
-  const openCustomAccentPicker = () => {
-    const input = customAccentInputRef.current;
-    if (!input) return;
-    if (typeof input.showPicker === 'function') {
-      input.showPicker();
-      return;
-    }
-    input.click();
-  };
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -1664,7 +1655,7 @@ export default function Settings() {
 
       <div style={shell.divider} />
       <p style={{ ...shell.fieldLabel, margin: 0 }}>Accent Color</p>
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(48px, max-content))', gap: '12px', alignItems: 'center' }}>
         {brandingAccentOptions.map((entry) => (
           <button
             key={entry}
@@ -1681,9 +1672,8 @@ export default function Settings() {
             title={entry}
           />
         ))}
-        <button
-          type="button"
-          onClick={openCustomAccentPicker}
+        <label
+          htmlFor="branding-custom-accent"
           style={{
             minHeight: '44px',
             borderRadius: '12px',
@@ -1697,27 +1687,33 @@ export default function Settings() {
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            position: 'relative',
+            minWidth: '98px'
           }}
           title="Custom Accent Color"
         >
           Custom
-        </button>
-        <input
-          id="branding-custom-accent"
-          ref={customAccentInputRef}
-          type="color"
-          value={form.brandingAccentColor || '#9F174D'}
-          onChange={(event) => updateField('brandingAccentColor', event.target.value)}
-          aria-label="Choose custom accent color"
-          style={{
-            position: 'fixed',
-            left: '-9999px',
-            width: '1px',
-            height: '1px',
-            opacity: 0
-          }}
-        />
+          <input
+            id="branding-custom-accent"
+            ref={customAccentInputRef}
+            type="color"
+            value={form.brandingAccentColor || '#9F174D'}
+            onChange={(event) => updateField('brandingAccentColor', event.target.value)}
+            aria-label="Choose custom accent color"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              opacity: 0,
+              cursor: 'pointer',
+              border: 'none',
+              padding: 0,
+              margin: 0
+            }}
+          />
+        </label>
       </div>
 
       <div style={shell.twoCol}>
