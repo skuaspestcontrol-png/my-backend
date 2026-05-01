@@ -3,12 +3,14 @@ import axios from 'axios';
 import {
   defaultCompanyProfileSettings,
   defaultInvoiceFieldSettings,
+  defaultInvoiceTemplateSettings,
   defaultInvoiceTemplate,
   defaultInvoiceVisibleColumns,
   invoiceColumns,
   invoiceFieldOptions,
   invoiceTemplateOptions,
   normalizeInvoiceFieldSettings,
+  normalizeInvoiceTemplateSettings,
   normalizeInvoiceTemplate,
   normalizeInvoiceVisibleColumns
 } from '../utils/invoicePreferences';
@@ -224,6 +226,7 @@ const defaultForm = {
   invoiceTemplate: defaultInvoiceTemplate,
   invoiceVisibleColumns: [...defaultInvoiceVisibleColumns],
   invoiceFieldSettings: { ...defaultInvoiceFieldSettings },
+  invoiceTemplateSettings: { ...defaultInvoiceTemplateSettings },
   dashboardImageUrl: '',
   brandingAppearance: 'light',
   brandingAccentColor: '#9F174D'
@@ -788,7 +791,8 @@ export default function Settings() {
           whatsappBusinessDigestToCustomer: data.whatsappBusinessDigestToCustomer || 'Off',
           invoiceTemplate: normalizeInvoiceTemplate(data.invoiceTemplate),
           invoiceVisibleColumns: normalizeInvoiceVisibleColumns(data.invoiceVisibleColumns),
-          invoiceFieldSettings: normalizeInvoiceFieldSettings(data.invoiceFieldSettings)
+          invoiceFieldSettings: normalizeInvoiceFieldSettings(data.invoiceFieldSettings),
+          invoiceTemplateSettings: normalizeInvoiceTemplateSettings(data.invoiceTemplateSettings)
         };
 
         setForm(next);
@@ -858,6 +862,26 @@ export default function Settings() {
       invoiceFieldSettings: {
         ...prev.invoiceFieldSettings,
         [fieldKey]: !prev.invoiceFieldSettings[fieldKey]
+      }
+    }));
+  };
+
+  const updateInvoiceTemplateSetting = (key, value) => {
+    setForm((prev) => ({
+      ...prev,
+      invoiceTemplateSettings: {
+        ...(prev.invoiceTemplateSettings || {}),
+        [key]: value
+      }
+    }));
+  };
+
+  const toggleInvoiceTemplateSetting = (key) => {
+    setForm((prev) => ({
+      ...prev,
+      invoiceTemplateSettings: {
+        ...(prev.invoiceTemplateSettings || {}),
+        [key]: !prev?.invoiceTemplateSettings?.[key]
       }
     }));
   };
@@ -1093,7 +1117,8 @@ export default function Settings() {
       whatsappBusinessDigestToCustomer: onOffOptions.includes(form.whatsappBusinessDigestToCustomer) ? form.whatsappBusinessDigestToCustomer : 'Off',
       invoiceTemplate: normalizeInvoiceTemplate(form.invoiceTemplate),
       invoiceVisibleColumns: normalizeInvoiceVisibleColumns(form.invoiceVisibleColumns),
-      invoiceFieldSettings: normalizeInvoiceFieldSettings(form.invoiceFieldSettings)
+      invoiceFieldSettings: normalizeInvoiceFieldSettings(form.invoiceFieldSettings),
+      invoiceTemplateSettings: normalizeInvoiceTemplateSettings(form.invoiceTemplateSettings)
     };
 
     try {
@@ -1117,7 +1142,8 @@ export default function Settings() {
         nonGstBankCurrentBalance: toMoneyString(savedRaw.nonGstBankCurrentBalance, '0'),
         invoiceTemplate: normalizeInvoiceTemplate(savedRaw.invoiceTemplate),
         invoiceVisibleColumns: normalizeInvoiceVisibleColumns(savedRaw.invoiceVisibleColumns),
-        invoiceFieldSettings: normalizeInvoiceFieldSettings(savedRaw.invoiceFieldSettings)
+        invoiceFieldSettings: normalizeInvoiceFieldSettings(savedRaw.invoiceFieldSettings),
+        invoiceTemplateSettings: normalizeInvoiceTemplateSettings(savedRaw.invoiceTemplateSettings)
       };
       setForm(saved);
       setInitialForm(saved);
@@ -2070,6 +2096,107 @@ export default function Settings() {
             </label>
           ))}
         </div>
+      </div>
+
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Primary Color</p>
+          <input style={shell.input} value={form.invoiceTemplateSettings.primaryColor} onChange={(event) => updateInvoiceTemplateSetting('primaryColor', event.target.value)} placeholder="#0F766E" />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Accent Color</p>
+          <input style={shell.input} value={form.invoiceTemplateSettings.accentColor} onChange={(event) => updateInvoiceTemplateSetting('accentColor', event.target.value)} placeholder="#2563EB" />
+        </div>
+      </div>
+
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Header Style</p>
+          <select style={shell.input} value={form.invoiceTemplateSettings.headerStyle} onChange={(event) => updateInvoiceTemplateSetting('headerStyle', event.target.value)}>
+            <option value="classic">Classic</option>
+            <option value="modern">Modern</option>
+            <option value="minimal">Minimal</option>
+          </select>
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Date Format</p>
+          <select style={shell.input} value={form.invoiceTemplateSettings.dateFormat} onChange={(event) => updateInvoiceTemplateSetting('dateFormat', event.target.value)}>
+            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+          </select>
+        </div>
+      </div>
+
+      <div style={shell.field}>
+        <p style={shell.fieldLabel}>Template Visibility</p>
+        <div style={shell.checkboxGrid}>
+          {[
+            ['showLogo', 'Show Logo'],
+            ['showTagline', 'Show Tagline'],
+            ['showCustomerGst', 'Show Customer GST'],
+            ['showServiceLocation', 'Show Service Location'],
+            ['showContractDetails', 'Show Contract Details'],
+            ['showTechnician', 'Show Technician'],
+            ['showSalesPerson', 'Show Sales Person'],
+            ['showHsnSac', 'Show HSN/SAC'],
+            ['showDiscount', 'Show Discount'],
+            ['showTax', 'Show Tax'],
+            ['showAmountPaid', 'Show Amount Paid'],
+            ['showBalanceDue', 'Show Balance Due'],
+            ['showBankDetails', 'Show Bank Details'],
+            ['showUpi', 'Show UPI'],
+            ['showQrCode', 'Show QR Code'],
+            ['showTerms', 'Show Terms'],
+            ['showSignature', 'Show Signature'],
+            ['showFooterNote', 'Show Footer Note'],
+            ['showAmountInWords', 'Show Amount In Words']
+          ].map(([key, label]) => (
+            <label key={key} style={shell.checkItem}>
+              <input type="checkbox" checked={Boolean(form.invoiceTemplateSettings[key])} onChange={() => toggleInvoiceTemplateSetting(key)} />
+              {label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Payment Bank Name</p>
+          <input style={shell.input} value={form.invoiceTemplateSettings.bankName} onChange={(event) => updateInvoiceTemplateSetting('bankName', event.target.value)} />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Account Holder Name</p>
+          <input style={shell.input} value={form.invoiceTemplateSettings.accountHolderName} onChange={(event) => updateInvoiceTemplateSetting('accountHolderName', event.target.value)} />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Account Number</p>
+          <input style={shell.input} value={form.invoiceTemplateSettings.accountNumber} onChange={(event) => updateInvoiceTemplateSetting('accountNumber', event.target.value)} />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>IFSC Code</p>
+          <input style={shell.input} value={form.invoiceTemplateSettings.ifscCode} onChange={(event) => updateInvoiceTemplateSetting('ifscCode', event.target.value)} />
+        </div>
+      </div>
+
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>UPI ID</p>
+          <input style={shell.input} value={form.invoiceTemplateSettings.upiId} onChange={(event) => updateInvoiceTemplateSetting('upiId', event.target.value)} />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Currency Symbol</p>
+          <input style={shell.input} value={form.invoiceTemplateSettings.currencySymbol} onChange={(event) => updateInvoiceTemplateSetting('currencySymbol', event.target.value)} />
+        </div>
+      </div>
+
+      <div style={shell.field}>
+        <p style={shell.fieldLabel}>Terms & Conditions Text</p>
+        <textarea style={{ ...shell.textArea, minHeight: '120px' }} value={form.invoiceTemplateSettings.termsConditions} onChange={(event) => updateInvoiceTemplateSetting('termsConditions', event.target.value)} />
+      </div>
+
+      <div style={shell.field}>
+        <p style={shell.fieldLabel}>Footer Text</p>
+        <input style={shell.input} value={form.invoiceTemplateSettings.footerText} onChange={(event) => updateInvoiceTemplateSetting('footerText', event.target.value)} />
       </div>
     </>
   );
