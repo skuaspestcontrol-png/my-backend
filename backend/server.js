@@ -1285,114 +1285,163 @@ app.delete('/api/leads/:id', async (req, res) => {
 });
 
 app.get('/api/employees', async (req, res) => {
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for employees module' });
+  }
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
-      const [rows] = await conn.query('SELECT payload FROM employees ORDER BY id DESC');
+      const [rows] = await conn.query(
+        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode, salary, joining_date, payload
+         FROM employees
+         ORDER BY id DESC`
+      );
       return Array.isArray(rows) ? rows : [];
     });
-    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
-      const parsed = mysqlRows
-        .map((row) => {
-          const raw = row?.payload;
-          if (!raw) return null;
-          if (typeof raw === 'string') {
-            try { return JSON.parse(raw); } catch { return null; }
-          }
-          return raw;
-        })
-        .filter(Boolean);
-      if (parsed.length > 0) return res.json(parsed);
-    }
+    const toEmployeeResponse = (row) => {
+      let payload = {};
+      const rawPayload = row?.payload;
+      if (rawPayload && typeof rawPayload === 'object') payload = rawPayload;
+      if (typeof rawPayload === 'string') {
+        try { payload = JSON.parse(rawPayload); } catch { payload = {}; }
+      }
+      const firstName = String(payload.firstName ?? row?.first_name ?? '').trim();
+      const lastName = String(payload.lastName ?? row?.last_name ?? '').trim();
+      return {
+        _id: String(payload._id ?? row?.external_id ?? row?.id ?? '').trim(),
+        empCode: String(payload.empCode ?? row?.emp_code ?? '').trim(),
+        firstName,
+        lastName,
+        role: String(payload.role ?? row?.role ?? '').trim(),
+        roleName: String(payload.roleName ?? row?.role_name ?? '').trim(),
+        mobile: String(payload.mobile ?? row?.mobile ?? '').trim(),
+        email: String(payload.email ?? payload.emailId ?? row?.email ?? '').trim(),
+        city: String(payload.city ?? row?.city ?? '').trim(),
+        pincode: String(payload.pincode ?? row?.pincode ?? '').trim(),
+        salary: Number(payload.salary ?? payload.salaryPerMonth ?? row?.salary ?? 0) || 0,
+        dateOfJoining: String(payload.dateOfJoining ?? row?.joining_date ?? '').trim()
+      };
+    };
+    return res.json(mysqlRows.map(toEmployeeResponse));
   } catch (error) {
-    console.error('MySQL employees read failed, using JSON fallback:', error.message);
+    console.error('MySQL employees read failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to fetch employees from MySQL' });
   }
-  res.json(readJsonFile(employeesFile, []));
 });
 
 app.post('/api/employees', async (req, res) => {
-  const settings = readSettings();
-  const employees = readJsonFile(employeesFile, []);
-  const generated = buildNextEmployeeCode(settings, employees);
-  const providedCode = normalizeSettingsText(req.body?.empCode || '');
-  const empCode = providedCode || generated.employeeCode;
-  const createdSeq = getEmployeeCodeSeq(empCode, generated.prefix);
-  const nextSettings = sanitizeSettings({
-    ...settings,
-    employeeCodePrefix: generated.prefix,
-    employeeCodePadding: generated.padding,
-    employeeCodeNextNumber: Math.max(generated.next + 1, (Number(settings.employeeCodeNextNumber) || 1), Number.isFinite(createdSeq) ? createdSeq + 1 : generated.next + 1)
-  });
-  const newEmp = { _id: Date.now().toString(), ...req.body, empCode };
-  employees.push(newEmp);
-  fs.writeFileSync(employeesFile, JSON.stringify(employees, null, 2));
-  fs.writeFileSync(settingsFile, JSON.stringify(nextSettings, null, 2));
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for employees module' });
+  }
+  const incoming = req.body && typeof req.body === 'object' ? req.body : {};
+  const employeeId = String(incoming._id || Date.now().toString()).trim();
+  const firstName = String(incoming.firstName || '').trim();
+  const lastName = String(incoming.lastName || '').trim();
+  const normalized = {
+    ...incoming,
+    _id: employeeId,
+    empCode: String(incoming.empCode || '').trim(),
+    firstName,
+    lastName,
+    mobile: String(incoming.mobile || '').trim(),
+    email: String(incoming.email || incoming.emailId || '').trim(),
+    role: String(incoming.role || '').trim(),
+    roleName: String(incoming.roleName || '').trim(),
+    salary: Number(incoming.salary ?? incoming.salaryPerMonth ?? 0) || 0,
+    dateOfJoining: String(incoming.dateOfJoining || '').trim(),
+    city: String(incoming.city || '').trim(),
+    pincode: String(incoming.pincode || '').trim()
+  };
+  normalized.full_name = [normalized.firstName, normalized.lastName].filter(Boolean).join(' ').trim();
 
   try {
     await withMysqlConnection(async (conn) => {
       await conn.query(
         `INSERT INTO employees (
-          external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode,
+          external_id, emp_code, first_name, last_name, full_name, mobile, email, role, role_name, salary, joining_date, city, pincode,
           payload, source_created_at, source_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           emp_code=VALUES(emp_code),
           first_name=VALUES(first_name),
           last_name=VALUES(last_name),
-          role=VALUES(role),
-          role_name=VALUES(role_name),
+          full_name=VALUES(full_name),
           mobile=VALUES(mobile),
           email=VALUES(email),
+          role=VALUES(role),
+          role_name=VALUES(role_name),
+          salary=VALUES(salary),
+          joining_date=VALUES(joining_date),
           city=VALUES(city),
           pincode=VALUES(pincode),
           payload=VALUES(payload),
-          source_created_at=VALUES(source_created_at),
           source_updated_at=VALUES(source_updated_at)`,
         [
-          newEmp._id,
-          newEmp.empCode || null,
-          newEmp.firstName || null,
-          newEmp.lastName || null,
-          newEmp.role || null,
-          newEmp.roleName || null,
-          newEmp.mobile || null,
-          newEmp.email || newEmp.emailId || null,
-          newEmp.city || null,
-          newEmp.pincode || null,
-          JSON.stringify(newEmp),
-          newEmp.createdAt ? new Date(newEmp.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
+          normalized._id,
+          normalized.empCode || null,
+          normalized.firstName || null,
+          normalized.lastName || null,
+          normalized.full_name || null,
+          normalized.mobile || null,
+          normalized.email || null,
+          normalized.role || null,
+          normalized.roleName || null,
+          normalized.salary,
+          normalized.dateOfJoining || null,
+          normalized.city || null,
+          normalized.pincode || null,
+          JSON.stringify(normalized),
+          normalized.createdAt ? new Date(normalized.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
           new Date().toISOString().slice(0, 19).replace('T', ' ')
         ]
       );
     });
+    return res.status(201).json({ success: true, employee: normalized });
   } catch (error) {
-    console.error('MySQL employees write failed (JSON saved):', error.message);
+    console.error('MySQL employees write failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to save employee in MySQL' });
   }
-
-  res.json(newEmp);
 });
 
 const fetchEmployeeByAnyId = async (employeeId) => {
   const target = String(employeeId || '').trim();
   if (!target) return null;
-
-  const employees = readJsonFile(employeesFile, []);
-  const fromJson = employees.find((employee) => String(employee?._id || '').trim() === target);
-  if (fromJson) return fromJson;
+  if (!canUseMysql()) return null;
 
   try {
     const mysqlEmployee = await withMysqlConnection(async (conn) => {
       const isNumeric = /^\d+$/.test(target);
       const query = isNumeric
-        ? 'SELECT payload FROM employees WHERE external_id = ? OR id = ? LIMIT 1'
-        : 'SELECT payload FROM employees WHERE external_id = ? LIMIT 1';
+        ? `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode, salary, joining_date, payload
+           FROM employees
+           WHERE external_id = ? OR id = ? LIMIT 1`
+        : `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode, salary, joining_date, payload
+           FROM employees
+           WHERE external_id = ? LIMIT 1`;
       const params = isNumeric ? [target, Number(target)] : [target];
       const [rows] = await conn.query(query, params);
       const row = Array.isArray(rows) ? rows[0] : null;
-      if (!row?.payload) return null;
-      if (typeof row.payload === 'string') {
-        try { return JSON.parse(row.payload); } catch { return null; }
+      if (!row) return null;
+      let payload = {};
+      const rawPayload = row.payload;
+      if (rawPayload && typeof rawPayload === 'object') payload = rawPayload;
+      if (typeof rawPayload === 'string') {
+        try { payload = JSON.parse(rawPayload); } catch { payload = {}; }
       }
-      return row.payload;
+      return {
+        ...payload,
+        _id: String(payload._id ?? row.external_id ?? row.id ?? '').trim(),
+        empCode: String(payload.empCode ?? row.emp_code ?? '').trim(),
+        firstName: String(payload.firstName ?? row.first_name ?? '').trim(),
+        lastName: String(payload.lastName ?? row.last_name ?? '').trim(),
+        role: String(payload.role ?? row.role ?? '').trim(),
+        roleName: String(payload.roleName ?? row.role_name ?? '').trim(),
+        mobile: String(payload.mobile ?? row.mobile ?? '').trim(),
+        email: String(payload.email ?? payload.emailId ?? row.email ?? '').trim(),
+        city: String(payload.city ?? row.city ?? '').trim(),
+        pincode: String(payload.pincode ?? row.pincode ?? '').trim(),
+        salary: Number(payload.salary ?? payload.salaryPerMonth ?? row.salary ?? 0) || 0,
+        dateOfJoining: String(payload.dateOfJoining ?? row.joining_date ?? '').trim()
+      };
     });
     if (mysqlEmployee && typeof mysqlEmployee === 'object') return mysqlEmployee;
   } catch (error) {
@@ -1403,90 +1452,99 @@ const fetchEmployeeByAnyId = async (employeeId) => {
 };
 
 app.put('/api/employees/:id', async (req, res) => {
-  const employees = readJsonFile(employeesFile, []);
-  const employeeIndex = employees.findIndex((employee) => String(employee?._id || '').trim() === String(req.params.id || '').trim());
-  let baseEmployee = employeeIndex === -1 ? null : employees[employeeIndex];
-  if (!baseEmployee) {
-    baseEmployee = await fetchEmployeeByAnyId(req.params.id);
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for employees module' });
   }
+  const employeeId = String(req.params.id || '').trim();
+  const baseEmployee = await fetchEmployeeByAnyId(employeeId);
   if (!baseEmployee) return res.status(404).json({ error: 'Employee not found' });
 
-  const updatedEmployee = {
+  const incoming = req.body && typeof req.body === 'object' ? req.body : {};
+  const merged = {
     ...baseEmployee,
-    ...req.body,
-    _id: String(baseEmployee._id || req.params.id || '').trim()
+    ...incoming,
+    _id: String(baseEmployee._id || employeeId).trim()
   };
-
-  if (employeeIndex === -1) {
-    employees.push(updatedEmployee);
-  } else {
-    employees[employeeIndex] = updatedEmployee;
-  }
-  fs.writeFileSync(employeesFile, JSON.stringify(employees, null, 2));
+  const normalized = {
+    ...merged,
+    empCode: String(merged.empCode || '').trim(),
+    firstName: String(merged.firstName || '').trim(),
+    lastName: String(merged.lastName || '').trim(),
+    mobile: String(merged.mobile || '').trim(),
+    email: String(merged.email || merged.emailId || '').trim(),
+    role: String(merged.role || '').trim(),
+    roleName: String(merged.roleName || '').trim(),
+    salary: Number(merged.salary ?? merged.salaryPerMonth ?? 0) || 0,
+    dateOfJoining: String(merged.dateOfJoining || '').trim(),
+    city: String(merged.city || '').trim(),
+    pincode: String(merged.pincode || '').trim()
+  };
+  normalized.full_name = [normalized.firstName, normalized.lastName].filter(Boolean).join(' ').trim();
 
   try {
     await withMysqlConnection(async (conn) => {
-      await conn.query(
-        `INSERT INTO employees (
-          external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode,
-          payload, source_created_at, source_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          emp_code=VALUES(emp_code),
-          first_name=VALUES(first_name),
-          last_name=VALUES(last_name),
-          role=VALUES(role),
-          role_name=VALUES(role_name),
-          mobile=VALUES(mobile),
-          email=VALUES(email),
-          city=VALUES(city),
-          pincode=VALUES(pincode),
-          payload=VALUES(payload),
-          source_created_at=VALUES(source_created_at),
-          source_updated_at=VALUES(source_updated_at)`,
-        [
-          updatedEmployee._id,
-          updatedEmployee.empCode || null,
-          updatedEmployee.firstName || null,
-          updatedEmployee.lastName || null,
-          updatedEmployee.role || null,
-          updatedEmployee.roleName || null,
-          updatedEmployee.mobile || null,
-          updatedEmployee.email || updatedEmployee.emailId || null,
-          updatedEmployee.city || null,
-          updatedEmployee.pincode || null,
-          JSON.stringify(updatedEmployee),
-          updatedEmployee.createdAt ? new Date(updatedEmployee.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
-          new Date().toISOString().slice(0, 19).replace('T', ' ')
-        ]
-      );
+      const isNumeric = /^\d+$/.test(employeeId);
+      const query = isNumeric
+        ? `UPDATE employees
+           SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, email = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, city = ?, pincode = ?, payload = ?, source_updated_at = ?
+           WHERE external_id = ? OR id = ?`
+        : `UPDATE employees
+           SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, email = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, city = ?, pincode = ?, payload = ?, source_updated_at = ?
+           WHERE external_id = ?`;
+      const params = [
+        normalized._id,
+        normalized.empCode || null,
+        normalized.firstName || null,
+        normalized.lastName || null,
+        normalized.full_name || null,
+        normalized.mobile || null,
+        normalized.email || null,
+        normalized.role || null,
+        normalized.roleName || null,
+        normalized.salary,
+        normalized.dateOfJoining || null,
+        normalized.city || null,
+        normalized.pincode || null,
+        JSON.stringify(normalized),
+        new Date().toISOString().slice(0, 19).replace('T', ' '),
+        ...(isNumeric ? [employeeId, Number(employeeId)] : [employeeId])
+      ];
+      const [result] = await conn.query(query, params);
+      if (!Number(result?.affectedRows || 0)) {
+        throw new Error('Employee not found');
+      }
     });
+    return res.json({ success: true, employee: normalized });
   } catch (error) {
-    console.error('MySQL employees update failed (JSON saved):', error.message);
+    console.error('MySQL employees update failed:', error.message);
+    if (String(error?.message || '').toLowerCase().includes('not found')) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    return res.status(500).json({ error: error.message || 'Failed to update employee in MySQL' });
   }
-
-  res.json(updatedEmployee);
 });
 
 app.delete('/api/employees/:id', async (req, res) => {
-  const employees = readJsonFile(employeesFile, []);
-  const updatedEmployees = employees.filter((employee) => employee._id !== req.params.id);
-
-  if (updatedEmployees.length === employees.length) {
-    return res.status(404).json({ error: 'Employee not found' });
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for employees module' });
   }
-
-  fs.writeFileSync(employeesFile, JSON.stringify(updatedEmployees, null, 2));
-
   try {
-    await withMysqlConnection(async (conn) => {
-      await conn.query('DELETE FROM employees WHERE external_id = ?', [req.params.id]);
+    const employeeId = String(req.params.id || '').trim();
+    const deletedRows = await withMysqlConnection(async (conn) => {
+      const isNumeric = /^\d+$/.test(employeeId);
+      const query = isNumeric
+        ? 'DELETE FROM employees WHERE external_id = ? OR id = ?'
+        : 'DELETE FROM employees WHERE external_id = ?';
+      const params = isNumeric ? [employeeId, Number(employeeId)] : [employeeId];
+      const [result] = await conn.query(query, params);
+      return Number(result?.affectedRows || 0);
     });
+    if (!deletedRows) return res.status(404).json({ error: 'Employee not found' });
+    return res.json({ success: true, message: 'Employee deleted' });
   } catch (error) {
-    console.error('MySQL employees delete failed (JSON deleted):', error.message);
+    console.error('MySQL employees delete failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to delete employee from MySQL' });
   }
-
-  res.json({ message: 'Employee deleted' });
 });
 
 app.get('/api/attendance', async (req, res) => {
