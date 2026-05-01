@@ -242,55 +242,6 @@ const defaultInvoiceFieldSettings = {
   showCompanyWebsite: true,
   showGoogleReviewLink: true
 };
-const defaultInvoiceTemplateSettings = {
-  primaryColor: '#0F766E',
-  accentColor: '#2563EB',
-  textColor: '#111827',
-  borderColor: '#E5E7EB',
-  fontFamily: 'Helvetica',
-  fontSize: '9',
-  headerStyle: 'modern',
-  showLogo: true,
-  showTagline: true,
-  showCustomerGst: true,
-  showServiceLocation: true,
-  showContractDetails: true,
-  showTechnician: true,
-  showSalesPerson: true,
-  showHsnSac: true,
-  showDiscount: false,
-  showTax: true,
-  showAmountPaid: true,
-  showBalanceDue: true,
-  showBankDetails: true,
-  showUpi: true,
-  showQrCode: false,
-  showTerms: true,
-  showSignature: true,
-  showFooterNote: true,
-  taxType: 'GST',
-  gstMode: 'AUTO',
-  defaultTaxPercentage: 18,
-  enableRoundOff: true,
-  bankName: '',
-  accountHolderName: '',
-  accountNumber: '',
-  ifscCode: '',
-  upiId: '',
-  qrCodeUrl: '',
-  paymentInstruction: '',
-  termsConditions: '',
-  warrantyNote: '',
-  serviceDisclaimer: '',
-  footerText: 'This is a computer-generated invoice.',
-  thankYouText: 'Thank you for your business',
-  invoicePrefix: 'SPC-INV-',
-  startingInvoiceNumber: 1,
-  dateFormat: 'DD/MM/YYYY',
-  currencySymbol: '₹',
-  showAmountInWords: true,
-  signatureUrl: ''
-};
 const allowedInvoiceTemplates = new Set(['classic', 'clean', 'executive']);
 const allowedOnOff = new Set(['On', 'Off']);
 const allowedYesNo = new Set(['Yes', 'No']);
@@ -396,8 +347,7 @@ const defaultSettings = {
   invoiceNumberPadding: 4,
   invoiceTemplate: 'classic',
   invoiceVisibleColumns: [...invoiceColumnKeys],
-  invoiceFieldSettings: { ...defaultInvoiceFieldSettings },
-  invoiceTemplateSettings: { ...defaultInvoiceTemplateSettings }
+  invoiceFieldSettings: { ...defaultInvoiceFieldSettings }
 };
 
 const normalizeSettingsText = (value) => String(value ?? '').trim();
@@ -455,27 +405,6 @@ const normalizeInvoiceFieldSettings = (value) => {
     if (source[key] === undefined) return;
     next[key] = Boolean(source[key]);
   });
-  return next;
-};
-
-const normalizeInvoiceTemplateSettings = (value) => {
-  const source = value && typeof value === 'object' ? value : {};
-  const next = { ...defaultInvoiceTemplateSettings };
-  Object.keys(defaultInvoiceTemplateSettings).forEach((key) => {
-    if (source[key] === undefined) return;
-    const defaultValue = defaultInvoiceTemplateSettings[key];
-    if (typeof defaultValue === 'boolean') next[key] = normalizeBoolean(source[key], defaultValue);
-    else if (typeof defaultValue === 'number') next[key] = normalizeSettingsNumber(source[key], defaultValue);
-    else next[key] = normalizeSettingsText(source[key]);
-  });
-  next.defaultTaxPercentage = Math.max(0, Number(next.defaultTaxPercentage || 0));
-  next.startingInvoiceNumber = Math.max(1, Number(next.startingInvoiceNumber || 1));
-  next.fontSize = String(next.fontSize || defaultInvoiceTemplateSettings.fontSize);
-  next.taxType = ['GST', 'VAT', 'NONE'].includes(String(next.taxType || '').toUpperCase()) ? String(next.taxType).toUpperCase() : 'GST';
-  next.gstMode = ['AUTO', 'CGST_SGST', 'IGST'].includes(String(next.gstMode || '').toUpperCase()) ? String(next.gstMode).toUpperCase() : 'AUTO';
-  next.headerStyle = ['classic', 'modern', 'minimal'].includes(String(next.headerStyle || '').toLowerCase()) ? String(next.headerStyle).toLowerCase() : 'modern';
-  next.dateFormat = ['DD/MM/YYYY', 'YYYY-MM-DD'].includes(String(next.dateFormat || '').toUpperCase()) ? String(next.dateFormat).toUpperCase() : 'DD/MM/YYYY';
-  next.currencySymbol = String(next.currencySymbol || '₹').slice(0, 4);
   return next;
 };
 
@@ -623,8 +552,7 @@ const sanitizeSettings = (raw = {}) => {
     invoiceNumberPadding: Math.max(1, Number(source.invoiceNumberPadding ?? defaultSettings.invoiceNumberPadding) || defaultSettings.invoiceNumberPadding),
     invoiceTemplate: allowedInvoiceTemplates.has(invoiceTemplate) ? invoiceTemplate : defaultSettings.invoiceTemplate,
     invoiceVisibleColumns: normalizeInvoiceVisibleColumns(source.invoiceVisibleColumns),
-    invoiceFieldSettings: normalizeInvoiceFieldSettings(source.invoiceFieldSettings),
-    invoiceTemplateSettings: normalizeInvoiceTemplateSettings(source.invoiceTemplateSettings)
+    invoiceFieldSettings: normalizeInvoiceFieldSettings(source.invoiceFieldSettings)
   };
 };
 

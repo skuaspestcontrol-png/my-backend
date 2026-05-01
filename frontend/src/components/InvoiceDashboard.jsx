@@ -1192,16 +1192,6 @@ export default function InvoiceDashboard() {
     document.body.removeChild(link);
   };
 
-  const openInvoicePdfPreview = (invoice) => {
-    if (!invoice?._id) return;
-    window.open(`${API_BASE_URL}/api/invoices/${invoice._id}/pdf`, '_blank', 'noopener,noreferrer');
-  };
-
-  const printInvoicePdf = (invoice) => {
-    if (!invoice?._id) return;
-    window.open(`${API_BASE_URL}/api/invoices/${invoice._id}/pdf?download=0`, '_blank', 'noopener,noreferrer');
-  };
-
   const buildShareText = (invoice, customer) => {
     const invoiceNumber = String(invoice.invoiceNumber || '').trim() || 'Invoice';
     const customerName = String(invoice.customerName || customer?.displayName || customer?.name || '').trim() || 'Customer';
@@ -1232,21 +1222,6 @@ export default function InvoiceDashboard() {
 
     if (action === 'download') {
       triggerInvoicePdfDownload(invoice);
-      return;
-    }
-
-    if (action === 'preview') {
-      openInvoicePdfPreview(invoice);
-      return;
-    }
-
-    if (action === 'print') {
-      printInvoicePdf(invoice);
-      return;
-    }
-
-    if (action === 'edit-template') {
-      navigate('/settings');
       return;
     }
 
@@ -2174,31 +2149,11 @@ export default function InvoiceDashboard() {
                     type="button"
                     style={shell.rowActionMenuBtn}
                     onClick={() => {
-                      runInvoiceAction(targetInvoice, 'preview');
-                      setRowActionInvoiceId('');
-                    }}
-                  >
-                    Preview Invoice
-                  </button>
-                  <button
-                    type="button"
-                    style={shell.rowActionMenuBtn}
-                    onClick={() => {
                       runInvoiceAction(targetInvoice, 'download');
                       setRowActionInvoiceId('');
                     }}
                   >
                     Download PDF
-                  </button>
-                  <button
-                    type="button"
-                    style={shell.rowActionMenuBtn}
-                    onClick={() => {
-                      runInvoiceAction(targetInvoice, 'print');
-                      setRowActionInvoiceId('');
-                    }}
-                  >
-                    Print Invoice
                   </button>
                   <button
                     type="button"
@@ -2219,16 +2174,6 @@ export default function InvoiceDashboard() {
                     }}
                   >
                     Email Invoice
-                  </button>
-                  <button
-                    type="button"
-                    style={shell.rowActionMenuBtn}
-                    onClick={() => {
-                      runInvoiceAction(targetInvoice, 'edit-template');
-                      setRowActionInvoiceId('');
-                    }}
-                  >
-                    Edit Template
                   </button>
                 </>
               );
