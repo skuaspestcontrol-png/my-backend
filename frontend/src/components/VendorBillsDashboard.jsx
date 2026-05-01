@@ -75,6 +75,16 @@ const shell = {
 
 const toNum = (v) => Number(v || 0);
 const formatINR = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const toDateOnly = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return value.trim();
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
 export default function VendorBillsDashboard() {
   const [vendors, setVendors] = useState([]);
@@ -141,6 +151,8 @@ export default function VendorBillsDashboard() {
     const mapped = {
       ...emptyForm,
       ...bill,
+      date: toDateOnly(bill?.date) || emptyForm.date,
+      dueDate: toDateOnly(bill?.dueDate) || toDateOnly(bill?.date) || emptyForm.dueDate,
       items: Array.isArray(bill?.items) && bill.items.length > 0 ? bill.items : [createLine()],
       paymentSplits: Array.isArray(bill?.paymentSplits) && bill.paymentSplits.length > 0 ? bill.paymentSplits : [createPaymentSplit()]
     };
@@ -232,6 +244,15 @@ export default function VendorBillsDashboard() {
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%' } : shell.itemTable;
   const mobileItemGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' };
+  const dateInputStyle = {
+    ...shell.input,
+    width: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
+    textAlign: 'left',
+    WebkitAppearance: 'none',
+    appearance: 'none'
+  };
 
   return (
     <section style={shell.page}>
@@ -268,10 +289,10 @@ export default function VendorBillsDashboard() {
           <tbody>
             {bills.map((bill) => (
               <tr key={bill._id}>
-                <td style={shell.td}>{bill.date || '-'}</td>
+                <td style={shell.td}>{toDateOnly(bill.date) || '-'}</td>
                 <td style={shell.td}>{bill.billNumber || '-'}</td>
                 <td style={shell.td}>{bill.vendorName || '-'}</td>
-                <td style={shell.td}>{bill.dueDate || '-'}</td>
+                <td style={shell.td}>{toDateOnly(bill.dueDate) || '-'}</td>
                 <td style={shell.td}>{formatINR(bill.total || bill.amount || 0)}</td>
                 <td style={shell.td}>{formatINR(bill.balanceDue || 0)}</td>
                 <td style={shell.td}>{String(bill.status || 'OPEN').toUpperCase()}</td>
@@ -303,9 +324,9 @@ export default function VendorBillsDashboard() {
                 <label style={shell.label}>Bill Number*</label>
                 <input style={shell.input} value={form.billNumber} onChange={(e) => updateForm('billNumber', e.target.value)} />
                 <label style={shell.label}>Date</label>
-                <input type="date" style={shell.input} value={form.date} onChange={(e) => updateForm('date', e.target.value)} />
+                <input type="date" style={dateInputStyle} value={form.date} onChange={(e) => updateForm('date', e.target.value)} />
                 <label style={shell.label}>Due Date</label>
-                <input type="date" style={shell.input} value={form.dueDate} onChange={(e) => updateForm('dueDate', e.target.value)} />
+                <input type="date" style={dateInputStyle} value={form.dueDate} onChange={(e) => updateForm('dueDate', e.target.value)} />
                 <label style={shell.label}>Bill Type</label>
                 <select style={shell.input} value={form.invoiceType} onChange={(e) => updateForm('invoiceType', e.target.value)}>
                   <option value="GST">GST Bill</option>

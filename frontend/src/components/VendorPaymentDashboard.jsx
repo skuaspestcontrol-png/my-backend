@@ -160,11 +160,9 @@ export default function VendorPaymentDashboard() {
   const summary = useMemo(() => {
     const totalPaid = vendorBills.reduce((sum, bill) => sum + toNum(bill.paymentMadeTotal), 0);
     const totalDue = vendorBills.reduce((sum, bill) => sum + toNum(bill.balanceDue), 0);
-    const unpaidBills = vendorBills.filter((bill) => toNum(bill.balanceDue) > 0.01).length;
     return {
       totalPaid,
       totalDue,
-      unpaidBills,
       paymentEntries: rows.length
     };
   }, [rows, vendorBills]);
@@ -265,13 +263,6 @@ export default function VendorPaymentDashboard() {
               )}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <div style={shell.tablePanel}>
-        <h3 style={shell.tableHead}>Vendor Bills Due Snapshot</h3>
-        <div style={{ padding: '14px 16px', fontSize: '13px', color: '#334155' }}>
-          Open Vendor Bills: <strong>{summary.unpaidBills}</strong>
         </div>
       </div>
     </section>
