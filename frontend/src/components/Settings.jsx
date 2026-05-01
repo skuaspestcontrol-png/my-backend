@@ -637,6 +637,7 @@ export default function Settings() {
   const nonGstLogoInputRef = useRef(null);
   const gstBankQrInputRef = useRef(null);
   const nonGstBankQrInputRef = useRef(null);
+  const customAccentInputRef = useRef(null);
   const [securityForm, setSecurityForm] = useState(defaultSecurityForm);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [isTouchDevice, setIsTouchDevice] = useState(() => (
@@ -647,6 +648,15 @@ export default function Settings() {
   const brandingAccentOptions = ['#3B82F6', '#22C55E', '#EF4444', '#F59E0B', '#9F174D'];
   const isMobile = viewportWidth <= 768;
   const isCompactLayout = isMobile || isTouchDevice || viewportWidth <= 1100;
+  const openCustomAccentPicker = () => {
+    const input = customAccentInputRef.current;
+    if (!input) return;
+    if (typeof input.showPicker === 'function') {
+      input.showPicker();
+      return;
+    }
+    input.click();
+  };
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -1671,8 +1681,9 @@ export default function Settings() {
             title={entry}
           />
         ))}
-        <label
-          htmlFor="branding-custom-accent"
+        <button
+          type="button"
+          onClick={openCustomAccentPicker}
           style={{
             minHeight: '44px',
             borderRadius: '12px',
@@ -1691,9 +1702,10 @@ export default function Settings() {
           title="Custom Accent Color"
         >
           Custom
-        </label>
+        </button>
         <input
           id="branding-custom-accent"
+          ref={customAccentInputRef}
           type="color"
           value={form.brandingAccentColor || '#9F174D'}
           onChange={(event) => updateField('brandingAccentColor', event.target.value)}
