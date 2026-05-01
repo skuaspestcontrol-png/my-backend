@@ -76,12 +76,22 @@ const MASTER_RESET_EMAIL = String(process.env.MASTER_RESET_EMAIL || 'skuaspestco
 const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
 
-const uploadsDir = path.join(__dirname, '..', 'storage', 'uploads');
+const uploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLOADS_DIR || '')
+  .trim() || path.join(__dirname, '..', 'storage', 'uploads');
 fs.mkdirSync(uploadsDir, { recursive: true });
 const dataDir = path.join(__dirname, 'data');
 [uploadsDir, dataDir].forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir); });
 
 app.use('/uploads', express.static(uploadsDir));
+const uploadsPublicBaseUrl = String(process.env.UPLOADS_PUBLIC_BASE_URL || '').trim();
+const resolveUploadPublicUrl = (req, fileName) => {
+  const safeFileName = encodeURIComponent(String(fileName || '').trim());
+  if (!safeFileName) return '';
+  if (uploadsPublicBaseUrl) {
+    return `${uploadsPublicBaseUrl.replace(/\/+$/, '')}/${safeFileName}`;
+  }
+  return `${resolveServerOrigin(req)}/uploads/${safeFileName}`;
+};
 const backendPublicDir = path.join(__dirname, 'public');
 const backendPublicIndexFile = path.join(backendPublicDir, 'index.html');
 const frontendDistDir = path.join(__dirname, '..', 'frontend', 'dist');
@@ -642,12 +652,17 @@ const parseJobLogoPath = (dashboardImageUrl = '') => {
     const direct = path.resolve(__dirname, `.${raw}`);
     if (fs.existsSync(direct)) return direct;
   }
+  if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+    const byName = path.join(uploadsDir, path.basename(raw));
+    if (fs.existsSync(byName)) return byName;
+    if (fs.existsSync(raw)) return raw;
+  }
   try {
     const url = new URL(raw);
     const pathname = url.pathname || '';
     if (pathname.includes('/uploads/')) {
       const fileName = path.basename(pathname);
-      const local = path.join(__dirname, 'uploads', fileName);
+      const local = path.join(uploadsDir, fileName);
       if (fs.existsSync(local)) return local;
     }
   } catch (_error) {
@@ -954,17 +969,17 @@ app.post('/api/auth/reset-password', (req, res) => {
 
 app.post('/api/settings/upload-dashboard-image', upload.single('dashboardImage'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
-  res.json({ imageUrl: `${resolveServerOrigin(req)}/uploads/${req.file.filename}` });
+  res.json({ imageUrl: resolveUploadPublicUrl(req, req.file.filename) });
 });
 
 app.post('/api/settings/upload-branding-image', upload.single('brandingImage'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
-  res.json({ imageUrl: `${resolveServerOrigin(req)}/uploads/${req.file.filename}` });
+  res.json({ imageUrl: resolveUploadPublicUrl(req, req.file.filename) });
 });
 
 app.post('/api/employees/upload-document', upload.single('document'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
-  res.json({ fileUrl: `${resolveServerOrigin(req)}/uploads/${req.file.filename}` });
+  res.json({ fileUrl: resolveUploadPublicUrl(req, req.file.filename) });
 });
 
 const parseMysqlLeadPayload = (rawPayload) => {
@@ -1038,8 +1053,8 @@ const upsertLeadToMysql = async (conn, lead) => {
     `INSERT INTO leads (
       external_id, customer_name, display_name, company_name, contact_person_name, title, mobile,
       whatsapp_number, email_id, address, area_name, city, state, pincode, pest_issue,
-      lead_source, lead_status, assigned_to, followup_date, payload, source_created_at, source_updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      lead_source, lead_status, assigned_to, followup_date, payload
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       customer_name=VALUES(customer_name),
       display_name=VALUES(display_name),
@@ -1059,9 +1074,7 @@ const upsertLeadToMysql = async (conn, lead) => {
       lead_status=VALUES(lead_status),
       assigned_to=VALUES(assigned_to),
       followup_date=VALUES(followup_date),
-      payload=VALUES(payload),
-      source_created_at=VALUES(source_created_at),
-      source_updated_at=VALUES(source_updated_at)`,
+      payload=VALUES(payload)`,
     [
       lead._id,
       lead.customerName || null,
@@ -1082,9 +1095,7 @@ const upsertLeadToMysql = async (conn, lead) => {
       lead.leadStatus || null,
       lead.assignedTo || null,
       lead.followupDate || null,
-      JSON.stringify(lead),
-      toMysqlDateTime(lead.date),
-      new Date().toISOString().slice(0, 19).replace('T', ' ')
+      JSON.stringify(lead)
     ]
   );
 };
@@ -2462,21 +2473,69 @@ const buildInvoicePdfFileName = (invoice) => {
   return `${invoiceNo}.pdf`;
 };
 
-const resolveInvoiceContext = (invoiceId) => {
-  const invoices = readJsonFile(invoicesFile, []);
-  const invoice = invoices.find((entry) => entry._id === invoiceId);
+const parseMysqlPayloadObject = (raw) => {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw); } catch { return null; }
+  }
+  if (typeof raw === 'object') return raw;
+  return null;
+};
+
+const loadInvoicesForContext = async () => {
+  try {
+    const mysqlRows = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT payload FROM invoices ORDER BY id DESC');
+      return Array.isArray(rows) ? rows : [];
+    });
+    const parsed = (Array.isArray(mysqlRows) ? mysqlRows : [])
+      .map((row) => parseMysqlPayloadObject(row?.payload))
+      .filter(Boolean);
+    if (parsed.length > 0) return parsed;
+  } catch (error) {
+    console.error('Invoice context MySQL load failed, using JSON fallback:', error.message);
+  }
+  return readJsonFile(invoicesFile, []);
+};
+
+const loadCustomersForContext = async () => {
+  try {
+    const mysqlRows = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT payload FROM customers ORDER BY id DESC');
+      return Array.isArray(rows) ? rows : [];
+    });
+    const parsed = (Array.isArray(mysqlRows) ? mysqlRows : [])
+      .map((row) => parseMysqlPayloadObject(row?.payload))
+      .filter(Boolean);
+    if (parsed.length > 0) return parsed;
+  } catch (error) {
+    console.error('Customer context MySQL load failed, using JSON fallback:', error.message);
+  }
+  return readJsonFile(customersFile, []);
+};
+
+const resolveInvoiceContext = async (invoiceId) => {
+  const invoices = await loadInvoicesForContext();
+  const invoice = (Array.isArray(invoices) ? invoices : []).find((entry) => String(entry?._id || '') === String(invoiceId || ''));
   if (!invoice) return null;
 
-  const customers = readJsonFile(customersFile, []);
-  const customer = customers.find((entry) =>
-    (invoice.customerId && entry._id === invoice.customerId) ||
-    String(entry.displayName || entry.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
+  const customers = await loadCustomersForContext();
+  const customer = (Array.isArray(customers) ? customers : []).find((entry) =>
+    (invoice.customerId && String(entry?._id || '') === String(invoice.customerId || '')) ||
+    String(entry?.displayName || entry?.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
   ) || null;
+
+  let settings = readSettings();
+  try {
+    settings = await readSettingsFromMysql();
+  } catch (error) {
+    console.error('Settings context MySQL load failed, using fallback:', error.message);
+  }
 
   return {
     invoice,
     customer,
-    settings: readSettings()
+    settings
   };
 };
 
@@ -2956,7 +3015,7 @@ const syncAttendanceToMysql = async (record) => {
 
 app.get('/api/invoices/:id/pdf', async (req, res) => {
   try {
-    const context = resolveInvoiceContext(req.params.id);
+    const context = await resolveInvoiceContext(req.params.id);
     if (!context) return res.status(404).json({ error: 'Invoice not found' });
 
     const pdfBuffer = await generateInvoicePdfBuffer(context);
@@ -2974,7 +3033,7 @@ app.get('/api/invoices/:id/pdf', async (req, res) => {
 
 app.post('/api/invoices/:id/send-email', async (req, res) => {
   try {
-    const context = resolveInvoiceContext(req.params.id);
+    const context = await resolveInvoiceContext(req.params.id);
     if (!context) return res.status(404).json({ error: 'Invoice not found' });
 
     const recipient = String(
@@ -3047,7 +3106,7 @@ app.post('/api/invoices/:id/send-email', async (req, res) => {
 
 app.post('/api/invoices/:id/send-whatsapp', async (req, res) => {
   try {
-    const context = resolveInvoiceContext(req.params.id);
+    const context = await resolveInvoiceContext(req.params.id);
     if (!context) return res.status(404).json({ error: 'Invoice not found' });
 
     const phoneRaw = String(

@@ -81,9 +81,12 @@ const amountToWords = (value) => {
 const parseLocalAsset = (input = '') => {
   const raw = clean(input);
   if (!raw) return '';
+  const uploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLOADS_DIR || '').trim()
+    || path.join(__dirname, '..', 'storage', 'uploads');
+  const resolveUploadLocal = (fileName) => path.join(uploadsDir, fileName);
 
   if (raw.startsWith('/uploads/')) {
-    const local = path.join(__dirname, raw);
+    const local = resolveUploadLocal(path.basename(raw));
     if (fs.existsSync(local)) return local;
   }
 
@@ -96,7 +99,7 @@ const parseLocalAsset = (input = '') => {
     const url = new URL(raw);
     const fileName = path.basename(url.pathname || '');
     if (fileName) {
-      const local = path.join(__dirname, 'uploads', fileName);
+      const local = resolveUploadLocal(fileName);
       if (fs.existsSync(local)) return local;
     }
   } catch (_error) {
