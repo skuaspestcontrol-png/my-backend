@@ -78,9 +78,41 @@ const resetOtpStore = new Map();
 
 const uploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLOADS_DIR || '')
   .trim() || path.join(__dirname, '..', 'storage', 'uploads');
+const uploadsMirrorDir = String(process.env.UPLOADS_MIRROR_DIR || '').trim();
 fs.mkdirSync(uploadsDir, { recursive: true });
+if (uploadsMirrorDir) fs.mkdirSync(uploadsMirrorDir, { recursive: true });
 const dataDir = path.join(__dirname, 'data');
 [uploadsDir, dataDir].forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir); });
+
+const syncUploadToMirror = (fileName = '') => {
+  if (!uploadsMirrorDir) return;
+  const safeName = String(fileName || '').trim();
+  if (!safeName) return;
+  const src = path.join(uploadsDir, safeName);
+  const dest = path.join(uploadsMirrorDir, safeName);
+  try {
+    if (fs.existsSync(src)) fs.copyFileSync(src, dest);
+  } catch (error) {
+    console.error('Failed to mirror uploaded file:', error.message);
+  }
+};
+
+const recoverUploadsFromMirror = () => {
+  if (!uploadsMirrorDir) return;
+  try {
+    const entries = fs.readdirSync(uploadsMirrorDir, { withFileTypes: true });
+    entries.forEach((entry) => {
+      if (!entry.isFile()) return;
+      const src = path.join(uploadsMirrorDir, entry.name);
+      const dest = path.join(uploadsDir, entry.name);
+      if (fs.existsSync(dest)) return;
+      fs.copyFileSync(src, dest);
+    });
+  } catch (error) {
+    console.error('Failed to recover uploads from mirror:', error.message);
+  }
+};
+recoverUploadsFromMirror();
 
 app.use('/uploads', express.static(uploadsDir));
 const uploadsPublicBaseUrl = String(process.env.UPLOADS_PUBLIC_BASE_URL || '').trim();
@@ -986,16 +1018,19 @@ app.post('/api/auth/reset-password', (req, res) => {
 
 app.post('/api/settings/upload-dashboard-image', upload.single('dashboardImage'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
+  syncUploadToMirror(req.file.filename);
   res.json({ imageUrl: resolveUploadPublicUrl(req, req.file.filename) });
 });
 
 app.post('/api/settings/upload-branding-image', upload.single('brandingImage'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
+  syncUploadToMirror(req.file.filename);
   res.json({ imageUrl: resolveUploadPublicUrl(req, req.file.filename) });
 });
 
 app.post('/api/employees/upload-document', upload.single('document'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
+  syncUploadToMirror(req.file.filename);
   res.json({ fileUrl: resolveUploadPublicUrl(req, req.file.filename) });
 });
 
