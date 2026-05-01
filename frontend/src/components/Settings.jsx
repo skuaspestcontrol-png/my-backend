@@ -320,7 +320,7 @@ const shell = {
   topButtonPrimary: { borderColor: 'rgba(159, 23, 77, 0.52)', background: 'var(--color-primary)', color: '#ffffff' },
   settingsContentShell: {
     display: 'grid',
-    gridTemplateColumns: '320px minmax(0, 1fr)',
+    gridTemplateColumns: '260px minmax(0, 1fr)',
     alignItems: 'stretch',
     minHeight: 0,
     flex: 1
@@ -328,19 +328,18 @@ const shell = {
   tabsRow: {
     display: 'grid',
     alignContent: 'start',
-    gap: '10px',
-    padding: '20px 16px',
+    gap: '6px',
+    padding: '14px',
     borderRight: '1px solid var(--border)',
     background: '#fbfcff',
     justifyItems: 'stretch'
   },
   tabButton: {
-    border: '1px solid #d1d5db',
-    borderRadius: '16px',
-    background: '#fff',
+    border: '1px solid transparent',
+    borderRadius: '10px',
+    background: 'transparent',
     color: '#4b5563',
-    padding: '0 18px',
-    minHeight: '74px',
+    padding: '8px 10px',
     fontSize: '14px',
     fontWeight: 800,
     cursor: 'pointer',
@@ -350,11 +349,11 @@ const shell = {
   },
   tabButtonActive: {
     color: '#0f172a',
-    borderColor: 'rgba(244, 114, 182, 0.35)',
-    background: '#fff',
-    boxShadow: 'inset 4px 0 0 #22c55e'
+    borderColor: 'rgba(159, 23, 77, 0.26)',
+    background: 'var(--color-primary-light)',
+    boxShadow: 'inset 3px 0 0 var(--color-primary)'
   },
-  panelBody: { padding: '18px 24px', display: 'grid', alignContent: 'start', gap: '12px', flex: 1 },
+  panelBody: { padding: '14px 16px', display: 'grid', alignContent: 'start', gap: '10px', flex: 1 },
   sectionHeading: { margin: 0, color: '#374151', fontSize: '13px', fontWeight: 800, letterSpacing: '0.02em' },
   infoBanner: {
     borderRadius: '10px',
@@ -366,19 +365,19 @@ const shell = {
     fontWeight: 700,
     lineHeight: 1.5
   },
-  twoCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px 20px' },
-  threeCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px 20px' },
-  fourCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px 20px' },
+  twoCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px 18px' },
+  threeCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px 18px' },
+  fourCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px 18px' },
   field: { display: 'grid', gap: '8px' },
   fieldLabel: { margin: 0, fontSize: '12px', color: '#4b5563', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
   input: {
     width: '100%',
-    minHeight: '52px',
-    borderRadius: '14px',
+    minHeight: '49px',
+    borderRadius: '10px',
     border: '1px solid rgba(159, 23, 77, 0.24)',
     background: '#fff',
-    padding: '10px 16px',
-    fontSize: '14px',
+    padding: '10px 14px',
+    fontSize: '13px',
     color: 'var(--text)'
   },
   textArea: {
