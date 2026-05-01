@@ -85,6 +85,13 @@ const toDateOnly = (value) => {
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 };
+const formatDateDisplay = (value) => {
+  const iso = toDateOnly(value);
+  if (!iso) return '-';
+  const [year, month, day] = iso.split('-');
+  if (!year || !month || !day) return '-';
+  return `${day}/${month}/${year}`;
+};
 
 export default function VendorBillsDashboard() {
   const [vendors, setVendors] = useState([]);
@@ -289,10 +296,10 @@ export default function VendorBillsDashboard() {
           <tbody>
             {bills.map((bill) => (
               <tr key={bill._id}>
-                <td style={shell.td}>{toDateOnly(bill.date) || '-'}</td>
+                <td style={shell.td}>{formatDateDisplay(bill.date)}</td>
                 <td style={shell.td}>{bill.billNumber || '-'}</td>
                 <td style={shell.td}>{bill.vendorName || '-'}</td>
-                <td style={shell.td}>{toDateOnly(bill.dueDate) || '-'}</td>
+                <td style={shell.td}>{formatDateDisplay(bill.dueDate)}</td>
                 <td style={shell.td}>{formatINR(bill.total || bill.amount || 0)}</td>
                 <td style={shell.td}>{formatINR(bill.balanceDue || 0)}</td>
                 <td style={shell.td}>{String(bill.status || 'OPEN').toUpperCase()}</td>
