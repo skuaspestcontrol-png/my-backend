@@ -263,6 +263,244 @@ const upsertItems = async (conn) => {
   return rows.length;
 };
 
+const ensureVendorFinanceTables = async (conn) => {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS vendors (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      external_id VARCHAR(120) NOT NULL,
+      vendor_name VARCHAR(255) NULL,
+      company_name VARCHAR(255) NULL,
+      contact_person_name VARCHAR(255) NULL,
+      mobile VARCHAR(50) NULL,
+      whatsapp_number VARCHAR(50) NULL,
+      email_id VARCHAR(255) NULL,
+      gst_number VARCHAR(80) NULL,
+      address TEXT NULL,
+      area_name VARCHAR(255) NULL,
+      city VARCHAR(120) NULL,
+      state VARCHAR(120) NULL,
+      pincode VARCHAR(40) NULL,
+      opening_balance DECIMAL(12,2) NOT NULL DEFAULT 0,
+      status VARCHAR(80) NULL,
+      payload JSON NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_vendors_external_id (external_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS vendor_bills (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      external_id VARCHAR(120) NOT NULL,
+      vendor_external_id VARCHAR(120) NULL,
+      vendor_name VARCHAR(255) NULL,
+      bill_number VARCHAR(255) NULL,
+      bill_date DATE NULL,
+      due_date DATE NULL,
+      status VARCHAR(80) NULL,
+      subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+      tax_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+      total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+      balance_due DECIMAL(12,2) NOT NULL DEFAULT 0,
+      notes TEXT NULL,
+      payload JSON NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_vendor_bills_external_id (external_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS vendor_bill_items (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      bill_external_id VARCHAR(120) NOT NULL,
+      line_index INT NOT NULL DEFAULT 0,
+      item_name VARCHAR(255) NULL,
+      description TEXT NULL,
+      quantity DECIMAL(12,2) NOT NULL DEFAULT 0,
+      rate DECIMAL(12,2) NOT NULL DEFAULT 0,
+      tax_rate DECIMAL(8,2) NOT NULL DEFAULT 0,
+      amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+      payload JSON NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_vendor_bill_items_bill_external_id (bill_external_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS payment_received (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      external_id VARCHAR(120) NOT NULL,
+      customer_external_id VARCHAR(120) NULL,
+      customer_name VARCHAR(255) NULL,
+      payment_date DATE NULL,
+      payment_mode VARCHAR(120) NULL,
+      reference_number VARCHAR(255) NULL,
+      amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+      notes TEXT NULL,
+      linked_invoice_external_id VARCHAR(120) NULL,
+      payload JSON NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_payment_received_external_id (external_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+};
+
+const upsertVendors = async (conn) => {
+  await ensureVendorFinanceTables(conn);
+  const rows = readJsonArray('vendors.json');
+  for (const vendor of rows) {
+    const externalId = text(vendor._id) || `VND-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    await conn.query(
+      `INSERT INTO vendors (
+        external_id, vendor_name, company_name, contact_person_name, mobile, whatsapp_number, email_id, gst_number,
+        address, area_name, city, state, pincode, opening_balance, status, payload
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        vendor_name=VALUES(vendor_name),
+        company_name=VALUES(company_name),
+        contact_person_name=VALUES(contact_person_name),
+        mobile=VALUES(mobile),
+        whatsapp_number=VALUES(whatsapp_number),
+        email_id=VALUES(email_id),
+        gst_number=VALUES(gst_number),
+        address=VALUES(address),
+        area_name=VALUES(area_name),
+        city=VALUES(city),
+        state=VALUES(state),
+        pincode=VALUES(pincode),
+        opening_balance=VALUES(opening_balance),
+        status=VALUES(status),
+        payload=VALUES(payload)`,
+      [
+        externalId,
+        text(vendor.vendorName || vendor.displayName || vendor.companyName),
+        text(vendor.companyName),
+        text(vendor.contactPersonName),
+        text(vendor.mobileNumber || vendor.mobile),
+        text(vendor.whatsappNumber),
+        text(vendor.emailId),
+        text(vendor.gstNumber),
+        text(vendor.billingAddress || vendor.address),
+        text(vendor.billingArea || vendor.areaName),
+        text(vendor.city),
+        text(vendor.state || vendor.billingState),
+        text(vendor.billingPincode || vendor.pincode),
+        Number(vendor.openingBalance || 0) || 0,
+        text(vendor.status || 'active'),
+        toJson({ ...vendor, _id: externalId })
+      ]
+    );
+  }
+  return rows.length;
+};
+
+const upsertVendorBills = async (conn) => {
+  await ensureVendorFinanceTables(conn);
+  const rows = readJsonArray('vendor_bills.json');
+  let itemCount = 0;
+  for (const bill of rows) {
+    const externalId = text(bill._id) || `VBL-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const payload = { ...bill, _id: externalId };
+    await conn.query(
+      `INSERT INTO vendor_bills (
+        external_id, vendor_external_id, vendor_name, bill_number, bill_date, due_date, status, subtotal, tax_amount, total_amount, balance_due, notes, payload
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        vendor_external_id=VALUES(vendor_external_id),
+        vendor_name=VALUES(vendor_name),
+        bill_number=VALUES(bill_number),
+        bill_date=VALUES(bill_date),
+        due_date=VALUES(due_date),
+        status=VALUES(status),
+        subtotal=VALUES(subtotal),
+        tax_amount=VALUES(tax_amount),
+        total_amount=VALUES(total_amount),
+        balance_due=VALUES(balance_due),
+        notes=VALUES(notes),
+        payload=VALUES(payload)`,
+      [
+        externalId,
+        text(payload.vendorId),
+        text(payload.vendorName),
+        text(payload.billNumber),
+        toDate(payload.date),
+        toDate(payload.dueDate),
+        text(payload.status),
+        Number(payload.subtotal || 0) || 0,
+        Number(payload.totalTax || payload.taxAmount || 0) || 0,
+        Number(payload.amount || payload.total || 0) || 0,
+        Number(payload.balanceDue || 0) || 0,
+        text(payload.notes),
+        toJson(payload)
+      ]
+    );
+    await conn.query('DELETE FROM vendor_bill_items WHERE bill_external_id = ?', [externalId]);
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index] && typeof items[index] === 'object' ? items[index] : {};
+      await conn.query(
+        `INSERT INTO vendor_bill_items (
+          bill_external_id, line_index, item_name, description, quantity, rate, tax_rate, amount, payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          externalId,
+          index,
+          text(item.itemName),
+          text(item.description),
+          Number(item.quantity || 0) || 0,
+          Number(item.rate || 0) || 0,
+          Number(item.taxRate || 0) || 0,
+          Number(item.amount || 0) || 0,
+          toJson(item)
+        ]
+      );
+      itemCount += 1;
+    }
+  }
+  return { bills: rows.length, items: itemCount };
+};
+
+const upsertPaymentReceived = async (conn) => {
+  await ensureVendorFinanceTables(conn);
+  const rows = readJsonArray('payment_received.json');
+  for (const payment of rows) {
+    const externalId = text(payment._id) || `PR-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    await conn.query(
+      `INSERT INTO payment_received (
+        external_id, customer_external_id, customer_name, payment_date, payment_mode, reference_number, amount, notes, linked_invoice_external_id, payload
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        customer_external_id=VALUES(customer_external_id),
+        customer_name=VALUES(customer_name),
+        payment_date=VALUES(payment_date),
+        payment_mode=VALUES(payment_mode),
+        reference_number=VALUES(reference_number),
+        amount=VALUES(amount),
+        notes=VALUES(notes),
+        linked_invoice_external_id=VALUES(linked_invoice_external_id),
+        payload=VALUES(payload)`,
+      [
+        externalId,
+        text(payment.customerId || payment.customerExternalId),
+        text(payment.customerName),
+        toDate(payment.paymentDate),
+        text(payment.mode || payment.paymentMode),
+        text(payment.reference || payment.referenceNumber),
+        Number(payment.amount || 0) || 0,
+        text(payment.notes),
+        text(payment.linkedInvoiceId || payment.linkedInvoiceExternalId),
+        toJson({ ...payment, _id: externalId })
+      ]
+    );
+  }
+  return rows.length;
+};
+
 const run = async () => {
   const conn = await mysql.createConnection({
     host: process.env.DB_HOST,
@@ -276,9 +514,16 @@ const run = async () => {
     const employeeCount = await upsertEmployees(conn);
     const leadCount = await upsertLeads(conn);
     const itemCount = await upsertItems(conn);
+    const vendorCount = await upsertVendors(conn);
+    const vendorBillResult = await upsertVendorBills(conn);
+    const paymentReceivedCount = await upsertPaymentReceived(conn);
     console.log('Employees migrated:', employeeCount);
     console.log('Leads migrated:', leadCount);
     console.log('Items migrated:', itemCount);
+    console.log('Vendors migrated:', vendorCount);
+    console.log('Vendor bills migrated:', vendorBillResult.bills);
+    console.log('Vendor bill items migrated:', vendorBillResult.items);
+    console.log('Payment received migrated:', paymentReceivedCount);
   } finally {
     await conn.end();
   }

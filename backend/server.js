@@ -3275,184 +3275,595 @@ app.get('/api/invoices', async (req, res) => {
   res.json(readJsonFile(invoicesFile, []));
 });
 
-app.get('/api/vendors', (req, res) => {
-  const vendors = readJsonFile(vendorsFile, []);
-  res.json(Array.isArray(vendors) ? vendors : []);
+const ensureVendorFinanceTables = async (conn) => {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS vendors (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      external_id VARCHAR(120) NOT NULL,
+      vendor_name VARCHAR(255) NULL,
+      company_name VARCHAR(255) NULL,
+      contact_person_name VARCHAR(255) NULL,
+      mobile VARCHAR(50) NULL,
+      whatsapp_number VARCHAR(50) NULL,
+      email_id VARCHAR(255) NULL,
+      gst_number VARCHAR(80) NULL,
+      address TEXT NULL,
+      area_name VARCHAR(255) NULL,
+      city VARCHAR(120) NULL,
+      state VARCHAR(120) NULL,
+      pincode VARCHAR(40) NULL,
+      opening_balance DECIMAL(12,2) NOT NULL DEFAULT 0,
+      status VARCHAR(80) NULL,
+      payload JSON NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_vendors_external_id (external_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS vendor_bills (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      external_id VARCHAR(120) NOT NULL,
+      vendor_external_id VARCHAR(120) NULL,
+      vendor_name VARCHAR(255) NULL,
+      bill_number VARCHAR(255) NULL,
+      bill_date DATE NULL,
+      due_date DATE NULL,
+      status VARCHAR(80) NULL,
+      subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+      tax_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+      total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+      balance_due DECIMAL(12,2) NOT NULL DEFAULT 0,
+      notes TEXT NULL,
+      payload JSON NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_vendor_bills_external_id (external_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS vendor_bill_items (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      bill_external_id VARCHAR(120) NOT NULL,
+      line_index INT NOT NULL DEFAULT 0,
+      item_name VARCHAR(255) NULL,
+      description TEXT NULL,
+      quantity DECIMAL(12,2) NOT NULL DEFAULT 0,
+      rate DECIMAL(12,2) NOT NULL DEFAULT 0,
+      tax_rate DECIMAL(8,2) NOT NULL DEFAULT 0,
+      amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+      payload JSON NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_vendor_bill_items_bill_external_id (bill_external_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS payment_received (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      external_id VARCHAR(120) NOT NULL,
+      customer_external_id VARCHAR(120) NULL,
+      customer_name VARCHAR(255) NULL,
+      payment_date DATE NULL,
+      payment_mode VARCHAR(120) NULL,
+      reference_number VARCHAR(255) NULL,
+      amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+      notes TEXT NULL,
+      linked_invoice_external_id VARCHAR(120) NULL,
+      payload JSON NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_payment_received_external_id (external_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+};
+
+const readMysqlPayload = (rawPayload) => parseMysqlJsonPayload(rawPayload) || {};
+
+app.get('/api/vendors', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendors module' });
+  try {
+    const result = await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      const [rows] = await conn.query('SELECT * FROM vendors ORDER BY id DESC');
+      return (Array.isArray(rows) ? rows : []).map((row) => {
+        const payload = readMysqlPayload(row.payload);
+        return {
+          ...payload,
+          _id: String(row.external_id || payload._id || row.id || '').trim(),
+          id: row.id,
+          vendorName: String(row.vendor_name ?? payload.vendorName ?? payload.displayName ?? '').trim(),
+          companyName: String(row.company_name ?? payload.companyName ?? '').trim(),
+          contactPersonName: String(row.contact_person_name ?? payload.contactPersonName ?? '').trim(),
+          mobileNumber: String(row.mobile ?? payload.mobileNumber ?? '').trim(),
+          whatsappNumber: String(row.whatsapp_number ?? payload.whatsappNumber ?? '').trim(),
+          emailId: String(row.email_id ?? payload.emailId ?? '').trim(),
+          gstNumber: String(row.gst_number ?? payload.gstNumber ?? '').trim(),
+          billingAddress: String(row.address ?? payload.billingAddress ?? payload.address ?? '').trim(),
+          billingArea: String(row.area_name ?? payload.billingArea ?? payload.areaName ?? '').trim(),
+          city: String(row.city ?? payload.city ?? '').trim(),
+          state: String(row.state ?? payload.state ?? '').trim(),
+          billingPincode: String(row.pincode ?? payload.billingPincode ?? payload.pincode ?? '').trim(),
+          openingBalance: toNumber(row.opening_balance ?? payload.openingBalance, 0),
+          status: String(row.status ?? payload.status ?? 'active').trim()
+        };
+      });
+    });
+    return res.json(result);
+  } catch (error) {
+    console.error('MySQL vendors read failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to fetch vendors from MySQL' });
+  }
 });
 
-app.post('/api/vendors', (req, res) => {
-  const vendors = readJsonFile(vendorsFile, []);
-  const companyName = String(req.body.companyName || '').trim();
-  const contactPersonName = String(req.body.contactPersonName || '').trim();
-  const emailId = String(req.body.emailId || '').trim();
-  const mobileNumber = String(req.body.mobileNumber || '').replace(/\D+/g, '').slice(0, 10);
-  const gstNumber = String(req.body.gstNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
-  const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
-
-  if (!companyName || !contactPersonName || !emailId || !mobileNumber || !gstNumber) {
-    return res.status(400).json({ error: 'Company name, contact person name, email, mobile, and GST number are required.' });
+app.post('/api/vendors', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendors module' });
+  try {
+    const vendor = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+    const externalId = String(vendor._id || `VND-${Date.now()}`).trim();
+    const mapped = {
+      external_id: externalId,
+      vendor_name: String(vendor.vendorName || vendor.displayName || vendor.companyName || '').trim(),
+      company_name: String(vendor.companyName || '').trim(),
+      contact_person_name: String(vendor.contactPersonName || '').trim(),
+      mobile: String(vendor.mobileNumber || vendor.mobile || '').trim(),
+      whatsapp_number: String(vendor.whatsappNumber || '').trim(),
+      email_id: String(vendor.emailId || '').trim(),
+      gst_number: String(vendor.gstNumber || '').trim(),
+      address: String(vendor.billingAddress || vendor.address || '').trim(),
+      area_name: String(vendor.billingArea || vendor.areaName || '').trim(),
+      city: String(vendor.city || '').trim(),
+      state: String(vendor.state || vendor.billingState || '').trim(),
+      pincode: String(vendor.billingPincode || vendor.pincode || '').trim(),
+      opening_balance: toNumber(vendor.openingBalance, 0),
+      status: String(vendor.status || 'active').trim()
+    };
+    const payload = { ...vendor, _id: externalId };
+    await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      await conn.query(
+        `INSERT INTO vendors (
+          external_id, vendor_name, company_name, contact_person_name, mobile, whatsapp_number, email_id, gst_number,
+          address, area_name, city, state, pincode, opening_balance, status, payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          vendor_name=VALUES(vendor_name),
+          company_name=VALUES(company_name),
+          contact_person_name=VALUES(contact_person_name),
+          mobile=VALUES(mobile),
+          whatsapp_number=VALUES(whatsapp_number),
+          email_id=VALUES(email_id),
+          gst_number=VALUES(gst_number),
+          address=VALUES(address),
+          area_name=VALUES(area_name),
+          city=VALUES(city),
+          state=VALUES(state),
+          pincode=VALUES(pincode),
+          opening_balance=VALUES(opening_balance),
+          status=VALUES(status),
+          payload=VALUES(payload)`,
+        [
+          mapped.external_id, mapped.vendor_name, mapped.company_name, mapped.contact_person_name, mapped.mobile,
+          mapped.whatsapp_number, mapped.email_id, mapped.gst_number, mapped.address, mapped.area_name, mapped.city,
+          mapped.state, mapped.pincode, mapped.opening_balance, mapped.status, JSON.stringify(payload)
+        ]
+      );
+    });
+    return res.status(201).json(payload);
+  } catch (error) {
+    console.error('MySQL vendors write failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to save vendor in MySQL' });
   }
-  if (mobileNumber.length !== 10) {
-    return res.status(400).json({ error: 'Mobile number must be exactly 10 digits.' });
-  }
-  if (!gstinRegex.test(gstNumber)) {
-    return res.status(400).json({ error: 'Enter a valid 15-character GSTIN (e.g., 08ABCDE9999F1Z8).' });
-  }
-
-  const vendor = {
-    _id: `VND-${Date.now()}`,
-    companyName,
-    contactPersonName,
-    displayName: String(req.body.displayName || companyName).trim(),
-    emailId,
-    mobileNumber,
-    gstNumber,
-    billingAttention: String(req.body.billingAttention || '').trim(),
-    billingStreet1: String(req.body.billingStreet1 || '').trim(),
-    billingStreet2: String(req.body.billingStreet2 || '').trim(),
-    billingAddress: String(req.body.billingAddress || '').trim(),
-    billingArea: String(req.body.billingArea || '').trim(),
-    billingState: String(req.body.billingState || '').trim(),
-    billingPincode: String(req.body.billingPincode || '').trim(),
-    shippingAttention: String(req.body.shippingAttention || '').trim(),
-    shippingStreet1: String(req.body.shippingStreet1 || '').trim(),
-    shippingStreet2: String(req.body.shippingStreet2 || '').trim(),
-    shippingAddress: String(req.body.shippingAddress || '').trim(),
-    shippingArea: String(req.body.shippingArea || '').trim(),
-    shippingState: String(req.body.shippingState || '').trim(),
-    shippingPincode: String(req.body.shippingPincode || '').trim(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-
-  vendors.push(vendor);
-  fs.writeFileSync(vendorsFile, JSON.stringify(vendors, null, 2));
-  res.json(vendor);
 });
 
-app.put('/api/vendors/:id', (req, res) => {
-  const vendors = readJsonFile(vendorsFile, []);
-  const index = vendors.findIndex((entry) => String(entry._id || '') === String(req.params.id || ''));
-  if (index === -1) return res.status(404).json({ error: 'Vendor not found' });
-  const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
-
-  const current = vendors[index];
-  const next = {
-    ...current,
-    ...req.body,
-    _id: current._id,
-    companyName: String(req.body.companyName ?? current.companyName ?? '').trim(),
-    contactPersonName: String(req.body.contactPersonName ?? current.contactPersonName ?? '').trim(),
-    displayName: String(req.body.displayName ?? current.displayName ?? current.companyName ?? '').trim(),
-    emailId: String(req.body.emailId ?? current.emailId ?? '').trim(),
-    mobileNumber: String(req.body.mobileNumber ?? current.mobileNumber ?? '').replace(/\D+/g, '').slice(0, 10),
-    gstNumber: String(req.body.gstNumber ?? current.gstNumber ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15),
-    updatedAt: new Date().toISOString()
-  };
-
-  if (!next.companyName || !next.contactPersonName || !next.emailId || !next.mobileNumber || !next.gstNumber) {
-    return res.status(400).json({ error: 'Company name, contact person name, email, mobile, and GST number are required.' });
+app.put('/api/vendors/:id', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendors module' });
+  try {
+    const vendorId = String(req.params.id || '').trim();
+    const vendor = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+    const payload = { ...vendor, _id: String(vendor._id || vendorId).trim() };
+    const numericId = Number(vendorId);
+    const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
+    const [result] = await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      return conn.query(
+        `UPDATE vendors SET
+          external_id=?, vendor_name=?, company_name=?, contact_person_name=?, mobile=?, whatsapp_number=?, email_id=?, gst_number=?,
+          address=?, area_name=?, city=?, state=?, pincode=?, opening_balance=?, status=?, payload=?
+         WHERE external_id = ? OR id = ?`,
+        [
+          payload._id,
+          String(payload.vendorName || payload.displayName || payload.companyName || '').trim(),
+          String(payload.companyName || '').trim(),
+          String(payload.contactPersonName || '').trim(),
+          String(payload.mobileNumber || payload.mobile || '').trim(),
+          String(payload.whatsappNumber || '').trim(),
+          String(payload.emailId || '').trim(),
+          String(payload.gstNumber || '').trim(),
+          String(payload.billingAddress || payload.address || '').trim(),
+          String(payload.billingArea || payload.areaName || '').trim(),
+          String(payload.city || '').trim(),
+          String(payload.state || payload.billingState || '').trim(),
+          String(payload.billingPincode || payload.pincode || '').trim(),
+          toNumber(payload.openingBalance, 0),
+          String(payload.status || 'active').trim(),
+          JSON.stringify(payload),
+          vendorId,
+          safeNumericId
+        ]
+      );
+    });
+    if (!Number(result?.affectedRows || 0)) return res.status(404).json({ error: 'Vendor not found' });
+    return res.json(payload);
+  } catch (error) {
+    console.error('MySQL vendors update failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to update vendor in MySQL' });
   }
-  if (next.mobileNumber.length !== 10) {
-    return res.status(400).json({ error: 'Mobile number must be exactly 10 digits.' });
-  }
-  if (!gstinRegex.test(next.gstNumber)) {
-    return res.status(400).json({ error: 'Enter a valid 15-character GSTIN (e.g., 08ABCDE9999F1Z8).' });
-  }
-
-  vendors[index] = next;
-  fs.writeFileSync(vendorsFile, JSON.stringify(vendors, null, 2));
-  res.json(next);
 });
 
-app.delete('/api/vendors/:id', (req, res) => {
-  const vendors = readJsonFile(vendorsFile, []);
-  const updated = vendors.filter((entry) => String(entry._id || '') !== String(req.params.id || ''));
-  if (updated.length === vendors.length) return res.status(404).json({ error: 'Vendor not found' });
-  fs.writeFileSync(vendorsFile, JSON.stringify(updated, null, 2));
-  res.json({ message: 'Vendor deleted' });
-});
-
-app.get('/api/vendor-bills', (req, res) => {
-  const bills = readJsonFile(vendorBillsFile, []);
-  res.json(Array.isArray(bills) ? bills : []);
-});
-
-app.post('/api/vendor-bills', (req, res) => {
-  const bills = readJsonFile(vendorBillsFile, []);
-  const amount = toNumber(req.body.amount, 0);
-  const paidAmount = Boolean(req.body.paymentMadeEnabled) ? toNumber(req.body.paymentMadeTotal, 0) : 0;
-  if (paidAmount > amount + 0.0001) {
-    return res.status(400).json({ error: 'Amount paid cannot be greater than total amount.' });
+app.delete('/api/vendors/:id', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendors module' });
+  try {
+    const vendorId = String(req.params.id || '').trim();
+    const numericId = Number(vendorId);
+    const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
+    const deletedRows = await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      const [result] = await conn.query('DELETE FROM vendors WHERE external_id = ? OR id = ?', [vendorId, safeNumericId]);
+      return Number(result?.affectedRows || 0);
+    });
+    if (!deletedRows) return res.status(404).json({ error: 'Vendor not found' });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('MySQL vendors delete failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to delete vendor from MySQL' });
   }
-
-  const status = paidAmount >= amount && amount > 0 ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'OPEN';
-  const newBill = {
-    _id: `VBL-${Date.now()}`,
-    vendorId: String(req.body.vendorId || '').trim(),
-    vendorName: String(req.body.vendorName || '').trim(),
-    billNumber: String(req.body.billNumber || `BILL-${Date.now()}`).trim(),
-    date: String(req.body.date || new Date().toISOString().slice(0, 10)).trim(),
-    dueDate: String(req.body.dueDate || req.body.date || new Date().toISOString().slice(0, 10)).trim(),
-    invoiceType: String(req.body.invoiceType || 'GST').trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST',
-    items: Array.isArray(req.body.items) ? req.body.items : [],
-    subtotal: toNumber(req.body.subtotal, amount),
-    totalTax: toNumber(req.body.totalTax, 0),
-    amount,
-    total: toNumber(req.body.total, amount),
-    balanceDue: Number(Math.max(amount - paidAmount, 0).toFixed(2)),
-    paymentMadeEnabled: Boolean(req.body.paymentMadeEnabled),
-    paymentSplits: Array.isArray(req.body.paymentSplits) ? req.body.paymentSplits : [],
-    paymentMadeTotal: paidAmount,
-    status,
-    notes: String(req.body.notes || '').trim(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-
-  bills.push(newBill);
-  fs.writeFileSync(vendorBillsFile, JSON.stringify(bills, null, 2));
-  res.json(newBill);
 });
 
-app.put('/api/vendor-bills/:id', (req, res) => {
-  const bills = readJsonFile(vendorBillsFile, []);
-  const index = bills.findIndex((entry) => String(entry._id || '') === String(req.params.id || ''));
-  if (index === -1) return res.status(404).json({ error: 'Vendor bill not found' });
-
-  const current = bills[index];
-  const amount = toNumber(req.body.amount ?? current.amount, 0);
-  const paidAmount = (req.body.paymentMadeEnabled == null ? Boolean(current.paymentMadeEnabled) : Boolean(req.body.paymentMadeEnabled))
-    ? toNumber(req.body.paymentMadeTotal ?? current.paymentMadeTotal, 0)
-    : 0;
-  if (paidAmount > amount + 0.0001) {
-    return res.status(400).json({ error: 'Amount paid cannot be greater than total amount.' });
+app.get('/api/vendor-bills', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendor bills module' });
+  try {
+    const bills = await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      const [rows] = await conn.query('SELECT * FROM vendor_bills ORDER BY id DESC');
+      const [itemRows] = await conn.query('SELECT * FROM vendor_bill_items ORDER BY line_index ASC, id ASC');
+      const itemsByBill = (Array.isArray(itemRows) ? itemRows : []).reduce((acc, itemRow) => {
+        const key = String(itemRow.bill_external_id || '').trim();
+        if (!acc[key]) acc[key] = [];
+        const itemPayload = readMysqlPayload(itemRow.payload);
+        acc[key].push({
+          ...itemPayload,
+          itemName: String(itemRow.item_name ?? itemPayload.itemName ?? '').trim(),
+          description: String(itemRow.description ?? itemPayload.description ?? '').trim(),
+          quantity: toNumber(itemRow.quantity ?? itemPayload.quantity, 0),
+          rate: toNumber(itemRow.rate ?? itemPayload.rate, 0),
+          taxRate: toNumber(itemRow.tax_rate ?? itemPayload.taxRate, 0),
+          amount: toNumber(itemRow.amount ?? itemPayload.amount, 0)
+        });
+        return acc;
+      }, {});
+      return (Array.isArray(rows) ? rows : []).map((row) => {
+        const payload = readMysqlPayload(row.payload);
+        const externalId = String(row.external_id || payload._id || row.id || '').trim();
+        return {
+          ...payload,
+          _id: externalId,
+          id: row.id,
+          vendorId: String(row.vendor_external_id ?? payload.vendorId ?? '').trim(),
+          vendorName: String(row.vendor_name ?? payload.vendorName ?? '').trim(),
+          billNumber: String(row.bill_number ?? payload.billNumber ?? '').trim(),
+          date: String(row.bill_date ?? payload.date ?? '').trim(),
+          dueDate: String(row.due_date ?? payload.dueDate ?? '').trim(),
+          status: String(row.status ?? payload.status ?? '').trim(),
+          subtotal: toNumber(row.subtotal ?? payload.subtotal, 0),
+          totalTax: toNumber(row.tax_amount ?? payload.totalTax ?? payload.taxAmount, 0),
+          amount: toNumber(row.total_amount ?? payload.amount ?? payload.total, 0),
+          total: toNumber(row.total_amount ?? payload.total ?? payload.amount, 0),
+          balanceDue: toNumber(row.balance_due ?? payload.balanceDue, 0),
+          notes: String(row.notes ?? payload.notes ?? '').trim(),
+          items: itemsByBill[externalId] || (Array.isArray(payload.items) ? payload.items : [])
+        };
+      });
+    });
+    return res.json(bills);
+  } catch (error) {
+    console.error('MySQL vendor bills read failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to fetch vendor bills from MySQL' });
   }
-  const status = paidAmount >= amount && amount > 0 ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'OPEN';
-
-  const next = {
-    ...current,
-    ...req.body,
-    _id: current._id,
-    amount,
-    total: toNumber(req.body.total ?? current.total, amount),
-    balanceDue: Number(Math.max(amount - paidAmount, 0).toFixed(2)),
-    paymentMadeTotal: paidAmount,
-    status,
-    updatedAt: new Date().toISOString()
-  };
-
-  bills[index] = next;
-  fs.writeFileSync(vendorBillsFile, JSON.stringify(bills, null, 2));
-  res.json(next);
 });
 
-app.delete('/api/vendor-bills/:id', (req, res) => {
-  const bills = readJsonFile(vendorBillsFile, []);
-  const updated = bills.filter((entry) => String(entry._id || '') !== String(req.params.id || ''));
-  if (updated.length === bills.length) return res.status(404).json({ error: 'Vendor bill not found' });
-  fs.writeFileSync(vendorBillsFile, JSON.stringify(updated, null, 2));
-  res.json({ message: 'Vendor bill deleted' });
+app.post('/api/vendor-bills', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendor bills module' });
+  try {
+    const bill = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+    const externalId = String(bill._id || `VBL-${Date.now()}`).trim();
+    const items = Array.isArray(bill.items) ? bill.items : [];
+    const payload = { ...bill, _id: externalId, items };
+    await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      await conn.query(
+        `INSERT INTO vendor_bills (
+          external_id, vendor_external_id, vendor_name, bill_number, bill_date, due_date, status, subtotal, tax_amount, total_amount, balance_due, notes, payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          vendor_external_id=VALUES(vendor_external_id),
+          vendor_name=VALUES(vendor_name),
+          bill_number=VALUES(bill_number),
+          bill_date=VALUES(bill_date),
+          due_date=VALUES(due_date),
+          status=VALUES(status),
+          subtotal=VALUES(subtotal),
+          tax_amount=VALUES(tax_amount),
+          total_amount=VALUES(total_amount),
+          balance_due=VALUES(balance_due),
+          notes=VALUES(notes),
+          payload=VALUES(payload)`,
+        [
+          externalId,
+          String(payload.vendorId || '').trim(),
+          String(payload.vendorName || '').trim(),
+          String(payload.billNumber || '').trim(),
+          String(payload.date || '').trim() || null,
+          String(payload.dueDate || '').trim() || null,
+          String(payload.status || '').trim(),
+          toNumber(payload.subtotal, 0),
+          toNumber(payload.totalTax ?? payload.taxAmount, 0),
+          toNumber(payload.amount ?? payload.total, 0),
+          toNumber(payload.balanceDue, 0),
+          String(payload.notes || '').trim(),
+          JSON.stringify(payload)
+        ]
+      );
+      await conn.query('DELETE FROM vendor_bill_items WHERE bill_external_id = ?', [externalId]);
+      for (let index = 0; index < items.length; index += 1) {
+        const item = items[index] && typeof items[index] === 'object' ? items[index] : {};
+        await conn.query(
+          `INSERT INTO vendor_bill_items (
+            bill_external_id, line_index, item_name, description, quantity, rate, tax_rate, amount, payload
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            externalId,
+            index,
+            String(item.itemName || '').trim(),
+            String(item.description || '').trim(),
+            toNumber(item.quantity, 0),
+            toNumber(item.rate, 0),
+            toNumber(item.taxRate, 0),
+            toNumber(item.amount, 0),
+            JSON.stringify(item)
+          ]
+        );
+      }
+    });
+    return res.status(201).json(payload);
+  } catch (error) {
+    console.error('MySQL vendor bills write failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to save vendor bill in MySQL' });
+  }
+});
+
+app.put('/api/vendor-bills/:id', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendor bills module' });
+  try {
+    const billId = String(req.params.id || '').trim();
+    const bill = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+    const externalId = String(bill._id || billId).trim();
+    const items = Array.isArray(bill.items) ? bill.items : [];
+    const payload = { ...bill, _id: externalId, items };
+    const numericId = Number(billId);
+    const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
+    const affectedRows = await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      const [result] = await conn.query(
+        `UPDATE vendor_bills SET
+          external_id=?, vendor_external_id=?, vendor_name=?, bill_number=?, bill_date=?, due_date=?, status=?, subtotal=?, tax_amount=?, total_amount=?, balance_due=?, notes=?, payload=?
+         WHERE external_id = ? OR id = ?`,
+        [
+          externalId,
+          String(payload.vendorId || '').trim(),
+          String(payload.vendorName || '').trim(),
+          String(payload.billNumber || '').trim(),
+          String(payload.date || '').trim() || null,
+          String(payload.dueDate || '').trim() || null,
+          String(payload.status || '').trim(),
+          toNumber(payload.subtotal, 0),
+          toNumber(payload.totalTax ?? payload.taxAmount, 0),
+          toNumber(payload.amount ?? payload.total, 0),
+          toNumber(payload.balanceDue, 0),
+          String(payload.notes || '').trim(),
+          JSON.stringify(payload),
+          billId,
+          safeNumericId
+        ]
+      );
+      if (!Number(result?.affectedRows || 0)) return 0;
+      await conn.query('DELETE FROM vendor_bill_items WHERE bill_external_id = ?', [externalId]);
+      for (let index = 0; index < items.length; index += 1) {
+        const item = items[index] && typeof items[index] === 'object' ? items[index] : {};
+        await conn.query(
+          `INSERT INTO vendor_bill_items (
+            bill_external_id, line_index, item_name, description, quantity, rate, tax_rate, amount, payload
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            externalId,
+            index,
+            String(item.itemName || '').trim(),
+            String(item.description || '').trim(),
+            toNumber(item.quantity, 0),
+            toNumber(item.rate, 0),
+            toNumber(item.taxRate, 0),
+            toNumber(item.amount, 0),
+            JSON.stringify(item)
+          ]
+        );
+      }
+      return Number(result?.affectedRows || 0);
+    });
+    if (!affectedRows) return res.status(404).json({ error: 'Vendor bill not found' });
+    return res.json(payload);
+  } catch (error) {
+    console.error('MySQL vendor bills update failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to update vendor bill in MySQL' });
+  }
+});
+
+app.delete('/api/vendor-bills/:id', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendor bills module' });
+  try {
+    const billId = String(req.params.id || '').trim();
+    const numericId = Number(billId);
+    const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
+    const deletedRows = await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      const [rows] = await conn.query('SELECT external_id FROM vendor_bills WHERE external_id = ? OR id = ? LIMIT 1', [billId, safeNumericId]);
+      const externalId = Array.isArray(rows) && rows[0] ? String(rows[0].external_id || '').trim() : '';
+      const [result] = await conn.query('DELETE FROM vendor_bills WHERE external_id = ? OR id = ?', [billId, safeNumericId]);
+      if (externalId) {
+        await conn.query('DELETE FROM vendor_bill_items WHERE bill_external_id = ?', [externalId]);
+      }
+      return Number(result?.affectedRows || 0);
+    });
+    if (!deletedRows) return res.status(404).json({ error: 'Vendor bill not found' });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('MySQL vendor bills delete failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to delete vendor bill from MySQL' });
+  }
+});
+
+app.get('/api/payment-received', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for payment received module' });
+  try {
+    const payments = await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      const [rows] = await conn.query('SELECT * FROM payment_received ORDER BY id DESC');
+      return (Array.isArray(rows) ? rows : []).map((row) => {
+        const payload = readMysqlPayload(row.payload);
+        return {
+          ...payload,
+          _id: String(row.external_id || payload._id || row.id || '').trim(),
+          id: row.id,
+          customerId: String(row.customer_external_id ?? payload.customerId ?? payload.customerExternalId ?? '').trim(),
+          customerName: String(row.customer_name ?? payload.customerName ?? '').trim(),
+          paymentDate: String(row.payment_date ?? payload.paymentDate ?? '').trim(),
+          mode: String(row.payment_mode ?? payload.mode ?? payload.paymentMode ?? '').trim(),
+          reference: String(row.reference_number ?? payload.reference ?? payload.referenceNumber ?? '').trim(),
+          amount: toNumber(row.amount ?? payload.amount, 0),
+          notes: String(row.notes ?? payload.notes ?? '').trim(),
+          linkedInvoiceId: String(row.linked_invoice_external_id ?? payload.linkedInvoiceId ?? payload.linkedInvoiceExternalId ?? '').trim()
+        };
+      });
+    });
+    return res.json(payments);
+  } catch (error) {
+    console.error('MySQL payment received read failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to fetch payment received from MySQL' });
+  }
+});
+
+app.post('/api/payment-received', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for payment received module' });
+  try {
+    const payment = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+    const externalId = String(payment._id || `PR-${Date.now()}`).trim();
+    const payload = { ...payment, _id: externalId };
+    await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      await conn.query(
+        `INSERT INTO payment_received (
+          external_id, customer_external_id, customer_name, payment_date, payment_mode, reference_number, amount, notes, linked_invoice_external_id, payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          customer_external_id=VALUES(customer_external_id),
+          customer_name=VALUES(customer_name),
+          payment_date=VALUES(payment_date),
+          payment_mode=VALUES(payment_mode),
+          reference_number=VALUES(reference_number),
+          amount=VALUES(amount),
+          notes=VALUES(notes),
+          linked_invoice_external_id=VALUES(linked_invoice_external_id),
+          payload=VALUES(payload)`,
+        [
+          externalId,
+          String(payload.customerId || payload.customerExternalId || '').trim(),
+          String(payload.customerName || '').trim(),
+          String(payload.paymentDate || '').trim() || null,
+          String(payload.mode || payload.paymentMode || '').trim(),
+          String(payload.reference || payload.referenceNumber || '').trim(),
+          toNumber(payload.amount, 0),
+          String(payload.notes || '').trim(),
+          String(payload.linkedInvoiceId || payload.linkedInvoiceExternalId || '').trim(),
+          JSON.stringify(payload)
+        ]
+      );
+    });
+    return res.status(201).json(payload);
+  } catch (error) {
+    console.error('MySQL payment received write failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to save payment received in MySQL' });
+  }
+});
+
+app.put('/api/payment-received/:id', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for payment received module' });
+  try {
+    const paymentId = String(req.params.id || '').trim();
+    const payment = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+    const payload = { ...payment, _id: String(payment._id || paymentId).trim() };
+    const numericId = Number(paymentId);
+    const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
+    const affectedRows = await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      const [result] = await conn.query(
+        `UPDATE payment_received SET
+          external_id=?, customer_external_id=?, customer_name=?, payment_date=?, payment_mode=?, reference_number=?, amount=?, notes=?, linked_invoice_external_id=?, payload=?
+         WHERE external_id = ? OR id = ?`,
+        [
+          payload._id,
+          String(payload.customerId || payload.customerExternalId || '').trim(),
+          String(payload.customerName || '').trim(),
+          String(payload.paymentDate || '').trim() || null,
+          String(payload.mode || payload.paymentMode || '').trim(),
+          String(payload.reference || payload.referenceNumber || '').trim(),
+          toNumber(payload.amount, 0),
+          String(payload.notes || '').trim(),
+          String(payload.linkedInvoiceId || payload.linkedInvoiceExternalId || '').trim(),
+          JSON.stringify(payload),
+          paymentId,
+          safeNumericId
+        ]
+      );
+      return Number(result?.affectedRows || 0);
+    });
+    if (!affectedRows) return res.status(404).json({ error: 'Payment not found' });
+    return res.json(payload);
+  } catch (error) {
+    console.error('MySQL payment received update failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to update payment received in MySQL' });
+  }
+});
+
+app.delete('/api/payment-received/:id', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for payment received module' });
+  try {
+    const paymentId = String(req.params.id || '').trim();
+    const numericId = Number(paymentId);
+    const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
+    const deletedRows = await withMysqlConnection(async (conn) => {
+      await ensureVendorFinanceTables(conn);
+      const [result] = await conn.query('DELETE FROM payment_received WHERE external_id = ? OR id = ?', [paymentId, safeNumericId]);
+      return Number(result?.affectedRows || 0);
+    });
+    if (!deletedRows) return res.status(404).json({ error: 'Payment not found' });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('MySQL payment received delete failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to delete payment received from MySQL' });
+  }
 });
 
 app.post('/api/invoices', async (req, res) => {
