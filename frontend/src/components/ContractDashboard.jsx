@@ -82,7 +82,7 @@ const shell = {
   input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff' },
   clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', borderRadius: '14px', border: '1px solid var(--color-border)' },
-  table: { width: '100%', minWidth: '1120px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
+  table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   th: { textAlign: 'center', verticalAlign: 'middle', fontSize: '11px', fontWeight: 800, color: '#6b7280', padding: '10px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis' },
   sortBtn: {
     border: 'none',
@@ -292,9 +292,7 @@ export default function ContractDashboard() {
     paid: true,
     due: true
   });
-  const [columnWidths, setColumnWidths] = useState({ contractNo: 220, customer: 190 });
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
-  const [resizeState, setResizeState] = useState(null);
   const [customerSummary, setCustomerSummary] = useState({ open: false, row: null, showHistory: false });
 
   useEffect(() => {
@@ -374,28 +372,6 @@ export default function ContractDashboard() {
       window.removeEventListener('scroll', clearMenu, true);
     };
   }, []);
-
-  useEffect(() => {
-    if (!resizeState) return undefined;
-
-    const onMouseMove = (event) => {
-      const delta = event.clientX - resizeState.startX;
-      const nextWidth = Math.max(150, Math.min(360, resizeState.startWidth + delta));
-      setColumnWidths((prev) => ({ ...prev, [resizeState.column]: nextWidth }));
-    };
-
-    const onMouseUp = () => setResizeState(null);
-
-    document.body.style.userSelect = 'none';
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-
-    return () => {
-      document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-  }, [resizeState]);
 
   const customerIndex = useMemo(() => {
     const byId = new Map();
@@ -642,16 +618,6 @@ export default function ContractDashboard() {
   const footerStyle = isMobile ? { ...shell.footer, flexDirection: 'column', alignItems: 'stretch' } : shell.footer;
   const pagerStyle = isMobile ? { ...shell.pager, justifyContent: 'center' } : shell.pager;
 
-  const startColumnResize = (column, event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setResizeState({
-      column,
-      startX: event.clientX,
-      startWidth: Number(columnWidths[column] || 180)
-    });
-  };
-
   const toggleSort = (key) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
@@ -742,31 +708,29 @@ export default function ContractDashboard() {
       <table style={tableStyle}>
         <thead>
           <tr>
-            <th style={{ ...shell.th, width: '2%' }}>#</th>
+            <th style={{ ...shell.th, width: '3%' }}>#</th>
             {visibleColumns.contractNo ? (
-              <th style={{ ...shell.th, width: `${columnWidths.contractNo}px`, minWidth: `${columnWidths.contractNo}px`, position: 'relative' }}>
+              <th style={{ ...shell.th, width: '16%' }}>
                 <button type="button" style={shell.sortBtn} onClick={() => toggleSort('contractNo')}>
                   Contract # <ArrowUpDown size={11} />
                 </button>
-                <span onMouseDown={(event) => startColumnResize('contractNo', event)} style={{ position: 'absolute', right: 0, top: 0, width: '8px', height: '100%', cursor: 'col-resize' }} />
               </th>
             ) : null}
             {visibleColumns.customer ? (
-              <th style={{ ...shell.th, width: `${columnWidths.customer}px`, minWidth: `${columnWidths.customer}px`, position: 'relative' }}>
+              <th style={{ ...shell.th, width: '14%' }}>
                 <button type="button" style={shell.sortBtn} onClick={() => toggleSort('customer')}>
                   Customer <ArrowUpDown size={11} />
                 </button>
-                <span onMouseDown={(event) => startColumnResize('customer', event)} style={{ position: 'absolute', right: 0, top: 0, width: '8px', height: '100%', cursor: 'col-resize' }} />
               </th>
             ) : null}
-            {visibleColumns.property ? <th style={{ ...shell.th, width: '11%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('property')}>Property <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.duration ? <th style={{ ...shell.th, width: '13%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('duration')}>Duration <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.services ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('services')}>Services <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.status ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('status')}>Status <ArrowUpDown size={11} /></button></th> : null}
+            {visibleColumns.property ? <th style={{ ...shell.th, width: '10%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('property')}>Property <ArrowUpDown size={11} /></button></th> : null}
+            {visibleColumns.duration ? <th style={{ ...shell.th, width: '12%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('duration')}>Duration <ArrowUpDown size={11} /></button></th> : null}
+            {visibleColumns.services ? <th style={{ ...shell.th, width: '8%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('services')}>Services <ArrowUpDown size={11} /></button></th> : null}
+            {visibleColumns.status ? <th style={{ ...shell.th, width: '8%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('status')}>Status <ArrowUpDown size={11} /></button></th> : null}
             {visibleColumns.total ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('total')}>Total (₹) <ArrowUpDown size={11} /></button></th> : null}
             {visibleColumns.paid ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('paid')}>Paid (₹) <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.due ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('due')}>Due (₹) <ArrowUpDown size={11} /></button></th> : null}
-            <th style={{ ...shell.th, width: '12%' }}>Actions</th>
+            {visibleColumns.due ? <th style={{ ...shell.th, width: '8%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('due')}>Due (₹) <ArrowUpDown size={11} /></button></th> : null}
+            <th style={{ ...shell.th, width: '13%' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
