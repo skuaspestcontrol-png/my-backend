@@ -18,7 +18,6 @@ import {
   Package,
   Receipt,
   RefreshCcw,
-  SlidersHorizontal,
   TriangleAlert,
   UserRound,
   Wallet,
@@ -71,10 +70,6 @@ const shell = {
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
   chip: { border: '1px solid transparent', borderRadius: '999px', padding: '5px 10px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', gap: '6px', alignItems: 'center', cursor: 'pointer' },
-  customizeChip: { border: '1px solid #F9A8D4', borderRadius: '999px', padding: '5px 10px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', gap: '6px', alignItems: 'center', cursor: 'pointer', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' },
-  customizeMenu: { position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: '198px', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '10px', boxShadow: '0 12px 26px rgba(15,23,42,0.12)', padding: '8px', zIndex: 50, display: 'grid', gap: '6px' },
-  customizeTitle: { margin: 0, fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' },
-  customizeRow: { display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: '#334155', fontWeight: 700 },
   filtersBox: { margin: '8px 12px 10px', border: '1px solid var(--color-border)', borderRadius: '10px', padding: '8px', display: 'grid', gap: '8px', background: '#fff' },
   filterGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' },
   filterField: { display: 'grid', gap: '4px' },
@@ -280,7 +275,6 @@ export default function ContractDashboard() {
   const [loadError, setLoadError] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('');
   const [actionMenu, setActionMenu] = useState(null);
-  const [showCustomize, setShowCustomize] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState({
     contractNo: true,
     customer: true,
@@ -355,15 +349,11 @@ export default function ContractDashboard() {
       const insideActionMenu = target && typeof target.closest === 'function'
         ? target.closest('[data-contract-action-menu="true"]')
         : null;
-      const insideCustomize = target && typeof target.closest === 'function'
-        ? target.closest('[data-contract-customize="true"]')
-        : null;
       if (actionMenu && !insideActionTrigger && !insideActionMenu) setActionMenu(null);
-      if (showCustomize && !insideCustomize) setShowCustomize(false);
     };
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
-  }, [actionMenu, showCustomize]);
+  }, [actionMenu]);
 
   useEffect(() => {
     const clearMenu = () => setActionMenu(null);
@@ -623,17 +613,6 @@ export default function ContractDashboard() {
     { label: 'Expired', icon: XCircle },
     { label: 'Renewed', icon: RefreshCcw }
   ];
-  const customColumns = [
-    { key: 'contractNo', label: 'Contract #' },
-    { key: 'customer', label: 'Customer' },
-    { key: 'property', label: 'Property' },
-    { key: 'duration', label: 'Duration' },
-    { key: 'services', label: 'Services' },
-    { key: 'status', label: 'Status' },
-    { key: 'total', label: 'Total (₹)' },
-    { key: 'paid', label: 'Paid (₹)' },
-    { key: 'due', label: 'Due (₹)' }
-  ];
   const isMobile = viewportWidth <= 768;
   const quickWrapStyle = isMobile ? { ...shell.quickWrap, alignItems: 'stretch' } : shell.quickWrap;
   const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
@@ -876,34 +855,6 @@ export default function ContractDashboard() {
               </button>
             );
           })}
-          <div style={{ position: 'relative', marginLeft: 'auto' }} data-contract-customize="true">
-            <button
-              type="button"
-              style={shell.customizeChip}
-              onClick={() => setShowCustomize((prev) => !prev)}
-            >
-              <SlidersHorizontal size={13} />
-              <span>Customize</span>
-            </button>
-            {showCustomize ? (
-              <div style={shell.customizeMenu}>
-                <p style={shell.customizeTitle}>Show Columns</p>
-                {customColumns.map((col) => (
-                  <label key={col.key} style={shell.customizeRow}>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(visibleColumns[col.key])}
-                      onChange={(event) => {
-                        const checked = event.target.checked;
-                        setVisibleColumns((prev) => ({ ...prev, [col.key]: checked }));
-                      }}
-                    />
-                    <span>{col.label}</span>
-                  </label>
-                ))}
-              </div>
-            ) : null}
-          </div>
         </div>
 
         <div style={shell.filtersBox}>
