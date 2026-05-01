@@ -1328,77 +1328,69 @@ app.get('/api/employees', async (req, res) => {
   }
 });
 
-app.post('/api/employees', async (req, res) => {
-  if (!canUseMysql()) {
-    return res.status(500).json({ error: 'MySQL is not configured for employees module' });
-  }
-  const incoming = req.body && typeof req.body === 'object' ? req.body : {};
-  const employeeId = String(incoming._id || Date.now().toString()).trim();
-  const firstName = String(incoming.firstName || '').trim();
-  const lastName = String(incoming.lastName || '').trim();
-  const normalized = {
-    ...incoming,
-    _id: employeeId,
-    empCode: String(incoming.empCode || '').trim(),
-    firstName,
-    lastName,
-    mobile: String(incoming.mobile || '').trim(),
-    email: String(incoming.email || incoming.emailId || '').trim(),
-    role: String(incoming.role || '').trim(),
-    roleName: String(incoming.roleName || '').trim(),
-    salary: Number(incoming.salary ?? incoming.salaryPerMonth ?? 0) || 0,
-    dateOfJoining: String(incoming.dateOfJoining || '').trim(),
-    city: String(incoming.city || '').trim(),
-    pincode: String(incoming.pincode || '').trim()
-  };
-  normalized.full_name = [normalized.firstName, normalized.lastName].filter(Boolean).join(' ').trim();
-
+app.post("/api/employees", async (req, res) => {
   try {
+    const emp = req.body || {};
+
+    const externalId = emp._id || Date.now().toString();
+
     await withMysqlConnection(async (conn) => {
       await conn.query(
         `INSERT INTO employees (
-          external_id, emp_code, first_name, last_name, full_name, mobile, email, role, role_name, salary, joining_date, city, pincode,
-          payload, source_created_at, source_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          external_id,
+          emp_code,
+          first_name,
+          last_name,
+          full_name,
+          mobile,
+          email,
+          role,
+          role_name,
+          salary,
+          joining_date,
+          city,
+          pincode,
+          payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-          emp_code=VALUES(emp_code),
-          first_name=VALUES(first_name),
-          last_name=VALUES(last_name),
-          full_name=VALUES(full_name),
-          mobile=VALUES(mobile),
-          email=VALUES(email),
-          role=VALUES(role),
-          role_name=VALUES(role_name),
-          salary=VALUES(salary),
-          joining_date=VALUES(joining_date),
-          city=VALUES(city),
-          pincode=VALUES(pincode),
-          payload=VALUES(payload),
-          source_updated_at=VALUES(source_updated_at)`,
+          emp_code = VALUES(emp_code),
+          first_name = VALUES(first_name),
+          last_name = VALUES(last_name),
+          full_name = VALUES(full_name),
+          mobile = VALUES(mobile),
+          email = VALUES(email),
+          role = VALUES(role),
+          role_name = VALUES(role_name),
+          salary = VALUES(salary),
+          joining_date = VALUES(joining_date),
+          city = VALUES(city),
+          pincode = VALUES(pincode),
+          payload = VALUES(payload)
+        `,
         [
-          normalized._id,
-          normalized.empCode || null,
-          normalized.firstName || null,
-          normalized.lastName || null,
-          normalized.full_name || null,
-          normalized.mobile || null,
-          normalized.email || null,
-          normalized.role || null,
-          normalized.roleName || null,
-          normalized.salary,
-          normalized.dateOfJoining || null,
-          normalized.city || null,
-          normalized.pincode || null,
-          JSON.stringify(normalized),
-          normalized.createdAt ? new Date(normalized.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
-          new Date().toISOString().slice(0, 19).replace('T', ' ')
+          externalId,
+          emp.empCode || "",
+          emp.firstName || "",
+          emp.lastName || "",
+          `${emp.firstName || ""} ${emp.lastName || ""}`,
+          emp.mobile || "",
+          emp.email || emp.emailId || "",
+          emp.role || "",
+          emp.roleName || "",
+          emp.salary || emp.salaryPerMonth || 0,
+          emp.dateOfJoining || null,
+          emp.city || "",
+          emp.pincode || "",
+          JSON.stringify(emp),
         ]
       );
     });
-    return res.status(201).json({ success: true, employee: normalized });
+
+    res.json({ success: true, _id: externalId });
+
   } catch (error) {
-    console.error('MySQL employees write failed:', error.message);
-    return res.status(500).json({ error: error.message || 'Failed to save employee in MySQL' });
+    console.error("Employee save failed:", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
