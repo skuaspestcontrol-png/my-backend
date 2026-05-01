@@ -7,7 +7,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const taxOptions = [0, 5, 12, 18];
 
-const createLine = () => ({ itemName: '', description: '', quantity: '1', rate: '0', taxRate: '18' });
+const createLine = () => ({ itemId: '', itemName: '', description: '', quantity: '1', rate: '0', taxRate: '18' });
 const createPaymentSplit = () => ({ mode: 'Bank Transfer', amount: '0' });
 
 const emptyForm = {
@@ -78,6 +78,7 @@ const formatINR = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumF
 
 export default function VendorBillsDashboard() {
   const [vendors, setVendors] = useState([]);
+  const [itemsCatalog, setItemsCatalog] = useState([]);
   const [bills, setBills] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState('');
@@ -90,12 +91,14 @@ export default function VendorBillsDashboard() {
 
   const loadData = async () => {
     try {
-      const [vendorsRes, billsRes] = await Promise.all([
+      const [vendorsRes, billsRes, itemsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/vendors`),
-        axios.get(`${API_BASE_URL}/api/vendor-bills`)
+        axios.get(`${API_BASE_URL}/api/vendor-bills`),
+        axios.get(`${API_BASE_URL}/api/items`)
       ]);
       setVendors(Array.isArray(vendorsRes.data) ? vendorsRes.data : []);
       setBills(Array.isArray(billsRes.data) ? billsRes.data : []);
+      setItemsCatalog(Array.isArray(itemsRes.data) ? itemsRes.data : []);
     } catch (error) {
       console.error('Failed to load vendor bills data', error);
     }
@@ -161,6 +164,16 @@ export default function VendorBillsDashboard() {
     items[index] = { ...items[index], ...patch };
     return setFormWithTotals({ ...prev, items });
   });
+
+  const applyCatalogItemToLine = (index, selectedId) => {
+    const match = itemsCatalog.find((entry) => String(entry?._id || '') === String(selectedId || '').trim());
+    updateLine(index, {
+      itemId: String(selectedId || '').trim(),
+      itemName: String(match?.name || '').trim(),
+      description: String(match?.description || '').trim(),
+      rate: String(toNum(match?.rate))
+    });
+  };
 
   const removeLine = (index) => setForm((prev) => {
     const items = [...(Array.isArray(prev.items) ? prev.items : [])];
@@ -339,7 +352,17 @@ export default function VendorBillsDashboard() {
                           <tr key={`line-${index}`}>
                             <td style={shell.itemTd}>
                               <div style={{ display: 'grid', gap: '8px' }}>
-                                <input style={shell.input} value={line.itemName} placeholder="Type item name" onChange={(e) => updateLine(index, { itemName: e.target.value })} />
+                                <select
+                                  style={shell.input}
+                                  value={line.itemId || ''}
+                                  onChange={(e) => applyCatalogItemToLine(index, e.target.value)}
+                                >
+                                  <option value="">Select item</option>
+                                  {itemsCatalog.map((item) => (
+                                    <option key={item._id} value={item._id}>{item.name || item._id}</option>
+                                  ))}
+                                </select>
+                                <input style={shell.input} value={line.itemName} placeholder="Item name" onChange={(e) => updateLine(index, { itemName: e.target.value })} />
                                 <textarea style={shell.textArea} value={line.description} placeholder="Description" onChange={(e) => updateLine(index, { description: e.target.value })} />
                                 {isMobile ? (
                                   <>
