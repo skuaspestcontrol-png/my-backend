@@ -45,9 +45,15 @@ const formatINR = (value) => `INR ${Number(value || 0).toLocaleString('en-IN', {
 
 const formatDate = (value) => {
   if (!value) return '-';
-  const date = new Date(value);
+  const raw = String(value).trim();
+  const plain = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (plain) return `${plain[3]}/${plain[2]}/${plain[1]}`;
+  const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
 };
 
 const toMultilineHtml = (value) => escapeHtml(String(value || '').trim()).replace(/\n/g, '<br/>');

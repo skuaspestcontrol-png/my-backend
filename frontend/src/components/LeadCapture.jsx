@@ -335,7 +335,10 @@ const formatDisplayDate = (value) => {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
 };
 const getCustomerMobile = (customer) => normalizePhoneNumber(customer.mobileNumber || customer.workPhone || '');
 const getCustomerName = (customer) => customer.displayName || customer.name || customer.companyName || customer.contactPersonName || '';

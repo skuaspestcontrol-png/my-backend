@@ -71,9 +71,16 @@ const toNum = (v) => {
 const formatINR = (value) => `₹${toNum(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 const formatDate = (value) => {
-  const date = new Date(value || '');
+  if (!value) return '-';
+  const raw = String(value).trim();
+  const plain = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (plain) return `${plain[3]}/${plain[2]}/${plain[1]}`;
+  const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString('en-IN');
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
 };
 
 const normalizeVendorPayments = (vendorBillsRaw) => {

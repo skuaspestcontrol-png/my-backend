@@ -46,9 +46,15 @@ const shell = {
 
 const formatDate = (value) => {
   if (!value) return '-';
-  const d = new Date(value);
+  const raw = String(value).trim();
+  const plain = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (plain) return `${plain[3]}/${plain[2]}/${plain[1]}`;
+  const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
 };
 
 const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

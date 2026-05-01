@@ -210,7 +210,10 @@ const formatDate = (value) => {
   if (!value) return '-';
   const dt = parseDateOnly(value);
   if (!dt) return '-';
-  return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const day = String(dt.getDate()).padStart(2, '0');
+  const month = String(dt.getMonth() + 1).padStart(2, '0');
+  const year = dt.getFullYear();
+  return `${day}/${month}/${year}`;
 };
 
 const formatINR = (num) => `₹${Number(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

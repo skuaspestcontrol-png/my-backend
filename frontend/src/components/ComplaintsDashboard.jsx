@@ -231,7 +231,16 @@ export default function ComplaintsDashboard() {
                     <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>{entry.type || '-'}</td>
                     <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }}><span style={{ borderRadius: 999, padding: '4px 9px', background: '#DBEAFE', color: '#2563EB', fontWeight: 700, fontSize: 12 }}>{entry.priority || '-'}</span></td>
                     <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }}><span style={{ borderRadius: 999, padding: '4px 9px', background: '#F3E8FF', color: '#7C3AED', fontWeight: 700, fontSize: 12 }}>{entry.status || '-'}</span></td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>{entry.createdAt ? new Date(entry.createdAt).toLocaleDateString('en-GB') : '-'}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
+                      {entry.createdAt ? (() => {
+                        const d = new Date(entry.createdAt);
+                        if (Number.isNaN(d.getTime())) return '-';
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year = d.getFullYear();
+                        return `${day}/${month}/${year}`;
+                      })() : '-'}
+                    </td>
                     <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }}><button type="button" style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 8, minHeight: 30, padding: '0 9px' }}><List size={14} /></button></td>
                   </tr>
                 ))}
