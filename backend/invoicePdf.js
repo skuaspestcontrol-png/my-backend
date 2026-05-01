@@ -2,13 +2,22 @@ const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 
-const BRAND = {
-  red: '#ef4444',
-  text: '#111827',
-  border: '#9ca3af',
-  tableHead: '#f3f4f6',
-  muted: '#6b7280'
+const COLORS = {
+  label: '#333333',
+  text: '#000000',
+  border: '#cbd5e1',
+  headerBg: '#f1f5f9',
+  title: '#000000'
 };
+
+const PAGE_MARGIN = {
+  top: 50.4,
+  bottom: 50.4,
+  left: 39.6,
+  right: 28.8
+};
+
+const BASE_FONT_SIZE = 7;
 
 const toNumber = (value, fallback = 0) => {
   const n = Number(value);
@@ -27,7 +36,10 @@ const formatDate = (value) => {
   if (!raw) return '-';
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return raw;
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 };
 
 const toWordsBelowThousand = (num) => {
@@ -109,130 +121,81 @@ const parseLocalAsset = (input = '') => {
   return '';
 };
 
+const resolveCompany = (settings = {}, invoice = {}) => {
+  const isNonGst = clean(invoice.invoiceType).toUpperCase() === 'NON GST';
+  return {
+    isNonGst,
+    name: clean((isNonGst ? settings.nonGstCompanyName : settings.gstCompanyName) || settings.companyName) || 'SKUAS Pest Control',
+    tagline: clean(settings.aboutTagline),
+    address1: clean((isNonGst ? settings.nonGstBillingAddress : settings.gstBillingAddress) || settings.companyAddress),
+    address2: clean((isNonGst ? settings.nonGstAddress : '') || ''),
+    city: clean((isNonGst ? settings.nonGstCity : settings.gstCity) || settings.companyCity),
+    state: clean((isNonGst ? settings.nonGstState : settings.gstState) || settings.companyState),
+    pincode: clean((isNonGst ? settings.nonGstPincode : settings.gstPincode) || settings.companyPincode),
+    phone: clean((isNonGst ? settings.nonGstPhone : settings.gstPhone) || settings.companyMobile),
+    email: clean((isNonGst ? settings.nonGstEmail : settings.gstEmail) || settings.companyEmail),
+    website: clean(settings.companyWebsite),
+    gstin: isNonGst ? '' : clean(settings.companyGstNumber || settings.gstRegistrationNumber),
+    logo: parseLocalAsset((isNonGst ? settings.nonGstCompanyLogoUrl : settings.gstCompanyLogoUrl) || settings.dashboardImageUrl),
+    signature: parseLocalAsset(settings.gstDigitalSignatureUrl),
+    bankName: isNonGst ? '' : clean(settings.gstBankName),
+    bankAccount: isNonGst ? '' : clean(settings.gstBankAccountNumber),
+    bankIfsc: isNonGst ? '' : clean(settings.gstBankIfsc),
+    bankUpi: isNonGst ? '' : clean(settings.gstBankUpiId),
+    terms: isNonGst ? clean(settings.nonGstTermsAndConditions) : clean(settings.gstTermsAndConditions)
+  };
+};
+
+const resolveBillTo = (invoice = {}, customer = {}) => {
+  const title = clean(customer.billingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
+  return {
+    title,
+    address: clean(customer.billingAddress || customer.billingStreet1 || invoice.billingAddressText),
+    state: clean(customer.billingState || customer.state),
+    country: clean(customer.billingCountry || 'India'),
+    pincode: clean(customer.billingPincode || customer.pincode),
+    gstin: clean(customer.gstNumber)
+  };
+};
+
+const resolveShipTo = (invoice = {}, customer = {}) => {
+  const title = clean(customer.shippingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
+  return {
+    title,
+    address: clean(customer.shippingAddress || customer.shippingStreet1 || invoice.shippingAddressText || customer.billingAddress),
+    state: clean(customer.shippingState || customer.state),
+    country: clean(customer.shippingCountry || 'India'),
+    pincode: clean(customer.shippingPincode || customer.pincode),
+    gstin: clean(customer.gstNumber)
+  };
+};
+
 const invoiceItems = (invoice = {}) => {
   const items = Array.isArray(invoice.items) ? invoice.items : [];
   return items.map((item, index) => {
     const qty = toNumber(item.quantity, 0);
     const rate = toNumber(item.rate, 0);
-    const baseAmount = toNumber(item.amount, qty * rate);
-    const lineTaxRate = toNumber(item.taxRate, 0);
+    const taxableAmount = toNumber(item.amount, qty * rate);
+    const taxRate = toNumber(item.taxRate, 0);
+    const taxAmount = (taxableAmount * taxRate) / 100;
     return {
       srNo: index + 1,
-      service: clean(item.itemName || item.name) || `Service ${index + 1}`,
-      description: clean(item.description),
-      sac: clean(item.sac || item.hsnSac || item.hsn),
+      description: clean(item.itemName || item.name) || `Service ${index + 1}`,
+      details: clean(item.description),
+      hsn: clean(item.sac || item.hsnSac || item.hsn),
       qty,
       rate,
-      lineTaxRate,
-      baseAmount,
-      igstAmount: (baseAmount * lineTaxRate) / 100
+      taxRate,
+      taxAmount,
+      amount: taxableAmount + taxAmount
     };
   });
 };
 
-const resolveCompany = (settings = {}, invoice = {}) => {
-  const isNonGst = clean(invoice.invoiceType).toUpperCase() === 'NON GST';
-  const state = clean((isNonGst ? settings.nonGstState : settings.gstState) || settings.companyState);
-  const company = {
-    name: clean((isNonGst ? settings.nonGstCompanyName : settings.gstCompanyName) || settings.companyName) || 'SKUAS Pest Control',
-    address: clean((isNonGst ? settings.nonGstBillingAddress : settings.gstBillingAddress) || settings.companyAddress),
-    city: clean((isNonGst ? settings.nonGstCity : settings.gstCity) || settings.companyCity),
-    state,
-    pincode: clean((isNonGst ? settings.nonGstPincode : settings.gstPincode) || settings.companyPincode),
-    phone: clean((isNonGst ? settings.nonGstPhone : settings.gstPhone) || settings.companyMobile),
-    email: clean((isNonGst ? settings.nonGstEmail : settings.gstEmail) || settings.companyEmail),
-    website: clean(settings.companyWebsite),
-    gst: isNonGst ? '' : clean(settings.companyGstNumber || settings.gstRegistrationNumber),
-    tagline: clean(settings.aboutTagline || ((isNonGst ? settings.nonGstCompanyName : settings.gstCompanyName) || settings.companyName)),
-    logo: parseLocalAsset((isNonGst ? settings.nonGstCompanyLogoUrl : settings.gstCompanyLogoUrl) || settings.dashboardImageUrl),
-    signature: parseLocalAsset(settings.gstDigitalSignatureUrl),
-    stamp: parseLocalAsset(settings.gstCompanyStampUrl),
-    bankName: isNonGst ? '' : clean(settings.gstBankName),
-    bankAccountNumber: isNonGst ? '' : clean(settings.gstBankAccountNumber),
-    bankIfsc: isNonGst ? '' : clean(settings.gstBankIfsc),
-    bankBranch: isNonGst ? '' : clean(settings.gstBankBranch),
-    bankUpiId: isNonGst ? '' : clean(settings.gstBankUpiId),
-    termsGst: clean(settings.gstTermsAndConditions),
-    termsNonGst: clean(settings.nonGstTermsAndConditions)
-  };
-
-  const compactAddress = [company.address, [company.city, company.state, company.pincode].filter(Boolean).join(' - ')]
-    .filter(Boolean)
-    .join(', ');
-
-  return { ...company, compactAddress };
-};
-
-const resolveBillTo = (invoice = {}, customer = {}) => {
-  const title = clean(customer.billingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.companyName) || clean(customer.name) || 'Customer';
-
-  const manual = clean(invoice.billingAddressText);
-  if (manual) {
-    return {
-      title,
-      lines: manual.split(/\n+/).map((line) => line.trim()).filter(Boolean),
-      gst: clean(customer.gstNumber),
-      mobile: clean(customer.mobileNumber),
-      email: clean(customer.emailId)
-    };
-  }
-
-  const lines = [
-    clean(customer.billingAddress || customer.billingStreet1),
-    clean(customer.billingStreet2),
-    clean(customer.billingArea),
-    [clean(customer.billingCity || customer.city), clean(customer.billingState || customer.state), clean(customer.billingPincode || customer.pincode)]
-      .filter(Boolean)
-      .join(', ')
-  ].filter(Boolean);
-
-  return {
-    title,
-    lines,
-    gst: clean(customer.gstNumber),
-    mobile: clean(customer.mobileNumber),
-    email: clean(customer.emailId),
-    state: clean(customer.billingState || customer.state),
-    pincode: clean(customer.billingPincode || customer.pincode)
-  };
-};
-
-const resolveShipTo = (invoice = {}, customer = {}) => {
-  const title = clean(customer.shippingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.companyName) || clean(customer.name) || 'Customer';
-
-  const manual = clean(invoice.shippingAddressText);
-  if (manual) {
-    return {
-      title,
-      lines: manual.split(/\n+/).map((line) => line.trim()).filter(Boolean),
-      gst: clean(customer.gstNumber),
-      state: clean(customer.shippingState || customer.state),
-      pincode: clean(customer.shippingPincode || customer.pincode)
-    };
-  }
-
-  const lines = [
-    clean(customer.shippingAddress || customer.shippingStreet1 || customer.billingAddress),
-    clean(customer.shippingStreet2),
-    clean(customer.shippingArea || customer.billingArea),
-    [clean(customer.shippingCity || customer.city), clean(customer.shippingState || customer.state), clean(customer.shippingPincode || customer.pincode)]
-      .filter(Boolean)
-      .join(', ')
-  ].filter(Boolean);
-
-  return {
-    title,
-    lines,
-    gst: clean(customer.gstNumber),
-    state: clean(customer.shippingState || customer.state),
-    pincode: clean(customer.shippingPincode || customer.pincode)
-  };
-};
-
 const deriveSubjectFromItems = (invoice = {}) => {
-  const items = Array.isArray(invoice.items) ? invoice.items : [];
-  const labels = items
-    .map((item) => clean(item.itemName || item.name || item.description))
+  if (clean(invoice.subject)) return clean(invoice.subject);
+  const labels = (Array.isArray(invoice.items) ? invoice.items : [])
+    .map((item) => clean(item.itemName || item.name))
     .filter(Boolean);
   if (labels.length === 0) return 'Pest Control Service';
   if (labels.length === 1) return labels[0];
@@ -240,58 +203,21 @@ const deriveSubjectFromItems = (invoice = {}) => {
   return `${labels.slice(0, -1).join(', ')} & ${labels[labels.length - 1]}`;
 };
 
-const getServicePeriod = (invoice = {}) => {
-  if (clean(invoice.servicePeriod)) return clean(invoice.servicePeriod);
-  if (clean(invoice.servicePeriodStart) || clean(invoice.servicePeriodEnd)) {
-    return `${formatDate(invoice.servicePeriodStart)} to ${formatDate(invoice.servicePeriodEnd)}`;
+const drawCell = (doc, text, x, y, w, h, { bold = false, align = 'left', bg = null, border = COLORS.border, color = COLORS.text, size = BASE_FONT_SIZE, padX = 3, padY = 2 } = {}) => {
+  if (bg) {
+    doc.save();
+    doc.fillColor(bg).rect(x, y, w, h).fill();
+    doc.restore();
   }
-  return 'As per agreement';
-};
-
-const drawRect = (doc, x, y, w, h, borderColor = BRAND.border, fillColor = null, lineWidth = 0.8) => {
   doc.save();
-  doc.lineWidth(lineWidth);
-  if (fillColor) {
-    doc.fillColor(fillColor).rect(x, y, w, h).fill();
-  }
-  doc.strokeColor(borderColor).rect(x, y, w, h).stroke();
+  doc.strokeColor(border).lineWidth(0.6).rect(x, y, w, h).stroke();
   doc.restore();
-};
-
-const textCell = (doc, text, x, y, w, h, options = {}) => {
-  const {
-    size = 8.5,
-    font = 'Helvetica',
-    color = BRAND.text,
-    align = 'left',
-    padX = 4,
-    padY = 4,
-    lineGap = 1
-  } = options;
-
-  doc.font(font).fontSize(size).fillColor(color).text(String(text || ''), x + padX, y + padY, {
+  doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size).fillColor(color).text(String(text || ''), x + padX, y + padY, {
     width: w - (padX * 2),
     height: h - (padY * 2),
     align,
-    lineGap
+    lineGap: 0.5
   });
-};
-
-const safeImage = (doc, imgPath, x, y, fit) => {
-  if (!imgPath) return false;
-  try {
-    doc.image(imgPath, x, y, { fit, align: 'center', valign: 'center' });
-    return true;
-  } catch (_error) {
-    return false;
-  }
-};
-
-const deriveTaxMode = ({ invoiceType, placeOfSupply, companyState }) => {
-  const nonGst = clean(invoiceType).toUpperCase() === 'NON GST';
-  if (nonGst) return 'NON_GST';
-  if (!clean(placeOfSupply) || !clean(companyState)) return 'IGST';
-  return clean(placeOfSupply).toLowerCase() === clean(companyState).toLowerCase() ? 'CGST_SGST' : 'IGST';
 };
 
 const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings = {} }) => {
@@ -300,28 +226,18 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
   const shipTo = resolveShipTo(invoice, customer);
   const rows = invoiceItems(invoice);
 
-  const subtotal = toNumber(invoice.subtotal, rows.reduce((sum, r) => sum + r.baseAmount, 0));
-  const totalTax = toNumber(invoice.totalTax, rows.reduce((sum, r) => sum + r.igstAmount, 0));
+  const subtotal = toNumber(invoice.subtotal, rows.reduce((sum, r) => sum + (r.amount - r.taxAmount), 0));
+  const totalTax = toNumber(invoice.totalTax, rows.reduce((sum, r) => sum + r.taxAmount, 0));
   const roundOff = toNumber(invoice.roundOff, 0);
   const total = toNumber(invoice.total, subtotal + totalTax + roundOff);
-  const balanceDue = toNumber(invoice.balanceDue, total);
-
-  const taxMode = deriveTaxMode({
-    invoiceType: invoice.invoiceType,
-    placeOfSupply: invoice.placeOfSupply,
-    companyState: company.state
-  });
-
-  const termsText = taxMode === 'NON_GST'
-    ? (company.termsNonGst || 'Payment due as per terms agreed.')
-    : (company.termsGst || 'GST payable as applicable. Payment due as per terms agreed.');
 
   const doc = new PDFDocument({
     size: 'A4',
     layout: 'portrait',
-    margin: 24,
+    margin: PAGE_MARGIN,
+    bufferPages: true,
     info: {
-      Title: `Invoice ${clean(invoice.invoiceNumber) || ''}`,
+      Title: `Invoice ${clean(invoice.invoiceNumber)}`,
       Author: company.name
     }
   });
@@ -332,311 +248,257 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    const pageWidth = doc.page.width;
-    const pageHeight = doc.page.height;
-    const left = doc.page.margins.left;
-    const right = pageWidth - doc.page.margins.right;
-    const usableWidth = right - left;
+    const left = PAGE_MARGIN.left;
+    const top = PAGE_MARGIN.top;
+    const right = doc.page.width - PAGE_MARGIN.right;
+    const bottom = doc.page.height - PAGE_MARGIN.bottom;
+    const contentW = right - left;
+    const footerReserved = 34;
 
-    let pageNo = 1;
-    const drawPageFrame = () => {
-      // keep clean footer only, avoid heavy page frame borders
-      const footerY = pageHeight - doc.page.margins.bottom - 28;
-      doc.moveTo(left + 8, footerY - 6).lineTo(right - 8, footerY - 6).lineWidth(0.8).strokeColor('#e5e7eb').stroke();
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#334155').text('Thank you for your business', left + 10, footerY, {
-        width: 180
-      });
-      doc.font('Helvetica').fontSize(8).fillColor(BRAND.muted).text('POWERED BY SKUAS MASTER CRM', left + 8, pageHeight - doc.page.margins.bottom - 16, {
-        width: usableWidth / 2,
-        align: 'left'
-      });
-      doc.font('Helvetica').fontSize(8).fillColor(BRAND.muted).text(`Page ${pageNo}`, right - 80, pageHeight - doc.page.margins.bottom - 16, {
-        width: 72,
-        align: 'right'
-      });
-    };
+    // Watermark logo with transparency (blur not supported in pdfkit)
+    if (company.logo) {
+      try {
+        doc.save();
+        doc.opacity(0.12);
+        doc.image(company.logo, left + 80, top + 160, { fit: [contentW - 160, 320], align: 'center', valign: 'center' });
+        doc.restore();
+      } catch (_e) {
+        // ignore watermark issues
+      }
+    }
 
-    drawPageFrame();
+    let y = top;
 
-    const addPage = () => {
+    const newPage = () => {
       doc.addPage();
-      pageNo += 1;
-      drawPageFrame();
+      y = top;
+      drawFooterFrame();
+      drawTableHeader();
     };
 
-    let y = doc.page.margins.top + 8;
+    const ensureSpace = (h) => {
+      if (y + h <= bottom - footerReserved) return;
+      newPage();
+    };
 
-    const headerHeight = 118;
-    const headerY = y;
-    drawRect(doc, left + 8, headerY, usableWidth - 16, headerHeight, BRAND.border, null);
+    const drawFooterFrame = () => {
+      const fy = bottom - 18;
+      doc.moveTo(left, fy - 4).lineTo(right, fy - 4).lineWidth(0.6).strokeColor('#d1d5db').stroke();
+      doc.font('Helvetica').fontSize(7).fillColor(COLORS.label).text('Thank you for your business', left, fy, { width: contentW * 0.55 });
+      doc.font('Helvetica').fontSize(7).fillColor(COLORS.label).text('Powered by Skuas Master CRM', left, fy + 9, { width: contentW * 0.55 });
+    };
 
-    const logoX = left + 18;
-    const logoY = headerY + 12;
-    const logoW = 82;
-    const logoH = 72;
-    drawRect(doc, logoX, logoY, logoW, logoH, '#d1d5db');
-    if (!safeImage(doc, company.logo, logoX + 4, logoY + 4, [logoW - 8, logoH - 8])) {
-      textCell(doc, 'LOGO', logoX, logoY, logoW, logoH, { align: 'center', color: BRAND.muted });
+    // Header
+    const headerH = 98;
+    drawCell(doc, '', left, y, contentW, headerH, { border: '#94a3b8' });
+
+    const logoBoxW = 74;
+    const logoBoxH = 54;
+    drawCell(doc, '', left + 8, y + 8, logoBoxW, logoBoxH, { border: '#cbd5e1' });
+    if (company.logo) {
+      try { doc.image(company.logo, left + 11, y + 11, { fit: [logoBoxW - 6, logoBoxH - 6] }); } catch (_e) {}
+    } else {
+      drawCell(doc, 'LOGO', left + 8, y + 8, logoBoxW, logoBoxH, { color: '#6b7280', align: 'center', border: '#cbd5e1', size: 9 });
     }
 
-    const companyX = logoX + logoW + 10;
-    const companyW = usableWidth - 250;
-    doc.font('Helvetica-Bold').fontSize(24).fillColor(BRAND.text).text(company.name, companyX, logoY + 1, { width: companyW });
-    if (company.tagline) {
-      doc.font('Helvetica-Bold').fontSize(12).fillColor(BRAND.muted).text(company.tagline, companyX, logoY + 29, { width: companyW });
-    }
-    doc.font('Helvetica').fontSize(9).fillColor(BRAND.text);
-    const companyLines = [
-      company.compactAddress,
-      [company.phone ? `Phone: ${company.phone}` : '', company.email ? `Email: ${company.email}` : ''].filter(Boolean).join(' | '),
-      company.website ? `Website: ${company.website}` : '',
-      company.gst ? `GSTIN: ${company.gst}` : ''
-    ].filter(Boolean);
-    let companyY = logoY + (company.tagline ? 45 : 32);
-    companyLines.forEach((line) => {
-      doc.text(line, companyX, companyY, { width: companyW, lineGap: 1 });
-      companyY = doc.y + 1;
+    const companyX = left + 88;
+    const companyW = contentW - 260;
+    doc.font('Helvetica-Bold').fontSize(20).fillColor(COLORS.text).text(company.name, companyX, y + 8, { width: companyW });
+    doc.font('Helvetica-Bold').fontSize(12).fillColor(COLORS.text).text(company.tagline || '', companyX, y + 30, { width: companyW });
+
+    doc.font('Helvetica').fontSize(12).fillColor(COLORS.text);
+    const addressLines = [
+      company.address1,
+      company.address2,
+      [company.city, company.state, company.pincode].filter(Boolean).join(' '),
+      company.phone ? `Mob: ${company.phone}` : '',
+      `E mail: ${company.email || 'info@skuaspestcontrol.com'}`,
+      `Visit Us: ${company.website || '-'}`,
+      company.gstin ? `GST Details: ${company.gstin}` : 'GST Details: '
+    ].filter((line) => line !== '');
+
+    let ay = y + 46;
+    addressLines.forEach((line) => {
+      doc.text(line, companyX, ay, { width: companyW });
+      ay = doc.y + 1;
     });
 
-    const rightMetaX = right - 210;
-    const rightMetaW = 190;
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(BRAND.red).text('TAX INVOICE', rightMetaX, logoY + 4, { width: rightMetaW, align: 'right' });
+    const rightX = right - 210;
+    const rightW = 198;
+    doc.font('Helvetica-Bold').fontSize(20).fillColor(COLORS.title).text('TAX INVOICE', rightX, y + 12, { width: rightW, align: 'right' });
 
-    const metaTop = logoY + 34;
-    const metaRows = [
+    const meta = [
       ['Invoice #', clean(invoice.invoiceNumber) || '-'],
       ['Invoice Date', formatDate(invoice.date)],
       ['Salesperson', clean(invoice.salesperson) || '-']
     ];
-    let metaY = metaTop;
-    metaRows.forEach(([label, value]) => {
-      doc.font('Helvetica-Bold').fontSize(8).fillColor(BRAND.muted).text(label, rightMetaX, metaY, { width: 78 });
-      doc.font('Helvetica').fontSize(8.5).fillColor(BRAND.text).text(`: ${value}`, rightMetaX + 74, metaY, { width: rightMetaW - 74, align: 'left' });
-      metaY += 14;
+    let my = y + 42;
+    meta.forEach(([k, v]) => {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#6b7280').text(k, rightX + 6, my, { width: 78 });
+      doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(`: ${v}`, rightX + 84, my, { width: rightW - 90 });
+      my += 16;
     });
 
-    y = headerY + headerHeight + 8;
+    y += headerH + 8;
 
-    const twoColW = (usableWidth - 20) / 2;
-    const blockH = 112;
+    // Bill To and Ship To
+    const cardGap = 6;
+    const cardW = (contentW - cardGap) / 2;
+    const cardH = 102;
 
-    const billX = left + 8;
-    const shipX = billX + twoColW + 4;
+    drawCell(doc, 'Bill To', left, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: '#94a3b8' });
+    drawCell(doc, '', left, y + 16, cardW, cardH - 16, { border: '#94a3b8' });
+    const billText = [
+      billTo.title,
+      billTo.address,
+      `State/Country: ${[billTo.state, billTo.country].filter(Boolean).join('/') || '-'}`,
+      `Pincode: ${billTo.pincode || '-'}`,
+      `GSTIN: ${billTo.gstin || ''}`
+    ].join('\n');
+    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(billText, left + 5, y + 22, { width: cardW - 10, lineGap: 1 });
 
-    drawRect(doc, billX, y, twoColW, blockH, BRAND.border);
-    drawRect(doc, shipX, y, twoColW, blockH, BRAND.border);
+    const shipX = left + cardW + cardGap;
+    drawCell(doc, 'Ship To', shipX, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: '#94a3b8' });
+    drawCell(doc, '', shipX, y + 16, cardW, cardH - 16, { border: '#94a3b8' });
+    const shipText = [
+      shipTo.title,
+      shipTo.address,
+      `State/Country: ${[shipTo.state, shipTo.country].filter(Boolean).join('/') || '-'}`,
+      `Pincode: ${shipTo.pincode || '-'}`,
+      `GSTIN: ${shipTo.gstin || ''}`
+    ].join('\n');
+    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(shipText, shipX + 5, y + 22, { width: cardW - 10, lineGap: 1 });
 
-    textCell(doc, 'Bill To', billX + 1, y + 1, twoColW - 2, 16, { font: 'Helvetica-Bold', size: 10, color: BRAND.red });
-    textCell(doc, 'Ship To', shipX + 1, y + 1, twoColW - 2, 16, { font: 'Helvetica-Bold', size: 10, color: BRAND.red });
+    y += cardH + 6;
 
-    const leftText = [billTo.title, ...billTo.lines];
-    if (billTo.state) leftText.push(`State/Country: ${billTo.state}`);
-    if (billTo.pincode) leftText.push(`Pincode: ${billTo.pincode}`);
-    if (billTo.gst) leftText.push(`GSTIN: ${billTo.gst}`);
-    if (billTo.mobile) leftText.push(`Mobile: ${billTo.mobile}`);
-    if (billTo.email) leftText.push(`Email: ${billTo.email}`);
+    // Subject row
+    const subjectH = 28;
+    drawCell(doc, '', left, y, contentW, subjectH, { border: '#94a3b8' });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#ef4444').text('Subject', left + 6, y + 3);
+    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(deriveSubjectFromItems(invoice), left + 6, y + 14, { width: contentW - 180 });
+    y += subjectH + 6;
 
-    textCell(doc, leftText.join('\n'), billX + 2, y + 18, twoColW - 4, blockH - 20, { size: 8.7, lineGap: 1 });
-    const rightText = [shipTo.title, ...shipTo.lines];
-    if (shipTo.state) rightText.push(`State/Country: ${shipTo.state}`);
-    if (shipTo.pincode) rightText.push(`Pincode: ${shipTo.pincode}`);
-    if (shipTo.gst) rightText.push(`GSTIN: ${shipTo.gst}`);
-    textCell(doc, rightText.join('\n'), shipX + 2, y + 18, twoColW - 4, blockH - 20, { size: 8.7, lineGap: 1 });
-
-    y += blockH + 6;
-
-    const subjectH = 40;
-    drawRect(doc, left + 8, y, usableWidth - 16, subjectH, BRAND.border);
-    textCell(doc, 'Subject', left + 10, y + 3, 120, 12, { font: 'Helvetica-Bold', size: 9, color: BRAND.red });
-    textCell(doc, clean(invoice.subject) || deriveSubjectFromItems(invoice), left + 10, y + 14, usableWidth - 220, 22, { size: 9 });
-    textCell(doc, `Service Period: ${getServicePeriod(invoice)}`, right - 250, y + 14, 230, 22, { size: 9, align: 'right' });
-
-    y += subjectH + 8;
-
-    const tableX = left + 8;
-    const tableW = usableWidth - 16;
-    const cols = taxMode === 'NON_GST'
-      ? [
-          { key: 'srNo', label: 'Sr No', w: 38, align: 'center' },
-          { key: 'service', label: 'Service', w: 178, align: 'left' },
-          { key: 'sac', label: 'HSN/SAC', w: 66, align: 'center' },
-          { key: 'qty', label: 'Qty', w: 48, align: 'right' },
-          { key: 'rate', label: 'Rate', w: 70, align: 'right' },
-          { key: 'taxLabel', label: 'Tax %', w: 54, align: 'right' },
-          { key: 'taxAmt', label: 'Tax Amt', w: 72, align: 'right' },
-          { key: 'amount', label: 'Amount', w: 90, align: 'right' }
-        ]
-      : [
-          { key: 'srNo', label: 'Sr No', w: 38, align: 'center' },
-          { key: 'service', label: 'Service', w: 178, align: 'left' },
-          { key: 'sac', label: 'HSN/SAC', w: 66, align: 'center' },
-          { key: 'qty', label: 'Qty', w: 48, align: 'right' },
-          { key: 'rate', label: 'Rate', w: 70, align: 'right' },
-          { key: 'taxLabel', label: taxMode === 'IGST' ? 'IGST %' : 'GST %', w: 54, align: 'right' },
-          { key: 'taxAmt', label: taxMode === 'IGST' ? 'IGST Amt' : 'GST Amt', w: 72, align: 'right' },
-          { key: 'amount', label: 'Amount', w: 90, align: 'right' }
-        ];
+    // Items table
+    const colPct = { sr: 5, item: 28, qty: 11, hsn: 10, rate: 11, tx: 11, amount: 13 };
+    const totalPct = Object.values(colPct).reduce((s, n) => s + n, 0);
+    const scale = contentW / totalPct;
+    const cols = [
+      { k: 'srNo', l: 'Sr No', w: colPct.sr * scale, a: 'center' },
+      { k: 'desc', l: 'Service Description', w: colPct.item * scale, a: 'left' },
+      { k: 'hsn', l: 'HSN/SAC', w: colPct.hsn * scale, a: 'center' },
+      { k: 'qty', l: 'Qty', w: colPct.qty * scale, a: 'right' },
+      { k: 'rate', l: 'Rate', w: colPct.rate * scale, a: 'right' },
+      { k: 'tx', l: 'Tax %', w: colPct.tx * scale, a: 'right' },
+      { k: 'amount', l: 'Amount', w: colPct.amount * scale, a: 'right' }
+    ];
 
     const drawTableHeader = () => {
-      let cx = tableX;
+      let cx = left;
       cols.forEach((c) => {
-        drawRect(doc, cx, y, c.w, 24, BRAND.border, BRAND.tableHead);
-        textCell(doc, c.label, cx, y, c.w, 24, { font: 'Helvetica-Bold', size: 8.3, align: c.align, color: BRAND.text });
+        drawCell(doc, c.l, cx, y, c.w, 22, { bold: true, bg: COLORS.headerBg, align: c.a, size: 9, border: '#94a3b8', color: '#111827' });
         cx += c.w;
       });
-      y += 24;
-    };
-
-    const ensureSpace = (h) => {
-      const bottomLimit = pageHeight - doc.page.margins.bottom - 24;
-      if (y + h <= bottomLimit) return;
-      addPage();
-      y = doc.page.margins.top + 8;
-      drawTableHeader();
+      y += 22;
     };
 
     drawTableHeader();
 
-    const itemRows = rows.length > 0 ? rows : [{ srNo: 1, service: 'General Service', description: '', sac: '-', qty: 1, rate: 0, lineTaxRate: 0, baseAmount: 0, igstAmount: 0 }];
+    const safeRows = rows.length ? rows : [{ srNo: 1, description: '-', details: '', hsn: '', qty: 0, rate: 0, taxRate: 0, taxAmount: 0, amount: 0 }];
+    safeRows.forEach((row) => {
+      const desc = [row.description, row.details].filter(Boolean).join('\n');
+      const descH = doc.heightOfString(desc, { width: cols[1].w - 8, lineGap: 1 });
+      const rh = Math.max(22, descH + 8);
+      ensureSpace(rh + 2);
 
-    itemRows.forEach((row) => {
-      const serviceText = row.description ? `${row.service}\n${row.description}` : row.service;
-      const rowHeight = Math.max(26, doc.heightOfString(serviceText, { width: cols[1].w - 8, lineGap: 1 }) + 10);
-      ensureSpace(rowHeight);
-
-      const isNonGst = taxMode === 'NON_GST';
-      const taxRate = isNonGst ? 0 : row.lineTaxRate;
-      const taxAmount = isNonGst ? 0 : (row.baseAmount * taxRate) / 100;
-      const lineAmount = row.baseAmount + taxAmount;
-
-      const rowData = {
+      let cx = left;
+      const values = {
         srNo: String(row.srNo),
-        service: row.service,
-        serviceDesc: row.description,
-        sac: row.sac || '-',
+        desc,
+        hsn: row.hsn || '',
         qty: row.qty.toFixed(2),
         rate: formatINR(row.rate),
-        taxLabel: `${taxRate.toFixed(2)}%`,
-        taxAmt: formatINR(taxAmount),
-        amount: formatINR(lineAmount)
+        tx: `${row.taxRate.toFixed(2)}%`,
+        amount: formatINR(row.amount)
       };
 
-      let cx = tableX;
       cols.forEach((c) => {
-        drawRect(doc, cx, y, c.w, rowHeight, BRAND.border);
-        if (c.key === 'service') {
-          textCell(doc, rowData.service, cx, y + 1, c.w, rowHeight / 2, {
-            size: 9.6,
-            align: c.align,
-            font: 'Helvetica-Bold'
-          });
-          textCell(doc, rowData.serviceDesc, cx, y + 14, c.w, rowHeight - 14, {
-            size: 7.8,
-            align: c.align,
-            font: 'Helvetica'
-          });
-        } else {
-          textCell(doc, rowData[c.key], cx, y, c.w, rowHeight, {
-            size: 8.2,
-            align: c.align,
-            font: 'Helvetica'
-          });
-        }
+        drawCell(doc, values[c.k], cx, y, c.w, rh, { align: c.a, size: 8.5, border: '#94a3b8', bold: c.k === 'desc' });
         cx += c.w;
       });
 
-      y += rowHeight;
+      y += rh;
     });
 
-    y += 8;
+    y += 6;
 
-    const leftBoxW = Math.floor((tableW * 0.58));
-    const rightBoxW = tableW - leftBoxW - 6;
+    // Summary block
+    const leftW = contentW * 0.58;
+    const rightW2 = contentW - leftW - 6;
+    const sumLeftX = left;
+    const sumRightX = left + leftW + 6;
 
-    const leftBoxX = tableX;
-    const rightBoxX = leftBoxX + leftBoxW + 6;
+    const bankLines = company.bankName
+      ? [
+          `Bank Name: ${company.bankName}`,
+          `A/C No: ${company.bankAccount}`,
+          `IFSC: ${company.bankIfsc}`,
+          `UPI ID: ${company.bankUpi}`
+        ]
+      : [''];
 
-    const wordsText = amountToWords(total);
-    const bankLines = [];
-    if (company.bankName) bankLines.push(`Bank Name: ${company.bankName}`);
-    if (company.bankAccountNumber) bankLines.push(`A/C No: ${company.bankAccountNumber}`);
-    if (company.bankIfsc) bankLines.push(`IFSC: ${company.bankIfsc}`);
-    if (company.bankBranch) bankLines.push(`Branch: ${company.bankBranch}`);
-    if (company.bankUpiId) bankLines.push(`UPI ID: ${company.bankUpiId}`);
-
-    const leftBlockText = [
-      `Total In Words: ${wordsText}`,
+    const leftText = [
+      `Total In Words: ${amountToWords(total)}`,
       '',
       'Bank Account Details:',
-      ...(bankLines.length > 0 ? bankLines : ['']),
-      '',
-      `Service Period: ${getServicePeriod(invoice)}`,
+      ...bankLines,
       '',
       'Terms & Conditions:',
-      termsText
+      company.terms || ''
     ].join('\n');
 
-    const leftH = Math.max(156, doc.heightOfString(leftBlockText, { width: leftBoxW - 14, lineGap: 1 }) + 14);
+    const leftH = Math.max(118, doc.heightOfString(leftText, { width: leftW - 10, lineGap: 1 }) + 10);
     const rightH = leftH;
+    ensureSpace(Math.max(leftH, rightH) + 8);
 
-    ensureSpace(Math.max(leftH, rightH));
+    drawCell(doc, '', sumLeftX, y, leftW, leftH, { border: '#94a3b8' });
+    doc.font('Helvetica').fontSize(8).fillColor(COLORS.text).text(leftText, sumLeftX + 5, y + 4, { width: leftW - 10, lineGap: 1 });
 
-    drawRect(doc, leftBoxX, y, leftBoxW, leftH, BRAND.border);
-    textCell(doc, leftBlockText, leftBoxX + 2, y + 2, leftBoxW - 4, leftH - 4, { size: 8.4, lineGap: 1 });
+    drawCell(doc, '', sumRightX, y, rightW2, rightH, { border: '#94a3b8' });
+    const summaryRows = [
+      ['Sub Total', formatINR(subtotal)],
+      ['IGST', formatINR(totalTax)],
+      ['Rounding', formatINR(roundOff)],
+      ['Grand Total', formatINR(total)]
+    ];
 
-    drawRect(doc, rightBoxX, y, rightBoxW, rightH, BRAND.border);
-
-    const summaryRows = [];
-    summaryRows.push(['Sub Total', formatINR(subtotal)]);
-
-    if (taxMode === 'NON_GST') {
-      summaryRows.push(['Tax', formatINR(0)]);
-    } else if (taxMode === 'CGST_SGST') {
-      const half = totalTax / 2;
-      summaryRows.push(['CGST 9%', formatINR(half)]);
-      summaryRows.push(['SGST 9%', formatINR(half)]);
-    } else {
-      summaryRows.push(['IGST 18%', formatINR(totalTax)]);
-    }
-
-    summaryRows.push(['Rounding', formatINR(roundOff)]);
-    summaryRows.push(['Grand Total', formatINR(total)]);
-
-    let sy = y + 8;
-    summaryRows.forEach((row, idx) => {
-      const rh = 24;
-      const isGrand = row[0] === 'Grand Total';
-      drawRect(doc, rightBoxX + 8, sy, rightBoxW - 16, rh, BRAND.border, isGrand ? '#ecfdf5' : null);
-      textCell(doc, row[0], rightBoxX + 10, sy, (rightBoxW - 20) * 0.52, rh, { font: isGrand ? 'Helvetica-Bold' : 'Helvetica', size: isGrand ? 10.5 : 9, color: isGrand ? '#065f46' : BRAND.text });
-      textCell(doc, row[1], rightBoxX + (rightBoxW * 0.52), sy, (rightBoxW * 0.48) - 10, rh, { font: isGrand ? 'Helvetica-Bold' : 'Helvetica', size: isGrand ? 10.5 : 9, align: 'right', color: isGrand ? '#065f46' : BRAND.text });
-      sy += rh;
-      if (idx === summaryRows.length - 1) sy += 4;
+    let sy = y + 6;
+    summaryRows.forEach(([k, v]) => {
+      const isGrand = k === 'Grand Total';
+      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 22, { border: '#94a3b8', bg: isGrand ? '#ecfdf5' : null });
+      doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(isGrand ? 11 : 9).fillColor(isGrand ? '#065f46' : COLORS.text).text(k, sumRightX + 10, sy + 6, { width: (rightW2 - 20) * 0.55 });
+      doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(isGrand ? 11 : 9).fillColor(isGrand ? '#065f46' : COLORS.text).text(v, sumRightX + 10 + ((rightW2 - 20) * 0.55), sy + 6, { width: (rightW2 - 20) * 0.45, align: 'right' });
+      sy += 22;
     });
 
-    const signAreaY = y + rightH - 72;
-    drawRect(doc, rightBoxX + 8, signAreaY, rightBoxW - 16, 64, BRAND.border);
-    textCell(doc, 'For ' + company.name, rightBoxX + 12, signAreaY + 4, rightBoxW - 24, 14, { align: 'right', size: 8, font: 'Helvetica-Bold' });
+    y += Math.max(leftH, rightH) + 6;
 
-    const signImgX = rightBoxX + rightBoxW - 120;
-    const signImgY = signAreaY + 18;
-    const signOk = safeImage(doc, company.signature, signImgX, signImgY, [64, 24]);
-    if (!signOk) {
-      textCell(doc, 'Authorized Sign', signImgX - 14, signImgY + 6, 90, 16, { align: 'right', color: BRAND.muted, size: 8 });
+    // Signature section compact
+    const sigH = 34;
+    ensureSpace(sigH + 8);
+    drawCell(doc, 'Receiver Signature', left, y, contentW / 2, sigH, { align: 'left', size: 9, border: '#94a3b8' });
+    drawCell(doc, 'Authorized Signature', left + (contentW / 2), y, contentW / 2, sigH, { align: 'right', size: 9, border: '#94a3b8' });
+    if (company.signature) {
+      try { doc.image(company.signature, right - 120, y + 4, { fit: [88, 18] }); } catch (_e) {}
     }
 
-    if (company.stamp) {
-      safeImage(doc, company.stamp, rightBoxX + 20, signImgY - 2, [50, 30]);
+    // Draw footer on all pages
+    const range = doc.bufferedPageRange();
+    for (let i = 0; i < range.count; i += 1) {
+      doc.switchToPage(range.start + i);
+      drawFooterFrame();
+      const fy = bottom - 9;
+      doc.font('Helvetica').fontSize(7).fillColor(COLORS.label).text(`Page ${i + 1} of ${range.count}`, right - 70, fy, { width: 70, align: 'right' });
     }
-
-    textCell(doc, 'Authorized Signature', rightBoxX + 12, signAreaY + 46, rightBoxW - 24, 14, { align: 'right', size: 8.2, font: 'Helvetica-Bold' });
-
-    y += Math.max(leftH, rightH) + 8;
-
-    const receiverBoxH = 52;
-    ensureSpace(receiverBoxH + 4);
-    drawRect(doc, tableX, y, tableW, receiverBoxH, BRAND.border);
-    textCell(doc, 'Receiver Signature', tableX + 8, y + 28, tableW / 2 - 10, 14, { size: 9 });
-    textCell(doc, 'Authorized Signature', tableX + (tableW / 2), y + 28, tableW / 2 - 10, 14, { size: 9, align: 'right' });
 
     doc.end();
   });
