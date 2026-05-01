@@ -1291,7 +1291,7 @@ app.get('/api/employees', async (req, res) => {
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
       const [rows] = await conn.query(
-        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode, salary, joining_date, payload
+        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode, salary, joining_date, status, payload
          FROM employees
          ORDER BY id DESC`
       );
@@ -1306,19 +1306,30 @@ app.get('/api/employees', async (req, res) => {
       }
       const firstName = String(payload.firstName ?? row?.first_name ?? '').trim();
       const lastName = String(payload.lastName ?? row?.last_name ?? '').trim();
+      const rawStatus = row?.status ?? payload?.status ?? '';
+      const portalAccess = typeof payload?.portalAccess === 'boolean'
+        ? payload.portalAccess
+        : (typeof payload?.webPortalAccessEnabled === 'boolean'
+          ? payload.webPortalAccessEnabled
+          : ['1', 'true', 'yes', 'enabled', 'active', 'on'].includes(String(rawStatus).trim().toLowerCase()));
+      const salary = Number(row?.salary ?? payload.salary ?? payload.salaryPerMonth ?? 0) || 0;
       return {
-        _id: String(payload._id ?? row?.external_id ?? row?.id ?? '').trim(),
-        empCode: String(payload.empCode ?? row?.emp_code ?? '').trim(),
-        firstName,
-        lastName,
-        role: String(payload.role ?? row?.role ?? '').trim(),
-        roleName: String(payload.roleName ?? row?.role_name ?? '').trim(),
-        mobile: String(payload.mobile ?? row?.mobile ?? '').trim(),
-        email: String(payload.email ?? payload.emailId ?? row?.email ?? '').trim(),
-        city: String(payload.city ?? row?.city ?? '').trim(),
-        pincode: String(payload.pincode ?? row?.pincode ?? '').trim(),
-        salary: Number(payload.salary ?? payload.salaryPerMonth ?? row?.salary ?? 0) || 0,
-        dateOfJoining: String(payload.dateOfJoining ?? row?.joining_date ?? '').trim()
+        ...payload,
+        _id: String(row?.external_id ?? payload._id ?? row?.id ?? '').trim(),
+        id: row?.id ?? null,
+        empCode: String(row?.emp_code ?? payload.empCode ?? '').trim(),
+        firstName: String(row?.first_name ?? firstName).trim(),
+        lastName: String(row?.last_name ?? lastName).trim(),
+        mobile: String(row?.mobile ?? payload.mobile ?? '').trim(),
+        email: String(row?.email ?? payload.email ?? payload.emailId ?? '').trim(),
+        role: String(row?.role ?? payload.role ?? '').trim(),
+        roleName: String(row?.role_name ?? payload.roleName ?? '').trim(),
+        salary,
+        salaryPerMonth: salary,
+        dateOfJoining: String(row?.joining_date ?? payload.dateOfJoining ?? '').trim(),
+        city: String(row?.city ?? payload.city ?? '').trim(),
+        pincode: String(row?.pincode ?? payload.pincode ?? '').trim(),
+        portalAccess
       };
     };
     return res.json(mysqlRows.map(toEmployeeResponse));
@@ -1448,70 +1459,68 @@ app.put('/api/employees/:id', async (req, res) => {
     return res.status(500).json({ error: 'MySQL is not configured for employees module' });
   }
   const employeeId = String(req.params.id || '').trim();
-  const baseEmployee = await fetchEmployeeByAnyId(employeeId);
-  if (!baseEmployee) return res.status(404).json({ error: 'Employee not found' });
-
   const incoming = req.body && typeof req.body === 'object' ? req.body : {};
-  const merged = {
-    ...baseEmployee,
+  const firstName = String(incoming.firstName || '').trim();
+  const lastName = String(incoming.lastName || '').trim();
+  const portalEnabled = incoming.portalAccess ?? incoming.webPortalAccessEnabled;
+  const normalizedStatus = typeof portalEnabled === 'boolean'
+    ? (portalEnabled ? 'enabled' : 'disabled')
+    : String(portalEnabled || '').trim();
+  const updatedEmployee = {
     ...incoming,
-    _id: String(baseEmployee._id || employeeId).trim()
+    _id: String(incoming._id || employeeId).trim(),
+    empCode: String(incoming.empCode || '').trim(),
+    firstName,
+    lastName,
+    mobile: String(incoming.mobile || '').trim(),
+    email: String(incoming.email || incoming.emailId || '').trim(),
+    role: String(incoming.role || '').trim(),
+    roleName: String(incoming.roleName || '').trim(),
+    salary: Number(incoming.salary ?? incoming.salaryPerMonth ?? 0) || 0,
+    dateOfJoining: String(incoming.dateOfJoining || '').trim(),
+    city: String(incoming.city || '').trim(),
+    pincode: String(incoming.pincode || '').trim(),
+    portalAccess: Boolean(portalEnabled)
   };
-  const normalized = {
-    ...merged,
-    empCode: String(merged.empCode || '').trim(),
-    firstName: String(merged.firstName || '').trim(),
-    lastName: String(merged.lastName || '').trim(),
-    mobile: String(merged.mobile || '').trim(),
-    email: String(merged.email || merged.emailId || '').trim(),
-    role: String(merged.role || '').trim(),
-    roleName: String(merged.roleName || '').trim(),
-    salary: Number(merged.salary ?? merged.salaryPerMonth ?? 0) || 0,
-    dateOfJoining: String(merged.dateOfJoining || '').trim(),
-    city: String(merged.city || '').trim(),
-    pincode: String(merged.pincode || '').trim()
+  const payloadToSave = {
+    ...incoming,
+    _id: updatedEmployee._id
   };
-  normalized.full_name = [normalized.firstName, normalized.lastName].filter(Boolean).join(' ').trim();
 
   try {
-    await withMysqlConnection(async (conn) => {
-      const isNumeric = /^\d+$/.test(employeeId);
-      const query = isNumeric
-        ? `UPDATE employees
-           SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, email = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, city = ?, pincode = ?, payload = ?, source_updated_at = ?
-           WHERE external_id = ? OR id = ?`
-        : `UPDATE employees
-           SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, email = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, city = ?, pincode = ?, payload = ?, source_updated_at = ?
-           WHERE external_id = ?`;
-      const params = [
-        normalized._id,
-        normalized.empCode || null,
-        normalized.firstName || null,
-        normalized.lastName || null,
-        normalized.full_name || null,
-        normalized.mobile || null,
-        normalized.email || null,
-        normalized.role || null,
-        normalized.roleName || null,
-        normalized.salary,
-        normalized.dateOfJoining || null,
-        normalized.city || null,
-        normalized.pincode || null,
-        JSON.stringify(normalized),
-        new Date().toISOString().slice(0, 19).replace('T', ' '),
-        ...(isNumeric ? [employeeId, Number(employeeId)] : [employeeId])
-      ];
-      const [result] = await conn.query(query, params);
-      if (!Number(result?.affectedRows || 0)) {
-        throw new Error('Employee not found');
-      }
+    const affectedRows = await withMysqlConnection(async (conn) => {
+      const numericId = Number(employeeId);
+      const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
+      const [result] = await conn.query(
+        `UPDATE employees
+         SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, email = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, city = ?, pincode = ?, status = ?, payload = ?
+         WHERE external_id = ? OR id = ?`,
+        [
+          updatedEmployee._id,
+          updatedEmployee.empCode || '',
+          updatedEmployee.firstName || '',
+          updatedEmployee.lastName || '',
+          `${updatedEmployee.firstName || ''} ${updatedEmployee.lastName || ''}`.trim(),
+          updatedEmployee.mobile || '',
+          updatedEmployee.email || '',
+          updatedEmployee.role || '',
+          updatedEmployee.roleName || '',
+          updatedEmployee.salary || 0,
+          updatedEmployee.dateOfJoining || null,
+          updatedEmployee.city || '',
+          updatedEmployee.pincode || '',
+          normalizedStatus || null,
+          JSON.stringify(payloadToSave),
+          employeeId,
+          safeNumericId
+        ]
+      );
+      return Number(result?.affectedRows || 0);
     });
-    return res.json({ success: true, employee: normalized });
+    if (!affectedRows) return res.status(404).json({ error: 'Employee not found' });
+    return res.json({ success: true, employee: updatedEmployee });
   } catch (error) {
     console.error('MySQL employees update failed:', error.message);
-    if (String(error?.message || '').toLowerCase().includes('not found')) {
-      return res.status(404).json({ error: 'Employee not found' });
-    }
     return res.status(500).json({ error: error.message || 'Failed to update employee in MySQL' });
   }
 });
@@ -1523,16 +1532,16 @@ app.delete('/api/employees/:id', async (req, res) => {
   try {
     const employeeId = String(req.params.id || '').trim();
     const deletedRows = await withMysqlConnection(async (conn) => {
-      const isNumeric = /^\d+$/.test(employeeId);
-      const query = isNumeric
-        ? 'DELETE FROM employees WHERE external_id = ? OR id = ?'
-        : 'DELETE FROM employees WHERE external_id = ?';
-      const params = isNumeric ? [employeeId, Number(employeeId)] : [employeeId];
-      const [result] = await conn.query(query, params);
+      const numericId = Number(employeeId);
+      const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
+      const [result] = await conn.query(
+        'DELETE FROM employees WHERE external_id = ? OR id = ?',
+        [employeeId, safeNumericId]
+      );
       return Number(result?.affectedRows || 0);
     });
     if (!deletedRows) return res.status(404).json({ error: 'Employee not found' });
-    return res.json({ success: true, message: 'Employee deleted' });
+    return res.json({ success: true });
   } catch (error) {
     console.error('MySQL employees delete failed:', error.message);
     return res.status(500).json({ error: error.message || 'Failed to delete employee from MySQL' });
