@@ -514,6 +514,57 @@ const sanitizeSettings = (raw = {}) => {
 };
 
 const readSettings = () => sanitizeSettings(readJsonFile(settingsFile, {}));
+const APP_SETTINGS_KEY_MAIN = 'main';
+const APP_SETTINGS_TABLE_SQL = `
+CREATE TABLE IF NOT EXISTS app_settings (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  setting_key VARCHAR(120) NOT NULL,
+  setting_value JSON NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_app_settings_key (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;
+
+const ensureAppSettingsTable = async (conn) => {
+  await conn.query(APP_SETTINGS_TABLE_SQL);
+};
+
+const readSettingsFromMysql = async () => {
+  const mysqlSettings = await withMysqlConnection(async (conn) => {
+    await ensureAppSettingsTable(conn);
+    const [rows] = await conn.query(
+      'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
+      [APP_SETTINGS_KEY_MAIN]
+    );
+    const row = Array.isArray(rows) ? rows[0] : null;
+    if (!row) return null;
+    const raw = row.setting_value;
+    if (!raw) return {};
+    if (typeof raw === 'string') {
+      try { return JSON.parse(raw); } catch { return {}; }
+    }
+    if (typeof raw === 'object') return raw;
+    return {};
+  });
+
+  return sanitizeSettings(mysqlSettings || {});
+};
+
+const saveSettingsToMysql = async (payload = {}) => {
+  const sanitized = sanitizeSettings(payload);
+  await withMysqlConnection(async (conn) => {
+    await ensureAppSettingsTable(conn);
+    await conn.query(
+      `INSERT INTO app_settings (setting_key, setting_value)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [APP_SETTINGS_KEY_MAIN, JSON.stringify(sanitized)]
+    );
+  });
+  return sanitized;
+};
 
 const getEmployeeCodeSeq = (empCode, prefix) => {
   const code = String(empCode || '').trim();
@@ -798,18 +849,42 @@ const sanitizeAttendanceRecord = (raw = {}) => {
   };
 };
 
-app.get('/api/settings', (req, res) => {
-  res.json(readSettings());
+app.get('/api/settings', async (req, res) => {
+  try {
+    const settings = await readSettingsFromMysql();
+    return res.json(settings);
+  } catch (error) {
+    console.error('Failed to fetch settings from MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch settings' });
+  }
 });
 
-app.post('/api/settings/save', (req, res) => {
-  const current = readSettings();
-  const next = sanitizeSettings({
-    ...current,
-    ...(req.body || {})
-  });
-  fs.writeFileSync(settingsFile, JSON.stringify(next, null, 2));
-  res.json({ message: 'Saved', settings: next });
+app.post('/api/settings', async (req, res) => {
+  try {
+    const current = await readSettingsFromMysql();
+    const next = await saveSettingsToMysql({
+      ...current,
+      ...(req.body || {})
+    });
+    return res.json({ message: 'Saved', settings: next });
+  } catch (error) {
+    console.error('Failed to save settings to MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to save settings' });
+  }
+});
+
+app.post('/api/settings/save', async (req, res) => {
+  try {
+    const current = await readSettingsFromMysql();
+    const next = await saveSettingsToMysql({
+      ...current,
+      ...(req.body || {})
+    });
+    return res.json({ message: 'Saved', settings: next });
+  } catch (error) {
+    console.error('Failed to save settings to MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to save settings' });
+  }
 });
 
 app.post('/api/auth/forgot-password', async (req, res) => {
