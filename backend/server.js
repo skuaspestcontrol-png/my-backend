@@ -967,98 +967,163 @@ app.post('/api/employees/upload-document', upload.single('document'), (req, res)
   res.json({ fileUrl: `${resolveServerOrigin(req)}/uploads/${req.file.filename}` });
 });
 
+const parseMysqlLeadPayload = (rawPayload) => {
+  if (!rawPayload) return null;
+  if (typeof rawPayload === 'string') {
+    try { return JSON.parse(rawPayload); } catch { return null; }
+  }
+  if (typeof rawPayload === 'object') return rawPayload;
+  return null;
+};
+
+const normalizeLeadShape = (input = {}, fallbackId = '') => {
+  const source = (input && typeof input === 'object') ? input : {};
+  const leadId = String(source._id || fallbackId || Date.now().toString()).trim();
+  const customerName = String(source.customerName || source.displayName || '').trim();
+  const displayName = String(source.displayName || customerName).trim();
+  const companyName = String(source.companyName || '').trim();
+  const contactPersonName = String(source.contactPersonName || '').trim();
+  const title = String(source.title || source.position || '').trim();
+  const mobileValue = String(source.mobile || source.mobileNumber || '').trim();
+  const whatsappNumber = String(source.whatsappNumber || '').trim();
+  const emailId = String(source.emailId || '').trim();
+  const address = String(source.address || '').trim();
+  const areaName = String(source.areaName || source.area || '').trim();
+  const city = String(source.city || '').trim();
+  const state = String(source.state || '').trim();
+  const pincode = String(source.pincode || source.pinCode || '').trim();
+  const pestIssue = String(source.pestIssue || '').trim();
+  const leadSource = String(source.leadSource || '').trim();
+  const leadStatus = String(source.status || source.leadStatus || '').trim();
+  const assignedTo = String(source.assignedTo || '').trim();
+  const followupDate = String(source.followupDate || '').trim();
+  const date = String(source.date || source.createdAt || new Date().toISOString()).trim();
+
+  return {
+    _id: leadId,
+    customerName,
+    displayName,
+    companyName,
+    contactPersonName,
+    title,
+    mobile: mobileValue,
+    mobileNumber: mobileValue,
+    whatsappNumber,
+    emailId,
+    address,
+    areaName,
+    area: areaName,
+    city,
+    state,
+    pincode,
+    pestIssue,
+    leadSource,
+    status: leadStatus,
+    leadStatus,
+    assignedTo,
+    followupDate,
+    date
+  };
+};
+
+const toMysqlDateTime = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 19).replace('T', ' ');
+};
+
+const upsertLeadToMysql = async (conn, lead) => {
+  await conn.query(
+    `INSERT INTO leads (
+      external_id, customer_name, display_name, company_name, contact_person_name, title, mobile,
+      whatsapp_number, email_id, address, area_name, city, state, pincode, pest_issue,
+      lead_source, lead_status, assigned_to, followup_date, payload, source_created_at, source_updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      customer_name=VALUES(customer_name),
+      display_name=VALUES(display_name),
+      company_name=VALUES(company_name),
+      contact_person_name=VALUES(contact_person_name),
+      title=VALUES(title),
+      mobile=VALUES(mobile),
+      whatsapp_number=VALUES(whatsapp_number),
+      email_id=VALUES(email_id),
+      address=VALUES(address),
+      area_name=VALUES(area_name),
+      city=VALUES(city),
+      state=VALUES(state),
+      pincode=VALUES(pincode),
+      pest_issue=VALUES(pest_issue),
+      lead_source=VALUES(lead_source),
+      lead_status=VALUES(lead_status),
+      assigned_to=VALUES(assigned_to),
+      followup_date=VALUES(followup_date),
+      payload=VALUES(payload),
+      source_created_at=VALUES(source_created_at),
+      source_updated_at=VALUES(source_updated_at)`,
+    [
+      lead._id,
+      lead.customerName || null,
+      lead.displayName || null,
+      lead.companyName || null,
+      lead.contactPersonName || null,
+      lead.title || null,
+      lead.mobile || null,
+      lead.whatsappNumber || null,
+      lead.emailId || null,
+      lead.address || null,
+      lead.areaName || null,
+      lead.city || null,
+      lead.state || null,
+      lead.pincode || null,
+      lead.pestIssue || null,
+      lead.leadSource || null,
+      lead.leadStatus || null,
+      lead.assignedTo || null,
+      lead.followupDate || null,
+      JSON.stringify(lead),
+      toMysqlDateTime(lead.date),
+      new Date().toISOString().slice(0, 19).replace('T', ' ')
+    ]
+  );
+};
+
 app.get('/api/leads', async (req, res) => {
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for leads module' });
+  }
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
       const [rows] = await conn.query('SELECT payload FROM leads ORDER BY id DESC');
       return Array.isArray(rows) ? rows : [];
     });
-    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
-      const parsed = mysqlRows
-        .map((row) => {
-          const raw = row?.payload;
-          if (!raw) return null;
-          if (typeof raw === 'string') {
-            try { return JSON.parse(raw); } catch { return null; }
-          }
-          return raw;
-        })
-        .filter(Boolean);
-      if (parsed.length > 0) return res.json(parsed);
-    }
+    const parsed = (Array.isArray(mysqlRows) ? mysqlRows : [])
+      .map((row) => normalizeLeadShape(parseMysqlLeadPayload(row?.payload) || {}))
+      .filter((entry) => String(entry._id || '').trim());
+    return res.json(parsed);
   } catch (error) {
-    console.error('MySQL leads read failed, using JSON fallback:', error.message);
+    console.error('Failed to fetch leads from MySQL:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to fetch leads from MySQL' });
   }
-  res.json(readJsonFile(leadsFile, []));
 });
 
 app.post('/api/leads', async (req, res) => {
-  const leads = readJsonFile(leadsFile, []);
-  const newLead = { _id: Date.now().toString(), ...req.body, date: new Date().toISOString() };
-  leads.push(newLead);
-  fs.writeFileSync(leadsFile, JSON.stringify(leads, null, 2));
-
-  try {
-    await withMysqlConnection(async (conn) => {
-      await conn.query(
-        `INSERT INTO leads (
-          external_id, customer_name, display_name, company_name, contact_person_name, title, mobile,
-          whatsapp_number, email_id, address, area_name, city, state, pincode, pest_issue,
-          lead_source, lead_status, assigned_to, followup_date, payload, source_created_at, source_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          customer_name=VALUES(customer_name),
-          display_name=VALUES(display_name),
-          company_name=VALUES(company_name),
-          contact_person_name=VALUES(contact_person_name),
-          title=VALUES(title),
-          mobile=VALUES(mobile),
-          whatsapp_number=VALUES(whatsapp_number),
-          email_id=VALUES(email_id),
-          address=VALUES(address),
-          area_name=VALUES(area_name),
-          city=VALUES(city),
-          state=VALUES(state),
-          pincode=VALUES(pincode),
-          pest_issue=VALUES(pest_issue),
-          lead_source=VALUES(lead_source),
-          lead_status=VALUES(lead_status),
-          assigned_to=VALUES(assigned_to),
-          followup_date=VALUES(followup_date),
-          payload=VALUES(payload),
-          source_created_at=VALUES(source_created_at),
-          source_updated_at=VALUES(source_updated_at)`,
-        [
-          newLead._id,
-          newLead.customerName || null,
-          newLead.displayName || newLead.customerName || null,
-          newLead.companyName || null,
-          newLead.contactPersonName || null,
-          newLead.title || newLead.position || null,
-          newLead.mobile || newLead.mobileNumber || null,
-          newLead.whatsappNumber || null,
-          newLead.emailId || null,
-          newLead.address || null,
-          newLead.areaName || newLead.area || null,
-          newLead.city || null,
-          newLead.state || null,
-          newLead.pincode || newLead.pinCode || null,
-          newLead.pestIssue || null,
-          newLead.leadSource || null,
-          newLead.status || newLead.leadStatus || null,
-          newLead.assignedTo || null,
-          newLead.followupDate || null,
-          JSON.stringify(newLead),
-          new Date(newLead.date).toISOString().slice(0, 19).replace('T', ' '),
-          new Date().toISOString().slice(0, 19).replace('T', ' ')
-        ]
-      );
-    });
-  } catch (error) {
-    console.error('MySQL leads write failed (JSON saved):', error.message);
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for leads module' });
   }
-
-  res.json(newLead);
+  try {
+    const incoming = req.body || {};
+    const generatedId = String(incoming._id || Date.now().toString()).trim();
+    const newLead = normalizeLeadShape({ ...incoming, _id: generatedId }, generatedId);
+    await withMysqlConnection(async (conn) => {
+      await upsertLeadToMysql(conn, newLead);
+    });
+    return res.json(newLead);
+  } catch (error) {
+    console.error('Failed to save lead in MySQL:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to save lead in MySQL' });
+  }
 });
 
 app.post('/api/maps/geocode', async (req, res) => {
@@ -1150,104 +1215,62 @@ app.post('/api/maps/geocode', async (req, res) => {
 });
 
 app.put('/api/leads/:id', async (req, res) => {
-  const leads = readJsonFile(leadsFile, []);
-  const leadIndex = leads.findIndex((lead) => lead._id === req.params.id);
-
-  if (leadIndex === -1) {
-    return res.status(404).json({ error: 'Lead not found' });
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for leads module' });
   }
-
-  const updatedLead = {
-    ...leads[leadIndex],
-    ...req.body,
-    _id: leads[leadIndex]._id
-  };
-
-  leads[leadIndex] = updatedLead;
-  fs.writeFileSync(leadsFile, JSON.stringify(leads, null, 2));
-
   try {
-    await withMysqlConnection(async (conn) => {
-      await conn.query(
-        `INSERT INTO leads (
-          external_id, customer_name, display_name, company_name, contact_person_name, title, mobile,
-          whatsapp_number, email_id, address, area_name, city, state, pincode, pest_issue,
-          lead_source, lead_status, assigned_to, followup_date, payload, source_created_at, source_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          customer_name=VALUES(customer_name),
-          display_name=VALUES(display_name),
-          company_name=VALUES(company_name),
-          contact_person_name=VALUES(contact_person_name),
-          title=VALUES(title),
-          mobile=VALUES(mobile),
-          whatsapp_number=VALUES(whatsapp_number),
-          email_id=VALUES(email_id),
-          address=VALUES(address),
-          area_name=VALUES(area_name),
-          city=VALUES(city),
-          state=VALUES(state),
-          pincode=VALUES(pincode),
-          pest_issue=VALUES(pest_issue),
-          lead_source=VALUES(lead_source),
-          lead_status=VALUES(lead_status),
-          assigned_to=VALUES(assigned_to),
-          followup_date=VALUES(followup_date),
-          payload=VALUES(payload),
-          source_created_at=VALUES(source_created_at),
-          source_updated_at=VALUES(source_updated_at)`,
-        [
-          updatedLead._id,
-          updatedLead.customerName || null,
-          updatedLead.displayName || updatedLead.customerName || null,
-          updatedLead.companyName || null,
-          updatedLead.contactPersonName || null,
-          updatedLead.title || updatedLead.position || null,
-          updatedLead.mobile || updatedLead.mobileNumber || null,
-          updatedLead.whatsappNumber || null,
-          updatedLead.emailId || null,
-          updatedLead.address || null,
-          updatedLead.areaName || updatedLead.area || null,
-          updatedLead.city || null,
-          updatedLead.state || null,
-          updatedLead.pincode || updatedLead.pinCode || null,
-          updatedLead.pestIssue || null,
-          updatedLead.leadSource || null,
-          updatedLead.status || updatedLead.leadStatus || null,
-          updatedLead.assignedTo || null,
-          updatedLead.followupDate || null,
-          JSON.stringify(updatedLead),
-          updatedLead.date ? new Date(updatedLead.date).toISOString().slice(0, 19).replace('T', ' ') : null,
-          new Date().toISOString().slice(0, 19).replace('T', ' ')
-        ]
-      );
+    const leadId = String(req.params.id || '').trim();
+    const existingRow = await withMysqlConnection(async (conn) => {
+      const isNumeric = /^\d+$/.test(leadId);
+      const query = isNumeric
+        ? 'SELECT payload, external_id FROM leads WHERE external_id = ? OR id = ? LIMIT 1'
+        : 'SELECT payload, external_id FROM leads WHERE external_id = ? LIMIT 1';
+      const params = isNumeric ? [leadId, Number(leadId)] : [leadId];
+      const [rows] = await conn.query(query, params);
+      return Array.isArray(rows) && rows[0] ? rows[0] : null;
     });
-  } catch (error) {
-    console.error('MySQL leads update failed (JSON saved):', error.message);
-  }
 
-  res.json(updatedLead);
+    if (!existingRow) return res.status(404).json({ error: 'Lead not found' });
+
+    const existingLead = normalizeLeadShape(parseMysqlLeadPayload(existingRow.payload) || {}, existingRow.external_id || leadId);
+    const updatedLead = normalizeLeadShape({
+      ...existingLead,
+      ...(req.body && typeof req.body === 'object' ? req.body : {}),
+      _id: existingLead._id
+    }, existingLead._id);
+
+    await withMysqlConnection(async (conn) => {
+      await upsertLeadToMysql(conn, updatedLead);
+    });
+
+    return res.json(updatedLead);
+  } catch (error) {
+    console.error('Failed to update lead in MySQL:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to update lead in MySQL' });
+  }
 });
 
 app.delete('/api/leads/:id', async (req, res) => {
-  const leads = readJsonFile(leadsFile, []);
-  const updatedLeads = leads.filter((lead) => lead._id !== req.params.id);
-
-  if (updatedLeads.length === leads.length) {
-    return res.status(404).json({ error: 'Lead not found' });
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for leads module' });
   }
-
-  fs.writeFileSync(leadsFile, JSON.stringify(updatedLeads, null, 2));
-
   try {
-    await withMysqlConnection(async (conn) => {
-      await conn.query('DELETE FROM leads WHERE external_id = ?', [req.params.id]);
+    const leadId = String(req.params.id || '').trim();
+    const deletedRows = await withMysqlConnection(async (conn) => {
+      const isNumeric = /^\d+$/.test(leadId);
+      const query = isNumeric
+        ? 'DELETE FROM leads WHERE external_id = ? OR id = ?'
+        : 'DELETE FROM leads WHERE external_id = ?';
+      const params = isNumeric ? [leadId, Number(leadId)] : [leadId];
+      const [result] = await conn.query(query, params);
+      return Number(result?.affectedRows || 0);
     });
+    if (!deletedRows) return res.status(404).json({ error: 'Lead not found' });
+    return res.json({ message: 'Lead deleted' });
   } catch (error) {
-    console.error('MySQL leads delete failed (JSON deleted):', error.message);
+    console.error('Failed to delete lead in MySQL:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to delete lead in MySQL' });
   }
-
-  res.json({ message: 'Lead deleted' });
 });
 
 app.get('/api/employees', async (req, res) => {
