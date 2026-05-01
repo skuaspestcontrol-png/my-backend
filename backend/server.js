@@ -76,7 +76,7 @@ const MASTER_RESET_EMAIL = String(process.env.MASTER_RESET_EMAIL || 'skuaspestco
 const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
 
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = path.join(__dirname, '..', 'storage', 'uploads');
 const dataDir = path.join(__dirname, 'data');
 [uploadsDir, dataDir].forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir); });
 
