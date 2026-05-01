@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, saveBrandingSettings } from '../utils/brandingTheme';
-import { Eye, EyeOff, ShieldCheck, Wrench } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -20,9 +19,6 @@ export default function Login() {
   const [logoBroken, setLogoBroken] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
-  const [authLoading, setAuthLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -65,9 +61,8 @@ export default function Login() {
     return '/dashboard';
   };
 
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
-    setAuthLoading(true);
     const username = String(credentials.username || '').trim();
     const password = String(credentials.password || '');
     const expectedUsername = String(settings.adminUsername || 'admin').trim() || 'admin';
@@ -78,9 +73,7 @@ export default function Login() {
       localStorage.removeItem('portal_user_name');
       localStorage.removeItem('portal_user_role');
       localStorage.removeItem('portal_user_id');
-      if (rememberMe) localStorage.setItem('portal_remember_email', username);
       navigate('/dashboard', { replace: true });
-      setAuthLoading(false);
       return;
     }
 
@@ -96,13 +89,10 @@ export default function Login() {
       localStorage.setItem('portal_user_name', [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee');
       localStorage.setItem('portal_user_role', String(employee.role || 'Employee'));
       localStorage.setItem('portal_user_id', String(employee._id || ''));
-      if (rememberMe) localStorage.setItem('portal_remember_email', username);
       navigate(getEmployeeLandingPath(employee.role), { replace: true });
-      setAuthLoading(false);
       return;
     }
 
-    setAuthLoading(false);
     alert('Invalid credentials');
   };
 
@@ -154,35 +144,16 @@ export default function Login() {
   };
 
   return (
-    <div style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #f0fdfa 0%, #f8fafc 45%, #eff6ff 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '12px' : '24px' }}>
-      <div style={{ width: '100%', maxWidth: '1080px', minHeight: isNarrow ? 'auto' : '680px', borderRadius: '22px', border: '1px solid var(--color-border)', background: '#fff', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', display: 'grid', gridTemplateColumns: viewportWidth < 980 ? '1fr' : '1.1fr 1fr' }}>
-        <section style={{ display: viewportWidth < 980 ? 'none' : 'grid', alignContent: 'space-between', padding: '34px 30px', background: 'radial-gradient(circle at 20% 10%, rgba(34,197,94,0.18), transparent 40%), radial-gradient(circle at 86% 16%, rgba(37,99,235,0.2), transparent 45%), linear-gradient(145deg, #0f766e 0%, #115e59 65%, #0f172a 100%)', color: '#ECFEFF' }}>
-          <div style={{ display: 'grid', gap: '14px' }}>
-            <div style={{ width: '50px', height: '50px', borderRadius: '14px', background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.32)', display: 'grid', placeItems: 'center' }}>
-              <ShieldCheck size={26} />
-            </div>
-            <h1 style={{ margin: 0, fontSize: '36px', lineHeight: 1.15, fontWeight: 800 }}>Manage your pest control business with confidence.</h1>
-            <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.6, color: 'rgba(236,254,255,0.88)' }}>
-              Track leads, contracts, services, renewals, vendor bills, and team operations from one clean command center.
-            </p>
-          </div>
-          <div style={{ border: '1px solid rgba(255,255,255,0.28)', borderRadius: '14px', background: 'rgba(255,255,255,0.08)', padding: '14px' }}>
-            <p style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700 }}>
-              <Wrench size={16} /> Secure Admin Access
-            </p>
-            <p style={{ margin: '8px 0 0', fontSize: '13px', color: 'rgba(236,254,255,0.86)' }}>Protected portal login for admin and role-based employee accounts.</p>
-          </div>
-        </section>
-
-        <section style={{ padding: isNarrow ? '20px 14px' : '34px 36px', display: 'grid', alignContent: 'center', gap: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: viewportWidth < 980 ? 'center' : 'flex-start' }}>
+    <div style={{ minHeight: '100dvh', width: '100%', background: '#fff', display: 'flex', justifyContent: 'center', padding: isNarrow ? '18px 12px' : '32px 16px' }}>
+      <div style={{ width: '100%', maxWidth: '560px', display: 'grid', gap: isNarrow ? '14px' : '18px', alignContent: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
           {hasValidLogo ? (
             <img
               src={settings.dashboardImageUrl}
               alt="Company Logo"
               onError={() => setLogoBroken(true)}
               style={{
-                width: isNarrow ? '200px' : '250px',
+                width: isNarrow ? '220px' : '320px',
                 maxWidth: '92%',
                 height: 'auto',
                 objectFit: 'contain'
@@ -191,8 +162,8 @@ export default function Login() {
           ) : (
             <div
               style={{
-                width: isNarrow ? '72px' : '86px',
-                height: isNarrow ? '72px' : '86px',
+                width: isNarrow ? '74px' : '88px',
+                height: isNarrow ? '74px' : '88px',
                 backgroundColor: 'var(--color-primary)',
                 borderRadius: '18px',
                 display: 'flex',
@@ -206,69 +177,34 @@ export default function Login() {
               SPC
             </div>
           )}
-          </div>
+        </div>
 
-          <div>
-            <h2 style={{ margin: 0, fontSize: isNarrow ? '30px' : '34px', color: '#0f172a', fontWeight: 800 }}>Welcome Back</h2>
-            <p style={{ margin: '8px 0 0', color: '#475569', fontSize: '14px', fontWeight: 500 }}>Login to manage your pest control business</p>
-          </div>
-
-          <div style={{ width: '100%', backgroundColor: '#fff', border: '1px solid #D9DEE8', borderRadius: '14px', padding: isNarrow ? '14px 12px' : '18px 18px', boxShadow: '0 8px 20px rgba(15, 23, 42, 0.06)' }}>
-            <form onSubmit={handleLogin} style={{ display: 'grid', gap: '14px' }}>
+        <div style={{ width: '100%', maxWidth: '520px', margin: '0 auto', backgroundColor: '#fff', border: '1px solid #D9DEE8', borderRadius: '14px', padding: isNarrow ? '16px 12px' : '20px 24px', boxShadow: '0 8px 20px rgba(15, 23, 42, 0.06)' }}>
+          <form onSubmit={handleLogin} style={{ display: 'grid', gap: '14px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', color: '#475569', fontSize: '13px', fontWeight: 700 }}>Email / Username</label>
+              <label style={{ display: 'block', marginBottom: '8px', color: '#475569', fontSize: '15px', fontWeight: 700 }}>Email</label>
               <input
                 type="text"
                 name="username"
                 onChange={handleChange}
-                value={credentials.username}
-                style={{ width: '100%', padding: '12px 13px', borderRadius: '10px', boxSizing: 'border-box', background: '#F8FAFC', border: '1px solid #CBD5E1' }}
+                style={{ width: '100%', padding: '12px 13px', borderRadius: '10px', boxSizing: 'border-box', background: '#E9EEF9', border: '1px solid #CBD5E1' }}
                 required
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', color: '#475569', fontSize: '13px', fontWeight: 700 }}>Password</label>
-              <div style={{ position: 'relative' }}>
+              <label style={{ display: 'block', marginBottom: '8px', color: '#475569', fontSize: '15px', fontWeight: 700 }}>Password</label>
               <input
-                type={showPassword ? 'text' : 'password'}
+                type="password"
                 name="password"
                 onChange={handleChange}
-                value={credentials.password}
-                style={{ width: '100%', padding: '12px 42px 12px 13px', borderRadius: '10px', boxSizing: 'border-box', background: '#F8FAFC', border: '1px solid #CBD5E1' }}
+                style={{ width: '100%', padding: '12px 13px', borderRadius: '10px', boxSizing: 'border-box', background: '#E9EEF9', border: '1px solid #CBD5E1' }}
                 required
               />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: '#64748b', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#334155', fontSize: '13px', fontWeight: 600 }}>
-                <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
-                Remember me
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  setForgotOpen(true);
-                  setForgotStep('request');
-                }}
-                style={{ background: 'transparent', border: 'none', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer', textAlign: 'center', marginTop: '2px' }}
-              >
-                Forgot password?
-              </button>
             </div>
 
             <button
               type="submit"
-              disabled={authLoading}
               style={{
                 marginTop: '6px',
                 minHeight: '48px',
@@ -278,25 +214,35 @@ export default function Login() {
                 borderRadius: '10px',
                 cursor: 'pointer',
                 fontWeight: 800,
-                fontSize: '16px',
-                opacity: authLoading ? 0.75 : 1
+                fontSize: '16px'
               }}
             >
-              {authLoading ? 'Signing In...' : 'Sign In'}
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setForgotOpen(true);
+                setForgotStep('request');
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--color-primary)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                textAlign: 'center',
+                marginTop: '2px'
+              }}
+            >
+              Forgot Password?
             </button>
           </form>
-          </div>
-
-          <div style={{ border: '1px solid #E2E8F0', background: '#F8FAFC', borderRadius: '12px', padding: '12px 14px' }}>
-            <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Demo Login</p>
-            <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#475569' }}>Email: admin@example.com</p>
-            <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#475569' }}>Password: ••••••••</p>
-          </div>
-        </section>
+        </div>
       </div>
       {forgotOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: '14px' }}>
-          <div style={{ width: '100%', maxWidth: '430px', background: '#fff', borderRadius: '14px', border: '1px solid #D9DEE8', padding: '16px', boxShadow: 'var(--shadow-lg)' }}>
+          <div style={{ width: '100%', maxWidth: '430px', background: '#fff', borderRadius: '14px', border: '1px solid #D9DEE8', padding: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h3 style={{ margin: 0, color: '#1E293B' }}>Reset Password</h3>
               <button

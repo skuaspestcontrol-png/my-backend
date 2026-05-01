@@ -1,35 +1,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --color-primary: #0F766E;
-  --color-primary-dark: #115E59;
-  --color-primary-deep: #134E4A;
-  --color-primary-light: #F0FDFA;
-  --color-primary-soft: #CCFBF1;
+  --color-primary: #9F174D;
+  --color-primary-dark: #831843;
+  --color-primary-deep: #701A3D;
+  --color-primary-light: #F3F4F6;
+  --color-primary-soft: #E5E7EB;
 
   --color-white: #FFFFFF;
-  --color-bg: #F8FAFC;
+  --color-bg: #FFFFFF;
   --color-text: #111827;
-  --color-muted: #374151;
+  --color-muted: #6B7280;
   --color-border: #E5E7EB;
-  --color-card: #FFFFFF;
-  --color-header: #FFFFFF;
-  --color-sidebar: #FFFFFF;
 
   --color-success: #16A34A;
   --color-warning: #F59E0B;
-  --color-danger: #EF4444;
-  --color-secondary: #22C55E;
-  --color-accent: #F59E0B;
+  --color-danger: #DC2626;
 
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
   --radius-xl: 20px;
 
-  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.1);
-  --shadow-lg: 0 24px 50px rgba(15, 23, 42, 0.14);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(159, 23, 77, 0.12);
 
   --bg: var(--color-bg);
   --bg-soft: var(--color-primary-light);
@@ -42,14 +37,14 @@
   --border-strong: var(--color-border);
   --sky: var(--color-primary);
   --sky-deep: var(--color-primary-dark);
-  --sky-soft: rgba(15, 118, 110, 0.12);
+  --sky-soft: rgba(159, 23, 77, 0.12);
   --shadow: var(--shadow-md);
   --shadow-soft: var(--shadow-sm);
   --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-size-base: 14px;
   --line-height-base: 1.5;
-  --icon-size-nav: 20px;
-  --icon-size-button: 18px;
+  --icon-size-nav: 18px;
+  --icon-size-button: 16px;
   --icon-size-inline: 15px;
 }
 
@@ -724,7 +719,7 @@ textarea:focus {
 .header,
 .topbar,
 .navbar {
-  background: var(--color-header);
+  background: var(--color-white);
   border-bottom: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
 }
@@ -763,7 +758,7 @@ textarea:focus {
 }
 
 .login-page {
-  background: linear-gradient(125deg, #0f766e 0%, #0f766e 35%, #2563eb 100%);
+  background: linear-gradient(135deg, #701A3D 0%, #9F174D 50%, #BE185D 100%);
 }
 
 .login-card {
@@ -899,52 +894,5 @@ textarea:focus {
   .responsive-grid-3,
   .responsive-grid-4 {
     grid-template-columns: 1fr;
-  }
-}
-
-/* Premium responsive polish across modules without touching business logic */
-:where(button, a, input, select, textarea) {
-  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
-}
-
-button:active {
-  transform: translateY(1px);
-}
-
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
-}
-
-.main-content > * {
-  min-width: 0;
-}
-
-.responsive-table,
-.table-wrapper {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
-.responsive-table table,
-.table-wrapper table {
-  width: 100%;
-  min-width: 100%;
-}
-
-@media (max-width: 767px) {
-  .main-content {
-    padding: 12px !important;
-  }
-
-  .dashboard-container {
-    max-width: 100%;
   }
 }

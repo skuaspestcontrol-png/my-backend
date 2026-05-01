@@ -8,9 +8,9 @@ export const theme = {
     text: 'var(--color-text)',
     muted: 'var(--color-muted)',
     border: 'var(--color-border)',
-    success: 'var(--color-success)',
-    warning: 'var(--color-warning)',
-    danger: 'var(--color-danger)',
+    success: '#16A34A',
+    warning: '#F59E0B',
+    danger: '#DC2626',
     info: '#2563EB'
   },
   fontSize: {

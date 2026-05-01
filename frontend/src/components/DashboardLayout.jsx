@@ -15,12 +15,9 @@ import {
   Menu,
   MessageSquare,
   Package,
-  Search,
   Settings,
   ShoppingCart,
   Smartphone,
-  PanelLeftClose,
-  PanelLeftOpen,
   Truck,
   UserCheck,
   Users
@@ -28,22 +25,20 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-const SidebarSection = ({ title, children, collapsed }) => (
+const SidebarSection = ({ title, children }) => (
   <div style={{ marginTop: '20px' }}>
-    {!collapsed ? (
-      <div
-        style={{
-          padding: '0 20px 8px',
-          fontSize: '11px',
-          fontWeight: 800,
-          color: 'var(--color-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '1px'
-        }}
-      >
-        {title}
-      </div>
-    ) : null}
+    <div
+      style={{
+        padding: '0 20px 8px',
+        fontSize: '11px',
+        fontWeight: 800,
+        color: 'var(--color-muted)',
+        textTransform: 'uppercase',
+        letterSpacing: '1px'
+      }}
+    >
+      {title}
+    </div>
     {children}
   </div>
 );
@@ -57,8 +52,6 @@ export default function DashboardLayout({ children }) {
   const [fieldOpsMenuOpen, setFieldOpsMenuOpen] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 992);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [headerSearch, setHeaderSearch] = useState('');
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -101,7 +94,7 @@ export default function DashboardLayout({ children }) {
   const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
   const isLaptop = viewportWidth >= 992 && viewportWidth <= 1199;
   const isDrawerMode = viewportWidth < 992;
-  const sidebarWidthPx = isDrawerMode ? 280 : (sidebarCollapsed ? 92 : (isLaptop ? 240 : 280));
+  const sidebarWidthPx = isLaptop ? 240 : 280;
   const sidebarWidth = `${sidebarWidthPx}px`;
   const contentPadding = isMobile ? '14px' : isTablet ? '18px' : isLaptop ? '20px' : '24px';
   const headerPadding = isMobile ? '0 12px' : isTablet ? '0 16px' : '0 20px';
@@ -109,10 +102,6 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     setSidebarOpen(!isDrawerMode);
-  }, [isDrawerMode]);
-
-  useEffect(() => {
-    if (isDrawerMode) setSidebarCollapsed(false);
   }, [isDrawerMode]);
 
   useEffect(() => {
@@ -129,9 +118,9 @@ export default function DashboardLayout({ children }) {
   const baseLinkStyle = (active) => ({
     display: 'flex',
     alignItems: 'center',
-    gap: sidebarCollapsed && !isDrawerMode ? '0px' : '12px',
+    gap: '12px',
     width: 'calc(100% - 24px)',
-    padding: sidebarCollapsed && !isDrawerMode ? '11px 10px' : '11px 18px',
+    padding: '11px 18px',
     margin: '2px 12px',
     borderRadius: '14px',
     color: active ? 'var(--color-white)' : 'var(--color-text)',
@@ -142,8 +131,7 @@ export default function DashboardLayout({ children }) {
     letterSpacing: '0.01em',
     transition: 'all 0.18s ease',
     border: '1px solid transparent',
-    boxShadow: active ? 'var(--shadow-md)' : 'none',
-    justifyContent: sidebarCollapsed && !isDrawerMode ? 'center' : 'flex-start'
+    boxShadow: active ? 'var(--shadow-md)' : 'none'
   });
 
   const linkStyle = (path) => baseLinkStyle(isActive(path));
@@ -181,29 +169,6 @@ export default function DashboardLayout({ children }) {
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase())
     .join('');
-  const pageTitleMap = {
-    '/dashboard': 'Dashboard',
-    '/leads': 'Leads',
-    '/sales/customers': 'Customers',
-    '/sales/contracts': 'Contracts',
-    '/sales/invoices': 'Invoices',
-    '/sales/payment-received': 'Payments',
-    '/sales/renewal': 'Renewals',
-    '/purchase/vendors': 'Vendors',
-    '/purchase/bills': 'Vendor Bills',
-    '/purchase/payment-received': 'Vendor Payments',
-    '/service-calendar': 'Service Calendar',
-    '/operations/assign-services': 'Assign Services',
-    '/operations/assigned-jobs': 'Assigned Jobs',
-    '/operations/track-technicians': 'Track Technicians',
-    '/complaints': 'Complaints',
-    '/items': 'Items',
-    '/employees': 'Employees',
-    '/attendance': 'Attendance',
-    '/payroll': 'Payroll',
-    '/settings': 'Settings'
-  };
-  const currentPageTitle = pageTitleMap[location.pathname] || 'CRM Workspace';
 
   return (
     <div className="app-layout">
@@ -288,19 +253,19 @@ export default function DashboardLayout({ children }) {
 
         <nav style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '14px 0 30px' }}>
           <Link to="/dashboard" className={isActive('/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/dashboard')}>
-            <LayoutDashboard size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'Dashboard'}
+            <LayoutDashboard size={18} /> Dashboard
           </Link>
 
-          <SidebarSection title="Sales & Marketing" collapsed={sidebarCollapsed && !isDrawerMode}>
-            <Link to="/leads" className={isActive('/leads') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/leads')}><Users size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'Leads'}</Link>
+          <SidebarSection title="Sales & Marketing">
+            <Link to="/leads" className={isActive('/leads') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/leads')}><Users size={18} /> Leads</Link>
 
             <button type="button" className={salesGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => setSalesMenuOpen((prev) => !prev)} style={groupToggleStyle(salesGroupActive)}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-                <Briefcase size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'Sales'}
+                <Briefcase size={18} /> Sales
               </span>
               {salesMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
             </button>
-            {salesMenuOpen && (!sidebarCollapsed || isDrawerMode) ? (
+            {salesMenuOpen ? (
               <>
                 <Link to="/sales/customers" className={isActive('/sales/customers') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/customers')}>Customer</Link>
                 <Link to="/sales/contracts" className={isActive('/sales/contracts') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/contracts')}>Contract</Link>
@@ -312,11 +277,11 @@ export default function DashboardLayout({ children }) {
 
             <button type="button" className={purchaseGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => setPurchaseMenuOpen((prev) => !prev)} style={groupToggleStyle(purchaseGroupActive)}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-                <ShoppingCart size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'Purchase'}
+                <ShoppingCart size={18} /> Purchase
               </span>
               {purchaseMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
             </button>
-            {purchaseMenuOpen && (!sidebarCollapsed || isDrawerMode) ? (
+            {purchaseMenuOpen ? (
               <>
                 <Link to="/purchase/vendors" className={isActive('/purchase/vendors') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/vendors')}>Vendors</Link>
                 <Link to="/purchase/bills" className={isActive('/purchase/bills') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/bills')}>Bills</Link>
@@ -326,14 +291,14 @@ export default function DashboardLayout({ children }) {
 
           </SidebarSection>
 
-          <SidebarSection title="Operations" collapsed={sidebarCollapsed && !isDrawerMode}>
+          <SidebarSection title="Operations">
             <button type="button" className={fieldOpsGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => setFieldOpsMenuOpen((prev) => !prev)} style={groupToggleStyle(fieldOpsGroupActive)}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-                <Smartphone size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'Field Operations'}
+                <Smartphone size={18} /> Field Operations
               </span>
               {fieldOpsMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
             </button>
-            {fieldOpsMenuOpen && (!sidebarCollapsed || isDrawerMode) ? (
+            {fieldOpsMenuOpen ? (
               <>
                 <Link to="/operations/assign-services" className={isActive('/operations/assign-services') || isActive('/schedule-job') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assign-services')}>Assign Services</Link>
                 <Link to="/operations/assigned-jobs" className={isActive('/operations/assigned-jobs') || isActive('/technician-portal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assigned-jobs')}>Assigned Jobs</Link>
@@ -341,22 +306,22 @@ export default function DashboardLayout({ children }) {
                 <Link to="/service-calendar" className={isActive('/service-calendar') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/service-calendar')}>Service Calendar</Link>
               </>
             ) : null}
-            <Link to="/complaints" className={isActive('/complaints') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/complaints')}><Bell size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'Complaints'}</Link>
+            <Link to="/complaints" className={isActive('/complaints') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/complaints')}><Bell size={18} /> Complaints</Link>
           </SidebarSection>
 
-          <SidebarSection title="Inventory" collapsed={sidebarCollapsed && !isDrawerMode}>
-            <Link to="/stock" className={isActive('/stock') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/stock')}><Database size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'Stock Management'}</Link>
+          <SidebarSection title="Inventory">
+            <Link to="/stock" className={isActive('/stock') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/stock')}><Database size={18} /> Stock Management</Link>
           </SidebarSection>
 
-          <SidebarSection title="HR & Payroll" collapsed={sidebarCollapsed && !isDrawerMode}>
-            <Link to="/hr-dashboard" className={isActive('/hr-dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/hr-dashboard')}><LayoutDashboard size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'HR Dashboard'}</Link>
-            <Link to="/employees" className={isActive('/employees') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/employees')}><UserCheck size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'Employee Master'}</Link>
-            <Link to="/attendance" className={isActive('/attendance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/attendance')}><CalendarClock size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'Attendance'}</Link>
-            <Link to="/payroll" className={isActive('/payroll') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/payroll')}><CircleDollarSign size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'Payroll'}</Link>
+          <SidebarSection title="HR & Payroll">
+            <Link to="/hr-dashboard" className={isActive('/hr-dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/hr-dashboard')}><LayoutDashboard size={18} /> HR Dashboard</Link>
+            <Link to="/employees" className={isActive('/employees') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/employees')}><UserCheck size={18} /> Employee Master</Link>
+            <Link to="/attendance" className={isActive('/attendance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/attendance')}><CalendarClock size={18} /> Attendance</Link>
+            <Link to="/payroll" className={isActive('/payroll') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/payroll')}><CircleDollarSign size={18} /> Payroll</Link>
           </SidebarSection>
 
-          <SidebarSection title="Administration" collapsed={sidebarCollapsed && !isDrawerMode}>
-            <Link to="/items" className={isActive('/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/items')}><Package size={20} /> {sidebarCollapsed && !isDrawerMode ? '' : 'Items'}</Link>
+          <SidebarSection title="Administration">
+            <Link to="/items" className={isActive('/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/items')}><Package size={18} /> Items</Link>
           </SidebarSection>
         </nav>
       </aside>
@@ -379,33 +344,6 @@ export default function DashboardLayout({ children }) {
             minHeight: topbarHeight
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-            {!isDrawerMode ? (
-              <button
-                type="button"
-                onClick={() => setSidebarCollapsed((prev) => !prev)}
-                aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                style={{
-                  border: '1px solid var(--color-border)',
-                  background: 'var(--color-white)',
-                  color: 'var(--color-muted)',
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
-              >
-                {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-              </button>
-            ) : null}
-            <div style={{ minWidth: 0 }}>
-              <h2 style={{ margin: 0, fontSize: isMobile ? '16px' : '20px', fontWeight: 800, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentPageTitle}</h2>
-              {!isMobile ? <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--color-muted)', fontWeight: 600 }}>Premium Pest Control CRM Workspace</p> : null}
-            </div>
-          </div>
           <button
             type="button"
             onClick={() => setSidebarOpen((prev) => !prev)}
@@ -426,39 +364,9 @@ export default function DashboardLayout({ children }) {
             <Menu size={20} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, marginLeft: 'auto' }}>
-            {!isMobile ? (
-              <div style={{ position: 'relative', minWidth: '240px', maxWidth: '320px', width: '100%' }}>
-                <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-muted)' }} />
-                <input
-                  value={headerSearch}
-                  onChange={(event) => setHeaderSearch(event.target.value)}
-                  placeholder="Search module..."
-                  aria-label="Search module"
-                  style={{ width: '100%', height: '38px', borderRadius: '10px', border: '1px solid var(--color-border)', padding: '0 10px 0 34px', background: 'var(--color-white)' }}
-                />
-              </div>
-            ) : null}
             <span style={{ fontSize: '13px', color: 'var(--color-muted)', fontWeight: 600, letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: isMobile ? 'none' : 'inline' }}>
               {portalUserRole} <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{portalUserName}</strong>
             </span>
-            <button
-              type="button"
-              aria-label="Notifications"
-              style={{
-                border: '1px solid var(--color-border)',
-                background: 'var(--color-white)',
-                color: 'var(--color-primary)',
-                width: isMobile ? '40px' : '44px',
-                height: isMobile ? '40px' : '44px',
-                borderRadius: '10px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-            >
-              <Bell size={20} />
-            </button>
             <button
               type="button"
               onClick={() => navigate('/settings')}

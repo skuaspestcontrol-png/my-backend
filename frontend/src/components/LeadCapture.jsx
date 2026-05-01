@@ -238,30 +238,26 @@ const s = {
     border: '1px solid rgba(159, 23, 77, 0.3)',
     background: 'rgba(159, 23, 77, 0.12)',
     color: 'var(--color-primary-dark)',
-    padding: '4px 10px',
+    padding: '5px 9px',
     borderRadius: '999px',
-    fontSize: '10px',
+    fontSize: '11px',
     fontWeight: 800,
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
-    cursor: 'pointer',
-    lineHeight: 1,
-    whiteSpace: 'nowrap',
-    minHeight: '28px'
+    cursor: 'pointer'
   },
   statusInlineSelect: {
-    minHeight: '28px',
+    minHeight: '30px',
     borderRadius: '10px',
     border: '1px solid rgba(159, 23, 77, 0.3)',
     background: '#fff',
     color: '#0f172a',
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: 700,
-    padding: '3px 8px',
+    padding: '4px 8px',
     outline: 'none',
-    minWidth: '118px',
-    whiteSpace: 'nowrap'
+    minWidth: '140px'
   },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center', width: '100%' },
   rowActionButton: { border: '1px solid rgba(17,17,17,0.14)', background: '#fff', color: '#1f2937', borderRadius: '8px', minWidth: '72px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: 700 },
@@ -1322,12 +1318,8 @@ export default function LeadCapture() {
 
   const getColumnStyle = (columnKey) => {
     const width = Number(columnWidths[columnKey]);
-    if (!Number.isFinite(width) || width <= 0) {
-      if (columnKey === 'status') return { minWidth: '130px' };
-      return {};
-    }
-    const minWidth = columnKey === 'status' ? 130 : 110;
-    const clampedWidth = Math.max(minWidth, Math.min(360, width));
+    if (!Number.isFinite(width) || width <= 0) return {};
+    const clampedWidth = Math.max(110, Math.min(360, width));
     return { width: `${clampedWidth}px`, minWidth: `${clampedWidth}px`, maxWidth: `${clampedWidth}px` };
   };
 
@@ -1976,7 +1968,7 @@ export default function LeadCapture() {
                                   onClick={() => openStatusEditor(lead)}
                                   title={convertedLead ? 'Converted lead status is locked' : 'Click to change lead status'}
                                 >
-                                  <span style={{ whiteSpace: 'nowrap' }}>{String(value || '').trim() || 'New Lead'}</span>
+                                  <span>{String(value || '').trim() || 'New Lead'}</span>
                                   {convertedLead ? null : <ChevronDown size={12} />}
                                 </button>
                               )}
