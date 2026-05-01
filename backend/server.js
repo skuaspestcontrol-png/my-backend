@@ -77,6 +77,7 @@ const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
 
 const uploadsDir = path.join(__dirname, '..', 'storage', 'uploads');
+fs.mkdirSync(uploadsDir, { recursive: true });
 const dataDir = path.join(__dirname, 'data');
 [uploadsDir, dataDir].forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir); });
 
