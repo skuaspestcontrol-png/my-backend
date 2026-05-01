@@ -577,6 +577,29 @@ const saveSettingsToMysql = async (payload = {}) => {
   return sanitized;
 };
 
+const mergeSettingsForSave = (current = {}, incoming = {}) => {
+  const base = {
+    ...(current && typeof current === 'object' ? current : {}),
+    ...(incoming && typeof incoming === 'object' ? incoming : {})
+  };
+  const preserveIfBlank = [
+    'gstCompanyLogoUrl',
+    'dashboardImageUrl',
+    'nonGstCompanyLogoUrl',
+    'gstDigitalSignatureUrl',
+    'gstCompanyStampUrl'
+  ];
+  preserveIfBlank.forEach((key) => {
+    if (!Object.prototype.hasOwnProperty.call(incoming || {}, key)) return;
+    const nextRaw = incoming[key];
+    if (typeof nextRaw === 'string' && nextRaw.trim() === '') {
+      const existing = String((current || {})[key] || '').trim();
+      if (existing) base[key] = existing;
+    }
+  });
+  return base;
+};
+
 const getEmployeeCodeSeq = (empCode, prefix) => {
   const code = String(empCode || '').trim();
   if (!code || !prefix || !code.startsWith(prefix)) return null;
@@ -878,10 +901,7 @@ app.get('/api/settings', async (req, res) => {
 app.post('/api/settings', async (req, res) => {
   try {
     const current = await readSettingsFromMysql();
-    const next = await saveSettingsToMysql({
-      ...current,
-      ...(req.body || {})
-    });
+    const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
     return res.json({ message: 'Saved', settings: next });
   } catch (error) {
     console.error('Failed to save settings to MySQL:', error.message);
@@ -892,10 +912,7 @@ app.post('/api/settings', async (req, res) => {
 app.post('/api/settings/save', async (req, res) => {
   try {
     const current = await readSettingsFromMysql();
-    const next = await saveSettingsToMysql({
-      ...current,
-      ...(req.body || {})
-    });
+    const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
     return res.json({ message: 'Saved', settings: next });
   } catch (error) {
     console.error('Failed to save settings to MySQL:', error.message);
