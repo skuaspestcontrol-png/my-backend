@@ -497,7 +497,24 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       };
 
       cols.forEach((c) => {
-        drawCell(doc, values[c.k], cx, y, c.w, rh, { align: c.a, size: 8, border: COLORS.border, bold: c.k === 'desc', color: '#000000' });
+        if (c.k === 'desc') {
+          drawCell(doc, '', cx, y, c.w, rh, { align: c.a, size: 8, border: COLORS.border, bold: false, color: '#000000' });
+          doc.font('Helvetica-Bold').fontSize(8).fillColor('#000000').text(String(row.description || ''), cx + 3, y + 2, {
+            width: c.w - 6,
+            lineGap: 1,
+            align: 'left'
+          });
+          if (row.details) {
+            const descBottomY = doc.y;
+            doc.font('Helvetica').fontSize(8).fillColor('#000000').text(String(row.details || ''), cx + 3, Math.min(descBottomY + 1, y + rh - 10), {
+              width: c.w - 6,
+              lineGap: 1,
+              align: 'left'
+            });
+          }
+        } else {
+          drawCell(doc, values[c.k], cx, y, c.w, rh, { align: c.a, size: 8, border: COLORS.border, bold: false, color: '#000000' });
+        }
         cx += c.w;
       });
 

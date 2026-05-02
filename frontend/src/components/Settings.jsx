@@ -119,7 +119,6 @@ const smtpActiveOptions = ['Yes', 'No'];
 
 const sectionMeta = [
   { key: 'businessIdentity', label: 'Profile' },
-  { key: 'branding', label: 'Branding' },
   { key: 'gstCompany', label: 'GST Company' },
   { key: 'nonGstCompany', label: 'Non GST Company' },
   { key: 'bankAccounts', label: 'Bank Account' },
@@ -1277,11 +1276,6 @@ export default function Settings({ modalMode = false }) {
         <input style={shell.input} value={form.aboutTagline} onChange={(event) => updateField('aboutTagline', event.target.value)} />
       </div>
 
-      <div style={shell.field}>
-        <p style={shell.fieldLabel}>Company Services</p>
-        <textarea style={shell.textArea} value={form.companyServices} onChange={(event) => updateField('companyServices', event.target.value)} />
-      </div>
-
       <div style={shell.divider} />
       <h4 style={blockTitleStyle}>Branding</h4>
       <p style={{ ...shell.hint, fontSize: '14px' }}>Appearance and accent settings moved here from Branding tab.</p>
@@ -2269,7 +2263,6 @@ export default function Settings({ modalMode = false }) {
 
   const renderSectionContent = () => {
     if (activeSection === 'businessIdentity') return renderBusinessIdentity();
-    if (activeSection === 'branding') return renderBranding();
     if (activeSection === 'gstCompany') return renderGstCompany();
     if (activeSection === 'nonGstCompany') return renderNonGstCompany();
     if (activeSection === 'bankAccounts') return renderBankAccounts();
