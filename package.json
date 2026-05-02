@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "npm --prefix frontend install --include=dev && npm --prefix frontend run build",
-    "start": "node backend/server.js"
+    "start": "npm --prefix backend install --omit=dev && node backend/server.js"
   },
   "dependencies": {
     "lucide-react": "^1.14.0",
