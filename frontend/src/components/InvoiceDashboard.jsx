@@ -863,7 +863,6 @@ export default function InvoiceDashboard() {
     const refreshInvoices = () => {
       loadInvoices();
     };
-    const timer = setInterval(refreshInvoices, 5000);
     const onFocus = () => {
       refreshInvoices();
     };
@@ -874,7 +873,6 @@ export default function InvoiceDashboard() {
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      clearInterval(timer);
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };

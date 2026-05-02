@@ -268,7 +268,6 @@ export default function TechnicianPortal() {
 
     safeRefresh();
 
-    const intervalId = window.setInterval(safeRefresh, 15000);
     const onFocus = () => { safeRefresh(); };
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') safeRefresh();
@@ -283,7 +282,6 @@ export default function TechnicianPortal() {
 
     return () => {
       active = false;
-      window.clearInterval(intervalId);
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('storage', onStorage);

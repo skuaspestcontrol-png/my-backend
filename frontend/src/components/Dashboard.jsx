@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -121,6 +121,7 @@ const getEmployeeName = (employee) => {
 };
 
 export default function Dashboard() {
+  const hasLoadedRef = useRef(false);
   const [leads, setLeads] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [jobs, setJobs] = useState([]);
@@ -133,6 +134,8 @@ export default function Dashboard() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 
   useEffect(() => {
+    if (hasLoadedRef.current) return undefined;
+    hasLoadedRef.current = true;
     let mounted = true;
 
     const load = async () => {

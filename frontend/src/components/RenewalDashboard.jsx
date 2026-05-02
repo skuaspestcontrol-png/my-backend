@@ -118,8 +118,7 @@ export default function RenewalDashboard() {
 
   useEffect(() => {
     loadData();
-    const intervalId = window.setInterval(loadData, 20000);
-    return () => window.clearInterval(intervalId);
+    return undefined;
   }, []);
 
   const filtered = useMemo(() => {

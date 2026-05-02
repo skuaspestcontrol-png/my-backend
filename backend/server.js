@@ -5,9 +5,10 @@ const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
-const mysql = require('mysql2/promise');
 const PDFDocument = require('pdfkit');
 const { generateInvoicePdfBuffer, formatINR, formatDate } = require('./invoicePdf');
+const { query: dbQuery, getConnection } = require('./lib/db');
+const { readCachedSettings, clearSettingsCache } = require('./lib/settings-cache');
 const { registerPayrollModule } = require('./payrollModule');
 const { registerHrModule } = require('./hrModule');
 const { registerCustomerDedupModule } = require('./customerDedupModule');
@@ -18,16 +19,7 @@ require('dotenv').config();
 const app = express();
 app.get("/api/db-test", async (req, res) => {
   try {
-    const connection = await mysql.createConnection({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      port: Number(process.env.DB_PORT || 3306),
-    });
-
-    await connection.query("SELECT 1");
-    await connection.end();
+    await dbQuery('SELECT 1');
 
     res.json({
       success: true,
@@ -207,27 +199,30 @@ const readJsonFile = (filePath, fallback) => {
   }
 };
 
+let dashboardSummaryCache = null;
+let dashboardSummaryCachedAt = 0;
+const DASHBOARD_SUMMARY_TTL_MS = 60 * 1000;
+
 const canUseMysql = () => {
   return Boolean(
-    String(process.env.DB_HOST || '').trim()
-    && String(process.env.DB_USER || '').trim()
-    && String(process.env.DB_NAME || '').trim()
+    String(process.env.MYSQL_HOST || process.env.DB_HOST || '').trim()
+    && String(process.env.MYSQL_USER || process.env.DB_USER || '').trim()
+    && String(process.env.MYSQL_DATABASE || process.env.DB_NAME || '').trim()
   );
 };
 
 const withMysqlConnection = async (handler) => {
   if (!canUseMysql()) return null;
-  const connection = await mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: Number(process.env.DB_PORT || 3306)
-  });
+  const connection = await getConnection();
   try {
     return await handler(connection);
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[MySQL] Query failed:', error.message);
+    }
+    throw error;
   } finally {
-    await connection.end();
+    connection.release();
   }
 };
 
@@ -575,24 +570,26 @@ const ensureAppSettingsTable = async (conn) => {
 };
 
 const readSettingsFromMysql = async () => {
-  const mysqlSettings = await withMysqlConnection(async (conn) => {
-    await ensureAppSettingsTable(conn);
-    const [rows] = await conn.query(
-      'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
-      [APP_SETTINGS_KEY_MAIN]
-    );
-    const row = Array.isArray(rows) ? rows[0] : null;
-    if (!row) return null;
-    const raw = row.setting_value;
-    if (!raw) return {};
-    if (typeof raw === 'string') {
-      try { return JSON.parse(raw); } catch { return {}; }
-    }
-    if (typeof raw === 'object') return raw;
-    return {};
-  });
+  return readCachedSettings(async () => {
+    const mysqlSettings = await withMysqlConnection(async (conn) => {
+      await ensureAppSettingsTable(conn);
+      const [rows] = await conn.query(
+        'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
+        [APP_SETTINGS_KEY_MAIN]
+      );
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (!row) return null;
+      const raw = row.setting_value;
+      if (!raw) return {};
+      if (typeof raw === 'string') {
+        try { return JSON.parse(raw); } catch { return {}; }
+      }
+      if (typeof raw === 'object') return raw;
+      return {};
+    });
 
-  return sanitizeSettings(mysqlSettings || {});
+    return sanitizeSettings(mysqlSettings || {});
+  });
 };
 
 const saveSettingsToMysql = async (payload = {}) => {
@@ -606,6 +603,7 @@ const saveSettingsToMysql = async (payload = {}) => {
       [APP_SETTINGS_KEY_MAIN, JSON.stringify(sanitized)]
     );
   });
+  clearSettingsCache();
   return sanitized;
 };
 
@@ -950,6 +948,59 @@ app.post('/api/settings/save', async (req, res) => {
     console.error('Failed to save settings to MySQL:', error.message);
     return res.status(500).json({ error: 'Failed to save settings' });
   }
+});
+
+app.get('/api/dashboard/summary', async (req, res) => {
+  const now = Date.now();
+  if (dashboardSummaryCache && (now - dashboardSummaryCachedAt) < DASHBOARD_SUMMARY_TTL_MS) {
+    return res.json(dashboardSummaryCache);
+  }
+
+  if (canUseMysql()) {
+    try {
+      const [row] = await dbQuery(`
+        SELECT
+          (SELECT COUNT(*) FROM leads) AS leadsCount,
+          (SELECT COUNT(*) FROM customers) AS customersCount,
+          (SELECT COUNT(*) FROM employees) AS employeesCount,
+          (SELECT COUNT(*) FROM jobs) AS jobsCount,
+          (SELECT COUNT(*) FROM invoices) AS invoicesCount,
+          (SELECT COALESCE(SUM(total_amount), 0) FROM invoices) AS invoicesTotalAmount
+      `);
+      const summary = {
+        leadsCount: Number(row?.leadsCount || 0),
+        customersCount: Number(row?.customersCount || 0),
+        employeesCount: Number(row?.employeesCount || 0),
+        jobsCount: Number(row?.jobsCount || 0),
+        invoicesCount: Number(row?.invoicesCount || 0),
+        invoicesTotalAmount: Number(row?.invoicesTotalAmount || 0),
+        source: 'mysql',
+        cachedAt: new Date().toISOString()
+      };
+      dashboardSummaryCache = summary;
+      dashboardSummaryCachedAt = now;
+      return res.json(summary);
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production') {
+        return res.status(500).json({ error: error.message });
+      }
+      console.error('Dashboard summary MySQL failed, using emergency JSON fallback:', error.message);
+    }
+  }
+
+  const fallback = {
+    leadsCount: readJsonFile(leadsFile, []).length,
+    customersCount: readJsonFile(customersFile, []).length,
+    employeesCount: readJsonFile(employeesFile, []).length,
+    jobsCount: readJsonFile(jobsFile, []).length,
+    invoicesCount: readJsonFile(invoicesFile, []).length,
+    invoicesTotalAmount: readJsonFile(invoicesFile, []).reduce((sum, invoice) => sum + Number(invoice?.totalAmount || invoice?.amount || 0), 0),
+    source: 'json-fallback',
+    cachedAt: new Date().toISOString()
+  };
+  dashboardSummaryCache = fallback;
+  dashboardSummaryCachedAt = now;
+  return res.json(fallback);
 });
 
 app.post('/api/auth/forgot-password', async (req, res) => {
