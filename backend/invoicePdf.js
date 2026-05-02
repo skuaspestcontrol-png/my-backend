@@ -608,10 +608,12 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const footerLineY = bottom - 22;
     const sigGapFromFooter = 3;
     y = Math.max(y, footerLineY - sigGapFromFooter - sigH);
+    const rightSigX = left + (contentW / 2);
+    const rightSigW = contentW / 2;
     drawCell(doc, 'Receiver Signature', left, y, contentW / 2, sigH, { align: 'left', size: 9, border: 'none' });
-    drawCell(doc, 'Authorized Signature', left + (contentW / 2), y, contentW / 2, sigH, { align: 'right', size: 9, border: 'none' });
+    drawCell(doc, 'Authorized Signature', rightSigX, y, rightSigW, sigH, { align: 'right', size: 9, border: 'none' });
     if (company.signature) {
-      try { doc.image(company.signature, right - 118, y + 1, { fit: [86, 14] }); } catch (_e) {}
+      try { doc.image(company.signature, rightSigX + 4, y - 14, { fit: [rightSigW - 8, 12], align: 'center' }); } catch (_e) {}
     }
 
     // Draw footer on all pages
