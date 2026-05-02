@@ -2419,10 +2419,6 @@ export default function InvoiceDashboard() {
               <div style={shell.itemSection}>
                 <div style={shell.itemHead}>
                   <span>Item Table</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <button type="button" style={shell.actionLinkBtn} onClick={scanItem}>Scan Item</button>
-                    <button type="button" style={shell.actionLinkBtn} onClick={applyBulkTax}>Bulk Actions</button>
-                  </div>
                 </div>
                 <div style={itemTableWrapStyle}>
                   <table style={itemTableStyle}>
@@ -2575,9 +2571,9 @@ export default function InvoiceDashboard() {
                                       </div>
                                       <div style={shell.itemMetaField}>
                                         <span style={shell.itemMetaLabel}>Amount</span>
-                                        <div style={{ ...shell.itemMetaInput, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ ...shell.itemMetaInput, minHeight: '32px', height: '32px', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                           <strong>{formatINR(amount)}</strong>
-                                          <button type="button" style={shell.iconButton} onClick={() => removeLine(index)} title="Remove row">
+                                          <button type="button" style={{ ...shell.iconButton, width: '24px', height: '24px', minHeight: '24px', borderRadius: '7px' }} onClick={() => removeLine(index)} title="Remove row">
                                             <Trash2 size={14} />
                                           </button>
                                         </div>

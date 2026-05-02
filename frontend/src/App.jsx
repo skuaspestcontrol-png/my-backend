@@ -3,6 +3,27 @@ import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-d
 import Login from './components/Login';
 import ModuleWorkspace from './components/ModuleWorkspace';
 
+const lazyWithRetry = (importer, storageKey = 'lazy-retry') =>
+  lazy(() =>
+    importer().catch((error) => {
+      if (typeof window === 'undefined') throw error;
+      const key = `retry-${storageKey}`;
+      const alreadyRetried = window.sessionStorage.getItem(key) === '1';
+      if (!alreadyRetried) {
+        window.sessionStorage.setItem(key, '1');
+        window.location.reload();
+        return new Promise(() => {});
+      }
+      window.sessionStorage.removeItem(key);
+      throw error;
+    }).then((module) => {
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem(`retry-${storageKey}`);
+      }
+      return module;
+    })
+  );
+
 const DashboardLayout = lazy(() => import('./components/DashboardLayout'));
 const CustomerDashboard = lazy(() => import('./components/CustomerDashboard'));
 const ContractDashboard = lazy(() => import('./components/ContractDashboard'));
@@ -13,7 +34,7 @@ const Attendance = lazy(() => import('./components/Attendance'));
 const PayrollModule = lazy(() => import('./components/PayrollModule'));
 const InvoiceDashboard = lazy(() => import('./components/InvoiceDashboard'));
 const ItemsDashboard = lazy(() => import('./components/ItemsDashboard'));
-const LeadCapture = lazy(() => import('./components/LeadCapture'));
+const LeadCapture = lazyWithRetry(() => import('./components/LeadCapture'), 'leads-capture');
 const OperationsPortal = lazy(() => import('./components/OperationsPortal'));
 const PaymentReceivedDashboard = lazy(() => import('./components/PaymentReceivedDashboard'));
 const VendorDashboard = lazy(() => import('./components/VendorDashboard'));
