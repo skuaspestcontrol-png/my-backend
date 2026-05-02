@@ -336,7 +336,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     };
 
     // Header
-    const headerH = 168;
+    const headerH = 118;
     drawCell(doc, '', left, y, contentW, headerH, { border: 'none' });
 
     const logoBoxW = 68;
@@ -378,7 +378,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ['Invoice Date', formatDate(invoice.date)],
       ['Salesperson', clean(invoice.salesperson) || '-']
     ];
-    let my = y + 83;
+    let my = y + 34;
     meta.forEach(([k, v]) => {
       doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text(`${k} :`, rightX + 2, my, { width: 84, align: 'left' });
       doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(`${v}`, rightX + 88, my, { width: rightW - 90, align: 'left' });
