@@ -28,7 +28,7 @@ const clean = (value) => String(value ?? '').trim();
 
 const formatINR = (value) => {
   const n = toNumber(value, 0);
-  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const formatDate = (value) => {
@@ -209,9 +209,11 @@ const drawCell = (doc, text, x, y, w, h, { bold = false, align = 'left', bg = nu
     doc.fillColor(bg).rect(x, y, w, h).fill();
     doc.restore();
   }
-  doc.save();
-  doc.strokeColor(border).lineWidth(0.6).rect(x, y, w, h).stroke();
-  doc.restore();
+  if (border && border !== 'none') {
+    doc.save();
+    doc.strokeColor(border).lineWidth(0.6).rect(x, y, w, h).stroke();
+    doc.restore();
+  }
   doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size).fillColor(color).text(String(text || ''), x + padX, y + padY, {
     width: w - (padX * 2),
     height: h - (padY * 2),
@@ -290,7 +292,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
     // Header
     const headerH = 118;
-    drawCell(doc, '', left, y, contentW, headerH, { border: COLORS.border });
+    drawCell(doc, '', left, y, contentW, headerH, { border: 'none' });
 
     const logoBoxW = 68;
     const logoBoxH = 50;
@@ -322,9 +324,9 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ay = doc.y;
     });
 
-    const rightX = right - 210;
-    const rightW = 198;
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(COLORS.title).text('TAX INVOICE', rightX, y + 10, { width: rightW, align: 'right' });
+    const rightX = right - 220;
+    const rightW = 212;
+    doc.font('Helvetica-Bold').fontSize(18).fillColor(COLORS.title).text('TAX INVOICE', rightX, y + 8, { width: rightW, align: 'right' });
 
     const meta = [
       ['Invoice #', clean(invoice.invoiceNumber) || '-'],
@@ -333,8 +335,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     ];
     let my = y + 30;
     meta.forEach(([k, v]) => {
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#6b7280').text(k, rightX + 6, my, { width: 78 });
-      doc.font('Helvetica').fontSize(8).fillColor(COLORS.text).text(`: ${v}`, rightX + 84, my, { width: rightW - 90 });
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text(k, rightX + 6, my, { width: 92, align: 'right' });
+      doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(`: ${v}`, rightX + 98, my, { width: rightW - 100, align: 'right' });
       my += 12;
     });
 
@@ -345,8 +347,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const cardW = (contentW - cardGap) / 2;
     const cardH = 102;
 
-    drawCell(doc, 'Bill To', left, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: COLORS.border });
-    drawCell(doc, '', left, y + 16, cardW, cardH - 16, { border: COLORS.border });
+    drawCell(doc, 'Bill To', left, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: 'none' });
+    drawCell(doc, '', left, y + 16, cardW, cardH - 16, { border: 'none' });
     const billText = [
       billTo.title,
       billTo.address,
@@ -354,11 +356,22 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       `Pincode: ${billTo.pincode || '-'}`,
       `GSTIN: ${billTo.gstin || ''}`
     ].join('\n');
-    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(billText, left + 5, y + 22, { width: cardW - 10, lineGap: 1 });
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(billTo.title, left + 5, y + 22, { width: cardW - 10, lineGap: 1 });
+    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(
+      [
+        billTo.address,
+        `State/Country: ${[billTo.state, billTo.country].filter(Boolean).join('/') || '-'}`,
+        `Pincode: ${billTo.pincode || '-'}`,
+        `GSTIN: ${billTo.gstin || ''}`
+      ].join('\n'),
+      left + 5,
+      y + 34,
+      { width: cardW - 10, lineGap: 1 }
+    );
 
     const shipX = left + cardW + cardGap;
-    drawCell(doc, 'Ship To', shipX, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: COLORS.border });
-    drawCell(doc, '', shipX, y + 16, cardW, cardH - 16, { border: COLORS.border });
+    drawCell(doc, 'Ship To', shipX, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: 'none' });
+    drawCell(doc, '', shipX, y + 16, cardW, cardH - 16, { border: 'none' });
     const shipText = [
       shipTo.title,
       shipTo.address,
@@ -366,15 +379,26 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       `Pincode: ${shipTo.pincode || '-'}`,
       `GSTIN: ${shipTo.gstin || ''}`
     ].join('\n');
-    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(shipText, shipX + 5, y + 22, { width: cardW - 10, lineGap: 1 });
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(shipTo.title, shipX + 5, y + 22, { width: cardW - 10, lineGap: 1 });
+    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(
+      [
+        shipTo.address,
+        `State/Country: ${[shipTo.state, shipTo.country].filter(Boolean).join('/') || '-'}`,
+        `Pincode: ${shipTo.pincode || '-'}`,
+        `GSTIN: ${shipTo.gstin || ''}`
+      ].join('\n'),
+      shipX + 5,
+      y + 34,
+      { width: cardW - 10, lineGap: 1 }
+    );
 
     y += cardH + 6;
 
     // Subject row
-    const subjectH = 28;
-    drawCell(doc, '', left, y, contentW, subjectH, { border: COLORS.border });
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#ef4444').text('Subject', left + 6, y + 3);
-    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(deriveSubjectFromItems(invoice), left + 6, y + 14, { width: contentW - 180 });
+    const subjectH = 16;
+    drawCell(doc, '', left, y, contentW, subjectH, { border: 'none' });
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#ef4444').text('Subject :', left + 2, y + 3);
+    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(deriveSubjectFromItems(invoice), left + 52, y + 3, { width: contentW - 54 });
     y += subjectH + 6;
 
     // Items table
@@ -457,10 +481,10 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const rightH = leftH;
     ensureSpace(Math.max(leftH, rightH) + 8);
 
-    drawCell(doc, '', sumLeftX, y, leftW, leftH, { border: COLORS.border });
+    drawCell(doc, '', sumLeftX, y, leftW, leftH, { border: 'none' });
     doc.font('Helvetica').fontSize(8).fillColor(COLORS.text).text(leftText, sumLeftX + 5, y + 4, { width: leftW - 10, lineGap: 1 });
 
-    drawCell(doc, '', sumRightX, y, rightW2, rightH, { border: COLORS.border });
+    drawCell(doc, '', sumRightX, y, rightW2, rightH, { border: 'none' });
     let igst = toNumber(invoice.igstAmount, 0);
     let cgst = toNumber(invoice.cgstAmount, 0);
     let sgst = toNumber(invoice.sgstAmount, 0);
@@ -487,7 +511,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     let sy = y + 6;
     summaryRows.forEach(([k, v]) => {
       const isGrand = k === 'Grand Total';
-      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 20, { border: COLORS.border, bg: isGrand ? COLORS.headerBg : null });
+      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 20, { border: 'none', bg: isGrand ? COLORS.headerBg : null });
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(k, sumRightX + 10, sy + 6, { width: (rightW2 - 20) * 0.55 });
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(v, sumRightX + 10 + ((rightW2 - 20) * 0.55), sy + 6, { width: (rightW2 - 20) * 0.45, align: 'right' });
       sy += 20;
@@ -498,8 +522,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     // Signature section compact
     const sigH = 34;
     ensureSpace(sigH + 8);
-    drawCell(doc, 'Receiver Signature', left, y, contentW / 2, sigH, { align: 'left', size: 9, border: COLORS.border });
-    drawCell(doc, 'Authorized Signature', left + (contentW / 2), y, contentW / 2, sigH, { align: 'right', size: 9, border: COLORS.border });
+    drawCell(doc, 'Receiver Signature', left, y, contentW / 2, sigH, { align: 'left', size: 9, border: 'none' });
+    drawCell(doc, 'Authorized Signature', left + (contentW / 2), y, contentW / 2, sigH, { align: 'right', size: 9, border: 'none' });
     if (company.signature) {
       try { doc.image(company.signature, right - 120, y + 4, { fit: [88, 18] }); } catch (_e) {}
     }
