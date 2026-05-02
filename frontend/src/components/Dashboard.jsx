@@ -122,6 +122,7 @@ const getEmployeeName = (employee) => {
 
 export default function Dashboard() {
   const hasLoadedRef = useRef(false);
+  const [summary, setSummary] = useState(null);
   const [leads, setLeads] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [jobs, setJobs] = useState([]);
@@ -161,6 +162,7 @@ export default function Dashboard() {
           axios.get(`${API_BASE_URL}/api/customers`),
           axios.get(`${API_BASE_URL}/api/items`)
         ]);
+        const summaryRes = await axios.get(`${API_BASE_URL}/api/dashboard/summary`).catch(() => null);
 
         if (!mounted) return;
         setLeads(Array.isArray(leadRes.data) ? leadRes.data : []);
@@ -172,6 +174,9 @@ export default function Dashboard() {
         setServiceSchedules(Array.isArray(schedulesRes.data) ? schedulesRes.data : []);
         setCustomers(Array.isArray(customersRes.data) ? customersRes.data : []);
         setItems(Array.isArray(itemsRes.data) ? itemsRes.data : []);
+        if (summaryRes?.data) {
+          setSummary(summaryRes.data);
+        }
       } catch (error) {
         console.error('Dashboard load failed', error);
       }
@@ -355,6 +360,15 @@ export default function Dashboard() {
     };
   }, [customers, employees, invoices, items, jobs, leads, payments, serviceSchedules]);
 
+  const topCards = useMemo(() => ({
+    leadsCount: Number(summary?.leadsCount ?? dashboardData.newLeadsToday.length ?? 0),
+    customersCount: Number(summary?.customersCount ?? customers.length ?? 0),
+    employeesCount: Number(summary?.employeesCount ?? employees.length ?? 0),
+    jobsCount: Number(summary?.jobsCount ?? jobs.length ?? 0),
+    invoicesCount: Number(summary?.invoicesCount ?? invoices.length ?? 0),
+    invoicesTotalAmount: Number(summary?.invoicesTotalAmount ?? dashboardData.revenueThisMonth ?? 0)
+  }), [summary, dashboardData.newLeadsToday.length, dashboardData.revenueThisMonth, customers.length, employees.length, jobs.length, invoices.length]);
+
   const questionCards = useMemo(
     () => [
       {
@@ -448,7 +462,7 @@ export default function Dashboard() {
             Today&apos;s Focus
           </div>
           <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '12px', color: '#0f172a' }}>
-            {dashboardData.newLeadsToday.length > 0 ? `${dashboardData.newLeadsToday.length} new lead(s) today` : 'No new leads yet today'}
+            {topCards.leadsCount > 0 ? `${topCards.leadsCount} total lead(s)` : 'No leads yet'}
           </div>
           <p style={{ margin: '10px 0 0 0', color: '#334155', lineHeight: 1.7, fontSize: '14px', fontWeight: 600 }}>
             Collections this month: <strong>{formatCurrency(dashboardData.collectionsThisMonth)}</strong>. Keep followups and renewals active to sustain momentum.
@@ -459,23 +473,23 @@ export default function Dashboard() {
       <section className="stats-grid dashboard-grid" style={metricsStyle}>
         <div style={shell.metric}>
           <p style={shell.metricLabel}>New Leads Today</p>
-          <p style={shell.metricValue}>{dashboardData.newLeadsToday.length}</p>
-          <p style={shell.metricSub}>Fresh enquiries captured today</p>
+          <p style={shell.metricValue}>{topCards.leadsCount}</p>
+          <p style={shell.metricSub}>Total leads (cached summary)</p>
         </div>
         <div style={shell.metric}>
-          <p style={shell.metricLabel}>Follow-ups Due</p>
-          <p style={shell.metricValue}>{dashboardData.followupDueLeads.length}</p>
-          <p style={shell.metricSub}>Leads requiring immediate callback</p>
+          <p style={shell.metricLabel}>Customers</p>
+          <p style={shell.metricValue}>{topCards.customersCount}</p>
+          <p style={shell.metricSub}>Total customers</p>
         </div>
         <div style={shell.metric}>
-          <p style={shell.metricLabel}>Unpaid Invoices</p>
-          <p style={shell.metricValue}>{dashboardData.unpaidInvoices.length}</p>
-          <p style={shell.metricSub}>Outstanding: {formatCurrency(dashboardData.unpaidAmount)}</p>
+          <p style={shell.metricLabel}>Employees / Jobs</p>
+          <p style={shell.metricValue}>{topCards.employeesCount} / {topCards.jobsCount}</p>
+          <p style={shell.metricSub}>Current workforce and job volume</p>
         </div>
         <div style={shell.metric}>
-          <p style={shell.metricLabel}>Revenue This Month</p>
-          <p style={shell.metricValue}>{formatCurrency(dashboardData.revenueThisMonth)}</p>
-          <p style={shell.metricSub}>Compared with expense {formatCurrency(dashboardData.expenseThisMonth)}</p>
+          <p style={shell.metricLabel}>Invoices / Total</p>
+          <p style={shell.metricValue}>{topCards.invoicesCount}</p>
+          <p style={shell.metricSub}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
         </div>
       </section>
 

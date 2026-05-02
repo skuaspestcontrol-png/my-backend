@@ -17,6 +17,8 @@ const dbConfig = {
 
 const globalKey = '__mysqlPool';
 const globalStore = global;
+let activeConnections = 0;
+const isDev = process.env.NODE_ENV !== 'production';
 
 const pool = globalStore[globalKey] || mysql.createPool(dbConfig);
 
@@ -29,7 +31,24 @@ const query = async (sql, params = []) => {
   return rows;
 };
 
-const getConnection = async () => pool.getConnection();
+const getConnection = async () => {
+  const conn = await pool.getConnection();
+  activeConnections += 1;
+  if (isDev) {
+    console.log(`[MySQL Pool] connection acquired | active=${activeConnections}`);
+  }
+
+  const originalRelease = conn.release.bind(conn);
+  conn.release = () => {
+    activeConnections = Math.max(0, activeConnections - 1);
+    if (isDev) {
+      console.log(`[MySQL Pool] connection released | active=${activeConnections}`);
+    }
+    return originalRelease();
+  };
+
+  return conn;
+};
 
 module.exports = {
   pool,
