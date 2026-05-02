@@ -499,10 +499,10 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       : [''];
 
     const leftText = [
-      'Bank Account Details:',
-      ...bankLines,
-      '',
       `Contract Duration: ${deriveContractRange(invoice) || '-'}`,
+      '',
+      'Payment Details:',
+      ...bankLines,
       '',
       'Terms & Conditions:',
       company.terms || ''
@@ -539,7 +539,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ['Grand Total', formatINR(total)]
     ];
 
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#12364a').text('AMOUNT SUMMARY', sumRightX + 6, y + 2, { width: rightW2 - 12, align: 'left' });
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#12364a').text('AMOUNT SUMMARY', sumRightX + 10, y + 4, { width: rightW2 - 20, align: 'left' });
     let sy = y + 20;
     summaryRows.forEach(([k, v]) => {
       const isGrand = k === 'Grand Total';
@@ -555,9 +555,10 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       width: rightW2 - 20,
       align: 'center'
     });
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#1f2937').text(amountToWords(total), sumRightX + 10, wordsY + 24, {
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#1f2937').text(amountToWords(total), sumRightX + 10, wordsY + 24, {
       width: rightW2 - 20,
-      align: 'center'
+      align: 'center',
+      lineBreak: false
     });
 
     y += Math.max(leftH, rightH) + 6;
