@@ -41,7 +41,7 @@ const escapeHtml = (value) => String(value ?? '')
   .replaceAll('"', '&quot;')
   .replaceAll("'", '&#39;');
 
-const formatINR = (value) => `INR ${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -61,15 +61,6 @@ const toMultilineHtml = (value) => escapeHtml(String(value || '').trim()).replac
 const toNumber = (value, fallback = 0) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
-};
-
-const buildCompanyAddress = (settings = {}) => {
-  const line1 = String(settings.companyAddress || '').trim();
-  const line2 = [settings.companyCity, settings.companyState, settings.companyPincode]
-    .map((entry) => String(entry || '').trim())
-    .filter(Boolean)
-    .join(', ');
-  return [line1, line2].filter(Boolean).join('\n');
 };
 
 const buildCustomerAddress = (invoice = {}, customer = null) => {
@@ -144,14 +135,54 @@ export const buildInvoicePrintHtml = ({
   const activeTemplate = normalizeInvoiceTemplate(template);
   const theme = templateThemes[activeTemplate] || templateThemes.classic;
 
-  const companyName = String(safeSettings.companyName || 'Your Company').trim();
-  const companyAddress = buildCompanyAddress(safeSettings);
+  const invoiceType = String(safeInvoice.invoiceType || '').trim().toUpperCase();
+  const isNonGstInvoice = invoiceType === 'NON GST';
+
+  const companyName = String(
+    isNonGstInvoice
+      ? (safeSettings.nonGstCompanyName || safeSettings.companyName || safeSettings.gstCompanyName || 'Your Company')
+      : (safeSettings.gstCompanyName || safeSettings.companyName || 'Your Company')
+  ).trim();
+
+  const companyTagline = String(safeSettings.aboutTagline || '').trim();
+  const companyAddress = isNonGstInvoice
+    ? [
+      String(safeSettings.nonGstBillingAddress || safeSettings.nonGstAddress || '').trim(),
+      [safeSettings.nonGstCity, safeSettings.nonGstState, safeSettings.nonGstPincode]
+        .map((entry) => String(entry || '').trim())
+        .filter(Boolean)
+        .join(', ')
+    ].filter(Boolean).join('\n')
+    : [
+      String(safeSettings.gstBillingAddress || safeSettings.companyAddress || '').trim(),
+      [safeSettings.gstCity || safeSettings.companyCity, safeSettings.gstState || safeSettings.companyState, safeSettings.gstPincode || safeSettings.companyPincode]
+        .map((entry) => String(entry || '').trim())
+        .filter(Boolean)
+        .join(', ')
+    ].filter(Boolean).join('\n');
+
+  const companyPhone = String(
+    isNonGstInvoice
+      ? (safeSettings.nonGstPhone || '')
+      : (safeSettings.gstPhone || safeSettings.companyMobile || '')
+  ).trim();
+  const companyEmail = String(
+    isNonGstInvoice
+      ? (safeSettings.nonGstEmail || '')
+      : (safeSettings.gstEmail || safeSettings.companyEmail || '')
+  ).trim();
+  const companyGstin = isNonGstInvoice ? '' : String(safeSettings.companyGstNumber || '').trim();
+
   const customerName = String(
     safeInvoice.customerName || customer?.displayName || customer?.name || customer?.companyName || 'Customer'
   ).trim();
   const customerAddress = buildCustomerAddress(safeInvoice, customer);
   const servicePeriodText = buildServicePeriodText(safeInvoice);
-  const logoUrl = String(safeSettings.gstCompanyLogoUrl || safeSettings.dashboardImageUrl || '').trim();
+  const logoUrl = String(
+    isNonGstInvoice
+      ? (safeSettings.nonGstCompanyLogoUrl || safeSettings.dashboardImageUrl || '')
+      : (safeSettings.gstCompanyLogoUrl || safeSettings.dashboardImageUrl || '')
+  ).trim();
 
   const itemRows = buildItemRows(safeInvoice);
   const subtotal = toNumber(safeInvoice.subtotal, itemRows.reduce((sum, row) => sum + row.qty * row.rate, 0));
@@ -167,33 +198,44 @@ export const buildInvoicePrintHtml = ({
   const showWebsite = fieldConfig.showCompanyWebsite && website;
   const showReviewLink = fieldConfig.showGoogleReviewLink && reviewLink;
 
-  const contactLines = [
-    safeSettings.companyEmail ? `Email: ${safeSettings.companyEmail}` : '',
-    safeSettings.companyMobile ? `Mobile: ${safeSettings.companyMobile}` : ''
-  ].filter(Boolean);
+  const salesperson = String(safeInvoice.salesperson || '-').trim() || '-';
+
+  let resolvedIgst = isNonGstInvoice ? 0 : toNumber(safeInvoice.igstAmount, 0);
+  let resolvedCgst = isNonGstInvoice ? 0 : toNumber(safeInvoice.cgstAmount, 0);
+  let resolvedSgst = isNonGstInvoice ? 0 : toNumber(safeInvoice.sgstAmount, 0);
+  if (!isNonGstInvoice && resolvedIgst === 0 && resolvedCgst === 0 && resolvedSgst === 0 && totalTax > 0) {
+    const companyState = String(safeSettings.gstState || safeSettings.companyState || '').trim().toLowerCase();
+    const supplyState = String(safeInvoice.placeOfSupply || '').trim().toLowerCase();
+    const intraState = companyState && supplyState && supplyState.includes(companyState);
+    if (intraState) {
+      resolvedCgst = totalTax / 2;
+      resolvedSgst = totalTax / 2;
+    } else {
+      resolvedIgst = totalTax;
+    }
+  }
 
   const paymentSplits = Array.isArray(safeInvoice.paymentSplits) ? safeInvoice.paymentSplits : [];
 
   const rowsHtml = itemRows.length > 0
     ? itemRows.map((row) => {
-      const descriptionParts = [row.description, row.sac ? `SAC: ${row.sac}` : ''].filter(Boolean);
       return `
         <tr>
           <td class="cell cell-center">${row.index}</td>
           <td class="cell">
             <div class="item-name">${escapeHtml(row.name)}</div>
-            ${descriptionParts.length > 0 ? `<div class="item-meta">${escapeHtml(descriptionParts.join(' | '))}</div>` : ''}
+            ${row.description ? `<div class="item-meta">${escapeHtml(row.description)}</div>` : ''}
           </td>
+          <td class="cell cell-center">${escapeHtml(row.sac || '-')}</td>
           <td class="cell cell-right">${escapeHtml(row.qty.toFixed(2))}</td>
           <td class="cell cell-right">${escapeHtml(formatINR(row.rate))}</td>
-          <td class="cell cell-right">${escapeHtml(row.tax.toFixed(2))}%</td>
           <td class="cell cell-right">${escapeHtml(formatINR(row.total))}</td>
         </tr>
       `;
     }).join('')
     : `
       <tr>
-        <td class="cell" colspan="6" style="text-align:center;color:${theme.muted};">No items available</td>
+        <td class="cell" colspan="6" style="text-align:center;color:#000000;">No items available</td>
       </tr>
     `;
 
@@ -268,41 +310,30 @@ export const buildInvoicePrintHtml = ({
     body {
       margin: 0;
       background: #ffffff;
-      color: #111827;
+      color: #000000;
       font-family: "Aptos", "Segoe UI", "Trebuchet MS", sans-serif;
     }
     .invoice-sheet {
-      border: 1px solid ${theme.border};
-      border-radius: 14px;
+      border: 1px solid #9e9e9e;
       overflow: hidden;
     }
     .header {
       display: grid;
       grid-template-columns: 1fr auto;
-      gap: 16px;
-      padding: 18px;
-      background: linear-gradient(140deg, ${theme.accentSoft} 0%, #ffffff 75%);
-      border-bottom: 1px solid ${theme.border};
+      gap: 14px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #9e9e9e;
+      align-items: start;
     }
-    .company-title {
-      margin: 0;
-      font-size: 26px;
-      letter-spacing: -0.02em;
-      color: ${theme.heading};
-      font-weight: 800;
-    }
-    .company-sub {
-      margin: 6px 0 0;
-      font-size: 12px;
-      color: ${theme.muted};
-      line-height: 1.45;
+    .left-company {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
     }
     .logo {
-      width: 108px;
-      height: 108px;
-      border-radius: 14px;
-      border: 1px solid ${theme.border};
-      background: #ffffff;
+      width: 78px;
+      height: 78px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -313,119 +344,114 @@ export const buildInvoicePrintHtml = ({
       height: 100%;
       object-fit: contain;
     }
-    .invoice-meta {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0;
-      border-top: 1px solid ${theme.border};
-      border-bottom: 1px solid ${theme.border};
-    }
-    .meta-block {
-      padding: 12px 16px;
-      border-right: 1px solid ${theme.border};
-    }
-    .meta-block:last-child { border-right: none; }
-    .meta-label {
+    .company-line {
       margin: 0;
-      font-size: 11px;
-      letter-spacing: 0.09em;
-      text-transform: uppercase;
-      color: ${theme.muted};
-      font-weight: 800;
+      color: #000000;
+      line-height: 1.4;
     }
-    .meta-value {
-      margin: 6px 0 0;
-      font-size: 15px;
-      color: ${theme.heading};
+    .company-name { font-size: 12px; font-weight: 700; }
+    .company-tag { font-size: 10px; margin-top: 2px; }
+    .company-text { font-size: 10px; margin-top: 2px; white-space: pre-line; }
+    .invoice-meta-right {
+      min-width: 230px;
+      text-align: right;
+      color: #000000;
+    }
+    .tax-title {
+      margin: 0;
+      font-size: 12px;
       font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .meta-line {
+      margin: 3px 0 0;
+      font-size: 10px;
+      line-height: 1.35;
     }
     .party-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid ${theme.border};
+      gap: 0;
+      padding: 10px 12px;
+      border-bottom: 1px solid #9e9e9e;
     }
     .party-card {
-      border: 1px solid ${theme.border};
-      border-radius: 10px;
-      padding: 10px 12px;
+      padding: 0 8px 0 0;
       background: #ffffff;
     }
     .party-title {
       margin: 0;
-      font-size: 11px;
-      letter-spacing: 0.08em;
+      font-size: 10px;
+      letter-spacing: 0.09em;
       text-transform: uppercase;
-      color: ${theme.accentText};
+      color: #000000;
       font-weight: 800;
     }
     .party-text {
-      margin: 6px 0 0;
-      font-size: 12px;
-      line-height: 1.5;
-      color: #1f2937;
+      margin: 4px 0 0;
+      font-size: 10px;
+      line-height: 1.45;
+      color: #000000;
       white-space: pre-line;
     }
     .items-wrap {
-      padding: 14px 16px;
+      padding: 10px 12px;
     }
     .items-table {
       width: 100%;
       border-collapse: collapse;
-      border: 1px solid ${theme.border};
-      border-radius: 10px;
-      overflow: hidden;
+      border: 1px solid #9e9e9e;
+      table-layout: fixed;
     }
     .head {
-      background: ${theme.tableHead};
-      color: #111827;
-      font-size: 11px;
+      background: #f2f3f4;
+      color: #000000;
+      font-size: 8px;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.04em;
       font-weight: 800;
-      border-bottom: 1px solid ${theme.border};
-      padding: 10px 8px;
-      text-align: left;
+      border: 1px solid #9e9e9e;
+      padding: 5px 4px;
+      text-align: center;
+      vertical-align: middle;
     }
     .cell {
-      border-bottom: 1px solid ${theme.border};
-      padding: 10px 8px;
-      font-size: 12px;
-      color: #111827;
-      vertical-align: top;
+      border: 1px solid #9e9e9e;
+      padding: 4px 4px;
+      font-size: 8px;
+      color: #000000;
+      vertical-align: middle;
+      overflow-wrap: anywhere;
     }
     .cell-right { text-align: right; }
     .cell-center { text-align: center; }
-    .item-name { font-weight: 700; }
-    .item-meta { margin-top: 3px; color: ${theme.muted}; font-size: 11px; }
+    .item-name { font-weight: 700; font-size: 8px; line-height: 1.3; }
+    .item-meta { margin-top: 2px; color: #000000; font-size: 8px; line-height: 1.3; }
     .totals {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 320px;
-      gap: 14px;
-      padding: 0 16px 16px;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 10px;
+      padding: 0 12px 12px;
       align-items: start;
     }
     .section-card {
-      border: 1px solid ${theme.border};
-      border-radius: 10px;
-      padding: 10px 12px;
+      border: none;
+      padding: 0;
       background: #ffffff;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .section-card h4 {
-      margin: 0;
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: ${theme.accentText};
-      font-weight: 800;
+      margin: 6px 0 0;
+      font-size: 10px;
+      color: #000000;
+      font-weight: 700;
     }
     .section-card p {
-      margin: 8px 0 0;
-      font-size: 12px;
+      margin: 6px 0 0;
+      font-size: 10px;
       line-height: 1.5;
-      color: #1f2937;
+      color: #000000;
       white-space: pre-line;
     }
     .meta-table {
@@ -434,33 +460,32 @@ export const buildInvoicePrintHtml = ({
       margin-top: 8px;
     }
     .meta-table td {
-      padding: 6px 0;
-      border-bottom: 1px dashed ${theme.border};
-      font-size: 12px;
-      color: #1f2937;
+      padding: 4px 0;
+      border-bottom: none;
+      font-size: 10px;
+      color: #000000;
     }
     .meta-table td:last-child {
       text-align: right;
       font-weight: 700;
     }
     .split-wrap {
-      margin-top: 10px;
+      margin-top: 8px;
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
     }
     .split-chip {
-      border: 1px solid ${theme.border};
+      border: 1px solid #9e9e9e;
       border-radius: 999px;
-      padding: 5px 9px;
+      padding: 4px 8px;
       font-size: 10px;
       font-weight: 700;
-      color: #1f2937;
-      background: ${theme.accentSoft};
+      color: #000000;
+      background: #f2f3f4;
     }
     .total-card {
-      border: 1px solid ${theme.border};
-      border-radius: 10px;
+      border: 1px solid #9e9e9e;
       overflow: hidden;
       background: #ffffff;
     }
@@ -468,21 +493,21 @@ export const buildInvoicePrintHtml = ({
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 9px 12px;
-      border-bottom: 1px solid ${theme.border};
-      font-size: 12px;
-      color: #1f2937;
+      padding: 6px 8px;
+      border-bottom: 1px solid #9e9e9e;
+      font-size: 10px;
+      color: #000000;
     }
     .total-row:last-child { border-bottom: none; }
     .grand-row {
-      background: ${theme.accentSoft};
-      font-size: 14px;
+      background: #f2f3f4;
+      font-size: 10px;
       font-weight: 800;
-      color: ${theme.heading};
+      color: #000000;
     }
     .footer {
-      border-top: 1px solid ${theme.border};
-      padding: 12px 16px 14px;
+      border-top: 1px solid #9e9e9e;
+      padding: 10px 12px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
@@ -492,8 +517,8 @@ export const buildInvoicePrintHtml = ({
     }
     .footer-text {
       margin: 0;
-      font-size: 11px;
-      color: ${theme.muted};
+      font-size: 10px;
+      color: #000000;
       line-height: 1.5;
     }
     .footer-links {
@@ -503,21 +528,21 @@ export const buildInvoicePrintHtml = ({
       flex-wrap: wrap;
     }
     .footer-link {
-      font-size: 11px;
-      color: ${theme.accent};
+      font-size: 10px;
+      color: #000000;
       text-decoration: none;
       font-weight: 700;
-      border: 1px solid ${theme.border};
+      border: 1px solid #9e9e9e;
       border-radius: 999px;
-      padding: 6px 10px;
-      background: ${theme.accentSoft};
+      padding: 5px 9px;
+      background: #f2f3f4;
     }
     .subject-box {
-      padding: 0 16px 12px;
-      font-size: 12px;
-      color: #1f2937;
+      padding: 0 12px 8px;
+      font-size: 10px;
+      color: #000000;
     }
-    .subject-box strong { color: ${theme.heading}; }
+    .subject-box strong { color: #000000; }
     @media print {
       .invoice-sheet { border-radius: 0; }
     }
@@ -526,37 +551,27 @@ export const buildInvoicePrintHtml = ({
 <body>
   <main class="invoice-sheet">
     <header class="header">
-      <div>
-        <h1 class="company-title">${escapeHtml(companyName)}</h1>
-        <p class="company-sub">
-          ${toMultilineHtml(companyAddress || 'Address not configured in Settings')}
-          ${fieldConfig.showCompanyGst && safeSettings.companyGstNumber ? `<br/>GSTIN: ${escapeHtml(safeSettings.companyGstNumber)}` : ''}
-          ${contactLines.length > 0 ? `<br/>${escapeHtml(contactLines.join(' | '))}` : ''}
-        </p>
+      <div class="left-company">
+        <div class="logo">
+          ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Company logo" />` : ''}
+        </div>
+        <div>
+          <p class="company-line company-name">${escapeHtml(companyName)}</p>
+          ${companyTagline ? `<p class="company-line company-tag">${escapeHtml(companyTagline)}</p>` : ''}
+          <p class="company-line company-text">${toMultilineHtml(companyAddress || '-')}</p>
+          <p class="company-line company-text">Mobile: ${escapeHtml(companyPhone || '-')}</p>
+          <p class="company-line company-text">E Mail Id: ${escapeHtml(companyEmail || '-')}</p>
+          <p class="company-line company-text">Visit Us: ${escapeHtml(website || '-')}</p>
+          <p class="company-line company-text">GST Details: ${escapeHtml(companyGstin || '')}</p>
+        </div>
       </div>
-      <div class="logo">
-        ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Company logo" />` : `<span style="font-size:11px;color:${theme.muted};font-weight:700;">No Logo</span>`}
+      <div class="invoice-meta-right">
+        <p class="tax-title">TAX Invoice</p>
+        <p class="meta-line">Invoice #: ${escapeHtml(safeInvoice.invoiceNumber || '-')}</p>
+        <p class="meta-line">Invoice Date: ${escapeHtml(formatDate(safeInvoice.date))}</p>
+        <p class="meta-line">Salesperson: ${escapeHtml(salesperson)}</p>
       </div>
     </header>
-
-    <section class="invoice-meta">
-      <div class="meta-block">
-        <p class="meta-label">Invoice Number</p>
-        <p class="meta-value">${escapeHtml(safeInvoice.invoiceNumber || '-')}</p>
-      </div>
-      <div class="meta-block">
-        <p class="meta-label">Invoice Date</p>
-        <p class="meta-value">${escapeHtml(formatDate(safeInvoice.date))}</p>
-      </div>
-      <div class="meta-block">
-        <p class="meta-label">Due Date</p>
-        <p class="meta-value">${escapeHtml(formatDate(safeInvoice.dueDate))}</p>
-      </div>
-      <div class="meta-block">
-        <p class="meta-label">Status</p>
-        <p class="meta-value">${escapeHtml(String(safeInvoice.status || 'DRAFT').toUpperCase())}</p>
-      </div>
-    </section>
 
     <section class="party-grid">
       <div class="party-card">
@@ -583,10 +598,10 @@ export const buildInvoicePrintHtml = ({
         <thead>
           <tr>
             <th class="head" style="width:7%;">#</th>
-            <th class="head" style="width:45%;">Item</th>
+            <th class="head" style="width:41%;">Service Description</th>
+            <th class="head" style="width:12%;">HSN/SAC</th>
             <th class="head" style="width:10%;text-align:right;">Qty</th>
-            <th class="head" style="width:13%;text-align:right;">Rate</th>
-            <th class="head" style="width:10%;text-align:right;">Tax</th>
+            <th class="head" style="width:15%;text-align:right;">Rate</th>
             <th class="head" style="width:15%;text-align:right;">Amount</th>
           </tr>
         </thead>
@@ -604,8 +619,10 @@ export const buildInvoicePrintHtml = ({
       </div>
       <div class="total-card">
         <div class="total-row"><span>Sub Total</span><strong>${escapeHtml(formatINR(subtotal))}</strong></div>
-        <div class="total-row"><span>Total Tax</span><strong>${escapeHtml(formatINR(totalTax))}</strong></div>
-        <div class="total-row"><span>Withholding</span><strong>- ${escapeHtml(formatINR(withholdingAmount))}</strong></div>
+        <div class="total-row"><span>IGST</span><strong>${escapeHtml(formatINR(resolvedIgst))}</strong></div>
+        <div class="total-row"><span>CGST</span><strong>${escapeHtml(formatINR(resolvedCgst))}</strong></div>
+        <div class="total-row"><span>SGST</span><strong>${escapeHtml(formatINR(resolvedSgst))}</strong></div>
+        <div class="total-row"><span>Withholding</span><strong>${escapeHtml(formatINR(-withholdingAmount))}</strong></div>
         <div class="total-row"><span>Round Off</span><strong>${escapeHtml(formatINR(roundOff))}</strong></div>
         <div class="total-row grand-row"><span>Grand Total</span><strong>${escapeHtml(formatINR(totalAmount))}</strong></div>
         <div class="total-row"><span>Balance Due</span><strong>${escapeHtml(formatINR(Math.max(balanceDue, 0)))}</strong></div>
