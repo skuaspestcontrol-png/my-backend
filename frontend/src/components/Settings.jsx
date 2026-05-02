@@ -1281,6 +1281,144 @@ export default function Settings({ modalMode = false }) {
         <p style={shell.fieldLabel}>Company Services</p>
         <textarea style={shell.textArea} value={form.companyServices} onChange={(event) => updateField('companyServices', event.target.value)} />
       </div>
+
+      <div style={shell.divider} />
+      <h4 style={blockTitleStyle}>Branding</h4>
+      <p style={{ ...shell.hint, fontSize: '14px' }}>Appearance and accent settings moved here from Branding tab.</p>
+      <div style={{ ...shell.profileCard, borderStyle: 'solid' }}>
+        <p style={{ ...shell.fieldLabel, margin: 0 }}>Live Preview</p>
+        <div
+          style={{
+            border: '1px solid #d1d5db',
+            borderRadius: '14px',
+            overflow: 'hidden',
+            background: form.brandingAppearance === 'dark' ? '#0f172a' : '#ffffff'
+          }}
+        >
+          <div style={{ height: '10px', background: form.brandingAccentColor || '#9F174D' }} />
+          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', minHeight: '96px' }}>
+            <div
+              style={{
+                background: form.brandingAppearance === 'dark' ? '#111827' : '#f8fafc',
+                borderRight: '1px solid rgba(148,163,184,0.25)',
+                padding: '10px',
+                display: 'grid',
+                gap: '7px'
+              }}
+            >
+              <div style={{ height: '8px', borderRadius: '999px', background: form.brandingAccentColor || '#9F174D' }} />
+              <div style={{ height: '8px', borderRadius: '999px', background: 'rgba(148,163,184,0.4)' }} />
+              <div style={{ height: '8px', borderRadius: '999px', background: 'rgba(148,163,184,0.25)' }} />
+            </div>
+            <div style={{ padding: '12px' }}>
+              <div style={{ fontWeight: 800, color: form.brandingAppearance === 'dark' ? '#e5e7eb' : '#111827' }}>Branding Preview</div>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: form.brandingAppearance === 'dark' ? '#94a3b8' : '#64748b' }}>
+                Pane: {form.brandingAppearance === 'dark' ? 'Dark' : 'Light'} • Accent: {form.brandingAccentColor || '#9F174D'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={shell.divider} />
+      <p style={{ ...shell.fieldLabel, margin: 0 }}>Appearance</p>
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => updateField('brandingAppearance', 'dark')}
+          style={{
+            border: form.brandingAppearance === 'dark' ? '2px solid #1f2937' : '1px solid #d1d5db',
+            background: '#fff',
+            borderRadius: '16px',
+            width: '210px',
+            minHeight: '120px',
+            cursor: 'pointer',
+            fontWeight: 800,
+            color: '#475569'
+          }}
+        >
+          DARK PANE
+        </button>
+        <button
+          type="button"
+          onClick={() => updateField('brandingAppearance', 'light')}
+          style={{
+            border: form.brandingAppearance === 'light' ? '2px solid var(--color-primary)' : '1px solid #d1d5db',
+            background: '#fff',
+            borderRadius: '16px',
+            width: '210px',
+            minHeight: '120px',
+            cursor: 'pointer',
+            fontWeight: 800,
+            color: '#475569'
+          }}
+        >
+          LIGHT PANE
+        </button>
+      </div>
+
+      <div style={shell.divider} />
+      <p style={{ ...shell.fieldLabel, margin: 0 }}>Accent Color</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(48px, max-content))', gap: '12px', alignItems: 'center' }}>
+        {brandingAccentOptions.map((entry) => (
+          <button
+            key={entry}
+            type="button"
+            onClick={() => updateField('brandingAccentColor', entry)}
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              border: form.brandingAccentColor === entry ? '3px solid #1f2937' : '1px solid #d1d5db',
+              background: entry,
+              cursor: 'pointer'
+            }}
+            title={entry}
+          />
+        ))}
+        <label
+          htmlFor="branding-custom-accent"
+          style={{
+            minHeight: '44px',
+            borderRadius: '12px',
+            padding: '0 14px',
+            border: brandingAccentOptions.includes(form.brandingAccentColor) ? '1px solid #d1d5db' : '2px solid #1f2937',
+            background: 'linear-gradient(135deg, #38bdf8 0%, #8b5cf6 45%, #ec4899 100%)',
+            color: '#fff',
+            fontWeight: 800,
+            fontSize: '13px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            position: 'relative',
+            minWidth: '98px'
+          }}
+          title="Custom Accent Color"
+        >
+          Custom
+          <input
+            id="branding-custom-accent"
+            ref={customAccentInputRef}
+            type="color"
+            value={form.brandingAccentColor || '#9F174D'}
+            onChange={(event) => updateField('brandingAccentColor', event.target.value)}
+            aria-label="Choose custom accent color"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              opacity: 0,
+              cursor: 'pointer',
+              border: 'none',
+              padding: 0,
+              margin: 0
+            }}
+          />
+        </label>
+      </div>
     </>
   );
 
@@ -1539,219 +1677,7 @@ export default function Settings({ modalMode = false }) {
   const renderBranding = () => (
     <>
       <h3 style={shell.sectionHeading}>Branding</h3>
-      <p style={shell.infoBanner}>Organization logo, appearance mode, and accent color for dashboard, PDFs and notifications.</p>
-      <div style={{ ...shell.profileCard, borderStyle: 'solid' }}>
-        <p style={{ ...shell.fieldLabel, margin: 0 }}>Live Preview</p>
-        <div
-          style={{
-            border: '1px solid #d1d5db',
-            borderRadius: '14px',
-            overflow: 'hidden',
-            background: form.brandingAppearance === 'dark' ? '#0f172a' : '#ffffff'
-          }}
-        >
-          <div style={{ height: '10px', background: form.brandingAccentColor || '#9F174D' }} />
-          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', minHeight: '96px' }}>
-            <div
-              style={{
-                background: form.brandingAppearance === 'dark' ? '#111827' : '#f8fafc',
-                borderRight: '1px solid rgba(148,163,184,0.25)',
-                padding: '10px',
-                display: 'grid',
-                gap: '7px'
-              }}
-            >
-              <div style={{ height: '8px', borderRadius: '999px', background: form.brandingAccentColor || '#9F174D' }} />
-              <div style={{ height: '8px', borderRadius: '999px', background: 'rgba(148,163,184,0.4)' }} />
-              <div style={{ height: '8px', borderRadius: '999px', background: 'rgba(148,163,184,0.25)' }} />
-            </div>
-            <div style={{ padding: '12px' }}>
-              <div style={{ fontWeight: 800, color: form.brandingAppearance === 'dark' ? '#e5e7eb' : '#111827' }}>Branding Preview</div>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: form.brandingAppearance === 'dark' ? '#94a3b8' : '#64748b' }}>
-                Pane: {form.brandingAppearance === 'dark' ? 'Dark' : 'Light'} • Accent: {form.brandingAccentColor || '#9F174D'}
-              </div>
-              <button
-                type="button"
-                style={{
-                  marginTop: '10px',
-                  border: `1px solid ${form.brandingAccentColor || '#9F174D'}`,
-                  color: '#fff',
-                  background: form.brandingAccentColor || '#9F174D',
-                  borderRadius: '8px',
-                  minHeight: '28px',
-                  padding: '0 10px',
-                  fontWeight: 800,
-                  fontSize: '11px'
-                }}
-              >
-                Sample Action
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div style={{ ...shell.profileCard, borderStyle: 'solid' }}>
-        <p style={{ ...shell.fieldLabel, margin: 0 }}>Organization Logo</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 320px) 1fr', gap: '16px', alignItems: 'center' }}>
-          {renderBrandingUploader({
-            title: 'Organization Logo',
-            fieldKey: 'dashboardImageUrl',
-            inputRef: logoInputRef,
-            hint: 'Preferred 240 x 240 pixels @ 72 DPI',
-            emptyLabel: 'Logo'
-          })}
-          <div>
-            <p style={{ margin: 0, color: '#334155', fontWeight: 600, lineHeight: 1.5 }}>This logo will be displayed in transaction PDFs and email notifications.</p>
-            <p style={{ margin: '10px 0 0 0', color: '#64748b', fontWeight: 600, lineHeight: 1.5 }}>
-              Preferred Image Dimensions: 240 x 240 pixels @ 72 DPI<br />
-              Supported Files: jpg, jpeg, png, gif, bmp<br />
-              Maximum File Size: 1MB
-            </p>
-            <button
-              type="button"
-              style={{ ...shell.tinyButton, ...shell.tinyButtonGhost, marginTop: '10px' }}
-              onClick={() => updateField('dashboardImageUrl', '')}
-            >
-              Remove Logo
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div style={shell.divider} />
-      <p style={{ ...shell.fieldLabel, margin: 0 }}>Appearance</p>
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          onClick={() => updateField('brandingAppearance', 'dark')}
-          style={{
-            border: form.brandingAppearance === 'dark' ? '2px solid #1f2937' : '1px solid #d1d5db',
-            background: '#fff',
-            borderRadius: '16px',
-            width: '210px',
-            minHeight: '120px',
-            cursor: 'pointer',
-            fontWeight: 800,
-            color: '#475569'
-          }}
-        >
-          DARK PANE
-        </button>
-        <button
-          type="button"
-          onClick={() => updateField('brandingAppearance', 'light')}
-          style={{
-            border: form.brandingAppearance === 'light' ? '2px solid var(--color-primary)' : '1px solid #d1d5db',
-            background: '#fff',
-            borderRadius: '16px',
-            width: '210px',
-            minHeight: '120px',
-            cursor: 'pointer',
-            fontWeight: 800,
-            color: '#475569'
-          }}
-        >
-          LIGHT PANE
-        </button>
-      </div>
-
-      <div style={shell.divider} />
-      <p style={{ ...shell.fieldLabel, margin: 0 }}>Accent Color</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(48px, max-content))', gap: '12px', alignItems: 'center' }}>
-        {brandingAccentOptions.map((entry) => (
-          <button
-            key={entry}
-            type="button"
-            onClick={() => updateField('brandingAccentColor', entry)}
-            style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '12px',
-              border: form.brandingAccentColor === entry ? '3px solid #1f2937' : '1px solid #d1d5db',
-              background: entry,
-              cursor: 'pointer'
-            }}
-            title={entry}
-          />
-        ))}
-        <label
-          htmlFor="branding-custom-accent"
-          style={{
-            minHeight: '44px',
-            borderRadius: '12px',
-            padding: '0 14px',
-            border: brandingAccentOptions.includes(form.brandingAccentColor) ? '1px solid #d1d5db' : '2px solid #1f2937',
-            background: 'linear-gradient(135deg, #38bdf8 0%, #8b5cf6 45%, #ec4899 100%)',
-            color: '#fff',
-            fontWeight: 800,
-            fontSize: '13px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            position: 'relative',
-            minWidth: '98px'
-          }}
-          title="Custom Accent Color"
-        >
-          Custom
-          <input
-            id="branding-custom-accent"
-            ref={customAccentInputRef}
-            type="color"
-            value={form.brandingAccentColor || '#9F174D'}
-            onChange={(event) => updateField('brandingAccentColor', event.target.value)}
-            aria-label="Choose custom accent color"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              opacity: 0,
-              cursor: 'pointer',
-              border: 'none',
-              padding: 0,
-              margin: 0
-            }}
-          />
-        </label>
-      </div>
-
-      <div style={shell.twoCol}>
-        {renderBrandingUploader({
-          title: 'GST Company Logo',
-          fieldKey: 'gstCompanyLogoUrl',
-          inputRef: gstLogoInputRef,
-          hint: 'Used on GST invoices.'
-          ,
-          clean: true
-        })}
-        {renderBrandingUploader({
-          title: 'GST Digital Signature',
-          fieldKey: 'gstDigitalSignatureUrl',
-          inputRef: gstSignatureInputRef,
-          hint: 'Optional invoice signature image.'
-          ,
-          clean: true
-        })}
-        {renderBrandingUploader({
-          title: 'Non-GST Company Logo',
-          fieldKey: 'nonGstCompanyLogoUrl',
-          inputRef: nonGstLogoInputRef,
-          hint: 'Used on non-GST documents.'
-          ,
-          clean: true
-        })}
-        {renderBrandingUploader({
-          title: 'Non-GST Digital Signature',
-          fieldKey: 'nonGstDigitalSignatureUrl',
-          inputRef: nonGstSignatureInputRef,
-          hint: 'Used on non-GST invoices.'
-          ,
-          clean: true
-        })}
-      </div>
+      <p style={shell.infoBanner}>Branding form fields have been shifted to the Profile tab.</p>
     </>
   );
 
