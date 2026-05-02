@@ -1257,8 +1257,55 @@ export default function LeadCapture() {
     setIsFetchingAddress(true);
     setSearchError('');
     try {
+      const tryClientPlacesSearch = async () => new Promise((resolve) => {
+        if (!window.google?.maps?.places) {
+          resolve(null);
+          return;
+        }
+        const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+        service.findPlaceFromQuery(
+          {
+            query,
+            fields: [
+              'place_id',
+              'name',
+              'formatted_address',
+              'geometry',
+              'formatted_phone_number',
+              'international_phone_number',
+              'website',
+              'types',
+              'address_components'
+            ]
+          },
+          (results, status) => {
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && Array.isArray(results) && results[0]) {
+              resolve(results[0]);
+              return;
+            }
+            resolve(null);
+          }
+        );
+      });
+
+      const placeToServerShape = (place) => ({
+        name: String(place?.name || '').trim(),
+        place_id: String(place?.place_id || '').trim(),
+        formatted_address: String(place?.formatted_address || '').trim(),
+        geometry: place?.geometry || {},
+        formatted_phone_number: String(place?.formatted_phone_number || '').trim(),
+        international_phone_number: String(place?.international_phone_number || '').trim(),
+        website: String(place?.website || '').trim(),
+        address_components: Array.isArray(place?.address_components) ? place.address_components : [],
+        types: Array.isArray(place?.types) ? place.types : []
+      });
+
       const response = await axios.post(`${API_BASE_URL}/api/maps/geocode`, { address: query });
-      const best = response?.data?.result || response?.data || {};
+      let best = response?.data?.result || response?.data || {};
+      if (!best || (!best.formatted_address && !best.place_id && !best.name)) {
+        const place = await tryClientPlacesSearch();
+        if (place) best = placeToServerShape(place);
+      }
       const formattedAddress = String(best.formatted_address || query).trim();
       const placeName = String(best.name || '').trim();
       const placeId = String(best.place_id || '').trim();
@@ -1286,6 +1333,64 @@ export default function LeadCapture() {
         googleWebsite: placeWebsite || current.googleWebsite
       }));
     } catch (error) {
+      let best = null;
+      try {
+        const place = await (new Promise((resolve) => {
+          if (!window.google?.maps?.places) {
+            resolve(null);
+            return;
+          }
+          const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+          service.findPlaceFromQuery(
+            {
+              query,
+              fields: ['place_id', 'name', 'formatted_address', 'geometry', 'address_components']
+            },
+            (results, status) => {
+              if (status === window.google.maps.places.PlacesServiceStatus.OK && Array.isArray(results) && results[0]) {
+                resolve(results[0]);
+                return;
+              }
+              resolve(null);
+            }
+          );
+        }));
+        if (place) best = place;
+      } catch {
+        best = null;
+      }
+
+      if (best) {
+        const normalized = {
+          name: String(best?.name || '').trim(),
+          place_id: String(best?.place_id || '').trim(),
+          formatted_address: String(best?.formatted_address || query).trim(),
+          geometry: best?.geometry || {},
+          address_components: Array.isArray(best?.address_components) ? best.address_components : []
+        };
+        const formattedAddress = normalized.formatted_address;
+        const location = normalized?.geometry?.location || {};
+        const lat = Number(typeof location?.lat === 'function' ? location.lat() : location?.lat);
+        const lng = Number(typeof location?.lng === 'function' ? location.lng() : location?.lng);
+        const extracted = extractAddressFields(normalized);
+        setForm((current) => ({
+          ...current,
+          customerName: current.customerName || normalized.name || current.customerName,
+          searchAddress: formattedAddress || current.searchAddress,
+          address: formattedAddress || current.address,
+          areaName: extracted.areaName || current.areaName,
+          city: extracted.city || current.city,
+          state: extracted.state || current.state,
+          pincode: extracted.pincode || current.pincode,
+          latitude: Number.isFinite(lat) ? String(lat) : current.latitude,
+          longitude: Number.isFinite(lng) ? String(lng) : current.longitude,
+          googlePlaceId: normalized.place_id || current.googlePlaceId,
+          googlePlaceName: normalized.name || current.googlePlaceName
+        }));
+        setSearchError('');
+        return;
+      }
+
       const message = String(error?.response?.data?.error || error?.message || '').trim();
       setSearchError(message || 'Unable to fetch location. Check Google Maps key, API access, domain restriction, and billing.');
     } finally {
