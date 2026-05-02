@@ -624,7 +624,7 @@ const getSectionCompletion = (form, securityForm) => {
   };
 };
 
-export default function Settings() {
+export default function Settings({ modalMode = false }) {
   const [form, setForm] = useState(defaultForm);
   const [initialForm, setInitialForm] = useState(defaultForm);
   const [status, setStatus] = useState('');
@@ -647,7 +647,7 @@ export default function Settings() {
   const passwordStrength = useMemo(() => getPasswordStrength(securityForm.newPassword), [securityForm.newPassword]);
   const brandingAccentOptions = ['#3B82F6', '#22C55E', '#EF4444', '#F59E0B', '#9F174D'];
   const isMobile = viewportWidth <= 768;
-  const isCompactLayout = isMobile || isTouchDevice || viewportWidth <= 1100;
+  const isCompactLayout = isMobile || isTouchDevice || viewportWidth <= 1100 || modalMode;
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -1430,7 +1430,7 @@ export default function Settings() {
       </div>
 
       <div style={shell.divider} />
-      <h4 style={{ margin: 0, fontSize: '34px', lineHeight: 1.15, color: 'var(--text)', fontWeight: 800, letterSpacing: '-0.02em' }}>
+      <h4 style={blockTitleStyle}>
         GST Company Branding
       </h4>
       <p style={{ ...shell.hint, fontSize: '14px' }}>Upload logo, signature, and stamp used on GST invoices and documents.</p>
@@ -1517,7 +1517,7 @@ export default function Settings() {
       </div>
 
       <div style={shell.divider} />
-      <h4 style={{ margin: 0, fontSize: '34px', lineHeight: 1.15, color: 'var(--text)', fontWeight: 800, letterSpacing: '-0.02em' }}>
+      <h4 style={blockTitleStyle}>
         Non-GST Company Branding
       </h4>
       <p style={{ ...shell.hint, fontSize: '14px' }}>Upload logo used on Non-GST invoices and documents.</p>
@@ -2106,8 +2106,8 @@ export default function Settings() {
       <>
         <div style={shell.bankHeaderRow}>
           <div>
-            <p style={{ ...shell.hint, marginBottom: '4px', fontSize: '22px', fontWeight: 800, color: '#334155' }}>Bank Configuration</p>
-            <p style={{ ...shell.hint, fontSize: '18px', fontWeight: 700, color: '#475569' }}>GST & Non-GST Company Bank Details</p>
+            <p style={sectionLeadTitleStyle}>Bank Configuration</p>
+            <p style={sectionLeadSubTitleStyle}>GST & Non-GST Company Bank Details</p>
           </div>
           <div style={shell.bankActions}>
             <button type="button" style={shell.topButton} onClick={resetBankSection}>Reset</button>
@@ -2234,7 +2234,7 @@ export default function Settings() {
         </div>
 
         <div style={shell.divider} />
-        <p style={{ ...shell.hint, fontSize: '22px', fontWeight: 800, color: '#334155' }}>Saved Bank Accounts</p>
+        <p style={sectionLeadTitleStyle}>Saved Bank Accounts</p>
         <div style={shell.bankTableWrap}>
           <table style={shell.bankTable}>
             <thead>
@@ -2418,12 +2418,30 @@ export default function Settings() {
   const panelBodyStyle = isCompactLayout
     ? { ...shell.panelBody, padding: '12px', overflowX: 'hidden' }
     : shell.panelBody;
+  const pageStyle = modalMode
+    ? { ...shell.page, gap: '10px' }
+    : shell.page;
+  const headingStyle = modalMode
+    ? { ...shell.heading, fontSize: '22px' }
+    : shell.heading;
+  const subHeadingStyle = modalMode
+    ? { ...shell.subHeading, fontSize: '13px' }
+    : shell.subHeading;
+  const blockTitleStyle = modalMode
+    ? { margin: 0, fontSize: '24px', lineHeight: 1.2, color: 'var(--text)', fontWeight: 800, letterSpacing: '-0.01em' }
+    : { margin: 0, fontSize: '34px', lineHeight: 1.15, color: 'var(--text)', fontWeight: 800, letterSpacing: '-0.02em' };
+  const sectionLeadTitleStyle = modalMode
+    ? { ...shell.hint, marginBottom: '4px', fontSize: '18px', fontWeight: 800, color: '#334155' }
+    : { ...shell.hint, marginBottom: '4px', fontSize: '22px', fontWeight: 800, color: '#334155' };
+  const sectionLeadSubTitleStyle = modalMode
+    ? { ...shell.hint, fontSize: '14px', fontWeight: 700, color: '#475569' }
+    : { ...shell.hint, fontSize: '18px', fontWeight: 700, color: '#475569' };
 
   return (
-    <section style={shell.page}>
+    <section style={pageStyle}>
       <div style={shell.headingWrap}>
-        <h2 style={shell.heading}>Company Profile</h2>
-        <p style={shell.subHeading}>Company profile settings</p>
+        <h2 style={headingStyle}>Company Profile</h2>
+        <p style={subHeadingStyle}>Company profile settings</p>
       </div>
 
       <div style={shell.workspaceShell}>

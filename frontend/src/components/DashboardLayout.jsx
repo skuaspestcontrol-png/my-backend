@@ -20,8 +20,10 @@ import {
   Smartphone,
   Truck,
   UserCheck,
-  Users
+  Users,
+  X
 } from 'lucide-react';
+import SettingsPanel from './Settings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -52,6 +54,7 @@ export default function DashboardLayout({ children }) {
   const [fieldOpsMenuOpen, setFieldOpsMenuOpen] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 992);
+  const [settingsPopupOpen, setSettingsPopupOpen] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -107,6 +110,20 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     if (isDrawerMode) setSidebarOpen(false);
   }, [isDrawerMode, location.pathname]);
+
+  useEffect(() => {
+    if (!settingsPopupOpen) return undefined;
+    const handleEsc = (event) => {
+      if (event.key === 'Escape') setSettingsPopupOpen(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    const { overflow } = document.body.style;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = overflow;
+    };
+  }, [settingsPopupOpen]);
 
   const isActive = (path) => location.pathname === path;
   const isPrefixActive = (prefix) => location.pathname.startsWith(prefix);
@@ -369,7 +386,7 @@ export default function DashboardLayout({ children }) {
             </span>
             <button
               type="button"
-              onClick={() => navigate('/settings')}
+              onClick={() => setSettingsPopupOpen(true)}
               style={{
                 border: '1px solid var(--color-border)',
                 background: '#fff',
@@ -415,6 +432,75 @@ export default function DashboardLayout({ children }) {
           </div>
         </main>
       </div>
+      {settingsPopupOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Settings"
+          onClick={() => setSettingsPopupOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: 'rgba(15, 23, 42, 0.48)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: isMobile ? '10px' : '20px'
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: 'min(1280px, 100%)',
+              height: isMobile ? 'calc(100dvh - 20px)' : 'min(90dvh, 920px)',
+              background: '#ffffff',
+              borderRadius: isMobile ? '16px' : '20px',
+              border: '1px solid var(--color-border)',
+              boxShadow: '0 24px 50px rgba(15, 23, 42, 0.28)',
+              overflow: 'hidden',
+              display: 'grid',
+              gridTemplateRows: '56px minmax(0, 1fr)'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 14px 0 18px',
+                borderBottom: '1px solid var(--color-border)',
+                background: '#f8fafc'
+              }}
+            >
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a', letterSpacing: '0.01em' }}>Settings</h2>
+              <button
+                type="button"
+                onClick={() => setSettingsPopupOpen(false)}
+                aria-label="Close settings"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--color-border)',
+                  background: '#fff',
+                  color: '#334155',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div style={{ minHeight: 0, overflow: 'auto', padding: isMobile ? '10px' : '12px' }}>
+              <SettingsPanel modalMode />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
