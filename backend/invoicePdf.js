@@ -130,12 +130,15 @@ const parseLocalAsset = (input = '') => {
 
 const resolveCompany = (settings = {}, invoice = {}) => {
   const isNonGst = clean(invoice.invoiceType).toUpperCase() === 'NON GST';
+  const address1 = clean((isNonGst ? settings.nonGstBillingAddress : settings.gstBillingAddress) || settings.companyAddress);
+  const rawAddress2 = clean((isNonGst ? settings.nonGstAddress : '') || '');
+  const address2 = rawAddress2 && rawAddress2 !== address1 ? rawAddress2 : '';
   return {
     isNonGst,
     name: clean((isNonGst ? settings.nonGstCompanyName : settings.gstCompanyName) || settings.companyName) || 'SKUAS Pest Control',
     tagline: clean(settings.aboutTagline),
-    address1: clean((isNonGst ? settings.nonGstBillingAddress : settings.gstBillingAddress) || settings.companyAddress),
-    address2: clean((isNonGst ? settings.nonGstAddress : '') || ''),
+    address1,
+    address2,
     city: clean((isNonGst ? settings.nonGstCity : settings.gstCity) || settings.companyCity),
     state: clean((isNonGst ? settings.nonGstState : settings.gstState) || settings.companyState),
     pincode: clean((isNonGst ? settings.nonGstPincode : settings.gstPincode) || settings.companyPincode),
@@ -146,6 +149,8 @@ const resolveCompany = (settings = {}, invoice = {}) => {
       ? ''
       : pickFirstText(
         settings.companyGstNumber,
+        settings.gstCompanyGstinNumber,
+        settings.gstinNumber,
         settings.gstRegistrationNumber,
         settings.gstin,
         settings.gstNumber
@@ -166,7 +171,7 @@ const resolveBillTo = (invoice = {}, customer = {}) => {
     title,
     address: clean(customer.billingAddress || customer.billingStreet1 || invoice.billingAddressText),
     state: clean(customer.billingState || customer.state),
-    country: clean(customer.billingCountry || 'India'),
+    country: clean(customer.billingCountry),
     pincode: clean(customer.billingPincode || customer.pincode),
     gstin: pickFirstText(
       customer.gstNumber,
@@ -186,7 +191,7 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
     title,
     address: clean(customer.shippingAddress || customer.shippingStreet1 || invoice.shippingAddressText || customer.billingAddress),
     state: clean(customer.shippingState || customer.state),
-    country: clean(customer.shippingCountry || 'India'),
+    country: clean(customer.shippingCountry),
     pincode: clean(customer.shippingPincode || customer.pincode),
     gstin: pickFirstText(
       customer.gstNumber,
@@ -231,6 +236,16 @@ const deriveSubjectFromItems = (invoice = {}) => {
   if (labels.length === 1) return labels[0];
   if (labels.length === 2) return `${labels[0]} & ${labels[1]}`;
   return `${labels.slice(0, -1).join(', ')} & ${labels[labels.length - 1]}`;
+};
+
+const deriveContractRange = (invoice = {}) => {
+  const items = Array.isArray(invoice.items) ? invoice.items : [];
+  const starts = items.map((item) => clean(item.contractStartDate || item.serviceStartDate)).filter(Boolean);
+  const ends = items.map((item) => clean(item.contractEndDate || item.serviceEndDate || item.renewalDate)).filter(Boolean);
+  const start = starts[0] || clean(invoice.servicePeriodStart);
+  const end = ends[0] || clean(invoice.servicePeriodEnd);
+  if (!start && !end) return '';
+  return `${formatDate(start)} to ${formatDate(end)}`;
 };
 
 const drawCell = (doc, text, x, y, w, h, { bold = false, align = 'left', bg = null, border = COLORS.border, color = COLORS.text, size = BASE_FONT_SIZE, padX = 3, padY = 2 } = {}) => {
@@ -363,10 +378,10 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ['Invoice Date', formatDate(invoice.date)],
       ['Salesperson', clean(invoice.salesperson) || '-']
     ];
-    let my = y + 30;
+    let my = y + 34;
     meta.forEach(([k, v]) => {
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text(k, rightX + 6, my, { width: 92, align: 'right' });
-      doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(`: ${v}`, rightX + 98, my, { width: rightW - 100, align: 'right' });
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text(`${k} :`, rightX + 6, my, { width: 92, align: 'left' });
+      doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(`${v}`, rightX + 98, my, { width: rightW - 100, align: 'left' });
       my += 12;
     });
 
@@ -379,19 +394,12 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
     drawCell(doc, 'Bill To', left, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: 'none' });
     drawCell(doc, '', left, y + 16, cardW, cardH - 16, { border: 'none' });
-    const billText = [
-      billTo.title,
-      billTo.address,
-      `State/Country: ${[billTo.state, billTo.country].filter(Boolean).join('/') || '-'}`,
-      `Pincode: ${billTo.pincode || '-'}`,
-      `GSTIN: ${billTo.gstin || ''}`
-    ].join('\n');
     doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(billTo.title, left + 5, y + 22, { width: cardW - 10, lineGap: 1 });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(
       [
         billTo.address,
-        `State/Country: ${[billTo.state, billTo.country].filter(Boolean).join('/') || '-'}`,
-        `Pincode: ${billTo.pincode || '-'}`,
+        `State: ${billTo.state || '-'}`,
+        `Pincode - ${billTo.pincode || '-'}`,
         `GSTIN: ${billTo.gstin || ''}`
       ].join('\n'),
       left + 5,
@@ -402,19 +410,12 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const shipX = left + cardW + cardGap;
     drawCell(doc, 'Ship To', shipX, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: 'none' });
     drawCell(doc, '', shipX, y + 16, cardW, cardH - 16, { border: 'none' });
-    const shipText = [
-      shipTo.title,
-      shipTo.address,
-      `State/Country: ${[shipTo.state, shipTo.country].filter(Boolean).join('/') || '-'}`,
-      `Pincode: ${shipTo.pincode || '-'}`,
-      `GSTIN: ${shipTo.gstin || ''}`
-    ].join('\n');
     doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(shipTo.title, shipX + 5, y + 22, { width: cardW - 10, lineGap: 1 });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(
       [
         shipTo.address,
-        `State/Country: ${[shipTo.state, shipTo.country].filter(Boolean).join('/') || '-'}`,
-        `Pincode: ${shipTo.pincode || '-'}`,
+        `State: ${shipTo.state || '-'}`,
+        `Pincode - ${shipTo.pincode || '-'}`,
         `GSTIN: ${shipTo.gstin || ''}`
       ].join('\n'),
       shipX + 5,
@@ -503,6 +504,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       'Bank Account Details:',
       ...bankLines,
       '',
+      `Contract Duration: ${deriveContractRange(invoice) || '-'}`,
+      '',
       'Terms & Conditions:',
       company.terms || ''
     ].join('\n');
@@ -514,7 +517,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     drawCell(doc, '', sumLeftX, y, leftW, leftH, { border: 'none' });
     doc.font('Helvetica').fontSize(8).fillColor(COLORS.text).text(leftText, sumLeftX + 5, y + 4, { width: leftW - 10, lineGap: 1 });
 
-    drawCell(doc, '', sumRightX, y, rightW2, rightH, { border: 'none' });
+    drawCell(doc, '', sumRightX, y, rightW2, rightH, { border: COLORS.border });
     let igst = toNumber(invoice.igstAmount, 0);
     let cgst = toNumber(invoice.cgstAmount, 0);
     let sgst = toNumber(invoice.sgstAmount, 0);
@@ -541,7 +544,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     let sy = y + 6;
     summaryRows.forEach(([k, v]) => {
       const isGrand = k === 'Grand Total';
-      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 20, { border: 'none', bg: isGrand ? COLORS.headerBg : null });
+      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 20, { border: COLORS.border, bg: isGrand ? COLORS.headerBg : null });
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(k, sumRightX + 10, sy + 6, { width: (rightW2 - 20) * 0.55 });
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(v, sumRightX + 10 + ((rightW2 - 20) * 0.55), sy + 6, { width: (rightW2 - 20) * 0.45, align: 'right' });
       sy += 20;
@@ -550,6 +553,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     y += Math.max(leftH, rightH) + 6;
 
     // Signature section compact
+    y -= 10;
     const sigH = 34;
     ensureSpace(sigH + 8);
     drawCell(doc, 'Receiver Signature', left, y, contentW / 2, sigH, { align: 'left', size: 9, border: 'none' });
