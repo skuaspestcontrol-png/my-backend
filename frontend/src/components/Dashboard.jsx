@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { LayoutDashboard } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -76,13 +77,17 @@ const isOverdue = (dueDate) => {
 
 const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 const monthLabel = (date) => date.toLocaleString('en-IN', { month: 'short' });
+const normalizeLeadStatus = (value) => String(value || '').trim().toLowerCase();
+const normalizeLeadSource = (value) => String(value || '').trim();
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const hasLoadedRef = useRef(false);
   const [summary, setSummary] = useState(null);
   const [settings, setSettings] = useState({});
   const [invoices, setInvoices] = useState([]);
   const [vendorBills, setVendorBills] = useState([]);
+  const [leads, setLeads] = useState([]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 
   useEffect(() => {
@@ -92,11 +97,12 @@ export default function Dashboard() {
 
     const load = async () => {
       try {
-        const [summaryRes, settingsRes, invoicesRes, vendorBillsRes] = await Promise.all([
+        const [summaryRes, settingsRes, invoicesRes, vendorBillsRes, leadsRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/api/dashboard/summary`).catch(() => ({ data: null })),
           axios.get(`${API_BASE_URL}/api/settings`),
           axios.get(`${API_BASE_URL}/api/invoices`),
-          axios.get(`${API_BASE_URL}/api/vendor-bills`).catch(() => ({ data: [] }))
+          axios.get(`${API_BASE_URL}/api/vendor-bills`).catch(() => ({ data: [] })),
+          axios.get(`${API_BASE_URL}/api/leads`).catch(() => ({ data: [] }))
         ]);
 
         if (!active) return;
@@ -104,6 +110,7 @@ export default function Dashboard() {
         setSettings(settingsRes.data || {});
         setInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
         setVendorBills(Array.isArray(vendorBillsRes.data) ? vendorBillsRes.data : []);
+        setLeads(Array.isArray(leadsRes.data) ? leadsRes.data : []);
       } catch (error) {
         console.error('Dashboard load failed', error);
       }
@@ -217,6 +224,38 @@ export default function Dashboard() {
     invoicesTotalAmount: Number(summary?.invoicesTotalAmount || 0)
   }), [summary, invoices.length]);
 
+  const leadPipeline = useMemo(() => {
+    const totalLeads = leads.length;
+    const interested = leads.filter((lead) => normalizeLeadStatus(lead.status || lead.leadStatus) === 'interested').length;
+    const converted = leads.filter((lead) => normalizeLeadStatus(lead.status || lead.leadStatus) === 'converted').length;
+    const cancelled = leads.filter((lead) => normalizeLeadStatus(lead.status || lead.leadStatus) === 'cancelled').length;
+    const conversionRate = totalLeads > 0 ? (converted / totalLeads) * 100 : 0;
+    const avgDealValue = converted > 0 ? analytics.totalReceivables / converted : 0;
+
+    const sourceCounts = new Map();
+    leads.forEach((lead) => {
+      const key = normalizeLeadSource(lead.leadSource) || 'Unknown';
+      sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1);
+    });
+    const sourceSeries = Array.from(sourceCounts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+    const sourceTotal = sourceSeries.reduce((sum, row) => sum + row.count, 0);
+
+    return {
+      totalLeads,
+      interested,
+      converted,
+      cancelled,
+      conversionRate,
+      pipelineValue: 0,
+      avgDealValue,
+      sourceSeries,
+      sourceTotal
+    };
+  }, [leads, analytics.totalReceivables]);
+
   const companyName = settings.companyName || 'SKUAS MASTER ERP';
   const isMobile = viewportWidth < 768;
   const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
@@ -248,6 +287,14 @@ export default function Dashboard() {
   );
 
   const expenseColors = ['#56B881', '#EC7E37', '#3A6ECC', '#D45D79', '#8B5CF6'];
+  const leadSourceColors = ['#3A6ECC', '#56B881', '#E8A03A', '#E14F61', '#45ABC8', '#7B61E8'];
+  const leadFunnelRows = [
+    { label: 'Total Leads', value: leadPipeline.totalLeads, color: '#4965dd' },
+    { label: 'Interested', value: leadPipeline.interested, color: '#46a9cd' },
+    { label: 'Converted', value: leadPipeline.converted, color: '#58b381' },
+    { label: 'Cancelled', value: leadPipeline.cancelled, color: '#d9534f' }
+  ];
+  const maxLeadFunnel = Math.max(...leadFunnelRows.map((row) => row.value), 1);
 
   return (
     <div style={shell.page}>
@@ -297,6 +344,99 @@ export default function Dashboard() {
           <p style={shell.metricValue}>{topCards.invoicesCount}</p>
           <p style={shell.metricSub}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
         </div>
+      </section>
+
+      <section style={graphGridStyle}>
+        <article style={shell.panel}>
+          <div style={shell.panelHead}>
+            <h2 style={shell.panelTitle}>Lead Pipeline</h2>
+            <span style={{ color: '#475569', fontWeight: 700 }}>This FY</span>
+          </div>
+          <p style={shell.panelSub}>Sales Funnel</p>
+          <div style={{ display: 'grid', gap: '10px', marginTop: '14px' }}>
+            {leadFunnelRows.map((row) => (
+              <button
+                key={row.label}
+                type="button"
+                onClick={() => navigate('/leads')}
+                style={{
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '12px 14px',
+                  background: row.color,
+                  color: '#fff',
+                  cursor: 'pointer',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto',
+                  alignItems: 'center',
+                  width: `${Math.max(8, (row.value / maxLeadFunnel) * 100)}%`,
+                  minWidth: '90px',
+                  textAlign: 'left'
+                }}
+              >
+                <span style={{ fontWeight: 800, fontSize: '14px' }}>{row.label}</span>
+                <span style={{ fontWeight: 800, fontSize: '14px' }}>{row.value}</span>
+              </button>
+            ))}
+          </div>
+          <div style={{ ...shell.legendRow, marginTop: '18px', justifyContent: 'space-between' }}>
+            <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
+              <strong style={{ color: '#4965dd', fontSize: '22px' }}>{`${leadPipeline.conversionRate.toFixed(0)}%`}</strong>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>Conversion Rate</span>
+            </span>
+            <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
+              <strong style={{ color: '#58b381', fontSize: '22px' }}>{formatCurrency(leadPipeline.pipelineValue)}</strong>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>Pipeline Value</span>
+            </span>
+            <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
+              <strong style={{ color: '#45ABC8', fontSize: '22px' }}>{formatCurrency(leadPipeline.avgDealValue)}</strong>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>Avg Deal Value</span>
+            </span>
+          </div>
+        </article>
+
+        <article style={shell.panel}>
+          <div style={shell.panelHead}>
+            <h2 style={shell.panelTitle}>Lead Sources</h2>
+            <span style={{ color: '#0f172a', fontWeight: 800, background: '#f1f5f9', borderRadius: '8px', padding: '4px 8px', fontSize: '13px' }}>{leadPipeline.sourceTotal} total</span>
+          </div>
+          <div style={shell.donutWrap}>
+            <div
+              style={{
+                ...shell.donut,
+                background: `conic-gradient(${leadPipeline.sourceSeries.map((item, idx) => {
+                  const start = leadPipeline.sourceSeries.slice(0, idx).reduce((sum, e) => sum + e.count, 0);
+                  const startPct = leadPipeline.sourceTotal > 0 ? (start / leadPipeline.sourceTotal) * 100 : 0;
+                  const endPct = leadPipeline.sourceTotal > 0 ? ((start + item.count) / leadPipeline.sourceTotal) * 100 : startPct;
+                  return `${leadSourceColors[idx % leadSourceColors.length]} ${startPct}% ${endPct}%`;
+                }).join(', ') || '#e5e7eb 0 100%'})`
+              }}
+            >
+              <div style={shell.donutInner}>
+                <div style={{ color: '#64748b', fontWeight: 700 }}>Lead Sources</div>
+                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800 }}>{leadPipeline.sourceTotal}</div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gap: '10px' }}>
+              {leadPipeline.sourceSeries.length === 0 ? (
+                <div style={{ color: '#64748b', fontWeight: 700 }}>No lead source data available.</div>
+              ) : leadPipeline.sourceSeries.map((entry, idx) => (
+                <button
+                  key={`${entry.name}-${idx}`}
+                  type="button"
+                  onClick={() => navigate('/leads')}
+                  style={{ border: 'none', background: 'transparent', padding: 0, textAlign: 'left', cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: '16px 1fr auto', gap: '10px', alignItems: 'center' }}>
+                    <span style={{ ...shell.dot, width: '16px', height: '16px', borderRadius: '5px', background: leadSourceColors[idx % leadSourceColors.length] }} />
+                    <span style={{ color: '#334155', fontWeight: 700 }}>{entry.name}</span>
+                    <span style={{ color: '#0f172a', fontWeight: 800 }}>{entry.count}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </article>
       </section>
 
       <section style={graphGridStyle}>
