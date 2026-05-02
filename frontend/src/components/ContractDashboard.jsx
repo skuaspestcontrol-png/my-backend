@@ -4,7 +4,6 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
-  ArrowUpDown,
   BadgeIndianRupee,
   CalendarDays,
   CalendarRange,
@@ -83,35 +82,16 @@ const shell = {
   clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', borderRadius: '14px', border: '1px solid var(--color-border)' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '10px', fontWeight: 800, color: '#6b7280', padding: '9px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis' },
-  sortBtn: {
-    border: 'none',
-    background: 'transparent',
-    minHeight: 'auto',
-    height: 'auto',
-    padding: 0,
-    margin: 0,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '4px',
-    cursor: 'pointer',
-    color: 'inherit',
-    font: 'inherit',
-    lineHeight: 1,
-    maxWidth: '100%',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis'
-  },
-  td: { textAlign: 'left', verticalAlign: 'middle', padding: '9px 6px', borderBottom: '1px solid #eef2f7', fontSize: '11px', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#fff' },
+  th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis' },
+  td: { textAlign: 'left', verticalAlign: 'middle', padding: '8px 6px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#fff' },
   selectedRow: { background: 'rgba(159,23,77,0.08)' },
   selectedText: { color: '#111827' },
-  subText: { marginTop: '1px', fontSize: '10px', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  subText: { marginTop: '1px', fontSize: '9px', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusPill: { borderRadius: '999px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, display: 'inline-block' },
   typePill: { borderRadius: '8px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, background: 'rgba(34,197,94,0.2)', color: '#15803d' },
   amountGreen: { color: '#16a34a', fontWeight: 800 },
   amountRed: { color: '#dc2626', fontWeight: 800 },
-  actionBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#374151', borderRadius: '10px', minHeight: '32px', padding: '0 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' },
+  actionBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#374151', borderRadius: '9px', minHeight: '28px', padding: '0 8px', fontSize: '10px', fontWeight: 700, cursor: 'pointer' },
   footer: { padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
   footText: { fontSize: '12px', color: '#475569', fontWeight: 700 },
   pager: { display: 'inline-flex', gap: '6px', alignItems: 'center' },
@@ -292,7 +272,6 @@ export default function ContractDashboard() {
     paid: true,
     due: true
   });
-  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
   const [customerSummary, setCustomerSummary] = useState({ open: false, row: null, showHistory: false });
 
   useEffect(() => {
@@ -506,30 +485,7 @@ export default function ContractDashboard() {
     });
   }, [allContracts, filters, quickFilter]);
 
-  const sortedContracts = useMemo(() => {
-    if (!sortConfig.key) return filteredContracts;
-
-    const getValue = (row) => {
-      if (sortConfig.key === 'contractNo') return String(row.contractNo || '').toLowerCase();
-      if (sortConfig.key === 'customer') return String(row.customer || '').toLowerCase();
-      if (sortConfig.key === 'property') return String(row.property || '').toLowerCase();
-      if (sortConfig.key === 'duration') return row.startDate || '';
-      if (sortConfig.key === 'services') return Number(row.services || 0);
-      if (sortConfig.key === 'status') return String(row.status || '').toLowerCase();
-      if (sortConfig.key === 'total') return Number(row.total || 0);
-      if (sortConfig.key === 'paid') return Number(row.paid || 0);
-      if (sortConfig.key === 'due') return Number(row.due || 0);
-      return '';
-    };
-
-    return [...filteredContracts].sort((a, b) => {
-      const av = getValue(a);
-      const bv = getValue(b);
-      if (av === bv) return 0;
-      const result = av > bv ? 1 : -1;
-      return sortConfig.direction === 'asc' ? result : -result;
-    });
-  }, [filteredContracts, sortConfig]);
+  const sortedContracts = useMemo(() => filteredContracts, [filteredContracts]);
 
   const customerSummaryData = useMemo(() => {
     if (!customerSummary?.row) return null;
@@ -618,15 +574,6 @@ export default function ContractDashboard() {
   const footerStyle = isMobile ? { ...shell.footer, flexDirection: 'column', alignItems: 'stretch' } : shell.footer;
   const pagerStyle = isMobile ? { ...shell.pager, justifyContent: 'center' } : shell.pager;
 
-  const toggleSort = (key) => {
-    setSortConfig((prev) => {
-      if (prev.key === key) {
-        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
-      }
-      return { key, direction: 'asc' };
-    });
-  };
-
   const openCustomerSummary = (row) => {
     setCustomerSummary({ open: true, row, showHistory: false });
   };
@@ -710,26 +657,18 @@ export default function ContractDashboard() {
           <tr>
             <th style={{ ...shell.th, width: '3%' }}>#</th>
             {visibleColumns.contractNo ? (
-              <th style={{ ...shell.th, width: '16%' }}>
-                <button type="button" style={shell.sortBtn} onClick={() => toggleSort('contractNo')}>
-                  Contract # <ArrowUpDown size={11} />
-                </button>
-              </th>
+              <th style={{ ...shell.th, width: '16%' }}>Contract #</th>
             ) : null}
             {visibleColumns.customer ? (
-              <th style={{ ...shell.th, width: '14%' }}>
-                <button type="button" style={shell.sortBtn} onClick={() => toggleSort('customer')}>
-                  Customer <ArrowUpDown size={11} />
-                </button>
-              </th>
+              <th style={{ ...shell.th, width: '14%', textAlign: 'left' }}>Customer</th>
             ) : null}
-            {visibleColumns.property ? <th style={{ ...shell.th, width: '10%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('property')}>Property <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.duration ? <th style={{ ...shell.th, width: '12%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('duration')}>Duration <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.services ? <th style={{ ...shell.th, width: '8%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('services')}>Services <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.status ? <th style={{ ...shell.th, width: '8%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('status')}>Status <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.total ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('total')}>Total (₹) <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.paid ? <th style={{ ...shell.th, width: '9%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('paid')}>Paid (₹) <ArrowUpDown size={11} /></button></th> : null}
-            {visibleColumns.due ? <th style={{ ...shell.th, width: '8%' }}><button type="button" style={shell.sortBtn} onClick={() => toggleSort('due')}>Due (₹) <ArrowUpDown size={11} /></button></th> : null}
+            {visibleColumns.property ? <th style={{ ...shell.th, width: '10%' }}>Property</th> : null}
+            {visibleColumns.duration ? <th style={{ ...shell.th, width: '12%' }}>Duration</th> : null}
+            {visibleColumns.services ? <th style={{ ...shell.th, width: '8%' }}>Services</th> : null}
+            {visibleColumns.status ? <th style={{ ...shell.th, width: '8%' }}>Status</th> : null}
+            {visibleColumns.total ? <th style={{ ...shell.th, width: '9%' }}>Total (₹)</th> : null}
+            {visibleColumns.paid ? <th style={{ ...shell.th, width: '9%' }}>Paid (₹)</th> : null}
+            {visibleColumns.due ? <th style={{ ...shell.th, width: '8%' }}>Due (₹)</th> : null}
             <th style={{ ...shell.th, width: '13%' }}>Actions</th>
           </tr>
         </thead>
@@ -741,10 +680,10 @@ export default function ContractDashboard() {
               <tr key={row.id} onClick={() => setSelectedContractId(row.id)}>
                 <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>{index + 1}</td>
                 {visibleColumns.contractNo ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
-                  <div style={{ fontSize: '12px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
+                  <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
                   <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{row.contractCode}</div>
                 </td> : null}
-                {visibleColumns.customer ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
+                {visibleColumns.customer ? <td style={{ ...shell.td, textAlign: 'left', ...(selected ? shell.selectedText : {}) }}>
                   {row.status === 'Active' ? (
                     <button
                       type="button"
@@ -757,16 +696,16 @@ export default function ContractDashboard() {
                       {row.customer}
                     </button>
                   ) : (
-                    <div style={{ fontSize: '12px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.customer}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.customer}</div>
                   )}
                   <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{row.mobile || '-'}</div>
                 </td> : null}
                 {visibleColumns.property ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
-                  <div style={{ fontSize: '12px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.property || '-'}</div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.property || '-'}</div>
                   <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{row.city || '-'}</div>
                 </td> : null}
                 {visibleColumns.duration ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
-                  <div style={{ fontSize: '12px', fontWeight: 700 }}>{formatDate(row.startDate)}</div>
+                  <div style={{ fontSize: '11px', fontWeight: 700 }}>{formatDate(row.startDate)}</div>
                   <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{`to ${formatDate(row.endDate)}`}</div>
                 </td> : null}
                 {visibleColumns.services ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
