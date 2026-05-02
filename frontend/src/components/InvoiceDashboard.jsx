@@ -704,6 +704,9 @@ export default function InvoiceDashboard() {
     });
     return Array.from(names);
   }, [employees]);
+  const sortedItemsCatalog = useMemo(() => (
+    [...itemsCatalog].sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), undefined, { sensitivity: 'base' }))
+  ), [itemsCatalog]);
 
   const serviceScheduleTime = useMemo(
     () => normalizeTimeInput(form.serviceScheduleDefaultTime, '10:00'),
@@ -2439,7 +2442,7 @@ export default function InvoiceDashboard() {
                                   onChange={(event) => handleItemSelect(index, event.target.value)}
                                 >
                                   <option value="">Type or click to select an item.</option>
-                                  {itemsCatalog.map((item) => (
+                                  {sortedItemsCatalog.map((item) => (
                                     <option key={item._id} value={item._id}>{item.name}</option>
                                   ))}
                                 </select>
