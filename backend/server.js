@@ -1132,6 +1132,12 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
   const assignedTo = String(source.assignedTo || '').trim();
   const followupDate = String(source.followupDate || '').trim();
   const date = String(source.date || source.createdAt || new Date().toISOString()).trim();
+  const googlePlaceId = String(source.googlePlaceId || source.google_place_id || '').trim();
+  const googlePlaceName = String(source.googlePlaceName || source.google_place_name || '').trim();
+  const googlePhone = String(source.googlePhone || source.google_phone || '').trim();
+  const googleWebsite = String(source.googleWebsite || source.google_website || '').trim();
+  const latitude = String(source.latitude || '').trim();
+  const longitude = String(source.longitude || '').trim();
 
   return {
     _id: leadId,
@@ -1156,7 +1162,13 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
     leadStatus,
     assignedTo,
     followupDate,
-    date
+    date,
+    googlePlaceId,
+    googlePlaceName,
+    googlePhone,
+    googleWebsite,
+    latitude,
+    longitude
   };
 };
 
@@ -1167,13 +1179,58 @@ const toMysqlDateTime = (value) => {
   return parsed.toISOString().slice(0, 19).replace('T', ' ');
 };
 
+const ensureColumnsIfMissing = async (conn, tableName, requiredColumns = []) => {
+  for (const col of requiredColumns) {
+    const [rows] = await conn.query(
+      `SELECT COUNT(*) AS count
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+      [tableName, col.name]
+    );
+    const exists = Number(rows?.[0]?.count || 0) > 0;
+    if (!exists) {
+      await conn.query(`ALTER TABLE ${tableName} ADD COLUMN ${col.name} ${col.definition}`);
+    }
+  }
+};
+
+let leadsPlaceColumnsEnsured = false;
+const ensureLeadPlaceColumns = async (conn) => {
+  if (leadsPlaceColumnsEnsured) return;
+  await ensureColumnsIfMissing(conn, 'leads', [
+    { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
+    { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
+    { name: 'google_phone', definition: 'VARCHAR(50) NULL' },
+    { name: 'google_website', definition: 'VARCHAR(255) NULL' },
+    { name: 'latitude', definition: 'DECIMAL(10,8) NULL' },
+    { name: 'longitude', definition: 'DECIMAL(11,8) NULL' }
+  ]);
+  leadsPlaceColumnsEnsured = true;
+};
+
+let customerPlaceColumnsEnsured = false;
+const ensureCustomerPlaceColumns = async (conn) => {
+  if (customerPlaceColumnsEnsured) return;
+  await ensureColumnsIfMissing(conn, 'customers', [
+    { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
+    { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
+    { name: 'google_phone', definition: 'VARCHAR(50) NULL' },
+    { name: 'google_website', definition: 'VARCHAR(255) NULL' },
+    { name: 'latitude', definition: 'DECIMAL(10,8) NULL' },
+    { name: 'longitude', definition: 'DECIMAL(11,8) NULL' }
+  ]);
+  customerPlaceColumnsEnsured = true;
+};
+
 const upsertLeadToMysql = async (conn, lead) => {
+  await ensureLeadPlaceColumns(conn);
   await conn.query(
     `INSERT INTO leads (
       external_id, customer_name, display_name, company_name, contact_person_name, title, mobile,
       whatsapp_number, email_id, address, area_name, city, state, pincode, pest_issue,
-      lead_source, lead_status, assigned_to, followup_date, payload
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      lead_source, lead_status, assigned_to, followup_date,
+      google_place_id, google_place_name, google_phone, google_website, latitude, longitude, payload
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       customer_name=VALUES(customer_name),
       display_name=VALUES(display_name),
@@ -1193,6 +1250,12 @@ const upsertLeadToMysql = async (conn, lead) => {
       lead_status=VALUES(lead_status),
       assigned_to=VALUES(assigned_to),
       followup_date=VALUES(followup_date),
+      google_place_id=VALUES(google_place_id),
+      google_place_name=VALUES(google_place_name),
+      google_phone=VALUES(google_phone),
+      google_website=VALUES(google_website),
+      latitude=VALUES(latitude),
+      longitude=VALUES(longitude),
       payload=VALUES(payload)`,
     [
       lead._id,
@@ -1214,6 +1277,12 @@ const upsertLeadToMysql = async (conn, lead) => {
       lead.leadStatus || null,
       lead.assignedTo || null,
       lead.followupDate || null,
+      lead.googlePlaceId || null,
+      lead.googlePlaceName || null,
+      lead.googlePhone || null,
+      lead.googleWebsite || null,
+      lead.latitude ? Number(lead.latitude) : null,
+      lead.longitude ? Number(lead.longitude) : null,
       JSON.stringify(lead)
     ]
   );
@@ -2184,6 +2253,7 @@ app.delete('/api/items/:id', async (req, res) => {
 app.get('/api/customers', async (req, res) => {
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
+      await ensureCustomerPlaceColumns(conn);
       const [rows] = await conn.query('SELECT payload FROM customers ORDER BY id DESC');
       return Array.isArray(rows) ? rows : [];
     });
@@ -2255,15 +2325,24 @@ app.post('/api/customers', async (req, res) => {
       placeOfSupply: billingStateValue,
       receivables: Number(req.body.receivables || 0),
       unusedCredits: Number(req.body.unusedCredits || 0),
+      googlePlaceId: req.body.googlePlaceId || req.body.google_place_id || '',
+      googlePlaceName: req.body.googlePlaceName || req.body.google_place_name || '',
+      googlePhone: req.body.googlePhone || req.body.google_phone || '',
+      googleWebsite: req.body.googleWebsite || req.body.google_website || '',
+      latitude: req.body.latitude || '',
+      longitude: req.body.longitude || '',
       createdAt: nowIso
     };
 
     await withMysqlConnection(async (conn) => {
+      await ensureCustomerPlaceColumns(conn);
       await conn.query(
         `INSERT INTO customers (
           external_id, display_name, customer_name, company_name, contact_person_name, mobile_number,
-          whatsapp_number, email_id, area_name, city, state, pincode, payload, source_created_at, source_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          whatsapp_number, email_id, area_name, city, state, pincode,
+          google_place_id, google_place_name, google_phone, google_website, latitude, longitude,
+          payload, source_created_at, source_updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           display_name=VALUES(display_name),
           customer_name=VALUES(customer_name),
@@ -2276,6 +2355,12 @@ app.post('/api/customers', async (req, res) => {
           city=VALUES(city),
           state=VALUES(state),
           pincode=VALUES(pincode),
+          google_place_id=VALUES(google_place_id),
+          google_place_name=VALUES(google_place_name),
+          google_phone=VALUES(google_phone),
+          google_website=VALUES(google_website),
+          latitude=VALUES(latitude),
+          longitude=VALUES(longitude),
           payload=VALUES(payload),
           source_created_at=VALUES(source_created_at),
           source_updated_at=VALUES(source_updated_at)`,
@@ -2292,6 +2377,12 @@ app.post('/api/customers', async (req, res) => {
           newCustomer.city || null,
           newCustomer.state || newCustomer.billingState || null,
           newCustomer.pincode || newCustomer.billingPincode || null,
+          newCustomer.googlePlaceId || null,
+          newCustomer.googlePlaceName || null,
+          newCustomer.googlePhone || null,
+          newCustomer.googleWebsite || null,
+          newCustomer.latitude ? Number(newCustomer.latitude) : null,
+          newCustomer.longitude ? Number(newCustomer.longitude) : null,
           JSON.stringify(newCustomer),
           new Date(newCustomer.createdAt).toISOString().slice(0, 19).replace('T', ' '),
           new Date(newCustomer.createdAt).toISOString().slice(0, 19).replace('T', ' ')
@@ -2309,6 +2400,7 @@ app.post('/api/customers', async (req, res) => {
 app.put('/api/customers/:id', async (req, res) => {
   try {
     const existingCustomer = await withMysqlConnection(async (conn) => {
+      await ensureCustomerPlaceColumns(conn);
       const [rows] = await conn.query('SELECT payload FROM customers WHERE external_id = ? LIMIT 1', [req.params.id]);
       const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
       if (!row?.payload) return null;
@@ -2369,11 +2461,14 @@ app.put('/api/customers/:id', async (req, res) => {
     };
 
     await withMysqlConnection(async (conn) => {
+      await ensureCustomerPlaceColumns(conn);
       await conn.query(
         `INSERT INTO customers (
           external_id, display_name, customer_name, company_name, contact_person_name, mobile_number,
-          whatsapp_number, email_id, area_name, city, state, pincode, payload, source_created_at, source_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          whatsapp_number, email_id, area_name, city, state, pincode,
+          google_place_id, google_place_name, google_phone, google_website, latitude, longitude,
+          payload, source_created_at, source_updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           display_name=VALUES(display_name),
           customer_name=VALUES(customer_name),
@@ -2386,6 +2481,12 @@ app.put('/api/customers/:id', async (req, res) => {
           city=VALUES(city),
           state=VALUES(state),
           pincode=VALUES(pincode),
+          google_place_id=VALUES(google_place_id),
+          google_place_name=VALUES(google_place_name),
+          google_phone=VALUES(google_phone),
+          google_website=VALUES(google_website),
+          latitude=VALUES(latitude),
+          longitude=VALUES(longitude),
           payload=VALUES(payload),
           source_created_at=VALUES(source_created_at),
           source_updated_at=VALUES(source_updated_at)`,
@@ -2402,6 +2503,12 @@ app.put('/api/customers/:id', async (req, res) => {
           updatedCustomer.city || null,
           updatedCustomer.state || updatedCustomer.billingState || null,
           updatedCustomer.pincode || updatedCustomer.billingPincode || null,
+          updatedCustomer.googlePlaceId || null,
+          updatedCustomer.googlePlaceName || null,
+          updatedCustomer.googlePhone || null,
+          updatedCustomer.googleWebsite || null,
+          updatedCustomer.latitude ? Number(updatedCustomer.latitude) : null,
+          updatedCustomer.longitude ? Number(updatedCustomer.longitude) : null,
           JSON.stringify(updatedCustomer),
           updatedCustomer.createdAt ? new Date(updatedCustomer.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
           new Date().toISOString().slice(0, 19).replace('T', ' ')
@@ -3426,6 +3533,12 @@ const ensureVendorFinanceTables = async (conn) => {
       city VARCHAR(120) NULL,
       state VARCHAR(120) NULL,
       pincode VARCHAR(40) NULL,
+      google_place_id VARCHAR(255) NULL,
+      google_place_name VARCHAR(255) NULL,
+      google_phone VARCHAR(50) NULL,
+      google_website VARCHAR(255) NULL,
+      latitude DECIMAL(10,8) NULL,
+      longitude DECIMAL(11,8) NULL,
       opening_balance DECIMAL(12,2) NOT NULL DEFAULT 0,
       status VARCHAR(80) NULL,
       payload JSON NULL,
@@ -3435,6 +3548,14 @@ const ensureVendorFinanceTables = async (conn) => {
       UNIQUE KEY uk_vendors_external_id (external_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+  await ensureColumnsIfMissing(conn, 'vendors', [
+    { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
+    { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
+    { name: 'google_phone', definition: 'VARCHAR(50) NULL' },
+    { name: 'google_website', definition: 'VARCHAR(255) NULL' },
+    { name: 'latitude', definition: 'DECIMAL(10,8) NULL' },
+    { name: 'longitude', definition: 'DECIMAL(11,8) NULL' }
+  ]);
   await conn.query(`
     CREATE TABLE IF NOT EXISTS vendor_bills (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -3522,6 +3643,12 @@ app.get('/api/vendors', async (req, res) => {
           city: String(row.city ?? payload.city ?? '').trim(),
           state: String(row.state ?? payload.state ?? '').trim(),
           billingPincode: String(row.pincode ?? payload.billingPincode ?? payload.pincode ?? '').trim(),
+          googlePlaceId: String(row.google_place_id ?? payload.googlePlaceId ?? payload.google_place_id ?? '').trim(),
+          googlePlaceName: String(row.google_place_name ?? payload.googlePlaceName ?? payload.google_place_name ?? '').trim(),
+          googlePhone: String(row.google_phone ?? payload.googlePhone ?? payload.google_phone ?? '').trim(),
+          googleWebsite: String(row.google_website ?? payload.googleWebsite ?? payload.google_website ?? '').trim(),
+          latitude: row.latitude ?? payload.latitude ?? '',
+          longitude: row.longitude ?? payload.longitude ?? '',
           openingBalance: toNumber(row.opening_balance ?? payload.openingBalance, 0),
           status: String(row.status ?? payload.status ?? 'active').trim()
         };
@@ -3553,6 +3680,12 @@ app.post('/api/vendors', async (req, res) => {
       city: String(vendor.city || '').trim(),
       state: String(vendor.state || vendor.billingState || '').trim(),
       pincode: String(vendor.billingPincode || vendor.pincode || '').trim(),
+      google_place_id: String(vendor.googlePlaceId || vendor.google_place_id || '').trim(),
+      google_place_name: String(vendor.googlePlaceName || vendor.google_place_name || '').trim(),
+      google_phone: String(vendor.googlePhone || vendor.google_phone || '').trim(),
+      google_website: String(vendor.googleWebsite || vendor.google_website || '').trim(),
+      latitude: vendor.latitude !== undefined && vendor.latitude !== '' ? Number(vendor.latitude) : null,
+      longitude: vendor.longitude !== undefined && vendor.longitude !== '' ? Number(vendor.longitude) : null,
       opening_balance: toNumber(vendor.openingBalance, 0),
       status: String(vendor.status || 'active').trim()
     };
@@ -3562,8 +3695,10 @@ app.post('/api/vendors', async (req, res) => {
       await conn.query(
         `INSERT INTO vendors (
           external_id, vendor_name, company_name, contact_person_name, mobile, whatsapp_number, email_id, gst_number,
-          address, area_name, city, state, pincode, opening_balance, status, payload
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          address, area_name, city, state, pincode,
+          google_place_id, google_place_name, google_phone, google_website, latitude, longitude,
+          opening_balance, status, payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           vendor_name=VALUES(vendor_name),
           company_name=VALUES(company_name),
@@ -3577,13 +3712,19 @@ app.post('/api/vendors', async (req, res) => {
           city=VALUES(city),
           state=VALUES(state),
           pincode=VALUES(pincode),
+          google_place_id=VALUES(google_place_id),
+          google_place_name=VALUES(google_place_name),
+          google_phone=VALUES(google_phone),
+          google_website=VALUES(google_website),
+          latitude=VALUES(latitude),
+          longitude=VALUES(longitude),
           opening_balance=VALUES(opening_balance),
           status=VALUES(status),
           payload=VALUES(payload)`,
         [
           mapped.external_id, mapped.vendor_name, mapped.company_name, mapped.contact_person_name, mapped.mobile,
           mapped.whatsapp_number, mapped.email_id, mapped.gst_number, mapped.address, mapped.area_name, mapped.city,
-          mapped.state, mapped.pincode, mapped.opening_balance, mapped.status, JSON.stringify(payload)
+          mapped.state, mapped.pincode, mapped.google_place_id, mapped.google_place_name, mapped.google_phone, mapped.google_website, mapped.latitude, mapped.longitude, mapped.opening_balance, mapped.status, JSON.stringify(payload)
         ]
       );
     });
@@ -3607,7 +3748,7 @@ app.put('/api/vendors/:id', async (req, res) => {
       return conn.query(
         `UPDATE vendors SET
           external_id=?, vendor_name=?, company_name=?, contact_person_name=?, mobile=?, whatsapp_number=?, email_id=?, gst_number=?,
-          address=?, area_name=?, city=?, state=?, pincode=?, opening_balance=?, status=?, payload=?
+          address=?, area_name=?, city=?, state=?, pincode=?, google_place_id=?, google_place_name=?, google_phone=?, google_website=?, latitude=?, longitude=?, opening_balance=?, status=?, payload=?
          WHERE external_id = ? OR id = ?`,
         [
           payload._id,
@@ -3623,6 +3764,12 @@ app.put('/api/vendors/:id', async (req, res) => {
           String(payload.city || '').trim(),
           String(payload.state || payload.billingState || '').trim(),
           String(payload.billingPincode || payload.pincode || '').trim(),
+          String(payload.googlePlaceId || payload.google_place_id || '').trim(),
+          String(payload.googlePlaceName || payload.google_place_name || '').trim(),
+          String(payload.googlePhone || payload.google_phone || '').trim(),
+          String(payload.googleWebsite || payload.google_website || '').trim(),
+          payload.latitude !== undefined && payload.latitude !== '' ? Number(payload.latitude) : null,
+          payload.longitude !== undefined && payload.longitude !== '' ? Number(payload.longitude) : null,
           toNumber(payload.openingBalance, 0),
           String(payload.status || 'active').trim(),
           JSON.stringify(payload),

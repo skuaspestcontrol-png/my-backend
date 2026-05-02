@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Trash2, X, Pencil } from 'lucide-react';
+import { attachPlacesAutocomplete } from '../utils/googlePlaces';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
@@ -25,7 +26,13 @@ const emptyForm = {
   shippingAddress: '',
   shippingArea: '',
   shippingState: '',
-  shippingPincode: ''
+  shippingPincode: '',
+  googlePlaceId: '',
+  googlePlaceName: '',
+  googlePhone: '',
+  googleWebsite: '',
+  latitude: '',
+  longitude: ''
 };
 
 const shell = {
@@ -72,6 +79,8 @@ export default function VendorDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const companyNameInputRef = React.useRef(null);
+  const billingAreaInputRef = React.useRef(null);
 
   const isMobile = viewportWidth <= 900;
 
@@ -90,6 +99,68 @@ export default function VendorDashboard() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    if (!showModal) return () => {};
+    let cleanups = [];
+
+    const initPlaces = async () => {
+      const companyCleanup = await attachPlacesAutocomplete({
+        input: companyNameInputRef.current,
+        onSelected: (place) => {
+          setForm((prev) => ({
+            ...prev,
+            companyName: place.name || prev.companyName,
+            billingStreet1: place.formatted_address || prev.billingStreet1,
+            billingAddress: place.formatted_address || prev.billingAddress,
+            billingArea: place.areaName || prev.billingArea,
+            billingState: place.state || prev.billingState,
+            billingPincode: place.pincode || prev.billingPincode,
+            googlePlaceId: place.place_id || prev.googlePlaceId,
+            googlePlaceName: place.name || prev.googlePlaceName,
+            googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
+            googleWebsite: place.website || prev.googleWebsite,
+            latitude: place.latitude !== null ? String(place.latitude) : prev.latitude,
+            longitude: place.longitude !== null ? String(place.longitude) : prev.longitude
+          }));
+        },
+        onError: (error) => alert(error?.message || 'Google Maps API key not configured'),
+        onRequireSelection: (message) => alert(message || 'Please select address/company from suggestions')
+      });
+
+      const billingCleanup = await attachPlacesAutocomplete({
+        input: billingAreaInputRef.current,
+        onSelected: (place) => {
+          setForm((prev) => ({
+            ...prev,
+            companyName: prev.companyName || place.name || '',
+            billingStreet1: place.formatted_address || prev.billingStreet1,
+            billingAddress: place.formatted_address || prev.billingAddress,
+            billingArea: place.areaName || prev.billingArea,
+            billingState: place.state || prev.billingState,
+            billingPincode: place.pincode || prev.billingPincode,
+            googlePlaceId: place.place_id || prev.googlePlaceId,
+            googlePlaceName: place.name || prev.googlePlaceName,
+            googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
+            googleWebsite: place.website || prev.googleWebsite,
+            latitude: place.latitude !== null ? String(place.latitude) : prev.latitude,
+            longitude: place.longitude !== null ? String(place.longitude) : prev.longitude
+          }));
+        },
+        onError: (error) => alert(error?.message || 'Google Maps API key not configured'),
+        onRequireSelection: (message) => alert(message || 'Please select address/company from suggestions')
+      });
+
+      cleanups = [companyCleanup, billingCleanup];
+    };
+
+    initPlaces();
+    return () => {
+      cleanups.forEach((fn) => {
+        if (typeof fn === 'function') fn();
+      });
+    };
+  }, [showModal]);
 
   const openNew = () => {
     setEditingId('');
@@ -243,7 +314,7 @@ export default function VendorDashboard() {
               <div style={shell.card}>
                 <p style={shell.sectionTitle}>Vendor Details</p>
                 <div style={gridStyle}>
-                  <div style={shell.field}><label style={shell.label}>Company Name*</label><input style={shell.input} value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
+                  <div style={shell.field}><label style={shell.label}>Company Name*</label><input ref={companyNameInputRef} style={shell.input} value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
                   <div style={shell.field}><label style={shell.label}>Contact Person Name*</label><input style={shell.input} value={form.contactPersonName} onChange={(e) => update('contactPersonName', e.target.value)} /></div>
                   <div style={shell.field}><label style={shell.label}>Email Address*</label><input style={shell.input} type="email" value={form.emailId} onChange={(e) => update('emailId', e.target.value)} /></div>
                   <div style={shell.field}><label style={shell.label}>Mobile*</label><input style={shell.input} inputMode="numeric" maxLength={10} value={form.mobileNumber} onChange={(e) => update('mobileNumber', toTenDigitNumber(e.target.value))} /></div>
@@ -264,12 +335,12 @@ export default function VendorDashboard() {
 
                       <label style={shell.label}>Address</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <textarea style={shell.textarea} placeholder="Street 1" value={form.billingStreet1} onChange={(e) => update('billingStreet1', e.target.value)} />
+                      <textarea style={shell.textarea} placeholder="Street 1" value={form.billingStreet1} onChange={(e) => update('billingStreet1', e.target.value)} />
                         <textarea style={shell.textarea} placeholder="Street 2" value={form.billingStreet2} onChange={(e) => update('billingStreet2', e.target.value)} />
                       </div>
 
                       <label style={shell.label}>Area</label>
-                      <input style={shell.input} value={form.billingArea} onChange={(e) => update('billingArea', e.target.value)} />
+                    <input ref={billingAreaInputRef} style={shell.input} value={form.billingArea} onChange={(e) => update('billingArea', e.target.value)} />
 
                       <label style={shell.label}>State</label>
                       <input style={shell.input} value={form.billingState} onChange={(e) => update('billingState', e.target.value)} />

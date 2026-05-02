@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowUpDown, MoreHorizontal, Plus, X } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
+import { attachPlacesAutocomplete } from '../utils/googlePlaces';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -110,7 +111,13 @@ const emptyForm = {
   shippingPincode: '',
   shippingPhoneCode: '+91',
   shippingPhone: '',
-  areaSqft: ''
+  areaSqft: '',
+  googlePlaceId: '',
+  googlePlaceName: '',
+  googlePhone: '',
+  googleWebsite: '',
+  latitude: '',
+  longitude: ''
 };
 
 const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
@@ -258,6 +265,8 @@ export default function CustomerDashboard() {
   const moreMenuRef = useRef(null);
   const moreMenuButtonRef = useRef(null);
   const resizeStateRef = useRef(null);
+  const companyNameInputRef = useRef(null);
+  const billingAreaInputRef = useRef(null);
 
   const visibleColumnDefs = useMemo(
     () => allColumns.filter((column) => visibleColumns.includes(column.key)),
@@ -357,6 +366,68 @@ export default function CustomerDashboard() {
   useEffect(() => {
     localStorage.setItem('customers_column_widths', JSON.stringify(columnWidths));
   }, [columnWidths]);
+
+  useEffect(() => {
+    if (!showModal) return () => {};
+    let cleanups = [];
+
+    const initPlaces = async () => {
+      const companyCleanup = await attachPlacesAutocomplete({
+        input: companyNameInputRef.current,
+        onSelected: (place) => {
+          setForm((prev) => ({
+            ...prev,
+            companyName: place.name || prev.companyName,
+            billingStreet1: place.formatted_address || prev.billingStreet1,
+            billingAddress: place.formatted_address || prev.billingAddress,
+            billingArea: place.areaName || prev.billingArea,
+            billingState: place.state || prev.billingState,
+            billingPincode: place.pincode || prev.billingPincode,
+            googlePlaceId: place.place_id || prev.googlePlaceId,
+            googlePlaceName: place.name || prev.googlePlaceName,
+            googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
+            googleWebsite: place.website || prev.googleWebsite,
+            latitude: place.latitude !== null ? String(place.latitude) : prev.latitude,
+            longitude: place.longitude !== null ? String(place.longitude) : prev.longitude
+          }));
+        },
+        onError: (error) => alert(error?.message || 'Google Maps API key not configured'),
+        onRequireSelection: (message) => alert(message || 'Please select address/company from suggestions')
+      });
+
+      const billingCleanup = await attachPlacesAutocomplete({
+        input: billingAreaInputRef.current,
+        onSelected: (place) => {
+          setForm((prev) => ({
+            ...prev,
+            companyName: prev.companyName || place.name || '',
+            billingStreet1: place.formatted_address || prev.billingStreet1,
+            billingAddress: place.formatted_address || prev.billingAddress,
+            billingArea: place.areaName || prev.billingArea,
+            billingState: place.state || prev.billingState,
+            billingPincode: place.pincode || prev.billingPincode,
+            googlePlaceId: place.place_id || prev.googlePlaceId,
+            googlePlaceName: place.name || prev.googlePlaceName,
+            googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
+            googleWebsite: place.website || prev.googleWebsite,
+            latitude: place.latitude !== null ? String(place.latitude) : prev.latitude,
+            longitude: place.longitude !== null ? String(place.longitude) : prev.longitude
+          }));
+        },
+        onError: (error) => alert(error?.message || 'Google Maps API key not configured'),
+        onRequireSelection: (message) => alert(message || 'Please select address/company from suggestions')
+      });
+
+      cleanups = [companyCleanup, billingCleanup];
+    };
+
+    initPlaces();
+    return () => {
+      cleanups.forEach((fn) => {
+        if (typeof fn === 'function') fn();
+      });
+    };
+  }, [showModal]);
 
   const displayNameOptions = useMemo(() => {
     const options = [form.companyName.trim(), form.contactPersonName.trim()].filter(Boolean);
@@ -1506,6 +1577,7 @@ export default function CustomerDashboard() {
 
               <label style={shell.label}>Company Name</label>
               <input
+                ref={companyNameInputRef}
                 style={shell.input}
                 value={form.companyName}
                 onChange={(event) =>
@@ -1666,7 +1738,7 @@ export default function CustomerDashboard() {
                     </div>
 
                     <label style={shell.label}>Area</label>
-                    <input style={shell.input} value={form.billingArea} onChange={(event) => updateBillingField('billingArea', event.target.value)} />
+                    <input ref={billingAreaInputRef} style={shell.input} value={form.billingArea} onChange={(event) => updateBillingField('billingArea', event.target.value)} />
 
                     <label style={shell.label}>State</label>
                     <select style={shell.input} value={form.billingState} onChange={(event) => updateBillingField('billingState', event.target.value)}>

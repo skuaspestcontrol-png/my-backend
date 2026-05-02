@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { attachPlacesAutocomplete } from '../utils/googlePlaces';
 import {
   CalendarDays,
   ChevronDown,
@@ -138,6 +139,10 @@ const emptyForm = {
   pincode: '',
   latitude: '',
   longitude: '',
+  googlePlaceId: '',
+  googlePlaceName: '',
+  googlePhone: '',
+  googleWebsite: '',
   pestIssue: '',
   leadSource: 'Call',
   propertyType: 'Residential',
@@ -457,6 +462,7 @@ export default function LeadCapture() {
   const moreMenuButtonRef = useRef(null);
   const importFileRef = useRef(null);
   const resizeStateRef = useRef(null);
+  const searchAddressInputRef = useRef(null);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -608,6 +614,10 @@ export default function LeadCapture() {
     pincode: lead.pincode || lead.pinCode || '',
     latitude: lead.latitude || '',
     longitude: lead.longitude || '',
+    googlePlaceId: lead.googlePlaceId || lead.google_place_id || '',
+    googlePlaceName: lead.googlePlaceName || lead.google_place_name || '',
+    googlePhone: lead.googlePhone || lead.google_phone || '',
+    googleWebsite: lead.googleWebsite || lead.google_website || '',
     pestIssue: lead.pestIssue || '',
     leadSource: lead.leadSource || emptyForm.leadSource,
     propertyType: lead.propertyType || lead.customerSegment || emptyForm.propertyType,
@@ -712,6 +722,45 @@ export default function LeadCapture() {
   useEffect(() => {
     localStorage.setItem('leads_column_widths', JSON.stringify(columnWidths));
   }, [columnWidths]);
+
+  useEffect(() => {
+    let detach = () => {};
+    const input = searchAddressInputRef.current;
+    if (!showModal || !input) return () => {};
+
+    attachPlacesAutocomplete({
+      input,
+      onSelected: (place) => {
+        setForm((current) => ({
+          ...current,
+          customerName: current.customerName || place.name || '',
+          searchAddress: place.formatted_address || place.name || current.searchAddress,
+          address: place.formatted_address || current.address,
+          areaName: place.areaName || current.areaName,
+          city: place.city || current.city,
+          state: place.state || current.state,
+          pincode: place.pincode || current.pincode,
+          latitude: place.latitude !== null ? String(place.latitude) : current.latitude,
+          longitude: place.longitude !== null ? String(place.longitude) : current.longitude,
+          googlePlaceId: place.place_id || current.googlePlaceId,
+          googlePlaceName: place.name || current.googlePlaceName,
+          googlePhone: place.formatted_phone_number || place.international_phone_number || current.googlePhone,
+          googleWebsite: place.website || current.googleWebsite
+        }));
+      },
+      onError: (error) => {
+        const message = String(error?.message || '').trim() || 'Google Places API not enabled';
+        alert(message);
+      },
+      onRequireSelection: (message) => {
+        alert(message || 'Please select address/company from suggestions');
+      }
+    }).then((fn) => {
+      detach = fn;
+    });
+
+    return () => detach();
+  }, [showModal]);
 
   useEffect(() => {
     setSelectedLeadIds((prev) => prev.filter((id) => leads.some((lead) => lead._id === id)));
@@ -1168,68 +1217,8 @@ export default function LeadCapture() {
   ].map((field) => normalizeSearchText(field)).filter(Boolean));
 
   const fetchAddressFromGoogleMaps = async () => {
-    const query = (form.searchAddress || form.address || '').trim();
-    if (!query) {
-      alert('Enter a search address first');
-      return;
-    }
-
-    setIsFetchingAddress(true);
-    try {
-      const queryText = normalizeSearchText(query);
-      const searchPool = [
-        ...(Array.isArray(customers) ? customers : []),
-        ...(Array.isArray(existingCustomers) ? existingCustomers : [])
-      ];
-      const filteredResults = searchPool.filter((entry) =>
-        buildAreaSearchFields(entry).some((field) => field.includes(queryText))
-      );
-
-      if (filteredResults.length > 0) {
-        const bestMatch = filteredResults[0] || {};
-        setForm((current) => ({
-          ...current,
-          customerName: current.customerName || bestMatch.customerName || bestMatch.displayName || bestMatch.companyName || '',
-          mobile: current.mobile || normalizePhoneNumber(bestMatch.mobileNumber || getLeadMobile(bestMatch)),
-          whatsappNumber: current.whatsappNumber || normalizePhoneNumber(bestMatch.whatsappNumber || bestMatch.mobileNumber || getLeadMobile(bestMatch) || ''),
-          emailId: current.emailId || bestMatch.emailId || '',
-          searchAddress: bestMatch.searchAddress || bestMatch.address || bestMatch.billingAddress || bestMatch.shippingAddress || current.searchAddress,
-          address: bestMatch.address || bestMatch.billingAddress || bestMatch.shippingAddress || current.address,
-          areaName: bestMatch.areaName || bestMatch.area || bestMatch.billingArea || bestMatch.shippingArea || current.areaName,
-          city: bestMatch.city || current.city,
-          state: bestMatch.state || bestMatch.billingState || bestMatch.shippingState || current.state,
-          pincode: bestMatch.pincode || bestMatch.pinCode || bestMatch.billingPincode || bestMatch.shippingPincode || current.pincode
-        }));
-        return;
-      }
-
-      const latLng = parseLatLngFromGoogleUrl(query);
-      const response = await axios.post(`${API_BASE_URL}/api/maps/geocode`, latLng
-        ? { lat: latLng.lat, lng: latLng.lng }
-        : { address: query });
-      const best = response?.data?.result;
-      if (!best) throw new Error('No location found');
-
-      const location = best.geometry?.location || {};
-      const derived = extractAddressFields(best);
-
-      setForm((current) => ({
-        ...current,
-        searchAddress: best.formatted_address || current.searchAddress,
-        address: best.formatted_address || current.address,
-        areaName: derived.areaName || current.areaName,
-        city: derived.city || current.city,
-        state: derived.state || current.state,
-        pincode: derived.pincode || current.pincode,
-        latitude: location.lat ? String(location.lat) : current.latitude,
-        longitude: location.lng ? String(location.lng) : current.longitude
-      }));
-    } catch (error) {
-      console.error('Google Maps fetch failed', error);
-      alert(error?.response?.data?.error || error.message || 'Failed to fetch location from Google Maps');
-    } finally {
-      setIsFetchingAddress(false);
-    }
+    if (searchAddressInputRef.current) searchAddressInputRef.current.focus();
+    alert('Please select address/company from suggestions');
   };
 
   const copyMobileToWhatsapp = () => {
@@ -2342,10 +2331,11 @@ export default function LeadCapture() {
                     <label style={s.lb}>Search Address</label>
                     <div style={mapsRowStyle}>
                       <input
+                        ref={searchAddressInputRef}
                         value={form.searchAddress}
                         style={{ ...s.in, marginBottom: 0, flex: 1 }}
                         onChange={(e) => updateForm('searchAddress', e.target.value)}
-                        placeholder="Search by area name"
+                        placeholder="Search company, shop, office, area, or address"
                       />
                       <button type="button" onClick={fetchAddressFromGoogleMaps} style={s.mapsButton} disabled={isFetchingAddress}>
                         <Search size={14} /> {isFetchingAddress ? 'Fetching...' : 'Search Maps'}
