@@ -289,23 +289,23 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     };
 
     // Header
-    const headerH = 98;
+    const headerH = 118;
     drawCell(doc, '', left, y, contentW, headerH, { border: COLORS.border });
 
-    const logoBoxW = 74;
-    const logoBoxH = 54;
+    const logoBoxW = 68;
+    const logoBoxH = 50;
     if (company.logo) {
       try { doc.image(company.logo, left + 11, y + 11, { fit: [logoBoxW - 6, logoBoxH - 6] }); } catch (_e) {}
     } else {
       doc.font('Helvetica').fontSize(8).fillColor('#6b7280').text('LOGO', left + 26, y + 30);
     }
 
-    const companyX = left + 88;
+    const companyX = left + 82;
     const companyW = contentW - 260;
-    doc.font('Helvetica-Bold').fontSize(12).fillColor(COLORS.text).text(company.name, companyX, y + 8, { width: companyW });
-    doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(company.tagline || '', companyX, y + 23, { width: companyW });
+    doc.font('Helvetica-Bold').fontSize(11).fillColor(COLORS.text).text(company.name, companyX, y + 8, { width: companyW });
+    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(company.tagline || '', companyX, y + 20, { width: companyW });
 
-    doc.font('Helvetica').fontSize(10).fillColor(COLORS.text);
+    doc.font('Helvetica').fontSize(8).fillColor(COLORS.text);
     const addressLines = [
       company.address1,
       company.address2,
@@ -316,26 +316,26 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       company.gstin ? `GST Details: ${company.gstin}` : 'GST Details: '
     ].filter((line) => line !== '');
 
-    let ay = y + 46;
+    let ay = y + 32;
     addressLines.forEach((line) => {
-      doc.text(line, companyX, ay, { width: companyW });
+      doc.text(line, companyX, ay, { width: companyW, lineGap: 0 });
       ay = doc.y;
     });
 
     const rightX = right - 210;
     const rightW = 198;
-    doc.font('Helvetica-Bold').fontSize(12).fillColor(COLORS.title).text('TAX INVOICE', rightX, y + 12, { width: rightW, align: 'right' });
+    doc.font('Helvetica-Bold').fontSize(11).fillColor(COLORS.title).text('TAX INVOICE', rightX, y + 10, { width: rightW, align: 'right' });
 
     const meta = [
       ['Invoice #', clean(invoice.invoiceNumber) || '-'],
       ['Invoice Date', formatDate(invoice.date)],
       ['Salesperson', clean(invoice.salesperson) || '-']
     ];
-    let my = y + 42;
+    let my = y + 30;
     meta.forEach(([k, v]) => {
       doc.font('Helvetica-Bold').fontSize(8).fillColor('#6b7280').text(k, rightX + 6, my, { width: 78 });
       doc.font('Helvetica').fontSize(8).fillColor(COLORS.text).text(`: ${v}`, rightX + 84, my, { width: rightW - 90 });
-      my += 13;
+      my += 12;
     });
 
     y += headerH + 8;
