@@ -298,10 +298,10 @@ const shell = {
   itemTable: { width: '100%', minWidth: '860px', borderCollapse: 'collapse' },
   itemTh: { padding: '8px 10px', borderBottom: '1px solid var(--color-border)', color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', textAlign: 'left' },
   itemTd: { padding: '8px 10px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#111827', verticalAlign: 'top' },
-  itemMetaGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' },
-  itemMetaField: { display: 'flex', flexDirection: 'column', gap: '4px' },
+  itemMetaGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', width: '100%' },
+  itemMetaField: { display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, width: '100%' },
   itemMetaLabel: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
-  itemMetaInput: { border: '1px solid #D1D5DB', borderRadius: '8px', padding: '6px 8px', fontSize: '12px', outline: 'none', width: '100%', minHeight: '32px', boxSizing: 'border-box' },
+  itemMetaInput: { border: '1px solid #D1D5DB', borderRadius: '8px', padding: '6px 8px', fontSize: '12px', outline: 'none', width: '100%', minWidth: 0, maxWidth: '100%', minHeight: '32px', boxSizing: 'border-box', display: 'block' },
   iconButton: { border: '1px solid var(--color-border)', borderRadius: '10px', width: '36px', height: '36px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', color: '#475569', cursor: 'pointer' },
   tinyText: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
   addRowBtn: { border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '7px 11px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
@@ -1972,6 +1972,8 @@ export default function InvoiceDashboard() {
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : shell.itemTable;
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
   const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '100%', tableLayout: 'fixed' } : shell.serviceScheduleTable;
+  const serviceScheduleThStyle = isMobile ? { ...shell.serviceScheduleTh, fontSize: '10px', padding: '7px 6px' } : shell.serviceScheduleTh;
+  const serviceScheduleTdStyle = isMobile ? { ...shell.serviceScheduleTd, fontSize: '11px', padding: '7px 6px', wordBreak: 'break-word' } : shell.serviceScheduleTd;
   const mobileItemInlineGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' };
 
   return (
@@ -2476,7 +2478,7 @@ export default function InvoiceDashboard() {
                                     <span style={shell.itemMetaLabel}>Contract Start Date</span>
                                     <input
                                       type="date"
-                                      style={shell.itemMetaInput}
+                                      style={{ ...shell.itemMetaInput, textAlign: 'left' }}
                                       value={line.contractStartDate || ''}
                                       onChange={(event) => updateLine(index, { contractStartDate: event.target.value })}
                                     />
@@ -2485,7 +2487,7 @@ export default function InvoiceDashboard() {
                                     <span style={shell.itemMetaLabel}>Contract End Date</span>
                                     <input
                                       type="date"
-                                      style={shell.itemMetaInput}
+                                      style={{ ...shell.itemMetaInput, textAlign: 'left' }}
                                       value={line.contractEndDate || ''}
                                       readOnly
                                     />
@@ -2494,7 +2496,7 @@ export default function InvoiceDashboard() {
                                     <span style={shell.itemMetaLabel}>Renewal Date</span>
                                     <input
                                       type="date"
-                                      style={shell.itemMetaInput}
+                                      style={{ ...shell.itemMetaInput, textAlign: 'left' }}
                                       value={line.renewalDate || ''}
                                       readOnly
                                     />
@@ -2745,27 +2747,49 @@ export default function InvoiceDashboard() {
                     <div style={shell.serviceScheduleTableWrap}>
                       <table style={serviceScheduleTableStyle}>
                         <thead>
-                          <tr>
-                            <th style={shell.serviceScheduleTh}>Service #</th>
-                            <th style={shell.serviceScheduleTh}>Date</th>
-                            <th style={shell.serviceScheduleTh}>Time</th>
-                            <th style={shell.serviceScheduleTh}>Customer</th>
-                            <th style={shell.serviceScheduleTh}>Item Details</th>
-                          </tr>
+                          {isMobile ? (
+                            <tr>
+                              <th style={{ ...serviceScheduleThStyle, width: '12%' }}>#</th>
+                              <th style={{ ...serviceScheduleThStyle, width: '28%' }}>Date</th>
+                              <th style={{ ...serviceScheduleThStyle, width: '20%' }}>Time</th>
+                              <th style={{ ...serviceScheduleThStyle, width: '40%' }}>Item</th>
+                            </tr>
+                          ) : (
+                            <tr>
+                              <th style={serviceScheduleThStyle}>Service #</th>
+                              <th style={serviceScheduleThStyle}>Date</th>
+                              <th style={serviceScheduleThStyle}>Time</th>
+                              <th style={serviceScheduleThStyle}>Customer</th>
+                              <th style={serviceScheduleThStyle}>Item Details</th>
+                            </tr>
+                          )}
                         </thead>
                         <tbody>
                           {generatedServiceSchedules.map((entry) => (
                             <tr key={entry.key}>
-                              <td style={shell.serviceScheduleTd}>{entry.serviceNumber}</td>
-                              <td style={shell.serviceScheduleTd}>{formatDisplayDate(entry.serviceDate)}</td>
-                              <td style={shell.serviceScheduleTd}>{entry.serviceTime}</td>
-                              <td style={shell.serviceScheduleTd}>{form.customerName || '-'}</td>
-                              <td style={shell.serviceScheduleTd}>
-                                <div style={{ fontWeight: 700 }}>{entry.itemName || '-'}</div>
-                                <div style={{ marginTop: '2px', color: '#64748b', fontSize: '11px' }}>
-                                  {entry.itemDescription || 'No description'}
-                                </div>
-                              </td>
+                              {isMobile ? (
+                                <>
+                                  <td style={serviceScheduleTdStyle}>{entry.serviceNumber}</td>
+                                  <td style={serviceScheduleTdStyle}>{formatDisplayDate(entry.serviceDate)}</td>
+                                  <td style={serviceScheduleTdStyle}>{entry.serviceTime}</td>
+                                  <td style={{ ...serviceScheduleTdStyle, fontWeight: 700 }}>
+                                    {entry.itemName || '-'}
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  <td style={serviceScheduleTdStyle}>{entry.serviceNumber}</td>
+                                  <td style={serviceScheduleTdStyle}>{formatDisplayDate(entry.serviceDate)}</td>
+                                  <td style={serviceScheduleTdStyle}>{entry.serviceTime}</td>
+                                  <td style={serviceScheduleTdStyle}>{form.customerName || '-'}</td>
+                                  <td style={serviceScheduleTdStyle}>
+                                    <div style={{ fontWeight: 700 }}>{entry.itemName || '-'}</div>
+                                    <div style={{ marginTop: '2px', color: '#64748b', fontSize: '11px' }}>
+                                      {entry.itemDescription || 'No description'}
+                                    </div>
+                                  </td>
+                                </>
+                              )}
                             </tr>
                           ))}
                         </tbody>

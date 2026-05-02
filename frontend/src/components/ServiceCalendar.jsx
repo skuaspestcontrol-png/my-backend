@@ -73,6 +73,7 @@ const normalizeTime = (value, fallback = '10:00') => {
 };
 
 export default function ServiceCalendar() {
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -117,6 +118,13 @@ export default function ServiceCalendar() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const eventsByDate = useMemo(() => {
@@ -169,6 +177,12 @@ export default function ServiceCalendar() {
   }, [currentMonth, eventsByDate]);
 
   const selectedDayEvents = useMemo(() => eventsByDate[selectedDate] || [], [eventsByDate, selectedDate]);
+  const isMobile = viewportWidth <= 768;
+  const dayBtnStyle = isMobile
+    ? { ...shell.dayBtn, minHeight: '64px', padding: '6px', gap: '4px' }
+    : shell.dayBtn;
+  const dayNumberStyle = isMobile ? { ...shell.dayNumber, fontSize: '11px' } : shell.dayNumber;
+  const dayBadgeStyle = isMobile ? { ...shell.dayBadge, fontSize: '9px', padding: '2px 6px' } : shell.dayBadge;
 
   return (
     <section style={shell.page}>
@@ -237,15 +251,15 @@ export default function ServiceCalendar() {
                   key={cell.dateKey}
                   type="button"
                   style={{
-                    ...shell.dayBtn,
+                    ...dayBtnStyle,
                     ...(cell.inCurrentMonth ? null : shell.dayBtnMuted),
                     ...(isSelected ? shell.dayBtnSelected : null)
                   }}
                   onClick={() => setSelectedDate(cell.dateKey)}
                 >
-                  <span style={shell.dayNumber}>{cell.date.getDate()}</span>
+                  <span style={dayNumberStyle}>{cell.date.getDate()}</span>
                   {cell.events.length > 0 ? (
-                    <span style={shell.dayBadge}>{cell.events.length} service{cell.events.length > 1 ? 's' : ''}</span>
+                    <span style={dayBadgeStyle}>{cell.events.length} service{cell.events.length > 1 ? 's' : ''}</span>
                   ) : null}
                 </button>
               );

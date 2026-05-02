@@ -1316,19 +1316,28 @@ export default function Settings({ modalMode = false }) {
 
       <div style={shell.divider} />
       <p style={{ ...shell.fieldLabel, margin: 0 }}>Appearance</p>
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '10px',
+          alignItems: 'stretch'
+        }}
+      >
         <button
           type="button"
           onClick={() => updateField('brandingAppearance', 'dark')}
           style={{
             border: form.brandingAppearance === 'dark' ? '2px solid #1f2937' : '1px solid #d1d5db',
             background: '#fff',
-            borderRadius: '16px',
-            width: '210px',
-            minHeight: '120px',
+            borderRadius: '12px',
+            width: '100%',
+            minHeight: isCompactLayout ? '74px' : '96px',
             cursor: 'pointer',
             fontWeight: 800,
-            color: '#475569'
+            color: '#475569',
+            fontSize: isCompactLayout ? '12px' : '13px',
+            whiteSpace: 'nowrap'
           }}
         >
           DARK PANE
@@ -1339,12 +1348,14 @@ export default function Settings({ modalMode = false }) {
           style={{
             border: form.brandingAppearance === 'light' ? '2px solid var(--color-primary)' : '1px solid #d1d5db',
             background: '#fff',
-            borderRadius: '16px',
-            width: '210px',
-            minHeight: '120px',
+            borderRadius: '12px',
+            width: '100%',
+            minHeight: isCompactLayout ? '74px' : '96px',
             cursor: 'pointer',
             fontWeight: 800,
-            color: '#475569'
+            color: '#475569',
+            fontSize: isCompactLayout ? '12px' : '13px',
+            whiteSpace: 'nowrap'
           }}
         >
           LIGHT PANE
@@ -1353,15 +1364,25 @@ export default function Settings({ modalMode = false }) {
 
       <div style={shell.divider} />
       <p style={{ ...shell.fieldLabel, margin: 0 }}>Accent Color</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(48px, max-content))', gap: '12px', alignItems: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: isCompactLayout ? '8px' : '12px',
+          alignItems: 'center',
+          flexWrap: 'nowrap',
+          overflowX: 'auto',
+          paddingBottom: '2px'
+        }}
+      >
         {brandingAccentOptions.map((entry) => (
           <button
             key={entry}
             type="button"
             onClick={() => updateField('brandingAccentColor', entry)}
             style={{
-              width: '44px',
-              height: '44px',
+              width: isCompactLayout ? '40px' : '44px',
+              minWidth: isCompactLayout ? '40px' : '44px',
+              height: isCompactLayout ? '40px' : '44px',
               borderRadius: '12px',
               border: form.brandingAccentColor === entry ? '3px solid #1f2937' : '1px solid #d1d5db',
               background: entry,
@@ -1373,21 +1394,23 @@ export default function Settings({ modalMode = false }) {
         <label
           htmlFor="branding-custom-accent"
           style={{
-            minHeight: '44px',
+            minHeight: isCompactLayout ? '40px' : '44px',
+            height: isCompactLayout ? '40px' : '44px',
             borderRadius: '12px',
-            padding: '0 14px',
+            padding: isCompactLayout ? '0 12px' : '0 14px',
             border: brandingAccentOptions.includes(form.brandingAccentColor) ? '1px solid #d1d5db' : '2px solid #1f2937',
             background: 'linear-gradient(135deg, #38bdf8 0%, #8b5cf6 45%, #ec4899 100%)',
             color: '#fff',
             fontWeight: 800,
-            fontSize: '13px',
+            fontSize: isCompactLayout ? '12px' : '13px',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             position: 'relative',
-            minWidth: '98px'
+            minWidth: isCompactLayout ? '78px' : '98px',
+            flex: '0 0 auto'
           }}
           title="Custom Accent Color"
         >

@@ -242,6 +242,12 @@ export default function EmployeeMaster() {
   const isCompactModal = viewportWidth <= 980;
   const grid2Style = isCompactModal ? { ...shell.grid2, gridTemplateColumns: '1fr' } : shell.grid2;
   const grid3Style = isCompactModal ? { ...shell.grid3, gridTemplateColumns: '1fr' } : shell.grid3;
+  const dateInputStyle = {
+    ...shell.input,
+    boxSizing: 'border-box',
+    WebkitAppearance: 'none',
+    appearance: 'none'
+  };
 
   const loadData = async () => {
     const [employeeRes, settingsRes] = await Promise.all([
@@ -492,7 +498,7 @@ export default function EmployeeMaster() {
                 <div style={grid2Style}>
                   <div style={shell.field}>
                     <label style={shell.label}>Date of Joining</label>
-                    <input type="date" style={shell.input} value={form.dateOfJoining} onChange={(event) => updateField('dateOfJoining', event.target.value)} />
+                    <input type="date" style={dateInputStyle} value={form.dateOfJoining} onChange={(event) => updateField('dateOfJoining', event.target.value)} />
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Employee Code (Auto)</label>
@@ -525,7 +531,7 @@ export default function EmployeeMaster() {
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Date of Birth</label>
-                    <input type="date" style={shell.input} value={form.dateOfBirth} onChange={(event) => updateField('dateOfBirth', event.target.value)} />
+                    <input type="date" style={dateInputStyle} value={form.dateOfBirth} onChange={(event) => updateField('dateOfBirth', event.target.value)} />
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Employee Role</label>
