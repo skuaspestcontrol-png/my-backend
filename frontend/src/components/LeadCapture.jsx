@@ -2401,6 +2401,11 @@ export default function LeadCapture() {
                           setSearchError('');
                           updateForm('searchAddress', e.target.value);
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter') return;
+                          e.preventDefault();
+                          fetchAddressFromGoogleMaps();
+                        }}
                         placeholder="Search company, shop, office, area, or address"
                       />
                       <button type="button" onClick={fetchAddressFromGoogleMaps} style={s.mapsButton} disabled={isFetchingAddress}>
