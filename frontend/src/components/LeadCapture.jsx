@@ -1260,6 +1260,10 @@ export default function LeadCapture() {
       const response = await axios.post(`${API_BASE_URL}/api/maps/geocode`, { address: query });
       const best = response?.data?.result || response?.data || {};
       const formattedAddress = String(best.formatted_address || query).trim();
+      const placeName = String(best.name || '').trim();
+      const placeId = String(best.place_id || '').trim();
+      const placePhone = String(best.formatted_phone_number || best.international_phone_number || '').trim();
+      const placeWebsite = String(best.website || '').trim();
       const location = best?.geometry?.location || {};
       const lat = Number(location.lat);
       const lng = Number(location.lng);
@@ -1267,6 +1271,7 @@ export default function LeadCapture() {
 
       setForm((current) => ({
         ...current,
+        customerName: current.customerName || placeName || current.customerName,
         searchAddress: formattedAddress || current.searchAddress,
         address: formattedAddress || current.address,
         areaName: extracted.areaName || current.areaName,
@@ -1274,7 +1279,11 @@ export default function LeadCapture() {
         state: extracted.state || current.state,
         pincode: extracted.pincode || current.pincode,
         latitude: Number.isFinite(lat) ? String(lat) : current.latitude,
-        longitude: Number.isFinite(lng) ? String(lng) : current.longitude
+        longitude: Number.isFinite(lng) ? String(lng) : current.longitude,
+        googlePlaceId: placeId || current.googlePlaceId,
+        googlePlaceName: placeName || current.googlePlaceName,
+        googlePhone: placePhone || current.googlePhone,
+        googleWebsite: placeWebsite || current.googleWebsite
       }));
     } catch (error) {
       const message = String(error?.response?.data?.error || error?.message || '').trim();

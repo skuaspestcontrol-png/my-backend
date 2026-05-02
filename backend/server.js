@@ -1368,6 +1368,59 @@ app.post('/api/maps/geocode', async (req, res) => {
   let googleError = '';
   try {
     if (mapsApiKey) {
+      if (address) {
+        const placesFindEndpoint = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(address)}&inputtype=textquery&fields=place_id,name,formatted_address,geometry,types&key=${mapsApiKey}`;
+        const placesFindResponse = await fetch(placesFindEndpoint);
+        if (placesFindResponse.ok) {
+          const placesFindData = await placesFindResponse.json();
+          const candidate = Array.isArray(placesFindData.candidates) && placesFindData.candidates[0]
+            ? placesFindData.candidates[0]
+            : null;
+          if (candidate) {
+            const placeId = String(candidate.place_id || '').trim();
+            const geocodeByPlaceIdEndpoint = placeId
+              ? `https://maps.googleapis.com/maps/api/geocode/json?place_id=${encodeURIComponent(placeId)}&key=${mapsApiKey}`
+              : '';
+            let geocodeByPlace = null;
+            if (geocodeByPlaceIdEndpoint) {
+              const geocodeByPlaceResponse = await fetch(geocodeByPlaceIdEndpoint);
+              if (geocodeByPlaceResponse.ok) {
+                const geocodeByPlaceData = await geocodeByPlaceResponse.json();
+                if (geocodeByPlaceData.status === 'OK' && Array.isArray(geocodeByPlaceData.results) && geocodeByPlaceData.results[0]) {
+                  geocodeByPlace = geocodeByPlaceData.results[0];
+                }
+              }
+            }
+
+            let placeDetails = null;
+            if (placeId) {
+              const detailsEndpoint = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=formatted_phone_number,international_phone_number,website&key=${mapsApiKey}`;
+              const detailsResponse = await fetch(detailsEndpoint);
+              if (detailsResponse.ok) {
+                const detailsData = await detailsResponse.json();
+                if (detailsData.status === 'OK' && detailsData.result) {
+                  placeDetails = detailsData.result;
+                }
+              }
+            }
+
+            const mergedResult = {
+              ...(geocodeByPlace || {}),
+              place_id: placeId || geocodeByPlace?.place_id || '',
+              name: String(candidate.name || '').trim(),
+              types: Array.isArray(candidate.types) ? candidate.types : (Array.isArray(geocodeByPlace?.types) ? geocodeByPlace.types : []),
+              formatted_address: String(candidate.formatted_address || geocodeByPlace?.formatted_address || '').trim(),
+              geometry: candidate.geometry || geocodeByPlace?.geometry || {},
+              formatted_phone_number: String(placeDetails?.formatted_phone_number || '').trim(),
+              international_phone_number: String(placeDetails?.international_phone_number || '').trim(),
+              website: String(placeDetails?.website || '').trim()
+            };
+            res.json({ result: mergedResult });
+            return;
+          }
+        }
+      }
+
       const googleEndpoint = lat && lng
         ? `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(`${lat},${lng}`)}&key=${mapsApiKey}`
         : `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${mapsApiKey}`;
