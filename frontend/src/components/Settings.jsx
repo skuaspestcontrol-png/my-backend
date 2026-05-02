@@ -809,13 +809,6 @@ export default function Settings({ modalMode = false }) {
     };
   }, []);
 
-  const completionMap = useMemo(() => getSectionCompletion(form, securityForm), [form, securityForm]);
-  const completedCount = useMemo(() => Object.values(completionMap).filter(Boolean).length, [completionMap]);
-
-  const validationSummary = completedCount === sectionMeta.length
-    ? 'Validation summary: all required fields complete'
-    : `Validation summary: ${completedCount}/${sectionMeta.length} sections complete`;
-
   const statusTone = useMemo(() => {
     const raw = String(status || '').toLowerCase();
     if (raw.includes('could not') || raw.includes('failed')) return { color: '#dc2626' };
@@ -2388,9 +2381,6 @@ export default function Settings({ modalMode = false }) {
   const panelHeaderSideStyle = isCompactLayout
     ? { ...shell.panelHeaderSide, justifyItems: 'start', width: '100%' }
     : shell.panelHeaderSide;
-  const validationStyle = isCompactLayout
-    ? { ...shell.validation, textAlign: 'left', fontSize: '13px' }
-    : shell.validation;
   const panelHeaderButtonsStyle = isCompactLayout
     ? { ...shell.panelHeaderButtons, width: '100%', justifyContent: 'stretch', display: 'grid', gridTemplateColumns: '1fr 1fr' }
     : shell.panelHeaderButtons;
@@ -2437,10 +2427,7 @@ export default function Settings({ modalMode = false }) {
         <div style={panelStyle}>
           <header style={panelHeaderStyle}>
             <div style={panelHeaderSideStyle}>
-              <span style={validationStyle}>{validationSummary}</span>
-              <div style={panelHeaderButtonsStyle}>
-                <button type="button" style={topButtonStyle} onClick={discardChanges}>Discard</button>
-              </div>
+              <div style={panelHeaderButtonsStyle} />
             </div>
           </header>
 
@@ -2490,9 +2477,23 @@ export default function Settings({ modalMode = false }) {
             <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, ...statusTone }}>
               {status || ''}
             </p>
-            <button type="button" style={{ ...topButtonStyle, ...shell.topButtonPrimary, minWidth: '140px' }} onClick={saveAll} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                style={{ ...topButtonStyle, minHeight: '34px', borderRadius: '8px', padding: '0 12px', fontSize: '11px' }}
+                onClick={discardChanges}
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                style={{ ...topButtonStyle, ...shell.topButtonPrimary, minHeight: '34px', minWidth: '122px', borderRadius: '8px', padding: '0 12px', fontSize: '11px' }}
+                onClick={saveAll}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
