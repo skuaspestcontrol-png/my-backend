@@ -25,6 +25,13 @@ const toNumber = (value, fallback = 0) => {
 };
 
 const clean = (value) => String(value ?? '').trim();
+const pickFirstText = (...values) => {
+  for (const value of values) {
+    const next = clean(value);
+    if (next) return next;
+  }
+  return '';
+};
 
 const formatINR = (value) => {
   const n = toNumber(value, 0);
@@ -135,7 +142,14 @@ const resolveCompany = (settings = {}, invoice = {}) => {
     phone: clean((isNonGst ? settings.nonGstPhone : settings.gstPhone) || settings.companyMobile),
     email: clean((isNonGst ? settings.nonGstEmail : settings.gstEmail) || settings.companyEmail),
     website: clean(settings.companyWebsite),
-    gstin: isNonGst ? '' : clean(settings.companyGstNumber || settings.gstRegistrationNumber),
+    gstin: isNonGst
+      ? ''
+      : pickFirstText(
+        settings.companyGstNumber,
+        settings.gstRegistrationNumber,
+        settings.gstin,
+        settings.gstNumber
+      ),
     logo: parseLocalAsset((isNonGst ? settings.nonGstCompanyLogoUrl : settings.gstCompanyLogoUrl) || settings.dashboardImageUrl),
     signature: parseLocalAsset(settings.gstDigitalSignatureUrl),
     bankName: isNonGst ? '' : clean(settings.gstBankName),
@@ -154,7 +168,15 @@ const resolveBillTo = (invoice = {}, customer = {}) => {
     state: clean(customer.billingState || customer.state),
     country: clean(customer.billingCountry || 'India'),
     pincode: clean(customer.billingPincode || customer.pincode),
-    gstin: clean(customer.gstNumber)
+    gstin: pickFirstText(
+      customer.gstNumber,
+      customer.gstin,
+      customer.companyGstNumber,
+      customer.billingGstNumber,
+      invoice.customerGstNumber,
+      invoice.gstNumber,
+      invoice.gstin
+    )
   };
 };
 
@@ -166,7 +188,15 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
     state: clean(customer.shippingState || customer.state),
     country: clean(customer.shippingCountry || 'India'),
     pincode: clean(customer.shippingPincode || customer.pincode),
-    gstin: clean(customer.gstNumber)
+    gstin: pickFirstText(
+      customer.gstNumber,
+      customer.gstin,
+      customer.companyGstNumber,
+      customer.shippingGstNumber,
+      invoice.customerGstNumber,
+      invoice.gstNumber,
+      invoice.gstin
+    )
   };
 };
 
