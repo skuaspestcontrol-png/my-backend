@@ -2571,10 +2571,10 @@ export default function InvoiceDashboard() {
                                       </div>
                                       <div style={shell.itemMetaField}>
                                         <span style={shell.itemMetaLabel}>Amount</span>
-                                        <div style={{ ...shell.itemMetaInput, minHeight: '32px', height: '32px', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ ...shell.itemMetaInput, minHeight: '32px', height: '32px', padding: '6px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                           <strong>{formatINR(amount)}</strong>
-                                          <button type="button" style={{ ...shell.iconButton, width: '24px', height: '24px', minHeight: '24px', borderRadius: '7px' }} onClick={() => removeLine(index)} title="Remove row">
-                                            <Trash2 size={14} />
+                                          <button type="button" style={{ ...shell.iconButton, width: '20px', height: '20px', minHeight: '20px', borderRadius: '6px', border: 'none', background: 'transparent', padding: 0 }} onClick={() => removeLine(index)} title="Remove row">
+                                            <Trash2 size={13} />
                                           </button>
                                         </div>
                                       </div>
