@@ -1,21 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import axios from 'axios';
-import {
-  Bell,
-  Briefcase,
-  Building2,
-  CalendarDays,
-  CircleDollarSign,
-  Database,
-  LayoutDashboard,
-  MessageSquare,
-  Package,
-  ShoppingCart,
-  Truck,
-  UserCheck,
-  Users
-} from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -51,140 +36,94 @@ const shell = {
   metricLabel: { margin: 0, color: 'var(--color-primary-dark)', fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' },
   metricValue: { margin: '10px 0 0 0', color: '#0f172a', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.04em' },
   metricSub: { margin: '6px 0 0 0', color: '#475569', fontSize: '13px' },
-  grid: { display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '18px' },
-  panel: { background: 'rgba(255,255,255,0.86)', borderRadius: '20px', border: '1px solid rgba(159, 23, 77, 0.16)', padding: '22px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)' },
-  sectionTitle: { margin: 0, color: '#0f172a', fontSize: '16px', fontWeight: 800 },
-  sectionSub: { margin: '6px 0 0 0', color: '#475569', fontSize: '13px', lineHeight: 1.6 },
-  answerGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px', marginTop: '14px' },
-  answerCard: { border: '1px solid rgba(159, 23, 77, 0.18)', borderRadius: '14px', padding: '12px', background: 'rgba(252,231,243,0.6)' },
-  answerQuestion: { margin: 0, color: '#0f172a', fontSize: '12px', fontWeight: 800, lineHeight: 1.4 },
-  answerValue: { margin: '8px 0 0 0', color: 'var(--color-primary-dark)', fontSize: '13px', fontWeight: 700, lineHeight: 1.5 },
-  moduleGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', marginTop: '16px' },
-  moduleCard: {
-    display: 'flex',
-    gap: '14px',
-    padding: '16px',
-    borderRadius: '16px',
-    border: '1px solid rgba(159, 23, 77, 0.2)',
-    background: 'rgba(255,255,255,0.76)',
-    textDecoration: 'none',
-    color: '#111111',
-    backdropFilter: 'blur(10px)',
-    boxShadow: '0 10px 20px rgba(159, 23, 77, 0.08)'
-  },
-  list: { display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' },
-  listItem: { display: 'flex', justifyContent: 'space-between', gap: '14px', padding: '14px 0', borderBottom: '1px solid rgba(159, 23, 77, 0.14)' },
-  pill: { display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', border: '1px solid rgba(159, 23, 77, 0.2)', padding: '6px 10px', background: 'rgba(252,231,243,0.7)', fontSize: '12px', color: 'var(--color-primary-dark)', fontWeight: 700 }
+  graphGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '18px' },
+  panel: { background: 'rgba(255,255,255,0.9)', borderRadius: '20px', border: '1px solid rgba(159, 23, 77, 0.15)', padding: '20px', boxShadow: 'var(--shadow-soft)' },
+  panelHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' },
+  panelTitle: { margin: 0, color: '#0f172a', fontSize: '20px', fontWeight: 800 },
+  panelSub: { margin: 0, color: '#334155', fontSize: '15px', fontWeight: 700 },
+  total: { margin: '10px 0 14px 0', color: '#111827', fontSize: '44px', fontWeight: 800, letterSpacing: '-0.03em' },
+  progressTrack: { width: '100%', height: '22px', background: '#e5e7eb', borderRadius: '999px', overflow: 'hidden', display: 'flex' },
+  legendRow: { display: 'flex', gap: '22px', flexWrap: 'wrap', marginTop: '16px' },
+  legendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#334155', fontSize: '14px', fontWeight: 700 },
+  dot: { width: '14px', height: '14px', borderRadius: '4px', display: 'inline-block' },
+  barWrap: { marginTop: '12px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' },
+  bars: { display: 'grid', gap: '10px' },
+  barRow: { display: 'grid', gridTemplateColumns: '42px 1fr auto auto', alignItems: 'center', gap: '10px' },
+  donutWrap: { display: 'grid', gridTemplateColumns: '220px 1fr', gap: '18px', alignItems: 'center', marginTop: '8px' },
+  donut: { width: '200px', height: '200px', borderRadius: '50%', position: 'relative' },
+  donutInner: { position: 'absolute', inset: '25%', borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px' }
 };
 
-const MODULES = [
-  { label: 'Leads', path: '/leads', icon: Users, tone: 'var(--color-primary)', summary: 'Capture and convert inbound demand' },
-  { label: 'Contract', path: '/sales/contracts', icon: Briefcase, tone: 'var(--color-primary)', summary: 'Track contracts and renewals' },
-  { label: 'Customers', path: '/sales/customers', icon: Building2, tone: 'var(--color-primary-dark)', summary: 'Manage customer records and history' },
-  { label: 'Invoices', path: '/sales/invoices', icon: Database, tone: 'var(--color-primary-dark)', summary: 'Track invoice lifecycle and due balances' },
-  { label: 'Purchase', path: '/purchase/vendors', icon: ShoppingCart, tone: 'var(--color-primary-dark)', summary: 'Manage vendors, bills, and payouts' },
-  { label: 'WhatsApp Marketing', path: '/whatsapp', icon: MessageSquare, tone: 'var(--color-primary-dark)', summary: 'Run campaign lists and followups' },
-  { label: 'Assign Services', path: '/schedule-job', icon: Truck, tone: 'var(--color-primary-dark)', summary: 'Dispatch jobs to field technicians' },
-  { label: 'Service Calendar', path: '/service-calendar', icon: CalendarDays, tone: 'var(--color-primary)', summary: 'View schedule commitments' },
-  { label: 'Field Operations', path: '/operations/assigned-jobs', icon: Building2, tone: 'var(--color-primary-dark)', summary: 'Monitor active service execution' },
-  { label: 'Complaints', path: '/complaints', icon: Bell, tone: 'var(--color-primary-dark)', summary: 'Resolve escalations and callbacks' },
-  { label: 'Employee Master', path: '/employees', icon: UserCheck, tone: 'var(--color-primary)', summary: 'Maintain staff records and roles' },
-  { label: 'HR Dashboard', path: '/hr-dashboard', icon: LayoutDashboard, tone: 'var(--color-primary-dark)', summary: 'Eagle-eye workforce, attendance, and performance insights' },
-  { label: 'Payroll', path: '/payroll', icon: CircleDollarSign, tone: 'var(--color-primary-dark)', summary: 'Salary setup, payroll run, slips, and payments' },
-  { label: 'Items', path: '/items', icon: Package, tone: 'var(--color-primary)', summary: 'Manage service and product master' }
-];
-
-const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
-const normalizeText = (value) => String(value || '').trim().toLowerCase();
-const formatCountWithNames = (names) => {
-  if (names.length === 0) return 'None';
-  const top = names.slice(0, 3).join(', ');
-  return names.length > 3 ? `${top} +${names.length - 3} more` : top;
+const toNum = (value, fallback = 0) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
 };
 
-const toDateOnly = (value) => {
+const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`;
+
+const toDate = (value) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  date.setHours(0, 0, 0, 0);
-  return date;
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const addDays = (date, days) => {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
+const isOverdue = (dueDate) => {
+  const due = toDate(dueDate);
+  if (!due) return false;
+  const now = new Date();
+  due.setHours(23, 59, 59, 999);
+  return due < now;
 };
 
-const getEmployeeName = (employee) => {
-  const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim();
-  return fullName || employee.empCode || 'Unnamed';
-};
+const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+const monthLabel = (date) => date.toLocaleString('en-IN', { month: 'short' });
 
 export default function Dashboard() {
   const hasLoadedRef = useRef(false);
   const [summary, setSummary] = useState(null);
-  const [leads, setLeads] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [jobs, setJobs] = useState([]);
   const [settings, setSettings] = useState({});
   const [invoices, setInvoices] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [serviceSchedules, setServiceSchedules] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [items, setItems] = useState([]);
+  const [vendorBills, setVendorBills] = useState([]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 
   useEffect(() => {
     if (hasLoadedRef.current) return undefined;
     hasLoadedRef.current = true;
-    let mounted = true;
+    let active = true;
 
     const load = async () => {
       try {
-        const [
-          leadRes,
-          employeeRes,
-          jobRes,
-          settingsRes,
-          invoicesRes,
-          paymentsRes,
-          schedulesRes,
-          customersRes,
-          itemsRes
-        ] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/leads`),
-          axios.get(`${API_BASE_URL}/api/employees`),
-          axios.get(`${API_BASE_URL}/api/jobs`),
+        const [summaryRes, settingsRes, invoicesRes, vendorBillsRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/dashboard/summary`).catch(() => ({ data: null })),
           axios.get(`${API_BASE_URL}/api/settings`),
           axios.get(`${API_BASE_URL}/api/invoices`),
-          axios.get(`${API_BASE_URL}/api/payments`),
-          axios.get(`${API_BASE_URL}/api/service-schedules`),
-          axios.get(`${API_BASE_URL}/api/customers`),
-          axios.get(`${API_BASE_URL}/api/items`)
+          axios.get(`${API_BASE_URL}/api/vendor-bills`).catch(() => ({ data: [] }))
         ]);
-        const summaryRes = await axios.get(`${API_BASE_URL}/api/dashboard/summary`).catch(() => null);
 
-        if (!mounted) return;
-        setLeads(Array.isArray(leadRes.data) ? leadRes.data : []);
-        setEmployees(Array.isArray(employeeRes.data) ? employeeRes.data : []);
-        setJobs(Array.isArray(jobRes.data) ? jobRes.data : []);
+        if (!active) return;
+        setSummary(summaryRes?.data || null);
         setSettings(settingsRes.data || {});
         setInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
-        setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
-        setServiceSchedules(Array.isArray(schedulesRes.data) ? schedulesRes.data : []);
-        setCustomers(Array.isArray(customersRes.data) ? customersRes.data : []);
-        setItems(Array.isArray(itemsRes.data) ? itemsRes.data : []);
-        if (summaryRes?.data) {
-          setSummary(summaryRes.data);
-        }
+        setVendorBills(Array.isArray(vendorBillsRes.data) ? vendorBillsRes.data : []);
       } catch (error) {
         console.error('Dashboard load failed', error);
       }
     };
 
     load();
+    const timer = window.setInterval(load, 60000);
+    const onFocus = () => load();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
-      mounted = false;
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
 
@@ -194,229 +133,89 @@ export default function Dashboard() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const dashboardData = useMemo(() => {
-    const now = new Date();
-    const today = toDateOnly(now);
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    const next7Days = addDays(today, 7);
-    const next30Days = addDays(today, 30);
+  const analytics = useMemo(() => {
+    const totalReceivables = invoices.reduce((sum, invoice) => sum + toNum(invoice.balanceDue), 0);
+    const receivableCurrent = invoices.reduce((sum, invoice) => sum + (isOverdue(invoice.dueDate) ? 0 : toNum(invoice.balanceDue)), 0);
+    const receivableOverdue = Math.max(totalReceivables - receivableCurrent, 0);
 
-    const newLeadsToday = leads.filter((lead) => {
-      const leadDate = toDateOnly(lead.date || lead.createdAt);
-      return leadDate && leadDate.getTime() === today.getTime();
+    const totalPayables = vendorBills.reduce((sum, bill) => sum + toNum(bill.balanceDue), 0);
+    const payableCurrent = vendorBills.reduce((sum, bill) => sum + (isOverdue(bill.dueDate) ? 0 : toNum(bill.balanceDue)), 0);
+    const payableOverdue = Math.max(totalPayables - payableCurrent, 0);
+
+    const today = new Date();
+    const months = Array.from({ length: 12 }).map((_, idx) => {
+      const d = new Date(today.getFullYear(), today.getMonth() - (11 - idx), 1);
+      return { key: monthKey(d), label: monthLabel(d) };
     });
 
-    const followupDueLeads = leads.filter((lead) => {
-      const followupDate = toDateOnly(lead.followupDate);
-      if (!followupDate || followupDate > today) return false;
-      const status = normalizeText(lead.status || lead.leadStatus);
-      return !status.includes('converted') && !status.includes('cancel');
-    });
+    const incomeMap = new Map(months.map((m) => [m.key, 0]));
+    const expenseMap = new Map(months.map((m) => [m.key, 0]));
 
-    const dueServiceEntries = serviceSchedules.filter((entry) => {
-      const serviceDate = toDateOnly(entry.serviceDate);
-      const status = normalizeText(entry.status);
-      if (!serviceDate) return false;
-      if (status.includes('completed') || status.includes('cancel')) return false;
-      return serviceDate >= today && serviceDate <= next7Days;
-    });
-
-    const dueServiceCustomers = Array.from(
-      new Set(
-        dueServiceEntries
-          .map((entry) => String(entry.customerName || '').trim())
-          .filter(Boolean)
-      )
-    );
-
-    const contractRows = invoices.flatMap((invoice) =>
-      (Array.isArray(invoice.items) ? invoice.items : []).map((line) => ({
-        customerName: invoice.customerName || '',
-        itemName: line.itemName || '',
-        contractEndDate: line.contractEndDate || '',
-        renewalDate: line.renewalDate || ''
-      }))
-    );
-
-    const contractsExpiring = contractRows.filter((row) => {
-      const endDate = toDateOnly(row.contractEndDate);
-      return endDate && endDate >= today && endDate <= next30Days;
-    });
-
-    const renewalReminders = contractRows.filter((row) => {
-      const renewalDate = toDateOnly(row.renewalDate);
-      return renewalDate && renewalDate >= today && renewalDate <= next30Days;
-    });
-
-    const unpaidInvoices = invoices.filter((invoice) => Number(invoice.balanceDue || 0) > 0.01 || normalizeText(invoice.status) !== 'paid');
-    const unpaidAmount = unpaidInvoices.reduce((sum, invoice) => sum + Number(invoice.balanceDue || 0), 0);
-
-    const technicianActivities = jobs.filter((job) => {
-      const scheduledDate = toDateOnly(job.scheduledDate || job.date || job.createdAt);
-      const status = normalizeText(job.status);
-      return (scheduledDate && scheduledDate.getTime() === today.getTime()) || status === 'in progress';
-    });
-
-    const technicianNamesToday = Array.from(
-      new Set(
-        technicianActivities
-          .map((job) => String(job.technicianName || '').trim())
-          .filter(Boolean)
-      )
-    );
-
-    const monthInvoices = invoices.filter((invoice) => {
-      const invoiceDate = new Date(invoice.date || invoice.createdAt || 0);
-      if (Number.isNaN(invoiceDate.getTime())) return false;
-      return invoiceDate >= monthStart && invoiceDate <= monthEnd;
-    });
-
-    const revenueThisMonth = monthInvoices.reduce((sum, invoice) => sum + Number(invoice.amount || invoice.total || 0), 0);
-    const paymentsThisMonth = payments.filter((payment) => {
-      const paidOn = new Date(payment.paymentDate || payment.date || payment.createdAt || 0);
-      if (Number.isNaN(paidOn.getTime())) return false;
-      return paidOn >= monthStart && paidOn <= monthEnd;
-    });
-    const collectionsThisMonth = paymentsThisMonth.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-
-    const itemPurchaseCostMap = new Map(
-      items.map((item) => [String(item._id || ''), Number(item.purchaseRate || 0)])
-    );
-
-    const materialExpenseThisMonth = monthInvoices.reduce((sum, invoice) => {
-      const lines = Array.isArray(invoice.items) ? invoice.items : [];
-      const lineCost = lines.reduce((lineSum, line) => {
-        const quantity = Number(line.quantity || 1);
-        const purchaseRate = Number(line.purchaseRate ?? itemPurchaseCostMap.get(String(line.itemId || '')) ?? 0);
-        return lineSum + quantity * purchaseRate;
-      }, 0);
-      return sum + lineCost;
-    }, 0);
-
-    const payrollExpense = employees.reduce((sum, employee) => sum + Number(employee.salary || 0), 0);
-    const expenseThisMonth = payrollExpense + materialExpenseThisMonth;
-
-    const serviceRevenueMap = new Map();
     invoices.forEach((invoice) => {
-      const lines = Array.isArray(invoice.items) ? invoice.items : [];
+      const d = toDate(invoice.date || invoice.createdAt);
+      if (!d) return;
+      const key = monthKey(d);
+      if (!incomeMap.has(key)) return;
+      incomeMap.set(key, incomeMap.get(key) + toNum(invoice.total || invoice.amount));
+    });
+
+    vendorBills.forEach((bill) => {
+      const d = toDate(bill.date || bill.createdAt || bill.dueDate);
+      if (!d) return;
+      const key = monthKey(d);
+      if (!expenseMap.has(key)) return;
+      expenseMap.set(key, expenseMap.get(key) + toNum(bill.total || bill.amount || bill.balanceDue));
+    });
+
+    const incomeSeries = months.map((m) => ({ label: m.label, value: incomeMap.get(m.key) || 0 }));
+    const expenseSeries = months.map((m) => ({ label: m.label, value: expenseMap.get(m.key) || 0 }));
+
+    const expenseBuckets = new Map();
+    vendorBills.forEach((bill) => {
+      const lines = Array.isArray(bill.items) ? bill.items : [];
+      if (lines.length === 0) {
+        const key = String(bill.vendorName || 'General').trim() || 'General';
+        expenseBuckets.set(key, (expenseBuckets.get(key) || 0) + toNum(bill.total || bill.amount || bill.balanceDue));
+        return;
+      }
       lines.forEach((line) => {
-        const name = String(line.itemName || 'Unspecified Service').trim();
-        const quantity = Number(line.quantity || 1);
-        const rate = Number(line.rate || 0);
-        serviceRevenueMap.set(name, (serviceRevenueMap.get(name) || 0) + (quantity * rate));
+        const key = String(line.itemName || line.name || 'General').trim() || 'General';
+        const amount = toNum(line.amount, toNum(line.quantity, 0) * toNum(line.rate, 0));
+        expenseBuckets.set(key, (expenseBuckets.get(key) || 0) + amount);
       });
     });
 
-    const topServices = Array.from(serviceRevenueMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3);
-
-    let presentStaff = 0;
-    let onLeaveStaff = 0;
-    employees.forEach((employee) => {
-      const status = normalizeText(employee.attendanceStatus || employee.attendance || employee.dayStatus || employee.status);
-      if (status.includes('present')) presentStaff += 1;
-      if (status.includes('leave') || status.includes('absent')) onLeaveStaff += 1;
-    });
-
-    if (presentStaff === 0 && onLeaveStaff === 0 && technicianNamesToday.length > 0) {
-      const activeNameSet = new Set(technicianNamesToday.map((name) => normalizeText(name)));
-      presentStaff = employees.filter((employee) => activeNameSet.has(normalizeText(getEmployeeName(employee)))).length;
-    }
-
-    const unmarkedStaff = Math.max(employees.length - presentStaff - onLeaveStaff, 0);
-
-    const renewalCustomers = Array.from(
-      new Set(
-        renewalReminders
-          .map((entry) => String(entry.customerName || '').trim())
-          .filter(Boolean)
-      )
-    );
-
-    const recentLeads = [...leads]
-      .sort((a, b) => new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime())
+    const topExpenses = Array.from(expenseBuckets.entries())
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
       .slice(0, 5);
 
+    const totalExpenseAmount = topExpenses.reduce((sum, x) => sum + x.amount, 0);
+
     return {
-      now,
-      newLeadsToday,
-      followupDueLeads,
-      dueServiceCustomers,
-      contractsExpiring,
-      unpaidInvoices,
-      unpaidAmount,
-      technicianNamesToday,
-      revenueThisMonth,
-      collectionsThisMonth,
-      expenseThisMonth,
-      topServices,
-      presentStaff,
-      onLeaveStaff,
-      unmarkedStaff,
-      renewalCustomers,
-      recentLeads
+      totalReceivables,
+      receivableCurrent,
+      receivableOverdue,
+      totalPayables,
+      payableCurrent,
+      payableOverdue,
+      incomeSeries,
+      expenseSeries,
+      totalIncome: incomeSeries.reduce((sum, x) => sum + x.value, 0),
+      totalExpenses: expenseSeries.reduce((sum, x) => sum + x.value, 0),
+      topExpenses,
+      totalExpenseAmount
     };
-  }, [customers, employees, invoices, items, jobs, leads, payments, serviceSchedules]);
+  }, [invoices, vendorBills]);
 
   const topCards = useMemo(() => ({
-    leadsCount: Number(summary?.leadsCount ?? dashboardData.newLeadsToday.length ?? 0),
-    customersCount: Number(summary?.customersCount ?? customers.length ?? 0),
-    employeesCount: Number(summary?.employeesCount ?? employees.length ?? 0),
-    jobsCount: Number(summary?.jobsCount ?? jobs.length ?? 0),
-    invoicesCount: Number(summary?.invoicesCount ?? invoices.length ?? 0),
-    invoicesTotalAmount: Number(summary?.invoicesTotalAmount ?? dashboardData.revenueThisMonth ?? 0)
-  }), [summary, dashboardData.newLeadsToday.length, dashboardData.revenueThisMonth, customers.length, employees.length, jobs.length, invoices.length]);
-
-  const questionCards = useMemo(
-    () => [
-      {
-        question: 'How many new leads came today?',
-        answer: `${dashboardData.newLeadsToday.length} new lead(s) logged today`
-      },
-      {
-        question: 'Which leads need follow-up?',
-        answer: `${dashboardData.followupDueLeads.length} due: ${formatCountWithNames(dashboardData.followupDueLeads.map((lead) => lead.customerName || lead.mobile || 'Unnamed lead'))}`
-      },
-      {
-        question: 'Which customers are due for service?',
-        answer: `${dashboardData.dueServiceCustomers.length} due in next 7 days: ${formatCountWithNames(dashboardData.dueServiceCustomers)}`
-      },
-      {
-        question: 'Which contracts are expiring?',
-        answer: `${dashboardData.contractsExpiring.length} contract line(s) expiring in next 30 days`
-      },
-      {
-        question: 'Which invoices are unpaid?',
-        answer: `${dashboardData.unpaidInvoices.length} unpaid invoice(s), pending ${formatCurrency(dashboardData.unpaidAmount)}`
-      },
-      {
-        question: 'What are technicians doing today?',
-        answer: `${dashboardData.technicianNamesToday.length} active: ${formatCountWithNames(dashboardData.technicianNamesToday)}`
-      },
-      {
-        question: 'How much revenue vs expense this month?',
-        answer: `Revenue ${formatCurrency(dashboardData.revenueThisMonth)} vs Expense ${formatCurrency(dashboardData.expenseThisMonth)}`
-      },
-      {
-        question: 'Which services bring the most business?',
-        answer:
-          dashboardData.topServices.length === 0
-            ? 'No service revenue data yet'
-            : dashboardData.topServices.map(([name, amount]) => `${name} (${formatCurrency(amount)})`).join(' | ')
-      },
-      {
-        question: 'Which staff are present or on leave?',
-        answer: `Present ${dashboardData.presentStaff}, On Leave ${dashboardData.onLeaveStaff}, Unmarked ${dashboardData.unmarkedStaff}`
-      },
-      {
-        question: 'Which customers need renewal reminders?',
-        answer: `${dashboardData.renewalCustomers.length} customer(s): ${formatCountWithNames(dashboardData.renewalCustomers)}`
-      }
-    ],
-    [dashboardData]
-  );
+    leadsCount: Number(summary?.leadsCount || 0),
+    customersCount: Number(summary?.customersCount || 0),
+    employeesCount: Number(summary?.employeesCount || 0),
+    jobsCount: Number(summary?.jobsCount || 0),
+    invoicesCount: Number(summary?.invoicesCount || invoices.length),
+    invoicesTotalAmount: Number(summary?.invoicesTotalAmount || 0)
+  }), [summary, invoices.length]);
 
   const companyName = settings.companyName || 'SKUAS MASTER ERP';
   const isMobile = viewportWidth < 768;
@@ -429,6 +228,7 @@ export default function Dashboard() {
     : isTablet || isLaptop
       ? { ...shell.hero, gridTemplateColumns: '1fr', padding: isTablet ? '22px' : '26px' }
       : shell.hero;
+
   const metricsStyle = isMobile
     ? { ...shell.metrics, gridTemplateColumns: '1fr' }
     : isTablet
@@ -436,12 +236,18 @@ export default function Dashboard() {
       : isLaptop
         ? { ...shell.metrics, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }
         : shell.metrics;
-  const gridStyle = viewportWidth >= 1200 ? shell.grid : { ...shell.grid, gridTemplateColumns: '1fr' };
-  const answerGridStyle = isMobile ? { ...shell.answerGrid, gridTemplateColumns: '1fr' } : shell.answerGrid;
-  const moduleGridStyle = isMobile ? { ...shell.moduleGrid, gridTemplateColumns: '1fr' } : shell.moduleGrid;
-  const titleStyle = isMobile
-    ? { ...shell.title, fontSize: isSmallMobile ? '22px' : '26px', lineHeight: 1.15 }
-    : shell.title;
+
+  const graphGridStyle = viewportWidth >= 1200
+    ? shell.graphGrid
+    : { ...shell.graphGrid, gridTemplateColumns: '1fr' };
+
+  const incomeExpenseMax = Math.max(
+    ...analytics.incomeSeries.map((x) => x.value),
+    ...analytics.expenseSeries.map((x) => x.value),
+    1
+  );
+
+  const expenseColors = ['#56B881', '#EC7E37', '#3A6ECC', '#D45D79', '#8B5CF6'];
 
   return (
     <div style={shell.page}>
@@ -451,148 +257,148 @@ export default function Dashboard() {
             <LayoutDashboard size={14} />
             Command Center
           </div>
-          <h1 style={{ ...titleStyle, color: '#ffffff' }}>{companyName}</h1>
+          <h1 style={{ ...shell.title, color: '#ffffff' }}>{companyName}</h1>
           <p style={shell.description}>
-            White, maroon, and soft-pink dashboard now gives instant business answers for leads, followups, services, contracts, invoices, technician activity, revenue, expense, and renewals.
+            Live financial dashboard with real-time receivables, payables, income, and top expense trends.
           </p>
         </div>
 
         <div style={shell.heroCard}>
           <div style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-primary-dark)' }}>
-            Today&apos;s Focus
+            Auto Refresh
           </div>
           <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '12px', color: '#0f172a' }}>
-            {topCards.leadsCount > 0 ? `${topCards.leadsCount} total lead(s)` : 'No leads yet'}
+            Every 60 seconds
           </div>
           <p style={{ margin: '10px 0 0 0', color: '#334155', lineHeight: 1.7, fontSize: '14px', fontWeight: 600 }}>
-            Collections this month: <strong>{formatCurrency(dashboardData.collectionsThisMonth)}</strong>. Keep followups and renewals active to sustain momentum.
+            Receivables: <strong>{formatCurrency(analytics.totalReceivables)}</strong> | Payables: <strong>{formatCurrency(analytics.totalPayables)}</strong>
           </p>
         </div>
       </section>
 
       <section className="stats-grid dashboard-grid" style={metricsStyle}>
         <div style={shell.metric}>
-          <p style={shell.metricLabel}>New Leads Today</p>
+          <p style={shell.metricLabel}>Leads</p>
           <p style={shell.metricValue}>{topCards.leadsCount}</p>
-          <p style={shell.metricSub}>Total leads (cached summary)</p>
+          <p style={shell.metricSub}>Total leads</p>
         </div>
         <div style={shell.metric}>
           <p style={shell.metricLabel}>Customers</p>
           <p style={shell.metricValue}>{topCards.customersCount}</p>
-          <p style={shell.metricSub}>Total customers</p>
+          <p style={shell.metricSub}>Active customers</p>
         </div>
         <div style={shell.metric}>
           <p style={shell.metricLabel}>Employees / Jobs</p>
           <p style={shell.metricValue}>{topCards.employeesCount} / {topCards.jobsCount}</p>
-          <p style={shell.metricSub}>Current workforce and job volume</p>
+          <p style={shell.metricSub}>Workforce and dispatch</p>
         </div>
         <div style={shell.metric}>
-          <p style={shell.metricLabel}>Invoices / Total</p>
+          <p style={shell.metricLabel}>Invoices Value</p>
           <p style={shell.metricValue}>{topCards.invoicesCount}</p>
           <p style={shell.metricSub}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
         </div>
       </section>
 
-      <section className="content-grid dashboard-section-grid" style={gridStyle}>
-        <div style={shell.panel}>
-          <h2 style={shell.sectionTitle}>Instant Answers</h2>
-          <p style={shell.sectionSub}>All core business questions are answered from live module data.</p>
-          <div style={answerGridStyle}>
-            {questionCards.map((card) => (
-              <article key={card.question} style={shell.answerCard}>
-                <p style={shell.answerQuestion}>{card.question}</p>
-                <p style={shell.answerValue}>{card.answer}</p>
-              </article>
-            ))}
+      <section style={graphGridStyle}>
+        <article style={shell.panel}>
+          <div style={shell.panelHead}>
+            <h2 style={shell.panelTitle}>Total Receivables</h2>
           </div>
-        </div>
+          <p style={shell.panelSub}>Total Unpaid Invoices</p>
+          <p style={shell.total}>{formatCurrency(analytics.totalReceivables)}</p>
+          <div style={shell.progressTrack}>
+            <div style={{ width: `${analytics.totalReceivables > 0 ? (analytics.receivableCurrent / analytics.totalReceivables) * 100 : 0}%`, background: '#3A6ECC' }} />
+            <div style={{ width: `${analytics.totalReceivables > 0 ? (analytics.receivableOverdue / analytics.totalReceivables) * 100 : 0}%`, background: '#EC7E37' }} />
+          </div>
+          <div style={shell.legendRow}>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#3A6ECC' }} />Current: {formatCurrency(analytics.receivableCurrent)}</span>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#EC7E37' }} />Overdue: {formatCurrency(analytics.receivableOverdue)}</span>
+          </div>
+        </article>
 
-        <div style={shell.panel}>
-          <h2 style={shell.sectionTitle}>Operations Snapshot</h2>
-          <p style={shell.sectionSub}>Quick operating view for dispatch, contracts, and billing.</p>
-          <div style={shell.list}>
-            <div style={shell.listItem}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '14px' }}>Customers Due For Service</div>
-                <div style={shell.metricSub}>{formatCountWithNames(dashboardData.dueServiceCustomers)}</div>
-              </div>
-              <span style={shell.pill}>{dashboardData.dueServiceCustomers.length}</span>
-            </div>
-            <div style={shell.listItem}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '14px' }}>Contracts Expiring</div>
-                <div style={shell.metricSub}>Within next 30 days</div>
-              </div>
-              <span style={shell.pill}>{dashboardData.contractsExpiring.length}</span>
-            </div>
-            <div style={{ ...shell.listItem, borderBottom: 'none' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '14px' }}>Renewal Reminders</div>
-                <div style={shell.metricSub}>{formatCountWithNames(dashboardData.renewalCustomers)}</div>
-              </div>
-              <span style={shell.pill}>{dashboardData.renewalCustomers.length}</span>
-            </div>
+        <article style={shell.panel}>
+          <div style={shell.panelHead}>
+            <h2 style={shell.panelTitle}>Total Payables</h2>
           </div>
-        </div>
+          <p style={shell.panelSub}>Total Unpaid Bills</p>
+          <p style={shell.total}>{formatCurrency(analytics.totalPayables)}</p>
+          <div style={shell.progressTrack}>
+            <div style={{ width: `${analytics.totalPayables > 0 ? (analytics.payableCurrent / analytics.totalPayables) * 100 : 0}%`, background: '#3A6ECC' }} />
+            <div style={{ width: `${analytics.totalPayables > 0 ? (analytics.payableOverdue / analytics.totalPayables) * 100 : 0}%`, background: '#EC7E37' }} />
+          </div>
+          <div style={shell.legendRow}>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#3A6ECC' }} />Current: {formatCurrency(analytics.payableCurrent)}</span>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#EC7E37' }} />Overdue: {formatCurrency(analytics.payableOverdue)}</span>
+          </div>
+        </article>
       </section>
 
-      <section className="content-grid dashboard-section-grid" style={gridStyle}>
-        <div style={shell.panel}>
-          <h2 style={shell.sectionTitle}>Module Shortcuts</h2>
-          <p style={shell.sectionSub}>Jump directly into the exact workspace that needs action.</p>
-          <div style={moduleGridStyle}>
-            {MODULES.map((module) => {
-              const Icon = module.icon;
-              return (
-                <Link key={module.path} to={module.path} style={shell.moduleCard}>
-                  <div
-                    style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '12px',
-                      background: module.tone,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#fff',
-                      flexShrink: 0
-                    }}
-                  >
-                    <Icon size={18} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '14px' }}>{module.label}</div>
-                    <div style={{ marginTop: '6px', fontSize: '13px', color: '#475569', lineHeight: 1.6 }}>{module.summary}</div>
-                  </div>
-                </Link>
-              );
-            })}
+      <section style={graphGridStyle}>
+        <article style={shell.panel}>
+          <div style={shell.panelHead}>
+            <h2 style={shell.panelTitle}>Income and Expense</h2>
+            <span style={{ color: '#475569', fontWeight: 700 }}>This Fiscal Year</span>
           </div>
-        </div>
-
-        <div style={shell.panel}>
-          <h2 style={shell.sectionTitle}>Recent Leads</h2>
-          <p style={shell.sectionSub}>Latest captured opportunities in your sales queue.</p>
-          <div style={shell.list}>
-            {dashboardData.recentLeads.length === 0 ? (
-              <div style={{ padding: '14px', borderRadius: '14px', background: 'var(--color-primary-light)', border: '1px solid rgba(159, 23, 77, 0.2)', color: '#475569' }}>
-                No lead records yet. Start with the Leads module to begin capturing enquiries.
-              </div>
-            ) : (
-              dashboardData.recentLeads.map((lead) => (
-                <div key={lead._id || `${lead.customerName}-${lead.mobile}`} style={shell.listItem}>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>{lead.customerName || 'Unnamed Lead'}</div>
-                    <div style={{ marginTop: '4px', color: '#475569', fontSize: '13px' }}>
-                      {lead.leadSource || 'Direct'} • {lead.city || lead.areaName || 'Location not set'}
+          <div style={shell.legendRow}>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#56B881' }} />Total Income: {formatCurrency(analytics.totalIncome)}</span>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#D45D79' }} />Total Expense: {formatCurrency(analytics.totalExpenses)}</span>
+          </div>
+          <div style={shell.barWrap}>
+            <div style={shell.bars}>
+              {analytics.incomeSeries.map((m, index) => {
+                const income = m.value;
+                const expense = analytics.expenseSeries[index]?.value || 0;
+                return (
+                  <div key={m.label} style={shell.barRow}>
+                    <span style={{ color: '#64748b', fontWeight: 700 }}>{m.label}</span>
+                    <div style={{ position: 'relative', height: '16px', background: '#f1f5f9', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(income / incomeExpenseMax) * 100}%`, background: '#56B881' }} />
+                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(expense / incomeExpenseMax) * 100}%`, background: '#D45D79', opacity: 0.72 }} />
                     </div>
+                    <span style={{ color: '#166534', fontWeight: 700, fontSize: '12px' }}>{formatCurrency(income)}</span>
+                    <span style={{ color: '#9f1239', fontWeight: 700, fontSize: '12px' }}>{formatCurrency(expense)}</span>
                   </div>
-                  <div style={{ fontWeight: 800, color: 'var(--color-primary-dark)', fontSize: '12px' }}>{lead.status || lead.leadStatus || 'New Lead'}</div>
-                </div>
-              ))
-            )}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </article>
+
+        <article style={shell.panel}>
+          <div style={shell.panelHead}>
+            <h2 style={shell.panelTitle}>Top Expenses</h2>
+            <span style={{ color: '#475569', fontWeight: 700 }}>This Fiscal Year</span>
+          </div>
+          <div style={shell.donutWrap}>
+            <div
+              style={{
+                ...shell.donut,
+                background: `conic-gradient(${analytics.topExpenses.map((item, idx) => {
+                  const start = analytics.topExpenses.slice(0, idx).reduce((sum, e) => sum + e.amount, 0);
+                  const startPct = analytics.totalExpenseAmount > 0 ? (start / analytics.totalExpenseAmount) * 100 : 0;
+                  const endPct = analytics.totalExpenseAmount > 0 ? ((start + item.amount) / analytics.totalExpenseAmount) * 100 : startPct;
+                  return `${expenseColors[idx % expenseColors.length]} ${startPct}% ${endPct}%`;
+                }).join(', ') || '#e5e7eb 0 100%'})`
+              }}
+            >
+              <div style={shell.donutInner}>
+                <div style={{ color: '#64748b', fontWeight: 700 }}>All Expenses</div>
+                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800 }}>{formatCurrency(analytics.totalExpenseAmount)}</div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gap: '10px' }}>
+              {analytics.topExpenses.length === 0 ? (
+                <div style={{ color: '#64748b', fontWeight: 700 }}>No expense data available.</div>
+              ) : analytics.topExpenses.map((entry, idx) => (
+                <div key={`${entry.name}-${idx}`} style={{ display: 'grid', gridTemplateColumns: '16px 1fr auto', gap: '10px', alignItems: 'center' }}>
+                  <span style={{ ...shell.dot, width: '16px', height: '16px', borderRadius: '5px', background: expenseColors[idx % expenseColors.length] }} />
+                  <span style={{ color: '#334155', fontWeight: 700 }}>{entry.name}</span>
+                  <span style={{ color: '#0f172a', fontWeight: 800 }}>{formatCurrency(entry.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </article>
       </section>
     </div>
   );
