@@ -227,14 +227,14 @@ const s = {
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' },
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', position: 'relative', borderRadius: '14px', border: '1px solid var(--color-border)' },
-  table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left' },
-  headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 800, color: '#6b7280', padding: '8px 8px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap' },
+  table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left', tableLayout: 'fixed' },
+  headCell: { textAlign: 'left', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '6px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   headActionCell: { background: 'var(--color-primary-light)' },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   row: { borderBottom: '1px solid #eef2f7' },
-  cell: { padding: '8px 8px', fontSize: '12px', color: '#111827', verticalAlign: 'middle', lineHeight: 1.25 },
+  cell: { padding: '6px 6px', fontSize: '11px', color: '#111827', verticalAlign: 'middle', lineHeight: 1.2 },
   actionCell: { background: '#ffffff' },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
@@ -243,11 +243,11 @@ const s = {
     border: '1px solid #d1d5db',
     background: '#ffffff',
     color: '#334155',
-    padding: '6px 10px',
-    borderRadius: '8px',
-    minWidth: '96px',
-    minHeight: '32px',
-    fontSize: '12px',
+    padding: '4px 8px',
+    borderRadius: '7px',
+    minWidth: '74px',
+    minHeight: '26px',
+    fontSize: '10px',
     fontWeight: 800,
     display: 'inline-flex',
     alignItems: 'center',
@@ -258,19 +258,19 @@ const s = {
     lineHeight: 1
   },
   statusInlineSelect: {
-    minHeight: '30px',
-    borderRadius: '10px',
+    minHeight: '26px',
+    borderRadius: '8px',
     border: '1px solid rgba(159, 23, 77, 0.3)',
     background: '#fff',
     color: '#0f172a',
-    fontSize: '12px',
+    fontSize: '10px',
     fontWeight: 700,
-    padding: '4px 8px',
+    padding: '3px 7px',
     outline: 'none',
-    minWidth: '140px'
+    minWidth: '102px'
   },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center', width: '100%' },
-  rowActionButton: { border: '1px solid rgba(17,17,17,0.14)', background: '#fff', color: '#1f2937', borderRadius: '8px', minWidth: '72px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: 700 },
+  rowActionButton: { border: '1px solid rgba(17,17,17,0.14)', background: '#fff', color: '#1f2937', borderRadius: '7px', minWidth: '62px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 700 },
   rowActionMenu: { position: 'fixed', minWidth: '196px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 1200, overflow: 'hidden' },
   rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '8px 10px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '8px 10px', fontSize: '12px', fontWeight: 600 },
@@ -1485,7 +1485,7 @@ export default function LeadCapture() {
   const getColumnStyle = (columnKey) => {
     const width = Number(columnWidths[columnKey]);
     if (!Number.isFinite(width) || width <= 0) return {};
-    const clampedWidth = Math.max(110, Math.min(360, width));
+    const clampedWidth = Math.max(88, Math.min(220, width));
     return { width: `${clampedWidth}px`, minWidth: `${clampedWidth}px`, maxWidth: `${clampedWidth}px` };
   };
 
@@ -1501,7 +1501,7 @@ export default function LeadCapture() {
     const onMouseMove = (moveEvent) => {
       if (!resizeStateRef.current) return;
       const delta = moveEvent.clientX - resizeStateRef.current.startX;
-      const nextWidth = Math.max(110, Math.min(360, resizeStateRef.current.startWidth + delta));
+      const nextWidth = Math.max(88, Math.min(220, resizeStateRef.current.startWidth + delta));
       setColumnWidths((prev) => ({ ...prev, [columnKey]: nextWidth }));
     };
 
@@ -2078,7 +2078,7 @@ export default function LeadCapture() {
                     />
                   </th>
                 ))}
-                <th style={{ ...s.headCell, ...s.headActionCell, width: '106px', textAlign: 'center' }}>Action</th>
+                <th style={{ ...s.headCell, ...s.headActionCell, width: '82px', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -2135,7 +2135,7 @@ export default function LeadCapture() {
                                   title={convertedLead ? 'Converted lead status is locked' : 'Click to change lead status'}
                                 >
                                   <span>{String(value || '').trim() || 'New Lead'}</span>
-                                  {convertedLead ? null : <ChevronDown size={12} />}
+                                  {convertedLead ? null : <ChevronDown size={10} />}
                                 </button>
                               )}
                             </div>
@@ -2152,7 +2152,7 @@ export default function LeadCapture() {
                         </td>
                       );
                     })}
-                    <td style={{ ...s.cell, ...s.actionCell, width: '106px', textAlign: 'center' }}>
+                    <td style={{ ...s.cell, ...s.actionCell, width: '82px', textAlign: 'center' }}>
                       <div style={s.rowActionWrap} data-lead-row-action="true">
                         <button
                           type="button"
@@ -2161,7 +2161,7 @@ export default function LeadCapture() {
                           title="Manage lead"
                         >
                           <span>Action</span>
-                          <ChevronDown size={14} />
+                          <ChevronDown size={11} />
                         </button>
                         {rowActionLeadId === lead._id && rowActionMenuPosition
                           ? createPortal(
