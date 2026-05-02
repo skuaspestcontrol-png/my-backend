@@ -499,8 +499,6 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       : [''];
 
     const leftText = [
-      `Total In Words: ${amountToWords(total)}`,
-      '',
       'Bank Account Details:',
       ...bankLines,
       '',
@@ -549,6 +547,17 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(k, sumRightX + 10, sy + 6, { width: (rightW2 - 20) * 0.55 });
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(v, sumRightX + 10 + ((rightW2 - 20) * 0.55), sy + 6, { width: (rightW2 - 20) * 0.45, align: 'right' });
       sy += 20;
+    });
+
+    const wordsY = sy + 8;
+    drawCell(doc, '', sumRightX + 6, wordsY, rightW2 - 12, 42, { border: 'none', bg: null });
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#12364a').text('AMOUNT IN WORDS', sumRightX + 10, wordsY + 8, {
+      width: rightW2 - 20,
+      align: 'center'
+    });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#1f2937').text(amountToWords(total), sumRightX + 10, wordsY + 24, {
+      width: rightW2 - 20,
+      align: 'center'
     });
 
     y += Math.max(leftH, rightH) + 6;
