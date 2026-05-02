@@ -24,7 +24,41 @@ const lazyWithRetry = (importer, storageKey = 'lazy-retry') =>
     })
   );
 
-const DashboardLayout = lazy(() => import('./components/DashboardLayout'));
+class RouteErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, errorMessage: '' };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, errorMessage: String(error?.message || 'Failed to load module.') };
+  }
+
+  componentDidCatch(error) {
+    console.error('Route render failed:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '18px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>Module failed to load</h3>
+          <p style={{ margin: '0 0 12px 0', color: '#475569' }}>{this.state.errorMessage}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', background: '#fff', cursor: 'pointer' }}
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const DashboardLayout = lazyWithRetry(() => import('./components/DashboardLayout'), 'dashboard-layout');
 const CustomerDashboard = lazy(() => import('./components/CustomerDashboard'));
 const ContractDashboard = lazy(() => import('./components/ContractDashboard'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -188,50 +222,52 @@ const hrPage = (
 function App() {
   return (
     <Router>
-      <Suspense fallback={<div style={{ padding: '16px' }}>Loading...</div>}>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={<AppRoute element={<Dashboard />} />} />
-          <Route path="/ui/dashboard" element={<AppRoute element={<UIDashboardPage />} />} />
-          <Route path="/ui/customers" element={<AppRoute element={<UICustomersPage />} />} />
-          <Route path="/leads" element={<AppRoute element={<LeadCapture />} />} />
-          <Route path="/sales" element={<Navigate to="/sales/customers" replace />} />
-          <Route path="/sales/contracts" element={<AppRoute element={contractPage} />} />
-          <Route path="/sales/customers" element={<AppRoute element={<CustomerDashboard />} />} />
-          <Route path="/sales/invoices" element={<AppRoute element={<InvoiceDashboard />} />} />
-          <Route path="/sales/payment-received" element={<AppRoute element={<PaymentReceivedDashboard />} />} />
-          <Route path="/sales/renewal" element={<AppRoute element={renewalPage} />} />
-          <Route path="/purchase" element={<Navigate to="/purchase/vendors" replace />} />
-          <Route path="/purchase/vendors" element={<AppRoute element={vendorsPage} />} />
-          <Route path="/purchase/bills" element={<AppRoute element={billsPage} />} />
-          <Route path="/purchase/payment-received" element={<AppRoute element={purchasePaymentReceivedPage} />} />
-          <Route path="/whatsapp" element={<AppRoute element={whatsappPage} />} />
-          <Route path="/settings/whatsapp" element={<AppRoute element={<WhatsAppSettings />} />} />
-          <Route path="/settings/whatsapp/templates" element={<AppRoute element={<WhatsAppTemplates />} />} />
-          <Route path="/whatsapp/logs" element={<AppRoute element={<WhatsAppLogs />} />} />
-          <Route path="/settings/email" element={<AppRoute element={<EmailSettings />} />} />
-          <Route path="/settings/email/templates" element={<AppRoute element={<EmailTemplates />} />} />
-          <Route path="/email/logs" element={<AppRoute element={<EmailLogs />} />} />
-          <Route path="/schedule-job" element={<AppRoute element={<ScheduleJob />} />} />
-          <Route path="/operations/assign-services" element={<AppRoute element={<ScheduleJob />} />} />
-          <Route path="/service-calendar" element={<AppRoute element={<ServiceCalendar />} />} />
-          <Route path="/technician-portal" element={<Navigate to="/operations/assigned-jobs" replace />} />
-          <Route path="/operations/assigned-jobs" element={<AppRoute element={<TechnicianPortal />} />} />
-          <Route path="/operations/track-technicians" element={<AppRoute element={<TrackTechnicians />} />} />
-          <Route path="/sales-portal" element={<AppRoute element={<SalesPortal />} />} />
-          <Route path="/operations-portal" element={<AppRoute element={<OperationsPortal />} />} />
-          <Route path="/complaints" element={<AppRoute element={complaintsPage} />} />
-          <Route path="/certificates" element={<AppRoute element={certificatesPage} />} />
-          <Route path="/stock" element={<AppRoute element={stockPage} />} />
-          <Route path="/hr-dashboard" element={<AppRoute element={<HRDashboard />} />} />
-          <Route path="/employees" element={<AppRoute element={<EmployeeMaster />} />} />
-          <Route path="/attendance" element={<AppRoute element={<Attendance />} />} />
-          <Route path="/payroll" element={<AppRoute element={<PayrollModule />} />} />
-          <Route path="/items" element={<AppRoute element={<ItemsDashboard />} />} />
-          <Route path="/settings" element={<AppRoute element={<Settings />} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <RouteErrorBoundary>
+        <Suspense fallback={<div style={{ padding: '16px' }}>Loading...</div>}>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/dashboard" element={<AppRoute element={<Dashboard />} />} />
+            <Route path="/ui/dashboard" element={<AppRoute element={<UIDashboardPage />} />} />
+            <Route path="/ui/customers" element={<AppRoute element={<UICustomersPage />} />} />
+            <Route path="/leads" element={<AppRoute element={<LeadCapture />} />} />
+            <Route path="/sales" element={<Navigate to="/sales/customers" replace />} />
+            <Route path="/sales/contracts" element={<AppRoute element={contractPage} />} />
+            <Route path="/sales/customers" element={<AppRoute element={<CustomerDashboard />} />} />
+            <Route path="/sales/invoices" element={<AppRoute element={<InvoiceDashboard />} />} />
+            <Route path="/sales/payment-received" element={<AppRoute element={<PaymentReceivedDashboard />} />} />
+            <Route path="/sales/renewal" element={<AppRoute element={renewalPage} />} />
+            <Route path="/purchase" element={<Navigate to="/purchase/vendors" replace />} />
+            <Route path="/purchase/vendors" element={<AppRoute element={vendorsPage} />} />
+            <Route path="/purchase/bills" element={<AppRoute element={billsPage} />} />
+            <Route path="/purchase/payment-received" element={<AppRoute element={purchasePaymentReceivedPage} />} />
+            <Route path="/whatsapp" element={<AppRoute element={whatsappPage} />} />
+            <Route path="/settings/whatsapp" element={<AppRoute element={<WhatsAppSettings />} />} />
+            <Route path="/settings/whatsapp/templates" element={<AppRoute element={<WhatsAppTemplates />} />} />
+            <Route path="/whatsapp/logs" element={<AppRoute element={<WhatsAppLogs />} />} />
+            <Route path="/settings/email" element={<AppRoute element={<EmailSettings />} />} />
+            <Route path="/settings/email/templates" element={<AppRoute element={<EmailTemplates />} />} />
+            <Route path="/email/logs" element={<AppRoute element={<EmailLogs />} />} />
+            <Route path="/schedule-job" element={<AppRoute element={<ScheduleJob />} />} />
+            <Route path="/operations/assign-services" element={<AppRoute element={<ScheduleJob />} />} />
+            <Route path="/service-calendar" element={<AppRoute element={<ServiceCalendar />} />} />
+            <Route path="/technician-portal" element={<Navigate to="/operations/assigned-jobs" replace />} />
+            <Route path="/operations/assigned-jobs" element={<AppRoute element={<TechnicianPortal />} />} />
+            <Route path="/operations/track-technicians" element={<AppRoute element={<TrackTechnicians />} />} />
+            <Route path="/sales-portal" element={<AppRoute element={<SalesPortal />} />} />
+            <Route path="/operations-portal" element={<AppRoute element={<OperationsPortal />} />} />
+            <Route path="/complaints" element={<AppRoute element={complaintsPage} />} />
+            <Route path="/certificates" element={<AppRoute element={certificatesPage} />} />
+            <Route path="/stock" element={<AppRoute element={stockPage} />} />
+            <Route path="/hr-dashboard" element={<AppRoute element={<HRDashboard />} />} />
+            <Route path="/employees" element={<AppRoute element={<EmployeeMaster />} />} />
+            <Route path="/attendance" element={<AppRoute element={<Attendance />} />} />
+            <Route path="/payroll" element={<AppRoute element={<PayrollModule />} />} />
+            <Route path="/items" element={<AppRoute element={<ItemsDashboard />} />} />
+            <Route path="/settings" element={<AppRoute element={<Settings />} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </RouteErrorBoundary>
     </Router>
   );
 }
