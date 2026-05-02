@@ -416,6 +416,7 @@ export default function LeadCapture() {
   const [form, setForm] = useState(emptyForm);
   const [sameAsMobile, setSameAsMobile] = useState(false);
   const [isFetchingAddress, setIsFetchingAddress] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const [editingLeadId, setEditingLeadId] = useState(null);
   const [showReferencePicker, setShowReferencePicker] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -754,6 +755,7 @@ export default function LeadCapture() {
     attachPlacesAutocomplete({
       input,
       onSelected: (place) => {
+        setSearchError('');
         setForm((current) => ({
           ...current,
           customerName: current.customerName || place.name || '',
@@ -773,10 +775,10 @@ export default function LeadCapture() {
       },
       onError: (error) => {
         const message = String(error?.message || '').trim() || 'Google Places API not enabled';
-        alert(message);
+        setSearchError(`${message}. Please verify API key, Places API access, domain restrictions, and billing in Google Cloud.`);
       },
       onRequireSelection: (message) => {
-        alert(message || 'Please select address/company from suggestions');
+        setSearchError(message || 'Please select address/company from suggestions');
       }
     }).then((fn) => {
       detach = fn;
@@ -1241,7 +1243,7 @@ export default function LeadCapture() {
 
   const fetchAddressFromGoogleMaps = async () => {
     if (searchAddressInputRef.current) searchAddressInputRef.current.focus();
-    alert('Please select address/company from suggestions');
+    setSearchError('Please select address/company from suggestions');
   };
 
   const copyMobileToWhatsapp = () => {
@@ -2357,13 +2359,21 @@ export default function LeadCapture() {
                         ref={searchAddressInputRef}
                         value={form.searchAddress}
                         style={{ ...s.in, marginBottom: 0, flex: 1 }}
-                        onChange={(e) => updateForm('searchAddress', e.target.value)}
+                        onChange={(e) => {
+                          setSearchError('');
+                          updateForm('searchAddress', e.target.value);
+                        }}
                         placeholder="Search company, shop, office, area, or address"
                       />
                       <button type="button" onClick={fetchAddressFromGoogleMaps} style={s.mapsButton} disabled={isFetchingAddress}>
                         <Search size={14} /> {isFetchingAddress ? 'Fetching...' : 'Search Maps'}
                       </button>
                     </div>
+                    {searchError ? (
+                      <div style={{ marginTop: '6px', fontSize: '11px', color: '#b91c1c', fontWeight: 700 }}>
+                        {searchError}
+                      </div>
+                    ) : null}
                   </div>
 
                   <div style={leadFieldWideStyle}>
