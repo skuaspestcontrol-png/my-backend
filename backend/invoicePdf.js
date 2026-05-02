@@ -348,7 +348,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     }
 
     const companyX = left + 82;
-    const companyW = contentW - 260;
+    const companyW = contentW - 292;
     doc.font('Helvetica-Bold').fontSize(11).fillColor(COLORS.text).text(company.name, companyX, y + 8, { width: companyW });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(company.tagline || '', companyX, y + 20, { width: companyW });
 
@@ -369,8 +369,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ay = doc.y;
     });
 
-    const rightX = right - 220;
-    const rightW = 212;
+    const rightW = 178;
+    const rightX = right - rightW;
     doc.font('Helvetica-Bold').fontSize(18).fillColor(COLORS.title).text('TAX INVOICE', rightX, y + 8, { width: rightW, align: 'right' });
 
     const meta = [
@@ -380,8 +380,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     ];
     let my = y + 34;
     meta.forEach(([k, v]) => {
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text(`${k} :`, rightX + 6, my, { width: 92, align: 'left' });
-      doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(`${v}`, rightX + 98, my, { width: rightW - 100, align: 'left' });
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text(`${k} :`, rightX + 2, my, { width: 84, align: 'left' });
+      doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(`${v}`, rightX + 88, my, { width: rightW - 90, align: 'left' });
       my += 12;
     });
 
@@ -544,7 +544,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     let sy = y + 6;
     summaryRows.forEach(([k, v]) => {
       const isGrand = k === 'Grand Total';
-      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 20, { border: COLORS.border, bg: isGrand ? COLORS.headerBg : null });
+      const border = (k === 'Sub Total' || isGrand) ? 'none' : COLORS.border;
+      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 20, { border, bg: isGrand ? COLORS.headerBg : null });
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(k, sumRightX + 10, sy + 6, { width: (rightW2 - 20) * 0.55 });
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(v, sumRightX + 10 + ((rightW2 - 20) * 0.55), sy + 6, { width: (rightW2 - 20) * 0.45, align: 'right' });
       sy += 20;
@@ -552,14 +553,15 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
     y += Math.max(leftH, rightH) + 6;
 
-    // Signature section compact
-    y -= 10;
-    const sigH = 34;
-    ensureSpace(sigH + 8);
+    // Signature section anchored just above footer line with minimal gap
+    const sigH = 18;
+    const footerLineY = bottom - 22;
+    const sigGapFromFooter = 3;
+    y = Math.max(y, footerLineY - sigGapFromFooter - sigH);
     drawCell(doc, 'Receiver Signature', left, y, contentW / 2, sigH, { align: 'left', size: 9, border: 'none' });
     drawCell(doc, 'Authorized Signature', left + (contentW / 2), y, contentW / 2, sigH, { align: 'right', size: 9, border: 'none' });
     if (company.signature) {
-      try { doc.image(company.signature, right - 120, y + 4, { fit: [88, 18] }); } catch (_e) {}
+      try { doc.image(company.signature, right - 118, y + 1, { fit: [86, 14] }); } catch (_e) {}
     }
 
     // Draw footer on all pages
