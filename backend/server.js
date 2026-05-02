@@ -2615,7 +2615,18 @@ const createNextInvoiceNumber = (invoices, settings) => {
   return `${prefix}${String(next).padStart(padding, '0')}`;
 };
 
-const updateSettingsNextInvoiceNumber = (usedInvoiceNumber, settings) => {
+const loadCurrentSettingsForNumbering = async () => {
+  if (canUseMysql()) {
+    try {
+      return await readSettingsFromMysql();
+    } catch (error) {
+      console.error('Failed to load settings from MySQL for invoice numbering, using JSON fallback:', error.message);
+    }
+  }
+  return readSettings();
+};
+
+const updateSettingsNextInvoiceNumber = async (usedInvoiceNumber, settings) => {
   const seq = extractInvoiceSequence(usedInvoiceNumber, settings.invoicePrefix);
   if (!Number.isFinite(seq)) return;
   const nextValue = Math.max(1, Number(settings.invoiceNextNumber || defaultSettings.invoiceNextNumber));
@@ -2624,7 +2635,11 @@ const updateSettingsNextInvoiceNumber = (usedInvoiceNumber, settings) => {
       ...settings,
       invoiceNextNumber: seq + 1
     };
-    fs.writeFileSync(settingsFile, JSON.stringify(updated, null, 2));
+    if (canUseMysql()) {
+      await saveSettingsToMysql(updated);
+    } else {
+      fs.writeFileSync(settingsFile, JSON.stringify(updated, null, 2));
+    }
   }
 };
 
@@ -3994,7 +4009,7 @@ app.delete('/api/payment-received/:id', async (req, res) => {
 
 app.post('/api/invoices', async (req, res) => {
   const invoices = readJsonFile(invoicesFile, []);
-  const settings = readSettings();
+  const settings = await loadCurrentSettingsForNumbering();
   const amount = toNumber(req.body.amount, 0);
   const paymentReceivedEnabled = Boolean(req.body.paymentReceivedEnabled);
   const paymentSplits = paymentReceivedEnabled ? normalizePaymentSplits(req.body.paymentSplits) : [];
@@ -4074,7 +4089,7 @@ app.post('/api/invoices', async (req, res) => {
 
   invoices.push(newInvoice);
   fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
-  updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
+  await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
 
   try {
     await syncInvoiceToMysql(newInvoice);
@@ -4087,7 +4102,7 @@ app.post('/api/invoices', async (req, res) => {
 
 app.put('/api/invoices/:id', async (req, res) => {
   const invoices = readJsonFile(invoicesFile, []);
-  const settings = readSettings();
+  const settings = await loadCurrentSettingsForNumbering();
   const invoiceIndex = invoices.findIndex((invoice) => invoice._id === req.params.id);
 
   if (invoiceIndex === -1) {
@@ -4159,7 +4174,7 @@ app.put('/api/invoices/:id', async (req, res) => {
 
   invoices[invoiceIndex] = updatedInvoice;
   fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
-  updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings);
+  await updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings);
 
   try {
     await syncInvoiceToMysql(updatedInvoice);
@@ -4616,7 +4631,7 @@ app.post('/api/renewals/:id/quotation', (req, res) => {
   return res.json(records[recordIndex]);
 });
 
-app.post('/api/renewals/:id/convert-invoice', (req, res) => {
+app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
   const records = readJsonFile(renewalsFile, []);
   const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
   if (recordIndex < 0) return res.status(404).json({ error: 'Renewal not found' });
@@ -4626,7 +4641,7 @@ app.post('/api/renewals/:id/convert-invoice', (req, res) => {
   const sourceInvoice = invoices.find((entry) => String(entry?._id || '') === String(renewal.invoiceId || ''));
   if (!sourceInvoice) return res.status(404).json({ error: 'Source invoice not found for renewal' });
 
-  const settings = readSettings();
+  const settings = await loadCurrentSettingsForNumbering();
   const nextDate = toDateInputSafe(req.body.date || new Date());
   const dueDate = toDateInputSafe(req.body.dueDate || nextDate);
   const nextStart = toDateInputSafe(req.body.servicePeriodStart || nextDate);
@@ -4684,7 +4699,7 @@ app.post('/api/renewals/:id/convert-invoice', (req, res) => {
 
   invoices.push(newInvoice);
   fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
-  updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
+  await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
 
   records[recordIndex] = {
     ...renewal,
