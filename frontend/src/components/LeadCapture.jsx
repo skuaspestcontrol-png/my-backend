@@ -1242,8 +1242,41 @@ export default function LeadCapture() {
   ].map((field) => normalizeSearchText(field)).filter(Boolean));
 
   const fetchAddressFromGoogleMaps = async () => {
-    if (searchAddressInputRef.current) searchAddressInputRef.current.focus();
-    setSearchError('Please select address/company from suggestions');
+    const query = String(form.searchAddress || '').trim();
+    if (!query) {
+      if (searchAddressInputRef.current) searchAddressInputRef.current.focus();
+      setSearchError('Enter address/company text first, then search.');
+      return;
+    }
+
+    setIsFetchingAddress(true);
+    setSearchError('');
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/maps/geocode`, { address: query });
+      const best = response?.data?.result || response?.data || {};
+      const formattedAddress = String(best.formatted_address || query).trim();
+      const location = best?.geometry?.location || {};
+      const lat = Number(location.lat);
+      const lng = Number(location.lng);
+      const extracted = extractAddressFields(best);
+
+      setForm((current) => ({
+        ...current,
+        searchAddress: formattedAddress || current.searchAddress,
+        address: formattedAddress || current.address,
+        areaName: extracted.areaName || current.areaName,
+        city: extracted.city || current.city,
+        state: extracted.state || current.state,
+        pincode: extracted.pincode || current.pincode,
+        latitude: Number.isFinite(lat) ? String(lat) : current.latitude,
+        longitude: Number.isFinite(lng) ? String(lng) : current.longitude
+      }));
+    } catch (error) {
+      const message = String(error?.response?.data?.error || error?.message || '').trim();
+      setSearchError(message || 'Unable to fetch location. Check Google Maps key, API access, domain restriction, and billing.');
+    } finally {
+      setIsFetchingAddress(false);
+    }
   };
 
   const copyMobileToWhatsapp = () => {

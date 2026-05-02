@@ -89,6 +89,7 @@ button {
 
 /* Google Places warning icon should never tile across the full input */
 input.pac-target-input {
+  background-image: none !important;
   background-repeat: no-repeat !important;
   background-position: right 10px center !important;
   padding-right: 34px !important;
