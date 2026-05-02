@@ -322,9 +322,15 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     // Watermark logo with transparency (blur not supported in pdfkit)
     if (company.logo) {
       try {
+        const watermarkW = contentW - 160;
+        const watermarkH = 320;
+        const watermarkX = left + 80;
+        const usableTop = top + 10;
+        const usableBottom = bottom - footerReserved - 10;
+        const watermarkY = usableTop + ((usableBottom - usableTop - watermarkH) / 2);
         doc.save();
-        doc.opacity(0.12);
-        doc.image(company.logo, left + 80, top + 160, { fit: [contentW - 160, 320], align: 'center', valign: 'center' });
+        doc.opacity(0.18);
+        doc.image(company.logo, watermarkX, watermarkY, { fit: [watermarkW, watermarkH], align: 'center', valign: 'center' });
         doc.restore();
       } catch (_e) {
         // ignore watermark issues
