@@ -81,10 +81,10 @@ const shell = {
   input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff' },
   clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', borderRadius: '14px', border: '1px solid var(--color-border)' },
-  table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
+  table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'auto' },
   th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis' },
   td: { textAlign: 'left', verticalAlign: 'middle', padding: '8px 6px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#fff' },
-  selectedRow: { background: '#3b73df' },
+  selectedRow: { background: 'var(--color-primary)' },
   selectedText: { color: '#ffffff' },
   subText: { marginTop: '1px', fontSize: '9px', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusPill: { borderRadius: '999px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, display: 'inline-block' },
@@ -123,9 +123,11 @@ const shell = {
     fontWeight: 700,
     cursor: 'pointer',
     textDecoration: 'none',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap'
+    overflow: 'visible',
+    textOverflow: 'clip',
+    whiteSpace: 'normal',
+    lineHeight: 1.25,
+    wordBreak: 'break-word'
   },
   mobileList: { display: 'grid', gap: '8px', padding: '10px' },
   mobileCard: { border: '1px solid var(--color-border)', borderRadius: '12px', padding: '10px', background: '#fff', display: 'grid', gap: '8px' },
@@ -672,7 +674,7 @@ export default function ContractDashboard() {
           <tr>
             <th style={{ ...shell.th, width: '3%' }}>#</th>
             {visibleColumns.contractNo ? (
-              <th style={{ ...shell.th, width: '16%' }}>Contract #</th>
+              <th style={{ ...shell.th, width: '10%', minWidth: '120px' }}>Contract #</th>
             ) : null}
             {visibleColumns.customer ? (
               <th style={{ ...shell.th, width: '14%', textAlign: 'left' }}>Customer</th>
@@ -696,7 +698,6 @@ export default function ContractDashboard() {
                 <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>{index + 1}</td>
                 {visibleColumns.contractNo ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
-                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.92)' } : {}) }}>{row.contractCode}</div>
                 </td> : null}
                 {visibleColumns.customer ? <td style={{ ...shell.td, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? shell.selectedText : {}) }}>
                   {row.status === 'Active' ? (
@@ -711,9 +712,11 @@ export default function ContractDashboard() {
                       {row.customer}
                     </button>
                   ) : (
-                    <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.customer}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'visible', textOverflow: 'clip', whiteSpace: 'normal', lineHeight: 1.25, wordBreak: 'break-word' }}>{row.customer}</div>
                   )}
-                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.92)' } : {}) }}>{row.mobile || '-'}</div>
+                  {String(row.customer || '').trim().length <= 24 ? (
+                    <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.92)' } : {}) }}>{row.mobile || '-'}</div>
+                  ) : null}
                 </td> : null}
                 {visibleColumns.property ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.property || '-'}</div>
