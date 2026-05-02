@@ -634,6 +634,7 @@ export default function InvoiceDashboard() {
   const [invoiceNumberPrefsDraft, setInvoiceNumberPrefsDraft] = useState(defaultInvoiceNumberPrefs);
   const [companySettings, setCompanySettings] = useState({});
   const [settingsHydrated, setSettingsHydrated] = useState(false);
+  const [invoicesHydrated, setInvoicesHydrated] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [visibleColumns, setVisibleColumns] = useState(() => {
     const saved = localStorage.getItem('invoice_visible_columns');
@@ -808,6 +809,8 @@ export default function InvoiceDashboard() {
       setSelectedIds([]);
     } catch (error) {
       console.error('Failed to load invoices', error);
+    } finally {
+      setInvoicesHydrated(true);
     }
   };
 
@@ -1288,6 +1291,7 @@ export default function InvoiceDashboard() {
 
   useEffect(() => {
     if (location.state?.openInvoiceNumberPrefs) {
+      if (!settingsHydrated || !invoicesHydrated) return;
       setModalOpenedFromContract(Boolean(location.state?.fromContract));
       openNewForm();
       setTimeout(() => openInvoiceNumberPrefs(), 0);
@@ -1296,6 +1300,7 @@ export default function InvoiceDashboard() {
     }
 
     if (location.state?.openNewInvoice) {
+      if (!settingsHydrated || !invoicesHydrated) return;
       setModalOpenedFromContract(Boolean(location.state?.fromContract ?? true));
       openNewForm();
       navigate(location.pathname, { replace: true, state: null });
@@ -1324,7 +1329,7 @@ export default function InvoiceDashboard() {
     setShowModal(true);
     setShowMoreMenu(false);
     navigate(location.pathname, { replace: true, state: null });
-  }, [invoices, location.pathname, location.state, navigate]);
+  }, [invoices, invoicesHydrated, location.pathname, location.state, navigate, settingsHydrated]);
 
   const setFormWithTotals = (updater) => {
     setForm((prev) => {

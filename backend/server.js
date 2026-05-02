@@ -116,6 +116,17 @@ const resolveUploadPublicUrl = (req, fileName) => {
   }
   return `${resolveServerOrigin(req)}/uploads/${safeFileName}`;
 };
+const toDataUrlFromUpload = (file) => {
+  try {
+    if (!file?.path || !fs.existsSync(file.path)) return '';
+    const mime = String(file.mimetype || 'application/octet-stream').trim() || 'application/octet-stream';
+    const base64 = fs.readFileSync(file.path).toString('base64');
+    return `data:${mime};base64,${base64}`;
+  } catch (error) {
+    console.error('Failed to convert upload to data URL:', error.message);
+    return '';
+  }
+};
 const backendPublicDir = path.join(__dirname, 'public');
 const backendPublicIndexFile = path.join(backendPublicDir, 'index.html');
 const frontendDistDir = path.join(__dirname, '..', 'frontend', 'dist');
@@ -1073,13 +1084,15 @@ app.post('/api/auth/reset-password', (req, res) => {
 app.post('/api/settings/upload-dashboard-image', upload.single('dashboardImage'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   syncUploadToMirror(req.file.filename);
-  res.json({ imageUrl: resolveUploadPublicUrl(req, req.file.filename) });
+  const imageUrl = toDataUrlFromUpload(req.file) || resolveUploadPublicUrl(req, req.file.filename);
+  res.json({ imageUrl });
 });
 
 app.post('/api/settings/upload-branding-image', upload.single('brandingImage'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   syncUploadToMirror(req.file.filename);
-  res.json({ imageUrl: resolveUploadPublicUrl(req, req.file.filename) });
+  const imageUrl = toDataUrlFromUpload(req.file) || resolveUploadPublicUrl(req, req.file.filename);
+  res.json({ imageUrl });
 });
 
 app.post('/api/employees/upload-document', upload.single('document'), (req, res) => {
