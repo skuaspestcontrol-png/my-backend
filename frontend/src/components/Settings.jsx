@@ -647,7 +647,7 @@ export default function Settings({ modalMode = false }) {
   const passwordStrength = useMemo(() => getPasswordStrength(securityForm.newPassword), [securityForm.newPassword]);
   const brandingAccentOptions = ['#3B82F6', '#22C55E', '#EF4444', '#F59E0B', '#9F174D'];
   const isMobile = viewportWidth <= 768;
-  const isCompactLayout = isMobile || isTouchDevice || viewportWidth <= 1100 || modalMode;
+  const isCompactLayout = isMobile || isTouchDevice || viewportWidth <= 1100;
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -2428,13 +2428,13 @@ export default function Settings({ modalMode = false }) {
     ? { ...shell.subHeading, fontSize: '13px' }
     : shell.subHeading;
   const blockTitleStyle = modalMode
-    ? { margin: 0, fontSize: '24px', lineHeight: 1.2, color: 'var(--text)', fontWeight: 800, letterSpacing: '-0.01em' }
+    ? { margin: 0, fontSize: '20px', lineHeight: 1.2, color: 'var(--text)', fontWeight: 800, letterSpacing: '-0.01em' }
     : { margin: 0, fontSize: '34px', lineHeight: 1.15, color: 'var(--text)', fontWeight: 800, letterSpacing: '-0.02em' };
   const sectionLeadTitleStyle = modalMode
-    ? { ...shell.hint, marginBottom: '4px', fontSize: '18px', fontWeight: 800, color: '#334155' }
+    ? { ...shell.hint, marginBottom: '4px', fontSize: '16px', fontWeight: 800, color: '#334155' }
     : { ...shell.hint, marginBottom: '4px', fontSize: '22px', fontWeight: 800, color: '#334155' };
   const sectionLeadSubTitleStyle = modalMode
-    ? { ...shell.hint, fontSize: '14px', fontWeight: 700, color: '#475569' }
+    ? { ...shell.hint, fontSize: '13px', fontWeight: 700, color: '#475569' }
     : { ...shell.hint, fontSize: '18px', fontWeight: 700, color: '#475569' };
 
   return (
