@@ -100,12 +100,26 @@ const amountToWords = (value) => {
 const parseLocalAsset = (input = '') => {
   const raw = clean(input);
   if (!raw) return '';
-  const uploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLOADS_DIR || '').trim()
+  const primaryUploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLOADS_DIR || '').trim()
     || path.join(__dirname, '..', 'storage', 'uploads');
-  const resolveUploadLocal = (fileName) => path.join(uploadsDir, fileName);
+  const uploadDirs = [
+    primaryUploadsDir,
+    path.join(__dirname, 'uploads'),
+    path.join(__dirname, '..', 'uploads'),
+    path.join(__dirname, '..', 'public', 'uploads')
+  ];
+  const resolveUploadLocal = (fileName) => {
+    const safeName = decodeURIComponent(String(fileName || '').trim());
+    if (!safeName) return '';
+    for (const dir of uploadDirs) {
+      const local = path.join(dir, path.basename(safeName));
+      if (fs.existsSync(local)) return local;
+    }
+    return '';
+  };
 
   if (raw.startsWith('/uploads/')) {
-    const local = resolveUploadLocal(path.basename(raw));
+    const local = resolveUploadLocal(raw.split('/uploads/')[1]);
     if (fs.existsSync(local)) return local;
   }
 
@@ -228,14 +242,17 @@ const invoiceItems = (invoice = {}) => {
 };
 
 const deriveSubjectFromItems = (invoice = {}) => {
-  if (clean(invoice.subject)) return clean(invoice.subject);
+  const explicit = clean(invoice.subject);
+  if (explicit) {
+    return /^invoice for\s+/i.test(explicit) ? explicit : `Invoice for ${explicit}`;
+  }
   const labels = (Array.isArray(invoice.items) ? invoice.items : [])
     .map((item) => clean(item.itemName || item.name))
     .filter(Boolean);
-  if (labels.length === 0) return 'Pest Control Service';
-  if (labels.length === 1) return labels[0];
-  if (labels.length === 2) return `${labels[0]} & ${labels[1]}`;
-  return `${labels.slice(0, -1).join(', ')} & ${labels[labels.length - 1]}`;
+  if (labels.length === 0) return 'Invoice for Pest Control Service';
+  if (labels.length === 1) return `Invoice for ${labels[0]}`;
+  if (labels.length === 2) return `Invoice for ${labels[0]} & ${labels[1]}`;
+  return `Invoice for ${labels.slice(0, -1).join(', ')} & ${labels[labels.length - 1]}`;
 };
 
 const deriveContractRange = (invoice = {}) => {
@@ -360,7 +377,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       company.phone ? `Mobile: ${company.phone}` : '',
       `E Mail Id: ${company.email || 'info@skuaspestcontrol.com'}`,
       `Visit Us: ${company.website || '-'}`,
-      company.gstin ? `GST Details: ${company.gstin}` : 'GST Details: '
+      !company.isNonGst ? (company.gstin ? `GST Details: ${company.gstin}` : 'GST Details: ') : ''
     ].filter((line) => line !== '');
 
     let ay = y + 32;
