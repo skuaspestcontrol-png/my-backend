@@ -749,7 +749,7 @@ export default function LeadCapture() {
   useEffect(() => {
     let detach = () => {};
     const input = searchAddressInputRef.current;
-    if (!showModal || !input) return () => {};
+    if (!show || !input) return () => {};
 
     attachPlacesAutocomplete({
       input,
@@ -783,7 +783,7 @@ export default function LeadCapture() {
     });
 
     return () => detach();
-  }, [showModal]);
+  }, [show]);
 
   useEffect(() => {
     setSelectedLeadIds((prev) => prev.filter((id) => leads.some((lead) => lead._id === id)));
