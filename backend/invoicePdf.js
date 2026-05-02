@@ -5,8 +5,8 @@ const PDFDocument = require('pdfkit');
 const COLORS = {
   label: '#333333',
   text: '#000000',
-  border: '#cbd5e1',
-  headerBg: '#f1f5f9',
+  border: '#9e9e9e',
+  headerBg: '#f2f3f4',
   title: '#000000'
 };
 
@@ -28,7 +28,7 @@ const clean = (value) => String(value ?? '').trim();
 
 const formatINR = (value) => {
   const n = toNumber(value, 0);
-  return `₹ ${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 const formatDate = (value) => {
@@ -290,29 +290,28 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
     // Header
     const headerH = 98;
-    drawCell(doc, '', left, y, contentW, headerH, { border: '#94a3b8' });
+    drawCell(doc, '', left, y, contentW, headerH, { border: COLORS.border });
 
     const logoBoxW = 74;
     const logoBoxH = 54;
-    drawCell(doc, '', left + 8, y + 8, logoBoxW, logoBoxH, { border: '#cbd5e1' });
     if (company.logo) {
       try { doc.image(company.logo, left + 11, y + 11, { fit: [logoBoxW - 6, logoBoxH - 6] }); } catch (_e) {}
     } else {
-      drawCell(doc, 'LOGO', left + 8, y + 8, logoBoxW, logoBoxH, { color: '#6b7280', align: 'center', border: '#cbd5e1', size: 9 });
+      doc.font('Helvetica').fontSize(8).fillColor('#6b7280').text('LOGO', left + 26, y + 30);
     }
 
     const companyX = left + 88;
     const companyW = contentW - 260;
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(COLORS.text).text(company.name, companyX, y + 8, { width: companyW });
-    doc.font('Helvetica-Bold').fontSize(12).fillColor(COLORS.text).text(company.tagline || '', companyX, y + 30, { width: companyW });
+    doc.font('Helvetica-Bold').fontSize(12).fillColor(COLORS.text).text(company.name, companyX, y + 8, { width: companyW });
+    doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(company.tagline || '', companyX, y + 23, { width: companyW });
 
-    doc.font('Helvetica').fontSize(12).fillColor(COLORS.text);
+    doc.font('Helvetica').fontSize(10).fillColor(COLORS.text);
     const addressLines = [
       company.address1,
       company.address2,
-      [company.city, company.state, company.pincode].filter(Boolean).join(' '),
-      company.phone ? `Mob: ${company.phone}` : '',
-      `E mail: ${company.email || 'info@skuaspestcontrol.com'}`,
+      [company.city, company.state, company.pincode].filter(Boolean).join(', '),
+      company.phone ? `Mobile: ${company.phone}` : '',
+      `E Mail Id: ${company.email || 'info@skuaspestcontrol.com'}`,
       `Visit Us: ${company.website || '-'}`,
       company.gstin ? `GST Details: ${company.gstin}` : 'GST Details: '
     ].filter((line) => line !== '');
@@ -320,12 +319,12 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     let ay = y + 46;
     addressLines.forEach((line) => {
       doc.text(line, companyX, ay, { width: companyW });
-      ay = doc.y + 1;
+      ay = doc.y;
     });
 
     const rightX = right - 210;
     const rightW = 198;
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(COLORS.title).text('TAX INVOICE', rightX, y + 12, { width: rightW, align: 'right' });
+    doc.font('Helvetica-Bold').fontSize(12).fillColor(COLORS.title).text('TAX INVOICE', rightX, y + 12, { width: rightW, align: 'right' });
 
     const meta = [
       ['Invoice #', clean(invoice.invoiceNumber) || '-'],
@@ -334,9 +333,9 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     ];
     let my = y + 42;
     meta.forEach(([k, v]) => {
-      doc.font('Helvetica-Bold').fontSize(9).fillColor('#6b7280').text(k, rightX + 6, my, { width: 78 });
-      doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(`: ${v}`, rightX + 84, my, { width: rightW - 90 });
-      my += 16;
+      doc.font('Helvetica-Bold').fontSize(8).fillColor('#6b7280').text(k, rightX + 6, my, { width: 78 });
+      doc.font('Helvetica').fontSize(8).fillColor(COLORS.text).text(`: ${v}`, rightX + 84, my, { width: rightW - 90 });
+      my += 13;
     });
 
     y += headerH + 8;
@@ -346,8 +345,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const cardW = (contentW - cardGap) / 2;
     const cardH = 102;
 
-    drawCell(doc, 'Bill To', left, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: '#94a3b8' });
-    drawCell(doc, '', left, y + 16, cardW, cardH - 16, { border: '#94a3b8' });
+    drawCell(doc, 'Bill To', left, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: COLORS.border });
+    drawCell(doc, '', left, y + 16, cardW, cardH - 16, { border: COLORS.border });
     const billText = [
       billTo.title,
       billTo.address,
@@ -358,8 +357,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(billText, left + 5, y + 22, { width: cardW - 10, lineGap: 1 });
 
     const shipX = left + cardW + cardGap;
-    drawCell(doc, 'Ship To', shipX, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: '#94a3b8' });
-    drawCell(doc, '', shipX, y + 16, cardW, cardH - 16, { border: '#94a3b8' });
+    drawCell(doc, 'Ship To', shipX, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: COLORS.border });
+    drawCell(doc, '', shipX, y + 16, cardW, cardH - 16, { border: COLORS.border });
     const shipText = [
       shipTo.title,
       shipTo.address,
@@ -373,13 +372,13 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
     // Subject row
     const subjectH = 28;
-    drawCell(doc, '', left, y, contentW, subjectH, { border: '#94a3b8' });
+    drawCell(doc, '', left, y, contentW, subjectH, { border: COLORS.border });
     doc.font('Helvetica-Bold').fontSize(10).fillColor('#ef4444').text('Subject', left + 6, y + 3);
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(deriveSubjectFromItems(invoice), left + 6, y + 14, { width: contentW - 180 });
     y += subjectH + 6;
 
     // Items table
-    const colPct = { sr: 5, item: 28, qty: 11, hsn: 10, rate: 11, tx: 11, amount: 13 };
+    const colPct = { sr: 6, item: 42, hsn: 12, qty: 10, rate: 14, amount: 16 };
     const totalPct = Object.values(colPct).reduce((s, n) => s + n, 0);
     const scale = contentW / totalPct;
     const cols = [
@@ -388,17 +387,16 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       { k: 'hsn', l: 'HSN/SAC', w: colPct.hsn * scale, a: 'center' },
       { k: 'qty', l: 'Qty', w: colPct.qty * scale, a: 'right' },
       { k: 'rate', l: 'Rate', w: colPct.rate * scale, a: 'right' },
-      { k: 'tx', l: 'Tax %', w: colPct.tx * scale, a: 'right' },
       { k: 'amount', l: 'Amount', w: colPct.amount * scale, a: 'right' }
     ];
 
     const drawTableHeader = () => {
       let cx = left;
       cols.forEach((c) => {
-        drawCell(doc, c.l, cx, y, c.w, 22, { bold: true, bg: COLORS.headerBg, align: c.a, size: 9, border: '#94a3b8', color: '#111827' });
+        drawCell(doc, c.l, cx, y, c.w, 20, { bold: true, bg: COLORS.headerBg, align: c.a, size: 8, border: COLORS.border, color: '#000000', padY: 5 });
         cx += c.w;
       });
-      y += 22;
+      y += 20;
     };
 
     drawTableHeader();
@@ -407,7 +405,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     safeRows.forEach((row) => {
       const desc = [row.description, row.details].filter(Boolean).join('\n');
       const descH = doc.heightOfString(desc, { width: cols[1].w - 8, lineGap: 1 });
-      const rh = Math.max(22, descH + 8);
+      const rh = Math.max(20, descH + 7);
       ensureSpace(rh + 2);
 
       let cx = left;
@@ -417,12 +415,11 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
         hsn: row.hsn || '',
         qty: row.qty.toFixed(2),
         rate: formatINR(row.rate),
-        tx: `${row.taxRate.toFixed(2)}%`,
         amount: formatINR(row.amount)
       };
 
       cols.forEach((c) => {
-        drawCell(doc, values[c.k], cx, y, c.w, rh, { align: c.a, size: 8.5, border: '#94a3b8', bold: c.k === 'desc' });
+        drawCell(doc, values[c.k], cx, y, c.w, rh, { align: c.a, size: 8, border: COLORS.border, bold: c.k === 'desc', color: '#000000' });
         cx += c.w;
       });
 
@@ -460,13 +457,29 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const rightH = leftH;
     ensureSpace(Math.max(leftH, rightH) + 8);
 
-    drawCell(doc, '', sumLeftX, y, leftW, leftH, { border: '#94a3b8' });
+    drawCell(doc, '', sumLeftX, y, leftW, leftH, { border: COLORS.border });
     doc.font('Helvetica').fontSize(8).fillColor(COLORS.text).text(leftText, sumLeftX + 5, y + 4, { width: leftW - 10, lineGap: 1 });
 
-    drawCell(doc, '', sumRightX, y, rightW2, rightH, { border: '#94a3b8' });
+    drawCell(doc, '', sumRightX, y, rightW2, rightH, { border: COLORS.border });
+    let igst = toNumber(invoice.igstAmount, 0);
+    let cgst = toNumber(invoice.cgstAmount, 0);
+    let sgst = toNumber(invoice.sgstAmount, 0);
+    if (!company.isNonGst && igst === 0 && cgst === 0 && sgst === 0 && totalTax > 0) {
+      const companyState = clean(company.state).toLowerCase();
+      const supplyState = clean(invoice.placeOfSupply).toLowerCase();
+      if (companyState && supplyState && supplyState.includes(companyState)) {
+        cgst = totalTax / 2;
+        sgst = totalTax / 2;
+      } else {
+        igst = totalTax;
+      }
+    }
+
     const summaryRows = [
       ['Sub Total', formatINR(subtotal)],
-      ['IGST', formatINR(totalTax)],
+      ['IGST', formatINR(company.isNonGst ? 0 : igst)],
+      ['CGST', formatINR(company.isNonGst ? 0 : cgst)],
+      ['SGST', formatINR(company.isNonGst ? 0 : sgst)],
       ['Rounding', formatINR(roundOff)],
       ['Grand Total', formatINR(total)]
     ];
@@ -474,10 +487,10 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     let sy = y + 6;
     summaryRows.forEach(([k, v]) => {
       const isGrand = k === 'Grand Total';
-      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 22, { border: '#94a3b8', bg: isGrand ? '#ecfdf5' : null });
-      doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(isGrand ? 11 : 9).fillColor(isGrand ? '#065f46' : COLORS.text).text(k, sumRightX + 10, sy + 6, { width: (rightW2 - 20) * 0.55 });
-      doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(isGrand ? 11 : 9).fillColor(isGrand ? '#065f46' : COLORS.text).text(v, sumRightX + 10 + ((rightW2 - 20) * 0.55), sy + 6, { width: (rightW2 - 20) * 0.45, align: 'right' });
-      sy += 22;
+      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 20, { border: COLORS.border, bg: isGrand ? COLORS.headerBg : null });
+      doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(k, sumRightX + 10, sy + 6, { width: (rightW2 - 20) * 0.55 });
+      doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(v, sumRightX + 10 + ((rightW2 - 20) * 0.55), sy + 6, { width: (rightW2 - 20) * 0.45, align: 'right' });
+      sy += 20;
     });
 
     y += Math.max(leftH, rightH) + 6;
@@ -485,8 +498,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     // Signature section compact
     const sigH = 34;
     ensureSpace(sigH + 8);
-    drawCell(doc, 'Receiver Signature', left, y, contentW / 2, sigH, { align: 'left', size: 9, border: '#94a3b8' });
-    drawCell(doc, 'Authorized Signature', left + (contentW / 2), y, contentW / 2, sigH, { align: 'right', size: 9, border: '#94a3b8' });
+    drawCell(doc, 'Receiver Signature', left, y, contentW / 2, sigH, { align: 'left', size: 9, border: COLORS.border });
+    drawCell(doc, 'Authorized Signature', left + (contentW / 2), y, contentW / 2, sigH, { align: 'right', size: 9, border: COLORS.border });
     if (company.signature) {
       try { doc.image(company.signature, right - 120, y + 4, { fit: [88, 18] }); } catch (_e) {}
     }
