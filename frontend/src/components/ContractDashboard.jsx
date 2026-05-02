@@ -84,8 +84,9 @@ const shell = {
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'auto' },
   th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis' },
   td: { textAlign: 'left', verticalAlign: 'middle', padding: '8px 6px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#fff' },
-  selectedRow: { background: 'var(--color-primary)' },
-  selectedText: { color: '#ffffff' },
+  selectedRow: { background: 'transparent' },
+  selectedCell: { background: '#f1f5f9' },
+  selectedText: { color: '#111827' },
   subText: { marginTop: '1px', fontSize: '9px', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusPill: { borderRadius: '999px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, display: 'inline-block' },
   typePill: { borderRadius: '8px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, background: 'rgba(34,197,94,0.2)', color: '#15803d' },
@@ -695,11 +696,11 @@ export default function ContractDashboard() {
             const statusTone = statusStyles[row.status] || statusStyles.Active;
             return (
               <tr key={row.id} onClick={() => setSelectedContractId(row.id)} style={selected ? shell.selectedRow : undefined}>
-                <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>{index + 1}</td>
-                {visibleColumns.contractNo ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
+                <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{index + 1}</td>
+                {visibleColumns.contractNo ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
                 </td> : null}
-                {visibleColumns.customer ? <td style={{ ...shell.td, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? shell.selectedText : {}) }}>
+                {visibleColumns.customer ? <td style={{ ...shell.td, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   {row.status === 'Active' ? (
                     <button
                       type="button"
@@ -707,7 +708,7 @@ export default function ContractDashboard() {
                         event.stopPropagation();
                         openCustomerSummary(row);
                       }}
-                      style={{ ...shell.customerLinkBtn, color: selected ? '#ffffff' : '#111827' }}
+                      style={{ ...shell.customerLinkBtn, color: '#111827' }}
                     >
                       {row.customer}
                     </button>
@@ -715,27 +716,27 @@ export default function ContractDashboard() {
                     <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'visible', textOverflow: 'clip', whiteSpace: 'normal', lineHeight: 1.25, wordBreak: 'break-word' }}>{row.customer}</div>
                   )}
                   {String(row.customer || '').trim().length <= 24 ? (
-                    <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.92)' } : {}) }}>{row.mobile || '-'}</div>
+                    <div style={{ ...shell.subText }}>{row.mobile || '-'}</div>
                   ) : null}
                 </td> : null}
-                {visibleColumns.property ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
+                {visibleColumns.property ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.property || '-'}</div>
-                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.92)' } : {}) }}>{row.city || '-'}</div>
+                  <div style={{ ...shell.subText }}>{row.city || '-'}</div>
                 </td> : null}
-                {visibleColumns.duration ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
+                {visibleColumns.duration ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700 }}>{formatDate(row.startDate)}</div>
-                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.92)' } : {}) }}>{`to ${formatDate(row.endDate)}`}</div>
+                  <div style={{ ...shell.subText }}>{`to ${formatDate(row.endDate)}`}</div>
                 </td> : null}
-                {visibleColumns.services ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
-                  <span style={{ ...shell.shownPill, background: selected ? 'rgba(255,255,255,0.18)' : '#eef2f7', color: selected ? '#fff' : '#334155', borderColor: selected ? 'rgba(255,255,255,0.2)' : 'var(--color-border)' }}>{row.services}</span>
+                {visibleColumns.services ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                  <span style={{ ...shell.shownPill, background: '#eef2f7', color: '#334155', borderColor: 'var(--color-border)' }}>{row.services}</span>
                 </td> : null}
-                {visibleColumns.status ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
+                {visibleColumns.status ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <span style={{ ...shell.statusPill, ...statusTone }}>{row.status.toUpperCase()}</span>
                 </td> : null}
-                {visibleColumns.total ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : { fontWeight: 800 }) }}>{formatINR(row.total)}</td> : null}
-                {visibleColumns.paid ? <td style={{ ...shell.td, ...(row.paid > 0 ? shell.amountGreen : (selected ? shell.selectedText : {})) }}>{formatINR(row.paid)}</td> : null}
-                {visibleColumns.due ? <td style={{ ...shell.td, ...(row.due > 0 ? shell.amountRed : (selected ? shell.selectedText : {})) }}>{formatINR(row.due)}</td> : null}
-                <td style={shell.td}>
+                {visibleColumns.total ? <td style={{ ...shell.td, fontWeight: 800, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{formatINR(row.total)}</td> : null}
+                {visibleColumns.paid ? <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}), ...(row.paid > 0 ? shell.amountGreen : (selected ? shell.selectedText : {})) }}>{formatINR(row.paid)}</td> : null}
+                {visibleColumns.due ? <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}), ...(row.due > 0 ? shell.amountRed : (selected ? shell.selectedText : {})) }}>{formatINR(row.due)}</td> : null}
+                <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}) }}>
                   <div style={{ position: 'relative', display: 'inline-flex' }} data-contract-row-action="true">
                     <button
                       type="button"
