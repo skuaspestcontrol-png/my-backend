@@ -794,7 +794,7 @@ export default function Settings({ modalMode = false }) {
         setForm(next);
         setInitialForm(next);
         setSecurityForm(defaultSecurityForm);
-        setStatus('All changes saved.');
+        setStatus('Settings Saved');
         applyBrandingTheme(next);
         saveBrandingSettings(next);
       } catch (error) {
@@ -1127,7 +1127,7 @@ export default function Settings({ modalMode = false }) {
       localStorage.setItem('branding_sync_tick', String(Date.now()));
       applyBrandingTheme(saved);
       saveBrandingSettings(saved);
-      setStatus('All changes saved.');
+      setStatus('Settings Saved');
     } catch (error) {
       console.error('Save settings failed', error);
       setStatus('Save failed. Please verify backend server and retry.');
@@ -2421,12 +2421,6 @@ export default function Settings({ modalMode = false }) {
   const pageStyle = modalMode
     ? { ...shell.page, gap: '10px' }
     : shell.page;
-  const headingStyle = modalMode
-    ? { ...shell.heading, fontSize: '22px' }
-    : shell.heading;
-  const subHeadingStyle = modalMode
-    ? { ...shell.subHeading, fontSize: '13px' }
-    : shell.subHeading;
   const blockTitleStyle = modalMode
     ? { margin: 0, fontSize: '20px', lineHeight: 1.2, color: 'var(--text)', fontWeight: 800, letterSpacing: '-0.01em' }
     : { margin: 0, fontSize: '34px', lineHeight: 1.15, color: 'var(--text)', fontWeight: 800, letterSpacing: '-0.02em' };
@@ -2439,25 +2433,13 @@ export default function Settings({ modalMode = false }) {
 
   return (
     <section style={pageStyle}>
-      <div style={shell.headingWrap}>
-        <h2 style={headingStyle}>Company Profile</h2>
-        <p style={subHeadingStyle}>Company profile settings</p>
-      </div>
-
       <div style={shell.workspaceShell}>
         <div style={panelStyle}>
           <header style={panelHeaderStyle}>
-            <div style={shell.panelHeaderMain}>
-              <h3 style={panelTitleStyle}>Company Profile</h3>
-              <p style={{ ...panelStatusStyle, ...statusTone }}>{status || 'All changes saved.'}</p>
-            </div>
             <div style={panelHeaderSideStyle}>
               <span style={validationStyle}>{validationSummary}</span>
               <div style={panelHeaderButtonsStyle}>
                 <button type="button" style={topButtonStyle} onClick={discardChanges}>Discard</button>
-                <button type="button" style={{ ...topButtonStyle, ...shell.topButtonPrimary }} onClick={saveAll} disabled={isSaving}>
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </button>
               </div>
             </div>
           </header>
@@ -2492,6 +2474,25 @@ export default function Settings({ modalMode = false }) {
             </div>
 
             <div style={panelBodyStyle}>{renderSectionContent()}</div>
+          </div>
+          <div
+            style={{
+              borderTop: '1px solid var(--border)',
+              padding: isCompactLayout ? '12px' : '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              flexWrap: 'wrap',
+              background: '#fff'
+            }}
+          >
+            <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, ...statusTone }}>
+              {status || ''}
+            </p>
+            <button type="button" style={{ ...topButtonStyle, ...shell.topButtonPrimary, minWidth: '140px' }} onClick={saveAll} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
         </div>
       </div>
