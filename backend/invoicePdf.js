@@ -517,7 +517,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     drawCell(doc, '', sumLeftX, y, leftW, leftH, { border: 'none' });
     doc.font('Helvetica').fontSize(8).fillColor(COLORS.text).text(leftText, sumLeftX + 5, y + 4, { width: leftW - 10, lineGap: 1 });
 
-    drawCell(doc, '', sumRightX, y, rightW2, rightH, { border: COLORS.border });
+    drawCell(doc, '', sumRightX, y, rightW2, rightH, { border: 'none' });
     let igst = toNumber(invoice.igstAmount, 0);
     let cgst = toNumber(invoice.cgstAmount, 0);
     let sgst = toNumber(invoice.sgstAmount, 0);
@@ -544,8 +544,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     let sy = y + 6;
     summaryRows.forEach(([k, v]) => {
       const isGrand = k === 'Grand Total';
-      const border = (k === 'Sub Total' || isGrand) ? 'none' : COLORS.border;
-      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 20, { border, bg: isGrand ? COLORS.headerBg : null });
+      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 20, { border: 'none', bg: null });
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(k, sumRightX + 10, sy + 6, { width: (rightW2 - 20) * 0.55 });
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(v, sumRightX + 10 + ((rightW2 - 20) * 0.55), sy + 6, { width: (rightW2 - 20) * 0.45, align: 'right' });
       sy += 20;
