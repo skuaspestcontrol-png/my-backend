@@ -170,7 +170,7 @@ const resolveCompany = (settings = {}, invoice = {}) => {
         settings.gstNumber
       ),
     logo: parseLocalAsset((isNonGst ? settings.nonGstCompanyLogoUrl : settings.gstCompanyLogoUrl) || settings.dashboardImageUrl),
-    signature: parseLocalAsset(settings.gstDigitalSignatureUrl),
+    signature: parseLocalAsset(isNonGst ? settings.nonGstDigitalSignatureUrl : settings.gstDigitalSignatureUrl),
     bankName: isNonGst ? '' : clean(settings.gstBankName),
     bankAccount: isNonGst ? '' : clean(settings.gstBankAccountNumber),
     bankIfsc: isNonGst ? '' : clean(settings.gstBankIfsc),

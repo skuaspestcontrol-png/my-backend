@@ -164,6 +164,7 @@ const defaultForm = {
   nonGstAlternatePhone: '',
   nonGstEmail: '',
   nonGstCompanyLogoUrl: '',
+  nonGstDigitalSignatureUrl: '',
   gstBankName: '',
   gstBankAccountNumber: '',
   gstBankIfsc: '',
@@ -633,8 +634,8 @@ export default function Settings({ modalMode = false }) {
   const logoInputRef = useRef(null);
   const gstLogoInputRef = useRef(null);
   const gstSignatureInputRef = useRef(null);
-  const gstStampInputRef = useRef(null);
   const nonGstLogoInputRef = useRef(null);
+  const nonGstSignatureInputRef = useRef(null);
   const gstBankQrInputRef = useRef(null);
   const nonGstBankQrInputRef = useRef(null);
   const customAccentInputRef = useRef(null);
@@ -729,6 +730,7 @@ export default function Settings({ modalMode = false }) {
           nonGstAlternatePhone: data.nonGstAlternatePhone || '',
           nonGstEmail: data.nonGstEmail || '',
           nonGstCompanyLogoUrl: data.nonGstCompanyLogoUrl || '',
+          nonGstDigitalSignatureUrl: data.nonGstDigitalSignatureUrl || '',
           gstBankName: data.gstBankName || '',
           gstBankAccountNumber: data.gstBankAccountNumber || '',
           gstBankIfsc: data.gstBankIfsc || '',
@@ -1026,6 +1028,7 @@ export default function Settings({ modalMode = false }) {
       nonGstAlternatePhone: String(form.nonGstAlternatePhone || '').trim(),
       nonGstEmail: String(form.nonGstEmail || '').trim(),
       nonGstCompanyLogoUrl: String(form.nonGstCompanyLogoUrl || '').trim(),
+      nonGstDigitalSignatureUrl: String(form.nonGstDigitalSignatureUrl || '').trim(),
       gstBankName: String(form.gstBankName || '').trim(),
       gstBankAccountNumber: String(form.gstBankAccountNumber || '').trim(),
       gstBankIfsc: String(form.gstBankIfsc || '').trim().toUpperCase(),
@@ -1133,10 +1136,16 @@ export default function Settings({ modalMode = false }) {
     setStatus('Save settings, then click test from invoice email flow.');
   };
 
-  const renderBrandingUploader = ({ title, fieldKey, inputRef, hint, emptyLabel = 'Image' }) => (
+  const renderBrandingUploader = ({ title, fieldKey, inputRef, hint, emptyLabel = 'Image', clean = false }) => (
     <div style={shell.field}>
       <p style={shell.fieldLabel}>{title}</p>
-      <div style={shell.profileCard}>
+      <div
+        style={
+          clean
+            ? { display: 'grid', gap: '10px' }
+            : shell.profileCard
+        }
+      >
         <div style={shell.profileRow}>
           <div style={shell.profilePreview}>
             {form[fieldKey] ? (
@@ -1443,13 +1452,6 @@ export default function Settings({ modalMode = false }) {
           hint: 'PNG/JPG, transparent preferred',
           emptyLabel: 'Sign'
         })}
-        {renderBrandingUploader({
-          title: 'Company Stamp',
-          fieldKey: 'gstCompanyStampUrl',
-          inputRef: gstStampInputRef,
-          hint: 'PNG/JPG, transparent preferred',
-          emptyLabel: 'Stamp'
-        })}
       </div>
     </>
   );
@@ -1715,24 +1717,32 @@ export default function Settings({ modalMode = false }) {
           fieldKey: 'gstCompanyLogoUrl',
           inputRef: gstLogoInputRef,
           hint: 'Used on GST invoices.'
+          ,
+          clean: true
         })}
         {renderBrandingUploader({
           title: 'GST Digital Signature',
           fieldKey: 'gstDigitalSignatureUrl',
           inputRef: gstSignatureInputRef,
           hint: 'Optional invoice signature image.'
-        })}
-        {renderBrandingUploader({
-          title: 'GST Company Stamp',
-          fieldKey: 'gstCompanyStampUrl',
-          inputRef: gstStampInputRef,
-          hint: 'Optional stamp for GST documents.'
+          ,
+          clean: true
         })}
         {renderBrandingUploader({
           title: 'Non-GST Company Logo',
           fieldKey: 'nonGstCompanyLogoUrl',
           inputRef: nonGstLogoInputRef,
           hint: 'Used on non-GST documents.'
+          ,
+          clean: true
+        })}
+        {renderBrandingUploader({
+          title: 'Non-GST Digital Signature',
+          fieldKey: 'nonGstDigitalSignatureUrl',
+          inputRef: nonGstSignatureInputRef,
+          hint: 'Used on non-GST invoices.'
+          ,
+          clean: true
         })}
       </div>
     </>
@@ -2146,17 +2156,6 @@ export default function Settings({ modalMode = false }) {
               </div>
             </div>
             <div style={shell.profileRow}>
-              <div style={shell.bankQrPreview}>
-                {form.gstBankQrUrl ? <img src={form.gstBankQrUrl} alt="GST QR" style={shell.profileImg} /> : <span>QR Preview</span>}
-              </div>
-              <div style={{ display: 'grid', gap: '8px' }}>
-                <p style={shell.fieldLabel}>QR Code</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button type="button" style={shell.tinyButton} onClick={() => gstBankQrInputRef.current?.click()}>Upload QR</button>
-                  <button type="button" style={{ ...shell.tinyButton, ...shell.tinyButtonGhost }} onClick={() => updateField('gstBankQrUrl', '')}>Clear</button>
-                  <input ref={gstBankQrInputRef} type="file" accept="image/*" onChange={(event) => handleBankQrUpload(event, 'gstBankQrUrl', 'GST')} style={{ display: 'none' }} />
-                </div>
-              </div>
               <label style={{ ...shell.checkItem, marginLeft: 'auto' }}>
                 <input
                   type="checkbox"
@@ -2203,17 +2202,6 @@ export default function Settings({ modalMode = false }) {
               </div>
             </div>
             <div style={shell.profileRow}>
-              <div style={shell.bankQrPreview}>
-                {form.nonGstBankQrUrl ? <img src={form.nonGstBankQrUrl} alt="Non-GST QR" style={shell.profileImg} /> : <span>QR Preview</span>}
-              </div>
-              <div style={{ display: 'grid', gap: '8px' }}>
-                <p style={shell.fieldLabel}>QR Code</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button type="button" style={shell.tinyButton} onClick={() => nonGstBankQrInputRef.current?.click()}>Upload QR</button>
-                  <button type="button" style={{ ...shell.tinyButton, ...shell.tinyButtonGhost }} onClick={() => updateField('nonGstBankQrUrl', '')}>Clear</button>
-                  <input ref={nonGstBankQrInputRef} type="file" accept="image/*" onChange={(event) => handleBankQrUpload(event, 'nonGstBankQrUrl', 'Non-GST')} style={{ display: 'none' }} />
-                </div>
-              </div>
               <label style={{ ...shell.checkItem, marginLeft: 'auto' }}>
                 <input
                   type="checkbox"
@@ -2240,7 +2228,6 @@ export default function Settings({ modalMode = false }) {
                 <th style={shell.bankTh}>UPI ID</th>
                 <th style={shell.bankTh}>Opening Balance</th>
                 <th style={shell.bankTh}>Current Balance</th>
-                <th style={shell.bankTh}>QR</th>
                 <th style={shell.bankTh}>Actions</th>
               </tr>
             </thead>
@@ -2255,7 +2242,6 @@ export default function Settings({ modalMode = false }) {
                   <td style={shell.bankTd}>{row.upiId || '-'}</td>
                   <td style={shell.bankTd}>{Number(row.opening || 0).toFixed(2)}</td>
                   <td style={shell.bankTd}>{Number(row.current || 0).toFixed(2)}</td>
-                  <td style={shell.bankTd}>{row.qr ? 'Set' : 'Not set'}</td>
                   <td style={shell.bankTd}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <button type="button" style={shell.smallActionBtn} onClick={() => setActiveSection('bankAccounts')}>View</button>

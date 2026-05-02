@@ -279,6 +279,7 @@ const defaultSettings = {
   nonGstAlternatePhone: '',
   nonGstEmail: '',
   nonGstCompanyLogoUrl: '',
+  nonGstDigitalSignatureUrl: '',
   gstBankName: '',
   gstBankAccountNumber: '',
   gstBankIfsc: '',
@@ -460,6 +461,7 @@ const sanitizeSettings = (raw = {}) => {
     nonGstAlternatePhone: normalizeSettingsText(source.nonGstAlternatePhone ?? defaultSettings.nonGstAlternatePhone),
     nonGstEmail: normalizeSettingsText(source.nonGstEmail ?? defaultSettings.nonGstEmail),
     nonGstCompanyLogoUrl: normalizeSettingsText(source.nonGstCompanyLogoUrl ?? defaultSettings.nonGstCompanyLogoUrl),
+    nonGstDigitalSignatureUrl: normalizeSettingsText(source.nonGstDigitalSignatureUrl ?? defaultSettings.nonGstDigitalSignatureUrl),
     gstBankName: normalizeSettingsText(source.gstBankName ?? defaultSettings.gstBankName),
     gstBankAccountNumber: normalizeSettingsText(source.gstBankAccountNumber ?? defaultSettings.gstBankAccountNumber),
     gstBankIfsc: normalizeSettingsText(source.gstBankIfsc ?? defaultSettings.gstBankIfsc).toUpperCase(),
@@ -616,6 +618,7 @@ const mergeSettingsForSave = (current = {}, incoming = {}) => {
     'gstCompanyLogoUrl',
     'dashboardImageUrl',
     'nonGstCompanyLogoUrl',
+    'nonGstDigitalSignatureUrl',
     'gstDigitalSignatureUrl',
     'gstCompanyStampUrl'
   ];
