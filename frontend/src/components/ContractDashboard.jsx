@@ -84,8 +84,8 @@ const shell = {
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis' },
   td: { textAlign: 'left', verticalAlign: 'middle', padding: '8px 6px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#fff' },
-  selectedRow: { background: 'rgba(159,23,77,0.08)' },
-  selectedText: { color: '#111827' },
+  selectedRow: { background: '#3b73df' },
+  selectedText: { color: '#ffffff' },
   subText: { marginTop: '1px', fontSize: '9px', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusPill: { borderRadius: '999px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, display: 'inline-block' },
   typePill: { borderRadius: '8px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, background: 'rgba(34,197,94,0.2)', color: '#15803d' },
@@ -111,7 +111,22 @@ const shell = {
   actionCell: { display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' },
   miniBtn: { border: '1px solid #F9A8D4', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', minHeight: '28px', padding: '0 8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
   ,
-  customerLinkBtn: { border: 'none', background: 'transparent', padding: 0, margin: 0, fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '2px' },
+  customerLinkBtn: {
+    border: 'none',
+    background: 'transparent',
+    padding: 0,
+    margin: 0,
+    width: '100%',
+    textAlign: 'left',
+    display: 'block',
+    fontSize: '11px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    textDecoration: 'none',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
+  },
   mobileList: { display: 'grid', gap: '8px', padding: '10px' },
   mobileCard: { border: '1px solid var(--color-border)', borderRadius: '12px', padding: '10px', background: '#fff', display: 'grid', gap: '8px' },
   mobileCardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' },
@@ -677,13 +692,13 @@ export default function ContractDashboard() {
             const selected = row.id === selectedContract?.id;
             const statusTone = statusStyles[row.status] || statusStyles.Active;
             return (
-              <tr key={row.id} onClick={() => setSelectedContractId(row.id)}>
+              <tr key={row.id} onClick={() => setSelectedContractId(row.id)} style={selected ? shell.selectedRow : undefined}>
                 <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>{index + 1}</td>
                 {visibleColumns.contractNo ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
-                  <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{row.contractCode}</div>
+                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.92)' } : {}) }}>{row.contractCode}</div>
                 </td> : null}
-                {visibleColumns.customer ? <td style={{ ...shell.td, textAlign: 'left', ...(selected ? shell.selectedText : {}) }}>
+                {visibleColumns.customer ? <td style={{ ...shell.td, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? shell.selectedText : {}) }}>
                   {row.status === 'Active' ? (
                     <button
                       type="button"
@@ -691,27 +706,27 @@ export default function ContractDashboard() {
                         event.stopPropagation();
                         openCustomerSummary(row);
                       }}
-                      style={{ ...shell.customerLinkBtn, color: '#111827' }}
+                      style={{ ...shell.customerLinkBtn, color: selected ? '#ffffff' : '#111827' }}
                     >
                       {row.customer}
                     </button>
                   ) : (
                     <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.customer}</div>
                   )}
-                  <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{row.mobile || '-'}</div>
+                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.92)' } : {}) }}>{row.mobile || '-'}</div>
                 </td> : null}
                 {visibleColumns.property ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.property || '-'}</div>
-                  <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{row.city || '-'}</div>
+                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.92)' } : {}) }}>{row.city || '-'}</div>
                 </td> : null}
                 {visibleColumns.duration ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700 }}>{formatDate(row.startDate)}</div>
-                  <div style={{ ...shell.subText, ...(selected ? { color: '#475569' } : {}) }}>{`to ${formatDate(row.endDate)}`}</div>
+                  <div style={{ ...shell.subText, ...(selected ? { color: 'rgba(255,255,255,0.92)' } : {}) }}>{`to ${formatDate(row.endDate)}`}</div>
                 </td> : null}
                 {visibleColumns.services ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   <span style={{ ...shell.shownPill, background: selected ? 'rgba(255,255,255,0.18)' : '#eef2f7', color: selected ? '#fff' : '#334155', borderColor: selected ? 'rgba(255,255,255,0.2)' : 'var(--color-border)' }}>{row.services}</span>
                 </td> : null}
-                {visibleColumns.status ? <td style={shell.td}>
+                {visibleColumns.status ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : {}) }}>
                   <span style={{ ...shell.statusPill, ...statusTone }}>{row.status.toUpperCase()}</span>
                 </td> : null}
                 {visibleColumns.total ? <td style={{ ...shell.td, ...(selected ? shell.selectedText : { fontWeight: 800 }) }}>{formatINR(row.total)}</td> : null}
