@@ -533,27 +533,44 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ? [
           `Bank Name: ${company.bankName}`,
           `A/C No: ${company.bankAccount}`,
-          `IFSC: ${company.bankIfsc}`,
-          `UPI ID: ${company.bankUpi}`
+          `IFSC: ${company.bankIfsc}`
         ]
       : [''];
 
-    const leftText = [
-      `Contract Duration: ${deriveContractRange(invoice) || '-'}`,
+    const contractDurationText = `CONTRACT DURATION: ${deriveContractRange(invoice) || '-'}`;
+    const termsText = company.terms || '';
+    const leftPreviewLines = [
+      contractDurationText,
       '',
-      'Payment Details:',
+      'PAYMENT DETAILS:',
       ...bankLines,
       '',
-      'Terms & Conditions:',
-      company.terms || ''
-    ].join('\n');
-
-    const leftH = Math.max(118, doc.heightOfString(leftText, { width: leftW - 10, lineGap: 1 }) + 10);
+      'TERMS & CONDITIONS:',
+      termsText
+    ];
+    const leftH = Math.max(118, doc.heightOfString(leftPreviewLines.join('\n'), { width: leftW - 10, lineGap: 1 }) + 10);
     const rightH = leftH;
     ensureSpace(Math.max(leftH, rightH) + 8);
 
     drawCell(doc, '', sumLeftX, y, leftW, leftH, { border: 'none' });
-    doc.font('Helvetica').fontSize(8).fillColor(COLORS.text).text(leftText, sumLeftX + 5, y + 4, { width: leftW - 10, lineGap: 1 });
+    let ly = y + 4;
+    const headingStyle = { font: 'Helvetica-Bold', size: 8, color: '#12364a' };
+    const bodyStyle = { font: 'Helvetica', size: 8, color: COLORS.text };
+    const drawLine = (text, style) => {
+      if (!text) {
+        ly += 6;
+        return;
+      }
+      doc.font(style.font).fontSize(style.size).fillColor(style.color).text(text, sumLeftX + 5, ly, { width: leftW - 10, lineGap: 1 });
+      ly = doc.y + 1;
+    };
+    drawLine(contractDurationText, headingStyle);
+    drawLine('', bodyStyle);
+    drawLine('PAYMENT DETAILS:', headingStyle);
+    bankLines.forEach((line) => drawLine(line, bodyStyle));
+    drawLine('', bodyStyle);
+    drawLine('TERMS & CONDITIONS:', headingStyle);
+    drawLine(termsText, bodyStyle);
 
     drawCell(doc, '', sumRightX, y, rightW2, rightH, { border: 'none' });
     let igst = toNumber(invoice.igstAmount, 0);
