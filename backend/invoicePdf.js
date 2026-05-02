@@ -541,10 +541,11 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ['Grand Total', formatINR(total)]
     ];
 
-    let sy = y + 6;
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#12364a').text('AMOUNT SUMMARY', sumRightX + 6, y + 2, { width: rightW2 - 12, align: 'left' });
+    let sy = y + 20;
     summaryRows.forEach(([k, v]) => {
       const isGrand = k === 'Grand Total';
-      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 20, { border: 'none', bg: null });
+      drawCell(doc, '', sumRightX + 6, sy, rightW2 - 12, 20, { border: 'none', bg: isGrand ? '#e5e7eb' : null });
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(k, sumRightX + 10, sy + 6, { width: (rightW2 - 20) * 0.55 });
       doc.font(isGrand ? 'Helvetica-Bold' : 'Helvetica').fontSize(8).fillColor(COLORS.text).text(v, sumRightX + 10 + ((rightW2 - 20) * 0.55), sy + 6, { width: (rightW2 - 20) * 0.45, align: 'right' });
       sy += 20;
