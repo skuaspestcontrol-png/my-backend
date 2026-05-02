@@ -298,6 +298,11 @@ const formatEmployeeName = (employee) => {
 };
 
 const normalizePhoneNumber = (value) => String(value || '').replace(/\D/g, '').slice(0, 10);
+const toObjectList = (value) => (
+  Array.isArray(value)
+    ? value.filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
+    : []
+);
 const getLeadMobile = (lead) => lead.mobile || lead.mobileNumber || '';
 const getLeadWhatsapp = (lead) => normalizePhoneNumber(lead.whatsappNumber || getLeadMobile(lead));
 const toCanonicalLeadStatus = (value) => {
@@ -434,7 +439,12 @@ export default function LeadCapture() {
   const [overviewFilters, setOverviewFilters] = useState(defaultOverviewFilters);
   const [overviewDraftFilters, setOverviewDraftFilters] = useState(defaultOverviewFilters);
   const [visibleColumns, setVisibleColumns] = useState(() => {
-    const saved = localStorage.getItem('leads_visible_columns');
+    let saved = null;
+    try {
+      saved = localStorage.getItem('leads_visible_columns');
+    } catch {
+      return defaultVisibleLeadColumns;
+    }
     if (!saved) return defaultVisibleLeadColumns;
     try {
       const parsed = JSON.parse(saved);
@@ -446,7 +456,12 @@ export default function LeadCapture() {
     }
   });
   const [columnWidths, setColumnWidths] = useState(() => {
-    const saved = localStorage.getItem('leads_column_widths');
+    let saved = null;
+    try {
+      saved = localStorage.getItem('leads_column_widths');
+    } catch {
+      return {};
+    }
     if (!saved) return {};
     try {
       const parsed = JSON.parse(saved);
@@ -645,13 +660,13 @@ export default function LeadCapture() {
     ]);
 
     if (leadRes.status === 'fulfilled') {
-      setLeads(Array.isArray(leadRes.value?.data) ? leadRes.value.data : []);
+      setLeads(toObjectList(leadRes.value?.data));
     }
     if (employeeRes.status === 'fulfilled') {
-      setEmployees(Array.isArray(employeeRes.value?.data) ? employeeRes.value.data : []);
+      setEmployees(toObjectList(employeeRes.value?.data));
     }
     if (customerRes.status === 'fulfilled') {
-      setCustomers(Array.isArray(customerRes.value?.data) ? customerRes.value.data : []);
+      setCustomers(toObjectList(customerRes.value?.data));
     } else {
       setCustomers([]);
       console.error('Customers fetch failed in lead module:', customerRes.reason);
@@ -664,10 +679,10 @@ export default function LeadCapture() {
       axios.get(`${API_BASE_URL}/api/customers`)
     ]);
     if (employeeRes.status === 'fulfilled') {
-      setEmployees(Array.isArray(employeeRes.value?.data) ? employeeRes.value.data : []);
+      setEmployees(toObjectList(employeeRes.value?.data));
     }
     if (customerRes.status === 'fulfilled') {
-      setCustomers(Array.isArray(customerRes.value?.data) ? customerRes.value.data : []);
+      setCustomers(toObjectList(customerRes.value?.data));
     } else {
       setCustomers([]);
       console.error('Customers fetch failed in lead module:', customerRes.reason);
@@ -687,19 +702,19 @@ export default function LeadCapture() {
 
         if (!mounted) return;
         if (leadRes.status === 'fulfilled') {
-          setLeads(Array.isArray(leadRes.value?.data) ? leadRes.value.data : []);
+          setLeads(toObjectList(leadRes.value?.data));
         } else {
           setLeads([]);
           console.error('Leads fetch failed', leadRes.reason);
         }
         if (employeeRes.status === 'fulfilled') {
-          setEmployees(Array.isArray(employeeRes.value?.data) ? employeeRes.value.data : []);
+          setEmployees(toObjectList(employeeRes.value?.data));
         } else {
           setEmployees([]);
           console.error('Employees fetch failed', employeeRes.reason);
         }
         if (customerRes.status === 'fulfilled') {
-          setCustomers(Array.isArray(customerRes.value?.data) ? customerRes.value.data : []);
+          setCustomers(toObjectList(customerRes.value?.data));
         } else {
           setCustomers([]);
           console.error('Customers fetch failed', customerRes.reason);
@@ -716,11 +731,19 @@ export default function LeadCapture() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('leads_visible_columns', JSON.stringify(visibleColumns));
+    try {
+      localStorage.setItem('leads_visible_columns', JSON.stringify(visibleColumns));
+    } catch {
+      // Ignore storage failures (private mode / blocked storage)
+    }
   }, [visibleColumns]);
 
   useEffect(() => {
-    localStorage.setItem('leads_column_widths', JSON.stringify(columnWidths));
+    try {
+      localStorage.setItem('leads_column_widths', JSON.stringify(columnWidths));
+    } catch {
+      // Ignore storage failures (private mode / blocked storage)
+    }
   }, [columnWidths]);
 
   useEffect(() => {

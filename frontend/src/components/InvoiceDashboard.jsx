@@ -1974,6 +1974,16 @@ export default function InvoiceDashboard() {
   const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '100%', tableLayout: 'fixed' } : shell.serviceScheduleTable;
   const serviceScheduleThStyle = isMobile ? { ...shell.serviceScheduleTh, fontSize: '10px', padding: '7px 6px' } : shell.serviceScheduleTh;
   const serviceScheduleTdStyle = isMobile ? { ...shell.serviceScheduleTd, fontSize: '11px', padding: '7px 6px', wordBreak: 'break-word' } : shell.serviceScheduleTd;
+  const itemMetaDateInputStyle = {
+    ...shell.itemMetaInput,
+    minHeight: '32px',
+    height: '32px',
+    padding: '4px 8px',
+    lineHeight: '1.2',
+    textAlign: 'left',
+    WebkitAppearance: 'none',
+    appearance: 'none'
+  };
   const mobileItemInlineGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' };
 
   return (
@@ -2478,7 +2488,7 @@ export default function InvoiceDashboard() {
                                     <span style={shell.itemMetaLabel}>Contract Start Date</span>
                                     <input
                                       type="date"
-                                      style={{ ...shell.itemMetaInput, textAlign: 'left' }}
+                                      style={itemMetaDateInputStyle}
                                       value={line.contractStartDate || ''}
                                       onChange={(event) => updateLine(index, { contractStartDate: event.target.value })}
                                     />
@@ -2487,7 +2497,7 @@ export default function InvoiceDashboard() {
                                     <span style={shell.itemMetaLabel}>Contract End Date</span>
                                     <input
                                       type="date"
-                                      style={{ ...shell.itemMetaInput, textAlign: 'left' }}
+                                      style={itemMetaDateInputStyle}
                                       value={line.contractEndDate || ''}
                                       readOnly
                                     />
@@ -2496,7 +2506,7 @@ export default function InvoiceDashboard() {
                                     <span style={shell.itemMetaLabel}>Renewal Date</span>
                                     <input
                                       type="date"
-                                      style={{ ...shell.itemMetaInput, textAlign: 'left' }}
+                                      style={itemMetaDateInputStyle}
                                       value={line.renewalDate || ''}
                                       readOnly
                                     />

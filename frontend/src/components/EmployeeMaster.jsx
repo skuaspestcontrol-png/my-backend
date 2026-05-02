@@ -136,8 +136,8 @@ const shell = {
   label: { fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#334155', lineHeight: 1.2 },
   input: { width: '100%', minHeight: '44px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.24)', background: '#fff', padding: '10px 12px', fontSize: '13px', color: '#0f172a' },
   textArea: { width: '100%', minHeight: '86px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.24)', background: '#fff', padding: '10px 12px', fontSize: '13px', color: '#0f172a', resize: 'vertical' },
-  checkRow: { display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap', paddingTop: '2px' },
-  checkItem: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: 700, color: '#0f172a' },
+  checkRow: { display: 'flex', alignItems: 'center', gap: '18px 24px', rowGap: '14px', flexWrap: 'wrap', paddingTop: '4px', marginBottom: '12px' },
+  checkItem: { display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '13px', fontWeight: 700, color: '#0f172a', lineHeight: 1.3 },
   uploadBtn: {
     minHeight: '38px',
     borderRadius: '9px',
