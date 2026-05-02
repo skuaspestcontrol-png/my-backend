@@ -1525,6 +1525,13 @@ export default function Settings({ modalMode = false }) {
           hint: 'PNG/JPG, max 2MB',
           emptyLabel: 'Logo'
         })}
+        {renderBrandingUploader({
+          title: 'Digital Signature',
+          fieldKey: 'nonGstDigitalSignatureUrl',
+          inputRef: nonGstSignatureInputRef,
+          hint: 'PNG/JPG, transparent preferred',
+          emptyLabel: 'Sign'
+        })}
       </div>
     </>
   );
