@@ -1249,6 +1249,7 @@ export default function LeadCapture() {
   const searchGooglePlace = async () => {
     if (isFetchingAddress) return;
     const query = String(form.searchAddress || '').trim();
+    console.log('SEARCH CLICK:', query);
     if (!query) {
       if (searchAddressInputRef.current) searchAddressInputRef.current.focus();
       setSearchError('Please enter company name or address.');
@@ -1257,147 +1258,58 @@ export default function LeadCapture() {
 
     setIsFetchingAddress(true);
     setSearchError('');
-    const withTimeout = (promise, timeoutMs, timeoutMessage) => (
-      Promise.race([
-        promise,
-        new Promise((_, reject) => {
-          setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
-        })
-      ])
-    );
-
-    const applyPlaceResult = (placeLike) => {
-      const best = placeLike || {};
-      const formattedAddress = String(best.formatted_address || best.name || query).trim();
-      const placeName = String(best.name || '').trim();
-      const placeId = String(best.place_id || '').trim();
-      const placePhone = String(best.formatted_phone_number || best.international_phone_number || '').trim();
-      const placeWebsite = String(best.website || '').trim();
-      const location = best?.geometry?.location || {};
-      const lat = Number(typeof location?.lat === 'function' ? location.lat() : location?.lat);
-      const lng = Number(typeof location?.lng === 'function' ? location.lng() : location?.lng);
-      const extracted = extractAddressFields(best);
-
-      setForm((current) => ({
-        ...current,
-        customerName: current.customerName || placeName || current.customerName,
-        searchAddress: formattedAddress || current.searchAddress,
-        address: formattedAddress || current.address,
-        areaName: extracted.areaName || current.areaName,
-        city: extracted.city || current.city,
-        state: extracted.state || current.state,
-        pincode: extracted.pincode || current.pincode,
-        latitude: Number.isFinite(lat) ? String(lat) : current.latitude,
-        longitude: Number.isFinite(lng) ? String(lng) : current.longitude,
-        googlePlaceId: placeId || current.googlePlaceId,
-        googlePlaceName: placeName || current.googlePlaceName,
-        googlePhone: placePhone || current.googlePhone,
-        googleWebsite: placeWebsite || current.googleWebsite
-      }));
-    };
-
-    const tryPlacesFirst = async () => {
-      console.log('REAL searchGooglePlace running:', query);
-      console.log('Google loaded:', !!window.google);
-      console.log('Maps loaded:', !!window.google?.maps);
-      console.log('Places loaded:', !!window.google?.maps?.places);
-      console.log('Place class:', window.google?.maps?.places?.Place);
-      if (!window.google?.maps?.importLibrary) {
-        return null;
-      }
-
-      const { Place } = await window.google.maps.importLibrary('places');
-      console.log('Imported Place:', Place);
-      if (!Place || typeof Place.searchByText !== 'function') {
-        console.error('Place class missing:', window.google?.maps?.places);
-        return null;
-      }
-
-      const { places } = await withTimeout(
-        Place.searchByText({
-          textQuery: query,
-          fields: [
-            'id',
-            'displayName',
-            'formattedAddress',
-            'location',
-            'nationalPhoneNumber',
-            'internationalPhoneNumber',
-            'websiteURI'
-          ],
-          locationBias: { center: { lat: 28.6139, lng: 77.2090 }, radius: 50000 },
-          region: 'IN',
-          maxResultCount: 10
-        }),
-        6000,
-        'Places lookup timed out'
-      );
-      console.log('searchByText response:', { places });
-      console.log('searchByText places:', places);
-      const place = Array.isArray(places) && places[0] ? places[0] : null;
-      if (!place) return null;
-
-      const lat =
-        typeof place.location?.lat === 'function'
-          ? place.location.lat()
-          : Number(place.location?.lat);
-      const lng =
-        typeof place.location?.lng === 'function'
-          ? place.location.lng()
-          : Number(place.location?.lng);
-
-      return {
-        place_id: String(place.id || '').trim(),
-        name: String(place.displayName?.text || place.displayName || '').trim(),
-        formatted_address: String(place.formattedAddress || '').trim(),
-        geometry: { location: { lat, lng } },
-        formatted_phone_number: String(place.nationalPhoneNumber || '').trim(),
-        international_phone_number: String(place.internationalPhoneNumber || '').trim(),
-        website: String(place.websiteURI || '').trim(),
-        address_components: Array.isArray(place.addressComponents)
-          ? place.addressComponents.map((component) => ({
-            long_name: String(component.longText || component.long_name || '').trim(),
-            short_name: String(component.shortText || component.short_name || '').trim(),
-            types: Array.isArray(component.types) ? component.types : []
-          }))
-          : []
-      };
-    };
-
-    const tryGeocoderFallback = async () => {
-      if (!window.google?.maps?.Geocoder) return null;
-      const geocoder = new window.google.maps.Geocoder();
-      return withTimeout(new Promise((resolve) => {
-        geocoder.geocode({ address: query }, (results, status) => {
-          if (status === 'OK' && Array.isArray(results) && results[0]) {
-            resolve(results[0]);
-            return;
-          }
-          resolve(null);
-        });
-      }), 5000, 'Geocoder lookup timed out');
-    };
 
     try {
-      const placeResult = await tryPlacesFirst().catch(() => null);
-      if (placeResult) {
-        applyPlaceResult(placeResult);
-        setSearchError('');
+      const { Place } = await window.google.maps.importLibrary('places');
+      const request = {
+        textQuery: query,
+        fields: [
+          'id',
+          'displayName',
+          'formattedAddress',
+          'location'
+        ],
+        maxResultCount: 10
+      };
+      console.log('Place.searchByText request:', request);
+      const { places } = await Place.searchByText(request);
+      console.log('Place.searchByText places:', places);
+
+      if (!places || places.length === 0) {
+        setSearchError('No business/address found. Try full name with city.');
         return;
       }
 
-      const geocodeResult = await tryGeocoderFallback().catch(() => null);
-      if (geocodeResult) {
-        applyPlaceResult(geocodeResult);
-        setSearchError('');
-        return;
-      }
+      const place = places[0];
+      const placeName = place.displayName?.text || place.displayName || '';
+      const address = place.formattedAddress || '';
+      const lat = typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat;
+      const lng = typeof place.location?.lng === 'function' ? place.location.lng() : place.location?.lng;
+      const normalized = {
+        formatted_address: address,
+        address_components: [],
+        geometry: { location: { lat, lng } }
+      };
+      const extracted = extractAddressFields(normalized);
 
-      setSearchError('No business/address found. Please select from Google suggestions or try full name with city.');
+      setForm((prev) => ({
+        ...prev,
+        searchAddress: address || placeName || query,
+        address: address,
+        areaName: extracted.areaName || prev.areaName,
+        city: extracted.city || prev.city,
+        state: extracted.state || prev.state,
+        pincode: extracted.pincode || prev.pincode,
+        googlePlaceName: placeName,
+        googlePlaceId: place.id || '',
+        latitude: lat ? String(lat) : '',
+        longitude: lng ? String(lng) : ''
+      }));
+
+      setSearchError('');
     } catch (error) {
-      const message = String(error?.message || '').trim();
-      console.error('REAL Google Places search failed:', error);
-      setSearchError(message || 'Google Places search failed. Check Places API New, billing, and API restrictions.');
+      console.error('Place.searchByText error:', error);
+      setSearchError(error?.message || 'Google Places search failed.');
     } finally {
       setIsFetchingAddress(false);
     }
@@ -2523,20 +2435,11 @@ export default function LeadCapture() {
                         onKeyDown={(e) => {
                           if (e.key !== 'Enter') return;
                           e.preventDefault();
-                          console.log('REAL SEARCH BUTTON CLICKED');
                           searchGooglePlace();
                         }}
                         placeholder="Search company, shop, office, area, or address"
                       />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          console.log('REAL SEARCH BUTTON CLICKED');
-                          searchGooglePlace();
-                        }}
-                        style={s.mapsButton}
-                        disabled={isFetchingAddress}
-                      >
+                      <button type="button" onClick={searchGooglePlace} style={s.mapsButton} disabled={isFetchingAddress}>
                         <Search size={14} /> {isFetchingAddress ? 'Fetching...' : 'Search Maps'}
                       </button>
                     </div>
