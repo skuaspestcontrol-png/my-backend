@@ -422,6 +422,8 @@ export default function LeadCapture() {
   const [sameAsMobile, setSameAsMobile] = useState(false);
   const [isFetchingAddress, setIsFetchingAddress] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [editingLeadId, setEditingLeadId] = useState(null);
   const [showReferencePicker, setShowReferencePicker] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -484,6 +486,7 @@ export default function LeadCapture() {
   const importFileRef = useRef(null);
   const resizeStateRef = useRef(null);
   const searchAddressInputRef = useRef(null);
+  const suggestionSeqRef = useRef(0);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -1246,6 +1249,59 @@ export default function LeadCapture() {
     entry.shippingArea
   ].map((field) => normalizeSearchText(field)).filter(Boolean));
 
+  const applySearchSuggestion = (place, queryText = '') => {
+    const placeName = place.displayName?.text || place.displayName || '';
+    const address = place.formattedAddress || '';
+    const lat = typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat;
+    const lng = typeof place.location?.lng === 'function' ? place.location.lng() : place.location?.lng;
+    const normalized = {
+      formatted_address: address,
+      address_components: [],
+      geometry: { location: { lat, lng } }
+    };
+    const extracted = extractAddressFields(normalized);
+    setForm((prev) => ({
+      ...prev,
+      searchAddress: address || placeName || queryText || prev.searchAddress,
+      address: address || prev.address,
+      areaName: extracted.areaName || prev.areaName,
+      city: extracted.city || prev.city,
+      state: extracted.state || prev.state,
+      pincode: extracted.pincode || prev.pincode,
+      googlePlaceName: placeName || prev.googlePlaceName,
+      googlePlaceId: place.id || prev.googlePlaceId,
+      latitude: lat ? String(lat) : prev.latitude,
+      longitude: lng ? String(lng) : prev.longitude
+    }));
+  };
+
+  const fetchLiveSearchSuggestions = async (value) => {
+    const queryText = String(value || '').trim();
+    if (queryText.length < 2 || !window.google?.maps?.importLibrary) {
+      setSearchSuggestions([]);
+      setShowSearchSuggestions(false);
+      return;
+    }
+
+    const reqId = ++suggestionSeqRef.current;
+    try {
+      const { Place } = await window.google.maps.importLibrary('places');
+      const { places } = await Place.searchByText({
+        textQuery: queryText,
+        fields: ['id', 'displayName', 'formattedAddress', 'location'],
+        maxResultCount: 5
+      });
+      if (reqId !== suggestionSeqRef.current) return;
+      const results = Array.isArray(places) ? places : [];
+      setSearchSuggestions(results);
+      setShowSearchSuggestions(results.length > 0);
+    } catch {
+      if (reqId !== suggestionSeqRef.current) return;
+      setSearchSuggestions([]);
+      setShowSearchSuggestions(false);
+    }
+  };
+
   const searchGooglePlace = async () => {
     if (isFetchingAddress) return;
     const query = String(form.searchAddress || '').trim();
@@ -1281,30 +1337,9 @@ export default function LeadCapture() {
       }
 
       const place = places[0];
-      const placeName = place.displayName?.text || place.displayName || '';
-      const address = place.formattedAddress || '';
-      const lat = typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat;
-      const lng = typeof place.location?.lng === 'function' ? place.location.lng() : place.location?.lng;
-      const normalized = {
-        formatted_address: address,
-        address_components: [],
-        geometry: { location: { lat, lng } }
-      };
-      const extracted = extractAddressFields(normalized);
-
-      setForm((prev) => ({
-        ...prev,
-        searchAddress: address || placeName || query,
-        address: address,
-        areaName: extracted.areaName || prev.areaName,
-        city: extracted.city || prev.city,
-        state: extracted.state || prev.state,
-        pincode: extracted.pincode || prev.pincode,
-        googlePlaceName: placeName,
-        googlePlaceId: place.id || '',
-        latitude: lat ? String(lat) : '',
-        longitude: lng ? String(lng) : ''
-      }));
+      applySearchSuggestion(place, query);
+      setShowSearchSuggestions(false);
+      setSearchSuggestions([]);
 
       setSearchError('');
     } catch (error) {
@@ -2430,8 +2465,12 @@ export default function LeadCapture() {
                         style={{ ...s.in, marginBottom: 0, flex: 1 }}
                         onChange={(e) => {
                           setSearchError('');
-                          updateForm('searchAddress', e.target.value);
+                          const value = e.target.value;
+                          updateForm('searchAddress', value);
+                          fetchLiveSearchSuggestions(value);
                         }}
+                        onFocus={() => setShowSearchSuggestions(searchSuggestions.length > 0)}
+                        onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 160)}
                         onKeyDown={(e) => {
                           if (e.key !== 'Enter') return;
                           e.preventDefault();
@@ -2443,6 +2482,31 @@ export default function LeadCapture() {
                         <Search size={14} /> {isFetchingAddress ? 'Fetching...' : 'Search Maps'}
                       </button>
                     </div>
+                    {showSearchSuggestions ? (
+                      <div style={{ marginTop: '6px', border: '1px solid #e5e7eb', borderRadius: '10px', background: '#fff', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.14)', maxHeight: '220px', overflowY: 'auto' }}>
+                        {searchSuggestions.map((place) => {
+                          const name = place.displayName?.text || place.displayName || place.formattedAddress || '';
+                          const address = place.formattedAddress || '';
+                          return (
+                            <button
+                              key={String(place.id || `${name}-${address}`)}
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => {
+                                applySearchSuggestion(place, form.searchAddress);
+                                setShowSearchSuggestions(false);
+                                setSearchSuggestions([]);
+                                setSearchError('');
+                              }}
+                              style={{ width: '100%', textAlign: 'left', border: 'none', borderBottom: '1px solid #f1f5f9', background: '#fff', cursor: 'pointer', padding: '8px 10px' }}
+                            >
+                              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{name}</div>
+                              <div style={{ fontSize: '11px', color: '#64748b' }}>{address}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
                     {searchError ? (
                       <div style={{ marginTop: '6px', fontSize: '11px', color: '#b91c1c', fontWeight: 700 }}>
                         {searchError}
