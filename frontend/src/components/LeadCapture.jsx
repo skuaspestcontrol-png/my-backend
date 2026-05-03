@@ -1247,6 +1247,7 @@ export default function LeadCapture() {
   ].map((field) => normalizeSearchText(field)).filter(Boolean));
 
   const fetchAddressFromGoogleMaps = async () => {
+    if (isFetchingAddress) return;
     const query = String(form.searchAddress || '').trim();
     if (!query) {
       if (searchAddressInputRef.current) searchAddressInputRef.current.focus();
@@ -1257,6 +1258,15 @@ export default function LeadCapture() {
     setIsFetchingAddress(true);
     setSearchError('');
     try {
+      const withTimeout = (promise, timeoutMs, timeoutMessage) => (
+        Promise.race([
+          promise,
+          new Promise((_, reject) => {
+            setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+          })
+        ])
+      );
+
       const tryClientPlacesSearch = async () => new Promise((resolve) => {
         if (!window.google?.maps?.places) {
           resolve(null);
@@ -1300,10 +1310,18 @@ export default function LeadCapture() {
         types: Array.isArray(place?.types) ? place.types : []
       });
 
-      const response = await axios.post(`${API_BASE_URL}/api/maps/geocode`, { address: query });
+      const response = await withTimeout(
+        axios.post(`${API_BASE_URL}/api/maps/geocode`, { address: query }, { timeout: 10000 }),
+        12000,
+        'Location lookup timed out'
+      );
       let best = response?.data?.result || response?.data || {};
       if (!best || (!best.formatted_address && !best.place_id && !best.name)) {
-        const place = await tryClientPlacesSearch();
+        const place = await withTimeout(
+          tryClientPlacesSearch(),
+          5000,
+          'Places lookup timed out'
+        ).catch(() => null);
         if (place) best = placeToServerShape(place);
       }
       const formattedAddress = String(best.formatted_address || query).trim();
@@ -1335,7 +1353,7 @@ export default function LeadCapture() {
     } catch (error) {
       let best = null;
       try {
-        const place = await (new Promise((resolve) => {
+        const place = await withTimeout(new Promise((resolve) => {
           if (!window.google?.maps?.places) {
             resolve(null);
             return;
@@ -1354,7 +1372,7 @@ export default function LeadCapture() {
               resolve(null);
             }
           );
-        }));
+        }), 5000, 'Places lookup timed out');
         if (place) best = place;
       } catch {
         best = null;
