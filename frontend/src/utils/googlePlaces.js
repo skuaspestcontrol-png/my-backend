@@ -50,6 +50,23 @@ const placeToDetails = (place = {}) => {
 
 let scriptPromise = null;
 
+const waitForPlacesReady = async (timeoutMs = 5000) => {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (window.google?.maps?.places) return true;
+    if (window.google?.maps?.importLibrary) {
+      try {
+        await window.google.maps.importLibrary('places');
+        if (window.google?.maps?.places) return true;
+      } catch {
+        // Retry until timeout.
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
+  return false;
+};
+
 export const loadGooglePlacesScript = async () => {
   if (window.google?.maps?.places) {
     initFirebaseAppCheck();
@@ -64,18 +81,33 @@ export const loadGooglePlacesScript = async () => {
   scriptPromise = new Promise((resolve, reject) => {
     const existing = document.getElementById(MAPS_SCRIPT_ID);
     if (existing) {
-      existing.addEventListener('load', () => resolve(window.google));
+      const finishExisting = async () => {
+        const ok = await waitForPlacesReady();
+        if (!ok) {
+          reject(new Error('Google Places API not enabled or failed to initialize'));
+          return;
+        }
+        initFirebaseAppCheck();
+        await attachMapsAppCheckTokenProvider();
+        resolve(window.google);
+      };
+      if (window.google?.maps) {
+        finishExisting();
+      } else {
+        existing.addEventListener('load', finishExisting);
+      }
       existing.addEventListener('error', () => reject(new Error('Failed to load Google Maps script')));
       return;
     }
 
     const script = document.createElement('script');
     script.id = MAPS_SCRIPT_ID;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&v=weekly&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&v=weekly`;
     script.async = true;
     script.defer = true;
-    script.onload = () => {
-      if (!window.google?.maps?.places) {
+    script.onload = async () => {
+      const ok = await waitForPlacesReady();
+      if (!ok) {
         reject(new Error('Google Places API not enabled or failed to initialize'));
         return;
       }
