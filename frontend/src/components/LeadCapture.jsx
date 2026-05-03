@@ -1251,7 +1251,7 @@ export default function LeadCapture() {
     const query = String(form.searchAddress || '').trim();
     if (!query) {
       if (searchAddressInputRef.current) searchAddressInputRef.current.focus();
-      setSearchError('Enter address/company text first, then search.');
+      setSearchError('Please enter company name or address.');
       return;
     }
 
@@ -1298,39 +1298,64 @@ export default function LeadCapture() {
 
     const tryPlacesFirst = async () => {
       console.log('Google loaded:', !!window.google);
+      console.log('Maps loaded:', !!window.google?.maps);
       console.log('Places loaded:', !!window.google?.maps?.places);
       console.log('Search query:', query);
-      if (!window.google?.maps?.places) return null;
+      const placesNamespace = window.google?.maps?.places;
+      if (!placesNamespace?.Place || typeof placesNamespace.Place.searchByText !== 'function') {
+        console.error('Place class missing:', placesNamespace);
+        return null;
+      }
 
-      const service = new window.google.maps.places.PlacesService(document.createElement('div'));
-      return withTimeout(new Promise((resolve) => {
-        service.findPlaceFromQuery(
-          {
-            query,
-            fields: [
-              'place_id',
-              'name',
-              'formatted_address',
-              'geometry',
-              'formatted_phone_number',
-              'international_phone_number',
-              'website',
-              'types',
-              'address_components'
-            ],
-            locationBias: new window.google.maps.LatLng(28.6139, 77.2090)
-          },
-          (results, status) => {
-            console.log('Places status:', status);
-            console.log('Places results:', results);
-            if (status === window.google.maps.places.PlacesServiceStatus.OK && Array.isArray(results) && results[0]) {
-              resolve(results[0]);
-              return;
-            }
-            resolve(null);
-          }
-        );
-      }), 6000, 'Places lookup timed out');
+      const { places } = await withTimeout(
+        placesNamespace.Place.searchByText({
+          textQuery: query,
+          fields: [
+            'id',
+            'displayName',
+            'formattedAddress',
+            'location',
+            'nationalPhoneNumber',
+            'internationalPhoneNumber',
+            'websiteURI'
+          ],
+          includedType: 'point_of_interest',
+          locationBias: { lat: 28.6139, lng: 77.2090 },
+          region: 'IN',
+          maxResultCount: 5
+        }),
+        6000,
+        'Places lookup timed out'
+      );
+      console.log('Places results:', places);
+      const place = Array.isArray(places) && places[0] ? places[0] : null;
+      if (!place) return null;
+
+      const lat =
+        typeof place.location?.lat === 'function'
+          ? place.location.lat()
+          : Number(place.location?.lat);
+      const lng =
+        typeof place.location?.lng === 'function'
+          ? place.location.lng()
+          : Number(place.location?.lng);
+
+      return {
+        place_id: String(place.id || '').trim(),
+        name: String(place.displayName?.text || place.displayName || '').trim(),
+        formatted_address: String(place.formattedAddress || '').trim(),
+        geometry: { location: { lat, lng } },
+        formatted_phone_number: String(place.nationalPhoneNumber || '').trim(),
+        international_phone_number: String(place.internationalPhoneNumber || '').trim(),
+        website: String(place.websiteURI || '').trim(),
+        address_components: Array.isArray(place.addressComponents)
+          ? place.addressComponents.map((component) => ({
+            long_name: String(component.longText || component.long_name || '').trim(),
+            short_name: String(component.shortText || component.short_name || '').trim(),
+            types: Array.isArray(component.types) ? component.types : []
+          }))
+          : []
+      };
     };
 
     const tryGeocoderFallback = async () => {
@@ -1365,7 +1390,8 @@ export default function LeadCapture() {
       setSearchError('No business/address found. Please select from Google suggestions or try full name with city.');
     } catch (error) {
       const message = String(error?.message || '').trim();
-      setSearchError(message || 'No business/address found. Please select from Google suggestions or try full name with city.');
+      console.error('New Places search error:', error);
+      setSearchError(message || 'Google Places search failed. Check Places API New, billing, and API restrictions.');
     } finally {
       setIsFetchingAddress(false);
     }
