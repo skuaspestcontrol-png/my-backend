@@ -1246,7 +1246,7 @@ export default function LeadCapture() {
     entry.shippingArea
   ].map((field) => normalizeSearchText(field)).filter(Boolean));
 
-  const fetchAddressFromGoogleMaps = async () => {
+  const searchGooglePlace = async () => {
     if (isFetchingAddress) return;
     const query = String(form.searchAddress || '').trim();
     if (!query) {
@@ -1297,18 +1297,24 @@ export default function LeadCapture() {
     };
 
     const tryPlacesFirst = async () => {
+      console.log('REAL searchGooglePlace running:', query);
       console.log('Google loaded:', !!window.google);
       console.log('Maps loaded:', !!window.google?.maps);
       console.log('Places loaded:', !!window.google?.maps?.places);
-      console.log('Search query:', query);
-      const placesNamespace = window.google?.maps?.places;
-      if (!placesNamespace?.Place || typeof placesNamespace.Place.searchByText !== 'function') {
-        console.error('Place class missing:', placesNamespace);
+      console.log('Place class:', window.google?.maps?.places?.Place);
+      if (!window.google?.maps?.importLibrary) {
+        return null;
+      }
+
+      const { Place } = await window.google.maps.importLibrary('places');
+      console.log('Imported Place:', Place);
+      if (!Place || typeof Place.searchByText !== 'function') {
+        console.error('Place class missing:', window.google?.maps?.places);
         return null;
       }
 
       const { places } = await withTimeout(
-        placesNamespace.Place.searchByText({
+        Place.searchByText({
           textQuery: query,
           fields: [
             'id',
@@ -1319,15 +1325,15 @@ export default function LeadCapture() {
             'internationalPhoneNumber',
             'websiteURI'
           ],
-          includedType: 'point_of_interest',
-          locationBias: { lat: 28.6139, lng: 77.2090 },
+          locationBias: { center: { lat: 28.6139, lng: 77.2090 }, radius: 50000 },
           region: 'IN',
-          maxResultCount: 5
+          maxResultCount: 10
         }),
         6000,
         'Places lookup timed out'
       );
-      console.log('Places results:', places);
+      console.log('searchByText response:', { places });
+      console.log('searchByText places:', places);
       const place = Array.isArray(places) && places[0] ? places[0] : null;
       if (!place) return null;
 
@@ -1390,7 +1396,7 @@ export default function LeadCapture() {
       setSearchError('No business/address found. Please select from Google suggestions or try full name with city.');
     } catch (error) {
       const message = String(error?.message || '').trim();
-      console.error('New Places search error:', error);
+      console.error('REAL Google Places search failed:', error);
       setSearchError(message || 'Google Places search failed. Check Places API New, billing, and API restrictions.');
     } finally {
       setIsFetchingAddress(false);
@@ -2517,11 +2523,20 @@ export default function LeadCapture() {
                         onKeyDown={(e) => {
                           if (e.key !== 'Enter') return;
                           e.preventDefault();
-                          fetchAddressFromGoogleMaps();
+                          console.log('REAL SEARCH BUTTON CLICKED');
+                          searchGooglePlace();
                         }}
                         placeholder="Search company, shop, office, area, or address"
                       />
-                      <button type="button" onClick={fetchAddressFromGoogleMaps} style={s.mapsButton} disabled={isFetchingAddress}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          console.log('REAL SEARCH BUTTON CLICKED');
+                          searchGooglePlace();
+                        }}
+                        style={s.mapsButton}
+                        disabled={isFetchingAddress}
+                      >
                         <Search size={14} /> {isFetchingAddress ? 'Fetching...' : 'Search Maps'}
                       </button>
                     </div>
