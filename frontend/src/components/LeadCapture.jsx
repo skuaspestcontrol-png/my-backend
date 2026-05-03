@@ -1257,81 +1257,25 @@ export default function LeadCapture() {
 
     setIsFetchingAddress(true);
     setSearchError('');
-    try {
-      const withTimeout = (promise, timeoutMs, timeoutMessage) => (
-        Promise.race([
-          promise,
-          new Promise((_, reject) => {
-            setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
-          })
-        ])
-      );
+    const withTimeout = (promise, timeoutMs, timeoutMessage) => (
+      Promise.race([
+        promise,
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+        })
+      ])
+    );
 
-      const tryClientPlacesSearch = async () => new Promise((resolve) => {
-        if (!window.google?.maps?.places) {
-          resolve(null);
-          return;
-        }
-        const service = new window.google.maps.places.PlacesService(document.createElement('div'));
-        service.findPlaceFromQuery(
-          {
-            query,
-            fields: [
-              'place_id',
-              'name',
-              'formatted_address',
-              'geometry',
-              'formatted_phone_number',
-              'international_phone_number',
-              'website',
-              'types',
-              'address_components'
-            ]
-          },
-          (results, status) => {
-            if (status === window.google.maps.places.PlacesServiceStatus.OK && Array.isArray(results) && results[0]) {
-              resolve(results[0]);
-              return;
-            }
-            resolve(null);
-          }
-        );
-      });
-
-      const placeToServerShape = (place) => ({
-        name: String(place?.name || '').trim(),
-        place_id: String(place?.place_id || '').trim(),
-        formatted_address: String(place?.formatted_address || '').trim(),
-        geometry: place?.geometry || {},
-        formatted_phone_number: String(place?.formatted_phone_number || '').trim(),
-        international_phone_number: String(place?.international_phone_number || '').trim(),
-        website: String(place?.website || '').trim(),
-        address_components: Array.isArray(place?.address_components) ? place.address_components : [],
-        types: Array.isArray(place?.types) ? place.types : []
-      });
-
-      const response = await withTimeout(
-        axios.post(`${API_BASE_URL}/api/maps/geocode`, { address: query }, { timeout: 10000 }),
-        12000,
-        'Location lookup timed out'
-      );
-      let best = response?.data?.result || response?.data || {};
-      if (!best || (!best.formatted_address && !best.place_id && !best.name)) {
-        const place = await withTimeout(
-          tryClientPlacesSearch(),
-          5000,
-          'Places lookup timed out'
-        ).catch(() => null);
-        if (place) best = placeToServerShape(place);
-      }
-      const formattedAddress = String(best.formatted_address || query).trim();
+    const applyPlaceResult = (placeLike) => {
+      const best = placeLike || {};
+      const formattedAddress = String(best.formatted_address || best.name || query).trim();
       const placeName = String(best.name || '').trim();
       const placeId = String(best.place_id || '').trim();
       const placePhone = String(best.formatted_phone_number || best.international_phone_number || '').trim();
       const placeWebsite = String(best.website || '').trim();
       const location = best?.geometry?.location || {};
-      const lat = Number(location.lat);
-      const lng = Number(location.lng);
+      const lat = Number(typeof location?.lat === 'function' ? location.lat() : location?.lat);
+      const lng = Number(typeof location?.lng === 'function' ? location.lng() : location?.lng);
       const extracted = extractAddressFields(best);
 
       setForm((current) => ({
@@ -1350,67 +1294,78 @@ export default function LeadCapture() {
         googlePhone: placePhone || current.googlePhone,
         googleWebsite: placeWebsite || current.googleWebsite
       }));
-    } catch (error) {
-      let best = null;
-      try {
-        const place = await withTimeout(new Promise((resolve) => {
-          if (!window.google?.maps?.places) {
+    };
+
+    const tryPlacesFirst = async () => {
+      console.log('Google loaded:', !!window.google);
+      console.log('Places loaded:', !!window.google?.maps?.places);
+      console.log('Search query:', query);
+      if (!window.google?.maps?.places) return null;
+
+      const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+      return withTimeout(new Promise((resolve) => {
+        service.findPlaceFromQuery(
+          {
+            query,
+            fields: [
+              'place_id',
+              'name',
+              'formatted_address',
+              'geometry',
+              'formatted_phone_number',
+              'international_phone_number',
+              'website',
+              'types',
+              'address_components'
+            ],
+            locationBias: new window.google.maps.LatLng(28.6139, 77.2090)
+          },
+          (results, status) => {
+            console.log('Places status:', status);
+            console.log('Places results:', results);
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && Array.isArray(results) && results[0]) {
+              resolve(results[0]);
+              return;
+            }
             resolve(null);
+          }
+        );
+      }), 6000, 'Places lookup timed out');
+    };
+
+    const tryGeocoderFallback = async () => {
+      if (!window.google?.maps?.Geocoder) return null;
+      const geocoder = new window.google.maps.Geocoder();
+      return withTimeout(new Promise((resolve) => {
+        geocoder.geocode({ address: query }, (results, status) => {
+          if (status === 'OK' && Array.isArray(results) && results[0]) {
+            resolve(results[0]);
             return;
           }
-          const service = new window.google.maps.places.PlacesService(document.createElement('div'));
-          service.findPlaceFromQuery(
-            {
-              query,
-              fields: ['place_id', 'name', 'formatted_address', 'geometry', 'address_components']
-            },
-            (results, status) => {
-              if (status === window.google.maps.places.PlacesServiceStatus.OK && Array.isArray(results) && results[0]) {
-                resolve(results[0]);
-                return;
-              }
-              resolve(null);
-            }
-          );
-        }), 5000, 'Places lookup timed out');
-        if (place) best = place;
-      } catch {
-        best = null;
-      }
+          resolve(null);
+        });
+      }), 5000, 'Geocoder lookup timed out');
+    };
 
-      if (best) {
-        const normalized = {
-          name: String(best?.name || '').trim(),
-          place_id: String(best?.place_id || '').trim(),
-          formatted_address: String(best?.formatted_address || query).trim(),
-          geometry: best?.geometry || {},
-          address_components: Array.isArray(best?.address_components) ? best.address_components : []
-        };
-        const formattedAddress = normalized.formatted_address;
-        const location = normalized?.geometry?.location || {};
-        const lat = Number(typeof location?.lat === 'function' ? location.lat() : location?.lat);
-        const lng = Number(typeof location?.lng === 'function' ? location.lng() : location?.lng);
-        const extracted = extractAddressFields(normalized);
-        setForm((current) => ({
-          ...current,
-          customerName: current.customerName || normalized.name || current.customerName,
-          searchAddress: formattedAddress || current.searchAddress,
-          address: formattedAddress || current.address,
-          areaName: extracted.areaName || current.areaName,
-          city: extracted.city || current.city,
-          state: extracted.state || current.state,
-          pincode: extracted.pincode || current.pincode,
-          latitude: Number.isFinite(lat) ? String(lat) : current.latitude,
-          longitude: Number.isFinite(lng) ? String(lng) : current.longitude,
-          googlePlaceId: normalized.place_id || current.googlePlaceId,
-          googlePlaceName: normalized.name || current.googlePlaceName
-        }));
+    try {
+      const placeResult = await tryPlacesFirst().catch(() => null);
+      if (placeResult) {
+        applyPlaceResult(placeResult);
         setSearchError('');
         return;
       }
 
-      const message = String(error?.response?.data?.error || error?.message || '').trim();
-      setSearchError(message || 'Unable to fetch location. Check Google Maps key, API access, domain restriction, and billing.');
+      const geocodeResult = await tryGeocoderFallback().catch(() => null);
+      if (geocodeResult) {
+        applyPlaceResult(geocodeResult);
+        setSearchError('');
+        return;
+      }
+
+      setSearchError('No business/address found. Please select from Google suggestions or try full name with city.');
+    } catch (error) {
+      const message = String(error?.message || '').trim();
+      setSearchError(message || 'No business/address found. Please select from Google suggestions or try full name with city.');
     } finally {
       setIsFetchingAddress(false);
     }
