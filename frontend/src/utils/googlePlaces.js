@@ -1,4 +1,5 @@
 const MAPS_SCRIPT_ID = 'google-maps-places-script';
+import { attachMapsAppCheckTokenProvider, initFirebaseAppCheck } from './firebaseAppCheck';
 
 const getApiKey = () => String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
 
@@ -50,7 +51,11 @@ const placeToDetails = (place = {}) => {
 let scriptPromise = null;
 
 export const loadGooglePlacesScript = async () => {
-  if (window.google?.maps?.places) return window.google;
+  if (window.google?.maps?.places) {
+    initFirebaseAppCheck();
+    await attachMapsAppCheckTokenProvider();
+    return window.google;
+  }
   if (scriptPromise) return scriptPromise;
 
   const apiKey = getApiKey();
@@ -66,7 +71,7 @@ export const loadGooglePlacesScript = async () => {
 
     const script = document.createElement('script');
     script.id = MAPS_SCRIPT_ID;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&v=weekly&loading=async`;
     script.async = true;
     script.defer = true;
     script.onload = () => {
@@ -74,7 +79,12 @@ export const loadGooglePlacesScript = async () => {
         reject(new Error('Google Places API not enabled or failed to initialize'));
         return;
       }
-      resolve(window.google);
+      Promise.resolve()
+        .then(() => {
+          initFirebaseAppCheck();
+          return attachMapsAppCheckTokenProvider();
+        })
+        .finally(() => resolve(window.google));
     };
     script.onerror = () => reject(new Error('Failed to load Google Maps script'));
     document.head.appendChild(script);
@@ -188,4 +198,3 @@ export const attachPlacesAutocomplete = async ({
     return () => {};
   }
 };
-
