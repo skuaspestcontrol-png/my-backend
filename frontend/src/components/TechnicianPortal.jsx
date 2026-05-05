@@ -71,9 +71,9 @@ const buildVisibleJobs = (jobs, serviceSchedules, invoices, customers) => {
     // Show only contract/schedule-linked jobs in Assigned Jobs.
     // Legacy ad-hoc rows without linkage are treated as stale/orphaned.
     if (!scheduleKey && !contractId) return;
-    if (contractId && !activeContractIds.has(contractId)) return;
-    if (customerId && !activeCustomerIds.has(customerId)) return;
-    if (scheduleKey && activeScheduleKeys.size > 0 && !activeScheduleKeys.has(scheduleKey)) return;
+    // Do not hide active jobs if linked datasets are briefly out-of-sync after deploy.
+    // This prevents "Assigned Jobs" from appearing empty/flashing when contracts/customers
+    // are still syncing.
 
     const dedupeKey = scheduleKey
       ? `${scheduleKey}::${String(job?.technicianId || '').trim()}`

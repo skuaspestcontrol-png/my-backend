@@ -1255,11 +1255,6 @@ export default function InvoiceDashboard() {
       return;
     }
 
-    if (action === 'edit-template') {
-      navigate('/settings');
-      return;
-    }
-
     if (action === 'whatsapp') {
       const targetPhone = window.prompt('Enter WhatsApp number with country code', customerWhatsapp || '');
       if (!targetPhone) return;
@@ -2223,16 +2218,6 @@ export default function InvoiceDashboard() {
                     }}
                   >
                     Email Invoice
-                  </button>
-                  <button
-                    type="button"
-                    style={shell.rowActionMenuBtn}
-                    onClick={() => {
-                      runInvoiceAction(targetInvoice, 'edit-template');
-                      setRowActionInvoiceId('');
-                    }}
-                  >
-                    Edit Invoice Template
                   </button>
                 </>
               );

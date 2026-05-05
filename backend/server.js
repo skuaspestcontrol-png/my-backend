@@ -2028,9 +2028,13 @@ app.delete('/api/employees/:id', async (req, res) => {
 });
 
 app.get('/api/attendance', async (req, res) => {
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
+  }
   let records = [];
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
+      await ensureAttendanceTable(conn);
       const [rows] = await conn.query('SELECT payload FROM attendance ORDER BY id DESC');
       return Array.isArray(rows) ? rows : [];
     });
@@ -2049,13 +2053,8 @@ app.get('/api/attendance', async (req, res) => {
         .filter((entry) => entry.employeeId && entry.date);
     }
   } catch (error) {
-    console.error('MySQL attendance read failed, using JSON fallback:', error.message);
-  }
-
-  if (records.length === 0) {
-    records = readJsonFile(attendanceFile, [])
-      .map((entry) => sanitizeAttendanceRecord(entry))
-      .filter((entry) => entry.employeeId && entry.date);
+    console.error('MySQL attendance read failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to fetch attendance from MySQL' });
   }
 
   const dateFilter = String(req.query.date || '').trim();
@@ -2073,6 +2072,9 @@ app.get('/api/attendance', async (req, res) => {
 });
 
 app.post('/api/attendance', async (req, res) => {
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
+  }
   const employeeId = String(req.body?.employeeId || '').trim();
   const date = String(req.body?.date || '').trim();
   if (!employeeId || !date) {
@@ -2088,6 +2090,7 @@ app.post('/api/attendance', async (req, res) => {
   let existingExternalId = '';
   try {
     const foundId = await withMysqlConnection(async (conn) => {
+      await ensureAttendanceTable(conn);
       const [rows] = await conn.query(
         `SELECT external_id
            FROM attendance
@@ -2128,7 +2131,8 @@ app.post('/api/attendance', async (req, res) => {
   try {
     await syncAttendanceToMysql(nextRecord);
   } catch (error) {
-    console.error('MySQL attendance write failed (saving JSON fallback):', error.message);
+    console.error('MySQL attendance write failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to save attendance in MySQL' });
   }
 
   // Keep JSON in sync as fallback cache, but MySQL is source of truth.
@@ -3619,6 +3623,31 @@ const syncJobToMysql = async (job) => {
   });
 };
 
+const ensureAttendanceTable = async (conn) => {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS attendance (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      external_id VARCHAR(120) NOT NULL,
+      employee_external_id VARCHAR(120) NULL,
+      employee_code VARCHAR(120) NULL,
+      employee_name VARCHAR(255) NULL,
+      attendance_date DATE NULL,
+      status VARCHAR(80) NULL,
+      check_in TIME NULL,
+      check_out TIME NULL,
+      working_hours DECIMAL(8,2) NOT NULL DEFAULT 0,
+      payload JSON NULL,
+      source_created_at DATETIME NULL,
+      source_updated_at DATETIME NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_attendance_external_id (external_id),
+      KEY idx_attendance_employee_date (employee_external_id, attendance_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+};
+
 const syncJobGoogleTaskSafely = async (job, options = {}) => {
   if (!job || !job._id || !canUseMysql()) return job;
   const markCompleted = Boolean(options.markCompleted);
@@ -3778,6 +3807,7 @@ app.post('/api/google/tasks/sync-job/:jobId', async (req, res) => {
 const syncAttendanceToMysql = async (record) => {
   if (!record || !record._id) return;
   await withMysqlConnection(async (conn) => {
+    await ensureAttendanceTable(conn);
     await conn.query(
       `INSERT INTO attendance (
         external_id, employee_external_id, employee_code, employee_name, attendance_date, status,
