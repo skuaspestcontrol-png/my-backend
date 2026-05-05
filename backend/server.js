@@ -16,6 +16,17 @@ const { registerCustomerDedupModule } = require('./customerDedupModule');
 const { createWhatsAppRouter } = require('./routes/whatsapp.routes');
 const { createEmailRouter } = require('./routes/email.routes');
 const { quotationRouter } = require('./routes/quotation.routes');
+const {
+  encrypt,
+  normalizeKey,
+  buildOAuthClient,
+  ensureGoogleIntegrationTable,
+  ensureJobsGoogleColumns,
+  getIntegrationRow,
+  saveIntegrationRow,
+  ensureTaskList,
+  syncGoogleTaskForJob
+} = require('./lib/googleTasks');
 require('dotenv').config();
 
 const app = express();
@@ -126,6 +137,7 @@ const resolveServerOrigin = (req) => SERVER_ORIGIN || `${req.protocol}://${req.g
 const MASTER_RESET_EMAIL = String(process.env.MASTER_RESET_EMAIL || 'skuaspestcontrol@gmail.com').trim().toLowerCase();
 const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
+const googleOauthStateStore = new Map();
 
 const uploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLOADS_DIR || '')
   .trim() || path.join(__dirname, '..', 'storage', 'uploads');
@@ -2142,6 +2154,10 @@ app.post('/api/jobs', async (req, res) => {
     createdAt: new Date().toISOString()
   };
 
+  await syncJobGoogleTaskSafely(newJob, {
+    markCompleted: String(newJob.status || '').trim().toLowerCase() === 'completed'
+  });
+
   jobs.push(newJob);
   fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
   updateSettingsNextJobNumber(jobNumber, settings);
@@ -2203,6 +2219,8 @@ app.put('/api/jobs/:id', async (req, res) => {
       }
     });
   }
+
+  await syncJobGoogleTaskSafely(updatedJob, { markCompleted: nextStatus === 'completed' });
 
   fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
 
@@ -3487,12 +3505,14 @@ const syncInvoiceToMysql = async (invoice) => {
 const syncJobToMysql = async (job) => {
   if (!job || !job._id) return;
   await withMysqlConnection(async (conn) => {
+    await ensureJobsGoogleColumns(conn);
     await conn.query(
       `INSERT INTO jobs (
         external_id, customer_external_id, invoice_external_id, customer_name, job_number, status,
         service_name, service_type, area_name, city, state, pincode, scheduled_date, scheduled_time,
+        google_task_id, google_sync_status, google_last_synced_at,
         payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         customer_external_id=VALUES(customer_external_id),
         invoice_external_id=VALUES(invoice_external_id),
@@ -3507,6 +3527,9 @@ const syncJobToMysql = async (job) => {
         pincode=VALUES(pincode),
         scheduled_date=VALUES(scheduled_date),
         scheduled_time=VALUES(scheduled_time),
+        google_task_id=VALUES(google_task_id),
+        google_sync_status=VALUES(google_sync_status),
+        google_last_synced_at=VALUES(google_last_synced_at),
         payload=VALUES(payload),
         source_created_at=VALUES(source_created_at),
         source_updated_at=VALUES(source_updated_at)`,
@@ -3525,6 +3548,9 @@ const syncJobToMysql = async (job) => {
         job.pincode || null,
         job.serviceDate || null,
         job.serviceTime || null,
+        job.google_task_id || null,
+        job.google_sync_status || null,
+        job.google_last_synced_at ? new Date(job.google_last_synced_at).toISOString().slice(0, 19).replace('T', ' ') : null,
         JSON.stringify(job),
         job.createdAt ? new Date(job.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
         new Date().toISOString().slice(0, 19).replace('T', ' ')
@@ -3532,6 +3558,161 @@ const syncJobToMysql = async (job) => {
     );
   });
 };
+
+const syncJobGoogleTaskSafely = async (job, options = {}) => {
+  if (!job || !job._id || !canUseMysql()) return job;
+  const markCompleted = Boolean(options.markCompleted);
+  try {
+    const result = await withMysqlConnection(async (conn) => {
+      const syncData = await syncGoogleTaskForJob({ conn, job, markCompleted });
+      if (syncData?.google_task_id) {
+        return {
+          google_task_id: syncData.google_task_id,
+          google_sync_status: syncData.google_sync_status || 'synced',
+          google_last_synced_at: syncData.google_last_synced_at || new Date().toISOString()
+        };
+      }
+      return null;
+    });
+    if (result) {
+      job.google_task_id = result.google_task_id;
+      job.google_sync_status = result.google_sync_status;
+      job.google_last_synced_at = result.google_last_synced_at;
+    }
+  } catch (error) {
+    console.error('Google task sync failed:', error.message);
+    job.google_sync_status = `error: ${String(error.message || 'sync_failed').slice(0, 120)}`;
+    job.google_last_synced_at = new Date().toISOString();
+  }
+  return job;
+};
+
+app.get('/api/google/integration/status', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured' });
+  try {
+    const data = await withMysqlConnection(async (conn) => {
+      await ensureGoogleIntegrationTable(conn);
+      const row = await getIntegrationRow(conn);
+      return {
+        connected: Boolean(row?.encrypted_refresh_token),
+        syncEnabled: Number(row?.sync_enabled || 0) === 1,
+        googleEmail: row?.google_email || '',
+        tasklistId: row?.tasklist_id || ''
+      };
+    });
+    return res.json(data || { connected: false, syncEnabled: false, googleEmail: '', tasklistId: '' });
+  } catch (error) {
+    console.error('Google integration status failed:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch Google integration status' });
+  }
+});
+
+app.get('/api/google/oauth/start', async (req, res) => {
+  try {
+    const oauth = buildOAuthClient();
+    const state = crypto.randomBytes(16).toString('hex');
+    googleOauthStateStore.set(state, Date.now());
+    const redirectTo = String(req.query.redirect || '/settings').trim() || '/settings';
+    googleOauthStateStore.set(`${state}:redirect`, redirectTo);
+
+    const authUrl = oauth.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: [
+        'https://www.googleapis.com/auth/tasks',
+        'openid',
+        'email',
+        'profile'
+      ],
+      state
+    });
+    return res.redirect(authUrl);
+  } catch (error) {
+    console.error('Google OAuth start failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to start Google OAuth' });
+  }
+});
+
+app.get('/api/google/oauth/callback', async (req, res) => {
+  const state = String(req.query.state || '').trim();
+  const code = String(req.query.code || '').trim();
+  const stateCreatedAt = Number(googleOauthStateStore.get(state) || 0);
+  const redirectTo = String(googleOauthStateStore.get(`${state}:redirect`) || '/settings').trim() || '/settings';
+  googleOauthStateStore.delete(state);
+  googleOauthStateStore.delete(`${state}:redirect`);
+
+  if (!state || !stateCreatedAt || Date.now() - stateCreatedAt > 10 * 60 * 1000) {
+    return res.status(400).send('Invalid or expired OAuth state. Please retry from Settings.');
+  }
+  if (!code) return res.status(400).send('Missing OAuth code.');
+  if (!canUseMysql()) return res.status(500).send('MySQL is not configured.');
+
+  try {
+    const oauth = buildOAuthClient();
+    const tokenResponse = await oauth.getToken(code);
+    const tokens = tokenResponse?.tokens || {};
+    const refreshToken = String(tokens.refresh_token || '').trim();
+    if (!refreshToken) {
+      return res.status(400).send('Google did not return a refresh token. Please disconnect app from Google and reconnect.');
+    }
+
+    const key = normalizeKey(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY);
+    if (!key) return res.status(500).send('GOOGLE_TOKEN_ENCRYPTION_KEY is missing or invalid.');
+    const encryptedRefreshToken = encrypt(refreshToken, key);
+
+    oauth.setCredentials(tokens);
+    const tasks = require('googleapis').google.tasks({ version: 'v1', auth: oauth });
+    const oauth2 = require('googleapis').google.oauth2({ version: 'v2', auth: oauth });
+    const profile = await oauth2.userinfo.get().catch(() => ({ data: {} }));
+    const tasklistId = await ensureTaskList(tasks);
+
+    await withMysqlConnection(async (conn) => {
+      await ensureGoogleIntegrationTable(conn);
+      await saveIntegrationRow(conn, {
+        google_email: String(profile?.data?.email || '').trim(),
+        encrypted_refresh_token: encryptedRefreshToken,
+        tasklist_id: tasklistId,
+        sync_enabled: 1
+      });
+    });
+
+    return res.redirect(`${resolveServerOrigin(req)}${redirectTo.includes('?') ? `${redirectTo}&googleConnected=1` : `${redirectTo}?googleConnected=1`}`);
+  } catch (error) {
+    console.error('Google OAuth callback failed:', error.message);
+    return res.status(500).send(`Google OAuth failed: ${error.message || 'Unknown error'}`);
+  }
+});
+
+app.post('/api/google/tasks/sync-job/:jobId', async (req, res) => {
+  const jobId = String(req.params.jobId || '').trim();
+  if (!jobId) return res.status(400).json({ error: 'jobId is required' });
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured' });
+
+  const jobs = readJsonFile(jobsFile, []);
+  const index = jobs.findIndex((entry) => String(entry?._id || '') === jobId);
+  if (index === -1) return res.status(404).json({ error: 'Job not found' });
+
+  const job = { ...jobs[index] };
+  const statusLower = String(job.status || '').trim().toLowerCase();
+  const markCompleted = statusLower === 'completed';
+  await syncJobGoogleTaskSafely(job, { markCompleted });
+  jobs[index] = job;
+  fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
+
+  try {
+    await syncJobToMysql(job);
+  } catch (error) {
+    console.error('MySQL job save failed after Google sync:', error.message);
+  }
+
+  return res.json({
+    success: true,
+    jobId,
+    google_task_id: job.google_task_id || '',
+    google_sync_status: job.google_sync_status || '',
+    google_last_synced_at: job.google_last_synced_at || ''
+  });
+});
 
 const syncAttendanceToMysql = async (record) => {
   if (!record || !record._id) return;

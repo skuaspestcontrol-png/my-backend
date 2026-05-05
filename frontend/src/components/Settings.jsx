@@ -24,6 +24,7 @@ import QuotationPrefixSettings from '../pages/settings/quotation/QuotationPrefix
 import QuotationServiceTemplatesSettings from '../pages/settings/quotation/QuotationServiceTemplatesSettings';
 import QuotationCommonParagraphsSettings from '../pages/settings/quotation/QuotationCommonParagraphsSettings';
 import InfestationLevelsSettings from '../pages/settings/quotation/InfestationLevelsSettings';
+import GoogleIntegrationSettings from '../pages/settings/GoogleIntegrationSettings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -139,6 +140,7 @@ const sectionMeta = [
   { key: 'emailApiSettings', label: 'Email API Settings' },
   { key: 'emailTemplates', label: 'Email Templates' },
   { key: 'emailLogs', label: 'Email Logs' },
+  { key: 'googleIntegration', label: 'Google Integration' },
   { key: 'termsConditions', label: 'Terms & Conditions' },
   { key: 'invoiceSettings', label: 'Invoice Settings' },
   { key: 'security', label: 'Change Password' }
@@ -2316,6 +2318,7 @@ export default function Settings({ modalMode = false }) {
     if (activeSection === 'emailApiSettings') return <EmailSettings />;
     if (activeSection === 'emailTemplates') return <EmailTemplates />;
     if (activeSection === 'emailLogs') return <EmailLogs />;
+    if (activeSection === 'googleIntegration') return <GoogleIntegrationSettings />;
     if (activeSection === 'termsConditions') return renderTermsConditions();
     if (activeSection === 'invoiceSettings') return renderInvoiceSettings();
     return renderSecurity();
