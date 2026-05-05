@@ -81,6 +81,34 @@ app.post('/api/admin/apply-hostinger-quotation-sql', (req, res) => {
     });
   });
 });
+
+app.post('/api/admin/apply-hostinger-all-modules-sql', (req, res) => {
+  const token = String(req.headers['x-migration-token'] || req.body?.token || '').trim();
+  const expectedToken = String(process.env.ADMIN_MIGRATION_TOKEN || '').trim();
+
+  if (!expectedToken) {
+    return res.status(500).json({ error: 'ADMIN_MIGRATION_TOKEN is not configured on server.' });
+  }
+  if (!token || token !== expectedToken) {
+    return res.status(403).json({ error: 'Invalid migration token.' });
+  }
+
+  const scriptPath = path.join(__dirname, 'scripts', 'apply-hostinger-all-modules-sql.js');
+  execFile(process.execPath, [scriptPath], { cwd: __dirname }, (error, stdout, stderr) => {
+    if (error) {
+      return res.status(500).json({
+        error: 'Failed to apply Hostinger ALL modules SQL',
+        details: String(stderr || error.message || 'Unknown error').trim()
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Hostinger ALL modules SQL applied.',
+      output: String(stdout || '').trim()
+    });
+  });
+});
 app.use(cors({
   origin: [
     "https://crm.skuaspestcontrol.com",
