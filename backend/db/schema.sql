@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS employees (
 CREATE TABLE IF NOT EXISTS leads (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   external_id VARCHAR(80) NOT NULL,
+  lead_date DATE NULL,
   customer_name VARCHAR(255) NULL,
   display_name VARCHAR(255) NULL,
   company_name VARCHAR(255) NULL,
@@ -65,10 +66,17 @@ CREATE TABLE IF NOT EXISTS leads (
   state VARCHAR(255) NULL,
   pincode VARCHAR(20) NULL,
   pest_issue VARCHAR(255) NULL,
+  quotation_value DECIMAL(18,2) NULL,
   lead_source VARCHAR(120) NULL,
   lead_status VARCHAR(120) NULL,
   assigned_to VARCHAR(255) NULL,
   followup_date DATE NULL,
+  google_place_id VARCHAR(255) NULL,
+  google_place_name VARCHAR(255) NULL,
+  google_phone VARCHAR(50) NULL,
+  google_website VARCHAR(255) NULL,
+  latitude DECIMAL(10,8) NULL,
+  longitude DECIMAL(11,8) NULL,
   payload JSON NOT NULL,
   source_created_at DATETIME NULL,
   source_updated_at DATETIME NULL,
@@ -78,7 +86,9 @@ CREATE TABLE IF NOT EXISTS leads (
   UNIQUE KEY uk_leads_external_id (external_id),
   KEY idx_leads_mobile (mobile),
   KEY idx_leads_status (lead_status),
-  KEY idx_leads_location (area_name, city, state, pincode)
+  KEY idx_leads_location (area_name, city, state, pincode),
+  KEY idx_leads_place (google_place_id),
+  KEY idx_leads_geo (latitude, longitude)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS invoices (

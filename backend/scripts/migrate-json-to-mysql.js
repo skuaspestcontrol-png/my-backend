@@ -103,13 +103,19 @@ const upsertEmployees = async (conn) => {
 const upsertLeads = async (conn) => {
   const rows = readJsonArray('leads.json');
   for (const lead of rows) {
+    const pestIssues = Array.isArray(lead.pestIssueMulti)
+      ? lead.pestIssueMulti.map((entry) => text(entry)).filter(Boolean)
+      : [];
+    const pestIssueText = text(lead.pestIssue) || (pestIssues.length ? pestIssues.join(', ') : null);
     await conn.query(
       `INSERT INTO leads (
-        external_id, customer_name, company_name, contact_person_name, title,
+        external_id, lead_date, customer_name, company_name, contact_person_name, title,
         mobile, whatsapp_number, email_id, address, area_name, city, state, pincode,
-        pest_issue, lead_source, lead_status, assigned_to, followup_date, payload
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        pest_issue, quotation_value, lead_source, lead_status, assigned_to, followup_date,
+        google_place_id, google_place_name, google_phone, google_website, latitude, longitude, payload
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
+        lead_date=VALUES(lead_date),
         customer_name=VALUES(customer_name),
         company_name=VALUES(company_name),
         contact_person_name=VALUES(contact_person_name),
@@ -123,14 +129,22 @@ const upsertLeads = async (conn) => {
         state=VALUES(state),
         pincode=VALUES(pincode),
         pest_issue=VALUES(pest_issue),
+        quotation_value=VALUES(quotation_value),
         lead_source=VALUES(lead_source),
         lead_status=VALUES(lead_status),
         assigned_to=VALUES(assigned_to),
         followup_date=VALUES(followup_date),
+        google_place_id=VALUES(google_place_id),
+        google_place_name=VALUES(google_place_name),
+        google_phone=VALUES(google_phone),
+        google_website=VALUES(google_website),
+        latitude=VALUES(latitude),
+        longitude=VALUES(longitude),
         payload=VALUES(payload)
       `,
       [
         text(lead._id),
+        toDate(lead.date || lead.createdAt),
         text(lead.customerName),
         text(lead.companyName),
         text(lead.contactPersonName),
@@ -143,11 +157,18 @@ const upsertLeads = async (conn) => {
         text(lead.city),
         text(lead.state),
         text(lead.pincode),
-        text(lead.pestIssue),
+        pestIssueText,
+        Number(lead.quotationValue || lead.quotation_value || 0) || 0,
         text(lead.leadSource),
         text(lead.status || lead.leadStatus),
         text(lead.assignedTo),
         toDate(lead.followupDate),
+        text(lead.googlePlaceId || lead.google_place_id),
+        text(lead.googlePlaceName || lead.google_place_name),
+        text(lead.googlePhone || lead.google_phone),
+        text(lead.googleWebsite || lead.google_website),
+        Number(lead.latitude || 0) || null,
+        Number(lead.longitude || 0) || null,
         toJson(lead)
       ]
     );
@@ -503,11 +524,11 @@ const upsertPaymentReceived = async (conn) => {
 
 const run = async () => {
   const conn = await mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: Number(process.env.DB_PORT || 3306)
+    host: process.env.MYSQL_HOST || process.env.DB_HOST,
+    user: process.env.MYSQL_USER || process.env.DB_USER,
+    password: process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD,
+    database: process.env.MYSQL_DATABASE || process.env.DB_NAME,
+    port: Number(process.env.MYSQL_PORT || process.env.DB_PORT || 3306)
   });
 
   try {

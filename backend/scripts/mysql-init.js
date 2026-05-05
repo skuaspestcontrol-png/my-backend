@@ -12,11 +12,11 @@ const run = async () => {
 
   const sql = fs.readFileSync(schemaFile, 'utf8');
   const connection = await mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: Number(process.env.DB_PORT || 3306),
+    host: process.env.MYSQL_HOST || process.env.DB_HOST,
+    user: process.env.MYSQL_USER || process.env.DB_USER,
+    password: process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD,
+    database: process.env.MYSQL_DATABASE || process.env.DB_NAME,
+    port: Number(process.env.MYSQL_PORT || process.env.DB_PORT || 3306),
     multipleStatements: true
   });
 
