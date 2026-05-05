@@ -6,16 +6,158 @@ const TASK_LIST_TITLE = 'SKUAS CRM Tasks';
 const clean = (v) => String(v ?? '').trim();
 let googleClient = null;
 
+const GOOGLE_OAUTH_BASE = 'https://accounts.google.com/o/oauth2/v2/auth';
+const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
+const GOOGLE_TASKS_BASE = 'https://tasks.googleapis.com/tasks/v1';
+const GOOGLE_USERINFO_ENDPOINT = 'https://www.googleapis.com/oauth2/v2/userinfo';
+
+const googleApiRequest = async (url, { method = 'GET', headers = {}, body } = {}) => {
+  const response = await fetch(url, { method, headers, body });
+  const text = await response.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch (_e) {
+    data = { raw: text };
+  }
+  if (!response.ok) {
+    throw new Error(data?.error_description || data?.error?.message || data?.error || `Google API request failed (${response.status})`);
+  }
+  return data;
+};
+
+class OAuth2Shim {
+  constructor(clientId, clientSecret, redirectUri) {
+    this.clientId = clientId;
+    this.clientSecret = clientSecret;
+    this.redirectUri = redirectUri;
+    this.credentials = {};
+  }
+  generateAuthUrl({ access_type = 'offline', prompt = 'consent', scope = [], state = '' } = {}) {
+    const params = new URLSearchParams({
+      client_id: this.clientId,
+      redirect_uri: this.redirectUri,
+      response_type: 'code',
+      access_type,
+      prompt,
+      scope: Array.isArray(scope) ? scope.join(' ') : String(scope || ''),
+      state: String(state || '')
+    });
+    return `${GOOGLE_OAUTH_BASE}?${params.toString()}`;
+  }
+  async getToken(code) {
+    const payload = new URLSearchParams({
+      client_id: this.clientId,
+      client_secret: this.clientSecret,
+      redirect_uri: this.redirectUri,
+      grant_type: 'authorization_code',
+      code: String(code || '')
+    });
+    const data = await googleApiRequest(GOOGLE_TOKEN_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: payload.toString()
+    });
+    this.credentials = { ...this.credentials, ...data };
+    return { tokens: data };
+  }
+  setCredentials(credentials = {}) {
+    this.credentials = { ...this.credentials, ...credentials };
+  }
+  async getAccessToken() {
+    const existing = clean(this.credentials?.access_token);
+    if (existing) return existing;
+    const refreshToken = clean(this.credentials?.refresh_token);
+    if (!refreshToken) throw new Error('Missing refresh token');
+    const payload = new URLSearchParams({
+      client_id: this.clientId,
+      client_secret: this.clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token'
+    });
+    const data = await googleApiRequest(GOOGLE_TOKEN_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: payload.toString()
+    });
+    this.credentials = { ...this.credentials, ...data };
+    return clean(data?.access_token);
+  }
+}
+
+const buildTasksShim = (oauth) => ({
+  tasklists: {
+    list: async ({ maxResults = 100 } = {}) => {
+      const token = await oauth.getAccessToken();
+      const data = await googleApiRequest(`${GOOGLE_TASKS_BASE}/users/@me/lists?maxResults=${Number(maxResults) || 100}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return { data };
+    },
+    insert: async ({ requestBody = {} } = {}) => {
+      const token = await oauth.getAccessToken();
+      const data = await googleApiRequest(`${GOOGLE_TASKS_BASE}/users/@me/lists`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody || {})
+      });
+      return { data };
+    }
+  },
+  tasks: {
+    insert: async ({ tasklist, requestBody = {} } = {}) => {
+      const token = await oauth.getAccessToken();
+      const data = await googleApiRequest(`${GOOGLE_TASKS_BASE}/lists/${encodeURIComponent(clean(tasklist))}/tasks`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody || {})
+      });
+      return { data };
+    },
+    patch: async ({ tasklist, task, requestBody = {} } = {}) => {
+      const token = await oauth.getAccessToken();
+      const data = await googleApiRequest(`${GOOGLE_TASKS_BASE}/lists/${encodeURIComponent(clean(tasklist))}/tasks/${encodeURIComponent(clean(task))}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody || {})
+      });
+      return { data };
+    }
+  }
+});
+
 const getGoogleClient = () => {
   if (googleClient) return googleClient;
   try {
     const { google } = require('googleapis');
     googleClient = google;
     return googleClient;
-  } catch (error) {
-    const wrapped = new Error('googleapis package is missing on server. Run npm install in backend and restart.');
-    wrapped.cause = error;
-    throw wrapped;
+  } catch (_error) {
+    googleClient = {
+      auth: { OAuth2: OAuth2Shim },
+      tasks: ({ auth }) => buildTasksShim(auth),
+      oauth2: ({ auth }) => ({
+        userinfo: {
+          get: async () => {
+            const token = await auth.getAccessToken();
+            const data = await googleApiRequest(GOOGLE_USERINFO_ENDPOINT, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            return { data };
+          }
+        }
+      })
+    };
+    return googleClient;
   }
 };
 
