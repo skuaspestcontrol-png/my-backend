@@ -330,7 +330,16 @@ router.get('/settings/quotation-prefixes', async (_req, res) => {
 router.put('/settings/quotation-prefixes', async (req, res) => {
   const row = await getPrefixSettings();
   const payload = req.body || {};
-  const serviceMap = payload.service_code_map_json || payload.serviceCodeMap || row?.service_code_map_json || '{}';
+  const serviceMapRaw = payload.service_code_map_json || payload.serviceCodeMap || row?.service_code_map_json || '{}';
+  let serviceMap = {};
+  try {
+    serviceMap = typeof serviceMapRaw === 'string' ? JSON.parse(serviceMapRaw || '{}') : (serviceMapRaw || {});
+  } catch (_error) {
+    return res.status(400).json({ error: 'Invalid service code map JSON' });
+  }
+  if (!serviceMap || typeof serviceMap !== 'object' || Array.isArray(serviceMap)) {
+    return res.status(400).json({ error: 'Service code map must be a JSON object' });
+  }
   if (row?.id) {
     await dbQuery('UPDATE quotation_prefix_settings SET prefix=?,financial_year=?,enable_service_code=?,next_number=?,padding_digits=?,format_template=?,service_code_map_json=? WHERE id=?', [
       clean(payload.prefix || row.prefix || 'SPC/'),
@@ -339,7 +348,7 @@ router.put('/settings/quotation-prefixes', async (req, res) => {
       Math.max(1, toNumber(payload.next_number, row.next_number || 1)),
       Math.max(1, toNumber(payload.padding_digits, row.padding_digits || 4)),
       clean(payload.format_template || row.format_template || '{{prefix}}{{year}}/{{service_code}}/{{number}}'),
-      typeof serviceMap === 'string' ? serviceMap : JSON.stringify(serviceMap),
+      JSON.stringify(serviceMap),
       row.id
     ]);
   }
