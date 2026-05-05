@@ -2384,15 +2384,6 @@ export default function InvoiceDashboard() {
                   value={form.dueDate}
                   onChange={(event) => setFormWithTotals((prev) => ({ ...prev, dueDate: event.target.value }))}
                 />
-                <label style={shell.label}>Invoice Type</label>
-                <select
-                  style={shell.input}
-                  value={form.invoiceType}
-                  onChange={(event) => handleInvoiceTypeChange(event.target.value)}
-                >
-                  <option value="GST">GST Invoice</option>
-                  <option value="NON GST">Non GST Invoice</option>
-                </select>
               </div>
 
               <div style={secondGridStyle}>
@@ -2409,6 +2400,15 @@ export default function InvoiceDashboard() {
                   {salespersonOptions.map((name) => (
                     <option key={name} value={name}>{name}</option>
                   ))}
+                </select>
+                <label style={shell.label}>Invoice Type</label>
+                <select
+                  style={shell.input}
+                  value={form.invoiceType}
+                  onChange={(event) => handleInvoiceTypeChange(event.target.value)}
+                >
+                  <option value="GST">GST Invoice</option>
+                  <option value="NON GST">Non GST Invoice</option>
                 </select>
               </div>
 

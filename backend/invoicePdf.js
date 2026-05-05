@@ -226,6 +226,8 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
 
 const invoiceItems = (invoice = {}) => {
   const items = Array.isArray(invoice.items) ? invoice.items : [];
+  const invoiceStart = clean(invoice.servicePeriodStart || invoice.contractStartDate || invoice.startDate);
+  const invoiceEnd = clean(invoice.servicePeriodEnd || invoice.contractEndDate || invoice.endDate || invoice.renewalDate);
   return items.map((item, index) => {
     const qty = toNumber(item.quantity, 0);
     const rate = toNumber(item.rate, 0);
@@ -236,8 +238,8 @@ const invoiceItems = (invoice = {}) => {
       srNo: index + 1,
       description: clean(item.itemName || item.name) || `Service ${index + 1}`,
       details: clean(item.description),
-      contractStartDate: clean(item.contractStartDate || item.serviceStartDate),
-      contractEndDate: clean(item.contractEndDate || item.serviceEndDate || item.renewalDate),
+      contractStartDate: clean(item.contractStartDate || item.serviceStartDate || item.startDate || invoiceStart),
+      contractEndDate: clean(item.contractEndDate || item.serviceEndDate || item.renewalDate || item.endDate || invoiceEnd),
       hsn: clean(item.sac || item.hsnSac || item.hsn),
       qty,
       rate,
@@ -517,6 +519,14 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
           if (row.details) {
             const descBottomY = doc.y;
             doc.font('Helvetica').fontSize(8).fillColor('#000000').text(String(row.details || ''), cx + 3, Math.min(descBottomY + 1, y + rh - 10), {
+              width: c.w - 6,
+              lineGap: 1,
+              align: 'left'
+            });
+          }
+          if (contractLine) {
+            const contractTopY = Math.min(doc.y + 1, y + rh - 9);
+            doc.font('Helvetica').fontSize(8).fillColor('#000000').text(contractLine, cx + 3, contractTopY, {
               width: c.w - 6,
               lineGap: 1,
               align: 'left'

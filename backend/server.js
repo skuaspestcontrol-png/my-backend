@@ -1390,27 +1390,97 @@ app.post('/api/maps/geocode', async (req, res) => {
       return '';
     };
 
+    const extractReadableTextFromPath = (value = '') => {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      const normalized = raw.replace(/\+/g, ' ');
+      const cleaned = normalized
+        .replace(/^\d+\s+/, '')
+        .replace(/\bdata=.*$/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return cleaned;
+    };
+    const extractPotentialQueryFromMapsUrl = (value = '') => {
+      try {
+        const url = new URL(value);
+        const byQuery = String(url.searchParams.get('q') || url.searchParams.get('query') || '').trim();
+        if (byQuery) return byQuery;
+        const placeMatch = url.pathname.match(/\/place\/([^/]+)/i);
+        if (placeMatch?.[1]) return extractReadableTextFromPath(decodeURIComponent(placeMatch[1]));
+      } catch (_error) {
+        // ignore
+      }
+      return '';
+    };
+    const expandGoogleMapsShortUrl = async (value = '') => {
+      const seen = new Set();
+      let current = String(value || '').trim();
+      const headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9'
+      };
+
+      for (let i = 0; i < 6; i += 1) {
+        if (!current || seen.has(current)) break;
+        seen.add(current);
+        let response = null;
+        try {
+          response = await fetch(current, { method: 'GET', redirect: 'manual', headers });
+        } catch (_error) {
+          response = null;
+        }
+        if (!response) break;
+        const status = Number(response.status || 0);
+        const location = String(response.headers?.get?.('location') || '').trim();
+        if (status >= 300 && status < 400 && location) {
+          try {
+            current = new URL(location, current).toString();
+            continue;
+          } catch (_error) {
+            current = location;
+            continue;
+          }
+        }
+        break;
+      }
+
+      try {
+        const followResponse = await fetch(current || value, { method: 'GET', redirect: 'follow', headers });
+        return String(followResponse?.url || current || value).trim();
+      } catch (_error) {
+        return current || String(value || '').trim();
+      }
+    };
+
     let geocodeAddress = address;
     let geocodeLat = lat;
     let geocodeLng = lng;
 
     if (isGoogleMapsUrl) {
       try {
-        const expandedResponse = await fetch(address, { redirect: 'follow' });
-        const expandedUrl = String(expandedResponse?.url || address).trim();
+        const expandedUrl = await expandGoogleMapsShortUrl(address);
         const parsedCoords = parseLatLngFromUrl(expandedUrl);
         if (parsedCoords?.lat && parsedCoords?.lng) {
           geocodeLat = String(parsedCoords.lat);
           geocodeLng = String(parsedCoords.lng);
         } else {
-          const parsedText = parsePlaceTextFromUrl(expandedUrl) || parsePlaceTextFromUrl(address);
+          const parsedText = parsePlaceTextFromUrl(expandedUrl)
+            || extractPotentialQueryFromMapsUrl(expandedUrl)
+            || parsePlaceTextFromUrl(address)
+            || extractPotentialQueryFromMapsUrl(address);
           if (parsedText) geocodeAddress = parsedText;
+          else geocodeAddress = '';
         }
       } catch (_error) {
         const parsedCoords = parseLatLngFromUrl(address);
         if (parsedCoords?.lat && parsedCoords?.lng) {
           geocodeLat = String(parsedCoords.lat);
           geocodeLng = String(parsedCoords.lng);
+        } else {
+          const parsedText = parsePlaceTextFromUrl(address) || extractPotentialQueryFromMapsUrl(address);
+          geocodeAddress = parsedText || '';
         }
       }
     }
@@ -1493,7 +1563,12 @@ app.post('/api/maps/geocode', async (req, res) => {
 
       const googleEndpoint = (geocodeLat && geocodeLng) || (lat && lng)
         ? `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(`${geocodeLat || lat},${geocodeLng || lng}`)}&key=${mapsApiKey}`
-        : `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(geocodeAddress || address)}&key=${mapsApiKey}`;
+        : geocodeAddress
+          ? `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(geocodeAddress)}&key=${mapsApiKey}`
+          : '';
+      if (!googleEndpoint) {
+        googleError = 'Unable to resolve map short link. Please paste full map address or coordinates.';
+      } else {
       const response = await fetch(googleEndpoint);
       if (response.ok) {
         const data = await response.json();
@@ -1504,6 +1579,7 @@ app.post('/api/maps/geocode', async (req, res) => {
         googleError = data.error_message || `No location found (${data.status || 'UNKNOWN'})`;
       } else {
         googleError = `Google Maps request failed (${response.status}).`;
+      }
       }
     }
   } catch (error) {
