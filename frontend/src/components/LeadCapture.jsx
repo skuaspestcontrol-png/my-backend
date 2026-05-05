@@ -1831,6 +1831,7 @@ export default function LeadCapture() {
   const leadFieldHalfStyle = isTablet || isMobile ? { ...s.fieldHalf, gridColumn: '1 / -1' } : s.fieldHalf;
   const leadFieldWideStyle = isTablet || isMobile ? { ...s.fieldWide, gridColumn: '1 / -1' } : s.fieldWide;
   const mapsRowStyle = isTablet || isMobile ? { ...s.mapsRow, flexDirection: 'column' } : s.mapsRow;
+  const leadDateInputStyle = { ...s.in, minHeight: '46px', height: '46px', lineHeight: 1.2, WebkitAppearance: 'none', appearance: 'none' };
   const analyticsTitleStyle = isTiny ? { ...s.analyticsTitle, fontSize: '20px' } : s.analyticsTitle;
   const registerTitleStyle = isTiny ? { ...s.registerTitle, fontSize: '16px' } : s.registerTitle;
   const buttonPrimaryStyle = isTiny ? { ...s.buttonPrimary, fontSize: '11px', padding: '7px 9px' } : s.buttonPrimary;
@@ -2439,11 +2440,11 @@ export default function LeadCapture() {
                 <div style={s.sectionTitle}><User size={14} /> Customer Details</div>
                 <div style={leadGridStyle}>
                   <div>
-                    <label style={s.lb}>First Date</label>
+                    <label style={s.lb}>Date</label>
                     <input
                       type="date"
                       value={form.date}
-                      style={s.in}
+                      style={leadDateInputStyle}
                       onChange={(e) => updateForm('date', e.target.value)}
                     />
                   </div>
