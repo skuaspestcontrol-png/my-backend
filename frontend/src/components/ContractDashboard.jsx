@@ -92,7 +92,7 @@ const shell = {
   typePill: { borderRadius: '8px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, background: 'rgba(34,197,94,0.2)', color: '#15803d' },
   amountGreen: { color: '#16a34a', fontWeight: 800 },
   amountRed: { color: '#dc2626', fontWeight: 800 },
-  actionBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#374151', borderRadius: '9px', minHeight: '28px', padding: '0 8px', fontSize: '10px', fontWeight: 700, cursor: 'pointer' },
+  actionBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#374151', borderRadius: '8px', minHeight: '24px', padding: '0 7px', fontSize: '9px', fontWeight: 700, cursor: 'pointer' },
   footer: { padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
   footText: { fontSize: '12px', color: '#475569', fontWeight: 700 },
   pager: { display: 'inline-flex', gap: '6px', alignItems: 'center' },

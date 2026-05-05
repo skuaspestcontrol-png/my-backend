@@ -100,6 +100,7 @@ const amountToWords = (value) => {
 const parseLocalAsset = (input = '') => {
   const raw = clean(input);
   if (!raw) return '';
+  if (raw.startsWith('data:image/')) return raw;
   const primaryUploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLOADS_DIR || '').trim()
     || path.join(__dirname, '..', 'storage', 'uploads');
   const uploadDirs = [
@@ -120,6 +121,10 @@ const parseLocalAsset = (input = '') => {
 
   if (raw.startsWith('/uploads/')) {
     const local = resolveUploadLocal(raw.split('/uploads/')[1]);
+    if (fs.existsSync(local)) return local;
+  }
+  if (raw.includes('/uploads/')) {
+    const local = resolveUploadLocal(raw.split('/uploads/').pop());
     if (fs.existsSync(local)) return local;
   }
 
@@ -231,6 +236,8 @@ const invoiceItems = (invoice = {}) => {
       srNo: index + 1,
       description: clean(item.itemName || item.name) || `Service ${index + 1}`,
       details: clean(item.description),
+      contractStartDate: clean(item.contractStartDate || item.serviceStartDate),
+      contractEndDate: clean(item.contractEndDate || item.serviceEndDate || item.renewalDate),
       hsn: clean(item.sac || item.hsnSac || item.hsn),
       qty,
       rate,
@@ -399,7 +406,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const meta = [
       ['Invoice #', clean(invoice.invoiceNumber) || '-'],
       ['Invoice Date', formatDate(invoice.date)],
-      ['Salesperson', clean(invoice.salesperson) || '-']
+      ['Sales Person', clean(invoice.salesperson) || '-']
     ];
     let my = y + 34;
     meta.forEach(([k, v]) => {
@@ -481,7 +488,10 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
     const safeRows = rows.length ? rows : [{ srNo: 1, description: '-', details: '', hsn: '', qty: 0, rate: 0, taxRate: 0, taxAmount: 0, amount: 0 }];
     safeRows.forEach((row) => {
-      const desc = [row.description, row.details].filter(Boolean).join('\n');
+      const contractLine = row.contractStartDate || row.contractEndDate
+        ? `Contract: ${formatDate(row.contractStartDate) || '-'} to ${formatDate(row.contractEndDate) || '-'}`
+        : '';
+      const desc = [row.description, row.details, contractLine].filter(Boolean).join('\n');
       const descH = doc.heightOfString(desc, { width: cols[1].w - 8, lineGap: 1 });
       const rh = Math.max(20, descH + 7);
       ensureSpace(rh + 2);
@@ -537,11 +547,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
         ]
       : [''];
 
-    const contractDurationText = `CONTRACT DURATION: ${deriveContractRange(invoice) || '-'}`;
     const termsText = company.terms || '';
     const leftPreviewLines = [
-      contractDurationText,
-      '',
       'PAYMENT DETAILS:',
       ...bankLines,
       '',
@@ -564,8 +571,6 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       doc.font(style.font).fontSize(style.size).fillColor(style.color).text(text, sumLeftX + 5, ly, { width: leftW - 10, lineGap: 1 });
       ly = doc.y + 1;
     };
-    drawLine(contractDurationText, headingStyle);
-    drawLine('', bodyStyle);
     drawLine('PAYMENT DETAILS:', headingStyle);
     bankLines.forEach((line) => drawLine(line, bodyStyle));
     drawLine('', bodyStyle);

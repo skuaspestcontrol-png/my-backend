@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { attachPlacesAutocomplete } from '../utils/googlePlaces';
+import { loadGooglePlacesScript } from '../utils/googlePlaces';
 import {
   CalendarDays,
   ChevronDown,
@@ -76,7 +76,7 @@ const INDIA_STATES = [
   'West Bengal'
 ];
 const PROPERTY_TYPES = ['Residential', 'Commercial'];
-const LEAD_STATUSES = ['New Lead', 'Interested', 'Not Interested', 'Converted', 'Cancelled'];
+const LEAD_STATUSES = ['Interested', 'Not Interested', 'Converted', '25%', '50%', '75%', '100%'];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ALL_FILTER_VALUE = '__all__';
 const MONTH_FILTER_OPTIONS = [
@@ -108,13 +108,14 @@ const leadColumns = [
   { key: 'leadSource', label: 'Lead Source' },
   { key: 'propertyType', label: 'Property Type' },
   { key: 'status', label: 'Lead Status' },
+  { key: 'quotationValue', label: 'Quotation Value' },
   { key: 'followupDate', label: 'Followup Date' },
   { key: 'assignedTo', label: 'Assigned To' },
   { key: 'referenceCustomerName', label: 'Reference Customer' },
   { key: 'referenceCustomerDate', label: 'Reference Customer Date' },
   { key: 'remarks', label: 'Remarks' }
 ];
-const defaultVisibleLeadColumns = ['customerName', 'mobile', 'pestIssue', 'leadSource', 'status', 'assignedTo', 'followupDate', 'city', 'state'];
+const defaultVisibleLeadColumns = ['date', 'customerName', 'mobile', 'pestIssue', 'leadSource', 'status', 'quotationValue', 'assignedTo', 'followupDate', 'city', 'state'];
 const defaultOverviewFilters = {
   year: ALL_FILTER_VALUE,
   month: ALL_FILTER_VALUE,
@@ -125,6 +126,7 @@ const defaultOverviewFilters = {
 };
 
 const emptyForm = {
+  date: new Date().toISOString().slice(0, 10),
   customerOption: 'New Customer',
   existingCustomerId: '',
   customerName: '',
@@ -144,9 +146,11 @@ const emptyForm = {
   googlePhone: '',
   googleWebsite: '',
   pestIssue: '',
+  pestIssueMulti: [],
+  quotationValue: '',
   leadSource: 'Call',
   propertyType: 'Residential',
-  status: 'New Lead',
+  status: 'Interested',
   followupDate: '',
   assignedTo: '',
   remarks: '',
@@ -313,12 +317,14 @@ const getLeadWhatsapp = (lead) => normalizePhoneNumber(lead.whatsappNumber || ge
 const toCanonicalLeadStatus = (value) => {
   const raw = String(value || '').trim();
   const normalized = raw.toLowerCase();
-  if (!raw) return 'New Lead';
-  if (normalized === 'cancalled') return 'Cancelled';
+  if (!raw) return 'Interested';
+  if (normalized === 'new lead') return 'Interested';
+  if (normalized === 'cancalled' || normalized === 'cancelled') return 'Not Interested';
   if (normalized === 'not intersted') return 'Not Interested';
+  if (normalized === '25%' || normalized === '50%' || normalized === '75%' || normalized === '100%') return normalized.toUpperCase();
   return raw;
 };
-const getLeadStatus = (lead) => toCanonicalLeadStatus(lead.status || lead.leadStatus || 'New Lead');
+const getLeadStatus = (lead) => toCanonicalLeadStatus(lead.status || lead.leadStatus || 'Interested');
 const normalizeLeadStatus = (value) => String(value || '').trim().toLowerCase();
 const isLeadConverted = (lead) => normalizeLeadStatus(getLeadStatus(lead)) === 'converted';
 const getLeadStatusBadgeStyle = (statusValue) => {
@@ -361,7 +367,7 @@ const ROW_ACTION_MENU_APPROX_WIDTH = 212;
 const ROW_ACTION_MENU_APPROX_HEIGHT = 274;
 const ROW_ACTION_MENU_GAP = 8;
 const FOLLOWUP_TYPES = ['Phone Call', 'WhatsApp', 'Site Visit', 'Email', 'Meeting'];
-const FOLLOWUP_OUTCOMES = ['Callback Required', 'Interested', 'Not Interested', 'Converted', 'Cancelled', 'No Response'];
+const FOLLOWUP_OUTCOMES = ['Callback Required', 'Interested', 'Not Interested', 'Converted', '25%', '50%', '75%', '100%', 'No Response'];
 
 const mapLeadToCustomerPrefill = (lead) => {
   const customerName = String(lead.customerName || '').trim();
@@ -613,6 +619,7 @@ export default function LeadCapture() {
     const followupLeads = filteredLeads.filter((lead) => Boolean(lead.followupDate)).length;
 
     return {
+      date: toDateInput(record.date || record.createdAt) || new Date().toISOString().slice(0, 10),
       totalLeads,
       newLeads,
       convertedLeads,
@@ -624,6 +631,7 @@ export default function LeadCapture() {
 
   const mapLeadToForm = (lead) => ({
     ...emptyForm,
+    date: toDateInput(lead.date || lead.createdAt) || new Date().toISOString().slice(0, 10),
     customerOption: 'New Customer',
     existingCustomerId: '',
     customerName: lead.customerName || '',
@@ -643,6 +651,8 @@ export default function LeadCapture() {
     googlePhone: lead.googlePhone || lead.google_phone || '',
     googleWebsite: lead.googleWebsite || lead.google_website || '',
     pestIssue: lead.pestIssue || '',
+    pestIssueMulti: String(lead.pestIssue || '').split(',').map((item) => item.trim()).filter(Boolean),
+    quotationValue: String(lead.quotationValue || lead.quotation_value || '').trim(),
     leadSource: lead.leadSource || emptyForm.leadSource,
     propertyType: lead.propertyType || lead.customerSegment || emptyForm.propertyType,
     status: getLeadStatus(lead),
@@ -754,46 +764,6 @@ export default function LeadCapture() {
       // Ignore storage failures (private mode / blocked storage)
     }
   }, [columnWidths]);
-
-  useEffect(() => {
-    let detach = () => {};
-    const input = searchAddressInputRef.current;
-    if (!show || !input) return () => {};
-
-    attachPlacesAutocomplete({
-      input,
-      onSelected: (place) => {
-        setSearchError('');
-        setForm((current) => ({
-          ...current,
-          customerName: current.customerName || place.name || '',
-          searchAddress: place.formatted_address || place.name || current.searchAddress,
-          address: place.formatted_address || current.address,
-          areaName: place.areaName || current.areaName,
-          city: place.city || current.city,
-          state: place.state || current.state,
-          pincode: place.pincode || current.pincode,
-          latitude: place.latitude !== null ? String(place.latitude) : current.latitude,
-          longitude: place.longitude !== null ? String(place.longitude) : current.longitude,
-          googlePlaceId: place.place_id || current.googlePlaceId,
-          googlePlaceName: place.name || current.googlePlaceName,
-          googlePhone: place.formatted_phone_number || place.international_phone_number || current.googlePhone,
-          googleWebsite: place.website || current.googleWebsite
-        }));
-      },
-      onError: (error) => {
-        const message = String(error?.message || '').trim() || 'Google Places API not enabled';
-        setSearchError(`${message}. Please verify API key, Places API access, domain restrictions, and billing in Google Cloud.`);
-      },
-      onRequireSelection: (message) => {
-        setSearchError(message || 'Please select address/company from suggestions');
-      }
-    }).then((fn) => {
-      detach = fn;
-    });
-
-    return () => detach();
-  }, [show]);
 
   useEffect(() => {
     setSelectedLeadIds((prev) => prev.filter((id) => leads.some((lead) => lead._id === id)));
@@ -1275,9 +1245,33 @@ export default function LeadCapture() {
     }));
   };
 
+  const enrichAddressFromLatLng = async (lat, lng) => {
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || !window.google?.maps?.Geocoder) return;
+    try {
+      const geocoder = new window.google.maps.Geocoder();
+      const response = await geocoder.geocode({ location: { lat: Number(lat), lng: Number(lng) } });
+      const first = response?.results?.[0];
+      if (!first) return;
+      const extracted = extractAddressFields({
+        formatted_address: first.formatted_address,
+        address_components: first.address_components
+      });
+      setForm((prev) => ({
+        ...prev,
+        address: prev.address || first.formatted_address || '',
+        areaName: extracted.areaName || prev.areaName,
+        city: extracted.city || prev.city,
+        state: extracted.state || prev.state,
+        pincode: extracted.pincode || prev.pincode
+      }));
+    } catch (_error) {
+      // ignore geocode enrichment failures
+    }
+  };
+
   const fetchLiveSearchSuggestions = async (value) => {
     const queryText = String(value || '').trim();
-    if (queryText.length < 2 || !window.google?.maps?.importLibrary) {
+    if (queryText.length < 2) {
       setSearchSuggestions([]);
       setShowSearchSuggestions(false);
       return;
@@ -1285,6 +1279,7 @@ export default function LeadCapture() {
 
     const reqId = ++suggestionSeqRef.current;
     try {
+      await loadGooglePlacesScript();
       const { Place } = await window.google.maps.importLibrary('places');
       const { places } = await Place.searchByText({
         textQuery: queryText,
@@ -1316,6 +1311,7 @@ export default function LeadCapture() {
     setSearchError('');
 
     try {
+      await loadGooglePlacesScript();
       const { Place } = await window.google.maps.importLibrary('places');
       const request = {
         textQuery: query,
@@ -1338,6 +1334,9 @@ export default function LeadCapture() {
 
       const place = places[0];
       applySearchSuggestion(place, query);
+      const lat = typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat;
+      const lng = typeof place.location?.lng === 'function' ? place.location.lng() : place.location?.lng;
+      enrichAddressFromLatLng(lat, lng);
       setShowSearchSuggestions(false);
       setSearchSuggestions([]);
 
@@ -1484,6 +1483,7 @@ export default function LeadCapture() {
     if (key === 'leadSource') return lead.leadSource || '';
     if (key === 'propertyType') return lead.propertyType || lead.customerSegment || '';
     if (key === 'status') return getLeadStatus(lead);
+    if (key === 'quotationValue') return lead.quotationValue || lead.quotation_value || '';
     if (key === 'followupDate') return formatDisplayDate(lead.followupDate);
     if (key === 'assignedTo') return lead.assignedTo || 'Unassigned';
     if (key === 'referenceCustomerName') return lead.referenceCustomerName || lead.referredByCustomerName || '';
@@ -1622,6 +1622,8 @@ export default function LeadCapture() {
       pincode: String(record.pincode || record.pinCode || '').trim(),
       pinCode: String(record.pincode || record.pinCode || '').trim(),
       pestIssue: String(record.pestIssue || '').trim(),
+      pestIssueMulti: String(record.pestIssue || '').split(',').map((item) => item.trim()).filter(Boolean),
+      quotationValue: String(record.quotationValue || record.quotation_value || '').trim(),
       leadSource,
       propertyType,
       customerSegment: propertyType,
@@ -1706,13 +1708,18 @@ export default function LeadCapture() {
     }
 
     try {
+      const selectedPestIssues = Array.isArray(form.pestIssueMulti) ? form.pestIssueMulti.filter(Boolean) : [];
+      const pestIssueText = selectedPestIssues.length > 0 ? selectedPestIssues.join(', ') : form.pestIssue;
       const payload = {
         ...form,
+        date: form.date || new Date().toISOString().slice(0, 10),
         mobileNumber: form.mobile,
         pinCode: form.pincode,
+        pestIssue: pestIssueText,
         customerSegment: form.propertyType,
         leadStatus: form.status,
         notes: form.remarks,
+        quotationValue: form.quotationValue ? Number(form.quotationValue) : 0,
         followupDate: form.followupDate ? form.followupDate : null,
         assignedTo: form.assignedTo || 'Unassigned'
       };
@@ -2380,6 +2387,15 @@ export default function LeadCapture() {
                 <div style={s.sectionTitle}><User size={14} /> Customer Details</div>
                 <div style={leadGridStyle}>
                   <div>
+                    <label style={s.lb}>First Date</label>
+                    <input
+                      type="date"
+                      value={form.date}
+                      style={s.in}
+                      onChange={(e) => updateForm('date', e.target.value)}
+                    />
+                  </div>
+                  <div>
                     <label style={s.lb}>Customer Option</label>
                     <select value={form.customerOption} style={s.in} onChange={(e) => handleCustomerOptionChange(e.target.value)}>
                       <option>New Customer</option>
@@ -2479,7 +2495,7 @@ export default function LeadCapture() {
                         placeholder="Search company, shop, office, area, or address"
                       />
                       <button type="button" onClick={searchGooglePlace} style={s.mapsButton} disabled={isFetchingAddress}>
-                        <Search size={14} /> {isFetchingAddress ? 'Fetching...' : 'Search Maps'}
+                        <Search size={14} /> {isFetchingAddress ? 'Fetching...' : 'Search Only'}
                       </button>
                     </div>
                     {showSearchSuggestions ? (
@@ -2494,6 +2510,9 @@ export default function LeadCapture() {
                               onMouseDown={(event) => event.preventDefault()}
                               onClick={() => {
                                 applySearchSuggestion(place, form.searchAddress);
+                                const lat = typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat;
+                                const lng = typeof place.location?.lng === 'function' ? place.location.lng() : place.location?.lng;
+                                enrichAddressFromLatLng(lat, lng);
                                 setShowSearchSuggestions(false);
                                 setSearchSuggestions([]);
                                 setSearchError('');
@@ -2552,12 +2571,32 @@ export default function LeadCapture() {
                 <div style={leadGridStyle}>
                   <div className="field">
                     <label style={s.lb}>Pest Issue</label>
-                    <select value={form.pestIssue} style={s.in} onChange={(e) => updateForm('pestIssue', e.target.value)} required>
-                      <option value="">Select Pest Issue</option>
+                    <select
+                      multiple
+                      value={form.pestIssueMulti}
+                      style={{ ...s.in, minHeight: '110px' }}
+                      onChange={(e) => {
+                        const values = Array.from(e.target.selectedOptions).map((option) => option.value);
+                        setForm((prev) => ({ ...prev, pestIssueMulti: values, pestIssue: values.join(', ') }));
+                      }}
+                      required
+                    >
                       {PEST_ISSUES.map((issue) => (
                         <option key={issue} value={issue}>{issue}</option>
                       ))}
                     </select>
+                  </div>
+                  <div>
+                    <label style={s.lb}>Quotation Value</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={form.quotationValue}
+                      style={s.in}
+                      placeholder="Enter amount"
+                      onChange={(e) => updateForm('quotationValue', e.target.value)}
+                    />
                   </div>
                   <div>
                     <label style={s.lb}>Lead Source</label>

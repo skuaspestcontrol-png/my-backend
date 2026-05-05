@@ -31,6 +31,9 @@ const contractPeriodOptions = [
   { value: 'ten_years', label: '10 years' }
 ];
 const serviceFrequencyOptions = [
+  { value: 'initial_treatment_one_year_warranty', label: 'Initial treatment with One year Warranty' },
+  { value: 'initial_treatment_two_year_warranty', label: 'Initial treatment with Two years Warranty' },
+  { value: 'initial_treatment_three_year_warranty', label: 'Initial treatment with Three years Warranty' },
   { value: 'single_treatment_no_followup', label: 'Single treatment without any followup' },
   { value: 'single_followup_7', label: 'Single Visit then on followup visit after 7 days' },
   { value: 'single_followup_10', label: 'Single Visit then on followup visit after 10 days' },
@@ -57,6 +60,9 @@ const contractPeriodConfig = {
   ten_years: { unit: 'months', value: 120 }
 };
 const serviceFrequencyConfig = {
+  initial_treatment_one_year_warranty: { type: 'single_once' },
+  initial_treatment_two_year_warranty: { type: 'single_once' },
+  initial_treatment_three_year_warranty: { type: 'single_once' },
   single_treatment_no_followup: { type: 'single_once' },
   single_followup_7: { type: 'followup_days', value: 7 },
   single_followup_10: { type: 'followup_days', value: 10 },
@@ -2378,10 +2384,19 @@ export default function InvoiceDashboard() {
                   value={form.dueDate}
                   onChange={(event) => setFormWithTotals((prev) => ({ ...prev, dueDate: event.target.value }))}
                 />
+                <label style={shell.label}>Invoice Type</label>
+                <select
+                  style={shell.input}
+                  value={form.invoiceType}
+                  onChange={(event) => handleInvoiceTypeChange(event.target.value)}
+                >
+                  <option value="GST">GST Invoice</option>
+                  <option value="NON GST">Non GST Invoice</option>
+                </select>
               </div>
 
               <div style={secondGridStyle}>
-                <label style={shell.label}>Salesperson</label>
+                <label style={shell.label}>Sales Person</label>
                 <select
                   style={shell.input}
                   value={form.salesperson}
@@ -2394,15 +2409,6 @@ export default function InvoiceDashboard() {
                   {salespersonOptions.map((name) => (
                     <option key={name} value={name}>{name}</option>
                   ))}
-                </select>
-                <label style={shell.label}>Invoice Type</label>
-                <select
-                  style={shell.input}
-                  value={form.invoiceType}
-                  onChange={(event) => handleInvoiceTypeChange(event.target.value)}
-                >
-                  <option value="GST">GST Invoice</option>
-                  <option value="NON GST">Non GST Invoice</option>
                 </select>
               </div>
 
