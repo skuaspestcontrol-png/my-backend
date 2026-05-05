@@ -3782,6 +3782,18 @@ const ensureAttendanceTable = async (conn) => {
       KEY idx_attendance_employee_date (employee_external_id, attendance_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+  await ensureColumnsIfMissing(conn, 'attendance', [
+    { name: 'employee_external_id', definition: 'VARCHAR(120) NULL' },
+    { name: 'employee_code', definition: 'VARCHAR(120) NULL' },
+    { name: 'employee_name', definition: 'VARCHAR(255) NULL' },
+    { name: 'attendance_date', definition: 'DATE NULL' },
+    { name: 'check_in', definition: 'TIME NULL' },
+    { name: 'check_out', definition: 'TIME NULL' },
+    { name: 'working_hours', definition: 'DECIMAL(8,2) NOT NULL DEFAULT 0' },
+    { name: 'payload', definition: 'JSON NULL' },
+    { name: 'source_created_at', definition: 'DATETIME NULL' },
+    { name: 'source_updated_at', definition: 'DATETIME NULL' }
+  ]);
 };
 
 const syncJobGoogleTaskSafely = async (job, options = {}) => {
