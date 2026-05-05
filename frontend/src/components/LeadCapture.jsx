@@ -1327,33 +1327,35 @@ export default function LeadCapture() {
     try {
       const isGoogleMapsLink = /^https?:\/\/(www\.)?(maps\.app\.goo\.gl|maps\.google\.com|google\.com\/maps)/i.test(query);
       if (isGoogleMapsLink) {
-        const response = await axios.post(`${API_BASE_URL}/api/maps/geocode`, { address: query });
-        const result = response?.data?.result;
-        if (!result) {
-          setSearchError('No location found from this map link.');
-          return;
+        try {
+          const response = await axios.post(`${API_BASE_URL}/api/maps/geocode`, { address: query });
+          const result = response?.data?.result;
+          if (result) {
+            const lat = result?.geometry?.location?.lat;
+            const lng = result?.geometry?.location?.lng;
+            const place = {
+              id: result.place_id || '',
+              displayName: result.name || '',
+              formattedAddress: result.formatted_address || query,
+              location: {
+                lat: typeof lat === 'function' ? lat : () => Number(lat || 0),
+                lng: typeof lng === 'function' ? lng : () => Number(lng || 0)
+              },
+              addressComponents: Array.isArray(result.address_components) ? result.address_components : []
+            };
+            applySearchSuggestion(place, query);
+            enrichAddressFromLatLng(
+              typeof lat === 'function' ? lat() : Number(lat || 0),
+              typeof lng === 'function' ? lng() : Number(lng || 0)
+            );
+            setShowSearchSuggestions(false);
+            setSearchSuggestions([]);
+            setSearchError('');
+            return;
+          }
+        } catch (_mapLinkError) {
+          // Continue to Places text search fallback below.
         }
-        const lat = result?.geometry?.location?.lat;
-        const lng = result?.geometry?.location?.lng;
-        const place = {
-          id: result.place_id || '',
-          displayName: result.name || '',
-          formattedAddress: result.formatted_address || query,
-          location: {
-            lat: typeof lat === 'function' ? lat : () => Number(lat || 0),
-            lng: typeof lng === 'function' ? lng : () => Number(lng || 0)
-          },
-          addressComponents: Array.isArray(result.address_components) ? result.address_components : []
-        };
-        applySearchSuggestion(place, query);
-        enrichAddressFromLatLng(
-          typeof lat === 'function' ? lat() : Number(lat || 0),
-          typeof lng === 'function' ? lng() : Number(lng || 0)
-        );
-        setShowSearchSuggestions(false);
-        setSearchSuggestions([]);
-        setSearchError('');
-        return;
       }
 
       await loadGooglePlacesScript();
@@ -1374,7 +1376,11 @@ export default function LeadCapture() {
       console.log('Place.searchByText places:', places);
 
       if (!places || places.length === 0) {
-        setSearchError('No business/address found. Try full name with city.');
+        if (isGoogleMapsLink) {
+          setSearchError('Could not resolve this short map link. Please paste full Google Maps address or search by place name.');
+        } else {
+          setSearchError('No business/address found. Try full name with city.');
+        }
         return;
       }
 
@@ -1389,7 +1395,7 @@ export default function LeadCapture() {
       setSearchError('');
     } catch (error) {
       console.error('Place.searchByText error:', error);
-      setSearchError(error?.message || 'Google Places search failed.');
+      setSearchError('Google search failed. Please try full place name with city.');
     } finally {
       setIsFetchingAddress(false);
     }
