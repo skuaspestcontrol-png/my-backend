@@ -4158,12 +4158,12 @@ app.post('/api/invoices/:id/send-whatsapp', async (req, res) => {
 });
 
 app.get('/api/invoices', async (req, res) => {
-  try {
-    const mysqlRows = await withMysqlConnection(async (conn) => {
-      const [rows] = await conn.query('SELECT payload FROM invoices ORDER BY id DESC');
-      return Array.isArray(rows) ? rows : [];
-    });
-    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
+  if (canUseMysql()) {
+    try {
+      const mysqlRows = await withMysqlConnection(async (conn) => {
+        const [rows] = await conn.query('SELECT payload FROM invoices ORDER BY id DESC');
+        return Array.isArray(rows) ? rows : [];
+      });
       const parsed = mysqlRows
         .map((row) => {
           const raw = row?.payload;
@@ -4174,10 +4174,11 @@ app.get('/api/invoices', async (req, res) => {
           return raw;
         })
         .filter(Boolean);
-      if (parsed.length > 0) return res.json(parsed);
+      return res.json(parsed);
+    } catch (error) {
+      console.error('MySQL invoices read failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Failed to fetch invoices from MySQL' });
     }
-  } catch (error) {
-    console.error('MySQL invoices read failed, using JSON fallback:', error.message);
   }
   res.json(readJsonFile(invoicesFile, []));
 });
@@ -4834,7 +4835,7 @@ app.delete('/api/payment-received/:id', async (req, res) => {
 });
 
 app.post('/api/invoices', async (req, res) => {
-  const invoices = readJsonFile(invoicesFile, []);
+  const invoices = canUseMysql() ? await loadInvoicesForContext() : readJsonFile(invoicesFile, []);
   const settings = await loadCurrentSettingsForNumbering();
   const amount = toNumber(req.body.amount, 0);
   const paymentReceivedEnabled = Boolean(req.body.paymentReceivedEnabled);
@@ -4913,21 +4914,32 @@ app.post('/api/invoices', async (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  invoices.push(newInvoice);
-  fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
-  await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
-
-  try {
-    await syncInvoiceToMysql(newInvoice);
-  } catch (error) {
-    console.error('MySQL invoice write failed (JSON saved):', error.message);
+  if (canUseMysql()) {
+    try {
+      await syncInvoiceToMysql(newInvoice);
+      await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
+    } catch (error) {
+      console.error('MySQL invoice write failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Failed to create invoice in MySQL' });
+    }
+    try {
+      const shadowInvoices = readJsonFile(invoicesFile, []);
+      shadowInvoices.push(newInvoice);
+      fs.writeFileSync(invoicesFile, JSON.stringify(shadowInvoices, null, 2));
+    } catch (error) {
+      console.error('JSON invoice shadow write failed:', error.message);
+    }
+  } else {
+    invoices.push(newInvoice);
+    fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
+    await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
   }
 
   res.json(newInvoice);
 });
 
 app.put('/api/invoices/:id', async (req, res) => {
-  const invoices = readJsonFile(invoicesFile, []);
+  const invoices = canUseMysql() ? await loadInvoicesForContext() : readJsonFile(invoicesFile, []);
   const settings = await loadCurrentSettingsForNumbering();
   const invoiceIndex = invoices.findIndex((invoice) => invoice._id === req.params.id);
 
@@ -4998,43 +5010,66 @@ app.put('/api/invoices/:id', async (req, res) => {
     notes: req.body.notes ?? current.notes ?? ''
   };
 
-  invoices[invoiceIndex] = updatedInvoice;
-  fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
-  await updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings);
-
-  try {
-    await syncInvoiceToMysql(updatedInvoice);
-  } catch (error) {
-    console.error('MySQL invoice update failed (JSON saved):', error.message);
+  if (canUseMysql()) {
+    try {
+      await syncInvoiceToMysql(updatedInvoice);
+      await updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings);
+    } catch (error) {
+      console.error('MySQL invoice update failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Failed to update invoice in MySQL' });
+    }
+    try {
+      const jsonInvoices = readJsonFile(invoicesFile, []);
+      const jsonIndex = jsonInvoices.findIndex((invoice) => String(invoice?._id || '') === String(updatedInvoice._id || ''));
+      if (jsonIndex === -1) jsonInvoices.push(updatedInvoice);
+      else jsonInvoices[jsonIndex] = updatedInvoice;
+      fs.writeFileSync(invoicesFile, JSON.stringify(jsonInvoices, null, 2));
+    } catch (error) {
+      console.error('JSON invoice shadow update failed:', error.message);
+    }
+  } else {
+    invoices[invoiceIndex] = updatedInvoice;
+    fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
+    await updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings);
   }
 
   res.json(updatedInvoice);
 });
 
 app.delete('/api/invoices/:id', async (req, res) => {
-  const invoices = readJsonFile(invoicesFile, []);
-  const updatedInvoices = invoices.filter((invoice) => invoice._id !== req.params.id);
-
-  if (updatedInvoices.length === invoices.length) {
-    return res.status(404).json({ error: 'Invoice not found' });
-  }
-
-  fs.writeFileSync(invoicesFile, JSON.stringify(updatedInvoices, null, 2));
-
-  try {
-    await withMysqlConnection(async (conn) => {
-      await conn.query('DELETE FROM invoice_items WHERE invoice_external_id = ?', [req.params.id]);
-      await conn.query('DELETE FROM invoices WHERE external_id = ?', [req.params.id]);
-    });
-  } catch (error) {
-    console.error('MySQL invoice delete failed (JSON deleted):', error.message);
+  if (canUseMysql()) {
+    try {
+      const deletedRows = await withMysqlConnection(async (conn) => {
+        await conn.query('DELETE FROM invoice_items WHERE invoice_external_id = ?', [req.params.id]);
+        const [result] = await conn.query('DELETE FROM invoices WHERE external_id = ?', [req.params.id]);
+        return Number(result?.affectedRows || 0);
+      });
+      if (!deletedRows) return res.status(404).json({ error: 'Invoice not found' });
+    } catch (error) {
+      console.error('MySQL invoice delete failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Failed to delete invoice from MySQL' });
+    }
+    try {
+      const invoices = readJsonFile(invoicesFile, []);
+      const updatedInvoices = invoices.filter((invoice) => invoice._id !== req.params.id);
+      fs.writeFileSync(invoicesFile, JSON.stringify(updatedInvoices, null, 2));
+    } catch (error) {
+      console.error('JSON invoice shadow delete failed:', error.message);
+    }
+  } else {
+    const invoices = readJsonFile(invoicesFile, []);
+    const updatedInvoices = invoices.filter((invoice) => invoice._id !== req.params.id);
+    if (updatedInvoices.length === invoices.length) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+    fs.writeFileSync(invoicesFile, JSON.stringify(updatedInvoices, null, 2));
   }
 
   res.json({ message: 'Invoice deleted' });
 });
 
-app.get('/api/service-schedules', (req, res) => {
-  const invoices = readJsonFile(invoicesFile, []);
+app.get('/api/service-schedules', async (req, res) => {
+  const invoices = canUseMysql() ? await loadInvoicesForContext() : readJsonFile(invoicesFile, []);
   const schedules = invoices
     .flatMap((invoice) => {
       const defaultTime = normalizeServiceScheduleTime(invoice.serviceScheduleDefaultTime, '10:00');
