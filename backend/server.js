@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
+const { execFile } = require('child_process');
 const PDFDocument = require('pdfkit');
 const { generateInvoicePdfBuffer, formatINR, formatDate } = require('./invoicePdf');
 const { query: dbQuery, getConnection } = require('./lib/db');
@@ -50,6 +51,34 @@ app.get('/api/health', (req, res) => {
     success: true,
     status: 'ok',
     service: 'skuas-backend'
+  });
+});
+
+app.post('/api/admin/apply-hostinger-quotation-sql', (req, res) => {
+  const token = String(req.headers['x-migration-token'] || req.body?.token || '').trim();
+  const expectedToken = String(process.env.ADMIN_MIGRATION_TOKEN || '').trim();
+
+  if (!expectedToken) {
+    return res.status(500).json({ error: 'ADMIN_MIGRATION_TOKEN is not configured on server.' });
+  }
+  if (!token || token !== expectedToken) {
+    return res.status(403).json({ error: 'Invalid migration token.' });
+  }
+
+  const scriptPath = path.join(__dirname, 'scripts', 'apply-hostinger-quotation-sql.js');
+  execFile(process.execPath, [scriptPath], { cwd: __dirname }, (error, stdout, stderr) => {
+    if (error) {
+      return res.status(500).json({
+        error: 'Failed to apply Hostinger quotation SQL',
+        details: String(stderr || error.message || 'Unknown error').trim()
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Hostinger quotation SQL applied.',
+      output: String(stdout || '').trim()
+    });
   });
 });
 app.use(cors({
