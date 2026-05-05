@@ -8,6 +8,7 @@ import {
   Briefcase,
   CalendarDays,
   CircleDollarSign,
+  FileText,
   ChevronDown,
   ChevronRight,
   Database,
@@ -275,6 +276,7 @@ export default function DashboardLayout({ children }) {
 
           <SidebarSection title="Sales & Marketing">
             <Link to="/leads" className={isActive('/leads') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/leads')}><Users size={18} /> Leads</Link>
+            <Link to="/quotations" className={isActive('/quotations') || isActive('/quotations/new') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={baseLinkStyle(isActive('/quotations') || isActive('/quotations/new'))}><FileText size={18} /> Quotation</Link>
 
             <button type="button" className={salesGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => setSalesMenuOpen((prev) => !prev)} style={groupToggleStyle(salesGroupActive)}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>

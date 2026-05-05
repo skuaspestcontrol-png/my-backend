@@ -69,6 +69,8 @@ const PayrollModule = lazy(() => import('./components/PayrollModule'));
 const InvoiceDashboard = lazy(() => import('./components/InvoiceDashboard'));
 const ItemsDashboard = lazy(() => import('./components/ItemsDashboard'));
 const LeadCapture = lazyWithRetry(() => import('./components/LeadCapture'), 'leads-capture');
+const QuotationDashboard = lazy(() => import('./components/QuotationDashboard'));
+const CreateQuote = lazy(() => import('./components/CreateQuote'));
 const OperationsPortal = lazy(() => import('./components/OperationsPortal'));
 const PaymentReceivedDashboard = lazy(() => import('./components/PaymentReceivedDashboard'));
 const VendorDashboard = lazy(() => import('./components/VendorDashboard'));
@@ -230,6 +232,8 @@ function App() {
             <Route path="/ui/dashboard" element={<AppRoute element={<UIDashboardPage />} />} />
             <Route path="/ui/customers" element={<AppRoute element={<UICustomersPage />} />} />
             <Route path="/leads" element={<AppRoute element={<LeadCapture />} />} />
+            <Route path="/quotations" element={<AppRoute element={<QuotationDashboard />} />} />
+            <Route path="/quotations/new" element={<AppRoute element={<CreateQuote />} />} />
             <Route path="/sales" element={<Navigate to="/sales/customers" replace />} />
             <Route path="/sales/contracts" element={<AppRoute element={contractPage} />} />
             <Route path="/sales/customers" element={<AppRoute element={<CustomerDashboard />} />} />
