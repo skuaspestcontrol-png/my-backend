@@ -2147,13 +2147,13 @@ app.get('/api/jobs', async (req, res) => {
     });
   };
 
-  try {
-    const mysqlRows = await withMysqlConnection(async (conn) => {
-      const [rows] = await conn.query('SELECT payload FROM jobs ORDER BY id DESC');
-      return Array.isArray(rows) ? rows : [];
-    });
-    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
-      const parsed = mysqlRows
+  if (canUseMysql()) {
+    try {
+      const mysqlRows = await withMysqlConnection(async (conn) => {
+        const [rows] = await conn.query('SELECT payload FROM jobs ORDER BY id DESC');
+        return Array.isArray(rows) ? rows : [];
+      });
+      const parsed = (Array.isArray(mysqlRows) ? mysqlRows : [])
         .map((row) => {
           const raw = row?.payload;
           if (!raw) return null;
@@ -2163,10 +2163,11 @@ app.get('/api/jobs', async (req, res) => {
           return raw;
         })
         .filter(Boolean);
-      if (parsed.length > 0) return res.json(filterJobs(parsed));
+      return res.json(filterJobs(parsed));
+    } catch (error) {
+      console.error('MySQL jobs read failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Failed to fetch jobs from MySQL' });
     }
-  } catch (error) {
-    console.error('MySQL jobs read failed, using JSON fallback:', error.message);
   }
 
   const jobs = readJsonFile(jobsFile, []);
@@ -2174,6 +2175,73 @@ app.get('/api/jobs', async (req, res) => {
 });
 
 app.post('/api/jobs', async (req, res) => {
+  if (canUseMysql()) {
+    try {
+      const settings = await readSettingsFromMysql();
+      const mysqlRows = await withMysqlConnection(async (conn) => {
+        const [rows] = await conn.query('SELECT payload FROM jobs ORDER BY id DESC');
+        return Array.isArray(rows) ? rows : [];
+      });
+      const mysqlJobs = (Array.isArray(mysqlRows) ? mysqlRows : [])
+        .map((row) => {
+          const raw = row?.payload;
+          if (!raw) return null;
+          if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch { return null; }
+          }
+          return raw;
+        })
+        .filter(Boolean);
+
+      const generatedJobNumber = createNextJobNumber(mysqlJobs, settings);
+      const providedJobNumber = normalizeSettingsText(req.body?.jobNumber || '');
+      const jobNumber = providedJobNumber || generatedJobNumber;
+      const newJob = {
+        _id: `JOB-${Date.now()}`,
+        ...req.body,
+        jobNumber,
+        status: req.body.status || 'Scheduled',
+        createdAt: new Date().toISOString()
+      };
+
+      await syncJobToMysql(newJob);
+      const seq = extractJobSequence(jobNumber, settings.jobPrefix);
+      if (Number.isFinite(seq)) {
+        const nextValue = Math.max(1, Number(settings.jobNextNumber || defaultSettings.jobNextNumber));
+        if (seq >= nextValue) {
+          await saveSettingsToMysql({
+            ...settings,
+            jobNextNumber: seq + 1
+          });
+        }
+      }
+
+      syncJobGoogleTaskSafely(newJob, {
+        markCompleted: String(newJob.status || '').trim().toLowerCase() === 'completed'
+      }).then(() => {
+        syncJobToMysql(newJob).catch((error) => {
+          console.error('MySQL re-sync after Google sync failed:', error.message);
+        });
+      }).catch((error) => {
+        console.error('Background Google sync failed on create:', error.message);
+      });
+
+      // Optional JSON shadow write for emergency fallback cache.
+      try {
+        const jobs = readJsonFile(jobsFile, []);
+        jobs.push(newJob);
+        fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
+      } catch (error) {
+        console.error('JSON jobs shadow write failed:', error.message);
+      }
+
+      return res.json(newJob);
+    } catch (error) {
+      console.error('MySQL job create failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Failed to create job in MySQL' });
+    }
+  }
+
   const settings = readSettings();
   const jobs = readJsonFile(jobsFile, []);
   const generatedJobNumber = createNextJobNumber(jobs, settings);
@@ -2212,6 +2280,91 @@ app.post('/api/jobs', async (req, res) => {
 });
 
 app.put('/api/jobs/:id', async (req, res) => {
+  if (canUseMysql()) {
+    try {
+      const targetId = String(req.params.id || '').trim();
+      const mysqlRows = await withMysqlConnection(async (conn) => {
+        const [rows] = await conn.query('SELECT payload FROM jobs ORDER BY id DESC');
+        return Array.isArray(rows) ? rows : [];
+      });
+      const jobs = (Array.isArray(mysqlRows) ? mysqlRows : [])
+        .map((row) => {
+          const raw = row?.payload;
+          if (!raw) return null;
+          if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch { return null; }
+          }
+          return raw;
+        })
+        .filter(Boolean);
+
+      const jobIndex = jobs.findIndex((job) => String(job?._id || '').trim() === targetId);
+      if (jobIndex === -1) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+
+      const updatedJob = {
+        ...jobs[jobIndex],
+        ...req.body,
+        _id: jobs[jobIndex]._id
+      };
+
+      jobs[jobIndex] = updatedJob;
+      const nextStatus = String(req.body?.status || '').trim().toLowerCase();
+      if (nextStatus === 'completed') {
+        const scheduleKey = String(updatedJob.scheduleKey || '').trim();
+        const technicianId = String(updatedJob.technicianId || '').trim();
+        const completionPatch = {
+          status: 'Completed',
+          punchInTime: req.body?.punchInTime ?? updatedJob.punchInTime,
+          punchOutTime: req.body?.punchOutTime ?? updatedJob.punchOutTime,
+          beforePhoto: req.body?.beforePhoto ?? updatedJob.beforePhoto,
+          afterPhoto: req.body?.afterPhoto ?? updatedJob.afterPhoto,
+          customerSignature: req.body?.customerSignature ?? updatedJob.customerSignature,
+          completionCardNumber: req.body?.completionCardNumber ?? updatedJob.completionCardNumber,
+          completionCardGeneratedAt: req.body?.completionCardGeneratedAt ?? updatedJob.completionCardGeneratedAt
+        };
+
+        jobs.forEach((job, index) => {
+          if (index === jobIndex) return;
+          if (String(job.status || '').trim().toLowerCase() === 'completed') return;
+          const jobScheduleKey = String(job.scheduleKey || '').trim();
+          const jobTechnicianId = String(job.technicianId || '').trim();
+          if (!scheduleKey || !technicianId) return;
+          if (jobScheduleKey === scheduleKey && jobTechnicianId === technicianId) {
+            jobs[index] = { ...job, ...completionPatch, _id: job._id };
+          }
+        });
+      }
+
+      await Promise.all(jobs.map((job) => syncJobToMysql(job)));
+
+      syncJobGoogleTaskSafely(updatedJob, { markCompleted: nextStatus === 'completed' }).then(() => {
+        syncJobToMysql(updatedJob).catch((error) => {
+          console.error('MySQL re-sync after Google sync failed:', error.message);
+        });
+      }).catch((error) => {
+        console.error('Background Google sync failed on update:', error.message);
+      });
+
+      // Optional JSON shadow sync.
+      try {
+        const jsonJobs = readJsonFile(jobsFile, []);
+        const idx = jsonJobs.findIndex((job) => String(job?._id || '').trim() === targetId);
+        if (idx === -1) jsonJobs.push(updatedJob);
+        else jsonJobs[idx] = updatedJob;
+        fs.writeFileSync(jobsFile, JSON.stringify(jsonJobs, null, 2));
+      } catch (error) {
+        console.error('JSON jobs shadow update failed:', error.message);
+      }
+
+      return res.json(updatedJob);
+    } catch (error) {
+      console.error('MySQL job update failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Failed to update job in MySQL' });
+    }
+  }
+
   const jobs = readJsonFile(jobsFile, []);
   const jobIndex = jobs.findIndex((job) => job._id === req.params.id);
 
