@@ -1164,8 +1164,12 @@ export default function LeadCapture() {
   };
 
   const extractAddressFields = (best = {}) => {
-    const components = Array.isArray(best.address_components) ? best.address_components : [];
-    const formattedAddress = String(best.formatted_address || '').trim();
+    const components = Array.isArray(best.address_components)
+      ? best.address_components
+      : Array.isArray(best.addressComponents)
+        ? best.addressComponents
+        : [];
+    const formattedAddress = String(best.formatted_address || best.formattedAddress || '').trim();
     const fallbackPinMatch = formattedAddress.match(/\b\d{6}\b/);
 
     const areaName = getAddressPart(
@@ -1177,15 +1181,26 @@ export default function LeadCapture() {
       'premise',
       'route'
     );
-    const city = getAddressPart(
+    let city = getAddressPart(
       components,
       'locality',
       'postal_town',
       'administrative_area_level_3',
       'administrative_area_level_2'
     );
-    const state = getAddressPart(components, 'administrative_area_level_1');
+    let state = getAddressPart(components, 'administrative_area_level_1');
     const pincode = getAddressPart(components, 'postal_code') || (fallbackPinMatch ? fallbackPinMatch[0] : '');
+
+    // Fallback parse for Place.searchByText results without address components.
+    if ((!city || !state) && formattedAddress) {
+      const parts = formattedAddress.split(',').map((part) => part.trim()).filter(Boolean);
+      if (!city && parts.length >= 3) city = parts[parts.length - 3] || city;
+      if (!state && parts.length >= 2) {
+        const statePart = parts[parts.length - 2] || '';
+        const stateMatch = statePart.match(/^([A-Za-z\s]+?)(?:\s+\d{6})?$/);
+        state = (stateMatch?.[1] || statePart).trim() || state;
+      }
+    }
 
     return { areaName, city, state, pincode };
   };
@@ -1224,8 +1239,8 @@ export default function LeadCapture() {
     const lat = typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat;
     const lng = typeof place.location?.lng === 'function' ? place.location.lng() : place.location?.lng;
     const normalized = {
-      formatted_address: address,
-      address_components: [],
+      formattedAddress: address,
+      addressComponents: place.addressComponents || [],
       geometry: { location: { lat, lng } }
     };
     const extracted = extractAddressFields(normalized);
@@ -1282,7 +1297,7 @@ export default function LeadCapture() {
       const { Place } = await window.google.maps.importLibrary('places');
       const { places } = await Place.searchByText({
         textQuery: queryText,
-        fields: ['id', 'displayName', 'formattedAddress', 'location'],
+        fields: ['id', 'displayName', 'formattedAddress', 'location', 'addressComponents'],
         maxResultCount: 5
       });
       if (reqId !== suggestionSeqRef.current) return;
@@ -1318,7 +1333,8 @@ export default function LeadCapture() {
           'id',
           'displayName',
           'formattedAddress',
-          'location'
+          'location',
+          'addressComponents'
         ],
         maxResultCount: 10
       };
