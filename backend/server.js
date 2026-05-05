@@ -2085,8 +2085,33 @@ app.post('/api/attendance', async (req, res) => {
   }
 
   const employeeName = [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee';
+  let existingExternalId = '';
+  try {
+    const foundId = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query(
+        `SELECT external_id
+           FROM attendance
+          WHERE employee_external_id = ? AND attendance_date = ?
+          ORDER BY id DESC
+          LIMIT 1`,
+        [employeeId, date]
+      );
+      return String(rows?.[0]?.external_id || '').trim();
+    });
+    existingExternalId = String(foundId || '').trim();
+  } catch (error) {
+    console.error('MySQL attendance lookup failed, fallback to JSON lookup:', error.message);
+  }
+
+  if (!existingExternalId) {
+    const existingJsonRecord = readJsonFile(attendanceFile, []).find(
+      (entry) => String(entry?.employeeId || '').trim() === employeeId && String(entry?.date || '').trim() === date
+    );
+    existingExternalId = String(existingJsonRecord?._id || '').trim();
+  }
+
   const nextRecord = sanitizeAttendanceRecord({
-    _id: req.body?._id || `ATT-${Date.now()}`,
+    _id: req.body?._id || existingExternalId || `ATT-${Date.now()}`,
     employeeId,
     employeeCode: employee.empCode || '',
     employeeName,
@@ -2100,6 +2125,13 @@ app.post('/api/attendance', async (req, res) => {
     updatedAt: new Date().toISOString()
   });
 
+  try {
+    await syncAttendanceToMysql(nextRecord);
+  } catch (error) {
+    console.error('MySQL attendance write failed (saving JSON fallback):', error.message);
+  }
+
+  // Keep JSON in sync as fallback cache, but MySQL is source of truth.
   const records = readJsonFile(attendanceFile, []);
   const recordIndex = records.findIndex((entry) => String(entry.employeeId) === employeeId && String(entry.date) === date);
   if (recordIndex === -1) {
@@ -2112,14 +2144,7 @@ app.post('/api/attendance', async (req, res) => {
       _id: existingRecord._id || nextRecord._id
     };
   }
-
   fs.writeFileSync(attendanceFile, JSON.stringify(records, null, 2));
-
-  try {
-    await syncAttendanceToMysql(nextRecord);
-  } catch (error) {
-    console.error('MySQL attendance write failed (JSON saved):', error.message);
-  }
 
   res.json(nextRecord);
 });
