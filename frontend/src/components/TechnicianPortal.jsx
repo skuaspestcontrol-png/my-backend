@@ -240,6 +240,7 @@ export default function TechnicianPortal() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isUploadingBefore, setIsUploadingBefore] = useState(false);
   const [isUploadingAfter, setIsUploadingAfter] = useState(false);
+  const [actionStatus, setActionStatus] = useState('');
   const sigCanvas = useRef({});
 
   const loadPortalData = useCallback(async () => {
@@ -392,6 +393,7 @@ export default function TechnicianPortal() {
 
   const handlePunchIn = async () => {
     if (!activeJob || isPunchingIn || isCompleting) return;
+    setActionStatus('');
     const time = new Date().toLocaleString();
     setPunchInTime(time);
 
@@ -410,6 +412,7 @@ export default function TechnicianPortal() {
 
   const handlePunchOut = async () => {
     if (!activeJob || isCompleting) return;
+    setActionStatus('');
     const signaturePadReady = sigCanvas.current && typeof sigCanvas.current.isEmpty === 'function' && typeof sigCanvas.current.getTrimmedCanvas === 'function';
     const sig = signaturePadReady && !sigCanvas.current.isEmpty()
       ? sigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
@@ -417,32 +420,34 @@ export default function TechnicianPortal() {
     const resolvedPunchInTime = punchInTime || activeJob.punchInTime || new Date().toLocaleString();
     const completedAt = new Date().toISOString();
     const completionCardNumber = createCompletionCardNumber();
-    const payload = {
+    const statusPayload = {
       status: 'Completed',
       punchInTime: resolvedPunchInTime,
       punchOutTime: new Date(completedAt).toLocaleString(),
-      beforePhoto: beforeUrl,
-      afterPhoto: afterUrl,
-      customerSignature: sig,
       completionCardNumber,
       completionCardGeneratedAt: completedAt
     };
-    const fallbackPayload = {
-      status: 'Completed',
-      punchInTime: resolvedPunchInTime,
-      punchOutTime: new Date(completedAt).toLocaleString(),
-      completionCardNumber,
-      completionCardGeneratedAt: completedAt
+    const proofPayload = {
+      beforePhoto: beforeUrl,
+      afterPhoto: afterUrl,
+      customerSignature: sig
     };
 
     try {
       setIsCompleting(true);
       const completedJobId = activeJob._id;
-      try {
-        await axios.put(`${API_BASE_URL}/api/jobs/${completedJobId}`, payload, { timeout: 20000 });
-      } catch (primaryError) {
-        console.error('Primary completion payload failed, retrying minimal payload', primaryError);
-        await axios.put(`${API_BASE_URL}/api/jobs/${completedJobId}`, fallbackPayload, { timeout: 15000 });
+      let proofUploadFailed = false;
+      // Step 1: commit completion status first (small payload, most reliable).
+      await axios.put(`${API_BASE_URL}/api/jobs/${completedJobId}`, statusPayload, { timeout: 15000 });
+      // Step 2: attach optional media/signature without blocking completion success.
+      if (proofPayload.beforePhoto || proofPayload.afterPhoto || proofPayload.customerSignature) {
+        try {
+          await axios.put(`${API_BASE_URL}/api/jobs/${completedJobId}`, proofPayload, { timeout: 15000 });
+        } catch (proofError) {
+          console.error('Completion proof upload failed (job already completed):', proofError);
+          proofUploadFailed = true;
+          setActionStatus('Job completed, but proof upload failed. You can refresh and retry media if needed.');
+        }
       }
       setCompletionCard({
         jobId: completedJobId,
@@ -470,6 +475,9 @@ export default function TechnicianPortal() {
       setAfterUrl('');
       if (sigCanvas.current && typeof sigCanvas.current.clear === 'function') {
         sigCanvas.current.clear();
+      }
+      if (!proofUploadFailed) {
+        setActionStatus('Job marked as completed successfully.');
       }
       // Non-blocking background refresh for consistency.
       loadPortalData().catch((error) => {
@@ -794,6 +802,11 @@ export default function TechnicianPortal() {
       >
         {isCompleting ? 'Saving...' : 'Complete Job'}
       </button>
+      {actionStatus ? (
+        <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: actionStatus.toLowerCase().includes('failed') ? '#b91c1c' : '#166534', fontWeight: 700 }}>
+          {actionStatus}
+        </p>
+      ) : null}
     </section>
   );
 }
