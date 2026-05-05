@@ -34,10 +34,18 @@ const path = require('path');
 const mysql = require('mysql2/promise');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
-const dataDir = path.join(__dirname, '..', 'data');
+const legacyDataDir = path.join(__dirname, '..', 'data');
+const dataDir = String(process.env.DATA_DIR || process.env.PERSISTENT_DATA_DIR || '').trim()
+  || path.join(__dirname, '..', '..', 'storage', 'data');
+
+const resolveDataFilePath = (fileName) => {
+  const primary = path.join(dataDir, fileName);
+  if (fs.existsSync(primary)) return primary;
+  return path.join(legacyDataDir, fileName);
+};
 
 const readJsonArray = (fileName) => {
-  const fullPath = path.join(dataDir, fileName);
+  const fullPath = resolveDataFilePath(fileName);
   if (!fs.existsSync(fullPath)) return [];
   const raw = fs.readFileSync(fullPath, 'utf8').trim();
   if (!raw) return [];

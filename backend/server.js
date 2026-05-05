@@ -145,8 +145,28 @@ const uploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLO
 const uploadsMirrorDir = String(process.env.UPLOADS_MIRROR_DIR || '').trim();
 fs.mkdirSync(uploadsDir, { recursive: true });
 if (uploadsMirrorDir) fs.mkdirSync(uploadsMirrorDir, { recursive: true });
-const dataDir = path.join(__dirname, 'data');
-[uploadsDir, dataDir].forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir); });
+const legacyDataDir = path.join(__dirname, 'data');
+const dataDir = String(process.env.DATA_DIR || process.env.PERSISTENT_DATA_DIR || '').trim()
+  || path.join(__dirname, '..', 'storage', 'data');
+
+[uploadsDir, dataDir].forEach((dir) => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); });
+
+const migrateLegacyJsonDataOnce = () => {
+  try {
+    if (!fs.existsSync(legacyDataDir)) return;
+    const legacyEntries = fs.readdirSync(legacyDataDir, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith('.json'));
+    if (!legacyEntries.length) return;
+    legacyEntries.forEach((entry) => {
+      const source = path.join(legacyDataDir, entry.name);
+      const target = path.join(dataDir, entry.name);
+      if (fs.existsSync(target)) return;
+      fs.copyFileSync(source, target);
+    });
+  } catch (error) {
+    console.error('Legacy data migration skipped:', error.message);
+  }
+};
+migrateLegacyJsonDataOnce();
 
 const syncUploadToMirror = (fileName = '') => {
   if (!uploadsMirrorDir) return;
