@@ -14,6 +14,7 @@ const { registerHrModule } = require('./hrModule');
 const { registerCustomerDedupModule } = require('./customerDedupModule');
 const { createWhatsAppRouter } = require('./routes/whatsapp.routes');
 const { createEmailRouter } = require('./routes/email.routes');
+const { quotationRouter } = require('./routes/quotation.routes');
 require('dotenv').config();
 
 const app = express();
@@ -61,6 +62,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
+app.use('/api', quotationRouter);
 const PORT = Math.max(1, Number(process.env.PORT || 5000) || 5000);
 const SERVER_ORIGIN = String(process.env.SERVER_ORIGIN || '').trim();
 const resolveServerOrigin = (req) => SERVER_ORIGIN || `${req.protocol}://${req.get('host')}`;

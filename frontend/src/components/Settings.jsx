@@ -19,6 +19,11 @@ import WhatsAppLogs from '../pages/whatsapp/WhatsAppLogs';
 import EmailSettings from '../pages/settings/EmailSettings';
 import EmailTemplates from '../pages/settings/EmailTemplates';
 import EmailLogs from '../pages/email/EmailLogs';
+import QuotationTemplateSettings from '../pages/settings/quotation/QuotationTemplateSettings';
+import QuotationPrefixSettings from '../pages/settings/quotation/QuotationPrefixSettings';
+import QuotationServiceTemplatesSettings from '../pages/settings/quotation/QuotationServiceTemplatesSettings';
+import QuotationCommonParagraphsSettings from '../pages/settings/quotation/QuotationCommonParagraphsSettings';
+import InfestationLevelsSettings from '../pages/settings/quotation/InfestationLevelsSettings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -123,6 +128,11 @@ const sectionMeta = [
   { key: 'nonGstCompany', label: 'Non GST Company' },
   { key: 'bankAccounts', label: 'Bank Account' },
   { key: 'documentPrefixes', label: 'Prefixes' },
+  { key: 'quotationTemplate', label: 'Quotation Template' },
+  { key: 'quotationPrefixes', label: 'Quotation Prefixes' },
+  { key: 'quotationServices', label: 'Quotation Services' },
+  { key: 'quotationCommonParagraphs', label: 'Quotation Paragraphs' },
+  { key: 'infestationLevels', label: 'Infestation Levels' },
   { key: 'whatsappApiSettings', label: 'WhatsApp API Settings' },
   { key: 'whatsappTemplates', label: 'WhatsApp Templates' },
   { key: 'whatsappLogs', label: 'WhatsApp Logs' },
@@ -612,6 +622,11 @@ const getSectionCompletion = (form, securityForm) => {
       form.employeeCodeNextNumber,
       form.employeeCodePadding
     ].every(isFilled),
+    quotationTemplate: true,
+    quotationPrefixes: true,
+    quotationServices: true,
+    quotationCommonParagraphs: true,
+    infestationLevels: true,
     whatsappApiSettings: [form.whatsappPhoneNumber, form.whatsappInstanceId, form.whatsappAccessToken].every(isFilled),
     whatsappTemplates: true,
     whatsappLogs: true,
@@ -2290,6 +2305,11 @@ export default function Settings({ modalMode = false }) {
     if (activeSection === 'nonGstCompany') return renderNonGstCompany();
     if (activeSection === 'bankAccounts') return renderBankAccounts();
     if (activeSection === 'documentPrefixes') return renderDocumentPrefixes();
+    if (activeSection === 'quotationTemplate') return <QuotationTemplateSettings />;
+    if (activeSection === 'quotationPrefixes') return <QuotationPrefixSettings />;
+    if (activeSection === 'quotationServices') return <QuotationServiceTemplatesSettings />;
+    if (activeSection === 'quotationCommonParagraphs') return <QuotationCommonParagraphsSettings />;
+    if (activeSection === 'infestationLevels') return <InfestationLevelsSettings />;
     if (activeSection === 'whatsappApiSettings') return <WhatsAppSettings />;
     if (activeSection === 'whatsappTemplates') return <WhatsAppTemplates />;
     if (activeSection === 'whatsappLogs') return <WhatsAppLogs />;
