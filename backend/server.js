@@ -1367,10 +1367,58 @@ app.post('/api/maps/geocode', async (req, res) => {
 
   let googleError = '';
   try {
+    const isGoogleMapsUrl = /^https?:\/\/(www\.)?(maps\.app\.goo\.gl|maps\.google\.com|google\.com\/maps)/i.test(address);
+    const parseLatLngFromUrl = (value = '') => {
+      const raw = String(value || '').trim();
+      if (!raw) return null;
+      const atMatch = raw.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+      if (atMatch) return { lat: atMatch[1], lng: atMatch[2] };
+      const markerMatch = raw.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+      if (markerMatch) return { lat: markerMatch[1], lng: markerMatch[2] };
+      return null;
+    };
+    const parsePlaceTextFromUrl = (value = '') => {
+      try {
+        const target = new URL(value);
+        const query = String(target.searchParams.get('q') || target.searchParams.get('query') || '').trim();
+        if (query) return query;
+        const placeMatch = target.pathname.match(/\/place\/([^/]+)/i);
+        if (placeMatch?.[1]) return decodeURIComponent(placeMatch[1]).replace(/\+/g, ' ').trim();
+      } catch (_error) {
+        // ignore
+      }
+      return '';
+    };
+
+    let geocodeAddress = address;
+    let geocodeLat = lat;
+    let geocodeLng = lng;
+
+    if (isGoogleMapsUrl) {
+      try {
+        const expandedResponse = await fetch(address, { redirect: 'follow' });
+        const expandedUrl = String(expandedResponse?.url || address).trim();
+        const parsedCoords = parseLatLngFromUrl(expandedUrl);
+        if (parsedCoords?.lat && parsedCoords?.lng) {
+          geocodeLat = String(parsedCoords.lat);
+          geocodeLng = String(parsedCoords.lng);
+        } else {
+          const parsedText = parsePlaceTextFromUrl(expandedUrl) || parsePlaceTextFromUrl(address);
+          if (parsedText) geocodeAddress = parsedText;
+        }
+      } catch (_error) {
+        const parsedCoords = parseLatLngFromUrl(address);
+        if (parsedCoords?.lat && parsedCoords?.lng) {
+          geocodeLat = String(parsedCoords.lat);
+          geocodeLng = String(parsedCoords.lng);
+        }
+      }
+    }
+
     if (mapsApiKey) {
-      if (address) {
+      if (geocodeAddress && !geocodeLat && !geocodeLng) {
         let candidate = null;
-        const placesFindEndpoint = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(address)}&inputtype=textquery&fields=place_id,name,formatted_address,geometry,types&locationbias=ipbias&key=${mapsApiKey}`;
+        const placesFindEndpoint = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(geocodeAddress)}&inputtype=textquery&fields=place_id,name,formatted_address,geometry,types&locationbias=ipbias&key=${mapsApiKey}`;
         const placesFindResponse = await fetch(placesFindEndpoint);
         if (placesFindResponse.ok) {
           const placesFindData = await placesFindResponse.json();
@@ -1380,7 +1428,7 @@ app.post('/api/maps/geocode', async (req, res) => {
         }
 
         if (!candidate) {
-          const textSearchEndpoint = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(address)}&region=in&key=${mapsApiKey}`;
+          const textSearchEndpoint = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(geocodeAddress)}&region=in&key=${mapsApiKey}`;
           const textSearchResponse = await fetch(textSearchEndpoint);
           if (textSearchResponse.ok) {
             const textSearchData = await textSearchResponse.json();
@@ -1443,9 +1491,9 @@ app.post('/api/maps/geocode', async (req, res) => {
         }
       }
 
-      const googleEndpoint = lat && lng
-        ? `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(`${lat},${lng}`)}&key=${mapsApiKey}`
-        : `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${mapsApiKey}`;
+      const googleEndpoint = (geocodeLat && geocodeLng) || (lat && lng)
+        ? `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(`${geocodeLat || lat},${geocodeLng || lng}`)}&key=${mapsApiKey}`
+        : `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(geocodeAddress || address)}&key=${mapsApiKey}`;
       const response = await fetch(googleEndpoint);
       if (response.ok) {
         const data = await response.json();

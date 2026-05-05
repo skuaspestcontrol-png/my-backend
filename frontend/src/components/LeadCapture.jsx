@@ -1325,6 +1325,37 @@ export default function LeadCapture() {
     setSearchError('');
 
     try {
+      const isGoogleMapsLink = /^https?:\/\/(www\.)?(maps\.app\.goo\.gl|maps\.google\.com|google\.com\/maps)/i.test(query);
+      if (isGoogleMapsLink) {
+        const response = await axios.post(`${API_BASE_URL}/api/maps/geocode`, { address: query });
+        const result = response?.data?.result;
+        if (!result) {
+          setSearchError('No location found from this map link.');
+          return;
+        }
+        const lat = result?.geometry?.location?.lat;
+        const lng = result?.geometry?.location?.lng;
+        const place = {
+          id: result.place_id || '',
+          displayName: result.name || '',
+          formattedAddress: result.formatted_address || query,
+          location: {
+            lat: typeof lat === 'function' ? lat : () => Number(lat || 0),
+            lng: typeof lng === 'function' ? lng : () => Number(lng || 0)
+          },
+          addressComponents: Array.isArray(result.address_components) ? result.address_components : []
+        };
+        applySearchSuggestion(place, query);
+        enrichAddressFromLatLng(
+          typeof lat === 'function' ? lat() : Number(lat || 0),
+          typeof lng === 'function' ? lng() : Number(lng || 0)
+        );
+        setShowSearchSuggestions(false);
+        setSearchSuggestions([]);
+        setSearchError('');
+        return;
+      }
+
       await loadGooglePlacesScript();
       const { Place } = await window.google.maps.importLibrary('places');
       const request = {
@@ -2532,10 +2563,10 @@ export default function LeadCapture() {
                                 setSearchSuggestions([]);
                                 setSearchError('');
                               }}
-                              style={{ width: '100%', textAlign: 'left', border: 'none', borderBottom: '1px solid #f1f5f9', background: '#fff', cursor: 'pointer', padding: '8px 10px' }}
+                              style={{ width: '100%', textAlign: 'left', border: 'none', borderBottom: '1px solid #f1f5f9', background: '#fff', cursor: 'pointer', padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}
                             >
-                              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{name}</div>
-                              <div style={{ fontSize: '11px', color: '#64748b' }}>{address}</div>
+                              <div style={{ width: '100%', textAlign: 'left', fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{name}</div>
+                              <div style={{ width: '100%', textAlign: 'left', fontSize: '11px', color: '#64748b' }}>{address}</div>
                             </button>
                           );
                         })}
