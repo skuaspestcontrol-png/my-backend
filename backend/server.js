@@ -25,7 +25,8 @@ const {
   getIntegrationRow,
   saveIntegrationRow,
   ensureTaskList,
-  syncGoogleTaskForJob
+  syncGoogleTaskForJob,
+  getGoogleClient
 } = require('./lib/googleTasks');
 require('dotenv').config();
 
@@ -3661,8 +3662,9 @@ app.get('/api/google/oauth/callback', async (req, res) => {
     const encryptedRefreshToken = encrypt(refreshToken, key);
 
     oauth.setCredentials(tokens);
-    const tasks = require('googleapis').google.tasks({ version: 'v1', auth: oauth });
-    const oauth2 = require('googleapis').google.oauth2({ version: 'v2', auth: oauth });
+    const google = getGoogleClient();
+    const tasks = google.tasks({ version: 'v1', auth: oauth });
+    const oauth2 = google.oauth2({ version: 'v2', auth: oauth });
     const profile = await oauth2.userinfo.get().catch(() => ({ data: {} }));
     const tasklistId = await ensureTaskList(tasks);
 

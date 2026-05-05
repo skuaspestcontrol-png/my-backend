@@ -1,10 +1,23 @@
 const crypto = require('crypto');
-const { google } = require('googleapis');
 
 const INTEGRATION_KEY = 'google_tasks_integration';
 const TASK_LIST_TITLE = 'SKUAS CRM Tasks';
 
 const clean = (v) => String(v ?? '').trim();
+let googleClient = null;
+
+const getGoogleClient = () => {
+  if (googleClient) return googleClient;
+  try {
+    const { google } = require('googleapis');
+    googleClient = google;
+    return googleClient;
+  } catch (error) {
+    const wrapped = new Error('googleapis package is missing on server. Run npm install in backend and restart.');
+    wrapped.cause = error;
+    throw wrapped;
+  }
+};
 
 const normalizeKey = (raw) => {
   const text = clean(raw);
@@ -44,6 +57,7 @@ const decrypt = (payload, key) => {
 };
 
 const buildOAuthClient = () => {
+  const google = getGoogleClient();
   const clientId = clean(process.env.GOOGLE_CLIENT_ID);
   const clientSecret = clean(process.env.GOOGLE_CLIENT_SECRET);
   const redirectUri = clean(process.env.GOOGLE_REDIRECT_URI);
@@ -112,6 +126,7 @@ const saveIntegrationRow = async (conn, row = {}) => {
 };
 
 const getTasksClient = async (conn) => {
+  const google = getGoogleClient();
   const row = await getIntegrationRow(conn);
   if (!row?.encrypted_refresh_token) return null;
   const key = normalizeKey(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY);
@@ -182,6 +197,7 @@ const syncGoogleTaskForJob = async ({ conn, job = {}, markCompleted = false }) =
 module.exports = {
   INTEGRATION_KEY,
   TASK_LIST_TITLE,
+  getGoogleClient,
   encrypt,
   decrypt,
   normalizeKey,
