@@ -2200,10 +2200,6 @@ app.post('/api/jobs', async (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  await syncJobGoogleTaskSafely(newJob, {
-    markCompleted: String(newJob.status || '').trim().toLowerCase() === 'completed'
-  });
-
   jobs.push(newJob);
   fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
   updateSettingsNextJobNumber(jobNumber, settings);
@@ -2213,6 +2209,17 @@ app.post('/api/jobs', async (req, res) => {
   } catch (error) {
     console.error('MySQL job write failed (JSON saved):', error.message);
   }
+
+  // Google sync should never block job creation response.
+  syncJobGoogleTaskSafely(newJob, {
+    markCompleted: String(newJob.status || '').trim().toLowerCase() === 'completed'
+  }).then(() => {
+    syncJobToMysql(newJob).catch((error) => {
+      console.error('MySQL re-sync after Google sync failed:', error.message);
+    });
+  }).catch((error) => {
+    console.error('Background Google sync failed on create:', error.message);
+  });
 
   res.json(newJob);
 });
@@ -2266,8 +2273,6 @@ app.put('/api/jobs/:id', async (req, res) => {
     });
   }
 
-  await syncJobGoogleTaskSafely(updatedJob, { markCompleted: nextStatus === 'completed' });
-
   fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
 
   try {
@@ -2291,6 +2296,15 @@ app.put('/api/jobs/:id', async (req, res) => {
   } catch (error) {
     console.error('MySQL job update failed (JSON saved):', error.message);
   }
+
+  // Google sync should never block completion/update response.
+  syncJobGoogleTaskSafely(updatedJob, { markCompleted: nextStatus === 'completed' }).then(() => {
+    syncJobToMysql(updatedJob).catch((error) => {
+      console.error('MySQL re-sync after Google sync failed:', error.message);
+    });
+  }).catch((error) => {
+    console.error('Background Google sync failed on update:', error.message);
+  });
 
   res.json(updatedJob);
 });

@@ -900,7 +900,7 @@ export default function ContractDashboard() {
             position: 'fixed',
             left: `${actionMenu.left}px`,
             top: `${actionMenu.top}px`,
-            width: '142px',
+            width: '166px',
             background: '#fff',
             border: '1px solid var(--color-border)',
             borderRadius: '8px',
@@ -911,7 +911,7 @@ export default function ContractDashboard() {
         >
           <button
             type="button"
-            style={{ width: '100%', border: 'none', background: '#fff', textAlign: 'left', padding: '7px 8px', fontSize: '10px', fontWeight: 700, color: '#1f2937', cursor: 'pointer', lineHeight: 1.2 }}
+            style={{ width: '100%', border: 'none', background: '#fff', textAlign: 'left', padding: '8px 10px', fontSize: '10px', fontWeight: 700, color: '#1f2937', cursor: 'pointer', lineHeight: 1.2, display: 'flex', justifyContent: 'flex-start' }}
             onClick={() => {
               navigate('/sales/invoices', { state: { openInvoiceNumber: actionMenu.row.contractNo, fromContract: true } });
               setActionMenu(null);
@@ -921,7 +921,7 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
-            style={{ width: '100%', border: 'none', background: '#fff', textAlign: 'left', padding: '7px 8px', fontSize: '10px', fontWeight: 700, color: '#1f2937', cursor: 'pointer', lineHeight: 1.2 }}
+            style={{ width: '100%', border: 'none', background: '#fff', textAlign: 'left', padding: '8px 10px', fontSize: '10px', fontWeight: 700, color: '#1f2937', cursor: 'pointer', lineHeight: 1.2, display: 'flex', justifyContent: 'flex-start' }}
             onClick={() => {
               openInvoicePdf(actionMenu.row.invoiceId);
               setActionMenu(null);
@@ -931,7 +931,7 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
-            style={{ width: '100%', border: 'none', background: '#fff', textAlign: 'left', padding: '7px 8px', fontSize: '10px', fontWeight: 700, color: '#1f2937', cursor: 'pointer', lineHeight: 1.2 }}
+            style={{ width: '100%', border: 'none', background: '#fff', textAlign: 'left', padding: '8px 10px', fontSize: '10px', fontWeight: 700, color: '#1f2937', cursor: 'pointer', lineHeight: 1.2, display: 'flex', justifyContent: 'flex-start' }}
             onClick={() => {
               openContractJobCardPdf(actionMenu.row.invoiceId);
               setActionMenu(null);
@@ -941,7 +941,7 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
-            style={{ width: '100%', border: 'none', background: '#fff', textAlign: 'left', padding: '7px 8px', fontSize: '10px', fontWeight: 700, color: '#dc2626', cursor: 'pointer', lineHeight: 1.2 }}
+            style={{ width: '100%', border: 'none', background: '#fff', textAlign: 'left', padding: '8px 10px', fontSize: '10px', fontWeight: 700, color: '#dc2626', cursor: 'pointer', lineHeight: 1.2, display: 'flex', justifyContent: 'flex-start' }}
             onClick={() => deleteContract(actionMenu.row)}
           >
             Delete

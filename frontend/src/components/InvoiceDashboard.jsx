@@ -2208,26 +2208,6 @@ export default function InvoiceDashboard() {
                     type="button"
                     style={shell.rowActionMenuBtn}
                     onClick={() => {
-                      runInvoiceAction(targetInvoice, 'download');
-                      setRowActionInvoiceId('');
-                    }}
-                  >
-                    Download PDF
-                  </button>
-                  <button
-                    type="button"
-                    style={shell.rowActionMenuBtn}
-                    onClick={() => {
-                      runInvoiceAction(targetInvoice, 'print');
-                      setRowActionInvoiceId('');
-                    }}
-                  >
-                    Print Invoice
-                  </button>
-                  <button
-                    type="button"
-                    style={shell.rowActionMenuBtn}
-                    onClick={() => {
                       runInvoiceAction(targetInvoice, 'whatsapp');
                       setRowActionInvoiceId('');
                     }}
