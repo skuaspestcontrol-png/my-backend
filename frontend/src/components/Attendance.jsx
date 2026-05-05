@@ -427,7 +427,8 @@ export default function Attendance() {
       }
     } catch (error) {
       console.error('Failed to save attendance', error);
-      setStatusMessage('Some attendance updates could not be saved.');
+      const apiMessage = String(error?.response?.data?.error || '').trim();
+      setStatusMessage(apiMessage || 'Some attendance updates could not be saved.');
     }
   };
 

@@ -2081,42 +2081,25 @@ app.post('/api/attendance', async (req, res) => {
     return res.status(400).json({ error: 'employeeId and date are required' });
   }
 
-  const employee = await fetchEmployeeByAnyId(employeeId);
-  if (!employee) {
-    return res.status(404).json({ error: 'Employee not found' });
-  }
-
-  const employeeName = [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee';
-  let existingExternalId = '';
+  let employee = null;
   try {
-    const foundId = await withMysqlConnection(async (conn) => {
-      await ensureAttendanceTable(conn);
-      const [rows] = await conn.query(
-        `SELECT external_id
-           FROM attendance
-          WHERE employee_external_id = ? AND attendance_date = ?
-          ORDER BY id DESC
-          LIMIT 1`,
-        [employeeId, date]
-      );
-      return String(rows?.[0]?.external_id || '').trim();
-    });
-    existingExternalId = String(foundId || '').trim();
+    employee = await fetchEmployeeByAnyId(employeeId);
   } catch (error) {
-    console.error('MySQL attendance lookup failed, fallback to JSON lookup:', error.message);
+    console.error('Employee lookup failed during attendance save:', error.message);
   }
 
-  if (!existingExternalId) {
-    const existingJsonRecord = readJsonFile(attendanceFile, []).find(
-      (entry) => String(entry?.employeeId || '').trim() === employeeId && String(entry?.date || '').trim() === date
-    );
-    existingExternalId = String(existingJsonRecord?._id || '').trim();
-  }
+  const employeeName = employee
+    ? ([employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee')
+    : String(req.body?.employeeName || req.body?.name || 'Employee').trim();
+  const employeeCode = employee
+    ? String(employee.empCode || '').trim()
+    : String(req.body?.employeeCode || '').trim();
+  const stableExternalId = `ATT-${employeeId.replace(/[^a-zA-Z0-9_-]/g, '')}-${date.replace(/[^0-9-]/g, '')}`;
 
   const nextRecord = sanitizeAttendanceRecord({
-    _id: req.body?._id || existingExternalId || `ATT-${Date.now()}`,
+    _id: req.body?._id || stableExternalId,
     employeeId,
-    employeeCode: employee.empCode || '',
+    employeeCode,
     employeeName,
     date,
     status: req.body?.status,
