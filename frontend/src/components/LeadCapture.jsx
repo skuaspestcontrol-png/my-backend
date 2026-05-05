@@ -619,7 +619,6 @@ export default function LeadCapture() {
     const followupLeads = filteredLeads.filter((lead) => Boolean(lead.followupDate)).length;
 
     return {
-      date: toDateInput(record.date || record.createdAt) || new Date().toISOString().slice(0, 10),
       totalLeads,
       newLeads,
       convertedLeads,
