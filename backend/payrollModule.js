@@ -724,6 +724,16 @@ function registerPayrollModule({
   const canUseMysql = typeof withMysqlConnection === 'function';
   const PAYROLL_SNAPSHOT_TABLE = 'payroll_storage_snapshots';
   const payrollSnapshotCache = new Map();
+  const safeWriteJsonFile = (targetFile, payload, label) => {
+    try {
+      fs.mkdirSync(path.dirname(targetFile), { recursive: true });
+      fs.writeFileSync(targetFile, JSON.stringify(payload, null, 2));
+      return true;
+    } catch (error) {
+      console.error(`Payroll file write failed (${label || path.basename(targetFile)}):`, error.message);
+      return false;
+    }
+  };
 
   const ensurePayrollSnapshotTable = async (conn) => {
     if (!canUseMysql) return;
@@ -806,13 +816,13 @@ function registerPayrollModule({
 
   const savePayrollConfigAndRuns = ({ config, runs }) => {
     const payload = { config, runs };
-    fs.writeFileSync(payrollRunsFile, JSON.stringify(payload, null, 2));
+    safeWriteJsonFile(payrollRunsFile, payload, 'payroll_runs');
     saveSnapshotToMysql('payroll_runs', payload);
   };
 
   const getItems = () => readJsonFile(payrollItemsFile, []);
   const saveItems = (rows) => {
-    fs.writeFileSync(payrollItemsFile, JSON.stringify(rows, null, 2));
+    safeWriteJsonFile(payrollItemsFile, rows, 'payroll_items');
     saveSnapshotToMysql('payroll_items', rows);
   };
   const getStructures = () => readJsonFile(salaryStructuresFile, []).map((entry) => normalizeSalaryStructure(entry));
@@ -822,21 +832,21 @@ function registerPayrollModule({
   };
   const getHolidays = () => readJsonFile(holidaysFile, []).map((entry) => normalizeHoliday(entry)).filter((entry) => entry.date);
   const saveHolidays = (rows) => {
-    fs.writeFileSync(holidaysFile, JSON.stringify(rows, null, 2));
+    safeWriteJsonFile(holidaysFile, rows, 'payroll_holidays');
     saveSnapshotToMysql('payroll_holidays', rows);
   };
   const getAdvances = () => readJsonFile(advancesFile, []).map((entry) => normalizeAdvance(entry)).filter((entry) => entry.employeeId);
   const saveAdvances = (rows) => {
-    fs.writeFileSync(advancesFile, JSON.stringify(rows, null, 2));
+    safeWriteJsonFile(advancesFile, rows, 'payroll_advances');
     saveSnapshotToMysql('payroll_advances', rows);
   };
   const getPayments = () => readJsonFile(salaryPaymentsFile, []);
   const savePayments = (rows) => {
-    fs.writeFileSync(salaryPaymentsFile, JSON.stringify(rows, null, 2));
+    safeWriteJsonFile(salaryPaymentsFile, rows, 'payroll_salary_payments');
     saveSnapshotToMysql('payroll_salary_payments', rows);
   };
   const saveAuditRows = (rows) => {
-    fs.writeFileSync(payrollAuditFile, JSON.stringify(rows, null, 2));
+    safeWriteJsonFile(payrollAuditFile, rows, 'payroll_audit');
     saveSnapshotToMysql('payroll_audit', rows);
   };
 
@@ -1251,102 +1261,110 @@ function registerPayrollModule({
   });
 
   app.post('/api/payroll/generate', (req, res) => {
-    const perms = ensureAccess(req, res, (p) => p.canGenerate, 'Only Admin/HR can generate payroll');
-    if (!perms) return;
-    const month = toNumber(req.body?.month, 0);
-    const year = toNumber(req.body?.year, 0);
-    if (!month || !year) return res.status(400).json({ error: 'month and year are required' });
-    const selectedEmployeeIds = Array.isArray(req.body?.employeeIds)
-      ? req.body.employeeIds.map((entry) => normalizeText(entry)).filter(Boolean)
-      : [];
-    const forceRegenerate = req.body?.forceRegenerate === true;
+    try {
+      const perms = ensureAccess(req, res, (p) => p.canGenerate, 'Only Admin/HR can generate payroll');
+      if (!perms) return;
+      const month = toNumber(req.body?.month, 0);
+      const year = toNumber(req.body?.year, 0);
+      if (!month || !year) return res.status(400).json({ error: 'month and year are required' });
+      if (month < 1 || month > 12) return res.status(400).json({ error: 'month must be between 1 and 12' });
+      if (year < 2000 || year > 2100) return res.status(400).json({ error: 'year is out of allowed range' });
 
-    const employees = readJsonFile(employeesFile, []);
-    const attendance = readJsonFile(attendanceFile, []);
-    const structures = getStructures();
-    const holidays = getHolidays();
-    const advances = getAdvances();
-    const { config, runs } = getPayrollConfig();
-    const items = getItems();
+      const selectedEmployeeIds = Array.isArray(req.body?.employeeIds)
+        ? req.body.employeeIds.map((entry) => normalizeText(entry)).filter(Boolean)
+        : [];
+      const forceRegenerate = req.body?.forceRegenerate === true;
 
-    const scope = selectedEmployeeIds.length > 0
-      ? employees.filter((entry) => selectedEmployeeIds.includes(normalizeText(entry._id)))
-      : employees;
+      const employees = readJsonFile(employeesFile, []);
+      const attendance = readJsonFile(attendanceFile, []);
+      const structures = getStructures();
+      const holidays = getHolidays();
+      const advances = getAdvances();
+      const { config, runs } = getPayrollConfig();
+      const items = getItems();
 
-    const generated = [];
-    const skipped = [];
+      const scope = selectedEmployeeIds.length > 0
+        ? employees.filter((entry) => selectedEmployeeIds.includes(normalizeText(entry._id)))
+        : employees;
 
-    scope.forEach((employee) => {
-      const employeeId = normalizeText(employee._id);
-      if (!employeeId) return;
-      const existingIndex = items.findIndex((entry) => normalizeText(entry.employeeId) === employeeId && toNumber(entry.month, 0) === month && toNumber(entry.year, 0) === year);
-      const existing = existingIndex >= 0 ? items[existingIndex] : null;
-      if (existing && normalizeText(existing.payrollStatus) === 'Paid') {
-        skipped.push({ employeeId, reason: 'Already paid and locked' });
-        return;
-      }
-      if (existing && !forceRegenerate && normalizeText(existing.payrollStatus) !== 'Draft' && normalizeText(existing.payrollStatus) !== 'Hold') {
-        skipped.push({ employeeId, reason: 'Payroll already generated. Use force regenerate before payment.' });
-        return;
-      }
+      const generated = [];
+      const skipped = [];
 
-      const structure = selectCurrentStructure(structures, employeeId, `${year}-${pad2(month)}-31`) || normalizeSalaryStructure({
-        employeeId,
-        salaryType: 'monthly',
-        basicSalary: toNumber(employee.salaryPerMonth ?? employee.salary, 0),
-        effectiveDate: `${year}-${pad2(month)}-01`
+      scope.forEach((employee) => {
+        const employeeId = normalizeText(employee._id);
+        if (!employeeId) return;
+        const existingIndex = items.findIndex((entry) => normalizeText(entry.employeeId) === employeeId && toNumber(entry.month, 0) === month && toNumber(entry.year, 0) === year);
+        const existing = existingIndex >= 0 ? items[existingIndex] : null;
+        if (existing && normalizeText(existing.payrollStatus) === 'Paid') {
+          skipped.push({ employeeId, reason: 'Already paid and locked' });
+          return;
+        }
+        if (existing && !forceRegenerate && normalizeText(existing.payrollStatus) !== 'Draft' && normalizeText(existing.payrollStatus) !== 'Hold') {
+          skipped.push({ employeeId, reason: 'Payroll already generated. Use force regenerate before payment.' });
+          return;
+        }
+
+        const structure = selectCurrentStructure(structures, employeeId, `${year}-${pad2(month)}-31`) || normalizeSalaryStructure({
+          employeeId,
+          salaryType: 'monthly',
+          basicSalary: toNumber(employee.salaryPerMonth ?? employee.salary, 0),
+          effectiveDate: `${year}-${pad2(month)}-01`
+        });
+        const attendanceSummary = summarizeAttendanceForPayroll({
+          employeeId,
+          month,
+          year,
+          attendance,
+          holidays,
+          weeklyOffDay: config.weeklyOffDay,
+          lateMarkGraceMinutes: config.lateMarkGraceMinutes,
+          workStartTime: config.workStartTime
+        });
+
+        const nextItem = calcPayrollItem({
+          employee,
+          structure,
+          attendanceSummary,
+          advances,
+          month,
+          year,
+          manualOverride: existing || {}
+        });
+
+        if (existingIndex >= 0) items[existingIndex] = { ...existing, ...nextItem, _id: existing._id, createdAt: existing.createdAt || nextItem.createdAt };
+        else items.push(nextItem);
+        generated.push(nextItem);
       });
-      const attendanceSummary = summarizeAttendanceForPayroll({
-        employeeId,
+
+      saveItems(items);
+
+      const run = {
+        _id: `PRUN-${Date.now()}`,
         month,
         year,
-        attendance,
-        holidays,
-        weeklyOffDay: config.weeklyOffDay,
-        lateMarkGraceMinutes: config.lateMarkGraceMinutes,
-        workStartTime: config.workStartTime
+        status: 'Generated',
+        generatedCount: generated.length,
+        skippedCount: skipped.length,
+        selectedEmployeeCount: scope.length,
+        createdAt: new Date().toISOString(),
+        actor: getActorName(req)
+      };
+      runs.push(run);
+      savePayrollConfigAndRuns({ config, runs });
+
+      writeAudit({
+        auditFile: payrollAuditFile,
+        readJsonFile,
+        actor: getActorName(req),
+        action: 'payroll_generated',
+        payload: { month, year, generated: generated.length, skipped: skipped.length }
       });
 
-      const nextItem = calcPayrollItem({
-        employee,
-        structure,
-        attendanceSummary,
-        advances,
-        month,
-        year,
-        manualOverride: existing || {}
-      });
-
-      if (existingIndex >= 0) items[existingIndex] = { ...existing, ...nextItem, _id: existing._id, createdAt: existing.createdAt || nextItem.createdAt };
-      else items.push(nextItem);
-      generated.push(nextItem);
-    });
-
-    saveItems(items);
-
-    const run = {
-      _id: `PRUN-${Date.now()}`,
-      month,
-      year,
-      status: 'Generated',
-      generatedCount: generated.length,
-      skippedCount: skipped.length,
-      selectedEmployeeCount: scope.length,
-      createdAt: new Date().toISOString(),
-      actor: getActorName(req)
-    };
-    runs.push(run);
-    savePayrollConfigAndRuns({ config, runs });
-
-    writeAudit({
-      auditFile: payrollAuditFile,
-      readJsonFile,
-      actor: getActorName(req),
-      action: 'payroll_generated',
-      payload: { month, year, generated: generated.length, skipped: skipped.length }
-    });
-
-    res.json({ message: 'Payroll generated', run, generated, skipped });
+      return res.json({ message: 'Payroll generated', run, generated, skipped });
+    } catch (error) {
+      console.error('Payroll generation failed:', error && error.stack ? error.stack : error);
+      return res.status(500).json({ error: `Payroll generation failed: ${error.message || 'Unknown error'}` });
+    }
   });
 
   app.get('/api/payroll/runs', (req, res) => {

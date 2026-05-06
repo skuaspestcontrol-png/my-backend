@@ -350,6 +350,7 @@ export default function PayrollModule() {
     try {
       if (!role.canGenerate) return window.alert('Only Admin/HR can generate payroll.');
       setBusy(true);
+      setStatus('');
       await axios.post(`${API_BASE}/api/payroll/generate`, {
         month,
         year,
@@ -360,7 +361,9 @@ export default function PayrollModule() {
       await reloadAll();
     } catch (error) {
       console.error('Payroll generate failed', error);
-      window.alert(error?.response?.data?.error || 'Unable to generate payroll.');
+      const message = error?.response?.data?.error || 'Unable to generate payroll.';
+      setStatus(message);
+      window.alert(message);
     } finally {
       setBusy(false);
     }
