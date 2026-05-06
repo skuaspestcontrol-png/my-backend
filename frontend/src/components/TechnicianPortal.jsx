@@ -169,6 +169,19 @@ const shell = {
     justifyContent: 'flex-start',
     flexWrap: 'nowrap'
   },
+  pdfBtn: {
+    border: '1px solid #bfdbfe',
+    background: '#eff6ff',
+    color: '#1e3a8a',
+    borderRadius: '8px',
+    minHeight: '30px',
+    minWidth: '74px',
+    padding: '0 10px',
+    fontSize: '11px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    textAlign: 'center'
+  },
   startSmallBtn: {
     border: '1px solid rgba(159, 23, 77, 0.34)',
     background: 'var(--color-primary)',
@@ -760,6 +773,14 @@ export default function TechnicianPortal() {
                                         <div style={shell.actionRow}>
                                           <button type="button" style={shell.startSmallBtn} onClick={() => openJob(job)} disabled={isSavingAssignment}>
                                             {String(job.status || '').trim().toLowerCase() === 'in progress' ? 'Complete Job' : 'Start'}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            style={shell.pdfBtn}
+                                            onClick={() => window.open(`${API_BASE_URL}/api/jobs/${job._id}/pdf`, '_blank')}
+                                            disabled={isSavingAssignment}
+                                          >
+                                            PDF
                                           </button>
                                           <button type="button" style={shell.editBtn} onClick={() => handleReassignJob(job)} disabled={isSavingAssignment}>
                                             Edit
