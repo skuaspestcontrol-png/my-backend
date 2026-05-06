@@ -167,7 +167,9 @@ export default function Login() {
                   width: isNarrow ? '210px' : '330px',
                   maxWidth: '95%',
                   height: 'auto',
-                  objectFit: 'contain'
+                  objectFit: 'contain',
+                  background: 'transparent',
+                  mixBlendMode: 'multiply'
                 }}
               />
             ) : (
@@ -192,7 +194,7 @@ export default function Login() {
 
           <div style={{ padding: isNarrow ? '14px 14px 20px' : '28px 30px 26px', display: 'grid', alignContent: 'center', gap: '14px' }}>
             <div>
-              <h2 style={{ margin: 0, fontSize: isNarrow ? '30px' : '52px', color: '#35364d', fontWeight: 800, lineHeight: 1.02 }}>Login To Your Account</h2>
+              <h2 style={{ margin: 0, fontSize: isNarrow ? '28px' : '40px', color: '#35364d', fontWeight: 800, lineHeight: 1.08 }}>Welcome</h2>
             </div>
 
             <div style={{ width: '100%', padding: 0 }}>
