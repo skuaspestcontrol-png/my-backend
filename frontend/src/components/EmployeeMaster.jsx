@@ -18,6 +18,7 @@ const defaultForm = {
   gender: 'Male',
   fatherName: '',
   motherName: '',
+  employeePhotoUrl: '',
   dateOfBirth: '',
   role: 'Technician',
   roleName: '',
@@ -198,6 +199,7 @@ const normalizeEmployee = (employee = {}) => {
     gender: employee.gender || 'Male',
     fatherName: employee.fatherName || '',
     motherName: employee.motherName || '',
+    employeePhotoUrl: employee.employeePhotoUrl || '',
     dateOfBirth: employee.dateOfBirth || '',
     role: employee.role || 'Technician',
     roleName: employee.roleName || '',
@@ -236,6 +238,7 @@ export default function EmployeeMaster() {
   const [form, setForm] = useState(defaultForm);
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState('');
+  const [sameAsPermanentAddress, setSameAsPermanentAddress] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 
   const annualSalary = useMemo(() => toAnnual(form.salaryPerMonth), [form.salaryPerMonth]);
@@ -280,7 +283,12 @@ export default function EmployeeMaster() {
       setForm((prev) => ({ ...prev, [key]: toTenDigitNumber(value) }));
       return;
     }
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      if (key === 'permanentAddress' && sameAsPermanentAddress) {
+        return { ...prev, permanentAddress: value, presentAddress: value };
+      }
+      return { ...prev, [key]: value };
+    });
   };
 
   const uploadEmployeeDocument = async (file) => {
@@ -315,12 +323,18 @@ export default function EmployeeMaster() {
       annualSalary: '0'
     }));
     setStatus('');
+    setSameAsPermanentAddress(false);
     setShowModal(true);
   };
 
   const openEditEmployee = (employee) => {
     setEditingId(employee._id || '');
-    setForm(normalizeEmployee(employee));
+    const normalizedEmployee = normalizeEmployee(employee);
+    setForm(normalizedEmployee);
+    setSameAsPermanentAddress(
+      String(normalizedEmployee.presentAddress || '').trim().length > 0
+      && String(normalizedEmployee.presentAddress || '').trim() === String(normalizedEmployee.permanentAddress || '').trim()
+    );
     setStatus('');
     setShowModal(true);
   };
@@ -330,6 +344,7 @@ export default function EmployeeMaster() {
     setEditingId('');
     setForm(defaultForm);
     setStatus('');
+    setSameAsPermanentAddress(false);
   };
 
   const handleSave = async (event) => {
@@ -368,6 +383,7 @@ export default function EmployeeMaster() {
       gender: String(form.gender || 'Male').trim(),
       fatherName: String(form.fatherName || '').trim(),
       motherName: String(form.motherName || '').trim(),
+      employeePhotoUrl: String(form.employeePhotoUrl || '').trim(),
       dateOfBirth: String(form.dateOfBirth || '').trim(),
       dateOfJoining: String(form.dateOfJoining || '').trim(),
       role: String(form.role || 'Technician').trim(),
@@ -561,6 +577,23 @@ export default function EmployeeMaster() {
                     <input style={shell.input} value={form.degree} onChange={(event) => updateField('degree', event.target.value)} />
                   </div>
                 </div>
+                <div style={{ ...shell.field, marginTop: '12px' }}>
+                  <label style={shell.label}>Employee Photo</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <label style={shell.uploadBtn}>
+                      <UploadCloud size={14} /> Upload Photo
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(event) => handleUpload(event, 'employeePhotoUrl', 'Employee photo')} />
+                    </label>
+                    <p style={shell.helper}>{form.employeePhotoUrl ? 'Uploaded' : 'Not uploaded'}</p>
+                  </div>
+                  {form.employeePhotoUrl ? (
+                    <img
+                      src={form.employeePhotoUrl}
+                      alt="Employee preview"
+                      style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #d1d5db' }}
+                    />
+                  ) : null}
+                </div>
               </div>
 
               <div style={shell.section}>
@@ -591,14 +624,30 @@ export default function EmployeeMaster() {
                     <input style={shell.input} value={form.pincode} onChange={(event) => updateField('pincode', event.target.value)} />
                   </div>
                 </div>
-                <div style={grid2Style}>
+                <div style={{ marginTop: '16px' }}>
+                  <label style={shell.checkItem}>
+                    <input
+                      type="checkbox"
+                      checked={sameAsPermanentAddress}
+                      onChange={(event) => {
+                        const checked = event.target.checked;
+                        setSameAsPermanentAddress(checked);
+                        if (checked) {
+                          setForm((prev) => ({ ...prev, presentAddress: prev.permanentAddress }));
+                        }
+                      }}
+                    />
+                    Present Address same as above Permanent Address
+                  </label>
+                </div>
+                <div style={{ ...grid2Style, marginTop: '10px' }}>
                   <div style={isCompactModal ? shell.field : { ...shell.field, ...shell.fieldSpan2 }}>
                     <label style={shell.label}>Permanent Address</label>
                     <textarea style={shell.textArea} value={form.permanentAddress} onChange={(event) => updateField('permanentAddress', event.target.value)} />
                   </div>
                   <div style={isCompactModal ? shell.field : { ...shell.field, ...shell.fieldSpan2 }}>
                     <label style={shell.label}>Present Address</label>
-                    <textarea style={shell.textArea} value={form.presentAddress} onChange={(event) => updateField('presentAddress', event.target.value)} />
+                    <textarea style={shell.textArea} value={form.presentAddress} onChange={(event) => updateField('presentAddress', event.target.value)} disabled={sameAsPermanentAddress} />
                   </div>
                 </div>
               </div>
