@@ -305,8 +305,8 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div style={shell.heroCard}>
-          <p style={{ margin: '0 auto', textAlign: 'center', color: 'var(--color-primary-dark)', lineHeight: 1.5, fontSize: isMobile ? '22px' : '34px', fontWeight: 800, background: '#ffffff', borderRadius: '12px', padding: isMobile ? '10px 12px' : '12px 16px', display: 'inline-block', maxWidth: '100%', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+        <div style={{ ...shell.heroCard, border: 'none', padding: isMobile ? '12px' : '14px', background: 'rgba(255,255,255,0.26)' }}>
+          <p style={{ margin: '0 auto', textAlign: 'center', color: 'var(--color-primary-dark)', lineHeight: 1.7, fontSize: '15px', fontWeight: 700, background: '#ffffff', borderRadius: '8px', padding: '8px 10px', display: 'inline-block', maxWidth: '100%' }}>
             Receivables: <strong>{formatCurrency(analytics.totalReceivables)}</strong> | Payables: <strong>{formatCurrency(analytics.totalPayables)}</strong>
           </p>
         </div>
