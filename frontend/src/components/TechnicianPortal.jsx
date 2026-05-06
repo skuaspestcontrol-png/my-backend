@@ -75,6 +75,9 @@ const buildVisibleJobs = (jobs, serviceSchedules, invoices, customers) => {
     // This prevents "Assigned Jobs" from appearing empty/flashing when contracts/customers
     // are still syncing.
 
+    const hasTechnician = Boolean(String(job?.technicianId || '').trim() || String(job?.technicianName || '').trim());
+    if (!hasTechnician) return;
+
     const dedupeKey = scheduleKey
       ? `${scheduleKey}::${String(job?.technicianId || '').trim()}`
       : String(job?._id || '').trim();
@@ -171,6 +174,29 @@ const shell = {
     letterSpacing: '0.02em',
     textTransform: 'uppercase'
   },
+  editBtn: {
+    border: '1px solid #cbd5e1',
+    background: '#fff',
+    color: '#0f172a',
+    borderRadius: '8px',
+    minHeight: '30px',
+    padding: '0 10px',
+    fontSize: '11px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    marginRight: '6px'
+  },
+  removeBtn: {
+    border: '1px solid #fecaca',
+    background: '#fff5f5',
+    color: '#b91c1c',
+    borderRadius: '8px',
+    minHeight: '30px',
+    padding: '0 10px',
+    fontSize: '11px',
+    fontWeight: 800,
+    cursor: 'pointer'
+  },
   pager: { marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   pagerText: { margin: 0, fontSize: '12px', color: '#475569', fontWeight: 700 },
   pagerActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
@@ -228,6 +254,7 @@ const shell = {
 
 export default function TechnicianPortal() {
   const [jobs, setJobs] = useState([]);
+  const [technicians, setTechnicians] = useState([]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [customerPage, setCustomerPage] = useState(1);
   const [expandedCustomerKey, setExpandedCustomerKey] = useState('');
@@ -242,20 +269,26 @@ export default function TechnicianPortal() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isUploadingBefore, setIsUploadingBefore] = useState(false);
   const [isUploadingAfter, setIsUploadingAfter] = useState(false);
+  const [isSavingAssignment, setIsSavingAssignment] = useState(false);
   const [actionStatus, setActionStatus] = useState('');
   const sigCanvas = useRef({});
 
   const loadPortalData = useCallback(async () => {
     try {
-      const [jobsRes, schedulesRes, invoicesRes, customersRes] = await Promise.all([
+      const [jobsRes, schedulesRes, invoicesRes, customersRes, employeesRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/jobs`),
         axios.get(`${API_BASE_URL}/api/service-schedules`),
         axios.get(`${API_BASE_URL}/api/invoices`),
-        axios.get(`${API_BASE_URL}/api/customers`)
+        axios.get(`${API_BASE_URL}/api/customers`),
+        axios.get(`${API_BASE_URL}/api/employees`)
       ]);
 
       const nextSchedules = Array.isArray(schedulesRes.data) ? schedulesRes.data : [];
       setJobs(buildVisibleJobs(jobsRes.data, nextSchedules, invoicesRes.data, customersRes.data));
+      setTechnicians(
+        (Array.isArray(employeesRes.data) ? employeesRes.data : [])
+          .filter((employee) => String(employee?.role || '').trim().toLowerCase() === 'technician')
+      );
     } catch (error) {
       console.error('Fetch failed', error);
     }
@@ -493,6 +526,73 @@ export default function TechnicianPortal() {
     handlePunchOut();
   };
 
+  const handleReassignJob = async (job) => {
+    if (!job || isSavingAssignment) return;
+    const options = technicians
+      .map((tech) => ({
+        id: String(tech?._id || '').trim(),
+        name: [tech?.firstName, tech?.lastName].filter(Boolean).join(' ').trim() || tech?.empCode || 'Technician',
+        empCode: String(tech?.empCode || '').trim(),
+        mobile: String(tech?.mobile || '').trim()
+      }))
+      .filter((entry) => entry.id);
+    if (options.length === 0) {
+      window.alert('No technician found in Employee Master.');
+      return;
+    }
+    const promptText = options
+      .map((entry, idx) => `${idx + 1}. ${entry.name}${entry.empCode ? ` (${entry.empCode})` : ''}${entry.mobile ? ` - ${entry.mobile}` : ''}`)
+      .join('\n');
+    const selected = window.prompt(`Enter technician number to reassign:\n\n${promptText}`);
+    if (!selected) return;
+    const index = Number(selected) - 1;
+    const chosen = options[index];
+    if (!chosen) {
+      window.alert('Invalid technician selection.');
+      return;
+    }
+    try {
+      setIsSavingAssignment(true);
+      await axios.put(`${API_BASE_URL}/api/jobs/${job._id}`, {
+        technicianId: chosen.id,
+        technicianName: chosen.name,
+        technicianEmpCode: chosen.empCode || '',
+        technicianMobile: chosen.mobile || '',
+        status: 'Scheduled'
+      });
+      await loadPortalData();
+      setActionStatus(`Reassigned ${job.serviceName || 'service'} to ${chosen.name}.`);
+    } catch (error) {
+      console.error('Reassign failed', error);
+      window.alert(error?.response?.data?.error || error?.message || 'Failed to reassign job.');
+    } finally {
+      setIsSavingAssignment(false);
+    }
+  };
+
+  const handleRemoveAssignment = async (job) => {
+    if (!job || isSavingAssignment) return;
+    const okay = window.confirm(`Remove assignment for ${job.serviceName || 'this service'} ${job.scheduleVisit || ''}?`);
+    if (!okay) return;
+    try {
+      setIsSavingAssignment(true);
+      await axios.put(`${API_BASE_URL}/api/jobs/${job._id}`, {
+        technicianId: '',
+        technicianName: '',
+        technicianEmpCode: '',
+        technicianMobile: '',
+        status: 'Unassigned'
+      });
+      await loadPortalData();
+      setActionStatus('Assignment removed. Service is now available again in Assign Services.');
+    } catch (error) {
+      console.error('Remove assignment failed', error);
+      window.alert(error?.response?.data?.error || error?.message || 'Failed to remove assignment.');
+    } finally {
+      setIsSavingAssignment(false);
+    }
+  };
+
   if (!activeJob) {
     return (
       <section style={pageStyle}>
@@ -644,8 +744,14 @@ export default function TechnicianPortal() {
                                       <td style={shell.jobsTd}>{job.technicianName || '-'}</td>
                                       <td style={shell.jobsTd}>{job.status || '-'}</td>
                                       <td style={shell.jobsTd}>
-                                        <button type="button" style={shell.startSmallBtn} onClick={() => openJob(job)}>
+                                        <button type="button" style={shell.startSmallBtn} onClick={() => openJob(job)} disabled={isSavingAssignment}>
                                           {String(job.status || '').trim().toLowerCase() === 'in progress' ? 'Complete Job' : 'Start'}
+                                        </button>
+                                        <button type="button" style={shell.editBtn} onClick={() => handleReassignJob(job)} disabled={isSavingAssignment}>
+                                          Edit
+                                        </button>
+                                        <button type="button" style={shell.removeBtn} onClick={() => handleRemoveAssignment(job)} disabled={isSavingAssignment}>
+                                          Delete
                                         </button>
                                       </td>
                                     </tr>

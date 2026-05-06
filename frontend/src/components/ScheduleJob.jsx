@@ -255,6 +255,10 @@ export default function ScheduleJob() {
         .filter((job) => {
           const scheduleKey = String(job?.scheduleKey || '').trim();
           if (!scheduleKey) return false;
+          const hasTechnician = Boolean(String(job?.technicianId || '').trim() || String(job?.technicianName || '').trim());
+          if (!hasTechnician) return false;
+          const status = String(job?.status || '').trim().toLowerCase();
+          if (['cancelled', 'canceled', 'deleted', 'archived', 'closed'].includes(status)) return false;
           const sameContract = String(job?.contractId || '').trim() === contractIdText;
           const sameContractNumber = String(job?.contractNumber || '').trim().toLowerCase() === String(selectedContract.contractNumber || '').trim().toLowerCase();
           return sameContract || sameContractNumber;
