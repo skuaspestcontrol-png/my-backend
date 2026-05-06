@@ -840,17 +840,32 @@ function registerPayrollModule({
     saveSnapshotToMysql('payroll_audit', rows);
   };
 
-  // Best-effort startup hydration: MySQL -> JSON files, then all existing routes keep working.
-  Promise.all([
-    hydratePayrollFileFromMysql('payroll_runs', payrollRunsFile, { config: defaultPayrollConfig, runs: [] }),
-    hydratePayrollFileFromMysql('payroll_items', payrollItemsFile, []),
-    hydratePayrollFileFromMysql('payroll_salary_structures', salaryStructuresFile, []),
-    hydratePayrollFileFromMysql('payroll_holidays', holidaysFile, []),
-    hydratePayrollFileFromMysql('payroll_advances', advancesFile, []),
-    hydratePayrollFileFromMysql('payroll_salary_payments', salaryPaymentsFile, []),
-    hydratePayrollFileFromMysql('payroll_audit', payrollAuditFile, [])
-  ]).catch((error) => {
-    console.error('Payroll MySQL hydration failed:', error.message);
+  let payrollHydrationPromise = null;
+  const ensurePayrollHydratedOnce = async () => {
+    if (!canUseMysql) return;
+    if (!payrollHydrationPromise) {
+      payrollHydrationPromise = Promise.all([
+        hydratePayrollFileFromMysql('payroll_runs', payrollRunsFile, { config: defaultPayrollConfig, runs: [] }),
+        hydratePayrollFileFromMysql('payroll_items', payrollItemsFile, []),
+        hydratePayrollFileFromMysql('payroll_salary_structures', salaryStructuresFile, []),
+        hydratePayrollFileFromMysql('payroll_holidays', holidaysFile, []),
+        hydratePayrollFileFromMysql('payroll_advances', advancesFile, []),
+        hydratePayrollFileFromMysql('payroll_salary_payments', salaryPaymentsFile, []),
+        hydratePayrollFileFromMysql('payroll_audit', payrollAuditFile, [])
+      ]).catch((error) => {
+        console.error('Payroll MySQL hydration failed:', error.message);
+      });
+    }
+    await payrollHydrationPromise;
+  };
+
+  app.use('/api/payroll', async (_req, _res, next) => {
+    try {
+      await ensurePayrollHydratedOnce();
+    } catch (_error) {
+      // Non-blocking: payroll APIs will still serve JSON fallback.
+    }
+    next();
   });
 
   const employeeLookup = () => {
