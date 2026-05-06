@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { CalendarDays, ClipboardList, MapPin, UserCog, Wrench, X } from 'lucide-react';
+import { CalendarDays, MapPin, Wrench, X } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -56,7 +56,6 @@ const shell = {
   field: { display: 'grid', gap: '4px' },
   label: { margin: 0, fontSize: '11px', color: '#6b7280', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
   input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff', boxSizing: 'border-box' },
-  textArea: { width: '100%', minHeight: '58px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '8px', fontSize: '12px', color: '#334155', background: '#fff', boxSizing: 'border-box', resize: 'vertical' },
   help: { margin: 0, fontSize: '11px', color: '#94a3b8', fontWeight: 600 },
   tinyPill: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', border: '1px solid #F9A8D4', background: 'var(--color-primary-light)', color: 'var(--color-primary)', fontWeight: 800, fontSize: '11px', padding: '3px 8px' },
   chipRow: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
@@ -132,15 +131,6 @@ export default function ScheduleJob() {
   const [scheduleStatusFilter, setScheduleStatusFilter] = useState('All');
   const [selectedScheduleKeys, setSelectedScheduleKeys] = useState([]);
   const [selectedTechnicians, setSelectedTechnicians] = useState([]);
-  const [details, setDetails] = useState({
-    priority: 'Normal',
-    workStartDate: '',
-    workStartTime: '',
-    accessInstructions: '',
-    latitude: '',
-    longitude: '',
-    notes: ''
-  });
 
   useEffect(() => {
     let mounted = true;
@@ -365,7 +355,7 @@ export default function ScheduleJob() {
 
   const assignNow = async () => {
     const resolvedTechnicians = selectedTechnicians;
-    const resolvedRows = selectedRows.length > 0 ? selectedRows : filteredServiceRows;
+    const resolvedRows = selectedRows;
 
     if (!selectedCustomer || !selectedContract) {
       const message = 'Select customer and contract first.';
@@ -400,11 +390,11 @@ export default function ScheduleJob() {
         pincode: selectedCustomer.billingPincode || selectedCustomer.pincode || '',
         contractId: selectedContract._id,
         contractNumber: selectedContract.contractNumber,
-        priority: details.priority,
-        accessInstructions: details.accessInstructions,
-        latitude: details.latitude,
-        longitude: details.longitude,
-        notes: details.notes
+        priority: 'Normal',
+        accessInstructions: '',
+        latitude: '',
+        longitude: '',
+        notes: ''
       };
 
       const payloads = [];
@@ -416,9 +406,9 @@ export default function ScheduleJob() {
             scheduleVisit: row.visit,
             serviceName: row.service,
             sourceScheduleStatus: row.status,
-            scheduledDate: details.workStartDate || row.date || '',
-            scheduledTime: details.workStartTime || row.window || '',
-            serviceInstructions: details.notes || String(row.raw?.itemDescription || row.raw?.itemName || row.service || ''),
+            scheduledDate: row.date || '',
+            scheduledTime: row.window || '',
+            serviceInstructions: String(row.raw?.itemDescription || row.raw?.itemName || row.service || ''),
             technicianId: tech._id || '',
             technicianName: formatEmployeeName(tech),
             technicianEmpCode: tech.empCode || '',
@@ -468,11 +458,10 @@ export default function ScheduleJob() {
                   setContractId('');
                 }}
               >
-                <option value="">Search customer by name or phone</option>
+                <option value="">Select customer</option>
                 {customersWithContracts.map((customer) => (
                   <option key={customer._id} value={customer._id}>
                     {(customer.displayName || customer.name || 'Customer')}
-                    {customer.mobileNumber ? ` (${customer.mobileNumber})` : ''}
                   </option>
                 ))}
               </select>
@@ -486,10 +475,18 @@ export default function ScheduleJob() {
                 onChange={(event) => setContractId(event.target.value)}
                 disabled={!customerId}
               >
-                <option value="">Search contract number or period</option>
+                <option value="">Select active contract</option>
                 {customerContracts.map((entry) => (
                   <option key={entry._id} value={entry._id}>
-                    {entry.contractNumber} {entry.startDate ? `(${formatDate(entry.startDate)}${entry.endDate ? ` to ${formatDate(entry.endDate)}` : ''})` : ''}
+                    {[
+                      (Array.isArray(entry.items) ? entry.items : [])
+                        .map((item) => String(item?.itemName || item?.name || '').trim())
+                        .filter(Boolean)
+                        .join(', ') || 'Service',
+                      entry.startDate
+                        ? `(${formatDate(entry.startDate)}${entry.endDate ? ` to ${formatDate(entry.endDate)}` : ''})`
+                        : ''
+                    ].filter(Boolean).join(' ')}
                   </option>
                 ))}
               </select>
@@ -631,55 +628,6 @@ export default function ScheduleJob() {
                 </button>
               </span>
             ))}
-          </div>
-        </div>
-      </div>
-
-      <div style={shell.section}>
-        <div style={shell.sectionHead}>
-          <h3 style={shell.sectionTitle}><ClipboardList size={16} /> 3. Service Details</h3>
-        </div>
-        <div style={shell.sectionBody}>
-          <div style={fieldGrid2Style}>
-            <div style={shell.field}>
-              <p style={shell.label}>Priority</p>
-              <select style={shell.input} value={details.priority} onChange={(event) => setDetails((prev) => ({ ...prev, priority: event.target.value }))}>
-                <option>Normal</option>
-                <option>High</option>
-                <option>Urgent</option>
-              </select>
-            </div>
-            <div style={fieldGrid2Style}>
-              <div style={shell.field}>
-                <p style={shell.label}>Work Start Date</p>
-                <input type="date" style={shell.input} value={details.workStartDate} onChange={(event) => setDetails((prev) => ({ ...prev, workStartDate: event.target.value }))} />
-              </div>
-              <div style={shell.field}>
-                <p style={shell.label}>Work Start Time</p>
-                <input type="time" style={shell.input} value={details.workStartTime} onChange={(event) => setDetails((prev) => ({ ...prev, workStartTime: event.target.value }))} />
-              </div>
-            </div>
-          </div>
-
-          <div style={fieldGrid4Style}>
-            <div style={shell.field}>
-              <p style={shell.label}>Access Instructions (Property)</p>
-              <input style={shell.input} value={details.accessInstructions} placeholder="Gate/lock codes, security desk notes" onChange={(event) => setDetails((prev) => ({ ...prev, accessInstructions: event.target.value }))} />
-            </div>
-            <div style={shell.field}>
-              <p style={shell.label}>Latitude</p>
-              <input style={shell.input} value={details.latitude} placeholder="e.g. 19.0760" onChange={(event) => setDetails((prev) => ({ ...prev, latitude: event.target.value }))} />
-            </div>
-            <div style={shell.field}>
-              <p style={shell.label}>Longitude</p>
-              <input style={shell.input} value={details.longitude} placeholder="e.g. 72.8777" onChange={(event) => setDetails((prev) => ({ ...prev, longitude: event.target.value }))} />
-            </div>
-            <div />
-          </div>
-
-          <div style={shell.field}>
-            <p style={shell.label}>Instructions / Notes</p>
-            <textarea style={shell.textArea} value={details.notes} placeholder="Any additional directions for technicians" onChange={(event) => setDetails((prev) => ({ ...prev, notes: event.target.value }))} />
           </div>
         </div>
       </div>

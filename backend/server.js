@@ -3712,6 +3712,31 @@ const syncJobToMysql = async (job) => {
   if (!job || !job._id) return;
   await withMysqlConnection(async (conn) => {
     await ensureJobsGoogleColumns(conn);
+    try {
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS customer_external_id VARCHAR(80) NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS invoice_external_id VARCHAR(80) NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS job_number VARCHAR(120) NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS service_name VARCHAR(255) NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS service_type VARCHAR(120) NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS area_name VARCHAR(255) NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS scheduled_date DATE NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS scheduled_time VARCHAR(40) NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS source_created_at DATETIME NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS source_updated_at DATETIME NULL');
+    } catch (_error) {
+      const [cols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='jobs'");
+      const names = new Set((cols || []).map((c) => String(c.COLUMN_NAME || '')));
+      if (!names.has('customer_external_id')) await conn.query('ALTER TABLE jobs ADD COLUMN customer_external_id VARCHAR(80) NULL');
+      if (!names.has('invoice_external_id')) await conn.query('ALTER TABLE jobs ADD COLUMN invoice_external_id VARCHAR(80) NULL');
+      if (!names.has('job_number')) await conn.query('ALTER TABLE jobs ADD COLUMN job_number VARCHAR(120) NULL');
+      if (!names.has('service_name')) await conn.query('ALTER TABLE jobs ADD COLUMN service_name VARCHAR(255) NULL');
+      if (!names.has('service_type')) await conn.query('ALTER TABLE jobs ADD COLUMN service_type VARCHAR(120) NULL');
+      if (!names.has('area_name')) await conn.query('ALTER TABLE jobs ADD COLUMN area_name VARCHAR(255) NULL');
+      if (!names.has('scheduled_date')) await conn.query('ALTER TABLE jobs ADD COLUMN scheduled_date DATE NULL');
+      if (!names.has('scheduled_time')) await conn.query('ALTER TABLE jobs ADD COLUMN scheduled_time VARCHAR(40) NULL');
+      if (!names.has('source_created_at')) await conn.query('ALTER TABLE jobs ADD COLUMN source_created_at DATETIME NULL');
+      if (!names.has('source_updated_at')) await conn.query('ALTER TABLE jobs ADD COLUMN source_updated_at DATETIME NULL');
+    }
     await conn.query(
       `INSERT INTO jobs (
         external_id, customer_external_id, invoice_external_id, customer_name, job_number, status,
