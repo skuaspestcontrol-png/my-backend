@@ -87,9 +87,15 @@ const resolveWhatsappConfig = (settings = {}) => ({
 });
 
 const resolveCompanyDetails = (settings = {}) => ({
-  companyName: normalizeText(settings?.companyName || defaultCompany.companyName),
+  companyName: normalizeText(
+    settings?.gstCompanyName
+    || settings?.companyName
+    || defaultCompany.companyName
+  ),
   phone: normalizeText(
-    settings?.companyPhone
+    settings?.gstPhone
+    || settings?.companyPhone
+    || settings?.companyMobile
     || settings?.phone
     || settings?.mobile
     || defaultCompany.phone
@@ -100,15 +106,20 @@ const resolveCompanyDetails = (settings = {}) => ({
     || defaultCompany.website
   ),
   email: normalizeText(
-    settings?.companyEmail
+    settings?.gstEmail
+    || settings?.companyEmail
     || settings?.email
     || defaultCompany.email
   ),
   address: normalizeText(
-    settings?.companyAddress
+    settings?.gstBillingAddress
+    || settings?.companyAddress
     || settings?.address
     || defaultCompany.address
   ),
+  city: normalizeText(settings?.gstCity || settings?.companyCity || ''),
+  state: normalizeText(settings?.gstState || settings?.companyState || ''),
+  pincode: normalizeText(settings?.gstPincode || settings?.companyPincode || ''),
   logoUrl: normalizeText(
     settings?.companyLogo
     || settings?.companyLogoUrl
@@ -592,51 +603,64 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
     doc.font('Helvetica').fillColor('#111827').text(` ${value || '-'}`);
   };
   const amount = (n) => Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const cmToPt = (cm) => cm * 28.3465;
+  const logoWidth = cmToPt(6.67) * 0.53;
+  const logoHeight = cmToPt(2.57) * 0.53;
 
   if (logoBuffer) {
     try {
-      doc.image(logoBuffer, 452, 28, { fit: [90, 56], align: 'right', valign: 'top' });
+      doc.image(logoBuffer, 42, 34, { fit: [logoWidth, logoHeight], align: 'left', valign: 'top' });
     } catch (_e) {
       // Continue without logo if image decode fails.
     }
   }
 
-  doc.font('Helvetica-Bold').fontSize(18).fillColor('#0f172a').text(company.companyName || defaultCompany.companyName, 42, 36);
-  const companyMeta = [
-    company.phone ? `Phone: ${company.phone}` : '',
+  doc.font('Helvetica-Bold').fontSize(18).fillColor('#0f172a').text(company.companyName || defaultCompany.companyName, 150, 42, { width: 210 });
+
+  const rightLines = [
+    normalizeText(company.companyName || defaultCompany.companyName),
+    normalizeText(company.address || ''),
+    [company.city, company.state, company.pincode].filter(Boolean).join(', '),
     company.email ? `Email: ${company.email}` : '',
+    company.phone ? `Phone: ${company.phone}` : '',
     company.website ? `Website: ${company.website}` : ''
-  ].filter(Boolean).join('  |  ');
-  doc.font('Helvetica').fontSize(10).fillColor('#334155').text(companyMeta || `Phone: ${defaultCompany.phone}`, 42, 58);
-  if (company.address) {
-    doc.font('Helvetica').fontSize(9).fillColor('#475569').text(company.address, 42, 74, { width: 511 });
-  }
-  doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a').text('Salary Slip', 42, 94);
-  doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`For ${pad2(item.month)}/${item.year}`, 42, 112);
-  line(132);
+  ].filter(Boolean);
+  let rightY = 34;
+  rightLines.forEach((lineText, idx) => {
+    doc
+      .font(idx === 0 ? 'Helvetica-Bold' : 'Helvetica')
+      .fontSize(idx === 0 ? 11 : 9)
+      .fillColor(idx === 0 ? '#0f172a' : '#334155')
+      .text(lineText, 360, rightY, { width: 193, align: 'right' });
+    rightY += idx === 0 ? 14 : 12;
+  });
 
-  textValue('Employee Name:', item.employeeName, 42, 142);
-  textValue('Employee ID:', item.employeeCode, 310, 142);
-  textValue('Designation:', item.designation || '-', 42, 160);
-  textValue('Department:', item.department || '-', 310, 160);
-  textValue('Payment Status:', item.paymentStatus || 'Pending', 42, 178);
-  textValue('Payroll Status:', item.payrollStatus || '-', 310, 178);
-  line(202);
+  doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a').text('Salary Slip', 42, 96);
+  doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`For ${pad2(item.month)}/${item.year}`, 42, 114);
+  line(136);
 
-  doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('Attendance Summary', 42, 212);
+  textValue('Employee Name:', item.employeeName, 42, 146);
+  textValue('Employee ID:', item.employeeCode, 310, 146);
+  textValue('Designation:', item.designation || '-', 42, 164);
+  textValue('Department:', item.department || '-', 310, 164);
+  textValue('Payment Status:', item.paymentStatus || 'Pending', 42, 182);
+  textValue('Payroll Status:', item.payrollStatus || '-', 310, 182);
+  line(206);
+
+  doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('Attendance Summary', 42, 216);
   doc.font('Helvetica').fontSize(10).fillColor('#111827')
-    .text(`Working Days: ${item.attendanceSummary.totalWorkingDays}`, 42, 230)
-    .text(`Present: ${item.attendanceSummary.presentDays}`, 180, 230)
-    .text(`Paid Leave: ${item.attendanceSummary.paidLeaveDays}`, 290, 230)
-    .text(`Unpaid Leave: ${item.attendanceSummary.unpaidLeaveDays}`, 430, 230)
-    .text(`Half Day: ${item.attendanceSummary.halfDays}`, 42, 248)
-    .text(`Late Marks: ${item.attendanceSummary.lateMarks}`, 180, 248)
-    .text(`Weekly Off: ${item.attendanceSummary.weeklyOffDays}`, 290, 248)
-    .text(`Paid Holiday: ${item.attendanceSummary.paidHolidayDays}`, 430, 248);
-  line(274);
+    .text(`Working Days: ${item.attendanceSummary.totalWorkingDays}`, 42, 234)
+    .text(`Present: ${item.attendanceSummary.presentDays}`, 180, 234)
+    .text(`Paid Leave: ${item.attendanceSummary.paidLeaveDays}`, 290, 234)
+    .text(`Unpaid Leave: ${item.attendanceSummary.unpaidLeaveDays}`, 430, 234)
+    .text(`Half Day: ${item.attendanceSummary.halfDays}`, 42, 252)
+    .text(`Late Marks: ${item.attendanceSummary.lateMarks}`, 180, 252)
+    .text(`Weekly Off: ${item.attendanceSummary.weeklyOffDays}`, 290, 252)
+    .text(`Paid Holiday: ${item.attendanceSummary.paidHolidayDays}`, 430, 252);
+  line(278);
 
-  doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('Earnings', 42, 284);
-  doc.font('Helvetica-Bold').text('Deductions', 310, 284);
+  doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('Earnings', 42, 288);
+  doc.font('Helvetica-Bold').text('Deductions', 310, 288);
 
   const earningsRows = [
     ['Basic Salary', item.basicSalary],
@@ -658,7 +682,7 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
   ];
   const rowHeight = 18;
   for (let i = 0; i < Math.max(earningsRows.length, deductionRows.length); i += 1) {
-    const y = 306 + (i * rowHeight);
+    const y = 310 + (i * rowHeight);
     const left = earningsRows[i];
     const right = deductionRows[i];
     if (left) {
@@ -671,7 +695,7 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
     }
   }
 
-  const totalY = 306 + (Math.max(earningsRows.length, deductionRows.length) * rowHeight) + 8;
+  const totalY = 310 + (Math.max(earningsRows.length, deductionRows.length) * rowHeight) + 8;
   line(totalY);
   doc.font('Helvetica-Bold').fontSize(10).text('Gross Salary', 42, totalY + 8);
   doc.text(amount(item.grossSalary), 225, totalY + 8, { width: 70, align: 'right' });
