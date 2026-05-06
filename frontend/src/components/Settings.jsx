@@ -123,27 +123,51 @@ const onOffOptions = ['On', 'Off'];
 const smtpEncryptionOptions = ['TLS', 'SSL', 'None'];
 const smtpActiveOptions = ['Yes', 'No'];
 
-const sectionMeta = [
-  { key: 'businessIdentity', label: 'Profile' },
-  { key: 'gstCompany', label: 'GST Company' },
-  { key: 'nonGstCompany', label: 'Non GST Company' },
-  { key: 'bankAccounts', label: 'Bank Account' },
-  { key: 'documentPrefixes', label: 'Prefixes' },
-  { key: 'quotationTemplate', label: 'Quotation Template' },
-  { key: 'quotationPrefixes', label: 'Quotation Prefixes' },
-  { key: 'quotationServices', label: 'Quotation Services' },
-  { key: 'quotationCommonParagraphs', label: 'Quotation Paragraphs' },
-  { key: 'infestationLevels', label: 'Infestation Levels' },
-  { key: 'whatsappApiSettings', label: 'WhatsApp API Settings' },
-  { key: 'whatsappTemplates', label: 'WhatsApp Templates' },
-  { key: 'whatsappLogs', label: 'WhatsApp Logs' },
-  { key: 'emailApiSettings', label: 'Email API Settings' },
-  { key: 'emailTemplates', label: 'Email Templates' },
-  { key: 'emailLogs', label: 'Email Logs' },
-  { key: 'googleIntegration', label: 'Google Integration' },
-  { key: 'termsConditions', label: 'Terms & Conditions' },
-  { key: 'invoiceSettings', label: 'Invoice Settings' },
-  { key: 'security', label: 'Change Password' }
+const sectionGroups = [
+  {
+    key: 'general',
+    label: 'General Settings',
+    items: [
+      { key: 'businessIdentity', label: 'Profile' },
+      { key: 'gstCompany', label: 'GST Company' },
+      { key: 'nonGstCompany', label: 'Non GST Company' },
+      { key: 'bankAccounts', label: 'Bank Account' },
+      { key: 'documentPrefixes', label: 'Prefixes' },
+      { key: 'googleIntegration', label: 'Google Integration' },
+      { key: 'termsConditions', label: 'Terms & Conditions' },
+      { key: 'invoiceSettings', label: 'Invoice Settings' },
+      { key: 'security', label: 'Change Password' }
+    ]
+  },
+  {
+    key: 'quotation',
+    label: 'Quotation Settings',
+    items: [
+      { key: 'quotationTemplate', label: 'Template' },
+      { key: 'quotationPrefixes', label: 'Prefixes' },
+      { key: 'quotationServices', label: 'Services' },
+      { key: 'quotationCommonParagraphs', label: 'Paragraphs' },
+      { key: 'infestationLevels', label: 'Infestation Levels' }
+    ]
+  },
+  {
+    key: 'whatsapp',
+    label: 'WhatsApp Settings',
+    items: [
+      { key: 'whatsappApiSettings', label: 'API Settings' },
+      { key: 'whatsappTemplates', label: 'Templates' },
+      { key: 'whatsappLogs', label: 'Logs' }
+    ]
+  },
+  {
+    key: 'email',
+    label: 'Email Settings',
+    items: [
+      { key: 'emailApiSettings', label: 'API Settings' },
+      { key: 'emailTemplates', label: 'Templates' },
+      { key: 'emailLogs', label: 'Logs' }
+    ]
+  }
 ];
 
 const defaultForm = {
@@ -365,6 +389,32 @@ const shell = {
     borderColor: 'transparent',
     background: 'var(--color-primary-light)',
     boxShadow: 'inset 3px 0 0 var(--color-primary)'
+  },
+  menuGroup: {
+    display: 'grid',
+    gap: '5px',
+    padding: '6px',
+    borderRadius: '10px',
+    background: 'rgba(15, 23, 42, 0.02)'
+  },
+  groupToggle: {
+    width: '100%',
+    border: '1px solid transparent',
+    borderRadius: '8px',
+    background: 'transparent',
+    color: '#334155',
+    padding: '7px 9px',
+    fontSize: '12px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    textAlign: 'left',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  childButton: {
+    marginLeft: '8px',
+    width: 'calc(100% - 8px)'
   },
   panelBody: { padding: '14px 16px', display: 'grid', alignContent: 'start', gap: '10px', flex: 1 },
   sectionHeading: { margin: 0, color: '#374151', fontSize: '13px', fontWeight: 800, letterSpacing: '0.02em' },
@@ -643,11 +693,18 @@ const getSectionCompletion = (form, securityForm) => {
 };
 
 export default function Settings({ modalMode = false }) {
+  const flatSections = useMemo(() => sectionGroups.flatMap((group) => group.items), []);
   const [form, setForm] = useState(defaultForm);
   const [initialForm, setInitialForm] = useState(defaultForm);
   const [status, setStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState(sectionMeta[0].key);
+  const [activeSection, setActiveSection] = useState(flatSections[0].key);
+  const [expandedGroups, setExpandedGroups] = useState({
+    general: true,
+    quotation: true,
+    whatsapp: true,
+    email: true
+  });
   const logoInputRef = useRef(null);
   const gstLogoInputRef = useRef(null);
   const gstSignatureInputRef = useRef(null);
@@ -2396,23 +2453,41 @@ export default function Settings({ modalMode = false }) {
                   onChange={(event) => setActiveSection(event.target.value)}
                   style={{ ...shell.input, minHeight: '44px' }}
                 >
-                  {sectionMeta.map((section) => (
-                    <option key={section.key} value={section.key}>{section.label}</option>
+                  {sectionGroups.map((group) => (
+                    <optgroup key={group.key} label={group.label}>
+                      {group.items.map((section) => (
+                        <option key={section.key} value={section.key}>{section.label}</option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               ) : null}
-              {sectionMeta.map((section) => {
-                const isActive = section.key === activeSection;
-                if (isCompactLayout) return null;
+              {isCompactLayout ? null : sectionGroups.map((group) => {
+                const isExpanded = expandedGroups[group.key];
                 return (
-                  <button
-                    key={section.key}
-                    type="button"
-                    style={{ ...tabButtonStyle, ...(isActive ? shell.tabButtonActive : {}) }}
-                    onClick={() => setActiveSection(section.key)}
-                  >
-                    {section.label}
-                  </button>
+                  <div key={group.key} style={shell.menuGroup}>
+                    <button
+                      type="button"
+                      style={shell.groupToggle}
+                      onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                    >
+                      <span>{group.label}</span>
+                      <span>{isExpanded ? '▾' : '▸'}</span>
+                    </button>
+                    {isExpanded ? group.items.map((section) => {
+                      const isActive = section.key === activeSection;
+                      return (
+                        <button
+                          key={section.key}
+                          type="button"
+                          style={{ ...tabButtonStyle, ...shell.childButton, ...(isActive ? shell.tabButtonActive : {}) }}
+                          onClick={() => setActiveSection(section.key)}
+                        >
+                          {section.label}
+                        </button>
+                      );
+                    }) : null}
+                  </div>
                 );
               })}
             </div>
