@@ -1861,10 +1861,40 @@ function registerPayrollModule({
     res.json({ type, rows: selectedRows });
   });
 
-  app.post('/api/payroll/seed-sample', (req, res) => {
+  app.post('/api/payroll/seed-sample', async (req, res) => {
     const perms = ensureAccess(req, res, (p) => p.canManageAll, 'Only Admin/HR can seed payroll sample data');
     if (!perms) return;
-    const employees = readJsonFile(employeesFile, []);
+    let employees = readJsonFile(employeesFile, []);
+    if ((!Array.isArray(employees) || employees.length === 0) && canUseMysql) {
+      try {
+        const mysqlEmployees = await withMysqlConnection(async (conn) => {
+          const [rows] = await conn.query(`
+            SELECT
+              external_id AS _id,
+              first_name AS firstName,
+              last_name AS lastName,
+              emp_code AS empCode,
+              salary_per_month AS salaryPerMonth,
+              salary AS salary
+            FROM employees
+            ORDER BY id ASC
+          `);
+          return Array.isArray(rows) ? rows : [];
+        });
+        if (Array.isArray(mysqlEmployees) && mysqlEmployees.length > 0) {
+          employees = mysqlEmployees.map((entry, index) => ({
+            _id: normalizeText(entry?._id) || `EMP-${index + 1}`,
+            firstName: normalizeText(entry?.firstName),
+            lastName: normalizeText(entry?.lastName),
+            empCode: normalizeText(entry?.empCode),
+            salaryPerMonth: toNumber(entry?.salaryPerMonth, toNumber(entry?.salary, 0)),
+            salary: toNumber(entry?.salary, toNumber(entry?.salaryPerMonth, 0))
+          }));
+        }
+      } catch (error) {
+        console.error('Payroll seed employees MySQL fallback failed:', error.message);
+      }
+    }
     if (employees.length === 0) return res.status(400).json({ error: 'No employees found for seeding' });
 
     const structures = getStructures();
