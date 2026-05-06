@@ -259,6 +259,10 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname); }
 });
 const upload = multer({ storage });
+const jobCompletionUpload = upload.fields([
+  { name: 'beforePhotoFile', maxCount: 1 },
+  { name: 'afterPhotoFile', maxCount: 1 }
+]);
 
 const settingsFile = path.join(dataDir, 'settings.json');
 const leadsFile = path.join(dataDir, 'leads.json');
@@ -2431,6 +2435,85 @@ app.put('/api/jobs/:id', async (req, res) => {
   res.json(updatedJob);
 });
 
+app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
+  try {
+    const targetId = String(req.params.id || '').trim();
+    const safeNumericId = /^\d+$/.test(targetId) ? Number(targetId) : null;
+    const signature = String(req.body?.customerSignature || '').trim();
+    const uploadedBeforeFile = req.files?.beforePhotoFile?.[0];
+    const uploadedAfterFile = req.files?.afterPhotoFile?.[0];
+    const uploadedBeforeUrl = uploadedBeforeFile ? `${resolveServerOrigin(req)}/uploads/${uploadedBeforeFile.filename}` : '';
+    const uploadedAfterUrl = uploadedAfterFile ? `${resolveServerOrigin(req)}/uploads/${uploadedAfterFile.filename}` : '';
+    const providedBeforeUrl = String(req.body?.beforePhoto || '').trim();
+    const providedAfterUrl = String(req.body?.afterPhoto || '').trim();
+
+    const nextFields = {
+      status: String(req.body?.status || 'Completed').trim() || 'Completed',
+      punchInTime: String(req.body?.punchInTime || '').trim(),
+      punchOutTime: String(req.body?.punchOutTime || '').trim(),
+      completionCardNumber: String(req.body?.completionCardNumber || '').trim(),
+      completionCardGeneratedAt: String(req.body?.completionCardGeneratedAt || '').trim(),
+      beforePhoto: uploadedBeforeUrl || providedBeforeUrl || '',
+      afterPhoto: uploadedAfterUrl || providedAfterUrl || '',
+      customerSignature: signature
+    };
+
+    if (canUseMysql()) {
+      const mysqlJob = await withMysqlConnection(async (conn) => {
+        const sql = safeNumericId !== null
+          ? 'SELECT payload FROM jobs WHERE external_id = ? OR id = ? ORDER BY id DESC LIMIT 1'
+          : 'SELECT payload FROM jobs WHERE external_id = ? ORDER BY id DESC LIMIT 1';
+        const params = safeNumericId !== null ? [targetId, safeNumericId] : [targetId];
+        const [rows] = await conn.query(sql, params);
+        const row = Array.isArray(rows) ? rows[0] : null;
+        if (!row?.payload) return null;
+        if (typeof row.payload === 'string') {
+          try { return JSON.parse(row.payload); } catch { return null; }
+        }
+        return row.payload;
+      });
+      if (!mysqlJob || String(mysqlJob?._id || '').trim() === '') {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+
+      const updatedJob = {
+        ...mysqlJob,
+        ...nextFields,
+        _id: mysqlJob._id
+      };
+
+      await syncJobToMysql(updatedJob);
+      syncJobGoogleTaskSafely(updatedJob, { markCompleted: String(updatedJob.status || '').trim().toLowerCase() === 'completed' }).catch((error) => {
+        console.error('Background Google sync failed on complete:', error.message);
+      });
+
+      try {
+        const jsonJobs = readJsonFile(jobsFile, []);
+        const idx = jsonJobs.findIndex((job) => String(job?._id || '').trim() === targetId);
+        if (idx === -1) jsonJobs.push(updatedJob);
+        else jsonJobs[idx] = updatedJob;
+        fs.writeFileSync(jobsFile, JSON.stringify(jsonJobs, null, 2));
+      } catch (error) {
+        console.error('JSON jobs shadow update failed:', error.message);
+      }
+
+      return res.json(updatedJob);
+    }
+
+    const jobs = readJsonFile(jobsFile, []);
+    const jobIndex = jobs.findIndex((job) => String(job?._id || '').trim() === targetId);
+    if (jobIndex === -1) return res.status(404).json({ error: 'Job not found' });
+
+    const updatedJob = { ...jobs[jobIndex], ...nextFields, _id: jobs[jobIndex]._id };
+    jobs[jobIndex] = updatedJob;
+    fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
+    return res.json(updatedJob);
+  } catch (error) {
+    console.error('Complete job submit failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to complete job' });
+  }
+});
+
 app.get('/api/jobs/:id/pdf', async (req, res) => {
   try {
     const jobs = readJsonFile(jobsFile, []);
@@ -3705,6 +3788,9 @@ const syncJobToMysql = async (job) => {
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS scheduled_time VARCHAR(40) NULL');
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS source_created_at DATETIME NULL');
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS source_updated_at DATETIME NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS before_photo_url TEXT NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS after_photo_url TEXT NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS customer_signature_url LONGTEXT NULL');
     } catch (_error) {
       const [cols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='jobs'");
       const names = new Set((cols || []).map((c) => String(c.COLUMN_NAME || '')));
@@ -3718,6 +3804,9 @@ const syncJobToMysql = async (job) => {
       if (!names.has('scheduled_time')) await conn.query('ALTER TABLE jobs ADD COLUMN scheduled_time VARCHAR(40) NULL');
       if (!names.has('source_created_at')) await conn.query('ALTER TABLE jobs ADD COLUMN source_created_at DATETIME NULL');
       if (!names.has('source_updated_at')) await conn.query('ALTER TABLE jobs ADD COLUMN source_updated_at DATETIME NULL');
+      if (!names.has('before_photo_url')) await conn.query('ALTER TABLE jobs ADD COLUMN before_photo_url TEXT NULL');
+      if (!names.has('after_photo_url')) await conn.query('ALTER TABLE jobs ADD COLUMN after_photo_url TEXT NULL');
+      if (!names.has('customer_signature_url')) await conn.query('ALTER TABLE jobs ADD COLUMN customer_signature_url LONGTEXT NULL');
     }
     const [existingCols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='jobs'");
     const columnSet = new Set((existingCols || []).map((c) => String(c.COLUMN_NAME || '').trim()).filter(Boolean));
@@ -3746,6 +3835,9 @@ const syncJobToMysql = async (job) => {
       scheduled_time: serviceTime,
       service_time: serviceTime,
       status: job.status || null,
+      before_photo_url: job.beforePhoto || null,
+      after_photo_url: job.afterPhoto || null,
+      customer_signature_url: job.customerSignature || null,
       google_task_id: job.google_task_id || null,
       google_sync_status: job.google_sync_status || null,
       google_last_synced_at: toMysqlDateTimeOrNull(job.google_last_synced_at),
@@ -3835,6 +3927,28 @@ const syncJobGoogleTaskSafely = async (job, options = {}) => {
 
 let lastGoogleTaskPullAtMs = 0;
 const GOOGLE_TASK_PULL_MIN_INTERVAL_MS = 45 * 1000;
+const parseGoogleTaskNotes = (notes = '') => {
+  const lines = String(notes || '').split('\n');
+  const mapped = {};
+  lines.forEach((line) => {
+    const idx = line.indexOf(':');
+    if (idx <= 0) return;
+    const key = line.slice(0, idx).trim().toLowerCase();
+    const value = line.slice(idx + 1).trim();
+    if (!value) return;
+    mapped[key] = value;
+  });
+  return mapped;
+};
+
+const normalizeGoogleDueToDate = (dueValue = '') => {
+  const raw = String(dueValue || '').trim();
+  if (!raw) return '';
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+};
+
 const pullGoogleTaskUpdatesToCrmSafely = async () => {
   if (!canUseMysql()) return;
   const now = Date.now();
@@ -3863,11 +3977,47 @@ const pullGoogleTaskUpdatesToCrmSafely = async () => {
         try {
           const taskRes = await client.tasks.tasks.get({ tasklist: tasklistId, task: taskId });
           const task = taskRes?.data || {};
+          const taskTitle = String(task.title || '').trim();
+          const taskNotes = String(task.notes || '').trim();
+          const notesMapped = parseGoogleTaskNotes(taskNotes);
+          const parsedTaskDate = normalizeGoogleDueToDate(task.due || '');
+          const parsedTaskTime = String(notesMapped.time || '').trim();
+          let jobChanged = false;
+
+          if (taskTitle && taskTitle !== String(job.serviceName || '').trim()) {
+            job.serviceName = taskTitle;
+            jobChanged = true;
+          }
+
+          const parsedInstructions = String(notesMapped.description || '').trim();
+          if (parsedInstructions && parsedInstructions !== String(job.serviceInstructions || '').trim()) {
+            job.serviceInstructions = parsedInstructions;
+            jobChanged = true;
+          }
+
+          if (parsedTaskDate && parsedTaskDate !== String(job.scheduledDate || '').trim()) {
+            job.scheduledDate = parsedTaskDate;
+            jobChanged = true;
+          }
+
+          if (parsedTaskTime && parsedTaskTime !== String(job.scheduledTime || '').trim()) {
+            job.scheduledTime = parsedTaskTime;
+            jobChanged = true;
+          }
+
           const taskStatus = String(task.status || '').trim().toLowerCase();
           const crmStatus = String(job.status || '').trim().toLowerCase();
           if (taskStatus === 'completed' && crmStatus !== 'completed') {
             job.status = 'Completed';
             job.punchOutTime = job.punchOutTime || new Date().toLocaleString();
+            jobChanged = true;
+          } else if (taskStatus === 'needsaction' && crmStatus === 'completed') {
+            // Optional reopen behavior when Google task is reopened.
+            job.status = 'In Progress';
+            jobChanged = true;
+          }
+
+          if (jobChanged) {
             job.google_sync_status = 'synced';
             job.google_last_synced_at = new Date().toISOString();
             await syncJobToMysql(job);

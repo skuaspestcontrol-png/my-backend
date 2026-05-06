@@ -236,6 +236,8 @@ export default function TechnicianPortal() {
   const [punchInTime, setPunchInTime] = useState(null);
   const [beforeUrl, setBeforeUrl] = useState('');
   const [afterUrl, setAfterUrl] = useState('');
+  const [beforeFile, setBeforeFile] = useState(null);
+  const [afterFile, setAfterFile] = useState(null);
   const [isPunchingIn, setIsPunchingIn] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isUploadingBefore, setIsUploadingBefore] = useState(false);
@@ -361,20 +363,14 @@ export default function TechnicianPortal() {
   const pagerStyle = isMobile ? { ...shell.pager, flexDirection: 'column', alignItems: 'stretch' } : shell.pager;
   const signatureWidth = isMobile ? Math.max(260, Math.min(360, viewportWidth - 56)) : 520;
 
-  const handleUpload = async (event, setUrl, setUploading) => {
+  const handleUpload = async (event, setUrl, setUploading, setFile) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    const fd = new FormData();
-    fd.append('image', file);
-
     try {
       setUploading(true);
-      const res = await axios.post(`${API_BASE_URL}/api/upload`, fd, { timeout: 20000 });
-      setUrl(res.data.imageUrl);
-    } catch (error) {
-      console.error('Upload failed', error);
-      window.alert(error?.response?.data?.error || error?.message || 'Photo upload failed. Please retry.');
+      setFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setUrl(previewUrl);
     } finally {
       setUploading(false);
       if (event.target) event.target.value = '';
@@ -386,6 +382,8 @@ export default function TechnicianPortal() {
     setPunchInTime(job.punchInTime || null);
     setBeforeUrl(job.beforePhoto || '');
     setAfterUrl(job.afterPhoto || '');
+    setBeforeFile(null);
+    setAfterFile(null);
     if (sigCanvas.current && typeof sigCanvas.current.clear === 'function') {
       sigCanvas.current.clear();
     }
@@ -427,28 +425,23 @@ export default function TechnicianPortal() {
       completionCardNumber,
       completionCardGeneratedAt: completedAt
     };
-    const proofPayload = {
-      beforePhoto: beforeUrl,
-      afterPhoto: afterUrl,
-      customerSignature: sig
-    };
-
     try {
       setIsCompleting(true);
       const completedJobId = activeJob._id;
-      let proofUploadFailed = false;
-      // Step 1: commit completion status first (small payload, most reliable).
-      await axios.put(`${API_BASE_URL}/api/jobs/${completedJobId}`, statusPayload, { timeout: 15000 });
-      // Step 2: attach optional media/signature without blocking completion success.
-      if (proofPayload.beforePhoto || proofPayload.afterPhoto || proofPayload.customerSignature) {
-        try {
-          await axios.put(`${API_BASE_URL}/api/jobs/${completedJobId}`, proofPayload, { timeout: 15000 });
-        } catch (proofError) {
-          console.error('Completion proof upload failed (job already completed):', proofError);
-          proofUploadFailed = true;
-          setActionStatus('Job completed, but proof upload failed. You can refresh and retry media if needed.');
-        }
+      const completePayload = new FormData();
+      Object.entries(statusPayload).forEach(([key, value]) => completePayload.append(key, value || ''));
+      completePayload.append('customerSignature', sig || '');
+      if (beforeFile) {
+        completePayload.append('beforePhotoFile', beforeFile);
+      } else if (beforeUrl) {
+        completePayload.append('beforePhoto', beforeUrl);
       }
+      if (afterFile) {
+        completePayload.append('afterPhotoFile', afterFile);
+      } else if (afterUrl) {
+        completePayload.append('afterPhoto', afterUrl);
+      }
+      await axios.post(`${API_BASE_URL}/api/jobs/${completedJobId}/complete`, completePayload, { timeout: 30000 });
       setCompletionCard({
         jobId: completedJobId,
         jobNumber: activeJob.jobNumber || '-',
@@ -473,12 +466,12 @@ export default function TechnicianPortal() {
       setPunchInTime(null);
       setBeforeUrl('');
       setAfterUrl('');
+      setBeforeFile(null);
+      setAfterFile(null);
       if (sigCanvas.current && typeof sigCanvas.current.clear === 'function') {
         sigCanvas.current.clear();
       }
-      if (!proofUploadFailed) {
-        setActionStatus('Job marked as completed successfully.');
-      }
+      setActionStatus('Job marked as completed successfully.');
       // Non-blocking background refresh for consistency.
       loadPortalData().catch((error) => {
         console.error('Background refresh after completion failed', error);
@@ -762,7 +755,7 @@ export default function TechnicianPortal() {
               accept="image/*"
               capture="environment"
               style={shell.fileInput}
-              onChange={(event) => handleUpload(event, setBeforeUrl, setIsUploadingBefore)}
+              onChange={(event) => handleUpload(event, setBeforeUrl, setIsUploadingBefore, setBeforeFile)}
               disabled={isCompleting}
             />
             {beforeUrl ? <img src={beforeUrl} alt="Before" style={shell.photoPreview} /> : null}
@@ -774,7 +767,7 @@ export default function TechnicianPortal() {
               accept="image/*"
               capture="environment"
               style={shell.fileInput}
-              onChange={(event) => handleUpload(event, setAfterUrl, setIsUploadingAfter)}
+              onChange={(event) => handleUpload(event, setAfterUrl, setIsUploadingAfter, setAfterFile)}
               disabled={isCompleting}
             />
             {afterUrl ? <img src={afterUrl} alt="After" style={shell.photoPreview} /> : null}
