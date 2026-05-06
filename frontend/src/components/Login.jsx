@@ -155,7 +155,7 @@ export default function Login() {
 
   return (
     <div style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #f0fdfa 0%, #f8fafc 45%, #eff6ff 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '12px' : '24px' }}>
-      <div style={{ width: '100%', maxWidth: '500px', minHeight: isNarrow ? 'auto' : '640px', borderRadius: '22px', border: '1px solid var(--color-border)', background: '#fff', boxShadow: 'var(--shadow-lg)', overflow: 'hidden' }}>
+      <div style={{ width: '100%', maxWidth: '500px', borderRadius: '22px', border: '1px solid var(--color-border)', background: '#fff', boxShadow: 'var(--shadow-lg)', overflow: 'hidden' }}>
         <section style={{ padding: isNarrow ? '20px 14px' : '34px 36px', minHeight: '100%', display: 'grid', alignContent: 'center', justifyItems: 'center', gap: '18px' }}>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
           {hasValidLogo ? (
@@ -269,11 +269,6 @@ export default function Login() {
           </form>
           </div>
 
-          <div style={{ border: '1px solid #E2E8F0', background: '#F8FAFC', borderRadius: '12px', padding: '12px 14px' }}>
-            <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Demo Login</p>
-            <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#475569' }}>Email: admin@example.com</p>
-            <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#475569' }}>Password: ••••••••</p>
-          </div>
         </section>
       </div>
       {forgotOpen && (
