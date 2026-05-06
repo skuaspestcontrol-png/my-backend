@@ -294,7 +294,7 @@ const toMinutes = (value) => {
   return (Number(match[1]) * 60) + Number(match[2]);
 };
 
-const attendanceStatus = (value) => normalizeRole(value || 'absent');
+const attendanceStatus = (value) => normalizeRole(value || '');
 
 const isPaidLeaveType = (leaveType) => {
   const text = normalizeRole(leaveType);
@@ -382,10 +382,7 @@ const summarizeAttendanceForPayroll = ({
       return;
     }
 
-    if (!att) {
-      unpaidLeaveDays += 1;
-      return;
-    }
+    if (!att) return;
 
     if (status === 'weekly-off') {
       weeklyOffDays += 1;
@@ -410,6 +407,10 @@ const summarizeAttendanceForPayroll = ({
     if (status === 'leave') {
       if (isPaidLeaveType(att.leaveType)) paidLeaveDays += 1;
       else unpaidLeaveDays += 1;
+      return;
+    }
+    if (status === 'absent') {
+      unpaidLeaveDays += 1;
       return;
     }
     unpaidLeaveDays += 1;
