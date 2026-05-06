@@ -791,7 +791,13 @@ const createNextJobNumber = (jobs, settings) => {
   return `${prefix}${String(next).padStart(padding, '0')}`;
 };
 
-const updateSettingsNextJobNumber = (usedJobNumber, settings) => {
+const createJobId = () => {
+  const stamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).slice(2, 10);
+  return `JOB-${stamp}-${randomPart}`;
+};
+
+const updateSettingsNextJobNumber = async (usedJobNumber, settings) => {
   const seq = extractJobSequence(usedJobNumber, settings.jobPrefix);
   if (!Number.isFinite(seq)) return;
   const nextValue = Math.max(1, Number(settings.jobNextNumber || defaultSettings.jobNextNumber));
@@ -800,7 +806,11 @@ const updateSettingsNextJobNumber = (usedJobNumber, settings) => {
       ...settings,
       jobNextNumber: seq + 1
     };
-    fs.writeFileSync(settingsFile, JSON.stringify(updated, null, 2));
+    if (canUseMysql()) {
+      await saveSettingsToMysql(updated);
+    } else {
+      fs.writeFileSync(settingsFile, JSON.stringify(updated, null, 2));
+    }
   }
 };
 
@@ -1123,11 +1133,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     const expiresAt = Date.now() + RESET_OTP_TTL_MS;
     resetOtpStore.set(incomingEmail, { otp, expiresAt });
 
-    await sendPasswordResetOtpEmail({
-      settings: readSettings(),
-      recipient: incomingEmail,
-      otp
-    });
+    const settings = await loadCurrentSettingsForNumbering();
+    await sendPasswordResetOtpEmail({ settings, recipient: incomingEmail, otp });
 
     res.json({ message: 'OTP sent to master email' });
   } catch (error) {
@@ -1136,7 +1143,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
 });
 
-app.post('/api/auth/reset-password', (req, res) => {
+app.post('/api/auth/reset-password', async (req, res) => {
   const incomingEmail = String(req.body?.email || '').trim().toLowerCase();
   const otp = String(req.body?.otp || '').trim();
   const newPassword = String(req.body?.newPassword || '').trim();
@@ -1163,12 +1170,16 @@ app.post('/api/auth/reset-password', (req, res) => {
     return res.status(400).json({ error: 'Invalid OTP' });
   }
 
-  const current = readSettings();
+  const current = await loadCurrentSettingsForNumbering();
   const next = sanitizeSettings({
     ...current,
     adminPassword: newPassword
   });
-  fs.writeFileSync(settingsFile, JSON.stringify(next, null, 2));
+  if (canUseMysql()) {
+    await saveSettingsToMysql(next);
+  } else {
+    fs.writeFileSync(settingsFile, JSON.stringify(next, null, 2));
+  }
   resetOtpStore.delete(incomingEmail);
   res.json({ message: 'Password reset successful' });
 });
@@ -2197,7 +2208,7 @@ app.post('/api/jobs', async (req, res) => {
       const providedJobNumber = normalizeSettingsText(req.body?.jobNumber || '');
       const jobNumber = providedJobNumber || generatedJobNumber;
       const newJob = {
-        _id: `JOB-${Date.now()}`,
+        _id: createJobId(),
         ...req.body,
         jobNumber,
         status: req.body.status || 'Scheduled',
@@ -2248,7 +2259,7 @@ app.post('/api/jobs', async (req, res) => {
   const providedJobNumber = normalizeSettingsText(req.body?.jobNumber || '');
   const jobNumber = providedJobNumber || generatedJobNumber;
   const newJob = {
-    _id: `JOB-${Date.now()}`,
+    _id: createJobId(),
     ...req.body,
     jobNumber,
     status: req.body.status || 'Scheduled',
@@ -2257,7 +2268,7 @@ app.post('/api/jobs', async (req, res) => {
 
   jobs.push(newJob);
   fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
-  updateSettingsNextJobNumber(jobNumber, settings);
+  await updateSettingsNextJobNumber(jobNumber, settings);
 
   try {
     await syncJobToMysql(newJob);
@@ -5390,7 +5401,7 @@ app.post('/api/renewals/:id/send-reminder', async (req, res) => {
     String(entry?._id || '') === String(record.customerId || '')
     || String(entry?.displayName || entry?.name || '').trim().toLowerCase() === String(record.customerName || '').trim().toLowerCase()
   ) || null;
-  const settings = readSettings();
+  const settings = await loadCurrentSettingsForNumbering();
   const defaultMessage = String(req.body.message || `Dear ${record.customerName || 'Customer'}, your pest-control contract is expiring on ${formatDate(record.contractEndDate)}. Please confirm renewal.`).trim();
 
   let recipient = '';
@@ -5584,7 +5595,7 @@ app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
   return res.json({ renewal: records[recordIndex], invoice: newInvoice });
 });
 
-app.post('/api/renewals/:id/assign-technician', (req, res) => {
+app.post('/api/renewals/:id/assign-technician', async (req, res) => {
   const records = readJsonFile(renewalsFile, []);
   const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
   if (recordIndex < 0) return res.status(404).json({ error: 'Renewal not found' });
@@ -5629,14 +5640,16 @@ app.post('/api/renewals/:id/assign-technician', (req, res) => {
     return res.status(400).json({ error: 'No service schedules found for assignment' });
   }
 
-  const settings = readSettings();
+  const settings = await loadCurrentSettingsForNumbering();
   const jobs = readJsonFile(jobsFile, []);
   const createdJobs = [];
+  let lastGeneratedJobNumber = '';
   selectedRows.forEach((row) => {
     technicians.forEach((tech) => {
       const generatedJobNumber = createNextJobNumber([...jobs, ...createdJobs], settings);
+      lastGeneratedJobNumber = generatedJobNumber;
       const newJob = {
-        _id: `JOB-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        _id: createJobId(),
         jobNumber: generatedJobNumber,
         customerId: customer?._id || invoice.customerId || '',
         customerName: customer?.displayName || customer?.name || invoice.customerName || '',
@@ -5668,9 +5681,9 @@ app.post('/api/renewals/:id/assign-technician', (req, res) => {
         createdAt: new Date().toISOString()
       };
       createdJobs.push(newJob);
-      updateSettingsNextJobNumber(generatedJobNumber, settings);
     });
   });
+  await updateSettingsNextJobNumber(lastGeneratedJobNumber, settings);
 
   fs.writeFileSync(jobsFile, JSON.stringify([...jobs, ...createdJobs], null, 2));
   records[recordIndex] = {

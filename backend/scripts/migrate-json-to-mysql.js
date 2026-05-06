@@ -53,6 +53,15 @@ const readJsonArray = (fileName) => {
   return Array.isArray(parsed) ? parsed : [];
 };
 
+const readJsonObject = (fileName) => {
+  const fullPath = resolveDataFilePath(fileName);
+  if (!fs.existsSync(fullPath)) return {};
+  const raw = fs.readFileSync(fullPath, 'utf8').trim();
+  if (!raw) return {};
+  const parsed = JSON.parse(raw);
+  return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+};
+
 const text = (v) => {
   const s = String(v ?? '').trim();
   return s || null;
@@ -530,6 +539,32 @@ const upsertPaymentReceived = async (conn) => {
   return rows.length;
 };
 
+const ensureAppSettingsTable = async (conn) => {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      setting_key VARCHAR(120) NOT NULL,
+      setting_value JSON NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_app_settings_key (setting_key)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+};
+
+const upsertAppSettings = async (conn) => {
+  const settings = readJsonObject('settings.json');
+  await ensureAppSettingsTable(conn);
+  await conn.query(
+    `INSERT INTO app_settings (setting_key, setting_value)
+     VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+    ['main', toJson(settings)]
+  );
+  return Object.keys(settings).length;
+};
+
 const run = async () => {
   const conn = await mysql.createConnection({
     host: process.env.MYSQL_HOST || process.env.DB_HOST,
@@ -546,6 +581,7 @@ const run = async () => {
     const vendorCount = await upsertVendors(conn);
     const vendorBillResult = await upsertVendorBills(conn);
     const paymentReceivedCount = await upsertPaymentReceived(conn);
+    const settingsFieldCount = await upsertAppSettings(conn);
     console.log('Employees migrated:', employeeCount);
     console.log('Leads migrated:', leadCount);
     console.log('Items migrated:', itemCount);
@@ -553,6 +589,7 @@ const run = async () => {
     console.log('Vendor bills migrated:', vendorBillResult.bills);
     console.log('Vendor bill items migrated:', vendorBillResult.items);
     console.log('Payment received migrated:', paymentReceivedCount);
+    console.log('Settings fields migrated:', settingsFieldCount);
   } finally {
     await conn.end();
   }
