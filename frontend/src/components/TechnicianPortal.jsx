@@ -161,18 +161,28 @@ const shell = {
   jobsTable: { width: '100%', borderCollapse: 'collapse', minWidth: '100%' },
   jobsTh: { textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em', background: '#f8fafc' },
   jobsTd: { padding: '9px 10px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 600 },
+  actionCell: { width: '300px' },
+  actionRow: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    justifyContent: 'flex-start',
+    flexWrap: 'nowrap'
+  },
   startSmallBtn: {
     border: '1px solid rgba(159, 23, 77, 0.34)',
     background: 'var(--color-primary)',
     color: '#fff',
     borderRadius: '8px',
     minHeight: '30px',
-    padding: '0 10px',
+    padding: '0 12px',
+    minWidth: '150px',
     fontSize: '11px',
     fontWeight: 800,
     cursor: 'pointer',
     letterSpacing: '0.02em',
-    textTransform: 'uppercase'
+    textTransform: 'uppercase',
+    textAlign: 'center'
   },
   editBtn: {
     border: '1px solid #cbd5e1',
@@ -180,11 +190,12 @@ const shell = {
     color: '#0f172a',
     borderRadius: '8px',
     minHeight: '30px',
-    padding: '0 10px',
+    minWidth: '80px',
+    padding: '0 12px',
     fontSize: '11px',
     fontWeight: 800,
     cursor: 'pointer',
-    marginRight: '6px'
+    textAlign: 'center'
   },
   removeBtn: {
     border: '1px solid #fecaca',
@@ -192,10 +203,12 @@ const shell = {
     color: '#b91c1c',
     borderRadius: '8px',
     minHeight: '30px',
-    padding: '0 10px',
+    minWidth: '96px',
+    padding: '0 12px',
     fontSize: '11px',
     fontWeight: 800,
-    cursor: 'pointer'
+    cursor: 'pointer',
+    textAlign: 'center'
   },
   pager: { marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   pagerText: { margin: 0, fontSize: '12px', color: '#475569', fontWeight: 700 },
@@ -743,16 +756,18 @@ export default function TechnicianPortal() {
                                       <td style={shell.jobsTd}>{formatDisplayTime(job.scheduledTime)}</td>
                                       <td style={shell.jobsTd}>{job.technicianName || '-'}</td>
                                       <td style={shell.jobsTd}>{job.status || '-'}</td>
-                                      <td style={shell.jobsTd}>
-                                        <button type="button" style={shell.startSmallBtn} onClick={() => openJob(job)} disabled={isSavingAssignment}>
-                                          {String(job.status || '').trim().toLowerCase() === 'in progress' ? 'Complete Job' : 'Start'}
-                                        </button>
-                                        <button type="button" style={shell.editBtn} onClick={() => handleReassignJob(job)} disabled={isSavingAssignment}>
-                                          Edit
-                                        </button>
-                                        <button type="button" style={shell.removeBtn} onClick={() => handleRemoveAssignment(job)} disabled={isSavingAssignment}>
-                                          Delete
-                                        </button>
+                                      <td style={{ ...shell.jobsTd, ...shell.actionCell }}>
+                                        <div style={shell.actionRow}>
+                                          <button type="button" style={shell.startSmallBtn} onClick={() => openJob(job)} disabled={isSavingAssignment}>
+                                            {String(job.status || '').trim().toLowerCase() === 'in progress' ? 'Complete Job' : 'Start'}
+                                          </button>
+                                          <button type="button" style={shell.editBtn} onClick={() => handleReassignJob(job)} disabled={isSavingAssignment}>
+                                            Edit
+                                          </button>
+                                          <button type="button" style={shell.removeBtn} onClick={() => handleRemoveAssignment(job)} disabled={isSavingAssignment}>
+                                            Delete
+                                          </button>
+                                        </div>
                                       </td>
                                     </tr>
                                   ))}
