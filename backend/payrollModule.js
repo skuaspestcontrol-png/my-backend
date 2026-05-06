@@ -895,6 +895,64 @@ function registerPayrollModule({
     return map;
   };
 
+  const readEmployeesForPayroll = async () => {
+    const localEmployees = readJsonFile(employeesFile, []);
+    if (Array.isArray(localEmployees) && localEmployees.length > 0) return localEmployees;
+    if (!canUseMysql) return [];
+    try {
+      const mysqlEmployees = await withMysqlConnection(async (conn) => {
+        const [rows] = await conn.query(`
+          SELECT
+            id,
+            external_id,
+            emp_code,
+            first_name,
+            last_name,
+            role,
+            role_name,
+            mobile,
+            email,
+            city,
+            pincode,
+            salary,
+            joining_date,
+            payload
+          FROM employees
+          ORDER BY id DESC
+        `);
+        return Array.isArray(rows) ? rows : [];
+      });
+      return mysqlEmployees.map((row) => {
+        let payload = {};
+        const rawPayload = row?.payload;
+        if (rawPayload && typeof rawPayload === 'object') payload = rawPayload;
+        if (typeof rawPayload === 'string') {
+          try { payload = JSON.parse(rawPayload); } catch { payload = {}; }
+        }
+        const salary = Number(row?.salary ?? payload.salary ?? payload.salaryPerMonth ?? 0) || 0;
+        return {
+          ...payload,
+          _id: normalizeText(row?.external_id || payload?._id || row?.id || ''),
+          empCode: normalizeText(row?.emp_code || payload?.empCode || ''),
+          firstName: normalizeText(row?.first_name || payload?.firstName || ''),
+          lastName: normalizeText(row?.last_name || payload?.lastName || ''),
+          mobile: normalizeText(row?.mobile || payload?.mobile || ''),
+          email: normalizeText(row?.email || payload?.email || payload?.emailId || ''),
+          role: normalizeText(row?.role || payload?.role || ''),
+          roleName: normalizeText(row?.role_name || payload?.roleName || ''),
+          salary,
+          salaryPerMonth: salary,
+          dateOfJoining: normalizeText(row?.joining_date || payload?.dateOfJoining || ''),
+          city: normalizeText(row?.city || payload?.city || ''),
+          pincode: normalizeText(row?.pincode || payload?.pincode || '')
+        };
+      }).filter((entry) => normalizeText(entry?._id));
+    } catch (error) {
+      console.error('Payroll employee MySQL fallback failed:', error.message);
+      return [];
+    }
+  };
+
   const enrichPayrollItemWithEmployee = (item, lookup) => {
     const employee = lookup.get(normalizeText(item?.employeeId));
     if (!employee) return item;
@@ -1268,7 +1326,7 @@ function registerPayrollModule({
     res.json(result);
   });
 
-  app.post('/api/payroll/generate', (req, res) => {
+  app.post('/api/payroll/generate', async (req, res) => {
     try {
       const perms = ensureAccess(req, res, (p) => p.canGenerate, 'Only Admin/HR can generate payroll');
       if (!perms) return;
@@ -1283,7 +1341,10 @@ function registerPayrollModule({
         : [];
       const forceRegenerate = req.body?.forceRegenerate === true;
 
-      const employees = readJsonFile(employeesFile, []);
+      const employees = await readEmployeesForPayroll();
+      if (!Array.isArray(employees) || employees.length === 0) {
+        return res.status(400).json({ error: 'No employees found for payroll generation' });
+      }
       const attendance = readJsonFile(attendanceFile, []);
       const structures = getStructures();
       const holidays = getHolidays();
