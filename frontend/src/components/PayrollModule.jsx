@@ -182,14 +182,15 @@ export default function PayrollModule() {
   const reloadAll = async () => {
     try {
       setBusy(true);
-      const [empRes, metaRes, structureRes, holidayRes, advanceRes, dashboardRes, payrollRes] = await Promise.all([
+      const [empRes, metaRes, structureRes, holidayRes, advanceRes, dashboardRes, payrollRes, payrollAllRes] = await Promise.all([
         axios.get(`${API_BASE}/api/employees`),
         axios.get(`${API_BASE}/api/payroll/meta`, { headers }),
         axios.get(`${API_BASE}/api/payroll/salary-structures`, { headers }),
         axios.get(`${API_BASE}/api/payroll/holidays`, { params: { month, year }, headers }),
         axios.get(`${API_BASE}/api/payroll/advances`, { headers }),
         axios.get(`${API_BASE}/api/payroll/dashboard`, { params: { month, year }, headers }),
-        axios.get(`${API_BASE}/api/payroll/items`, { params: { month, year }, headers })
+        axios.get(`${API_BASE}/api/payroll/items`, { params: { month, year }, headers }),
+        axios.get(`${API_BASE}/api/payroll/items`, { headers })
       ]);
       setEmployees(Array.isArray(empRes.data) ? empRes.data : []);
       setMeta(metaRes.data || {});
@@ -197,7 +198,24 @@ export default function PayrollModule() {
       setHolidays(Array.isArray(holidayRes.data) ? holidayRes.data : []);
       setAdvances(Array.isArray(advanceRes.data) ? advanceRes.data : []);
       setDashboard(dashboardRes.data || null);
-      setPayrollItems(Array.isArray(payrollRes.data) ? payrollRes.data : []);
+      const scopedItems = Array.isArray(payrollRes.data) ? payrollRes.data : [];
+      const allItems = Array.isArray(payrollAllRes.data) ? payrollAllRes.data : [];
+      if (scopedItems.length === 0 && allItems.length > 0) {
+        const latest = [...allItems].sort((a, b) => {
+          const aKey = `${Number(a?.year || 0)}-${String(Number(a?.month || 0)).padStart(2, '0')}-${String(a?.createdAt || '')}`;
+          const bKey = `${Number(b?.year || 0)}-${String(Number(b?.month || 0)).padStart(2, '0')}-${String(b?.createdAt || '')}`;
+          return bKey.localeCompare(aKey);
+        })[0];
+        const latestMonth = Number(latest?.month || 0);
+        const latestYear = Number(latest?.year || 0);
+        if (latestMonth >= 1 && latestMonth <= 12 && latestYear >= 2000 && (latestMonth !== Number(month) || latestYear !== Number(year))) {
+          setMonth(latestMonth);
+          setYear(latestYear);
+          setStatus(`No payroll rows found for selected month. Switched to latest available payroll: ${monthOptions.find((entry) => entry.value === latestMonth)?.label || latestMonth} ${latestYear}.`);
+          return;
+        }
+      }
+      setPayrollItems(scopedItems);
       setStatus('');
     } catch (error) {
       console.error('Payroll fetch failed', error);
