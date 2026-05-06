@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { useSearchParams } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -30,6 +31,23 @@ const makeItem = () => ({
 });
 
 const input = { width: '100%', minHeight: 40, borderRadius: 10, border: '1px solid var(--border)', padding: '8px 10px', fontSize: 14, boxSizing: 'border-box' };
+const label = { margin: '0 0 6px', fontWeight: 700, fontSize: 13, color: 'var(--text)' };
+const buttonBase = {
+  minHeight: 38,
+  padding: '0 14px',
+  borderRadius: 10,
+  fontSize: 13,
+  fontWeight: 700,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 7,
+  cursor: 'pointer'
+};
+const btnPrimary = { ...buttonBase, border: '1px solid var(--sky-deep)', background: 'var(--sky-deep)', color: '#fff' };
+const btnGhost = { ...buttonBase, border: '1px solid var(--border)', background: '#fff', color: 'var(--text)' };
+const btnDanger = { ...buttonBase, border: '1px solid #fecaca', background: '#fff1f2', color: '#b91c1c' };
+const panel = { border: '1px solid var(--border)', borderRadius: 14, background: '#fff', padding: 12, display: 'grid', gap: 10, boxShadow: 'var(--shadow-sm)' };
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -41,6 +59,9 @@ const num = (v) => {
 const money = (v) => `₹ ${num(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function CreateQuote() {
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('id') || '';
+  const isEditMode = Boolean(editId);
   const [active, setActive] = useState(0);
   const [leadRows, setLeadRows] = useState([]);
   const [customerRows, setCustomerRows] = useState([]);
@@ -123,6 +144,35 @@ export default function CreateQuote() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isEditMode) return;
+    let mounted = true;
+    const loadQuotation = async () => {
+      try {
+        setStatus('Loading quotation...');
+        const res = await axios.get(`${API_BASE_URL}/api/quotations/${editId}`);
+        if (!mounted) return;
+        const data = res.data || {};
+        setSavedId(data.id || Number(editId));
+        setForm((prev) => ({
+          ...prev,
+          ...data,
+          quotation_date: data.quotation_date ? String(data.quotation_date).slice(0, 10) : prev.quotation_date,
+          contract_start_date: data.contract_start_date ? String(data.contract_start_date).slice(0, 10) : '',
+          contract_end_date: data.contract_end_date ? String(data.contract_end_date).slice(0, 10) : ''
+        }));
+        setItems(Array.isArray(data.items) && data.items.length ? data.items : [makeItem()]);
+        setStatus('Quotation loaded');
+      } catch (error) {
+        setStatus(error?.response?.data?.error || 'Failed to load quotation');
+      }
+    };
+    loadQuotation();
+    return () => {
+      mounted = false;
+    };
+  }, [editId, isEditMode]);
 
   const updateItem = (idx, patch) => {
     setItems((prev) => {
@@ -225,10 +275,13 @@ export default function CreateQuote() {
         amount_in_words: `${grandTotal.toLocaleString('en-IN')} Rupees Only`,
         items
       };
-      const res = await axios.post(`${API_BASE_URL}/api/quotations`, payload);
-      setSavedId(res.data?.id || null);
+      const method = isEditMode ? 'put' : 'post';
+      const url = isEditMode ? `${API_BASE_URL}/api/quotations/${editId}` : `${API_BASE_URL}/api/quotations`;
+      const res = await axios[method](url, payload);
+      const returnedId = res.data?.id || (isEditMode ? Number(editId) : null);
+      setSavedId(returnedId);
       setForm((p) => ({ ...p, quotation_number: res.data?.quotation_number || p.quotation_number }));
-      setStatus(`Quotation saved${res.data?.quotation_number ? `: ${res.data.quotation_number}` : ''}`);
+      setStatus(`Quotation ${isEditMode ? 'updated' : 'saved'}${res.data?.quotation_number ? `: ${res.data.quotation_number}` : ''}`);
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Failed to save quotation');
     }
@@ -245,27 +298,27 @@ export default function CreateQuote() {
   return (
     <section style={{ padding: 16, display: 'grid', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: 24, color: 'var(--text)' }}>Create Quotation</h2>
+        <h2 style={{ margin: 0, fontSize: 24, color: 'var(--text)' }}>{isEditMode ? 'Edit Quotation' : 'Create Quotation'}</h2>
         <div style={{ fontWeight: 800, color: 'var(--sky-deep)' }}>Preview Number: {form.quotation_number || quotationPreview}</div>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {tabs.map((tab, idx) => (
-          <button key={tab} type="button" onClick={() => setActive(idx)} style={{ minHeight: 36, borderRadius: 999, border: idx === active ? '1px solid var(--sky-deep)' : '1px solid var(--border)', background: idx === active ? 'rgba(159,23,77,0.08)' : '#fff', fontWeight: 700 }}>{tab}</button>
+          <button key={tab} type="button" onClick={() => setActive(idx)} style={{ ...btnGhost, minHeight: 36, borderRadius: 999, border: idx === active ? '1px solid var(--sky-deep)' : '1px solid var(--border)', background: idx === active ? 'rgba(159,23,77,0.1)' : '#fff' }}>{tab}</button>
         ))}
       </div>
 
-      <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: '#fff', padding: 12, display: 'grid', gap: 10 }}>
+      <div style={panel}>
         {active === 0 && (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-              <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Source</p><select style={input} value={form.source_type} onChange={(e) => setForm((p) => ({ ...p, source_type: e.target.value }))}><option>Manual</option><option>Lead</option><option>Customer</option></select></div>
-              <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Search Lead</p><select style={input} value={form.lead_id} onChange={(e) => selectLead(e.target.value)}><option value="">Select lead</option>{leadRows.map((l) => <option key={l._id || l.id} value={l._id || l.id}>{l.customerName || l.mobileNumber || l._id}</option>)}</select></div>
-              <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Search Customer</p><select style={input} value={form.customer_id} onChange={(e) => selectCustomer(e.target.value)}><option value="">Select customer</option>{customerRows.map((c) => <option key={c._id || c.id} value={c._id || c.id}>{c.customerName || c.name || c.mobileNumber}</option>)}</select></div>
+              <div><p style={label}>Source</p><select style={input} value={form.source_type} onChange={(e) => setForm((p) => ({ ...p, source_type: e.target.value }))}><option>Manual</option><option>Lead</option><option>Customer</option></select></div>
+              <div><p style={label}>Search Lead</p><select style={input} value={form.lead_id} onChange={(e) => selectLead(e.target.value)}><option value="">Select lead</option>{leadRows.map((l) => <option key={l._id || l.id} value={l._id || l.id}>{l.customerName || l.mobileNumber || l._id}</option>)}</select></div>
+              <div><p style={label}>Search Customer</p><select style={input} value={form.customer_id} onChange={(e) => selectCustomer(e.target.value)}><option value="">Select customer</option>{customerRows.map((c) => <option key={c._id || c.id} value={c._id || c.id}>{c.customerName || c.name || c.mobileNumber}</option>)}</select></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {['customer_name','company_name','address','phone','whatsapp','email','gstin'].map((key) => (
-                <div key={key} style={key === 'address' ? { gridColumn: '1 / span 3' } : {}}><p style={{ margin: '0 0 6px', fontWeight: 700, textTransform: 'capitalize' }}>{key.replaceAll('_', ' ')}</p>{key === 'address' ? <textarea style={{ ...input, minHeight: 58 }} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /> : <input style={input} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} />}</div>
+                <div key={key} style={key === 'address' ? { gridColumn: '1 / span 3' } : {}}><p style={{ ...label, textTransform: 'capitalize' }}>{key.replaceAll('_', ' ')}</p>{key === 'address' ? <textarea style={{ ...input, minHeight: 58 }} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /> : <input style={input} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} />}</div>
               ))}
             </div>
           </>
@@ -290,7 +343,7 @@ export default function CreateQuote() {
           <div style={{ display: 'grid', gap: 10 }}>
             {items.map((item, idx) => (
               <div key={`item-${idx}`} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ margin: 0, fontWeight: 800 }}>Service #{idx + 1}</p>{items.length > 1 ? <button type="button" onClick={() => setItems((prev) => prev.filter((_, i) => i !== idx))}>Remove</button> : null}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ margin: 0, fontWeight: 800 }}>Service #{idx + 1}</p>{items.length > 1 ? <button type="button" style={{ ...btnDanger, minHeight: 32, padding: '0 10px' }} onClick={() => setItems((prev) => prev.filter((_, i) => i !== idx))}>Remove</button> : null}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Service Template</p><select style={input} value={item.service_template_id || ''} onChange={(e) => selectServiceTemplate(idx, e.target.value)}><option value="">Select service</option>{services.map((s) => <option key={s.id} value={s.id}>{s.service_name}</option>)}</select></div>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Service Title</p><input style={input} value={item.service_title || ''} onChange={(e) => updateItem(idx, { service_title: e.target.value })} /></div>
@@ -323,7 +376,7 @@ export default function CreateQuote() {
               </div>
             ))}
 
-            <button type="button" onClick={() => setItems((prev) => [...prev, makeItem()])}>+ Add Service</button>
+            <button type="button" style={btnGhost} onClick={() => setItems((prev) => [...prev, makeItem()])}>+ Add Service</button>
           </div>
         )}
 
@@ -389,9 +442,9 @@ export default function CreateQuote() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
         <p style={{ margin: 0, color: status.toLowerCase().includes('failed') || status.toLowerCase().includes('could not') ? '#dc2626' : '#2563eb', fontWeight: 700 }}>{status}</p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" onClick={() => saveQuotation('Draft')}>Save Draft</button>
-          <button type="button" onClick={() => saveQuotation('Final')}>Save Quotation</button>
-          <button type="button" onClick={openPdf}>Preview / Download PDF</button>
+          <button type="button" style={btnGhost} onClick={() => saveQuotation('Draft')}>Save Draft</button>
+          <button type="button" style={btnPrimary} onClick={() => saveQuotation('Final')}>Save Quotation</button>
+          <button type="button" style={btnGhost} onClick={openPdf}>Preview / Download PDF</button>
         </div>
       </div>
     </section>

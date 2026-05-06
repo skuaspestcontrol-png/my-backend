@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FileText, Plus, RefreshCw } from 'lucide-react';
+import { FileText, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -32,6 +32,20 @@ const shell = {
     border: '1px solid var(--color-border)',
     background: '#fff',
     color: 'var(--color-text)',
+    fontSize: 13,
+    fontWeight: 700,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 7,
+    cursor: 'pointer'
+  },
+  dangerBtn: {
+    minHeight: 38,
+    padding: '0 12px',
+    borderRadius: 10,
+    border: '1px solid #fecaca',
+    background: '#fff1f2',
+    color: '#b91c1c',
     fontSize: 13,
     fontWeight: 700,
     display: 'inline-flex',
@@ -117,17 +131,35 @@ export default function QuotationDashboard() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
+  const [page, setPage] = useState(1);
+  const perPage = 25;
 
   const load = async () => {
     try {
       setLoading(true);
       setStatus('');
       const res = await axios.get(`${API_BASE_URL}/api/quotations`);
-      setRows(Array.isArray(res.data) ? res.data : []);
+      const nextRows = Array.isArray(res.data) ? res.data : [];
+      setRows(nextRows);
+      setPage(1);
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Could not load quotations');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteQuotation = async (id) => {
+    if (!id) return;
+    const ok = window.confirm('Delete this quotation? This action cannot be undone.');
+    if (!ok) return;
+    try {
+      setStatus('');
+      await axios.delete(`${API_BASE_URL}/api/quotations/${id}`);
+      await load();
+      setStatus('Quotation deleted successfully');
+    } catch (error) {
+      setStatus(error?.response?.data?.error || 'Could not delete quotation');
     }
   };
 
@@ -142,6 +174,10 @@ export default function QuotationDashboard() {
     const totalValue = rows.reduce((sum, r) => sum + (Number(r.grand_total) || 0), 0);
     return { total, draft, final, totalValue };
   }, [rows]);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = rows.slice((safePage - 1) * perPage, safePage * perPage);
 
   return (
     <section style={shell.page}>
@@ -170,12 +206,13 @@ export default function QuotationDashboard() {
       <div style={shell.panel}>
         <div style={shell.panelHeader}>
           <p style={shell.panelTitle}>Recent Quotations</p>
-          <span style={shell.badge}>{rows.length} records</span>
+                  <span style={shell.badge}>{rows.length} records</span>
         </div>
         <div style={shell.tableWrap}>
           <table style={shell.table}>
             <thead>
               <tr>
+                <th style={shell.th}>Sr No</th>
                 <th style={shell.th}>Quotation #</th>
                 <th style={shell.th}>Date</th>
                 <th style={shell.th}>Customer</th>
@@ -188,11 +225,12 @@ export default function QuotationDashboard() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td style={shell.td} colSpan={7}>{loading ? 'Loading quotations...' : 'No quotations yet. Click New Quotation to create first proposal.'}</td>
+                  <td style={shell.td} colSpan={8}>{loading ? 'Loading quotations...' : 'No quotations yet. Click New Quotation to create first proposal.'}</td>
                 </tr>
               ) : (
-                rows.slice(0, 50).map((row) => (
+                pagedRows.map((row, idx) => (
                   <tr key={row.id}>
+                    <td style={shell.td}>{(safePage - 1) * perPage + idx + 1}</td>
                     <td style={shell.td}>{row.quotation_number || '-'}</td>
                     <td style={shell.td}>{formatDate(row.quotation_date)}</td>
                     <td style={shell.td}>{row.customer_name || '-'}</td>
@@ -200,13 +238,29 @@ export default function QuotationDashboard() {
                     <td style={shell.td}><span style={shell.badge}>{row.status || 'Draft'}</span></td>
                     <td style={shell.td}>{formatINR(row.grand_total || 0)}</td>
                     <td style={shell.td}>
-                      <button
-                        type="button"
-                        style={shell.ghostBtn}
-                        onClick={() => window.open(`${API_BASE_URL}/api/quotations/${row.id}/pdf`, '_blank')}
-                      >
-                        <FileText size={14} /> View PDF
-                      </button>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          style={shell.ghostBtn}
+                          onClick={() => navigate(`/quotations/new?id=${row.id}`)}
+                        >
+                          <Pencil size={14} /> Edit
+                        </button>
+                        <button
+                          type="button"
+                          style={shell.dangerBtn}
+                          onClick={() => deleteQuotation(row.id)}
+                        >
+                          <Trash2 size={14} /> Delete
+                        </button>
+                        <button
+                          type="button"
+                          style={shell.ghostBtn}
+                          onClick={() => window.open(`${API_BASE_URL}/api/quotations/${row.id}/pdf`, '_blank')}
+                        >
+                          <FileText size={14} /> View PDF
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -214,6 +268,18 @@ export default function QuotationDashboard() {
             </tbody>
           </table>
         </div>
+        {rows.length > perPage ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderTop: '1px solid var(--color-border)' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-muted)' }}>
+              Showing {(safePage - 1) * perPage + 1} to {Math.min(safePage * perPage, rows.length)} of {rows.length}
+            </span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button type="button" style={shell.ghostBtn} disabled={safePage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Prev</button>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--color-text)' }}>Page {safePage} / {totalPages}</span>
+              <button type="button" style={shell.ghostBtn} disabled={safePage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {status ? <p style={{ margin: 0, color: '#dc2626', fontWeight: 700, fontSize: 13 }}>{status}</p> : null}
