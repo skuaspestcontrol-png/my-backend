@@ -23,6 +23,7 @@ const {
   ensureGoogleIntegrationTable,
   ensureJobsGoogleColumns,
   getIntegrationRow,
+  getTasksClient,
   saveIntegrationRow,
   ensureTaskList,
   syncGoogleTaskForJob,
@@ -2164,6 +2165,7 @@ app.get('/api/jobs', async (req, res) => {
 
   if (canUseMysql()) {
     try {
+      await pullGoogleTaskUpdatesToCrmSafely();
       const mysqlRows = await withMysqlConnection(async (conn) => {
         const [rows] = await conn.query('SELECT payload FROM jobs ORDER BY id DESC');
         return Array.isArray(rows) ? rows : [];
@@ -2289,77 +2291,35 @@ app.put('/api/jobs/:id', async (req, res) => {
   if (canUseMysql()) {
     try {
       const targetId = String(req.params.id || '').trim();
-      const mysqlRows = await withMysqlConnection(async (conn) => {
-        const [rows] = await conn.query('SELECT payload FROM jobs ORDER BY id DESC');
-        return Array.isArray(rows) ? rows : [];
+      const safeNumericId = /^\d+$/.test(targetId) ? Number(targetId) : null;
+      const mysqlJob = await withMysqlConnection(async (conn) => {
+        const sql = safeNumericId !== null
+          ? 'SELECT payload, external_id FROM jobs WHERE external_id = ? OR id = ? ORDER BY id DESC LIMIT 1'
+          : 'SELECT payload, external_id FROM jobs WHERE external_id = ? ORDER BY id DESC LIMIT 1';
+        const params = safeNumericId !== null ? [targetId, safeNumericId] : [targetId];
+        const [rows] = await conn.query(sql, params);
+        const row = Array.isArray(rows) ? rows[0] : null;
+        if (!row) return null;
+        const raw = row.payload;
+        if (!raw) return null;
+        if (typeof raw === 'string') {
+          try { return JSON.parse(raw); } catch { return null; }
+        }
+        return raw;
       });
-      const jobs = (Array.isArray(mysqlRows) ? mysqlRows : [])
-        .map((row) => {
-          const raw = row?.payload;
-          if (!raw) return null;
-          if (typeof raw === 'string') {
-            try { return JSON.parse(raw); } catch { return null; }
-          }
-          return raw;
-        })
-        .filter(Boolean);
-
-      const jobIndex = jobs.findIndex((job) => String(job?._id || '').trim() === targetId);
-      if (jobIndex === -1) {
+      if (!mysqlJob || String(mysqlJob?._id || '').trim() === '') {
         return res.status(404).json({ error: 'Job not found' });
       }
 
       const updatedJob = {
-        ...jobs[jobIndex],
+        ...mysqlJob,
         ...req.body,
-        _id: jobs[jobIndex]._id
+        _id: mysqlJob._id
       };
 
-      jobs[jobIndex] = updatedJob;
       const nextStatus = String(req.body?.status || '').trim().toLowerCase();
-      if (nextStatus === 'completed') {
-        const scheduleKey = String(updatedJob.scheduleKey || '').trim();
-        const technicianId = String(updatedJob.technicianId || '').trim();
-        const completionPatch = {
-          status: 'Completed',
-          punchInTime: req.body?.punchInTime ?? updatedJob.punchInTime,
-          punchOutTime: req.body?.punchOutTime ?? updatedJob.punchOutTime,
-          beforePhoto: req.body?.beforePhoto ?? updatedJob.beforePhoto,
-          afterPhoto: req.body?.afterPhoto ?? updatedJob.afterPhoto,
-          customerSignature: req.body?.customerSignature ?? updatedJob.customerSignature,
-          completionCardNumber: req.body?.completionCardNumber ?? updatedJob.completionCardNumber,
-          completionCardGeneratedAt: req.body?.completionCardGeneratedAt ?? updatedJob.completionCardGeneratedAt
-        };
-
-        jobs.forEach((job, index) => {
-          if (index === jobIndex) return;
-          if (String(job.status || '').trim().toLowerCase() === 'completed') return;
-          const jobScheduleKey = String(job.scheduleKey || '').trim();
-          const jobTechnicianId = String(job.technicianId || '').trim();
-          if (!scheduleKey || !technicianId) return;
-          if (jobScheduleKey === scheduleKey && jobTechnicianId === technicianId) {
-            jobs[index] = { ...job, ...completionPatch, _id: job._id };
-          }
-        });
-      }
 
       await syncJobToMysql(updatedJob);
-      if (nextStatus === 'completed') {
-        const scheduleKey = String(updatedJob.scheduleKey || '').trim();
-        const technicianId = String(updatedJob.technicianId || '').trim();
-        await Promise.all(
-          jobs
-            .filter((job) => {
-              if (String(job?._id || '') === String(updatedJob._id || '')) return false;
-              if (String(job?.status || '').trim().toLowerCase() !== 'completed') return false;
-              return String(job?.scheduleKey || '').trim() === scheduleKey
-                && String(job?.technicianId || '').trim() === technicianId;
-            })
-            .map(async (job) => {
-              await syncJobToMysql(job);
-            })
-        );
-      }
 
       syncJobGoogleTaskSafely(updatedJob, { markCompleted: nextStatus === 'completed' }).then(() => {
         syncJobToMysql(updatedJob).catch((error) => {
@@ -3871,6 +3831,55 @@ const syncJobGoogleTaskSafely = async (job, options = {}) => {
     job.google_last_synced_at = new Date().toISOString();
   }
   return job;
+};
+
+let lastGoogleTaskPullAtMs = 0;
+const GOOGLE_TASK_PULL_MIN_INTERVAL_MS = 45 * 1000;
+const pullGoogleTaskUpdatesToCrmSafely = async () => {
+  if (!canUseMysql()) return;
+  const now = Date.now();
+  if (now - lastGoogleTaskPullAtMs < GOOGLE_TASK_PULL_MIN_INTERVAL_MS) return;
+  lastGoogleTaskPullAtMs = now;
+  try {
+    await withMysqlConnection(async (conn) => {
+      const client = await getTasksClient(conn);
+      if (!client) return;
+      const tasklistId = String(client.row?.tasklist_id || '').trim();
+      if (!tasklistId) return;
+      const [rows] = await conn.query('SELECT payload FROM jobs WHERE google_task_id IS NOT NULL AND google_task_id <> "" ORDER BY id DESC LIMIT 300');
+      const jobs = (Array.isArray(rows) ? rows : [])
+        .map((row) => {
+          const raw = row?.payload;
+          if (!raw) return null;
+          if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch { return null; }
+          }
+          return raw;
+        })
+        .filter(Boolean);
+      for (const job of jobs) {
+        const taskId = String(job.google_task_id || '').trim();
+        if (!taskId) continue;
+        try {
+          const taskRes = await client.tasks.tasks.get({ tasklist: tasklistId, task: taskId });
+          const task = taskRes?.data || {};
+          const taskStatus = String(task.status || '').trim().toLowerCase();
+          const crmStatus = String(job.status || '').trim().toLowerCase();
+          if (taskStatus === 'completed' && crmStatus !== 'completed') {
+            job.status = 'Completed';
+            job.punchOutTime = job.punchOutTime || new Date().toLocaleString();
+            job.google_sync_status = 'synced';
+            job.google_last_synced_at = new Date().toISOString();
+            await syncJobToMysql(job);
+          }
+        } catch (_error) {
+          // Keep pull robust even if one task fetch fails.
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Google->CRM task pull failed:', error.message);
+  }
 };
 
 app.get('/api/google/integration/status', async (req, res) => {

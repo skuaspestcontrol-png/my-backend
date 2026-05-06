@@ -108,6 +108,25 @@ const buildTasksShim = (oauth) => ({
     }
   },
   tasks: {
+    get: async ({ tasklist, task } = {}) => {
+      const token = await oauth.getAccessToken();
+      const data = await googleApiRequest(`${GOOGLE_TASKS_BASE}/lists/${encodeURIComponent(clean(tasklist))}/tasks/${encodeURIComponent(clean(task))}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return { data };
+    },
+    list: async ({ tasklist, maxResults = 100, showCompleted = true, showHidden = false } = {}) => {
+      const token = await oauth.getAccessToken();
+      const params = new URLSearchParams({
+        maxResults: String(Number(maxResults) || 100),
+        showCompleted: showCompleted ? 'true' : 'false',
+        showHidden: showHidden ? 'true' : 'false'
+      });
+      const data = await googleApiRequest(`${GOOGLE_TASKS_BASE}/lists/${encodeURIComponent(clean(tasklist))}/tasks?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return { data };
+    },
     insert: async ({ tasklist, requestBody = {} } = {}) => {
       const token = await oauth.getAccessToken();
       const data = await googleApiRequest(`${GOOGLE_TASKS_BASE}/lists/${encodeURIComponent(clean(tasklist))}/tasks`, {
