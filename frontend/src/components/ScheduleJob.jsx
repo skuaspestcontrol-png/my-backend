@@ -120,6 +120,7 @@ export default function ScheduleJob() {
   const [customers, setCustomers] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -139,15 +140,17 @@ export default function ScheduleJob() {
       setLoading(true);
       setLoadError('');
       try {
-        const [customerRes, invoiceRes, employeeRes] = await Promise.all([
+        const [customerRes, invoiceRes, employeeRes, jobsRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/api/customers`),
           axios.get(`${API_BASE_URL}/api/invoices`),
-          axios.get(`${API_BASE_URL}/api/employees`)
+          axios.get(`${API_BASE_URL}/api/employees`),
+          axios.get(`${API_BASE_URL}/api/jobs`)
         ]);
         if (!mounted) return;
         setCustomers(Array.isArray(customerRes.data) ? customerRes.data : []);
         setInvoices(Array.isArray(invoiceRes.data) ? invoiceRes.data : []);
         setEmployees(Array.isArray(employeeRes.data) ? employeeRes.data : []);
+        setJobs(Array.isArray(jobsRes.data) ? jobsRes.data : []);
       } catch (error) {
         console.error('Failed to load assign-service data', error);
         if (!mounted) return;
@@ -246,6 +249,18 @@ export default function ScheduleJob() {
 
   const serviceRows = useMemo(() => {
     if (!selectedContract) return [];
+    const contractIdText = String(selectedContract._id || '').trim();
+    const assignedScheduleKeys = new Set(
+      (Array.isArray(jobs) ? jobs : [])
+        .filter((job) => {
+          const scheduleKey = String(job?.scheduleKey || '').trim();
+          if (!scheduleKey) return false;
+          const sameContract = String(job?.contractId || '').trim() === contractIdText;
+          const sameContractNumber = String(job?.contractNumber || '').trim().toLowerCase() === String(selectedContract.contractNumber || '').trim().toLowerCase();
+          return sameContract || sameContractNumber;
+        })
+        .map((job) => String(job?.scheduleKey || '').trim())
+    );
     const schedules = Array.isArray(selectedContract.serviceSchedules) ? selectedContract.serviceSchedules : [];
     const itemById = new Map(
       (Array.isArray(selectedContract.items) ? selectedContract.items : [])
@@ -271,8 +286,8 @@ export default function ScheduleJob() {
         status,
         raw: schedule
       };
-    }).filter((row) => row.status !== 'Assigned');
-  }, [selectedContract, selectedCustomer]);
+    }).filter((row) => row.status !== 'Assigned' && !assignedScheduleKeys.has(row.key));
+  }, [selectedContract, selectedCustomer, jobs]);
 
   const filteredServiceRows = useMemo(
     () => serviceRows.filter((row) => scheduleStatusFilter === 'All' || row.status === scheduleStatusFilter),
