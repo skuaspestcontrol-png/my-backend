@@ -301,18 +301,25 @@ export default function TechnicianPortal() {
 
   const loadPortalData = useCallback(async () => {
     try {
-      const [jobsRes, schedulesRes, invoicesRes, customersRes, employeesRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/jobs`),
-        axios.get(`${API_BASE_URL}/api/service-schedules`),
-        axios.get(`${API_BASE_URL}/api/invoices`),
-        axios.get(`${API_BASE_URL}/api/customers`),
-        axios.get(`${API_BASE_URL}/api/employees`)
+      const stamp = Date.now();
+      const [jobsRes, schedulesRes, invoicesRes, customersRes, employeesRes] = await Promise.allSettled([
+        axios.get(`${API_BASE_URL}/api/jobs`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' } }),
+        axios.get(`${API_BASE_URL}/api/service-schedules`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' } }),
+        axios.get(`${API_BASE_URL}/api/invoices`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' } }),
+        axios.get(`${API_BASE_URL}/api/customers`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' } }),
+        axios.get(`${API_BASE_URL}/api/employees`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' } })
       ]);
 
-      const nextSchedules = Array.isArray(schedulesRes.data) ? schedulesRes.data : [];
-      setJobs(buildVisibleJobs(jobsRes.data, nextSchedules, invoicesRes.data, customersRes.data));
+      const jobsData = jobsRes.status === 'fulfilled' ? jobsRes.value?.data : [];
+      const schedulesData = schedulesRes.status === 'fulfilled' ? schedulesRes.value?.data : [];
+      const invoicesData = invoicesRes.status === 'fulfilled' ? invoicesRes.value?.data : [];
+      const customersData = customersRes.status === 'fulfilled' ? customersRes.value?.data : [];
+      const employeesData = employeesRes.status === 'fulfilled' ? employeesRes.value?.data : [];
+
+      const nextSchedules = Array.isArray(schedulesData) ? schedulesData : [];
+      setJobs(buildVisibleJobs(jobsData, nextSchedules, invoicesData, customersData));
       setTechnicians(
-        (Array.isArray(employeesRes.data) ? employeesRes.data : [])
+        (Array.isArray(employeesData) ? employeesData : [])
           .filter((employee) => String(employee?.role || '').trim().toLowerCase() === 'technician')
       );
     } catch (error) {
