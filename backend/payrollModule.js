@@ -615,8 +615,6 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
     }
   }
 
-  doc.font('Helvetica-Bold').fontSize(18).fillColor('#0f172a').text(company.companyName || defaultCompany.companyName, 150, 42, { width: 210 });
-
   const rightLines = [
     normalizeText(company.companyName || defaultCompany.companyName),
     normalizeText(company.address || ''),

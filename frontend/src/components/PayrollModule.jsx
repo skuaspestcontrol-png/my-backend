@@ -200,23 +200,12 @@ export default function PayrollModule() {
       setDashboard(dashboardRes.data || null);
       const scopedItems = Array.isArray(payrollRes.data) ? payrollRes.data : [];
       const allItems = Array.isArray(payrollAllRes.data) ? payrollAllRes.data : [];
-      if (scopedItems.length === 0 && allItems.length > 0) {
-        const latest = [...allItems].sort((a, b) => {
-          const aKey = `${Number(a?.year || 0)}-${String(Number(a?.month || 0)).padStart(2, '0')}-${String(a?.createdAt || '')}`;
-          const bKey = `${Number(b?.year || 0)}-${String(Number(b?.month || 0)).padStart(2, '0')}-${String(b?.createdAt || '')}`;
-          return bKey.localeCompare(aKey);
-        })[0];
-        const latestMonth = Number(latest?.month || 0);
-        const latestYear = Number(latest?.year || 0);
-        if (latestMonth >= 1 && latestMonth <= 12 && latestYear >= 2000 && (latestMonth !== Number(month) || latestYear !== Number(year))) {
-          setMonth(latestMonth);
-          setYear(latestYear);
-          setStatus(`No payroll rows found for selected month. Switched to latest available payroll: ${monthOptions.find((entry) => entry.value === latestMonth)?.label || latestMonth} ${latestYear}.`);
-          return;
-        }
-      }
       setPayrollItems(scopedItems);
-      setStatus('');
+      if (scopedItems.length === 0 && allItems.length > 0) {
+        setStatus('No payroll rows found for selected month. You can generate payroll for this month.');
+      } else {
+        setStatus('');
+      }
     } catch (error) {
       console.error('Payroll fetch failed', error);
       setStatus(error?.response?.data?.error || 'Unable to load payroll module right now.');
