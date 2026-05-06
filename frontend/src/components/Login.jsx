@@ -155,16 +155,16 @@ export default function Login() {
 
   return (
     <div style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #f0fdfa 0%, #f8fafc 45%, #eff6ff 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '12px' : '24px' }}>
-      <div style={{ width: '100%', maxWidth: '500px', borderRadius: '22px', border: '1px solid var(--color-border)', background: '#fff', boxShadow: 'var(--shadow-lg)', overflow: 'hidden' }}>
-        <section style={{ padding: isNarrow ? '20px 14px' : '34px 36px', minHeight: '100%', display: 'grid', alignContent: 'center', justifyItems: 'center', gap: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
+      <div style={{ width: '100%', maxWidth: isNarrow ? '500px' : '420px', minHeight: isNarrow ? 'auto' : '700px', borderRadius: '22px', border: '1px solid var(--color-border)', background: '#fff', boxShadow: 'var(--shadow-lg)', overflow: 'hidden' }}>
+        <section style={{ padding: isNarrow ? '20px 14px' : '36px 28px', minHeight: '100%', display: 'grid', alignContent: 'center', justifyItems: 'center', gap: '18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', transform: isNarrow ? 'none' : 'translateY(-8px)' }}>
           {hasValidLogo ? (
             <img
               src={settings.dashboardImageUrl}
               alt="Company Logo"
               onError={() => setLogoBroken(true)}
               style={{
-                width: isNarrow ? '200px' : '250px',
+                width: isNarrow ? '200px' : '220px',
                 maxWidth: '92%',
                 height: 'auto',
                 objectFit: 'contain'
