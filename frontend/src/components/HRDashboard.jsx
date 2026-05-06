@@ -3,13 +3,10 @@ import axios from 'axios';
 import {
   Activity,
   BadgeIndianRupee,
-  Bell,
   CalendarCheck,
   Clock3,
   Download,
-  Filter,
   IdCard,
-  KanbanSquare,
   TrendingUp,
   UserCheck,
   Users,
@@ -245,18 +242,7 @@ export default function HRDashboard() {
   const fetchAll = useCallback(async (silent = false) => {
     try {
       if (!silent) setBusy(true);
-      const [
-        optionsRes,
-        summaryRes,
-        kanbanRes,
-        attendanceRes,
-        leavesRes,
-        leaveBalanceRes,
-        performanceRes,
-        payrollQuickRes,
-        notificationsRes,
-        employeesRes
-      ] = await Promise.all([
+      const results = await Promise.allSettled([
         axios.get(`${API_BASE}/api/hr/filters`, { headers }),
         axios.get(`${API_BASE}/api/hr/dashboard-summary`, { params: queryParams, headers }),
         axios.get(`${API_BASE}/api/hr/kanban`, { params: queryParams, headers }),
@@ -269,17 +255,22 @@ export default function HRDashboard() {
         axios.get(`${API_BASE}/api/employees`, { headers })
       ]);
 
-      setFilterOptions(optionsRes.data || { departments: [], roles: [], locations: [], statuses: workflowColumns });
-      setSummary(summaryRes.data || null);
-      setKanban(kanbanRes.data || { columns: workflowColumns.map((name) => ({ name, items: [] })) });
-      setAttendanceToday(attendanceRes.data || { summary: {}, rows: [] });
-      setLeaves(Array.isArray(leavesRes.data) ? leavesRes.data : []);
-      setLeaveBalances(Array.isArray(leaveBalanceRes.data) ? leaveBalanceRes.data : []);
-      setPerformance(performanceRes.data || { leaderboard: [], lowPerformanceAlerts: [], chart: [] });
-      setPayrollQuick(payrollQuickRes.data || null);
-      setNotifications(Array.isArray(notificationsRes.data) ? notificationsRes.data : []);
-      setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
-      setStatus('');
+      const hasFailure = results.some((entry) => entry.status === 'rejected');
+      const getData = (index, fallback) => (
+        results[index]?.status === 'fulfilled' ? results[index].value?.data : fallback
+      );
+
+      setFilterOptions(getData(0, { departments: [], roles: [], locations: [], statuses: workflowColumns }));
+      setSummary(getData(1, null));
+      setKanban(getData(2, { columns: workflowColumns.map((name) => ({ name, items: [] })) }));
+      setAttendanceToday(getData(3, { summary: {}, rows: [] }));
+      setLeaves(Array.isArray(getData(4, [])) ? getData(4, []) : []);
+      setLeaveBalances(Array.isArray(getData(5, [])) ? getData(5, []) : []);
+      setPerformance(getData(6, { leaderboard: [], lowPerformanceAlerts: [], chart: [] }));
+      setPayrollQuick(getData(7, null));
+      setNotifications(Array.isArray(getData(8, [])) ? getData(8, []) : []);
+      setEmployees(Array.isArray(getData(9, [])) ? getData(9, []) : []);
+      setStatus(hasFailure ? 'Some HR data could not be loaded. Showing available data.' : '');
     } catch (error) {
       console.error('HR dashboard load failed', error);
       setStatus(error?.response?.data?.error || 'Unable to load HR dashboard right now.');
@@ -437,57 +428,6 @@ export default function HRDashboard() {
       <section style={shell.hero}>
         <h1 style={shell.title}>HR Dashboard</h1>
         <p style={shell.subtitle}>Eagle-eye view for workforce, attendance, payroll, leaves, productivity, and employee lifecycle actions.</p>
-      </section>
-
-      <section style={shell.panel}>
-        <h3 style={shell.panelTitle}><Filter size={16} /> Filters & Search</h3>
-        <div style={shell.filters}>
-          <div style={shell.field}>
-            <p style={shell.label}>Search</p>
-            <input style={shell.input} value={filters.search} placeholder="Employee name or ID" onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))} />
-          </div>
-          <div style={shell.field}>
-            <p style={shell.label}>Department</p>
-            <select style={shell.input} value={filters.department} onChange={(event) => setFilters((prev) => ({ ...prev, department: event.target.value }))}>
-              <option value="">All</option>
-              {(filterOptions.departments || []).map((entry) => <option key={entry} value={entry}>{entry}</option>)}
-            </select>
-          </div>
-          <div style={shell.field}>
-            <p style={shell.label}>Role</p>
-            <select style={shell.input} value={filters.role} onChange={(event) => setFilters((prev) => ({ ...prev, role: event.target.value }))}>
-              <option value="">All</option>
-              {(filterOptions.roles || []).map((entry) => <option key={entry} value={entry}>{entry}</option>)}
-            </select>
-          </div>
-          <div style={shell.field}>
-            <p style={shell.label}>Location</p>
-            <select style={shell.input} value={filters.location} onChange={(event) => setFilters((prev) => ({ ...prev, location: event.target.value }))}>
-              <option value="">All</option>
-              {(filterOptions.locations || []).map((entry) => <option key={entry} value={entry}>{entry}</option>)}
-            </select>
-          </div>
-          <div style={shell.field}>
-            <p style={shell.label}>Status</p>
-            <select style={shell.input} value={filters.status} onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}>
-              <option value="">All</option>
-              {(filterOptions.statuses || workflowColumns).map((entry) => <option key={entry} value={entry}>{entry}</option>)}
-            </select>
-          </div>
-          <div style={shell.field}>
-            <p style={shell.label}>Month</p>
-            <select style={shell.input} value={month} onChange={(event) => setMonth(Number(event.target.value))}>
-              {monthOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </div>
-          <div style={shell.field}>
-            <p style={shell.label}>Year</p>
-            <input style={shell.input} type="number" value={year} min="2020" max="2100" onChange={(event) => setYear(Number(event.target.value) || now.getFullYear())} />
-          </div>
-          <div style={{ ...shell.field, alignSelf: 'end' }}>
-            <button type="button" style={shell.btnLight} onClick={() => setFilters({ search: '', department: '', role: '', location: '', status: '' })}>Reset Filters</button>
-          </div>
-        </div>
       </section>
 
       {status ? <div style={{ ...shell.panel, borderColor: 'rgba(159, 23, 77, 0.3)', color: 'var(--color-primary-deep)', fontWeight: 700 }}>{status}</div> : null}

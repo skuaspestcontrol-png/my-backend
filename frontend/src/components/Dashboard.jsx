@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { LayoutDashboard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -300,10 +299,6 @@ export default function Dashboard() {
     <div style={shell.page}>
       <section className="hero-section command-center" style={heroStyle}>
         <div>
-          <div style={shell.badge}>
-            <LayoutDashboard size={14} />
-            Command Center
-          </div>
           <h1 style={{ ...shell.title, color: '#ffffff' }}>{companyName}</h1>
           <p style={shell.description}>
             Live financial dashboard with real-time receivables, payables, income, and top expense trends.
@@ -311,13 +306,7 @@ export default function Dashboard() {
         </div>
 
         <div style={shell.heroCard}>
-          <div style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-primary-dark)' }}>
-            Auto Refresh
-          </div>
-          <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '12px', color: '#0f172a' }}>
-            Every 60 seconds
-          </div>
-          <p style={{ margin: '10px 0 0 0', color: '#334155', lineHeight: 1.7, fontSize: '14px', fontWeight: 600 }}>
+          <p style={{ margin: 0, color: '#334155', lineHeight: 1.7, fontSize: '15px', fontWeight: 700 }}>
             Receivables: <strong>{formatCurrency(analytics.totalReceivables)}</strong> | Payables: <strong>{formatCurrency(analytics.totalPayables)}</strong>
           </p>
         </div>

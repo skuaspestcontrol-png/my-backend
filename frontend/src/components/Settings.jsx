@@ -357,11 +357,12 @@ const shell = {
     cursor: 'pointer',
     textAlign: 'left',
     justifyContent: 'flex-start',
-    width: '100%'
+    width: '100%',
+    outline: 'none'
   },
   tabButtonActive: {
-    color: '#0f172a',
-    borderColor: 'rgba(159, 23, 77, 0.26)',
+    color: 'var(--color-primary-dark)',
+    borderColor: 'transparent',
     background: 'var(--color-primary-light)',
     boxShadow: 'inset 3px 0 0 var(--color-primary)'
   },
@@ -662,6 +663,7 @@ export default function Settings({ modalMode = false }) {
       && (window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window)
   ));
   const passwordStrength = useMemo(() => getPasswordStrength(securityForm.newPassword), [securityForm.newPassword]);
+  const panelBodyRef = useRef(null);
   const brandingAccentOptions = ['#3B82F6', '#22C55E', '#EF4444', '#F59E0B', '#9F174D'];
   const isMobile = viewportWidth <= 768;
   const isCompactLayout = isMobile || isTouchDevice || viewportWidth <= 1100;
@@ -671,6 +673,11 @@ export default function Settings({ modalMode = false }) {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    const panel = panelBodyRef.current;
+    if (panel) panel.scrollTop = 0;
+  }, [activeSection]);
 
   useEffect(() => {
     const updateTouchMode = () => {
@@ -1988,14 +1995,6 @@ export default function Settings({ modalMode = false }) {
           onChange={(event) => updateField('nonGstTermsAndConditions', event.target.value)}
         />
       </div>
-      <div style={shell.field}>
-        <p style={shell.fieldLabel}>Customer Notes</p>
-        <textarea
-          style={{ ...shell.textArea, minHeight: '130px' }}
-          value={form.customerNotesDefault}
-          onChange={(event) => updateField('customerNotesDefault', event.target.value)}
-        />
-      </div>
     </>
   );
 
@@ -2364,8 +2363,8 @@ export default function Settings({ modalMode = false }) {
     ? { ...shell.tabButton, width: '100%', minWidth: 0, whiteSpace: 'normal', padding: '10px 12px' }
     : shell.tabButton;
   const panelBodyStyle = isCompactLayout
-    ? { ...shell.panelBody, padding: '12px', overflowX: 'hidden' }
-    : shell.panelBody;
+    ? { ...shell.panelBody, padding: '12px', overflowX: 'hidden', overflowY: 'auto' }
+    : { ...shell.panelBody, overflowY: 'auto' };
   const pageStyle = modalMode
     ? { ...shell.page, gap: '10px' }
     : shell.page;
@@ -2418,7 +2417,7 @@ export default function Settings({ modalMode = false }) {
               })}
             </div>
 
-            <div style={panelBodyStyle}>{renderSectionContent()}</div>
+            <div ref={panelBodyRef} style={panelBodyStyle}>{renderSectionContent()}</div>
           </div>
           <div
             style={{
