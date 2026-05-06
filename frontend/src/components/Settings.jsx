@@ -371,13 +371,13 @@ const shell = {
     justifyItems: 'stretch'
   },
   tabButton: {
-    border: '1px solid transparent',
+    border: 'none',
     borderRadius: '10px',
     background: 'transparent',
-    color: '#4b5563',
-    padding: '8px 10px',
-    fontSize: '14px',
-    fontWeight: 800,
+    color: 'var(--color-text)',
+    padding: '9px 10px',
+    fontSize: '13px',
+    fontWeight: 600,
     cursor: 'pointer',
     textAlign: 'left',
     justifyContent: 'flex-start',
@@ -385,27 +385,28 @@ const shell = {
     outline: 'none'
   },
   tabButtonActive: {
-    color: 'var(--color-primary-dark)',
+    color: 'var(--color-white)',
     borderColor: 'transparent',
-    background: 'var(--color-primary-light)',
-    boxShadow: 'inset 3px 0 0 var(--color-primary)'
+    background: 'var(--color-primary)',
+    boxShadow: 'var(--shadow-md)',
+    fontWeight: 800
   },
   menuGroup: {
     display: 'grid',
     gap: '5px',
-    padding: '6px',
+    padding: '4px',
     borderRadius: '10px',
-    background: 'rgba(15, 23, 42, 0.02)'
+    background: 'transparent'
   },
   groupToggle: {
     width: '100%',
-    border: '1px solid transparent',
+    border: 'none',
     borderRadius: '8px',
     background: 'transparent',
     color: '#334155',
-    padding: '7px 9px',
-    fontSize: '12px',
-    fontWeight: 800,
+    padding: '8px 10px',
+    fontSize: '13px',
+    fontWeight: 700,
     cursor: 'pointer',
     textAlign: 'left',
     display: 'flex',
@@ -701,9 +702,9 @@ export default function Settings({ modalMode = false }) {
   const [activeSection, setActiveSection] = useState(flatSections[0].key);
   const [expandedGroups, setExpandedGroups] = useState({
     general: true,
-    quotation: true,
-    whatsapp: true,
-    email: true
+    quotation: false,
+    whatsapp: false,
+    email: false
   });
   const logoInputRef = useRef(null);
   const gstLogoInputRef = useRef(null);
