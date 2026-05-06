@@ -68,6 +68,14 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/health', (req, res) => {
+  res.status(200).send('ok');
+});
+
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
+
 app.post('/api/admin/apply-hostinger-quotation-sql', (req, res) => {
   const token = String(req.headers['x-migration-token'] || req.body?.token || '').trim();
   const expectedToken = String(process.env.ADMIN_MIGRATION_TOKEN || '').trim();
@@ -134,7 +142,22 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use('/api', quotationRouter);
-const PORT = Math.max(1, Number(process.env.PORT || 5000) || 5000);
+const resolvePort = () => {
+  const candidates = [
+    process.env.PORT,
+    process.env.APP_PORT,
+    process.env.NODEJS_PORT,
+    process.env.SERVER_PORT,
+    process.env.HTTP_PORT,
+    process.env.HOSTINGER_PORT
+  ];
+  for (const value of candidates) {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) return parsed;
+  }
+  return 3000;
+};
+const PORT = resolvePort();
 const SERVER_ORIGIN = String(process.env.SERVER_ORIGIN || '').trim();
 const resolveServerOrigin = (req) => SERVER_ORIGIN || `${req.protocol}://${req.get('host')}`;
 const MASTER_RESET_EMAIL = String(process.env.MASTER_RESET_EMAIL || 'skuaspestcontrol@gmail.com').trim().toLowerCase();
@@ -6022,4 +6045,15 @@ if (activeFrontendBuildDir && activeFrontendIndexFile) {
   });
 }
 
-app.listen(PORT, () => console.log(`Backend Server Live on Port ${PORT}`));
+process.on('uncaughtException', (error) => {
+  console.error('UNCAUGHT_EXCEPTION:', error && error.stack ? error.stack : error);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED_REJECTION:', reason && reason.stack ? reason.stack : reason);
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Backend Server Live on Port ${PORT}`);
+  console.log(`Health endpoint ready at /health`);
+});
