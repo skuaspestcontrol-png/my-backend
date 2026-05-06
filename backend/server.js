@@ -2343,7 +2343,23 @@ app.put('/api/jobs/:id', async (req, res) => {
         });
       }
 
-      await Promise.all(jobs.map((job) => syncJobToMysql(job)));
+      await syncJobToMysql(updatedJob);
+      if (nextStatus === 'completed') {
+        const scheduleKey = String(updatedJob.scheduleKey || '').trim();
+        const technicianId = String(updatedJob.technicianId || '').trim();
+        await Promise.all(
+          jobs
+            .filter((job) => {
+              if (String(job?._id || '') === String(updatedJob._id || '')) return false;
+              if (String(job?.status || '').trim().toLowerCase() !== 'completed') return false;
+              return String(job?.scheduleKey || '').trim() === scheduleKey
+                && String(job?.technicianId || '').trim() === technicianId;
+            })
+            .map(async (job) => {
+              await syncJobToMysql(job);
+            })
+        );
+      }
 
       syncJobGoogleTaskSafely(updatedJob, { markCompleted: nextStatus === 'completed' }).then(() => {
         syncJobToMysql(updatedJob).catch((error) => {
@@ -3710,6 +3726,12 @@ const syncInvoiceToMysql = async (invoice) => {
 
 const syncJobToMysql = async (job) => {
   if (!job || !job._id) return;
+  const toMysqlDateTimeOrNull = (value) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toISOString().slice(0, 19).replace('T', ' ');
+  };
   await withMysqlConnection(async (conn) => {
     await ensureJobsGoogleColumns(conn);
     try {
@@ -3737,56 +3759,52 @@ const syncJobToMysql = async (job) => {
       if (!names.has('source_created_at')) await conn.query('ALTER TABLE jobs ADD COLUMN source_created_at DATETIME NULL');
       if (!names.has('source_updated_at')) await conn.query('ALTER TABLE jobs ADD COLUMN source_updated_at DATETIME NULL');
     }
-    await conn.query(
-      `INSERT INTO jobs (
-        external_id, customer_external_id, invoice_external_id, customer_name, job_number, status,
-        service_name, service_type, area_name, city, state, pincode, scheduled_date, scheduled_time,
-        google_task_id, google_sync_status, google_last_synced_at,
-        payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        customer_external_id=VALUES(customer_external_id),
-        invoice_external_id=VALUES(invoice_external_id),
-        customer_name=VALUES(customer_name),
-        job_number=VALUES(job_number),
-        status=VALUES(status),
-        service_name=VALUES(service_name),
-        service_type=VALUES(service_type),
-        area_name=VALUES(area_name),
-        city=VALUES(city),
-        state=VALUES(state),
-        pincode=VALUES(pincode),
-        scheduled_date=VALUES(scheduled_date),
-        scheduled_time=VALUES(scheduled_time),
-        google_task_id=VALUES(google_task_id),
-        google_sync_status=VALUES(google_sync_status),
-        google_last_synced_at=VALUES(google_last_synced_at),
-        payload=VALUES(payload),
-        source_created_at=VALUES(source_created_at),
-        source_updated_at=VALUES(source_updated_at)`,
-      [
-        job._id,
-        job.customerId || null,
-        job.invoiceId || null,
-        job.customerName || null,
-        job.jobNumber || null,
-        job.status || null,
-        job.serviceName || null,
-        job.serviceType || null,
-        job.areaName || null,
-        job.city || null,
-        job.state || null,
-        job.pincode || null,
-        job.serviceDate || null,
-        job.serviceTime || null,
-        job.google_task_id || null,
-        job.google_sync_status || null,
-        job.google_last_synced_at ? new Date(job.google_last_synced_at).toISOString().slice(0, 19).replace('T', ' ') : null,
-        JSON.stringify(job),
-        job.createdAt ? new Date(job.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
-        new Date().toISOString().slice(0, 19).replace('T', ' ')
-      ]
-    );
+    const [existingCols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='jobs'");
+    const columnSet = new Set((existingCols || []).map((c) => String(c.COLUMN_NAME || '').trim()).filter(Boolean));
+    const serviceDate = job.scheduledDate || job.serviceDate || null;
+    const serviceTime = job.scheduledTime || job.serviceTime || null;
+    const candidateValues = {
+      external_id: job._id,
+      customer_external_id: job.customerId || null,
+      customer_id: job.customerId || null,
+      invoice_external_id: job.invoiceId || job.contractId || null,
+      invoice_id: job.invoiceId || job.contractId || null,
+      customer_name: job.customerName || null,
+      job_number: job.jobNumber || null,
+      assigned_to: job.technicianName || null,
+      technician_name: job.technicianName || null,
+      service_name: job.serviceName || null,
+      service_type: job.serviceType || job.serviceName || null,
+      description: job.serviceInstructions || job.notes || null,
+      address: job.address || null,
+      area_name: job.areaName || null,
+      city: job.city || null,
+      state: job.state || null,
+      pincode: job.pincode || null,
+      scheduled_date: serviceDate,
+      service_date: serviceDate,
+      scheduled_time: serviceTime,
+      service_time: serviceTime,
+      status: job.status || null,
+      google_task_id: job.google_task_id || null,
+      google_sync_status: job.google_sync_status || null,
+      google_last_synced_at: toMysqlDateTimeOrNull(job.google_last_synced_at),
+      payload: JSON.stringify(job),
+      source_created_at: toMysqlDateTimeOrNull(job.createdAt),
+      source_updated_at: toMysqlDateTimeOrNull(new Date())
+    };
+
+    const columns = Object.keys(candidateValues).filter((key) => columnSet.has(key));
+    if (!columns.includes('external_id')) {
+      throw new Error('jobs.external_id column is required for sync');
+    }
+
+    const values = columns.map((key) => candidateValues[key]);
+    const updateColumns = columns.filter((key) => key !== 'external_id');
+    const sql = `INSERT INTO jobs (${columns.join(', ')})
+      VALUES (${columns.map(() => '?').join(', ')})
+      ON DUPLICATE KEY UPDATE ${updateColumns.map((key) => `${key}=VALUES(${key})`).join(', ')}`;
+    await conn.query(sql, values);
   });
 };
 

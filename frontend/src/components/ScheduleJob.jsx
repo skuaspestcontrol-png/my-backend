@@ -271,7 +271,7 @@ export default function ScheduleJob() {
         status,
         raw: schedule
       };
-    });
+    }).filter((row) => row.status !== 'Assigned');
   }, [selectedContract, selectedCustomer]);
 
   const filteredServiceRows = useMemo(
