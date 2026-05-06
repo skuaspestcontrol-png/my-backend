@@ -192,6 +192,15 @@ CREATE TABLE IF NOT EXISTS attendance (
   KEY idx_attendance_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS payroll_storage_snapshots (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  snapshot_key VARCHAR(120) NOT NULL,
+  payload LONGTEXT NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_payroll_snapshot_key (snapshot_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS quotation_template_settings (
   id INT NOT NULL AUTO_INCREMENT,
   logo_url TEXT NULL,

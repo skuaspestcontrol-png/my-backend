@@ -5952,7 +5952,8 @@ registerPayrollModule({
     payrollAuditFile
   },
   readSettings,
-  serverOrigin: SERVER_ORIGIN
+  serverOrigin: SERVER_ORIGIN,
+  withMysqlConnection
 });
 
 registerHrModule({

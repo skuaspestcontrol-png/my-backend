@@ -608,7 +608,8 @@ function registerPayrollModule({
   readJsonFile,
   files,
   readSettings,
-  serverOrigin
+  serverOrigin,
+  withMysqlConnection
 }) {
   const {
     employeesFile,
@@ -622,6 +623,80 @@ function registerPayrollModule({
     payrollAuditFile
   } = files;
 
+  const canUseMysql = typeof withMysqlConnection === 'function';
+  const PAYROLL_SNAPSHOT_TABLE = 'payroll_storage_snapshots';
+  const payrollSnapshotCache = new Map();
+
+  const ensurePayrollSnapshotTable = async (conn) => {
+    if (!canUseMysql) return;
+    if (conn) {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS ${PAYROLL_SNAPSHOT_TABLE} (
+          id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+          snapshot_key VARCHAR(120) NOT NULL,
+          payload LONGTEXT NOT NULL,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uk_payroll_snapshot_key (snapshot_key)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      return;
+    }
+    await withMysqlConnection(async (innerConn) => {
+      await ensurePayrollSnapshotTable(innerConn);
+    });
+  };
+
+  const saveSnapshotToMysql = (snapshotKey, value) => {
+    if (!canUseMysql) return;
+    const payload = JSON.stringify(value ?? null);
+    payrollSnapshotCache.set(snapshotKey, value);
+    withMysqlConnection(async (conn) => {
+      await ensurePayrollSnapshotTable(conn);
+      await conn.query(
+        `INSERT INTO ${PAYROLL_SNAPSHOT_TABLE} (snapshot_key, payload)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE payload=VALUES(payload)`,
+        [String(snapshotKey || '').trim(), payload]
+      );
+    }).catch((error) => {
+      console.error(`Payroll MySQL snapshot save failed for ${snapshotKey}:`, error.message);
+    });
+  };
+
+  const readSnapshotFromMysql = async (snapshotKey) => {
+    if (!canUseMysql) return null;
+    const cached = payrollSnapshotCache.get(snapshotKey);
+    if (cached !== undefined) return cached;
+    return withMysqlConnection(async (conn) => {
+      await ensurePayrollSnapshotTable(conn);
+      const [rows] = await conn.query(`SELECT payload FROM ${PAYROLL_SNAPSHOT_TABLE} WHERE snapshot_key = ? LIMIT 1`, [String(snapshotKey || '').trim()]);
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (!row?.payload) return null;
+      try {
+        const parsed = JSON.parse(String(row.payload));
+        payrollSnapshotCache.set(snapshotKey, parsed);
+        return parsed;
+      } catch (_error) {
+        return null;
+      }
+    });
+  };
+
+  const hydratePayrollFileFromMysql = async (snapshotKey, targetFile, fallbackValue) => {
+    if (!canUseMysql) return;
+    try {
+      const snapshot = await readSnapshotFromMysql(snapshotKey);
+      if (snapshot === null || snapshot === undefined) return;
+      fs.writeFileSync(targetFile, JSON.stringify(snapshot, null, 2));
+    } catch (error) {
+      console.error(`Payroll hydrate failed for ${snapshotKey}:`, error.message);
+      try {
+        fs.writeFileSync(targetFile, JSON.stringify(fallbackValue, null, 2));
+      } catch (_ignore) {}
+    }
+  };
+
   const getPayrollConfig = () => {
     const current = readJsonFile(payrollRunsFile, { config: defaultPayrollConfig, runs: [] });
     if (Array.isArray(current)) return { config: defaultPayrollConfig, runs: [] };
@@ -632,19 +707,53 @@ function registerPayrollModule({
   };
 
   const savePayrollConfigAndRuns = ({ config, runs }) => {
-    fs.writeFileSync(payrollRunsFile, JSON.stringify({ config, runs }, null, 2));
+    const payload = { config, runs };
+    fs.writeFileSync(payrollRunsFile, JSON.stringify(payload, null, 2));
+    saveSnapshotToMysql('payroll_runs', payload);
   };
 
   const getItems = () => readJsonFile(payrollItemsFile, []);
-  const saveItems = (rows) => fs.writeFileSync(payrollItemsFile, JSON.stringify(rows, null, 2));
+  const saveItems = (rows) => {
+    fs.writeFileSync(payrollItemsFile, JSON.stringify(rows, null, 2));
+    saveSnapshotToMysql('payroll_items', rows);
+  };
   const getStructures = () => readJsonFile(salaryStructuresFile, []).map((entry) => normalizeSalaryStructure(entry));
-  const saveStructures = (rows) => fs.writeFileSync(salaryStructuresFile, JSON.stringify(rows, null, 2));
+  const saveStructures = (rows) => {
+    fs.writeFileSync(salaryStructuresFile, JSON.stringify(rows, null, 2));
+    saveSnapshotToMysql('payroll_salary_structures', rows);
+  };
   const getHolidays = () => readJsonFile(holidaysFile, []).map((entry) => normalizeHoliday(entry)).filter((entry) => entry.date);
-  const saveHolidays = (rows) => fs.writeFileSync(holidaysFile, JSON.stringify(rows, null, 2));
+  const saveHolidays = (rows) => {
+    fs.writeFileSync(holidaysFile, JSON.stringify(rows, null, 2));
+    saveSnapshotToMysql('payroll_holidays', rows);
+  };
   const getAdvances = () => readJsonFile(advancesFile, []).map((entry) => normalizeAdvance(entry)).filter((entry) => entry.employeeId);
-  const saveAdvances = (rows) => fs.writeFileSync(advancesFile, JSON.stringify(rows, null, 2));
+  const saveAdvances = (rows) => {
+    fs.writeFileSync(advancesFile, JSON.stringify(rows, null, 2));
+    saveSnapshotToMysql('payroll_advances', rows);
+  };
   const getPayments = () => readJsonFile(salaryPaymentsFile, []);
-  const savePayments = (rows) => fs.writeFileSync(salaryPaymentsFile, JSON.stringify(rows, null, 2));
+  const savePayments = (rows) => {
+    fs.writeFileSync(salaryPaymentsFile, JSON.stringify(rows, null, 2));
+    saveSnapshotToMysql('payroll_salary_payments', rows);
+  };
+  const saveAuditRows = (rows) => {
+    fs.writeFileSync(payrollAuditFile, JSON.stringify(rows, null, 2));
+    saveSnapshotToMysql('payroll_audit', rows);
+  };
+
+  // Best-effort startup hydration: MySQL -> JSON files, then all existing routes keep working.
+  Promise.all([
+    hydratePayrollFileFromMysql('payroll_runs', payrollRunsFile, { config: defaultPayrollConfig, runs: [] }),
+    hydratePayrollFileFromMysql('payroll_items', payrollItemsFile, []),
+    hydratePayrollFileFromMysql('payroll_salary_structures', salaryStructuresFile, []),
+    hydratePayrollFileFromMysql('payroll_holidays', holidaysFile, []),
+    hydratePayrollFileFromMysql('payroll_advances', advancesFile, []),
+    hydratePayrollFileFromMysql('payroll_salary_payments', salaryPaymentsFile, []),
+    hydratePayrollFileFromMysql('payroll_audit', payrollAuditFile, [])
+  ]).catch((error) => {
+    console.error('Payroll MySQL hydration failed:', error.message);
+  });
 
   const employeeLookup = () => {
     const employees = readJsonFile(employeesFile, []);
