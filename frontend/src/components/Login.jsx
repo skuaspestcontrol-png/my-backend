@@ -154,48 +154,48 @@ export default function Login() {
   };
 
   return (
-    <div style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #f0fdfa 0%, #f8fafc 45%, #eff6ff 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '12px' : '24px' }}>
-      <div style={{ width: '100%', maxWidth: isNarrow ? '500px' : '760px', minHeight: isNarrow ? 'auto' : '520px', borderRadius: '22px', border: '1px solid var(--color-border)', background: '#fff', boxShadow: 'var(--shadow-lg)', overflow: 'hidden' }}>
-        <section style={{ padding: isNarrow ? '20px 14px' : '30px 40px', minHeight: '100%', display: 'grid', alignContent: 'center', justifyItems: 'center', gap: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', transform: 'none' }}>
-          {hasValidLogo ? (
-            <img
-              src={settings.dashboardImageUrl}
-              alt="Company Logo"
-              onError={() => setLogoBroken(true)}
-              style={{
-                width: isNarrow ? '200px' : '240px',
-                maxWidth: '92%',
-                height: 'auto',
-                objectFit: 'contain'
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: isNarrow ? '72px' : '86px',
-                height: isNarrow ? '72px' : '86px',
-                backgroundColor: 'var(--color-primary)',
-                borderRadius: '18px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                color: '#fff',
-                fontWeight: 800,
-                fontSize: isNarrow ? '20px' : '24px'
-              }}
-            >
-              SPC
+    <div style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #eef4ff 0%, #f7f9fd 52%, #ecf2fb 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '12px' : '24px' }}>
+      <div style={{ width: '100%', maxWidth: '900px', borderRadius: '16px', border: '1px solid #dde3ed', background: '#f5f5f7', boxShadow: '0 14px 34px rgba(15, 23, 42, 0.1)', overflow: 'hidden' }}>
+        <section style={{ display: 'grid', gridTemplateColumns: viewportWidth < 900 ? '1fr' : '1fr 1fr', minHeight: viewportWidth < 900 ? 'auto' : '420px' }}>
+          <div style={{ display: 'grid', placeItems: 'center', padding: isNarrow ? '24px 14px 8px' : '24px 18px' }}>
+            {hasValidLogo ? (
+              <img
+                src={settings.dashboardImageUrl}
+                alt="Company Logo"
+                onError={() => setLogoBroken(true)}
+                style={{
+                  width: isNarrow ? '210px' : '330px',
+                  maxWidth: '95%',
+                  height: 'auto',
+                  objectFit: 'contain'
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: isNarrow ? '72px' : '92px',
+                  height: isNarrow ? '72px' : '92px',
+                  backgroundColor: 'var(--color-primary)',
+                  borderRadius: '18px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  color: '#fff',
+                  fontWeight: 800,
+                  fontSize: isNarrow ? '20px' : '26px'
+                }}
+              >
+                SPC
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding: isNarrow ? '14px 14px 20px' : '28px 30px 26px', display: 'grid', alignContent: 'center', gap: '14px' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: isNarrow ? '30px' : '52px', color: '#35364d', fontWeight: 800, lineHeight: 1.02 }}>Login To Your Account</h2>
             </div>
-          )}
-          </div>
 
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ margin: 0, fontSize: isNarrow ? '30px' : '34px', color: '#0f172a', fontWeight: 800 }}>Welcome Back</h2>
-            <p style={{ margin: '8px 0 0', color: '#475569', fontSize: '14px', fontWeight: 500 }}>Login to manage your pest control business</p>
-          </div>
-
-          <div style={{ width: '100%', backgroundColor: '#fff', border: '1px solid #D9DEE8', borderRadius: '14px', padding: isNarrow ? '14px 12px' : '18px 18px', boxShadow: '0 8px 20px rgba(15, 23, 42, 0.06)' }}>
+            <div style={{ width: '100%', padding: 0 }}>
             <form onSubmit={handleLogin} style={{ display: 'grid', gap: '14px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', color: '#475569', fontSize: '13px', fontWeight: 700 }}>Email / Username</label>
@@ -204,7 +204,7 @@ export default function Login() {
                 name="username"
                 onChange={handleChange}
                 value={credentials.username}
-                style={{ width: '100%', padding: '12px 13px', borderRadius: '10px', boxSizing: 'border-box', background: '#F8FAFC', border: '1px solid #CBD5E1' }}
+                style={{ width: '100%', padding: '12px 13px', borderRadius: '8px', boxSizing: 'border-box', background: '#e9edf5', border: '1px solid #c7d0df' }}
                 required
               />
             </div>
@@ -217,7 +217,7 @@ export default function Login() {
                 name="password"
                 onChange={handleChange}
                 value={credentials.password}
-                style={{ width: '100%', padding: '12px 42px 12px 13px', borderRadius: '10px', boxSizing: 'border-box', background: '#F8FAFC', border: '1px solid #CBD5E1' }}
+                style={{ width: '100%', padding: '12px 42px 12px 13px', borderRadius: '8px', boxSizing: 'border-box', background: '#e9edf5', border: '1px solid #c7d0df' }}
                 required
               />
                 <button
@@ -257,7 +257,7 @@ export default function Login() {
                 background: 'var(--color-primary)',
                 color: '#fff',
                 border: '1px solid var(--color-primary)',
-                borderRadius: '10px',
+                borderRadius: '7px',
                 cursor: 'pointer',
                 fontWeight: 800,
                 fontSize: '16px',
@@ -267,8 +267,8 @@ export default function Login() {
               {authLoading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
+            </div>
           </div>
-
         </section>
       </div>
       {forgotOpen && (
