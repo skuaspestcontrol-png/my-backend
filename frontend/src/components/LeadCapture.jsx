@@ -2018,9 +2018,6 @@ export default function LeadCapture() {
                   <button type="button" style={s.menuButton} onClick={deleteSelectedLeads}>
                     Delete
                   </button>
-                  <button type="button" style={s.menuButton} onClick={() => importFileRef.current?.click()}>
-                    Import Data
-                  </button>
                   <button type="button" style={s.menuButton} onClick={exportData}>
                     Export Data
                   </button>
