@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import SignatureCanvas from 'react-signature-canvas';
-import { ArrowLeft, Camera, ClipboardList, FileCheck2, MapPin, UserCog } from 'lucide-react';
+import { ArrowLeft, ClipboardList, FileCheck2, MapPin, UserCog } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -287,14 +287,8 @@ export default function TechnicianPortal() {
   const [completionCard, setCompletionCard] = useState(null);
   const [activeJob, setActiveJob] = useState(null);
   const [punchInTime, setPunchInTime] = useState(null);
-  const [beforeUrl, setBeforeUrl] = useState('');
-  const [afterUrl, setAfterUrl] = useState('');
-  const [beforeFile, setBeforeFile] = useState(null);
-  const [afterFile, setAfterFile] = useState(null);
   const [isPunchingIn, setIsPunchingIn] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [isUploadingBefore, setIsUploadingBefore] = useState(false);
-  const [isUploadingAfter, setIsUploadingAfter] = useState(false);
   const [isSavingAssignment, setIsSavingAssignment] = useState(false);
   const [actionStatus, setActionStatus] = useState('');
   const sigCanvas = useRef({});
@@ -429,27 +423,9 @@ export default function TechnicianPortal() {
   const pagerStyle = isMobile ? { ...shell.pager, flexDirection: 'column', alignItems: 'stretch' } : shell.pager;
   const signatureWidth = isMobile ? Math.max(260, Math.min(360, viewportWidth - 56)) : 520;
 
-  const handleUpload = async (event, setUrl, setUploading, setFile) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      setUploading(true);
-      setFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      setUrl(previewUrl);
-    } finally {
-      setUploading(false);
-      if (event.target) event.target.value = '';
-    }
-  };
-
   const openJob = (job) => {
     setActiveJob(job);
     setPunchInTime(job.punchInTime || null);
-    setBeforeUrl(job.beforePhoto || '');
-    setAfterUrl(job.afterPhoto || '');
-    setBeforeFile(null);
-    setAfterFile(null);
     if (sigCanvas.current && typeof sigCanvas.current.clear === 'function') {
       sigCanvas.current.clear();
     }
@@ -497,16 +473,6 @@ export default function TechnicianPortal() {
       const completePayload = new FormData();
       Object.entries(statusPayload).forEach(([key, value]) => completePayload.append(key, value || ''));
       completePayload.append('customerSignature', sig || '');
-      if (beforeFile) {
-        completePayload.append('beforePhotoFile', beforeFile);
-      } else if (beforeUrl) {
-        completePayload.append('beforePhoto', beforeUrl);
-      }
-      if (afterFile) {
-        completePayload.append('afterPhotoFile', afterFile);
-      } else if (afterUrl) {
-        completePayload.append('afterPhoto', afterUrl);
-      }
       await axios.post(`${API_BASE_URL}/api/jobs/${completedJobId}/complete`, completePayload, { timeout: 30000 });
       setCompletionCard({
         jobId: completedJobId,
@@ -522,18 +488,14 @@ export default function TechnicianPortal() {
         scheduledTime: activeJob.scheduledTime || '',
         technicianName: activeJob.technicianName || '-',
         technicianMobile: activeJob.technicianMobile || '-',
-        beforePhoto: beforeUrl,
-        afterPhoto: afterUrl,
+        beforePhoto: activeJob.beforePhoto || '',
+        afterPhoto: activeJob.afterPhoto || '',
         customerSignature: sig
       });
       // Immediate UI update: remove completed job without waiting for full data refetch.
       setJobs((prev) => prev.filter((job) => job._id !== completedJobId));
       setActiveJob(null);
       setPunchInTime(null);
-      setBeforeUrl('');
-      setAfterUrl('');
-      setBeforeFile(null);
-      setAfterFile(null);
       if (sigCanvas.current && typeof sigCanvas.current.clear === 'function') {
         sigCanvas.current.clear();
       }
@@ -894,38 +856,7 @@ export default function TechnicianPortal() {
       </div>
 
       <div style={shell.panel}>
-        <h3 style={shell.panelTitle}><Camera size={16} /> 2. Before/After Photos</h3>
-        <p style={shell.panelSub}>Upload both photos before completing the job.</p>
-        <div style={detailsGridStyle}>
-          <div style={shell.photoWrap}>
-            <p style={shell.label}>Before Photo</p>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              style={shell.fileInput}
-              onChange={(event) => handleUpload(event, setBeforeUrl, setIsUploadingBefore, setBeforeFile)}
-              disabled={isCompleting}
-            />
-            {beforeUrl ? <img src={beforeUrl} alt="Before" style={shell.photoPreview} /> : null}
-          </div>
-          <div style={shell.photoWrap}>
-            <p style={shell.label}>After Photo</p>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              style={shell.fileInput}
-              onChange={(event) => handleUpload(event, setAfterUrl, setIsUploadingAfter, setAfterFile)}
-              disabled={isCompleting}
-            />
-            {afterUrl ? <img src={afterUrl} alt="After" style={shell.photoPreview} /> : null}
-          </div>
-        </div>
-      </div>
-
-      <div style={shell.panel}>
-        <h3 style={shell.panelTitle}><MapPin size={16} /> 3. Customer Signature</h3>
+        <h3 style={shell.panelTitle}><MapPin size={16} /> 2. Customer Signature</h3>
         <p style={shell.panelSub}>Capture signature before marking this job completed.</p>
         <div style={shell.signatureWrap}>
           <SignatureCanvas
