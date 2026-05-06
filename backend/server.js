@@ -798,19 +798,23 @@ const createJobId = () => {
 };
 
 const updateSettingsNextJobNumber = async (usedJobNumber, settings) => {
-  const seq = extractJobSequence(usedJobNumber, settings.jobPrefix);
-  if (!Number.isFinite(seq)) return;
-  const nextValue = Math.max(1, Number(settings.jobNextNumber || defaultSettings.jobNextNumber));
-  if (seq >= nextValue) {
-    const updated = {
-      ...settings,
-      jobNextNumber: seq + 1
-    };
-    if (canUseMysql()) {
-      await saveSettingsToMysql(updated);
-    } else {
-      fs.writeFileSync(settingsFile, JSON.stringify(updated, null, 2));
+  try {
+    const seq = extractJobSequence(usedJobNumber, settings.jobPrefix);
+    if (!Number.isFinite(seq)) return;
+    const nextValue = Math.max(1, Number(settings.jobNextNumber || defaultSettings.jobNextNumber));
+    if (seq >= nextValue) {
+      const updated = {
+        ...settings,
+        jobNextNumber: seq + 1
+      };
+      if (canUseMysql()) {
+        await saveSettingsToMysql(updated);
+      } else {
+        fs.writeFileSync(settingsFile, JSON.stringify(updated, null, 2));
+      }
     }
+  } catch (error) {
+    console.error('Failed to update next job number settings:', error.message);
   }
 };
 
@@ -2216,16 +2220,7 @@ app.post('/api/jobs', async (req, res) => {
       };
 
       await syncJobToMysql(newJob);
-      const seq = extractJobSequence(jobNumber, settings.jobPrefix);
-      if (Number.isFinite(seq)) {
-        const nextValue = Math.max(1, Number(settings.jobNextNumber || defaultSettings.jobNextNumber));
-        if (seq >= nextValue) {
-          await saveSettingsToMysql({
-            ...settings,
-            jobNextNumber: seq + 1
-          });
-        }
-      }
+      await updateSettingsNextJobNumber(jobNumber, settings);
 
       syncJobGoogleTaskSafely(newJob, {
         markCompleted: String(newJob.status || '').trim().toLowerCase() === 'completed'

@@ -433,7 +433,8 @@ export default function ScheduleJob() {
       navigate('/operations/assigned-jobs');
     } catch (error) {
       console.error('Assign services failed', error);
-      setSaveError('Failed to assign services. Please try again.');
+      const apiMessage = String(error?.response?.data?.error || '').trim();
+      setSaveError(apiMessage || 'Failed to assign services. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
