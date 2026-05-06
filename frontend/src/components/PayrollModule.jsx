@@ -84,17 +84,17 @@ const shell = {
   cardValue: { margin: '6px 0 0 0', fontSize: '20px', color: '#0f172a', fontWeight: 800 },
   row: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' },
   field: { display: 'grid', gap: '5px' },
-  label: { margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  input: { width: '100%', minHeight: '36px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '8px 10px', fontSize: '13px', background: '#fff' },
+  label: { margin: 0, fontSize: '10px', color: '#334155', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  input: { width: '100%', minHeight: '34px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '7px 9px', fontSize: '12px', background: '#fff' },
   actionRow: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
   btn: {
     border: '1px solid rgba(159, 23, 77, 0.32)',
     background: 'var(--color-primary)',
     color: '#fff',
     borderRadius: '8px',
-    minHeight: '34px',
-    padding: '0 12px',
-    fontSize: '12px',
+    minHeight: '30px',
+    padding: '0 10px',
+    fontSize: '11px',
     fontWeight: 700,
     cursor: 'pointer'
   },
@@ -103,17 +103,17 @@ const shell = {
     background: '#fff',
     color: '#0f172a',
     borderRadius: '8px',
-    minHeight: '34px',
-    padding: '0 12px',
-    fontSize: '12px',
+    minHeight: '30px',
+    padding: '0 10px',
+    fontSize: '11px',
     fontWeight: 700,
     cursor: 'pointer'
   },
   tableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', overflowX: 'auto', background: '#fff' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '980px' },
-  th: { textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
-  td: { padding: '8px 10px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 600, verticalAlign: 'top' },
-  badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 700 },
+  th: { textAlign: 'left', padding: '7px 9px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
+  td: { padding: '7px 9px', borderBottom: '1px solid #eef2f7', fontSize: '11px', color: '#334155', fontWeight: 600, verticalAlign: 'top' },
+  badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '3px 7px', fontSize: '10px', fontWeight: 700 },
   footer: { margin: 0, fontSize: '12px', color: '#475569', fontWeight: 700 },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', zIndex: 90, padding: '16px' },
   modal: { width: 'min(620px, 100%)', background: '#fff', borderRadius: '14px', border: '1px solid rgba(159, 23, 77, 0.2)', padding: '14px', display: 'grid', gap: '10px' },
@@ -560,6 +560,25 @@ export default function PayrollModule() {
     }
   };
 
+  const deletePayrollItem = async (item) => {
+    if (!role.canManage && !role.canGenerate) return window.alert('Only Admin/HR can delete payroll rows.');
+    if (!item?._id) return;
+    if (!window.confirm('Delete this payroll row? This cannot be undone.')) return;
+    try {
+      setBusy(true);
+      await axios.delete(`${API_BASE}/api/payroll/items/${encodeURIComponent(String(item._id))}`, { headers });
+      setStatus('Payroll row deleted.');
+      await reloadAll();
+    } catch (error) {
+      console.error('Delete payroll row failed', error);
+      const message = error?.response?.data?.error || 'Unable to delete payroll row.';
+      setStatus(message);
+      window.alert(message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const openSlipViewer = (item) => {
     const userRole = encodeURIComponent(localStorage.getItem('portal_user_role') || 'Admin');
     const userId = encodeURIComponent(localStorage.getItem('portal_user_id') || '');
@@ -832,9 +851,10 @@ export default function PayrollModule() {
                 <td style={shell.td}>
                   <div style={shell.actionRow}>
                     <button type="button" style={shell.btnLight} onClick={() => openSlipViewer(entry)}>Slip</button>
-                    {entry.payrollStatus !== 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => openAdjust(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Adjust</button> : null}
+                    {entry.payrollStatus !== 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => openAdjust(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Edit</button> : null}
                     {entry.paymentStatus !== 'Paid' ? <button type="button" style={shell.btn} onClick={() => openPayment(entry)} disabled={busy || !role.canMarkPaid}>Mark Paid</button> : null}
                     {entry.paymentStatus === 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => unlockPaidSlip(entry)} disabled={!role.canManage}><Lock size={12} /> Unlock</button> : null}
+                    {entry.paymentStatus !== 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => deletePayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Delete</button> : null}
                   </div>
                 </td>
               </tr>

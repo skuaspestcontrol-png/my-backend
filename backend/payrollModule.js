@@ -1529,6 +1529,39 @@ function registerPayrollModule({
     res.json(adjusted);
   });
 
+  app.delete('/api/payroll/items/:id', (req, res) => {
+    const perms = ensureAccess(req, res, (p) => p.canManageAll || p.canGenerate, 'Only Admin/HR can delete payroll rows');
+    if (!perms) return;
+    const itemId = normalizeText(req.params.id);
+    if (!itemId) return res.status(400).json({ error: 'Payroll item id is required' });
+
+    const items = getItems();
+    const index = items.findIndex((entry) => normalizeText(entry._id) === itemId);
+    if (index === -1) return res.status(404).json({ error: 'Payroll item not found' });
+
+    const current = items[index];
+    if (normalizeText(current.payrollStatus) === 'Paid' || normalizeText(current.paymentStatus) === 'Paid') {
+      return res.status(400).json({ error: 'Paid payroll row cannot be deleted. Unlock and mark status first.' });
+    }
+
+    const nextItems = items.filter((entry) => normalizeText(entry._id) !== itemId);
+    saveItems(nextItems);
+
+    const payments = getPayments();
+    const nextPayments = payments.filter((entry) => normalizeText(entry.payrollItemId) !== itemId);
+    if (nextPayments.length !== payments.length) savePayments(nextPayments);
+
+    writeAudit({
+      auditFile: payrollAuditFile,
+      readJsonFile,
+      actor: getActorName(req),
+      action: 'payroll_item_deleted',
+      payload: { payrollItemId: itemId, employeeId: current.employeeId, month: current.month, year: current.year }
+    });
+
+    return res.json({ message: 'Payroll row deleted', id: itemId });
+  });
+
   app.post('/api/payroll/items/:id/mark-paid', (req, res) => {
     const perms = ensureAccess(req, res, (p) => p.canMarkPaid, 'Only Admin/Accountant can mark salary as paid');
     if (!perms) return;
