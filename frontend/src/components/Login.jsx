@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, saveBrandingSettings } from '../utils/brandingTheme';
-import { Eye, EyeOff, ShieldCheck, Wrench } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -155,27 +155,9 @@ export default function Login() {
 
   return (
     <div style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #f0fdfa 0%, #f8fafc 45%, #eff6ff 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '12px' : '24px' }}>
-      <div style={{ width: '100%', maxWidth: '1080px', minHeight: isNarrow ? 'auto' : '680px', borderRadius: '22px', border: '1px solid var(--color-border)', background: '#fff', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', display: 'grid', gridTemplateColumns: viewportWidth < 980 ? '1fr' : '1.1fr 1fr' }}>
-        <section style={{ display: viewportWidth < 980 ? 'none' : 'grid', alignContent: 'space-between', padding: '34px 30px', background: 'radial-gradient(circle at 20% 10%, rgba(34,197,94,0.18), transparent 40%), radial-gradient(circle at 86% 16%, rgba(37,99,235,0.2), transparent 45%), linear-gradient(145deg, #0f766e 0%, #115e59 65%, #0f172a 100%)', color: '#ECFEFF' }}>
-          <div style={{ display: 'grid', gap: '14px' }}>
-            <div style={{ width: '50px', height: '50px', borderRadius: '14px', background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.32)', display: 'grid', placeItems: 'center' }}>
-              <ShieldCheck size={26} />
-            </div>
-            <h1 style={{ margin: 0, fontSize: '36px', lineHeight: 1.15, fontWeight: 800 }}>Manage your pest control business with confidence.</h1>
-            <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.6, color: 'rgba(236,254,255,0.88)' }}>
-              Track leads, contracts, services, renewals, vendor bills, and team operations from one clean command center.
-            </p>
-          </div>
-          <div style={{ border: '1px solid rgba(255,255,255,0.28)', borderRadius: '14px', background: 'rgba(255,255,255,0.08)', padding: '14px' }}>
-            <p style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700 }}>
-              <Wrench size={16} /> Secure Admin Access
-            </p>
-            <p style={{ margin: '8px 0 0', fontSize: '13px', color: 'rgba(236,254,255,0.86)' }}>Protected portal login for admin and role-based employee accounts.</p>
-          </div>
-        </section>
-
-        <section style={{ padding: isNarrow ? '20px 14px' : '34px 36px', display: 'grid', alignContent: 'center', gap: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: viewportWidth < 980 ? 'center' : 'flex-start' }}>
+      <div style={{ width: '100%', maxWidth: '500px', minHeight: isNarrow ? 'auto' : '640px', borderRadius: '22px', border: '1px solid var(--color-border)', background: '#fff', boxShadow: 'var(--shadow-lg)', overflow: 'hidden' }}>
+        <section style={{ padding: isNarrow ? '20px 14px' : '34px 36px', minHeight: '100%', display: 'grid', alignContent: 'center', justifyItems: 'center', gap: '18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
           {hasValidLogo ? (
             <img
               src={settings.dashboardImageUrl}
@@ -208,7 +190,7 @@ export default function Login() {
           )}
           </div>
 
-          <div>
+          <div style={{ textAlign: 'center' }}>
             <h2 style={{ margin: 0, fontSize: isNarrow ? '30px' : '34px', color: '#0f172a', fontWeight: 800 }}>Welcome Back</h2>
             <p style={{ margin: '8px 0 0', color: '#475569', fontSize: '14px', fontWeight: 500 }}>Login to manage your pest control business</p>
           </div>
