@@ -796,6 +796,14 @@ function registerPayrollModule({
     try {
       const snapshot = await readSnapshotFromMysql(snapshotKey);
       if (snapshot === null || snapshot === undefined) return;
+      const localCurrent = readJsonFile(targetFile, fallbackValue);
+      const snapshotIsEmptyArray = Array.isArray(snapshot) && snapshot.length === 0;
+      const localIsNonEmptyArray = Array.isArray(localCurrent) && localCurrent.length > 0;
+      if (snapshotIsEmptyArray && localIsNonEmptyArray) {
+        // Self-heal: never wipe non-empty local payroll data with an empty DB snapshot.
+        saveSnapshotToMysql(snapshotKey, localCurrent);
+        return;
+      }
       fs.writeFileSync(targetFile, JSON.stringify(snapshot, null, 2));
     } catch (error) {
       console.error(`Payroll hydrate failed for ${snapshotKey}:`, error.message);
