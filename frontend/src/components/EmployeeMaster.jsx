@@ -725,7 +725,7 @@ export default function EmployeeMaster() {
                     <input style={shell.input} value={form.ifsc} onChange={(event) => updateField('ifsc', event.target.value.toUpperCase())} />
                   </div>
                 </div>
-                <div style={shell.field}>
+                <div style={{ ...shell.field, marginTop: '12px' }}>
                   <label style={shell.label}>Upload Documents</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <label style={shell.uploadBtn}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import {
   Activity,
@@ -242,9 +242,9 @@ export default function HRDashboard() {
     status: filters.status || undefined
   }), [filters, month, year]);
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async (silent = false) => {
     try {
-      setBusy(true);
+      if (!silent) setBusy(true);
       const [
         optionsRes,
         summaryRes,
@@ -284,14 +284,32 @@ export default function HRDashboard() {
       console.error('HR dashboard load failed', error);
       setStatus(error?.response?.data?.error || 'Unable to load HR dashboard right now.');
     } finally {
-      setBusy(false);
+      if (!silent) setBusy(false);
     }
-  };
+  }, [headers, month, queryParams, year]);
 
   useEffect(() => {
     fetchAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [month, year, filters.search, filters.department, filters.role, filters.location, filters.status]);
+  }, [fetchAll]);
+
+  useEffect(() => {
+    const refreshOnFocus = () => fetchAll(true);
+    const refreshOnVisible = () => {
+      if (document.visibilityState === 'visible') fetchAll(true);
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') fetchAll(true);
+    }, 30000);
+
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshOnVisible);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshOnVisible);
+    };
+  }, [fetchAll]);
 
   const handleDropToColumn = async (columnName) => {
     if (!dragState.employeeId || !role.canManage) return;
