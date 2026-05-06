@@ -3,10 +3,12 @@ import axios from 'axios';
 import {
   Activity,
   BadgeIndianRupee,
+  Bell,
   CalendarCheck,
   Clock3,
   Download,
   IdCard,
+  KanbanSquare,
   TrendingUp,
   UserCheck,
   Users,
