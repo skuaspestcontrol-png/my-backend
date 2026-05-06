@@ -10,6 +10,7 @@ const GOOGLE_OAUTH_BASE = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 const GOOGLE_TASKS_BASE = 'https://tasks.googleapis.com/tasks/v1';
 const GOOGLE_USERINFO_ENDPOINT = 'https://www.googleapis.com/oauth2/v2/userinfo';
+const GOOGLE_CALENDAR_BASE = 'https://www.googleapis.com/calendar/v3';
 
 const googleApiRequest = async (url, { method = 'GET', headers = {}, body } = {}) => {
   const response = await fetch(url, { method, headers, body });
@@ -154,6 +155,35 @@ const buildTasksShim = (oauth) => ({
   }
 });
 
+const buildCalendarShim = (oauth) => ({
+  events: {
+    insert: async ({ calendarId = 'primary', requestBody = {} } = {}) => {
+      const token = await oauth.getAccessToken();
+      const data = await googleApiRequest(`${GOOGLE_CALENDAR_BASE}/calendars/${encodeURIComponent(clean(calendarId))}/events`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody || {})
+      });
+      return { data };
+    },
+    patch: async ({ calendarId = 'primary', eventId, requestBody = {} } = {}) => {
+      const token = await oauth.getAccessToken();
+      const data = await googleApiRequest(`${GOOGLE_CALENDAR_BASE}/calendars/${encodeURIComponent(clean(calendarId))}/events/${encodeURIComponent(clean(eventId))}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody || {})
+      });
+      return { data };
+    }
+  }
+});
+
 const getGoogleClient = () => {
   if (googleClient) return googleClient;
   try {
@@ -164,6 +194,7 @@ const getGoogleClient = () => {
     googleClient = {
       auth: { OAuth2: OAuth2Shim },
       tasks: ({ auth }) => buildTasksShim(auth),
+      calendar: ({ auth }) => buildCalendarShim(auth),
       oauth2: ({ auth }) => ({
         userinfo: {
           get: async () => {
@@ -248,6 +279,7 @@ const ensureGoogleIntegrationTable = async (conn) => {
 const ensureJobsGoogleColumns = async (conn) => {
   try {
     await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS google_task_id VARCHAR(255) NULL');
+    await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS google_calendar_event_id VARCHAR(255) NULL');
     await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS google_sync_status VARCHAR(50) NULL');
     await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS google_last_synced_at DATETIME NULL');
   } catch (_error) {
@@ -255,6 +287,7 @@ const ensureJobsGoogleColumns = async (conn) => {
     const [cols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='jobs'");
     const names = new Set((cols || []).map((c) => String(c.COLUMN_NAME || '')));
     if (!names.has('google_task_id')) await conn.query('ALTER TABLE jobs ADD COLUMN google_task_id VARCHAR(255) NULL');
+    if (!names.has('google_calendar_event_id')) await conn.query('ALTER TABLE jobs ADD COLUMN google_calendar_event_id VARCHAR(255) NULL');
     if (!names.has('google_sync_status')) await conn.query('ALTER TABLE jobs ADD COLUMN google_sync_status VARCHAR(50) NULL');
     if (!names.has('google_last_synced_at')) await conn.query('ALTER TABLE jobs ADD COLUMN google_last_synced_at DATETIME NULL');
   }
@@ -296,7 +329,8 @@ const getTasksClient = async (conn) => {
   const oauth = buildOAuthClient();
   oauth.setCredentials({ refresh_token: refreshToken });
   const tasks = google.tasks({ version: 'v1', auth: oauth });
-  return { tasks, oauth, row, refreshToken, key };
+  const calendar = google.calendar({ version: 'v3', auth: oauth });
+  return { tasks, calendar, oauth, row, refreshToken, key };
 };
 
 const ensureTaskList = async (tasks) => {
@@ -355,6 +389,55 @@ const syncGoogleTaskForJob = async ({ conn, job = {}, markCompleted = false }) =
   };
 };
 
+const composeCalendarPayload = (job = {}) => {
+  const title = clean(job.serviceName || job.service_name || job.jobNumber || 'CRM Service Job');
+  const date = clean(job.scheduledDate || job.scheduled_date);
+  const time = clean(job.scheduledTime || job.scheduled_time) || '10:00';
+  const [hh, mm] = time.split(':');
+  const startDate = new Date(`${date || new Date().toISOString().slice(0, 10)}T${String(hh || '10').padStart(2, '0')}:${String(mm || '00').padStart(2, '0')}:00`);
+  const endDate = new Date(startDate.getTime() + (60 * 60 * 1000));
+  const description = [
+    `Job Number: ${clean(job.jobNumber || job.job_number || '-')}`,
+    `Customer: ${clean(job.customerName || job.customer_name || '-')}`,
+    `Address: ${clean(job.serviceAddress || job.address || '-')}`,
+    `Technician: ${clean(job.technicianName || '-')}`,
+    `Status: ${clean(job.status || '-')}`
+  ].join('\n');
+  return {
+    summary: title,
+    description,
+    start: { dateTime: startDate.toISOString() },
+    end: { dateTime: endDate.toISOString() }
+  };
+};
+
+const syncGoogleCalendarEventForJob = async ({ conn, job = {} }) => {
+  const client = await getTasksClient(conn);
+  if (!client) return { skipped: true, reason: 'google_not_connected' };
+  const { calendar } = client;
+  const payload = composeCalendarPayload(job);
+  const existingEventId = clean(job.google_calendar_event_id);
+  let eventId = existingEventId;
+
+  if (existingEventId) {
+    await calendar.events.patch({
+      calendarId: 'primary',
+      eventId: existingEventId,
+      requestBody: payload
+    });
+  } else {
+    const created = await calendar.events.insert({
+      calendarId: 'primary',
+      requestBody: payload
+    });
+    eventId = clean(created?.data?.id);
+  }
+
+  return {
+    google_calendar_event_id: eventId
+  };
+};
+
 module.exports = {
   INTEGRATION_KEY,
   TASK_LIST_TITLE,
@@ -369,5 +452,6 @@ module.exports = {
   saveIntegrationRow,
   getTasksClient,
   ensureTaskList,
-  syncGoogleTaskForJob
+  syncGoogleTaskForJob,
+  syncGoogleCalendarEventForJob
 };

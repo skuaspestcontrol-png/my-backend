@@ -27,6 +27,7 @@ const {
   saveIntegrationRow,
   ensureTaskList,
   syncGoogleTaskForJob,
+  syncGoogleCalendarEventForJob,
   getGoogleClient
 } = require('./lib/googleTasks');
 require('dotenv').config();
@@ -2228,9 +2229,11 @@ app.post('/api/jobs', async (req, res) => {
       await syncJobToMysql(newJob);
       await updateSettingsNextJobNumber(jobNumber, settings);
 
-      syncJobGoogleTaskSafely(newJob, {
-        markCompleted: String(newJob.status || '').trim().toLowerCase() === 'completed'
-      }).then(() => {
+      const markCompleted = String(newJob.status || '').trim().toLowerCase() === 'completed';
+      Promise.allSettled([
+        syncJobGoogleTaskSafely(newJob, { markCompleted }),
+        syncJobGoogleCalendarSafely(newJob)
+      ]).then(() => {
         syncJobToMysql(newJob).catch((error) => {
           console.error('MySQL re-sync after Google sync failed:', error.message);
         });
@@ -2278,9 +2281,11 @@ app.post('/api/jobs', async (req, res) => {
   }
 
   // Google sync should never block job creation response.
-  syncJobGoogleTaskSafely(newJob, {
-    markCompleted: String(newJob.status || '').trim().toLowerCase() === 'completed'
-  }).then(() => {
+  const markCompleted = String(newJob.status || '').trim().toLowerCase() === 'completed';
+  Promise.allSettled([
+    syncJobGoogleTaskSafely(newJob, { markCompleted }),
+    syncJobGoogleCalendarSafely(newJob)
+  ]).then(() => {
     syncJobToMysql(newJob).catch((error) => {
       console.error('MySQL re-sync after Google sync failed:', error.message);
     });
@@ -2325,7 +2330,10 @@ app.put('/api/jobs/:id', async (req, res) => {
 
       await syncJobToMysql(updatedJob);
 
-      syncJobGoogleTaskSafely(updatedJob, { markCompleted: nextStatus === 'completed' }).then(() => {
+      Promise.allSettled([
+        syncJobGoogleTaskSafely(updatedJob, { markCompleted: nextStatus === 'completed' }),
+        syncJobGoogleCalendarSafely(updatedJob)
+      ]).then(() => {
         syncJobToMysql(updatedJob).catch((error) => {
           console.error('MySQL re-sync after Google sync failed:', error.message);
         });
@@ -2424,7 +2432,10 @@ app.put('/api/jobs/:id', async (req, res) => {
   }
 
   // Google sync should never block completion/update response.
-  syncJobGoogleTaskSafely(updatedJob, { markCompleted: nextStatus === 'completed' }).then(() => {
+  Promise.allSettled([
+    syncJobGoogleTaskSafely(updatedJob, { markCompleted: nextStatus === 'completed' }),
+    syncJobGoogleCalendarSafely(updatedJob)
+  ]).then(() => {
     syncJobToMysql(updatedJob).catch((error) => {
       console.error('MySQL re-sync after Google sync failed:', error.message);
     });
@@ -2483,7 +2494,10 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
       };
 
       await syncJobToMysql(updatedJob);
-      syncJobGoogleTaskSafely(updatedJob, { markCompleted: String(updatedJob.status || '').trim().toLowerCase() === 'completed' }).catch((error) => {
+      Promise.allSettled([
+        syncJobGoogleTaskSafely(updatedJob, { markCompleted: String(updatedJob.status || '').trim().toLowerCase() === 'completed' }),
+        syncJobGoogleCalendarSafely(updatedJob)
+      ]).catch((error) => {
         console.error('Background Google sync failed on complete:', error.message);
       });
 
@@ -3839,6 +3853,7 @@ const syncJobToMysql = async (job) => {
       after_photo_url: job.afterPhoto || null,
       customer_signature_url: job.customerSignature || null,
       google_task_id: job.google_task_id || null,
+      google_calendar_event_id: job.google_calendar_event_id || null,
       google_sync_status: job.google_sync_status || null,
       google_last_synced_at: toMysqlDateTimeOrNull(job.google_last_synced_at),
       payload: JSON.stringify(job),
@@ -3920,6 +3935,33 @@ const syncJobGoogleTaskSafely = async (job, options = {}) => {
   } catch (error) {
     console.error('Google task sync failed:', error.message);
     job.google_sync_status = `error: ${String(error.message || 'sync_failed').slice(0, 120)}`;
+    job.google_last_synced_at = new Date().toISOString();
+  }
+  return job;
+};
+
+const syncJobGoogleCalendarSafely = async (job) => {
+  if (!job || !job._id || !canUseMysql()) return job;
+  try {
+    const result = await withMysqlConnection(async (conn) => {
+      const syncData = await syncGoogleCalendarEventForJob({ conn, job });
+      if (syncData?.google_calendar_event_id) {
+        return {
+          google_calendar_event_id: syncData.google_calendar_event_id,
+          google_sync_status: 'synced',
+          google_last_synced_at: new Date().toISOString()
+        };
+      }
+      return null;
+    });
+    if (result) {
+      job.google_calendar_event_id = result.google_calendar_event_id;
+      job.google_sync_status = result.google_sync_status;
+      job.google_last_synced_at = result.google_last_synced_at;
+    }
+  } catch (error) {
+    console.error('Google calendar sync failed:', error.message);
+    job.google_sync_status = `error: ${String(error.message || 'calendar_sync_failed').slice(0, 120)}`;
     job.google_last_synced_at = new Date().toISOString();
   }
   return job;
@@ -4065,6 +4107,7 @@ app.get('/api/google/oauth/start', async (req, res) => {
       prompt: 'consent',
       scope: [
         'https://www.googleapis.com/auth/tasks',
+        'https://www.googleapis.com/auth/calendar.events',
         'openid',
         'email',
         'profile'
@@ -4142,6 +4185,7 @@ app.post('/api/google/tasks/sync-job/:jobId', async (req, res) => {
   const statusLower = String(job.status || '').trim().toLowerCase();
   const markCompleted = statusLower === 'completed';
   await syncJobGoogleTaskSafely(job, { markCompleted });
+  await syncJobGoogleCalendarSafely(job);
   jobs[index] = job;
   fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
 
@@ -4155,6 +4199,7 @@ app.post('/api/google/tasks/sync-job/:jobId', async (req, res) => {
     success: true,
     jobId,
     google_task_id: job.google_task_id || '',
+    google_calendar_event_id: job.google_calendar_event_id || '',
     google_sync_status: job.google_sync_status || '',
     google_last_synced_at: job.google_last_synced_at || ''
   });
