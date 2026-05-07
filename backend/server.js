@@ -1358,6 +1358,16 @@ const ensureCustomerPlaceColumns = async (conn) => {
   customerPlaceColumnsEnsured = true;
 };
 
+let employeeAuthColumnsEnsured = false;
+const ensureEmployeeAuthColumns = async (conn) => {
+  if (employeeAuthColumnsEnsured) return;
+  await ensureColumnsIfMissing(conn, 'employees', [
+    { name: 'password', definition: 'VARCHAR(255) NULL' },
+    { name: 'portal_password', definition: 'VARCHAR(255) NULL' }
+  ]);
+  employeeAuthColumnsEnsured = true;
+};
+
 const upsertLeadToMysql = async (conn, lead) => {
   await ensureLeadPlaceColumns(conn);
   await conn.query(
@@ -1814,8 +1824,9 @@ app.get('/api/employees', async (req, res) => {
   }
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
+      await ensureEmployeeAuthColumns(conn);
       const [rows] = await conn.query(
-        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode, salary, joining_date, status, payload
+        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, salary, joining_date, status, payload
          FROM employees
          ORDER BY id DESC`
       );
@@ -1853,7 +1864,8 @@ app.get('/api/employees', async (req, res) => {
         dateOfJoining: String(row?.joining_date ?? payload.dateOfJoining ?? '').trim(),
         city: String(row?.city ?? payload.city ?? '').trim(),
         pincode: String(row?.pincode ?? payload.pincode ?? '').trim(),
-        portalAccess
+        portalAccess,
+        portalPassword: String(row?.password ?? row?.portal_password ?? payload?.portalPassword ?? '').trim()
       };
     };
     return res.json(mysqlRows.map(toEmployeeResponse));
@@ -1881,6 +1893,7 @@ app.post("/api/employees", async (req, res) => {
     const externalId = emp._id || Date.now().toString();
 
     await withMysqlConnection(async (conn) => {
+      await ensureEmployeeAuthColumns(conn);
       await conn.query(
         `INSERT INTO employees (
           external_id,
@@ -1889,7 +1902,9 @@ app.post("/api/employees", async (req, res) => {
           last_name,
           full_name,
           mobile,
+          password,
           email,
+          portal_password,
           role,
           role_name,
           salary,
@@ -1897,14 +1912,16 @@ app.post("/api/employees", async (req, res) => {
           city,
           pincode,
           payload
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           emp_code = VALUES(emp_code),
           first_name = VALUES(first_name),
           last_name = VALUES(last_name),
           full_name = VALUES(full_name),
           mobile = VALUES(mobile),
+          password = VALUES(password),
           email = VALUES(email),
+          portal_password = VALUES(portal_password),
           role = VALUES(role),
           role_name = VALUES(role_name),
           salary = VALUES(salary),
@@ -1920,7 +1937,9 @@ app.post("/api/employees", async (req, res) => {
           emp.lastName || "",
           `${emp.firstName || ""} ${emp.lastName || ""}`,
           emp.mobile || "",
+          emp.portalPassword || "",
           emp.email || emp.emailId || "",
+          emp.portalPassword || "",
           emp.role || "",
           emp.roleName || "",
           emp.salary || emp.salaryPerMonth || 0,
@@ -1947,12 +1966,13 @@ const fetchEmployeeByAnyId = async (employeeId) => {
 
   try {
     const mysqlEmployee = await withMysqlConnection(async (conn) => {
+      await ensureEmployeeAuthColumns(conn);
       const isNumeric = /^\d+$/.test(target);
       const query = isNumeric
-        ? `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode, salary, joining_date, payload
+        ? `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, salary, joining_date, payload
            FROM employees
            WHERE external_id = ? OR id = ? LIMIT 1`
-        : `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode, salary, joining_date, payload
+        : `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, salary, joining_date, payload
            FROM employees
            WHERE external_id = ? LIMIT 1`;
       const params = isNumeric ? [target, Number(target)] : [target];
@@ -1975,6 +1995,7 @@ const fetchEmployeeByAnyId = async (employeeId) => {
         roleName: String(payload.roleName ?? row.role_name ?? '').trim(),
         mobile: String(payload.mobile ?? row.mobile ?? '').trim(),
         email: String(payload.email ?? payload.emailId ?? row.email ?? '').trim(),
+        portalPassword: String(payload.portalPassword ?? row.password ?? row.portal_password ?? '').trim(),
         city: String(payload.city ?? row.city ?? '').trim(),
         pincode: String(payload.pincode ?? row.pincode ?? '').trim(),
         salary: Number(payload.salary ?? payload.salaryPerMonth ?? row.salary ?? 0) || 0,
@@ -2036,11 +2057,12 @@ app.put('/api/employees/:id', async (req, res) => {
 
   try {
     const affectedRows = await withMysqlConnection(async (conn) => {
+      await ensureEmployeeAuthColumns(conn);
       const numericId = Number(employeeId);
       const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
       const [result] = await conn.query(
         `UPDATE employees
-         SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, email = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, city = ?, pincode = ?, status = ?, payload = ?
+         SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, password = ?, email = ?, portal_password = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, city = ?, pincode = ?, status = ?, payload = ?
          WHERE external_id = ? OR id = ?`,
         [
           updatedEmployee._id,
@@ -2049,7 +2071,9 @@ app.put('/api/employees/:id', async (req, res) => {
           updatedEmployee.lastName || '',
           `${updatedEmployee.firstName || ''} ${updatedEmployee.lastName || ''}`.trim(),
           updatedEmployee.mobile || '',
+          String(payloadToSave.portalPassword || '').trim(),
           updatedEmployee.email || '',
+          String(payloadToSave.portalPassword || '').trim(),
           updatedEmployee.role || '',
           updatedEmployee.roleName || '',
           updatedEmployee.salary || 0,

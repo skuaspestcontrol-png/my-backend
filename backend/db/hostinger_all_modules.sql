@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS employees (
   role_name VARCHAR(255) NULL,
   mobile VARCHAR(20) NULL,
   email VARCHAR(255) NULL,
+  portal_password VARCHAR(255) NULL,
   city VARCHAR(255) NULL,
   pincode VARCHAR(20) NULL,
   payload JSON NOT NULL,
