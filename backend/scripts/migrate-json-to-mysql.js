@@ -81,8 +81,8 @@ const upsertEmployees = async (conn) => {
     await conn.query(
       `INSERT INTO employees (
         external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode,
-        payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        payload
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         emp_code=VALUES(emp_code),
         first_name=VALUES(first_name),
@@ -93,9 +93,7 @@ const upsertEmployees = async (conn) => {
         email=VALUES(email),
         city=VALUES(city),
         pincode=VALUES(pincode),
-        payload=VALUES(payload),
-        source_created_at=VALUES(source_created_at),
-        source_updated_at=VALUES(source_updated_at)
+        payload=VALUES(payload)
       `,
       [
         text(emp._id),
@@ -108,9 +106,7 @@ const upsertEmployees = async (conn) => {
         text(emp.email || emp.emailId),
         text(emp.city),
         text(emp.pincode),
-        toJson(emp),
-        toDate(emp.createdAt || emp.dateOfJoining),
-        toDate(emp.updatedAt || emp.createdAt || emp.dateOfJoining)
+        toJson(emp)
       ]
     );
   }
@@ -126,14 +122,14 @@ const upsertLeads = async (conn) => {
     const pestIssueText = text(lead.pestIssue) || (pestIssues.length ? pestIssues.join(', ') : null);
     await conn.query(
       `INSERT INTO leads (
-        external_id, lead_date, customer_name, company_name, contact_person_name, title,
+        external_id, customer_name, display_name, company_name, contact_person_name, title,
         mobile, whatsapp_number, email_id, address, area_name, city, state, pincode,
-        pest_issue, quotation_value, lead_source, lead_status, assigned_to, followup_date,
+        pest_issue, lead_source, lead_status, assigned_to, followup_date,
         google_place_id, google_place_name, google_phone, google_website, latitude, longitude, payload
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
-        lead_date=VALUES(lead_date),
         customer_name=VALUES(customer_name),
+        display_name=VALUES(display_name),
         company_name=VALUES(company_name),
         contact_person_name=VALUES(contact_person_name),
         title=VALUES(title),
@@ -146,7 +142,6 @@ const upsertLeads = async (conn) => {
         state=VALUES(state),
         pincode=VALUES(pincode),
         pest_issue=VALUES(pest_issue),
-        quotation_value=VALUES(quotation_value),
         lead_source=VALUES(lead_source),
         lead_status=VALUES(lead_status),
         assigned_to=VALUES(assigned_to),
@@ -161,8 +156,8 @@ const upsertLeads = async (conn) => {
       `,
       [
         text(lead._id),
-        toDate(lead.date || lead.createdAt),
         text(lead.customerName),
+        text(lead.displayName || lead.customerName),
         text(lead.companyName),
         text(lead.contactPersonName),
         text(lead.title),
@@ -175,7 +170,6 @@ const upsertLeads = async (conn) => {
         text(lead.state),
         text(lead.pincode),
         pestIssueText,
-        Number(lead.quotationValue || lead.quotation_value || 0) || 0,
         text(lead.leadSource),
         text(lead.status || lead.leadStatus),
         text(lead.assignedTo),
