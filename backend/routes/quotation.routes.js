@@ -279,7 +279,15 @@ const generateQuotationNumber = async (conn, firstItem) => {
   return { quotationNumber, prefixRow: settings, nextNumber: next + 1 };
 };
 
-router.use(async (_req, _res, next) => {
+router.use(async (req, _res, next) => {
+  const scopedPath = String(req.path || '').trim();
+  const shouldInitQuotationTables = scopedPath.startsWith('/quotations')
+    || scopedPath.startsWith('/settings/quotation-')
+    || scopedPath.startsWith('/settings/infestation-levels');
+  if (!shouldInitQuotationTables) {
+    next();
+    return;
+  }
   try {
     await ensureTables();
     next();

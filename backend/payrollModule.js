@@ -454,6 +454,14 @@ const calcPayrollItem = ({
   year,
   manualOverride
 }) => {
+  const manual = {
+    ...manualOverride,
+    enabled: manualOverride?.enabled !== undefined ? !!manualOverride.enabled : !!manualOverride?.manualOverrideEnabled,
+    adjustmentAmount: manualOverride?.adjustmentAmount !== undefined
+      ? toNumber(manualOverride.adjustmentAmount, 0)
+      : toNumber(manualOverride?.manualAdjustmentAmount, 0),
+    adjustmentReason: normalizeText(manualOverride?.adjustmentReason || manualOverride?.manualAdjustmentReason || '')
+  };
   const baseSalary = Math.max(0, toNumber(structure?.basicSalary ?? employee?.salaryPerMonth ?? employee?.salary, 0));
   const salaryType = structure?.salaryType || 'monthly';
   const dailyRate = Math.max(0, toNumber(structure?.dailyRate, 0));
@@ -534,12 +542,12 @@ const calcPayrollItem = ({
 
   const grossSalary = round2(baseEarned + allowanceTotal);
   const defaultNet = round2(grossSalary - deductionTotal);
-  const adjustedNet = manualOverride?.enabled
-    ? round2(toNumber(manualOverride.overrideNetSalary, defaultNet))
-    : round2(defaultNet + toNumber(manualOverride?.adjustmentAmount, 0));
+  const adjustedNet = manual.enabled
+    ? round2(toNumber(manual.overrideNetSalary, defaultNet))
+    : round2(defaultNet + toNumber(manual.adjustmentAmount, 0));
 
   return {
-    _id: normalizeText(manualOverride?._id || `PAYITEM-${Date.now()}-${employee?._id || 'EMP'}`),
+    _id: normalizeText(manual._id || `PAYITEM-${Date.now()}-${employee?._id || 'EMP'}`),
     payrollKey: `${year}-${pad2(month)}-${employee?._id || 'EMP'}`,
     month,
     year,
@@ -568,21 +576,21 @@ const calcPayrollItem = ({
     grossSalary,
     netSalary: adjustedNet,
     computedNetSalary: defaultNet,
-    manualAdjustmentAmount: round2(toNumber(manualOverride?.adjustmentAmount, 0)),
-    manualAdjustmentReason: normalizeText(manualOverride?.adjustmentReason || ''),
-    manualOverrideEnabled: !!manualOverride?.enabled,
-    overrideNetSalary: manualOverride?.enabled ? round2(toNumber(manualOverride.overrideNetSalary, adjustedNet)) : null,
-    paymentStatus: normalizeText(manualOverride?.paymentStatus || 'Pending'),
-    payrollStatus: allowedPayrollStatus.has(normalizeText(manualOverride?.payrollStatus)) ? normalizeText(manualOverride?.payrollStatus) : 'Generated',
-    isLocked: !!manualOverride?.isLocked,
-    paidAt: manualOverride?.paidAt || '',
-    paidBy: manualOverride?.paidBy || '',
-    paymentMode: manualOverride?.paymentMode || '',
-    transactionRef: manualOverride?.transactionRef || '',
-    paymentRemarks: manualOverride?.paymentRemarks || '',
+    manualAdjustmentAmount: round2(toNumber(manual.adjustmentAmount, 0)),
+    manualAdjustmentReason: manual.adjustmentReason,
+    manualOverrideEnabled: !!manual.enabled,
+    overrideNetSalary: manual.enabled ? round2(toNumber(manual.overrideNetSalary, adjustedNet)) : null,
+    paymentStatus: normalizeText(manual.paymentStatus || 'Pending'),
+    payrollStatus: allowedPayrollStatus.has(normalizeText(manual.payrollStatus)) ? normalizeText(manual.payrollStatus) : 'Generated',
+    isLocked: !!manual.isLocked,
+    paidAt: manual.paidAt || '',
+    paidBy: manual.paidBy || '',
+    paymentMode: manual.paymentMode || '',
+    transactionRef: manual.transactionRef || '',
+    paymentRemarks: manual.paymentRemarks || '',
     advanceBreakdown,
     salaryInWords: buildMoneyWords(adjustedNet),
-    createdAt: manualOverride?.createdAt || new Date().toISOString(),
+    createdAt: manual.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
 };
@@ -1423,7 +1431,13 @@ function registerPayrollModule({
           manualOverride: existing || {}
         });
 
-        if (existingIndex >= 0) items[existingIndex] = { ...existing, ...nextItem, _id: existing._id, createdAt: existing.createdAt || nextItem.createdAt };
+        if (existingIndex >= 0) {
+          items[existingIndex] = {
+            ...nextItem,
+            _id: existing?._id || nextItem._id,
+            createdAt: existing?.createdAt || nextItem.createdAt
+          };
+        }
         else items.push(nextItem);
         generated.push(nextItem);
       });

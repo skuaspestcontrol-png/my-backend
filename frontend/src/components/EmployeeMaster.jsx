@@ -5,7 +5,7 @@ import { Edit, Plus, Trash2, UploadCloud, UserCheck, X } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
-const roles = ['Sales', 'Technician', 'Operations'];
+const roles = ['Sales', 'Sales Person', 'Technician', 'Operations'];
 const genderOptions = ['Male', 'Female'];
 const maritalOptions = ['Married', 'Unmarried'];
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -170,6 +170,10 @@ const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN
 const toTenDigitNumber = (value) => String(value || '').replace(/\D+/g, '').slice(0, 10);
 
 const employeeDisplayName = (employee) => [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Unnamed';
+const isPortalEligibleRole = (roleValue) => {
+  const role = String(roleValue || '').trim().toLowerCase();
+  return role.includes('technician') || role.includes('sales');
+};
 
 const buildEmployeeCode = (settings, employees) => {
   const prefix = String(settings?.employeeCodePrefix || 'EMP-');
@@ -284,6 +288,18 @@ export default function EmployeeMaster() {
       return;
     }
     setForm((prev) => {
+      if (key === 'role') {
+        const nextRole = String(value || '');
+        if (isPortalEligibleRole(nextRole)) {
+          return {
+            ...prev,
+            role: nextRole,
+            appAccessEnabled: true,
+            webPortalAccessEnabled: true
+          };
+        }
+        return { ...prev, role: nextRole };
+      }
       if (key === 'permanentAddress' && sameAsPermanentAddress) {
         return { ...prev, permanentAddress: value, presentAddress: value };
       }
@@ -363,7 +379,8 @@ export default function EmployeeMaster() {
       return;
     }
 
-    const anyPortalAccess = form.appAccessEnabled || form.webPortalAccessEnabled;
+    const portalEligibleRole = isPortalEligibleRole(form.role);
+    const anyPortalAccess = portalEligibleRole || form.appAccessEnabled || form.webPortalAccessEnabled;
     if (anyPortalAccess) {
       if (!String(form.portalPassword || '').trim()) {
         setStatus('Password is required when App/Web portal access is enabled.');
@@ -403,9 +420,9 @@ export default function EmployeeMaster() {
       salaryPerMonth: Number(form.salaryPerMonth || 0),
       salary: Number(form.salaryPerMonth || 0),
       annualSalary: Number(toAnnual(form.salaryPerMonth || 0)),
-      appAccessEnabled: Boolean(form.appAccessEnabled),
-      webPortalAccessEnabled: Boolean(form.webPortalAccessEnabled),
-      portalAccess: form.webPortalAccessEnabled ? 'Yes' : 'No',
+      appAccessEnabled: portalEligibleRole ? true : Boolean(form.appAccessEnabled),
+      webPortalAccessEnabled: portalEligibleRole ? true : Boolean(form.webPortalAccessEnabled),
+      portalAccess: (portalEligibleRole ? true : Boolean(form.webPortalAccessEnabled)) ? 'Yes' : 'No',
       portalPassword: String(form.portalPassword || '').trim(),
       bankNo: String(form.bankNo || '').trim(),
       bankName: String(form.bankName || '').trim(),
@@ -683,6 +700,11 @@ export default function EmployeeMaster() {
 
               <div style={shell.section}>
                 <h3 style={shell.sectionTitle}>Portal Access</h3>
+                {isPortalEligibleRole(form.role) ? (
+                  <p style={{ ...shell.helper, marginBottom: '10px' }}>
+                    For Technician/Sales Person, App Access and Web Portal Access are enabled automatically. Login uses this employee mobile number and portal password.
+                  </p>
+                ) : null}
                 <div style={shell.checkRow}>
                   <label style={shell.checkItem}>
                     <input type="checkbox" checked={form.appAccessEnabled} onChange={(event) => updateField('appAccessEnabled', event.target.checked)} />

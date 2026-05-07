@@ -28,14 +28,6 @@ import SettingsPanel from './Settings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-const resolveAssetUrl = (rawUrl) => {
-  const value = String(rawUrl || '').trim();
-  if (!value) return '';
-  if (/^https?:\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) return value;
-  if (value.startsWith('/')) return `${API_BASE_URL}${value}`;
-  return `${API_BASE_URL}/${value}`;
-};
-
 const SidebarSection = ({ title, children }) => (
   <div style={{ marginTop: '20px' }}>
     <div
@@ -187,7 +179,6 @@ export default function DashboardLayout({ children }) {
   };
 
   const companyName = settings.companyName || 'SKUAS MASTER';
-  const logoUrl = resolveAssetUrl(settings.dashboardImageUrl || settings.gstCompanyLogoUrl || settings.nonGstCompanyLogoUrl || '');
   const portalUserName = String(localStorage.getItem('portal_user_name') || 'SKUAS').trim() || 'SKUAS';
   const portalUserRole = String(localStorage.getItem('portal_user_role') || 'Admin').trim() || 'Admin';
   const companyInitials = companyName
@@ -237,7 +228,7 @@ export default function DashboardLayout({ children }) {
             background: 'var(--color-white)'
           }}
         >
-          {logoUrl ? (
+          {settings.dashboardImageUrl ? (
             <div
               style={{
                 width: isDrawerMode ? '170px' : '200px',
@@ -253,14 +244,7 @@ export default function DashboardLayout({ children }) {
                 flexShrink: 0
               }}
             >
-              <img
-                src={logoUrl}
-                alt="Logo"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={(event) => {
-                  event.currentTarget.style.display = 'none';
-                }}
-              />
+              <img src={settings.dashboardImageUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           ) : (
             <div

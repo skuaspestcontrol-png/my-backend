@@ -59,9 +59,9 @@ export default function Login() {
 
   const getEmployeeLandingPath = (roleValue) => {
     const role = String(roleValue || '').trim().toLowerCase();
-    if (role === 'sales') return '/sales-portal';
-    if (role === 'operations') return '/operations-portal';
-    if (role === 'technician') return '/operations/assigned-jobs';
+    if (role.includes('sales')) return '/sales-portal';
+    if (role.includes('operations')) return '/operations-portal';
+    if (role.includes('technician')) return '/operations/assigned-jobs';
     return '/dashboard';
   };
 
@@ -70,7 +70,8 @@ export default function Login() {
     setAuthLoading(true);
     const username = String(credentials.username || '').trim();
     const normalizedUsernameMobile = username.replace(/\D+/g, '');
-    const password = String(credentials.password || '');
+    const loginMobile = normalizedUsernameMobile.length > 10 ? normalizedUsernameMobile.slice(-10) : normalizedUsernameMobile;
+    const password = String(credentials.password || '').trim();
     const expectedUsername = String(settings.adminUsername || 'admin').trim() || 'admin';
     const expectedPassword = String(settings.adminPassword || 'admin123');
 
@@ -85,7 +86,7 @@ export default function Login() {
       return;
     }
 
-    if (normalizedUsernameMobile.length !== 10) {
+    if (loginMobile.length !== 10) {
       setAuthLoading(false);
       alert('Enter a valid 10-digit mobile number for employee login.');
       return;
@@ -94,8 +95,9 @@ export default function Login() {
     const employee = employees.find((entry) => {
       const hasPortal = Boolean(entry?.webPortalAccessEnabled || entry?.portalAccess === 'Yes' || entry?.portalAccess === true || entry?.appAccessEnabled);
       const mobile = String(entry?.mobile || '').trim().replace(/\D+/g, '');
-      const employeePassword = String(entry?.portalPassword || '');
-      return hasPortal && mobile && employeePassword && normalizedUsernameMobile === mobile && password === employeePassword;
+      const employeeMobile = mobile.length > 10 ? mobile.slice(-10) : mobile;
+      const employeePassword = String(entry?.portalPassword || '').trim();
+      return hasPortal && employeeMobile && employeePassword && loginMobile === employeeMobile && password === employeePassword;
     });
 
     if (employee) {
