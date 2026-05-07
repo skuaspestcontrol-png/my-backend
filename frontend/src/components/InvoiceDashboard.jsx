@@ -133,6 +133,7 @@ const createEmptyLine = () => ({
   itemId: '',
   itemName: '',
   description: '',
+  frequency: '',
   sac: '',
   itemType: 'service',
   contractPeriod: '',
@@ -476,7 +477,7 @@ const buildServiceScheduleEntries = (items = [], defaultTime = '10:00') => {
         key: `${lineIndex}-${line.itemId || line.itemName || 'line'}-${serviceIndex + 1}`,
         itemId: line.itemId || '',
         itemName: line.itemName || `Item ${lineIndex + 1}`,
-        itemDescription: line.description || '',
+        itemDescription: line.frequency || line.description || '',
         serviceNumber: serviceIndex + 1,
         serviceDate,
         serviceTime: normalizedTime
@@ -1106,7 +1107,8 @@ export default function InvoiceDashboard() {
       ? invoice.items.map((line) => withContractSchedule({
         itemId: line.itemId || '',
         itemName: line.itemName || '',
-        description: line.description || '',
+        description: line.frequency || line.description || '',
+        frequency: line.frequency || line.description || '',
         sac: line.sac || '',
         itemType: line.itemType || 'service',
         contractPeriod: line.contractPeriod || '',
@@ -1405,6 +1407,7 @@ export default function InvoiceDashboard() {
           itemId: match._id,
           itemName: match.name || '',
           description: match.description || match.salesDescription || '',
+          frequency: match.frequency || match.description || match.salesDescription || '',
           sac: match.hsnSac || match.sac || '',
           itemType: match.itemType || 'service',
           contractPeriod: '',
@@ -1445,6 +1448,7 @@ export default function InvoiceDashboard() {
         itemId: '',
         itemName: '',
         description: '',
+        frequency: '',
         sac: '',
         itemType: 'service',
         serviceStartDate: '',
@@ -1460,6 +1464,7 @@ export default function InvoiceDashboard() {
       itemId: selected._id,
       itemName: selected.name || '',
       description: selected.description || selected.salesDescription || '',
+      frequency: selected.frequency || selected.description || selected.salesDescription || '',
       sac: selected.hsnSac || selected.sac || '',
       itemType: selected.itemType || 'service',
       serviceStartDate: form.servicePeriodStart || '',
@@ -1632,6 +1637,8 @@ export default function InvoiceDashboard() {
     const validItems = form.items
       .map((line) => ({
         ...line,
+        description: String(line.frequency || line.description || '').trim(),
+        frequency: String(line.frequency || line.description || '').trim(),
         quantity: Number(line.quantity || 0),
         rate: Number(line.rate || 0),
         taxRate: invoiceType === 'NON GST' ? 0 : Number(line.taxRate || 0)
@@ -2428,11 +2435,11 @@ export default function InvoiceDashboard() {
                                     <option key={item._id} value={item._id}>{item.name}</option>
                                   ))}
                                 </select>
-                                <textarea
-                                  style={{ ...shell.textArea, minHeight: '50px' }}
-                                  placeholder="Description"
-                                  value={line.description}
-                                  onChange={(event) => updateLine(index, { description: event.target.value })}
+                                <input
+                                  style={shell.input}
+                                  placeholder="Frequency"
+                                  value={line.frequency || ''}
+                                  onChange={(event) => updateLine(index, { frequency: event.target.value })}
                                 />
                                 <span style={shell.tinyText}>
                                   {line.itemType?.toUpperCase() || 'SERVICE'} SAC: {line.sac || '-'}

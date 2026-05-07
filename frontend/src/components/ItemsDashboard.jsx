@@ -35,6 +35,7 @@ const emptyForm = {
   treatmentMethod: '',
   pestsCovered: '',
   serviceDescription: '',
+  frequency: '',
   unit: 'pcs',
   sac: '',
   taxPreference: 'Taxable',
@@ -512,6 +513,7 @@ export default function ItemsDashboard() {
     treatmentMethod: item.treatmentMethod || '',
     pestsCovered: item.pestsCovered || '',
     serviceDescription: item.serviceDescription ?? item.salesDescription ?? item.description ?? '',
+    frequency: item.frequency ?? item.description ?? '',
     unit: item.unit || 'pcs',
     sac: item.sac || item.hsnSac || '',
     taxPreference: item.taxPreference || 'Taxable',
@@ -546,7 +548,8 @@ export default function ItemsDashboard() {
     const treatmentMethod = isServiceItem ? form.treatmentMethod.trim() : '';
     const pestsCovered = isServiceItem ? form.pestsCovered.trim() : '';
     const serviceDescription = isServiceItem ? form.serviceDescription.trim() : '';
-    const salesDescription = form.salesDescription.trim() || serviceDescription;
+    const frequency = isServiceItem ? form.frequency.trim() : '';
+    const salesDescription = form.salesDescription.trim() || frequency || serviceDescription;
 
     const payload = {
       itemType: form.itemType,
@@ -554,6 +557,7 @@ export default function ItemsDashboard() {
       treatmentMethod,
       pestsCovered,
       serviceDescription,
+      frequency,
       unit: form.unit,
       sac: form.sac.trim(),
       hsnSac: form.sac.trim(),
@@ -563,7 +567,7 @@ export default function ItemsDashboard() {
       rate: Number(form.sellingPrice || 0),
       sellingPrice: Number(form.sellingPrice || 0),
       salesAccount: form.salesAccount,
-      description: salesDescription,
+      description: frequency || salesDescription,
       salesDescription,
       purchaseRate: Number(form.costPrice || 0),
       costPrice: Number(form.costPrice || 0),
@@ -836,6 +840,13 @@ export default function ItemsDashboard() {
                       style={shell.textArea}
                       value={form.serviceDescription}
                       onChange={(event) => updateForm('serviceDescription', event.target.value)}
+                    />
+
+                    <label style={shell.label}>Frequency</label>
+                    <input
+                      style={shell.input}
+                      value={form.frequency}
+                      onChange={(event) => updateForm('frequency', event.target.value)}
                     />
                   </>
                 ) : null}

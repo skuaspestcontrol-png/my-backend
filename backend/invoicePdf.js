@@ -237,7 +237,7 @@ const invoiceItems = (invoice = {}) => {
     return {
       srNo: index + 1,
       description: clean(item.itemName || item.name) || `Service ${index + 1}`,
-      details: clean(item.description),
+      details: clean(item.frequency || item.description),
       contractStartDate: clean(item.contractStartDate || item.serviceStartDate || item.startDate || invoiceStart),
       contractEndDate: clean(item.contractEndDate || item.serviceEndDate || item.renewalDate || item.endDate || invoiceEnd),
       hsn: clean(item.sac || item.hsnSac || item.hsn),
@@ -470,7 +470,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const scale = contentW / totalPct;
     const cols = [
       { k: 'srNo', l: 'Sr No', w: colPct.sr * scale, a: 'center' },
-      { k: 'desc', l: 'Service Description', w: colPct.item * scale, a: 'left' },
+      { k: 'desc', l: 'Frequency', w: colPct.item * scale, a: 'left' },
       { k: 'hsn', l: 'HSN/SAC', w: colPct.hsn * scale, a: 'center' },
       { k: 'qty', l: 'Qty', w: colPct.qty * scale, a: 'right' },
       { k: 'rate', l: 'Rate', w: colPct.rate * scale, a: 'right' },

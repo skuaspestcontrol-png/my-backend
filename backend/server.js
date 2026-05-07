@@ -2645,6 +2645,7 @@ const normalizeItemRecord = (input = {}, fallbackExternalId = '') => {
   const itemType = String(source.itemType || source.item_type || 'service').trim() || 'service';
   const isServiceItem = itemType.toLowerCase() === 'service';
   const nowIso = new Date().toISOString();
+  const normalizedFrequency = String(source.frequency || source.description || '').trim();
   return {
     _id: externalId,
     name: String(source.name || '').trim(),
@@ -2667,7 +2668,8 @@ const normalizeItemRecord = (input = {}, fallbackExternalId = '') => {
     interTaxRate: String(source.interTaxRate || source.inter_tax_rate || '18%').trim() || '18%',
     purchaseDescription: String(source.purchaseDescription || source.purchase_description || '').trim(),
     purchaseRate: Number(source.purchaseRate || source.purchase_rate || 0),
-    description: String(source.description || '').trim(),
+    frequency: normalizedFrequency,
+    description: normalizedFrequency,
     rate: Number(source.rate || 0),
     createdAt: source.createdAt || source.created_at || nowIso,
     updatedAt: nowIso

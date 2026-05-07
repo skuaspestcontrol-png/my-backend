@@ -26,31 +26,31 @@ const shell = {
     cursor: 'pointer'
   },
   ghostBtn: {
-    minHeight: 38,
-    padding: '0 12px',
+    minHeight: 34,
+    padding: '0 10px',
     borderRadius: 10,
     border: '1px solid var(--color-border)',
     background: '#fff',
     color: 'var(--color-text)',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 700,
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 7,
+    gap: 6,
     cursor: 'pointer'
   },
   dangerBtn: {
-    minHeight: 38,
-    padding: '0 12px',
+    minHeight: 34,
+    padding: '0 10px',
     borderRadius: 10,
     border: '1px solid #fecaca',
     background: '#fff1f2',
     color: '#b91c1c',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 700,
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 7,
+    gap: 6,
     cursor: 'pointer'
   },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 },
@@ -59,7 +59,11 @@ const shell = {
     borderRadius: 14,
     background: '#fff',
     padding: '12px 14px',
-    boxShadow: 'var(--shadow-sm)'
+    boxShadow: 'var(--shadow-sm)',
+    minHeight: 122,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between'
   },
   metricLabel: { margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' },
   metricValue: { margin: '6px 0 0', fontSize: 26, fontWeight: 800, color: 'var(--color-text)' },
@@ -132,7 +136,14 @@ export default function QuotationDashboard() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const perPage = 25;
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const load = async () => {
     try {
@@ -178,29 +189,69 @@ export default function QuotationDashboard() {
   const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
   const safePage = Math.min(page, totalPages);
   const pagedRows = rows.slice((safePage - 1) * perPage, safePage * perPage);
+  const isMobile = viewportWidth <= 900;
+  const isTiny = viewportWidth <= 420;
+
+  const headerStyle = isMobile
+    ? { ...shell.header, flexDirection: 'column', alignItems: 'stretch', gap: 12 }
+    : shell.header;
+  const titleStyle = isTiny
+    ? { ...shell.title, fontSize: 22, lineHeight: 1.2 }
+    : isMobile
+      ? { ...shell.title, fontSize: 24, lineHeight: 1.2 }
+      : shell.title;
+  const subtitleStyle = isMobile
+    ? { ...shell.subtitle, fontSize: 12, lineHeight: 1.45, marginTop: 4 }
+    : shell.subtitle;
+  const actionsStyle = isMobile
+    ? { ...shell.actions, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }
+    : shell.actions;
+  const ghostBtnStyle = isMobile ? { ...shell.ghostBtn, justifyContent: 'center', width: '100%' } : shell.ghostBtn;
+  const primaryBtnStyle = isMobile ? { ...shell.primaryBtn, justifyContent: 'center', width: '100%' } : shell.primaryBtn;
+  const summaryGridStyle = isMobile
+    ? { ...shell.grid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }
+    : shell.grid;
+  const summaryCardStyle = isMobile
+    ? { ...shell.card, minHeight: 132, padding: '14px 14px' }
+    : shell.card;
+  const summaryValueStyle = isMobile
+    ? { ...shell.metricValue, marginTop: 8, fontSize: 38, lineHeight: 1 }
+    : shell.metricValue;
+  const totalValueStyle = isMobile
+    ? { ...summaryValueStyle, fontSize: 31, lineHeight: 1.1, wordBreak: 'break-word' }
+    : { ...shell.metricValue, fontSize: 21 };
+  const rowGhostBtnStyle = isMobile
+    ? { ...shell.ghostBtn, minHeight: 30, padding: '0 8px', fontSize: 11, borderRadius: 9, gap: 5, whiteSpace: 'nowrap' }
+    : shell.ghostBtn;
+  const rowDangerBtnStyle = isMobile
+    ? { ...shell.dangerBtn, minHeight: 30, padding: '0 8px', fontSize: 11, borderRadius: 9, gap: 5, whiteSpace: 'nowrap' }
+    : shell.dangerBtn;
+  const rowActionWrapStyle = isMobile
+    ? { display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center' }
+    : { display: 'flex', gap: 8, flexWrap: 'nowrap', alignItems: 'center' };
 
   return (
     <section style={shell.page}>
-      <header style={shell.header}>
+      <header style={headerStyle}>
         <div>
-          <h1 style={shell.title}>Quotation Dashboard</h1>
-          <p style={shell.subtitle}>Professional proposal tracking with settings-based numbering, content, and PDF style.</p>
+          <h1 style={titleStyle}>Quotation Dashboard</h1>
+          <p style={subtitleStyle}>Professional proposal tracking with settings-based numbering, content, and PDF style.</p>
         </div>
-        <div style={shell.actions}>
-          <button type="button" style={shell.ghostBtn} onClick={load} disabled={loading}>
+        <div style={actionsStyle}>
+          <button type="button" style={ghostBtnStyle} onClick={load} disabled={loading}>
             <RefreshCw size={15} /> {loading ? 'Refreshing...' : 'Refresh'}
           </button>
-          <button type="button" style={shell.primaryBtn} onClick={() => navigate('/quotations/new')}>
+          <button type="button" style={primaryBtnStyle} onClick={() => navigate('/quotations/new')}>
             <Plus size={15} /> New Quotation
           </button>
         </div>
       </header>
 
-      <div style={shell.grid}>
-        <div style={shell.card}><p style={shell.metricLabel}>Total Quotations</p><p style={shell.metricValue}>{summary.total}</p></div>
-        <div style={shell.card}><p style={shell.metricLabel}>Draft</p><p style={shell.metricValue}>{summary.draft}</p></div>
-        <div style={shell.card}><p style={shell.metricLabel}>Final</p><p style={shell.metricValue}>{summary.final}</p></div>
-        <div style={shell.card}><p style={shell.metricLabel}>Total Quoted Value</p><p style={{ ...shell.metricValue, fontSize: 21 }}>{formatINR(summary.totalValue)}</p></div>
+      <div style={summaryGridStyle}>
+        <div style={summaryCardStyle}><p style={shell.metricLabel}>Total Quotations</p><p style={summaryValueStyle}>{summary.total}</p></div>
+        <div style={summaryCardStyle}><p style={shell.metricLabel}>Draft</p><p style={summaryValueStyle}>{summary.draft}</p></div>
+        <div style={summaryCardStyle}><p style={shell.metricLabel}>Final</p><p style={summaryValueStyle}>{summary.final}</p></div>
+        <div style={summaryCardStyle}><p style={shell.metricLabel}>Total Quoted Value</p><p style={totalValueStyle}>{formatINR(summary.totalValue)}</p></div>
       </div>
 
       <div style={shell.panel}>
@@ -238,27 +289,27 @@ export default function QuotationDashboard() {
                     <td style={shell.td}><span style={shell.badge}>{row.status || 'Draft'}</span></td>
                     <td style={shell.td}>{formatINR(row.grand_total || 0)}</td>
                     <td style={shell.td}>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={rowActionWrapStyle}>
                         <button
                           type="button"
-                          style={shell.ghostBtn}
+                          style={rowGhostBtnStyle}
                           onClick={() => navigate(`/quotations/new?id=${row.id}`)}
                         >
-                          <Pencil size={14} /> Edit
+                          <Pencil size={isMobile ? 12 : 14} /> Edit
                         </button>
                         <button
                           type="button"
-                          style={shell.dangerBtn}
+                          style={rowDangerBtnStyle}
                           onClick={() => deleteQuotation(row.id)}
                         >
-                          <Trash2 size={14} /> Delete
+                          <Trash2 size={isMobile ? 12 : 14} /> {isMobile ? 'Del' : 'Delete'}
                         </button>
                         <button
                           type="button"
-                          style={shell.ghostBtn}
+                          style={rowGhostBtnStyle}
                           onClick={() => window.open(`${API_BASE_URL}/api/quotations/${row.id}/pdf`, '_blank')}
                         >
-                          <FileText size={14} /> View PDF
+                          <FileText size={isMobile ? 12 : 14} /> {isMobile ? 'PDF' : 'View PDF'}
                         </button>
                       </div>
                     </td>

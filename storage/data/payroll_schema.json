@@ -1,0 +1,15 @@
+{
+  "employees": "backend/data/employees.json",
+  "salary_structures": "backend/data/salary_structures.json",
+  "salary_allowances": "embedded in salary_structures.allowances",
+  "salary_deductions": "embedded in salary_structures.deductions",
+  "attendance": "backend/data/attendance.json",
+  "leaves": "derived from attendance where status=leave",
+  "holidays": "backend/data/payroll_holidays.json",
+  "payroll_runs": "backend/data/payroll_runs.json",
+  "payroll_items": "backend/data/payroll_items.json",
+  "salary_slips": "generated dynamically from payroll_items via /api/payroll/items/:id/slip/pdf",
+  "advance_salaries": "backend/data/advance_salaries.json",
+  "salary_payments": "backend/data/salary_payments.json",
+  "audit_log": "backend/data/payroll_audit.json"
+}

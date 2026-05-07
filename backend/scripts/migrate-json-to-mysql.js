@@ -196,6 +196,7 @@ const upsertLeads = async (conn) => {
 const normalizeItem = (item = {}) => {
   const itemType = String(item.itemType || item.item_type || 'service').trim() || 'service';
   const isServiceItem = itemType.toLowerCase() === 'service';
+  const frequency = String(item.frequency || item.description || '').trim();
   return {
     externalId: String(item._id || item.external_id || '').trim() || `ITEM-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
     name: String(item.name || '').trim(),
@@ -215,7 +216,8 @@ const normalizeItem = (item = {}) => {
     salesDescription: String(item.salesDescription || item.sales_description || '').trim(),
     purchaseDescription: String(item.purchaseDescription || item.purchase_description || '').trim(),
     purchaseRate: Number(item.purchaseRate || item.purchase_rate || 0),
-    description: String(item.description || '').trim(),
+    frequency,
+    description: frequency,
     rate: Number(item.rate || 0)
   };
 };

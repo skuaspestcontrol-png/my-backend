@@ -101,7 +101,7 @@ const buildItemRows = (invoice = {}) => {
     return {
       index: index + 1,
       name: String(line.itemName || '').trim() || `Item ${index + 1}`,
-      description: String(line.description || '').trim(),
+      description: String(line.frequency || line.description || '').trim(),
       sac: String(line.sac || '').trim(),
       qty,
       rate,
@@ -598,7 +598,7 @@ export const buildInvoicePrintHtml = ({
         <thead>
           <tr>
             <th class="head" style="width:7%;">#</th>
-            <th class="head" style="width:41%;">Service Description</th>
+            <th class="head" style="width:41%;">Frequency</th>
             <th class="head" style="width:12%;">HSN/SAC</th>
             <th class="head" style="width:10%;text-align:right;">Qty</th>
             <th class="head" style="width:15%;text-align:right;">Rate</th>
