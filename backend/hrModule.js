@@ -719,14 +719,9 @@ function registerHrModule({
         .filter((entry) => toNumber(entry.month, 0) === m && toNumber(entry.year, 0) === y)
         .reduce((sum, entry) => sum + Math.max(0, toNumber(entry.netSalary, 0)), 0);
 
-      const fallback = filteredEmployees.reduce((sum, employee) => {
-        const salary = deriveEmployeeBaseSalary(employee, salaryStructures, pointer);
-        return sum + salary;
-      }, 0);
-
       salaryExpenseChart.push({
         month: monthLabel(y, m),
-        amount: round2(amount || fallback)
+        amount: round2(amount)
       });
     }
 
@@ -807,7 +802,7 @@ function registerHrModule({
       absentToday: attendanceToday.summary.absent,
       onLeaveToday: attendanceToday.summary.onLeave,
       lateCheckins: attendanceToday.summary.lateCheckins,
-      totalPayrollCurrentMonth: round2(monthPayroll.reduce((sum, entry) => sum + toNumber(entry.netSalary, 0), 0) || filteredEmployees.reduce((sum, employee) => sum + deriveEmployeeBaseSalary(employee, salaryStructures, end), 0)),
+      totalPayrollCurrentMonth: round2(monthPayroll.reduce((sum, entry) => sum + toNumber(entry.netSalary, 0), 0)),
       pendingSalaryPayments: round2(monthPayroll.filter((entry) => normalizeLower(entry.paymentStatus) !== 'paid').reduce((sum, entry) => sum + toNumber(entry.netSalary, 0), 0)),
       totalOvertimeHours: round2(totalOvertimeHours),
       newJoineesThisMonth: filteredEmployees.filter((employee) => {
