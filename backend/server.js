@@ -1855,7 +1855,24 @@ app.get('/api/employees', async (req, res) => {
         portalAccess
       };
     };
-    return res.json(mysqlRows.map(toEmployeeResponse));
+    const normalizedRows = mysqlRows.map(toEmployeeResponse);
+    const dedupedByIdentity = new Map();
+    normalizedRows.forEach((employee) => {
+      const primaryKey = String(employee._id || '').trim().toLowerCase();
+      const codeKey = String(employee.empCode || '').trim().toLowerCase();
+      const mobileKey = String(employee.mobile || '').trim();
+      const key = primaryKey || codeKey || mobileKey;
+      if (!key) return;
+      const current = dedupedByIdentity.get(key);
+      if (!current) {
+        dedupedByIdentity.set(key, employee);
+        return;
+      }
+      const currentId = Number(current.id || 0);
+      const nextId = Number(employee.id || 0);
+      if (nextId > currentId) dedupedByIdentity.set(key, employee);
+    });
+    return res.json(Array.from(dedupedByIdentity.values()));
   } catch (error) {
     console.error('MySQL employees read failed:', error.message);
     return res.status(500).json({ error: error.message || 'Failed to fetch employees from MySQL' });
@@ -1865,10 +1882,37 @@ app.get('/api/employees', async (req, res) => {
 app.post("/api/employees", async (req, res) => {
   try {
     const emp = req.body || {};
-
-    const externalId = emp._id || Date.now().toString();
+    const empCode = String(emp.empCode || '').trim();
+    const mobile = String(emp.mobile || '').trim();
+    let externalId = String(emp._id || '').trim();
 
     await withMysqlConnection(async (conn) => {
+      if (!externalId) {
+        const params = [];
+        const conditions = [];
+        if (empCode) {
+          conditions.push('emp_code = ?');
+          params.push(empCode);
+        }
+        if (mobile) {
+          conditions.push('mobile = ?');
+          params.push(mobile);
+        }
+        if (conditions.length > 0) {
+          const [rows] = await conn.query(
+            `SELECT external_id
+             FROM employees
+             WHERE ${conditions.join(' OR ')}
+             ORDER BY id DESC
+             LIMIT 1`,
+            params
+          );
+          const existing = Array.isArray(rows) ? rows[0] : null;
+          if (existing?.external_id) externalId = String(existing.external_id).trim();
+        }
+      }
+      if (!externalId) externalId = Date.now().toString();
+
       await conn.query(
         `INSERT INTO employees (
           external_id,
@@ -2101,9 +2145,25 @@ app.get('/api/attendance', async (req, res) => {
     return res.status(500).json({ error: error.message || 'Failed to fetch attendance from MySQL' });
   }
 
+  const deduped = new Map();
+  records.forEach((entry) => {
+    const employeeKey = String(entry.employeeId || '').trim();
+    const dateKey = String(entry.date || '').trim();
+    if (!employeeKey || !dateKey) return;
+    const key = `${employeeKey}__${dateKey}`;
+    const current = deduped.get(key);
+    if (!current) {
+      deduped.set(key, entry);
+      return;
+    }
+    const currentTs = new Date(current.updatedAt || current.date || 0).getTime();
+    const nextTs = new Date(entry.updatedAt || entry.date || 0).getTime();
+    if (nextTs >= currentTs) deduped.set(key, entry);
+  });
+
   const dateFilter = String(req.query.date || '').trim();
   const employeeFilter = String(req.query.employeeId || '').trim();
-  const filtered = records.filter((entry) => {
+  const filtered = Array.from(deduped.values()).filter((entry) => {
     if (dateFilter && entry.date !== dateFilter) return false;
     if (employeeFilter && entry.employeeId !== employeeFilter) return false;
     return true;
