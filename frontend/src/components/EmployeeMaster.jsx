@@ -573,6 +573,10 @@ export default function EmployeeMaster() {
                     <input style={shell.input} value={form.roleName} onChange={(event) => updateField('roleName', event.target.value)} placeholder="Type designation" />
                   </div>
                   <div style={shell.field}>
+                    <label style={shell.label}>Mobile Number *</label>
+                    <input style={shell.input} inputMode="numeric" maxLength={10} required value={form.mobile} onChange={(event) => updateField('mobile', event.target.value)} />
+                  </div>
+                  <div style={shell.field}>
                     <label style={shell.label}>Martial Status</label>
                     <select style={shell.input} value={form.maritalStatus} onChange={(event) => updateField('maritalStatus', event.target.value)}>
                       {maritalOptions.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
@@ -619,10 +623,6 @@ export default function EmployeeMaster() {
                   <div style={shell.field}>
                     <label style={shell.label}>Emergency Contact Number</label>
                     <input style={shell.input} inputMode="numeric" maxLength={10} value={form.emergencyContactNumber} onChange={(event) => updateField('emergencyContactNumber', event.target.value)} />
-                  </div>
-                  <div style={shell.field}>
-                    <label style={shell.label}>Mobile Number *</label>
-                    <input style={shell.input} inputMode="numeric" maxLength={10} required value={form.mobile} onChange={(event) => updateField('mobile', event.target.value)} />
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Email ID</label>
