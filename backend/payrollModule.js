@@ -121,10 +121,11 @@ const resolveCompanyDetails = (settings = {}) => ({
   state: normalizeText(settings?.gstState || settings?.companyState || ''),
   pincode: normalizeText(settings?.gstPincode || settings?.companyPincode || ''),
   logoUrl: normalizeText(
-    settings?.companyLogo
+    settings?.gstCompanyLogoUrl
+    || settings?.dashboardImageUrl
+    || settings?.companyLogo
     || settings?.companyLogoUrl
     || settings?.logoUrl
-    || settings?.gstCompanyLogoUrl
     || settings?.nonGstCompanyLogoUrl
     || ''
   )
