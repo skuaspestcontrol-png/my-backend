@@ -53,20 +53,28 @@ const shell = {
     gap: 6,
     cursor: 'pointer'
   },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 },
-  card: {
-    border: '1px solid var(--color-border)',
-    borderRadius: 14,
-    background: '#fff',
-    padding: '12px 14px',
-    boxShadow: 'var(--shadow-sm)',
-    minHeight: 122,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between'
+  summaryWrap: {
+    background: 'rgba(255,255,255,0.82)',
+    borderRadius: '16px',
+    border: '1px solid rgba(159, 23, 77, 0.14)',
+    padding: '12px',
+    boxShadow: 'var(--shadow-soft)',
+    backdropFilter: 'blur(12px)',
+    display: 'grid',
+    gap: '10px'
   },
-  metricLabel: { margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' },
-  metricValue: { margin: '6px 0 0', fontSize: 26, fontWeight: 800, color: 'var(--color-text)' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' },
+  card: {
+    border: '1px solid rgba(17,17,17,0.08)',
+    borderRadius: '10px',
+    background: '#fff',
+    padding: '8px 10px',
+    display: 'grid',
+    gap: '4px'
+  },
+  metricLabel: { margin: 0, color: '#64748b', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 },
+  metricValue: { margin: 0, color: '#111111', fontSize: '24px', lineHeight: 1, fontWeight: 800, letterSpacing: '-0.02em' },
+  metricSub: { margin: 0, color: '#7c8797', fontSize: '10px', fontWeight: 700 },
   panel: {
     border: '1px solid var(--color-border)',
     borderRadius: 14,
@@ -208,18 +216,21 @@ export default function QuotationDashboard() {
     : shell.actions;
   const ghostBtnStyle = isMobile ? { ...shell.ghostBtn, justifyContent: 'center', width: '100%' } : shell.ghostBtn;
   const primaryBtnStyle = isMobile ? { ...shell.primaryBtn, justifyContent: 'center', width: '100%' } : shell.primaryBtn;
+  const summaryWrapStyle = isMobile
+    ? { ...shell.summaryWrap, padding: '10px' }
+    : shell.summaryWrap;
   const summaryGridStyle = isMobile
-    ? { ...shell.grid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }
-    : shell.grid;
+    ? { ...shell.grid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+    : { ...shell.grid, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' };
   const summaryCardStyle = isMobile
-    ? { ...shell.card, minHeight: 132, padding: '14px 14px' }
-    : shell.card;
+    ? { ...shell.card, minHeight: 108 }
+    : { ...shell.card, minHeight: 112 };
   const summaryValueStyle = isMobile
-    ? { ...shell.metricValue, marginTop: 8, fontSize: 38, lineHeight: 1 }
+    ? { ...shell.metricValue, fontSize: 22 }
     : shell.metricValue;
   const totalValueStyle = isMobile
-    ? { ...summaryValueStyle, fontSize: 31, lineHeight: 1.1, wordBreak: 'break-word' }
-    : { ...shell.metricValue, fontSize: 21 };
+    ? { ...summaryValueStyle, fontSize: 19, lineHeight: 1.15, wordBreak: 'break-word' }
+    : { ...shell.metricValue, fontSize: 22, lineHeight: 1.15, wordBreak: 'break-word' };
   const rowGhostBtnStyle = isMobile
     ? { ...shell.ghostBtn, minHeight: 30, padding: '0 8px', fontSize: 11, borderRadius: 9, gap: 5, whiteSpace: 'nowrap' }
     : shell.ghostBtn;
@@ -247,11 +258,29 @@ export default function QuotationDashboard() {
         </div>
       </header>
 
-      <div style={summaryGridStyle}>
-        <div style={summaryCardStyle}><p style={shell.metricLabel}>Total Quotations</p><p style={summaryValueStyle}>{summary.total}</p></div>
-        <div style={summaryCardStyle}><p style={shell.metricLabel}>Draft</p><p style={summaryValueStyle}>{summary.draft}</p></div>
-        <div style={summaryCardStyle}><p style={shell.metricLabel}>Final</p><p style={summaryValueStyle}>{summary.final}</p></div>
-        <div style={summaryCardStyle}><p style={shell.metricLabel}>Total Quoted Value</p><p style={totalValueStyle}>{formatINR(summary.totalValue)}</p></div>
+      <div style={summaryWrapStyle}>
+        <div style={summaryGridStyle}>
+          <div style={summaryCardStyle}>
+            <p style={shell.metricLabel}>Total Quotations</p>
+            <p style={summaryValueStyle}>{summary.total}</p>
+            <p style={shell.metricSub}>Records matching current filters</p>
+          </div>
+          <div style={summaryCardStyle}>
+            <p style={shell.metricLabel}>Draft</p>
+            <p style={summaryValueStyle}>{summary.draft}</p>
+            <p style={shell.metricSub}>Pending finalization</p>
+          </div>
+          <div style={summaryCardStyle}>
+            <p style={shell.metricLabel}>Final</p>
+            <p style={summaryValueStyle}>{summary.final}</p>
+            <p style={shell.metricSub}>Ready to share with customers</p>
+          </div>
+          <div style={summaryCardStyle}>
+            <p style={shell.metricLabel}>Total Quoted Value</p>
+            <p style={totalValueStyle}>{formatINR(summary.totalValue)}</p>
+            <p style={shell.metricSub}>Combined value of visible quotations</p>
+          </div>
+        </div>
       </div>
 
       <div style={shell.panel}>
