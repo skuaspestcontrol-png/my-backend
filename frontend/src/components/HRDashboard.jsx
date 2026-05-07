@@ -205,7 +205,7 @@ export default function HRDashboard() {
         axios.get(`${API_BASE}/api/hr/dashboard-summary`, { params: queryParams, headers }),
         axios.get(`${API_BASE}/api/hr/leaves`, { params: { month, year }, headers }),
         axios.get(`${API_BASE}/api/hr/leaves/balance`, { params: { month, year }, headers }),
-        axios.get(`${API_BASE}/api/hr/payroll-summary`, { params: { month, year }, headers }),
+        axios.get(`${API_BASE}/api/hr/payroll-summary`, { params: queryParams, headers }),
         axios.get(`${API_BASE}/api/employees`, { headers })
       ]);
 
@@ -274,8 +274,8 @@ export default function HRDashboard() {
 
   const generatePayrollQuick = async () => {
     try {
-      await axios.post(`${API_BASE}/api/payroll/generate`, { month, year }, { headers });
-      setStatus('Payroll generated successfully.');
+      await axios.post(`${API_BASE}/api/payroll/generate`, { month, year, forceRegenerate: true }, { headers });
+      setStatus('Payroll regenerated successfully.');
       await fetchAll();
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Unable to generate payroll.');

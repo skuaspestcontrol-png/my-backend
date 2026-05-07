@@ -19,6 +19,16 @@ const toDateOnly = (value) => {
   return date;
 };
 
+const parseDateInput = (value) => {
+  const raw = normalizeText(value);
+  if (!raw) return null;
+  const parsed = toDateOnly(raw);
+  if (parsed) return parsed;
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(raw);
+  if (!match) return null;
+  return toDateOnly(`${match[3]}-${match[2]}-${match[1]}`);
+};
+
 const monthRange = (month, year) => {
   const now = new Date();
   const safeMonth = Math.min(12, Math.max(1, toNumber(month, now.getMonth() + 1)));
@@ -614,8 +624,8 @@ function registerHrModule({
     return map;
   };
 
-  const buildDashboardPayload = ({ month, year, department, role, location, status, search }) => {
-    const today = toDateOnly(new Date());
+  const buildDashboardPayload = ({ month, year, department, role, location, status, search, date }) => {
+    const serverToday = toDateOnly(new Date());
     const employees = getEmployees();
     const attendance = getAttendance();
     const jobs = getJobs();
@@ -652,6 +662,14 @@ function registerHrModule({
     const employeeIds = new Set(filteredEmployees.map((entry) => normalizeText(entry._id)));
 
     const { month: safeMonth, year: safeYear, start, end } = monthRange(month, year);
+    const explicitDate = parseDateInput(date);
+    const monthDates = attendance
+      .map((entry) => toDateOnly(entry.date))
+      .filter((entry) => entry && entry.getTime() >= start.getTime() && entry.getTime() <= end.getTime())
+      .sort((a, b) => b.getTime() - a.getTime());
+    const referenceDate = explicitDate
+      || monthDates[0]
+      || serverToday;
     const monthPayroll = payrollItems.filter((entry) => {
       if (toNumber(entry.month, 0) !== safeMonth) return false;
       if (toNumber(entry.year, 0) !== safeYear) return false;
@@ -663,7 +681,7 @@ function registerHrModule({
       employees: filteredEmployees,
       attendanceRows: attendance,
       leaves,
-      today
+      today: referenceDate
     });
 
     const monthAttendance = attendance.filter((entry) => {
@@ -868,7 +886,8 @@ function registerHrModule({
       },
       payrollQuick,
       alerts,
-      attendanceToday
+      attendanceToday,
+      attendanceReferenceDate: toDateKey(referenceDate)
     };
   };
 
@@ -898,7 +917,8 @@ function registerHrModule({
         role: req.query.role,
         location: req.query.location,
         status: req.query.status,
-        search: req.query.search
+        search: req.query.search,
+        date: req.query.date
       });
       res.json(payload);
     } catch (error) {
@@ -1353,6 +1373,38 @@ function registerHrModule({
     const scope = makeAccessScope(req);
     const month = toNumber(req.query.month, new Date().getMonth() + 1);
     const year = toNumber(req.query.year, new Date().getFullYear());
+    const department = normalizeLower(req.query.department || '');
+    const role = normalizeLower(req.query.role || '');
+    const location = normalizeLower(req.query.location || '');
+    const status = normalizeLower(req.query.status || '');
+    const search = normalizeLower(req.query.search || '');
+
+    const employees = getEmployees();
+    const workflow = ensureWorkflowSeed();
+    const workflowByEmployee = new Map(workflow.map((entry) => [entry.employeeId, entry]));
+    const filteredEmployeeIds = new Set(
+      employees
+        .filter((employee) => {
+          const id = normalizeText(employee._id);
+          if (!id) return false;
+          if (scope.ownOnly && id !== normalizeText(scope.employeeId)) return false;
+          const dep = normalizeLower(employee.department || employee.role || '');
+          const roleName = normalizeLower(employee.role || '');
+          const city = normalizeLower(employee.city || employee.location || '');
+          const employeeWorkflow = workflowByEmployee.get(id);
+          const state = normalizeLower(employeeWorkflow?.status || 'active employees');
+          const fullName = buildEmployeeName(employee).toLowerCase();
+          const empCode = normalizeLower(employee.empCode || '');
+
+          if (department && dep !== department) return false;
+          if (role && roleName !== role) return false;
+          if (location && city !== location) return false;
+          if (status && state !== status) return false;
+          if (search && !(`${fullName} ${empCode}`.includes(search))) return false;
+          return true;
+        })
+        .map((employee) => normalizeText(employee._id))
+    );
 
     const payrollItems = getPayrollItems();
     const advances = getAdvances();
@@ -1360,7 +1412,7 @@ function registerHrModule({
     const filtered = payrollItems.filter((entry) => {
       if (toNumber(entry.month, 0) !== month) return false;
       if (toNumber(entry.year, 0) !== year) return false;
-      if (scope.ownOnly && normalizeText(entry.employeeId) !== normalizeText(scope.employeeId)) return false;
+      if (!filteredEmployeeIds.has(normalizeText(entry.employeeId))) return false;
       return true;
     });
 
