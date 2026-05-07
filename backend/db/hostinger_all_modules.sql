@@ -605,4 +605,19 @@ INSERT INTO infestation_levels (level_name, description, recommendation_text, so
 SELECT 'Severe','Heavy and recurring activity','Immediate multi-stage treatment and close monitoring needed.',4,1
 WHERE NOT EXISTS (SELECT 1 FROM infestation_levels WHERE level_name='Severe');
 
+CREATE TABLE IF NOT EXISTS technician_live_locations (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  technician_id VARCHAR(64) NULL,
+  employee_code VARCHAR(64) NULL,
+  technician_name VARCHAR(191) NULL,
+  latitude DECIMAL(10,7) NOT NULL,
+  longitude DECIMAL(10,7) NOT NULL,
+  accuracy DECIMAL(10,2) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_tech_loc_tid (technician_id),
+  KEY idx_tech_loc_emp_code (employee_code),
+  KEY idx_tech_loc_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

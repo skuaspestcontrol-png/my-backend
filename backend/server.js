@@ -6090,6 +6090,136 @@ app.use('/api', createEmailRouter({
   resolveServerOrigin
 }));
 
+const ensureTechnicianLocationTable = async (conn) => {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS technician_live_locations (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      technician_id VARCHAR(64) NULL,
+      employee_code VARCHAR(64) NULL,
+      technician_name VARCHAR(191) NULL,
+      latitude DECIMAL(10,7) NOT NULL,
+      longitude DECIMAL(10,7) NOT NULL,
+      accuracy DECIMAL(10,2) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_tech_loc_tid (technician_id),
+      KEY idx_tech_loc_emp_code (employee_code),
+      KEY idx_tech_loc_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+};
+
+app.post('/api/technicians/location', async (req, res) => {
+  const latitude = Number(req.body?.latitude);
+  const longitude = Number(req.body?.longitude);
+  const accuracy = Number(req.body?.accuracy || 0);
+  const technicianId = String(req.body?.technicianId || '').trim();
+  const employeeCode = String(req.body?.employeeCode || '').trim();
+  const technicianName = String(req.body?.technicianName || '').trim();
+  const recordedAt = req.body?.recordedAt ? new Date(req.body.recordedAt) : new Date();
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return res.status(400).json({ success: false, error: 'latitude and longitude are required' });
+  }
+
+  if (!withMysqlConnection) {
+    return res.status(500).json({ success: false, error: 'MySQL is not configured' });
+  }
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await ensureTechnicianLocationTable(conn);
+      await conn.query(
+        `
+          INSERT INTO technician_live_locations
+            (technician_id, employee_code, technician_name, latitude, longitude, accuracy, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          technicianId || null,
+          employeeCode || null,
+          technicianName || null,
+          latitude,
+          longitude,
+          Number.isFinite(accuracy) ? accuracy : null,
+          Number.isNaN(recordedAt.getTime()) ? new Date() : recordedAt,
+        ]
+      );
+    });
+    return res.json({ success: true, message: 'Location saved' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to save location' });
+  }
+});
+
+app.get('/api/technicians/live', async (req, res) => {
+  if (!withMysqlConnection) return res.json({ success: true, items: [] });
+
+  try {
+    const items = await withMysqlConnection(async (conn) => {
+      await ensureTechnicianLocationTable(conn);
+      const [rows] = await conn.query(
+        `
+          SELECT t1.id, t1.technician_id, t1.employee_code, t1.technician_name, t1.latitude, t1.longitude, t1.created_at AS last_seen
+          FROM technician_live_locations t1
+          INNER JOIN (
+            SELECT COALESCE(NULLIF(technician_id, ''), employee_code) AS tech_key, MAX(id) AS max_id
+            FROM technician_live_locations
+            GROUP BY COALESCE(NULLIF(technician_id, ''), employee_code)
+          ) t2 ON t1.id = t2.max_id
+          ORDER BY t1.id DESC
+          LIMIT 200
+        `
+      );
+      return rows.map((row) => ({
+        id: row.technician_id || row.employee_code || row.id,
+        technician_id: row.technician_id,
+        emp_code: row.employee_code,
+        full_name: row.technician_name,
+        latitude: Number(row.latitude),
+        longitude: Number(row.longitude),
+        last_seen: row.last_seen,
+        status: 'Active',
+      }));
+    });
+    return res.json({ success: true, items });
+  } catch {
+    return res.json({ success: true, items: [] });
+  }
+});
+
+app.get('/api/technicians/:id/route-history', async (req, res) => {
+  if (!withMysqlConnection) return res.json({ success: true, items: [] });
+  const id = String(req.params?.id || '').trim();
+  if (!id) return res.json({ success: true, items: [] });
+
+  try {
+    const items = await withMysqlConnection(async (conn) => {
+      await ensureTechnicianLocationTable(conn);
+      const [rows] = await conn.query(
+        `
+          SELECT id, latitude, longitude, created_at AS timestamp
+          FROM technician_live_locations
+          WHERE technician_id = ? OR employee_code = ?
+          ORDER BY id DESC
+          LIMIT 500
+        `,
+        [id, id]
+      );
+      return rows.map((row) => ({
+        id: row.id,
+        latitude: Number(row.latitude),
+        longitude: Number(row.longitude),
+        timestamp: row.timestamp,
+      }));
+    });
+    return res.json({ success: true, items });
+  } catch {
+    return res.json({ success: true, items: [] });
+  }
+});
+
 app.post('/api/upload', upload.single('image'), (req, res) => {
   res.json({ imageUrl: `${resolveServerOrigin(req)}/uploads/${req.file.filename}` });
 });
