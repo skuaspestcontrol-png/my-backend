@@ -69,6 +69,7 @@ export default function Login() {
     e.preventDefault();
     setAuthLoading(true);
     const username = String(credentials.username || '').trim();
+    const normalizedUsernameMobile = username.replace(/\D+/g, '');
     const password = String(credentials.password || '');
     const expectedUsername = String(settings.adminUsername || 'admin').trim() || 'admin';
     const expectedPassword = String(settings.adminPassword || 'admin123');
@@ -78,17 +79,23 @@ export default function Login() {
       localStorage.removeItem('portal_user_name');
       localStorage.removeItem('portal_user_role');
       localStorage.removeItem('portal_user_id');
-      if (rememberMe) localStorage.setItem('portal_remember_email', username);
+      if (rememberMe) localStorage.setItem('portal_remember_username', username);
       navigate('/dashboard', { replace: true });
       setAuthLoading(false);
       return;
     }
 
+    if (normalizedUsernameMobile.length !== 10) {
+      setAuthLoading(false);
+      alert('Enter a valid 10-digit mobile number for employee login.');
+      return;
+    }
+
     const employee = employees.find((entry) => {
-      const hasPortal = Boolean(entry?.webPortalAccessEnabled || entry?.portalAccess === 'Yes' || entry?.appAccessEnabled);
-      const email = String(entry?.email || entry?.emailId || '').trim().toLowerCase();
+      const hasPortal = Boolean(entry?.webPortalAccessEnabled || entry?.portalAccess === 'Yes' || entry?.portalAccess === true || entry?.appAccessEnabled);
+      const mobile = String(entry?.mobile || '').trim().replace(/\D+/g, '');
       const employeePassword = String(entry?.portalPassword || '');
-      return hasPortal && email && employeePassword && username.toLowerCase() === email && password === employeePassword;
+      return hasPortal && mobile && employeePassword && normalizedUsernameMobile === mobile && password === employeePassword;
     });
 
     if (employee) {
@@ -96,7 +103,7 @@ export default function Login() {
       localStorage.setItem('portal_user_name', [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee');
       localStorage.setItem('portal_user_role', String(employee.role || 'Employee'));
       localStorage.setItem('portal_user_id', String(employee._id || ''));
-      if (rememberMe) localStorage.setItem('portal_remember_email', username);
+      if (rememberMe) localStorage.setItem('portal_remember_username', username);
       navigate(getEmployeeLandingPath(employee.role), { replace: true });
       setAuthLoading(false);
       return;
@@ -200,7 +207,7 @@ export default function Login() {
             <div style={{ width: '100%', padding: 0 }}>
             <form onSubmit={handleLogin} style={{ display: 'grid', gap: '14px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', color: '#475569', fontSize: '13px', fontWeight: 700 }}>Email / Username</label>
+              <label style={{ display: 'block', marginBottom: '8px', color: '#475569', fontSize: '13px', fontWeight: 700 }}>Login Mobile Number / Username</label>
               <input
                 type="text"
                 name="username"
@@ -209,6 +216,7 @@ export default function Login() {
                 style={{ width: '100%', padding: '12px 13px', borderRadius: '8px', boxSizing: 'border-box', background: '#e9edf5', border: '1px solid #c7d0df' }}
                 required
               />
+              <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#64748b', fontWeight: 600 }}>For employees, use your 10-digit mobile number.</p>
             </div>
 
             <div>

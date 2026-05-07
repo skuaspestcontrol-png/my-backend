@@ -221,7 +221,7 @@ const normalizeEmployee = (employee = {}) => {
     salaryPerMonth: salary ? String(salary) : '',
     annualSalary: String(toAnnual(salary)),
     appAccessEnabled: Boolean(employee.appAccessEnabled),
-    webPortalAccessEnabled: Boolean(employee.webPortalAccessEnabled || employee.portalAccess === 'Yes'),
+    webPortalAccessEnabled: Boolean(employee.webPortalAccessEnabled || employee.portalAccess === 'Yes' || employee.portalAccess === true),
     portalPassword: employee.portalPassword || '',
     bankNo: employee.bankNo || '',
     bankName: employee.bankName || '',
@@ -365,10 +365,6 @@ export default function EmployeeMaster() {
 
     const anyPortalAccess = form.appAccessEnabled || form.webPortalAccessEnabled;
     if (anyPortalAccess) {
-      if (!String(form.email || '').trim()) {
-        setStatus('Email is required when App/Web portal access is enabled.');
-        return;
-      }
       if (!String(form.portalPassword || '').trim()) {
         setStatus('Password is required when App/Web portal access is enabled.');
         return;
@@ -484,7 +480,7 @@ export default function EmployeeMaster() {
                   <td style={shell.td}>{employee.mobile || '-'}</td>
                   <td style={shell.td}>{employee.email || employee.emailId || '-'}</td>
                   <td style={shell.td}>{formatCurrency(employee.salaryPerMonth || employee.salary || 0)}</td>
-                  <td style={shell.td}>{employee.webPortalAccessEnabled || employee.portalAccess === 'Yes' ? 'Enabled' : 'Disabled'}</td>
+                  <td style={shell.td}>{employee.webPortalAccessEnabled || employee.portalAccess === 'Yes' || employee.portalAccess === true ? 'Enabled' : 'Disabled'}</td>
                   <td style={shell.td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <button type="button" onClick={() => openEditEmployee(employee)} style={{ ...shell.rowActionBtn, color: 'var(--color-primary-dark)' }}><Edit size={19} strokeWidth={2.25} /></button>
@@ -699,8 +695,8 @@ export default function EmployeeMaster() {
                 </div>
                 <div style={grid2Style}>
                   <div style={shell.field}>
-                    <label style={shell.label}>Login Email (same as Employee Email)</label>
-                    <input type="email" style={shell.input} value={form.email} onChange={(event) => updateField('email', event.target.value)} placeholder="employee@email.com" />
+                    <label style={shell.label}>Login Mobile Number (same as Employee Mobile Number)</label>
+                    <input style={shell.input} value={form.mobile} readOnly placeholder="Auto from employee mobile number" />
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Portal Password</label>
