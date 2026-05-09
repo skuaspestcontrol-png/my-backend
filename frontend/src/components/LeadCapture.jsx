@@ -232,13 +232,13 @@ const s = {
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', position: 'relative', borderRadius: '14px', border: '1px solid var(--color-border)' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left', tableLayout: 'fixed' },
-  headCell: { textAlign: 'left', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '6px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap' },
+  headCell: { textAlign: 'left', fontSize: '9px', fontWeight: 700, color: '#6b7280', padding: '5px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   headActionCell: { background: 'var(--color-primary-light)' },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   row: { borderBottom: '1px solid #eef2f7' },
-  cell: { padding: '6px 6px', fontSize: '11px', color: '#111827', verticalAlign: 'middle', lineHeight: 1.2 },
+  cell: { padding: '4px 6px', fontSize: '11px', color: '#111827', verticalAlign: 'middle', lineHeight: 1.15 },
   actionCell: { background: '#ffffff' },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
@@ -249,10 +249,10 @@ const s = {
     color: '#334155',
     padding: '4px 8px',
     borderRadius: '7px',
-    minWidth: '74px',
-    minHeight: '26px',
+    minWidth: '68px',
+    minHeight: '22px',
     fontSize: '10px',
-    fontWeight: 800,
+    fontWeight: 500,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -262,19 +262,19 @@ const s = {
     lineHeight: 1
   },
   statusInlineSelect: {
-    minHeight: '26px',
+    minHeight: '22px',
     borderRadius: '8px',
     border: '1px solid rgba(159, 23, 77, 0.3)',
     background: '#fff',
     color: '#0f172a',
     fontSize: '10px',
-    fontWeight: 700,
-    padding: '3px 7px',
+    fontWeight: 500,
+    padding: '2px 6px',
     outline: 'none',
-    minWidth: '102px'
+    minWidth: '84px'
   },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center', width: '100%' },
-  rowActionButton: { border: '1px solid rgba(17,17,17,0.14)', background: '#fff', color: '#1f2937', borderRadius: '7px', minWidth: '62px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 700 },
+  rowActionButton: { border: '1px solid rgba(17,17,17,0.14)', background: '#fff', color: '#1f2937', borderRadius: '7px', minWidth: '56px', minHeight: '22px', padding: '0 6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 500 },
   rowActionMenu: { position: 'fixed', minWidth: '196px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 1200, overflow: 'hidden' },
   rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '8px 10px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '8px 10px', fontSize: '12px', fontWeight: 600 },
@@ -334,16 +334,13 @@ const normalizeLeadStatus = (value) => String(value || '').trim().toLowerCase();
 const isLeadConverted = (lead) => normalizeLeadStatus(getLeadStatus(lead)) === 'booked';
 const getLeadStatusBadgeStyle = (statusValue) => {
   const normalized = normalizeLeadStatus(statusValue);
-  if (normalized === 'converted') {
-    return { background: 'rgba(22, 163, 74, 0.16)', color: '#166534', borderColor: 'rgba(22,163,74,0.35)' };
+  if (normalized === 'booked' || normalized === 'converted') {
+    return { background: '#14532d', color: '#ffffff', borderColor: '#14532d' };
   }
-  if (normalized === 'cancalled' || normalized === 'cancelled') {
-    return { background: 'rgba(220, 38, 38, 0.14)', color: '#991b1b', borderColor: 'rgba(220,38,38,0.35)' };
+  if (normalized === 'decline' || normalized === 'cancalled' || normalized === 'cancelled' || normalized === 'not interested' || normalized === 'not intersted') {
+    return { background: '#b91c1c', color: '#ffffff', borderColor: '#b91c1c' };
   }
-  if (normalized === 'new lead') {
-    return { background: 'rgba(250, 204, 21, 0.24)', color: '#854d0e', borderColor: 'rgba(234,179,8,0.4)' };
-  }
-  return { background: 'rgba(159, 23, 77, 0.14)', color: 'var(--color-primary-dark)', borderColor: 'rgba(159, 23, 77, 0.35)' };
+  return { background: '#ffffff', color: '#334155', borderColor: '#d1d5db' };
 };
 const getLeadAssignedTo = (lead) => {
   const raw = String(lead.assignedTo || '').trim();
@@ -2092,7 +2089,7 @@ export default function LeadCapture() {
                     />
                   </th>
                 ))}
-                <th style={{ ...s.headCell, ...s.headActionCell, width: '82px', textAlign: 'center' }}>Action</th>
+                <th style={{ ...s.headCell, ...s.headActionCell, width: '74px', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -2166,7 +2163,7 @@ export default function LeadCapture() {
                         </td>
                       );
                     })}
-                    <td style={{ ...s.cell, ...s.actionCell, width: '82px', textAlign: 'center' }}>
+                    <td style={{ ...s.cell, ...s.actionCell, width: '74px', textAlign: 'center' }}>
                       <div style={s.rowActionWrap} data-lead-row-action="true">
                         <button
                           type="button"

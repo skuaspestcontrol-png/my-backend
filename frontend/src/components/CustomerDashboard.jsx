@@ -916,6 +916,20 @@ export default function CustomerDashboard() {
     }
   };
 
+  const deleteOneCustomer = async (customerId) => {
+    if (!customerId) return;
+    const ok = window.confirm('Delete this customer?');
+    if (!ok) return;
+    try {
+      await axios.delete(`${API_BASE_URL}/api/customers/${customerId}`);
+      await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
+      setSelectedIds((prev) => prev.filter((id) => id !== customerId));
+    } catch (error) {
+      console.error('Failed to delete customer', error);
+      window.alert(error?.response?.data?.error || 'Unable to delete customer.');
+    }
+  };
+
   const csvEscape = (value) => {
     const text = String(value ?? '');
     if (text.includes(',') || text.includes('"') || text.includes('\n')) {
@@ -1238,12 +1252,13 @@ export default function CustomerDashboard() {
                   />
                 </th>
               ))}
+              <th style={{ ...shell.headCell, width: '150px', minWidth: '150px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginatedCustomers.length === 0 ? (
               <tr style={shell.row}>
-                <td style={{ ...shell.cell, textAlign: 'center', color: '#64748b' }} colSpan={visibleColumnDefs.length + 1}>
+                <td style={{ ...shell.cell, textAlign: 'center', color: '#64748b' }} colSpan={visibleColumnDefs.length + 2}>
                   No customers found.
                 </td>
               </tr>
@@ -1276,6 +1291,27 @@ export default function CustomerDashboard() {
                     {handleCellValue(customer, column.key)}
                   </td>
                 ))}
+                <td style={{ ...shell.cell, whiteSpace: 'nowrap' }}>
+                  <button
+                    type="button"
+                    style={{ ...shell.paginationButton, marginRight: '8px' }}
+                    onClick={() => {
+                      setEditingId(customer._id);
+                      setForm(mapCustomerToForm(customer));
+                      setSaveError('');
+                      setShowModal(true);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    style={{ ...shell.paginationButton, color: '#b91c1c', borderColor: '#fecaca' }}
+                    onClick={() => deleteOneCustomer(customer._id)}
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
