@@ -3020,20 +3020,37 @@ app.get('/api/customers', async (req, res) => {
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
       await ensureCustomerPlaceColumns(conn);
-      const [rows] = await conn.query('SELECT payload FROM customers ORDER BY id DESC');
+      const [rows] = await conn.query('SELECT id, external_id, payload FROM customers ORDER BY id DESC');
       return Array.isArray(rows) ? rows : [];
     });
     if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
       const parsed = mysqlRows
         .map((row) => {
           const raw = row?.payload;
-          if (!raw) return null;
-          if (typeof raw === 'string') {
-            try { return JSON.parse(raw); } catch { return null; }
+          const externalId = String(row?.external_id || '').trim();
+          const idText = row?.id != null ? String(row.id).trim() : '';
+          if (!raw) {
+            return externalId || idText ? { _id: externalId || idText } : null;
           }
-          return raw;
+          if (typeof raw === 'string') {
+            try {
+              const payload = JSON.parse(raw);
+              if (!payload || typeof payload !== 'object') return null;
+              return {
+                ...payload,
+                _id: String(payload._id || externalId || idText).trim()
+              };
+            } catch { return null; }
+          }
+          if (typeof raw === 'object') {
+            return {
+              ...raw,
+              _id: String(raw._id || externalId || idText).trim()
+            };
+          }
+          return null;
         })
-        .filter(Boolean);
+        .filter((row) => row && String(row._id || '').trim());
       if (parsed.length > 0) return res.json(parsed);
     }
   } catch (error) {
@@ -3233,13 +3250,30 @@ app.put('/api/customers/:id', async (req, res) => {
 
     const existingCustomer = await withMysqlConnection(async (conn) => {
       await ensureCustomerPlaceColumns(conn);
-      const [rows] = await conn.query('SELECT payload FROM customers WHERE external_id = ? LIMIT 1', [req.params.id]);
+      const targetId = String(req.params.id || '').trim();
+      const numericId = Number(targetId);
+      const isNumeric = Number.isFinite(numericId) && /^\d+$/.test(targetId);
+      const [rows] = await conn.query(
+        isNumeric
+          ? 'SELECT id, external_id, payload FROM customers WHERE external_id = ? OR id = ? LIMIT 1'
+          : 'SELECT id, external_id, payload FROM customers WHERE external_id = ? LIMIT 1',
+        isNumeric ? [targetId, numericId] : [targetId]
+      );
       const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
       if (!row?.payload) return null;
       if (typeof row.payload === 'string') {
-        try { return JSON.parse(row.payload); } catch { return null; }
+        try {
+          const payload = JSON.parse(row.payload);
+          return {
+            ...(payload && typeof payload === 'object' ? payload : {}),
+            _id: String(payload?._id || row.external_id || row.id || '').trim()
+          };
+        } catch { return null; }
       }
-      return row.payload;
+      return {
+        ...(row.payload && typeof row.payload === 'object' ? row.payload : {}),
+        _id: String(row.payload?._id || row.external_id || row.id || '').trim()
+      };
     });
 
     if (!existingCustomer) {
@@ -3370,7 +3404,15 @@ app.delete('/api/customers/:id', async (req, res) => {
     }
 
     const deletedRows = await withMysqlConnection(async (conn) => {
-      const [result] = await conn.query('DELETE FROM customers WHERE external_id = ?', [req.params.id]);
+      const targetId = String(req.params.id || '').trim();
+      const numericId = Number(targetId);
+      const isNumeric = Number.isFinite(numericId) && /^\d+$/.test(targetId);
+      const [result] = await conn.query(
+        isNumeric
+          ? 'DELETE FROM customers WHERE external_id = ? OR id = ?'
+          : 'DELETE FROM customers WHERE external_id = ?',
+        isNumeric ? [targetId, numericId] : [targetId]
+      );
       return Number(result?.affectedRows || 0);
     });
 
