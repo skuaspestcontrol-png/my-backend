@@ -437,6 +437,11 @@ const canUseMysql = () => {
   );
 };
 
+const isCustomersJsonFallbackEnabled = () => {
+  const value = String(process.env.CUSTOMERS_JSON_FALLBACK || process.env.ENABLE_CUSTOMERS_JSON_FALLBACK || '').trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes' || value === 'on';
+};
+
 const withMysqlConnection = async (handler) => {
   if (!canUseMysql()) return null;
   const connection = await getConnection();
@@ -3017,6 +3022,16 @@ app.delete('/api/items/:id', async (req, res) => {
 });
 
 app.get('/api/customers', async (req, res) => {
+  const allowFallback = isCustomersJsonFallbackEnabled();
+  if (!canUseMysql()) {
+    if (allowFallback) {
+      console.warn('[Customers API] source=fallback-json reason=mysql_not_configured');
+      return res.json(readJsonFile(customersFile, []));
+    }
+    console.error('[Customers API] source=none reason=mysql_not_configured fallback_disabled');
+    return res.status(503).json({ error: 'Customer data source unavailable: MySQL is not configured.' });
+  }
+
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
       await ensureCustomerPlaceColumns(conn);
@@ -3038,29 +3053,37 @@ app.get('/api/customers', async (req, res) => {
               if (!payload || typeof payload !== 'object') return null;
               return {
                 ...payload,
-                _id: String(payload._id || externalId || idText).trim()
+                _id: String(externalId || idText || payload._id || '').trim()
               };
             } catch { return null; }
           }
           if (typeof raw === 'object') {
             return {
               ...raw,
-              _id: String(raw._id || externalId || idText).trim()
+              _id: String(externalId || idText || raw._id || '').trim()
             };
           }
           return null;
         })
         .filter((row) => row && String(row._id || '').trim());
-      if (parsed.length > 0) return res.json(parsed);
+      console.info(`[Customers API] source=mysql rows=${parsed.length}`);
+      return res.json(parsed);
     }
   } catch (error) {
-    console.error('MySQL customers read failed, using JSON fallback:', error.message);
+    console.error('[Customers API] mysql_read_failed:', error.message);
+    if (allowFallback) {
+      console.warn('[Customers API] source=fallback-json reason=mysql_read_failed');
+      return res.json(readJsonFile(customersFile, []));
+    }
+    return res.status(500).json({ error: error.message || 'Failed to fetch customers from MySQL' });
   }
-  res.json(readJsonFile(customersFile, []));
+  console.info('[Customers API] source=mysql rows=0');
+  return res.json([]);
 });
 
 app.post('/api/customers', async (req, res) => {
   try {
+    const allowFallback = isCustomersJsonFallbackEnabled();
     const positionValue = req.body.position === 'Edit type'
       ? (req.body.positionCustom || '').trim() || 'Edit type'
       : (req.body.position || '');
@@ -3118,10 +3141,14 @@ app.post('/api/customers', async (req, res) => {
     };
 
     if (!canUseMysql()) {
-      const rows = readJsonFile(customersFile, []);
-      const nextRows = Array.isArray(rows) ? [...rows, newCustomer] : [newCustomer];
-      fs.writeFileSync(customersFile, JSON.stringify(nextRows, null, 2));
-      return res.json(newCustomer);
+      if (allowFallback) {
+        const rows = readJsonFile(customersFile, []);
+        const nextRows = Array.isArray(rows) ? [...rows, newCustomer] : [newCustomer];
+        fs.writeFileSync(customersFile, JSON.stringify(nextRows, null, 2));
+        console.warn('[Customers API] source=fallback-json action=create reason=mysql_not_configured');
+        return res.json(newCustomer);
+      }
+      return res.status(503).json({ error: 'Customer create unavailable: MySQL is not configured.' });
     }
 
     await withMysqlConnection(async (conn) => {
@@ -3189,62 +3216,21 @@ app.post('/api/customers', async (req, res) => {
 
 app.put('/api/customers/:id', async (req, res) => {
   try {
+    const allowFallback = isCustomersJsonFallbackEnabled();
     if (!canUseMysql()) {
+      if (!allowFallback) {
+        return res.status(503).json({ error: 'Customer update unavailable: MySQL is not configured.' });
+      }
       const rows = readJsonFile(customersFile, []);
       const targetId = String(req.params.id || '').trim();
       const list = Array.isArray(rows) ? [...rows] : [];
       const index = list.findIndex((row) => String(row?._id || '').trim() === targetId);
       if (index === -1) return res.status(404).json({ error: 'Customer not found' });
-
       const existingCustomer = list[index] || {};
-      const updatedCustomer = {
-        ...existingCustomer,
-        ...req.body,
-        _id: existingCustomer._id || targetId,
-        displayName:
-          (req.body.displayName || '').trim() ||
-          req.body.contactPersonName ||
-          req.body.companyName ||
-          req.body.name ||
-          existingCustomer.displayName ||
-          existingCustomer.name ||
-          '',
-        name:
-          (req.body.displayName || '').trim() ||
-          req.body.contactPersonName ||
-          req.body.companyName ||
-          req.body.name ||
-          existingCustomer.name ||
-          '',
-        position:
-          req.body.position === 'Edit type'
-            ? (req.body.positionCustom || '').trim() || 'Edit type'
-            : (req.body.position ?? existingCustomer.position ?? ''),
-        emailId: req.body.emailId ?? req.body.email ?? existingCustomer.emailId ?? existingCustomer.email ?? '',
-        email: req.body.emailId ?? req.body.email ?? existingCustomer.email ?? existingCustomer.emailId ?? '',
-        mobileNumber: req.body.mobileNumber ?? req.body.workPhone ?? existingCustomer.mobileNumber ?? existingCustomer.workPhone ?? '',
-        workPhone: req.body.mobileNumber ?? req.body.workPhone ?? existingCustomer.workPhone ?? existingCustomer.mobileNumber ?? '',
-        billingArea: req.body.billingArea ?? req.body.area ?? existingCustomer.billingArea ?? existingCustomer.area ?? '',
-        billingState: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? existingCustomer.billingState ?? existingCustomer.state ?? existingCustomer.placeOfSupply ?? '',
-        billingPincode: req.body.billingPincode ?? req.body.pincode ?? existingCustomer.billingPincode ?? existingCustomer.pincode ?? '',
-        shippingArea: req.body.shippingArea ?? existingCustomer.shippingArea ?? '',
-        shippingState: req.body.shippingState ?? existingCustomer.shippingState ?? '',
-        shippingPincode: req.body.shippingPincode ?? existingCustomer.shippingPincode ?? '',
-        state: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? existingCustomer.state ?? existingCustomer.placeOfSupply ?? '',
-        placeOfSupply: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? existingCustomer.placeOfSupply ?? existingCustomer.state ?? '',
-        hasGst: req.body.hasGst ?? req.body.gstRegistered ?? existingCustomer.hasGst ?? existingCustomer.gstRegistered ?? false,
-        gstRegistered: req.body.hasGst ?? req.body.gstRegistered ?? existingCustomer.gstRegistered ?? existingCustomer.hasGst ?? false,
-        gstNumber:
-          (req.body.hasGst ?? req.body.gstRegistered ?? existingCustomer.hasGst ?? existingCustomer.gstRegistered)
-            ? (req.body.gstNumber ?? existingCustomer.gstNumber ?? '')
-            : '',
-        areaSqft: Number(req.body.areaSqft ?? existingCustomer.areaSqft ?? 0),
-        receivables: Number(req.body.receivables ?? existingCustomer.receivables ?? 0),
-        unusedCredits: Number(req.body.unusedCredits ?? existingCustomer.unusedCredits ?? 0)
-      };
-
+      const updatedCustomer = { ...existingCustomer, ...req.body, _id: existingCustomer._id || targetId };
       list[index] = updatedCustomer;
       fs.writeFileSync(customersFile, JSON.stringify(list, null, 2));
+      console.warn('[Customers API] source=fallback-json action=update reason=mysql_not_configured');
       return res.json(updatedCustomer);
     }
 
@@ -3391,7 +3377,11 @@ app.put('/api/customers/:id', async (req, res) => {
 
 app.delete('/api/customers/:id', async (req, res) => {
   try {
+    const allowFallback = isCustomersJsonFallbackEnabled();
     if (!canUseMysql()) {
+      if (!allowFallback) {
+        return res.status(503).json({ error: 'Customer delete unavailable: MySQL is not configured.' });
+      }
       const rows = readJsonFile(customersFile, []);
       const targetId = String(req.params.id || '').trim();
       const list = Array.isArray(rows) ? rows : [];
@@ -3400,6 +3390,7 @@ app.delete('/api/customers/:id', async (req, res) => {
         return res.status(404).json({ error: 'Customer not found' });
       }
       fs.writeFileSync(customersFile, JSON.stringify(nextRows, null, 2));
+      console.warn('[Customers API] source=fallback-json action=delete reason=mysql_not_configured');
       return res.json({ message: 'Customer deleted' });
     }
 
@@ -3417,8 +3408,10 @@ app.delete('/api/customers/:id', async (req, res) => {
     });
 
     if (!deletedRows) {
+      console.warn(`[Customers API] source=mysql action=delete id=${String(req.params.id || '').trim()} result=not_found`);
       return res.status(404).json({ error: 'Customer not found' });
     }
+    console.info(`[Customers API] source=mysql action=delete id=${String(req.params.id || '').trim()} result=deleted`);
     return res.json({ message: 'Customer deleted' });
   } catch (error) {
     console.error('Failed to delete customer in MySQL:', error.message);

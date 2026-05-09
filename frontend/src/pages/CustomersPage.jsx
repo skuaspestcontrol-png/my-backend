@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import ActionMenu from '../components/ui/ActionMenu';
 import AppButton from '../components/ui/AppButton';
@@ -6,12 +7,9 @@ import AppTable from '../components/ui/AppTable';
 import PageHeader from '../components/ui/PageHeader';
 import SearchBar from '../components/ui/SearchBar';
 import StatusBadge from '../components/ui/StatusBadge';
+import axios from 'axios';
 
-const rows = [
-  { id: '1', name: 'Juhi Aggarwal', city: 'Delhi', plan: 'Residential', status: 'active', due: '₹0.00' },
-  { id: '2', name: 'Priya Jain', city: 'Delhi', plan: 'Commercial', status: 'pending', due: '₹3,240.00' },
-  { id: '3', name: 'Nasir Ali', city: 'Noida', plan: 'Residential', status: 'info', due: '₹0.00' }
-];
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const columns = [
   { key: 'name', label: 'Customer' },
@@ -22,6 +20,33 @@ const columns = [
 ];
 
 export default function CustomersPage() {
+  const [customers, setCustomers] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/customers`);
+        if (!mounted) return;
+        setCustomers(Array.isArray(res.data) ? res.data : []);
+      } catch (error) {
+        console.error('Failed to load customers', error);
+        if (mounted) setCustomers([]);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  const rows = useMemo(() => customers.map((customer) => ({
+    id: String(customer._id || customer.id || ''),
+    name: String(customer.displayName || customer.name || customer.contactPersonName || '-'),
+    city: String(customer.city || customer.billingState || customer.state || '-'),
+    plan: String(customer.segment || '-'),
+    status: 'active',
+    due: '₹0.00'
+  })), [customers]);
+
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <PageHeader

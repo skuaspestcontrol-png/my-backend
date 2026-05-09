@@ -135,15 +135,16 @@ const shell = {
   customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', padding: '8px 12px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', maxWidth: '100%', borderRadius: '14px', border: '1px solid var(--color-border)' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  headCell: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
+  headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '10px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   headSortButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', background: 'transparent', padding: 0, color: '#6b7280', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer' },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   row: { borderBottom: '1px solid #eef2f7' },
-  cell: { padding: '12px 10px', fontSize: '14px', color: '#111827', verticalAlign: 'top', lineHeight: 1.35 },
+  cell: { padding: '10px 10px', fontSize: '8px', fontWeight: 400, color: '#111827', verticalAlign: 'top', lineHeight: 1.25 },
   cellClamp: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  nameCell: { color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline dotted rgba(159,23,77,0.45)' },
+  nameCell: { color: 'var(--color-primary)', fontWeight: 400, cursor: 'pointer', textDecoration: 'underline dotted rgba(159,23,77,0.45)' },
+  rowActionButton: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '8px', minWidth: '64px', minHeight: '28px', padding: '4px 10px', fontSize: '8px', fontWeight: 400, cursor: 'pointer' },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
   menu: { position: 'absolute', right: 0, top: '42px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '10px', width: '220px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 20, overflow: 'hidden', padding: '4px 0' },
@@ -1294,7 +1295,7 @@ export default function CustomerDashboard() {
                 <td style={{ ...shell.cell, whiteSpace: 'nowrap' }}>
                   <button
                     type="button"
-                    style={{ ...shell.paginationButton, marginRight: '8px' }}
+                    style={{ ...shell.rowActionButton, marginRight: '8px' }}
                     onClick={() => {
                       setEditingId(customer._id);
                       setForm(mapCustomerToForm(customer));
@@ -1306,7 +1307,7 @@ export default function CustomerDashboard() {
                   </button>
                   <button
                     type="button"
-                    style={{ ...shell.paginationButton, color: '#b91c1c', borderColor: '#fecaca' }}
+                    style={{ ...shell.rowActionButton, color: '#b91c1c', borderColor: '#fecaca' }}
                     onClick={() => deleteOneCustomer(customer._id)}
                   >
                     Delete
