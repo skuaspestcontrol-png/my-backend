@@ -234,8 +234,10 @@ const googleOauthStateStore = new Map();
 
 const uploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLOADS_DIR || '')
   .trim() || path.join(__dirname, '..', 'storage', 'uploads');
+const employeeUploadsDir = path.join(uploadsDir, 'employees');
 const uploadsMirrorDir = String(process.env.UPLOADS_MIRROR_DIR || '').trim();
 fs.mkdirSync(uploadsDir, { recursive: true });
+fs.mkdirSync(employeeUploadsDir, { recursive: true });
 if (uploadsMirrorDir) fs.mkdirSync(uploadsMirrorDir, { recursive: true });
 const legacyDataDir = path.join(__dirname, 'data');
 const dataDir = String(process.env.DATA_DIR || process.env.PERSISTENT_DATA_DIR || '').trim()
@@ -264,10 +266,15 @@ const syncUploadToMirror = (fileName = '') => {
   if (!uploadsMirrorDir) return;
   const safeName = String(fileName || '').trim();
   if (!safeName) return;
-  const src = path.join(uploadsDir, safeName);
-  const dest = path.join(uploadsMirrorDir, safeName);
+  const normalized = safeName.replace(/\\/g, '/');
+  if (normalized.includes('..')) return;
+  const src = path.join(uploadsDir, normalized);
+  const dest = path.join(uploadsMirrorDir, normalized);
   try {
-    if (fs.existsSync(src)) fs.copyFileSync(src, dest);
+    if (fs.existsSync(src)) {
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.copyFileSync(src, dest);
+    }
   } catch (error) {
     console.error('Failed to mirror uploaded file:', error.message);
   }
@@ -350,7 +357,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname); }
 });
 const employeePhotoStorage = multer.diskStorage({
-  destination: (req, file, cb) => { cb(null, path.join(uploadsDir, 'employees')); },
+  destination: (req, file, cb) => { cb(null, employeeUploadsDir); },
   filename: (req, file, cb) => {
     const empCode = String(req.body?.empCode || req.body?.emp_code || 'emp').trim();
     const timestamp = Date.now();
@@ -1985,7 +1992,7 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
     if (req.file) {
       const relativePath = `/uploads/employees/${req.file.filename}`;
       emp.profile_photo = relativePath;
-      syncUploadToMirror(req.file.filename.replace('employees/', ''));
+      syncUploadToMirror(`employees/${req.file.filename}`);
     }
 
     await withMysqlConnection(async (conn) => {
@@ -2122,7 +2129,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
   if (req.file) {
     const relativePath = `/uploads/employees/${req.file.filename}`;
     incoming.profile_photo = relativePath;
-    syncUploadToMirror(req.file.filename.replace('employees/', ''));
+    syncUploadToMirror(`employees/${req.file.filename}`);
   }
 
   const firstName = String(incoming.firstName || '').trim();

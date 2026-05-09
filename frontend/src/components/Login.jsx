@@ -93,7 +93,15 @@ export default function Login() {
     }
 
     const employee = employees.find((entry) => {
-      const hasPortal = Boolean(entry?.webPortalAccessEnabled || entry?.portalAccess === 'Yes' || entry?.portalAccess === true || entry?.appAccessEnabled);
+      const role = String(entry?.role || '').trim().toLowerCase();
+      const roleEligible = role.includes('technician') || role.includes('sales');
+      const hasPortal = Boolean(
+        entry?.webPortalAccessEnabled
+        || entry?.portalAccess === 'Yes'
+        || entry?.portalAccess === true
+        || entry?.appAccessEnabled
+        || roleEligible
+      );
       const mobile = String(entry?.mobile || '').trim().replace(/\D+/g, '');
       const employeeMobile = mobile.length > 10 ? mobile.slice(-10) : mobile;
       const employeePassword = String(entry?.portalPassword || '').trim();

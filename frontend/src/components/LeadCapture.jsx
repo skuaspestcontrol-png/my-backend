@@ -76,7 +76,7 @@ const INDIA_STATES = [
   'West Bengal'
 ];
 const PROPERTY_TYPES = ['Residential', 'Commercial'];
-const LEAD_STATUSES = ['Interested', 'Not Interested', 'Converted', '25%', '50%', '75%', '100%'];
+const LEAD_STATUSES = ['Cold', 'Warm', 'Hot', 'Booked', 'Decline'];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ALL_FILTER_VALUE = '__all__';
 const MONTH_FILTER_OPTIONS = [
@@ -150,7 +150,7 @@ const emptyForm = {
   quotationValue: '',
   leadSource: 'Call',
   propertyType: 'Residential',
-  status: 'Interested',
+  status: 'Cold',
   followupDate: '',
   assignedTo: '',
   remarks: '',
@@ -317,16 +317,21 @@ const getLeadWhatsapp = (lead) => normalizePhoneNumber(lead.whatsappNumber || ge
 const toCanonicalLeadStatus = (value) => {
   const raw = String(value || '').trim();
   const normalized = raw.toLowerCase();
-  if (!raw) return 'Interested';
-  if (normalized === 'new lead') return 'Interested';
-  if (normalized === 'cancalled' || normalized === 'cancelled') return 'Not Interested';
-  if (normalized === 'not intersted') return 'Not Interested';
-  if (normalized === '25%' || normalized === '50%' || normalized === '75%' || normalized === '100%') return normalized.toUpperCase();
+  if (!raw) return 'Cold';
+  if (normalized === 'new lead') return 'Cold';
+  if (normalized === 'interested') return 'Warm';
+  if (normalized === 'not interested' || normalized === 'not intersted') return 'Decline';
+  if (normalized === 'cancalled' || normalized === 'cancelled') return 'Decline';
+  if (normalized === 'converted') return 'Booked';
+  if (normalized === '25%') return 'Cold';
+  if (normalized === '50%') return 'Warm';
+  if (normalized === '75%') return 'Hot';
+  if (normalized === '100%') return 'Booked';
   return raw;
 };
-const getLeadStatus = (lead) => toCanonicalLeadStatus(lead.status || lead.leadStatus || 'Interested');
+const getLeadStatus = (lead) => toCanonicalLeadStatus(lead.status || lead.leadStatus || 'Cold');
 const normalizeLeadStatus = (value) => String(value || '').trim().toLowerCase();
-const isLeadConverted = (lead) => normalizeLeadStatus(getLeadStatus(lead)) === 'converted';
+const isLeadConverted = (lead) => normalizeLeadStatus(getLeadStatus(lead)) === 'booked';
 const getLeadStatusBadgeStyle = (statusValue) => {
   const normalized = normalizeLeadStatus(statusValue);
   if (normalized === 'converted') {
