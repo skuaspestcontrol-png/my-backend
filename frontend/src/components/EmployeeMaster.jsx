@@ -203,7 +203,7 @@ const normalizeEmployee = (employee = {}) => {
     gender: employee.gender || 'Male',
     fatherName: employee.fatherName || '',
     motherName: employee.motherName || '',
-    employeePhotoUrl: employee.employeePhotoUrl || '',
+    employeePhotoUrl: employee.employeePhotoUrl || employee.profile_photo || '',
     dateOfBirth: employee.dateOfBirth || '',
     role: employee.role || 'Technician',
     roleName: employee.roleName || '',
@@ -244,6 +244,7 @@ export default function EmployeeMaster() {
   const [status, setStatus] = useState('');
   const [sameAsPermanentAddress, setSameAsPermanentAddress] = useState(false);
   const [showPortalPassword, setShowPortalPassword] = useState(false);
+  const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 
   const annualSalary = useMemo(() => toAnnual(form.salaryPerMonth), [form.salaryPerMonth]);
@@ -342,6 +343,7 @@ export default function EmployeeMaster() {
     setStatus('');
     setSameAsPermanentAddress(false);
     setShowPortalPassword(false);
+    setProfilePhotoFile(null);
     setShowModal(true);
   };
 
@@ -355,6 +357,7 @@ export default function EmployeeMaster() {
     );
     setStatus('');
     setShowPortalPassword(false);
+    setProfilePhotoFile(null);
     setShowModal(true);
   };
 
@@ -365,6 +368,7 @@ export default function EmployeeMaster() {
     setStatus('');
     setSameAsPermanentAddress(false);
     setShowPortalPassword(false);
+    setProfilePhotoFile(null);
   };
 
   const handleSave = async (event) => {
@@ -437,10 +441,24 @@ export default function EmployeeMaster() {
     try {
       setIsSaving(true);
       setStatus(editingId ? 'Updating employee...' : 'Saving employee...');
+
+      let requestData = payload;
+      let headers = {};
+
+      if (profilePhotoFile) {
+        const fd = new FormData();
+        Object.keys(payload).forEach(key => {
+          fd.append(key, payload[key]);
+        });
+        fd.append('profilePhoto', profilePhotoFile);
+        requestData = fd;
+        headers = { 'Content-Type': 'multipart/form-data' };
+      }
+
       if (editingId) {
-        await axios.put(`${API_BASE}/api/employees/${editingId}`, payload);
+        await axios.put(`${API_BASE}/api/employees/${editingId}`, requestData, { headers });
       } else {
-        await axios.post(`${API_BASE}/api/employees`, payload);
+        await axios.post(`${API_BASE}/api/employees`, requestData, { headers });
       }
       await loadData();
       closeModal();
@@ -599,19 +617,32 @@ export default function EmployeeMaster() {
                   </div>
                 </div>
                 <div style={{ ...shell.field, marginTop: '12px' }}>
-                  <label style={shell.label}>Employee Photo</label>
+                  <label style={shell.label}>Profile Photo</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <label style={shell.uploadBtn}>
-                      <UploadCloud size={14} /> Upload Photo
-                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(event) => handleUpload(event, 'employeePhotoUrl', 'Employee photo')} />
+                      <UploadCloud size={14} /> Select Photo
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        style={{ display: 'none' }}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) {
+                            setProfilePhotoFile(file);
+                          }
+                          event.target.value = '';
+                        }}
+                      />
                     </label>
-                    <p style={shell.helper}>{form.employeePhotoUrl ? 'Uploaded' : 'Not uploaded'}</p>
+                    <p style={shell.helper}>
+                      {profilePhotoFile ? profilePhotoFile.name : form.employeePhotoUrl ? 'Current photo exists' : 'No photo selected'}
+                    </p>
                   </div>
-                  {form.employeePhotoUrl ? (
+                  {(profilePhotoFile || form.employeePhotoUrl) ? (
                     <img
-                      src={form.employeePhotoUrl}
+                      src={profilePhotoFile ? URL.createObjectURL(profilePhotoFile) : (form.employeePhotoUrl.startsWith('http') ? form.employeePhotoUrl : `https://crm.skuaspestcontrol.com${form.employeePhotoUrl}`)}
                       alt="Employee preview"
-                      style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #d1d5db' }}
+                      style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #d1d5db', marginTop: '8px' }}
                     />
                   ) : null}
                 </div>

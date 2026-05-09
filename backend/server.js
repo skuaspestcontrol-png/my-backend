@@ -33,6 +33,8 @@ const {
 require('dotenv').config();
 
 const app = express();
+const SKUAS_API_URL = String(process.env.SKUAS_API_URL || 'https://api.skuaspestcontrol.com').replace(/\/+$/, '');
+const SKUAS_API_KEY = String(process.env.SKUAS_API_KEY || process.env.APP_API_KEY || '').trim();
 app.get("/api/db-test", async (req, res) => {
   try {
     await dbQuery('SELECT 1');
@@ -60,6 +62,26 @@ app.get("/api/test", (req, res) => {
   });
 });
 
+app.post('/api/integrations/push/test', async (req, res) => {
+  try {
+    const demoJob = {
+      id: req.body?.jobId || 'demo',
+      customerName: req.body?.customerName || 'Test Customer',
+      serviceName: req.body?.serviceName || 'General Pest Control',
+      scheduledDate: req.body?.scheduledDate || new Date().toISOString().slice(0, 10),
+      technicianName: req.body?.technicianName || '',
+      technicianMobile: req.body?.technicianMobile || '',
+      employeeCode: req.body?.employeeCode || '',
+      technicianId: req.body?.technicianId || '',
+      status: 'Assigned',
+    };
+    await notifyTechnicianPush(demoJob, 'job_assigned');
+    return res.json({ success: true, message: 'Push test triggered' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
@@ -75,6 +97,51 @@ app.get('/health', (req, res) => {
 app.get('/favicon.ico', (req, res) => {
   res.status(204).end();
 });
+
+const notifyTechnicianPush = async (job = {}, event = 'job_updated') => {
+  try {
+    const technicianName = String(job.technicianName || '').trim();
+    const employeeCode = String(job.employeeCode || job.technicianEmpCode || '').trim();
+    const mobile = String(job.technicianMobile || '').trim();
+    const technicianId = job.technicianId || null;
+
+    if (!technicianName && !employeeCode && !mobile && !technicianId) return;
+
+    const title = event === 'job_assigned'
+      ? 'New Job Assigned'
+      : event === 'job_completed'
+        ? 'Job Completed'
+        : 'Job Updated';
+    const body = `${String(job.customerName || 'Customer')} • ${String(job.serviceName || 'Service')} • ${String(job.scheduledDate || '-')}`;
+
+    await fetch(`${SKUAS_API_URL}/api/notifications/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(SKUAS_API_KEY ? { 'x-api-key': SKUAS_API_KEY } : {}),
+      },
+      body: JSON.stringify({
+        title,
+        body,
+        employeeCode: employeeCode || undefined,
+        technicianId: technicianId || undefined,
+        mobile: mobile || undefined,
+        data: {
+          route: 'tasks/detail',
+          jobId: job.id || job._id || undefined,
+          job: {
+            id: job.id || job._id || undefined,
+            customer_name: job.customerName || '',
+            service_type: job.serviceName || '',
+            status: job.status || '',
+          },
+        },
+      }),
+    });
+  } catch (error) {
+    console.error('Technician push notify failed:', error.message);
+  }
+};
 
 app.post('/api/admin/apply-hostinger-quotation-sql', (req, res) => {
   const token = String(req.headers['x-migration-token'] || req.body?.token || '').trim();
@@ -282,7 +349,27 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => { cb(null, uploadsDir); },
   filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname); }
 });
+const employeePhotoStorage = multer.diskStorage({
+  destination: (req, file, cb) => { cb(null, path.join(uploadsDir, 'employees')); },
+  filename: (req, file, cb) => {
+    const empCode = String(req.body?.empCode || req.body?.emp_code || 'emp').trim();
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `emp-${empCode}-${timestamp}${ext}`);
+  }
+});
 const upload = multer({ storage });
+const employeePhotoUpload = multer({
+  storage: employeePhotoStorage,
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files (jpg, jpeg, png, webp) are allowed'));
+    }
+  }
+});
 const jobCompletionUpload = upload.fields([
   { name: 'beforePhotoFile', maxCount: 1 },
   { name: 'afterPhotoFile', maxCount: 1 }
@@ -1826,7 +1913,7 @@ app.get('/api/employees', async (req, res) => {
     const mysqlRows = await withMysqlConnection(async (conn) => {
       await ensureEmployeeAuthColumns(conn);
       const [rows] = await conn.query(
-        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, salary, joining_date, status, payload
+        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, status, payload
          FROM employees
          ORDER BY id DESC`
       );
@@ -1864,6 +1951,8 @@ app.get('/api/employees', async (req, res) => {
         dateOfJoining: String(row?.joining_date ?? payload.dateOfJoining ?? '').trim(),
         city: String(row?.city ?? payload.city ?? '').trim(),
         pincode: String(row?.pincode ?? payload.pincode ?? '').trim(),
+        profile_photo: String(row?.profile_photo ?? payload.profile_photo ?? '').trim(),
+        present_address: String(row?.present_address ?? payload.present_address ?? '').trim(),
         portalAccess,
         portalPassword: String(row?.password ?? row?.portal_password ?? payload?.portalPassword ?? '').trim()
       };
@@ -1875,7 +1964,7 @@ app.get('/api/employees', async (req, res) => {
   }
 });
 
-app.post("/api/employees", async (req, res) => {
+app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (req, res) => {
   try {
     const emp = req.body || {};
     if (!canUseMysql()) {
@@ -1891,6 +1980,13 @@ app.post("/api/employees", async (req, res) => {
     }
 
     const externalId = emp._id || Date.now().toString();
+
+    // Handle profile photo upload
+    if (req.file) {
+      const relativePath = `/uploads/employees/${req.file.filename}`;
+      emp.profile_photo = relativePath;
+      syncUploadToMirror(req.file.filename.replace('employees/', ''));
+    }
 
     await withMysqlConnection(async (conn) => {
       await ensureEmployeeAuthColumns(conn);
@@ -1911,8 +2007,10 @@ app.post("/api/employees", async (req, res) => {
           joining_date,
           city,
           pincode,
+          profile_photo,
+          present_address,
           payload
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           emp_code = VALUES(emp_code),
           first_name = VALUES(first_name),
@@ -1928,6 +2026,8 @@ app.post("/api/employees", async (req, res) => {
           joining_date = VALUES(joining_date),
           city = VALUES(city),
           pincode = VALUES(pincode),
+          profile_photo = VALUES(profile_photo),
+          present_address = VALUES(present_address),
           payload = VALUES(payload)
         `,
         [
@@ -1946,6 +2046,8 @@ app.post("/api/employees", async (req, res) => {
           emp.dateOfJoining || null,
           emp.city || "",
           emp.pincode || "",
+          emp.profile_photo || "",
+          emp.present_address || "",
           JSON.stringify(emp),
         ]
       );
@@ -1969,10 +2071,10 @@ const fetchEmployeeByAnyId = async (employeeId) => {
       await ensureEmployeeAuthColumns(conn);
       const isNumeric = /^\d+$/.test(target);
       const query = isNumeric
-        ? `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, salary, joining_date, payload
+        ? `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, payload
            FROM employees
            WHERE external_id = ? OR id = ? LIMIT 1`
-        : `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, salary, joining_date, payload
+        : `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, payload
            FROM employees
            WHERE external_id = ? LIMIT 1`;
       const params = isNumeric ? [target, Number(target)] : [target];
@@ -1998,6 +2100,8 @@ const fetchEmployeeByAnyId = async (employeeId) => {
         portalPassword: String(payload.portalPassword ?? row.password ?? row.portal_password ?? '').trim(),
         city: String(payload.city ?? row.city ?? '').trim(),
         pincode: String(payload.pincode ?? row.pincode ?? '').trim(),
+        profile_photo: String(row?.profile_photo ?? payload.profile_photo ?? '').trim(),
+        present_address: String(row?.present_address ?? payload.present_address ?? '').trim(),
         salary: Number(payload.salary ?? payload.salaryPerMonth ?? row.salary ?? 0) || 0,
         dateOfJoining: String(payload.dateOfJoining ?? row.joining_date ?? '').trim()
       };
@@ -2010,9 +2114,17 @@ const fetchEmployeeByAnyId = async (employeeId) => {
   return null;
 };
 
-app.put('/api/employees/:id', async (req, res) => {
+app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async (req, res) => {
   const employeeId = String(req.params.id || '').trim();
   const incoming = req.body && typeof req.body === 'object' ? req.body : {};
+
+  // Handle profile photo upload
+  if (req.file) {
+    const relativePath = `/uploads/employees/${req.file.filename}`;
+    incoming.profile_photo = relativePath;
+    syncUploadToMirror(req.file.filename.replace('employees/', ''));
+  }
+
   const firstName = String(incoming.firstName || '').trim();
   const lastName = String(incoming.lastName || '').trim();
   const portalEnabled = incoming.portalAccess ?? incoming.webPortalAccessEnabled;
@@ -2062,7 +2174,7 @@ app.put('/api/employees/:id', async (req, res) => {
       const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
       const [result] = await conn.query(
         `UPDATE employees
-         SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, password = ?, email = ?, portal_password = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, city = ?, pincode = ?, status = ?, payload = ?
+         SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, password = ?, email = ?, portal_password = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, city = ?, pincode = ?, profile_photo = ?, present_address = ?, status = ?, payload = ?
          WHERE external_id = ? OR id = ?`,
         [
           updatedEmployee._id,
@@ -2080,6 +2192,8 @@ app.put('/api/employees/:id', async (req, res) => {
           updatedEmployee.dateOfJoining || null,
           updatedEmployee.city || '',
           updatedEmployee.pincode || '',
+          String(incoming.profile_photo || '').trim(),
+          String(incoming.present_address || '').trim(),
           normalizedStatus || null,
           JSON.stringify(payloadToSave),
           employeeId,
@@ -2327,6 +2441,8 @@ app.post('/api/jobs', async (req, res) => {
         console.error('JSON jobs shadow write failed:', error.message);
       }
 
+      notifyTechnicianPush(newJob, 'job_assigned');
+
       return res.json(newJob);
     } catch (error) {
       console.error('MySQL job create failed:', error.message);
@@ -2369,6 +2485,8 @@ app.post('/api/jobs', async (req, res) => {
   }).catch((error) => {
     console.error('Background Google sync failed on create:', error.message);
   });
+
+  notifyTechnicianPush(newJob, 'job_assigned');
 
   res.json(newJob);
 });
@@ -2428,6 +2546,8 @@ app.put('/api/jobs/:id', async (req, res) => {
       } catch (error) {
         console.error('JSON jobs shadow update failed:', error.message);
       }
+
+      notifyTechnicianPush(updatedJob, nextStatus === 'completed' ? 'job_completed' : 'job_updated');
 
       return res.json(updatedJob);
     } catch (error) {
@@ -2520,6 +2640,8 @@ app.put('/api/jobs/:id', async (req, res) => {
     console.error('Background Google sync failed on update:', error.message);
   });
 
+  notifyTechnicianPush(updatedJob, nextStatus === 'completed' ? 'job_completed' : 'job_updated');
+
   res.json(updatedJob);
 });
 
@@ -2588,6 +2710,8 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
         console.error('JSON jobs shadow update failed:', error.message);
       }
 
+      notifyTechnicianPush(updatedJob, 'job_completed');
+
       return res.json(updatedJob);
     }
 
@@ -2598,6 +2722,7 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
     const updatedJob = { ...jobs[jobIndex], ...nextFields, _id: jobs[jobIndex]._id };
     jobs[jobIndex] = updatedJob;
     fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
+    notifyTechnicianPush(updatedJob, 'job_completed');
     return res.json(updatedJob);
   } catch (error) {
     console.error('Complete job submit failed:', error.message);
