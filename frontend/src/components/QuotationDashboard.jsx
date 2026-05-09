@@ -138,7 +138,43 @@ const formatINR = (value) => {
   return `₹ ${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-export default function QuotationDashboard() {
+class QuotationDashboardBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, errorMessage: '' };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, errorMessage: String(error?.message || 'Failed to load quotation dashboard.') };
+  }
+
+  componentDidCatch(error) {
+    console.error('Quotation dashboard crashed:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <section style={shell.page}>
+          <div style={{ ...shell.panel, padding: '16px' }}>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--color-text)' }}>Quotation module failed to load</p>
+            <p style={{ margin: '8px 0 0 0', fontSize: 13, color: '#64748b', fontWeight: 600 }}>{this.state.errorMessage}</p>
+            <button
+              type="button"
+              style={{ ...shell.ghostBtn, marginTop: '12px' }}
+              onClick={() => window.location.reload()}
+            >
+              Reload Page
+            </button>
+          </div>
+        </section>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function QuotationDashboardInner() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -364,5 +400,13 @@ export default function QuotationDashboard() {
 
       {status ? <p style={{ margin: 0, color: '#dc2626', fontWeight: 700, fontSize: 13 }}>{status}</p> : null}
     </section>
+  );
+}
+
+export default function QuotationDashboard() {
+  return (
+    <QuotationDashboardBoundary>
+      <QuotationDashboardInner />
+    </QuotationDashboardBoundary>
   );
 }
