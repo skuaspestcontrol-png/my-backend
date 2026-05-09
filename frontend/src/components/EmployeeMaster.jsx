@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { Edit, Plus, Trash2, UploadCloud, UserCheck, X } from 'lucide-react';
+import { Edit, Eye, EyeOff, Plus, Trash2, UploadCloud, UserCheck, X } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -243,6 +243,7 @@ export default function EmployeeMaster() {
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState('');
   const [sameAsPermanentAddress, setSameAsPermanentAddress] = useState(false);
+  const [showPortalPassword, setShowPortalPassword] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 
   const annualSalary = useMemo(() => toAnnual(form.salaryPerMonth), [form.salaryPerMonth]);
@@ -340,6 +341,7 @@ export default function EmployeeMaster() {
     }));
     setStatus('');
     setSameAsPermanentAddress(false);
+    setShowPortalPassword(false);
     setShowModal(true);
   };
 
@@ -352,6 +354,7 @@ export default function EmployeeMaster() {
       && String(normalizedEmployee.presentAddress || '').trim() === String(normalizedEmployee.permanentAddress || '').trim()
     );
     setStatus('');
+    setShowPortalPassword(false);
     setShowModal(true);
   };
 
@@ -361,6 +364,7 @@ export default function EmployeeMaster() {
     setForm(defaultForm);
     setStatus('');
     setSameAsPermanentAddress(false);
+    setShowPortalPassword(false);
   };
 
   const handleSave = async (event) => {
@@ -722,7 +726,24 @@ export default function EmployeeMaster() {
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Portal Password</label>
-                    <input type="password" style={shell.input} value={form.portalPassword} onChange={(event) => updateField('portalPassword', event.target.value)} placeholder="Enter password for portal login" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type={showPortalPassword ? 'text' : 'password'}
+                        style={shell.input}
+                        value={form.portalPassword}
+                        onChange={(event) => updateField('portalPassword', event.target.value)}
+                        placeholder="Enter password for portal login"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPortalPassword((prev) => !prev)}
+                        style={{ ...shell.rowActionBtn, width: '44px', height: '44px', minHeight: '44px' }}
+                        aria-label={showPortalPassword ? 'Hide password' : 'Show password'}
+                        title={showPortalPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPortalPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
