@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
 
@@ -29,7 +28,7 @@ const defaultCompany = {
   email: '',
   address: ''
 };
-const uploadsRootDir = path.join(String(process.env.HOME || '').trim() || os.homedir(), 'uploads-skuas-crm');
+const uploadsRootDir = path.join(process.env.HOME || '/home/u610009593', 'uploads-skuas-crm');
 
 const allowedSalaryType = new Set(['monthly', 'daily', 'hourly']);
 const allowedPayrollStatus = new Set(['Draft', 'Generated', 'Paid', 'Hold']);

@@ -1,7 +1,6 @@
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 
 const toNumber = (v, d = 0) => {
   const n = Number(v);
@@ -26,7 +25,7 @@ const resolveUploadAsset = (input = '') => {
   const raw = clean(input);
   if (!raw) return '';
   if (raw.startsWith('data:image/')) return raw;
-  const uploadsDir = path.join(String(process.env.HOME || '').trim() || os.homedir(), 'uploads-skuas-crm');
+  const uploadsDir = path.join(process.env.HOME || '/home/u610009593', 'uploads-skuas-crm');
   const dirs = [uploadsDir, path.join(__dirname, 'uploads'), path.join(__dirname, '..', 'uploads')];
   const findFile = (name) => {
     const safeName = decodeURIComponent(String(name || '').trim());
