@@ -232,13 +232,25 @@ const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
 const googleOauthStateStore = new Map();
 
-const uploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLOADS_DIR || '')
-  .trim() || path.join(__dirname, 'uploads');
+const uploadsDir = path.join(__dirname, 'uploads');
 const employeeUploadsDir = path.join(uploadsDir, 'employees');
+const employeePhotoUploadsDir = path.join(employeeUploadsDir, 'photos');
+const employeeAadhaarUploadsDir = path.join(employeeUploadsDir, 'aadhaar');
+const employeePanUploadsDir = path.join(employeeUploadsDir, 'pan');
+const employeeDocumentsUploadsDir = path.join(employeeUploadsDir, 'documents');
 const uploadsMirrorDir = String(process.env.UPLOADS_MIRROR_DIR || '').trim();
 fs.mkdirSync(uploadsDir, { recursive: true });
 fs.mkdirSync(employeeUploadsDir, { recursive: true });
+fs.mkdirSync(employeePhotoUploadsDir, { recursive: true });
+fs.mkdirSync(employeeAadhaarUploadsDir, { recursive: true });
+fs.mkdirSync(employeePanUploadsDir, { recursive: true });
+fs.mkdirSync(employeeDocumentsUploadsDir, { recursive: true });
 if (uploadsMirrorDir) fs.mkdirSync(uploadsMirrorDir, { recursive: true });
+console.log('Employee upload root:', employeeUploadsDir);
+console.log('Employee upload photos dir:', employeePhotoUploadsDir);
+console.log('Employee upload aadhaar dir:', employeeAadhaarUploadsDir);
+console.log('Employee upload pan dir:', employeePanUploadsDir);
+console.log('Employee upload documents dir:', employeeDocumentsUploadsDir);
 const legacyDataDir = path.join(__dirname, 'data');
 const dataDir = String(process.env.DATA_DIR || process.env.PERSISTENT_DATA_DIR || '').trim()
   || path.join(__dirname, '..', 'storage', 'data');
@@ -282,15 +294,24 @@ const syncUploadToMirror = (fileName = '') => {
 
 const recoverUploadsFromMirror = () => {
   if (!uploadsMirrorDir) return;
-  try {
-    const entries = fs.readdirSync(uploadsMirrorDir, { withFileTypes: true });
+  const walk = (rootDir, relativePrefix = '') => {
+    const entries = fs.readdirSync(rootDir, { withFileTypes: true });
     entries.forEach((entry) => {
+      const nextRelative = relativePrefix ? `${relativePrefix}/${entry.name}` : entry.name;
+      const src = path.join(rootDir, entry.name);
+      const dest = path.join(uploadsDir, nextRelative);
+      if (entry.isDirectory()) {
+        walk(src, nextRelative);
+        return;
+      }
       if (!entry.isFile()) return;
-      const src = path.join(uploadsMirrorDir, entry.name);
-      const dest = path.join(uploadsDir, entry.name);
       if (fs.existsSync(dest)) return;
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.copyFileSync(src, dest);
     });
+  };
+  try {
+    walk(uploadsMirrorDir);
   } catch (error) {
     console.error('Failed to recover uploads from mirror:', error.message);
   }
@@ -299,18 +320,32 @@ recoverUploadsFromMirror();
 
 app.use('/uploads', express.static(uploadsDir));
 const uploadsPublicBaseUrl = String(process.env.UPLOADS_PUBLIC_BASE_URL || '').trim();
-const resolveUploadPublicUrl = (req, fileName) => {
-  const safeFileName = encodeURIComponent(String(fileName || '').trim());
-  if (!safeFileName) return '';
-  if (uploadsPublicBaseUrl) {
-    return `${uploadsPublicBaseUrl.replace(/\/+$/, '')}/${safeFileName}`;
-  }
-  return `${resolveServerOrigin(req)}/uploads/${safeFileName}`;
+const normalizeUploadRelativePath = (value) => {
+  const raw = String(value || '').trim().replace(/\\/g, '/');
+  if (!raw) return '';
+  if (raw.includes('..')) return '';
+  if (raw.startsWith('/uploads/')) return raw;
+  return `/uploads/${raw.replace(/^\/+/, '')}`;
 };
-const resolveUploadRelativePath = (fileName) => {
-  const safeFileName = String(fileName || '').trim();
-  if (!safeFileName) return '';
-  return `/uploads/${encodeURIComponent(safeFileName)}`;
+const resolveUploadPublicUrl = (req, relativePathOrFileName) => {
+  const normalizedPath = normalizeUploadRelativePath(relativePathOrFileName);
+  if (!normalizedPath) return '';
+  const encodedPath = normalizedPath
+    .split('/')
+    .map((part, index) => (index === 0 ? '' : encodeURIComponent(part)))
+    .join('/');
+  if (uploadsPublicBaseUrl) {
+    return `${uploadsPublicBaseUrl.replace(/\/+$/, '')}${encodedPath}`;
+  }
+  return `${resolveServerOrigin(req)}${encodedPath}`;
+};
+const resolveUploadRelativePath = (relativePathOrFileName) => normalizeUploadRelativePath(relativePathOrFileName);
+const toSafeUploadBaseName = (rawName = '') => {
+  const base = String(rawName || '').toLowerCase();
+  return base
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'file';
 };
 const toDataUrlFromUpload = (file) => {
   try {
@@ -362,21 +397,50 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const timestamp = Date.now();
     const ext = path.extname(String(file.originalname || '')).toLowerCase();
-    const baseName = path.basename(String(file.originalname || ''), ext).toLowerCase();
-    const safeBase = baseName
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'file';
+    const baseName = path.basename(String(file.originalname || ''), ext);
+    const safeBase = toSafeUploadBaseName(baseName);
     cb(null, `${timestamp}-${safeBase}${ext}`);
   }
 });
 const employeePhotoStorage = multer.diskStorage({
-  destination: (req, file, cb) => { cb(null, employeeUploadsDir); },
+  destination: (req, file, cb) => {
+    console.log('Employee photo multer destination:', employeePhotoUploadsDir);
+    cb(null, employeePhotoUploadsDir);
+  },
   filename: (req, file, cb) => {
-    const empCode = String(req.body?.empCode || req.body?.emp_code || 'emp').trim();
+    const empCode = toSafeUploadBaseName(String(req.body?.empCode || req.body?.emp_code || 'emp').trim());
+    const originalBase = toSafeUploadBaseName(path.basename(String(file.originalname || ''), path.extname(String(file.originalname || ''))));
     const timestamp = Date.now();
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `emp-${empCode}-${timestamp}${ext}`);
+    const ext = path.extname(String(file.originalname || '')).toLowerCase();
+    cb(null, `emp-${empCode}-${timestamp}-${originalBase}${ext}`);
+  }
+});
+const resolveEmployeeDocumentType = (rawType = '') => {
+  const type = String(rawType || '').trim().toLowerCase();
+  if (type === 'aadhaar' || type === 'aadhar') return 'aadhaar';
+  if (type === 'pan') return 'pan';
+  if (type === 'documents' || type === 'document' || type === 'other') return 'documents';
+  return 'documents';
+};
+const employeeDocumentStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const docType = resolveEmployeeDocumentType(req.body?.documentType || req.body?.docType);
+    const destinationByType = {
+      aadhaar: employeeAadhaarUploadsDir,
+      pan: employeePanUploadsDir,
+      documents: employeeDocumentsUploadsDir
+    };
+    const destination = destinationByType[docType] || employeeDocumentsUploadsDir;
+    console.log('Employee document multer destination:', destination, '| documentType:', docType);
+    cb(null, destination);
+  },
+  filename: (req, file, cb) => {
+    const docType = resolveEmployeeDocumentType(req.body?.documentType || req.body?.docType);
+    const empCode = toSafeUploadBaseName(String(req.body?.empCode || req.body?.emp_code || 'emp').trim());
+    const timestamp = Date.now();
+    const ext = path.extname(String(file.originalname || '')).toLowerCase();
+    const originalBase = toSafeUploadBaseName(path.basename(String(file.originalname || ''), ext));
+    cb(null, `${docType}-${empCode}-${timestamp}-${originalBase}${ext}`);
   }
 });
 const upload = multer({ storage });
@@ -391,6 +455,7 @@ const employeePhotoUpload = multer({
     }
   }
 });
+const employeeDocumentUpload = multer({ storage: employeeDocumentStorage });
 const jobCompletionUpload = upload.fields([
   { name: 'beforePhotoFile', maxCount: 1 },
   { name: 'afterPhotoFile', maxCount: 1 }
@@ -1409,10 +1474,20 @@ app.post('/api/settings/upload-branding-image', upload.single('brandingImage'), 
   res.json({ imageUrl, relativePath });
 });
 
-app.post('/api/employees/upload-document', upload.single('document'), (req, res) => {
+app.post('/api/employees/upload-document', employeeDocumentUpload.single('document'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
-  syncUploadToMirror(req.file.filename);
-  res.json({ fileUrl: resolveUploadPublicUrl(req, req.file.filename) });
+  const docType = resolveEmployeeDocumentType(req.body?.documentType || req.body?.docType);
+  const relativePath = `/uploads/employees/${docType}/${req.file.filename}`;
+  const mirrorPath = `employees/${docType}/${req.file.filename}`;
+  syncUploadToMirror(mirrorPath);
+  console.log('Employee document uploaded path:', req.file.path);
+  console.log('Employee document saved path:', relativePath);
+  res.json({
+    fileUrl: relativePath,
+    filePublicUrl: resolveUploadPublicUrl(req, relativePath),
+    fileName: req.file.filename,
+    documentType: docType
+  });
 });
 
 const parseMysqlLeadPayload = (rawPayload) => {
@@ -2058,6 +2133,13 @@ app.get('/api/employees', async (req, res) => {
 app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (req, res) => {
   try {
     const emp = req.body || {};
+    if (req.file) {
+      const relativePath = `/uploads/employees/photos/${req.file.filename}`;
+      emp.profile_photo = relativePath;
+      syncUploadToMirror(`employees/photos/${req.file.filename}`);
+      console.log('Employee profile photo uploaded path:', req.file.path);
+      console.log('Employee profile photo saved path:', relativePath);
+    }
     if (!canUseMysql()) {
       const rows = readJsonFile(employeesFile, []);
       const externalId = String(emp._id || Date.now().toString()).trim();
@@ -2071,13 +2153,6 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
     }
 
     const externalId = emp._id || Date.now().toString();
-
-    // Handle profile photo upload
-    if (req.file) {
-      const relativePath = `/uploads/employees/${req.file.filename}`;
-      emp.profile_photo = relativePath;
-      syncUploadToMirror(`employees/${req.file.filename}`);
-    }
 
     await withMysqlConnection(async (conn) => {
       await ensureEmployeeAuthColumns(conn);
@@ -2211,9 +2286,11 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
 
   // Handle profile photo upload
   if (req.file) {
-    const relativePath = `/uploads/employees/${req.file.filename}`;
+    const relativePath = `/uploads/employees/photos/${req.file.filename}`;
     incoming.profile_photo = relativePath;
-    syncUploadToMirror(`employees/${req.file.filename}`);
+    syncUploadToMirror(`employees/photos/${req.file.filename}`);
+    console.log('Employee profile photo uploaded path:', req.file.path);
+    console.log('Employee profile photo saved path:', relativePath);
   }
 
   const firstName = String(incoming.firstName || '').trim();

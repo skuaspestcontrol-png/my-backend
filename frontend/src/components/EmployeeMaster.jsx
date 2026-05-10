@@ -168,6 +168,20 @@ const toAnnual = (value) => {
 
 const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 const toTenDigitNumber = (value) => String(value || '').replace(/\D+/g, '').slice(0, 10);
+const toAbsoluteUploadUrl = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const origin = API_BASE || 'https://crm.skuaspestcontrol.com';
+  return `${origin.replace(/\/+$/, '')}/${raw.replace(/^\/+/, '')}`;
+};
+const getFileNameFromPath = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const clean = raw.split('?')[0];
+  const parts = clean.split('/').filter(Boolean);
+  return decodeURIComponent(parts[parts.length - 1] || '');
+};
 
 const employeeDisplayName = (employee) => [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Unnamed';
 const isPortalEligibleRole = (roleValue) => {
@@ -309,19 +323,21 @@ export default function EmployeeMaster() {
     });
   };
 
-  const uploadEmployeeDocument = async (file) => {
+  const uploadEmployeeDocument = async (file, documentType = 'documents') => {
     const fd = new FormData();
     fd.append('document', file);
+    fd.append('documentType', documentType);
+    if (form.empCode) fd.append('empCode', String(form.empCode).trim());
     const res = await axios.post(`${API_BASE}/api/employees/upload-document`, fd);
     return String(res.data?.fileUrl || '').trim();
   };
 
-  const handleUpload = async (event, fieldKey, label) => {
+  const handleUpload = async (event, fieldKey, label, documentType = 'documents') => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
       setStatus(`Uploading ${label}...`);
-      const fileUrl = await uploadEmployeeDocument(file);
+      const fileUrl = await uploadEmployeeDocument(file, documentType);
       updateField(fieldKey, fileUrl);
       setStatus(`${label} uploaded.`);
     } catch (error) {
@@ -639,11 +655,20 @@ export default function EmployeeMaster() {
                     </p>
                   </div>
                   {(profilePhotoFile || form.employeePhotoUrl) ? (
-                    <img
-                      src={profilePhotoFile ? URL.createObjectURL(profilePhotoFile) : (form.employeePhotoUrl.startsWith('http') ? form.employeePhotoUrl : `https://crm.skuaspestcontrol.com${form.employeePhotoUrl}`)}
-                      alt="Employee preview"
-                      style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #d1d5db', marginTop: '8px' }}
-                    />
+                    <>
+                      <img
+                        src={profilePhotoFile ? URL.createObjectURL(profilePhotoFile) : toAbsoluteUploadUrl(form.employeePhotoUrl)}
+                        alt="Employee preview"
+                        style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #d1d5db', marginTop: '8px' }}
+                      />
+                      {form.employeePhotoUrl ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                          <a href={toAbsoluteUploadUrl(form.employeePhotoUrl)} target="_blank" rel="noreferrer" style={shell.helper}>Preview</a>
+                          <a href={toAbsoluteUploadUrl(form.employeePhotoUrl)} download style={shell.helper}>Download</a>
+                          <span style={shell.helper}>{getFileNameFromPath(form.employeePhotoUrl)}</span>
+                        </div>
+                      ) : null}
+                    </>
                   ) : null}
                 </div>
               </div>
@@ -709,10 +734,17 @@ export default function EmployeeMaster() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <label style={shell.uploadBtn}>
                         <UploadCloud size={14} /> Upload Aadhar
-                        <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(event) => handleUpload(event, 'aadharCardFileUrl', 'Aadhar')} />
+                        <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(event) => handleUpload(event, 'aadharCardFileUrl', 'Aadhar', 'aadhaar')} />
                       </label>
                       <p style={shell.helper}>{form.aadharCardFileUrl ? 'Uploaded' : 'Not uploaded'}</p>
                     </div>
+                    {form.aadharCardFileUrl ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                        <a href={toAbsoluteUploadUrl(form.aadharCardFileUrl)} target="_blank" rel="noreferrer" style={shell.helper}>Preview</a>
+                        <a href={toAbsoluteUploadUrl(form.aadharCardFileUrl)} download style={shell.helper}>Download</a>
+                        <span style={shell.helper}>{getFileNameFromPath(form.aadharCardFileUrl)}</span>
+                      </div>
+                    ) : null}
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>PAN Card Number</label>
@@ -720,10 +752,17 @@ export default function EmployeeMaster() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <label style={shell.uploadBtn}>
                         <UploadCloud size={14} /> Upload PAN
-                        <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(event) => handleUpload(event, 'panCardFileUrl', 'PAN')} />
+                        <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(event) => handleUpload(event, 'panCardFileUrl', 'PAN', 'pan')} />
                       </label>
                       <p style={shell.helper}>{form.panCardFileUrl ? 'Uploaded' : 'Not uploaded'}</p>
                     </div>
+                    {form.panCardFileUrl ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                        <a href={toAbsoluteUploadUrl(form.panCardFileUrl)} target="_blank" rel="noreferrer" style={shell.helper}>Preview</a>
+                        <a href={toAbsoluteUploadUrl(form.panCardFileUrl)} download style={shell.helper}>Download</a>
+                        <span style={shell.helper}>{getFileNameFromPath(form.panCardFileUrl)}</span>
+                      </div>
+                    ) : null}
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Salary Per Month</label>
@@ -800,10 +839,17 @@ export default function EmployeeMaster() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <label style={shell.uploadBtn}>
                       <UploadCloud size={14} /> Upload File
-                      <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(event) => handleUpload(event, 'additionalDocumentsUrl', 'Additional document')} />
+                      <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(event) => handleUpload(event, 'additionalDocumentsUrl', 'Additional document', 'documents')} />
                     </label>
                     <p style={shell.helper}>{form.additionalDocumentsUrl ? 'Uploaded' : 'Not uploaded'}</p>
                   </div>
+                  {form.additionalDocumentsUrl ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                      <a href={toAbsoluteUploadUrl(form.additionalDocumentsUrl)} target="_blank" rel="noreferrer" style={shell.helper}>Preview</a>
+                      <a href={toAbsoluteUploadUrl(form.additionalDocumentsUrl)} download style={shell.helper}>Download</a>
+                      <span style={shell.helper}>{getFileNameFromPath(form.additionalDocumentsUrl)}</span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
