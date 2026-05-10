@@ -110,9 +110,9 @@ const shell = {
     cursor: 'pointer'
   },
   tableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', overflowX: 'auto', background: '#fff' },
-  table: { width: '100%', borderCollapse: 'collapse', minWidth: '980px' },
-  th: { textAlign: 'left', padding: '7px 9px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
-  td: { padding: '7px 9px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#334155', fontWeight: 600, verticalAlign: 'top' },
+  table: { width: '100%', borderCollapse: 'collapse', minWidth: '920px' },
+  th: { textAlign: 'left', padding: '6px 7px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', lineHeight: 1.2 },
+  td: { padding: '6px 7px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#334155', fontWeight: 600, verticalAlign: 'top', lineHeight: 1.25 },
   badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '3px 7px', fontSize: '10px', fontWeight: 700 },
   footer: { margin: 0, fontSize: '12px', color: '#475569', fontWeight: 700 },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', zIndex: 90, padding: '16px' },
@@ -773,7 +773,7 @@ export default function PayrollModule() {
         </div>
       </div>
       <div style={shell.tableWrap}>
-        <table style={shell.table}>
+        <table style={{ ...shell.table, minWidth: 'unset', tableLayout: 'fixed' }}>
           <thead>
             <tr>
               <th style={shell.th}>Employee</th>
@@ -792,18 +792,18 @@ export default function PayrollModule() {
           <tbody>
             {pagedPayrollItems.map((entry) => (
               <tr key={entry._id}>
-                <td style={shell.td}>
+                <td style={{ ...shell.td, width: '14%' }}>
                   <div>{entry.employeeName}</div>
                   <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode} • {entry.department || '-'}</div>
                 </td>
-                <td style={shell.td}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
-                <td style={shell.td}>
+                <td style={{ ...shell.td, width: '8%' }}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
+                <td style={{ ...shell.td, width: '11%', overflowWrap: 'anywhere' }}>
                   {entry?.employeeDetails?.mobile || employeeMap.get(String(entry.employeeId || ''))?.mobile || '-'}<br />
                   <span style={{ fontSize: '10px', color: '#64748b' }}>
                     {entry?.employeeDetails?.email || employeeMap.get(String(entry.employeeId || ''))?.emailId || employeeMap.get(String(entry.employeeId || ''))?.email || '-'}
                   </span>
                 </td>
-                <td style={shell.td}>
+                <td style={{ ...shell.td, width: '13%', overflowWrap: 'anywhere' }}>
                   {entry?.employeeDetails?.bankName || employeeMap.get(String(entry.employeeId || ''))?.bankName || '-'}<br />
                   <span style={{ fontSize: '10px', color: '#64748b' }}>
                     {entry?.employeeDetails?.bankNo || employeeMap.get(String(entry.employeeId || ''))?.bankNo || '-'}
@@ -812,17 +812,17 @@ export default function PayrollModule() {
                       : ''}
                   </span>
                 </td>
-                <td style={shell.td}>
+                <td style={{ ...shell.td, width: '13%' }}>
                   WD {entry?.attendanceSummary?.totalWorkingDays || 0}<br />
                   P {entry?.attendanceSummary?.presentDays || 0} • PL {entry?.attendanceSummary?.paidLeaveDays || 0} • UL {entry?.attendanceSummary?.unpaidLeaveDays || 0}
                 </td>
-                <td style={shell.td}>INR {money(entry.grossSalary)}</td>
-                <td style={shell.td}>INR {money(entry?.deductions?.total)}</td>
-                <td style={shell.td}><strong>INR {money(entry.netSalary)}</strong></td>
-                <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span></td>
-                <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
-                <td style={shell.td}>
-                  <div style={shell.actionRow}>
+                <td style={{ ...shell.td, width: '7%' }}>INR {money(entry.grossSalary)}</td>
+                <td style={{ ...shell.td, width: '7%' }}>INR {money(entry?.deductions?.total)}</td>
+                <td style={{ ...shell.td, width: '7%' }}><strong>INR {money(entry.netSalary)}</strong></td>
+                <td style={{ ...shell.td, width: '8%' }}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span></td>
+                <td style={{ ...shell.td, width: '8%' }}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
+                <td style={{ ...shell.td, width: '14%' }}>
+                  <div style={{ ...shell.actionRow, gap: '6px' }}>
                     <button type="button" style={shell.btnLight} onClick={() => openSlipViewer(entry)}>Salary Slip</button>
                     {entry.payrollStatus !== 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => openAdjust(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Edit</button> : null}
                     {entry.paymentStatus !== 'Paid' ? <button type="button" style={shell.btn} onClick={() => openPayment(entry)} disabled={busy || !role.canMarkPaid}>Mark Paid</button> : null}

@@ -612,13 +612,17 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
     doc.font('Helvetica').fillColor('#111827').text(` ${value || '-'}`);
   };
   const amount = (n) => Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const slipMonthLabel = new Date(Number(item.year), Math.max(0, Number(item.month) - 1), 1)
+    .toLocaleDateString('en-IN', { month: 'long' })
+    .concat(`-${item.year}`);
   const cmToPt = (cm) => cm * 28.3465;
   const logoWidth = cmToPt(6.67) * 0.53;
   const logoHeight = cmToPt(2.57) * 0.53;
 
   if (logoBuffer) {
     try {
-      doc.image(logoBuffer, 42, 34, { fit: [logoWidth, logoHeight], align: 'left', valign: 'top' });
+      // Keep logo at top-right; source comes from GST company logo settings.
+      doc.image(logoBuffer, 553 - logoWidth, 34, { fit: [logoWidth, logoHeight], align: 'right', valign: 'top' });
     } catch (_e) {
       // Continue without logo if image decode fails.
     }
@@ -638,12 +642,12 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
       .font(idx === 0 ? 'Helvetica-Bold' : 'Helvetica')
       .fontSize(idx === 0 ? 11 : 9)
       .fillColor(idx === 0 ? '#0f172a' : '#334155')
-      .text(lineText, 360, rightY, { width: 193, align: 'right' });
+      .text(lineText, 42, rightY, { width: 360, align: 'left' });
     rightY += idx === 0 ? 14 : 12;
   });
 
   doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a').text('Salary Slip', 42, 96);
-  doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`For ${pad2(item.month)}/${item.year}`, 42, 114);
+  doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`For ${slipMonthLabel}`, 42, 114);
   line(136);
 
   textValue('Employee Name:', item.employeeName, 42, 146);
@@ -716,8 +720,8 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
 
   const wordsY = netY + 50;
   doc.font('Helvetica').fontSize(9).fillColor('#334155').text(`In Words: ${item.salaryInWords}`, 42, wordsY, { width: 511 });
-  doc.font('Helvetica').text(`Authorized Signature`, 430, wordsY + 36);
-  doc.moveTo(425, wordsY + 52).lineTo(552, wordsY + 52).strokeColor('#94a3b8').stroke();
+  doc.font('Helvetica').text('Authorized Signature', 430, wordsY + 60);
+  doc.moveTo(425, wordsY + 76).lineTo(552, wordsY + 76).strokeColor('#94a3b8').stroke();
 
   doc.end();
 });

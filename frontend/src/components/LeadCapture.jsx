@@ -242,7 +242,7 @@ const s = {
   actionCell: { background: '#ffffff' },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
-  statusBadge: { background: 'rgba(159, 23, 77, 0.14)', color: 'var(--color-primary-dark)', padding: '5px 9px', borderRadius: '999px', fontSize: '11px', fontWeight: 800, display: 'inline-block' },
+  statusBadge: { background: 'rgba(159, 23, 77, 0.14)', color: 'var(--color-primary-dark)', padding: '5px 9px', borderRadius: '999px', fontSize: '10px', fontWeight: 400, display: 'inline-block' },
   statusBadgeButton: {
     border: '1px solid #d1d5db',
     background: '#ffffff',
@@ -252,7 +252,7 @@ const s = {
     minWidth: '64px',
     minHeight: '20px',
     fontSize: '10px',
-    fontWeight: 500,
+    fontWeight: 400,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'flex-start',
@@ -268,16 +268,17 @@ const s = {
     background: '#fff',
     color: '#0f172a',
     fontSize: '10px',
-    fontWeight: 500,
+    fontWeight: 400,
     padding: '2px 6px',
     outline: 'none',
     minWidth: '84px'
   },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center', width: '100%' },
-  rowActionButton: { border: '1px solid rgba(17,17,17,0.14)', background: '#fff', color: '#1f2937', borderRadius: '7px', minWidth: '52px', minHeight: '20px', padding: '0 5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 400 },
-  rowActionMenu: { position: 'fixed', minWidth: '196px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 1200, overflow: 'hidden' },
-  rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '8px 10px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
-  rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '8px 10px', fontSize: '12px', fontWeight: 600 },
+  rowActionButton: { border: '1px solid rgba(17,17,17,0.18)', background: '#fff', color: '#1f2937', borderRadius: '9px', minWidth: '88px', minHeight: '30px', padding: '0 8px 0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, lineHeight: 1 },
+  rowActionIconBox: { width: '16px', height: '16px', borderRadius: '5px', border: '1px solid #d1d5db', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', flexShrink: 0 },
+  rowActionMenu: { position: 'fixed', minWidth: '176px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 10px 22px rgba(15,23,42,0.12)', zIndex: 1200, overflow: 'hidden' },
+  rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '7px 10px', fontSize: '10px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
+  rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '7px 10px', fontSize: '10px', fontWeight: 600 },
   viewDrawerOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.28)', zIndex: 2300 },
   viewDrawer: { position: 'fixed', top: 0, right: 0, width: 'min(460px, 96vw)', height: '100vh', background: '#fff', zIndex: 2400, boxShadow: '-16px 0 36px rgba(15,23,42,0.18)', display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--color-border)' },
   viewDrawerHead: { padding: '14px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-primary-light)' },
@@ -2169,7 +2170,9 @@ export default function LeadCapture() {
                           title="Manage lead"
                         >
                           <span>Action</span>
-                          <ChevronDown size={11} />
+                          <span style={s.rowActionIconBox}>
+                            <ChevronDown size={11} />
+                          </span>
                         </button>
                         {rowActionLeadId === lead._id && rowActionMenuPosition
                           ? createPortal(
