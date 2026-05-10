@@ -28,6 +28,10 @@ const defaultCompany = {
   email: '',
   address: ''
 };
+const uploadsRootDir = String(process.env.PERSISTENT_UPLOADS_DIR || process.env.UPLOADS_DIR || '').trim()
+  || (process.env.NODE_ENV === 'development'
+    ? path.join(__dirname, 'uploads')
+    : path.join(__dirname, '..', 'storage', 'uploads'));
 
 const allowedSalaryType = new Set(['monthly', 'daily', 'hourly']);
 const allowedPayrollStatus = new Set(['Draft', 'Generated', 'Paid', 'Hold']);
@@ -163,11 +167,9 @@ const tryResolveLocalUploadPath = (rawUrl) => {
     decodedPath,
     cleanPath,
     baseName,
-    path.join(__dirname, 'uploads', decodedPath),
-    path.join(__dirname, '..', 'uploads', decodedPath),
+    path.join(uploadsRootDir, decodedPath),
     path.join(process.cwd(), 'uploads', decodedPath),
-    path.join(__dirname, 'uploads', baseName),
-    path.join(__dirname, '..', 'uploads', baseName),
+    path.join(uploadsRootDir, baseName),
     path.join(process.cwd(), 'uploads', baseName),
     path.join(__dirname, 'public', 'uploads', decodedPath),
     path.join(__dirname, '..', 'public', 'uploads', decodedPath)
@@ -175,8 +177,7 @@ const tryResolveLocalUploadPath = (rawUrl) => {
   if (decodedPath.includes(uploadsToken)) {
     const filePart = decodedPath.split(uploadsToken).pop();
     candidates.push(
-      path.join(__dirname, 'uploads', filePart),
-      path.join(__dirname, '..', 'uploads', filePart),
+      path.join(uploadsRootDir, filePart),
       path.join(process.cwd(), 'uploads', filePart),
       path.join(__dirname, 'public', 'uploads', filePart),
       path.join(__dirname, '..', 'public', 'uploads', filePart)
@@ -191,7 +192,7 @@ const loadCompanyLogoBuffer = async (logoUrl) => {
   const text = normalizeText(logoUrl);
   if (!text) return null;
   if (text.startsWith('/uploads/')) {
-    const localUploadPath = path.join(__dirname, 'uploads', path.basename(text));
+    const localUploadPath = path.join(uploadsRootDir, path.basename(text));
     try {
       if (fs.existsSync(localUploadPath)) {
         return fs.readFileSync(localUploadPath);
@@ -1779,7 +1780,7 @@ function registerPayrollModule({
       const settings = readSettings ? (readSettings() || {}) : {};
       const company = resolveCompanyDetails(settings);
       const localUploadPath = company.logoUrl && String(company.logoUrl).startsWith('/uploads/')
-        ? path.join(__dirname, 'uploads', path.basename(company.logoUrl))
+        ? path.join(uploadsRootDir, path.basename(company.logoUrl))
         : '';
       console.log('Salary slip company logoUrl:', company.logoUrl);
       console.log('Salary slip local logo path:', localUploadPath);

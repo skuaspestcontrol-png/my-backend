@@ -347,6 +347,23 @@ export default function EmployeeMaster() {
       if (event.target) event.target.value = '';
     }
   };
+  const removeUploadedFile = async (fieldKey, label) => {
+    const fileUrl = String(form[fieldKey] || '').trim();
+    if (!fileUrl) {
+      updateField(fieldKey, '');
+      return;
+    }
+    try {
+      setStatus(`Removing ${label}...`);
+      await axios.post(`${API_BASE}/api/uploads/delete`, { fileUrl });
+      updateField(fieldKey, '');
+      if (fieldKey === 'employeePhotoUrl') setProfilePhotoFile(null);
+      setStatus(`${label} removed.`);
+    } catch (error) {
+      console.error(`Failed to remove ${label}`, error);
+      setStatus(`Failed to remove ${label}.`);
+    }
+  };
 
   const openAddEmployee = () => {
     setEditingId('');
@@ -653,6 +670,9 @@ export default function EmployeeMaster() {
                     <p style={shell.helper}>
                       {profilePhotoFile ? profilePhotoFile.name : form.employeePhotoUrl ? 'Current photo exists' : 'No photo selected'}
                     </p>
+                    {profilePhotoFile ? (
+                      <button type="button" onClick={() => setProfilePhotoFile(null)} style={{ ...shell.rowActionBtn, color: '#dc2626' }} title="Clear selected photo"><Trash2 size={16} /></button>
+                    ) : null}
                   </div>
                   {(profilePhotoFile || form.employeePhotoUrl) ? (
                     <>
@@ -666,6 +686,7 @@ export default function EmployeeMaster() {
                           <a href={toAbsoluteUploadUrl(form.employeePhotoUrl)} target="_blank" rel="noreferrer" style={shell.helper}>Preview</a>
                           <a href={toAbsoluteUploadUrl(form.employeePhotoUrl)} download style={shell.helper}>Download</a>
                           <span style={shell.helper}>{getFileNameFromPath(form.employeePhotoUrl)}</span>
+                          <button type="button" onClick={() => removeUploadedFile('employeePhotoUrl', 'profile photo')} style={{ ...shell.rowActionBtn, color: '#dc2626' }} title="Delete photo"><Trash2 size={16} /></button>
                         </div>
                       ) : null}
                     </>
@@ -743,6 +764,7 @@ export default function EmployeeMaster() {
                         <a href={toAbsoluteUploadUrl(form.aadharCardFileUrl)} target="_blank" rel="noreferrer" style={shell.helper}>Preview</a>
                         <a href={toAbsoluteUploadUrl(form.aadharCardFileUrl)} download style={shell.helper}>Download</a>
                         <span style={shell.helper}>{getFileNameFromPath(form.aadharCardFileUrl)}</span>
+                        <button type="button" onClick={() => removeUploadedFile('aadharCardFileUrl', 'Aadhar file')} style={{ ...shell.rowActionBtn, color: '#dc2626' }} title="Delete Aadhar"><Trash2 size={16} /></button>
                       </div>
                     ) : null}
                   </div>
@@ -761,6 +783,7 @@ export default function EmployeeMaster() {
                         <a href={toAbsoluteUploadUrl(form.panCardFileUrl)} target="_blank" rel="noreferrer" style={shell.helper}>Preview</a>
                         <a href={toAbsoluteUploadUrl(form.panCardFileUrl)} download style={shell.helper}>Download</a>
                         <span style={shell.helper}>{getFileNameFromPath(form.panCardFileUrl)}</span>
+                        <button type="button" onClick={() => removeUploadedFile('panCardFileUrl', 'PAN file')} style={{ ...shell.rowActionBtn, color: '#dc2626' }} title="Delete PAN"><Trash2 size={16} /></button>
                       </div>
                     ) : null}
                   </div>
@@ -848,6 +871,7 @@ export default function EmployeeMaster() {
                       <a href={toAbsoluteUploadUrl(form.additionalDocumentsUrl)} target="_blank" rel="noreferrer" style={shell.helper}>Preview</a>
                       <a href={toAbsoluteUploadUrl(form.additionalDocumentsUrl)} download style={shell.helper}>Download</a>
                       <span style={shell.helper}>{getFileNameFromPath(form.additionalDocumentsUrl)}</span>
+                      <button type="button" onClick={() => removeUploadedFile('additionalDocumentsUrl', 'document')} style={{ ...shell.rowActionBtn, color: '#dc2626' }} title="Delete document"><Trash2 size={16} /></button>
                     </div>
                   ) : null}
                 </div>

@@ -232,7 +232,10 @@ const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
 const googleOauthStateStore = new Map();
 
-const uploadsDir = path.join(__dirname, 'uploads');
+const defaultUploadsDir = process.env.NODE_ENV === 'development'
+  ? path.join(__dirname, 'uploads')
+  : path.join(__dirname, '..', 'storage', 'uploads');
+const uploadsDir = String(process.env.PERSISTENT_UPLOADS_DIR || process.env.UPLOADS_DIR || '').trim() || defaultUploadsDir;
 const employeeUploadsDir = path.join(uploadsDir, 'employees');
 const employeePhotoUploadsDir = path.join(employeeUploadsDir, 'photos');
 const employeeAadhaarUploadsDir = path.join(employeeUploadsDir, 'aadhaar');
@@ -251,6 +254,7 @@ console.log('Employee upload photos dir:', employeePhotoUploadsDir);
 console.log('Employee upload aadhaar dir:', employeeAadhaarUploadsDir);
 console.log('Employee upload pan dir:', employeePanUploadsDir);
 console.log('Employee upload documents dir:', employeeDocumentsUploadsDir);
+console.log('Uploads static directory:', uploadsDir);
 const legacyDataDir = path.join(__dirname, 'data');
 const dataDir = String(process.env.DATA_DIR || process.env.PERSISTENT_DATA_DIR || '').trim()
   || path.join(__dirname, '..', 'storage', 'data');
@@ -1488,6 +1492,56 @@ app.post('/api/employees/upload-document', employeeDocumentUpload.single('docume
     fileName: req.file.filename,
     documentType: docType
   });
+});
+app.post('/api/uploads/delete', (req, res) => {
+  const relativePath = normalizeUploadRelativePath(req.body?.fileUrl || req.body?.path || '');
+  if (!relativePath) return res.status(400).json({ error: 'Valid upload path is required' });
+  if (!relativePath.startsWith('/uploads/')) {
+    return res.status(400).json({ error: 'Only /uploads files can be deleted' });
+  }
+  const filePart = relativePath.replace(/^\/uploads\//, '');
+  const normalizedPart = filePart.replace(/\\/g, '/');
+  if (!normalizedPart || normalizedPart.includes('..')) {
+    return res.status(400).json({ error: 'Unsafe upload path' });
+  }
+
+  const localPath = path.join(uploadsDir, normalizedPart);
+  const localResolved = path.resolve(localPath);
+  const uploadsResolved = path.resolve(uploadsDir);
+  if (!localResolved.startsWith(uploadsResolved + path.sep) && localResolved !== uploadsResolved) {
+    return res.status(400).json({ error: 'Invalid upload path' });
+  }
+
+  let deletedLocal = false;
+  try {
+    if (fs.existsSync(localPath)) {
+      fs.unlinkSync(localPath);
+      deletedLocal = true;
+    }
+  } catch (error) {
+    console.error('Upload delete failed (local):', error.message);
+    return res.status(500).json({ error: 'Could not delete local upload file' });
+  }
+
+  let deletedMirror = false;
+  if (uploadsMirrorDir) {
+    const mirrorPath = path.join(uploadsMirrorDir, normalizedPart);
+    try {
+      if (fs.existsSync(mirrorPath)) {
+        fs.unlinkSync(mirrorPath);
+        deletedMirror = true;
+      }
+    } catch (error) {
+      console.error('Upload delete failed (mirror):', error.message);
+    }
+  }
+
+  console.log('Upload delete path:', relativePath);
+  console.log('Upload delete local file:', localPath, 'deleted:', deletedLocal);
+  if (uploadsMirrorDir) {
+    console.log('Upload delete mirror checked:', normalizedPart, 'deleted:', deletedMirror);
+  }
+  return res.json({ message: 'Upload deleted', fileUrl: relativePath, deletedLocal, deletedMirror });
 });
 
 const parseMysqlLeadPayload = (rawPayload) => {
