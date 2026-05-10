@@ -1,0 +1,59 @@
+/* ===== Global CRM Table Button System ===== */
+
+.table-actions,
+.action-buttons,
+.row-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+}
+
+.table-action-btn,
+.action-btn,
+.btn-action,
+.table-actions button,
+.action-buttons button,
+.row-actions button {
+  height: 32px !important;
+  min-width: 32px !important;
+  padding: 0 10px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+}
+
+.table-action-btn svg,
+.action-btn svg,
+.btn-action svg,
+.table-actions button svg,
+.action-buttons button svg,
+.row-actions button svg {
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0 !important;
+}
+
+.table-action-btn.icon-only,
+.action-btn.icon-only,
+.btn-action.icon-only {
+  width: 32px !important;
+  padding: 0 !important;
+}
+
+td.actions,
+td.action-column,
+th.actions,
+th.action-column {
+  width: 180px !important;
+  min-width: 180px !important;
+}
