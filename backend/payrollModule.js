@@ -191,15 +191,16 @@ const tryResolveLocalUploadPath = (rawUrl) => {
 const loadCompanyLogoBuffer = async (logoUrl) => {
   const text = normalizeText(logoUrl);
   if (!text) return null;
+  let resolvedLogoPath = '';
   if (text.startsWith('/uploads/')) {
     const relativeUploadPath = normalizeText(text.replace(/^\/uploads\//, ''));
-    const localUploadPath = path.join(uploadsRootDir, relativeUploadPath);
+    resolvedLogoPath = path.join(uploadsRootDir, relativeUploadPath);
     console.log('SALARY PDF logoUrl:', text);
-    console.log('SALARY PDF resolvedLogoPath:', localUploadPath);
-    console.log('SALARY PDF logoExists:', fs.existsSync(localUploadPath));
+    console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath);
+    console.log('SALARY PDF logoExists:', fs.existsSync(resolvedLogoPath));
     try {
-      if (fs.existsSync(localUploadPath)) {
-        return fs.readFileSync(localUploadPath);
+      if (fs.existsSync(resolvedLogoPath)) {
+        return fs.readFileSync(resolvedLogoPath);
       }
     } catch (_e) {}
   }
@@ -674,6 +675,13 @@ const calcPayrollItem = ({
 };
 
 const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resolve, reject) => {
+  const resolvedLogoPath = normalizeText(company?.logoUrl || '').startsWith('/uploads/')
+    ? path.join(uploadsRootDir, normalizeText(company.logoUrl).replace(/^\/uploads\//, ''))
+    : '';
+  console.log('SALARY PDF logoUrl:', company?.logoUrl);
+  console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath);
+  console.log('SALARY PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
+
   const logoBuffer = await loadFirstAvailableLogoBuffer(
     (Array.isArray(company?.logoCandidates) && company.logoCandidates.length > 0)
       ? company.logoCandidates
@@ -1670,10 +1678,10 @@ function registerPayrollModule({
     res.json(adjusted);
   });
 
-  app.delete('/api/payroll/items/:id', (req, res) => {
+  const deletePayrollItemById = (req, res, rawId) => {
     const perms = ensureAccess(req, res, (p) => p.canManageAll || p.canGenerate, 'Only Admin/HR can delete payroll rows');
     if (!perms) return;
-    const itemId = normalizeText(req.params.id);
+    const itemId = normalizeText(rawId);
     if (!itemId) return res.status(400).json({ error: 'Payroll item id is required' });
 
     const items = getItems();
@@ -1681,8 +1689,15 @@ function registerPayrollModule({
     if (index === -1) return res.status(404).json({ error: 'Payroll item not found' });
 
     const current = items[index];
-    if (normalizeText(current.payrollStatus) === 'Paid' || normalizeText(current.paymentStatus) === 'Paid') {
-      return res.status(400).json({ error: 'Paid payroll row cannot be deleted. Unlock and mark status first.' });
+    const payrollStatus = normalizeText(current.payrollStatus);
+    const paymentStatus = normalizeText(current.paymentStatus);
+    if (payrollStatus === 'Paid' || paymentStatus === 'Paid') {
+      return res.status(400).json({
+        error: 'Paid payroll row cannot be deleted. Unlock and mark status first.',
+        code: 'PAYROLL_ROW_PAID',
+        payrollStatus,
+        paymentStatus
+      });
     }
 
     const nextItems = items.filter((entry) => normalizeText(entry._id) !== itemId);
@@ -1691,6 +1706,14 @@ function registerPayrollModule({
     const payments = getPayments();
     const nextPayments = payments.filter((entry) => normalizeText(entry.payrollItemId) !== itemId);
     if (nextPayments.length !== payments.length) savePayments(nextPayments);
+
+    const auditRows = readJsonFile(payrollAuditFile, []);
+    const nextAuditRows = auditRows.filter((entry) => {
+      const payload = entry && typeof entry === 'object' ? entry.payload : null;
+      const payloadPayrollItemId = normalizeText(payload?.payrollItemId || payload?.id || '');
+      return payloadPayrollItemId !== itemId;
+    });
+    if (nextAuditRows.length !== auditRows.length) saveAuditRows(nextAuditRows);
 
     writeAudit({
       auditFile: payrollAuditFile,
@@ -1701,6 +1724,15 @@ function registerPayrollModule({
     });
 
     return res.json({ message: 'Payroll row deleted', id: itemId });
+  };
+
+  app.delete('/api/payroll/items/:id', (req, res) => {
+    deletePayrollItemById(req, res, req.params.id);
+  });
+
+  // Compatibility route for environments/proxies where DELETE may be blocked.
+  app.post('/api/payroll/items/:id/delete', (req, res) => {
+    deletePayrollItemById(req, res, req.params.id);
   });
 
   app.post('/api/payroll/items/:id/mark-paid', (req, res) => {
