@@ -325,6 +325,18 @@ app.use(
   '/uploads',
   express.static('/home/u610009593/domains/crm.skuaspestcontrol.com/nodejs/storage/uploads')
 );
+
+app.get('/uploads-test', (req, res) => {
+  const fs = require('fs');
+  res.json({
+    uploadsRootDir,
+    exists: fs.existsSync(uploadsRootDir),
+    files: fs.existsSync(uploadsRootDir)
+      ? fs.readdirSync(uploadsRootDir).slice(0, 20)
+      : []
+  });
+});
+
 const uploadsPublicBaseUrl = String(process.env.UPLOADS_PUBLIC_BASE_URL || '').trim();
 const normalizeUploadRelativePath = (value) => {
   const raw = String(value || '').trim().replace(/\\/g, '/');
