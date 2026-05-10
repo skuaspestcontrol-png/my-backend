@@ -1473,6 +1473,7 @@ function registerPayrollModule({
     try {
       const perms = ensureAccess(req, res, (p) => p.canGenerate, 'Only Admin/HR can generate payroll');
       if (!perms) return;
+      console.log('PAYROLL GENERATE BODY:', req.body);
       const month = toNumber(req.body?.month, 0);
       const year = toNumber(req.body?.year, 0);
       if (!month || !year) return res.status(400).json({ error: 'month and year are required' });
@@ -1482,9 +1483,11 @@ function registerPayrollModule({
       const selectedEmployeeIds = Array.isArray(req.body?.employeeIds)
         ? req.body.employeeIds.map((entry) => normalizeText(entry)).filter(Boolean)
         : [];
+      console.log('PAYROLL GENERATE selectedEmployeeIds:', selectedEmployeeIds);
       const forceRegenerate = req.body?.forceRegenerate === true;
 
       const employees = await readEmployeesForPayroll();
+      console.log('PAYROLL GENERATE employeesCount:', Array.isArray(employees) ? employees.length : 0);
       if (!Array.isArray(employees) || employees.length === 0) {
         return res.status(400).json({ error: 'No employees found for payroll generation' });
       }
@@ -1495,9 +1498,15 @@ function registerPayrollModule({
       const { config, runs } = getPayrollConfig();
       const items = getItems();
 
+      const selectedSet = new Set(selectedEmployeeIds.map((entry) => normalizeText(entry)));
       const scope = selectedEmployeeIds.length > 0
-        ? employees.filter((entry) => selectedEmployeeIds.includes(normalizeText(entry._id)))
+        ? employees.filter((entry) =>
+          selectedSet.has(normalizeText(entry._id))
+          || selectedSet.has(normalizeText(entry.empCode))
+          || selectedSet.has(normalizeText(entry.employeeCode))
+        )
         : employees;
+      console.log('PAYROLL GENERATE scopeCount:', scope.length);
 
       const generated = [];
       const skipped = [];
@@ -1555,6 +1564,9 @@ function registerPayrollModule({
       });
 
       saveItems(items);
+      console.log('PAYROLL GENERATE generatedCount:', generated.length);
+      console.log('PAYROLL GENERATE skippedCount:', skipped.length);
+      console.log('PAYROLL GENERATE skipped:', skipped);
 
       const run = {
         _id: `PRUN-${Date.now()}`,
@@ -1582,6 +1594,49 @@ function registerPayrollModule({
     } catch (error) {
       console.error('Payroll generation failed:', error && error.stack ? error.stack : error);
       return res.status(500).json({ error: `Payroll generation failed: ${error.message || 'Unknown error'}` });
+    }
+  });
+
+  app.get('/api/payroll/debug', async (req, res) => {
+    try {
+      const perms = ensureAccess(req, res, (p) => p.canManageAll || p.canGenerate, 'Only Admin/HR can view payroll debug');
+      if (!perms) return;
+      const month = toNumber(req.query.month, 0);
+      const year = toNumber(req.query.year, 0);
+
+      const employees = await readEmployeesForPayroll();
+      const items = getItems();
+      const matchingMonthItems = (Array.isArray(items) ? items : []).filter((entry) => {
+        if (month && toNumber(entry.month, 0) !== month) return false;
+        if (year && toNumber(entry.year, 0) !== year) return false;
+        return true;
+      });
+
+      const availableEmployees = (Array.isArray(employees) ? employees : []).map((entry) => ({
+        _id: normalizeText(entry?._id),
+        empCode: normalizeText(entry?.empCode || entry?.employeeCode || ''),
+        name: [entry?.firstName, entry?.lastName].filter(Boolean).join(' ').trim() || normalizeText(entry?.empCode || entry?.employeeCode || '')
+      }));
+
+      const existingItems = matchingMonthItems.map((entry) => ({
+        _id: normalizeText(entry?._id),
+        employeeId: normalizeText(entry?.employeeId),
+        employeeCode: normalizeText(entry?.employeeCode),
+        payrollStatus: normalizeText(entry?.payrollStatus),
+        paymentStatus: normalizeText(entry?.paymentStatus)
+      }));
+
+      return res.json({
+        employeesCount: availableEmployees.length,
+        payrollItemsCount: Array.isArray(items) ? items.length : 0,
+        matchingMonthItems: matchingMonthItems.length,
+        employeeIdsInItems: existingItems.map((entry) => entry.employeeId).filter(Boolean),
+        availableEmployees: availableEmployees.slice(0, 500),
+        existingItems: existingItems.slice(0, 500)
+      });
+    } catch (error) {
+      console.error('PAYROLL DEBUG failed:', error.message);
+      return res.status(500).json({ error: 'Could not load payroll debug data' });
     }
   });
 

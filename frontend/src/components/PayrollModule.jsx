@@ -360,13 +360,20 @@ export default function PayrollModule() {
       if (!role.canGenerate) return window.alert('Only Admin/HR can generate payroll.');
       setBusy(true);
       setStatus('');
-      await axios.post(`${API_BASE}/api/payroll/generate`, {
+      const res = await axios.post(`${API_BASE}/api/payroll/generate`, {
         month,
         year,
         employeeIds: selectedGenerateEmployees,
         forceRegenerate
       }, { headers });
-      setStatus(forceRegenerate ? 'Payroll regenerated successfully.' : 'Payroll generated successfully.');
+      const generatedCount = Array.isArray(res?.data?.generated) ? res.data.generated.length : Number(res?.data?.run?.generatedCount || 0);
+      const skippedRows = Array.isArray(res?.data?.skipped) ? res.data.skipped : [];
+      const skippedCount = skippedRows.length;
+      const skippedText = skippedCount > 0
+        ? `\nSkipped (${skippedCount}): ${skippedRows.map((entry) => `${entry.employeeId || 'Unknown'} - ${entry.reason || 'Skipped'}`).join('; ')}`
+        : '';
+      const baseText = forceRegenerate ? 'Payroll regenerated.' : 'Payroll generated.';
+      setStatus(`${baseText} Generated: ${generatedCount}.${skippedText}`);
       await reloadAll();
     } catch (error) {
       console.error('Payroll generate failed', error);
@@ -546,7 +553,11 @@ export default function PayrollModule() {
       await reloadAll();
     } catch (error) {
       console.error('Delete payroll row failed', error);
-      const message = error?.response?.data?.error || 'Unable to delete payroll row.';
+      const payload = error?.response?.data || {};
+      const paidDeleteBlocked = payload?.code === 'PAYROLL_ROW_PAID';
+      const message = paidDeleteBlocked
+        ? 'Paid payroll row cannot be deleted. First unlock/edit the row and change status from Paid, then delete.'
+        : (payload?.error || 'Unable to delete payroll row.');
       setStatus(message);
       window.alert(message);
     } finally {
@@ -1000,7 +1011,7 @@ export default function PayrollModule() {
         {activeTab === 'reports' ? renderReports() : null}
       </div>
 
-      {status ? <p style={shell.footer}>{status}</p> : null}
+      {status ? <p style={{ ...shell.footer, whiteSpace: 'pre-line' }}>{status}</p> : null}
 
       {paymentModal.open ? (
         <div style={shell.modalBg}>
