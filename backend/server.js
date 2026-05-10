@@ -359,7 +359,16 @@ if (activeFrontendBuildDir) {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => { cb(null, uploadsDir); },
-  filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname); }
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const ext = path.extname(String(file.originalname || '')).toLowerCase();
+    const baseName = path.basename(String(file.originalname || ''), ext).toLowerCase();
+    const safeBase = baseName
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'file';
+    cb(null, `${timestamp}-${safeBase}${ext}`);
+  }
 });
 const employeePhotoStorage = multer.diskStorage({
   destination: (req, file, cb) => { cb(null, employeeUploadsDir); },
