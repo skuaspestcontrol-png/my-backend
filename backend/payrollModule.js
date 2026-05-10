@@ -126,6 +126,7 @@ const resolveCompanyDetails = (settings = {}) => ({
     || settings?.gstCompanyLogo
     || settings?.gstLogoUrl
     || settings?.gstLogo
+    || settings?.gstCompanyStampUrl
     || settings?.dashboardImageUrl
     || settings?.companyLogo
     || settings?.companyLogoUrl
@@ -156,6 +157,7 @@ const tryResolveLocalUploadPath = (rawUrl) => {
     cleanPath,
     path.join(__dirname, 'uploads', decodedPath),
     path.join(__dirname, '..', 'uploads', decodedPath),
+    path.join(process.cwd(), 'uploads', decodedPath),
     path.join(__dirname, 'public', 'uploads', decodedPath),
     path.join(__dirname, '..', 'public', 'uploads', decodedPath)
   ];
@@ -164,6 +166,7 @@ const tryResolveLocalUploadPath = (rawUrl) => {
     candidates.push(
       path.join(__dirname, 'uploads', filePart),
       path.join(__dirname, '..', 'uploads', filePart),
+      path.join(process.cwd(), 'uploads', filePart),
       path.join(__dirname, 'public', 'uploads', filePart),
       path.join(__dirname, '..', 'public', 'uploads', filePart)
     );

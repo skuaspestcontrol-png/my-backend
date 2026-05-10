@@ -780,8 +780,6 @@ export default function PayrollModule() {
             <tr>
               <th style={shell.th}>Employee</th>
               <th style={shell.th}>Month</th>
-              <th style={shell.th}>Contact</th>
-              <th style={shell.th}>Bank Details</th>
               <th style={shell.th}>Attendance</th>
               <th style={shell.th}>Gross</th>
               <th style={shell.th}>Deductions</th>
@@ -798,32 +796,17 @@ export default function PayrollModule() {
                   <div>{entry.employeeName}</div>
                   <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode} • {entry.department || '-'}</div>
                 </td>
-                <td style={{ ...shell.td, width: '8%' }}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
-                <td style={{ ...shell.td, width: '11%', overflowWrap: 'anywhere' }}>
-                  {entry?.employeeDetails?.mobile || employeeMap.get(String(entry.employeeId || ''))?.mobile || '-'}<br />
-                  <span style={{ fontSize: '10px', color: '#64748b' }}>
-                    {entry?.employeeDetails?.email || employeeMap.get(String(entry.employeeId || ''))?.emailId || employeeMap.get(String(entry.employeeId || ''))?.email || '-'}
-                  </span>
-                </td>
-                <td style={{ ...shell.td, width: '13%', overflowWrap: 'anywhere' }}>
-                  {entry?.employeeDetails?.bankName || employeeMap.get(String(entry.employeeId || ''))?.bankName || '-'}<br />
-                  <span style={{ fontSize: '10px', color: '#64748b' }}>
-                    {entry?.employeeDetails?.bankNo || employeeMap.get(String(entry.employeeId || ''))?.bankNo || '-'}
-                    {(entry?.employeeDetails?.ifsc || employeeMap.get(String(entry.employeeId || ''))?.ifsc)
-                      ? ` • IFSC: ${entry?.employeeDetails?.ifsc || employeeMap.get(String(entry.employeeId || ''))?.ifsc}`
-                      : ''}
-                  </span>
-                </td>
-                <td style={{ ...shell.td, width: '13%' }}>
+                <td style={{ ...shell.td, width: '11%' }}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
+                <td style={{ ...shell.td, width: '16%' }}>
                   WD {entry?.attendanceSummary?.totalWorkingDays || 0}<br />
                   P {entry?.attendanceSummary?.presentDays || 0} • PL {entry?.attendanceSummary?.paidLeaveDays || 0} • UL {entry?.attendanceSummary?.unpaidLeaveDays || 0}
                 </td>
-                <td style={{ ...shell.td, width: '7%' }}>INR {money(entry.grossSalary)}</td>
-                <td style={{ ...shell.td, width: '7%' }}>INR {money(entry?.deductions?.total)}</td>
-                <td style={{ ...shell.td, width: '7%' }}><strong>INR {money(entry.netSalary)}</strong></td>
-                <td style={{ ...shell.td, width: '8%' }}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span></td>
-                <td style={{ ...shell.td, width: '8%' }}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
-                <td style={{ ...shell.td, width: '16%' }}>
+                <td style={{ ...shell.td, width: '9%' }}>INR {money(entry.grossSalary)}</td>
+                <td style={{ ...shell.td, width: '9%' }}>INR {money(entry?.deductions?.total)}</td>
+                <td style={{ ...shell.td, width: '9%' }}><strong>INR {money(entry.netSalary)}</strong></td>
+                <td style={{ ...shell.td, width: '10%' }}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span></td>
+                <td style={{ ...shell.td, width: '10%' }}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
+                <td style={{ ...shell.td, width: '21%' }}>
                   <div style={{ ...shell.actionRow, gap: '5px', flexWrap: 'nowrap' }}>
                     <button type="button" style={shell.btnLight} onClick={() => openSlipViewer(entry)}>Salary Slip</button>
                     {entry.payrollStatus !== 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => openAdjust(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Edit</button> : null}
@@ -834,7 +817,7 @@ export default function PayrollModule() {
               </tr>
             ))}
             {pagedPayrollItems.length === 0 ? (
-              <tr><td colSpan={11} style={{ ...shell.td, textAlign: 'center', color: '#64748b' }}>No payroll rows found for selected filter.</td></tr>
+              <tr><td colSpan={9} style={{ ...shell.td, textAlign: 'center', color: '#64748b' }}>No payroll rows found for selected filter.</td></tr>
             ) : null}
           </tbody>
         </table>

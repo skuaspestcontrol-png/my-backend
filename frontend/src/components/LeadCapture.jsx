@@ -368,7 +368,7 @@ const getCustomerMobile = (customer) => normalizePhoneNumber(customer.mobileNumb
 const getCustomerName = (customer) => customer.displayName || customer.name || customer.companyName || customer.contactPersonName || '';
 const ROW_ACTION_MENU_APPROX_WIDTH = 170;
 const ROW_ACTION_MENU_APPROX_HEIGHT = 240;
-const ROW_ACTION_MENU_GAP = 8;
+const ROW_ACTION_MENU_GAP = 2;
 const FOLLOWUP_TYPES = ['Phone Call', 'WhatsApp', 'Site Visit', 'Email', 'Meeting'];
 const FOLLOWUP_OUTCOMES = ['Callback Required', 'Interested', 'Not Interested', 'Converted', '25%', '50%', '75%', '100%', 'No Response'];
 
@@ -920,7 +920,7 @@ export default function LeadCapture() {
     const maxLeft = window.innerWidth - ROW_ACTION_MENU_APPROX_WIDTH - ROW_ACTION_MENU_GAP;
     const anchorLeft = Math.max(
       ROW_ACTION_MENU_GAP,
-      Math.min(maxLeft, triggerRect.left)
+      Math.min(maxLeft, triggerRect.right - ROW_ACTION_MENU_APPROX_WIDTH)
     );
 
     const preferredTop = triggerRect.top - ROW_ACTION_MENU_APPROX_HEIGHT - ROW_ACTION_MENU_GAP;
