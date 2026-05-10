@@ -673,7 +673,7 @@ const calcPayrollItem = ({
 
 const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resolve, reject) => {
   const resolvedLogoPath = normalizeText(company?.logoUrl || '').startsWith('/uploads/')
-    ? path.join(uploadsRootDir, normalizeText(company.logoUrl).replace(/^\/uploads\//, ''))
+    ? path.join('/home/u610009593/uploads-skuas-crm', normalizeText(company.logoUrl).replace(/^\/uploads\//, ''))
     : '';
   console.log('SALARY PDF logoUrl:', company?.logoUrl);
   console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath);
