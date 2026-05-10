@@ -28,10 +28,9 @@ const defaultCompany = {
   email: '',
   address: ''
 };
+const HOSTINGER_PERSISTENT_UPLOADS_DIR = '/home/u610009593/domains/crm.skuaspestcontrol.com/nodejs/storage/uploads';
 const uploadsRootDir = String(process.env.PERSISTENT_UPLOADS_DIR || process.env.UPLOADS_DIR || '').trim()
-  || (process.env.NODE_ENV === 'development'
-    ? path.join(__dirname, 'uploads')
-    : path.join(__dirname, '..', 'storage', 'uploads'));
+  || HOSTINGER_PERSISTENT_UPLOADS_DIR;
 
 const allowedSalaryType = new Set(['monthly', 'daily', 'hourly']);
 const allowedPayrollStatus = new Set(['Draft', 'Generated', 'Paid', 'Hold']);

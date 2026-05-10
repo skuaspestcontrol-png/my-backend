@@ -4,6 +4,7 @@ backend/node_modules/
 
 backend/data/
 backend/uploads/
+storage/uploads/
 
 .env
 frontend/.env

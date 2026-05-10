@@ -232,10 +232,8 @@ const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
 const googleOauthStateStore = new Map();
 
-const defaultUploadsDir = process.env.NODE_ENV === 'development'
-  ? path.join(__dirname, 'uploads')
-  : path.join(__dirname, '..', 'storage', 'uploads');
-const uploadsDir = String(process.env.PERSISTENT_UPLOADS_DIR || process.env.UPLOADS_DIR || '').trim() || defaultUploadsDir;
+const HOSTINGER_PERSISTENT_UPLOADS_DIR = '/home/u610009593/domains/crm.skuaspestcontrol.com/nodejs/storage/uploads';
+const uploadsDir = String(process.env.PERSISTENT_UPLOADS_DIR || process.env.UPLOADS_DIR || '').trim() || HOSTINGER_PERSISTENT_UPLOADS_DIR;
 const employeeUploadsDir = path.join(uploadsDir, 'employees');
 const employeePhotoUploadsDir = path.join(employeeUploadsDir, 'photos');
 const employeeAadhaarUploadsDir = path.join(employeeUploadsDir, 'aadhaar');
