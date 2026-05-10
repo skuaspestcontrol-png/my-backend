@@ -153,6 +153,7 @@ const tryResolveLocalUploadPath = (rawUrl) => {
   const candidates = [
     text,
     decodedPath,
+    cleanPath,
     path.join(__dirname, 'uploads', decodedPath),
     path.join(__dirname, '..', 'uploads', decodedPath),
     path.join(__dirname, 'public', 'uploads', decodedPath),
@@ -659,7 +660,7 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
   const rightLines = [
     normalizeText(company.companyName || defaultCompany.companyName),
     normalizeText(company.address || ''),
-    [company.city, company.state].filter(Boolean).join(', ') + ((company.pincode ? `-Pincode: ${company.pincode}` : '') || ''),
+    [company.city, company.state].filter(Boolean).join(',') + (company.pincode ? `- ${company.pincode}` : ''),
     company.email ? `E Mail: ${company.email}` : '',
     company.phone ? `Tel: ${company.phone}` : '',
     company.website ? `Web: ${company.website}` : '',

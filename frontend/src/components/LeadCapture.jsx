@@ -230,9 +230,9 @@ const s = {
   popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' },
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', position: 'relative', borderRadius: '14px', border: '1px solid var(--color-border)' },
-  table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left', tableLayout: 'fixed' },
-  headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '5px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap' },
+  tableWrap: { overflowX: 'hidden', overflowY: 'hidden', background: '#fff', position: 'relative', borderRadius: '14px', border: '1px solid var(--color-border)' },
+  table: { width: '100%', minWidth: 0, borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left', tableLayout: 'fixed' },
+  headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '5px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'normal', overflowWrap: 'anywhere' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   headActionCell: { background: 'var(--color-primary-light)' },
@@ -367,7 +367,7 @@ const formatDisplayDate = (value) => {
 const getCustomerMobile = (customer) => normalizePhoneNumber(customer.mobileNumber || customer.workPhone || '');
 const getCustomerName = (customer) => customer.displayName || customer.name || customer.companyName || customer.contactPersonName || '';
 const ROW_ACTION_MENU_APPROX_WIDTH = 170;
-const ROW_ACTION_MENU_APPROX_HEIGHT = 210;
+const ROW_ACTION_MENU_APPROX_HEIGHT = 240;
 const ROW_ACTION_MENU_GAP = 8;
 const FOLLOWUP_TYPES = ['Phone Call', 'WhatsApp', 'Site Visit', 'Email', 'Meeting'];
 const FOLLOWUP_OUTCOMES = ['Callback Required', 'Interested', 'Not Interested', 'Converted', '25%', '50%', '75%', '100%', 'No Response'];
@@ -923,11 +923,12 @@ export default function LeadCapture() {
       Math.min(maxLeft, triggerRect.left)
     );
 
-    const preferredTop = triggerRect.bottom + ROW_ACTION_MENU_GAP;
+    const preferredTop = triggerRect.top - ROW_ACTION_MENU_APPROX_HEIGHT - ROW_ACTION_MENU_GAP;
+    const fallbackTop = triggerRect.bottom + ROW_ACTION_MENU_GAP;
     const maxTop = window.innerHeight - ROW_ACTION_MENU_APPROX_HEIGHT - ROW_ACTION_MENU_GAP;
     const anchorTop = Math.max(
       ROW_ACTION_MENU_GAP,
-      Math.min(maxTop, preferredTop)
+      Math.min(maxTop, preferredTop >= ROW_ACTION_MENU_GAP ? preferredTop : fallbackTop)
     );
 
     setRowActionLeadId(leadId);
@@ -1487,6 +1488,7 @@ export default function LeadCapture() {
   };
 
   const getColumnStyle = (columnKey) => {
+    if (isMobile) return {};
     const width = Number(columnWidths[columnKey]);
     if (!Number.isFinite(width) || width <= 0) return {};
     const clampedWidth = Math.max(72, Math.min(160, width));
@@ -2151,7 +2153,7 @@ export default function LeadCapture() {
                       return (
                         <td
                           key={`${lead._id}-${column.key}`}
-                          style={{ ...s.cell, ...getColumnStyle(column.key), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                          style={{ ...s.cell, ...getColumnStyle(column.key), whiteSpace: 'normal', overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                           title={String(value || '')}
                         >
                           {value || '-'}

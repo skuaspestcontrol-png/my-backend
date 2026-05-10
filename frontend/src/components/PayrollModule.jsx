@@ -96,6 +96,7 @@ const shell = {
     padding: '0 10px',
     fontSize: '11px',
     fontWeight: 700,
+    whiteSpace: 'nowrap',
     cursor: 'pointer'
   },
   btnLight: {
@@ -107,6 +108,7 @@ const shell = {
     padding: '0 10px',
     fontSize: '11px',
     fontWeight: 700,
+    whiteSpace: 'nowrap',
     cursor: 'pointer'
   },
   tableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', overflowX: 'auto', background: '#fff' },
@@ -821,8 +823,8 @@ export default function PayrollModule() {
                 <td style={{ ...shell.td, width: '7%' }}><strong>INR {money(entry.netSalary)}</strong></td>
                 <td style={{ ...shell.td, width: '8%' }}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span></td>
                 <td style={{ ...shell.td, width: '8%' }}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
-                <td style={{ ...shell.td, width: '14%' }}>
-                  <div style={{ ...shell.actionRow, gap: '6px' }}>
+                <td style={{ ...shell.td, width: '16%' }}>
+                  <div style={{ ...shell.actionRow, gap: '5px', flexWrap: 'nowrap' }}>
                     <button type="button" style={shell.btnLight} onClick={() => openSlipViewer(entry)}>Salary Slip</button>
                     {entry.payrollStatus !== 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => openAdjust(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Edit</button> : null}
                     {entry.paymentStatus !== 'Paid' ? <button type="button" style={shell.btn} onClick={() => openPayment(entry)} disabled={busy || !role.canMarkPaid}>Mark Paid</button> : null}
