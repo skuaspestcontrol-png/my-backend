@@ -123,6 +123,9 @@ const resolveCompanyDetails = (settings = {}) => ({
   gstin: normalizeText(settings?.gstin || settings?.gstNumber || settings?.companyGstNumber || ''),
   logoUrl: normalizeText(
     settings?.gstCompanyLogoUrl
+    || settings?.gstCompanyLogo
+    || settings?.gstLogoUrl
+    || settings?.gstLogo
     || settings?.dashboardImageUrl
     || settings?.companyLogo
     || settings?.companyLogoUrl
@@ -160,6 +163,14 @@ const tryResolveLocalUploadPath = (rawUrl) => {
 const loadCompanyLogoBuffer = async (logoUrl) => {
   const text = normalizeText(logoUrl);
   if (!text) return null;
+  if (/^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(text)) {
+    try {
+      const base64 = text.split(',')[1] || '';
+      return base64 ? Buffer.from(base64, 'base64') : null;
+    } catch (_e) {
+      return null;
+    }
+  }
   const localPath = tryResolveLocalUploadPath(text);
   if (localPath) {
     try {
@@ -641,14 +652,15 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
     company.website ? `Web: ${company.website}` : '',
     company.gstin ? `GST: ${company.gstin}` : ''
   ].filter(Boolean);
-  let rightY = headerTop + 10;
+  let rightY = headerTop + 8;
   rightLines.forEach((lineText, idx) => {
-    doc
-      .font(idx === 0 ? 'Helvetica-Bold' : 'Helvetica')
-      .fontSize(idx === 0 ? 14 : 9.5)
-      .fillColor(idx === 0 ? '#334155' : '#334155')
-      .text(lineText, rightX, rightY, { width: rightWidth, align: 'left' });
-    rightY += idx === 0 ? 16 : 12;
+    const isTitle = idx === 0;
+    const fontName = isTitle ? 'Helvetica-Bold' : 'Helvetica';
+    const fontSize = isTitle ? 10 : 8;
+    doc.font(fontName).fontSize(fontSize).fillColor('#334155');
+    const textHeight = doc.heightOfString(lineText, { width: rightWidth, align: 'left' });
+    doc.text(lineText, rightX, rightY, { width: rightWidth, align: 'left' });
+    rightY += textHeight + (isTitle ? 4 : 2);
   });
 
   const headerBottomY = Math.max(headerTop + logoHeight + 18, rightY + 8);
