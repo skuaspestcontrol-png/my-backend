@@ -366,8 +366,8 @@ const formatDisplayDate = (value) => {
 };
 const getCustomerMobile = (customer) => normalizePhoneNumber(customer.mobileNumber || customer.workPhone || '');
 const getCustomerName = (customer) => customer.displayName || customer.name || customer.companyName || customer.contactPersonName || '';
-const ROW_ACTION_MENU_APPROX_WIDTH = 212;
-const ROW_ACTION_MENU_APPROX_HEIGHT = 274;
+const ROW_ACTION_MENU_APPROX_WIDTH = 170;
+const ROW_ACTION_MENU_APPROX_HEIGHT = 210;
 const ROW_ACTION_MENU_GAP = 8;
 const FOLLOWUP_TYPES = ['Phone Call', 'WhatsApp', 'Site Visit', 'Email', 'Meeting'];
 const FOLLOWUP_OUTCOMES = ['Callback Required', 'Interested', 'Not Interested', 'Converted', '25%', '50%', '75%', '100%', 'No Response'];
@@ -920,13 +920,10 @@ export default function LeadCapture() {
     const maxLeft = window.innerWidth - ROW_ACTION_MENU_APPROX_WIDTH - ROW_ACTION_MENU_GAP;
     const anchorLeft = Math.max(
       ROW_ACTION_MENU_GAP,
-      Math.min(maxLeft, triggerRect.right - ROW_ACTION_MENU_APPROX_WIDTH)
+      Math.min(maxLeft, triggerRect.left)
     );
 
-    const fitsAbove = triggerRect.top >= ROW_ACTION_MENU_APPROX_HEIGHT + ROW_ACTION_MENU_GAP;
-    const preferredTop = fitsAbove
-      ? triggerRect.top - ROW_ACTION_MENU_APPROX_HEIGHT - 4
-      : triggerRect.bottom + ROW_ACTION_MENU_GAP;
+    const preferredTop = triggerRect.bottom + ROW_ACTION_MENU_GAP;
     const maxTop = window.innerHeight - ROW_ACTION_MENU_APPROX_HEIGHT - ROW_ACTION_MENU_GAP;
     const anchorTop = Math.max(
       ROW_ACTION_MENU_GAP,
@@ -1492,7 +1489,7 @@ export default function LeadCapture() {
   const getColumnStyle = (columnKey) => {
     const width = Number(columnWidths[columnKey]);
     if (!Number.isFinite(width) || width <= 0) return {};
-    const clampedWidth = Math.max(88, Math.min(220, width));
+    const clampedWidth = Math.max(72, Math.min(160, width));
     return { width: `${clampedWidth}px`, minWidth: `${clampedWidth}px`, maxWidth: `${clampedWidth}px` };
   };
 
@@ -1500,7 +1497,7 @@ export default function LeadCapture() {
     event.preventDefault();
     event.stopPropagation();
     const th = event.currentTarget.closest('th');
-    const startWidth = Number(columnWidths[columnKey]) || th?.offsetWidth || 160;
+    const startWidth = Number(columnWidths[columnKey]) || th?.offsetWidth || 130;
     resizeStateRef.current = { columnKey, startX: event.clientX, startWidth };
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
@@ -1508,7 +1505,7 @@ export default function LeadCapture() {
     const onMouseMove = (moveEvent) => {
       if (!resizeStateRef.current) return;
       const delta = moveEvent.clientX - resizeStateRef.current.startX;
-      const nextWidth = Math.max(88, Math.min(220, resizeStateRef.current.startWidth + delta));
+      const nextWidth = Math.max(72, Math.min(160, resizeStateRef.current.startWidth + delta));
       setColumnWidths((prev) => ({ ...prev, [columnKey]: nextWidth }));
     };
 
@@ -1821,7 +1818,7 @@ export default function LeadCapture() {
   const registerActionsStyle = isMobile ? { ...s.registerActions, width: '100%', justifyContent: 'space-between' } : s.registerActions;
   const registerToolbarStyle = isMobile ? { ...s.registerToolbar, flexDirection: 'column', alignItems: 'stretch' } : s.registerToolbar;
   const toolbarLeftStyle = isMobile ? { ...s.toolbarLeft, flexWrap: 'wrap' } : s.toolbarLeft;
-  const tableStyle = isMobile ? { ...s.table, minWidth: '760px' } : s.table;
+  const tableStyle = s.table;
   const viewGridStyle = isMobile ? { ...s.viewGrid, gridTemplateColumns: '1fr' } : s.viewGrid;
   const followupGridStyle = isMobile ? { ...s.followupGrid, gridTemplateColumns: '1fr' } : s.followupGrid;
   const leadModalStyle = isMobile ? { ...s.cn, width: '100%', maxWidth: '100%' } : s.cn;
@@ -1838,7 +1835,7 @@ export default function LeadCapture() {
   const buttonGhostStyle = isTiny ? { ...s.buttonGhost, width: '42px', height: '42px' } : s.buttonGhost;
   const customizeButtonStyle = isTiny ? { ...s.customizeButton, padding: '6px 8px', fontSize: '10px' } : s.customizeButton;
   const leadModalCompactBodyStyle = isTiny ? { ...leadModalBodyStyle, padding: '10px' } : leadModalBodyStyle;
-  const tableStyleTiny = isMobile ? { ...tableStyle, minWidth: isTiny ? '700px' : tableStyle.minWidth } : tableStyle;
+  const tableStyleTiny = tableStyle;
   const filterActionFieldStyle = isMobile || isTablet
     ? { ...s.filterField, justifyContent: 'flex-end', alignItems: 'stretch', gridColumn: 'auto' }
     : { ...s.filterField, justifyContent: 'flex-end', alignItems: 'flex-end', gridColumn: '7 / 8' };

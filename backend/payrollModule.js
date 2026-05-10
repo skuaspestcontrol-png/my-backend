@@ -138,16 +138,28 @@ const resolveCompanyDetails = (settings = {}) => ({
 const tryResolveLocalUploadPath = (rawUrl) => {
   const text = normalizeText(rawUrl);
   if (!text) return '';
+  let normalized = text;
+  try {
+    if (/^https?:\/\//i.test(text)) {
+      const parsed = new URL(text);
+      normalized = `${parsed.pathname || ''}${parsed.search || ''}`;
+    }
+  } catch (_e) {}
+  const cleanPath = normalized.split('?')[0];
+  const decodedPath = (() => {
+    try { return decodeURIComponent(cleanPath); } catch (_e) { return cleanPath; }
+  })();
   const uploadsToken = '/uploads/';
   const candidates = [
     text,
-    path.join(__dirname, 'uploads', text),
-    path.join(__dirname, '..', 'uploads', text),
-    path.join(__dirname, 'public', 'uploads', text),
-    path.join(__dirname, '..', 'public', 'uploads', text)
+    decodedPath,
+    path.join(__dirname, 'uploads', decodedPath),
+    path.join(__dirname, '..', 'uploads', decodedPath),
+    path.join(__dirname, 'public', 'uploads', decodedPath),
+    path.join(__dirname, '..', 'public', 'uploads', decodedPath)
   ];
-  if (text.includes(uploadsToken)) {
-    const filePart = text.split(uploadsToken).pop();
+  if (decodedPath.includes(uploadsToken)) {
+    const filePart = decodedPath.split(uploadsToken).pop();
     candidates.push(
       path.join(__dirname, 'uploads', filePart),
       path.join(__dirname, '..', 'uploads', filePart),
@@ -646,7 +658,8 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
 
   const rightLines = [
     normalizeText(company.companyName || defaultCompany.companyName),
-    [normalizeText(company.address || ''), [company.city, company.state, company.pincode].filter(Boolean).join(', ')].filter(Boolean).join(', '),
+    normalizeText(company.address || ''),
+    [company.city, company.state].filter(Boolean).join(', ') + ((company.pincode ? `-Pincode: ${company.pincode}` : '') || ''),
     company.email ? `E Mail: ${company.email}` : '',
     company.phone ? `Tel: ${company.phone}` : '',
     company.website ? `Web: ${company.website}` : '',
