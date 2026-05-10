@@ -953,7 +953,8 @@ export default function Settings({ modalMode = false }) {
       setStatus('Uploading profile picture...');
       const imageUrl = await uploadBrandingImage(file);
       setForm((prev) => ({ ...prev, dashboardImageUrl: imageUrl, gstCompanyLogoUrl: imageUrl }));
-      setStatus('Profile picture uploaded. Save changes to confirm.');
+      console.log('[Settings] Profile picture uploaded path:', imageUrl);
+      setStatus(`Profile picture uploaded: ${imageUrl}`);
     } catch (error) {
       console.error('Logo upload failed', error);
       setStatus('Upload failed. Please try again.');
@@ -975,7 +976,8 @@ export default function Settings({ modalMode = false }) {
         ...(targetKey === 'gstCompanyLogoUrl' ? { dashboardImageUrl: imageUrl } : {}),
         ...(targetKey === 'dashboardImageUrl' ? { gstCompanyLogoUrl: imageUrl, nonGstCompanyLogoUrl: imageUrl } : {})
       }));
-      setStatus(`${label} uploaded. Save changes to confirm.`);
+      console.log(`[Settings] ${label} uploaded path:`, imageUrl);
+      setStatus(`${label} uploaded: ${imageUrl}`);
     } catch (error) {
       console.error(`${label} upload failed`, error);
       setStatus(`Failed to upload ${label}. Please try again.`);
@@ -991,7 +993,8 @@ export default function Settings({ modalMode = false }) {
       setStatus(`Uploading ${label} QR...`);
       const imageUrl = await uploadBrandingImage(file);
       setForm((prev) => ({ ...prev, [key]: imageUrl }));
-      setStatus(`${label} QR uploaded. Save changes to confirm.`);
+      console.log(`[Settings] ${label} QR uploaded path:`, imageUrl);
+      setStatus(`${label} QR uploaded: ${imageUrl}`);
     } catch (error) {
       console.error(`${label} QR upload failed`, error);
       setStatus(`Failed to upload ${label} QR.`);
@@ -1231,9 +1234,7 @@ export default function Settings({ modalMode = false }) {
           <div style={shell.profilePreview}>
             {form[fieldKey] ? (
               <img src={form[fieldKey]} alt={title} style={shell.profileImg} />
-            ) : (
-              <span>{emptyLabel}</span>
-            )}
+            ) : null}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <button type="button" style={shell.tinyButton} onClick={() => inputRef.current?.click()}>
@@ -1256,6 +1257,11 @@ export default function Settings({ modalMode = false }) {
           </div>
         </div>
         <p style={shell.hint}>{hint}</p>
+        {form[fieldKey] ? (
+          <p style={{ ...shell.hint, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>
+            Saved path: {form[fieldKey]}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -1270,9 +1276,7 @@ export default function Settings({ modalMode = false }) {
               <div style={shell.profilePreview}>
                 {form.dashboardImageUrl ? (
                   <img src={form.dashboardImageUrl} alt="Profile" style={shell.profileImg} />
-                ) : (
-                  <span>Logo</span>
-                )}
+                ) : null}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <button type="button" style={shell.tinyButton} onClick={() => logoInputRef.current?.click()}>
@@ -1295,6 +1299,11 @@ export default function Settings({ modalMode = false }) {
               </div>
             </div>
             <p style={shell.hint}>PNG/JPG, max 2MB</p>
+            {form.dashboardImageUrl ? (
+              <p style={{ ...shell.hint, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>
+                Saved path: {form.dashboardImageUrl}
+              </p>
+            ) : null}
           </div>
         </div>
 
