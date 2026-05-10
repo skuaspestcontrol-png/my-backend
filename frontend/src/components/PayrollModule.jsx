@@ -36,6 +36,14 @@ const defaultMonth = thisDate.getMonth() + 1;
 const defaultYear = thisDate.getFullYear();
 
 const money = (value) => Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const getEmployeeKey = (entry = {}) => String(
+  entry?._id
+  || entry?.external_id
+  || entry?.id
+  || entry?.empCode
+  || entry?.employeeCode
+  || ''
+).trim();
 
 const statusBadgeStyle = (statusRaw) => {
   const status = String(statusRaw || '').toLowerCase();
@@ -194,7 +202,19 @@ export default function PayrollModule() {
         axios.get(`${API_BASE}/api/payroll/items`, { params: { month, year }, headers }),
         axios.get(`${API_BASE}/api/payroll/items`, { headers })
       ]);
-      setEmployees(Array.isArray(empRes.data) ? empRes.data : []);
+      const rawEmployees = Array.isArray(empRes.data) ? empRes.data : [];
+      const normalizedEmployees = rawEmployees
+        .map((entry) => {
+          const employeeId = getEmployeeKey(entry);
+          if (!employeeId) return null;
+          return {
+            ...entry,
+            _id: employeeId,
+            empCode: String(entry?.empCode || entry?.employeeCode || employeeId).trim()
+          };
+        })
+        .filter(Boolean);
+      setEmployees(normalizedEmployees);
       setMeta(metaRes.data || {});
       setSalaryStructures(Array.isArray(structureRes.data) ? structureRes.data : []);
       setHolidays(Array.isArray(holidayRes.data) ? holidayRes.data : []);
