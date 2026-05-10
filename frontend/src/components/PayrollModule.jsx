@@ -112,7 +112,7 @@ const shell = {
   tableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', overflowX: 'auto', background: '#fff' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '980px' },
   th: { textAlign: 'left', padding: '7px 9px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
-  td: { padding: '7px 9px', borderBottom: '1px solid #eef2f7', fontSize: '11px', color: '#334155', fontWeight: 600, verticalAlign: 'top' },
+  td: { padding: '7px 9px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#334155', fontWeight: 600, verticalAlign: 'top' },
   badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '3px 7px', fontSize: '10px', fontWeight: 700 },
   footer: { margin: 0, fontSize: '12px', color: '#475569', fontWeight: 700 },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', zIndex: 90, padding: '16px' },
@@ -794,18 +794,18 @@ export default function PayrollModule() {
               <tr key={entry._id}>
                 <td style={shell.td}>
                   <div>{entry.employeeName}</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>{entry.employeeCode} • {entry.department || '-'}</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode} • {entry.department || '-'}</div>
                 </td>
                 <td style={shell.td}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
                 <td style={shell.td}>
                   {entry?.employeeDetails?.mobile || employeeMap.get(String(entry.employeeId || ''))?.mobile || '-'}<br />
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>
                     {entry?.employeeDetails?.email || employeeMap.get(String(entry.employeeId || ''))?.emailId || employeeMap.get(String(entry.employeeId || ''))?.email || '-'}
                   </span>
                 </td>
                 <td style={shell.td}>
                   {entry?.employeeDetails?.bankName || employeeMap.get(String(entry.employeeId || ''))?.bankName || '-'}<br />
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>
                     {entry?.employeeDetails?.bankNo || employeeMap.get(String(entry.employeeId || ''))?.bankNo || '-'}
                     {(entry?.employeeDetails?.ifsc || employeeMap.get(String(entry.employeeId || ''))?.ifsc)
                       ? ` • IFSC: ${entry?.employeeDetails?.ifsc || employeeMap.get(String(entry.employeeId || ''))?.ifsc}`
@@ -826,7 +826,7 @@ export default function PayrollModule() {
                     <button type="button" style={shell.btnLight} onClick={() => openSlipViewer(entry)}>Salary Slip</button>
                     {entry.payrollStatus !== 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => openAdjust(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Edit</button> : null}
                     {entry.paymentStatus !== 'Paid' ? <button type="button" style={shell.btn} onClick={() => openPayment(entry)} disabled={busy || !role.canMarkPaid}>Mark Paid</button> : null}
-                    {entry.paymentStatus !== 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => deletePayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Delete</button> : null}
+                    <button type="button" style={shell.btnLight} onClick={() => deletePayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Delete</button>
                   </div>
                 </td>
               </tr>
@@ -962,7 +962,7 @@ export default function PayrollModule() {
       <div style={shell.hero}>
         <h2 style={shell.title}>Payroll Module</h2>
         <p style={shell.subtitle}>
-          Professional payroll operations with salary setup, attendance-based calculation, payroll run, payment lock, salary slip PDF, advances, holidays, and reports.
+          Professional payroll operations with salary setup, attendance-based calculation, payroll run, payment lock, Salary Slip PDF, advances, holidays, and reports.
         </p>
       </div>
 
@@ -970,7 +970,7 @@ export default function PayrollModule() {
         <div style={shell.row}>
           <div style={shell.field}><p style={shell.label}>Month</p><select style={shell.input} value={month} onChange={(event) => setMonth(Number(event.target.value))}>{monthOptions.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></div>
           <div style={shell.field}><p style={shell.label}>Year</p><input type="number" style={shell.input} value={year} onChange={(event) => setYear(Number(event.target.value || defaultYear))} /></div>
-          <div style={shell.field}><p style={shell.label}>Role Access</p><div style={{ ...shell.input, display: 'flex', alignItems: 'center', fontWeight: 700, color: '#0f172a' }}>{role.canManage ? 'Admin/HR (Full Control)' : role.canMarkPaid ? 'Accountant (Payment Control)' : 'Employee/Technician (Own Slip View)'}</div></div>
+          <div style={shell.field}><p style={shell.label}>Role Access</p><div style={{ ...shell.input, display: 'flex', alignItems: 'center', fontWeight: 700, color: '#0f172a' }}>{role.canManage ? 'Admin/HR (Full Control)' : role.canMarkPaid ? 'Accountant (Payment Control)' : 'Employee/Technician (Own Salary Slip View)'}</div></div>
           <div style={{ ...shell.field, justifyContent: 'end' }}>
             <p style={shell.label}>Actions</p>
             <div style={shell.actionRow}>
@@ -1004,7 +1004,7 @@ export default function PayrollModule() {
           {tabKeys.find((entry) => entry.key === activeTab)?.label}
         </h3>
         <p style={shell.sub}>
-          Business rules enforced: paid leave/holiday not deducted, unpaid leave deducted, half-day deducts half day, no duplicate paid payroll generation, and post-payment slip lock until admin unlock.
+          Business rules enforced: paid leave/holiday not deducted, unpaid leave deducted, half-day deducts half day, and no duplicate paid payroll generation.
         </p>
         {activeTab === 'dashboard' ? renderDashboard() : null}
         {activeTab === 'setup' ? renderSalarySetup() : null}
