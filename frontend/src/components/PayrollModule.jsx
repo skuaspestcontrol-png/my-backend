@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { CalendarDays, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, Lock, ShieldCheck, UserRoundCheck } from 'lucide-react';
+import { CalendarDays, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, ShieldCheck, UserRoundCheck } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -533,22 +533,6 @@ export default function PayrollModule() {
     }
   };
 
-  const unlockPaidSlip = async (item) => {
-    if (!role.canManage) return window.alert('Only Admin/HR can unlock paid salary slips.');
-    if (!window.confirm('Unlock this paid salary slip?')) return;
-    try {
-      setBusy(true);
-      await axios.put(`${API_BASE}/api/payroll/items/${item._id}`, { unlock: true }, { headers });
-      setStatus('Salary slip unlocked.');
-      await reloadAll();
-    } catch (error) {
-      console.error('Unlock failed', error);
-      window.alert(error?.response?.data?.error || 'Unable to unlock salary slip.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const deletePayrollItem = async (item) => {
     if (!role.canManage && !role.canGenerate) return window.alert('Only Admin/HR can delete payroll rows.');
     if (!item?._id) return;
@@ -839,10 +823,9 @@ export default function PayrollModule() {
                 <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
                 <td style={shell.td}>
                   <div style={shell.actionRow}>
-                    <button type="button" style={shell.btnLight} onClick={() => openSlipViewer(entry)}>Slip</button>
+                    <button type="button" style={shell.btnLight} onClick={() => openSlipViewer(entry)}>Salary Slip</button>
                     {entry.payrollStatus !== 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => openAdjust(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Edit</button> : null}
                     {entry.paymentStatus !== 'Paid' ? <button type="button" style={shell.btn} onClick={() => openPayment(entry)} disabled={busy || !role.canMarkPaid}>Mark Paid</button> : null}
-                    {entry.paymentStatus === 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => unlockPaidSlip(entry)} disabled={!role.canManage}><Lock size={12} /> Unlock</button> : null}
                     {entry.paymentStatus !== 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => deletePayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Delete</button> : null}
                   </div>
                 </td>

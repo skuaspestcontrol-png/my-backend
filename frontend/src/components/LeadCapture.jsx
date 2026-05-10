@@ -238,7 +238,7 @@ const s = {
   headActionCell: { background: 'var(--color-primary-light)' },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   row: { borderBottom: '1px solid #eef2f7' },
-  cell: { padding: '4px 6px', fontSize: '8px', fontWeight: 400, color: '#111827', verticalAlign: 'middle', lineHeight: 1.15 },
+  cell: { padding: '4px 6px', fontSize: '10px', fontWeight: 400, color: '#111827', verticalAlign: 'middle', lineHeight: 1.15 },
   actionCell: { background: '#ffffff' },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
@@ -249,32 +249,32 @@ const s = {
     color: '#334155',
     padding: '4px 8px',
     borderRadius: '7px',
-    minWidth: '68px',
-    minHeight: '22px',
-    fontSize: '8px',
+    minWidth: '64px',
+    minHeight: '20px',
+    fontSize: '10px',
     fontWeight: 500,
     display: 'inline-flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '6px',
+    justifyContent: 'flex-start',
+    gap: '4px',
     cursor: 'pointer',
     whiteSpace: 'nowrap',
     lineHeight: 1
   },
   statusInlineSelect: {
-    minHeight: '22px',
+    minHeight: '20px',
     borderRadius: '8px',
     border: '1px solid rgba(159, 23, 77, 0.3)',
     background: '#fff',
     color: '#0f172a',
-    fontSize: '8px',
+    fontSize: '10px',
     fontWeight: 500,
     padding: '2px 6px',
     outline: 'none',
     minWidth: '84px'
   },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center', width: '100%' },
-  rowActionButton: { border: '1px solid rgba(17,17,17,0.14)', background: '#fff', color: '#1f2937', borderRadius: '7px', minWidth: '52px', minHeight: '20px', padding: '0 5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', fontSize: '8px', fontWeight: 400 },
+  rowActionButton: { border: '1px solid rgba(17,17,17,0.14)', background: '#fff', color: '#1f2937', borderRadius: '7px', minWidth: '52px', minHeight: '20px', padding: '0 5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 400 },
   rowActionMenu: { position: 'fixed', minWidth: '196px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 1200, overflow: 'hidden' },
   rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '8px 10px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '8px 10px', fontSize: '12px', fontWeight: 600 },
@@ -615,7 +615,7 @@ export default function LeadCapture() {
   const leadOverviewSummary = useMemo(() => {
     const totalLeads = filteredLeads.length;
     const newLeads = filteredLeads.filter((lead) => getLeadStatus(lead) === 'New Lead').length;
-    const convertedLeads = filteredLeads.filter((lead) => getLeadStatus(lead) === 'Converted').length;
+    const convertedLeads = filteredLeads.filter((lead) => getLeadStatus(lead) === 'Booked').length;
     const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100) : 0;
     const unassignedLeads = filteredLeads.filter((lead) => isLeadUnassigned(lead)).length;
     const followupLeads = filteredLeads.filter((lead) => Boolean(lead.followupDate)).length;
@@ -876,6 +876,11 @@ export default function LeadCapture() {
       closeStatusEditor();
       return;
     }
+    if (normalizedStatus === 'Booked') {
+      closeStatusEditor();
+      await convertToContract(lead);
+      return;
+    }
 
     setStatusSavingLeadId(leadId);
     try {
@@ -1061,10 +1066,6 @@ export default function LeadCapture() {
   };
 
   const openEditLeadModal = async (lead, preselectAssign = false) => {
-    if (isLeadConverted(lead)) {
-      window.alert('Converted leads cannot be edited in Lead Portal.');
-      return;
-    }
     const nextForm = mapLeadToForm(lead);
     if (preselectAssign && !nextForm.assignedTo && salesEmployees.length > 0) {
       nextForm.assignedTo = formatEmployeeName(salesEmployees[0]);
@@ -1104,8 +1105,8 @@ export default function LeadCapture() {
     if (lead?._id) {
       try {
         await axios.put(`${API_BASE_URL}/api/leads/${lead._id}`, {
-          status: 'Converted',
-          leadStatus: 'Converted'
+          status: 'Booked',
+          leadStatus: 'Booked'
         });
       } catch (error) {
         console.error('Lead conversion status update failed', error);
@@ -1586,10 +1587,6 @@ export default function LeadCapture() {
     const selectedLead = leads.find((lead) => lead._id === selectedLeadIds[0]);
     if (!selectedLead) {
       window.alert('Selected lead is not available.');
-      return;
-    }
-    if (isLeadConverted(selectedLead)) {
-      window.alert('Converted leads cannot be edited in Lead Portal.');
       return;
     }
     setShowMoreMenu(false);
@@ -2196,9 +2193,8 @@ export default function LeadCapture() {
                               </button>
                               <button
                                 type="button"
-                                style={isLeadConverted(lead) ? s.rowActionMenuBtnDisabled : s.rowActionMenuBtn}
+                                style={s.rowActionMenuBtn}
                                 onClick={() => {
-                                  if (isLeadConverted(lead)) return;
                                   openEditLeadModal(lead);
                                   closeRowActionMenu();
                                 }}
