@@ -232,7 +232,7 @@ const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
 const googleOauthStateStore = new Map();
 
-const uploadsRootDir = path.join(process.env.HOME || '/home/u610009593', 'uploads-skuas-crm');
+const uploadsRootDir = '/home/u610009593/uploads-skuas-crm';
 const uploadsDir = uploadsRootDir;
 const employeeUploadsDir = path.join(uploadsDir, 'employees');
 const employeePhotoUploadsDir = path.join(employeeUploadsDir, 'photos');
