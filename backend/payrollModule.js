@@ -192,7 +192,11 @@ const loadCompanyLogoBuffer = async (logoUrl) => {
   const text = normalizeText(logoUrl);
   if (!text) return null;
   if (text.startsWith('/uploads/')) {
-    const localUploadPath = path.join(uploadsRootDir, path.basename(text));
+    const relativeUploadPath = normalizeText(text.replace(/^\/uploads\//, ''));
+    const localUploadPath = path.join(uploadsRootDir, relativeUploadPath);
+    console.log('SALARY PDF logoUrl:', text);
+    console.log('SALARY PDF resolvedLogoPath:', localUploadPath);
+    console.log('SALARY PDF logoExists:', fs.existsSync(localUploadPath));
     try {
       if (fs.existsSync(localUploadPath)) {
         return fs.readFileSync(localUploadPath);
@@ -670,7 +674,11 @@ const calcPayrollItem = ({
 };
 
 const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resolve, reject) => {
-  const logoBuffer = await loadFirstAvailableLogoBuffer([company?.logoUrl || '']);
+  const logoBuffer = await loadFirstAvailableLogoBuffer(
+    (Array.isArray(company?.logoCandidates) && company.logoCandidates.length > 0)
+      ? company.logoCandidates
+      : [company?.logoUrl || '']
+  );
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));
@@ -708,7 +716,8 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
         align: 'left',
         valign: 'top'
       });
-    } catch (_e) {
+    } catch (error) {
+      console.error('SALARY PDF logo image failed:', error.message);
       // Continue without logo if image decode fails.
     }
   }
@@ -1779,15 +1788,6 @@ function registerPayrollModule({
       if (!canAccessItem(item, identity)) return res.status(403).json({ error: 'You can only view your own salary slip.' });
       const settings = readSettings ? (readSettings() || {}) : {};
       const company = resolveCompanyDetails(settings);
-      const localUploadPath = company.logoUrl && String(company.logoUrl).startsWith('/uploads/')
-        ? path.join(uploadsRootDir, path.basename(company.logoUrl))
-        : '';
-      console.log('Salary slip company logoUrl:', company.logoUrl);
-      console.log('Salary slip local logo path:', localUploadPath);
-      console.log('Salary slip logo exists:', localUploadPath ? fs.existsSync(localUploadPath) : false);
-      if (localUploadPath && fs.existsSync(localUploadPath)) {
-        company.logoUrl = localUploadPath;
-      }
       const buffer = await buildSalarySlipPdfBuffer({ item, company });
       const safeName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       res.setHeader('Content-Type', 'application/pdf');
