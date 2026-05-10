@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require("cors");
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const crypto = require('crypto');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
@@ -232,7 +233,8 @@ const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
 const googleOauthStateStore = new Map();
 
-const uploadsRootDir = '/home/u610009593/domains/crm.skuaspestcontrol.com/nodejs/storage/uploads';
+const userHomeDir = String(process.env.HOME || '').trim() || os.homedir();
+const uploadsRootDir = path.join(userHomeDir, 'uploads-skuas-crm');
 const uploadsDir = uploadsRootDir;
 const employeeUploadsDir = path.join(uploadsDir, 'employees');
 const employeePhotoUploadsDir = path.join(employeeUploadsDir, 'photos');
@@ -323,7 +325,7 @@ recoverUploadsFromMirror();
 
 app.use(
   '/uploads',
-  express.static('/home/u610009593/domains/crm.skuaspestcontrol.com/nodejs/storage/uploads')
+  express.static(uploadsRootDir)
 );
 
 app.get('/uploads-test', (req, res) => {

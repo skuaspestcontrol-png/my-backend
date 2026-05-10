@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const PDFDocument = require('pdfkit');
 
 const COLORS = {
@@ -101,8 +102,7 @@ const parseLocalAsset = (input = '') => {
   const raw = clean(input);
   if (!raw) return '';
   if (raw.startsWith('data:image/')) return raw;
-  const primaryUploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLOADS_DIR || '').trim()
-    || path.join(__dirname, '..', 'storage', 'uploads');
+  const primaryUploadsDir = path.join(String(process.env.HOME || '').trim() || os.homedir(), 'uploads-skuas-crm');
   const uploadDirs = [
     primaryUploadsDir,
     path.join(__dirname, 'uploads'),

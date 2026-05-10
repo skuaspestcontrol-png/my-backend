@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
 
@@ -28,9 +29,7 @@ const defaultCompany = {
   email: '',
   address: ''
 };
-const HOSTINGER_PERSISTENT_UPLOADS_DIR = '/home/u610009593/domains/crm.skuaspestcontrol.com/nodejs/storage/uploads';
-const uploadsRootDir = String(process.env.PERSISTENT_UPLOADS_DIR || process.env.UPLOADS_DIR || '').trim()
-  || HOSTINGER_PERSISTENT_UPLOADS_DIR;
+const uploadsRootDir = path.join(String(process.env.HOME || '').trim() || os.homedir(), 'uploads-skuas-crm');
 
 const allowedSalaryType = new Set(['monthly', 'daily', 'hourly']);
 const allowedPayrollStatus = new Set(['Draft', 'Generated', 'Paid', 'Hold']);
