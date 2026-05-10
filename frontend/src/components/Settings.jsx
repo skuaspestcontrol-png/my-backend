@@ -942,7 +942,7 @@ export default function Settings({ modalMode = false }) {
     const fd = new FormData();
     fd.append('brandingImage', file);
     const res = await axios.post(`${API_BASE_URL}/api/settings/upload-branding-image`, fd);
-    return String(res.data?.imageUrl || '').trim();
+    return String(res.data?.relativePath || res.data?.imageUrl || '').trim();
   };
 
   const handleLogoUpload = async (event) => {

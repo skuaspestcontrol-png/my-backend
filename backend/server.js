@@ -233,7 +233,7 @@ const resetOtpStore = new Map();
 const googleOauthStateStore = new Map();
 
 const uploadsDir = String(process.env.UPLOADS_DIR || process.env.PERSISTENT_UPLOADS_DIR || '')
-  .trim() || path.join(__dirname, '..', 'storage', 'uploads');
+  .trim() || path.join(__dirname, 'uploads');
 const employeeUploadsDir = path.join(uploadsDir, 'employees');
 const uploadsMirrorDir = String(process.env.UPLOADS_MIRROR_DIR || '').trim();
 fs.mkdirSync(uploadsDir, { recursive: true });
@@ -306,6 +306,11 @@ const resolveUploadPublicUrl = (req, fileName) => {
     return `${uploadsPublicBaseUrl.replace(/\/+$/, '')}/${safeFileName}`;
   }
   return `${resolveServerOrigin(req)}/uploads/${safeFileName}`;
+};
+const resolveUploadRelativePath = (fileName) => {
+  const safeFileName = String(fileName || '').trim();
+  if (!safeFileName) return '';
+  return `/uploads/${encodeURIComponent(safeFileName)}`;
 };
 const toDataUrlFromUpload = (file) => {
   try {
@@ -635,6 +640,43 @@ const normalizeInvoiceFieldSettings = (value) => {
   return next;
 };
 
+const normalizeUploadBackedAssetPath = (value, fallback = '') => {
+  const raw = String(value ?? '').trim();
+  const fallbackValue = String(fallback ?? '').trim();
+  if (!raw) return fallbackValue;
+  if (/^data:image\//i.test(raw)) return fallbackValue;
+  if (/^\/uploads\//i.test(raw)) return raw;
+
+  const extractUploadsPath = (input) => {
+    const normalized = String(input || '').replace(/\\/g, '/');
+    const marker = '/uploads/';
+    const index = normalized.toLowerCase().indexOf(marker);
+    if (index === -1) return '';
+    const filePart = normalized.slice(index + marker.length).split('?')[0].split('#')[0].trim();
+    if (!filePart) return '';
+    return `/uploads/${filePart}`;
+  };
+
+  const fromText = extractUploadsPath(raw);
+  if (fromText) return fromText;
+
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const parsed = new URL(raw);
+      const fromUrl = extractUploadsPath(parsed.pathname || '');
+      if (fromUrl) return fromUrl;
+      if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return fallbackValue;
+    } catch (_error) {
+      // ignore parse error
+    }
+  }
+
+  if (!raw.includes('/') && !raw.includes('\\') && /\.[a-z0-9]{2,8}$/i.test(raw)) {
+    return `/uploads/${raw}`;
+  }
+  return raw;
+};
+
 const sanitizeSettings = (raw = {}) => {
   const source = raw && typeof raw === 'object' ? raw : {};
   const invoiceTemplate = String(source.invoiceTemplate || '').trim();
@@ -861,6 +903,32 @@ const mergeSettingsForSave = (current = {}, incoming = {}) => {
       if (existing) base[key] = existing;
     }
   });
+  const logoLikeKeys = [
+    'gstCompanyLogoUrl',
+    'dashboardImageUrl',
+    'nonGstCompanyLogoUrl',
+    'gstDigitalSignatureUrl',
+    'nonGstDigitalSignatureUrl',
+    'gstCompanyStampUrl',
+    'gstBankQrUrl',
+    'nonGstBankQrUrl'
+  ];
+  logoLikeKeys.forEach((key) => {
+    const currentValue = String((current || {})[key] || '').trim();
+    if (!Object.prototype.hasOwnProperty.call(base, key)) {
+      base[key] = normalizeUploadBackedAssetPath(currentValue, '');
+      return;
+    }
+    base[key] = normalizeUploadBackedAssetPath(base[key], currentValue);
+  });
+
+  // Keep legacy sync behavior between dashboard and GST logo fields.
+  if (!String(base.gstCompanyLogoUrl || '').trim() && String(base.dashboardImageUrl || '').trim()) {
+    base.gstCompanyLogoUrl = base.dashboardImageUrl;
+  }
+  if (!String(base.dashboardImageUrl || '').trim() && String(base.gstCompanyLogoUrl || '').trim()) {
+    base.dashboardImageUrl = base.gstCompanyLogoUrl;
+  }
   return base;
 };
 
@@ -1319,15 +1387,17 @@ app.post('/api/auth/reset-password', async (req, res) => {
 app.post('/api/settings/upload-dashboard-image', upload.single('dashboardImage'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   syncUploadToMirror(req.file.filename);
-  const imageUrl = toDataUrlFromUpload(req.file) || resolveUploadPublicUrl(req, req.file.filename);
-  res.json({ imageUrl });
+  const relativePath = resolveUploadRelativePath(req.file.filename);
+  const imageUrl = resolveUploadPublicUrl(req, req.file.filename);
+  res.json({ imageUrl, relativePath });
 });
 
 app.post('/api/settings/upload-branding-image', upload.single('brandingImage'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   syncUploadToMirror(req.file.filename);
-  const imageUrl = toDataUrlFromUpload(req.file) || resolveUploadPublicUrl(req, req.file.filename);
-  res.json({ imageUrl });
+  const relativePath = resolveUploadRelativePath(req.file.filename);
+  const imageUrl = resolveUploadPublicUrl(req, req.file.filename);
+  res.json({ imageUrl, relativePath });
 });
 
 app.post('/api/employees/upload-document', upload.single('document'), (req, res) => {

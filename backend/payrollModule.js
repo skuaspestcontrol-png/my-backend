@@ -86,55 +86,61 @@ const resolveWhatsappConfig = (settings = {}) => ({
   accessToken: settings.whatsappAccessToken || process.env.WHATSAPP_ACCESS_TOKEN || ''
 });
 
-const resolveCompanyDetails = (settings = {}) => ({
-  companyName: normalizeText(
-    settings?.gstCompanyName
-    || settings?.companyName
-    || defaultCompany.companyName
-  ),
-  phone: normalizeText(
-    settings?.gstPhone
-    || settings?.companyPhone
-    || settings?.companyMobile
-    || settings?.phone
-    || settings?.mobile
-    || defaultCompany.phone
-  ),
-  website: normalizeText(
-    settings?.companyWebsite
-    || settings?.website
-    || defaultCompany.website
-  ),
-  email: normalizeText(
-    settings?.gstEmail
-    || settings?.companyEmail
-    || settings?.email
-    || defaultCompany.email
-  ),
-  address: normalizeText(
-    settings?.gstBillingAddress
-    || settings?.companyAddress
-    || settings?.address
-    || defaultCompany.address
-  ),
-  city: normalizeText(settings?.gstCity || settings?.companyCity || ''),
-  state: normalizeText(settings?.gstState || settings?.companyState || ''),
-  pincode: normalizeText(settings?.gstPincode || settings?.companyPincode || ''),
-  gstin: normalizeText(settings?.gstin || settings?.gstNumber || settings?.companyGstNumber || ''),
-  logoUrl: normalizeText(
-    settings?.gstCompanyLogoUrl
-    || settings?.gstCompanyLogo
-    || settings?.gstLogoUrl
-    || settings?.gstLogo
-    || settings?.gstCompanyStampUrl
-    || settings?.dashboardImageUrl
-    || settings?.companyLogo
-    || settings?.companyLogoUrl
-    || settings?.logoUrl
-    || settings?.nonGstCompanyLogoUrl
-    || ''
-  )
-});
+const resolveCompanyDetails = (settings = {}) => {
+  const logoCandidates = [
+    settings?.gstCompanyLogoUrl,
+    settings?.gstCompanyLogo,
+    settings?.gstLogoUrl,
+    settings?.gstLogo,
+    settings?.companyLogo,
+    settings?.company_logo,
+    settings?.companyLogoUrl,
+    settings?.logoUrl,
+    settings?.logo,
+    settings?.dashboardImageUrl,
+    settings?.nonGstCompanyLogoUrl,
+    settings?.gstCompanyStampUrl
+  ].map((value) => normalizeText(value)).filter(Boolean);
+
+  return {
+    companyName: normalizeText(
+      settings?.gstCompanyName
+      || settings?.companyName
+      || defaultCompany.companyName
+    ),
+    phone: normalizeText(
+      settings?.gstPhone
+      || settings?.companyPhone
+      || settings?.companyMobile
+      || settings?.phone
+      || settings?.mobile
+      || defaultCompany.phone
+    ),
+    website: normalizeText(
+      settings?.companyWebsite
+      || settings?.website
+      || defaultCompany.website
+    ),
+    email: normalizeText(
+      settings?.gstEmail
+      || settings?.companyEmail
+      || settings?.email
+      || defaultCompany.email
+    ),
+    address: normalizeText(
+      settings?.gstBillingAddress
+      || settings?.companyAddress
+      || settings?.address
+      || defaultCompany.address
+    ),
+    city: normalizeText(settings?.gstCity || settings?.companyCity || ''),
+    state: normalizeText(settings?.gstState || settings?.companyState || ''),
+    pincode: normalizeText(settings?.gstPincode || settings?.companyPincode || ''),
+    gstin: normalizeText(settings?.gstin || settings?.gstNumber || settings?.companyGstNumber || ''),
+    logoUrl: logoCandidates[0] || '',
+    logoCandidates
+  };
+};
 
 const tryResolveLocalUploadPath = (rawUrl) => {
   const text = normalizeText(rawUrl);
@@ -219,6 +225,18 @@ const loadCompanyLogoBuffer = async (logoUrl) => {
     } catch (_e) {
       return null;
     }
+  }
+  return null;
+};
+
+const loadFirstAvailableLogoBuffer = async (logoCandidates = []) => {
+  const tried = new Set();
+  for (const raw of Array.isArray(logoCandidates) ? logoCandidates : []) {
+    const candidate = normalizeText(raw);
+    if (!candidate || tried.has(candidate)) continue;
+    tried.add(candidate);
+    const buffer = await loadCompanyLogoBuffer(candidate);
+    if (buffer) return buffer;
   }
   return null;
 };
@@ -643,7 +661,7 @@ const calcPayrollItem = ({
 };
 
 const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resolve, reject) => {
-  const logoBuffer = await loadCompanyLogoBuffer(company?.logoUrl || '');
+  const logoBuffer = await loadFirstAvailableLogoBuffer([company?.logoUrl || '']);
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));
@@ -661,18 +679,26 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
   const slipMonthLabel = new Date(Number(item.year), Math.max(0, Number(item.month) - 1), 1)
     .toLocaleDateString('en-IN', { month: 'long' })
     .concat(`-${item.year}`);
-  // Match sample layout: bigger GST logo at left, details block at right.
-  const logoWidth = 260;
-  const logoHeight = 110;
+  // Professional letterhead proportions for A4:
+  // left logo block (~42%) and right company block (~52%).
   const headerTop = 34;
+  const headerWidth = 511;
   const leftX = 42;
-  const rightX = 372;
-  const rightWidth = 181;
+  const logoSectionWidth = Math.round(headerWidth * 0.42);
+  const companySectionWidth = Math.round(headerWidth * 0.52);
+  const sectionGap = headerWidth - logoSectionWidth - companySectionWidth;
+  const rightX = leftX + logoSectionWidth + sectionGap;
+  const rightWidth = companySectionWidth;
+  const logoWidth = 220;
+  const logoHeight = 110;
 
   if (logoBuffer) {
     try {
-      // Source is GST company logo from settings (gstCompanyLogoUrl).
-      doc.image(logoBuffer, leftX, headerTop + 6, { fit: [logoWidth, logoHeight], align: 'left', valign: 'top' });
+      doc.image(logoBuffer, leftX, headerTop + 6, {
+        fit: [Math.min(logoWidth, logoSectionWidth), logoHeight],
+        align: 'left',
+        valign: 'top'
+      });
     } catch (_e) {
       // Continue without logo if image decode fails.
     }
