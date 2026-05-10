@@ -368,7 +368,7 @@ const getCustomerMobile = (customer) => normalizePhoneNumber(customer.mobileNumb
 const getCustomerName = (customer) => customer.displayName || customer.name || customer.companyName || customer.contactPersonName || '';
 const ROW_ACTION_MENU_APPROX_WIDTH = 170;
 const ROW_ACTION_MENU_APPROX_HEIGHT = 240;
-const ROW_ACTION_MENU_GAP = 2;
+const ROW_ACTION_MENU_GAP = 0;
 const FOLLOWUP_TYPES = ['Phone Call', 'WhatsApp', 'Site Visit', 'Email', 'Meeting'];
 const FOLLOWUP_OUTCOMES = ['Callback Required', 'Interested', 'Not Interested', 'Converted', '25%', '50%', '75%', '100%', 'No Response'];
 

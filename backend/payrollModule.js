@@ -151,13 +151,18 @@ const tryResolveLocalUploadPath = (rawUrl) => {
     try { return decodeURIComponent(cleanPath); } catch (_e) { return cleanPath; }
   })();
   const uploadsToken = '/uploads/';
+  const baseName = path.basename(decodedPath || cleanPath || text);
   const candidates = [
     text,
     decodedPath,
     cleanPath,
+    baseName,
     path.join(__dirname, 'uploads', decodedPath),
     path.join(__dirname, '..', 'uploads', decodedPath),
     path.join(process.cwd(), 'uploads', decodedPath),
+    path.join(__dirname, 'uploads', baseName),
+    path.join(__dirname, '..', 'uploads', baseName),
+    path.join(process.cwd(), 'uploads', baseName),
     path.join(__dirname, 'public', 'uploads', decodedPath),
     path.join(__dirname, '..', 'public', 'uploads', decodedPath)
   ];
@@ -195,9 +200,22 @@ const loadCompanyLogoBuffer = async (logoUrl) => {
   }
   if (/^https?:\/\//i.test(text)) {
     try {
-      const response = await fetch(text);
-      if (!response.ok) return null;
-      return Buffer.from(await response.arrayBuffer());
+      const tryUrls = [text];
+      try {
+        const parsed = new URL(text);
+        parsed.pathname = encodeURI(parsed.pathname);
+        tryUrls.push(parsed.toString());
+      } catch (_e) {}
+      for (const url of tryUrls) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) continue;
+          return Buffer.from(await response.arrayBuffer());
+        } catch (_e) {
+          // Try next variant
+        }
+      }
+      return null;
     } catch (_e) {
       return null;
     }
@@ -648,8 +666,8 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
   const logoHeight = 110;
   const headerTop = 34;
   const leftX = 42;
-  const rightX = 350;
-  const rightWidth = 203;
+  const rightX = 372;
+  const rightWidth = 181;
 
   if (logoBuffer) {
     try {
