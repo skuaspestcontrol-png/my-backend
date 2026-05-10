@@ -28,7 +28,7 @@ const defaultCompany = {
   email: '',
   address: ''
 };
-const uploadsRootDir = path.join(process.env.HOME || '/home/u610009593', 'uploads-skuas-crm');
+const uploadsRootDir = '/home/u610009593/uploads-skuas-crm';
 
 const allowedSalaryType = new Set(['monthly', 'daily', 'hourly']);
 const allowedPayrollStatus = new Set(['Draft', 'Generated', 'Paid', 'Hold']);
