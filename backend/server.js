@@ -232,8 +232,8 @@ const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
 const googleOauthStateStore = new Map();
 
-const HOSTINGER_PERSISTENT_UPLOADS_DIR = '/home/u610009593/domains/crm.skuaspestcontrol.com/nodejs/storage/uploads';
-const uploadsDir = String(process.env.PERSISTENT_UPLOADS_DIR || process.env.UPLOADS_DIR || '').trim() || HOSTINGER_PERSISTENT_UPLOADS_DIR;
+const uploadsRootDir = '/home/u610009593/domains/crm.skuaspestcontrol.com/nodejs/storage/uploads';
+const uploadsDir = uploadsRootDir;
 const employeeUploadsDir = path.join(uploadsDir, 'employees');
 const employeePhotoUploadsDir = path.join(employeeUploadsDir, 'photos');
 const employeeAadhaarUploadsDir = path.join(employeeUploadsDir, 'aadhaar');
@@ -252,7 +252,8 @@ console.log('Employee upload photos dir:', employeePhotoUploadsDir);
 console.log('Employee upload aadhaar dir:', employeeAadhaarUploadsDir);
 console.log('Employee upload pan dir:', employeePanUploadsDir);
 console.log('Employee upload documents dir:', employeeDocumentsUploadsDir);
-console.log('Uploads static directory:', uploadsDir);
+console.log('Uploads static directory:', uploadsRootDir);
+console.log('Uploads dir exists:', fs.existsSync(uploadsRootDir));
 const legacyDataDir = path.join(__dirname, 'data');
 const dataDir = String(process.env.DATA_DIR || process.env.PERSISTENT_DATA_DIR || '').trim()
   || path.join(__dirname, '..', 'storage', 'data');
@@ -320,7 +321,10 @@ const recoverUploadsFromMirror = () => {
 };
 recoverUploadsFromMirror();
 
-app.use('/uploads', express.static(uploadsDir));
+app.use(
+  '/uploads',
+  express.static('/home/u610009593/domains/crm.skuaspestcontrol.com/nodejs/storage/uploads')
+);
 const uploadsPublicBaseUrl = String(process.env.UPLOADS_PUBLIC_BASE_URL || '').trim();
 const normalizeUploadRelativePath = (value) => {
   const raw = String(value || '').trim().replace(/\\/g, '/');
