@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { loadGooglePlacesScript } from '../utils/googlePlaces';
 import {
@@ -443,6 +443,7 @@ const mapLeadToCustomerPrefill = (lead) => {
 
 export default function LeadCapture() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [leads, setLeads] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -790,6 +791,15 @@ export default function LeadCapture() {
   useEffect(() => {
     setSelectedLeadIds((prev) => prev.filter((id) => leads.some((lead) => lead._id === id)));
   }, [leads]);
+
+  useEffect(() => {
+    const requestedLeadId = String(location.state?.openLogFollowupLeadId || '').trim();
+    if (!requestedLeadId || leads.length === 0) return;
+    const targetLead = leads.find((lead) => String(lead._id || '') === requestedLeadId);
+    if (!targetLead) return;
+    openLogFollowupModal(targetLead);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [leads, location.pathname, location.state, navigate]);
 
   const closeRowActionMenu = () => {
     setRowActionLeadId('');

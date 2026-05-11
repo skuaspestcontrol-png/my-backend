@@ -314,7 +314,13 @@ export default function LeadFollowups() {
                   <td style={shell.td}>{formatDate(lead.lastFollowupDate || lead.lastFollowUpDate)}</td>
                   <td style={shell.td}>{formatDate(lead.followupDate)}</td>
                   <td style={shell.td}>
-                    <button type="button" style={shell.actionBtn} onClick={() => navigate('/leads')}>Open Lead</button>
+                    <button
+                      type="button"
+                      style={shell.actionBtn}
+                      onClick={() => navigate('/leads', { state: { openLogFollowupLeadId: lead._id } })}
+                    >
+                      Open Lead
+                    </button>
                   </td>
                 </tr>
               ))}
