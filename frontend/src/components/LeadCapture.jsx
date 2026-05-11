@@ -232,17 +232,17 @@ const s = {
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
   tableWrap: { overflowX: 'hidden', overflowY: 'hidden', background: '#fff', position: 'relative', borderRadius: '14px', border: '1px solid var(--color-border)' },
   table: { width: '100%', minWidth: 0, borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left', tableLayout: 'fixed' },
-  headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '5px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'normal', overflowWrap: 'anywhere' },
+  headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '5px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   headActionCell: { background: 'var(--color-primary-light)' },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   row: { borderBottom: '1px solid #eef2f7' },
-  cell: { padding: '4px 6px', fontSize: '10px', fontWeight: 400, color: '#111827', verticalAlign: 'middle', lineHeight: 1.15 },
+  cell: { padding: '7px 6px', fontSize: '10px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.15 },
   actionCell: { background: '#ffffff' },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
-  statusBadge: { background: 'rgba(159, 23, 77, 0.14)', color: 'var(--color-primary-dark)', padding: '5px 9px', borderRadius: '999px', fontSize: '10px', fontWeight: 400, display: 'inline-block' },
+  statusBadge: { background: 'rgba(159, 23, 77, 0.14)', color: 'var(--color-primary-dark)', padding: '4px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: 500, display: 'inline-block', whiteSpace: 'nowrap' },
   statusBadgeButton: {
     border: '1px solid #d1d5db',
     background: '#ffffff',
@@ -250,9 +250,9 @@ const s = {
     padding: '4px 8px',
     borderRadius: '7px',
     minWidth: '64px',
-    minHeight: '20px',
+    minHeight: '22px',
     fontSize: '10px',
-    fontWeight: 400,
+    fontWeight: 500,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'flex-start',
@@ -274,7 +274,7 @@ const s = {
     minWidth: '84px'
   },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center', width: '100%' },
-  rowActionButton: { border: '1px solid rgba(17,17,17,0.18)', background: '#fff', color: '#1f2937', borderRadius: '9px', minWidth: '88px', minHeight: '30px', padding: '0 8px 0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, lineHeight: 1 },
+  rowActionButton: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#1f2937', borderRadius: '8px', minWidth: '78px', minHeight: '28px', padding: '0 7px 0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, lineHeight: 1 },
   rowActionIconBox: { width: '16px', height: '16px', borderRadius: '5px', border: '1px solid #d1d5db', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', flexShrink: 0 },
   rowActionMenu: { position: 'fixed', minWidth: '158px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 1200, overflow: 'hidden' },
   rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
@@ -1837,12 +1837,32 @@ export default function LeadCapture() {
   const buttonGhostStyle = isTiny ? { ...s.buttonGhost, width: '42px', height: '42px' } : s.buttonGhost;
   const customizeButtonStyle = isTiny ? { ...s.customizeButton, padding: '6px 8px', fontSize: '10px' } : s.customizeButton;
   const leadModalCompactBodyStyle = isTiny ? { ...leadModalBodyStyle, padding: '10px' } : leadModalBodyStyle;
-  const tableStyleTiny = tableStyle;
+  const tableWrapStyle = isMobile
+    ? { ...s.tableWrap, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }
+    : { ...s.tableWrap, overflowX: 'auto' };
+  const tableStyleTiny = isMobile
+    ? { ...tableStyle, minWidth: '720px' }
+    : { ...tableStyle, minWidth: '1180px' };
+  const actionColumnStyle = isMobile
+    ? { width: '68px', minWidth: '68px', maxWidth: '68px' }
+    : { width: '84px', minWidth: '84px', maxWidth: '84px' };
+  const rowActionButtonStyle = isMobile
+    ? { ...s.rowActionButton, width: '58px', minWidth: 0, minHeight: '28px', padding: '0 4px 0 7px', borderRadius: '8px', gap: '3px', fontSize: '10px' }
+    : s.rowActionButton;
+  const rowActionIconBoxStyle = isMobile
+    ? { ...s.rowActionIconBox, width: '14px', height: '14px', borderRadius: '4px' }
+    : s.rowActionIconBox;
   const filterActionFieldStyle = isMobile || isTablet
     ? { ...s.filterField, justifyContent: 'flex-end', alignItems: 'stretch', gridColumn: 'auto' }
     : { ...s.filterField, justifyContent: 'flex-end', alignItems: 'flex-end', gridColumn: '7 / 8' };
   const filterActionsStyle = isMobile ? { ...s.filterActions, justifyContent: 'stretch', width: '100%' } : s.filterActions;
   const applyButtonStyle = isMobile ? { ...s.applyButton, flex: 1 } : s.applyButton;
+  const leadRecordCellStyle = isMobile
+    ? { ...s.cell, whiteSpace: 'normal', overflowWrap: 'anywhere', wordBreak: 'break-word' }
+    : { ...s.cell, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'normal' };
+  const leadStatusCellStyle = isMobile
+    ? s.cell
+    : { ...s.cell, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 
   return (
     <div style={pageStyle}>
@@ -2067,7 +2087,7 @@ export default function LeadCapture() {
           </div>
         </div>
 
-        <div style={s.tableWrap}>
+        <div style={tableWrapStyle}>
           <table style={tableStyleTiny}>
             <thead>
               <tr>
@@ -2086,7 +2106,7 @@ export default function LeadCapture() {
                     />
                   </th>
                 ))}
-                <th style={{ ...s.headCell, ...s.headActionCell, width: '74px', textAlign: 'center' }}>Action</th>
+                <th style={{ ...s.headCell, ...s.headActionCell, ...actionColumnStyle, textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -2113,7 +2133,7 @@ export default function LeadCapture() {
                         const statusTone = getLeadStatusBadgeStyle(value);
                         const convertedLead = isLeadConverted(lead);
                         return (
-                          <td key={`${lead._id}-${column.key}`} style={{ ...s.cell, ...getColumnStyle(column.key) }}>
+                          <td key={`${lead._id}-${column.key}`} style={{ ...leadStatusCellStyle, ...getColumnStyle(column.key) }}>
                             <div data-lead-status-editor="true" style={{ display: 'inline-flex', alignItems: 'center' }}>
                               {statusEditorLeadId === lead._id && !convertedLead ? (
                                 <select
@@ -2153,23 +2173,23 @@ export default function LeadCapture() {
                       return (
                         <td
                           key={`${lead._id}-${column.key}`}
-                          style={{ ...s.cell, ...getColumnStyle(column.key), whiteSpace: 'normal', overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                          style={{ ...leadRecordCellStyle, ...getColumnStyle(column.key) }}
                           title={String(value || '')}
                         >
                           {value || '-'}
                         </td>
                       );
                     })}
-                    <td style={{ ...s.cell, ...s.actionCell, width: '74px', textAlign: 'center' }}>
+                    <td style={{ ...s.cell, ...s.actionCell, ...actionColumnStyle, textAlign: 'center' }}>
                       <div style={s.rowActionWrap} data-lead-row-action="true">
                         <button
                           type="button"
-                          style={s.rowActionButton}
+                          style={rowActionButtonStyle}
                           onClick={(event) => openRowActionMenu(event, lead._id)}
                           title="Manage lead"
                         >
                           <span>Action</span>
-                          <span style={s.rowActionIconBox}>
+                          <span style={rowActionIconBoxStyle}>
                             <ChevronDown size={11} />
                           </span>
                         </button>

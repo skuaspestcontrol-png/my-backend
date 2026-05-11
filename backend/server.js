@@ -8,7 +8,8 @@ const nodemailer = require('nodemailer');
 const { execFile } = require('child_process');
 const PDFDocument = require('pdfkit');
 const { generateInvoicePdfBuffer, formatINR, formatDate } = require('./invoicePdf');
-const { query: dbQuery, getConnection } = require('./lib/db');
+const { pool, query: dbQuery, getConnection } = require('./lib/db');
+const { runAutoMigrations, getLastMigrationStatus } = require('./lib/autoMigrate');
 const { readCachedSettings, clearSettingsCache } = require('./lib/settings-cache');
 const { registerPayrollModule } = require('./payrollModule');
 const { registerHrModule } = require('./hrModule');
@@ -208,6 +209,49 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
+const readAdminMigrationToken = (req) => String(
+  req.headers['x-admin-migration-token']
+  || req.headers.authorization?.replace(/^Bearer\s+/i, '')
+  || req.body?.token
+  || req.query?.token
+  || ''
+).trim();
+
+app.get('/api/admin/migration-status', (req, res) => {
+  res.json({
+    success: true,
+    status: getLastMigrationStatus()
+  });
+});
+
+app.post('/api/admin/run-migrations', async (req, res) => {
+  const expectedToken = String(process.env.ADMIN_MIGRATION_TOKEN || '').trim();
+  if (!expectedToken) {
+    return res.status(500).json({
+      success: false,
+      error: 'ADMIN_MIGRATION_TOKEN is not configured'
+    });
+  }
+  if (readAdminMigrationToken(req) !== expectedToken) {
+    return res.status(403).json({
+      success: false,
+      error: 'Invalid migration token'
+    });
+  }
+  if (!canUseMysql()) {
+    return res.status(500).json({
+      success: false,
+      error: 'MySQL is not configured',
+      status: getLastMigrationStatus()
+    });
+  }
+
+  const status = await runAutoMigrations(pool);
+  return res.status(status.errors?.length ? 207 : 200).json({
+    success: status.errors?.length === 0,
+    status
+  });
+});
 app.use('/api', quotationRouter);
 const resolvePort = () => {
   const candidates = [
@@ -6708,7 +6752,27 @@ process.on('unhandledRejection', (reason) => {
   console.error('UNHANDLED_REJECTION:', reason && reason.stack ? reason.stack : reason);
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Backend Server Live on Port ${PORT}`);
-  console.log(`Health endpoint ready at /health`);
+const startServer = async () => {
+  if (canUseMysql()) {
+    try {
+      await runAutoMigrations(pool);
+    } catch (error) {
+      console.error('AUTO MIGRATION STARTUP ERROR:', error && error.stack ? error.stack : error);
+    }
+  } else {
+    console.warn('AUTO MIGRATION SKIPPED: MySQL is not configured.');
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Backend Server Live on Port ${PORT}`);
+    console.log(`Health endpoint ready at /health`);
+  });
+};
+
+startServer().catch((error) => {
+  console.error('SERVER STARTUP ERROR:', error && error.stack ? error.stack : error);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Backend Server Live on Port ${PORT}`);
+    console.log(`Health endpoint ready at /health`);
+  });
 });

@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
+const { syncPayrollJsonFilesToMysql } = require('./lib/autoMigrate');
 
 const round2 = (value) => Number((Number(value) || 0).toFixed(2));
 const toNumber = (value, fallback = 0) => {
@@ -913,6 +914,15 @@ function registerPayrollModule({
     });
   };
 
+  const syncPayrollTablesToMysql = (reason) => {
+    if (!canUseMysql) return;
+    withMysqlConnection(async (conn) => {
+      await syncPayrollJsonFilesToMysql(conn);
+    }).catch((error) => {
+      console.error(`Payroll MySQL table sync failed (${reason || 'save'}):`, error.message);
+    });
+  };
+
   const readSnapshotFromMysql = async (snapshotKey) => {
     if (!canUseMysql) return null;
     const cached = payrollSnapshotCache.get(snapshotKey);
@@ -967,36 +977,43 @@ function registerPayrollModule({
     const payload = { config, runs };
     safeWriteJsonFile(payrollRunsFile, payload, 'payroll_runs');
     saveSnapshotToMysql('payroll_runs', payload);
+    syncPayrollTablesToMysql('payroll_runs');
   };
 
   const getItems = () => readJsonFile(payrollItemsFile, []);
   const saveItems = (rows) => {
     safeWriteJsonFile(payrollItemsFile, rows, 'payroll_items');
     saveSnapshotToMysql('payroll_items', rows);
+    syncPayrollTablesToMysql('payroll_items');
   };
   const getStructures = () => readJsonFile(salaryStructuresFile, []).map((entry) => normalizeSalaryStructure(entry));
   const saveStructures = (rows) => {
     fs.writeFileSync(salaryStructuresFile, JSON.stringify(rows, null, 2));
     saveSnapshotToMysql('payroll_salary_structures', rows);
+    syncPayrollTablesToMysql('payroll_salary_structures');
   };
   const getHolidays = () => readJsonFile(holidaysFile, []).map((entry) => normalizeHoliday(entry)).filter((entry) => entry.date);
   const saveHolidays = (rows) => {
     safeWriteJsonFile(holidaysFile, rows, 'payroll_holidays');
     saveSnapshotToMysql('payroll_holidays', rows);
+    syncPayrollTablesToMysql('payroll_holidays');
   };
   const getAdvances = () => readJsonFile(advancesFile, []).map((entry) => normalizeAdvance(entry)).filter((entry) => entry.employeeId);
   const saveAdvances = (rows) => {
     safeWriteJsonFile(advancesFile, rows, 'payroll_advances');
     saveSnapshotToMysql('payroll_advances', rows);
+    syncPayrollTablesToMysql('payroll_advances');
   };
   const getPayments = () => readJsonFile(salaryPaymentsFile, []);
   const savePayments = (rows) => {
     safeWriteJsonFile(salaryPaymentsFile, rows, 'payroll_salary_payments');
     saveSnapshotToMysql('payroll_salary_payments', rows);
+    syncPayrollTablesToMysql('payroll_salary_payments');
   };
   const saveAuditRows = (rows) => {
     safeWriteJsonFile(payrollAuditFile, rows, 'payroll_audit');
     saveSnapshotToMysql('payroll_audit', rows);
+    syncPayrollTablesToMysql('payroll_audit');
   };
 
   let payrollHydrationPromise = null;
