@@ -50,6 +50,7 @@ export default function DashboardLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [settings, setSettings] = useState({});
+  const [leadsMenuOpen, setLeadsMenuOpen] = useState(false);
   const [salesMenuOpen, setSalesMenuOpen] = useState(false);
   const [purchaseMenuOpen, setPurchaseMenuOpen] = useState(false);
   const [fieldOpsMenuOpen, setFieldOpsMenuOpen] = useState(false);
@@ -77,6 +78,9 @@ export default function DashboardLayout({ children }) {
   }, [settings]);
 
   useEffect(() => {
+    if (location.pathname === '/leads' || location.pathname.startsWith('/leads/')) {
+      setLeadsMenuOpen(true);
+    }
     if (location.pathname.startsWith('/sales/')) {
       setSalesMenuOpen(true);
     }
@@ -130,6 +134,7 @@ export default function DashboardLayout({ children }) {
   const isPrefixActive = (prefix) => location.pathname.startsWith(prefix);
 
   const salesGroupActive = isPrefixActive('/sales/');
+  const leadsGroupActive = isActive('/leads') || isPrefixActive('/leads/');
   const purchaseGroupActive = isPrefixActive('/purchase/');
   const fieldOpsGroupActive = isPrefixActive('/operations/') || isActive('/schedule-job') || isActive('/technician-portal');
 
@@ -159,6 +164,11 @@ export default function DashboardLayout({ children }) {
     fontSize: '12px',
     padding: '9px 18px 9px 42px',
     width: 'calc(100% - 24px)',
+    color: isActive(path) ? 'var(--color-white)' : 'var(--color-muted)'
+  });
+
+  const subLinkActiveStyle = (path) => ({
+    ...subLinkStyle(path),
     color: isActive(path) ? 'var(--color-white)' : 'var(--color-muted)'
   });
 
@@ -275,7 +285,18 @@ export default function DashboardLayout({ children }) {
           </Link>
 
           <SidebarSection title="Sales & Marketing">
-            <Link to="/leads" className={isActive('/leads') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/leads')}><Users size={18} /> Leads</Link>
+            <button type="button" className={leadsGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => setLeadsMenuOpen((prev) => !prev)} style={groupToggleStyle(leadsGroupActive)}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+                <Users size={18} /> Leads
+              </span>
+              {leadsMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+            </button>
+            {leadsMenuOpen ? (
+              <>
+                <Link to="/leads" className={isActive('/leads') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads')}>Lead Master</Link>
+                <Link to="/leads/followup" className={isActive('/leads/followup') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads/followup')}>Followup</Link>
+              </>
+            ) : null}
             <Link to="/quotations" className={isActive('/quotations') || isActive('/quotations/new') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={baseLinkStyle(isActive('/quotations') || isActive('/quotations/new'))}><FileText size={18} /> Quotation</Link>
 
             <button type="button" className={salesGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => setSalesMenuOpen((prev) => !prev)} style={groupToggleStyle(salesGroupActive)}>
