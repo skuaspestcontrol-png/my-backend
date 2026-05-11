@@ -371,6 +371,28 @@ const ROW_ACTION_MENU_APPROX_HEIGHT = 240;
 const ROW_ACTION_MENU_GAP = 0;
 const FOLLOWUP_TYPES = ['Phone Call', 'WhatsApp', 'Site Visit', 'Email', 'Meeting'];
 const FOLLOWUP_OUTCOMES = ['Callback Required', 'Interested', 'Not Interested', 'Converted', '25%', '50%', '75%', '100%', 'No Response'];
+const mobileLeadColumnWidths = {
+  date: 92,
+  customerName: 138,
+  mobile: 112,
+  whatsappNumber: 128,
+  emailId: 170,
+  address: 190,
+  areaName: 128,
+  city: 112,
+  state: 116,
+  pincode: 90,
+  pestIssue: 158,
+  leadSource: 104,
+  propertyType: 112,
+  status: 106,
+  quotationValue: 122,
+  followupDate: 112,
+  assignedTo: 138,
+  referenceCustomerName: 150,
+  referenceCustomerDate: 140,
+  remarks: 180
+};
 
 const mapLeadToCustomerPrefill = (lead) => {
   const customerName = String(lead.customerName || '').trim();
@@ -1487,8 +1509,13 @@ export default function LeadCapture() {
     });
   };
 
+  const getMobileColumnStyle = (columnKey) => {
+    const width = mobileLeadColumnWidths[columnKey] || 128;
+    return { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` };
+  };
+
   const getColumnStyle = (columnKey) => {
-    if (isMobile) return {};
+    if (isMobile) return getMobileColumnStyle(columnKey);
     const width = Number(columnWidths[columnKey]);
     if (!Number.isFinite(width) || width <= 0) return {};
     const clampedWidth = Math.max(72, Math.min(160, width));
@@ -1837,17 +1864,20 @@ export default function LeadCapture() {
   const buttonGhostStyle = isTiny ? { ...s.buttonGhost, width: '42px', height: '42px' } : s.buttonGhost;
   const customizeButtonStyle = isTiny ? { ...s.customizeButton, padding: '6px 8px', fontSize: '10px' } : s.customizeButton;
   const leadModalCompactBodyStyle = isTiny ? { ...leadModalBodyStyle, padding: '10px' } : leadModalBodyStyle;
+  const leadTableMinWidth = isMobile
+    ? `${40 + 92 + visibleColumnDefs.reduce((total, column) => total + (mobileLeadColumnWidths[column.key] || 128), 0)}px`
+    : '1180px';
   const tableWrapStyle = isMobile
-    ? { ...s.tableWrap, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }
+    ? { ...s.tableWrap, overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain' }
     : { ...s.tableWrap, overflowX: 'auto' };
   const tableStyleTiny = isMobile
-    ? { ...tableStyle, minWidth: '720px' }
-    : { ...tableStyle, minWidth: '1180px' };
+    ? { ...tableStyle, width: leadTableMinWidth, minWidth: leadTableMinWidth, tableLayout: 'fixed' }
+    : { ...tableStyle, minWidth: leadTableMinWidth };
   const actionColumnStyle = isMobile
-    ? { width: '68px', minWidth: '68px', maxWidth: '68px' }
+    ? { width: '92px', minWidth: '92px', maxWidth: '92px' }
     : { width: '84px', minWidth: '84px', maxWidth: '84px' };
   const rowActionButtonStyle = isMobile
-    ? { ...s.rowActionButton, width: '58px', minWidth: 0, minHeight: '28px', padding: '0 4px 0 7px', borderRadius: '8px', gap: '3px', fontSize: '10px' }
+    ? { ...s.rowActionButton, width: '78px', minWidth: '78px', minHeight: '30px', padding: '0 7px 0 9px', borderRadius: '8px', gap: '5px', fontSize: '11px' }
     : s.rowActionButton;
   const rowActionIconBoxStyle = isMobile
     ? { ...s.rowActionIconBox, width: '14px', height: '14px', borderRadius: '4px' }
@@ -1858,10 +1888,10 @@ export default function LeadCapture() {
   const filterActionsStyle = isMobile ? { ...s.filterActions, justifyContent: 'stretch', width: '100%' } : s.filterActions;
   const applyButtonStyle = isMobile ? { ...s.applyButton, flex: 1 } : s.applyButton;
   const leadRecordCellStyle = isMobile
-    ? { ...s.cell, whiteSpace: 'normal', overflowWrap: 'anywhere', wordBreak: 'break-word' }
+    ? { ...s.cell, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'normal', fontSize: '11px', lineHeight: 1.2 }
     : { ...s.cell, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'normal' };
   const leadStatusCellStyle = isMobile
-    ? s.cell
+    ? { ...s.cell, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '11px', lineHeight: 1.2 }
     : { ...s.cell, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 
   return (
