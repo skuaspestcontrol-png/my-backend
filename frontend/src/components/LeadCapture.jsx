@@ -369,7 +369,7 @@ const ROW_ACTION_MENU_APPROX_WIDTH = 170;
 const ROW_ACTION_MENU_APPROX_HEIGHT = 190;
 const ROW_ACTION_MENU_GAP = 8;
 const FOLLOWUP_TYPES = ['Phone Call', 'WhatsApp', 'Site Visit', 'Email', 'Meeting'];
-const FOLLOWUP_OUTCOMES = ['Callback Required', 'Interested', 'Not Interested', 'Converted', '25%', '50%', '75%', '100%', 'No Response'];
+const FOLLOWUP_OUTCOMES = ['Callback Required', 'Interested', 'Not Interested', 'Converted', 'No Response'];
 const mobileLeadColumnWidths = {
   date: 92,
   customerName: 138,
