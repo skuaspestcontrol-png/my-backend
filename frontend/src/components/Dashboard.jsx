@@ -225,8 +225,8 @@ export default function Dashboard() {
 
   const leadPipeline = useMemo(() => {
     const totalLeads = leads.length;
-    const interested = leads.filter((lead) => normalizeLeadStatus(lead.status || lead.leadStatus) === 'interested').length;
-    const converted = leads.filter((lead) => normalizeLeadStatus(lead.status || lead.leadStatus) === 'converted').length;
+    const interested = leads.filter((lead) => ['interested', 'warm', 'hot'].includes(normalizeLeadStatus(lead.status || lead.leadStatus))).length;
+    const converted = leads.filter((lead) => ['converted', 'booked'].includes(normalizeLeadStatus(lead.status || lead.leadStatus))).length;
     const cancelled = leads.filter((lead) => normalizeLeadStatus(lead.status || lead.leadStatus) === 'cancelled').length;
     const conversionRate = totalLeads > 0 ? (converted / totalLeads) * 100 : 0;
     const avgDealValue = converted > 0 ? analytics.totalReceivables / converted : 0;
@@ -289,9 +289,8 @@ export default function Dashboard() {
   const leadSourceColors = ['#3A6ECC', '#56B881', '#E8A03A', '#E14F61', '#45ABC8', '#7B61E8'];
   const leadFunnelRows = [
     { label: 'Total Leads', value: leadPipeline.totalLeads, color: '#4965dd' },
-    { label: 'Interested', value: leadPipeline.interested, color: '#46a9cd' },
-    { label: 'Converted', value: leadPipeline.converted, color: '#58b381' },
-    { label: 'Cancelled', value: leadPipeline.cancelled, color: '#d9534f' }
+    { label: 'Interested', value: leadPipeline.interested, color: '#12abc4' },
+    { label: 'Converted', value: leadPipeline.converted, color: '#18b985' }
   ];
   const maxLeadFunnel = Math.max(...leadFunnelRows.map((row) => row.value), 1);
 
@@ -341,8 +340,7 @@ export default function Dashboard() {
             <h2 style={shell.panelTitle}>Lead Pipeline</h2>
             <span style={{ color: '#475569', fontWeight: 700 }}>This FY</span>
           </div>
-          <p style={shell.panelSub}>Sales Funnel</p>
-          <div style={{ display: 'grid', gap: '10px', marginTop: '14px' }}>
+          <div style={{ display: 'grid', gap: '14px', marginTop: '18px' }}>
             {leadFunnelRows.map((row) => (
               <button
                 key={row.label}
@@ -350,21 +348,41 @@ export default function Dashboard() {
                 onClick={() => navigate('/leads')}
                 style={{
                   border: 'none',
-                  borderRadius: '12px',
-                  padding: '12px 14px',
-                  background: row.color,
-                  color: '#fff',
+                  background: 'transparent',
+                  padding: 0,
                   cursor: 'pointer',
                   display: 'grid',
-                  gridTemplateColumns: '1fr auto',
+                  gridTemplateColumns: isMobile ? '92px minmax(0, 1fr) 44px' : '126px minmax(0, 1fr) 56px',
                   alignItems: 'center',
-                  width: `${Math.max(8, (row.value / maxLeadFunnel) * 100)}%`,
-                  minWidth: '90px',
-                  textAlign: 'left'
+                  gap: isMobile ? '10px' : '14px',
+                  width: '100%',
+                  textAlign: 'left',
+                  minHeight: '56px'
                 }}
               >
-                <span style={{ fontWeight: 800, fontSize: '14px' }}>{row.label}</span>
-                <span style={{ fontWeight: 800, fontSize: '14px' }}>{row.value}</span>
+                <span style={{ color: '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '15px', textAlign: 'right' }}>{row.label}</span>
+                <span style={{ display: 'block', width: '100%', minWidth: 0 }}>
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      height: isMobile ? '42px' : '48px',
+                      width: `${Math.max(row.value > 0 ? 12 : 0, (row.value / maxLeadFunnel) * 100)}%`,
+                      minWidth: row.value > 0 ? (isMobile ? '54px' : '70px') : '0',
+                      borderRadius: '7px',
+                      background: row.color,
+                      color: '#fff',
+                      padding: row.value > 0 ? '0 14px' : 0,
+                      boxSizing: 'border-box',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <strong style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: 1 }}>{row.value}</strong>
+                  </span>
+                </span>
+                <span style={{ color: '#64748b', fontWeight: 700, fontSize: isMobile ? '13px' : '15px', textAlign: 'left' }}>
+                  {`${leadPipeline.totalLeads > 0 ? Math.round((row.value / leadPipeline.totalLeads) * 100) : 0}%`}
+                </span>
               </button>
             ))}
           </div>
