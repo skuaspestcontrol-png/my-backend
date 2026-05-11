@@ -146,7 +146,6 @@ const emptyForm = {
   googlePhone: '',
   googleWebsite: '',
   pestIssue: '',
-  pestIssueMulti: [],
   quotationValue: '',
   leadSource: 'Call',
   propertyType: 'Residential',
@@ -675,7 +674,6 @@ export default function LeadCapture() {
     googlePhone: lead.googlePhone || lead.google_phone || '',
     googleWebsite: lead.googleWebsite || lead.google_website || '',
     pestIssue: lead.pestIssue || '',
-    pestIssueMulti: String(lead.pestIssue || '').split(',').map((item) => item.trim()).filter(Boolean),
     quotationValue: String(lead.quotationValue || lead.quotation_value || '').trim(),
     leadSource: lead.leadSource || emptyForm.leadSource,
     propertyType: lead.propertyType || lead.customerSegment || emptyForm.propertyType,
@@ -1700,7 +1698,6 @@ export default function LeadCapture() {
       pincode: String(record.pincode || record.pinCode || '').trim(),
       pinCode: String(record.pincode || record.pinCode || '').trim(),
       pestIssue: String(record.pestIssue || '').trim(),
-      pestIssueMulti: String(record.pestIssue || '').split(',').map((item) => item.trim()).filter(Boolean),
       quotationValue: String(record.quotationValue || record.quotation_value || '').trim(),
       leadSource,
       propertyType,
@@ -1786,14 +1783,12 @@ export default function LeadCapture() {
     }
 
     try {
-      const selectedPestIssues = Array.isArray(form.pestIssueMulti) ? form.pestIssueMulti.filter(Boolean) : [];
-      const pestIssueText = selectedPestIssues.length > 0 ? selectedPestIssues.join(', ') : form.pestIssue;
       const payload = {
         ...form,
         date: form.date || new Date().toISOString().slice(0, 10),
         mobileNumber: form.mobile,
         pinCode: form.pincode,
-        pestIssue: pestIssueText,
+        pestIssue: form.pestIssue,
         customerSegment: form.propertyType,
         leadStatus: form.status,
         notes: form.remarks,
@@ -2672,15 +2667,12 @@ export default function LeadCapture() {
                   <div className="field">
                     <label style={s.lb}>Pest Issue</label>
                     <select
-                      multiple
-                      value={form.pestIssueMulti}
-                      style={{ ...s.in, minHeight: '110px' }}
-                      onChange={(e) => {
-                        const values = Array.from(e.target.selectedOptions).map((option) => option.value);
-                        setForm((prev) => ({ ...prev, pestIssueMulti: values, pestIssue: values.join(', ') }));
-                      }}
+                      value={form.pestIssue}
+                      style={s.in}
+                      onChange={(e) => updateForm('pestIssue', e.target.value)}
                       required
                     >
+                      <option value="">Select service</option>
                       {PEST_ISSUES.map((issue) => (
                         <option key={issue} value={issue}>{issue}</option>
                       ))}
