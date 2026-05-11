@@ -292,7 +292,7 @@ const s = {
   followupOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 2600, display: 'grid', placeItems: 'center', padding: '16px' },
   followupModal: { width: 'min(640px, 96vw)', background: 'rgba(255,255,255,0.98)', border: '1px solid rgba(159, 23, 77, 0.26)', borderRadius: '16px', boxShadow: '0 24px 54px rgba(15,23,42,0.25)', overflow: 'hidden' },
   followupHead: { padding: '14px 16px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-primary)' },
-  followupTitle: { margin: 0, fontSize: '32px', fontWeight: 800, letterSpacing: '-0.03em', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  followupTitle: { margin: 0, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.01em', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '8px' },
   followupBody: { padding: '14px 16px', display: 'grid', gap: '12px', background: '#ffffff' },
   followupLeadBadge: { border: '1px solid rgba(159,23,77,0.2)', borderRadius: '10px', background: 'rgba(252,231,243,0.7)', padding: '10px 12px', color: '#334155', fontSize: '16px', fontWeight: 700 },
   followupGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' },
