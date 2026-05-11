@@ -275,7 +275,7 @@ const s = {
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center', width: '100%' },
   rowActionButton: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#1f2937', borderRadius: '8px', minWidth: '78px', minHeight: '28px', padding: '0 7px 0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, lineHeight: 1 },
   rowActionIconBox: { width: '16px', height: '16px', borderRadius: '5px', border: '1px solid #d1d5db', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', flexShrink: 0 },
-  rowActionMenu: { position: 'fixed', minWidth: '158px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 1200, overflow: 'hidden' },
+  rowActionMenu: { position: 'fixed', width: '170px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 1200, overflow: 'hidden' },
   rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px' },
   viewDrawerOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.28)', zIndex: 2300 },
@@ -366,8 +366,8 @@ const formatDisplayDate = (value) => {
 const getCustomerMobile = (customer) => normalizePhoneNumber(customer.mobileNumber || customer.workPhone || '');
 const getCustomerName = (customer) => customer.displayName || customer.name || customer.companyName || customer.contactPersonName || '';
 const ROW_ACTION_MENU_APPROX_WIDTH = 170;
-const ROW_ACTION_MENU_APPROX_HEIGHT = 240;
-const ROW_ACTION_MENU_GAP = 0;
+const ROW_ACTION_MENU_APPROX_HEIGHT = 190;
+const ROW_ACTION_MENU_GAP = 8;
 const FOLLOWUP_TYPES = ['Phone Call', 'WhatsApp', 'Site Visit', 'Email', 'Meeting'];
 const FOLLOWUP_OUTCOMES = ['Callback Required', 'Interested', 'Not Interested', 'Converted', '25%', '50%', '75%', '100%', 'No Response'];
 const mobileLeadColumnWidths = {
@@ -937,18 +937,20 @@ export default function LeadCapture() {
     }
 
     const triggerRect = event.currentTarget.getBoundingClientRect();
-    const maxLeft = window.innerWidth - ROW_ACTION_MENU_APPROX_WIDTH - ROW_ACTION_MENU_GAP;
+    const viewportPadding = ROW_ACTION_MENU_GAP;
+    const maxLeft = window.innerWidth - ROW_ACTION_MENU_APPROX_WIDTH - viewportPadding;
     const anchorLeft = Math.max(
-      ROW_ACTION_MENU_GAP,
+      viewportPadding,
       Math.min(maxLeft, triggerRect.right - ROW_ACTION_MENU_APPROX_WIDTH)
     );
 
-    const preferredTop = triggerRect.top - ROW_ACTION_MENU_APPROX_HEIGHT - ROW_ACTION_MENU_GAP;
-    const fallbackTop = triggerRect.bottom + ROW_ACTION_MENU_GAP;
-    const maxTop = window.innerHeight - ROW_ACTION_MENU_APPROX_HEIGHT - ROW_ACTION_MENU_GAP;
+    const belowTop = triggerRect.bottom + ROW_ACTION_MENU_GAP;
+    const aboveTop = triggerRect.top - ROW_ACTION_MENU_APPROX_HEIGHT - ROW_ACTION_MENU_GAP;
+    const maxTop = window.innerHeight - ROW_ACTION_MENU_APPROX_HEIGHT - viewportPadding;
+    const hasRoomBelow = belowTop + ROW_ACTION_MENU_APPROX_HEIGHT <= window.innerHeight - viewportPadding;
     const anchorTop = Math.max(
-      ROW_ACTION_MENU_GAP,
-      Math.min(maxTop, preferredTop >= ROW_ACTION_MENU_GAP ? preferredTop : fallbackTop)
+      viewportPadding,
+      Math.min(maxTop, hasRoomBelow ? belowTop : aboveTop)
     );
 
     setRowActionLeadId(leadId);
