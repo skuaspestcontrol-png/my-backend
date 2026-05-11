@@ -1,6 +1,10 @@
 /* =========================================
-   SKUAS CRM GLOBAL TABLE + BUTTON SYSTEM
+   SKUAS CRM GLOBAL UI SYSTEM
 ========================================= */
+
+* {
+  box-sizing: border-box;
+}
 
 table {
   width: 100%;
@@ -13,7 +17,47 @@ th {
 }
 
 /* =========================================
-   GLOBAL ACTION BUTTON WRAPPER
+   GLOBAL BUTTON SYSTEM
+========================================= */
+
+button,
+.btn,
+.table-action-btn,
+.action-btn,
+.btn-action {
+  height: 38px !important;
+  min-width: 100px !important;
+  padding: 0 14px !important;
+
+  border-radius: 10px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  gap: 6px !important;
+
+  font-size: 13px !important;
+  font-weight: 600 !important;
+
+  line-height: 1 !important;
+
+  cursor: pointer !important;
+
+  white-space: nowrap !important;
+
+  transition: 0.2s ease !important;
+}
+
+button svg,
+.btn svg {
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0 !important;
+}
+
+/* =========================================
+   TABLE ACTION WRAPPER
 ========================================= */
 
 .table-actions,
@@ -23,83 +67,110 @@ th {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
+
   gap: 8px !important;
-  flex-wrap: wrap !important;
+
+  flex-wrap: nowrap !important;
+
+  white-space: nowrap !important;
 }
 
 /* =========================================
-   GLOBAL BUTTON DESIGN
+   PAYROLL TABLE FIX
 ========================================= */
 
-.table-action-btn,
-.action-btn,
-.btn-action,
-.table-actions button,
-.action-buttons button,
-.row-actions button,
-.payroll-actions button {
-  min-width: 110px !important;
+.payroll-table {
+  width: 100% !important;
+  min-width: 1500px !important;
+  table-layout: auto !important;
+}
+
+.payroll-table th,
+.payroll-table td {
+  padding: 16px !important;
+}
+
+/* =========================================
+   PAYROLL ACTION COLUMN
+========================================= */
+
+.payroll-table th:last-child,
+.payroll-table td:last-child {
+  width: 440px !important;
+  min-width: 440px !important;
+  max-width: 440px !important;
+
+  overflow: visible !important;
+}
+
+/* =========================================
+   PAYROLL ACTION BUTTON GROUP
+========================================= */
+
+.payroll-table td:last-child > div,
+.payroll-table td:last-child .table-actions,
+.payroll-table td:last-child .action-buttons,
+.payroll-table td:last-child .row-actions {
+  display: flex !important;
+
+  align-items: center !important;
+
+  justify-content: flex-start !important;
+
+  flex-wrap: nowrap !important;
+
+  gap: 8px !important;
+
+  white-space: nowrap !important;
+}
+
+/* =========================================
+   PAYROLL ACTION BUTTONS
+========================================= */
+
+.payroll-table td:last-child button {
+  min-width: 95px !important;
+
+  width: auto !important;
+
   height: 38px !important;
-  padding: 0 14px !important;
+
+  padding: 0 12px !important;
 
   border-radius: 10px !important;
 
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  line-height: 1 !important;
+  font-size: 12px !important;
+
+  font-weight: 700 !important;
 
   display: inline-flex !important;
+
   align-items: center !important;
+
   justify-content: center !important;
-  gap: 6px !important;
 
   white-space: nowrap !important;
 
-  cursor: pointer !important;
+  overflow: visible !important;
 
-  box-sizing: border-box !important;
+  text-overflow: unset !important;
 }
 
 /* =========================================
-   ICON SIZE
+   STATUS BADGES
 ========================================= */
 
-.table-action-btn svg,
-.action-btn svg,
-.btn-action svg,
-.table-actions button svg,
-.action-buttons button svg,
-.row-actions button svg,
-.payroll-actions button svg {
-  width: 14px !important;
-  height: 14px !important;
-  flex-shrink: 0 !important;
-}
+.badge,
+.status-badge {
+  padding: 8px 14px !important;
 
-/* =========================================
-   ICON ONLY BUTTONS
-========================================= */
+  border-radius: 999px !important;
 
-.table-action-btn.icon-only,
-.action-btn.icon-only,
-.btn-action.icon-only {
-  width: 38px !important;
-  min-width: 38px !important;
-  padding: 0 !important;
-}
+  font-size: 12px !important;
 
-/* =========================================
-   ACTION COLUMN FIX
-========================================= */
+  font-weight: 700 !important;
 
-td.actions,
-td.action-column,
-td.actions-column,
-th.actions,
-th.action-column,
-th.actions-column {
-  min-width: 360px !important;
-  width: 360px !important;
+  white-space: nowrap !important;
 }
 
 /* =========================================
@@ -120,7 +191,7 @@ button.primary {
 .btn-outline,
 button.outline {
   background: #ffffff !important;
-  color: #1f2937 !important;
+  color: #374151 !important;
   border: 1px solid #d1d5db !important;
 }
 
@@ -136,39 +207,25 @@ button.danger {
 }
 
 /* =========================================
-   PAYROLL TABLE FIX
-========================================= */
-
-.payroll-table td,
-.payroll-table th {
-  padding: 14px 16px !important;
-}
-
-/* =========================================
    MOBILE RESPONSIVE
 ========================================= */
 
 @media (max-width: 768px) {
-  td.actions,
-  td.action-column,
-  td.actions-column,
-  th.actions,
-  th.action-column,
-  th.actions-column {
-    min-width: 260px !important;
-    width: 260px !important;
+
+  .payroll-table {
+    min-width: 1200px !important;
   }
 
-  .table-action-btn,
-  .action-btn,
-  .btn-action,
-  .table-actions button,
-  .action-buttons button,
-  .row-actions button,
-  .payroll-actions button {
-    min-width: 90px !important;
-    height: 34px !important;
-    font-size: 12px !important;
-    padding: 0 10px !important;
+  .payroll-table th:last-child,
+  .payroll-table td:last-child {
+    width: 320px !important;
+    min-width: 320px !important;
   }
+
+  .payroll-table td:last-child button {
+    min-width: 80px !important;
+    height: 34px !important;
+    font-size: 11px !important;
+  }
+
 }
