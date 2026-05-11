@@ -278,7 +278,33 @@ const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
 const googleOauthStateStore = new Map();
 
-const uploadsRootDir = '/home/u610009593/uploads-skuas-crm';
+const ensureStartupDir = (preferredDir, fallbackDir, label) => {
+  const preferred = String(preferredDir || '').trim();
+  const fallback = String(fallbackDir || '').trim();
+  try {
+    if (preferred) {
+      fs.mkdirSync(preferred, { recursive: true });
+      return preferred;
+    }
+  } catch (error) {
+    console.error(`${label} directory unavailable: ${preferred}`, error.message);
+  }
+
+  fs.mkdirSync(fallback, { recursive: true });
+  console.warn(`${label} directory fallback active: ${fallback}`);
+  return fallback;
+};
+
+const preferredUploadsRootDir = String(
+  process.env.UPLOADS_DIR
+  || process.env.UPLOADS_ROOT_DIR
+  || '/home/u610009593/uploads-skuas-crm'
+).trim();
+const uploadsRootDir = ensureStartupDir(
+  preferredUploadsRootDir,
+  path.join(__dirname, '..', 'storage', 'uploads'),
+  'Uploads'
+);
 const uploadsDir = uploadsRootDir;
 const employeeUploadsDir = path.join(uploadsDir, 'employees');
 const employeePhotoUploadsDir = path.join(employeeUploadsDir, 'photos');
@@ -286,13 +312,21 @@ const employeeAadhaarUploadsDir = path.join(employeeUploadsDir, 'aadhaar');
 const employeePanUploadsDir = path.join(employeeUploadsDir, 'pan');
 const employeeDocumentsUploadsDir = path.join(employeeUploadsDir, 'documents');
 const uploadsMirrorDir = String(process.env.UPLOADS_MIRROR_DIR || '').trim();
-fs.mkdirSync(uploadsDir, { recursive: true });
-fs.mkdirSync(employeeUploadsDir, { recursive: true });
-fs.mkdirSync(employeePhotoUploadsDir, { recursive: true });
-fs.mkdirSync(employeeAadhaarUploadsDir, { recursive: true });
-fs.mkdirSync(employeePanUploadsDir, { recursive: true });
-fs.mkdirSync(employeeDocumentsUploadsDir, { recursive: true });
-if (uploadsMirrorDir) fs.mkdirSync(uploadsMirrorDir, { recursive: true });
+[
+  uploadsDir,
+  employeeUploadsDir,
+  employeePhotoUploadsDir,
+  employeeAadhaarUploadsDir,
+  employeePanUploadsDir,
+  employeeDocumentsUploadsDir
+].forEach((dir) => fs.mkdirSync(dir, { recursive: true }));
+if (uploadsMirrorDir) {
+  try {
+    fs.mkdirSync(uploadsMirrorDir, { recursive: true });
+  } catch (error) {
+    console.error('Uploads mirror directory unavailable:', uploadsMirrorDir, error.message);
+  }
+}
 console.log('Employee upload root:', employeeUploadsDir);
 console.log('Employee upload photos dir:', employeePhotoUploadsDir);
 console.log('Employee upload aadhaar dir:', employeeAadhaarUploadsDir);
