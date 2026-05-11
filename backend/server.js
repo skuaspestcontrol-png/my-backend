@@ -31,7 +31,40 @@ const {
   syncGoogleCalendarEventForJob,
   getGoogleClient
 } = require('./lib/googleTasks');
-require('dotenv').config();
+
+if (!global.__SKUAS_DOTENV_LOADED__) {
+  require('dotenv').config();
+  global.__SKUAS_DOTENV_LOADED__ = true;
+}
+
+if (!global.__SKUAS_PROCESS_GUARDS_INSTALLED__) {
+  process.on('uncaughtException', (error) => {
+    console.error('UNCAUGHT_EXCEPTION:', error && error.stack ? error.stack : error);
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    console.error('UNHANDLED_REJECTION:', reason && reason.stack ? reason.stack : reason);
+  });
+
+  global.__SKUAS_PROCESS_GUARDS_INSTALLED__ = true;
+}
+
+console.log('PID:', process.pid);
+if (!global.__SKUAS_MEMORY_LOG_INTERVAL__) {
+  global.__SKUAS_MEMORY_LOG_INTERVAL__ = setInterval(() => {
+    const usage = process.memoryUsage();
+    console.log('MEMORY_USAGE:', {
+      rss: usage.rss,
+      heapTotal: usage.heapTotal,
+      heapUsed: usage.heapUsed,
+      external: usage.external,
+      arrayBuffers: usage.arrayBuffers
+    });
+  }, 30000);
+  if (typeof global.__SKUAS_MEMORY_LOG_INTERVAL__.unref === 'function') {
+    global.__SKUAS_MEMORY_LOG_INTERVAL__.unref();
+  }
+}
 
 const app = express();
 const SKUAS_API_URL = String(process.env.SKUAS_API_URL || 'https://api.skuaspestcontrol.com').replace(/\/+$/, '');
@@ -6943,15 +6976,35 @@ if (activeFrontendBuildDir && activeFrontendIndexFile) {
   });
 }
 
-process.on('uncaughtException', (error) => {
-  console.error('UNCAUGHT_EXCEPTION:', error && error.stack ? error.stack : error);
-});
+let serverInstance = null;
 
-process.on('unhandledRejection', (reason) => {
-  console.error('UNHANDLED_REJECTION:', reason && reason.stack ? reason.stack : reason);
-});
+const listenOnce = () => {
+  if (global.__SKUAS_SERVER_LISTENING__ || serverInstance) {
+    console.warn('SERVER LISTEN SKIPPED: already listening in this process');
+    return serverInstance;
+  }
+
+  global.__SKUAS_SERVER_LISTENING__ = true;
+  serverInstance = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Backend Server Live on Port ${PORT}`);
+    console.log(`Health endpoint ready at /health`);
+  });
+
+  serverInstance.on('error', (error) => {
+    global.__SKUAS_SERVER_LISTENING__ = false;
+    console.error('SERVER LISTEN ERROR:', error && error.stack ? error.stack : error);
+  });
+
+  return serverInstance;
+};
 
 const startServer = async () => {
+  if (global.__SKUAS_STARTUP_RUNNING__) {
+    console.warn('SERVER STARTUP SKIPPED: startup already running in this process');
+    return;
+  }
+
+  global.__SKUAS_STARTUP_RUNNING__ = true;
   if (canUseMysql()) {
     try {
       await runAutoMigrations(pool);
@@ -6962,16 +7015,10 @@ const startServer = async () => {
     console.warn('AUTO MIGRATION SKIPPED: MySQL is not configured.');
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Backend Server Live on Port ${PORT}`);
-    console.log(`Health endpoint ready at /health`);
-  });
+  listenOnce();
 };
 
 startServer().catch((error) => {
   console.error('SERVER STARTUP ERROR:', error && error.stack ? error.stack : error);
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Backend Server Live on Port ${PORT}`);
-    console.log(`Health endpoint ready at /health`);
-  });
+  listenOnce();
 });

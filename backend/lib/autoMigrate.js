@@ -1092,6 +1092,16 @@ const syncPayrollJsonFilesToMysql = async (poolOrConnection) => {
 };
 
 async function runAutoMigrations(poolOrConnection) {
+  if (global.__AUTO_MIGRATIONS_COMPLETED__) {
+    console.log('AUTO MIGRATION SKIPPED: already completed in this process');
+    return lastMigrationStatus;
+  }
+  if (global.__AUTO_MIGRATIONS_RUNNING__) {
+    console.log('AUTO MIGRATION SKIPPED: already running in this process');
+    return lastMigrationStatus;
+  }
+
+  global.__AUTO_MIGRATIONS_RUNNING__ = true;
   const status = defaultStatus();
   lastMigrationStatus = status;
   status.startedAt = new Date().toISOString();
@@ -1139,6 +1149,9 @@ async function runAutoMigrations(poolOrConnection) {
     status.errors.push({ step: 'startup', error: error.message });
     console.error('AUTO MIGRATION FAILED:', error.message);
     return status;
+  } finally {
+    global.__AUTO_MIGRATIONS_COMPLETED__ = true;
+    global.__AUTO_MIGRATIONS_RUNNING__ = false;
   }
 }
 
