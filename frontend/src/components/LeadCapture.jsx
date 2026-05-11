@@ -139,6 +139,10 @@ const emptyForm = {
   city: '',
   state: '',
   pincode: '',
+  pinCode: '',
+  postalCode: '',
+  postal_code: '',
+  zip: '',
   latitude: '',
   longitude: '',
   googlePlaceId: '',
@@ -667,7 +671,11 @@ export default function LeadCapture() {
     areaName: lead.areaName || '',
     city: lead.city || '',
     state: lead.state || '',
-    pincode: lead.pincode || lead.pinCode || '',
+    pincode: lead.pincode || lead.pinCode || lead.postalCode || lead.postal_code || lead.zip || '',
+    pinCode: lead.pincode || lead.pinCode || lead.postalCode || lead.postal_code || lead.zip || '',
+    postalCode: lead.pincode || lead.pinCode || lead.postalCode || lead.postal_code || lead.zip || '',
+    postal_code: lead.pincode || lead.pinCode || lead.postalCode || lead.postal_code || lead.zip || '',
+    zip: lead.pincode || lead.pinCode || lead.postalCode || lead.postal_code || lead.zip || '',
     latitude: lead.latitude || '',
     longitude: lead.longitude || '',
     googlePlaceId: lead.googlePlaceId || lead.google_place_id || '',
@@ -1185,16 +1193,63 @@ export default function LeadCapture() {
       areaName: selectedLead.areaName || '',
       city: selectedLead.city || '',
       state: selectedLead.state || '',
-      pincode: selectedLead.pincode || selectedLead.pinCode || ''
+      pincode: selectedLead.pincode || selectedLead.pinCode || selectedLead.postalCode || selectedLead.postal_code || selectedLead.zip || '',
+      pinCode: selectedLead.pincode || selectedLead.pinCode || selectedLead.postalCode || selectedLead.postal_code || selectedLead.zip || '',
+      postalCode: selectedLead.pincode || selectedLead.pinCode || selectedLead.postalCode || selectedLead.postal_code || selectedLead.zip || '',
+      postal_code: selectedLead.pincode || selectedLead.pinCode || selectedLead.postalCode || selectedLead.postal_code || selectedLead.zip || '',
+      zip: selectedLead.pincode || selectedLead.pinCode || selectedLead.postalCode || selectedLead.postal_code || selectedLead.zip || ''
     }));
   };
 
   const getAddressPart = (components, ...types) => {
     for (const type of types) {
-      const part = components.find((component) => component.types?.includes(type));
-      if (part?.long_name) return part.long_name;
+      const part = components.find((component) => Array.isArray(component.types) && component.types.includes(type));
+      const value = part?.long_name || part?.longText || part?.short_name || part?.shortText || '';
+      if (value) return String(value).trim();
     }
     return '';
+  };
+
+  const extractPostalCode = (placeOrGeoResult = {}) => {
+    const components = Array.isArray(placeOrGeoResult.address_components)
+      ? placeOrGeoResult.address_components
+      : Array.isArray(placeOrGeoResult.addressComponents)
+        ? placeOrGeoResult.addressComponents
+        : [];
+
+    let postalCode = getAddressPart(components, 'postal_code');
+    if (!postalCode) {
+      postalCode = getAddressPart(components, 'postal_code_suffix');
+    }
+    if (!postalCode) {
+      const displayName = placeOrGeoResult.displayName?.text || placeOrGeoResult.displayName || '';
+      const formatted = String(
+        placeOrGeoResult.formatted_address
+        || placeOrGeoResult.formattedAddress
+        || placeOrGeoResult.name
+        || displayName
+        || ''
+      ).trim();
+      const match = formatted.match(/\b[1-9][0-9]{5}\b/);
+      postalCode = match ? match[0] : '';
+    }
+
+    return postalCode;
+  };
+
+  const withPincodeAliases = (value) => ({
+    pincode: value,
+    pinCode: value,
+    postalCode: value,
+    postal_code: value,
+    zip: value
+  });
+
+  const updatePincode = (value) => {
+    setForm((current) => ({
+      ...current,
+      ...withPincodeAliases(value)
+    }));
   };
 
   const extractAddressFields = (best = {}) => {
@@ -1204,7 +1259,6 @@ export default function LeadCapture() {
         ? best.addressComponents
         : [];
     const formattedAddress = String(best.formatted_address || best.formattedAddress || '').trim();
-    const fallbackPinMatch = formattedAddress.match(/\b\d{6}\b/);
 
     const areaName = getAddressPart(
       components,
@@ -1223,7 +1277,7 @@ export default function LeadCapture() {
       'administrative_area_level_2'
     );
     let state = getAddressPart(components, 'administrative_area_level_1');
-    const pincode = getAddressPart(components, 'postal_code') || (fallbackPinMatch ? fallbackPinMatch[0] : '');
+    const pincode = extractPostalCode(best);
 
     // Fallback parse for Place.searchByText results without address components.
     if ((!city || !state) && formattedAddress) {
@@ -1270,6 +1324,8 @@ export default function LeadCapture() {
   const applySearchSuggestion = (place, queryText = '') => {
     const placeName = place.displayName?.text || place.displayName || '';
     const address = place.formattedAddress || '';
+    const googlePhone = place.nationalPhoneNumber || place.internationalPhoneNumber || '';
+    const googleWebsite = place.websiteURI || '';
     const lat = typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat;
     const lng = typeof place.location?.lng === 'function' ? place.location.lng() : place.location?.lng;
     const normalized = {
@@ -1278,19 +1334,24 @@ export default function LeadCapture() {
       geometry: { location: { lat, lng } }
     };
     const extracted = extractAddressFields(normalized);
-    setForm((prev) => ({
-      ...prev,
-      searchAddress: address || placeName || queryText || prev.searchAddress,
-      address: address || prev.address,
-      areaName: extracted.areaName || prev.areaName,
-      city: extracted.city || prev.city,
-      state: extracted.state || prev.state,
-      pincode: extracted.pincode || prev.pincode,
-      googlePlaceName: placeName || prev.googlePlaceName,
-      googlePlaceId: place.id || prev.googlePlaceId,
-      latitude: lat ? String(lat) : prev.latitude,
-      longitude: lng ? String(lng) : prev.longitude
-    }));
+    setForm((prev) => {
+      const nextPincode = extracted.pincode || prev.pincode;
+      return {
+        ...prev,
+        searchAddress: address || placeName || queryText || prev.searchAddress,
+        address: address || prev.address,
+        areaName: extracted.areaName || prev.areaName,
+        city: extracted.city || prev.city,
+        state: extracted.state || prev.state,
+        ...withPincodeAliases(nextPincode),
+        googlePlaceName: placeName || prev.googlePlaceName,
+        googlePlaceId: place.id || prev.googlePlaceId,
+        googlePhone: googlePhone || prev.googlePhone,
+        googleWebsite: googleWebsite || prev.googleWebsite,
+        latitude: lat ? String(lat) : prev.latitude,
+        longitude: lng ? String(lng) : prev.longitude
+      };
+    });
   };
 
   const enrichAddressFromLatLng = async (lat, lng) => {
@@ -1304,14 +1365,17 @@ export default function LeadCapture() {
         formatted_address: first.formatted_address,
         address_components: first.address_components
       });
-      setForm((prev) => ({
-        ...prev,
-        address: prev.address || first.formatted_address || '',
-        areaName: extracted.areaName || prev.areaName,
-        city: extracted.city || prev.city,
-        state: extracted.state || prev.state,
-        pincode: extracted.pincode || prev.pincode
-      }));
+      setForm((prev) => {
+        const nextPincode = extracted.pincode || prev.pincode;
+        return {
+          ...prev,
+          address: prev.address || first.formatted_address || '',
+          areaName: extracted.areaName || prev.areaName,
+          city: extracted.city || prev.city,
+          state: extracted.state || prev.state,
+          ...withPincodeAliases(nextPincode)
+        };
+      });
     } catch (_error) {
       // ignore geocode enrichment failures
     }
@@ -1331,7 +1395,7 @@ export default function LeadCapture() {
       const { Place } = await window.google.maps.importLibrary('places');
       const { places } = await Place.searchByText({
         textQuery: queryText,
-        fields: ['id', 'displayName', 'formattedAddress', 'location', 'addressComponents'],
+        fields: ['id', 'displayName', 'formattedAddress', 'location', 'addressComponents', 'nationalPhoneNumber', 'internationalPhoneNumber', 'websiteURI'],
         maxResultCount: 5
       });
       if (reqId !== suggestionSeqRef.current) return;
@@ -1367,11 +1431,13 @@ export default function LeadCapture() {
           if (result) {
             const lat = result?.geometry?.location?.lat;
             const lng = result?.geometry?.location?.lng;
-            const place = {
-              id: result.place_id || '',
-              displayName: result.name || '',
-              formattedAddress: result.formatted_address || query,
-              location: {
+          const place = {
+            id: result.place_id || '',
+            displayName: result.name || '',
+            formattedAddress: result.formatted_address || query,
+            nationalPhoneNumber: result.formatted_phone_number || result.international_phone_number || '',
+            websiteURI: result.website || '',
+            location: {
                 lat: typeof lat === 'function' ? lat : () => Number(lat || 0),
                 lng: typeof lng === 'function' ? lng : () => Number(lng || 0)
               },
@@ -1401,7 +1467,10 @@ export default function LeadCapture() {
           'displayName',
           'formattedAddress',
           'location',
-          'addressComponents'
+          'addressComponents',
+          'nationalPhoneNumber',
+          'internationalPhoneNumber',
+          'websiteURI'
         ],
         maxResultCount: 10
       };
@@ -1570,7 +1639,7 @@ export default function LeadCapture() {
     if (key === 'areaName') return lead.areaName || '';
     if (key === 'city') return lead.city || '';
     if (key === 'state') return lead.state || '';
-    if (key === 'pincode') return lead.pincode || lead.pinCode || '';
+    if (key === 'pincode') return lead.pincode || lead.pinCode || lead.postalCode || lead.postal_code || lead.zip || '';
     if (key === 'pestIssue') return lead.pestIssue || '';
     if (key === 'leadSource') return lead.leadSource || '';
     if (key === 'propertyType') return lead.propertyType || lead.customerSegment || '';
@@ -1707,8 +1776,11 @@ export default function LeadCapture() {
       areaName: String(record.areaName || '').trim(),
       city: String(record.city || '').trim(),
       state: String(record.state || '').trim(),
-      pincode: String(record.pincode || record.pinCode || '').trim(),
-      pinCode: String(record.pincode || record.pinCode || '').trim(),
+      pincode: String(record.pincode || record.pinCode || record.postalCode || record.postal_code || record.zip || '').trim(),
+      pinCode: String(record.pincode || record.pinCode || record.postalCode || record.postal_code || record.zip || '').trim(),
+      postalCode: String(record.pincode || record.pinCode || record.postalCode || record.postal_code || record.zip || '').trim(),
+      postal_code: String(record.pincode || record.pinCode || record.postalCode || record.postal_code || record.zip || '').trim(),
+      zip: String(record.pincode || record.pinCode || record.postalCode || record.postal_code || record.zip || '').trim(),
       pestIssue: String(record.pestIssue || '').trim(),
       quotationValue: String(record.quotationValue || record.quotation_value || '').trim(),
       leadSource,
@@ -1800,6 +1872,9 @@ export default function LeadCapture() {
         date: form.date || new Date().toISOString().slice(0, 10),
         mobileNumber: form.mobile,
         pinCode: form.pincode,
+        postalCode: form.pincode,
+        postal_code: form.pincode,
+        zip: form.pincode,
         pestIssue: form.pestIssue,
         customerSegment: form.propertyType,
         leadStatus: form.status,
@@ -2668,7 +2743,7 @@ export default function LeadCapture() {
                   </div>
                   <div>
                     <label style={s.lb}>Pincode</label>
-                    <input value={form.pincode} style={s.in} onChange={(e) => updateForm('pincode', e.target.value)} />
+                    <input value={form.pincode} style={s.in} onChange={(e) => updatePincode(e.target.value)} />
                   </div>
                 </div>
               </div>

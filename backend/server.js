@@ -1630,7 +1630,7 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
   const areaName = String(source.areaName || source.area || '').trim();
   const city = String(source.city || '').trim();
   const state = String(source.state || '').trim();
-  const pincode = String(source.pincode || source.pinCode || '').trim();
+  const pincode = String(source.pincode || source.pinCode || source.postalCode || source.postal_code || source.zip || '').trim();
   const pestIssue = String(source.pestIssue || '').trim();
   const leadSource = String(source.leadSource || '').trim();
   const leadStatus = String(source.status || source.leadStatus || '').trim();
@@ -1669,6 +1669,10 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
     city,
     state,
     pincode,
+    pinCode: pincode,
+    postalCode: pincode,
+    postal_code: pincode,
+    zip: pincode,
     pestIssue,
     serviceRequired,
     serviceName,
@@ -1719,6 +1723,7 @@ let leadsPlaceColumnsEnsured = false;
 const ensureLeadPlaceColumns = async (conn) => {
   if (leadsPlaceColumnsEnsured) return;
   await ensureColumnsIfMissing(conn, 'leads', [
+    { name: 'pincode', definition: 'VARCHAR(20) NULL' },
     { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
     { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
     { name: 'google_phone', definition: 'VARCHAR(50) NULL' },

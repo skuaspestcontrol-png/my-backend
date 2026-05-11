@@ -6,9 +6,21 @@ const getApiKey = () => String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').t
 const normalizeComponent = (components = [], ...types) => {
   for (const type of types) {
     const match = components.find((entry) => Array.isArray(entry?.types) && entry.types.includes(type));
-    if (match?.long_name) return match.long_name;
+    const value = match?.long_name || match?.longText || match?.short_name || match?.shortText || '';
+    if (value) return String(value).trim();
   }
   return '';
+};
+
+const extractPostalCode = (place = {}, components = []) => {
+  let postalCode = normalizeComponent(components, 'postal_code');
+  if (!postalCode) postalCode = normalizeComponent(components, 'postal_code_suffix');
+  if (!postalCode) {
+    const formatted = String(place.formatted_address || place.name || '').trim();
+    const match = formatted.match(/\b[1-9][0-9]{5}\b/);
+    postalCode = match ? match[0] : '';
+  }
+  return postalCode;
 };
 
 const placeToDetails = (place = {}) => {
@@ -44,7 +56,7 @@ const placeToDetails = (place = {}) => {
       'administrative_area_level_2'
     ),
     state: normalizeComponent(components, 'administrative_area_level_1'),
-    pincode: normalizeComponent(components, 'postal_code')
+    pincode: extractPostalCode(place, components)
   };
 };
 
