@@ -29,10 +29,10 @@ import SettingsPanel from './Settings';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const SidebarSection = ({ title, children }) => (
-  <div style={{ marginTop: '20px' }}>
+  <div style={{ marginTop: '14px' }}>
     <div
       style={{
-        padding: '0 20px 8px',
+        padding: '0 18px 6px',
         fontSize: '11px',
         fontWeight: 800,
         color: 'var(--color-muted)',
@@ -102,11 +102,11 @@ export default function DashboardLayout({ children }) {
   const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
   const isLaptop = viewportWidth >= 992 && viewportWidth <= 1199;
   const isDrawerMode = viewportWidth < 992;
-  const sidebarWidthPx = isLaptop ? 240 : 280;
+  const sidebarWidthPx = isLaptop ? 224 : 250;
   const sidebarWidth = `${sidebarWidthPx}px`;
-  const contentPadding = isMobile ? '14px' : isTablet ? '18px' : isLaptop ? '20px' : '24px';
-  const headerPadding = isMobile ? '0 12px' : isTablet ? '0 16px' : '0 20px';
-  const topbarHeight = isDrawerMode ? (isMobile ? '58px' : '64px') : '80px';
+  const contentPadding = isMobile ? '12px' : isTablet ? '16px' : isLaptop ? '18px' : '20px';
+  const headerPadding = isMobile ? '0 10px' : isTablet ? '0 14px' : '0 18px';
+  const topbarHeight = isDrawerMode ? (isMobile ? '54px' : '58px') : '66px';
 
   useEffect(() => {
     setSidebarOpen(!isDrawerMode);
@@ -143,9 +143,10 @@ export default function DashboardLayout({ children }) {
     alignItems: 'center',
     gap: '12px',
     width: 'calc(100% - 24px)',
-    padding: '11px 18px',
+    minHeight: '42px',
+    padding: '9px 14px',
     margin: '2px 12px',
-    borderRadius: '14px',
+    borderRadius: '12px',
     color: active ? 'var(--color-white)' : 'var(--color-text)',
     backgroundColor: active ? 'var(--color-primary)' : 'transparent',
     textDecoration: 'none',
@@ -162,7 +163,8 @@ export default function DashboardLayout({ children }) {
   const subLinkStyle = (path) => ({
     ...baseLinkStyle(isActive(path)),
     fontSize: '12px',
-    padding: '9px 18px 9px 42px',
+    minHeight: '36px',
+    padding: '7px 14px 7px 38px',
     width: 'calc(100% - 24px)',
     color: isActive(path) ? 'var(--color-white)' : 'var(--color-muted)'
   });
@@ -226,8 +228,8 @@ export default function DashboardLayout({ children }) {
       >
         <div
           style={{
-            minHeight: isDrawerMode ? '110px' : '80px',
-            padding: isDrawerMode ? '14px 12px' : '0 12px',
+            minHeight: isDrawerMode ? '88px' : '66px',
+            padding: isDrawerMode ? '10px 12px' : '0 12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -241,8 +243,8 @@ export default function DashboardLayout({ children }) {
           {settings.dashboardImageUrl ? (
             <div
               style={{
-                width: isDrawerMode ? '170px' : '200px',
-                height: isDrawerMode ? '68px' : '80px',
+                width: isDrawerMode ? '150px' : '170px',
+                height: isDrawerMode ? '58px' : '64px',
                 borderRadius: '12px',
                 background: 'transparent',
                 padding: '0',
@@ -259,15 +261,15 @@ export default function DashboardLayout({ children }) {
           ) : (
             <div
               style={{
-                width: isDrawerMode ? '170px' : '200px',
-                height: isDrawerMode ? '68px' : '80px',
+                width: isDrawerMode ? '150px' : '170px',
+                height: isDrawerMode ? '58px' : '64px',
                 background: 'var(--color-primary)',
                 borderRadius: '12px',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
                 fontWeight: 800,
-                fontSize: isDrawerMode ? '24px' : '28px',
+                fontSize: isDrawerMode ? '20px' : '24px',
                 color: '#fff',
                 letterSpacing: '0.08em',
                 boxShadow: 'var(--shadow-md)',
@@ -279,7 +281,7 @@ export default function DashboardLayout({ children }) {
           )}
         </div>
 
-        <nav style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '14px 0 30px' }}>
+        <nav style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 0 24px' }}>
           <Link to="/dashboard" className={isActive('/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/dashboard')}>
             <LayoutDashboard size={18} /> Dashboard
           </Link>
@@ -392,8 +394,10 @@ export default function DashboardLayout({ children }) {
               border: '1px solid var(--color-border)',
               background: 'var(--color-primary-light)',
               color: 'var(--color-primary)',
-              padding: '8px',
-              borderRadius: '12px',
+              width: isMobile ? '38px' : '40px',
+              height: isMobile ? '38px' : '40px',
+              padding: 0,
+              borderRadius: '10px',
               cursor: 'pointer',
               display: isDrawerMode ? 'inline-flex' : 'none',
               alignItems: 'center',
@@ -401,11 +405,11 @@ export default function DashboardLayout({ children }) {
               flexShrink: 0
             }}
           >
-            <Menu size={20} />
+            <Menu size={18} />
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, marginLeft: 'auto' }}>
-            <span style={{ fontSize: '13px', color: 'var(--color-muted)', fontWeight: 600, letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: isMobile ? 'none' : 'inline' }}>
-              {portalUserRole} <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{portalUserName}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, marginLeft: 'auto' }}>
+            <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: 600, letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: isMobile ? 'none' : 'inline' }}>
+              {portalUserRole} <strong style={{ fontSize: '13px', color: 'var(--color-text)' }}>{portalUserName}</strong>
             </span>
             <button
               type="button"
@@ -414,8 +418,8 @@ export default function DashboardLayout({ children }) {
                 border: '1px solid var(--color-border)',
                 background: '#fff',
                 color: 'var(--color-primary)',
-                width: isMobile ? '46px' : '54px',
-                height: isMobile ? '46px' : '54px',
+                width: isMobile ? '38px' : '42px',
+                height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -426,7 +430,7 @@ export default function DashboardLayout({ children }) {
               aria-label="Open settings"
               title="Settings"
             >
-              <Settings size={isMobile ? 20 : 24} />
+              <Settings size={isMobile ? 18 : 20} />
             </button>
             <button
               onClick={handleLogout}
@@ -440,7 +444,9 @@ export default function DashboardLayout({ children }) {
                 cursor: 'pointer',
                 border: '1px solid var(--color-primary)',
                 borderRadius: '999px',
-                padding: isMobile ? '10px 14px' : '11px 18px',
+                height: isMobile ? '38px' : '40px',
+                minWidth: isMobile ? '92px' : '104px',
+                padding: '0 14px',
                 boxShadow: 'var(--shadow-md)'
               }}
             >

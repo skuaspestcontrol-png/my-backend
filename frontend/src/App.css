@@ -2,8 +2,47 @@
    SKUAS CRM GLOBAL UI SYSTEM
 ========================================= */
 
+:root {
+  --crm-font-base: 14px;
+  --crm-font-small: 13px;
+  --crm-radius: 12px;
+  --crm-radius-sm: 10px;
+  --crm-card-padding: 16px;
+  --crm-input-height: 42px;
+  --crm-button-height: 40px;
+  --crm-button-small-height: 34px;
+  --crm-table-cell-y: 10px;
+  --crm-table-cell-x: 14px;
+  --crm-gap: 14px;
+}
+
 * {
   box-sizing: border-box;
+}
+
+html {
+  font-size: var(--crm-font-base);
+}
+
+body {
+  font-size: var(--crm-font-base);
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+h1 {
+  font-size: clamp(24px, 2vw, 28px);
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: clamp(20px, 1.6vw, 22px);
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: clamp(16px, 1.3vw, 18px);
+  line-height: 1.25;
 }
 
 table {
@@ -16,6 +55,22 @@ th {
   vertical-align: middle;
 }
 
+input,
+select,
+textarea {
+  font-size: 13px;
+  border-radius: var(--crm-radius-sm);
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select {
+  min-height: var(--crm-input-height);
+}
+
+label {
+  font-size: 12px;
+}
+
 /* =========================================
    GLOBAL BUTTON SYSTEM
 ========================================= */
@@ -25,11 +80,11 @@ button,
 .table-action-btn,
 .action-btn,
 .btn-action {
-  height: 38px !important;
-  min-width: 100px !important;
+  height: var(--crm-button-height) !important;
+  min-width: 92px !important;
   padding: 0 14px !important;
 
-  border-radius: 10px !important;
+  border-radius: var(--crm-radius-sm) !important;
 
   display: inline-flex !important;
   align-items: center !important;
@@ -54,6 +109,24 @@ button svg,
   width: 14px !important;
   height: 14px !important;
   flex-shrink: 0 !important;
+}
+
+button[aria-label]:not(.sidebar-overlay),
+.icon-btn,
+.btn-icon {
+  min-width: var(--crm-button-height) !important;
+  width: var(--crm-button-height) !important;
+  padding: 0 !important;
+}
+
+.btn-sm,
+.table-action-btn.btn-sm,
+.action-btn.btn-sm,
+.btn-action.btn-sm {
+  height: var(--crm-button-small-height) !important;
+  min-width: 78px !important;
+  font-size: 12px !important;
+  padding: 0 12px !important;
 }
 
 /* =========================================
@@ -87,7 +160,7 @@ button svg,
 
 .payroll-table th,
 .payroll-table td {
-  padding: 16px !important;
+  padding: var(--crm-table-cell-y) var(--crm-table-cell-x) !important;
 }
 
 /* =========================================
@@ -162,7 +235,7 @@ button svg,
 
 .badge,
 .status-badge {
-  padding: 8px 14px !important;
+  padding: 5px 10px !important;
 
   border-radius: 999px !important;
 
@@ -179,9 +252,85 @@ button svg,
 
 .btn-primary,
 button.primary {
-  background: #a10f52 !important;
+  background: var(--color-primary) !important;
   color: #ffffff !important;
   border: none !important;
+}
+
+/* =========================================
+   COMPACT CRM LAYOUT
+========================================= */
+
+.app-layout {
+  min-height: 100vh;
+  background: var(--color-bg);
+  font-size: var(--crm-font-base);
+}
+
+.main-wrapper {
+  min-width: 0;
+}
+
+.topbar {
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.main-content {
+  min-width: 0;
+}
+
+.dashboard-container {
+  width: 100%;
+  max-width: none;
+}
+
+.sidebar-nav-item {
+  min-height: 42px !important;
+}
+
+.sidebar nav {
+  scrollbar-width: thin;
+}
+
+.sidebar h1,
+.sidebar h2,
+.sidebar h3 {
+  line-height: 1.2;
+}
+
+[style*="box-shadow"] {
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-container > *,
+main > * {
+  min-width: 0;
+}
+
+table th {
+  padding: var(--crm-table-cell-y) var(--crm-table-cell-x);
+  font-size: 12px;
+}
+
+table td {
+  padding: var(--crm-table-cell-y) var(--crm-table-cell-x);
+  font-size: 13px;
+}
+
+thead th {
+  height: 42px;
+}
+
+tbody td {
+  min-height: 48px;
+}
+
+.filters,
+.filter-panel,
+.toolbar,
+.actions-toolbar {
+  gap: var(--crm-gap);
 }
 
 /* =========================================
@@ -212,6 +361,33 @@ button.danger {
 
 @media (max-width: 768px) {
 
+  :root {
+    --crm-font-base: 13px;
+    --crm-font-small: 12px;
+    --crm-card-padding: 14px;
+    --crm-input-height: 40px;
+    --crm-button-height: 38px;
+    --crm-button-small-height: 32px;
+    --crm-table-cell-y: 9px;
+    --crm-table-cell-x: 12px;
+  }
+
+  body {
+    font-size: 13px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  h3 {
+    font-size: 16px;
+  }
+
   .payroll-table {
     min-width: 1200px !important;
   }
@@ -223,9 +399,40 @@ button.danger {
   }
 
   .payroll-table td:last-child button {
-    min-width: 80px !important;
-    height: 34px !important;
+    min-width: 78px !important;
+    height: var(--crm-button-small-height) !important;
     font-size: 11px !important;
   }
 
+  .dashboard-container {
+    overflow-x: hidden;
+  }
+
+  table {
+    font-size: 12px;
+  }
+
+}
+
+@media (min-width: 769px) and (max-width: 1199px) {
+  :root {
+    --crm-font-base: 13px;
+    --crm-card-padding: 15px;
+    --crm-gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  button,
+  .btn,
+  .table-action-btn,
+  .action-btn,
+  .btn-action {
+    min-width: 84px !important;
+    font-size: 12px !important;
+  }
+
+  .main-content {
+    overflow-x: hidden;
+  }
 }
