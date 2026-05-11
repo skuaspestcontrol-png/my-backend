@@ -1,59 +1,174 @@
-/* ===== Global CRM Table Button System ===== */
+/* =========================================
+   SKUAS CRM GLOBAL TABLE + BUTTON SYSTEM
+========================================= */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+td,
+th {
+  vertical-align: middle;
+}
+
+/* =========================================
+   GLOBAL ACTION BUTTON WRAPPER
+========================================= */
 
 .table-actions,
 .action-buttons,
-.row-actions {
+.row-actions,
+.payroll-actions {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
   gap: 8px !important;
-  flex-wrap: nowrap !important;
-  white-space: nowrap !important;
+  flex-wrap: wrap !important;
 }
+
+/* =========================================
+   GLOBAL BUTTON DESIGN
+========================================= */
 
 .table-action-btn,
 .action-btn,
 .btn-action,
 .table-actions button,
 .action-buttons button,
-.row-actions button {
-  height: 32px !important;
-  min-width: 32px !important;
-  padding: 0 10px !important;
-  border-radius: 8px !important;
-  font-size: 12px !important;
+.row-actions button,
+.payroll-actions button {
+  min-width: 110px !important;
+  height: 38px !important;
+  padding: 0 14px !important;
+
+  border-radius: 10px !important;
+
+  font-size: 13px !important;
   font-weight: 600 !important;
   line-height: 1 !important;
+
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 6px !important;
+
   white-space: nowrap !important;
+
   cursor: pointer !important;
+
+  box-sizing: border-box !important;
 }
+
+/* =========================================
+   ICON SIZE
+========================================= */
 
 .table-action-btn svg,
 .action-btn svg,
 .btn-action svg,
 .table-actions button svg,
 .action-buttons button svg,
-.row-actions button svg {
+.row-actions button svg,
+.payroll-actions button svg {
   width: 14px !important;
   height: 14px !important;
   flex-shrink: 0 !important;
 }
 
+/* =========================================
+   ICON ONLY BUTTONS
+========================================= */
+
 .table-action-btn.icon-only,
 .action-btn.icon-only,
 .btn-action.icon-only {
-  width: 32px !important;
+  width: 38px !important;
+  min-width: 38px !important;
   padding: 0 !important;
 }
 
+/* =========================================
+   ACTION COLUMN FIX
+========================================= */
+
 td.actions,
 td.action-column,
+td.actions-column,
 th.actions,
-th.action-column {
-  width: 180px !important;
-  min-width: 180px !important;
+th.action-column,
+th.actions-column {
+  min-width: 360px !important;
+  width: 360px !important;
+}
+
+/* =========================================
+   PRIMARY BUTTON
+========================================= */
+
+.btn-primary,
+button.primary {
+  background: #a10f52 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+/* =========================================
+   OUTLINE BUTTON
+========================================= */
+
+.btn-outline,
+button.outline {
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+/* =========================================
+   DANGER BUTTON
+========================================= */
+
+.btn-danger,
+button.danger {
+  background: #fff0f3 !important;
+  color: #d11a2a !important;
+  border: 1px solid #f3b6c0 !important;
+}
+
+/* =========================================
+   PAYROLL TABLE FIX
+========================================= */
+
+.payroll-table td,
+.payroll-table th {
+  padding: 14px 16px !important;
+}
+
+/* =========================================
+   MOBILE RESPONSIVE
+========================================= */
+
+@media (max-width: 768px) {
+  td.actions,
+  td.action-column,
+  td.actions-column,
+  th.actions,
+  th.action-column,
+  th.actions-column {
+    min-width: 260px !important;
+    width: 260px !important;
+  }
+
+  .table-action-btn,
+  .action-btn,
+  .btn-action,
+  .table-actions button,
+  .action-buttons button,
+  .row-actions button,
+  .payroll-actions button {
+    min-width: 90px !important;
+    height: 34px !important;
+    font-size: 12px !important;
+    padding: 0 10px !important;
+  }
 }
