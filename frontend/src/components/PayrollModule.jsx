@@ -119,6 +119,23 @@ const shell = {
     whiteSpace: 'nowrap',
     cursor: 'pointer'
   },
+  payrollTable: { width: '100%', borderCollapse: 'collapse', minWidth: '1280px', tableLayout: 'fixed' },
+  payrollActionCell: { width: '260px', minWidth: '260px' },
+  payrollActionGroup: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: '6px',
+    alignItems: 'stretch'
+  },
+  payrollActionButton: {
+    minHeight: '34px',
+    width: '100%',
+    padding: '0 10px',
+    justifyContent: 'center',
+    textAlign: 'center',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  },
   tableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', overflowX: 'auto', background: '#fff' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '920px' },
   th: { textAlign: 'left', padding: '6px 7px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', lineHeight: 1.2 },
@@ -829,7 +846,18 @@ export default function PayrollModule() {
         </div>
       </div>
       <div style={shell.tableWrap}>
-        <table style={{ ...shell.table, minWidth: 'unset', tableLayout: 'fixed' }}>
+        <table style={shell.payrollTable}>
+          <colgroup>
+            <col style={{ width: '170px' }} />
+            <col style={{ width: '130px' }} />
+            <col style={{ width: '170px' }} />
+            <col style={{ width: '145px' }} />
+            <col style={{ width: '150px' }} />
+            <col style={{ width: '155px' }} />
+            <col style={{ width: '150px' }} />
+            <col style={{ width: '130px' }} />
+            <col style={shell.payrollActionCell} />
+          </colgroup>
           <thead>
             <tr>
               <th style={shell.th}>Employee</th>
@@ -846,29 +874,29 @@ export default function PayrollModule() {
           <tbody>
             {pagedPayrollItems.map((entry) => (
               <tr key={entry._id}>
-                <td style={{ ...shell.td, width: '14%' }}>
+                <td style={shell.td}>
                   <div>{entry.employeeName}</div>
                   <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode} • {entry.department || '-'}</div>
                 </td>
-                <td style={{ ...shell.td, width: '11%' }}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
-                <td style={{ ...shell.td, width: '16%' }}>
+                <td style={shell.td}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
+                <td style={shell.td}>
                   WD {entry?.attendanceSummary?.totalWorkingDays || 0}<br />
                   P {entry?.attendanceSummary?.presentDays || 0} • PL {entry?.attendanceSummary?.paidLeaveDays || 0} • UL {entry?.attendanceSummary?.unpaidLeaveDays || 0}
                 </td>
-                <td style={{ ...shell.td, width: '9%' }}>INR {money(entry.grossSalary)}</td>
-                <td style={{ ...shell.td, width: '9%' }}>INR {money(entry?.deductions?.total)}</td>
-                <td style={{ ...shell.td, width: '9%' }}><strong>INR {money(entry.netSalary)}</strong></td>
-                <td style={{ ...shell.td, width: '10%' }}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span></td>
-                <td style={{ ...shell.td, width: '10%' }}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
-                <td style={{ ...shell.td, width: '21%' }}>
-                  <div style={{ ...shell.actionRow, gap: '5px', flexWrap: 'nowrap' }}>
-                    <button type="button" style={shell.btnLight} onClick={() => openSlipViewer(entry)}>Salary Slip</button>
+                <td style={shell.td}>INR {money(entry.grossSalary)}</td>
+                <td style={shell.td}>INR {money(entry?.deductions?.total)}</td>
+                <td style={shell.td}><strong>INR {money(entry.netSalary)}</strong></td>
+                <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span></td>
+                <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
+                <td style={shell.td}>
+                  <div style={shell.payrollActionGroup}>
+                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => openSlipViewer(entry)}>Salary Slip</button>
                     {(entry.payrollStatus === 'Paid' || entry.paymentStatus === 'Paid')
-                      ? <button type="button" style={shell.btnLight} onClick={() => unlockPayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Unlock</button>
+                      ? <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => unlockPayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Unlock</button>
                       : null}
-                    {entry.payrollStatus !== 'Paid' ? <button type="button" style={shell.btnLight} onClick={() => openAdjust(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Edit</button> : null}
-                    {entry.paymentStatus !== 'Paid' ? <button type="button" style={shell.btn} onClick={() => openPayment(entry)} disabled={busy || !role.canMarkPaid}>Mark Paid</button> : null}
-                    <button type="button" style={shell.btnLight} onClick={() => deletePayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Delete</button>
+                    {entry.payrollStatus !== 'Paid' ? <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => openAdjust(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Edit</button> : null}
+                    {entry.paymentStatus !== 'Paid' ? <button type="button" style={{ ...shell.btn, ...shell.payrollActionButton }} onClick={() => openPayment(entry)} disabled={busy || !role.canMarkPaid}>Mark Paid</button> : null}
+                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => deletePayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Delete</button>
                   </div>
                 </td>
               </tr>
