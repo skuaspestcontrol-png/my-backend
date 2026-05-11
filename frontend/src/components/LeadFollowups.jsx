@@ -18,32 +18,32 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ALL_VALUE = '__all__';
 
 const shell = {
-  page: { display: 'grid', gap: '18px', color: '#475569' },
-  header: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' },
-  title: { margin: 0, color: '#334155', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em' },
-  subtitle: { margin: '4px 0 0', color: '#7c8797', fontSize: '15px', fontWeight: 700 },
-  refreshBtn: { border: '1px solid #a7e0bd', background: '#f8fffb', color: '#75cf96', borderRadius: '6px', minHeight: '40px', padding: '0 16px', display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' },
-  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '18px' },
-  statCard: { minHeight: '94px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '18px', padding: '18px 26px', boxShadow: '0 1px 2px rgba(15,23,42,0.03)' },
-  statIcon: { width: '56px', height: '56px', borderRadius: '14px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  statValue: { margin: 0, color: '#1f2937', fontSize: '28px', lineHeight: 1, fontWeight: 800 },
-  statLabel: { margin: '10px 0 0', color: '#64748b', fontSize: '13px', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' },
-  filters: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px 26px', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(150px, 1fr)) 230px 62px', gap: '18px 24px', alignItems: 'end' },
-  label: { display: 'block', marginBottom: '10px', color: '#526173', fontSize: '15px', fontWeight: 800 },
-  input: { width: '100%', height: '42px', border: '1px solid #d8dee7', borderRadius: '6px', background: '#fff', color: '#334155', padding: '0 12px', fontSize: '14px', fontWeight: 700, outline: 'none', boxSizing: 'border-box' },
-  applyBtn: { height: '42px', border: 'none', borderRadius: '6px', background: '#7bd19d', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' },
-  clearBtn: { height: '42px', border: '1px solid #a977ff', borderRadius: '6px', background: '#fff', color: '#8b5cf6', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
-  tabs: { display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap' },
-  tab: { border: 'none', borderRadius: '8px', background: 'transparent', color: '#64748b', padding: '12px 16px', display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' },
-  badge: { minWidth: '22px', height: '22px', borderRadius: '7px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 7px', background: '#7bd19d', color: '#fff', fontSize: '12px', fontWeight: 800 },
-  tableCard: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' },
-  tableTitle: { padding: '16px 24px', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' },
+  page: { display: 'grid', gap: '14px', color: 'var(--color-muted)' },
+  header: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' },
+  title: { margin: 0, color: 'var(--color-text)', fontSize: '22px', fontWeight: 800, letterSpacing: '-0.02em' },
+  subtitle: { margin: '2px 0 0', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 700 },
+  refreshBtn: { border: '1px solid var(--color-primary-soft)', background: 'var(--color-white)', color: 'var(--color-primary)', borderRadius: '10px', height: '38px', minWidth: '118px', padding: '0 14px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' },
+  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' },
+  statCard: { minHeight: '76px', background: 'var(--color-white)', border: '1px solid var(--color-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' },
+  statIcon: { width: '42px', height: '42px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  statValue: { margin: 0, color: 'var(--color-text)', fontSize: '24px', lineHeight: 1, fontWeight: 800 },
+  statLabel: { margin: '6px 0 0', color: 'var(--color-muted)', fontSize: '11px', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' },
+  filters: { background: 'var(--color-white)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '14px 16px', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(136px, 1fr)) 150px 48px', gap: '12px', alignItems: 'end' },
+  label: { display: 'block', marginBottom: '6px', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 800 },
+  input: { width: '100%', height: '42px', border: '1px solid var(--color-border)', borderRadius: '10px', background: 'var(--color-white)', color: 'var(--color-text)', padding: '0 12px', fontSize: '13px', fontWeight: 700, outline: 'none', boxSizing: 'border-box' },
+  applyBtn: { height: '42px', minWidth: '150px', border: 'none', borderRadius: '10px', background: 'var(--color-primary)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' },
+  clearBtn: { height: '42px', minWidth: '48px', border: '1px solid var(--color-primary-soft)', borderRadius: '10px', background: 'var(--color-white)', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  tabs: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
+  tab: { border: '1px solid transparent', borderRadius: '999px', background: 'var(--color-white)', color: 'var(--color-muted)', height: '38px', padding: '0 14px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' },
+  badge: { minWidth: '20px', height: '20px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 7px', background: 'var(--color-primary)', color: '#fff', fontSize: '11px', fontWeight: 800 },
+  tableCard: { background: 'var(--color-white)', border: '1px solid var(--color-border)', borderRadius: '12px', overflow: 'hidden' },
+  tableTitle: { padding: '12px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '15px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' },
   tableWrap: { overflowX: 'auto' },
   table: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
-  th: { background: '#f8fafc', color: '#111827', fontSize: '14px', fontWeight: 800, textAlign: 'left', padding: '14px 12px', borderBottom: '1px solid #d8dee7' },
-  td: { padding: '14px 12px', borderBottom: '1px solid #edf2f7', color: '#334155', fontSize: '13px', fontWeight: 700 },
-  empty: { minHeight: '130px', display: 'grid', placeItems: 'center', color: '#8b95a1', fontSize: '15px', fontWeight: 700 },
-  actionBtn: { border: '1px solid #d8dee7', background: '#fff', color: '#334155', borderRadius: '6px', minHeight: '32px', padding: '0 10px', fontWeight: 800, cursor: 'pointer' }
+  th: { background: 'var(--color-primary-light)', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 800, textAlign: 'left', padding: '11px 14px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em' },
+  td: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '13px', fontWeight: 650 },
+  empty: { minHeight: '96px', display: 'grid', placeItems: 'center', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 700 },
+  actionBtn: { border: '1px solid var(--color-border)', background: 'var(--color-white)', color: 'var(--color-primary)', borderRadius: '10px', height: '34px', minWidth: '92px', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }
 };
 
 const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
@@ -169,13 +169,17 @@ export default function LeadFollowups() {
 
   const isMobile = viewportWidth < 768;
   const statGridStyle = isMobile ? { ...shell.statGrid, gridTemplateColumns: '1fr' } : viewportWidth < 1100 ? { ...shell.statGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.statGrid;
-  const filterStyle = isMobile ? { ...shell.filters, gridTemplateColumns: '1fr', padding: '16px' } : viewportWidth < 1200 ? { ...shell.filters, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.filters;
+  const filterStyle = isMobile
+    ? { ...shell.filters, gridTemplateColumns: '1fr', padding: '14px', gap: '10px' }
+    : viewportWidth < 1200
+      ? { ...shell.filters, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', padding: '14px 16px' }
+      : shell.filters;
 
   const stats = [
-    { label: 'Overdue', value: counts.overdue, icon: AlertTriangle, color: '#f15d5d', bg: '#feecec' },
-    { label: 'Today', value: counts.today, icon: CalendarDays, color: '#4965dd', bg: '#eef1ff' },
-    { label: 'This Week', value: counts.week, icon: CalendarClock, color: '#45abc8', bg: '#edf9fc' },
-    { label: 'Done This Week', value: counts.doneWeek, icon: CheckCheck, color: '#18a66f', bg: '#ecfbf2' }
+    { label: 'Overdue', value: counts.overdue, icon: AlertTriangle, color: '#dc2626', bg: '#fee2e2' },
+    { label: 'Today', value: counts.today, icon: CalendarDays, color: 'var(--color-primary)', bg: 'var(--color-primary-light)' },
+    { label: 'This Week', value: counts.week, icon: CalendarClock, color: 'var(--color-primary)', bg: 'var(--color-primary-light)' },
+    { label: 'Done This Week', value: counts.doneWeek, icon: CheckCheck, color: '#15803d', bg: '#dcfce7' }
   ];
 
   const tabs = [
@@ -267,14 +271,16 @@ export default function LeadFollowups() {
               type="button"
               style={{
                 ...shell.tab,
-                color: active ? '#fff' : '#64748b',
-                background: active ? '#4965dd' : 'transparent'
+                color: active ? '#fff' : 'var(--color-muted)',
+                background: active ? 'var(--color-primary)' : 'var(--color-white)',
+                borderColor: active ? 'var(--color-primary)' : 'var(--color-border)',
+                boxShadow: active ? 'var(--shadow-sm)' : 'none'
               }}
               onClick={() => setActiveTab(tab.key)}
             >
               <Icon size={15} />
               {tab.label}
-              {tab.count > 0 || ['overdue', 'today'].includes(tab.key) ? <span style={{ ...shell.badge, background: active && tab.key === 'overdue' ? '#f05252' : '#7bd19d' }}>{tab.count}</span> : null}
+              {tab.count > 0 || ['overdue', 'today'].includes(tab.key) ? <span style={{ ...shell.badge, background: active ? 'rgba(255,255,255,0.22)' : 'var(--color-primary)', color: active ? '#fff' : '#fff' }}>{tab.count}</span> : null}
             </button>
           );
         })}
@@ -300,7 +306,7 @@ export default function LeadFollowups() {
                   <td style={shell.td}>{lead._id || '-'}</td>
                   <td style={shell.td}>
                     <div>{lead.customerName || lead.displayName || '-'}</div>
-                    <div style={{ color: '#8b95a1', fontSize: '12px', marginTop: '3px' }}>{getLeadMobile(lead) || '-'}</div>
+                    <div style={{ color: 'var(--color-muted)', fontSize: '12px', marginTop: '3px' }}>{getLeadMobile(lead) || '-'}</div>
                   </td>
                   <td style={shell.td}>{lead.status || lead.leadStatus || '-'}</td>
                   <td style={shell.td}>{lead.urgency}</td>
@@ -317,8 +323,8 @@ export default function LeadFollowups() {
           {tabRows.length === 0 ? (
             <div style={shell.empty}>
               <div style={{ textAlign: 'center' }}>
-                <Smile size={28} />
-                <div style={{ marginTop: '10px' }}>No follow-ups found for this filter</div>
+                <Smile size={24} />
+                <div style={{ marginTop: '8px' }}>No follow-ups found for this filter</div>
               </div>
             </div>
           ) : null}
