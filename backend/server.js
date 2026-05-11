@@ -202,6 +202,8 @@ app.post('/api/admin/apply-hostinger-all-modules-sql', (req, res) => {
 app.use(cors({
   origin: [
     "https://crm.skuaspestcontrol.com",
+    "https://www.skuaspestcontrol.com",
+    "https://skuaspestcontrol.com",
     "http://localhost:5173",
     "http://localhost:3000"
   ],
@@ -1611,6 +1613,8 @@ const parseMysqlLeadPayload = (rawPayload) => {
   return null;
 };
 
+const normalizeLeadMobile = (value) => String(value || '').replace(/\D/g, '').slice(-10);
+
 const normalizeLeadShape = (input = {}, fallbackId = '') => {
   const source = (input && typeof input === 'object') ? input : {};
   const leadId = String(source._id || fallbackId || Date.now().toString()).trim();
@@ -1639,6 +1643,14 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
   const googleWebsite = String(source.googleWebsite || source.google_website || '').trim();
   const latitude = String(source.latitude || '').trim();
   const longitude = String(source.longitude || '').trim();
+  const serviceRequired = String(source.serviceRequired || source.serviceName || '').trim();
+  const serviceName = String(source.serviceName || serviceRequired).trim();
+  const notes = String(source.notes || source.message || '').trim();
+  const remarks = String(source.remarks || notes).trim();
+  const websitePage = String(source.websitePage || '').trim();
+  const sourceName = String(source.source || leadSource).trim();
+  const leadDate = String(source.leadDate || source.date || '').trim();
+  const createdAt = String(source.createdAt || new Date().toISOString()).trim();
 
   return {
     _id: leadId,
@@ -1658,12 +1670,20 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
     state,
     pincode,
     pestIssue,
+    serviceRequired,
+    serviceName,
     leadSource,
+    source: sourceName,
     status: leadStatus,
     leadStatus,
+    notes,
+    remarks,
+    websitePage,
+    leadDate,
     assignedTo,
     followupDate,
     date,
+    createdAt,
     googlePlaceId,
     googlePlaceName,
     googlePhone,
@@ -1798,6 +1818,146 @@ const upsertLeadToMysql = async (conn, lead) => {
     ]
   );
 };
+
+const saveLeadToJsonFallback = (lead) => {
+  try {
+    const rows = readJsonFile(leadsFile, []);
+    const list = Array.isArray(rows) ? rows : [];
+    const leadId = String(lead?._id || '').trim();
+    const nextRows = leadId && list.some((entry) => String(entry?._id || '').trim() === leadId)
+      ? list.map((entry) => (String(entry?._id || '').trim() === leadId ? lead : entry))
+      : [lead, ...list];
+    fs.writeFileSync(leadsFile, JSON.stringify(nextRows, null, 2));
+    return true;
+  } catch (error) {
+    console.error('Failed to save lead JSON fallback:', error.message);
+    return false;
+  }
+};
+
+const loadRecentLeadPayloads = async () => {
+  const payloads = [];
+  if (canUseMysql()) {
+    try {
+      const mysqlRows = await withMysqlConnection(async (conn) => {
+        const [rows] = await conn.query('SELECT payload FROM leads ORDER BY id DESC LIMIT 500');
+        return Array.isArray(rows) ? rows : [];
+      });
+      mysqlRows.forEach((row) => {
+        const parsed = parseMysqlLeadPayload(row?.payload);
+        if (parsed) payloads.push(parsed);
+      });
+    } catch (error) {
+      console.error('Failed to check recent MySQL leads:', error.message);
+    }
+  }
+  const jsonRows = readJsonFile(leadsFile, []);
+  if (Array.isArray(jsonRows)) payloads.push(...jsonRows);
+  return payloads;
+};
+
+const hasRecentWebsiteLeadByMobile = async (mobile) => {
+  const normalizedMobile = normalizeLeadMobile(mobile);
+  if (!normalizedMobile) return false;
+  const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+  const payloads = await loadRecentLeadPayloads();
+  return payloads.some((entry) => {
+    const entryMobile = normalizeLeadMobile(entry?.mobile || entry?.mobileNumber || entry?.whatsappNumber);
+    if (entryMobile !== normalizedMobile) return false;
+    const createdSource = entry?.createdAt || entry?.date || entry?.leadDate;
+    const createdTime = createdSource ? new Date(createdSource).getTime() : 0;
+    return Number.isFinite(createdTime) && createdTime >= tenMinutesAgo;
+  });
+};
+
+const buildWebsiteLead = (body = {}) => {
+  const now = new Date();
+  const name = String(body.name || body.customerName || '').trim();
+  const mobile = String(body.mobile || body.mobileNumber || '').trim();
+  const email = String(body.email || body.emailId || '').trim();
+  const serviceRequired = String(body.serviceRequired || body.serviceName || body.pestIssue || '').trim();
+  const message = String(body.message || body.notes || body.remarks || '').trim();
+  const city = String(body.city || '').trim();
+  const address = String(body.address || '').trim();
+  const websitePage = String(body.websitePage || '').trim();
+  const leadId = `web-${now.getTime()}-${crypto.randomBytes(3).toString('hex')}`;
+
+  return normalizeLeadShape({
+    _id: leadId,
+    customerName: name,
+    displayName: name,
+    contactPersonName: name,
+    mobile,
+    mobileNumber: mobile,
+    whatsappNumber: mobile,
+    emailId: email,
+    serviceRequired,
+    serviceName: serviceRequired,
+    pestIssue: serviceRequired,
+    notes: message,
+    remarks: message,
+    city,
+    address,
+    source: 'Website',
+    leadSource: 'Website',
+    websitePage,
+    leadDate: now.toISOString().slice(0, 10),
+    date: now.toISOString(),
+    createdAt: now.toISOString(),
+    status: 'New',
+    leadStatus: 'New'
+  }, leadId);
+};
+
+app.post('/api/public/website-lead', async (req, res) => {
+  try {
+    const expectedKey = String(process.env.WEBSITE_LEAD_API_KEY || '').trim();
+    const suppliedKey = String(req.headers['x-website-lead-key'] || '').trim();
+    if (!expectedKey || suppliedKey !== expectedKey) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+
+    const name = String(req.body?.name || req.body?.customerName || '').trim();
+    const mobile = String(req.body?.mobile || req.body?.mobileNumber || '').trim();
+    if (!name) return res.status(400).json({ success: false, error: 'Name is required' });
+    if (!mobile) return res.status(400).json({ success: false, error: 'Mobile is required' });
+    if (await hasRecentWebsiteLeadByMobile(mobile)) {
+      return res.status(429).json({ success: false, error: 'Lead already submitted recently' });
+    }
+
+    const lead = buildWebsiteLead(req.body || {});
+    let savedToMysql = false;
+    let mysqlError = '';
+    if (canUseMysql()) {
+      try {
+        await withMysqlConnection(async (conn) => {
+          await upsertLeadToMysql(conn, lead);
+        });
+        savedToMysql = true;
+      } catch (error) {
+        mysqlError = error.message || 'Failed to save lead in MySQL';
+        console.error('Website lead MySQL save failed:', mysqlError);
+      }
+    }
+    const savedToJson = saveLeadToJsonFallback(lead);
+
+    if (canUseMysql() && !savedToMysql) {
+      return res.status(500).json({
+        success: false,
+        error: mysqlError || 'Failed to save lead in MySQL',
+        jsonBackupSaved: savedToJson
+      });
+    }
+    if (!savedToMysql && !savedToJson) {
+      return res.status(500).json({ success: false, error: 'Failed to save lead' });
+    }
+
+    return res.json({ success: true, message: 'Lead created', leadId: lead._id });
+  } catch (error) {
+    console.error('Website lead create failed:', error.message);
+    return res.status(500).json({ success: false, error: error.message || 'Failed to create lead' });
+  }
+});
 
 app.get('/api/leads', async (req, res) => {
   if (!canUseMysql()) {
