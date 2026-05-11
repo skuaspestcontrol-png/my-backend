@@ -294,12 +294,15 @@ const s = {
   viewItemLabel: { fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
   viewItemValue: { fontSize: '13px', color: '#111827', fontWeight: 600, lineHeight: 1.35, wordBreak: 'break-word' },
   followupOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 2600, display: 'grid', placeItems: 'center', padding: '16px' },
-  followupModal: { width: 'min(640px, 96vw)', background: 'rgba(255,255,255,0.98)', border: '1px solid rgba(159, 23, 77, 0.26)', borderRadius: '16px', boxShadow: '0 24px 54px rgba(15,23,42,0.25)', overflow: 'hidden' },
+  followupModal: { width: 'min(640px, 96vw)', background: 'rgba(255,255,255,0.98)', border: '1px solid rgba(159, 23, 77, 0.26)', borderRadius: '16px', boxShadow: '0 24px 54px rgba(15,23,42,0.25)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
   followupHead: { padding: '14px 16px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-primary)' },
   followupTitle: { margin: 0, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.01em', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  followupBody: { padding: '14px 16px', display: 'grid', gap: '12px', background: '#ffffff' },
-  followupLeadBadge: { border: '1px solid rgba(159,23,77,0.2)', borderRadius: '10px', background: 'rgba(252,231,243,0.7)', padding: '10px 12px', color: '#334155', fontSize: '16px', fontWeight: 700 },
-  followupGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' },
+  followupBody: { padding: '14px 16px', display: 'grid', gap: '12px', background: '#ffffff', overflowY: 'auto' },
+  followupLeadBadge: { border: '1px solid rgba(159,23,77,0.2)', borderRadius: '10px', background: 'rgba(252,231,243,0.7)', padding: '10px 12px', color: '#334155', fontSize: '14px', fontWeight: 700, lineHeight: 1.35, wordBreak: 'break-word' },
+  followupGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', alignItems: 'start' },
+  followupField: { minWidth: 0, display: 'grid', gap: '6px' },
+  followupInput: { width: '100%', minWidth: 0, boxSizing: 'border-box', minHeight: '40px' },
+  followupTextarea: { width: '100%', minWidth: 0, boxSizing: 'border-box', minHeight: '86px' },
   followupActions: { padding: '12px 16px', borderTop: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: 'var(--color-primary-light)' },
   followupCancelBtn: { minHeight: '42px', padding: '0 20px', borderRadius: '10px', border: '1px solid #D1D5DB', background: '#fff', color: '#334155', fontWeight: 700, cursor: 'pointer' },
   followupSaveBtn: { minHeight: '42px', padding: '0 20px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.35)', background: 'var(--color-primary)', color: '#fff', fontWeight: 800, cursor: 'pointer' }
@@ -1931,7 +1934,9 @@ export default function LeadCapture() {
   const toolbarLeftStyle = isMobile ? { ...s.toolbarLeft, flexWrap: 'wrap' } : s.toolbarLeft;
   const tableStyle = s.table;
   const viewGridStyle = isMobile ? { ...s.viewGrid, gridTemplateColumns: '1fr' } : s.viewGrid;
-  const followupGridStyle = isMobile ? { ...s.followupGrid, gridTemplateColumns: '1fr' } : s.followupGrid;
+  const isFollowupCompact = viewportWidth <= 980;
+  const followupGridStyle = isFollowupCompact ? { ...s.followupGrid, gridTemplateColumns: '1fr' } : s.followupGrid;
+  const followupNoteStyle = { ...s.followupField, gridColumn: isFollowupCompact ? '1 / -1' : 'span 2' };
   const leadModalStyle = isMobile ? { ...s.cn, width: '100%', maxWidth: '100%' } : s.cn;
   const leadModalHeadStyle = isMobile ? { ...s.hd, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' } : s.hd;
   const leadModalBodyStyle = isMobile ? { ...s.body, padding: '14px' } : s.body;
@@ -2489,44 +2494,44 @@ export default function LeadCapture() {
           <div style={s.followupModal}>
             <div style={s.followupHead}>
               <h3 style={s.followupTitle}><PhoneCall size={22} /> Log Follow-up</h3>
-              <X size={22} style={{ cursor: 'pointer', color: '#64748b' }} onClick={closeLogFollowupModal} />
+              <X size={22} style={{ cursor: 'pointer', color: '#ffffff', flexShrink: 0 }} onClick={closeLogFollowupModal} />
             </div>
             <div style={s.followupBody}>
               <div style={s.followupLeadBadge}>
                 {(followupLead.customerName || 'Lead')} ({normalizePhoneNumber(getLeadMobile(followupLead)) || 'No Mobile'})
               </div>
               <div style={followupGridStyle}>
-                <div>
+                <div style={s.followupField}>
                   <label style={s.lb}>Follow-up Type</label>
-                  <select value={followupForm.type} style={s.in} onChange={(event) => setFollowupForm((prev) => ({ ...prev, type: event.target.value }))}>
+                  <select value={followupForm.type} style={{ ...s.in, ...s.followupInput }} onChange={(event) => setFollowupForm((prev) => ({ ...prev, type: event.target.value }))}>
                     {FOLLOWUP_TYPES.map((entry) => (
                       <option key={entry} value={entry}>{entry}</option>
                     ))}
                   </select>
                 </div>
-                <div>
+                <div style={s.followupField}>
                   <label style={s.lb}>Outcome</label>
-                  <select value={followupForm.outcome} style={s.in} onChange={(event) => setFollowupForm((prev) => ({ ...prev, outcome: event.target.value }))}>
+                  <select value={followupForm.outcome} style={{ ...s.in, ...s.followupInput }} onChange={(event) => setFollowupForm((prev) => ({ ...prev, outcome: event.target.value }))}>
                     {FOLLOWUP_OUTCOMES.map((entry) => (
                       <option key={entry} value={entry}>{entry}</option>
                     ))}
                   </select>
                 </div>
-                <div>
+                <div style={s.followupField}>
                   <label style={s.lb}>Next Follow-up Date</label>
-                  <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'relative', minWidth: 0 }}>
                     <input
                       type="date"
                       value={followupForm.nextFollowupDate}
-                      style={s.in}
+                      style={{ ...s.in, ...s.followupInput, paddingRight: '38px' }}
                       onChange={(event) => setFollowupForm((prev) => ({ ...prev, nextFollowupDate: event.target.value }))}
                     />
                     <CalendarDays size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', pointerEvents: 'none' }} />
                   </div>
                 </div>
-                <div>
+                <div style={s.followupField}>
                   <label style={s.lb}>Followed Up By</label>
-                  <select value={followupForm.followedUpBy} style={s.in} onChange={(event) => setFollowupForm((prev) => ({ ...prev, followedUpBy: event.target.value }))}>
+                  <select value={followupForm.followedUpBy} style={{ ...s.in, ...s.followupInput }} onChange={(event) => setFollowupForm((prev) => ({ ...prev, followedUpBy: event.target.value }))}>
                     <option value="">-- Select --</option>
                     {salesEmployees.map((employee) => (
                       <option key={employee._id} value={formatEmployeeName(employee)}>
@@ -2535,11 +2540,11 @@ export default function LeadCapture() {
                     ))}
                   </select>
                 </div>
-                <div style={{ gridColumn: 'span 2' }}>
+                <div style={followupNoteStyle}>
                   <label style={s.lb}>Notes</label>
                   <textarea
                     value={followupForm.notes}
-                    style={s.ta}
+                    style={{ ...s.ta, ...s.followupTextarea }}
                     placeholder="Key discussion points..."
                     onChange={(event) => setFollowupForm((prev) => ({ ...prev, notes: event.target.value }))}
                   />
