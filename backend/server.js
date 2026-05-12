@@ -1231,8 +1231,17 @@ const parseJobLogoPath = (dashboardImageUrl = '') => {
   if (raw.startsWith('/')) {
     const direct = path.resolve(__dirname, `.${raw}`);
     if (fs.existsSync(direct)) return direct;
+    const uploadIndex = raw.indexOf('/uploads/');
+    if (uploadIndex >= 0) {
+      const uploadRelative = raw.slice(uploadIndex + '/uploads/'.length).replace(/^\/+/, '');
+      const uploadPath = path.join(uploadsDir, uploadRelative);
+      if (fs.existsSync(uploadPath)) return uploadPath;
+    }
   }
   if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+    const cleanRelative = raw.replace(/^\/?uploads\/?/, '').replace(/^\/+/, '');
+    const byRelative = path.join(uploadsDir, cleanRelative);
+    if (fs.existsSync(byRelative)) return byRelative;
     const byName = path.join(uploadsDir, path.basename(raw));
     if (fs.existsSync(byName)) return byName;
     if (fs.existsSync(raw)) return raw;
@@ -1241,8 +1250,8 @@ const parseJobLogoPath = (dashboardImageUrl = '') => {
     const url = new URL(raw);
     const pathname = url.pathname || '';
     if (pathname.includes('/uploads/')) {
-      const fileName = path.basename(pathname);
-      const local = path.join(uploadsDir, fileName);
+      const uploadRelative = pathname.slice(pathname.indexOf('/uploads/') + '/uploads/'.length).replace(/^\/+/, '');
+      const local = path.join(uploadsDir, uploadRelative);
       if (fs.existsSync(local)) return local;
     }
   } catch (_error) {
@@ -6835,32 +6844,42 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const companyGst = String(settings?.companyGstNumber || settings?.gstRegistrationNumber || '07ABMCS7628G1ZW').trim();
     const logoPath = parseJobLogoPath(settings?.gstCompanyLogoUrl || settings?.dashboardImageUrl || '');
     const pageRight = doc.page.width - 46;
-    const headerTop = 36;
-    const logoSize = 58;
+    const headerTop = 54;
+    const logoX = 64;
+    const logoY = 66;
+    const logoBoxW = 240;
+    const logoBoxH = 112;
     if (logoPath) {
       try {
-        doc.image(logoPath, pageRight - logoSize, headerTop, { fit: [logoSize, logoSize], align: 'right' });
+        doc.image(logoPath, logoX, logoY, { fit: [logoBoxW, logoBoxH], align: 'left', valign: 'center' });
       } catch (_error) {
         // Keep PDF generation working even if a configured logo file is unavailable.
       }
     }
-    const detailRight = logoPath ? pageRight - logoSize - 10 : pageRight;
-    const detailWidth = logoPath ? 230 : 290;
-    const detailX = detailRight - detailWidth;
-    doc.font('Helvetica-Bold').fontSize(12).fillColor('#111827').text(companyName, detailX, headerTop + 2, { width: detailWidth, align: 'right' });
-    doc.font('Helvetica').fontSize(8.2).fillColor('#475569');
-    [
+    const detailX = 350;
+    const detailY = 73;
+    const detailWidth = pageRight - detailX;
+    doc.font('Helvetica-Bold').fontSize(10.8).fillColor('#334155').text(companyName, detailX, detailY, { width: detailWidth, align: 'left' });
+    doc.font('Helvetica').fontSize(9.2).fillColor('#334155');
+    const addressLines = [
       companyAddress,
-      `${companyCityLine}${companyPin ? `- ${companyPin}` : ''}`,
-      companyEmail ? `E Mail: ${companyEmail}` : '',
-      companyPhone ? `Tel: ${companyPhone}` : '',
-      companyWebsite ? `Web: ${companyWebsite}` : '',
-      companyGst ? `GST: ${companyGst}` : ''
-    ].filter(Boolean).forEach((line) => {
-      doc.text(line, detailX, doc.y + 1, { width: detailWidth, align: 'right' });
+      `${companyCityLine}${companyPin ? `- ${companyPin}` : ''}, India`
+    ].filter(Boolean);
+    addressLines.forEach((line) => {
+      doc.text(line, detailX, doc.y + 1, { width: detailWidth, align: 'left' });
     });
-    doc.moveTo(46, 120).lineTo(pageRight, 120).strokeColor('#e5e7eb').lineWidth(1).stroke();
-    doc.font('Helvetica-Bold').fontSize(16).fillColor('#9F174D').text('Renewal Letter', 46, 136, { align: 'center' });
+    const red = '#e11d48';
+    doc.fillColor('#334155').text('E Mail: ', detailX, doc.y + 1, { continued: true });
+    doc.fillColor(red).text(companyEmail || '-');
+    doc.fillColor('#334155').text('Tel: ', detailX, doc.y + 1, { continued: true });
+    doc.fillColor(red).text(companyPhone || '-');
+    doc.fillColor('#334155').text('Web: ', detailX, doc.y + 1, { continued: true });
+    doc.fillColor(red).text(companyWebsite || '-');
+    doc.fillColor('#334155').text('GST: ', detailX, doc.y + 1, { continued: true });
+    doc.fillColor(red).text(companyGst || '-');
+
+    doc.moveTo(46, 204).lineTo(pageRight, 204).strokeColor('#e5e7eb').lineWidth(1).stroke();
+    doc.font('Helvetica-Bold').fontSize(18).fillColor('#9F174D').text('Renewal Letter', 46, 222, { align: 'center' });
     doc.moveDown();
     doc.fontSize(10).fillColor('#111827').text(`Date: ${formatDate(new Date())}`);
     doc.text(`Renewal ID: ${renewal.renewalId}`);

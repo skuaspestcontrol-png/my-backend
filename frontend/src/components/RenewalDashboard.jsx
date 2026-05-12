@@ -32,10 +32,10 @@ const shell = {
   dangerBtn: { minHeight: 34, border: '1px solid #fecaca', borderRadius: 9, padding: '0 12px', background: '#fff1f2', color: '#b91c1c', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
   panel: { border: '1px solid var(--color-border)', borderRadius: 12, background: '#fff', overflow: 'hidden', boxShadow: '0 10px 28px rgba(15, 23, 42, 0.04)' },
   panelPad: { padding: 12 },
-  stats: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 },
-  stat: { border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 12px', background: '#fff' },
-  statLabel: { fontSize: 11, textTransform: 'uppercase', color: '#64748b', fontWeight: 800, letterSpacing: 0 },
-  statValue: { marginTop: 6, fontSize: 24, fontWeight: 850, color: '#111827' },
+  stats: { display: 'grid', gridTemplateColumns: 'repeat(9, minmax(0, 1fr))', gap: 7 },
+  stat: { border: '1px solid #e5e7eb', borderRadius: 9, padding: '8px 9px', background: '#fff', minHeight: 82, display: 'grid', alignContent: 'space-between', minWidth: 0 },
+  statLabel: { fontSize: 9.5, lineHeight: 1.25, textTransform: 'uppercase', color: '#64748b', fontWeight: 800, letterSpacing: 0, whiteSpace: 'normal', overflow: 'hidden' },
+  statValue: { marginTop: 4, fontSize: 20, lineHeight: 1.05, fontWeight: 850, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   filters: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))', gap: 8, alignItems: 'end' },
   field: { display: 'grid', gap: 4 },
   label: { fontSize: 11, color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
@@ -449,7 +449,7 @@ export default function RenewalDashboard() {
       {message ? <div style={{ ...shell.panelPad, border: '1px solid var(--color-primary-soft)', borderRadius: 10, background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', fontSize: 13, fontWeight: 800 }}>{message}</div> : null}
       {renderFilters()}
 
-      <section style={shell.stats}>
+      <section style={isMobile ? { ...shell.stats, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.stats}>
         {stats.map(([label, value]) => <div key={label} style={shell.stat}><div style={shell.statLabel}>{label}</div><div style={shell.statValue}>{value}</div></div>)}
       </section>
 
