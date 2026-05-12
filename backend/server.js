@@ -6843,6 +6843,7 @@ const renewalPublicRow = (row = {}) => {
     renewedAt: merged.renewed_at || merged.renewedAt || null,
     convertedContractId: merged.converted_contract_id || merged.convertedContractId || '',
     renewalLetterUrl: merged.renewal_letter_url || merged.renewalLetterUrl || '',
+    sourceInvoiceItems: Array.isArray(payload.sourceInvoice?.items) ? payload.sourceInvoice.items : (Array.isArray(merged.sourceInvoiceItems) ? merged.sourceInvoiceItems : []),
     createdAt: merged.created_at || merged.createdAt || '',
     updatedAt: merged.updated_at || merged.updatedAt || ''
   };
@@ -7411,6 +7412,42 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const doc = new PDFDocument({ size: 'A4', margins: { top: 45, bottom: 45, left: 55, right: 55 } });
     const stream = fs.createWriteStream(fullPath);
     doc.pipe(stream);
+    const fontPathCandidates = (fileNames) => [
+      ...fileNames.map((fileName) => path.join(__dirname, 'assets', 'fonts', fileName)),
+      ...fileNames.map((fileName) => path.join(__dirname, 'fonts', fileName)),
+      ...fileNames.map((fileName) => path.join(process.cwd(), 'assets', 'fonts', fileName)),
+      ...fileNames.map((fileName) => path.join(process.cwd(), 'fonts', fileName)),
+      ...fileNames.map((fileName) => path.join('/usr/share/fonts/truetype/msttcorefonts', fileName)),
+      ...fileNames.map((fileName) => path.join('/usr/share/fonts/truetype/microsoft', fileName)),
+      ...fileNames.map((fileName) => path.join('/Library/Fonts', fileName)),
+      ...fileNames.map((fileName) => path.join('/System/Library/Fonts/Supplemental', fileName))
+    ];
+    const findExistingFont = (fileNames) => fontPathCandidates(fileNames).find((candidate) => {
+      try {
+        return fs.existsSync(candidate);
+      } catch {
+        return false;
+      }
+    });
+    const calibriRegularPath = String(process.env.CALIBRI_FONT_PATH || '').trim() || findExistingFont(['calibri.ttf', 'Calibri.ttf', 'calibri-regular.ttf', 'Calibri-Regular.ttf']);
+    const calibriBoldPath = String(process.env.CALIBRI_BOLD_FONT_PATH || '').trim() || findExistingFont(['calibrib.ttf', 'Calibri-Bold.ttf', 'calibri-bold.ttf', 'Calibri Bold.ttf']);
+    const pdfFont = { regular: 'Helvetica', bold: 'Helvetica-Bold' };
+    try {
+      if (calibriRegularPath && fs.existsSync(calibriRegularPath)) {
+        doc.registerFont('Calibri', calibriRegularPath);
+        pdfFont.regular = 'Calibri';
+      }
+      if (calibriBoldPath && fs.existsSync(calibriBoldPath)) {
+        doc.registerFont('Calibri-Bold', calibriBoldPath);
+        pdfFont.bold = 'Calibri-Bold';
+      } else if (pdfFont.regular === 'Calibri') {
+        pdfFont.bold = 'Calibri';
+      }
+    } catch (error) {
+      console.error('Renewal letter Calibri font registration failed:', error.message);
+      pdfFont.regular = 'Helvetica';
+      pdfFont.bold = 'Helvetica-Bold';
+    }
 
     const companyName = String(settings?.gstCompanyName || settings?.companyName || 'Skuas Pest Control Private Limited').trim();
     const companyAddress = String(settings?.gstBillingAddress || settings?.companyAddress || '22 Ground Floor,Sarai Jullena,Okhla Road').trim();
@@ -7438,26 +7475,28 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     }
     const headerX = logoPath ? pageLeft + logoSize + 14 : pageLeft;
     const headerWidth = pageRight - headerX;
-    doc.font('Helvetica-Bold').fontSize(10.8).fillColor('#111827').text(companyName, headerX, 45, { width: headerWidth, align: 'left' });
-    doc.font('Helvetica').fontSize(8.7).fillColor('#475569');
+    doc.font(pdfFont.bold).fontSize(10.2).fillColor('#111827').text(companyName, headerX, 45, { width: headerWidth, align: 'left' });
+    doc.font(pdfFont.regular).fontSize(8.1).fillColor('#475569');
     [
       companyAddress,
       `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India`,
-      `Email: ${companyEmail || '-'}   Tel: ${companyPhone || '-'}`,
-      `Web: ${companyWebsite || '-'}   GST: ${companyGst || '-'}`
+      `Email: ${companyEmail || '-'}`,
+      `Tel: ${companyPhone || '-'}`,
+      `Web: ${companyWebsite || '-'}`,
+      `GST Details: ${companyGst || '-'}`
     ].filter(Boolean).forEach((line) => {
       doc.text(line, headerX, doc.y + 1, { width: headerWidth, align: 'left', lineGap: 0 });
     });
 
-    const dividerY = Math.max(doc.y + 8, 104);
+    const dividerY = Math.max(doc.y + 8, 118);
     doc.moveTo(pageLeft, dividerY).lineTo(pageRight, dividerY).strokeColor('#e5e7eb').lineWidth(0.8).stroke();
-    doc.y = dividerY + 18;
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(primaryColor).text('Renewal Letter', pageLeft, doc.y, { width: contentWidth, align: 'center' });
-    doc.y += 8;
+    doc.y = dividerY + 14;
+    doc.font(pdfFont.bold).fontSize(16).fillColor(primaryColor).text('Renewal Letter', pageLeft, doc.y, { width: contentWidth, align: 'center' });
+    doc.y += 6;
     const metaY = doc.y;
-    doc.font('Helvetica').fontSize(10).fillColor('#111827').text(`Date: ${formatDate(new Date())}`, pageLeft, metaY, { width: contentWidth / 2, align: 'left' });
+    doc.font(pdfFont.regular).fontSize(9).fillColor('#111827').text(`Date: ${formatDate(new Date())}`, pageLeft, metaY, { width: contentWidth / 2, align: 'left' });
     doc.text(`Renewal ID: ${renewalDisplayId || renewal.renewalId || '-'}`, pageLeft + contentWidth / 2, metaY, { width: contentWidth / 2, align: 'right' });
-    doc.y = metaY + 22;
+    doc.y = metaY + 18;
     const formatRenewalLetterDate = (value) => {
       const date = parseDateOnly(value);
       if (!date) return formatDate(value);
@@ -7471,7 +7510,11 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const contractStartText = formatRenewalLetterDate(contractStartDate);
     const contractRangeEndText = formatRenewalLetterDate(previousEndDate || renewal.renewalDueDate);
     const durationText = contractDurationLabel(contractStartDate, previousEndDate);
-    const serviceName = String(renewal.serviceType || 'Pest Management Services').trim();
+    const sourceInvoiceItems = Array.isArray(renewal.sourceInvoiceItems) ? renewal.sourceInvoiceItems.filter((item) => item && typeof item === 'object') : [];
+    const sourceServiceNames = sourceInvoiceItems
+      .map((item) => String(item.itemName || item.name || item.serviceName || '').trim())
+      .filter(Boolean);
+    const serviceName = Array.from(new Set(sourceServiceNames)).join(', ') || String(renewal.serviceType || 'Pest Management Services').trim();
     const salesFullName = salespersonEmployee
       ? [salespersonEmployee.firstName, salespersonEmployee.lastName].filter(Boolean).join(' ').trim()
       : '';
@@ -7484,44 +7527,40 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     ).trim() || 'Area Sales Manager';
     const salesMobile = String(salespersonEmployee?.mobile || companyPhone || '').trim();
 
-    const drawDetailsGrid = (pairs = []) => {
-      const labelWidth = 92;
-      const valueWidth = (contentWidth / 2) - labelWidth - 10;
-      const rowHeight = 15;
-      const startY = doc.y;
-      pairs.forEach((pair, index) => {
-        const col = index % 2;
-        const row = Math.floor(index / 2);
-        const x = pageLeft + col * (contentWidth / 2);
-        const y = startY + row * rowHeight;
-        doc.font('Helvetica-Bold').fontSize(9.2).fillColor('#475569').text(pair[0], x, y, { width: labelWidth, continued: false });
-        doc.font('Helvetica').fontSize(9.2).fillColor('#111827').text(pair[1] || '-', x + labelWidth, y, { width: valueWidth, lineBreak: false, ellipsis: true });
-      });
-      doc.y = startY + Math.ceil(pairs.length / 2) * rowHeight + 8;
-    };
     const drawParagraph = (text) => {
-      doc.font('Helvetica').fontSize(11).fillColor('#111827').text(text, pageLeft, doc.y, {
+      doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827').text(text, pageLeft, doc.y, {
         width: contentWidth,
         align: 'justify',
-        lineGap: 1.2
+        lineGap: 1
       });
-      doc.y += 10;
+      doc.y += 7;
     };
-    drawDetailsGrid([
-      ['Customer', renewal.customerName],
-      ['Mobile', renewal.mobile],
-      ['Address / Area', [renewal.address, renewal.areaName].filter(Boolean).join(', ')],
-      ['Current End', contractEndText],
-      ['Renewal Amount', Math.round(toNumber(renewal.proposedAmount, 0)).toLocaleString('en-IN')],
-      ['Service Type', serviceName],
-      ['Sales Person', salesPersonName || '-']
-    ]);
-    doc.font('Helvetica').fontSize(11).fillColor('#111827').text(`Dear ${renewal.customerName || 'Customer'},`, pageLeft, doc.y, { width: contentWidth });
-    doc.y += 10;
+    doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827').text(`Dear ${renewal.customerName || 'Customer'},`, pageLeft, doc.y, { width: contentWidth });
+    doc.y += 8;
     drawParagraph('It is our privilege to have been of service to you over the past year. We value our association and trust you have found our services exemplary and to your complete satisfaction.');
     drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
-    const amountWithGst = Math.max(0, toNumber(renewal.proposedAmount, 0));
-    const amountWithoutGst = amountWithGst > 0 ? amountWithGst / 1.18 : 0;
+    const renewalAmountWithGst = Math.max(0, toNumber(renewal.proposedAmount, 0));
+    const buildServiceLine = (item, index) => {
+      const quantity = Math.max(0, toNumber(item?.quantity, 0));
+      const rate = Math.max(0, toNumber(item?.rate, 0));
+      const taxRate = Math.max(0, toNumber(item?.taxRate, 18));
+      const baseAmount = Math.max(0, toNumber(item?.amount, 0) || (quantity > 0 ? quantity * rate : rate));
+      const withGstAmount = baseAmount + ((baseAmount * taxRate) / 100);
+      return {
+        serial: index + 1,
+        name: String(item?.itemName || item?.name || item?.serviceName || `Service ${index + 1}`).trim(),
+        amountWithoutGst: baseAmount,
+        amountWithGst: withGstAmount
+      };
+    };
+    const serviceLinesFromInvoice = sourceInvoiceItems
+      .map(buildServiceLine)
+      .filter((line) => line.name && (line.amountWithoutGst > 0 || line.amountWithGst > 0));
+    const fallbackAmountWithoutGst = renewalAmountWithGst > 0 ? renewalAmountWithGst / 1.18 : 0;
+    const serviceLines = serviceLinesFromInvoice.length > 0
+      ? serviceLinesFromInvoice
+      : [{ serial: 1, name: serviceName, amountWithoutGst: fallbackAmountWithoutGst, amountWithGst: renewalAmountWithGst }];
+    const amountWithGst = serviceLines.reduce((sum, line) => sum + toNumber(line.amountWithGst, 0), 0) || renewalAmountWithGst;
     const formatTableAmount = (value) => `${Math.round(toNumber(value, 0)).toLocaleString('en-IN')}/-`;
     const formatTableAmountWords = (value) => {
       const words = amountToWords(Math.round(toNumber(value, 0)));
@@ -7531,12 +7570,14 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const tableX = pageLeft;
     const tableY = doc.y + 4;
     const colWidths = [30, 190, 136, pageRight - tableX - 30 - 190 - 136];
-    const rowHeights = [22, 24, 24];
+    const headerHeight = 22;
+    const itemRowHeight = 24;
+    const totalRowHeight = 24;
     const drawTableCell = (x, y, w, h, text, options = {}) => {
       doc.rect(x, y, w, h).lineWidth(0.8).strokeColor('#111827').stroke();
       doc
-        .font(options.bold ? 'Helvetica-Bold' : 'Helvetica')
-        .fontSize(options.fontSize || 10)
+        .font(options.bold ? pdfFont.bold : pdfFont.regular)
+        .fontSize(options.fontSize || 8.8)
         .fillColor(options.color || '#111827')
         .text(text, x + 4, y + 7, {
           width: w - 8,
@@ -7546,33 +7587,35 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         });
     };
     const headerY = tableY;
-    const itemY = tableY + rowHeights[0];
-    const totalY = itemY + rowHeights[1];
     let cursorX = tableX;
     ['Sn', 'Service Name', 'Amount without GST', 'Amount with GST'].forEach((heading, index) => {
-      drawTableCell(cursorX, headerY, colWidths[index], rowHeights[0], heading, {
+      drawTableCell(cursorX, headerY, colWidths[index], headerHeight, heading, {
         bold: true,
-        fontSize: 10,
+        fontSize: 8.8,
         color: '#ffffff'
       });
-      doc.rect(cursorX, headerY, colWidths[index], rowHeights[0]).fillOpacity(1).fillAndStroke('#808080', '#111827');
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#ffffff').text(heading, cursorX + 4, headerY + 7, { width: colWidths[index] - 8, align: 'center' });
+      doc.rect(cursorX, headerY, colWidths[index], headerHeight).fillOpacity(1).fillAndStroke('#808080', '#111827');
+      doc.font(pdfFont.bold).fontSize(8.8).fillColor('#ffffff').text(heading, cursorX + 4, headerY + 7, { width: colWidths[index] - 8, align: 'center' });
       cursorX += colWidths[index];
     });
-    cursorX = tableX;
-    [1, serviceName, formatTableAmount(amountWithoutGst), formatTableAmount(amountWithGst)].forEach((value, index) => {
-      drawTableCell(cursorX, itemY, colWidths[index], rowHeights[1], String(value), {
-        bold: index === 1,
-        fontSize: 10,
-        align: index === 1 ? 'left' : 'center'
+    serviceLines.forEach((line, rowIndex) => {
+      const itemY = tableY + headerHeight + (rowIndex * itemRowHeight);
+      cursorX = tableX;
+      [line.serial, line.name, formatTableAmount(line.amountWithoutGst), formatTableAmount(line.amountWithGst)].forEach((value, index) => {
+        drawTableCell(cursorX, itemY, colWidths[index], itemRowHeight, String(value), {
+          bold: false,
+          fontSize: 8.8,
+          align: index === 1 ? 'left' : 'center'
+        });
+        cursorX += colWidths[index];
       });
-      cursorX += colWidths[index];
     });
     const leftTotalWidth = colWidths[0] + colWidths[1];
     const rightTotalWidth = colWidths[2] + colWidths[3];
-    drawTableCell(tableX, totalY, leftTotalWidth, rowHeights[2], `Total Price with GST (In Words) = ${formatTableAmount(amountWithGst)}`, { bold: true, fontSize: 10, align: 'left' });
-    drawTableCell(tableX + leftTotalWidth, totalY, rightTotalWidth, rowHeights[2], formatTableAmountWords(amountWithGst), { bold: true, fontSize: 10, align: 'center' });
-    doc.y = totalY + rowHeights[2] + 12;
+    const totalY = tableY + headerHeight + (serviceLines.length * itemRowHeight);
+    drawTableCell(tableX, totalY, leftTotalWidth, totalRowHeight, `Total Price with GST (In Words) = ${formatTableAmount(amountWithGst)}`, { bold: true, fontSize: 8.8, align: 'left' });
+    drawTableCell(tableX + leftTotalWidth, totalY, rightTotalWidth, totalRowHeight, formatTableAmountWords(amountWithGst), { bold: true, fontSize: 8.8, align: 'center' });
+    doc.y = totalY + totalRowHeight + 12;
     const terms = [
       '100% Advance along with your confirmation order.',
       'All payments should be payable to Skuas Pest Control Private Limited.',
@@ -7580,23 +7623,21 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       'Complaints will be handled without any additional charges.',
       'Skuas Pest Control Private Limited is in no way responsible for any direct/indirect losses and/or damages by pests and of the consequences.'
     ];
-    doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Payment Terms and Other Conditions:', pageLeft, doc.y, { width: contentWidth, align: 'left' });
+    doc.font(pdfFont.bold).fontSize(9.8).fillColor('#111827').text('Payment Terms and Other Conditions:', pageLeft, doc.y, { width: contentWidth, align: 'left' });
     doc.y += 4;
     terms.forEach((term) => {
-      const bulletY = doc.y;
-      doc.font('Helvetica').fontSize(11).fillColor('#111827').text('-', pageLeft, bulletY, { width: 10 });
-      doc.text(term, pageLeft + 14, bulletY, { width: contentWidth - 14, align: 'left', lineGap: 1.1 });
+      doc.font(pdfFont.regular).fontSize(9.4).fillColor('#111827').text(term, pageLeft, doc.y, { width: contentWidth, align: 'left', lineGap: 1 });
       doc.y += 3;
     });
     doc.y += 6;
-    doc.font('Helvetica').fontSize(11).fillColor('#111827')
-      .text('We look forward to working with you and hope this is the beginning of a long and prosperous relationship.', pageLeft, doc.y, { width: contentWidth, align: 'left', lineGap: 1.1 });
+    doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827')
+      .text('We look forward to working with you and hope this is the beginning of a long and prosperous relationship.', pageLeft, doc.y, { width: contentWidth, align: 'left', lineGap: 1 });
     doc.y += 5;
     doc.text('For any clarification, please feel free to contact me.', pageLeft, doc.y, { width: contentWidth, align: 'left' });
-    doc.y += 9;
+    doc.y += 18;
     ['Thanking you,', '', 'Yours Truly,', 'For Skuas Pest Control Pvt Ltd', salesPersonName || String(renewal.assignedSalesPersonName || '').trim() || '-', salesDesignation, salesMobile ? `Mob: ${salesMobile}` : ''].forEach((line) => {
-      doc.font(line === 'Yours Truly,' || line === 'For Skuas Pest Control Pvt Ltd' ? 'Helvetica-Bold' : 'Helvetica')
-        .fontSize(11)
+      doc.font(line === 'Yours Truly,' || line === 'For Skuas Pest Control Pvt Ltd' ? pdfFont.bold : pdfFont.regular)
+        .fontSize(9.6)
         .fillColor('#111827')
         .text(line, pageLeft, doc.y, { width: contentWidth, align: 'left' });
       doc.y += line ? 2 : 4;
