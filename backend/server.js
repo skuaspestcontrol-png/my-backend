@@ -817,9 +817,10 @@ const defaultSettings = {
   invoicePrefix: 'SPC-',
   invoiceNextNumber: 66,
   invoiceNumberPadding: 4,
-  renewalPrefix: 'REN-',
+  renewalPrefix: 'SPC/REN/',
   renewalNextNumber: 1,
-  renewalNumberPadding: 4,
+  renewalPadding: 3,
+  renewalNumberPadding: 3,
   invoiceTemplate: 'classic',
   invoiceVisibleColumns: [...invoiceColumnKeys],
   invoiceFieldSettings: { ...defaultInvoiceFieldSettings }
@@ -1066,7 +1067,8 @@ const sanitizeSettings = (raw = {}) => {
     invoiceNumberPadding: Math.max(1, Number(source.invoiceNumberPadding ?? defaultSettings.invoiceNumberPadding) || defaultSettings.invoiceNumberPadding),
     renewalPrefix: String(source.renewalPrefix ?? defaultSettings.renewalPrefix),
     renewalNextNumber: Math.max(1, Number(source.renewalNextNumber ?? defaultSettings.renewalNextNumber) || defaultSettings.renewalNextNumber),
-    renewalNumberPadding: Math.max(1, Number(source.renewalNumberPadding ?? defaultSettings.renewalNumberPadding) || defaultSettings.renewalNumberPadding),
+    renewalPadding: Math.max(1, Number(source.renewalPadding ?? source.renewalNumberPadding ?? defaultSettings.renewalPadding) || defaultSettings.renewalPadding),
+    renewalNumberPadding: Math.max(1, Number(source.renewalNumberPadding ?? source.renewalPadding ?? defaultSettings.renewalNumberPadding) || defaultSettings.renewalNumberPadding),
     invoiceTemplate: allowedInvoiceTemplates.has(invoiceTemplate) ? invoiceTemplate : defaultSettings.invoiceTemplate,
     invoiceVisibleColumns: normalizeInvoiceVisibleColumns(source.invoiceVisibleColumns),
     invoiceFieldSettings: normalizeInvoiceFieldSettings(source.invoiceFieldSettings)
@@ -6807,11 +6809,14 @@ const renewalPublicRow = (row = {}) => {
   const payload = parseMysqlPayloadObject(row.payload) || {};
   const merged = { ...payload, ...row };
   const renewalId = String(merged.renewal_id || merged.renewalId || merged.external_id || merged._id || '').trim();
+  const renewalDisplayId = String(merged.renewal_display_id || merged.renewalDisplayId || '').trim();
   return {
     id: merged.id,
     _id: renewalId,
     renewalId,
     renewal_id: renewalId,
+    renewalDisplayId,
+    renewal_display_id: renewalDisplayId,
     customerId: merged.customer_id ?? merged.customerId ?? null,
     customerName: merged.customer_name || merged.customerName || '',
     mobile: merged.mobile || merged.mobileNumber || '',
@@ -6848,12 +6853,12 @@ const renewalIdFromContract = (contractId, customerName = '') => {
   return `REN-${safe}`;
 };
 const createNextRenewalNumber = (existingRows = [], settings = {}) => {
-  const prefix = String(settings?.renewalPrefix || 'REN-');
-  const padding = Math.max(1, Number(settings?.renewalNumberPadding || 4) || 4);
+  const prefix = String(settings?.renewalPrefix || 'SPC/REN/');
+  const padding = Math.max(1, Number(settings?.renewalPadding || settings?.renewalNumberPadding || 3) || 3);
   const configuredNext = Math.max(1, Number(settings?.renewalNextNumber || 1) || 1);
   let max = 0;
   existingRows.forEach((row) => {
-    const raw = String(row?.renewalId || row?.renewal_id || row?.external_id || '').trim();
+    const raw = String(row?.renewalDisplayId || row?.renewal_display_id || row?.renewalId || row?.renewal_id || '').trim();
     if (!raw || (prefix && !raw.startsWith(prefix))) return;
     const match = raw.slice(prefix.length).match(/(\d+)$/);
     if (match) max = Math.max(max, Number(match[1]) || 0);
@@ -6869,8 +6874,9 @@ const updateSettingsNextRenewalNumber = async (nextNumber, settings = {}) => {
   const current = await readSettingsFromMysql().catch(() => settings);
   await saveSettingsToMysql({
     ...(current || settings || {}),
-    renewalPrefix: String(settings?.renewalPrefix || current?.renewalPrefix || 'REN-'),
-    renewalNumberPadding: Math.max(1, Number(settings?.renewalNumberPadding || current?.renewalNumberPadding || 4) || 4),
+    renewalPrefix: String(settings?.renewalPrefix || current?.renewalPrefix || 'SPC/REN/'),
+    renewalPadding: Math.max(1, Number(settings?.renewalPadding || settings?.renewalNumberPadding || current?.renewalPadding || current?.renewalNumberPadding || 3) || 3),
+    renewalNumberPadding: Math.max(1, Number(settings?.renewalNumberPadding || settings?.renewalPadding || current?.renewalNumberPadding || current?.renewalPadding || 3) || 3),
     renewalNextNumber: Math.max(1, Number(nextNumber || 1) || 1)
   });
 };
@@ -6880,6 +6886,7 @@ const ensureRenewalTables = async (conn) => {
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       external_id VARCHAR(120) NULL,
       renewal_id VARCHAR(100) NULL,
+      renewal_display_id VARCHAR(100) NULL,
       customer_id INT NULL,
       customer_name VARCHAR(255) NULL,
       mobile VARCHAR(50) NULL,
@@ -6914,6 +6921,7 @@ const ensureRenewalTables = async (conn) => {
   `);
   await ensureColumnsIfMissing(conn, 'renewals', [
     { name: 'renewal_id', definition: 'VARCHAR(100) NULL' },
+    { name: 'renewal_display_id', definition: 'VARCHAR(100) NULL' },
     { name: 'customer_id', definition: 'INT NULL' },
     { name: 'mobile', definition: 'VARCHAR(50) NULL' },
     { name: 'email', definition: 'VARCHAR(255) NULL' },
@@ -7019,9 +7027,63 @@ const findRenewalRow = async (id) => {
   if (!canUseMysql()) return (await loadRenewalRows()).find((row) => row.renewalId === lookup || String(row.id) === lookup) || null;
   return withMysqlConnection(async (conn) => {
     await ensureRenewalTables(conn);
-    const [rows] = await conn.query('SELECT * FROM renewals WHERE renewal_id = ? OR external_id = ? OR id = ? LIMIT 1', [lookup, lookup, lookup]);
+    const [rows] = await conn.query('SELECT * FROM renewals WHERE renewal_id = ? OR renewal_display_id = ? OR external_id = ? OR id = ? LIMIT 1', [lookup, lookup, lookup, lookup]);
     return rows?.[0] ? renewalPublicRow(rows[0]) : null;
   });
+};
+const assignRenewalDisplayIdIfMissing = async (conn, renewal = {}, settings = {}) => {
+  const existingDisplayId = String(renewal.renewalDisplayId || renewal.renewal_display_id || '').trim();
+  if (existingDisplayId) return { displayId: existingDisplayId, nextNumber: null };
+  const renewalId = String(renewal.renewalId || renewal.renewal_id || '').trim();
+  if (!renewalId) return { displayId: '', nextNumber: null };
+  const [existingRows] = await conn.query('SELECT renewal_id, renewal_display_id FROM renewals ORDER BY id ASC');
+  const parsed = createNextRenewalNumber(existingRows, settings);
+  await conn.query('UPDATE renewals SET renewal_display_id = ? WHERE renewal_id = ? AND (renewal_display_id IS NULL OR renewal_display_id = \'\')', [parsed.renewalId, renewalId]);
+  return { displayId: parsed.renewalId, nextNumber: parsed.nextNumber };
+};
+const findEmployeeForRenewalSalesPerson = async (renewal = {}) => {
+  const salesId = String(renewal.assignedSalesPersonId || renewal.assigned_sales_person_id || '').trim();
+  const salesName = String(renewal.assignedSalesPersonName || renewal.assigned_sales_person_name || '').trim();
+  if (salesId) {
+    const byId = await fetchEmployeeByAnyId(salesId);
+    if (byId) return byId;
+  }
+  if (!canUseMysql() || !salesName) return null;
+  try {
+    return await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query(
+        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, email, payload
+         FROM employees
+         WHERE TRIM(CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, ''))) = ?
+            OR role_name = ?
+            OR emp_code = ?
+            OR external_id = ?
+         LIMIT 1`,
+        [salesName, salesName, salesName, salesName]
+      );
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (!row) return null;
+      let payload = {};
+      if (row.payload && typeof row.payload === 'object') payload = row.payload;
+      if (typeof row.payload === 'string') {
+        try { payload = JSON.parse(row.payload); } catch { payload = {}; }
+      }
+      return {
+        ...payload,
+        _id: String(payload._id ?? row.external_id ?? row.id ?? '').trim(),
+        empCode: String(payload.empCode ?? row.emp_code ?? '').trim(),
+        firstName: String(payload.firstName ?? row.first_name ?? '').trim(),
+        lastName: String(payload.lastName ?? row.last_name ?? '').trim(),
+        role: String(payload.role ?? row.role ?? '').trim(),
+        roleName: String(payload.roleName ?? row.role_name ?? '').trim(),
+        mobile: String(payload.mobile ?? row.mobile ?? '').trim(),
+        email: String(payload.email ?? row.email ?? '').trim()
+      };
+    });
+  } catch (error) {
+    console.error('Renewal salesperson lookup failed:', error.message);
+    return null;
+  }
 };
 const applyRenewalFilters = (rows, query = {}) => {
   const now = parseDateOnly(new Date());
@@ -7131,8 +7193,8 @@ const sourceRenewalCandidates = async () => {
         renewalDueDate: renewalSqlDate(window.contractEndDate || invoice.servicePeriodEnd || invoice.dueDate),
         previousAmount: amount,
         proposedAmount: amount,
-        assignedSalesPersonId: invoice.salespersonId || '',
-        assignedSalesPersonName: invoice.salesperson || invoice.salesPerson || '',
+        assignedSalesPersonId: invoice.salespersonId || customer.assignedToId || customer.assignedSalesPersonId || '',
+        assignedSalesPersonName: invoice.salesperson || invoice.salesPerson || customer.assignedTo || customer.assignedSalesPersonName || '',
         sourceInvoice: invoice
       };
     })
@@ -7168,28 +7230,31 @@ app.post('/api/renewals/sync', async (req, res) => {
     await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
       const settings = await loadCurrentSettingsForNumbering();
-      const [existingRows] = await conn.query('SELECT renewal_id, external_id FROM renewals ORDER BY id ASC');
+      const [existingRows] = await conn.query('SELECT renewal_id, renewal_display_id, external_id FROM renewals ORDER BY id ASC');
       const existingByContract = new Map((existingRows || []).map((entry) => [String(entry.external_id || '').trim(), String(entry.renewal_id || entry.external_id || '').trim()]));
+      const existingDisplayByContract = new Map((existingRows || []).map((entry) => [String(entry.external_id || '').trim(), String(entry.renewal_display_id || '').trim()]));
       for (const row of candidates) {
         const existingRenewalId = existingByContract.get(row.sourceRenewalKey) || '';
-        const prefix = String(settings?.renewalPrefix || 'REN-');
-        const hasConfiguredNumber = existingRenewalId && existingRenewalId.startsWith(prefix) && /\d+$/.test(existingRenewalId.slice(prefix.length));
-        const renewalId = hasConfiguredNumber ? existingRenewalId : createNextRenewalNumber(existingRows, settings).renewalId;
-        if (!hasConfiguredNumber) {
-          existingRows.push({ renewal_id: renewalId, external_id: row.sourceRenewalKey });
+        const existingDisplayId = existingDisplayByContract.get(row.sourceRenewalKey) || '';
+        const renewalId = existingRenewalId || row.sourceRenewalKey;
+        let renewalDisplayId = existingDisplayId;
+        if (!renewalDisplayId) {
           const parsed = createNextRenewalNumber(existingRows, settings);
+          renewalDisplayId = parsed.renewalId;
+          existingRows.push({ renewal_id: renewalId, renewal_display_id: renewalDisplayId, external_id: row.sourceRenewalKey });
           nextRenewalNumber = parsed.nextNumber;
         }
         const payload = { source: 'invoice-sync', syncedAt: new Date().toISOString(), sourceInvoice: row.sourceInvoice };
         const [result] = await conn.query(
           `INSERT INTO renewals (
-            external_id, renewal_id, customer_id, customer_name, mobile, email, address, area_name, service_type,
+            external_id, renewal_id, renewal_display_id, customer_id, customer_name, mobile, email, address, area_name, service_type,
             contract_id, previous_contract_start, previous_contract_end, renewal_due_date, previous_amount,
             proposed_amount, assigned_sales_person_id, assigned_sales_person_name, status, payload
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
             customer_name=VALUES(customer_name),
-            renewal_id=IF(renewal_id IS NULL OR renewal_id = '' OR renewal_id = external_id, VALUES(renewal_id), renewal_id),
+            renewal_id=IF(renewal_id IS NULL OR renewal_id = '', VALUES(renewal_id), renewal_id),
+            renewal_display_id=IF(renewal_display_id IS NULL OR renewal_display_id = '', VALUES(renewal_display_id), renewal_display_id),
             mobile=VALUES(mobile),
             email=VALUES(email),
             address=VALUES(address),
@@ -7204,7 +7269,7 @@ app.post('/api/renewals/sync', async (req, res) => {
             assigned_sales_person_name=IF(assigned_sales_person_name IS NULL OR assigned_sales_person_name = '', VALUES(assigned_sales_person_name), assigned_sales_person_name),
             payload=VALUES(payload)`,
           [
-            row.sourceRenewalKey, renewalId, row.customerId, row.customerName, row.mobile, row.email, row.address, row.areaName,
+            row.sourceRenewalKey, renewalId, renewalDisplayId, row.customerId, row.customerName, row.mobile, row.email, row.address, row.areaName,
             row.serviceType, row.contractId, row.previousContractStart, row.previousContractEnd, row.renewalDueDate,
             row.previousAmount, row.proposedAmount, row.assignedSalesPersonId, row.assignedSalesPersonName,
             computeRenewalStatus({ renewal_due_date: row.renewalDueDate, status: 'Pending' }),
@@ -7328,12 +7393,22 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
   if (!renewal) return res.status(404).json({ error: 'Renewal not found' });
   try {
     const settings = await loadCurrentSettingsForNumbering();
+    let renewalDisplayId = String(renewal.renewalDisplayId || '').trim();
+    if (!renewalDisplayId) {
+      const assigned = await withMysqlConnection(async (conn) => {
+        await ensureRenewalTables(conn);
+        return assignRenewalDisplayIdIfMissing(conn, renewal, settings);
+      });
+      renewalDisplayId = assigned.displayId || renewalDisplayId;
+      if (assigned.nextNumber) await updateSettingsNextRenewalNumber(assigned.nextNumber, settings);
+    }
+    const salespersonEmployee = await findEmployeeForRenewalSalesPerson(renewal);
     const lettersDir = path.join(uploadsDir, 'renewal-letters');
     fs.mkdirSync(lettersDir, { recursive: true });
-    const fileName = `${renewal.renewalId}-${Date.now()}.pdf`;
+    const fileName = `${String(renewalDisplayId || renewal.renewalId).replace(/[^\w.-]+/g, '_')}-${Date.now()}.pdf`;
     const relativePath = `renewal-letters/${fileName}`;
     const fullPath = path.join(lettersDir, fileName);
-    const doc = new PDFDocument({ size: 'A4', margin: 46 });
+    const doc = new PDFDocument({ size: 'A4', margins: { top: 45, bottom: 45, left: 55, right: 55 } });
     const stream = fs.createWriteStream(fullPath);
     doc.pipe(stream);
 
@@ -7348,41 +7423,41 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const companyPhone = String(settings?.gstPhone || settings?.companyMobile || '9316666656').trim();
     const companyWebsite = String(settings?.companyWebsite || 'www.skuaspestcontrol.com').trim();
     const companyGst = String(settings?.companyGstNumber || settings?.gstRegistrationNumber || '07ABMCS7628G1ZW').trim();
-    const pageRight = doc.page.width - 46;
-    const detailX = 46;
-    const detailY = 54;
-    const detailWidth = pageRight - detailX;
-    doc.font('Helvetica-Bold').fontSize(10.8).fillColor('#334155').text(companyName, detailX, detailY, { width: detailWidth, align: 'left' });
-    doc.font('Helvetica').fontSize(9.2).fillColor('#334155');
-    const addressLines = [
+    const primaryColor = String(settings?.brandingAccentColor || '#9F174D').trim() || '#9F174D';
+    const pageLeft = doc.page.margins.left;
+    const pageRight = doc.page.width - doc.page.margins.right;
+    const contentWidth = pageRight - pageLeft;
+    const logoPath = resolveGstCompanyLogoPath(settings);
+    const logoSize = logoPath ? 54 : 0;
+    if (logoPath) {
+      try {
+        doc.image(logoPath, pageLeft, 45, { fit: [logoSize, logoSize] });
+      } catch (error) {
+        console.error('Renewal letter logo failed:', error.message);
+      }
+    }
+    const headerX = logoPath ? pageLeft + logoSize + 14 : pageLeft;
+    const headerWidth = pageRight - headerX;
+    doc.font('Helvetica-Bold').fontSize(10.8).fillColor('#111827').text(companyName, headerX, 45, { width: headerWidth, align: 'left' });
+    doc.font('Helvetica').fontSize(8.7).fillColor('#475569');
+    [
       companyAddress,
-      `${companyCityLine}${companyPin ? `- ${companyPin}` : ''}, India`
-    ].filter(Boolean);
-    addressLines.forEach((line) => {
-      doc.text(line, detailX, doc.y + 1, { width: detailWidth, align: 'left' });
+      `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India`,
+      `Email: ${companyEmail || '-'}   Tel: ${companyPhone || '-'}`,
+      `Web: ${companyWebsite || '-'}   GST: ${companyGst || '-'}`
+    ].filter(Boolean).forEach((line) => {
+      doc.text(line, headerX, doc.y + 1, { width: headerWidth, align: 'left', lineGap: 0 });
     });
-    const red = '#e11d48';
-    doc.fillColor('#334155').text('E Mail: ', detailX, doc.y + 1, { continued: true });
-    doc.fillColor(red).text(companyEmail || '-');
-    doc.fillColor('#334155').text('Tel: ', detailX, doc.y + 1, { continued: true });
-    doc.fillColor(red).text(companyPhone || '-');
-    doc.fillColor('#334155').text('Web: ', detailX, doc.y + 1, { continued: true });
-    doc.fillColor(red).text(companyWebsite || '-');
-    doc.fillColor('#334155').text('GST: ', detailX, doc.y + 1, { continued: true });
-    doc.fillColor(red).text(companyGst || '-');
 
-    doc.moveTo(46, 204).lineTo(pageRight, 204).strokeColor('#e5e7eb').lineWidth(1).stroke();
-    doc.font('Helvetica-Bold').fontSize(18).fillColor('#9F174D').text('Renewal Letter', 46, 222, { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(10).fillColor('#111827').text(`Date: ${formatDate(new Date())}`);
-    const renewalPrefix = String(settings?.renewalPrefix || 'REN-').trim() || 'REN-';
-    const renewalIdText = String(renewal.renewalId || '').startsWith(renewalPrefix)
-      ? renewal.renewalId
-      : `${renewalPrefix}${String(renewal.renewalId || '').replace(/^[A-Z]+-?/i, '')}`;
-    doc.text(`Renewal ID: ${renewalIdText}`);
-    doc.moveDown();
-    doc.fontSize(11).text(`Dear ${renewal.customerName},`);
-    doc.moveDown(0.5);
+    const dividerY = Math.max(doc.y + 8, 104);
+    doc.moveTo(pageLeft, dividerY).lineTo(pageRight, dividerY).strokeColor('#e5e7eb').lineWidth(0.8).stroke();
+    doc.y = dividerY + 18;
+    doc.font('Helvetica-Bold').fontSize(20).fillColor(primaryColor).text('Renewal Letter', pageLeft, doc.y, { width: contentWidth, align: 'center' });
+    doc.y += 8;
+    const metaY = doc.y;
+    doc.font('Helvetica').fontSize(10).fillColor('#111827').text(`Date: ${formatDate(new Date())}`, pageLeft, metaY, { width: contentWidth / 2, align: 'left' });
+    doc.text(`Renewal ID: ${renewalDisplayId || renewal.renewalId || '-'}`, pageLeft + contentWidth / 2, metaY, { width: contentWidth / 2, align: 'right' });
+    doc.y = metaY + 22;
     const formatRenewalLetterDate = (value) => {
       const date = parseDateOnly(value);
       if (!date) return formatDate(value);
@@ -7397,26 +7472,54 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const contractRangeEndText = formatRenewalLetterDate(previousEndDate || renewal.renewalDueDate);
     const durationText = contractDurationLabel(contractStartDate, previousEndDate);
     const serviceName = String(renewal.serviceType || 'Pest Management Services').trim();
-    const drawBodyPart = (text, bold = false, options = {}) => {
-      doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(11).fillColor('#111827').text(text, {
-        width: pageRight - 46,
-        align: 'left',
-        ...options
+    const salesFullName = salespersonEmployee
+      ? [salespersonEmployee.firstName, salespersonEmployee.lastName].filter(Boolean).join(' ').trim()
+      : '';
+    const salesPersonName = salesFullName || String(renewal.assignedSalesPersonName || '').trim();
+    const salesDesignation = String(
+      salespersonEmployee?.designation ||
+      salespersonEmployee?.roleName ||
+      salespersonEmployee?.role ||
+      'Area Sales Manager'
+    ).trim() || 'Area Sales Manager';
+    const salesMobile = String(salespersonEmployee?.mobile || companyPhone || '').trim();
+
+    const drawDetailsGrid = (pairs = []) => {
+      const labelWidth = 92;
+      const valueWidth = (contentWidth / 2) - labelWidth - 10;
+      const rowHeight = 15;
+      const startY = doc.y;
+      pairs.forEach((pair, index) => {
+        const col = index % 2;
+        const row = Math.floor(index / 2);
+        const x = pageLeft + col * (contentWidth / 2);
+        const y = startY + row * rowHeight;
+        doc.font('Helvetica-Bold').fontSize(9.2).fillColor('#475569').text(pair[0], x, y, { width: labelWidth, continued: false });
+        doc.font('Helvetica').fontSize(9.2).fillColor('#111827').text(pair[1] || '-', x + labelWidth, y, { width: valueWidth, lineBreak: false, ellipsis: true });
       });
+      doc.y = startY + Math.ceil(pairs.length / 2) * rowHeight + 8;
     };
-    drawBodyPart('It is our privilege to have been of service to you over the past year. We value our association and trust you have found our services exemplary and to your complete satisfaction.');
-    doc.moveDown();
-    drawBodyPart('Your current contract for ', false, { continued: true });
-    drawBodyPart(serviceName, true, { continued: true });
-    drawBodyPart(' concludes on ', false, { continued: true });
-    drawBodyPart(contractEndText, true, { continued: true });
-    drawBodyPart('. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ', false, { continued: true });
-    drawBodyPart(durationText, true, { continued: true });
-    drawBodyPart(' contract', false, { continued: true });
-    drawBodyPart(' (', false, { continued: true });
-    drawBodyPart(`${contractStartText} to ${contractRangeEndText}`, true, { continued: true });
-    drawBodyPart(').');
-    doc.moveDown();
+    const drawParagraph = (text) => {
+      doc.font('Helvetica').fontSize(11).fillColor('#111827').text(text, pageLeft, doc.y, {
+        width: contentWidth,
+        align: 'justify',
+        lineGap: 1.2
+      });
+      doc.y += 10;
+    };
+    drawDetailsGrid([
+      ['Customer', renewal.customerName],
+      ['Mobile', renewal.mobile],
+      ['Address / Area', [renewal.address, renewal.areaName].filter(Boolean).join(', ')],
+      ['Current End', contractEndText],
+      ['Renewal Amount', Math.round(toNumber(renewal.proposedAmount, 0)).toLocaleString('en-IN')],
+      ['Service Type', serviceName],
+      ['Sales Person', salesPersonName || '-']
+    ]);
+    doc.font('Helvetica').fontSize(11).fillColor('#111827').text(`Dear ${renewal.customerName || 'Customer'},`, pageLeft, doc.y, { width: contentWidth });
+    doc.y += 10;
+    drawParagraph('It is our privilege to have been of service to you over the past year. We value our association and trust you have found our services exemplary and to your complete satisfaction.');
+    drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
     const amountWithGst = Math.max(0, toNumber(renewal.proposedAmount, 0));
     const amountWithoutGst = amountWithGst > 0 ? amountWithGst / 1.18 : 0;
     const formatTableAmount = (value) => `${Math.round(toNumber(value, 0)).toLocaleString('en-IN')}/-`;
@@ -7425,10 +7528,10 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       const match = words.match(/^(.*) Rupees Only$/i);
       return match ? `Rupees ${match[1]} Only/-` : `${words}/-`;
     };
-    const tableX = 46;
+    const tableX = pageLeft;
     const tableY = doc.y + 4;
     const colWidths = [30, 190, 136, pageRight - tableX - 30 - 190 - 136];
-    const rowHeights = [24, 26, 26];
+    const rowHeights = [22, 24, 24];
     const drawTableCell = (x, y, w, h, text, options = {}) => {
       doc.rect(x, y, w, h).lineWidth(0.8).strokeColor('#111827').stroke();
       doc
@@ -7438,7 +7541,8 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         .text(text, x + 4, y + 7, {
           width: w - 8,
           align: options.align || 'center',
-          lineGap: 0
+          lineGap: 0,
+          ellipsis: true
         });
     };
     const headerY = tableY;
@@ -7468,18 +7572,35 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const rightTotalWidth = colWidths[2] + colWidths[3];
     drawTableCell(tableX, totalY, leftTotalWidth, rowHeights[2], `Total Price with GST (In Words) = ${formatTableAmount(amountWithGst)}`, { bold: true, fontSize: 10, align: 'left' });
     drawTableCell(tableX + leftTotalWidth, totalY, rightTotalWidth, rowHeights[2], formatTableAmountWords(amountWithGst), { bold: true, fontSize: 10, align: 'center' });
-    doc.y = totalY + rowHeights[2] + 10;
-    doc.moveDown();
-    const renewalTerms = String(settings?.renewalLetterTermsAndConditions || '').trim();
-    if (renewalTerms) {
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('Terms & Conditions');
-      doc.moveDown(0.3);
-      doc.font('Helvetica').fontSize(10).fillColor('#111827').text(renewalTerms, { align: 'left' });
-    }
-    doc.moveDown(2);
-    doc.text('Authorized Signature');
-    doc.moveDown(0.5);
-    doc.fontSize(9).fillColor('#64748b').text('This is a system-generated renewal letter.');
+    doc.y = totalY + rowHeights[2] + 12;
+    const terms = [
+      '100% Advance along with your confirmation order.',
+      'All payments should be payable to Skuas Pest Control Private Limited.',
+      'The validity of the Renewal Letter is 30 days. Please note that these charges are valid only for said premises.',
+      'Complaints will be handled without any additional charges.',
+      'Skuas Pest Control Private Limited is in no way responsible for any direct/indirect losses and/or damages by pests and of the consequences.'
+    ];
+    doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Payment Terms and Other Conditions:', pageLeft, doc.y, { width: contentWidth, align: 'left' });
+    doc.y += 4;
+    terms.forEach((term) => {
+      const bulletY = doc.y;
+      doc.font('Helvetica').fontSize(11).fillColor('#111827').text('-', pageLeft, bulletY, { width: 10 });
+      doc.text(term, pageLeft + 14, bulletY, { width: contentWidth - 14, align: 'left', lineGap: 1.1 });
+      doc.y += 3;
+    });
+    doc.y += 6;
+    doc.font('Helvetica').fontSize(11).fillColor('#111827')
+      .text('We look forward to working with you and hope this is the beginning of a long and prosperous relationship.', pageLeft, doc.y, { width: contentWidth, align: 'left', lineGap: 1.1 });
+    doc.y += 5;
+    doc.text('For any clarification, please feel free to contact me.', pageLeft, doc.y, { width: contentWidth, align: 'left' });
+    doc.y += 9;
+    ['Thanking you,', '', 'Yours Truly,', 'For Skuas Pest Control Pvt Ltd', salesPersonName || String(renewal.assignedSalesPersonName || '').trim() || '-', salesDesignation, salesMobile ? `Mob: ${salesMobile}` : ''].forEach((line) => {
+      doc.font(line === 'Yours Truly,' || line === 'For Skuas Pest Control Pvt Ltd' ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(11)
+        .fillColor('#111827')
+        .text(line, pageLeft, doc.y, { width: contentWidth, align: 'left' });
+      doc.y += line ? 2 : 4;
+    });
     doc.end();
     await new Promise((resolve, reject) => {
       stream.on('finish', resolve);
@@ -7489,7 +7610,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const pdfUrl = `/uploads/${relativePath}`;
     await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
-      await conn.query('UPDATE renewals SET renewal_letter_url = ? WHERE renewal_id = ?', [pdfUrl, renewal.renewalId]);
+      await conn.query('UPDATE renewals SET renewal_letter_url = ?, renewal_display_id = COALESCE(NULLIF(renewal_display_id, \'\'), ?) WHERE renewal_id = ?', [pdfUrl, renewalDisplayId || null, renewal.renewalId]);
       await conn.query(
         'INSERT INTO renewal_letters (external_id, renewal_id, pdf_url, customer_name, generated_by, payload) VALUES (?, ?, ?, ?, ?, ?)',
         [`RLT-${Date.now()}`, renewal.renewalId, pdfUrl, renewal.customerName, readUserMeta(req), JSON.stringify({ renewal, request: req.body || {} })]

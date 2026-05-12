@@ -316,6 +316,7 @@ export default function RenewalDashboard() {
   );
 
   const renderRows = () => {
+    const displayRenewalId = (row) => row.renewalDisplayId || row.renewal_display_id || row.renewalId || row.renewal_id || '';
     if (isMobile) {
       return (
         <div style={{ display: 'grid', gap: 8, padding: 10 }}>
@@ -355,7 +356,7 @@ export default function RenewalDashboard() {
           <tbody>
             {rows.map((row) => (
               <tr key={row.renewalId}>
-                <td style={shell.td} title={`${row.customerName} • ${row.renewalId}`}><strong>{row.customerName}</strong></td>
+                <td style={shell.td} title={`${row.customerName} • ${displayRenewalId(row)}`}><strong>{row.customerName}</strong></td>
                 <td style={shell.td}>{row.mobile || '-'}</td>
                 <td style={shell.td} title={`${row.address || ''} ${row.areaName || ''}`}>{row.areaName || row.address || '-'}</td>
                 <td style={shell.td} title={row.serviceType}>{serviceShort(row.serviceType)}</td>
@@ -402,6 +403,7 @@ export default function RenewalDashboard() {
   const renderModal = () => {
     if (!modal.type || !modal.row) return null;
     const row = modal.row;
+    const displayRenewalId = row.renewalDisplayId || row.renewal_display_id || row.renewalId || row.renewal_id || '';
     const titleMap = { view: 'Renewal Details', edit: 'Edit Renewal', assign: 'Assign Sales Person', followup: 'Log Follow-up', done: 'Mark Renewal Done', decline: 'Decline Renewal', convert: 'Convert to Contract' };
     return (
       <div style={shell.modalOverlay}>
@@ -411,6 +413,7 @@ export default function RenewalDashboard() {
             {modal.type === 'view' && (
               <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
                 <strong>{row.customerName}</strong>
+                <span>Renewal ID: {displayRenewalId || '-'}</span>
                 <span>Mobile: {row.mobile || '-'}</span>
                 <span>Service: {row.serviceType || '-'}</span>
                 <span>Due Date: {formatDate(row.renewalDueDate)}</span>

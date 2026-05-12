@@ -508,6 +508,7 @@ const tableDefinitions = [
     name: 'renewals',
     createSql: createBaseTableSql('renewals', [
       'renewal_id VARCHAR(100) NULL',
+      'renewal_display_id VARCHAR(100) NULL',
       'customer_id INT NULL',
       'mobile VARCHAR(50) NULL',
       'email VARCHAR(255) NULL',
@@ -946,7 +947,7 @@ const collectColumns = () => {
     priority: 'VARCHAR(80) NULL', status: 'VARCHAR(80) NULL', due_date: 'DATE NULL'
   });
   add('renewals', {
-    renewal_id: 'VARCHAR(100) NULL', customer_id: 'INT NULL', mobile: 'VARCHAR(50) NULL',
+    renewal_id: 'VARCHAR(100) NULL', renewal_display_id: 'VARCHAR(100) NULL', customer_id: 'INT NULL', mobile: 'VARCHAR(50) NULL',
     email: 'VARCHAR(255) NULL', address: 'TEXT NULL', area_name: 'VARCHAR(255) NULL',
     service_type: 'VARCHAR(255) NULL', contract_id: 'VARCHAR(100) NULL',
     previous_contract_start: 'DATE NULL', previous_contract_end: 'DATE NULL', renewal_due_date: 'DATE NULL',

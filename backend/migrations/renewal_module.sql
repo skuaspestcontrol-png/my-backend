@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS renewals (
   id INT AUTO_INCREMENT PRIMARY KEY,
   external_id VARCHAR(120) NULL,
   renewal_id VARCHAR(100) NOT NULL,
+  renewal_display_id VARCHAR(100) NULL,
   customer_id INT NULL,
   customer_name VARCHAR(255) NOT NULL,
   mobile VARCHAR(50) NOT NULL,
@@ -38,6 +39,22 @@ CREATE TABLE IF NOT EXISTS renewals (
   KEY idx_renewals_customer_id (customer_id),
   KEY idx_renewals_contract_id (contract_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @renewal_display_id_exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'renewals'
+    AND COLUMN_NAME = 'renewal_display_id'
+);
+SET @renewal_display_id_sql := IF(
+  @renewal_display_id_exists = 0,
+  'ALTER TABLE renewals ADD COLUMN renewal_display_id VARCHAR(100) NULL',
+  'SELECT 1'
+);
+PREPARE renewal_display_id_stmt FROM @renewal_display_id_sql;
+EXECUTE renewal_display_id_stmt;
+DEALLOCATE PREPARE renewal_display_id_stmt;
 
 CREATE TABLE IF NOT EXISTS renewal_followups (
   id INT AUTO_INCREMENT PRIMARY KEY,
