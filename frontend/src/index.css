@@ -919,3 +919,184 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* Compact CRM data tables */
+.crm-table-shell {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden !important;
+  overflow-y: hidden;
+}
+
+.crm-compact-table {
+  width: 100% !important;
+  max-width: 100%;
+  table-layout: fixed !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.crm-compact-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 34px !important;
+  padding: 7px 10px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  color: #4b5563 !important;
+  background: #f8fafc !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.crm-compact-table tbody td {
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 7px 10px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+  color: #334155 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  vertical-align: middle !important;
+}
+
+.crm-compact-table td > *,
+.crm-compact-table th > * {
+  min-width: 0;
+}
+
+.crm-compact-table select,
+.crm-compact-table input:not([type="checkbox"]):not([type="radio"]) {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 8px !important;
+  font-size: 12px !important;
+  border-radius: 7px !important;
+}
+
+.crm-compact-table button {
+  min-height: 28px !important;
+  height: 28px !important;
+  min-width: 0 !important;
+  padding: 0 9px !important;
+  border-radius: 7px !important;
+  font-size: 12px !important;
+  gap: 5px !important;
+}
+
+.crm-compact-table .crm-table-primary {
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+}
+
+.crm-compact-table .crm-table-muted {
+  display: block;
+  margin-top: 2px;
+  color: #64748b !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-compact-table .crm-cell-wrap {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 769px) and (max-width: 1199px) {
+  .crm-compact-table thead th {
+    padding: 7px 8px !important;
+    font-size: 11px !important;
+  }
+
+  .crm-compact-table tbody td {
+    padding: 7px 8px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .crm-table-shell {
+    overflow-x: hidden !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .crm-compact-table.crm-stack-mobile {
+    display: block;
+    background: transparent !important;
+  }
+
+  .crm-compact-table.crm-stack-mobile thead {
+    display: none;
+  }
+
+  .crm-compact-table.crm-stack-mobile tbody,
+  .crm-compact-table.crm-stack-mobile tr,
+  .crm-compact-table.crm-stack-mobile td {
+    display: block;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .crm-compact-table.crm-stack-mobile tr {
+    margin-bottom: 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .crm-compact-table.crm-stack-mobile tbody td {
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 8px 10px !important;
+    display: grid;
+    grid-template-columns: 108px minmax(0, 1fr);
+    gap: 8px;
+    border-bottom: 1px solid #eef2f7 !important;
+    white-space: normal !important;
+  }
+
+  .crm-compact-table.crm-stack-mobile tbody td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .crm-compact-table.crm-stack-mobile tbody td:last-child {
+    border-bottom: none !important;
+  }
+
+  .crm-compact-table.crm-stack-mobile tbody td[data-label="Select"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .crm-compact-table.crm-stack-mobile tbody td[data-label="Select"]::before {
+    display: none;
+  }
+
+  .crm-compact-table.crm-stack-mobile tbody td[data-label="Actions"],
+  .crm-compact-table.crm-stack-mobile tbody td[data-label="Action"] {
+    grid-template-columns: 108px minmax(0, 1fr);
+    align-items: center;
+  }
+}

@@ -174,6 +174,7 @@ export default function LeadFollowups() {
     : viewportWidth < 1200
       ? { ...shell.filters, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', padding: '14px 16px' }
       : shell.filters;
+  const tableStyle = { ...shell.table, minWidth: isMobile ? 0 : '100%', tableLayout: 'fixed' };
 
   const stats = [
     { label: 'Overdue', value: counts.overdue, icon: AlertTriangle, color: '#dc2626', bg: '#fee2e2' },
@@ -291,8 +292,8 @@ export default function LeadFollowups() {
           Follow-ups
           <span style={shell.badge}>{tabRows.length}</span>
         </div>
-        <div style={shell.tableWrap}>
-          <table style={shell.table}>
+        <div style={{ ...shell.tableWrap, overflowX: 'hidden' }} className="crm-table-shell">
+          <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
             <thead>
               <tr>
                 {['Lead', 'Customer', 'Status', 'Urgency', 'Assigned To', 'Last Follow-up', 'Next Follow-up', 'Actions'].map((head) => (
@@ -303,17 +304,17 @@ export default function LeadFollowups() {
             <tbody>
               {tabRows.map((lead) => (
                 <tr key={lead._id || `${lead.customerName}-${lead.followupDate}`}>
-                  <td style={shell.td}>{lead._id || '-'}</td>
-                  <td style={shell.td}>
-                    <div>{lead.customerName || lead.displayName || '-'}</div>
-                    <div style={{ color: 'var(--color-muted)', fontSize: '12px', marginTop: '3px' }}>{getLeadMobile(lead) || '-'}</div>
+                  <td style={shell.td} data-label="Lead"><span className="crm-cell-wrap">{lead._id || '-'}</span></td>
+                  <td style={shell.td} data-label="Customer">
+                    <div className="crm-table-primary crm-cell-wrap">{lead.customerName || lead.displayName || '-'}</div>
+                    <div className="crm-table-muted">{getLeadMobile(lead) || '-'}</div>
                   </td>
-                  <td style={shell.td}>{lead.status || lead.leadStatus || '-'}</td>
-                  <td style={shell.td}>{lead.urgency}</td>
-                  <td style={shell.td}>{lead.assignedToDisplay}</td>
-                  <td style={shell.td}>{formatDate(lead.lastFollowupDate || lead.lastFollowUpDate)}</td>
-                  <td style={shell.td}>{formatDate(lead.followupDate)}</td>
-                  <td style={shell.td}>
+                  <td style={shell.td} data-label="Status">{lead.status || lead.leadStatus || '-'}</td>
+                  <td style={shell.td} data-label="Urgency">{lead.urgency}</td>
+                  <td style={shell.td} data-label="Assigned To">{lead.assignedToDisplay}</td>
+                  <td style={shell.td} data-label="Last Follow-up">{formatDate(lead.lastFollowupDate || lead.lastFollowUpDate)}</td>
+                  <td style={shell.td} data-label="Next Follow-up">{formatDate(lead.followupDate)}</td>
+                  <td style={shell.td} data-label="Actions">
                     <button
                       type="button"
                       style={shell.actionBtn}
