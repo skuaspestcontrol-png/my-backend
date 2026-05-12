@@ -4007,6 +4007,12 @@ const addMonthsClamped = (date, months) => {
   return next;
 };
 
+const addDays = (date, days) => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
 const buildContractEndDate = (contractStartDate, contractPeriod) => {
   const cfg = contractPeriodConfig[contractPeriod];
   const start = parseDateOnly(contractStartDate);
@@ -6850,23 +6856,10 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const companyPhone = String(settings?.gstPhone || settings?.companyMobile || '9316666656').trim();
     const companyWebsite = String(settings?.companyWebsite || 'www.skuaspestcontrol.com').trim();
     const companyGst = String(settings?.companyGstNumber || settings?.gstRegistrationNumber || '07ABMCS7628G1ZW').trim();
-    const logoPath = resolveGstCompanyLogoPath(settings);
     const pageRight = doc.page.width - 46;
-    const headerTop = 54;
-    const logoBoxW = 270;
-    const logoBoxH = 126;
-    const logoX = pageRight - logoBoxW;
-    const logoY = 58;
-    if (logoPath) {
-      try {
-        doc.image(logoPath, logoX, logoY, { fit: [logoBoxW, logoBoxH], align: 'right', valign: 'center' });
-      } catch (_error) {
-        // Keep PDF generation working even if a configured logo file is unavailable.
-      }
-    }
     const detailX = 46;
-    const detailY = 70;
-    const detailWidth = logoX - detailX - 20;
+    const detailY = 54;
+    const detailWidth = pageRight - detailX;
     doc.font('Helvetica-Bold').fontSize(10.8).fillColor('#334155').text(companyName, detailX, detailY, { width: detailWidth, align: 'left' });
     doc.font('Helvetica').fontSize(9.2).fillColor('#334155');
     const addressLines = [
@@ -6890,11 +6883,46 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     doc.font('Helvetica-Bold').fontSize(18).fillColor('#9F174D').text('Renewal Letter', 46, 222, { align: 'center' });
     doc.moveDown();
     doc.fontSize(10).fillColor('#111827').text(`Date: ${formatDate(new Date())}`);
-    doc.text(`Renewal ID: ${renewal.renewalId}`);
+    const renewalPrefix = String(settings?.renewalPrefix || 'REN-').trim() || 'REN-';
+    const renewalIdText = String(renewal.renewalId || '').startsWith(renewalPrefix)
+      ? renewal.renewalId
+      : `${renewalPrefix}${String(renewal.renewalId || '').replace(/^[A-Z]+-?/i, '')}`;
+    doc.text(`Renewal ID: ${renewalIdText}`);
     doc.moveDown();
     doc.fontSize(11).text(`Dear ${renewal.customerName},`);
     doc.moveDown(0.5);
-    doc.text(`Your ${renewal.serviceType || 'service'} contract is due for renewal on ${formatDate(renewal.renewalDueDate)}. We value your continued trust and propose renewal of the service plan as per the details below.`, { align: 'left' });
+    const formatRenewalLetterDate = (value) => {
+      const date = parseDateOnly(value);
+      if (!date) return formatDate(value);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = date.toLocaleString('en-GB', { month: 'short' });
+      return `${day}/${month}/${date.getFullYear()}`;
+    };
+    const previousEndDate = parseDateOnly(renewal.previousContractEnd || renewal.renewalDueDate);
+    const renewalStartDate = previousEndDate ? addDays(previousEndDate, 1) : null;
+    const renewalEndDate = renewalStartDate ? addDays(addMonthsClamped(renewalStartDate, 36), -1) : null;
+    const contractEndText = formatRenewalLetterDate(previousEndDate || renewal.renewalDueDate);
+    const renewalStartText = formatRenewalLetterDate(renewalStartDate);
+    const renewalEndText = formatRenewalLetterDate(renewalEndDate);
+    const serviceName = String(renewal.serviceType || 'Pest Management Services').trim();
+    const drawBodyPart = (text, bold = false, options = {}) => {
+      doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(11).fillColor('#111827').text(text, {
+        width: pageRight - 46,
+        align: 'left',
+        ...options
+      });
+    };
+    drawBodyPart('It is our privilege to have been of service to you over the past year. We value our association and trust you have found our services exemplary and to your complete satisfaction.');
+    doc.moveDown();
+    drawBodyPart('Your current contract for ', false, { continued: true });
+    drawBodyPart(serviceName, true, { continued: true });
+    drawBodyPart(' concludes on ', false, { continued: true });
+    drawBodyPart(contractEndText, true, { continued: true });
+    drawBodyPart('. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ', false, { continued: true });
+    drawBodyPart('36 months contract', true, { continued: true });
+    drawBodyPart(' (', false, { continued: true });
+    drawBodyPart(`${renewalStartText} to ${renewalEndText}`, true, { continued: true });
+    drawBodyPart(').');
     doc.moveDown();
     const lines = [
       ['Customer', renewal.customerName],
