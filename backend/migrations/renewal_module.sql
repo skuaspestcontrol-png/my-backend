@@ -1,0 +1,63 @@
+CREATE TABLE IF NOT EXISTS renewals (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  external_id VARCHAR(120) NULL,
+  renewal_id VARCHAR(100) NOT NULL,
+  customer_id INT NULL,
+  customer_name VARCHAR(255) NOT NULL,
+  mobile VARCHAR(50) NOT NULL,
+  email VARCHAR(255) NULL,
+  address TEXT NULL,
+  area_name VARCHAR(255) NULL,
+  service_type VARCHAR(255) NULL,
+  contract_id VARCHAR(100) NULL,
+  previous_contract_start DATE NULL,
+  previous_contract_end DATE NULL,
+  renewal_due_date DATE NULL,
+  previous_amount DECIMAL(12,2) DEFAULT 0,
+  proposed_amount DECIMAL(12,2) DEFAULT 0,
+  final_renewal_amount DECIMAL(12,2) DEFAULT 0,
+  assigned_sales_person_id VARCHAR(100) NULL,
+  assigned_sales_person_name VARCHAR(255) NULL,
+  renewed_by_sales_person_id VARCHAR(100) NULL,
+  renewed_by_sales_person_name VARCHAR(255) NULL,
+  status ENUM('Pending','Follow-up','Done','Declined','Overdue') DEFAULT 'Pending',
+  followup_date DATE NULL,
+  last_followup_note TEXT NULL,
+  decline_reason TEXT NULL,
+  renewed_at DATETIME NULL,
+  converted_contract_id VARCHAR(100) NULL,
+  renewal_letter_url TEXT NULL,
+  payload JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_renewals_renewal_id (renewal_id),
+  UNIQUE KEY uk_renewals_external_id (external_id),
+  KEY idx_renewals_due_date (renewal_due_date),
+  KEY idx_renewals_status (status),
+  KEY idx_renewals_assigned_sales (assigned_sales_person_id),
+  KEY idx_renewals_customer_id (customer_id),
+  KEY idx_renewals_contract_id (contract_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS renewal_followups (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  renewal_id VARCHAR(100) NOT NULL,
+  followup_date DATE NULL,
+  note TEXT,
+  status VARCHAR(50),
+  created_by VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_renewal_followups_renewal_id (renewal_id),
+  KEY idx_renewal_followups_date (followup_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS renewal_letters (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  renewal_id VARCHAR(100) NOT NULL,
+  pdf_url TEXT NULL,
+  customer_name VARCHAR(255),
+  generated_by VARCHAR(255) NULL,
+  generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  payload JSON NULL,
+  KEY idx_renewal_letters_renewal_id (renewal_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

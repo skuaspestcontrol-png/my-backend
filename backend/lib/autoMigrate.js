@@ -430,6 +430,30 @@ const tableDefinitions = [
   {
     name: 'renewals',
     createSql: createBaseTableSql('renewals', [
+      'renewal_id VARCHAR(100) NULL',
+      'customer_id INT NULL',
+      'mobile VARCHAR(50) NULL',
+      'email VARCHAR(255) NULL',
+      'address TEXT NULL',
+      'area_name VARCHAR(255) NULL',
+      'service_type VARCHAR(255) NULL',
+      'contract_id VARCHAR(100) NULL',
+      'previous_contract_start DATE NULL',
+      'previous_contract_end DATE NULL',
+      'renewal_due_date DATE NULL',
+      'previous_amount DECIMAL(12,2) NOT NULL DEFAULT 0',
+      'proposed_amount DECIMAL(12,2) NOT NULL DEFAULT 0',
+      'final_renewal_amount DECIMAL(12,2) NOT NULL DEFAULT 0',
+      'assigned_sales_person_id VARCHAR(100) NULL',
+      'assigned_sales_person_name VARCHAR(255) NULL',
+      'renewed_by_sales_person_id VARCHAR(100) NULL',
+      'renewed_by_sales_person_name VARCHAR(255) NULL',
+      'followup_date DATE NULL',
+      'last_followup_note TEXT NULL',
+      'decline_reason TEXT NULL',
+      'renewed_at DATETIME NULL',
+      'converted_contract_id VARCHAR(100) NULL',
+      'renewal_letter_url TEXT NULL',
       'invoice_external_id VARCHAR(120) NULL',
       'invoice_number VARCHAR(120) NULL',
       'customer_external_id VARCHAR(120) NULL',
@@ -441,9 +465,52 @@ const tableDefinitions = [
       'total_amount DECIMAL(18,2) NULL',
       'balance_due DECIMAL(18,2) NULL'
     ], [
+      'UNIQUE KEY uk_renewals_renewal_id (renewal_id)',
+      'KEY idx_renewals_due_date (renewal_due_date)',
+      'KEY idx_renewals_assigned_sales (assigned_sales_person_id)',
+      'KEY idx_renewals_customer_id (customer_id)',
+      'KEY idx_renewals_contract_id (contract_id)',
       'KEY idx_renewals_invoice (invoice_external_id)',
       'KEY idx_renewals_status (status)'
-    ])
+    ]),
+    indexes: {
+      uk_renewals_renewal_id: 'CREATE UNIQUE INDEX uk_renewals_renewal_id ON renewals (renewal_id)',
+      idx_renewals_due_date: 'CREATE INDEX idx_renewals_due_date ON renewals (renewal_due_date)',
+      idx_renewals_status: 'CREATE INDEX idx_renewals_status ON renewals (status)',
+      idx_renewals_assigned_sales: 'CREATE INDEX idx_renewals_assigned_sales ON renewals (assigned_sales_person_id)',
+      idx_renewals_customer_id: 'CREATE INDEX idx_renewals_customer_id ON renewals (customer_id)',
+      idx_renewals_contract_id: 'CREATE INDEX idx_renewals_contract_id ON renewals (contract_id)'
+    }
+  },
+  {
+    name: 'renewal_followups',
+    createSql: createBaseTableSql('renewal_followups', [
+      'renewal_id VARCHAR(100) NULL',
+      'followup_date DATE NULL',
+      'note TEXT NULL',
+      'status VARCHAR(50) NULL',
+      'created_by VARCHAR(255) NULL'
+    ], [
+      'KEY idx_renewal_followups_renewal_id (renewal_id)',
+      'KEY idx_renewal_followups_date (followup_date)'
+    ]),
+    indexes: {
+      idx_renewal_followups_renewal_id: 'CREATE INDEX idx_renewal_followups_renewal_id ON renewal_followups (renewal_id)',
+      idx_renewal_followups_date: 'CREATE INDEX idx_renewal_followups_date ON renewal_followups (followup_date)'
+    }
+  },
+  {
+    name: 'renewal_letters',
+    createSql: createBaseTableSql('renewal_letters', [
+      'renewal_id VARCHAR(100) NULL',
+      'pdf_url TEXT NULL',
+      'customer_name VARCHAR(255) NULL',
+      'generated_by VARCHAR(255) NULL',
+      'generated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP'
+    ], ['KEY idx_renewal_letters_renewal_id (renewal_id)']),
+    indexes: {
+      idx_renewal_letters_renewal_id: 'CREATE INDEX idx_renewal_letters_renewal_id ON renewal_letters (renewal_id)'
+    }
   },
   {
     name: 'payroll_runs',
@@ -786,10 +853,28 @@ const collectColumns = () => {
     priority: 'VARCHAR(80) NULL', status: 'VARCHAR(80) NULL', due_date: 'DATE NULL'
   });
   add('renewals', {
+    renewal_id: 'VARCHAR(100) NULL', customer_id: 'INT NULL', mobile: 'VARCHAR(50) NULL',
+    email: 'VARCHAR(255) NULL', address: 'TEXT NULL', area_name: 'VARCHAR(255) NULL',
+    service_type: 'VARCHAR(255) NULL', contract_id: 'VARCHAR(100) NULL',
+    previous_contract_start: 'DATE NULL', previous_contract_end: 'DATE NULL', renewal_due_date: 'DATE NULL',
+    previous_amount: 'DECIMAL(12,2) NOT NULL DEFAULT 0', proposed_amount: 'DECIMAL(12,2) NOT NULL DEFAULT 0',
+    final_renewal_amount: 'DECIMAL(12,2) NOT NULL DEFAULT 0', assigned_sales_person_id: 'VARCHAR(100) NULL',
+    assigned_sales_person_name: 'VARCHAR(255) NULL', renewed_by_sales_person_id: 'VARCHAR(100) NULL',
+    renewed_by_sales_person_name: 'VARCHAR(255) NULL', followup_date: 'DATE NULL',
+    last_followup_note: 'TEXT NULL', decline_reason: 'TEXT NULL', renewed_at: 'DATETIME NULL',
+    converted_contract_id: 'VARCHAR(100) NULL', renewal_letter_url: 'TEXT NULL',
     invoice_external_id: 'VARCHAR(120) NULL', invoice_number: 'VARCHAR(120) NULL', customer_external_id: 'VARCHAR(120) NULL',
     customer_name: 'VARCHAR(255) NULL', contract_start_date: 'DATE NULL', contract_end_date: 'DATE NULL',
     status: 'VARCHAR(80) NULL', payment_status: 'VARCHAR(80) NULL', total_amount: 'DECIMAL(18,2) NULL',
     balance_due: 'DECIMAL(18,2) NULL'
+  });
+  add('renewal_followups', {
+    renewal_id: 'VARCHAR(100) NULL', followup_date: 'DATE NULL', note: 'TEXT NULL',
+    status: 'VARCHAR(50) NULL', created_by: 'VARCHAR(255) NULL'
+  });
+  add('renewal_letters', {
+    renewal_id: 'VARCHAR(100) NULL', pdf_url: 'TEXT NULL', customer_name: 'VARCHAR(255) NULL',
+    generated_by: 'VARCHAR(255) NULL', generated_at: 'TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP'
   });
   add('payroll_runs', {
     run_key: 'VARCHAR(160) NULL', month: 'INT NULL', year: 'INT NULL', status: 'VARCHAR(80) NULL',

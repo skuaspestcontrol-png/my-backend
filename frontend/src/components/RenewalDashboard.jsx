@@ -1,116 +1,136 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { CalendarClock, Eye, FileText, MessageSquare, RefreshCcw, UserCheck, X } from 'lucide-react';
+import {
+  CalendarClock,
+  CheckCircle2,
+  FileText,
+  RefreshCw,
+  Search,
+  UserCheck,
+  XCircle
+} from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-const renewalStatuses = ['Upcoming', 'Contacted', 'Follow-up', 'Confirmed', 'Renewed', 'Lost'];
-const paymentStatuses = ['Pending', 'Partial', 'Paid'];
-const bucketOptions = [
-  { value: 'all', label: 'All Buckets' },
-  { value: 'today', label: 'Today' },
-  { value: '7_days', label: '7 Days' },
-  { value: '15_days', label: '15 Days' },
-  { value: '30_days', label: '30 Days' },
-  { value: 'expired', label: 'Expired' },
-  { value: 'later', label: 'Later' }
+const statuses = ['All', 'Pending', 'Follow-up', 'Done', 'Declined', 'Overdue'];
+const ranges = [
+  { value: 'threeMonths', label: 'Coming 3 Months' },
+  { value: 'thisMonth', label: 'This Month' },
+  { value: 'nextMonth', label: 'Next Month' },
+  { value: 'custom', label: 'Custom Month' },
+  { value: 'year', label: 'Year Wise' }
 ];
+const tabs = ['Renewal Dashboard', 'Renewal List', 'Month Wise View', 'Year Wise View', 'Sales Person Wise View', 'Renewal Letters'];
 
 const shell = {
-  page: { display: 'grid', gap: '12px', width: '100%', padding: 0, border: 'none', borderRadius: 0, background: 'transparent' },
-  head: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
-  title: { margin: 0, fontSize: '34px', fontWeight: 800, letterSpacing: '-0.03em', color: '#111827' },
-  subtitle: { margin: 0, fontSize: '13px', color: '#64748b', fontWeight: 600 },
-  actionBtn: { border: '1px solid #D1D5DB', background: '#fff', color: '#334155', borderRadius: '8px', minHeight: '34px', padding: '0 12px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
-  cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '10px' },
-  card: { border: '1px solid var(--color-primary-soft)', background: '#fff', borderRadius: '12px', padding: '10px' },
-  cardLabel: { fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
-  cardValue: { marginTop: '4px', fontSize: '26px', color: '#0f172a', fontWeight: 800 },
-  panel: { border: '1px solid rgba(15,23,42,0.08)', background: '#fff', borderRadius: '12px', overflow: 'hidden' },
-  panelHead: { borderBottom: '1px solid var(--color-border)', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
-  panelTitle: { margin: 0, fontSize: '18px', color: '#334155', fontWeight: 800 },
-  filterGrid: { padding: '10px 12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' },
-  field: { display: 'grid', gap: '4px' },
-  label: { margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
-  input: { width: '100%', minHeight: '32px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff', boxSizing: 'border-box' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', borderRadius: '14px', border: '1px solid var(--color-border)' },
-  table: { width: '100%', minWidth: '1240px', borderCollapse: 'separate', borderSpacing: 0 },
-  th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#64748b', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', textTransform: 'uppercase' },
-  td: { fontSize: '12px', color: '#1f2937', padding: '8px 10px', borderBottom: '1px solid #f1f5f9', verticalAlign: 'top' },
-  rowAction: { border: '1px solid #F9A8D4', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '7px', minHeight: '26px', padding: '0 8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' },
-  statusPill: { borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: 800, display: 'inline-flex', alignItems: 'center' },
-  detail: { padding: '12px', display: 'grid', gap: '10px' },
-  detailGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '8px' },
-  subGrid: { display: 'grid', gap: '6px' },
-  empty: { padding: '24px 12px', textAlign: 'center', color: '#64748b', fontWeight: 700 }
+  page: { display: 'grid', gap: 12, fontFamily: 'Inter, system-ui, sans-serif' },
+  hero: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' },
+  title: { margin: 0, fontSize: 'clamp(24px, 3vw, 34px)', fontWeight: 800, letterSpacing: 0, color: '#111827' },
+  subtitle: { margin: '4px 0 0', color: '#64748b', fontSize: 13, fontWeight: 650 },
+  actions: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' },
+  primaryBtn: { minHeight: 34, border: 'none', borderRadius: 9, padding: '0 12px', background: 'var(--color-primary)', color: '#fff', fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer' },
+  ghostBtn: { minHeight: 34, border: '1px solid #d1d5db', borderRadius: 9, padding: '0 12px', background: '#fff', color: '#1f2937', fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer' },
+  dangerBtn: { minHeight: 34, border: '1px solid #fecaca', borderRadius: 9, padding: '0 12px', background: '#fff1f2', color: '#b91c1c', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
+  panel: { border: '1px solid var(--color-border)', borderRadius: 12, background: '#fff', overflow: 'hidden', boxShadow: '0 10px 28px rgba(15, 23, 42, 0.04)' },
+  panelPad: { padding: 12 },
+  stats: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 },
+  stat: { border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 12px', background: '#fff' },
+  statLabel: { fontSize: 11, textTransform: 'uppercase', color: '#64748b', fontWeight: 800, letterSpacing: 0 },
+  statValue: { marginTop: 6, fontSize: 24, fontWeight: 850, color: '#111827' },
+  filters: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))', gap: 8, alignItems: 'end' },
+  field: { display: 'grid', gap: 4 },
+  label: { fontSize: 11, color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
+  input: { width: '100%', height: 34, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: '#111827', fontSize: 12, fontWeight: 650, padding: '0 9px', boxSizing: 'border-box' },
+  tabs: { display: 'flex', gap: 6, padding: 8, overflowX: 'auto', borderBottom: '1px solid var(--color-border)' },
+  tab: { border: '1px solid transparent', borderRadius: 8, background: 'transparent', color: '#475569', minHeight: 30, padding: '0 10px', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer' },
+  activeTab: { background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderColor: 'var(--color-primary-soft)' },
+  tableWrap: { width: '100%', overflowX: 'auto', overflowY: 'hidden' },
+  table: { width: '100%', minWidth: 1120, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
+  th: { textAlign: 'left', padding: '9px 8px', fontSize: 11, color: '#64748b', fontWeight: 850, textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', background: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  td: { padding: '8px', fontSize: 12.5, color: '#1f2937', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  rowActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, flexWrap: 'nowrap' },
+  iconBtn: { width: 30, height: 30, minWidth: 30, minHeight: 30, padding: 0, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  status: { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 8px', fontSize: 11, fontWeight: 850 },
+  chartGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 },
+  miniRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 70px 90px', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 12 },
+  modalOverlay: { position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 14 },
+  modal: { width: 'min(520px, 100%)', background: '#fff', borderRadius: 14, border: '1px solid var(--color-border)', boxShadow: '0 24px 70px rgba(15,23,42,0.22)', overflow: 'hidden' },
+  modalHead: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  modalBody: { padding: 14, display: 'grid', gap: 10 },
+  mobileCard: { border: '1px solid #e5e7eb', borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: '#fff' },
+  mobileMeta: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, color: '#475569' }
 };
 
 const formatDate = (value) => {
   if (!value) return '-';
-  const raw = String(value).trim();
-  const plain = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (plain) return `${plain[3]}/${plain[2]}/${plain[1]}`;
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return '-';
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  const raw = String(value).slice(0, 10);
+  const parts = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (parts) return `${parts[3]}/${parts[2]}/${parts[1]}`;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '-';
+  return parsed.toLocaleDateString('en-IN');
 };
-
-const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-const parseRoleFlags = () => {
-  const role = String(localStorage.getItem('portal_user_role') || 'Admin').trim().toLowerCase();
-  const isAdmin = role === 'admin' || role === '';
-  const isTechnician = role.includes('technician');
-  const canWrite = isAdmin || role.includes('sales') || role.includes('operations') || role.includes('staff');
-  return { isAdmin, isTechnician, canWrite: canWrite && !isTechnician };
+const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+const statusStyle = (status) => {
+  const map = {
+    Done: ['#dcfce7', '#166534'],
+    Declined: ['#fee2e2', '#991b1b'],
+    Overdue: ['#ffedd5', '#9a3412'],
+    'Follow-up': ['#dbeafe', '#1d4ed8'],
+    Pending: ['#f1f5f9', '#334155']
+  };
+  const [bg, color] = map[status] || map.Pending;
+  return { ...shell.status, background: bg, color };
 };
-
-const csvEscape = (value) => {
-  const text = String(value ?? '');
-  if (text.includes(',') || text.includes('"') || text.includes('\n')) return `"${text.replace(/"/g, '""')}"`;
-  return text;
-};
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 7 }, (_, i) => currentYear - 2 + i);
+const months = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: new Date(2026, i, 1).toLocaleString('en-IN', { month: 'short' }) }));
 
 export default function RenewalDashboard() {
-  const role = useMemo(() => parseRoleFlags(), []);
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [renewals, setRenewals] = useState([]);
+  const [rows, setRows] = useState([]);
+  const [summary, setSummary] = useState({});
   const [employees, setEmployees] = useState([]);
+  const [letters, setLetters] = useState([]);
+  const [activeTab, setActiveTab] = useState(tabs[0]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [selectedId, setSelectedId] = useState('');
-  const [history, setHistory] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [form, setForm] = useState({ status: 'Upcoming', paymentStatus: 'Pending', lostReason: '', followUpNote: '', quoteAmount: '', quoteValidTill: '', quoteNotes: '', reminderMessage: '', technicians: [] });
-  const [filters, setFilters] = useState({ from: '', to: '', customer: '', serviceType: '', technician: '', status: 'all', paymentStatus: 'all', bucket: 'all' });
-  const [historyDrawer, setHistoryDrawer] = useState({ open: false, row: null });
+  const [message, setMessage] = useState('');
+  const [modal, setModal] = useState({ type: '', row: null });
+  const [form, setForm] = useState({});
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 760);
+  const [filters, setFilters] = useState({
+    range: 'threeMonths',
+    month: new Date().getMonth() + 1,
+    year: currentYear,
+    fromDate: '',
+    toDate: '',
+    status: 'All',
+    assignedSalesPersonId: '',
+    search: ''
+  });
 
   useEffect(() => {
-    const onResize = () => setViewportWidth(window.innerWidth);
+    const onResize = () => setIsMobile(window.innerWidth <= 760);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (overrideFilters = filters) => {
     try {
       setLoading(true);
-      setLoadError('');
-      const [renewalRes, employeeRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/renewals`, { params: { t: Date.now() } }),
-        axios.get(`${API_BASE}/api/employees`, { params: { t: Date.now() } })
+      const params = { ...overrideFilters, t: Date.now() };
+      const [renewalRes, summaryRes, employeeRes, letterRes] = await Promise.all([
+        axios.get(`${API_BASE}/api/renewals`, { params }),
+        axios.get(`${API_BASE}/api/renewals/summary`, { params }),
+        axios.get(`${API_BASE}/api/employees`, { params: { t: Date.now() } }),
+        axios.get(`${API_BASE}/api/renewals/letters`, { params: { t: Date.now() } }).catch(() => ({ data: [] }))
       ]);
-      const nextRenewals = Array.isArray(renewalRes.data) ? renewalRes.data : [];
-      setRenewals(nextRenewals);
+      setRows(Array.isArray(renewalRes.data) ? renewalRes.data : []);
+      setSummary(summaryRes.data || {});
       setEmployees(Array.isArray(employeeRes.data) ? employeeRes.data : []);
-      if (!selectedId && nextRenewals.length > 0) setSelectedId(nextRenewals[0]._id);
-      if (selectedId && !nextRenewals.some((entry) => entry._id === selectedId)) setSelectedId(nextRenewals[0]?._id || '');
+      setLetters(Array.isArray(letterRes.data) ? letterRes.data : []);
     } catch (error) {
-      console.error('Failed to load renewals', error);
-      setLoadError('Unable to load renewal dashboard right now.');
-      setRenewals([]);
+      console.error('Renewal load failed', error);
+      setMessage(error?.response?.data?.error || 'Unable to load renewals right now.');
     } finally {
       setLoading(false);
     }
@@ -118,489 +138,293 @@ export default function RenewalDashboard() {
 
   useEffect(() => {
     loadData();
-    return undefined;
   }, []);
 
-  const filtered = useMemo(() => {
-    return renewals.filter((entry) => {
-      const endDate = entry.contractEndDate ? new Date(entry.contractEndDate) : null;
-      const from = filters.from ? new Date(filters.from) : null;
-      const to = filters.to ? new Date(filters.to) : null;
-      if (from && endDate && endDate < from) return false;
-      if (to && endDate && endDate > to) return false;
-      if (filters.customer && !`${entry.customerName || ''} ${entry.mobileNumber || ''}`.toLowerCase().includes(filters.customer.toLowerCase())) return false;
-      if (filters.serviceType && !String(entry.serviceType || '').toLowerCase().includes(filters.serviceType.toLowerCase())) return false;
-      if (filters.technician) {
-        const names = Array.isArray(entry.technicianAssignments) ? entry.technicianAssignments.join(' ').toLowerCase() : '';
-        if (!names.includes(filters.technician.toLowerCase())) return false;
-      }
-      if (filters.status !== 'all' && String(entry.status || '') !== filters.status) return false;
-      if (filters.paymentStatus !== 'all' && String(entry.paymentStatus || '') !== filters.paymentStatus) return false;
-      if (filters.bucket !== 'all' && String(entry.expiryBucket || '') !== filters.bucket) return false;
-      return true;
+  const salesPeople = useMemo(() => {
+    const list = employees
+      .filter((employee) => String(employee.role || employee.roleName || '').toLowerCase().includes('sales'))
+      .map((employee) => ({
+        id: employee._id || employee.empCode || employee.id || '',
+        name: employee.fullName || [employee.firstName, employee.lastName].filter(Boolean).join(' ') || employee.name || employee.empCode || 'Sales Person'
+      }));
+    const assigned = rows
+      .filter((row) => row.assignedSalesPersonName)
+      .map((row) => ({ id: row.assignedSalesPersonId || row.assignedSalesPersonName, name: row.assignedSalesPersonName }));
+    return [...list, ...assigned].filter((person, index, arr) => person.name && arr.findIndex((x) => String(x.id || x.name) === String(person.id || person.name)) === index);
+  }, [employees, rows]);
+
+  const updateFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
+  const openModal = (type, row) => {
+    setModal({ type, row });
+    setForm({
+      salesPersonId: row?.assignedSalesPersonId || '',
+      salesPersonName: row?.assignedSalesPersonName || '',
+      followupDate: row?.followupDate || '',
+      note: row?.lastFollowupNote || '',
+      finalAmount: row?.finalRenewalAmount || row?.proposedAmount || '',
+      renewedBySalesPersonId: row?.assignedSalesPersonId || '',
+      renewedBySalesPersonName: row?.assignedSalesPersonName || '',
+      reason: '',
+      serviceType: row?.serviceType || '',
+      renewalDueDate: row?.renewalDueDate || '',
+      proposedAmount: row?.proposedAmount || '',
+      status: row?.status || 'Pending',
+      contractStartDate: '',
+      contractEndDate: '',
+      amount: row?.finalRenewalAmount || row?.proposedAmount || ''
     });
-  }, [filters, renewals]);
+  };
+  const closeModal = () => setModal({ type: '', row: null });
+  const runAction = async (label, callback) => {
+    try {
+      setBusy(true);
+      const response = await callback();
+      setMessage(response?.data?.message || label);
+      closeModal();
+      await loadData();
+    } catch (error) {
+      console.error(label, error);
+      setMessage(error?.response?.data?.error || `Unable to complete: ${label}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const syncRenewals = () => runAction('Renewal synced successfully', () => axios.post(`${API_BASE}/api/renewals/sync`));
+  const applyFilters = () => loadData();
+  const resetFilters = () => {
+    const next = { range: 'threeMonths', month: new Date().getMonth() + 1, year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', search: '' };
+    setFilters(next);
+    loadData(next);
+  };
 
-  const selected = useMemo(() => filtered.find((entry) => entry._id === selectedId) || renewals.find((entry) => entry._id === selectedId) || filtered[0] || null, [filtered, renewals, selectedId]);
+  const stats = [
+    ['Total Renewals', summary.totalRenewals || 0],
+    ['Total Renewal Amount', formatINR(summary.totalRenewalAmount || 0)],
+    ['No. of Customers', summary.customerCount || 0],
+    ['Renewal Done', summary.doneCount || 0],
+    ['Pending Renewal', summary.pendingCount || 0],
+    ['Declined Renewal', summary.declinedCount || 0],
+    ['Follow-up Renewals', summary.followupCount || 0],
+    ['Overdue Renewals', summary.overdueCount || 0],
+    ['Assigned Sales Person', summary.assignedSalesPersonCount || 0]
+  ];
 
-  useEffect(() => {
-    if (!selected) return;
-    setForm((prev) => ({
-      ...prev,
-      status: selected.status || 'Upcoming',
-      paymentStatus: selected.paymentStatus || 'Pending',
-      lostReason: selected.lostReason || '',
-      followUpNote: '',
-      quoteAmount: selected.quotation?.amount ? String(selected.quotation.amount) : '',
-      quoteValidTill: selected.quotation?.validTill || '',
-      quoteNotes: selected.quotation?.notes || '',
-      reminderMessage: `Dear ${selected.customerName || 'Customer'}, your pest control contract is expiring on ${formatDate(selected.contractEndDate)}. Please confirm renewal.`,
-      technicians: []
-    }));
-    setHistory([]);
-  }, [selected?._id]);
-
-  const counts = useMemo(() => {
-    const today = renewals.filter((entry) => Number(entry.daysToExpiry) === 0).length;
-    const d7 = renewals.filter((entry) => Number(entry.daysToExpiry) >= 0 && Number(entry.daysToExpiry) <= 7).length;
-    const d15 = renewals.filter((entry) => Number(entry.daysToExpiry) >= 0 && Number(entry.daysToExpiry) <= 15).length;
-    const d30 = renewals.filter((entry) => Number(entry.daysToExpiry) >= 0 && Number(entry.daysToExpiry) <= 30).length;
-    return { today, d7, d15, d30 };
-  }, [renewals]);
-  const isMobile = viewportWidth <= 768;
-  const cardGridStyle = isMobile ? { ...shell.cardGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.cardGrid;
-  const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
-  const tableWrapStyle = isMobile ? { ...shell.tableWrap, WebkitOverflowScrolling: 'touch' } : shell.tableWrap;
-  const tableStyle = isMobile ? { ...shell.table, minWidth: '1040px' } : shell.table;
-  const detailGridStyle = isMobile ? { ...shell.detailGrid, gridTemplateColumns: '1fr' } : shell.detailGrid;
-
-  const technicianOptions = useMemo(
-    () => employees.filter((entry) => String(entry.role || '').trim().toLowerCase() === 'technician'),
-    [employees]
+  const renderFilters = () => (
+    <div style={shell.panel}>
+      <div style={{ ...shell.panelPad, ...shell.filters, gridTemplateColumns: isMobile ? '1fr' : shell.filters.gridTemplateColumns }}>
+        <label style={shell.field}><span style={shell.label}>Range</span><select style={shell.input} value={filters.range} onChange={(e) => updateFilter('range', e.target.value)}>{ranges.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Month</span><select style={shell.input} value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>{months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Year</span><select style={shell.input} value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>{statuses.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Sales Person</span><select style={shell.input} value={filters.assignedSalesPersonId} onChange={(e) => updateFilter('assignedSalesPersonId', e.target.value)}><option value="">All Sales</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Search</span><span style={{ position: 'relative' }}><Search size={14} style={{ position: 'absolute', left: 8, top: 10, color: '#94a3b8' }} /><input style={{ ...shell.input, paddingLeft: 28 }} value={filters.search} onChange={(e) => updateFilter('search', e.target.value)} placeholder="Customer/mobile/service" /></span></label>
+        <div style={{ ...shell.actions, justifyContent: isMobile ? 'stretch' : 'flex-end' }}>
+          <button type="button" style={shell.primaryBtn} onClick={applyFilters}>Apply</button>
+          <button type="button" style={shell.ghostBtn} onClick={resetFilters}>Reset</button>
+        </div>
+      </div>
+    </div>
   );
 
-  const refreshHistory = async () => {
-    if (!selected) return;
-    try {
-      setHistoryLoading(true);
-      const res = await axios.get(`${API_BASE}/api/renewals/${selected._id}/history`);
-      setHistory(Array.isArray(res.data?.history) ? res.data.history : []);
-    } catch (error) {
-      console.error('Failed to load history', error);
-      window.alert('Unable to load renewal history right now.');
-      setHistory([]);
-    } finally {
-      setHistoryLoading(false);
+  const renderRows = () => {
+    if (isMobile) {
+      return (
+        <div style={{ display: 'grid', gap: 8, padding: 10 }}>
+          {rows.map((row) => (
+            <div key={row.renewalId} style={shell.mobileCard}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                <strong style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.customerName}</strong>
+                <span style={statusStyle(row.status)}>{row.status}</span>
+              </div>
+              <div style={shell.mobileMeta}>
+                <span>{row.mobile || '-'}</span>
+                <span>{formatDate(row.renewalDueDate)}</span>
+                <span>{row.serviceType || '-'}</span>
+                <span>{formatINR(row.proposedAmount)}</span>
+              </div>
+              <div style={{ ...shell.rowActions, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+                <button style={shell.ghostBtn} onClick={() => openModal('view', row)}>View</button>
+                <button style={shell.ghostBtn} onClick={() => openModal('assign', row)}>Assign</button>
+                <button style={shell.ghostBtn} onClick={() => openModal('followup', row)}>Follow-up</button>
+                <button style={shell.primaryBtn} onClick={() => openModal('done', row)}>Done</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
     }
+    return (
+      <div style={shell.tableWrap}>
+        <table className="crm-compact-table" style={shell.table}>
+          <colgroup>
+            <col style={{ width: '13%' }} /><col style={{ width: '9%' }} /><col style={{ width: '11%' }} /><col style={{ width: '10%' }} />
+            <col style={{ width: '8%' }} /><col style={{ width: '8%' }} /><col style={{ width: '8%' }} /><col style={{ width: '9%' }} />
+            <col style={{ width: '10%' }} /><col style={{ width: '8%' }} /><col style={{ width: '8%' }} /><col style={{ width: '10%' }} /><col style={{ width: 224 }} />
+          </colgroup>
+          <thead><tr>{['Customer Name', 'Mobile', 'Address / Area', 'Service Type', 'Start Date', 'End Date', 'Renewal Due', 'Prev Amount', 'Proposed', 'Sales Person', 'Status', 'Follow-up / Note', 'Actions'].map((h) => <th key={h} style={{ ...shell.th, textAlign: h === 'Actions' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.renewalId}>
+                <td style={shell.td} title={row.customerName}><strong>{row.customerName}</strong></td>
+                <td style={shell.td}>{row.mobile || '-'}</td>
+                <td style={shell.td} title={`${row.address || ''} ${row.areaName || ''}`}>{row.areaName || row.address || '-'}</td>
+                <td style={shell.td} title={row.serviceType}>{row.serviceType || '-'}</td>
+                <td style={shell.td}>{formatDate(row.previousContractStart)}</td>
+                <td style={shell.td}>{formatDate(row.previousContractEnd)}</td>
+                <td style={shell.td}>{formatDate(row.renewalDueDate)}</td>
+                <td style={shell.td}>{formatINR(row.previousAmount)}</td>
+                <td style={shell.td}>{formatINR(row.proposedAmount)}</td>
+                <td style={shell.td} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
+                <td style={shell.td}><span style={statusStyle(row.status)}>{row.status}</span></td>
+                <td style={shell.td} title={row.lastFollowupNote}>{formatDate(row.followupDate)} {row.lastFollowupNote ? `- ${row.lastFollowupNote}` : ''}</td>
+                <td style={{ ...shell.td, overflow: 'visible' }}>
+                  <div style={shell.rowActions}>
+                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="View" onClick={() => openModal('view', row)}><FileText size={15} /></button>
+                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="Assign Sales Person" onClick={() => openModal('assign', row)}><UserCheck size={15} /></button>
+                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="Log Follow-up" onClick={() => openModal('followup', row)}><CalendarClock size={15} /></button>
+                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="Generate Letter" onClick={() => runAction('Renewal letter generated', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/generate-letter`))}><FileText size={15} /></button>
+                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="Mark Done" onClick={() => openModal('done', row)}><CheckCircle2 size={15} /></button>
+                    <button className="crm-icon-action-btn" style={{ ...shell.iconBtn, color: '#b91c1c', borderColor: '#fecaca' }} title="Decline" onClick={() => openModal('decline', row)}><XCircle size={15} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
   };
 
-  const saveStatus = async () => {
-    if (!selected || !role.canWrite) return;
-    if (form.status === 'Lost' && !form.lostReason.trim()) {
-      window.alert('Lost renewal reason is required.');
-      return;
-    }
-    try {
-      setBusy(true);
-      await axios.put(`${API_BASE}/api/renewals/${selected._id}`, {
-        status: form.status,
-        paymentStatus: form.paymentStatus,
-        lostReason: form.lostReason,
-        updatedBy: localStorage.getItem('portal_user_name') || 'User'
-      });
-      await loadData();
-    } catch (error) {
-      console.error('Failed to update renewal status', error);
-      window.alert(error?.response?.data?.error || 'Unable to update renewal.');
-    } finally {
-      setBusy(false);
-    }
-  };
+  const renderSummaryList = (items, labelKey, valueKey = 'count') => (
+    <div style={shell.panel}>
+      <div style={shell.panelPad}>
+        {(items || []).length === 0 ? <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>No records.</p> : items.map((item) => (
+          <div key={item[labelKey] || item.name} style={shell.miniRow}>
+            <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item[labelKey] || item.name}</strong>
+            <span>{item[valueKey] ?? item.total ?? 0}</span>
+            <span>{formatINR(item.amount || 0)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
-  const addFollowUp = async () => {
-    if (!selected || !role.canWrite) return;
-    if (!form.followUpNote.trim()) {
-      window.alert('Follow-up note cannot be empty.');
-      return;
-    }
-    try {
-      setBusy(true);
-      await axios.put(`${API_BASE}/api/renewals/${selected._id}`, {
-        followUpNote: form.followUpNote,
-        updatedBy: localStorage.getItem('portal_user_name') || 'User'
-      });
-      setForm((prev) => ({ ...prev, followUpNote: '' }));
-      await loadData();
-    } catch (error) {
-      console.error('Failed to save follow-up', error);
-      window.alert(error?.response?.data?.error || 'Unable to save follow-up note.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const sendReminder = async (channel) => {
-    if (!selected || !role.canWrite) return;
-    try {
-      setBusy(true);
-      const recipient = window.prompt(`Recipient for ${channel.toUpperCase()} reminder`, channel === 'email' ? selected.email || '' : channel === 'whatsapp' ? selected.whatsappNumber || '' : selected.mobileNumber || '');
-      if (recipient == null) return;
-      await axios.post(`${API_BASE}/api/renewals/${selected._id}/send-reminder`, {
-        channel,
-        recipient,
-        message: form.reminderMessage,
-        updatedBy: localStorage.getItem('portal_user_name') || 'User'
-      });
-      await loadData();
-      window.alert(`${channel.toUpperCase()} reminder processed.`);
-    } catch (error) {
-      console.error('Reminder failed', error);
-      window.alert(error?.response?.data?.error || 'Unable to send reminder.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const generateQuotation = async () => {
-    if (!selected || !role.canWrite) return;
-    const amount = Number(form.quoteAmount || 0);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      window.alert('Enter a valid quotation amount.');
-      return;
-    }
-    try {
-      setBusy(true);
-      await axios.post(`${API_BASE}/api/renewals/${selected._id}/quotation`, {
-        amount,
-        validTill: form.quoteValidTill,
-        notes: form.quoteNotes,
-        updatedBy: localStorage.getItem('portal_user_name') || 'User'
-      });
-      await loadData();
-      window.alert('Renewal quotation generated.');
-    } catch (error) {
-      console.error('Quotation generation failed', error);
-      window.alert(error?.response?.data?.error || 'Unable to generate quotation.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const convertToInvoice = async () => {
-    if (!selected || !role.canWrite) return;
-    try {
-      setBusy(true);
-      const res = await axios.post(`${API_BASE}/api/renewals/${selected._id}/convert-invoice`, {
-        amount: Number(form.quoteAmount || selected.totalAmount || 0),
-        updatedBy: localStorage.getItem('portal_user_name') || 'User'
-      });
-      await loadData();
-      window.alert(`Renewal converted to invoice ${res.data?.invoice?.invoiceNumber || ''}`.trim());
-    } catch (error) {
-      console.error('Convert invoice failed', error);
-      window.alert(error?.response?.data?.error || 'Unable to convert renewal to invoice.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const assignTechnicians = async () => {
-    if (!selected || !role.canWrite) return;
-    if (!Array.isArray(form.technicians) || form.technicians.length === 0) {
-      window.alert('Select at least one technician.');
-      return;
-    }
-    try {
-      setBusy(true);
-      await axios.post(`${API_BASE}/api/renewals/${selected._id}/assign-technician`, {
-        technicianIds: form.technicians,
-        notes: form.followUpNote || form.quoteNotes || '',
-        updatedBy: localStorage.getItem('portal_user_name') || 'User'
-      });
-      await loadData();
-      window.alert('Renewal services assigned to technician.');
-    } catch (error) {
-      console.error('Assign technician failed', error);
-      window.alert(error?.response?.data?.error || 'Unable to assign technician.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const exportCsv = () => {
-    const source = filtered;
-    if (source.length === 0) {
-      window.alert('No renewal data available to export.');
-      return;
-    }
-    const headers = ['Customer', 'Invoice#', 'Service Type', 'Contract End', 'Days To Expiry', 'Status', 'Payment Status', 'Total', 'Paid', 'Balance', 'Technicians'];
-    const rows = [
-      headers.join(','),
-      ...source.map((entry) => [
-        csvEscape(entry.customerName),
-        csvEscape(entry.invoiceNumber),
-        csvEscape(entry.serviceType),
-        csvEscape(entry.contractEndDate),
-        csvEscape(entry.daysToExpiry),
-        csvEscape(entry.status),
-        csvEscape(entry.paymentStatus),
-        csvEscape(entry.totalAmount),
-        csvEscape(entry.paidAmount),
-        csvEscape(entry.balanceDue),
-        csvEscape(Array.isArray(entry.technicianAssignments) ? entry.technicianAssignments.join(' | ') : '')
-      ].join(','))
-    ];
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `renewals-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const renderModal = () => {
+    if (!modal.type || !modal.row) return null;
+    const row = modal.row;
+    const titleMap = { view: 'Renewal Details', edit: 'Edit Renewal', assign: 'Assign Sales Person', followup: 'Log Follow-up', done: 'Mark Renewal Done', decline: 'Decline Renewal', convert: 'Convert to Contract' };
+    return (
+      <div style={shell.modalOverlay}>
+        <div style={shell.modal}>
+          <div style={shell.modalHead}><strong>{titleMap[modal.type]}</strong><button style={shell.iconBtn} onClick={closeModal}>×</button></div>
+          <div style={shell.modalBody}>
+            {modal.type === 'view' && (
+              <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
+                <strong>{row.customerName}</strong>
+                <span>Mobile: {row.mobile || '-'}</span>
+                <span>Service: {row.serviceType || '-'}</span>
+                <span>Due Date: {formatDate(row.renewalDueDate)}</span>
+                <span>Proposed Amount: {formatINR(row.proposedAmount)}</span>
+                <span>Sales Person: {row.assignedSalesPersonName || '-'}</span>
+                {row.renewalLetterUrl ? <a href={`${API_BASE}${row.renewalLetterUrl}`} target="_blank" rel="noreferrer">Open renewal letter</a> : null}
+                <button style={shell.ghostBtn} onClick={() => openModal('edit', row)}>Edit Renewal</button>
+                {row.status === 'Done' && !row.convertedContractId ? <button style={shell.primaryBtn} onClick={() => openModal('convert', row)}>Convert to New Contract</button> : null}
+              </div>
+            )}
+            {modal.type === 'edit' && (
+              <>
+                <label style={shell.field}><span style={shell.label}>Service Type</span><input style={shell.input} value={form.serviceType} onChange={(e) => setForm((p) => ({ ...p, serviceType: e.target.value }))} /></label>
+                <label style={shell.field}><span style={shell.label}>Renewal Due Date</span><input type="date" style={shell.input} value={form.renewalDueDate} onChange={(e) => setForm((p) => ({ ...p, renewalDueDate: e.target.value }))} /></label>
+                <label style={shell.field}><span style={shell.label}>Proposed Amount</span><input style={shell.input} value={form.proposedAmount} onChange={(e) => setForm((p) => ({ ...p, proposedAmount: e.target.value }))} /></label>
+                <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>{statuses.filter((s) => s !== 'All').map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
+                <button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Renewal updated', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/edit`, form))}>Save Renewal</button>
+              </>
+            )}
+            {modal.type === 'assign' && (
+              <>
+                <label style={shell.field}><span style={shell.label}>Sales Person</span><select style={shell.input} value={form.salesPersonId} onChange={(e) => {
+                  const selected = salesPeople.find((p) => String(p.id || p.name) === e.target.value);
+                  setForm((prev) => ({ ...prev, salesPersonId: e.target.value, salesPersonName: selected?.name || '' }));
+                }}><option value="">Select sales person</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
+                <button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Sales person assigned', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/assign`, form))}>Assign</button>
+              </>
+            )}
+            {modal.type === 'followup' && (
+              <>
+                <label style={shell.field}><span style={shell.label}>Follow-up Date</span><input type="date" style={shell.input} value={form.followupDate} onChange={(e) => setForm((p) => ({ ...p, followupDate: e.target.value }))} /></label>
+                <label style={shell.field}><span style={shell.label}>Note</span><textarea style={{ ...shell.input, height: 86, paddingTop: 8 }} value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))} /></label>
+                <button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Follow-up saved', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/followup`, form))}>Save Follow-up</button>
+              </>
+            )}
+            {modal.type === 'done' && (
+              <>
+                <label style={shell.field}><span style={shell.label}>Final Amount</span><input style={shell.input} value={form.finalAmount} onChange={(e) => setForm((p) => ({ ...p, finalAmount: e.target.value }))} /></label>
+                <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 76, paddingTop: 8 }} value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value, notes: e.target.value }))} /></label>
+                <button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Renewal marked done', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/mark-done`, form))}>Mark Done</button>
+              </>
+            )}
+            {modal.type === 'decline' && (
+              <>
+                <label style={shell.field}><span style={shell.label}>Decline Reason</span><textarea style={{ ...shell.input, height: 86, paddingTop: 8 }} value={form.reason} onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))} /></label>
+                <button style={shell.dangerBtn} disabled={busy} onClick={() => runAction('Renewal declined', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/decline`, form))}>Mark Declined</button>
+              </>
+            )}
+            {modal.type === 'convert' && (
+              <>
+                <label style={shell.field}><span style={shell.label}>New Contract Start</span><input type="date" style={shell.input} value={form.contractStartDate} onChange={(e) => setForm((p) => ({ ...p, contractStartDate: e.target.value }))} /></label>
+                <label style={shell.field}><span style={shell.label}>New Contract End</span><input type="date" style={shell.input} value={form.contractEndDate} onChange={(e) => setForm((p) => ({ ...p, contractEndDate: e.target.value }))} /></label>
+                <label style={shell.field}><span style={shell.label}>Amount</span><input style={shell.input} value={form.amount} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))} /></label>
+                <button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Converted to contract', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/convert-contract`, form))}>Convert to Contract</button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <section style={shell.page}>
-      <div style={shell.head}>
+    <div style={shell.page}>
+      <div style={shell.hero}>
         <div>
           <h1 style={shell.title}>Renewal Dashboard</h1>
-          <p style={shell.subtitle}>Track expiring contracts, follow-ups, renewal conversion, reminders, and field assignment in one module.</p>
+          <p style={shell.subtitle}>Expired and expiring customer contracts, follow-ups, renewal letters, and conversion tracking.</p>
         </div>
-        <div style={{ display: 'inline-flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button type="button" style={shell.actionBtn} onClick={loadData}><RefreshCcw size={14} style={{ verticalAlign: 'middle' }} /> Refresh</button>
-          <button type="button" style={shell.actionBtn} onClick={exportCsv}>Export CSV</button>
-        </div>
-      </div>
-
-      <div style={cardGridStyle}>
-        <div style={shell.card}><div style={shell.cardLabel}>Expiring Today</div><div style={shell.cardValue}>{counts.today}</div></div>
-        <div style={shell.card}><div style={shell.cardLabel}>Within 7 Days</div><div style={shell.cardValue}>{counts.d7}</div></div>
-        <div style={shell.card}><div style={shell.cardLabel}>Within 15 Days</div><div style={shell.cardValue}>{counts.d15}</div></div>
-        <div style={shell.card}><div style={shell.cardLabel}>Within 30 Days</div><div style={shell.cardValue}>{counts.d30}</div></div>
-      </div>
-
-      <div style={shell.panel}>
-        <div style={shell.panelHead}>
-          <h3 style={shell.panelTitle}>Renewal Pipeline</h3>
-          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>{role.canWrite ? 'Role Access: Admin/Staff (Write)' : 'Role Access: Technician (Read Only)'}</span>
-        </div>
-        <div style={filterGridStyle}>
-          <div style={shell.field}><p style={shell.label}>From</p><input type="date" style={shell.input} value={filters.from} onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))} /></div>
-          <div style={shell.field}><p style={shell.label}>To</p><input type="date" style={shell.input} value={filters.to} onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))} /></div>
-          <div style={shell.field}><p style={shell.label}>Customer</p><input style={shell.input} value={filters.customer} onChange={(event) => setFilters((prev) => ({ ...prev, customer: event.target.value }))} placeholder="name or mobile" /></div>
-          <div style={shell.field}><p style={shell.label}>Service Type</p><input style={shell.input} value={filters.serviceType} onChange={(event) => setFilters((prev) => ({ ...prev, serviceType: event.target.value }))} /></div>
-          <div style={shell.field}><p style={shell.label}>Technician</p><input style={shell.input} value={filters.technician} onChange={(event) => setFilters((prev) => ({ ...prev, technician: event.target.value }))} /></div>
-          <div style={shell.field}><p style={shell.label}>Status</p><select style={shell.input} value={filters.status} onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}><option value="all">All</option>{renewalStatuses.map((entry) => <option key={entry} value={entry}>{entry}</option>)}</select></div>
-          <div style={shell.field}><p style={shell.label}>Payment</p><select style={shell.input} value={filters.paymentStatus} onChange={(event) => setFilters((prev) => ({ ...prev, paymentStatus: event.target.value }))}><option value="all">All</option>{paymentStatuses.map((entry) => <option key={entry} value={entry}>{entry}</option>)}</select></div>
-          <div style={shell.field}><p style={shell.label}>Expiry Bucket</p><select style={shell.input} value={filters.bucket} onChange={(event) => setFilters((prev) => ({ ...prev, bucket: event.target.value }))}>{bucketOptions.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></div>
-        </div>
-
-        <div style={tableWrapStyle}>
-          {loading ? <div style={shell.empty}>Loading renewals...</div> : null}
-          {!loading && loadError ? <div style={shell.empty}>{loadError}</div> : null}
-          {!loading && !loadError && filtered.length === 0 ? <div style={shell.empty}>No renewal records match current filters.</div> : null}
-          {!loading && !loadError && filtered.length > 0 ? (
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th style={shell.th}>Customer</th>
-                  <th style={shell.th}>Invoice#</th>
-                  <th style={shell.th}>Service</th>
-                  <th style={shell.th}>Contract End</th>
-                  <th style={shell.th}>Expiry</th>
-                  <th style={shell.th}>Renewal Status</th>
-                  <th style={shell.th}>Payment</th>
-                  <th style={shell.th}>Assigned Technician</th>
-                  <th style={shell.th}>Amounts</th>
-                  <th style={shell.th}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((entry) => (
-                  <tr key={entry._id} style={{ background: selected?._id === entry._id ? 'rgba(252,231,243,0.55)' : 'transparent' }}>
-                    <td style={shell.td}>
-                      <button type="button" onClick={() => setSelectedId(entry._id)} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', color: 'var(--color-primary-dark)', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
-                        {entry.customerName}
-                      </button>
-                      <div style={{ color: '#64748b' }}>{entry.mobileNumber || '-'}</div>
-                    </td>
-                    <td style={shell.td}>{entry.invoiceNumber || '-'}</td>
-                    <td style={shell.td}>{entry.serviceType || '-'}</td>
-                    <td style={shell.td}>{formatDate(entry.contractEndDate)}</td>
-                    <td style={shell.td}>{Number.isFinite(Number(entry.daysToExpiry)) ? `${entry.daysToExpiry} day(s)` : '-'}</td>
-                    <td style={shell.td}><span style={{ ...shell.statusPill, background: 'rgba(159,23,77,0.12)', color: 'var(--color-primary-dark)' }}>{entry.status}</span></td>
-                    <td style={shell.td}><span style={{ ...shell.statusPill, background: 'rgba(22,163,74,0.12)', color: '#166534' }}>{entry.paymentStatus}</span></td>
-                    <td style={shell.td}>{Array.isArray(entry.technicianAssignments) && entry.technicianAssignments.length > 0 ? entry.technicianAssignments.join(', ') : '-'}</td>
-                    <td style={shell.td}>{`${formatINR(entry.totalAmount)} / ${formatINR(entry.balanceDue)}`}</td>
-                    <td style={shell.td}>
-                      <div style={{ display: 'inline-flex', gap: '5px', flexWrap: 'wrap' }}>
-                        <button type="button" style={shell.rowAction} onClick={() => { setSelectedId(entry._id); refreshHistory(); }}>History</button>
-                        <button type="button" style={shell.rowAction} onClick={() => { setHistoryDrawer({ open: true, row: entry }); setSelectedId(entry._id); refreshHistory(); }}><Eye size={12} /></button>
-                        <button type="button" style={shell.rowAction} onClick={() => sendReminder('whatsapp')} disabled={!role.canWrite || busy}>WA</button>
-                        <button type="button" style={shell.rowAction} onClick={() => sendReminder('email')} disabled={!role.canWrite || busy}>Email</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : null}
+        <div style={shell.actions}>
+          <button type="button" style={shell.ghostBtn} onClick={loadData}><RefreshCw size={15} />Refresh</button>
+          <button type="button" style={shell.primaryBtn} onClick={syncRenewals}><RefreshCw size={15} />Sync Renewals</button>
         </div>
       </div>
 
-      {selected ? (
-        <div style={shell.panel}>
-          <div style={shell.panelHead}>
-            <h3 style={shell.panelTitle}>{selected.invoiceNumber || selected.customerName}</h3>
-            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>{busy ? 'Saving...' : 'Ready'}</span>
+      {message ? <div style={{ ...shell.panelPad, border: '1px solid var(--color-primary-soft)', borderRadius: 10, background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', fontSize: 13, fontWeight: 800 }}>{message}</div> : null}
+      {renderFilters()}
+
+      <section style={shell.stats}>
+        {stats.map(([label, value]) => <div key={label} style={shell.stat}><div style={shell.statLabel}>{label}</div><div style={shell.statValue}>{value}</div></div>)}
+      </section>
+
+      <section style={shell.panel}>
+        <div style={shell.tabs}>
+          {tabs.map((tab) => <button key={tab} type="button" style={{ ...shell.tab, ...(activeTab === tab ? shell.activeTab : {}) }} onClick={() => setActiveTab(tab)}>{tab}</button>)}
+        </div>
+        {loading ? <div style={shell.panelPad}>Loading renewals...</div> : null}
+        {!loading && (activeTab === 'Renewal Dashboard' || activeTab === 'Renewal List') ? renderRows() : null}
+        {!loading && activeTab === 'Month Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.monthWiseSummary, 'period')}</div> : null}
+        {!loading && activeTab === 'Year Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.yearWiseSummary, 'year')}</div> : null}
+        {!loading && activeTab === 'Sales Person Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.salespersonWiseSummary, 'name', 'total')}</div> : null}
+        {!loading && activeTab === 'Renewal Letters' ? (
+          <div style={shell.panelPad}>
+            {(letters || []).length === 0 ? <p style={{ margin: 0, color: '#64748b' }}>No renewal letters generated yet.</p> : letters.map((letter) => (
+              <div key={letter.id || letter.pdf_url} style={shell.miniRow}>
+                <strong>{letter.customer_name || '-'}</strong>
+                <span>{formatDate(letter.generated_at)}</span>
+                <a href={`${API_BASE}${letter.pdf_url}`} target="_blank" rel="noreferrer">Open PDF</a>
+              </div>
+            ))}
           </div>
-          <div style={shell.detail}>
-            <div style={detailGridStyle}>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Renewal Status</p>
-                <select style={shell.input} value={form.status} disabled={!role.canWrite || busy} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value }))}>
-                  {renewalStatuses.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
-                </select>
-              </div>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Payment Status</p>
-                <select style={shell.input} value={form.paymentStatus} disabled={!role.canWrite || busy} onChange={(event) => setForm((prev) => ({ ...prev, paymentStatus: event.target.value }))}>
-                  {paymentStatuses.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
-                </select>
-              </div>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Lost Reason</p>
-                <input style={shell.input} value={form.lostReason} disabled={!role.canWrite || busy} onChange={(event) => setForm((prev) => ({ ...prev, lostReason: event.target.value }))} placeholder="Required if status is Lost" />
-              </div>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Actions</p>
-                <button type="button" style={shell.actionBtn} onClick={saveStatus} disabled={!role.canWrite || busy}>Save Status</button>
-              </div>
-            </div>
-
-            <div style={detailGridStyle}>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Follow-up Note</p>
-                <input style={shell.input} value={form.followUpNote} disabled={!role.canWrite || busy} onChange={(event) => setForm((prev) => ({ ...prev, followUpNote: event.target.value }))} placeholder="Call summary / next action" />
-              </div>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Quotation Amount</p>
-                <input type="number" min="0" step="0.01" style={shell.input} value={form.quoteAmount} disabled={!role.canWrite || busy} onChange={(event) => setForm((prev) => ({ ...prev, quoteAmount: event.target.value }))} />
-              </div>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Quotation Valid Till</p>
-                <input type="date" style={shell.input} value={form.quoteValidTill} disabled={!role.canWrite || busy} onChange={(event) => setForm((prev) => ({ ...prev, quoteValidTill: event.target.value }))} />
-              </div>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Quotation Notes</p>
-                <input style={shell.input} value={form.quoteNotes} disabled={!role.canWrite || busy} onChange={(event) => setForm((prev) => ({ ...prev, quoteNotes: event.target.value }))} />
-              </div>
-            </div>
-
-            <div style={{ display: 'inline-flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button type="button" style={shell.actionBtn} onClick={addFollowUp} disabled={!role.canWrite || busy}>Add Follow-up</button>
-              <button type="button" style={shell.actionBtn} onClick={generateQuotation} disabled={!role.canWrite || busy}><FileText size={14} style={{ verticalAlign: 'middle' }} /> Generate Quotation</button>
-              <button type="button" style={shell.actionBtn} onClick={convertToInvoice} disabled={!role.canWrite || busy}>Convert to Invoice</button>
-            </div>
-
-            <div style={detailGridStyle}>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Assign Technician(s) After Renewal</p>
-                <select
-                  multiple
-                  style={{ ...shell.input, minHeight: '100px', padding: '8px' }}
-                  disabled={!role.canWrite || busy}
-                  value={form.technicians}
-                  onChange={(event) => {
-                    const next = Array.from(event.target.selectedOptions).map((option) => option.value);
-                    setForm((prev) => ({ ...prev, technicians: next }));
-                  }}
-                >
-                  {technicianOptions.map((entry) => (
-                    <option key={entry._id} value={entry._id}>
-                      {[entry.firstName, entry.lastName].filter(Boolean).join(' ').trim() || entry.empCode || 'Technician'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Reminder Message</p>
-                <textarea style={{ ...shell.input, minHeight: '100px', padding: '8px' }} disabled={!role.canWrite || busy} value={form.reminderMessage} onChange={(event) => setForm((prev) => ({ ...prev, reminderMessage: event.target.value }))} />
-              </div>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Reminder Actions</p>
-                <div style={{ display: 'inline-flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <button type="button" style={shell.actionBtn} onClick={() => sendReminder('whatsapp')} disabled={!role.canWrite || busy}><MessageSquare size={14} style={{ verticalAlign: 'middle' }} /> WhatsApp</button>
-                  <button type="button" style={shell.actionBtn} onClick={() => sendReminder('email')} disabled={!role.canWrite || busy}>Email</button>
-                </div>
-              </div>
-              <div style={shell.subGrid}>
-                <p style={shell.label}>Service Assignment</p>
-                <button type="button" style={shell.actionBtn} onClick={assignTechnicians} disabled={!role.canWrite || busy}><UserCheck size={14} style={{ verticalAlign: 'middle' }} /> Assign Technician</button>
-              </div>
-            </div>
-
-            <div style={shell.panel}>
-              <div style={shell.panelHead}>
-                <h3 style={{ ...shell.panelTitle, fontSize: '15px' }}><CalendarClock size={15} style={{ verticalAlign: 'middle' }} /> Customer Renewal History</h3>
-                <button type="button" style={shell.actionBtn} onClick={refreshHistory}>Reload History</button>
-              </div>
-              {historyLoading ? <div style={shell.empty}>Loading history...</div> : null}
-              {!historyLoading && history.length === 0 ? <div style={shell.empty}>No contract renewal history available.</div> : null}
-              {!historyLoading && history.length > 0 ? (
-                <div style={tableWrapStyle}>
-                  <table style={tableStyle}>
-                    <thead>
-                      <tr>
-                        <th style={shell.th}>Invoice#</th>
-                        <th style={shell.th}>Contract Start</th>
-                        <th style={shell.th}>Contract End</th>
-                        <th style={shell.th}>Status</th>
-                        <th style={shell.th}>Amount</th>
-                        <th style={shell.th}>Balance</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.map((entry) => (
-                        <tr key={entry.invoiceId || entry.invoiceNumber}>
-                          <td style={shell.td}>{entry.invoiceNumber || '-'}</td>
-                          <td style={shell.td}>{formatDate(entry.contractStartDate)}</td>
-                          <td style={shell.td}>{formatDate(entry.contractEndDate)}</td>
-                          <td style={shell.td}>{entry.status || '-'}</td>
-                          <td style={shell.td}>{formatINR(entry.totalAmount)}</td>
-                          <td style={shell.td}>{formatINR(entry.balanceDue)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
-      {historyDrawer.open ? (
-        <div onClick={() => setHistoryDrawer({ open: false, row: null })} style={{ position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.35)', zIndex: 5000 }}>
-          <aside onClick={(event) => event.stopPropagation()} style={{ position: 'fixed', top: 0, right: 0, width: 'min(520px,95vw)', height: '100%', background: '#fff', borderLeft: '1px solid var(--color-border)', padding: 12, overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: 18 }}>{historyDrawer.row?.customerName || 'Customer'} History</h3>
-              <button type="button" style={shell.rowAction} onClick={() => setHistoryDrawer({ open: false, row: null })}><X size={14} /></button>
-            </div>
-            {historyLoading ? <div style={shell.empty}>Loading history...</div> : null}
-            {!historyLoading && history.length === 0 ? <div style={shell.empty}>No contract renewal history available.</div> : null}
-            {!historyLoading && history.length > 0 ? (
-              <div style={tableWrapStyle}>
-                <table style={tableStyle}>
-                  <thead><tr><th style={shell.th}>Invoice#</th><th style={shell.th}>Start</th><th style={shell.th}>End</th><th style={shell.th}>Status</th><th style={shell.th}>Amount</th></tr></thead>
-                  <tbody>{history.map((entry) => <tr key={entry.invoiceId || entry.invoiceNumber}><td style={shell.td}>{entry.invoiceNumber || '-'}</td><td style={shell.td}>{formatDate(entry.contractStartDate)}</td><td style={shell.td}>{formatDate(entry.contractEndDate)}</td><td style={shell.td}>{entry.status || '-'}</td><td style={shell.td}>{formatINR(entry.totalAmount)}</td></tr>)}</tbody>
-                </table>
-              </div>
-            ) : null}
-          </aside>
-        </div>
-      ) : null}
-    </section>
+        ) : null}
+      </section>
+      {renderModal()}
+    </div>
   );
 }
