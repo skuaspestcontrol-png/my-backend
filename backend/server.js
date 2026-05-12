@@ -6818,14 +6818,49 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const fileName = `${renewal.renewalId}-${Date.now()}.pdf`;
     const relativePath = `renewal-letters/${fileName}`;
     const fullPath = path.join(lettersDir, fileName);
-    const companyName = settings?.companyName || settings?.company?.name || 'SKUAS Pest Control';
     const doc = new PDFDocument({ size: 'A4', margin: 46 });
     const stream = fs.createWriteStream(fullPath);
     doc.pipe(stream);
-    doc.fontSize(18).fillColor('#111827').text(companyName, { align: 'left' });
-    doc.fontSize(10).fillColor('#64748b').text(settings?.companyAddress || settings?.address || 'Professional Pest Management Services');
-    doc.moveDown(1.5);
-    doc.fontSize(16).fillColor('#9F174D').text('Renewal Letter', { align: 'center' });
+
+    const companyName = String(settings?.gstCompanyName || settings?.companyName || 'Skuas Pest Control Private Limited').trim();
+    const companyAddress = String(settings?.gstBillingAddress || settings?.companyAddress || '22 Ground Floor,Sarai Jullena,Okhla Road').trim();
+    const companyCityLine = [
+      String(settings?.gstCity || settings?.companyCity || 'New Delhi').trim(),
+      String(settings?.gstState || settings?.companyState || 'Delhi').trim()
+    ].filter(Boolean).join(',');
+    const companyPin = String(settings?.gstPincode || settings?.companyPincode || '110025').trim();
+    const companyEmail = String(settings?.gstEmail || settings?.companyEmail || 'skuaspestcontrol@gmail.com').trim();
+    const companyPhone = String(settings?.gstPhone || settings?.companyMobile || '9316666656').trim();
+    const companyWebsite = String(settings?.companyWebsite || 'www.skuaspestcontrol.com').trim();
+    const companyGst = String(settings?.companyGstNumber || settings?.gstRegistrationNumber || '07ABMCS7628G1ZW').trim();
+    const logoPath = parseJobLogoPath(settings?.gstCompanyLogoUrl || settings?.dashboardImageUrl || '');
+    const pageRight = doc.page.width - 46;
+    const headerTop = 36;
+    const logoSize = 58;
+    if (logoPath) {
+      try {
+        doc.image(logoPath, pageRight - logoSize, headerTop, { fit: [logoSize, logoSize], align: 'right' });
+      } catch (_error) {
+        // Keep PDF generation working even if a configured logo file is unavailable.
+      }
+    }
+    const detailRight = logoPath ? pageRight - logoSize - 10 : pageRight;
+    const detailWidth = logoPath ? 230 : 290;
+    const detailX = detailRight - detailWidth;
+    doc.font('Helvetica-Bold').fontSize(12).fillColor('#111827').text(companyName, detailX, headerTop + 2, { width: detailWidth, align: 'right' });
+    doc.font('Helvetica').fontSize(8.2).fillColor('#475569');
+    [
+      companyAddress,
+      `${companyCityLine}${companyPin ? `- ${companyPin}` : ''}`,
+      companyEmail ? `E Mail: ${companyEmail}` : '',
+      companyPhone ? `Tel: ${companyPhone}` : '',
+      companyWebsite ? `Web: ${companyWebsite}` : '',
+      companyGst ? `GST: ${companyGst}` : ''
+    ].filter(Boolean).forEach((line) => {
+      doc.text(line, detailX, doc.y + 1, { width: detailWidth, align: 'right' });
+    });
+    doc.moveTo(46, 120).lineTo(pageRight, 120).strokeColor('#e5e7eb').lineWidth(1).stroke();
+    doc.font('Helvetica-Bold').fontSize(16).fillColor('#9F174D').text('Renewal Letter', 46, 136, { align: 'center' });
     doc.moveDown();
     doc.fontSize(10).fillColor('#111827').text(`Date: ${formatDate(new Date())}`);
     doc.text(`Renewal ID: ${renewal.renewalId}`);
