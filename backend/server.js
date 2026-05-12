@@ -7482,7 +7482,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const headerWidth = pageRight - headerX;
     const detailLineHeight = 8.1 + 1;
     const headerBoxHeight = 10.2 + 1 + (companyDetailLines.length * detailLineHeight);
-    const logoY = Math.max(headerTopY, headerTopY + ((headerBoxHeight - logoHeight) / 2));
+    const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
     if (logoPath) {
       try {
         doc.image(logoPath, pageLeft, logoY, { fit: [logoWidth, logoHeight] });
