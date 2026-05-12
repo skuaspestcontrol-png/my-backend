@@ -7465,15 +7465,16 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const pageRight = doc.page.width - doc.page.margins.right;
     const contentWidth = pageRight - pageLeft;
     const logoPath = resolveGstCompanyLogoPath(settings);
-    const logoSize = logoPath ? 54 : 0;
+    const logoWidth = logoPath ? 200 : 0;
+    const logoHeight = logoPath ? 80 : 0;
     if (logoPath) {
       try {
-        doc.image(logoPath, pageLeft, 45, { fit: [logoSize, logoSize] });
+        doc.image(logoPath, pageLeft, 45, { fit: [logoWidth, logoHeight] });
       } catch (error) {
         console.error('Renewal letter logo failed:', error.message);
       }
     }
-    const headerX = logoPath ? pageLeft + logoSize + 14 : pageLeft;
+    const headerX = logoPath ? pageLeft + logoWidth + 14 : pageLeft;
     const headerWidth = pageRight - headerX;
     doc.font(pdfFont.bold).fontSize(10.2).fillColor('#111827').text(companyName, headerX, 45, { width: headerWidth, align: 'left' });
     doc.font(pdfFont.regular).fontSize(8.1).fillColor('#475569');
