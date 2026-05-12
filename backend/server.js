@@ -6827,6 +6827,24 @@ app.post('/api/renewals/:id/edit', async (req, res) => {
   }
 });
 
+app.delete('/api/renewals/:id', async (req, res) => {
+  if (!canUseMysql()) return res.status(503).json({ error: 'MySQL is required to delete renewal records.' });
+  const renewal = await findRenewalRow(req.params.id);
+  if (!renewal) return res.status(404).json({ error: 'Renewal not found' });
+  try {
+    await withMysqlConnection(async (conn) => {
+      await ensureRenewalTables(conn);
+      await conn.query('DELETE FROM renewal_followups WHERE renewal_id = ?', [renewal.renewalId]);
+      await conn.query('DELETE FROM renewal_letters WHERE renewal_id = ?', [renewal.renewalId]);
+      await conn.query('DELETE FROM renewals WHERE renewal_id = ?', [renewal.renewalId]);
+    });
+    return res.json({ success: true, message: 'Renewal deleted' });
+  } catch (error) {
+    console.error('Renewal delete failed:', error.message);
+    return res.status(500).json({ error: 'Unable to delete renewal right now.' });
+  }
+});
+
 app.post('/api/renewals/:id/followup', async (req, res) => {
   if (!canUseMysql()) return res.status(503).json({ error: 'MySQL is required to save renewal follow-up.' });
   const renewal = await findRenewalRow(req.params.id);

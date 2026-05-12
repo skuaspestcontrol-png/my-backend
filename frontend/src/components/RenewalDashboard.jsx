@@ -6,6 +6,7 @@ import {
   FileText,
   RefreshCw,
   Search,
+  Trash2,
   UserCheck,
   XCircle
 } from 'lucide-react';
@@ -242,6 +243,11 @@ export default function RenewalDashboard() {
     }
   };
   const syncRenewals = () => runAction('Renewal synced successfully', () => axios.post(`${API_BASE}/api/renewals/sync`));
+  const deleteRenewal = (row) => {
+    if (!row?.renewalId) return;
+    if (!window.confirm(`Delete renewal ${row.renewalId}?`)) return;
+    runAction('Renewal deleted', () => axios.delete(`${API_BASE}/api/renewals/${row.renewalId}`));
+  };
   const applyFilters = () => loadData();
   const resetFilters = () => {
     const next = { range: 'threeMonths', month: new Date().getMonth() + 1, year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', search: '' };
@@ -299,6 +305,7 @@ export default function RenewalDashboard() {
                 <button style={shell.ghostBtn} onClick={() => openModal('assign', row)}>Assign</button>
                 <button style={shell.ghostBtn} onClick={() => openModal('followup', row)}>Follow-up</button>
                 <button style={shell.primaryBtn} onClick={() => openModal('done', row)}>Done</button>
+                <button style={shell.dangerBtn} onClick={() => deleteRenewal(row)}>Delete</button>
               </div>
             </div>
           ))}
@@ -334,9 +341,9 @@ export default function RenewalDashboard() {
                     <button className="crm-icon-action-btn" style={shell.iconBtn} title="View" onClick={() => openModal('view', row)}><FileText size={15} /></button>
                     <button className="crm-icon-action-btn" style={shell.iconBtn} title="Assign Sales Person" onClick={() => openModal('assign', row)}><UserCheck size={15} /></button>
                     <button className="crm-icon-action-btn" style={shell.iconBtn} title="Log Follow-up" onClick={() => openModal('followup', row)}><CalendarClock size={15} /></button>
-                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="Generate Letter" onClick={() => runAction('Renewal letter generated', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/generate-letter`))}><FileText size={15} /></button>
                     <button className="crm-icon-action-btn" style={shell.iconBtn} title="Mark Done" onClick={() => openModal('done', row)}><CheckCircle2 size={15} /></button>
                     <button className="crm-icon-action-btn" style={{ ...shell.iconBtn, color: '#b91c1c', borderColor: '#fecaca' }} title="Decline" onClick={() => openModal('decline', row)}><XCircle size={15} /></button>
+                    <button className="crm-icon-action-btn" style={{ ...shell.iconBtn, color: '#b91c1c', borderColor: '#fecaca' }} title="Delete Renewal" onClick={() => deleteRenewal(row)}><Trash2 size={15} /></button>
                   </div>
                 </td>
               </tr>
