@@ -165,7 +165,16 @@ export default function RenewalDashboard() {
   };
 
   useEffect(() => {
-    loadData(filters, { autoSync: true });
+    const initialLoad = async () => {
+      try {
+        autoSyncAttempted.current = true;
+        await axios.post(`${API_BASE}/api/renewals/sync`);
+      } catch (error) {
+        console.error('Initial renewal sync skipped', error);
+      }
+      await loadData(filters, { autoSync: false });
+    };
+    initialLoad();
     const timer = window.setInterval(() => loadData(filters, { autoSync: false }), 60000);
     return () => window.clearInterval(timer);
   }, []);
