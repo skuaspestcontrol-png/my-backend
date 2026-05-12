@@ -114,6 +114,14 @@ const ensureTables = async () => {
     customer_name VARCHAR(255) DEFAULT '',
     company_name VARCHAR(255) DEFAULT '',
     address TEXT NULL,
+    customer_premise_id VARCHAR(100) NULL,
+    premise_label VARCHAR(255) NULL,
+    premise_address TEXT NULL,
+    premise_area_name VARCHAR(255) NULL,
+    premise_city VARCHAR(100) NULL,
+    premise_state VARCHAR(100) NULL,
+    premise_pincode VARCHAR(20) NULL,
+    premise_google_map_url TEXT NULL,
     phone VARCHAR(50) DEFAULT '',
     whatsapp VARCHAR(50) DEFAULT '',
     email VARCHAR(255) DEFAULT '',
@@ -143,6 +151,27 @@ const ensureTables = async () => {
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_quotation_number (quotation_number)
   )`);
+
+  const premiseColumns = [
+    ['customer_premise_id', 'VARCHAR(100) NULL'],
+    ['premise_label', 'VARCHAR(255) NULL'],
+    ['premise_address', 'TEXT NULL'],
+    ['premise_area_name', 'VARCHAR(255) NULL'],
+    ['premise_city', 'VARCHAR(100) NULL'],
+    ['premise_state', 'VARCHAR(100) NULL'],
+    ['premise_pincode', 'VARCHAR(20) NULL'],
+    ['premise_google_map_url', 'TEXT NULL']
+  ];
+  for (const [columnName, definition] of premiseColumns) {
+    const [exists] = await dbQuery(
+      `SELECT COUNT(*) AS count FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'quotations' AND COLUMN_NAME = ?`,
+      [columnName]
+    );
+    if (!Number(exists?.count || 0)) {
+      await dbQuery(`ALTER TABLE quotations ADD COLUMN ${columnName} ${definition}`);
+    }
+  }
 
   await dbQuery(`CREATE TABLE IF NOT EXISTS quotation_items (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -486,14 +515,20 @@ router.post('/quotations', async (req, res) => {
     const quotationNumber = clean(b.quotation_number) || generated.quotationNumber;
 
     const [insertResult] = await conn.execute(`INSERT INTO quotations (
-      quotation_number,source_type,lead_id,customer_id,customer_name,company_name,address,phone,whatsapp,email,gstin,
+      quotation_number,source_type,lead_id,customer_id,customer_name,company_name,address,
+      customer_premise_id,premise_label,premise_address,premise_area_name,premise_city,premise_state,premise_pincode,premise_google_map_url,
+      phone,whatsapp,email,gstin,
       quotation_date,validity_days,prepared_by,sales_person,designation,mobile,contract_start_date,contract_end_date,
       subtotal_without_gst,gst_total,round_off,grand_total,amount_in_words,rate_type,status,
       opening_paragraph,payment_terms,warranty_note,disclaimer,closing_paragraph,internal_note
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
       quotationNumber,
       clean(b.source_type || 'Manual'),
-      clean(b.lead_id), clean(b.customer_id), clean(b.customer_name), clean(b.company_name), clean(b.address), clean(b.phone), clean(b.whatsapp), clean(b.email), clean(b.gstin),
+      clean(b.lead_id), clean(b.customer_id), clean(b.customer_name), clean(b.company_name), clean(b.address),
+      clean(b.customer_premise_id || b.customerPremiseId), clean(b.premise_label || b.premiseLabel), clean(b.premise_address || b.premiseAddress),
+      clean(b.premise_area_name || b.premiseAreaName), clean(b.premise_city || b.premiseCity), clean(b.premise_state || b.premiseState),
+      clean(b.premise_pincode || b.premisePincode), clean(b.premise_google_map_url || b.premiseGoogleMapUrl),
+      clean(b.phone), clean(b.whatsapp), clean(b.email), clean(b.gstin),
       clean(b.quotation_date) || null, toNumber(b.validity_days, 15), clean(b.prepared_by), clean(b.sales_person), clean(b.designation), clean(b.mobile),
       clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
       toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words), clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'),
@@ -544,11 +579,16 @@ router.put('/quotations/:id', async (req, res) => {
   try {
     await conn.beginTransaction();
     await conn.execute(`UPDATE quotations SET
-      source_type=?,lead_id=?,customer_id=?,customer_name=?,company_name=?,address=?,phone=?,whatsapp=?,email=?,gstin=?,
+      source_type=?,lead_id=?,customer_id=?,customer_name=?,company_name=?,address=?,
+      customer_premise_id=?,premise_label=?,premise_address=?,premise_area_name=?,premise_city=?,premise_state=?,premise_pincode=?,premise_google_map_url=?,
+      phone=?,whatsapp=?,email=?,gstin=?,
       quotation_date=?,validity_days=?,prepared_by=?,sales_person=?,designation=?,mobile=?,contract_start_date=?,contract_end_date=?,
       subtotal_without_gst=?,gst_total=?,round_off=?,grand_total=?,amount_in_words=?,rate_type=?,status=?,
       opening_paragraph=?,payment_terms=?,warranty_note=?,disclaimer=?,closing_paragraph=?,internal_note=? WHERE id=?`, [
       clean(b.source_type || 'Manual'), clean(b.lead_id), clean(b.customer_id), clean(b.customer_name), clean(b.company_name), clean(b.address),
+      clean(b.customer_premise_id || b.customerPremiseId), clean(b.premise_label || b.premiseLabel), clean(b.premise_address || b.premiseAddress),
+      clean(b.premise_area_name || b.premiseAreaName), clean(b.premise_city || b.premiseCity), clean(b.premise_state || b.premiseState),
+      clean(b.premise_pincode || b.premisePincode), clean(b.premise_google_map_url || b.premiseGoogleMapUrl),
       clean(b.phone), clean(b.whatsapp), clean(b.email), clean(b.gstin), clean(b.quotation_date) || null, toNumber(b.validity_days, 15),
       clean(b.prepared_by), clean(b.sales_person), clean(b.designation), clean(b.mobile), clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
       toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words),

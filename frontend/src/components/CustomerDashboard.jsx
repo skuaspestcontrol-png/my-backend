@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowUpDown, MoreHorizontal, Plus, X } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
+import CustomerPremisesPanel from './CustomerPremisesPanel';
 import { attachPlacesAutocomplete } from '../utils/googlePlaces';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -1836,6 +1837,13 @@ export default function CustomerDashboard() {
                 type="number"
                 value={form.areaSqft}
                 onChange={(event) => setForm((prev) => ({ ...prev, areaSqft: event.target.value }))}
+              />
+
+              <CustomerPremisesPanel
+                customerId={editingId}
+                customer={customers.find((customer) => customer._id === editingId) || null}
+                form={form}
+                onError={setSaveError}
               />
 
             </div>

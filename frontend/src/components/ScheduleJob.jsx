@@ -132,6 +132,8 @@ export default function ScheduleJob() {
   const [scheduleStatusFilter, setScheduleStatusFilter] = useState('All');
   const [selectedScheduleKeys, setSelectedScheduleKeys] = useState([]);
   const [selectedTechnicians, setSelectedTechnicians] = useState([]);
+  const [premiseRows, setPremiseRows] = useState([]);
+  const [selectedPremiseId, setSelectedPremiseId] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -217,6 +219,43 @@ export default function ScheduleJob() {
     () => customers.find((c) => String(c._id) === String(customerId)) || null,
     [customers, customerId]
   );
+  const selectedPremise = useMemo(() => {
+    if (!selectedPremiseId) return null;
+    return premiseRows.find((row) => String(row.premiseId || row.premise_id || '') === String(selectedPremiseId)) || null;
+  }, [premiseRows, selectedPremiseId]);
+  const premiseAddress = selectedPremise ? {
+    address: selectedPremise.address || '',
+    areaName: selectedPremise.areaName || selectedPremise.area_name || '',
+    city: selectedPremise.city || '',
+    state: selectedPremise.state || '',
+    pincode: selectedPremise.pincode || '',
+    googleMapUrl: selectedPremise.googleMapUrl || selectedPremise.google_map_url || ''
+  } : null;
+
+  useEffect(() => {
+    if (!customerId) {
+      setPremiseRows([]);
+      setSelectedPremiseId('');
+      return;
+    }
+    let mounted = true;
+    axios.get(`${API_BASE_URL}/api/customers/${customerId}/premises`)
+      .then((res) => {
+        if (!mounted) return;
+        const rows = Array.isArray(res.data) ? res.data : [];
+        setPremiseRows(rows);
+        const defaultPremise = rows.find((row) => row.isDefault || row.is_default) || rows[0];
+        setSelectedPremiseId(defaultPremise ? String(defaultPremise.premiseId || defaultPremise.premise_id || '') : '');
+      })
+      .catch((error) => {
+        console.error('Failed to load premises', error);
+        if (mounted) {
+          setPremiseRows([]);
+          setSelectedPremiseId('');
+        }
+      });
+    return () => { mounted = false; };
+  }, [customerId]);
 
   const customerContracts = useMemo(() => {
     if (!selectedCustomer) return [];
@@ -402,11 +441,19 @@ export default function ScheduleJob() {
         customerId: selectedCustomer._id,
         customerName: selectedCustomer.displayName || selectedCustomer.name || selectedContract.customerName || '',
         mobileNumber: selectedCustomer.mobileNumber || selectedCustomer.workPhone || '',
-        address: selectedCustomer.billingAddress || selectedCustomer.shippingAddress || '',
-        areaName: selectedCustomer.billingArea || selectedCustomer.area || '',
-        city: selectedCustomer.city || selectedCustomer.billingState || selectedCustomer.state || '',
-        state: selectedCustomer.billingState || selectedCustomer.state || '',
-        pincode: selectedCustomer.billingPincode || selectedCustomer.pincode || '',
+        customerPremiseId: selectedPremiseId || '',
+        premiseLabel: selectedPremise?.premiseLabel || selectedPremise?.premise_label || '',
+        premiseAddress: premiseAddress?.address || '',
+        premiseAreaName: premiseAddress?.areaName || '',
+        premiseCity: premiseAddress?.city || '',
+        premiseState: premiseAddress?.state || '',
+        premisePincode: premiseAddress?.pincode || '',
+        premiseGoogleMapUrl: premiseAddress?.googleMapUrl || '',
+        address: premiseAddress?.address || selectedCustomer.billingAddress || selectedCustomer.shippingAddress || '',
+        areaName: premiseAddress?.areaName || selectedCustomer.billingArea || selectedCustomer.area || '',
+        city: premiseAddress?.city || selectedCustomer.city || selectedCustomer.billingState || selectedCustomer.state || '',
+        state: premiseAddress?.state || selectedCustomer.billingState || selectedCustomer.state || '',
+        pincode: premiseAddress?.pincode || selectedCustomer.billingPincode || selectedCustomer.pincode || '',
         contractId: selectedContract._id,
         contractNumber: selectedContract.contractNumber,
         priority: 'Normal',
@@ -475,6 +522,7 @@ export default function ScheduleJob() {
                 onChange={(event) => {
                   setCustomerId(event.target.value);
                   setContractId('');
+                  setSelectedPremiseId('');
                 }}
               >
                 <option value="">Select customer</option>
@@ -515,24 +563,40 @@ export default function ScheduleJob() {
 
           <div style={fieldGrid4Style}>
             <div style={shell.field}>
+              <p style={shell.label}>Premise</p>
+              <select
+                style={shell.input}
+                value={selectedPremiseId}
+                onChange={(event) => setSelectedPremiseId(event.target.value)}
+                disabled={!customerId || premiseRows.length === 0}
+              >
+                <option value="">Default customer address</option>
+                {premiseRows.map((premise) => (
+                  <option key={premise.premiseId || premise.premise_id} value={premise.premiseId || premise.premise_id}>
+                    {premise.premiseLabel || premise.premise_label || premise.address}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={shell.field}>
               <p style={shell.label}>Site Address</p>
               <input
                 style={shell.input}
-                value={selectedCustomer ? (selectedCustomer.billingAddress || selectedCustomer.shippingAddress || '') : (prefillLead?.address || '')}
+                value={premiseAddress?.address || (selectedCustomer ? (selectedCustomer.billingAddress || selectedCustomer.shippingAddress || '') : (prefillLead?.address || ''))}
                 readOnly
               />
             </div>
             <div style={shell.field}>
               <p style={shell.label}>Area / Locality</p>
-              <input style={shell.input} value={selectedCustomer ? (selectedCustomer.billingArea || selectedCustomer.area || '') : (prefillLead?.areaName || '')} readOnly />
+              <input style={shell.input} value={premiseAddress?.areaName || (selectedCustomer ? (selectedCustomer.billingArea || selectedCustomer.area || '') : (prefillLead?.areaName || ''))} readOnly />
             </div>
             <div style={shell.field}>
               <p style={shell.label}>City</p>
-              <input style={shell.input} value={selectedCustomer ? (selectedCustomer.city || selectedCustomer.billingState || selectedCustomer.state || '') : (prefillLead?.city || '')} readOnly />
+              <input style={shell.input} value={premiseAddress?.city || (selectedCustomer ? (selectedCustomer.city || selectedCustomer.billingState || selectedCustomer.state || '') : (prefillLead?.city || ''))} readOnly />
             </div>
             <div style={shell.field}>
               <p style={shell.label}>Pin</p>
-              <input style={shell.input} value={selectedCustomer ? (selectedCustomer.billingPincode || selectedCustomer.pincode || '') : (prefillLead?.pincode || prefillLead?.pinCode || '')} readOnly />
+              <input style={shell.input} value={premiseAddress?.pincode || (selectedCustomer ? (selectedCustomer.billingPincode || selectedCustomer.pincode || '') : (prefillLead?.pincode || prefillLead?.pinCode || ''))} readOnly />
             </div>
           </div>
         </div>

@@ -558,6 +558,11 @@ const withholdingRates = [0, 1, 2, 5, 10];
 
 const buildAddressText = (customer, source) => {
   if (!customer) return 'No customer selected';
+  if (String(source || '').startsWith('premise:')) {
+    const premiseId = String(source).replace('premise:', '');
+    const premise = (customer.premises || []).find((entry) => String(entry.premiseId || entry.premise_id || '') === premiseId);
+    return premise ? addressOptionText(premiseToAddressOption(premise)) : 'No address selected';
+  }
   const prefix = source === 'shipping' ? 'shipping' : 'billing';
   const displayName = customer.displayName || customer.name || '';
   const street1 = customer[`${prefix}Street1`] || customer[`${prefix}Address`] || '';
@@ -579,6 +584,27 @@ const buildAddressOption = (id, label, customer, prefix) => ({
   pincode: customer?.[`${prefix}Pincode`] || '',
   gstin: customer?.gstNumber || '',
   placeOfSupply: normalizeGstState(customer?.[`${prefix}State`] || customer?.state || '')
+});
+
+const premiseToAddressOption = (premise = {}) => ({
+  id: `premise:${premise.premiseId || premise.premise_id || ''}`,
+  premiseId: premise.premiseId || premise.premise_id || '',
+  label: premise.premiseLabel || premise.premise_label || 'Premise',
+  company: premise.contactPerson || '',
+  street1: premise.address || '',
+  street2: '',
+  line1: premise.address || '',
+  area: premise.areaName || premise.area_name || '',
+  city: premise.city || '',
+  state: premise.state || '',
+  pincode: premise.pincode || '',
+  gstin: premise.gstin || '',
+  placeOfSupply: normalizeGstState(premise.placeOfSupply || premise.place_of_supply || premise.state || ''),
+  googleMapUrl: premise.googleMapUrl || premise.google_map_url || '',
+  premiseType: premise.premiseType || premise.premise_type || 'Service',
+  isDefault: Boolean(premise.isDefault || premise.is_default),
+  isBilling: Boolean(premise.isBilling || premise.is_billing),
+  isShipping: Boolean(premise.isShipping || premise.is_shipping)
 });
 
 const addressOptionText = (option) => {
@@ -620,6 +646,7 @@ export default function InvoiceDashboard() {
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [customerPremises, setCustomerPremises] = useState({});
   const [itemsCatalog, setItemsCatalog] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -668,14 +695,22 @@ export default function InvoiceDashboard() {
     [customers]
   );
   const selectedCustomer = useMemo(
-    () => customers.find((customer) => customer._id === form.customerId) || null,
-    [customers, form.customerId]
+    () => {
+      const customer = customers.find((entry) => entry._id === form.customerId) || null;
+      if (!customer) return null;
+      return { ...customer, premises: customerPremises[customer._id] || [] };
+    },
+    [customers, customerPremises, form.customerId]
   );
   const billingAddressOptions = useMemo(
-    () => [
-      buildAddressOption('billing', 'Billing Address', selectedCustomer, 'billing'),
-      buildAddressOption('shipping', 'Shipping Address', selectedCustomer, 'shipping')
-    ],
+    () => {
+      const premises = (selectedCustomer?.premises || []).map(premiseToAddressOption);
+      return [
+        buildAddressOption('billing', 'Billing Address', selectedCustomer, 'billing'),
+        buildAddressOption('shipping', 'Shipping Address', selectedCustomer, 'shipping'),
+        ...premises.filter((entry) => entry.isBilling || entry.isDefault || entry.premiseType === 'Billing')
+      ];
+    },
     [selectedCustomer]
   );
   const selectedBillingAddress = useMemo(
@@ -687,6 +722,7 @@ export default function InvoiceDashboard() {
       buildAddressOption('shipping', 'Shipping Address', selectedCustomer, 'shipping'),
       buildAddressOption('billing', 'Billing Address', selectedCustomer, 'billing')
     ];
+    const premises = (selectedCustomer?.premises || []).map(premiseToAddressOption);
     const custom = (form.customShippingAddresses || []).map((address, idx) => ({
       ...address,
       street1: address.street1 || address.line1 || '',
@@ -694,7 +730,7 @@ export default function InvoiceDashboard() {
       placeOfSupply: normalizeGstState(address.placeOfSupply || address.state || ''),
       id: `custom-${idx}`
     }));
-    return [...base, ...custom];
+    return [...base, ...premises, ...custom];
   }, [selectedCustomer, form.customShippingAddresses]);
   const selectedShippingAddress = useMemo(
     () => shippingAddressOptions.find((address) => address.id === form.shippingAddressSource) || shippingAddressOptions[0] || null,
@@ -1515,6 +1551,24 @@ export default function InvoiceDashboard() {
       customShippingAddresses: [],
       placeOfSupply: customer ? normalizeGstState(customer.billingState || customer.state || '') : ''
     }));
+    if (customerId) {
+      axios.get(`${API_BASE_URL}/api/customers/${customerId}/premises`)
+        .then((res) => {
+          const rows = Array.isArray(res.data) ? res.data : [];
+          setCustomerPremises((prev) => ({ ...prev, [customerId]: rows }));
+          const defaultPremise = rows.find((row) => row.isDefault || row.is_default) || rows[0];
+          if (defaultPremise?.premiseId || defaultPremise?.premise_id) {
+            const source = `premise:${defaultPremise.premiseId || defaultPremise.premise_id}`;
+            setFormWithTotals((prev) => ({
+              ...prev,
+              billingAddressSource: source,
+              shippingAddressSource: source,
+              placeOfSupply: normalizeGstState(defaultPremise.placeOfSupply || defaultPremise.place_of_supply || defaultPremise.state || prev.placeOfSupply)
+            }));
+          }
+        })
+        .catch((error) => console.error('Failed to load customer premises', error));
+    }
   };
 
   const openShippingAddressPicker = () => {
@@ -1715,6 +1769,14 @@ export default function InvoiceDashboard() {
       placeOfSupply: normalizeGstState(selectedShippingAddress?.placeOfSupply || form.placeOfSupply),
       billingAddressText: buildAddressText(selectedCustomer, form.billingAddressSource),
       shippingAddressText: addressOptionText(selectedShippingAddress),
+      customerPremiseId: selectedShippingAddress?.premiseId || selectedBillingAddress?.premiseId || '',
+      premiseLabel: selectedShippingAddress?.label || selectedBillingAddress?.label || '',
+      premiseAddress: selectedShippingAddress ? addressOptionText(selectedShippingAddress) : '',
+      premiseAreaName: selectedShippingAddress?.area || '',
+      premiseCity: selectedShippingAddress?.city || '',
+      premiseState: selectedShippingAddress?.state || '',
+      premisePincode: selectedShippingAddress?.pincode || '',
+      premiseGoogleMapUrl: selectedShippingAddress?.googleMapUrl || '',
       invoiceNumber: form.invoiceNumber.trim() || createNextInvoiceNumber(),
       date: form.date,
       terms: form.terms,

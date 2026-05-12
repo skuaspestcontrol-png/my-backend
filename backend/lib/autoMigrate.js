@@ -188,6 +188,83 @@ const tableDefinitions = [
     ])
   },
   {
+    name: 'customer_premises',
+    createSql: `
+      CREATE TABLE IF NOT EXISTS customer_premises (
+        id INT NOT NULL AUTO_INCREMENT,
+        premise_id VARCHAR(100) NOT NULL,
+        customer_id INT NOT NULL,
+        premise_label VARCHAR(255) NULL,
+        premise_type ENUM('Billing','Shipping','Service','Other') DEFAULT 'Service',
+        contact_person VARCHAR(255) NULL,
+        phone VARCHAR(50) NULL,
+        email VARCHAR(255) NULL,
+        address TEXT NOT NULL,
+        area_name VARCHAR(255) NULL,
+        city VARCHAR(100) NULL,
+        state VARCHAR(100) NULL,
+        pincode VARCHAR(20) NULL,
+        country VARCHAR(100) DEFAULT 'India',
+        latitude DECIMAL(10,8) NULL,
+        longitude DECIMAL(11,8) NULL,
+        google_place_id VARCHAR(255) NULL,
+        google_place_name VARCHAR(255) NULL,
+        google_map_url TEXT NULL,
+        gstin VARCHAR(50) NULL,
+        place_of_supply VARCHAR(100) NULL,
+        is_default TINYINT(1) DEFAULT 0,
+        is_billing TINYINT(1) DEFAULT 0,
+        is_shipping TINYINT(1) DEFAULT 0,
+        is_active TINYINT(1) DEFAULT 1,
+        payload JSON NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uk_customer_premises_premise_id (premise_id),
+        KEY idx_customer_premises_customer_id (customer_id),
+        KEY idx_customer_premises_pincode (pincode),
+        KEY idx_customer_premises_is_default (is_default),
+        KEY idx_customer_premises_is_active (is_active)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `,
+    columns: {
+      premise_id: 'VARCHAR(100) NULL',
+      customer_id: 'INT NOT NULL',
+      premise_label: 'VARCHAR(255) NULL',
+      premise_type: "ENUM('Billing','Shipping','Service','Other') DEFAULT 'Service'",
+      contact_person: 'VARCHAR(255) NULL',
+      phone: 'VARCHAR(50) NULL',
+      email: 'VARCHAR(255) NULL',
+      address: 'TEXT NULL',
+      area_name: 'VARCHAR(255) NULL',
+      city: 'VARCHAR(100) NULL',
+      state: 'VARCHAR(100) NULL',
+      pincode: 'VARCHAR(20) NULL',
+      country: "VARCHAR(100) DEFAULT 'India'",
+      latitude: 'DECIMAL(10,8) NULL',
+      longitude: 'DECIMAL(11,8) NULL',
+      google_place_id: 'VARCHAR(255) NULL',
+      google_place_name: 'VARCHAR(255) NULL',
+      google_map_url: 'TEXT NULL',
+      gstin: 'VARCHAR(50) NULL',
+      place_of_supply: 'VARCHAR(100) NULL',
+      is_default: 'TINYINT(1) DEFAULT 0',
+      is_billing: 'TINYINT(1) DEFAULT 0',
+      is_shipping: 'TINYINT(1) DEFAULT 0',
+      is_active: 'TINYINT(1) DEFAULT 1',
+      payload: 'JSON NULL',
+      created_at: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+      updated_at: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
+    },
+    indexes: {
+      uk_customer_premises_premise_id: 'CREATE UNIQUE INDEX uk_customer_premises_premise_id ON customer_premises (premise_id)',
+      idx_customer_premises_customer_id: 'CREATE INDEX idx_customer_premises_customer_id ON customer_premises (customer_id)',
+      idx_customer_premises_pincode: 'CREATE INDEX idx_customer_premises_pincode ON customer_premises (pincode)',
+      idx_customer_premises_is_default: 'CREATE INDEX idx_customer_premises_is_default ON customer_premises (is_default)',
+      idx_customer_premises_is_active: 'CREATE INDEX idx_customer_premises_is_active ON customer_premises (is_active)'
+    }
+  },
+  {
     name: 'employees',
     createSql: createBaseTableSql('employees', [
       'emp_code VARCHAR(120) NULL',
@@ -788,6 +865,16 @@ const collectColumns = () => {
     google_place_name: 'VARCHAR(255) NULL', google_phone: 'VARCHAR(50) NULL', google_website: 'VARCHAR(255) NULL', latitude: 'DECIMAL(10,8) NULL',
     longitude: 'DECIMAL(11,8) NULL'
   });
+  add('customer_premises', {
+    premise_id: 'VARCHAR(100) NULL', customer_id: 'INT NOT NULL', premise_label: 'VARCHAR(255) NULL',
+    premise_type: "ENUM('Billing','Shipping','Service','Other') DEFAULT 'Service'", contact_person: 'VARCHAR(255) NULL',
+    phone: 'VARCHAR(50) NULL', email: 'VARCHAR(255) NULL', address: 'TEXT NULL', area_name: 'VARCHAR(255) NULL',
+    city: 'VARCHAR(100) NULL', state: 'VARCHAR(100) NULL', pincode: 'VARCHAR(20) NULL', country: "VARCHAR(100) DEFAULT 'India'",
+    latitude: 'DECIMAL(10,8) NULL', longitude: 'DECIMAL(11,8) NULL', google_place_id: 'VARCHAR(255) NULL',
+    google_place_name: 'VARCHAR(255) NULL', google_map_url: 'TEXT NULL', gstin: 'VARCHAR(50) NULL',
+    place_of_supply: 'VARCHAR(100) NULL', is_default: 'TINYINT(1) DEFAULT 0', is_billing: 'TINYINT(1) DEFAULT 0',
+    is_shipping: 'TINYINT(1) DEFAULT 0', is_active: 'TINYINT(1) DEFAULT 1'
+  });
   add('employees', {
     emp_code: 'VARCHAR(120) NULL', first_name: 'VARCHAR(255) NULL', last_name: 'VARCHAR(255) NULL', full_name: 'VARCHAR(255) NULL',
     mobile: 'VARCHAR(30) NULL', password: 'VARCHAR(255) NULL', email: 'VARCHAR(255) NULL', portal_password: 'VARCHAR(255) NULL',
@@ -802,12 +889,18 @@ const collectColumns = () => {
     scheduled_time: 'VARCHAR(40) NULL', service_time: 'VARCHAR(40) NULL', status: 'VARCHAR(120) NULL', before_photo_url: 'TEXT NULL',
     after_photo_url: 'TEXT NULL', customer_signature_url: 'LONGTEXT NULL', google_task_id: 'VARCHAR(255) NULL',
     google_calendar_event_id: 'VARCHAR(255) NULL', google_sync_status: 'VARCHAR(50) NULL', google_last_synced_at: 'DATETIME NULL',
-    source_created_at: 'DATETIME NULL', source_updated_at: 'DATETIME NULL'
+    source_created_at: 'DATETIME NULL', source_updated_at: 'DATETIME NULL',
+    customer_premise_id: 'VARCHAR(100) NULL', premise_label: 'VARCHAR(255) NULL', premise_address: 'TEXT NULL',
+    premise_area_name: 'VARCHAR(255) NULL', premise_city: 'VARCHAR(100) NULL', premise_state: 'VARCHAR(100) NULL',
+    premise_pincode: 'VARCHAR(20) NULL', premise_google_map_url: 'TEXT NULL'
   });
   add('invoices', {
     customer_external_id: 'VARCHAR(120) NULL', customer_name: 'VARCHAR(255) NULL', invoice_number: 'VARCHAR(120) NULL',
     invoice_type: 'VARCHAR(80) NULL', invoice_status: 'VARCHAR(80) NULL', invoice_date: 'DATE NULL', due_date: 'DATE NULL',
-    total_amount: 'DECIMAL(18,2) NULL', balance_due: 'DECIMAL(18,2) NULL', source_created_at: 'DATETIME NULL', source_updated_at: 'DATETIME NULL'
+    total_amount: 'DECIMAL(18,2) NULL', balance_due: 'DECIMAL(18,2) NULL', source_created_at: 'DATETIME NULL', source_updated_at: 'DATETIME NULL',
+    customer_premise_id: 'VARCHAR(100) NULL', premise_label: 'VARCHAR(255) NULL', premise_address: 'TEXT NULL',
+    premise_area_name: 'VARCHAR(255) NULL', premise_city: 'VARCHAR(100) NULL', premise_state: 'VARCHAR(100) NULL',
+    premise_pincode: 'VARCHAR(20) NULL', premise_google_map_url: 'TEXT NULL'
   });
   add('invoice_items', {
     invoice_external_id: 'VARCHAR(120) NULL', line_index: 'INT NOT NULL DEFAULT 0', item_id: 'VARCHAR(120) NULL', item_name: 'VARCHAR(255) NULL',
@@ -948,7 +1041,10 @@ const collectColumns = () => {
   add('quotations', {
     quotation_number: 'VARCHAR(120) NULL', source_type: 'VARCHAR(40) NULL', lead_id: 'VARCHAR(120) NULL',
     customer_id: 'VARCHAR(120) NULL', customer_name: 'VARCHAR(255) NULL', company_name: 'VARCHAR(255) NULL',
-    quotation_date: 'DATE NULL', status: 'VARCHAR(80) NULL', grand_total: 'DECIMAL(18,2) NULL'
+    quotation_date: 'DATE NULL', status: 'VARCHAR(80) NULL', grand_total: 'DECIMAL(18,2) NULL',
+    customer_premise_id: 'VARCHAR(100) NULL', premise_label: 'VARCHAR(255) NULL', premise_address: 'TEXT NULL',
+    premise_area_name: 'VARCHAR(255) NULL', premise_city: 'VARCHAR(100) NULL', premise_state: 'VARCHAR(100) NULL',
+    premise_pincode: 'VARCHAR(20) NULL', premise_google_map_url: 'TEXT NULL'
   });
   add('quotation_items', {
     quotation_id: 'BIGINT UNSIGNED NULL', quotation_external_id: 'VARCHAR(120) NULL', service_template_id: 'BIGINT UNSIGNED NULL',
@@ -1171,6 +1267,51 @@ const migratePayrollJsonToMysql = async (target) => {
   return counts;
 };
 
+const migrateCustomerPremises = async (target) => {
+  if (!(await tableExists(target, 'customers')) || !(await tableExists(target, 'customer_premises'))) return 0;
+  const [result] = await target.query(`
+    INSERT INTO customer_premises (
+      premise_id, customer_id, premise_label, premise_type, contact_person, phone, email, address,
+      area_name, city, state, pincode, country, gstin, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
+    )
+    SELECT
+      CONCAT('PREM-', COALESCE(c.external_id, c.id), '-MAIN'),
+      c.id,
+      'Main / Billing Address',
+      'Billing',
+      COALESCE(c.contact_person_name, c.customer_name, c.display_name, ''),
+      COALESCE(c.mobile_number, ''),
+      COALESCE(c.email_id, ''),
+      COALESCE(
+        NULLIF(JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.billingAddress')), ''),
+        NULLIF(JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.shippingAddress')), ''),
+        'Address not provided'
+      ),
+      COALESCE(c.area_name, JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.billingArea')), ''),
+      COALESCE(c.city, ''),
+      COALESCE(c.state, JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.billingState')), ''),
+      COALESCE(c.pincode, JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.billingPincode')), ''),
+      'India',
+      COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.gstNumber')), ''),
+      COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.placeOfSupply')), c.state, ''),
+      1,
+      1,
+      0,
+      1,
+      c.payload
+    FROM customers c
+    LEFT JOIN customer_premises cp ON cp.customer_id = c.id AND cp.is_active = 1
+    WHERE cp.id IS NULL
+      AND COALESCE(
+        NULLIF(JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.billingAddress')), ''),
+        NULLIF(JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.shippingAddress')), ''),
+        NULLIF(c.area_name, ''),
+        NULLIF(c.state, '')
+      ) IS NOT NULL
+  `);
+  return Number(result?.affectedRows || 0);
+};
+
 const syncPayrollJsonFilesToMysql = async (poolOrConnection) => {
   const target = await getQueryTarget(poolOrConnection);
   return migratePayrollJsonToMysql(target);
@@ -1222,6 +1363,14 @@ async function runAutoMigrations(poolOrConnection) {
     } catch (error) {
       status.errors.push({ step: 'payroll_json_to_mysql', error: error.message });
       console.error('AUTO MIGRATION PAYROLL JSON ERROR:', error.message);
+    }
+
+    try {
+      const migratedPremises = await migrateCustomerPremises(target);
+      if (migratedPremises) status.tablesChecked.push(`customer_premises:migrated:${migratedPremises}`);
+    } catch (error) {
+      status.errors.push({ step: 'customer_premises_migration', error: error.message });
+      console.error('AUTO MIGRATION CUSTOMER PREMISES ERROR:', error.message);
     }
 
     status.success = status.errors.length === 0;

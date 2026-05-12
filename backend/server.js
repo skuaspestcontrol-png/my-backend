@@ -1872,6 +1872,260 @@ const ensureCustomerPlaceColumns = async (conn) => {
   customerPlaceColumnsEnsured = true;
 };
 
+const premiseSnapshotColumns = [
+  { name: 'customer_premise_id', definition: 'VARCHAR(100) NULL' },
+  { name: 'premise_label', definition: 'VARCHAR(255) NULL' },
+  { name: 'premise_address', definition: 'TEXT NULL' },
+  { name: 'premise_area_name', definition: 'VARCHAR(255) NULL' },
+  { name: 'premise_city', definition: 'VARCHAR(100) NULL' },
+  { name: 'premise_state', definition: 'VARCHAR(100) NULL' },
+  { name: 'premise_pincode', definition: 'VARCHAR(20) NULL' },
+  { name: 'premise_google_map_url', definition: 'TEXT NULL' }
+];
+
+const safeJsonParse = (value, fallback = {}) => {
+  if (!value) return fallback;
+  if (typeof value === 'object') return value;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const toIntId = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.trunc(numeric) : null;
+};
+
+const normalizePremisePayload = (body = {}, customer = {}, fallbackId = '') => {
+  const address = String(body.address || body.premiseAddress || '').trim();
+  return {
+    premiseId: String(body.premiseId || body.premise_id || fallbackId || `PREM-${Date.now()}`).trim(),
+    premiseLabel: String(body.premiseLabel || body.premise_label || '').trim() || 'Main Premise',
+    premiseType: ['Billing', 'Shipping', 'Service', 'Other'].includes(body.premiseType || body.premise_type)
+      ? (body.premiseType || body.premise_type)
+      : 'Service',
+    contactPerson: String(body.contactPerson || body.contact_person || customer.contactPersonName || customer.name || '').trim(),
+    phone: String(body.phone || customer.mobileNumber || customer.workPhone || '').trim(),
+    email: String(body.email || customer.emailId || customer.email || '').trim(),
+    address,
+    areaName: String(body.areaName || body.area_name || '').trim(),
+    city: String(body.city || '').trim(),
+    state: String(body.state || '').trim(),
+    pincode: String(body.pincode || '').trim(),
+    country: String(body.country || 'India').trim() || 'India',
+    latitude: body.latitude || null,
+    longitude: body.longitude || null,
+    googlePlaceId: String(body.googlePlaceId || body.google_place_id || '').trim(),
+    googlePlaceName: String(body.googlePlaceName || body.google_place_name || '').trim(),
+    googleMapUrl: String(body.googleMapUrl || body.google_map_url || '').trim(),
+    gstin: String(body.gstin || customer.gstNumber || '').trim(),
+    placeOfSupply: String(body.placeOfSupply || body.place_of_supply || body.state || customer.placeOfSupply || '').trim(),
+    isDefault: body.isDefault ?? body.is_default ? 1 : 0,
+    isBilling: body.isBilling ?? body.is_billing ? 1 : 0,
+    isShipping: body.isShipping ?? body.is_shipping ? 1 : 0,
+    isActive: body.isActive === false || body.is_active === 0 ? 0 : 1
+  };
+};
+
+const mapPremiseRow = (row = {}) => ({
+  id: row.id,
+  premiseId: row.premise_id,
+  premise_id: row.premise_id,
+  customerId: row.customer_id,
+  premiseLabel: row.premise_label || '',
+  premise_label: row.premise_label || '',
+  premiseType: row.premise_type || 'Service',
+  premise_type: row.premise_type || 'Service',
+  contactPerson: row.contact_person || '',
+  phone: row.phone || '',
+  email: row.email || '',
+  address: row.address || '',
+  areaName: row.area_name || '',
+  area_name: row.area_name || '',
+  city: row.city || '',
+  state: row.state || '',
+  pincode: row.pincode || '',
+  country: row.country || 'India',
+  latitude: row.latitude,
+  longitude: row.longitude,
+  googlePlaceId: row.google_place_id || '',
+  googlePlaceName: row.google_place_name || '',
+  googleMapUrl: row.google_map_url || '',
+  gstin: row.gstin || '',
+  placeOfSupply: row.place_of_supply || '',
+  isDefault: !!row.is_default,
+  isBilling: !!row.is_billing,
+  isShipping: !!row.is_shipping,
+  isActive: row.is_active !== 0,
+  payload: safeJsonParse(row.payload, null)
+});
+
+const ensureCustomerPremisesInfrastructure = async (conn) => {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS customer_premises (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      premise_id VARCHAR(100) UNIQUE,
+      customer_id INT NOT NULL,
+      premise_label VARCHAR(255) NULL,
+      premise_type ENUM('Billing','Shipping','Service','Other') DEFAULT 'Service',
+      contact_person VARCHAR(255) NULL,
+      phone VARCHAR(50) NULL,
+      email VARCHAR(255) NULL,
+      address TEXT NULL,
+      area_name VARCHAR(255) NULL,
+      city VARCHAR(100) NULL,
+      state VARCHAR(100) NULL,
+      pincode VARCHAR(20) NULL,
+      country VARCHAR(100) DEFAULT 'India',
+      latitude DECIMAL(10,8) NULL,
+      longitude DECIMAL(11,8) NULL,
+      google_place_id VARCHAR(255) NULL,
+      google_place_name VARCHAR(255) NULL,
+      google_map_url TEXT NULL,
+      gstin VARCHAR(50) NULL,
+      place_of_supply VARCHAR(100) NULL,
+      is_default TINYINT(1) DEFAULT 0,
+      is_billing TINYINT(1) DEFAULT 0,
+      is_shipping TINYINT(1) DEFAULT 0,
+      is_active TINYINT(1) DEFAULT 1,
+      payload JSON NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  await ensureColumnsIfMissing(conn, 'customer_premises', [
+    { name: 'premise_id', definition: 'VARCHAR(100) NULL' },
+    { name: 'customer_id', definition: 'INT NOT NULL' },
+    { name: 'premise_label', definition: 'VARCHAR(255) NULL' },
+    { name: 'premise_type', definition: "ENUM('Billing','Shipping','Service','Other') DEFAULT 'Service'" },
+    { name: 'contact_person', definition: 'VARCHAR(255) NULL' },
+    { name: 'phone', definition: 'VARCHAR(50) NULL' },
+    { name: 'email', definition: 'VARCHAR(255) NULL' },
+    { name: 'address', definition: 'TEXT NULL' },
+    { name: 'area_name', definition: 'VARCHAR(255) NULL' },
+    { name: 'city', definition: 'VARCHAR(100) NULL' },
+    { name: 'state', definition: 'VARCHAR(100) NULL' },
+    { name: 'pincode', definition: 'VARCHAR(20) NULL' },
+    { name: 'country', definition: "VARCHAR(100) DEFAULT 'India'" },
+    { name: 'latitude', definition: 'DECIMAL(10,8) NULL' },
+    { name: 'longitude', definition: 'DECIMAL(11,8) NULL' },
+    { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
+    { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
+    { name: 'google_map_url', definition: 'TEXT NULL' },
+    { name: 'gstin', definition: 'VARCHAR(50) NULL' },
+    { name: 'place_of_supply', definition: 'VARCHAR(100) NULL' },
+    { name: 'is_default', definition: 'TINYINT(1) DEFAULT 0' },
+    { name: 'is_billing', definition: 'TINYINT(1) DEFAULT 0' },
+    { name: 'is_shipping', definition: 'TINYINT(1) DEFAULT 0' },
+    { name: 'is_active', definition: 'TINYINT(1) DEFAULT 1' },
+    { name: 'payload', definition: 'JSON NULL' }
+  ]);
+  await ensureColumnsIfMissing(conn, 'jobs', premiseSnapshotColumns);
+  await ensureColumnsIfMissing(conn, 'invoices', premiseSnapshotColumns);
+  await ensureColumnsIfMissing(conn, 'quotations', premiseSnapshotColumns);
+  try {
+    await conn.query('CREATE UNIQUE INDEX uk_customer_premises_premise_id ON customer_premises (premise_id)');
+  } catch (error) {
+    if (!/duplicate|already exists/i.test(String(error.message || ''))) throw error;
+  }
+};
+
+const fetchCustomerRecordForPremise = async (conn, customerId) => {
+  const targetId = String(customerId || '').trim();
+  const numericId = toIntId(targetId);
+  const [rows] = await conn.query(
+    numericId
+      ? 'SELECT id, external_id, payload FROM customers WHERE external_id = ? OR id = ? LIMIT 1'
+      : 'SELECT id, external_id, payload FROM customers WHERE external_id = ? LIMIT 1',
+    numericId ? [targetId, numericId] : [targetId]
+  );
+  const row = Array.isArray(rows) && rows.length ? rows[0] : null;
+  if (!row) return null;
+  const payload = safeJsonParse(row.payload, {});
+  return { rowId: Number(row.id), externalId: row.external_id || String(row.id), payload };
+};
+
+const legacyCustomerToPremise = (customer = {}, rowId) => {
+  const billingAddress = String(customer.billingAddress || [customer.billingStreet1, customer.billingStreet2].filter(Boolean).join(', ')).trim();
+  const shippingAddress = String(customer.shippingAddress || [customer.shippingStreet1, customer.shippingStreet2].filter(Boolean).join(', ')).trim();
+  return normalizePremisePayload({
+    premiseId: `PREM-${customer._id || rowId}-MAIN`,
+    premiseLabel: 'Main / Billing Address',
+    premiseType: 'Billing',
+    contactPerson: customer.contactPersonName || customer.name || '',
+    phone: customer.mobileNumber || customer.workPhone || '',
+    email: customer.emailId || customer.email || '',
+    address: billingAddress || shippingAddress || 'Address not provided',
+    areaName: customer.billingArea || customer.area || customer.shippingArea || '',
+    city: customer.city || '',
+    state: customer.billingState || customer.state || customer.placeOfSupply || customer.shippingState || '',
+    pincode: customer.billingPincode || customer.pincode || customer.shippingPincode || '',
+    country: 'India',
+    gstin: customer.gstNumber || '',
+    placeOfSupply: customer.placeOfSupply || customer.billingState || customer.state || '',
+    isDefault: 1,
+    isBilling: 1,
+    isShipping: billingAddress && shippingAddress && billingAddress === shippingAddress ? 1 : 0,
+    googlePlaceId: customer.googlePlaceId || '',
+    googlePlaceName: customer.googlePlaceName || '',
+    latitude: customer.latitude || null,
+    longitude: customer.longitude || null
+  }, customer, `PREM-${rowId}-MAIN`);
+};
+
+const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
+  if (!String(premise.address || '').trim()) {
+    throw new Error('Premise address is required');
+  }
+  if (premise.isDefault) {
+    await conn.query('UPDATE customer_premises SET is_default = 0 WHERE customer_id = ?', [customerRowId]);
+  }
+  const payload = JSON.stringify(premise);
+  await conn.query(
+    `INSERT INTO customer_premises (
+      premise_id, customer_id, premise_label, premise_type, contact_person, phone, email, address,
+      area_name, city, state, pincode, country, latitude, longitude, google_place_id, google_place_name,
+      google_map_url, gstin, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      premise_label=VALUES(premise_label), premise_type=VALUES(premise_type), contact_person=VALUES(contact_person),
+      phone=VALUES(phone), email=VALUES(email), address=VALUES(address), area_name=VALUES(area_name),
+      city=VALUES(city), state=VALUES(state), pincode=VALUES(pincode), country=VALUES(country),
+      latitude=VALUES(latitude), longitude=VALUES(longitude), google_place_id=VALUES(google_place_id),
+      google_place_name=VALUES(google_place_name), google_map_url=VALUES(google_map_url), gstin=VALUES(gstin),
+      place_of_supply=VALUES(place_of_supply), is_default=VALUES(is_default), is_billing=VALUES(is_billing),
+      is_shipping=VALUES(is_shipping), is_active=VALUES(is_active), payload=VALUES(payload)`,
+    [
+      premise.premiseId, customerRowId, premise.premiseLabel, premise.premiseType, premise.contactPerson,
+      premise.phone, premise.email, premise.address, premise.areaName, premise.city, premise.state,
+      premise.pincode, premise.country, premise.latitude ? Number(premise.latitude) : null,
+      premise.longitude ? Number(premise.longitude) : null, premise.googlePlaceId, premise.googlePlaceName,
+      premise.googleMapUrl, premise.gstin, premise.placeOfSupply, premise.isDefault, premise.isBilling,
+      premise.isShipping, premise.isActive, payload
+    ]
+  );
+};
+
+const ensureDefaultPremiseForCustomer = async (conn, customerId) => {
+  await ensureCustomerPremisesInfrastructure(conn);
+  const customer = await fetchCustomerRecordForPremise(conn, customerId);
+  if (!customer) return [];
+  const [existing] = await conn.query(
+    'SELECT * FROM customer_premises WHERE customer_id = ? AND is_active = 1 ORDER BY is_default DESC, id ASC',
+    [customer.rowId]
+  );
+  if (Array.isArray(existing) && existing.length > 0) return existing.map(mapPremiseRow);
+  const premise = legacyCustomerToPremise({ ...customer.payload, _id: customer.externalId }, customer.rowId);
+  await insertOrUpdatePremise(conn, customer.rowId, premise);
+  const [rows] = await conn.query(
+    'SELECT * FROM customer_premises WHERE customer_id = ? AND is_active = 1 ORDER BY is_default DESC, id ASC',
+    [customer.rowId]
+  );
+  return (Array.isArray(rows) ? rows : []).map(mapPremiseRow);
+};
+
 let employeeAuthColumnsEnsured = false;
 const ensureEmployeeAuthColumns = async (conn) => {
   if (employeeAuthColumnsEnsured) return;
@@ -3762,12 +4016,126 @@ app.post('/api/customers', async (req, res) => {
           new Date(newCustomer.createdAt).toISOString().slice(0, 19).replace('T', ' ')
         ]
       );
+      await ensureDefaultPremiseForCustomer(conn, newCustomer._id);
     });
 
     return res.json(newCustomer);
   } catch (error) {
     console.error('Failed to create customer in MySQL:', error.message);
     return res.status(500).json({ error: 'Failed to create customer' });
+  }
+});
+
+app.get('/api/customers/:customerId/premises', async (req, res) => {
+  if (!canUseMysql()) return res.status(503).json({ error: 'Customer premises require MySQL.' });
+  try {
+    const premises = await withMysqlConnection(async (conn) => ensureDefaultPremiseForCustomer(conn, req.params.customerId));
+    return res.json(premises);
+  } catch (error) {
+    console.error('Failed to load customer premises:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to load premises' });
+  }
+});
+
+app.post('/api/customers/:customerId/premises', async (req, res) => {
+  if (!canUseMysql()) return res.status(503).json({ error: 'Customer premises require MySQL.' });
+  try {
+    const saved = await withMysqlConnection(async (conn) => {
+      await ensureCustomerPremisesInfrastructure(conn);
+      const customer = await fetchCustomerRecordForPremise(conn, req.params.customerId);
+      if (!customer) throw new Error('Customer not found');
+      const premise = normalizePremisePayload(req.body, customer.payload, `PREM-${customer.externalId}-${Date.now()}`);
+      const [existingActive] = await conn.query('SELECT COUNT(*) AS count FROM customer_premises WHERE customer_id = ? AND is_active = 1', [customer.rowId]);
+      if (!Number(existingActive?.[0]?.count || 0)) premise.isDefault = 1;
+      await insertOrUpdatePremise(conn, customer.rowId, premise);
+      const [rows] = await conn.query('SELECT * FROM customer_premises WHERE premise_id = ? LIMIT 1', [premise.premiseId]);
+      return mapPremiseRow(rows?.[0] || {});
+    });
+    return res.status(201).json(saved);
+  } catch (error) {
+    console.error('Failed to create customer premise:', error.message);
+    return res.status(/not found/i.test(error.message) ? 404 : 500).json({ error: error.message || 'Failed to create premise' });
+  }
+});
+
+app.put('/api/customers/:customerId/premises/:premiseId', async (req, res) => {
+  if (!canUseMysql()) return res.status(503).json({ error: 'Customer premises require MySQL.' });
+  try {
+    const saved = await withMysqlConnection(async (conn) => {
+      await ensureCustomerPremisesInfrastructure(conn);
+      const customer = await fetchCustomerRecordForPremise(conn, req.params.customerId);
+      if (!customer) throw new Error('Customer not found');
+      const [existingRows] = await conn.query(
+        'SELECT * FROM customer_premises WHERE customer_id = ? AND premise_id = ? LIMIT 1',
+        [customer.rowId, req.params.premiseId]
+      );
+      if (!Array.isArray(existingRows) || existingRows.length === 0) throw new Error('Premise not found');
+      const existing = mapPremiseRow(existingRows[0]);
+      const premise = normalizePremisePayload({ ...existing, ...req.body, premiseId: existing.premiseId }, customer.payload, existing.premiseId);
+      await insertOrUpdatePremise(conn, customer.rowId, premise);
+      const [rows] = await conn.query('SELECT * FROM customer_premises WHERE premise_id = ? LIMIT 1', [existing.premiseId]);
+      return mapPremiseRow(rows?.[0] || {});
+    });
+    return res.json(saved);
+  } catch (error) {
+    console.error('Failed to update customer premise:', error.message);
+    return res.status(/not found/i.test(error.message) ? 404 : 500).json({ error: error.message || 'Failed to update premise' });
+  }
+});
+
+app.delete('/api/customers/:customerId/premises/:premiseId', async (req, res) => {
+  if (!canUseMysql()) return res.status(503).json({ error: 'Customer premises require MySQL.' });
+  try {
+    const result = await withMysqlConnection(async (conn) => {
+      await ensureCustomerPremisesInfrastructure(conn);
+      const customer = await fetchCustomerRecordForPremise(conn, req.params.customerId);
+      if (!customer) throw new Error('Customer not found');
+      const [activeRows] = await conn.query(
+        'SELECT premise_id, is_default FROM customer_premises WHERE customer_id = ? AND is_active = 1 ORDER BY is_default DESC, id ASC',
+        [customer.rowId]
+      );
+      if ((activeRows || []).length <= 1) {
+        throw new Error('At least one active premise is required.');
+      }
+      const target = (activeRows || []).find((row) => String(row.premise_id) === String(req.params.premiseId));
+      if (!target) throw new Error('Premise not found');
+      await conn.query('UPDATE customer_premises SET is_active = 0, is_default = 0 WHERE customer_id = ? AND premise_id = ?', [customer.rowId, req.params.premiseId]);
+      if (Number(target.is_default || 0)) {
+        const replacement = (activeRows || []).find((row) => String(row.premise_id) !== String(req.params.premiseId));
+        if (replacement?.premise_id) {
+          await conn.query('UPDATE customer_premises SET is_default = 1 WHERE customer_id = ? AND premise_id = ?', [customer.rowId, replacement.premise_id]);
+        }
+      }
+      return { message: 'Premise deleted' };
+    });
+    return res.json(result);
+  } catch (error) {
+    console.error('Failed to delete customer premise:', error.message);
+    return res.status(/not found/i.test(error.message) ? 404 : 400).json({ error: error.message || 'Failed to delete premise' });
+  }
+});
+
+app.post('/api/customers/:customerId/premises/:premiseId/set-default', async (req, res) => {
+  if (!canUseMysql()) return res.status(503).json({ error: 'Customer premises require MySQL.' });
+  try {
+    const premise = await withMysqlConnection(async (conn) => {
+      await ensureCustomerPremisesInfrastructure(conn);
+      const customer = await fetchCustomerRecordForPremise(conn, req.params.customerId);
+      if (!customer) throw new Error('Customer not found');
+      const [rows] = await conn.query(
+        'SELECT * FROM customer_premises WHERE customer_id = ? AND premise_id = ? AND is_active = 1 LIMIT 1',
+        [customer.rowId, req.params.premiseId]
+      );
+      if (!Array.isArray(rows) || rows.length === 0) throw new Error('Premise not found');
+      await conn.query('UPDATE customer_premises SET is_default = 0 WHERE customer_id = ?', [customer.rowId]);
+      await conn.query('UPDATE customer_premises SET is_default = 1 WHERE customer_id = ? AND premise_id = ?', [customer.rowId, req.params.premiseId]);
+      const [nextRows] = await conn.query('SELECT * FROM customer_premises WHERE customer_id = ? AND premise_id = ? LIMIT 1', [customer.rowId, req.params.premiseId]);
+      return mapPremiseRow(nextRows?.[0] || {});
+    });
+    return res.json(premise);
+  } catch (error) {
+    console.error('Failed to set default premise:', error.message);
+    return res.status(/not found/i.test(error.message) ? 404 : 500).json({ error: error.message || 'Failed to set default premise' });
   }
 });
 
@@ -3923,6 +4291,7 @@ app.put('/api/customers/:id', async (req, res) => {
           new Date().toISOString().slice(0, 19).replace('T', ' ')
         ]
       );
+      await ensureDefaultPremiseForCustomer(conn, updatedCustomer._id);
     });
 
     return res.json(updatedCustomer);
@@ -4628,11 +4997,14 @@ const readUserMeta = (req) => String(req?.body?.updatedBy || req?.headers?.['x-u
 const syncInvoiceToMysql = async (invoice) => {
   if (!invoice || !invoice._id) return;
   await withMysqlConnection(async (conn) => {
+    await ensureCustomerPremisesInfrastructure(conn);
     await conn.query(
       `INSERT INTO invoices (
         external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
-        invoice_date, due_date, total_amount, balance_due, payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        invoice_date, due_date, total_amount, balance_due,
+        customer_premise_id, premise_label, premise_address, premise_area_name, premise_city, premise_state,
+        premise_pincode, premise_google_map_url, payload, source_created_at, source_updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         customer_external_id=VALUES(customer_external_id),
         customer_name=VALUES(customer_name),
@@ -4643,6 +5015,14 @@ const syncInvoiceToMysql = async (invoice) => {
         due_date=VALUES(due_date),
         total_amount=VALUES(total_amount),
         balance_due=VALUES(balance_due),
+        customer_premise_id=VALUES(customer_premise_id),
+        premise_label=VALUES(premise_label),
+        premise_address=VALUES(premise_address),
+        premise_area_name=VALUES(premise_area_name),
+        premise_city=VALUES(premise_city),
+        premise_state=VALUES(premise_state),
+        premise_pincode=VALUES(premise_pincode),
+        premise_google_map_url=VALUES(premise_google_map_url),
         payload=VALUES(payload),
         source_created_at=VALUES(source_created_at),
         source_updated_at=VALUES(source_updated_at)`,
@@ -4657,6 +5037,14 @@ const syncInvoiceToMysql = async (invoice) => {
         invoice.dueDate || null,
         toNumber(invoice.total ?? invoice.amount, 0),
         toNumber(invoice.balanceDue, 0),
+        invoice.customerPremiseId || invoice.customer_premise_id || null,
+        invoice.premiseLabel || invoice.premise_label || null,
+        invoice.premiseAddress || invoice.premise_address || invoice.billingAddressText || null,
+        invoice.premiseAreaName || invoice.premise_area_name || null,
+        invoice.premiseCity || invoice.premise_city || null,
+        invoice.premiseState || invoice.premise_state || null,
+        invoice.premisePincode || invoice.premise_pincode || null,
+        invoice.premiseGoogleMapUrl || invoice.premise_google_map_url || null,
         JSON.stringify(invoice),
         invoice.createdAt ? new Date(invoice.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
         new Date().toISOString().slice(0, 19).replace('T', ' ')
@@ -4698,6 +5086,7 @@ const syncJobToMysql = async (job) => {
   };
   await withMysqlConnection(async (conn) => {
     await ensureJobsGoogleColumns(conn);
+    await ensureCustomerPremisesInfrastructure(conn);
     try {
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS customer_external_id VARCHAR(80) NULL');
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS invoice_external_id VARCHAR(80) NULL');
@@ -4763,6 +5152,14 @@ const syncJobToMysql = async (job) => {
       google_calendar_event_id: job.google_calendar_event_id || null,
       google_sync_status: job.google_sync_status || null,
       google_last_synced_at: toMysqlDateTimeOrNull(job.google_last_synced_at),
+      customer_premise_id: job.customerPremiseId || job.customer_premise_id || null,
+      premise_label: job.premiseLabel || job.premise_label || null,
+      premise_address: job.premiseAddress || job.premise_address || job.address || null,
+      premise_area_name: job.premiseAreaName || job.premise_area_name || job.areaName || null,
+      premise_city: job.premiseCity || job.premise_city || job.city || null,
+      premise_state: job.premiseState || job.premise_state || job.state || null,
+      premise_pincode: job.premisePincode || job.premise_pincode || job.pincode || null,
+      premise_google_map_url: job.premiseGoogleMapUrl || job.premise_google_map_url || null,
       payload: JSON.stringify(job),
       source_created_at: toMysqlDateTimeOrNull(job.createdAt),
       source_updated_at: toMysqlDateTimeOrNull(new Date())
@@ -6056,6 +6453,14 @@ app.post('/api/invoices', async (req, res) => {
     placeOfSupply: req.body.placeOfSupply || '',
     billingAddressText: req.body.billingAddressText || '',
     shippingAddressText: req.body.shippingAddressText || '',
+    customerPremiseId: req.body.customerPremiseId || req.body.customer_premise_id || '',
+    premiseLabel: req.body.premiseLabel || req.body.premise_label || '',
+    premiseAddress: req.body.premiseAddress || req.body.premise_address || req.body.billingAddressText || '',
+    premiseAreaName: req.body.premiseAreaName || req.body.premise_area_name || '',
+    premiseCity: req.body.premiseCity || req.body.premise_city || '',
+    premiseState: req.body.premiseState || req.body.premise_state || '',
+    premisePincode: req.body.premisePincode || req.body.premise_pincode || '',
+    premiseGoogleMapUrl: req.body.premiseGoogleMapUrl || req.body.premise_google_map_url || '',
     terms: req.body.terms || 'Paid',
     salesperson: req.body.salesperson || '',
     servicePeriod: req.body.servicePeriod || '',
@@ -6179,6 +6584,14 @@ app.put('/api/invoices/:id', async (req, res) => {
     paymentReceivedEnabled,
     paymentSplits,
     paymentReceivedTotal,
+    customerPremiseId: req.body.customerPremiseId ?? req.body.customer_premise_id ?? current.customerPremiseId ?? current.customer_premise_id ?? '',
+    premiseLabel: req.body.premiseLabel ?? req.body.premise_label ?? current.premiseLabel ?? current.premise_label ?? '',
+    premiseAddress: req.body.premiseAddress ?? req.body.premise_address ?? current.premiseAddress ?? current.premise_address ?? '',
+    premiseAreaName: req.body.premiseAreaName ?? req.body.premise_area_name ?? current.premiseAreaName ?? current.premise_area_name ?? '',
+    premiseCity: req.body.premiseCity ?? req.body.premise_city ?? current.premiseCity ?? current.premise_city ?? '',
+    premiseState: req.body.premiseState ?? req.body.premise_state ?? current.premiseState ?? current.premise_state ?? '',
+    premisePincode: req.body.premisePincode ?? req.body.premise_pincode ?? current.premisePincode ?? current.premise_pincode ?? '',
+    premiseGoogleMapUrl: req.body.premiseGoogleMapUrl ?? req.body.premise_google_map_url ?? current.premiseGoogleMapUrl ?? current.premise_google_map_url ?? '',
     notes: req.body.notes ?? current.notes ?? ''
   };
 

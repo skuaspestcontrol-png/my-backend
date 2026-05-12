@@ -70,6 +70,7 @@ export default function CreateQuote() {
   const [prefixSettings, setPrefixSettings] = useState({});
   const [commonParagraphs, setCommonParagraphs] = useState({});
   const [templateSettings, setTemplateSettings] = useState({});
+  const [premiseRows, setPremiseRows] = useState([]);
   const [status, setStatus] = useState('');
   const [savedId, setSavedId] = useState(null);
 
@@ -80,6 +81,14 @@ export default function CreateQuote() {
     customer_name: '',
     company_name: '',
     address: '',
+    customer_premise_id: '',
+    premise_label: '',
+    premise_address: '',
+    premise_area_name: '',
+    premise_city: '',
+    premise_state: '',
+    premise_pincode: '',
+    premise_google_map_url: '',
     phone: '',
     whatsapp: '',
     email: '',
@@ -244,7 +253,31 @@ export default function CreateQuote() {
     }));
   };
 
-  const selectCustomer = (customerId) => {
+  const applyPremise = (premise) => {
+    if (!premise) return;
+    const premiseId = premise.premiseId || premise.premise_id || '';
+    const address = [
+      premise.address,
+      premise.areaName || premise.area_name,
+      [premise.city, premise.state].filter(Boolean).join(', '),
+      [premise.country || 'India', premise.pincode].filter(Boolean).join(' ')
+    ].filter(Boolean).join('\n');
+    setForm((p) => ({
+      ...p,
+      customer_premise_id: premiseId,
+      premise_label: premise.premiseLabel || premise.premise_label || '',
+      premise_address: address,
+      premise_area_name: premise.areaName || premise.area_name || '',
+      premise_city: premise.city || '',
+      premise_state: premise.state || '',
+      premise_pincode: premise.pincode || '',
+      premise_google_map_url: premise.googleMapUrl || premise.google_map_url || '',
+      address,
+      gstin: premise.gstin || p.gstin || ''
+    }));
+  };
+
+  const selectCustomer = async (customerId) => {
     const c = customerRows.find((l) => String(l._id || l.id || '') === String(customerId));
     if (!c) return;
     setForm((p) => ({
@@ -260,6 +293,15 @@ export default function CreateQuote() {
       gstin: c.gstNumber || c.gstin || '',
       quotation_number: ''
     }));
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/customers/${c._id || c.id}/premises`);
+      const premises = Array.isArray(res.data) ? res.data : [];
+      setPremiseRows(premises);
+      applyPremise(premises.find((row) => row.isDefault || row.is_default) || premises[0]);
+    } catch (error) {
+      console.error('Failed to load customer premises', error);
+      setPremiseRows([]);
+    }
   };
 
   const saveQuotation = async (mode = 'Draft') => {
@@ -316,6 +358,18 @@ export default function CreateQuote() {
               <div><p style={label}>Search Lead</p><select style={input} value={form.lead_id} onChange={(e) => selectLead(e.target.value)}><option value="">Select lead</option>{leadRows.map((l) => <option key={l._id || l.id} value={l._id || l.id}>{l.customerName || l.mobileNumber || l._id}</option>)}</select></div>
               <div><p style={label}>Search Customer</p><select style={input} value={form.customer_id} onChange={(e) => selectCustomer(e.target.value)}><option value="">Select customer</option>{customerRows.map((c) => <option key={c._id || c.id} value={c._id || c.id}>{c.customerName || c.name || c.mobileNumber}</option>)}</select></div>
             </div>
+            {premiseRows.length > 0 ? (
+              <div style={{ marginTop: 10 }}>
+                <p style={label}>Premise / Address</p>
+                <select style={input} value={form.customer_premise_id} onChange={(e) => applyPremise(premiseRows.find((row) => String(row.premiseId || row.premise_id || '') === e.target.value))}>
+                  {premiseRows.map((premise) => (
+                    <option key={premise.premiseId || premise.premise_id} value={premise.premiseId || premise.premise_id}>
+                      {premise.premiseLabel || premise.premise_label || premise.address}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {['customer_name','company_name','address','phone','whatsapp','email','gstin'].map((key) => (
                 <div key={key} style={key === 'address' ? { gridColumn: '1 / span 3' } : {}}><p style={{ ...label, textTransform: 'capitalize' }}>{key.replaceAll('_', ' ')}</p>{key === 'address' ? <textarea style={{ ...input, minHeight: 58 }} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /> : <input style={input} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} />}</div>
