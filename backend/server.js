@@ -7467,9 +7467,12 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const logoPath = resolveGstCompanyLogoPath(settings);
     const logoWidth = logoPath ? 300 : 0;
     const logoHeight = logoPath ? 120 : 0;
+    const headerTopY = 45;
+    const headerBandHeight = 120;
+    const logoY = headerTopY + ((headerBandHeight - logoHeight) / 2);
     if (logoPath) {
       try {
-        doc.image(logoPath, pageLeft, 45, { fit: [logoWidth, logoHeight] });
+        doc.image(logoPath, pageLeft, logoY, { fit: [logoWidth, logoHeight] });
       } catch (error) {
         console.error('Renewal letter logo failed:', error.message);
       }
@@ -7477,7 +7480,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const companyHeaderInset = 38;
     const headerX = (logoPath ? pageLeft + logoWidth + 14 : pageLeft) + companyHeaderInset;
     const headerWidth = pageRight - headerX;
-    doc.font(pdfFont.bold).fontSize(10.2).fillColor('#111827').text(companyName, headerX, 45, { width: headerWidth, align: 'left' });
+    doc.font(pdfFont.bold).fontSize(10.2).fillColor('#111827').text(companyName, headerX, headerTopY, { width: contentWidth, align: 'left', lineBreak: false });
     doc.font(pdfFont.regular).fontSize(8.1).fillColor('#475569');
     [
       companyAddress,
@@ -7631,7 +7634,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       doc.font(pdfFont.regular).fontSize(9.4).fillColor('#111827').text(term, pageLeft, doc.y, { width: contentWidth, align: 'left', lineGap: 1 });
       doc.y += 3;
     });
-    doc.y += 6;
+    doc.y += 12;
     doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827')
       .text('We look forward to working with you and hope this is the beginning of a long and prosperous relationship.', pageLeft, doc.y, { width: contentWidth, align: 'left', lineGap: 1 });
     doc.y += 5;
