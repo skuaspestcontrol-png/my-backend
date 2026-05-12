@@ -229,6 +229,9 @@ const defaultForm = {
   invoicePrefix: 'SPC-',
   invoiceNextNumber: '66',
   invoiceNumberPadding: '4',
+  renewalPrefix: 'REN-',
+  renewalNextNumber: '1',
+  renewalNumberPadding: '4',
   jobPrefix: 'JOB-',
   jobNextNumber: '1',
   jobNumberPadding: '6',
@@ -669,6 +672,9 @@ const getSectionCompletion = (form, securityForm) => {
       form.invoicePrefix,
       form.invoiceNextNumber,
       form.invoiceNumberPadding,
+      form.renewalPrefix,
+      form.renewalNextNumber,
+      form.renewalNumberPadding,
       form.jobPrefix,
       form.jobNextNumber,
       form.jobNumberPadding,
@@ -841,6 +847,9 @@ export default function Settings({ modalMode = false }) {
           invoicePrefix: data.invoicePrefix || 'SPC-',
           invoiceNextNumber: String(data.invoiceNextNumber ?? 66),
           invoiceNumberPadding: String(data.invoiceNumberPadding ?? 4),
+          renewalPrefix: data.renewalPrefix || 'REN-',
+          renewalNextNumber: String(data.renewalNextNumber ?? 1),
+          renewalNumberPadding: String(data.renewalNumberPadding ?? 4),
           jobPrefix: data.jobPrefix || 'JOB-',
           jobNextNumber: String(data.jobNextNumber ?? 1),
           jobNumberPadding: String(data.jobNumberPadding ?? 6),
@@ -1142,6 +1151,9 @@ export default function Settings({ modalMode = false }) {
       invoicePrefix: String(form.invoicePrefix || '').trim() || 'SPC-',
       invoiceNextNumber: Math.max(1, Number(form.invoiceNextNumber) || 1),
       invoiceNumberPadding: Math.max(1, Number(form.invoiceNumberPadding) || 4),
+      renewalPrefix: String(form.renewalPrefix || '').trim() || 'REN-',
+      renewalNextNumber: Math.max(1, Number(form.renewalNextNumber) || 1),
+      renewalNumberPadding: Math.max(1, Number(form.renewalNumberPadding) || 4),
       jobPrefix: String(form.jobPrefix || '').trim() || 'JOB-',
       jobNextNumber: Math.max(1, Number(form.jobNextNumber) || 1),
       jobNumberPadding: Math.max(1, Number(form.jobNumberPadding) || 6),
@@ -1822,6 +1834,35 @@ export default function Settings({ modalMode = false }) {
             inputMode="numeric"
             value={form.invoiceNumberPadding}
             onChange={(event) => updateField('invoiceNumberPadding', event.target.value.replace(/\D/g, ''))}
+          />
+        </div>
+      </div>
+
+      <div style={shell.divider} />
+      <p style={{ ...shell.sectionHeading, marginTop: '2px' }}>Renewal Numbering</p>
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Renewal Prefix</p>
+          <input style={shell.input} value={form.renewalPrefix} onChange={(event) => updateField('renewalPrefix', event.target.value)} placeholder="REN-" />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Next Renewal Number</p>
+          <input
+            style={shell.input}
+            inputMode="numeric"
+            value={form.renewalNextNumber}
+            onChange={(event) => updateField('renewalNextNumber', event.target.value.replace(/\D/g, ''))}
+          />
+        </div>
+      </div>
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Renewal Number Padding</p>
+          <input
+            style={shell.input}
+            inputMode="numeric"
+            value={form.renewalNumberPadding}
+            onChange={(event) => updateField('renewalNumberPadding', event.target.value.replace(/\D/g, ''))}
           />
         </div>
       </div>

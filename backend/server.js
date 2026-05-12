@@ -782,6 +782,9 @@ const defaultSettings = {
   invoicePrefix: 'SPC-',
   invoiceNextNumber: 66,
   invoiceNumberPadding: 4,
+  renewalPrefix: 'REN-',
+  renewalNextNumber: 1,
+  renewalNumberPadding: 4,
   invoiceTemplate: 'classic',
   invoiceVisibleColumns: [...invoiceColumnKeys],
   invoiceFieldSettings: { ...defaultInvoiceFieldSettings }
@@ -1025,6 +1028,9 @@ const sanitizeSettings = (raw = {}) => {
     invoicePrefix: String(source.invoicePrefix ?? defaultSettings.invoicePrefix),
     invoiceNextNumber: Math.max(1, Number(source.invoiceNextNumber ?? defaultSettings.invoiceNextNumber) || defaultSettings.invoiceNextNumber),
     invoiceNumberPadding: Math.max(1, Number(source.invoiceNumberPadding ?? defaultSettings.invoiceNumberPadding) || defaultSettings.invoiceNumberPadding),
+    renewalPrefix: String(source.renewalPrefix ?? defaultSettings.renewalPrefix),
+    renewalNextNumber: Math.max(1, Number(source.renewalNextNumber ?? defaultSettings.renewalNextNumber) || defaultSettings.renewalNextNumber),
+    renewalNumberPadding: Math.max(1, Number(source.renewalNumberPadding ?? defaultSettings.renewalNumberPadding) || defaultSettings.renewalNumberPadding),
     invoiceTemplate: allowedInvoiceTemplates.has(invoiceTemplate) ? invoiceTemplate : defaultSettings.invoiceTemplate,
     invoiceVisibleColumns: normalizeInvoiceVisibleColumns(source.invoiceVisibleColumns),
     invoiceFieldSettings: normalizeInvoiceFieldSettings(source.invoiceFieldSettings)
@@ -6351,6 +6357,33 @@ const renewalIdFromContract = (contractId, customerName = '') => {
   const safe = source.replace(/[^A-Za-z0-9]/g, '').slice(-34) || crypto.createHash('sha1').update(source).digest('hex').slice(0, 18);
   return `REN-${safe}`;
 };
+const createNextRenewalNumber = (existingRows = [], settings = {}) => {
+  const prefix = String(settings?.renewalPrefix || 'REN-');
+  const padding = Math.max(1, Number(settings?.renewalNumberPadding || 4) || 4);
+  const configuredNext = Math.max(1, Number(settings?.renewalNextNumber || 1) || 1);
+  let max = 0;
+  existingRows.forEach((row) => {
+    const raw = String(row?.renewalId || row?.renewal_id || row?.external_id || '').trim();
+    if (!raw || (prefix && !raw.startsWith(prefix))) return;
+    const match = raw.slice(prefix.length).match(/(\d+)$/);
+    if (match) max = Math.max(max, Number(match[1]) || 0);
+  });
+  const next = Math.max(configuredNext, max + 1);
+  return {
+    renewalId: `${prefix}${String(next).padStart(padding, '0')}`,
+    nextNumber: next + 1
+  };
+};
+const updateSettingsNextRenewalNumber = async (nextNumber, settings = {}) => {
+  if (!canUseMysql()) return;
+  const current = await readSettingsFromMysql().catch(() => settings);
+  await saveSettingsToMysql({
+    ...(current || settings || {}),
+    renewalPrefix: String(settings?.renewalPrefix || current?.renewalPrefix || 'REN-'),
+    renewalNumberPadding: Math.max(1, Number(settings?.renewalNumberPadding || current?.renewalNumberPadding || 4) || 4),
+    renewalNextNumber: Math.max(1, Number(nextNumber || 1) || 1)
+  });
+};
 const ensureRenewalTables = async (conn) => {
   await conn.query(`
     CREATE TABLE IF NOT EXISTS renewals (
@@ -6594,7 +6627,7 @@ const sourceRenewalCandidates = async () => {
       if (!customerName || !mobile) return null;
       const amount = toNumber(invoice.total ?? invoice.amount, 0);
       return {
-        renewalId: renewalIdFromContract(invoice._id, customerName),
+        sourceRenewalKey: renewalIdFromContract(invoice._id, customerName),
         customerId: Number(customer.id || customer.customerId) || null,
         customerName,
         mobile,
@@ -6641,9 +6674,22 @@ app.post('/api/renewals/sync', async (req, res) => {
   try {
     const candidates = await sourceRenewalCandidates();
     let inserted = 0;
+    let nextRenewalNumber = null;
     await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
+      const settings = await loadCurrentSettingsForNumbering();
+      const [existingRows] = await conn.query('SELECT renewal_id, external_id FROM renewals ORDER BY id ASC');
+      const existingByContract = new Map((existingRows || []).map((entry) => [String(entry.external_id || '').trim(), String(entry.renewal_id || entry.external_id || '').trim()]));
       for (const row of candidates) {
+        const existingRenewalId = existingByContract.get(row.sourceRenewalKey) || '';
+        const prefix = String(settings?.renewalPrefix || 'REN-');
+        const hasConfiguredNumber = existingRenewalId && existingRenewalId.startsWith(prefix) && /\d+$/.test(existingRenewalId.slice(prefix.length));
+        const renewalId = hasConfiguredNumber ? existingRenewalId : createNextRenewalNumber(existingRows, settings).renewalId;
+        if (!hasConfiguredNumber) {
+          existingRows.push({ renewal_id: renewalId, external_id: row.sourceRenewalKey });
+          const parsed = createNextRenewalNumber(existingRows, settings);
+          nextRenewalNumber = parsed.nextNumber;
+        }
         const payload = { source: 'invoice-sync', syncedAt: new Date().toISOString(), sourceInvoice: row.sourceInvoice };
         const [result] = await conn.query(
           `INSERT INTO renewals (
@@ -6653,6 +6699,7 @@ app.post('/api/renewals/sync', async (req, res) => {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
             customer_name=VALUES(customer_name),
+            renewal_id=IF(renewal_id IS NULL OR renewal_id = '' OR renewal_id = external_id, VALUES(renewal_id), renewal_id),
             mobile=VALUES(mobile),
             email=VALUES(email),
             address=VALUES(address),
@@ -6667,7 +6714,7 @@ app.post('/api/renewals/sync', async (req, res) => {
             assigned_sales_person_name=IF(assigned_sales_person_name IS NULL OR assigned_sales_person_name = '', VALUES(assigned_sales_person_name), assigned_sales_person_name),
             payload=VALUES(payload)`,
           [
-            row.renewalId, row.renewalId, row.customerId, row.customerName, row.mobile, row.email, row.address, row.areaName,
+            row.sourceRenewalKey, renewalId, row.customerId, row.customerName, row.mobile, row.email, row.address, row.areaName,
             row.serviceType, row.contractId, row.previousContractStart, row.previousContractEnd, row.renewalDueDate,
             row.previousAmount, row.proposedAmount, row.assignedSalesPersonId, row.assignedSalesPersonName,
             computeRenewalStatus({ renewal_due_date: row.renewalDueDate, status: 'Pending' }),
@@ -6677,6 +6724,7 @@ app.post('/api/renewals/sync', async (req, res) => {
         if (result?.affectedRows === 1) inserted += 1;
       }
     });
+    if (nextRenewalNumber) await updateSettingsNextRenewalNumber(nextRenewalNumber);
     return res.json({ success: true, message: 'Renewal synced successfully', inserted, totalCandidates: candidates.length });
   } catch (error) {
     console.error('Renewal sync failed:', error.message);
@@ -6957,7 +7005,17 @@ app.get('/api/renewals/letters', async (req, res) => {
   try {
     const letters = await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
-      const [rows] = await conn.query('SELECT * FROM renewal_letters ORDER BY generated_at DESC, id DESC LIMIT 200');
+      const [rows] = await conn.query(`
+        SELECT rl.*
+        FROM renewal_letters rl
+        INNER JOIN (
+          SELECT renewal_id, MAX(id) AS latest_id
+          FROM renewal_letters
+          GROUP BY renewal_id
+        ) latest ON latest.latest_id = rl.id
+        ORDER BY rl.generated_at DESC, rl.id DESC
+        LIMIT 200
+      `);
       return rows || [];
     });
     return res.json(letters);

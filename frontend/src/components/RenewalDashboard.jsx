@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import {
   CalendarClock,
@@ -44,9 +44,9 @@ const shell = {
   tab: { border: '1px solid transparent', borderRadius: 8, background: 'transparent', color: '#475569', minHeight: 30, padding: '0 10px', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer' },
   activeTab: { background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderColor: 'var(--color-primary-soft)' },
   tableWrap: { width: '100%', overflowX: 'auto', overflowY: 'hidden' },
-  table: { width: '100%', minWidth: 1120, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  th: { textAlign: 'left', padding: '9px 8px', fontSize: 11, color: '#64748b', fontWeight: 850, textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', background: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  td: { padding: '8px', fontSize: 12.5, color: '#1f2937', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  table: { width: '100%', minWidth: 1080, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
+  th: { textAlign: 'left', padding: '8px 7px', fontSize: 10, color: '#64748b', fontWeight: 850, textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', background: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: 0 },
+  td: { padding: '7px', fontSize: 11.5, color: '#1f2937', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.25 },
   rowActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, flexWrap: 'nowrap' },
   iconBtn: { width: 30, height: 30, minWidth: 30, minHeight: 30, padding: 0, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   status: { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 8px', fontSize: 11, fontWeight: 850 },
@@ -70,6 +70,28 @@ const formatDate = (value) => {
   return parsed.toLocaleDateString('en-IN');
 };
 const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+const serviceShort = (value) => {
+  const text = String(value || '').trim();
+  if (!text) return '-';
+  const known = {
+    'cockroach control': 'CC',
+    'termite control': 'TC',
+    'general pest control': 'GPC',
+    'rodent control': 'RC',
+    'bed bug control': 'BBC',
+    'mosquito control': 'MC',
+    'wood borer control': 'WBC'
+  };
+  const normalized = text.toLowerCase().replace(/\s+/g, ' ');
+  if (known[normalized]) return known[normalized];
+  return text
+    .split(/[\s/&+-]+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 4)
+    .toUpperCase();
+};
 const statusStyle = (status) => {
   const map = {
     Done: ['#dcfce7', '#166534'],
@@ -86,6 +108,7 @@ const years = Array.from({ length: 7 }, (_, i) => currentYear - 2 + i);
 const months = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: new Date(2026, i, 1).toLocaleString('en-IN', { month: 'short' }) }));
 
 export default function RenewalDashboard() {
+  const autoSyncAttempted = useRef(false);
   const [rows, setRows] = useState([]);
   const [summary, setSummary] = useState({});
   const [employees, setEmployees] = useState([]);
@@ -114,7 +137,7 @@ export default function RenewalDashboard() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const loadData = async (overrideFilters = filters) => {
+  const loadData = async (overrideFilters = filters, options = {}) => {
     try {
       setLoading(true);
       const params = { ...overrideFilters, t: Date.now() };
@@ -128,6 +151,11 @@ export default function RenewalDashboard() {
       setSummary(summaryRes.data || {});
       setEmployees(Array.isArray(employeeRes.data) ? employeeRes.data : []);
       setLetters(Array.isArray(letterRes.data) ? letterRes.data : []);
+      if (options.autoSync && !autoSyncAttempted.current && Array.isArray(renewalRes.data) && renewalRes.data.length === 0) {
+        autoSyncAttempted.current = true;
+        await axios.post(`${API_BASE}/api/renewals/sync`);
+        return loadData(overrideFilters, { autoSync: false });
+      }
     } catch (error) {
       console.error('Renewal load failed', error);
       setMessage(error?.response?.data?.error || 'Unable to load renewals right now.');
@@ -137,7 +165,9 @@ export default function RenewalDashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData(filters, { autoSync: true });
+    const timer = window.setInterval(() => loadData(filters, { autoSync: false }), 60000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const salesPeople = useMemo(() => {
@@ -150,7 +180,18 @@ export default function RenewalDashboard() {
     const assigned = rows
       .filter((row) => row.assignedSalesPersonName)
       .map((row) => ({ id: row.assignedSalesPersonId || row.assignedSalesPersonName, name: row.assignedSalesPersonName }));
-    return [...list, ...assigned].filter((person, index, arr) => person.name && arr.findIndex((x) => String(x.id || x.name) === String(person.id || person.name)) === index);
+    const seenNames = new Set();
+    const seenIds = new Set();
+    return [...list, ...assigned].filter((person) => {
+      const nameKey = String(person.name || '').trim().toLowerCase();
+      const idKey = String(person.id || '').trim().toLowerCase();
+      if (!nameKey) return false;
+      if (seenNames.has(nameKey)) return false;
+      if (idKey && seenIds.has(idKey)) return false;
+      seenNames.add(nameKey);
+      if (idKey) seenIds.add(idKey);
+      return true;
+    });
   }, [employees, rows]);
 
   const updateFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
@@ -239,7 +280,7 @@ export default function RenewalDashboard() {
               <div style={shell.mobileMeta}>
                 <span>{row.mobile || '-'}</span>
                 <span>{formatDate(row.renewalDueDate)}</span>
-                <span>{row.serviceType || '-'}</span>
+                <span title={row.serviceType}>{serviceShort(row.serviceType)}</span>
                 <span>{formatINR(row.proposedAmount)}</span>
               </div>
               <div style={{ ...shell.rowActions, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
@@ -257,18 +298,18 @@ export default function RenewalDashboard() {
       <div style={shell.tableWrap}>
         <table className="crm-compact-table" style={shell.table}>
           <colgroup>
-            <col style={{ width: '13%' }} /><col style={{ width: '9%' }} /><col style={{ width: '11%' }} /><col style={{ width: '10%' }} />
-            <col style={{ width: '8%' }} /><col style={{ width: '8%' }} /><col style={{ width: '8%' }} /><col style={{ width: '9%' }} />
-            <col style={{ width: '10%' }} /><col style={{ width: '8%' }} /><col style={{ width: '8%' }} /><col style={{ width: '10%' }} /><col style={{ width: 224 }} />
+            <col style={{ width: '13%' }} /><col style={{ width: '8%' }} /><col style={{ width: '10%' }} /><col style={{ width: '5%' }} />
+            <col style={{ width: '7%' }} /><col style={{ width: '7%' }} /><col style={{ width: '7%' }} /><col style={{ width: '8%' }} />
+            <col style={{ width: '8%' }} /><col style={{ width: '8%' }} /><col style={{ width: '7%' }} /><col style={{ width: '9%' }} /><col style={{ width: 218 }} />
           </colgroup>
-          <thead><tr>{['Customer Name', 'Mobile', 'Address / Area', 'Service Type', 'Start Date', 'End Date', 'Renewal Due', 'Prev Amount', 'Proposed', 'Sales Person', 'Status', 'Follow-up / Note', 'Actions'].map((h) => <th key={h} style={{ ...shell.th, textAlign: h === 'Actions' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+          <thead><tr>{['Customer', 'Mobile', 'Area', 'Svc', 'Start', 'End', 'Due', 'Prev Amt', 'Proposed', 'Sales', 'Status', 'Follow-up', 'Actions'].map((h) => <th key={h} title={h} style={{ ...shell.th, textAlign: h === 'Actions' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.renewalId}>
-                <td style={shell.td} title={row.customerName}><strong>{row.customerName}</strong></td>
+                <td style={shell.td} title={`${row.customerName} • ${row.renewalId}`}><strong>{row.customerName}</strong></td>
                 <td style={shell.td}>{row.mobile || '-'}</td>
                 <td style={shell.td} title={`${row.address || ''} ${row.areaName || ''}`}>{row.areaName || row.address || '-'}</td>
-                <td style={shell.td} title={row.serviceType}>{row.serviceType || '-'}</td>
+                <td style={shell.td} title={row.serviceType}>{serviceShort(row.serviceType)}</td>
                 <td style={shell.td}>{formatDate(row.previousContractStart)}</td>
                 <td style={shell.td}>{formatDate(row.previousContractEnd)}</td>
                 <td style={shell.td}>{formatDate(row.renewalDueDate)}</td>
