@@ -702,53 +702,44 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
   const slipMonthLabel = new Date(Number(item.year), Math.max(0, Number(item.month) - 1), 1)
     .toLocaleDateString('en-IN', { month: 'long' })
     .concat(`-${item.year}`);
-  // Professional letterhead proportions for A4:
-  // left logo block (~42%) and right company block (~52%).
-  const headerTop = 34;
-  const headerWidth = 511;
-  const leftX = 42;
-  const logoSectionWidth = Math.round(headerWidth * 0.42);
-  const companySectionWidth = Math.round(headerWidth * 0.52);
-  const sectionGap = headerWidth - logoSectionWidth - companySectionWidth;
-  const rightX = leftX + logoSectionWidth + sectionGap;
-  const rightWidth = companySectionWidth;
-  const logoWidth = 220;
-  const logoHeight = 110;
-
-  if (logoBuffer) {
-    try {
-      doc.image(logoBuffer, leftX, headerTop + 6, {
-        fit: [Math.min(logoWidth, logoSectionWidth), logoHeight],
-        align: 'left',
-        valign: 'top'
-      });
-    } catch (error) {
-      console.error('SALARY PDF logo image failed:', error.message);
-      // Continue without logo if image decode fails.
-    }
-  }
-
-  const rightLines = [
-    normalizeText(company.companyName || defaultCompany.companyName),
+  const pageLeft = 55;
+  const pageRight = doc.page.width - 55;
+  const contentWidth = pageRight - pageLeft;
+  const logoWidth = logoBuffer ? 400 : 0;
+  const logoHeight = logoBuffer ? 160 : 0;
+  const headerTopY = 45;
+  const companyName = normalizeText(company.companyName || defaultCompany.companyName);
+  const companyCityLine = [company.city, company.state].map(normalizeText).filter(Boolean).join(',');
+  const companyDetailLines = [
     normalizeText(company.address || ''),
-    [company.city, company.state].filter(Boolean).join(',') + (company.pincode ? `- ${company.pincode}` : ''),
-    company.email ? `E Mail: ${company.email}` : '',
+    `${companyCityLine}${company.pincode ? ` - ${company.pincode}` : ''}, India`,
+    company.email ? `Email: ${company.email}` : '',
     company.phone ? `Tel: ${company.phone}` : '',
     company.website ? `Web: ${company.website}` : '',
-    company.gstin ? `GST: ${company.gstin}` : ''
+    company.gstin ? `GST Details: ${company.gstin}` : ''
   ].filter(Boolean);
-  let rightY = headerTop + 8;
-  rightLines.forEach((lineText, idx) => {
-    const isTitle = idx === 0;
-    const fontName = isTitle ? 'Helvetica-Bold' : 'Helvetica';
-    const fontSize = isTitle ? 10 : 8;
-    doc.font(fontName).fontSize(fontSize).fillColor('#334155');
-    const textHeight = doc.heightOfString(lineText, { width: rightWidth, align: 'left' });
-    doc.text(lineText, rightX, rightY, { width: rightWidth, align: 'left' });
-    rightY += textHeight + (isTitle ? 4 : 2);
+  doc.font('Helvetica-Bold').fontSize(10.2);
+  const companyNameWidth = doc.widthOfString(companyName);
+  const headerX = Math.max(pageLeft, pageRight - companyNameWidth);
+  const headerWidth = pageRight - headerX;
+  const detailLineHeight = 8.1 + 1;
+  const headerBoxHeight = 10.2 + 1 + (companyDetailLines.length * detailLineHeight);
+  const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
+  if (logoBuffer) {
+    try {
+      doc.image(logoBuffer, pageLeft, logoY, { fit: [logoWidth, logoHeight] });
+    } catch (error) {
+      console.error('SALARY PDF logo image failed:', error.message);
+    }
+  }
+  doc.font('Helvetica-Bold').fontSize(10.2).fillColor('#111827').text(companyName, headerX, headerTopY, { width: contentWidth, align: 'left', lineBreak: false });
+  doc.font('Helvetica').fontSize(8.1).fillColor('#475569');
+  companyDetailLines.forEach((lineText) => {
+    doc.text(lineText, headerX, doc.y + 1, { width: headerWidth, align: 'left', lineGap: 0 });
   });
 
-  const headerBottomY = Math.max(headerTop + logoHeight + 18, rightY + 8);
+  const dividerY = Math.max(doc.y + 8, 118);
+  const headerBottomY = dividerY + 26;
   doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a').text('Salary Slip', 42, headerBottomY);
   doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`For ${slipMonthLabel}`, 42, headerBottomY + 18);
   line(headerBottomY + 40);
