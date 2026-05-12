@@ -101,9 +101,14 @@ const parseLocalAsset = (input = '') => {
   const raw = clean(input);
   if (!raw) return '';
   if (raw.startsWith('data:image/')) return raw;
-  const primaryUploadsDir = path.join(process.env.HOME || '/home/u610009593', 'uploads-skuas-crm');
+  const primaryUploadsDir = String(
+    process.env.UPLOADS_DIR ||
+    process.env.UPLOADS_ROOT_DIR ||
+    path.join(process.env.HOME || '/home/u610009593', 'uploads-skuas-crm')
+  ).trim();
   const uploadDirs = [
     primaryUploadsDir,
+    path.join(__dirname, '..', 'storage', 'uploads'),
     path.join(__dirname, 'uploads'),
     path.join(__dirname, '..', 'uploads'),
     path.join(__dirname, '..', 'public', 'uploads')
@@ -128,7 +133,14 @@ const parseLocalAsset = (input = '') => {
   }
 
   if (raw.startsWith('/')) {
+    if (fs.existsSync(raw)) return raw;
     const local = path.join(__dirname, raw);
+    if (fs.existsSync(local)) return local;
+  }
+
+  if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+    const cleanRelative = raw.replace(/^\/?uploads\/?/, '').replace(/^\/+/, '');
+    const local = resolveUploadLocal(cleanRelative);
     if (fs.existsSync(local)) return local;
   }
 
@@ -148,6 +160,9 @@ const parseLocalAsset = (input = '') => {
 
 const resolveCompany = (settings = {}, invoice = {}) => {
   const isNonGst = clean(invoice.invoiceType).toUpperCase() === 'NON GST';
+  const logoSource = isNonGst
+    ? settings.nonGstCompanyLogoUrl
+    : (settings.gstCompanyLogoUrl || settings.dashboardImageUrl);
   const address1 = clean((isNonGst ? settings.nonGstBillingAddress : settings.gstBillingAddress) || settings.companyAddress);
   const rawAddress2 = clean((isNonGst ? settings.nonGstAddress : '') || '');
   const address2 = rawAddress2 && rawAddress2 !== address1 ? rawAddress2 : '';
@@ -173,7 +188,7 @@ const resolveCompany = (settings = {}, invoice = {}) => {
         settings.gstin,
         settings.gstNumber
       ),
-    logo: parseLocalAsset((isNonGst ? settings.nonGstCompanyLogoUrl : settings.gstCompanyLogoUrl) || settings.dashboardImageUrl),
+    logo: parseLocalAsset(logoSource),
     signature: parseLocalAsset(isNonGst ? settings.nonGstDigitalSignatureUrl : settings.gstDigitalSignatureUrl),
     bankName: isNonGst ? '' : clean(settings.gstBankName),
     bankAccount: isNonGst ? '' : clean(settings.gstBankAccountNumber),
