@@ -7465,11 +7465,24 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const pageRight = doc.page.width - doc.page.margins.right;
     const contentWidth = pageRight - pageLeft;
     const logoPath = resolveGstCompanyLogoPath(settings);
-    const logoWidth = logoPath ? 300 : 0;
-    const logoHeight = logoPath ? 120 : 0;
+    const logoWidth = logoPath ? 400 : 0;
+    const logoHeight = logoPath ? 160 : 0;
     const headerTopY = 45;
-    const headerBandHeight = 120;
-    const logoY = headerTopY + ((headerBandHeight - logoHeight) / 2);
+    const companyDetailLines = [
+      companyAddress,
+      `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India`,
+      `Email: ${companyEmail || '-'}`,
+      `Tel: ${companyPhone || '-'}`,
+      `Web: ${companyWebsite || '-'}`,
+      `GST Details: ${companyGst || '-'}`
+    ].filter(Boolean);
+    doc.font(pdfFont.bold).fontSize(10.2);
+    const companyNameWidth = doc.widthOfString(companyName);
+    const headerX = Math.max(pageLeft, pageRight - companyNameWidth);
+    const headerWidth = pageRight - headerX;
+    const detailLineHeight = 8.1 + 1;
+    const headerBoxHeight = 10.2 + 1 + (companyDetailLines.length * detailLineHeight);
+    const logoY = Math.max(headerTopY, headerTopY + ((headerBoxHeight - logoHeight) / 2));
     if (logoPath) {
       try {
         doc.image(logoPath, pageLeft, logoY, { fit: [logoWidth, logoHeight] });
@@ -7477,19 +7490,9 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         console.error('Renewal letter logo failed:', error.message);
       }
     }
-    const companyHeaderInset = 38;
-    const headerX = (logoPath ? pageLeft + logoWidth + 14 : pageLeft) + companyHeaderInset;
-    const headerWidth = pageRight - headerX;
     doc.font(pdfFont.bold).fontSize(10.2).fillColor('#111827').text(companyName, headerX, headerTopY, { width: contentWidth, align: 'left', lineBreak: false });
     doc.font(pdfFont.regular).fontSize(8.1).fillColor('#475569');
-    [
-      companyAddress,
-      `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India`,
-      `Email: ${companyEmail || '-'}`,
-      `Tel: ${companyPhone || '-'}`,
-      `Web: ${companyWebsite || '-'}`,
-      `GST Details: ${companyGst || '-'}`
-    ].filter(Boolean).forEach((line) => {
+    companyDetailLines.forEach((line) => {
       doc.text(line, headerX, doc.y + 1, { width: headerWidth, align: 'left', lineGap: 0 });
     });
 
