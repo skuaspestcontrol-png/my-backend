@@ -7465,8 +7465,8 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const pageRight = doc.page.width - doc.page.margins.right;
     const contentWidth = pageRight - pageLeft;
     const logoPath = resolveGstCompanyLogoPath(settings);
-    const logoWidth = logoPath ? 200 : 0;
-    const logoHeight = logoPath ? 80 : 0;
+    const logoWidth = logoPath ? 300 : 0;
+    const logoHeight = logoPath ? 120 : 0;
     if (logoPath) {
       try {
         doc.image(logoPath, pageLeft, 45, { fit: [logoWidth, logoHeight] });
@@ -7474,7 +7474,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         console.error('Renewal letter logo failed:', error.message);
       }
     }
-    const companyHeaderInset = 14;
+    const companyHeaderInset = 38;
     const headerX = (logoPath ? pageLeft + logoWidth + 14 : pageLeft) + companyHeaderInset;
     const headerWidth = pageRight - headerX;
     doc.font(pdfFont.bold).fontSize(10.2).fillColor('#111827').text(companyName, headerX, 45, { width: headerWidth, align: 'left' });
@@ -7537,7 +7537,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       });
       doc.y += 7;
     };
-    doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827').text(`Dear ${renewal.customerName || 'Customer'},`, pageLeft, doc.y, { width: contentWidth });
+    doc.font(pdfFont.bold).fontSize(9.6).fillColor('#111827').text(`Dear ${renewal.customerName || 'Customer'},`, pageLeft, doc.y, { width: contentWidth });
     doc.y += 8;
     drawParagraph('It is our privilege to have been of service to you over the past year. We value our association and trust you have found our services exemplary and to your complete satisfaction.');
     drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
@@ -7636,7 +7636,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       .text('We look forward to working with you and hope this is the beginning of a long and prosperous relationship.', pageLeft, doc.y, { width: contentWidth, align: 'left', lineGap: 1 });
     doc.y += 5;
     doc.text('For any clarification, please feel free to contact me.', pageLeft, doc.y, { width: contentWidth, align: 'left' });
-    doc.y += 18;
+    doc.y += 36;
     ['Thanking you,', '', 'Yours Truly,', 'For Skuas Pest Control Pvt Ltd', salesPersonName || String(renewal.assignedSalesPersonName || '').trim() || '-', salesDesignation, salesMobile ? `Mob: ${salesMobile}` : ''].forEach((line) => {
       doc.font(line === 'Yours Truly,' || line === 'For Skuas Pest Control Pvt Ltd' ? pdfFont.bold : pdfFont.regular)
         .fontSize(9.6)
