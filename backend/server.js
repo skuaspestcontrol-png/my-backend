@@ -7497,8 +7497,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     });
 
     const dividerY = Math.max(doc.y + 8, 118);
-    doc.moveTo(pageLeft, dividerY).lineTo(pageRight, dividerY).strokeColor('#e5e7eb').lineWidth(0.8).stroke();
-    doc.y = dividerY + 14;
+    doc.y = dividerY + 26;
     doc.font(pdfFont.bold).fontSize(16).fillColor(primaryColor).text('Renewal Letter', pageLeft, doc.y, { width: contentWidth, align: 'center' });
     doc.y += 6;
     const metaY = doc.y;
