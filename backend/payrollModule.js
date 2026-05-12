@@ -29,7 +29,18 @@ const defaultCompany = {
   email: '',
   address: ''
 };
-const uploadsRootDir = '/home/u610009593/uploads-skuas-crm';
+const uploadsRootDir = normalizeText(
+  process.env.UPLOADS_DIR
+  || process.env.UPLOADS_ROOT_DIR
+  || '/home/u610009593/uploads-skuas-crm'
+);
+const uploadSearchDirs = [
+  uploadsRootDir,
+  path.join(__dirname, '..', 'storage', 'uploads'),
+  path.join(process.cwd(), 'uploads'),
+  path.join(__dirname, 'public', 'uploads'),
+  path.join(__dirname, '..', 'public', 'uploads')
+].filter(Boolean);
 
 const allowedSalaryType = new Set(['monthly', 'daily', 'hourly']);
 const allowedPayrollStatus = new Set(['Draft', 'Generated', 'Paid', 'Hold']);
@@ -147,6 +158,7 @@ const resolveCompanyDetails = (settings = {}) => {
 const tryResolveLocalUploadPath = (rawUrl) => {
   const text = normalizeText(rawUrl);
   if (!text) return '';
+  if (/^data:image\//i.test(text)) return '';
   let normalized = text;
   try {
     if (/^https?:\/\//i.test(text)) {
@@ -154,34 +166,31 @@ const tryResolveLocalUploadPath = (rawUrl) => {
       normalized = `${parsed.pathname || ''}${parsed.search || ''}`;
     }
   } catch (_e) {}
-  const cleanPath = normalized.split('?')[0];
+  const cleanPath = normalized.split('?')[0].split('#')[0];
   const decodedPath = (() => {
     try { return decodeURIComponent(cleanPath); } catch (_e) { return cleanPath; }
   })();
   const uploadsToken = '/uploads/';
-  const baseName = path.basename(decodedPath || cleanPath || text);
-  const candidates = [
-    text,
-    decodedPath,
-    cleanPath,
-    baseName,
-    path.join(uploadsRootDir, decodedPath),
-    path.join(process.cwd(), 'uploads', decodedPath),
-    path.join(uploadsRootDir, baseName),
-    path.join(process.cwd(), 'uploads', baseName),
-    path.join(__dirname, 'public', 'uploads', decodedPath),
-    path.join(__dirname, '..', 'public', 'uploads', decodedPath)
-  ];
-  if (decodedPath.includes(uploadsToken)) {
-    const filePart = decodedPath.split(uploadsToken).pop();
-    candidates.push(
-      path.join(uploadsRootDir, filePart),
-      path.join(process.cwd(), 'uploads', filePart),
-      path.join(__dirname, 'public', 'uploads', filePart),
-      path.join(__dirname, '..', 'public', 'uploads', filePart)
-    );
+  const candidates = new Set([text, decodedPath, cleanPath]);
+  const addUploadCandidates = (rawFilePart) => {
+    const filePart = normalizeText(rawFilePart).replace(/^\/+/, '');
+    if (!filePart) return;
+    const decodedFilePart = (() => {
+      try { return decodeURIComponent(filePart); } catch (_e) { return filePart; }
+    })();
+    uploadSearchDirs.forEach((dir) => {
+      candidates.add(path.join(dir, decodedFilePart));
+      candidates.add(path.join(dir, path.basename(decodedFilePart)));
+    });
+  };
+  const normalizedUploadPath = decodedPath.replace(/^\/?uploads\/?/i, '');
+  addUploadCandidates(normalizedUploadPath);
+  addUploadCandidates(path.basename(decodedPath || cleanPath || text));
+  const uploadsIndex = decodedPath.toLowerCase().indexOf(uploadsToken);
+  if (uploadsIndex >= 0) {
+    addUploadCandidates(decodedPath.slice(uploadsIndex + uploadsToken.length));
   }
-  return candidates.find((candidate) => {
+  return Array.from(candidates).find((candidate) => {
     try { return candidate && fs.existsSync(candidate); } catch (_e) { return false; }
   }) || '';
 };
@@ -673,9 +682,7 @@ const calcPayrollItem = ({
 };
 
 const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resolve, reject) => {
-  const resolvedLogoPath = normalizeText(company?.logoUrl || '').startsWith('/uploads/')
-    ? path.join('/home/u610009593/uploads-skuas-crm', normalizeText(company.logoUrl).replace(/^\/uploads\//, ''))
-    : '';
+  const resolvedLogoPath = tryResolveLocalUploadPath(company?.logoUrl || '');
   console.log('SALARY PDF logoUrl:', company?.logoUrl);
   console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath);
   console.log('SALARY PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
