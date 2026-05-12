@@ -222,6 +222,8 @@ const formatDisplayDate = (value) => {
 };
 
 const normalizeText = (value) => String(value || '').trim().toLowerCase();
+const isCustomerRecord = (customer) => Boolean(customer && typeof customer === 'object' && !Array.isArray(customer));
+const sanitizeCustomerRows = (rows) => (Array.isArray(rows) ? rows.filter(isCustomerRecord) : []);
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
@@ -303,10 +305,12 @@ export default function CustomerDashboard() {
   const loadCustomers = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/customers`);
-      setCustomers(Array.isArray(res.data) ? res.data : []);
+      setCustomers(sanitizeCustomerRows(res.data));
       setSelectedIds([]);
     } catch (error) {
       console.error('Failed to load customers', error);
+      setCustomers([]);
+      setSelectedIds([]);
     }
   };
 
@@ -437,7 +441,7 @@ export default function CustomerDashboard() {
   }, [form.companyName, form.contactPersonName]);
 
   const selectedHistoryCustomer = useMemo(
-    () => customers.find((customer) => customer._id === historyCustomerId) || null,
+    () => customers.find((customer) => customer?._id === historyCustomerId) || null,
     [customers, historyCustomerId]
   );
 
@@ -545,9 +549,9 @@ export default function CustomerDashboard() {
   const sortedCustomers = useMemo(() => {
     const multiplier = nameSortDirection === 'asc' ? 1 : -1;
     const sourceRows = showPossibleDuplicatesOnly
-      ? customers.filter((customer) => possibleDuplicateIds.includes(customer._id))
+      ? customers.filter((customer) => customer?._id && possibleDuplicateIds.includes(customer._id))
       : customers;
-    return [...sourceRows].sort((a, b) => {
+    return sanitizeCustomerRows(sourceRows).sort((a, b) => {
       const aName = String(a.displayName || a.name || '').trim();
       const bName = String(b.displayName || b.name || '').trim();
       return aName.localeCompare(bName, 'en', { sensitivity: 'base', numeric: true }) * multiplier;
@@ -564,17 +568,19 @@ export default function CustomerDashboard() {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
-  const isAllSelected = paginatedCustomers.length > 0 && paginatedCustomers.every((customer) => selectedIds.includes(customer._id));
+  const isAllSelected = paginatedCustomers.length > 0 && paginatedCustomers.every((customer) => customer?._id && selectedIds.includes(customer._id));
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
-      const currentPageIds = new Set(paginatedCustomers.map((customer) => customer._id));
+      const currentPageIds = new Set(paginatedCustomers.map((customer) => customer?._id).filter(Boolean));
       setSelectedIds((prev) => prev.filter((id) => !currentPageIds.has(id)));
       return;
     }
     setSelectedIds((prev) => {
       const ids = new Set(prev);
-      paginatedCustomers.forEach((customer) => ids.add(customer._id));
+      paginatedCustomers.forEach((customer) => {
+        if (customer?._id) ids.add(customer._id);
+      });
       return Array.from(ids);
     });
   };
@@ -693,6 +699,7 @@ export default function CustomerDashboard() {
   }, []);
 
   const mapCustomerToForm = (customer) => {
+    if (!isCustomerRecord(customer)) return emptyForm;
     const mobile = customer.mobileNumber || customer.workPhone || '';
     const whatsapp = customer.whatsappNumber || '';
     return {
@@ -749,7 +756,7 @@ export default function CustomerDashboard() {
 
   const openEditSelected = () => {
     if (selectedIds.length !== 1) return;
-    const selected = customers.find((customer) => customer._id === selectedIds[0]);
+    const selected = customers.find((customer) => customer?._id === selectedIds[0]);
     if (!selected) return;
     setEditingId(selected._id);
     setForm(mapCustomerToForm(selected));
@@ -942,7 +949,7 @@ export default function CustomerDashboard() {
 
   const exportData = () => {
     const sourceRows = selectedIds.length > 0
-      ? customers.filter((customer) => selectedIds.includes(customer._id))
+      ? customers.filter((customer) => customer?._id && selectedIds.includes(customer._id))
       : customers;
     if (sourceRows.length === 0) {
       window.alert('No customer data available to export.');
@@ -1025,6 +1032,7 @@ export default function CustomerDashboard() {
   };
 
   const handleCellValue = (customer, key) => {
+    if (!isCustomerRecord(customer)) return '';
     if (key === 'name') return customer.displayName || customer.name || '';
     if (key === 'hasGst') return customer.hasGst || customer.gstRegistered ? 'Yes' : 'No';
     if (key === 'position') return customer.positionCustom || customer.position || '';

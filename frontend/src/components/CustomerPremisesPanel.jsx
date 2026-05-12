@@ -66,24 +66,29 @@ const normalizePremise = (premise = {}) => ({
   isShipping: Boolean(premise.isShipping || premise.is_shipping)
 });
 
-const buildLegacyPremise = (customer = {}, form = {}) => normalizePremise({
+const buildLegacyPremise = (customer = {}, form = {}) => {
+  const safeCustomer = customer && typeof customer === 'object' ? customer : {};
+  const safeForm = form && typeof form === 'object' ? form : {};
+
+  return normalizePremise({
   premiseId: 'legacy-main',
   premiseLabel: 'Main / Billing Address',
   premiseType: 'Billing',
-  contactPerson: form.contactPersonName || customer.contactPersonName || customer.name || '',
-  phone: form.mobileNumber || customer.mobileNumber || customer.workPhone || '',
-  email: form.emailId || customer.emailId || customer.email || '',
-  address: form.billingAddress || customer.billingAddress || [form.billingStreet1, form.billingStreet2].filter(Boolean).join(', '),
-  areaName: form.billingArea || customer.billingArea || customer.area || '',
-  city: customer.city || '',
-  state: form.billingState || customer.billingState || customer.state || 'Delhi',
-  pincode: form.billingPincode || customer.billingPincode || customer.pincode || '',
+  contactPerson: safeForm.contactPersonName || safeCustomer.contactPersonName || safeCustomer.name || '',
+  phone: safeForm.mobileNumber || safeCustomer.mobileNumber || safeCustomer.workPhone || '',
+  email: safeForm.emailId || safeCustomer.emailId || safeCustomer.email || '',
+  address: safeForm.billingAddress || safeCustomer.billingAddress || [safeForm.billingStreet1, safeForm.billingStreet2].filter(Boolean).join(', '),
+  areaName: safeForm.billingArea || safeCustomer.billingArea || safeCustomer.area || '',
+  city: safeCustomer.city || '',
+  state: safeForm.billingState || safeCustomer.billingState || safeCustomer.state || 'Delhi',
+  pincode: safeForm.billingPincode || safeCustomer.billingPincode || safeCustomer.pincode || '',
   country: 'India',
-  gstin: form.gstNumber || customer.gstNumber || '',
-  placeOfSupply: form.billingState || customer.placeOfSupply || customer.state || '',
+  gstin: safeForm.gstNumber || safeCustomer.gstNumber || '',
+  placeOfSupply: safeForm.billingState || safeCustomer.placeOfSupply || safeCustomer.state || '',
   isDefault: true,
   isBilling: true
-});
+  });
+};
 
 const premiseAddressText = (premise = {}) => [
   premise.address,
