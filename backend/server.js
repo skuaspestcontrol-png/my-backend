@@ -7474,7 +7474,8 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         console.error('Renewal letter logo failed:', error.message);
       }
     }
-    const headerX = logoPath ? pageLeft + logoWidth + 14 : pageLeft;
+    const companyHeaderInset = 14;
+    const headerX = (logoPath ? pageLeft + logoWidth + 14 : pageLeft) + companyHeaderInset;
     const headerWidth = pageRight - headerX;
     doc.font(pdfFont.bold).fontSize(10.2).fillColor('#111827').text(companyName, headerX, 45, { width: headerWidth, align: 'left' });
     doc.font(pdfFont.regular).fontSize(8.1).fillColor('#475569');
