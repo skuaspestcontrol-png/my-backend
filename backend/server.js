@@ -7,7 +7,7 @@ const multer = require('multer');
 const nodemailer = require('nodemailer');
 const { execFile } = require('child_process');
 const PDFDocument = require('pdfkit');
-const { generateInvoicePdfBuffer, formatINR, formatDate } = require('./invoicePdf');
+const { generateInvoicePdfBuffer, formatINR, formatDate, amountToWords } = require('./invoicePdf');
 const { pool, query: dbQuery, getConnection } = require('./lib/db');
 const { runAutoMigrations, getLastMigrationStatus } = require('./lib/autoMigrate');
 const { readCachedSettings, clearSettingsCache } = require('./lib/settings-cache');
@@ -4013,6 +4013,26 @@ const addDays = (date, days) => {
   return next;
 };
 
+const inclusiveDaysBetween = (start, end) => {
+  if (!(start instanceof Date) || !(end instanceof Date) || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0;
+  const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+  const endUtc = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+  return Math.floor((endUtc - startUtc) / 86400000) + 1;
+};
+
+const contractDurationLabel = (start, end) => {
+  const days = inclusiveDaysBetween(start, end);
+  if (!days) return '0 days';
+  let months = 0;
+  while (months < 600) {
+    const candidateEnd = addDays(addMonthsClamped(start, months + 1), -1);
+    if (candidateEnd > end) break;
+    months += 1;
+  }
+  if (months >= 1) return `${months} ${months === 1 ? 'month' : 'months'}`;
+  return `${days} ${days === 1 ? 'day' : 'days'}`;
+};
+
 const buildContractEndDate = (contractStartDate, contractPeriod) => {
   const cfg = contractPeriodConfig[contractPeriod];
   const start = parseDateOnly(contractStartDate);
@@ -6899,11 +6919,11 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       return `${day}/${month}/${date.getFullYear()}`;
     };
     const previousEndDate = parseDateOnly(renewal.previousContractEnd || renewal.renewalDueDate);
-    const renewalStartDate = previousEndDate ? addDays(previousEndDate, 1) : null;
-    const renewalEndDate = renewalStartDate ? addDays(addMonthsClamped(renewalStartDate, 36), -1) : null;
+    const contractStartDate = parseDateOnly(renewal.previousContractStart) || (previousEndDate ? addDays(previousEndDate, 1) : null);
     const contractEndText = formatRenewalLetterDate(previousEndDate || renewal.renewalDueDate);
-    const renewalStartText = formatRenewalLetterDate(renewalStartDate);
-    const renewalEndText = formatRenewalLetterDate(renewalEndDate);
+    const contractStartText = formatRenewalLetterDate(contractStartDate);
+    const contractRangeEndText = formatRenewalLetterDate(previousEndDate || renewal.renewalDueDate);
+    const durationText = contractDurationLabel(contractStartDate, previousEndDate);
     const serviceName = String(renewal.serviceType || 'Pest Management Services').trim();
     const drawBodyPart = (text, bold = false, options = {}) => {
       doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(11).fillColor('#111827').text(text, {
@@ -6919,29 +6939,66 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     drawBodyPart(' concludes on ', false, { continued: true });
     drawBodyPart(contractEndText, true, { continued: true });
     drawBodyPart('. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ', false, { continued: true });
-    drawBodyPart('36 months contract', true, { continued: true });
+    drawBodyPart(durationText, true, { continued: true });
+    drawBodyPart(' contract', false, { continued: true });
     drawBodyPart(' (', false, { continued: true });
-    drawBodyPart(`${renewalStartText} to ${renewalEndText}`, true, { continued: true });
+    drawBodyPart(`${contractStartText} to ${contractRangeEndText}`, true, { continued: true });
     drawBodyPart(').');
     doc.moveDown();
-    const lines = [
-      ['Customer', renewal.customerName],
-      ['Mobile', renewal.mobile],
-      ['Address / Area', [renewal.address, renewal.areaName].filter(Boolean).join(', ') || '-'],
-      ['Current Contract End', formatDate(renewal.previousContractEnd)],
-      ['Proposed Renewal Amount', formatINR(renewal.proposedAmount)],
-      ['Service Type', renewal.serviceType || '-'],
-      ['Assigned Sales Person', renewal.assignedSalesPersonName || '-']
-    ];
-    lines.forEach(([label, value]) => {
-      doc.fillColor('#64748b').fontSize(9).text(label, { continued: true, width: 150 });
-      doc.fillColor('#111827').fontSize(10).text(`  ${value}`);
+    const amountWithGst = Math.max(0, toNumber(renewal.proposedAmount, 0));
+    const amountWithoutGst = amountWithGst > 0 ? amountWithGst / 1.18 : 0;
+    const formatTableAmount = (value) => `${Math.round(toNumber(value, 0)).toLocaleString('en-IN')}/-`;
+    const formatTableAmountWords = (value) => {
+      const words = amountToWords(Math.round(toNumber(value, 0)));
+      const match = words.match(/^(.*) Rupees Only$/i);
+      return match ? `Rupees ${match[1]} Only/-` : `${words}/-`;
+    };
+    const tableX = 46;
+    const tableY = doc.y + 4;
+    const colWidths = [30, 190, 136, pageRight - tableX - 30 - 190 - 136];
+    const rowHeights = [24, 26, 26];
+    const drawTableCell = (x, y, w, h, text, options = {}) => {
+      doc.rect(x, y, w, h).lineWidth(0.8).strokeColor('#111827').stroke();
+      doc
+        .font(options.bold ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(options.fontSize || 10)
+        .fillColor(options.color || '#111827')
+        .text(text, x + 4, y + 7, {
+          width: w - 8,
+          align: options.align || 'center',
+          lineGap: 0
+        });
+    };
+    const headerY = tableY;
+    const itemY = tableY + rowHeights[0];
+    const totalY = itemY + rowHeights[1];
+    let cursorX = tableX;
+    ['Sn', 'Service Name', 'Amount without GST', 'Amount with GST'].forEach((heading, index) => {
+      drawTableCell(cursorX, headerY, colWidths[index], rowHeights[0], heading, {
+        bold: true,
+        fontSize: 10,
+        color: '#ffffff'
+      });
+      doc.rect(cursorX, headerY, colWidths[index], rowHeights[0]).fillOpacity(1).fillAndStroke('#808080', '#111827');
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#ffffff').text(heading, cursorX + 4, headerY + 7, { width: colWidths[index] - 8, align: 'center' });
+      cursorX += colWidths[index];
     });
+    cursorX = tableX;
+    [1, serviceName, formatTableAmount(amountWithoutGst), formatTableAmount(amountWithGst)].forEach((value, index) => {
+      drawTableCell(cursorX, itemY, colWidths[index], rowHeights[1], String(value), {
+        bold: index === 1,
+        fontSize: 10,
+        align: index === 1 ? 'left' : 'center'
+      });
+      cursorX += colWidths[index];
+    });
+    const leftTotalWidth = colWidths[0] + colWidths[1];
+    const rightTotalWidth = colWidths[2] + colWidths[3];
+    drawTableCell(tableX, totalY, leftTotalWidth, rowHeights[2], `Total Price with GST (In Words) = ${formatTableAmount(amountWithGst)}`, { bold: true, fontSize: 10, align: 'left' });
+    drawTableCell(tableX + leftTotalWidth, totalY, rightTotalWidth, rowHeights[2], formatTableAmountWords(amountWithGst), { bold: true, fontSize: 10, align: 'center' });
+    doc.y = totalY + rowHeights[2] + 10;
     doc.moveDown();
-    const renewalTerms = String(
-      settings?.renewalLetterTermsAndConditions
-      || 'Renewal will be confirmed after customer approval and payment terms accepted by SKUAS Pest Control. Service schedule will follow the renewed contract period.'
-    ).trim();
+    const renewalTerms = String(settings?.renewalLetterTermsAndConditions || '').trim();
     if (renewalTerms) {
       doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('Terms & Conditions');
       doc.moveDown(0.3);

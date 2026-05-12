@@ -663,5 +663,6 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 module.exports = {
   generateInvoicePdfBuffer,
   formatINR,
-  formatDate
+  formatDate,
+  amountToWords
 };
