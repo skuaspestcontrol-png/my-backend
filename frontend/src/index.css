@@ -993,6 +993,15 @@ textarea:focus {
   gap: 5px !important;
 }
 
+.crm-compact-table .crm-icon-action-btn {
+  width: 30px !important;
+  min-width: 30px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  flex: 0 0 30px !important;
+}
+
 .crm-compact-table .crm-table-primary {
   font-weight: 700 !important;
   color: #1f2937 !important;

@@ -56,9 +56,15 @@ const shell = {
     background: '#fff1f2',
     color: '#b91c1c',
     borderRadius: '8px',
-    padding: '6px 10px',
+    minHeight: '32px',
+    height: '32px',
+    minWidth: '74px',
+    padding: '0 12px',
     fontSize: '12px',
     fontWeight: 700,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     cursor: 'pointer'
   }
 };

@@ -53,6 +53,36 @@ const shell = {
     gap: 6,
     cursor: 'pointer'
   },
+  rowIconBtn: {
+    width: 30,
+    height: 30,
+    minWidth: 30,
+    minHeight: 30,
+    padding: 0,
+    borderRadius: 8,
+    border: '1px solid var(--color-border)',
+    background: '#fff',
+    color: '#334155',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer'
+  },
+  rowIconDangerBtn: {
+    width: 30,
+    height: 30,
+    minWidth: 30,
+    minHeight: 30,
+    padding: 0,
+    borderRadius: 8,
+    border: '1px solid #fecaca',
+    background: '#fff1f2',
+    color: '#b91c1c',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer'
+  },
   summaryWrap: {
     background: 'rgba(255,255,255,0.82)',
     borderRadius: '16px',
@@ -267,16 +297,13 @@ function QuotationDashboardInner() {
   const totalValueStyle = isMobile
     ? { ...summaryValueStyle, fontSize: 19, lineHeight: 1.15, wordBreak: 'break-word' }
     : { ...shell.metricValue, fontSize: 22, lineHeight: 1.15, wordBreak: 'break-word' };
-  const rowGhostBtnStyle = isMobile
-    ? { ...shell.ghostBtn, minHeight: 30, padding: '0 8px', fontSize: 11, borderRadius: 9, gap: 5, whiteSpace: 'nowrap' }
-    : shell.ghostBtn;
-  const rowDangerBtnStyle = isMobile
-    ? { ...shell.dangerBtn, minHeight: 30, padding: '0 8px', fontSize: 11, borderRadius: 9, gap: 5, whiteSpace: 'nowrap' }
-    : shell.dangerBtn;
   const rowActionWrapStyle = isMobile
-    ? { display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center' }
-    : { display: 'flex', gap: 8, flexWrap: 'nowrap', alignItems: 'center' };
+    ? { display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-start' }
+    : { display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-end' };
   const tableStyle = { ...shell.table, minWidth: isMobile ? 0 : '100%', tableLayout: 'fixed' };
+  const actionColumnStyle = isMobile
+    ? {}
+    : { width: 122, minWidth: 122, maxWidth: 122, textAlign: 'right', overflow: 'visible' };
 
   return (
     <section style={shell.page}>
@@ -327,6 +354,16 @@ function QuotationDashboardInner() {
         </div>
         <div style={{ ...shell.tableWrap, overflowX: 'hidden' }} className="crm-table-shell">
           <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
+            <colgroup>
+              <col style={{ width: isMobile ? undefined : '7%' }} />
+              <col style={{ width: isMobile ? undefined : '16%' }} />
+              <col style={{ width: isMobile ? undefined : '11%' }} />
+              <col style={{ width: isMobile ? undefined : '17%' }} />
+              <col style={{ width: isMobile ? undefined : '15%' }} />
+              <col style={{ width: isMobile ? undefined : '10%' }} />
+              <col style={{ width: isMobile ? undefined : '12%' }} />
+              <col style={{ width: isMobile ? undefined : '122px' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th style={shell.th}>Sr No</th>
@@ -336,7 +373,7 @@ function QuotationDashboardInner() {
                 <th style={shell.th}>Sales Person</th>
                 <th style={shell.th}>Status</th>
                 <th style={shell.th}>Grand Total</th>
-                <th style={shell.th}>Action</th>
+                <th style={{ ...shell.th, ...actionColumnStyle }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -354,28 +391,37 @@ function QuotationDashboardInner() {
                     <td style={shell.td} data-label="Sales Person">{row.sales_person || '-'}</td>
                     <td style={shell.td} data-label="Status"><span style={shell.badge}>{row.status || 'Draft'}</span></td>
                     <td style={shell.td} data-label="Grand Total">{formatINR(row.grand_total || 0)}</td>
-                    <td style={shell.td} data-label="Action">
+                    <td style={{ ...shell.td, ...actionColumnStyle }} data-label="Action">
                       <div style={rowActionWrapStyle}>
                         <button
                           type="button"
-                          style={rowGhostBtnStyle}
+                          className="crm-icon-action-btn"
+                          style={shell.rowIconBtn}
                           onClick={() => navigate(`/quotations/new?id=${row.id}`)}
+                          aria-label="Edit quotation"
+                          title="Edit quotation"
                         >
-                          <Pencil size={isMobile ? 12 : 14} /> Edit
+                          <Pencil size={15} />
                         </button>
                         <button
                           type="button"
-                          style={rowDangerBtnStyle}
+                          className="crm-icon-action-btn"
+                          style={shell.rowIconDangerBtn}
                           onClick={() => deleteQuotation(row.id)}
+                          aria-label="Delete quotation"
+                          title="Delete quotation"
                         >
-                          <Trash2 size={isMobile ? 12 : 14} /> {isMobile ? 'Del' : 'Delete'}
+                          <Trash2 size={15} />
                         </button>
                         <button
                           type="button"
-                          style={rowGhostBtnStyle}
+                          className="crm-icon-action-btn"
+                          style={shell.rowIconBtn}
                           onClick={() => window.open(`${API_BASE_URL}/api/quotations/${row.id}/pdf`, '_blank')}
+                          aria-label="View PDF"
+                          title="View PDF"
                         >
-                          <FileText size={isMobile ? 12 : 14} /> {isMobile ? 'PDF' : 'View PDF'}
+                          <FileText size={15} />
                         </button>
                       </div>
                     </td>
