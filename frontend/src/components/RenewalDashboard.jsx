@@ -41,7 +41,9 @@ const shell = {
   label: { fontSize: 11, color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
   input: { width: '100%', height: 34, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: '#111827', fontSize: 12, fontWeight: 650, padding: '0 9px', boxSizing: 'border-box' },
   tabs: { display: 'flex', gap: 6, padding: 8, overflowX: 'auto', borderBottom: '1px solid var(--color-border)' },
-  tab: { border: '1px solid transparent', borderRadius: 8, background: 'transparent', color: '#475569', minHeight: 30, padding: '0 10px', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer' },
+  tabsMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, padding: 10, overflowX: 'visible', borderBottom: '1px solid var(--color-border)' },
+  tab: { flex: '0 0 auto', border: '1px solid transparent', borderRadius: 8, background: 'transparent', color: '#475569', minHeight: 30, padding: '0 10px', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer' },
+  tabMobile: { width: '100%', minHeight: 44, padding: '8px 10px', whiteSpace: 'normal', lineHeight: 1.2, textAlign: 'center', justifyContent: 'center' },
   activeTab: { background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderColor: 'var(--color-primary-soft)' },
   tableWrap: { width: '100%', overflowX: 'auto', overflowY: 'hidden' },
   table: { width: '100%', minWidth: 1080, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
@@ -454,8 +456,21 @@ export default function RenewalDashboard() {
       </section>
 
       <section style={shell.panel}>
-        <div style={shell.tabs}>
-          {tabs.map((tab) => <button key={tab} type="button" style={{ ...shell.tab, ...(activeTab === tab ? shell.activeTab : {}) }} onClick={() => setActiveTab(tab)}>{tab}</button>)}
+        <div style={isMobile ? shell.tabsMobile : shell.tabs}>
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              style={{
+                ...shell.tab,
+                ...(isMobile ? shell.tabMobile : {}),
+                ...(activeTab === tab ? shell.activeTab : {})
+              }}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
         {loading ? <div style={shell.panelPad}>Loading renewals...</div> : null}
         {!loading && (activeTab === 'Renewal Dashboard' || activeTab === 'Renewal List') ? renderRows() : null}

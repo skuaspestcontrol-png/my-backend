@@ -1260,6 +1260,12 @@ const parseJobLogoPath = (dashboardImageUrl = '') => {
   return '';
 };
 
+const resolveGstCompanyLogoPath = (settings = {}) => {
+  const gstLogo = parseJobLogoPath(settings.gstCompanyLogoUrl || '');
+  if (gstLogo) return gstLogo;
+  return parseJobLogoPath(settings.dashboardImageUrl || '');
+};
+
 const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve, reject) => {
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
   const chunks = [];
@@ -1276,7 +1282,7 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   const website = String(settings.companyWebsite || '').trim();
   const gst = String(settings.companyGstNumber || '').trim();
 
-  const logoPath = parseJobLogoPath(settings.gstCompanyLogoUrl || settings.dashboardImageUrl);
+  const logoPath = resolveGstCompanyLogoPath(settings);
   if (logoPath) {
     try {
       doc.image(logoPath, 42, 36, { fit: [84, 84], align: 'left' });
@@ -6842,23 +6848,23 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const companyPhone = String(settings?.gstPhone || settings?.companyMobile || '9316666656').trim();
     const companyWebsite = String(settings?.companyWebsite || 'www.skuaspestcontrol.com').trim();
     const companyGst = String(settings?.companyGstNumber || settings?.gstRegistrationNumber || '07ABMCS7628G1ZW').trim();
-    const logoPath = parseJobLogoPath(settings?.gstCompanyLogoUrl || settings?.dashboardImageUrl || '');
+    const logoPath = resolveGstCompanyLogoPath(settings);
     const pageRight = doc.page.width - 46;
     const headerTop = 54;
-    const logoX = 64;
-    const logoY = 66;
-    const logoBoxW = 240;
-    const logoBoxH = 112;
+    const logoBoxW = 270;
+    const logoBoxH = 126;
+    const logoX = pageRight - logoBoxW;
+    const logoY = 58;
     if (logoPath) {
       try {
-        doc.image(logoPath, logoX, logoY, { fit: [logoBoxW, logoBoxH], align: 'left', valign: 'center' });
+        doc.image(logoPath, logoX, logoY, { fit: [logoBoxW, logoBoxH], align: 'right', valign: 'center' });
       } catch (_error) {
         // Keep PDF generation working even if a configured logo file is unavailable.
       }
     }
-    const detailX = 350;
-    const detailY = 73;
-    const detailWidth = pageRight - detailX;
+    const detailX = 46;
+    const detailY = 70;
+    const detailWidth = logoX - detailX - 20;
     doc.font('Helvetica-Bold').fontSize(10.8).fillColor('#334155').text(companyName, detailX, detailY, { width: detailWidth, align: 'left' });
     doc.font('Helvetica').fontSize(9.2).fillColor('#334155');
     const addressLines = [
