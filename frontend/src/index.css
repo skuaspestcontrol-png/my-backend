@@ -924,8 +924,10 @@ textarea:focus {
 .crm-table-shell {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden !important;
-  overflow-y: hidden;
+  overflow-x: auto !important;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .crm-compact-table {
@@ -1030,6 +1032,7 @@ textarea:focus {
 @media (max-width: 768px) {
   .crm-table-shell {
     overflow-x: hidden !important;
+    overflow-y: visible;
     border: none !important;
     background: transparent !important;
   }

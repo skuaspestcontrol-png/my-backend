@@ -115,7 +115,8 @@ const leadColumns = [
   { key: 'referenceCustomerDate', label: 'Reference Customer Date' },
   { key: 'remarks', label: 'Remarks' }
 ];
-const defaultVisibleLeadColumns = ['date', 'customerName', 'mobile', 'pestIssue', 'leadSource', 'status', 'quotationValue', 'assignedTo', 'followupDate', 'city', 'state'];
+const legacyDefaultVisibleLeadColumns = ['date', 'customerName', 'mobile', 'pestIssue', 'leadSource', 'status', 'quotationValue', 'assignedTo', 'followupDate', 'city', 'state'];
+const defaultVisibleLeadColumns = ['date', 'customerName', 'mobile', 'pestIssue', 'leadSource', 'status', 'followupDate', 'assignedTo'];
 const defaultOverviewFilters = {
   year: ALL_FILTER_VALUE,
   month: ALL_FILTER_VALUE,
@@ -400,23 +401,23 @@ const mobileLeadColumnWidths = {
   remarks: 180
 };
 const desktopLeadColumnWidths = {
-  date: 88,
-  customerName: 142,
-  mobile: 104,
+  date: 82,
+  customerName: 136,
+  mobile: 96,
   whatsappNumber: 116,
   emailId: 150,
   address: 170,
   areaName: 112,
-  city: 108,
-  state: 88,
+  city: 96,
+  state: 76,
   pincode: 78,
-  pestIssue: 132,
-  leadSource: 104,
+  pestIssue: 126,
+  leadSource: 92,
   propertyType: 110,
-  status: 112,
-  quotationValue: 108,
-  followupDate: 108,
-  assignedTo: 128,
+  status: 100,
+  quotationValue: 94,
+  followupDate: 98,
+  assignedTo: 118,
   referenceCustomerName: 136,
   referenceCustomerDate: 128,
   remarks: 150
@@ -518,6 +519,9 @@ export default function LeadCapture() {
       const parsed = JSON.parse(saved);
       if (!Array.isArray(parsed)) return defaultVisibleLeadColumns;
       const valid = parsed.filter((key) => leadColumns.some((column) => column.key === key));
+      const isLegacyDefault = valid.length === legacyDefaultVisibleLeadColumns.length
+        && legacyDefaultVisibleLeadColumns.every((key, index) => valid[index] === key);
+      if (isLegacyDefault) return defaultVisibleLeadColumns;
       return valid.length > 0 ? valid : defaultVisibleLeadColumns;
     } catch {
       return defaultVisibleLeadColumns;
@@ -1978,7 +1982,7 @@ export default function LeadCapture() {
     : '100%';
   const tableWrapStyle = isMobile
     ? { ...s.tableWrap, overflowX: 'hidden', overflowY: 'visible', WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain' }
-    : { ...s.tableWrap, overflowX: 'hidden' };
+    : { ...s.tableWrap, overflowX: 'auto', overflowY: 'visible', maxWidth: '100%' };
   const tableStyleTiny = isMobile
     ? { ...tableStyle, width: leadTableMinWidth, minWidth: leadTableMinWidth, tableLayout: 'fixed' }
     : { ...tableStyle, minWidth: leadTableMinWidth };
