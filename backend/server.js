@@ -750,6 +750,7 @@ const defaultSettings = {
   termsAndConditionsDefault: '',
   gstTermsAndConditions: '',
   nonGstTermsAndConditions: '',
+  renewalLetterTermsAndConditions: '',
   customerNotesDefault: '',
   settingsAccessPin: '',
   smtpSenderName: '',
@@ -971,6 +972,7 @@ const sanitizeSettings = (raw = {}) => {
     adminPassword: normalizeSettingsText(source.adminPassword ?? defaultSettings.adminPassword) || defaultSettings.adminPassword,
     gstTermsAndConditions,
     nonGstTermsAndConditions: normalizeSettingsText(source.nonGstTermsAndConditions ?? defaultSettings.nonGstTermsAndConditions),
+    renewalLetterTermsAndConditions: normalizeSettingsText(source.renewalLetterTermsAndConditions ?? defaultSettings.renewalLetterTermsAndConditions),
     customerNotesDefault: normalizeSettingsText(source.customerNotesDefault ?? defaultSettings.customerNotesDefault),
     termsAndConditionsDefault: normalizeSettingsText(source.termsAndConditionsDefault ?? gstTermsAndConditions),
     settingsAccessPin: normalizeSettingsText(source.settingsAccessPin ?? defaultSettings.settingsAccessPin),
@@ -6908,7 +6910,15 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       doc.fillColor('#111827').fontSize(10).text(`  ${value}`);
     });
     doc.moveDown();
-    doc.fontSize(10).fillColor('#111827').text('Terms: Renewal will be confirmed after customer approval and payment terms accepted by SKUAS Pest Control. Service schedule will follow the renewed contract period.');
+    const renewalTerms = String(
+      settings?.renewalLetterTermsAndConditions
+      || 'Renewal will be confirmed after customer approval and payment terms accepted by SKUAS Pest Control. Service schedule will follow the renewed contract period.'
+    ).trim();
+    if (renewalTerms) {
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('Terms & Conditions');
+      doc.moveDown(0.3);
+      doc.font('Helvetica').fontSize(10).fillColor('#111827').text(renewalTerms, { align: 'left' });
+    }
     doc.moveDown(2);
     doc.text('Authorized Signature');
     doc.moveDown(0.5);

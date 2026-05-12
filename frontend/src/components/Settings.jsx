@@ -223,6 +223,7 @@ const defaultForm = {
   termsAndConditionsDefault: '',
   gstTermsAndConditions: '',
   nonGstTermsAndConditions: '',
+  renewalLetterTermsAndConditions: '',
   customerNotesDefault: '',
   settingsAccessPin: '',
   invoiceNumberMode: 'auto',
@@ -693,7 +694,7 @@ const getSectionCompletion = (form, securityForm) => {
     emailApiSettings: [form.smtpSenderName, form.smtpFromEmail, form.smtpUser, form.smtpHost, form.smtpPort].every(isFilled),
     emailTemplates: true,
     emailLogs: true,
-    termsConditions: [form.gstTermsAndConditions, form.nonGstTermsAndConditions].every(isFilled),
+    termsConditions: [form.gstTermsAndConditions, form.nonGstTermsAndConditions, form.renewalLetterTermsAndConditions].every(isFilled),
     invoiceSettings: Boolean(form.invoiceTemplate && Array.isArray(form.invoiceVisibleColumns) && form.invoiceVisibleColumns.length > 0),
     security: securityReady
   };
@@ -840,6 +841,7 @@ export default function Settings({ modalMode = false }) {
           adminPassword: data.adminPassword || 'admin123',
           gstTermsAndConditions: data.gstTermsAndConditions || data.termsAndConditionsDefault || '',
           nonGstTermsAndConditions: data.nonGstTermsAndConditions || '',
+          renewalLetterTermsAndConditions: data.renewalLetterTermsAndConditions || '',
           customerNotesDefault: data.customerNotesDefault || '',
           termsAndConditionsDefault: data.termsAndConditionsDefault || data.gstTermsAndConditions || '',
           settingsAccessPin: data.settingsAccessPin || '',
@@ -1144,6 +1146,7 @@ export default function Settings({ modalMode = false }) {
       adminPassword: nextAdminPassword,
       gstTermsAndConditions: String(form.gstTermsAndConditions || '').trim(),
       nonGstTermsAndConditions: String(form.nonGstTermsAndConditions || '').trim(),
+      renewalLetterTermsAndConditions: String(form.renewalLetterTermsAndConditions || '').trim(),
       customerNotesDefault: String(form.customerNotesDefault || '').trim(),
       termsAndConditionsDefault: String(form.gstTermsAndConditions || form.termsAndConditionsDefault || '').trim(),
       settingsAccessPin: String(form.settingsAccessPin || '').trim(),
@@ -2101,6 +2104,14 @@ export default function Settings({ modalMode = false }) {
           style={{ ...shell.textArea, minHeight: '165px' }}
           value={form.nonGstTermsAndConditions}
           onChange={(event) => updateField('nonGstTermsAndConditions', event.target.value)}
+        />
+      </div>
+      <div style={shell.field}>
+        <p style={shell.fieldLabel}>Renewal Letter Terms & Conditions</p>
+        <textarea
+          style={{ ...shell.textArea, minHeight: '165px' }}
+          value={form.renewalLetterTermsAndConditions}
+          onChange={(event) => updateField('renewalLetterTermsAndConditions', event.target.value)}
         />
       </div>
     </>
