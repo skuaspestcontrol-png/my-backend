@@ -276,6 +276,7 @@ function QuotationDashboardInner() {
   const rowActionWrapStyle = isMobile
     ? { display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center' }
     : { display: 'flex', gap: 8, flexWrap: 'nowrap', alignItems: 'center' };
+  const tableStyle = { ...shell.table, minWidth: isMobile ? 0 : '100%', tableLayout: 'fixed' };
 
   return (
     <section style={shell.page}>
@@ -324,8 +325,8 @@ function QuotationDashboardInner() {
           <p style={shell.panelTitle}>Recent Quotations</p>
                   <span style={shell.badge}>{rows.length} records</span>
         </div>
-        <div style={shell.tableWrap}>
-          <table style={shell.table}>
+        <div style={{ ...shell.tableWrap, overflowX: 'hidden' }} className="crm-table-shell">
+          <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
             <thead>
               <tr>
                 <th style={shell.th}>Sr No</th>
@@ -346,14 +347,14 @@ function QuotationDashboardInner() {
               ) : (
                 pagedRows.map((row, idx) => (
                   <tr key={row.id}>
-                    <td style={shell.td}>{(safePage - 1) * perPage + idx + 1}</td>
-                    <td style={shell.td}>{row.quotation_number || '-'}</td>
-                    <td style={shell.td}>{formatDate(row.quotation_date)}</td>
-                    <td style={shell.td}>{row.customer_name || '-'}</td>
-                    <td style={shell.td}>{row.sales_person || '-'}</td>
-                    <td style={shell.td}><span style={shell.badge}>{row.status || 'Draft'}</span></td>
-                    <td style={shell.td}>{formatINR(row.grand_total || 0)}</td>
-                    <td style={shell.td}>
+                    <td style={shell.td} data-label="Sr No">{(safePage - 1) * perPage + idx + 1}</td>
+                    <td style={shell.td} data-label="Quotation #"><span className="crm-cell-wrap">{row.quotation_number || '-'}</span></td>
+                    <td style={shell.td} data-label="Date">{formatDate(row.quotation_date)}</td>
+                    <td style={shell.td} data-label="Customer"><span className="crm-table-primary crm-cell-wrap">{row.customer_name || '-'}</span></td>
+                    <td style={shell.td} data-label="Sales Person">{row.sales_person || '-'}</td>
+                    <td style={shell.td} data-label="Status"><span style={shell.badge}>{row.status || 'Draft'}</span></td>
+                    <td style={shell.td} data-label="Grand Total">{formatINR(row.grand_total || 0)}</td>
+                    <td style={shell.td} data-label="Action">
                       <div style={rowActionWrapStyle}>
                         <button
                           type="button"

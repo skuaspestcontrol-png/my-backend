@@ -66,8 +66,8 @@ export default function LeadDashboard() {
         </span>
       </div>
 
-      <div style={{ overflowX: 'auto', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div style={{ overflowX: 'hidden', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }} className="crm-table-shell">
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }} className="crm-compact-table crm-stack-mobile">
           <thead>
             <tr style={{ backgroundColor: '#f4f4f5', borderBottom: '2px solid #e4e4e7' }}>
               <th style={thStyle}>Date</th>
@@ -90,16 +90,16 @@ export default function LeadDashboard() {
                 const statusStyle = getStatusColor(lead.leadStatus);
                 return (
                   <tr key={lead._id || lead.customerName} style={{ borderBottom: '1px solid #e4e4e7', transition: 'background-color 0.2s' }}>
-                    <td style={tdStyle}>{formatDate(lead.createdAt)}</td>
-                    <td style={{ ...tdStyle, fontWeight: 'bold', color: '#18181b' }}>{lead.customerName}</td>
-                    <td style={tdStyle}>
-                      <div>{lead.mobileNumber}</div>
-                      <div style={{ fontSize: '12px', color: '#71717a' }}>{lead.areaName}</div>
+                    <td style={tdStyle} data-label="Date">{formatDate(lead.createdAt)}</td>
+                    <td style={{ ...tdStyle, fontWeight: 'bold', color: '#18181b' }} data-label="Customer Name"><span className="crm-table-primary crm-cell-wrap">{lead.customerName}</span></td>
+                    <td style={tdStyle} data-label="Contact">
+                      <div className="crm-cell-wrap">{lead.mobileNumber}</div>
+                      <div className="crm-table-muted">{lead.areaName}</div>
                     </td>
-                    <td style={tdStyle}>{lead.pestIssue || '-'}</td>
-                    <td style={tdStyle}>{lead.leadSource === 'Other' ? lead.customLeadSource : lead.leadSource}</td>
-                    <td style={tdStyle}>{lead.assignedTo || 'Unassigned'}</td>
-                    <td style={tdStyle}>
+                    <td style={tdStyle} data-label="Pest Issue">{lead.pestIssue || '-'}</td>
+                    <td style={tdStyle} data-label="Source">{lead.leadSource === 'Other' ? lead.customLeadSource : lead.leadSource}</td>
+                    <td style={tdStyle} data-label="Assigned To">{lead.assignedTo || 'Unassigned'}</td>
+                    <td style={tdStyle} data-label="Status">
                       <span style={{ 
                         backgroundColor: statusStyle.bg, 
                         color: statusStyle.color, 
@@ -111,7 +111,7 @@ export default function LeadDashboard() {
                         {lead.leadStatus}
                       </span>
                     </td>
-                    <td style={tdStyle}>
+                    <td style={tdStyle} data-label="Action">
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <button 
                           onClick={() => navigate('/create-quote', { state: { lead: lead } })}
