@@ -220,18 +220,18 @@ export default function ComplaintsDashboard() {
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }} className="crm-table-shell">
-            <table style={{ width: '100%', minWidth: 0, borderCollapse: 'collapse', tableLayout: 'fixed' }} className="crm-compact-table crm-stack-mobile">
+          <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }}>
+            <table style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse' }}>
               <thead><tr>{['Complaint', 'Customer', 'Type', 'Priority', 'Status', 'Created', 'Actions'].map((h) => <th key={h} style={{ textAlign: 'left', padding: '11px 10px', fontSize: 12, color: '#64748b', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontWeight: 800, letterSpacing: '0.02em' }}>{h}</th>)}</tr></thead>
               <tbody>
                 {filteredComplaints.map((entry) => (
                   <tr key={entry._id}>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13, fontWeight: 700 }} data-label="Complaint">{entry.ticketNumber || '-'}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 }} data-label="Customer"><span className="crm-table-primary crm-cell-wrap">{entry.customerName || '-'}</span></td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 }} data-label="Type">{entry.type || '-'}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }} data-label="Priority"><span style={{ borderRadius: 999, padding: '4px 9px', background: '#DBEAFE', color: '#2563EB', fontWeight: 700, fontSize: 12 }}>{entry.priority || '-'}</span></td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }} data-label="Status"><span style={{ borderRadius: 999, padding: '4px 9px', background: '#F3E8FF', color: '#7C3AED', fontWeight: 700, fontSize: 12 }}>{entry.status || '-'}</span></td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 }} data-label="Created">
+                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13, fontWeight: 700 }}>{entry.ticketNumber || '-'}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>{entry.customerName || '-'}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>{entry.type || '-'}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }}><span style={{ borderRadius: 999, padding: '4px 9px', background: '#DBEAFE', color: '#2563EB', fontWeight: 700, fontSize: 12 }}>{entry.priority || '-'}</span></td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }}><span style={{ borderRadius: 999, padding: '4px 9px', background: '#F3E8FF', color: '#7C3AED', fontWeight: 700, fontSize: 12 }}>{entry.status || '-'}</span></td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
                       {entry.createdAt ? (() => {
                         const d = new Date(entry.createdAt);
                         if (Number.isNaN(d.getTime())) return '-';
@@ -241,7 +241,7 @@ export default function ComplaintsDashboard() {
                         return `${day}/${month}/${year}`;
                       })() : '-'}
                     </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }} data-label="Actions"><button type="button" style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 8, minHeight: 30, padding: '0 9px' }}><List size={14} /></button></td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }}><button type="button" style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 8, minHeight: 30, padding: '0 9px' }}><List size={14} /></button></td>
                   </tr>
                 ))}
                 {filteredComplaints.length === 0 ? (

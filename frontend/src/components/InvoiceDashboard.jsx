@@ -1975,7 +1975,7 @@ export default function InvoiceDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
-  const tableStyle = isMobile ? { ...shell.table, minWidth: 0, tableLayout: 'fixed' } : { ...shell.table, minWidth: '100%' };
+  const tableStyle = isMobile ? { ...shell.table, minWidth: isTiny ? '700px' : '760px' } : shell.table;
   const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : shell.itemTable;
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
@@ -2090,8 +2090,8 @@ export default function InvoiceDashboard() {
         </div>
       </div>
 
-      <div style={{ ...shell.tableWrap, overflowX: 'hidden' }} className="crm-table-shell">
-        <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
+      <div style={shell.tableWrap}>
+        <table style={tableStyle}>
           <thead>
             <tr>
               <th style={{ ...shell.headCell, ...shell.checkboxWrap }} />
@@ -2109,8 +2109,8 @@ export default function InvoiceDashboard() {
           <tbody>
             {invoices.map((invoice) => (
               <tr key={invoice._id} style={shell.row}>
-                <td style={{ ...shell.cell, ...shell.checkboxWrap }} data-label="Select" />
-                <td style={{ ...shell.cell, ...shell.checkboxWrap }} data-label="Select">
+                <td style={{ ...shell.cell, ...shell.checkboxWrap }} />
+                <td style={{ ...shell.cell, ...shell.checkboxWrap }}>
                   <input
                     type="checkbox"
                     style={shell.checkbox}
@@ -2124,7 +2124,7 @@ export default function InvoiceDashboard() {
                   if (column.key === 'amount' || column.key === 'balanceDue') value = formatINR(value);
                   if (column.key === 'status') {
                     return (
-                      <td key={`${invoice._id}-${column.key}`} style={{ ...shell.cell, ...shell.statusBadge, ...getColumnStyle(column.key), color: getStatusColor(String(invoice.status || '').toUpperCase()) }} data-label={column.label}>
+                      <td key={`${invoice._id}-${column.key}`} style={{ ...shell.cell, ...shell.statusBadge, ...getColumnStyle(column.key), color: getStatusColor(String(invoice.status || '').toUpperCase()) }}>
                         {String(invoice.status || '').toUpperCase()}
                       </td>
                     );
@@ -2134,7 +2134,6 @@ export default function InvoiceDashboard() {
                       <td
                         key={`${invoice._id}-${column.key}`}
                         style={{ ...shell.cell, ...shell.invoiceCell, ...getColumnStyle(column.key) }}
-                        data-label={column.label}
                         onClick={() => {
                           setSelectedIds([invoice._id]);
                           setModalOpenedFromContract(false);
@@ -2148,12 +2147,12 @@ export default function InvoiceDashboard() {
                     );
                   }
                   return (
-                    <td key={`${invoice._id}-${column.key}`} style={{ ...shell.cell, ...getColumnStyle(column.key) }} data-label={column.label}>
-                      <span className="crm-cell-wrap">{value}</span>
+                    <td key={`${invoice._id}-${column.key}`} style={{ ...shell.cell, ...getColumnStyle(column.key) }}>
+                      {value}
                     </td>
                   );
                 })}
-                <td style={{ ...shell.cell, width: '80px', textAlign: 'center', overflow: 'visible' }} data-label="Action">
+                <td style={{ ...shell.cell, width: '80px', textAlign: 'center', overflow: 'visible' }}>
                   <div style={shell.rowActionWrap} data-invoice-row-action="true">
                     <button
                       type="button"

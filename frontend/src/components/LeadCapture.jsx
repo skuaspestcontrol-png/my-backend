@@ -399,28 +399,6 @@ const mobileLeadColumnWidths = {
   referenceCustomerDate: 140,
   remarks: 180
 };
-const desktopLeadColumnWidths = {
-  date: 88,
-  customerName: 142,
-  mobile: 104,
-  whatsappNumber: 116,
-  emailId: 150,
-  address: 170,
-  areaName: 112,
-  city: 108,
-  state: 88,
-  pincode: 78,
-  pestIssue: 132,
-  leadSource: 104,
-  propertyType: 110,
-  status: 112,
-  quotationValue: 108,
-  followupDate: 108,
-  assignedTo: 128,
-  referenceCustomerName: 136,
-  referenceCustomerDate: 128,
-  remarks: 150
-};
 
 const mapLeadToCustomerPrefill = (lead) => {
   const customerName = String(lead.customerName || '').trim();
@@ -528,14 +506,14 @@ export default function LeadCapture() {
     try {
       saved = localStorage.getItem('leads_column_widths');
     } catch {
-      return desktopLeadColumnWidths;
+      return {};
     }
-    if (!saved) return desktopLeadColumnWidths;
+    if (!saved) return {};
     try {
       const parsed = JSON.parse(saved);
-      return parsed && typeof parsed === 'object' ? { ...desktopLeadColumnWidths, ...parsed } : desktopLeadColumnWidths;
+      return parsed && typeof parsed === 'object' ? parsed : {};
     } catch {
-      return desktopLeadColumnWidths;
+      return {};
     }
   });
 
@@ -1620,9 +1598,9 @@ export default function LeadCapture() {
 
   const getColumnStyle = (columnKey) => {
     if (isMobile) return getMobileColumnStyle(columnKey);
-    const width = Number(columnWidths[columnKey] || desktopLeadColumnWidths[columnKey]);
+    const width = Number(columnWidths[columnKey]);
     if (!Number.isFinite(width) || width <= 0) return {};
-    const clampedWidth = Math.max(64, Math.min(170, width));
+    const clampedWidth = Math.max(72, Math.min(160, width));
     return { width: `${clampedWidth}px`, minWidth: `${clampedWidth}px`, maxWidth: `${clampedWidth}px` };
   };
 
@@ -1974,11 +1952,11 @@ export default function LeadCapture() {
   const customizeButtonStyle = isTiny ? { ...s.customizeButton, padding: '6px 8px', fontSize: '10px' } : s.customizeButton;
   const leadModalCompactBodyStyle = isTiny ? { ...leadModalBodyStyle, padding: '10px' } : leadModalBodyStyle;
   const leadTableMinWidth = isMobile
-    ? '100%'
-    : '100%';
+    ? `${40 + 92 + visibleColumnDefs.reduce((total, column) => total + (mobileLeadColumnWidths[column.key] || 128), 0)}px`
+    : '1180px';
   const tableWrapStyle = isMobile
-    ? { ...s.tableWrap, overflowX: 'hidden', overflowY: 'visible', WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain' }
-    : { ...s.tableWrap, overflowX: 'hidden' };
+    ? { ...s.tableWrap, overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain' }
+    : { ...s.tableWrap, overflowX: 'auto' };
   const tableStyleTiny = isMobile
     ? { ...tableStyle, width: leadTableMinWidth, minWidth: leadTableMinWidth, tableLayout: 'fixed' }
     : { ...tableStyle, minWidth: leadTableMinWidth };
@@ -2226,8 +2204,8 @@ export default function LeadCapture() {
           </div>
         </div>
 
-        <div style={tableWrapStyle} className="crm-table-shell">
-          <table style={tableStyleTiny} className="crm-compact-table crm-stack-mobile">
+        <div style={tableWrapStyle}>
+          <table style={tableStyleTiny}>
             <thead>
               <tr>
                 <th style={{ ...s.headCell, ...s.checkboxWrap }}>
@@ -2258,7 +2236,7 @@ export default function LeadCapture() {
               ) : (
                 filteredLeads.map((lead) => (
                   <tr key={lead._id} style={s.row}>
-                    <td style={{ ...s.cell, ...s.checkboxWrap }} data-label="Select">
+                    <td style={{ ...s.cell, ...s.checkboxWrap }}>
                       <input
                         type="checkbox"
                         style={s.checkbox}
@@ -2272,7 +2250,7 @@ export default function LeadCapture() {
                         const statusTone = getLeadStatusBadgeStyle(value);
                         const convertedLead = isLeadConverted(lead);
                         return (
-                          <td key={`${lead._id}-${column.key}`} style={{ ...leadStatusCellStyle, ...getColumnStyle(column.key) }} data-label={column.label}>
+                          <td key={`${lead._id}-${column.key}`} style={{ ...leadStatusCellStyle, ...getColumnStyle(column.key) }}>
                             <div data-lead-status-editor="true" style={{ display: 'inline-flex', alignItems: 'center' }}>
                               {statusEditorLeadId === lead._id && !convertedLead ? (
                                 <select
@@ -2314,13 +2292,12 @@ export default function LeadCapture() {
                           key={`${lead._id}-${column.key}`}
                           style={{ ...leadRecordCellStyle, ...getColumnStyle(column.key) }}
                           title={String(value || '')}
-                          data-label={column.label}
                         >
-                          <span className="crm-cell-wrap">{value || '-'}</span>
+                          {value || '-'}
                         </td>
                       );
                     })}
-                    <td style={{ ...s.cell, ...s.actionCell, ...actionColumnStyle, textAlign: 'center' }} data-label="Action">
+                    <td style={{ ...s.cell, ...s.actionCell, ...actionColumnStyle, textAlign: 'center' }}>
                       <div style={s.rowActionWrap} data-lead-row-action="true">
                         <button
                           type="button"
