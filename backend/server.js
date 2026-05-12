@@ -408,6 +408,40 @@ const syncUploadToMirror = (fileName = '') => {
   }
 };
 
+const deleteUploadFile = (uploadUrlOrPath = '') => {
+  const raw = String(uploadUrlOrPath || '').trim();
+  if (!raw) return;
+
+  let relative = raw;
+  try {
+    const parsed = new URL(raw);
+    relative = parsed.pathname || '';
+  } catch (_error) {
+    // Treat non-URL input as a local upload path.
+  }
+
+  if (relative.includes('/uploads/')) {
+    relative = relative.slice(relative.indexOf('/uploads/') + '/uploads/'.length);
+  }
+  relative = relative.replace(/^\/?uploads\/?/, '').replace(/^\/+/, '').replace(/\\/g, '/');
+  if (!relative || relative.includes('..')) return;
+
+  const deleteFrom = (rootDir) => {
+    if (!rootDir) return;
+    const root = path.resolve(rootDir);
+    const target = path.resolve(rootDir, relative);
+    if (!target.startsWith(root + path.sep) && target !== root) return;
+    try {
+      if (fs.existsSync(target)) fs.unlinkSync(target);
+    } catch (error) {
+      console.error('Failed to delete uploaded file:', error.message);
+    }
+  };
+
+  deleteFrom(uploadsDir);
+  deleteFrom(uploadsMirrorDir);
+};
+
 const recoverUploadsFromMirror = () => {
   if (!uploadsMirrorDir) return;
   const walk = (rootDir, relativePrefix = '') => {
@@ -6834,6 +6868,13 @@ app.delete('/api/renewals/:id', async (req, res) => {
   try {
     await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
+      const letterUrls = new Set();
+      if (renewal.renewalLetterUrl) letterUrls.add(renewal.renewalLetterUrl);
+      const [letterRows] = await conn.query('SELECT pdf_url FROM renewal_letters WHERE renewal_id = ?', [renewal.renewalId]);
+      (Array.isArray(letterRows) ? letterRows : []).forEach((letter) => {
+        if (letter?.pdf_url) letterUrls.add(letter.pdf_url);
+      });
+      letterUrls.forEach((url) => deleteUploadFile(url));
       await conn.query('DELETE FROM renewal_followups WHERE renewal_id = ?', [renewal.renewalId]);
       await conn.query('DELETE FROM renewal_letters WHERE renewal_id = ?', [renewal.renewalId]);
       await conn.query('DELETE FROM renewals WHERE renewal_id = ?', [renewal.renewalId]);
