@@ -355,14 +355,14 @@ function QuotationDashboardInner() {
         <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
           <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
             <colgroup>
-              <col style={{ width: isMobile ? undefined : '7%' }} />
-              <col style={{ width: isMobile ? undefined : '16%' }} />
-              <col style={{ width: isMobile ? undefined : '11%' }} />
-              <col style={{ width: isMobile ? undefined : '17%' }} />
-              <col style={{ width: isMobile ? undefined : '15%' }} />
-              <col style={{ width: isMobile ? undefined : '10%' }} />
-              <col style={{ width: isMobile ? undefined : '12%' }} />
-              <col style={{ width: isMobile ? undefined : '122px' }} />
+              <col style={{ width: isMobile ? '64px' : '7%' }} />
+              <col style={{ width: isMobile ? '170px' : '16%' }} />
+              <col style={{ width: isMobile ? '110px' : '11%' }} />
+              <col style={{ width: isMobile ? '155px' : '17%' }} />
+              <col style={{ width: isMobile ? '145px' : '15%' }} />
+              <col style={{ width: isMobile ? '105px' : '10%' }} />
+              <col style={{ width: isMobile ? '125px' : '12%' }} />
+              <col style={{ width: isMobile ? '122px' : '122px' }} />
             </colgroup>
             <thead>
               <tr>

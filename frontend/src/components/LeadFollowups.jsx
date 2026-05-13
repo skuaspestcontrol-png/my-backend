@@ -294,6 +294,16 @@ export default function LeadFollowups() {
         </div>
         <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
           <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
+            <colgroup>
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '100px' }} />
+              <col style={{ width: '105px' }} />
+              <col style={{ width: '145px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '110px' }} />
+            </colgroup>
             <thead>
               <tr>
                 {['Lead', 'Customer', 'Status', 'Urgency', 'Assigned To', 'Last Follow-up', 'Next Follow-up', 'Actions'].map((head) => (
