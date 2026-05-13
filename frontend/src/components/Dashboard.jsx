@@ -274,6 +274,35 @@ export default function Dashboard() {
       : isLaptop
         ? { ...shell.metrics, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }
         : shell.metrics;
+  const heroFinanceCardStyle = {
+    ...shell.heroCard,
+    border: 'none',
+    padding: isMobile ? '8px 12px' : '14px',
+    borderRadius: isMobile ? '16px' : shell.heroCard.borderRadius,
+    background: '#ffffff',
+    display: 'grid',
+    placeItems: 'center'
+  };
+  const heroFinanceTextStyle = {
+    margin: 0,
+    textAlign: 'center',
+    color: 'var(--color-primary-dark)',
+    lineHeight: isMobile ? 1.35 : 1.7,
+    fontSize: isMobile ? '12px' : '15px',
+    fontWeight: 700
+  };
+  const metricStyle = isMobile
+    ? { ...shell.metric, padding: '12px 14px', borderRadius: '14px' }
+    : shell.metric;
+  const metricLabelStyle = isMobile
+    ? { ...shell.metricLabel, fontSize: '10px' }
+    : shell.metricLabel;
+  const metricValueStyle = isMobile
+    ? { ...shell.metricValue, margin: '8px 0 0 0', fontSize: '24px' }
+    : shell.metricValue;
+  const metricSubStyle = isMobile
+    ? { ...shell.metricSub, margin: '4px 0 0 0', fontSize: '12px' }
+    : shell.metricSub;
 
   const graphGridStyle = viewportWidth >= 1200
     ? shell.graphGrid
@@ -300,37 +329,37 @@ export default function Dashboard() {
         <div>
           <h1 style={{ ...shell.title, color: '#ffffff' }}>{companyName}</h1>
           <p style={shell.description}>
-            Live financial dashboard with real-time receivables, payables, income, and top expense trends.
+            Professional in Pest Control company.
           </p>
         </div>
 
-        <div style={{ ...shell.heroCard, border: 'none', padding: isMobile ? '12px' : '14px', background: '#ffffff', display: 'grid', placeItems: 'center' }}>
-          <p style={{ margin: 0, textAlign: 'center', color: 'var(--color-primary-dark)', lineHeight: 1.7, fontSize: '15px', fontWeight: 700 }}>
+        <div style={heroFinanceCardStyle}>
+          <p style={heroFinanceTextStyle}>
             Receivables: <strong>{formatCurrency(analytics.totalReceivables)}</strong> | Payables: <strong>{formatCurrency(analytics.totalPayables)}</strong>
           </p>
         </div>
       </section>
 
       <section className="stats-grid dashboard-grid" style={metricsStyle}>
-        <div style={shell.metric}>
-          <p style={shell.metricLabel}>Leads</p>
-          <p style={shell.metricValue}>{topCards.leadsCount}</p>
-          <p style={shell.metricSub}>Total leads</p>
+        <div style={metricStyle}>
+          <p style={metricLabelStyle}>Leads</p>
+          <p style={metricValueStyle}>{topCards.leadsCount}</p>
+          <p style={metricSubStyle}>Total leads</p>
         </div>
-        <div style={shell.metric}>
-          <p style={shell.metricLabel}>Customers</p>
-          <p style={shell.metricValue}>{topCards.customersCount}</p>
-          <p style={shell.metricSub}>Active customers</p>
+        <div style={metricStyle}>
+          <p style={metricLabelStyle}>Customers</p>
+          <p style={metricValueStyle}>{topCards.customersCount}</p>
+          <p style={metricSubStyle}>Active customers</p>
         </div>
-        <div style={shell.metric}>
-          <p style={shell.metricLabel}>Employees / Jobs</p>
-          <p style={shell.metricValue}>{topCards.employeesCount} / {topCards.jobsCount}</p>
-          <p style={shell.metricSub}>Workforce and dispatch</p>
+        <div style={metricStyle}>
+          <p style={metricLabelStyle}>Employees / Jobs</p>
+          <p style={metricValueStyle}>{topCards.employeesCount} / {topCards.jobsCount}</p>
+          <p style={metricSubStyle}>Workforce and dispatch</p>
         </div>
-        <div style={shell.metric}>
-          <p style={shell.metricLabel}>Invoices Value</p>
-          <p style={shell.metricValue}>{topCards.invoicesCount}</p>
-          <p style={shell.metricSub}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
+        <div style={metricStyle}>
+          <p style={metricLabelStyle}>Invoices Value</p>
+          <p style={metricValueStyle}>{topCards.invoicesCount}</p>
+          <p style={metricSubStyle}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
         </div>
       </section>
 
