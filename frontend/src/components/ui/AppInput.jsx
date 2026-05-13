@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { baseControl, focusRingStyle } from './_helpers';
 
-export default function AppInput({ label, helper, error, style, ...props }) {
+export default function AppInput({ label, helper, error, style, className, ...props }) {
   const [focus, setFocus] = useState(false);
   return (
-    <label style={{ display: 'grid', gap: 6 }}>
-      {label ? <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{label}</span> : null}
+    <label className="crm-form-row">
+      {label ? <span className="crm-form-label">{label}</span> : null}
       <input
         {...props}
+        className={['crm-input', className].filter(Boolean).join(' ')}
         onFocus={(e) => { setFocus(true); props.onFocus?.(e); }}
         onBlur={(e) => { setFocus(false); props.onBlur?.(e); }}
         style={{ ...baseControl, ...(focus ? focusRingStyle : {}), ...(error ? { borderColor: '#DC2626' } : {}), ...style }}

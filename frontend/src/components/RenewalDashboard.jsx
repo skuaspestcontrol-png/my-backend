@@ -39,8 +39,8 @@ const shell = {
   statValue: { marginTop: 4, fontSize: 20, lineHeight: 1.05, fontWeight: 850, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   filters: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))', gap: 8, alignItems: 'end' },
   field: { display: 'grid', gap: 4 },
-  label: { fontSize: 11, color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
-  input: { width: '100%', height: 34, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: '#111827', fontSize: 12, fontWeight: 650, padding: '0 9px', boxSizing: 'border-box' },
+  label: { fontSize: 12, color: 'var(--color-muted)', fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase' },
+  input: { width: '100%', minHeight: 40, border: '1px solid #d1d5db', borderRadius: 11, background: '#fff', color: '#111827', fontSize: 14, fontWeight: 500, padding: '0 12px', boxSizing: 'border-box' },
   tabs: { display: 'flex', gap: 6, padding: 8, overflowX: 'auto', borderBottom: '1px solid var(--color-border)' },
   tabsMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, padding: 10, overflowX: 'visible', borderBottom: '1px solid var(--color-border)' },
   tab: { flex: '0 0 auto', border: '1px solid transparent', borderRadius: 8, background: 'transparent', color: '#475569', minHeight: 30, padding: '0 10px', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer' },
@@ -56,9 +56,9 @@ const shell = {
   chartGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 },
   miniRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 70px 90px', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 12 },
   modalOverlay: { position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 14 },
-  modal: { width: 'min(520px, 100%)', background: '#fff', borderRadius: 14, border: '1px solid var(--color-border)', boxShadow: '0 24px 70px rgba(15,23,42,0.22)', overflow: 'hidden' },
-  modalHead: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  modalBody: { padding: 14, display: 'grid', gap: 10 },
+  modal: { width: 'min(760px, 96vw)', maxHeight: '92vh', background: '#fff', borderRadius: 16, border: '1px solid var(--color-border)', boxShadow: '0 24px 70px rgba(15,23,42,0.22)', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
+  modalHead: { minHeight: 60, padding: '14px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 22, fontWeight: 800 },
+  modalBody: { padding: 18, display: 'grid', gap: 12, overflowY: 'auto' },
   mobileCard: { border: '1px solid #e5e7eb', borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: '#fff' },
   mobileMeta: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, color: '#475569' }
 };

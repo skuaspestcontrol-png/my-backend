@@ -256,14 +256,14 @@ const shell = {
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto', backdropFilter: 'blur(12px)' },
-  modal: { background: '#fff', width: 'min(100%, 1180px)', borderRadius: '24px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', height: '92vh', display: 'flex', flexDirection: 'column' },
-  modalHeader: { padding: '16px 20px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '28px', fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
+  modal: { background: '#fff', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', height: 'auto', display: 'flex', flexDirection: 'column' },
+  modalHeader: { minHeight: '64px', padding: '16px 22px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
   modalHeaderTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
   modalCloseButton: { border: 'none', background: 'transparent', color: '#fff', width: '36px', height: '36px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
-  formBody: { padding: '18px 22px', overflowY: 'auto', overflowX: 'hidden', display: 'grid', gridAutoRows: 'max-content', alignContent: 'start', gap: '16px', flex: 1, minHeight: 0 },
-  customerRow: { display: 'grid', gridTemplateColumns: '170px minmax(0, 1fr)', columnGap: '14px', rowGap: '10px', alignItems: 'center' },
-  addressSplit: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '16px' },
-  addressCard: { border: '1px solid var(--color-border)', borderRadius: '10px', padding: '14px', background: '#fff' },
+  formBody: { padding: '20px 24px', overflowY: 'auto', overflowX: 'hidden', display: 'grid', gridAutoRows: 'max-content', alignContent: 'start', gap: '14px', flex: 1, minHeight: 0 },
+  customerRow: { display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', columnGap: '16px', rowGap: '12px', alignItems: 'center' },
+  addressSplit: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px' },
+  addressCard: { border: '1px solid var(--color-border)', borderRadius: '10px', padding: '12px', background: '#fff' },
   addressHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
   addressHeadActions: { display: 'flex', alignItems: 'center', gap: '6px' },
   addressTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#475569', textTransform: 'uppercase' },
@@ -279,13 +279,13 @@ const shell = {
   addressChoiceText: { margin: '4px 0 0 0', fontSize: '12px', color: '#0f172a', whiteSpace: 'pre-line' },
   addressEditor: { padding: '12px 14px', borderTop: '1px solid var(--color-border)', display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', columnGap: '10px', rowGap: '10px', alignItems: 'center' },
   supplyRow: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr) 110px minmax(0, 1fr)', columnGap: '14px', rowGap: '10px', alignItems: 'center' },
-  topGrid: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr) 110px minmax(0, 1fr)', columnGap: '14px', rowGap: '12px', alignItems: 'center' },
-  secondGrid: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr) 140px minmax(0, 1fr)', columnGap: '14px', rowGap: '12px', alignItems: 'center' },
-  subjectRow: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr)', columnGap: '14px', rowGap: '12px', alignItems: 'center' },
-  label: { fontSize: '13px', color: '#3f3f46', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
+  topGrid: { display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr) 110px minmax(0, 1fr)', columnGap: '16px', rowGap: '12px', alignItems: 'center' },
+  secondGrid: { display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr) 130px minmax(0, 1fr)', columnGap: '16px', rowGap: '12px', alignItems: 'center' },
+  subjectRow: { display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr)', columnGap: '16px', rowGap: '12px', alignItems: 'center' },
+  label: { fontSize: '12px', color: 'var(--color-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' },
   labelRequired: { color: '#dc2626' },
-  input: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '48px', boxSizing: 'border-box' },
-  textArea: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '84px', resize: 'vertical', boxSizing: 'border-box' },
+  input: { border: '1px solid #D1D5DB', borderRadius: '11px', padding: '0 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '40px', boxSizing: 'border-box' },
+  textArea: { border: '1px solid #D1D5DB', borderRadius: '11px', padding: '10px 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '80px', resize: 'vertical', boxSizing: 'border-box' },
   inputWithAction: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 42px', gap: '0' },
   inputMainWithButton: { borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' },
   inputActionButton: { border: '1px solid var(--color-primary)', borderRadius: '0 8px 8px 0', minHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', color: 'var(--color-primary)', cursor: 'pointer' },
@@ -346,9 +346,9 @@ const shell = {
   paymentTotalRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#111827', fontSize: '16px', fontWeight: 500 },
   paymentBalanceRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontSize: '16px', fontWeight: 700 },
   paymentWarn: { color: '#dc2626', fontSize: '12px', fontWeight: 700 },
-  modalFooter: { padding: '12px 14px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#fff' },
-  cancelButton: { border: '1px solid #d1d5db', background: '#fff', color: '#2563eb', borderRadius: '18px', padding: '10px 18px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' },
-  saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '18px', padding: '10px 20px', fontSize: '16px', fontWeight: 800, cursor: 'pointer' }
+  modalFooter: { padding: '12px 24px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#fff' },
+  cancelButton: { minHeight: '40px', border: '1px solid #d1d5db', background: '#fff', color: '#2563eb', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' },
+  saveButton: { minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }
 };
 
 const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -2099,10 +2099,10 @@ export default function InvoiceDashboard() {
   const modalStyle = isMobile
     ? {
       ...shell.modal,
-      width: 'min(100%, 92vw)',
+      width: '96vw',
       maxHeight: '92dvh',
-      height: '92dvh',
-      borderRadius: '28px',
+      height: 'auto',
+      borderRadius: '16px',
       border: '1px solid rgba(159, 23, 77, 0.24)'
     }
     : shell.modal;
@@ -2128,7 +2128,7 @@ export default function InvoiceDashboard() {
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const tinyGhostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
   const tinyCustomizeBtnStyle = isTiny ? { ...shell.customizeButton, padding: '7px 10px', fontSize: '11px' } : shell.customizeButton;
-  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
+  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '60px', fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
   const dateInputStyle = {
     ...shell.input,
     width: '100%',

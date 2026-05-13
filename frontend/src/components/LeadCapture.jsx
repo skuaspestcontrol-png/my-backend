@@ -165,17 +165,17 @@ const emptyForm = {
 
 const s = {
   ov: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto', backdropFilter: 'blur(12px)' },
-  cn: { background: 'rgba(255,255,255,0.9)', width: '96%', maxWidth: '1220px', borderRadius: '24px', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow)', border: '1px solid rgba(159, 23, 77, 0.24)' },
-  hd: { background: 'var(--color-primary)', padding: '16px 20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, letterSpacing: '0.02em' },
-  body: { padding: '22px', overflowY: 'auto', background: 'rgba(255,255,255,0.42)' },
-  section: { background: 'rgba(255,255,255,0.82)', border: '1px solid rgba(159, 23, 77, 0.14)', borderRadius: '18px', padding: '18px', marginBottom: '16px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(10px)' },
-  sectionTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 800, color: '#0f172a', marginBottom: '14px' },
-  gd: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px' },
-  fieldWide: { gridColumn: 'span 3' },
+  cn: { background: 'rgba(255,255,255,0.96)', width: '96%', maxWidth: '1040px', borderRadius: '16px', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow)', border: '1px solid rgba(159, 23, 77, 0.24)' },
+  hd: { minHeight: '64px', background: 'var(--color-primary)', padding: '16px 22px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, letterSpacing: 0 },
+  body: { padding: '20px 24px', overflowY: 'auto', background: '#fff' },
+  section: { background: '#fff', border: '1px solid rgba(159, 23, 77, 0.14)', borderRadius: '12px', padding: '14px', marginBottom: '14px', boxShadow: 'var(--shadow-soft)' },
+  sectionTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' },
+  gd: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px 18px' },
+  fieldWide: { gridColumn: 'span 2' },
   fieldHalf: { gridColumn: 'span 2' },
-  in: { width: '100%', padding: '10px 12px', borderRadius: '12px', fontSize: '13px', boxSizing: 'border-box', background: 'rgba(255,255,255,0.92)', outline: 'none' },
-  ta: { width: '100%', padding: '10px 12px', borderRadius: '12px', fontSize: '13px', boxSizing: 'border-box', background: 'rgba(255,255,255,0.92)', minHeight: '92px', resize: 'vertical', outline: 'none' },
-  lb: { display: 'block', fontSize: '11px', fontWeight: 800, marginBottom: '6px', color: '#444', letterSpacing: '0.05em', textTransform: 'uppercase' },
+  in: { width: '100%', minHeight: '40px', padding: '0 12px', borderRadius: '11px', fontSize: '14px', boxSizing: 'border-box', background: 'rgba(255,255,255,0.96)', outline: 'none' },
+  ta: { width: '100%', padding: '10px 12px', borderRadius: '11px', fontSize: '14px', boxSizing: 'border-box', background: 'rgba(255,255,255,0.96)', minHeight: '80px', resize: 'vertical', outline: 'none' },
+  lb: { display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-muted)', letterSpacing: '0.02em', textTransform: 'uppercase' },
   actionBox: { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', border: '1px solid rgba(17,17,17,0.08)', transition: 'all 0.2s', background: 'rgba(255,255,255,0.78)' },
   smallButton: {
     border: '1px solid rgba(17,17,17,0.14)',
@@ -192,7 +192,7 @@ const s = {
   inlineLabelRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '6px' },
   smallToggle: { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#334155' },
   mapsRow: { display: 'flex', gap: '8px' },
-  mapsButton: { minWidth: '148px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', cursor: 'pointer', fontWeight: 800, padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.04em' },
+  mapsButton: { minWidth: '136px', minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', cursor: 'pointer', fontWeight: 800, padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.02em', fontSize: '14px' },
   referenceHint: { marginTop: '6px', fontSize: '11px', color: '#64748b' },
   referenceBadge: { marginTop: '8px', padding: '8px 10px', borderRadius: '10px', border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.55)', fontSize: '12px', color: '#1e293b', lineHeight: 1.5 },
   analyticsWrap: { background: 'rgba(255,255,255,0.82)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.14)', padding: '12px', marginBottom: '10px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)', display: 'grid', gap: '10px' },
@@ -1970,9 +1970,9 @@ export default function LeadCapture() {
   const isFollowupCompact = viewportWidth <= 980;
   const followupGridStyle = isFollowupCompact ? { ...s.followupGrid, gridTemplateColumns: '1fr' } : s.followupGrid;
   const followupNoteStyle = { ...s.followupField, gridColumn: isFollowupCompact ? '1 / -1' : 'span 2' };
-  const leadModalStyle = isMobile ? { ...s.cn, width: '100%', maxWidth: '100%' } : s.cn;
-  const leadModalHeadStyle = isMobile ? { ...s.hd, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' } : s.hd;
-  const leadModalBodyStyle = isMobile ? { ...s.body, padding: '14px' } : s.body;
+  const leadModalStyle = isMobile ? { ...s.cn, width: '96vw', maxWidth: '96vw', maxHeight: '92vh' } : s.cn;
+  const leadModalHeadStyle = isMobile ? { ...s.hd, minHeight: '60px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', fontSize: '22px', padding: '14px 16px' } : s.hd;
+  const leadModalBodyStyle = isMobile ? { ...s.body, padding: '14px', WebkitOverflowScrolling: 'touch' } : s.body;
   const leadGridStyle = isTablet || isMobile ? { ...s.gd, gridTemplateColumns: '1fr' } : s.gd;
   const leadFieldHalfStyle = isTablet || isMobile ? { ...s.fieldHalf, gridColumn: '1 / -1' } : s.fieldHalf;
   const leadFieldWideStyle = isTablet || isMobile ? { ...s.fieldWide, gridColumn: '1 / -1' } : s.fieldWide;
@@ -2903,11 +2903,11 @@ export default function LeadCapture() {
               </div>
             </div>
 
-            <div style={{ padding: '15px 20px', textAlign: 'right', background: '#fff', borderTop: '1px solid var(--color-border)' }}>
-              <button type="button" onClick={resetForm} style={{ marginRight: '10px', padding: '10px 16px', border: '1px solid rgba(17,17,17,0.1)', borderRadius: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>
+            <div style={{ padding: '12px 24px', textAlign: 'right', background: '#fff', borderTop: '1px solid var(--color-border)', position: 'sticky', bottom: 0 }}>
+              <button type="button" onClick={resetForm} style={{ marginRight: '10px', minHeight: '40px', padding: '0 16px', border: '1px solid rgba(17,17,17,0.1)', borderRadius: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 700 }}>
                 Cancel
               </button>
-              <button type="submit" style={{ background: 'var(--color-primary)', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: '12px', cursor: 'pointer', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              <button type="submit" style={{ minHeight: '40px', background: 'var(--color-primary)', color: '#fff', border: 'none', padding: '0 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                 {editingLeadId ? 'Update' : 'Submit'}
               </button>
             </div>

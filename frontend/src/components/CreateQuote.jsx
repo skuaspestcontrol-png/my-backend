@@ -30,8 +30,8 @@ const makeItem = () => ({
   contract_end_date: ''
 });
 
-const input = { width: '100%', minHeight: 40, borderRadius: 10, border: '1px solid var(--border)', padding: '8px 10px', fontSize: 14, boxSizing: 'border-box' };
-const label = { margin: '0 0 6px', fontWeight: 700, fontSize: 13, color: 'var(--text)' };
+const input = { width: '100%', minHeight: 40, borderRadius: 11, border: '1px solid var(--border)', padding: '0 12px', fontSize: 14, boxSizing: 'border-box' };
+const label = { margin: '0 0 6px', fontWeight: 600, fontSize: 12, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)' };
 const buttonBase = {
   minHeight: 38,
   padding: '0 14px',
