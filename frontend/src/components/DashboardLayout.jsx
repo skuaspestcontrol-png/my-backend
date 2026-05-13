@@ -242,45 +242,52 @@ export default function DashboardLayout({ children }) {
             background: 'var(--color-white)'
           }}
         >
-          {settings.dashboardImageUrl ? (
-            <div
-              style={{
-                width: isDrawerMode ? '150px' : '170px',
-                height: isDrawerMode ? '58px' : '64px',
-                borderRadius: '12px',
-                background: 'transparent',
-                padding: '0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: 'none',
-                overflow: 'hidden',
-                flexShrink: 0
-              }}
-            >
-              <img src={settings.dashboardImageUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-          ) : (
-            <div
-              style={{
-                width: isDrawerMode ? '150px' : '170px',
-                height: isDrawerMode ? '58px' : '64px',
-                background: 'var(--color-primary)',
-                borderRadius: '12px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                fontWeight: 800,
-                fontSize: isDrawerMode ? '20px' : '24px',
-                color: '#fff',
-                letterSpacing: '0.08em',
-                boxShadow: 'var(--shadow-md)',
-                flexShrink: 0
-              }}
-            >
-              {companyInitials || 'SM'}
-            </div>
-          )}
+          <Link
+            to="/dashboard"
+            aria-label="Open dashboard home"
+            title="Open dashboard home"
+            style={{ display: 'inline-flex', textDecoration: 'none', cursor: 'pointer' }}
+          >
+            {settings.dashboardImageUrl ? (
+              <div
+                style={{
+                  width: isDrawerMode ? '150px' : '170px',
+                  height: isDrawerMode ? '58px' : '64px',
+                  borderRadius: '12px',
+                  background: 'transparent',
+                  padding: '0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: 'none',
+                  overflow: 'hidden',
+                  flexShrink: 0
+                }}
+              >
+                <img src={settings.dashboardImageUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            ) : (
+              <div
+                style={{
+                  width: isDrawerMode ? '150px' : '170px',
+                  height: isDrawerMode ? '58px' : '64px',
+                  background: 'var(--color-primary)',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  fontWeight: 800,
+                  fontSize: isDrawerMode ? '20px' : '24px',
+                  color: '#fff',
+                  letterSpacing: '0.08em',
+                  boxShadow: 'var(--shadow-md)',
+                  flexShrink: 0
+                }}
+              >
+                {companyInitials || 'SM'}
+              </div>
+            )}
+          </Link>
         </div>
 
         <nav style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 0 24px' }}>
