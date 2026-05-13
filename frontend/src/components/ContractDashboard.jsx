@@ -592,16 +592,16 @@ export default function ContractDashboard() {
   const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
   const contractMobileColumnList = [
     '42px',
-    visibleColumns.contractNo ? '120px' : null,
-    visibleColumns.customer ? '170px' : null,
-    visibleColumns.property ? '135px' : null,
-    visibleColumns.duration ? '140px' : null,
-    visibleColumns.services ? '95px' : null,
-    visibleColumns.status ? '110px' : null,
-    visibleColumns.total ? '110px' : null,
-    visibleColumns.paid ? '110px' : null,
-    visibleColumns.due ? '105px' : null,
-    '143px'
+    visibleColumns.contractNo ? '132px' : null,
+    visibleColumns.customer ? '180px' : null,
+    visibleColumns.property ? '150px' : null,
+    visibleColumns.duration ? '150px' : null,
+    visibleColumns.services ? '115px' : null,
+    visibleColumns.status ? '120px' : null,
+    visibleColumns.total ? '120px' : null,
+    visibleColumns.paid ? '120px' : null,
+    visibleColumns.due ? '115px' : null,
+    '150px'
   ].filter(Boolean);
   const contractMobileMinWidth = contractMobileColumnList.reduce((sum, width) => sum + Number.parseInt(width, 10), 0);
   const tableWrapStyle = isMobile ? { ...shell.tableWrap, overflowX: 'auto', WebkitOverflowScrolling: 'touch' } : shell.tableWrap;
@@ -666,16 +666,16 @@ export default function ContractDashboard() {
       <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
         <colgroup>
           <col style={{ width: '42px' }} />
-          {visibleColumns.contractNo ? <col style={{ width: '120px' }} /> : null}
-          {visibleColumns.customer ? <col style={{ width: '170px' }} /> : null}
-          {visibleColumns.property ? <col style={{ width: '135px' }} /> : null}
-          {visibleColumns.duration ? <col style={{ width: '140px' }} /> : null}
-          {visibleColumns.services ? <col style={{ width: '95px' }} /> : null}
-          {visibleColumns.status ? <col style={{ width: '110px' }} /> : null}
-          {visibleColumns.total ? <col style={{ width: '110px' }} /> : null}
-          {visibleColumns.paid ? <col style={{ width: '110px' }} /> : null}
-          {visibleColumns.due ? <col style={{ width: '105px' }} /> : null}
-          <col style={{ width: '143px' }} />
+          {visibleColumns.contractNo ? <col style={{ width: '132px' }} /> : null}
+          {visibleColumns.customer ? <col style={{ width: '180px' }} /> : null}
+          {visibleColumns.property ? <col style={{ width: '150px' }} /> : null}
+          {visibleColumns.duration ? <col style={{ width: '150px' }} /> : null}
+          {visibleColumns.services ? <col style={{ width: '115px' }} /> : null}
+          {visibleColumns.status ? <col style={{ width: '120px' }} /> : null}
+          {visibleColumns.total ? <col style={{ width: '120px' }} /> : null}
+          {visibleColumns.paid ? <col style={{ width: '120px' }} /> : null}
+          {visibleColumns.due ? <col style={{ width: '115px' }} /> : null}
+          <col style={{ width: '150px' }} />
         </colgroup>
         <thead>
           <tr>

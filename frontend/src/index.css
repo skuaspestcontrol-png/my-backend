@@ -1078,6 +1078,8 @@ textarea:focus {
     align-items: center;
     box-sizing: border-box;
     min-width: 0;
+    width: 100% !important;
+    max-width: none !important;
   }
 
   .crm-compact-table.crm-stack-mobile tbody td {
