@@ -44,6 +44,13 @@ const getEmployeeKey = (entry = {}) => String(
   || entry?.employeeCode
   || ''
 ).trim();
+const getEmployeeDisplayName = (entry = {}) => {
+  const fullName = [
+    entry?.firstName || entry?.first_name,
+    entry?.lastName || entry?.last_name
+  ].filter(Boolean).join(' ').trim();
+  return fullName || String(entry?.employeeName || entry?.name || entry?.displayName || entry?.empCode || entry?.employeeCode || '').trim();
+};
 
 const statusBadgeStyle = (statusRaw) => {
   const status = String(statusRaw || '').toLowerCase();
@@ -258,7 +265,22 @@ export default function PayrollModule() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year]);
 
-  const employeeMap = useMemo(() => new Map(employees.map((entry) => [String(entry._id || ''), entry])), [employees]);
+  const employeeMap = useMemo(() => {
+    const next = new Map();
+    employees.forEach((entry) => {
+      [
+        entry?._id,
+        entry?.id,
+        entry?.external_id,
+        entry?.empCode,
+        entry?.employeeCode
+      ].forEach((key) => {
+        const safeKey = String(key || '').trim();
+        if (safeKey) next.set(safeKey, entry);
+      });
+    });
+    return next;
+  }, [employees]);
   const departments = useMemo(() => Array.from(new Set(employees.map((entry) => String(entry.role || '').trim()).filter(Boolean))), [employees]);
   const getLatestSalaryStructure = (employeeId) => {
     const list = salaryStructures.filter((entry) => String(entry.employeeId || '') === String(employeeId || ''));
@@ -777,7 +799,7 @@ export default function PayrollModule() {
           <tbody>
             {salaryStructures.map((entry) => (
               <tr key={entry._id}>
-                <td style={shell.td}>{employeeMap.get(String(entry.employeeId || '')) ? `${[employeeMap.get(String(entry.employeeId || '')).firstName, employeeMap.get(String(entry.employeeId || '')).lastName].filter(Boolean).join(' ')} (${employeeMap.get(String(entry.employeeId || '')).empCode || '-'})` : entry.employeeId}</td>
+                <td style={shell.td}>{employeeMap.get(String(entry.employeeId || '')) ? `${getEmployeeDisplayName(employeeMap.get(String(entry.employeeId || '')))} (${employeeMap.get(String(entry.employeeId || '')).empCode || '-'})` : entry.employeeId}</td>
                 <td style={shell.td}>{entry.effectiveDate}</td>
                 <td style={shell.td}>{entry.salaryType}</td>
                 <td style={shell.td}>INR {money(entry.basicSalary)}</td>
@@ -938,7 +960,7 @@ export default function PayrollModule() {
           <tbody>
             {advances.map((entry) => (
               <tr key={entry._id}>
-                <td style={shell.td}>{employeeMap.get(String(entry.employeeId || '')) ? ([employeeMap.get(String(entry.employeeId || '')).firstName, employeeMap.get(String(entry.employeeId || '')).lastName].filter(Boolean).join(' ') || employeeMap.get(String(entry.employeeId || '')).empCode) : entry.employeeId}</td>
+                <td style={shell.td}>{employeeMap.get(String(entry.employeeId || '')) ? getEmployeeDisplayName(employeeMap.get(String(entry.employeeId || ''))) : entry.employeeId}</td>
                 <td style={shell.td}>{entry.issuedDate}</td>
                 <td style={shell.td}>INR {money(entry.amount)}</td>
                 <td style={shell.td}>INR {money(entry.recoveredAmount)}</td>
