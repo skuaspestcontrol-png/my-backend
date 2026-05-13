@@ -174,7 +174,14 @@ export default function LeadFollowups() {
     : viewportWidth < 1200
       ? { ...shell.filters, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', padding: '14px 16px' }
       : shell.filters;
-  const tableStyle = { ...shell.table, minWidth: isMobile ? 920 : '100%', tableLayout: 'fixed' };
+  const followupMobileColumns = '150px 150px 100px 105px 145px 130px 130px 110px';
+  const tableStyle = {
+    ...shell.table,
+    minWidth: isMobile ? 920 : '100%',
+    tableLayout: 'fixed',
+    '--mobile-table-columns': followupMobileColumns,
+    '--mobile-table-min-width': '920px'
+  };
 
   const stats = [
     { label: 'Overdue', value: counts.overdue, icon: AlertTriangle, color: '#dc2626', bg: '#fee2e2' },

@@ -590,8 +590,30 @@ export default function ContractDashboard() {
   const isMobile = viewportWidth <= 768;
   const quickWrapStyle = isMobile ? { ...shell.quickWrap, alignItems: 'stretch' } : shell.quickWrap;
   const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
+  const contractMobileColumnList = [
+    '42px',
+    visibleColumns.contractNo ? '120px' : null,
+    visibleColumns.customer ? '170px' : null,
+    visibleColumns.property ? '135px' : null,
+    visibleColumns.duration ? '140px' : null,
+    visibleColumns.services ? '95px' : null,
+    visibleColumns.status ? '110px' : null,
+    visibleColumns.total ? '110px' : null,
+    visibleColumns.paid ? '110px' : null,
+    visibleColumns.due ? '105px' : null,
+    '143px'
+  ].filter(Boolean);
+  const contractMobileMinWidth = contractMobileColumnList.reduce((sum, width) => sum + Number.parseInt(width, 10), 0);
   const tableWrapStyle = isMobile ? { ...shell.tableWrap, overflowX: 'auto', WebkitOverflowScrolling: 'touch' } : shell.tableWrap;
-  const tableStyle = isMobile ? { ...shell.table, minWidth: 1080, tableLayout: 'fixed' } : shell.table;
+  const tableStyle = isMobile
+    ? {
+      ...shell.table,
+      minWidth: contractMobileMinWidth,
+      tableLayout: 'fixed',
+      '--mobile-table-columns': contractMobileColumnList.join(' '),
+      '--mobile-table-min-width': `${contractMobileMinWidth}px`
+    }
+    : shell.table;
   const footerStyle = isMobile ? { ...shell.footer, flexDirection: 'column', alignItems: 'stretch' } : shell.footer;
   const pagerStyle = isMobile ? { ...shell.pager, justifyContent: 'center' } : shell.pager;
 

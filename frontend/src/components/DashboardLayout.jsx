@@ -8,7 +8,6 @@ import {
   Briefcase,
   CalendarDays,
   CircleDollarSign,
-  FileText,
   ChevronDown,
   ChevronRight,
   Database,
@@ -81,7 +80,7 @@ export default function DashboardLayout({ children }) {
     if (location.pathname === '/leads' || location.pathname.startsWith('/leads/')) {
       setLeadsMenuOpen(true);
     }
-    if (location.pathname.startsWith('/sales/')) {
+    if (location.pathname.startsWith('/sales/') || location.pathname.startsWith('/quotations')) {
       setSalesMenuOpen(true);
     }
     if (location.pathname.startsWith('/purchase/')) {
@@ -133,7 +132,7 @@ export default function DashboardLayout({ children }) {
   const isActive = (path) => location.pathname === path;
   const isPrefixActive = (prefix) => location.pathname.startsWith(prefix);
 
-  const salesGroupActive = isPrefixActive('/sales/');
+  const salesGroupActive = isPrefixActive('/sales/') || isPrefixActive('/quotations');
   const leadsGroupActive = isActive('/leads') || isPrefixActive('/leads/');
   const purchaseGroupActive = isPrefixActive('/purchase/');
   const fieldOpsGroupActive = isPrefixActive('/operations/') || isActive('/schedule-job') || isActive('/technician-portal');
@@ -160,14 +159,17 @@ export default function DashboardLayout({ children }) {
 
   const linkStyle = (path) => baseLinkStyle(isActive(path));
 
-  const subLinkStyle = (path) => ({
-    ...baseLinkStyle(isActive(path)),
+  const subLinkStyle = (path, activeOverride) => {
+    const active = typeof activeOverride === 'boolean' ? activeOverride : isActive(path);
+    return ({
+    ...baseLinkStyle(active),
     fontSize: '12px',
     minHeight: '36px',
     padding: '7px 14px 7px 38px',
     width: 'calc(100% - 24px)',
-    color: isActive(path) ? 'var(--color-white)' : 'var(--color-muted)'
+    color: active ? 'var(--color-white)' : 'var(--color-muted)'
   });
+  };
 
   const subLinkActiveStyle = (path) => ({
     ...subLinkStyle(path),
@@ -299,8 +301,6 @@ export default function DashboardLayout({ children }) {
                 <Link to="/leads/followup" className={isActive('/leads/followup') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads/followup')}>Followup</Link>
               </>
             ) : null}
-            <Link to="/quotations" className={isActive('/quotations') || isActive('/quotations/new') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={baseLinkStyle(isActive('/quotations') || isActive('/quotations/new'))}><FileText size={18} /> Quotation</Link>
-
             <button type="button" className={salesGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => setSalesMenuOpen((prev) => !prev)} style={groupToggleStyle(salesGroupActive)}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
                 <Briefcase size={18} /> Sales
@@ -312,6 +312,7 @@ export default function DashboardLayout({ children }) {
                 <Link to="/sales/customers" className={isActive('/sales/customers') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/customers')}>Customer</Link>
                 <Link to="/sales/contracts" className={isActive('/sales/contracts') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/contracts')}>Contract</Link>
                 <Link to="/sales/invoices" className={isActive('/sales/invoices') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/invoices')}>Invoice</Link>
+                <Link to="/quotations" className={isActive('/quotations') || isActive('/quotations/new') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/quotations', isActive('/quotations') || isActive('/quotations/new'))}>Quotation</Link>
                 <Link to="/sales/payment-received" className={isActive('/sales/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/payment-received')}>Payment Received</Link>
                 <Link to="/sales/renewal" className={isActive('/sales/renewal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/renewal')}>Renewal</Link>
               </>

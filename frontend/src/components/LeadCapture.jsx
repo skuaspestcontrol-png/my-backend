@@ -1980,11 +1980,12 @@ export default function LeadCapture() {
   const leadTableMinWidth = isMobile
     ? `${40 + visibleColumnDefs.reduce((sum, column) => sum + (mobileLeadColumnWidths[column.key] || 128), 0) + 92}px`
     : '100%';
+  const leadMobileColumns = `40px ${visibleColumnDefs.map((column) => `${mobileLeadColumnWidths[column.key] || 128}px`).join(' ')} 92px`;
   const tableWrapStyle = isMobile
     ? { ...s.tableWrap, overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', maxWidth: '100%' }
     : { ...s.tableWrap, overflowX: 'auto', overflowY: 'visible', maxWidth: '100%' };
   const tableStyleTiny = isMobile
-    ? { ...tableStyle, width: leadTableMinWidth, minWidth: leadTableMinWidth, tableLayout: 'fixed' }
+    ? { ...tableStyle, width: leadTableMinWidth, minWidth: leadTableMinWidth, tableLayout: 'fixed', '--mobile-table-columns': leadMobileColumns, '--mobile-table-min-width': leadTableMinWidth }
     : { ...tableStyle, minWidth: leadTableMinWidth };
   const actionColumnStyle = isMobile
     ? { width: '92px', minWidth: '92px', maxWidth: '92px' }

@@ -300,7 +300,14 @@ function QuotationDashboardInner() {
   const rowActionWrapStyle = isMobile
     ? { display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-start' }
     : { display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-end' };
-  const tableStyle = { ...shell.table, minWidth: isMobile ? 940 : '100%', tableLayout: 'fixed' };
+  const quotationMobileColumns = '64px 170px 110px 155px 145px 105px 125px 122px';
+  const tableStyle = {
+    ...shell.table,
+    minWidth: isMobile ? 996 : '100%',
+    tableLayout: 'fixed',
+    '--mobile-table-columns': quotationMobileColumns,
+    '--mobile-table-min-width': '996px'
+  };
   const actionColumnStyle = isMobile
     ? {}
     : { width: 122, minWidth: 122, maxWidth: 122, textAlign: 'right', overflow: 'visible' };

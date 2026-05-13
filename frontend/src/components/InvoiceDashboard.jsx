@@ -2037,12 +2037,24 @@ export default function InvoiceDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
-  const tableStyle = isMobile
-    ? { ...shell.table, minWidth: 40 + 40 + visibleColumnDefs.reduce((sum, column) => {
+  const invoiceMobileColumnWidths = ['40px', '40px', ...visibleColumnDefs.map((column) => {
+    const style = getColumnStyle(column.key);
+    const width = parseInt(style.minWidth || style.width, 10);
+    return `${Number.isFinite(width) ? width : 150}px`;
+  }), '80px'];
+  const invoiceMobileMinWidth = 40 + 40 + visibleColumnDefs.reduce((sum, column) => {
       const style = getColumnStyle(column.key);
       const width = parseInt(style.minWidth || style.width, 10);
       return sum + (Number.isFinite(width) ? width : 150);
-    }, 0) + 92, tableLayout: 'fixed' }
+    }, 0) + 80;
+  const tableStyle = isMobile
+    ? {
+      ...shell.table,
+      minWidth: invoiceMobileMinWidth,
+      tableLayout: 'fixed',
+      '--mobile-table-columns': invoiceMobileColumnWidths.join(' '),
+      '--mobile-table-min-width': `${invoiceMobileMinWidth}px`
+    }
     : { ...shell.table, minWidth: '100%' };
   const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : shell.itemTable;

@@ -1047,28 +1047,37 @@ textarea:focus {
   }
 
   .crm-compact-table.crm-stack-mobile {
-    display: table;
-    min-width: 760px;
-    width: 100% !important;
+    display: block !important;
+    min-width: max(100%, var(--mobile-table-min-width, 760px));
+    width: max-content !important;
     max-width: none !important;
-    table-layout: fixed !important;
-    border-collapse: collapse !important;
+    table-layout: auto !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
     background: #fff !important;
   }
 
   .crm-compact-table.crm-stack-mobile thead {
-    display: table-header-group;
+    display: block !important;
   }
 
-  .crm-compact-table.crm-stack-mobile tbody,
+  .crm-compact-table.crm-stack-mobile tbody {
+    display: block !important;
+  }
+
   .crm-compact-table.crm-stack-mobile tr {
-    display: table-row;
+    display: grid !important;
+    grid-template-columns: var(--mobile-table-columns);
+    width: max-content;
+    min-width: 100%;
   }
 
   .crm-compact-table.crm-stack-mobile th,
   .crm-compact-table.crm-stack-mobile td {
-    display: table-cell !important;
+    display: flex !important;
+    align-items: center;
     box-sizing: border-box;
+    min-width: 0;
   }
 
   .crm-compact-table.crm-stack-mobile tbody td {
