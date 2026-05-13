@@ -1041,7 +1041,7 @@ textarea:focus {
 @media (max-width: 768px) {
   .crm-table-shell {
     overflow-x: auto !important;
-    overflow-y: visible;
+    overflow-y: hidden;
     border: 1px solid var(--color-border) !important;
     background: #fff !important;
   }
@@ -1052,6 +1052,7 @@ textarea:focus {
     width: 100% !important;
     max-width: none !important;
     table-layout: fixed !important;
+    border-collapse: collapse !important;
     background: #fff !important;
   }
 
@@ -1066,7 +1067,8 @@ textarea:focus {
 
   .crm-compact-table.crm-stack-mobile th,
   .crm-compact-table.crm-stack-mobile td {
-    display: table-cell;
+    display: table-cell !important;
+    box-sizing: border-box;
   }
 
   .crm-compact-table.crm-stack-mobile tbody td {
@@ -1081,9 +1083,16 @@ textarea:focus {
   }
 
   .crm-compact-table.crm-stack-mobile thead th {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    z-index: auto !important;
     height: 38px !important;
     padding: 8px 9px !important;
     border-bottom: 1px solid var(--color-border) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
     vertical-align: middle !important;
   }
 

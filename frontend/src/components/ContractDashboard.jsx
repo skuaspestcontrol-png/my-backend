@@ -642,6 +642,19 @@ export default function ContractDashboard() {
     }
     return (
       <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
+        <colgroup>
+          <col style={{ width: '42px' }} />
+          {visibleColumns.contractNo ? <col style={{ width: '120px' }} /> : null}
+          {visibleColumns.customer ? <col style={{ width: '170px' }} /> : null}
+          {visibleColumns.property ? <col style={{ width: '135px' }} /> : null}
+          {visibleColumns.duration ? <col style={{ width: '140px' }} /> : null}
+          {visibleColumns.services ? <col style={{ width: '95px' }} /> : null}
+          {visibleColumns.status ? <col style={{ width: '110px' }} /> : null}
+          {visibleColumns.total ? <col style={{ width: '110px' }} /> : null}
+          {visibleColumns.paid ? <col style={{ width: '110px' }} /> : null}
+          {visibleColumns.due ? <col style={{ width: '105px' }} /> : null}
+          <col style={{ width: '143px' }} />
+        </colgroup>
         <thead>
           <tr>
             <th style={{ ...shell.th, width: '3%' }}>#</th>

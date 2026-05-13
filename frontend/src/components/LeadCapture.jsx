@@ -2232,6 +2232,13 @@ export default function LeadCapture() {
 
         <div style={tableWrapStyle} className="crm-table-shell">
           <table style={tableStyleTiny} className="crm-compact-table crm-stack-mobile">
+            <colgroup>
+              <col style={s.checkboxWrap} />
+              {visibleColumnDefs.map((column) => (
+                <col key={column.key} style={getColumnStyle(column.key)} />
+              ))}
+              <col style={actionColumnStyle} />
+            </colgroup>
             <thead>
               <tr>
                 <th style={{ ...s.headCell, ...s.checkboxWrap }}>

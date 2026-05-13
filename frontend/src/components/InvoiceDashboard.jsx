@@ -2160,6 +2160,14 @@ export default function InvoiceDashboard() {
 
       <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
         <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
+          <colgroup>
+            <col style={shell.checkboxWrap} />
+            <col style={shell.checkboxWrap} />
+            {visibleColumnDefs.map((column) => (
+              <col key={column.key} style={getColumnStyle(column.key)} />
+            ))}
+            <col style={{ width: '80px' }} />
+          </colgroup>
           <thead>
             <tr>
               <th style={{ ...shell.headCell, ...shell.checkboxWrap }} />
