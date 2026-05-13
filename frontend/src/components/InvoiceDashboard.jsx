@@ -268,7 +268,7 @@ const shell = {
   addressHeadActions: { display: 'flex', alignItems: 'center', gap: '6px' },
   addressTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#475569', textTransform: 'uppercase' },
   addressText: { margin: 0, fontSize: '13px', color: '#0f172a', lineHeight: 1.45, whiteSpace: 'pre-line' },
-  addressPickerOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.28)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },
+  addressPickerOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.28)', display: 'grid', placeItems: 'center', zIndex: 3200, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },
   addressPicker: { background: '#fff', width: 'min(100%, 720px)', borderRadius: '20px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden' },
   addressPickerHead: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   addressPickerTitle: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' },
@@ -290,7 +290,7 @@ const shell = {
   inputMainWithButton: { borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' },
   inputActionButton: { border: '1px solid var(--color-primary)', borderRadius: '0 8px 8px 0', minHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', color: 'var(--color-primary)', cursor: 'pointer' },
   miniCloseButton: { border: 'none', background: 'transparent', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, width: '28px', height: '28px' },
-  miniModalOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.35)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },
+  miniModalOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.35)', display: 'grid', placeItems: 'center', zIndex: 3300, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },
   miniModal: { width: 'min(100%, 680px)', background: '#fff', borderRadius: '20px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden' },
   miniModalHead: { padding: '14px 18px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-primary)', color: '#fff' },
   miniModalTitle: { margin: 0, fontSize: '22px', fontWeight: 700, color: '#ffffff' },
@@ -658,6 +658,7 @@ export default function InvoiceDashboard() {
   const [showBillingAddressPicker, setShowBillingAddressPicker] = useState(false);
   const [showShippingAddressPicker, setShowShippingAddressPicker] = useState(false);
   const [editingShippingAddressId, setEditingShippingAddressId] = useState('');
+  const [addressDraftTarget, setAddressDraftTarget] = useState('shipping');
   const [shippingAddressDraft, setShippingAddressDraft] = useState(emptyAddressDraft);
   const [showModal, setShowModal] = useState(false);
   const [modalOpenedFromContract, setModalOpenedFromContract] = useState(false);
@@ -1572,16 +1573,49 @@ export default function InvoiceDashboard() {
     }
   };
 
+  const openCustomerAddressDraft = (target = 'shipping') => {
+    if (!selectedCustomer?._id) {
+      setSaveError('Select a customer before adding an address.');
+      return;
+    }
+    setAddressDraftTarget(target);
+    setEditingShippingAddressId('new-premise');
+    setShippingAddressDraft({
+      ...emptyAddressDraft,
+      label: target === 'billing' ? 'Additional Billing Address' : 'Additional Shipping Address',
+      company: selectedCustomer?.displayName || selectedCustomer?.name || '',
+      gstin: selectedCustomer?.gstNumber || '',
+      placeOfSupply: normalizeGstState(selectedCustomer?.billingState || selectedCustomer?.state || '')
+    });
+    if (target === 'billing') {
+      setShowBillingAddressPicker(true);
+      setShowShippingAddressPicker(false);
+    } else {
+      setShowShippingAddressPicker(true);
+      setShowBillingAddressPicker(false);
+    }
+  };
+
   const openShippingAddressPicker = () => {
+    if (!selectedCustomer) {
+      setSaveError('Select a customer before choosing a shipping address.');
+      return;
+    }
     setShowBillingAddressPicker(false);
     setEditingShippingAddressId('');
+    setAddressDraftTarget('shipping');
     setShippingAddressDraft(emptyAddressDraft);
     setShowShippingAddressPicker(true);
   };
 
   const openBillingAddressPicker = () => {
+    if (!selectedCustomer) {
+      setSaveError('Select a customer before choosing a billing address.');
+      return;
+    }
     setShowShippingAddressPicker(false);
     setEditingShippingAddressId('');
+    setAddressDraftTarget('billing');
     setShippingAddressDraft(emptyAddressDraft);
     setShowBillingAddressPicker(true);
   };
@@ -1607,6 +1641,15 @@ export default function InvoiceDashboard() {
   };
 
   const startNewShippingAddress = () => {
+    openCustomerAddressDraft('shipping');
+  };
+
+  const startNewBillingAddress = () => {
+    openCustomerAddressDraft('billing');
+  };
+
+  const startNewCustomShippingAddress = () => {
+    setAddressDraftTarget('shipping');
     setEditingShippingAddressId('new');
     setShippingAddressDraft({
       ...emptyAddressDraft,
@@ -1619,6 +1662,7 @@ export default function InvoiceDashboard() {
   const startEditShippingAddress = (id) => {
     const address = shippingAddressOptions.find((entry) => entry.id === id);
     if (!address || !id.startsWith('custom-')) return;
+    setAddressDraftTarget('shipping');
     setEditingShippingAddressId(id);
     setShippingAddressDraft({
       label: address.label || 'Additional Address',
@@ -1637,7 +1681,57 @@ export default function InvoiceDashboard() {
     if (!shippingAddressDraft.line1.trim()) return;
     const pincode = toSixDigitPincode(shippingAddressDraft.pincode);
     if (pincode && pincode.length !== 6) {
-      setSaveError('Shipping address pincode must be exactly 6 digits.');
+      setSaveError(`${addressDraftTarget === 'billing' ? 'Billing' : 'Shipping'} address pincode must be exactly 6 digits.`);
+      return;
+    }
+    if (editingShippingAddressId === 'new-premise') {
+      if (!selectedCustomer?._id) {
+        setSaveError('Select a customer before adding an address.');
+        return;
+      }
+      const payload = {
+        premiseLabel: shippingAddressDraft.label || (addressDraftTarget === 'billing' ? 'Additional Billing Address' : 'Additional Shipping Address'),
+        premiseType: addressDraftTarget === 'billing' ? 'Billing' : 'Shipping',
+        contactPerson: shippingAddressDraft.company || selectedCustomer.displayName || selectedCustomer.name || '',
+        address: [shippingAddressDraft.line1, shippingAddressDraft.line2].filter(Boolean).join(', '),
+        areaName: shippingAddressDraft.area || '',
+        city: '',
+        state: shippingAddressDraft.state || '',
+        pincode,
+        country: 'India',
+        gstin: shippingAddressDraft.gstin || selectedCustomer.gstNumber || '',
+        placeOfSupply: normalizeGstState(shippingAddressDraft.placeOfSupply || shippingAddressDraft.state || ''),
+        isBilling: addressDraftTarget === 'billing',
+        isShipping: addressDraftTarget === 'shipping',
+        isDefault: false
+      };
+      axios.post(`${API_BASE_URL}/api/customers/${selectedCustomer._id}/premises`, payload)
+        .then(async (res) => {
+          const created = res.data || {};
+          const rowsRes = await axios.get(`${API_BASE_URL}/api/customers/${selectedCustomer._id}/premises`);
+          const rows = Array.isArray(rowsRes.data) ? rowsRes.data : [];
+          setCustomerPremises((prev) => ({ ...prev, [selectedCustomer._id]: rows }));
+          const premiseId = created.premiseId || created.premise_id || rows[rows.length - 1]?.premiseId || rows[rows.length - 1]?.premise_id || '';
+          const source = premiseId ? `premise:${premiseId}` : '';
+          if (source) {
+            setFormWithTotals((prev) => ({
+              ...prev,
+              ...(addressDraftTarget === 'billing' ? { billingAddressSource: source } : { shippingAddressSource: source }),
+              placeOfSupply: addressDraftTarget === 'shipping'
+                ? normalizeGstState(payload.placeOfSupply || prev.placeOfSupply)
+                : prev.placeOfSupply
+            }));
+          }
+          setShowBillingAddressPicker(false);
+          setShowShippingAddressPicker(false);
+          setEditingShippingAddressId('');
+          setShippingAddressDraft(emptyAddressDraft);
+          setSaveError('');
+        })
+        .catch((error) => {
+          console.error('Failed to save customer address', error);
+          setSaveError(error?.response?.data?.error || 'Unable to save customer address.');
+        });
       return;
     }
     setFormWithTotals((prev) => {
@@ -3100,6 +3194,9 @@ export default function InvoiceDashboard() {
                   </div>
                 </div>
               ))}
+              <button type="button" style={shell.outlineBtn} onClick={startNewBillingAddress}>
+                <PlusCircle size={14} /> New address
+              </button>
             </div>
           </div>
         </div>
@@ -3163,10 +3260,10 @@ export default function InvoiceDashboard() {
           <div style={{ ...shell.miniModal, width: 'min(100%, 900px)' }}>
             <div style={shell.miniModalHead}>
               <h3 style={shell.miniModalTitle}>
-                {editingShippingAddressId === 'new' ? 'Add New Address' : 'Edit Address'}
+                {editingShippingAddressId === 'new' || editingShippingAddressId === 'new-premise' ? 'Add New Address' : 'Edit Address'}
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {editingShippingAddressId === 'new' ? (
+                {(editingShippingAddressId === 'new' || editingShippingAddressId === 'new-premise') && addressDraftTarget === 'shipping' ? (
                   <button
                     type="button"
                     style={shell.outlineBtn}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -44,6 +44,20 @@ const quickFilterStyles = {
   Renewed: { background: 'rgba(8,145,178,0.16)', color: '#155e75' }
 };
 
+const defaultColumnWidths = {
+  rowNumber: 42,
+  contractNo: 132,
+  customer: 180,
+  property: 150,
+  duration: 150,
+  services: 115,
+  status: 120,
+  total: 120,
+  paid: 120,
+  due: 115,
+  actions: 150
+};
+
 const shell = {
   page: {
     display: 'grid',
@@ -81,8 +95,9 @@ const shell = {
   input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff' },
   clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', borderRadius: '14px', border: '1px solid var(--color-border)' },
-  table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'auto' },
-  th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis' },
+  table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
+  th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '8px 12px 8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', position: 'relative' },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   td: { textAlign: 'left', verticalAlign: 'middle', padding: '8px 6px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#fff' },
   selectedRow: { background: 'transparent' },
   selectedCell: { background: '#f1f5f9' },
@@ -293,7 +308,16 @@ export default function ContractDashboard() {
     paid: true,
     due: true
   });
+  const [columnWidths, setColumnWidths] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('contracts_column_widths') || '{}');
+      return saved && typeof saved === 'object' ? saved : {};
+    } catch {
+      return {};
+    }
+  });
   const [customerSummary, setCustomerSummary] = useState({ open: false, row: null, showHistory: false });
+  const resizeStateRef = useRef(null);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -343,6 +367,10 @@ export default function ContractDashboard() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('contracts_column_widths', JSON.stringify(columnWidths));
+  }, [columnWidths]);
 
   useEffect(() => {
     const onDocClick = (event) => {
@@ -588,32 +616,69 @@ export default function ContractDashboard() {
     { key: 'due', label: 'Due (₹)' }
   ];
   const isMobile = viewportWidth <= 768;
+  const getColumnWidth = (columnKey) => Math.max(42, Number(columnWidths[columnKey] || defaultColumnWidths[columnKey] || 120));
+  const startColumnResize = (event, columnKey) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const th = event.currentTarget.closest('th');
+    const startWidth = getColumnWidth(columnKey) || th?.offsetWidth || 120;
+    resizeStateRef.current = { columnKey, startX: event.clientX, startWidth };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMouseMove = (moveEvent) => {
+      if (!resizeStateRef.current) return;
+      const delta = moveEvent.clientX - resizeStateRef.current.startX;
+      const minWidth = columnKey === 'rowNumber' ? 42 : 80;
+      const nextWidth = Math.max(minWidth, resizeStateRef.current.startWidth + delta);
+      setColumnWidths((prev) => ({ ...prev, [columnKey]: nextWidth }));
+    };
+
+    const onMouseUp = () => {
+      resizeStateRef.current = null;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+  const renderResizableHeader = (columnKey, label, extraStyle = {}) => (
+    <th style={{ ...shell.th, width: `${getColumnWidth(columnKey)}px`, minWidth: `${getColumnWidth(columnKey)}px`, ...extraStyle }}>
+      {label}
+      <span
+        aria-hidden="true"
+        style={shell.resizeHandle}
+        onMouseDown={(event) => startColumnResize(event, columnKey)}
+      />
+    </th>
+  );
+  const contractColumnList = [
+    `${getColumnWidth('rowNumber')}px`,
+    visibleColumns.contractNo ? `${getColumnWidth('contractNo')}px` : null,
+    visibleColumns.customer ? `${getColumnWidth('customer')}px` : null,
+    visibleColumns.property ? `${getColumnWidth('property')}px` : null,
+    visibleColumns.duration ? `${getColumnWidth('duration')}px` : null,
+    visibleColumns.services ? `${getColumnWidth('services')}px` : null,
+    visibleColumns.status ? `${getColumnWidth('status')}px` : null,
+    visibleColumns.total ? `${getColumnWidth('total')}px` : null,
+    visibleColumns.paid ? `${getColumnWidth('paid')}px` : null,
+    visibleColumns.due ? `${getColumnWidth('due')}px` : null,
+    `${getColumnWidth('actions')}px`
+  ].filter(Boolean);
+  const contractTableMinWidth = contractColumnList.reduce((sum, width) => sum + Number.parseInt(width, 10), 0);
   const quickWrapStyle = isMobile ? { ...shell.quickWrap, alignItems: 'stretch' } : shell.quickWrap;
   const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
-  const contractMobileColumnList = [
-    '42px',
-    visibleColumns.contractNo ? '132px' : null,
-    visibleColumns.customer ? '180px' : null,
-    visibleColumns.property ? '150px' : null,
-    visibleColumns.duration ? '150px' : null,
-    visibleColumns.services ? '115px' : null,
-    visibleColumns.status ? '120px' : null,
-    visibleColumns.total ? '120px' : null,
-    visibleColumns.paid ? '120px' : null,
-    visibleColumns.due ? '115px' : null,
-    '150px'
-  ].filter(Boolean);
-  const contractMobileMinWidth = contractMobileColumnList.reduce((sum, width) => sum + Number.parseInt(width, 10), 0);
   const tableWrapStyle = isMobile ? { ...shell.tableWrap, overflowX: 'auto', WebkitOverflowScrolling: 'touch' } : shell.tableWrap;
-  const tableStyle = isMobile
-    ? {
-      ...shell.table,
-      minWidth: contractMobileMinWidth,
-      tableLayout: 'fixed',
-      '--mobile-table-columns': contractMobileColumnList.join(' '),
-      '--mobile-table-min-width': `${contractMobileMinWidth}px`
-    }
-    : shell.table;
+  const tableStyle = {
+    ...shell.table,
+    width: `${contractTableMinWidth}px`,
+    minWidth: `${contractTableMinWidth}px`,
+    '--mobile-table-columns': contractColumnList.join(' '),
+    '--mobile-table-min-width': `${contractTableMinWidth}px`
+  };
   const mobileStackCellStyle = isMobile
     ? { flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }
     : {};
@@ -668,35 +733,35 @@ export default function ContractDashboard() {
     return (
       <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
         <colgroup>
-          <col style={{ width: '42px' }} />
-          {visibleColumns.contractNo ? <col style={{ width: '132px' }} /> : null}
-          {visibleColumns.customer ? <col style={{ width: '180px' }} /> : null}
-          {visibleColumns.property ? <col style={{ width: '150px' }} /> : null}
-          {visibleColumns.duration ? <col style={{ width: '150px' }} /> : null}
-          {visibleColumns.services ? <col style={{ width: '115px' }} /> : null}
-          {visibleColumns.status ? <col style={{ width: '120px' }} /> : null}
-          {visibleColumns.total ? <col style={{ width: '120px' }} /> : null}
-          {visibleColumns.paid ? <col style={{ width: '120px' }} /> : null}
-          {visibleColumns.due ? <col style={{ width: '115px' }} /> : null}
-          <col style={{ width: '150px' }} />
+          <col style={{ width: `${getColumnWidth('rowNumber')}px` }} />
+          {visibleColumns.contractNo ? <col style={{ width: `${getColumnWidth('contractNo')}px` }} /> : null}
+          {visibleColumns.customer ? <col style={{ width: `${getColumnWidth('customer')}px` }} /> : null}
+          {visibleColumns.property ? <col style={{ width: `${getColumnWidth('property')}px` }} /> : null}
+          {visibleColumns.duration ? <col style={{ width: `${getColumnWidth('duration')}px` }} /> : null}
+          {visibleColumns.services ? <col style={{ width: `${getColumnWidth('services')}px` }} /> : null}
+          {visibleColumns.status ? <col style={{ width: `${getColumnWidth('status')}px` }} /> : null}
+          {visibleColumns.total ? <col style={{ width: `${getColumnWidth('total')}px` }} /> : null}
+          {visibleColumns.paid ? <col style={{ width: `${getColumnWidth('paid')}px` }} /> : null}
+          {visibleColumns.due ? <col style={{ width: `${getColumnWidth('due')}px` }} /> : null}
+          <col style={{ width: `${getColumnWidth('actions')}px` }} />
         </colgroup>
         <thead>
           <tr>
-            <th style={{ ...shell.th, width: '3%' }}>#</th>
+            {renderResizableHeader('rowNumber', '#')}
             {visibleColumns.contractNo ? (
-              <th style={{ ...shell.th, width: '10%', minWidth: '120px' }}>Contract #</th>
+              renderResizableHeader('contractNo', 'Contract #')
             ) : null}
             {visibleColumns.customer ? (
-              <th style={{ ...shell.th, width: '14%', textAlign: 'left' }}>Customer</th>
+              renderResizableHeader('customer', 'Customer', { textAlign: 'left' })
             ) : null}
-            {visibleColumns.property ? <th style={{ ...shell.th, width: '10%' }}>Property</th> : null}
-            {visibleColumns.duration ? <th style={{ ...shell.th, width: '12%' }}>Duration</th> : null}
-            {visibleColumns.services ? <th style={{ ...shell.th, width: '8%' }}>Services</th> : null}
-            {visibleColumns.status ? <th style={{ ...shell.th, width: '8%' }}>Status</th> : null}
-            {visibleColumns.total ? <th style={{ ...shell.th, width: '9%' }}>Total (₹)</th> : null}
-            {visibleColumns.paid ? <th style={{ ...shell.th, width: '9%' }}>Paid (₹)</th> : null}
-            {visibleColumns.due ? <th style={{ ...shell.th, width: '8%' }}>Due (₹)</th> : null}
-            <th style={{ ...shell.th, width: '13%' }}>Actions</th>
+            {visibleColumns.property ? renderResizableHeader('property', 'Property') : null}
+            {visibleColumns.duration ? renderResizableHeader('duration', 'Duration') : null}
+            {visibleColumns.services ? renderResizableHeader('services', 'Services') : null}
+            {visibleColumns.status ? renderResizableHeader('status', 'Status') : null}
+            {visibleColumns.total ? renderResizableHeader('total', 'Total (₹)') : null}
+            {visibleColumns.paid ? renderResizableHeader('paid', 'Paid (₹)') : null}
+            {visibleColumns.due ? renderResizableHeader('due', 'Due (₹)') : null}
+            {renderResizableHeader('actions', 'Actions')}
           </tr>
         </thead>
         <tbody>
