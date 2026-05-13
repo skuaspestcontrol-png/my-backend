@@ -174,7 +174,7 @@ export default function LeadFollowups() {
     : viewportWidth < 1200
       ? { ...shell.filters, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', padding: '14px 16px' }
       : shell.filters;
-  const tableStyle = { ...shell.table, minWidth: isMobile ? 0 : '100%', tableLayout: 'fixed' };
+  const tableStyle = { ...shell.table, minWidth: isMobile ? 920 : '100%', tableLayout: 'fixed' };
 
   const stats = [
     { label: 'Overdue', value: counts.overdue, icon: AlertTriangle, color: '#dc2626', bg: '#fee2e2' },
@@ -292,7 +292,7 @@ export default function LeadFollowups() {
           Follow-ups
           <span style={shell.badge}>{tabRows.length}</span>
         </div>
-        <div style={{ ...shell.tableWrap, overflowX: 'hidden' }} className="crm-table-shell">
+        <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
           <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
             <thead>
               <tr>

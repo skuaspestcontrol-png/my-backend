@@ -300,7 +300,7 @@ function QuotationDashboardInner() {
   const rowActionWrapStyle = isMobile
     ? { display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-start' }
     : { display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-end' };
-  const tableStyle = { ...shell.table, minWidth: isMobile ? 0 : '100%', tableLayout: 'fixed' };
+  const tableStyle = { ...shell.table, minWidth: isMobile ? 940 : '100%', tableLayout: 'fixed' };
   const actionColumnStyle = isMobile
     ? {}
     : { width: 122, minWidth: 122, maxWidth: 122, textAlign: 'right', overflow: 'visible' };
@@ -352,7 +352,7 @@ function QuotationDashboardInner() {
           <p style={shell.panelTitle}>Recent Quotations</p>
                   <span style={shell.badge}>{rows.length} records</span>
         </div>
-        <div style={{ ...shell.tableWrap, overflowX: 'hidden' }} className="crm-table-shell">
+        <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
           <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
             <colgroup>
               <col style={{ width: isMobile ? undefined : '7%' }} />

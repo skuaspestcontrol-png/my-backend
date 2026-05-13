@@ -1978,10 +1978,10 @@ export default function LeadCapture() {
   const customizeButtonStyle = isTiny ? { ...s.customizeButton, padding: '6px 8px', fontSize: '10px' } : s.customizeButton;
   const leadModalCompactBodyStyle = isTiny ? { ...leadModalBodyStyle, padding: '10px' } : leadModalBodyStyle;
   const leadTableMinWidth = isMobile
-    ? '100%'
+    ? `${40 + visibleColumnDefs.reduce((sum, column) => sum + (mobileLeadColumnWidths[column.key] || 128), 0) + 92}px`
     : '100%';
   const tableWrapStyle = isMobile
-    ? { ...s.tableWrap, overflowX: 'hidden', overflowY: 'visible', WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain' }
+    ? { ...s.tableWrap, overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', maxWidth: '100%' }
     : { ...s.tableWrap, overflowX: 'auto', overflowY: 'visible', maxWidth: '100%' };
   const tableStyleTiny = isMobile
     ? { ...tableStyle, width: leadTableMinWidth, minWidth: leadTableMinWidth, tableLayout: 'fixed' }

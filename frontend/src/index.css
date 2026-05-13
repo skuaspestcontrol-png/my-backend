@@ -1040,75 +1040,58 @@ textarea:focus {
 
 @media (max-width: 768px) {
   .crm-table-shell {
-    overflow-x: hidden !important;
+    overflow-x: auto !important;
     overflow-y: visible;
-    border: none !important;
-    background: transparent !important;
+    border: 1px solid var(--color-border) !important;
+    background: #fff !important;
   }
 
   .crm-compact-table.crm-stack-mobile {
-    display: block;
-    background: transparent !important;
+    display: table;
+    min-width: 760px;
+    width: max-content !important;
+    max-width: none !important;
+    background: #fff !important;
   }
 
   .crm-compact-table.crm-stack-mobile thead {
-    display: none;
+    display: table-header-group;
   }
 
   .crm-compact-table.crm-stack-mobile tbody,
-  .crm-compact-table.crm-stack-mobile tr,
-  .crm-compact-table.crm-stack-mobile td {
-    display: block;
-    width: 100% !important;
-    max-width: 100% !important;
+  .crm-compact-table.crm-stack-mobile tr {
+    display: table-row;
   }
 
-  .crm-compact-table.crm-stack-mobile tr {
-    margin-bottom: 10px;
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    overflow: hidden;
-    background: #fff;
-    box-shadow: var(--shadow-sm);
+  .crm-compact-table.crm-stack-mobile th,
+  .crm-compact-table.crm-stack-mobile td {
+    display: table-cell;
   }
 
   .crm-compact-table.crm-stack-mobile tbody td {
-    min-height: 0 !important;
-    height: auto !important;
-    padding: 8px 10px !important;
-    display: grid;
-    grid-template-columns: 108px minmax(0, 1fr);
-    gap: 8px;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 8px 9px !important;
     border-bottom: 1px solid #eef2f7 !important;
-    white-space: normal !important;
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle !important;
   }
 
   .crm-compact-table.crm-stack-mobile tbody td::before {
-    content: attr(data-label);
-    color: #64748b;
-    font-size: 11px;
-    font-weight: 700;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .crm-compact-table.crm-stack-mobile tbody td:last-child {
-    border-bottom: none !important;
-  }
-
-  .crm-compact-table.crm-stack-mobile tbody td[data-label="Select"] {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .crm-compact-table.crm-stack-mobile tbody td[data-label="Select"]::before {
     display: none;
   }
 
   .crm-compact-table.crm-stack-mobile tbody td[data-label="Actions"],
   .crm-compact-table.crm-stack-mobile tbody td[data-label="Action"] {
-    grid-template-columns: 108px minmax(0, 1fr);
-    align-items: center;
+    overflow: visible !important;
+    text-align: center;
+  }
+
+  .crm-compact-table.crm-stack-mobile button {
+    min-height: 30px !important;
+    height: 30px !important;
+    white-space: nowrap !important;
   }
 }

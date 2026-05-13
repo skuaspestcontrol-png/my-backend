@@ -2037,7 +2037,13 @@ export default function InvoiceDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
-  const tableStyle = isMobile ? { ...shell.table, minWidth: 0, tableLayout: 'fixed' } : { ...shell.table, minWidth: '100%' };
+  const tableStyle = isMobile
+    ? { ...shell.table, minWidth: 40 + 40 + visibleColumnDefs.reduce((sum, column) => {
+      const style = getColumnStyle(column.key);
+      const width = parseInt(style.minWidth || style.width, 10);
+      return sum + (Number.isFinite(width) ? width : 150);
+    }, 0) + 92, tableLayout: 'fixed' }
+    : { ...shell.table, minWidth: '100%' };
   const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : shell.itemTable;
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
@@ -2152,7 +2158,7 @@ export default function InvoiceDashboard() {
         </div>
       </div>
 
-      <div style={{ ...shell.tableWrap, overflowX: 'hidden' }} className="crm-table-shell">
+      <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
         <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
           <thead>
             <tr>

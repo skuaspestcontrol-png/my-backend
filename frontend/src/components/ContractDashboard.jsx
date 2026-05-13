@@ -590,8 +590,8 @@ export default function ContractDashboard() {
   const isMobile = viewportWidth <= 768;
   const quickWrapStyle = isMobile ? { ...shell.quickWrap, alignItems: 'stretch' } : shell.quickWrap;
   const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
-  const tableWrapStyle = isMobile ? { ...shell.tableWrap, WebkitOverflowScrolling: 'touch' } : shell.tableWrap;
-  const tableStyle = isMobile ? { ...shell.table, minWidth: '100%', tableLayout: 'fixed' } : shell.table;
+  const tableWrapStyle = isMobile ? { ...shell.tableWrap, overflowX: 'auto', WebkitOverflowScrolling: 'touch' } : shell.tableWrap;
+  const tableStyle = isMobile ? { ...shell.table, minWidth: 1080, tableLayout: 'fixed' } : shell.table;
   const footerStyle = isMobile ? { ...shell.footer, flexDirection: 'column', alignItems: 'stretch' } : shell.footer;
   const pagerStyle = isMobile ? { ...shell.pager, justifyContent: 'center' } : shell.pager;
 
@@ -640,40 +640,8 @@ export default function ContractDashboard() {
     if (sortedContracts.length === 0) {
       return <div style={shell.empty}>No contracts match your current filters.</div>;
     }
-    if (isMobile) {
-      return (
-        <div style={shell.mobileList}>
-          {sortedContracts.map((row) => {
-            const statusTone = statusStyles[row.status] || statusStyles.Active;
-            return (
-              <div key={row.id} style={shell.mobileCard}>
-                <div style={shell.mobileCardTop}>
-                  <div>
-                    <p style={shell.mobileContractNo}>{row.contractNo}</p>
-                    <p style={shell.mobileCustomer}>{row.customer}</p>
-                  </div>
-                  <span style={{ ...shell.statusPill, ...statusTone }}>{row.status.toUpperCase()}</span>
-                </div>
-                <div style={shell.mobileMetaGrid}>
-                  <div><div style={shell.mobileMetaLabel}>Property</div><div style={shell.mobileMetaValue}>{row.property || '-'}</div></div>
-                  <div><div style={shell.mobileMetaLabel}>Start</div><div style={shell.mobileMetaValue}>{formatDate(row.startDate)}</div></div>
-                  <div><div style={shell.mobileMetaLabel}>Total</div><div style={shell.mobileMetaValue}>{formatINR(row.total)}</div></div>
-                  <div><div style={shell.mobileMetaLabel}>Due</div><div style={shell.mobileMetaValue}>{formatINR(row.due)}</div></div>
-                </div>
-                <div style={shell.mobileActions}>
-                  <button type="button" style={shell.actionBtn} onClick={() => navigate('/sales/invoices', { state: { openInvoiceNumber: row.contractNo, fromContract: true } })}>View</button>
-                  <button type="button" style={shell.actionBtn} onClick={() => openInvoicePdf(row.invoiceId)}>Invoice PDF</button>
-                  <button type="button" style={shell.actionBtn} onClick={() => openContractJobCardPdf(row.invoiceId)}>Job Card</button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-
     return (
-      <table style={tableStyle}>
+      <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
         <thead>
           <tr>
             <th style={{ ...shell.th, width: '3%' }}>#</th>
