@@ -614,6 +614,9 @@ export default function ContractDashboard() {
       '--mobile-table-min-width': `${contractMobileMinWidth}px`
     }
     : shell.table;
+  const mobileStackCellStyle = isMobile
+    ? { flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }
+    : {};
   const footerStyle = isMobile ? { ...shell.footer, flexDirection: 'column', alignItems: 'stretch' } : shell.footer;
   const pagerStyle = isMobile ? { ...shell.pager, justifyContent: 'center' } : shell.pager;
 
@@ -706,7 +709,7 @@ export default function ContractDashboard() {
                 {visibleColumns.contractNo ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
                 </td> : null}
-                {visibleColumns.customer ? <td style={{ ...shell.td, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                {visibleColumns.customer ? <td style={{ ...shell.td, ...mobileStackCellStyle, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   {row.status === 'Active' ? (
                     <button
                       type="button"
@@ -725,11 +728,11 @@ export default function ContractDashboard() {
                     <div style={{ ...shell.subText }}>{row.mobile || '-'}</div>
                   ) : null}
                 </td> : null}
-                {visibleColumns.property ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                {visibleColumns.property ? <td style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.property || '-'}</div>
                   <div style={{ ...shell.subText }}>{row.city || '-'}</div>
                 </td> : null}
-                {visibleColumns.duration ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                {visibleColumns.duration ? <td style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700 }}>{formatDate(row.startDate)}</div>
                   <div style={{ ...shell.subText }}>{`to ${formatDate(row.endDate)}`}</div>
                 </td> : null}

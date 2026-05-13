@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { applyBrandingTheme, saveBrandingSettings } from '../utils/brandingTheme';
+import { applyBrandingTheme, loadBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
 import {
   CalendarClock,
   Bell,
@@ -48,7 +48,7 @@ const SidebarSection = ({ title, children }) => (
 export default function DashboardLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const [settings, setSettings] = useState({});
+  const [settings, setSettings] = useState(() => loadBrandingSettings() || {});
   const [leadsMenuOpen, setLeadsMenuOpen] = useState(false);
   const [salesMenuOpen, setSalesMenuOpen] = useState(false);
   const [purchaseMenuOpen, setPurchaseMenuOpen] = useState(false);
@@ -246,6 +246,12 @@ export default function DashboardLayout({ children }) {
             to="/dashboard"
             aria-label="Open dashboard home"
             title="Open dashboard home"
+            onClick={(event) => {
+              if (location.pathname === '/dashboard') {
+                event.preventDefault();
+                window.location.reload();
+              }
+            }}
             style={{ display: 'inline-flex', textDecoration: 'none', cursor: 'pointer' }}
           >
             {settings.dashboardImageUrl ? (

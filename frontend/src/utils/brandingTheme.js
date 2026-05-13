@@ -81,7 +81,9 @@ export const BRANDING_STORAGE_KEY = 'skuas_branding_settings';
 
 export const pickBrandingSettings = (settings = {}) => ({
   brandingAppearance: String(settings.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
-  brandingAccentColor: normalizeHex(settings.brandingAccentColor || '#9F174D')
+  brandingAccentColor: normalizeHex(settings.brandingAccentColor || '#9F174D'),
+  companyName: String(settings.companyName || '').trim(),
+  dashboardImageUrl: String(settings.dashboardImageUrl || '').trim()
 });
 
 export const saveBrandingSettings = (settings = {}) => {
