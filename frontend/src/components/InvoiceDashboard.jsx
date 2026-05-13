@@ -626,6 +626,7 @@ const getEmployeeDisplayName = (employee = {}) => {
 };
 
 const normalizeInvoiceType = (value) => (String(value || '').trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST');
+const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
 
 const emptyAddressDraft = {
   label: 'Additional Address',
@@ -1626,7 +1627,7 @@ export default function InvoiceDashboard() {
       line2: address.line2 || address.street2 || '',
       area: address.area || '',
       state: address.state || '',
-      pincode: address.pincode || '',
+      pincode: toSixDigitPincode(address.pincode || ''),
       gstin: address.gstin || '',
       placeOfSupply: normalizeGstState(address.placeOfSupply || address.state || '')
     });
@@ -1634,10 +1635,16 @@ export default function InvoiceDashboard() {
 
   const saveShippingAddressDraft = () => {
     if (!shippingAddressDraft.line1.trim()) return;
+    const pincode = toSixDigitPincode(shippingAddressDraft.pincode);
+    if (pincode && pincode.length !== 6) {
+      setSaveError('Shipping address pincode must be exactly 6 digits.');
+      return;
+    }
     setFormWithTotals((prev) => {
       const list = [...(prev.customShippingAddresses || [])];
       const payload = {
         ...shippingAddressDraft,
+        pincode,
         street1: shippingAddressDraft.line1 || '',
         street2: shippingAddressDraft.line2 || '',
         placeOfSupply: normalizeGstState(shippingAddressDraft.placeOfSupply || shippingAddressDraft.state || '')
@@ -3240,7 +3247,10 @@ export default function InvoiceDashboard() {
               <input
                 style={shell.input}
                 value={shippingAddressDraft.pincode}
-                onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, pincode: event.target.value }))}
+                inputMode="numeric"
+                maxLength={6}
+                pattern="[0-9]{6}"
+                onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, pincode: toSixDigitPincode(event.target.value) }))}
               />
               <label style={shell.label}>GSTIN</label>
               <input

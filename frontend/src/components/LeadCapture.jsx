@@ -315,6 +315,7 @@ const formatEmployeeName = (employee) => {
 };
 
 const normalizePhoneNumber = (value) => String(value || '').replace(/\D/g, '').slice(0, 10);
+const normalizePincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
 const toObjectList = (value) => (
   Array.isArray(value)
     ? value.filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
@@ -1266,18 +1267,22 @@ export default function LeadCapture() {
     return postalCode;
   };
 
-  const withPincodeAliases = (value) => ({
-    pincode: value,
-    pinCode: value,
-    postalCode: value,
-    postal_code: value,
-    zip: value
-  });
+  const withPincodeAliases = (value) => {
+    const pincode = normalizePincode(value);
+    return {
+      pincode,
+      pinCode: pincode,
+      postalCode: pincode,
+      postal_code: pincode,
+      zip: pincode
+    };
+  };
 
   const updatePincode = (value) => {
+    const pincode = normalizePincode(value);
     setForm((current) => ({
       ...current,
-      ...withPincodeAliases(value)
+      ...withPincodeAliases(pincode)
     }));
   };
 
@@ -1890,6 +1895,11 @@ export default function LeadCapture() {
       alert('WhatsApp number must be exactly 10 digits.');
       return;
     }
+    const pincode = normalizePincode(form.pincode);
+    if (pincode && pincode.length !== 6) {
+      alert('Pincode must be exactly 6 digits.');
+      return;
+    }
     if (form.leadSource === 'Reference' && !form.referenceCustomerId) {
       alert('Please select the reference customer.');
       return;
@@ -1898,12 +1908,9 @@ export default function LeadCapture() {
     try {
       const payload = {
         ...form,
+        ...withPincodeAliases(pincode),
         date: form.date || new Date().toISOString().slice(0, 10),
         mobileNumber: form.mobile,
-        pinCode: form.pincode,
-        postalCode: form.pincode,
-        postal_code: form.pincode,
-        zip: form.pincode,
         pestIssue: form.pestIssue,
         customerSegment: form.propertyType,
         leadStatus: form.status,
@@ -2783,7 +2790,7 @@ export default function LeadCapture() {
                   </div>
                   <div>
                     <label style={s.lb}>Pincode</label>
-                    <input value={form.pincode} style={s.in} onChange={(e) => updatePincode(e.target.value)} />
+                    <input value={form.pincode} style={s.in} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" onChange={(e) => updatePincode(e.target.value)} />
                   </div>
                 </div>
               </div>

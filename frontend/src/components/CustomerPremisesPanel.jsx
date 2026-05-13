@@ -153,8 +153,8 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
       onError?.('Premise address is required.');
       return;
     }
-    if (String(draft.country || '').toLowerCase() === 'india' && draft.pincode && !/^\d{6}$/.test(String(draft.pincode))) {
-      onError?.('Pincode should be 6 digits for India.');
+    if (draft.pincode && !/^\d{6}$/.test(String(draft.pincode))) {
+      onError?.('Pincode should be exactly 6 digits.');
       return;
     }
     try {
@@ -255,7 +255,7 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
             <label style={styles.label}>Area Name<input style={styles.input} value={draft.areaName} onChange={(e) => setDraft((p) => ({ ...p, areaName: e.target.value }))} /></label>
             <label style={styles.label}>City<input style={styles.input} value={draft.city} onChange={(e) => setDraft((p) => ({ ...p, city: e.target.value }))} /></label>
             <label style={styles.label}>State<input style={styles.input} value={draft.state} onChange={(e) => setDraft((p) => ({ ...p, state: e.target.value, placeOfSupply: p.placeOfSupply || e.target.value }))} /></label>
-            <label style={styles.label}>Pincode<input style={styles.input} value={draft.pincode} onChange={(e) => setDraft((p) => ({ ...p, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))} /></label>
+            <label style={styles.label}>Pincode<input style={styles.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={draft.pincode} onChange={(e) => setDraft((p) => ({ ...p, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))} /></label>
             <label style={styles.label}>Country<input style={styles.input} value={draft.country} onChange={(e) => setDraft((p) => ({ ...p, country: e.target.value }))} /></label>
             <label style={styles.label}>GSTIN<input style={styles.input} value={draft.gstin} onChange={(e) => setDraft((p) => ({ ...p, gstin: e.target.value.toUpperCase() }))} /></label>
             <label style={styles.label}>Place of Supply<input style={styles.input} value={draft.placeOfSupply} onChange={(e) => setDraft((p) => ({ ...p, placeOfSupply: e.target.value }))} /></label>

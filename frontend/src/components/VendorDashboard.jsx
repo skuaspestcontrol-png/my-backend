@@ -70,6 +70,8 @@ const shell = {
 };
 
 const toTenDigitNumber = (value) => String(value || '').replace(/\D+/g, '').slice(0, 10);
+const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
+const isValidPincode = (value) => !value || /^\d{6}$/.test(value);
 
 export default function VendorDashboard() {
   const [vendors, setVendors] = useState([]);
@@ -115,7 +117,7 @@ export default function VendorDashboard() {
             billingAddress: place.formatted_address || prev.billingAddress,
             billingArea: place.areaName || prev.billingArea,
             billingState: place.state || prev.billingState,
-            billingPincode: place.pincode || prev.billingPincode,
+            billingPincode: place.pincode ? toSixDigitPincode(place.pincode) : prev.billingPincode,
             googlePlaceId: place.place_id || prev.googlePlaceId,
             googlePlaceName: place.name || prev.googlePlaceName,
             googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
@@ -138,7 +140,7 @@ export default function VendorDashboard() {
             billingAddress: place.formatted_address || prev.billingAddress,
             billingArea: place.areaName || prev.billingArea,
             billingState: place.state || prev.billingState,
-            billingPincode: place.pincode || prev.billingPincode,
+            billingPincode: place.pincode ? toSixDigitPincode(place.pincode) : prev.billingPincode,
             googlePlaceId: place.place_id || prev.googlePlaceId,
             googlePlaceName: place.name || prev.googlePlaceName,
             googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
@@ -171,7 +173,12 @@ export default function VendorDashboard() {
 
   const openEdit = (vendor) => {
     setEditingId(String(vendor?._id || ''));
-    setForm({ ...emptyForm, ...(vendor || {}) });
+    setForm({
+      ...emptyForm,
+      ...(vendor || {}),
+      billingPincode: toSixDigitPincode(vendor?.billingPincode || vendor?.pincode || ''),
+      shippingPincode: toSixDigitPincode(vendor?.shippingPincode || '')
+    });
     setSaveError('');
     setShowModal(true);
   };
@@ -216,11 +223,21 @@ export default function VendorDashboard() {
       setSaveError('Enter a valid 15-character GSTIN (e.g., 08ABCDE9999F1Z8).');
       return;
     }
+    const billingPincode = toSixDigitPincode(form.billingPincode);
+    const shippingPincode = toSixDigitPincode(form.shippingPincode);
+    if (!isValidPincode(billingPincode)) {
+      setSaveError('Billing Pin Code must be exactly 6 digits.');
+      return;
+    }
+    if (!isValidPincode(shippingPincode)) {
+      setSaveError('Shipping Pin Code must be exactly 6 digits.');
+      return;
+    }
 
     setSaveError('');
     setIsSaving(true);
     try {
-      const payload = { ...form, mobileNumber: mobile, gstNumber };
+      const payload = { ...form, mobileNumber: mobile, gstNumber, billingPincode, shippingPincode };
       if (editingId) {
         await axios.put(`${API_BASE_URL}/api/vendors/${editingId}`, payload);
       } else {
@@ -346,7 +363,7 @@ export default function VendorDashboard() {
                       <input style={shell.input} value={form.billingState} onChange={(e) => update('billingState', e.target.value)} />
 
                       <label style={shell.label}>Pin Code</label>
-                      <input style={shell.input} inputMode="numeric" maxLength={10} value={form.billingPincode} onChange={(e) => update('billingPincode', e.target.value.replace(/\D+/g, '').slice(0, 10))} />
+                      <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.billingPincode} onChange={(e) => update('billingPincode', toSixDigitPincode(e.target.value))} />
                     </div>
                   </div>
 
@@ -374,7 +391,7 @@ export default function VendorDashboard() {
                       <input style={shell.input} value={form.shippingState} onChange={(e) => update('shippingState', e.target.value)} />
 
                       <label style={shell.label}>Pin Code</label>
-                      <input style={shell.input} inputMode="numeric" maxLength={10} value={form.shippingPincode} onChange={(e) => update('shippingPincode', e.target.value.replace(/\D+/g, '').slice(0, 10))} />
+                      <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(e) => update('shippingPincode', toSixDigitPincode(e.target.value))} />
                     </div>
                   </div>
                 </div>

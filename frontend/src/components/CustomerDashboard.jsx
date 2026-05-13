@@ -278,6 +278,8 @@ export default function CustomerDashboard() {
   );
   const rowsPerPage = 20;
   const toTenDigitNumber = (value) => String(value || '').replace(/\D/g, '').slice(0, 10);
+  const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
+  const isValidPincode = (value) => !value || /^\d{6}$/.test(value);
   const normalizeIncomingCustomerPrefill = (prefill = {}) => {
     const next = {
       ...emptyForm,
@@ -295,6 +297,8 @@ export default function CustomerDashboard() {
       mobileNumber,
       whatsappNumber,
       altNumber,
+      billingPincode: toSixDigitPincode(next.billingPincode || next.pincode || ''),
+      shippingPincode: toSixDigitPincode(next.shippingPincode || ''),
       whatsappSameAsMobile: Boolean(next.whatsappSameAsMobile) || (whatsappNumber && whatsappNumber === mobileNumber),
       hasGst,
       gstNumber: hasGst ? String(next.gstNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15) : '',
@@ -388,7 +392,7 @@ export default function CustomerDashboard() {
             billingAddress: place.formatted_address || prev.billingAddress,
             billingArea: place.areaName || prev.billingArea,
             billingState: place.state || prev.billingState,
-            billingPincode: place.pincode || prev.billingPincode,
+            billingPincode: place.pincode ? toSixDigitPincode(place.pincode) : prev.billingPincode,
             googlePlaceId: place.place_id || prev.googlePlaceId,
             googlePlaceName: place.name || prev.googlePlaceName,
             googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
@@ -411,7 +415,7 @@ export default function CustomerDashboard() {
             billingAddress: place.formatted_address || prev.billingAddress,
             billingArea: place.areaName || prev.billingArea,
             billingState: place.state || prev.billingState,
-            billingPincode: place.pincode || prev.billingPincode,
+            billingPincode: place.pincode ? toSixDigitPincode(place.pincode) : prev.billingPincode,
             googlePlaceId: place.place_id || prev.googlePlaceId,
             googlePlaceName: place.name || prev.googlePlaceName,
             googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
@@ -647,7 +651,8 @@ export default function CustomerDashboard() {
 
   const updateBillingField = (key, value) => {
     setForm((prev) => {
-      const next = { ...prev, [key]: value };
+      const nextValue = key === 'billingPincode' ? toSixDigitPincode(value) : value;
+      const next = { ...prev, [key]: nextValue };
       if (prev.shippingSameAsBilling) {
         return { ...next, ...copyBillingToShipping(next) };
       }
@@ -722,7 +727,7 @@ export default function CustomerDashboard() {
       billingAddress: customer.billingAddress || '',
       billingArea: customer.billingArea || customer.area || '',
       billingState: customer.billingState || customer.state || customer.placeOfSupply || 'Delhi',
-      billingPincode: customer.billingPincode || customer.pincode || '',
+      billingPincode: toSixDigitPincode(customer.billingPincode || customer.pincode || ''),
       billingPhoneCode: customer.billingPhoneCode || '+91',
       billingPhone: customer.billingPhone || '',
       shippingAttention: customer.shippingAttention || '',
@@ -731,7 +736,7 @@ export default function CustomerDashboard() {
       shippingAddress: customer.shippingAddress || '',
       shippingArea: customer.shippingArea || '',
       shippingState: customer.shippingState || 'Delhi',
-      shippingPincode: customer.shippingPincode || '',
+      shippingPincode: toSixDigitPincode(customer.shippingPincode || ''),
       shippingPhoneCode: customer.shippingPhoneCode || '+91',
       shippingPhone: customer.shippingPhone || '',
       shippingSameAsBilling:
@@ -836,6 +841,16 @@ export default function CustomerDashboard() {
       setSaveError('Enter a valid 15-character GSTIN (e.g., 29ABCDE9999F1Z8).');
       return;
     }
+    const billingPincode = toSixDigitPincode(form.billingPincode);
+    const shippingPincode = toSixDigitPincode(form.shippingPincode);
+    if (!isValidPincode(billingPincode)) {
+      setSaveError('Billing Pin Code must be exactly 6 digits.');
+      return;
+    }
+    if (!isValidPincode(shippingPincode)) {
+      setSaveError('Shipping Pin Code must be exactly 6 digits.');
+      return;
+    }
 
     const highRiskMatch = !editingId && similarCustomers.some((row) => Number(row.confidence || 0) >= 75);
     let duplicateOverrideReason = '';
@@ -871,7 +886,7 @@ export default function CustomerDashboard() {
       billingAddress: form.billingAddress.trim() || [form.billingStreet1, form.billingStreet2].filter(Boolean).join(', '),
       billingArea: form.billingArea.trim(),
       billingState: form.billingState,
-      billingPincode: form.billingPincode.trim(),
+      billingPincode,
       billingPhoneCode: form.billingPhoneCode,
       billingPhone: form.billingPhone.trim(),
       shippingAttention: form.shippingAttention.trim(),
@@ -880,12 +895,12 @@ export default function CustomerDashboard() {
       shippingAddress: form.shippingAddress.trim() || [form.shippingStreet1, form.shippingStreet2].filter(Boolean).join(', '),
       shippingArea: form.shippingArea.trim(),
       shippingState: form.shippingState,
-      shippingPincode: form.shippingPincode.trim(),
+      shippingPincode,
       shippingPhoneCode: form.shippingPhoneCode,
       shippingPhone: form.shippingPhone.trim(),
       area: form.billingArea.trim(),
       state: form.billingState,
-      pincode: form.billingPincode.trim(),
+      pincode: billingPincode,
       areaSqft: Number(form.areaSqft || 0),
       workPhone: mobile,
       placeOfSupply: form.billingState,
@@ -1792,7 +1807,7 @@ export default function CustomerDashboard() {
                     </select>
 
                     <label style={shell.label}>Pin Code</label>
-                    <input style={shell.input} value={form.billingPincode} onChange={(event) => updateBillingField('billingPincode', event.target.value)} />
+                    <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.billingPincode} onChange={(event) => updateBillingField('billingPincode', event.target.value)} />
 
                   </div>
                 </div>
@@ -1833,7 +1848,7 @@ export default function CustomerDashboard() {
                     </select>
 
                     <label style={shell.label}>Pin Code</label>
-                    <input style={shell.input} value={form.shippingPincode} onChange={(event) => setForm((prev) => ({ ...prev, shippingPincode: event.target.value }))} />
+                    <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(event) => setForm((prev) => ({ ...prev, shippingPincode: toSixDigitPincode(event.target.value) }))} />
 
                   </div>
                 </div>

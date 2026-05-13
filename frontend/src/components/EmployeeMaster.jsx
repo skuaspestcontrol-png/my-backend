@@ -168,6 +168,7 @@ const toAnnual = (value) => {
 
 const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 const toTenDigitNumber = (value) => String(value || '').replace(/\D+/g, '').slice(0, 10);
+const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
 const toAbsoluteUploadUrl = (value) => {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -230,7 +231,7 @@ const normalizeEmployee = (employee = {}) => {
     permanentAddress: employee.permanentAddress || '',
     presentAddress: employee.presentAddress || '',
     city: employee.city || '',
-    pincode: employee.pincode || '',
+    pincode: toSixDigitPincode(employee.pincode || ''),
     degree: employee.degree || '',
     aadharCardNumber: employee.aadharCardNumber || '',
     aadharCardFileUrl: employee.aadharCardFileUrl || '',
@@ -301,6 +302,10 @@ export default function EmployeeMaster() {
   const updateField = (key, value) => {
     if (key === 'mobile' || key === 'emergencyContactNumber') {
       setForm((prev) => ({ ...prev, [key]: toTenDigitNumber(value) }));
+      return;
+    }
+    if (key === 'pincode') {
+      setForm((prev) => ({ ...prev, pincode: toSixDigitPincode(value) }));
       return;
     }
     setForm((prev) => {
@@ -419,6 +424,11 @@ export default function EmployeeMaster() {
       setStatus('Emergency contact number must be exactly 10 digits.');
       return;
     }
+    const pincode = toSixDigitPincode(form.pincode);
+    if (pincode && pincode.length !== 6) {
+      setStatus('PIN Code must be exactly 6 digits.');
+      return;
+    }
 
     const portalEligibleRole = isPortalEligibleRole(form.role);
     const anyPortalAccess = portalEligibleRole || form.appAccessEnabled || form.webPortalAccessEnabled;
@@ -452,7 +462,7 @@ export default function EmployeeMaster() {
       permanentAddress: String(form.permanentAddress || '').trim(),
       presentAddress: String(form.presentAddress || '').trim(),
       city: String(form.city || '').trim(),
-      pincode: String(form.pincode || '').trim(),
+      pincode,
       degree: String(form.degree || '').trim(),
       aadharCardNumber: String(form.aadharCardNumber || '').trim(),
       aadharCardFileUrl: String(form.aadharCardFileUrl || '').trim(),
@@ -715,7 +725,7 @@ export default function EmployeeMaster() {
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>PIN Code</label>
-                    <input style={shell.input} value={form.pincode} onChange={(event) => updateField('pincode', event.target.value)} />
+                    <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.pincode} onChange={(event) => updateField('pincode', event.target.value)} />
                   </div>
                 </div>
                 <div style={{ marginTop: '16px' }}>

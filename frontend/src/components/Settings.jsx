@@ -593,6 +593,8 @@ const shell = {
 };
 
 const isFilled = (value) => String(value || '').trim().length > 0;
+const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
+const isValidPincode = (value) => !value || /^\d{6}$/.test(value);
 
 const normalizeGstStateCode = (value) => {
   const raw = String(value || '').trim();
@@ -768,7 +770,7 @@ export default function Settings({ modalMode = false }) {
         const gstBillingAddress = String(data.gstBillingAddress || data.companyAddress || '').trim();
         const gstCity = String(data.gstCity || data.companyCity || '').trim();
         const gstState = String(data.gstState || data.companyState || '').trim();
-        const gstPincode = String(data.gstPincode || data.companyPincode || '').trim();
+        const gstPincode = toSixDigitPincode(data.gstPincode || data.companyPincode || '');
         const gstPhone = String(data.gstPhone || data.companyMobile || '').trim();
         const gstEmail = String(data.gstEmail || data.companyEmail || '').trim();
         const gstCompanyLogoUrl = String(data.gstCompanyLogoUrl || data.dashboardImageUrl || '').trim();
@@ -798,7 +800,7 @@ export default function Settings({ modalMode = false }) {
           companyAddress: data.companyAddress || gstBillingAddress,
           companyCity: data.companyCity || gstCity,
           companyState: data.companyState || gstState,
-          companyPincode: data.companyPincode || gstPincode,
+          companyPincode: toSixDigitPincode(data.companyPincode || gstPincode),
           companyGstNumber: String(data.companyGstNumber || '').toUpperCase(),
           companyEmail: data.companyEmail || gstEmail,
           companyMobile: data.companyMobile || gstPhone,
@@ -814,7 +816,7 @@ export default function Settings({ modalMode = false }) {
           nonGstCity,
           nonGstAddress: data.nonGstAddress || nonGstBillingAddress,
           nonGstState: data.nonGstState || '',
-          nonGstPincode: data.nonGstPincode || '',
+          nonGstPincode: toSixDigitPincode(data.nonGstPincode || ''),
           nonGstPhone: data.nonGstPhone || '',
           nonGstAlternatePhone: data.nonGstAlternatePhone || '',
           nonGstEmail: data.nonGstEmail || '',
@@ -913,6 +915,10 @@ export default function Settings({ modalMode = false }) {
   }, [status]);
 
   const updateField = (key, value) => {
+    if (key === 'gstPincode' || key === 'companyPincode' || key === 'nonGstPincode') {
+      setForm((prev) => ({ ...prev, [key]: toSixDigitPincode(value) }));
+      return;
+    }
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -1074,13 +1080,22 @@ export default function Settings({ modalMode = false }) {
     const gstBillingAddress = String(form.gstBillingAddress || form.companyAddress || '').trim();
     const gstCity = String(form.gstCity || form.companyCity || '').trim();
     const gstState = String(form.gstState || form.companyState || '').trim();
-    const gstPincode = String(form.gstPincode || form.companyPincode || '').trim();
+    const gstPincode = toSixDigitPincode(form.gstPincode || form.companyPincode || '');
     const gstPhone = String(form.gstPhone || form.companyMobile || '').trim();
     const gstEmail = String(form.gstEmail || form.companyEmail || '').trim();
     const gstStateCode = normalizeGstStateCode(form.gstStateCode || deriveGstStateCodeFromGstin(form.companyGstNumber));
     const dashboardImageUrl = String(form.dashboardImageUrl || form.gstCompanyLogoUrl || '').trim();
     const gstCompanyLogoUrl = String(form.gstCompanyLogoUrl || dashboardImageUrl).trim();
     const nonGstBillingAddress = String(form.nonGstBillingAddress || form.nonGstAddress || '').trim();
+    const nonGstPincode = toSixDigitPincode(form.nonGstPincode || '');
+    if (!isValidPincode(gstPincode)) {
+      setStatus('GST company pincode must be exactly 6 digits.');
+      return;
+    }
+    if (!isValidPincode(nonGstPincode)) {
+      setStatus('Non-GST company pincode must be exactly 6 digits.');
+      return;
+    }
     const nextAdminPassword = hasPasswordAttempt ? securityForm.newPassword : String(form.adminPassword || currentStoredPassword || 'admin123');
     const encryption = String(form.smtpEncryption || 'TLS').toUpperCase();
 
@@ -1120,7 +1135,7 @@ export default function Settings({ modalMode = false }) {
       nonGstCity: String(form.nonGstCity || '').trim(),
       nonGstAddress: nonGstBillingAddress,
       nonGstState: String(form.nonGstState || '').trim(),
-      nonGstPincode: String(form.nonGstPincode || '').trim(),
+      nonGstPincode,
       nonGstPhone: String(form.nonGstPhone || '').trim(),
       nonGstAlternatePhone: String(form.nonGstAlternatePhone || '').trim(),
       nonGstEmail: String(form.nonGstEmail || '').trim(),
@@ -1658,9 +1673,12 @@ export default function Settings({ modalMode = false }) {
             style={shell.input}
             value={form.gstPincode}
             onChange={(event) => {
-              const value = event.target.value;
+              const value = toSixDigitPincode(event.target.value);
               setForm((prev) => ({ ...prev, gstPincode: value, companyPincode: value }));
             }}
+            inputMode="numeric"
+            maxLength={6}
+            pattern="[0-9]{6}"
           />
         </div>
       </div>
@@ -1756,7 +1774,7 @@ export default function Settings({ modalMode = false }) {
         </div>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Pincode</p>
-          <input style={shell.input} value={form.nonGstPincode} onChange={(event) => updateField('nonGstPincode', event.target.value)} />
+          <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.nonGstPincode} onChange={(event) => updateField('nonGstPincode', event.target.value)} />
         </div>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Phone</p>
