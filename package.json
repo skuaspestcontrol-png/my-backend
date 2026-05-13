@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "npm --prefix frontend install --include=dev && npm --prefix frontend run build",
+    "postinstall": "npm --prefix backend install --omit=dev",
     "start": "node backend/server.js",
     "db:hostinger:quotation": "node backend/scripts/apply-hostinger-quotation-sql.js",
     "db:hostinger:all": "node backend/scripts/apply-hostinger-all-modules-sql.js"
