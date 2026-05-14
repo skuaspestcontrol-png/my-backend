@@ -1905,6 +1905,9 @@ let customerPlaceColumnsEnsured = false;
 const ensureCustomerPlaceColumns = async (conn) => {
   if (customerPlaceColumnsEnsured) return;
   await ensureColumnsIfMissing(conn, 'customers', [
+    { name: 'city', definition: 'VARCHAR(100) NULL' },
+    { name: 'source_created_at', definition: 'DATETIME NULL' },
+    { name: 'source_updated_at', definition: 'DATETIME NULL' },
     { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
     { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
     { name: 'google_phone', definition: 'VARCHAR(50) NULL' },
@@ -4134,8 +4137,8 @@ app.post('/api/customers', async (req, res) => {
           newCustomer.latitude ? Number(newCustomer.latitude) : null,
           newCustomer.longitude ? Number(newCustomer.longitude) : null,
           JSON.stringify(newCustomer),
-          new Date(newCustomer.createdAt).toISOString().slice(0, 19).replace('T', ' '),
-          new Date(newCustomer.createdAt).toISOString().slice(0, 19).replace('T', ' ')
+          toMysqlDateTime(newCustomer.createdAt),
+          toMysqlDateTime(newCustomer.createdAt)
         ]
       );
       await ensureDefaultPremiseForCustomer(conn, newCustomer._id);
@@ -4263,6 +4266,11 @@ app.post('/api/customers/:customerId/premises/:premiseId/set-default', async (re
 
 app.put('/api/customers/:id', async (req, res) => {
   try {
+    console.log('[Customers API] update request:', {
+      id: req.params.id,
+      bodyKeys: Object.keys(req.body || {}),
+      hasPremisesPayload: Array.isArray(req.body?.premises) || Array.isArray(req.body?.customerPremises)
+    });
     const allowFallback = isCustomersJsonFallbackEnabled();
     if (!canUseMysql()) {
       if (!allowFallback) {
@@ -4409,8 +4417,8 @@ app.put('/api/customers/:id', async (req, res) => {
           updatedCustomer.latitude ? Number(updatedCustomer.latitude) : null,
           updatedCustomer.longitude ? Number(updatedCustomer.longitude) : null,
           JSON.stringify(updatedCustomer),
-          updatedCustomer.createdAt ? new Date(updatedCustomer.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
-          new Date().toISOString().slice(0, 19).replace('T', ' ')
+          toMysqlDateTime(updatedCustomer.createdAt),
+          toMysqlDateTime(new Date())
         ]
       );
       await ensureDefaultPremiseForCustomer(conn, updatedCustomer._id);
@@ -4418,8 +4426,16 @@ app.put('/api/customers/:id', async (req, res) => {
 
     return res.json(updatedCustomer);
   } catch (error) {
-    console.error('Failed to update customer in MySQL:', error.message);
-    return res.status(500).json({ error: 'Failed to update customer' });
+    console.error('Failed to update customer in MySQL:', {
+      id: req.params.id,
+      message: error.message,
+      code: error.code,
+      sqlMessage: error.sqlMessage,
+      stack: error.stack
+    });
+    return res.status(500).json({
+      error: error.sqlMessage || error.message || 'Failed to update customer'
+    });
   }
 });
 

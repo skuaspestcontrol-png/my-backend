@@ -7,7 +7,24 @@ import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import { attachPlacesAutocomplete } from '../utils/googlePlaces';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const normalizeApiBase = (value = '') => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const parsed = new URL(raw, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+    return parsed.origin === 'http://localhost' && !/^https?:\/\//i.test(raw) ? '' : parsed.origin.replace(/\/+$/, '');
+  } catch {
+    return raw.replace(/\/+$/, '').replace(/\/sales\/customers$/i, '');
+  }
+};
+
+const API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL);
+const getApiErrorMessage = (error, fallback) => (
+  error?.response?.data?.error
+  || error?.response?.data?.message
+  || error?.message
+  || fallback
+);
 
 const allColumns = [
   { key: 'name', label: 'Display Name' },
@@ -964,8 +981,15 @@ export default function CustomerDashboard() {
       setShowModal(false);
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
     } catch (error) {
-      console.error('Failed to save customer', error);
-      setSaveError('Unable to save customer. Please ensure backend server is running.');
+      const message = getApiErrorMessage(error, 'Unable to save customer.');
+      console.error('Failed to save customer', {
+        message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+        editingId,
+        payload
+      });
+      setSaveError(message);
     } finally {
       setIsSaving(false);
     }

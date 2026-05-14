@@ -2,7 +2,24 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Check, MapPin, Pencil, Plus, Star, Trash2, X } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const normalizeApiBase = (value = '') => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const parsed = new URL(raw, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+    return parsed.origin === 'http://localhost' && !/^https?:\/\//i.test(raw) ? '' : parsed.origin.replace(/\/+$/, '');
+  } catch {
+    return raw.replace(/\/+$/, '').replace(/\/sales\/customers$/i, '');
+  }
+};
+
+const API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL);
+const getApiErrorMessage = (error, fallback) => (
+  error?.response?.data?.error
+  || error?.response?.data?.message
+  || error?.message
+  || fallback
+);
 
 const emptyPremise = {
   premiseLabel: '',
@@ -116,8 +133,9 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
       const res = await axios.get(`${API_BASE_URL}/api/customers/${customerId}/premises`);
       setPremises(Array.isArray(res.data) ? res.data.map(normalizePremise) : []);
     } catch (error) {
-      console.error('Failed to load premises', error);
-      onError?.(error?.response?.data?.error || 'Unable to load customer premises.');
+      const message = getApiErrorMessage(error, 'Unable to load customer premises.');
+      console.error('Failed to load premises', { message, status: error?.response?.status, data: error?.response?.data, customerId });
+      onError?.(message);
     } finally {
       setLoading(false);
     }
@@ -167,8 +185,9 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
       setDraft(emptyPremise);
       await loadPremises();
     } catch (error) {
-      console.error('Failed to save premise', error);
-      onError?.(error?.response?.data?.error || 'Unable to save premise.');
+      const message = getApiErrorMessage(error, 'Unable to save premise.');
+      console.error('Failed to save premise', { message, status: error?.response?.status, data: error?.response?.data, customerId, editingId, draft });
+      onError?.(message);
     }
   };
 
@@ -179,8 +198,9 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
       await axios.delete(`${API_BASE_URL}/api/customers/${customerId}/premises/${premise.premiseId}`);
       await loadPremises();
     } catch (error) {
-      console.error('Failed to delete premise', error);
-      onError?.(error?.response?.data?.error || 'Unable to delete premise.');
+      const message = getApiErrorMessage(error, 'Unable to delete premise.');
+      console.error('Failed to delete premise', { message, status: error?.response?.status, data: error?.response?.data, customerId, premise });
+      onError?.(message);
     }
   };
 
@@ -190,8 +210,9 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
       await axios.post(`${API_BASE_URL}/api/customers/${customerId}/premises/${premise.premiseId}/set-default`);
       await loadPremises();
     } catch (error) {
-      console.error('Failed to set default premise', error);
-      onError?.(error?.response?.data?.error || 'Unable to set default premise.');
+      const message = getApiErrorMessage(error, 'Unable to set default premise.');
+      console.error('Failed to set default premise', { message, status: error?.response?.status, data: error?.response?.data, customerId, premise });
+      onError?.(message);
     }
   };
 
