@@ -243,7 +243,7 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
 const readAdminMigrationToken = (req) => String(
   req.headers['x-admin-migration-token']
   || req.headers.authorization?.replace(/^Bearer\s+/i, '')
@@ -8349,6 +8349,11 @@ registerHrModule({
 registerCustomerDedupModule({
   app,
   readJsonFile,
+  mysql: {
+    canUseMysql,
+    withMysqlConnection,
+    ensureCustomerPlaceColumns
+  },
   files: {
     customersFile,
     invoicesFile,

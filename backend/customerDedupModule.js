@@ -1,4 +1,5 @@
 const fs = require('fs');
+const zlib = require('zlib');
 const PDFDocument = require('pdfkit');
 
 const normalizeText = (value) => String(value || '').trim();
@@ -6,6 +7,11 @@ const normalizeLower = (value) => normalizeText(value).toLowerCase();
 const toNumber = (value, fallback = 0) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+};
+const toNullableNumber = (value) => {
+  if (value === '' || value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 };
 const round2 = (value) => Number((toNumber(value, 0)).toFixed(2));
 
@@ -112,9 +118,126 @@ const parseCsvLine = (line) => {
   return out.map((v) => normalizeText(v));
 };
 
-const parseImportContent = ({ fileName, content }) => {
+const parseXmlAttrs = (text = '') => {
+  const attrs = {};
+  String(text).replace(/([\w:.-]+)="([^"]*)"/g, (_match, key, value) => {
+    attrs[key] = value;
+    return '';
+  });
+  return attrs;
+};
+
+const decodeXml = (value = '') => String(value)
+  .replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"')
+  .replace(/&apos;/g, "'")
+  .replace(/&amp;/g, '&');
+
+const columnIndexFromRef = (cellRef = '') => {
+  const letters = String(cellRef || '').match(/[A-Z]+/i)?.[0] || '';
+  if (!letters) return -1;
+  return letters.toUpperCase().split('').reduce((sum, ch) => (sum * 26) + ch.charCodeAt(0) - 64, 0) - 1;
+};
+
+const readZipEntries = (buffer) => {
+  const entries = {};
+  const eocdSig = 0x06054b50;
+  let eocdOffset = -1;
+  if (!Buffer.isBuffer(buffer) || buffer.length < 22) throw new Error('Invalid XLSX file');
+  for (let i = Math.max(0, buffer.length - 22); i >= 0; i -= 1) {
+    if (buffer.readUInt32LE(i) === eocdSig) {
+      eocdOffset = i;
+      break;
+    }
+  }
+  if (eocdOffset < 0) throw new Error('Invalid XLSX file');
+
+  const entryCount = buffer.readUInt16LE(eocdOffset + 10);
+  let centralOffset = buffer.readUInt32LE(eocdOffset + 16);
+  for (let i = 0; i < entryCount; i += 1) {
+    if (buffer.readUInt32LE(centralOffset) !== 0x02014b50) break;
+    const method = buffer.readUInt16LE(centralOffset + 10);
+    const compressedSize = buffer.readUInt32LE(centralOffset + 20);
+    const fileNameLength = buffer.readUInt16LE(centralOffset + 28);
+    const extraLength = buffer.readUInt16LE(centralOffset + 30);
+    const commentLength = buffer.readUInt16LE(centralOffset + 32);
+    const localHeaderOffset = buffer.readUInt32LE(centralOffset + 42);
+    const fileName = buffer.slice(centralOffset + 46, centralOffset + 46 + fileNameLength).toString('utf8');
+
+    const localNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
+    const localExtraLength = buffer.readUInt16LE(localHeaderOffset + 28);
+    const dataStart = localHeaderOffset + 30 + localNameLength + localExtraLength;
+    const compressed = buffer.slice(dataStart, dataStart + compressedSize);
+    const data = method === 0 ? compressed : method === 8 ? zlib.inflateRawSync(compressed) : null;
+    if (data) entries[fileName.replace(/^\/+/, '')] = data;
+
+    centralOffset += 46 + fileNameLength + extraLength + commentLength;
+  }
+  return entries;
+};
+
+const parseXlsxContent = (content, contentEncoding = '') => {
+  const buffer = Buffer.from(String(content || ''), normalizeLower(contentEncoding) === 'base64' ? 'base64' : 'binary');
+  const entries = readZipEntries(buffer);
+  const sharedXml = entries['xl/sharedStrings.xml']?.toString('utf8') || '';
+  const sharedStrings = [];
+  sharedXml.replace(/<si\b[\s\S]*?<\/si>/g, (si) => {
+    const text = Array.from(si.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)).map((match) => decodeXml(match[1])).join('');
+    sharedStrings.push(text);
+    return '';
+  });
+
+  const workbookRels = entries['xl/_rels/workbook.xml.rels']?.toString('utf8') || '';
+  const relTargets = {};
+  workbookRels.replace(/<Relationship\b([^>]*)\/?>/g, (_match, attrText) => {
+    const attrs = parseXmlAttrs(attrText);
+    if (attrs.Id && attrs.Target) relTargets[attrs.Id] = attrs.Target;
+    return '';
+  });
+
+  const workbookXml = entries['xl/workbook.xml']?.toString('utf8') || '';
+  const firstSheetAttrs = parseXmlAttrs(workbookXml.match(/<sheet\b([^>]*)\/?>/)?.[1] || '');
+  const relId = firstSheetAttrs['r:id'];
+  const target = relTargets[relId] || 'worksheets/sheet1.xml';
+  const sheetPath = `xl/${target.replace(/^\/?xl\//, '').replace(/^\/+/, '')}`;
+  const sheetXml = (entries[sheetPath] || entries['xl/worksheets/sheet1.xml'])?.toString('utf8') || '';
+  if (!sheetXml) return { headers: [], rows: [] };
+
+  const sheetRows = [];
+  sheetXml.replace(/<row\b[^>]*>([\s\S]*?)<\/row>/g, (_rowMatch, rowBody) => {
+    const values = [];
+    let nextIndex = 0;
+    rowBody.replace(/<c\b([^>]*)>([\s\S]*?)<\/c>/g, (_cellMatch, attrText, cellBody) => {
+      const attrs = parseXmlAttrs(attrText);
+      const index = columnIndexFromRef(attrs.r) >= 0 ? columnIndexFromRef(attrs.r) : nextIndex;
+      nextIndex = index + 1;
+      const rawValue = cellBody.match(/<v\b[^>]*>([\s\S]*?)<\/v>/)?.[1] ?? cellBody.match(/<t\b[^>]*>([\s\S]*?)<\/t>/)?.[1] ?? '';
+      const decoded = decodeXml(rawValue);
+      values[index] = attrs.t === 's' ? sharedStrings[Number(decoded)] || '' : decoded;
+      return '';
+    });
+    if (values.some((value) => normalizeText(value))) sheetRows.push(values.map((value) => normalizeText(value)));
+    return '';
+  });
+
+  const headers = sheetRows[0] || [];
+  const rows = sheetRows.slice(1).map((values) => {
+    const row = {};
+    headers.forEach((header, idx) => {
+      row[header] = values[idx] ?? '';
+    });
+    return row;
+  });
+  return { headers, rows };
+};
+
+const parseImportContent = ({ fileName, content, contentEncoding }) => {
   const raw = String(content || '');
   const lower = normalizeLower(fileName);
+  if (lower.endsWith('.xlsx')) {
+    return parseXlsxContent(content, contentEncoding);
+  }
   if (lower.endsWith('.json')) {
     const parsed = JSON.parse(raw);
     const rows = Array.isArray(parsed) ? parsed : [parsed];
@@ -134,6 +257,15 @@ const parseImportContent = ({ fileName, content }) => {
     return row;
   });
   return { headers, rows };
+};
+
+const mergeMappingWithInferred = (headers, providedMapping) => {
+  const inferred = inferMapping(headers);
+  if (!providedMapping || typeof providedMapping !== 'object') return inferred;
+  return Object.keys(inferred).reduce((acc, key) => {
+    acc[key] = normalizeText(providedMapping[key]) || inferred[key] || '';
+    return acc;
+  }, {});
 };
 
 const inferMapping = (headers) => {
@@ -476,7 +608,7 @@ const mergeUniqueText = (a, b) => {
   return out;
 };
 
-function registerCustomerDedupModule({ app, readJsonFile, files }) {
+function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
   const {
     customersFile,
     invoicesFile,
@@ -526,6 +658,71 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
   const saveMergeHistory = (rows) => fs.writeFileSync(mergeHistoryFile, JSON.stringify(rows, null, 2));
   const getAudit = () => readJsonFile(dedupAuditFile, []);
   const saveAudit = (rows) => fs.writeFileSync(dedupAuditFile, JSON.stringify(rows, null, 2));
+
+  const persistCustomerToMysql = async (customer) => {
+    if (!customer || typeof customer !== 'object') return false;
+    if (typeof mysql.canUseMysql !== 'function' || !mysql.canUseMysql()) return false;
+    if (typeof mysql.withMysqlConnection !== 'function') return false;
+
+    await mysql.withMysqlConnection(async (conn) => {
+      if (typeof mysql.ensureCustomerPlaceColumns === 'function') {
+        await mysql.ensureCustomerPlaceColumns(conn);
+      }
+      await conn.query(
+        `INSERT INTO customers (
+          external_id, display_name, customer_name, company_name, contact_person_name, mobile_number,
+          whatsapp_number, email_id, area_name, city, state, pincode,
+          google_place_id, google_place_name, google_phone, google_website, latitude, longitude,
+          payload, source_created_at, source_updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          display_name=VALUES(display_name),
+          customer_name=VALUES(customer_name),
+          company_name=VALUES(company_name),
+          contact_person_name=VALUES(contact_person_name),
+          mobile_number=VALUES(mobile_number),
+          whatsapp_number=VALUES(whatsapp_number),
+          email_id=VALUES(email_id),
+          area_name=VALUES(area_name),
+          city=VALUES(city),
+          state=VALUES(state),
+          pincode=VALUES(pincode),
+          google_place_id=VALUES(google_place_id),
+          google_place_name=VALUES(google_place_name),
+          google_phone=VALUES(google_phone),
+          google_website=VALUES(google_website),
+          latitude=VALUES(latitude),
+          longitude=VALUES(longitude),
+          payload=VALUES(payload),
+          source_created_at=VALUES(source_created_at),
+          source_updated_at=VALUES(source_updated_at)`,
+        [
+          normalizeText(customer._id) || `CUST-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          normalizeText(customer.displayName || customer.name) || null,
+          normalizeText(customer.name || customer.displayName) || null,
+          normalizeText(customer.companyName) || null,
+          normalizeText(customer.contactPersonName) || null,
+          normalizePhone(customer.mobileNumber || customer.workPhone) || null,
+          normalizePhone(customer.whatsappNumber) || null,
+          normalizeEmail(customer.emailId || customer.email) || null,
+          normalizeText(customer.billingArea || customer.area) || null,
+          normalizeText(customer.city) || null,
+          normalizeText(customer.state || customer.billingState) || null,
+          normalizeText(customer.pincode || customer.billingPincode) || null,
+          normalizeText(customer.googlePlaceId || customer.google_place_id) || null,
+          normalizeText(customer.googlePlaceName || customer.google_place_name) || null,
+          normalizeText(customer.googlePhone || customer.google_phone) || null,
+          normalizeText(customer.googleWebsite || customer.google_website) || null,
+          toNullableNumber(customer.latitude),
+          toNullableNumber(customer.longitude),
+          JSON.stringify(customer),
+          customer.createdAt ? new Date(customer.createdAt) : new Date(),
+          customer.updatedAt ? new Date(customer.updatedAt) : new Date()
+        ]
+      );
+    });
+    return true;
+  };
 
   const logAudit = (action, payload = {}, actor = 'System') => {
     const rows = getAudit();
@@ -971,7 +1168,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
     return { ok: true, customer: merged };
   };
 
-  const applyImportRowAction = ({ row, actor }) => {
+  const applyImportRowAction = async ({ row, actor }) => {
     const action = normalizeLower(row.selectedAction || row.suggestedAction || 'needs_review');
 
     if (row.status === 'Invalid Row') {
@@ -995,6 +1192,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
     if (action === 'create_new' || action === 'mark_different') {
       const payload = buildCustomerPayloadFromImport(row.clean);
       const created = createCustomerRecord(payload);
+      await persistCustomerToMysql(created);
       logAudit('import_row_created_new_customer', {
         rowId: row._id,
         customerId: created._id,
@@ -1024,6 +1222,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
         rowId: row._id,
         targetCustomerId: targetId
       }, actor);
+      await persistCustomerToMysql(updated.customer);
       return {
         ...row,
         finalResult: 'updated',
@@ -1037,6 +1236,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
       const targetId = normalizeText(row.selectedTargetCustomerId || row.matchedCustomerId);
       let sourceCustomerId = '';
       const importedAsCustomer = createCustomerRecord(buildCustomerPayloadFromImport(row.clean));
+      await persistCustomerToMysql(importedAsCustomer);
       sourceCustomerId = importedAsCustomer._id;
 
       const mergeResult = mergeCustomers({
@@ -1055,6 +1255,8 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
           updatedAt: nowIso()
         };
       }
+      await persistCustomerToMysql(mergeResult.target);
+      await persistCustomerToMysql(mergeResult.source);
 
       return {
         ...row,
@@ -1147,12 +1349,10 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
       const content = String(req.body?.content || '');
       if (!content.trim()) return res.status(400).json({ error: 'Import file content is required' });
 
-      const { headers, rows } = parseImportContent({ fileName, content });
+      const { headers, rows } = parseImportContent({ fileName, content, contentEncoding: req.body?.contentEncoding });
       if (rows.length === 0) return res.status(400).json({ error: 'No import rows found' });
 
-      const mapping = req.body?.mapping && typeof req.body.mapping === 'object'
-        ? req.body.mapping
-        : inferMapping(headers);
+      const mapping = mergeMappingWithInferred(headers, req.body?.mapping);
 
       const batchId = `CIB-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const batch = {
@@ -1207,8 +1407,8 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
   app.post('/api/customers/import/batches/:batchId/remap', (req, res) => {
     try {
       const batchId = normalizeText(req.params.batchId);
-      const mapping = req.body?.mapping && typeof req.body.mapping === 'object' ? req.body.mapping : null;
-      if (!mapping) return res.status(400).json({ error: 'mapping is required' });
+      const requestedMapping = req.body?.mapping && typeof req.body.mapping === 'object' ? req.body.mapping : null;
+      if (!requestedMapping) return res.status(400).json({ error: 'mapping is required' });
 
       const batches = getBatches();
       const batchIndex = batches.findIndex((entry) => normalizeText(entry._id) === batchId);
@@ -1216,6 +1416,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
 
       const batch = batches[batchIndex];
       const rawRows = Array.isArray(batch.rawRows) ? batch.rawRows : [];
+      const mapping = mergeMappingWithInferred(batch.headers || [], requestedMapping);
       const { analyzedRows, allMatches } = analyzeRows({ rawRows, mapping, batchId });
 
       const remainingRows = getImportRows().filter((row) => normalizeText(row.batchId) !== batchId);
@@ -1278,40 +1479,48 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
     res.json(row);
   });
 
-  app.post('/api/customers/import/batches/:batchId/confirm', (req, res) => {
-    const batchId = normalizeText(req.params.batchId);
-    const actor = normalizeText(req.body?.actor || 'System');
-    const rows = getImportRows().filter((row) => normalizeText(row.batchId) === batchId);
-    if (rows.length === 0) return res.status(404).json({ error: 'No import rows found for this batch' });
+  app.post('/api/customers/import/batches/:batchId/confirm', async (req, res) => {
+    try {
+      const batchId = normalizeText(req.params.batchId);
+      const actor = normalizeText(req.body?.actor || 'System');
+      const rows = getImportRows().filter((row) => normalizeText(row.batchId) === batchId);
+      if (rows.length === 0) return res.status(404).json({ error: 'No import rows found for this batch' });
 
-    const updatedRows = rows.map((row) => applyImportRowAction({ row, actor }));
-    const allRows = getImportRows();
-    const remaining = allRows.filter((row) => normalizeText(row.batchId) !== batchId);
-    saveImportRows([...remaining, ...updatedRows]);
+      const updatedRows = [];
+      for (const row of rows) {
+        updatedRows.push(await applyImportRowAction({ row, actor }));
+      }
+      const allRows = getImportRows();
+      const remaining = allRows.filter((row) => normalizeText(row.batchId) !== batchId);
+      saveImportRows([...remaining, ...updatedRows]);
 
-    const batches = getBatches();
-    const batchIndex = batches.findIndex((entry) => normalizeText(entry._id) === batchId);
-    if (batchIndex >= 0) {
-      batches[batchIndex] = {
-        ...batches[batchIndex],
-        status: 'Completed',
-        updatedAt: nowIso(),
-        completedAt: nowIso(),
+      const batches = getBatches();
+      const batchIndex = batches.findIndex((entry) => normalizeText(entry._id) === batchId);
+      if (batchIndex >= 0) {
+        batches[batchIndex] = {
+          ...batches[batchIndex],
+          status: 'Completed',
+          updatedAt: nowIso(),
+          completedAt: nowIso(),
+          stats: summarizeBatchRows(updatedRows)
+        };
+        saveBatches(batches);
+      }
+
+      logAudit('customer_import_confirmed', {
+        batchId,
         stats: summarizeBatchRows(updatedRows)
-      };
-      saveBatches(batches);
+      }, actor);
+
+      return res.json({
+        message: 'Import batch processed successfully',
+        batch: getBatches().find((entry) => normalizeText(entry._id) === batchId),
+        rows: updatedRows
+      });
+    } catch (error) {
+      console.error('Import confirm failed:', error.message);
+      return res.status(500).json({ error: 'Unable to finalize import and save customers' });
     }
-
-    logAudit('customer_import_confirmed', {
-      batchId,
-      stats: summarizeBatchRows(updatedRows)
-    }, actor);
-
-    res.json({
-      message: 'Import batch processed successfully',
-      batch: getBatches().find((entry) => normalizeText(entry._id) === batchId),
-      rows: updatedRows
-    });
   });
 
   app.post('/api/customers/merge', (req, res) => {

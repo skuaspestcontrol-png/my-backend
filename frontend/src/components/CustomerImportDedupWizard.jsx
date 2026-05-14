@@ -4,6 +4,16 @@ import { AlertTriangle, CheckCircle2, Download, FileUp, Layers, ShieldAlert, Spa
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
+const arrayBufferToBase64 = (buffer) => {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return window.btoa(binary);
+};
+
 const steps = [
   'Upload Excel/CSV',
   'Field Mapping',
@@ -135,6 +145,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
   const [status, setStatus] = useState('');
   const [fileName, setFileName] = useState('');
   const [fileContent, setFileContent] = useState('');
+  const [fileContentEncoding, setFileContentEncoding] = useState('');
   const [batch, setBatch] = useState(null);
   const [headers, setHeaders] = useState([]);
   const [mapping, setMapping] = useState(initialMapping);
@@ -157,6 +168,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
     setStatus('');
     setFileName('');
     setFileContent('');
+    setFileContentEncoding('');
     setBatch(null);
     setHeaders([]);
     setMapping(initialMapping);
@@ -182,6 +194,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
       const res = await axios.post(`${API_BASE}/api/customers/import/upload`, {
         fileName,
         content: fileContent,
+        contentEncoding: fileContentEncoding,
         mapping
       });
       const nextBatch = res.data?.batch || null;
@@ -318,13 +331,15 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <input
                   type="file"
-                  accept=".csv,.json,.txt"
+                  accept=".xlsx,.csv,.json,.txt"
                   onChange={async (event) => {
                     const file = event.target.files?.[0];
                     if (!file) return;
-                    const text = await file.text();
+                    const isXlsx = file.name.toLowerCase().endsWith('.xlsx');
+                    const content = isXlsx ? arrayBufferToBase64(await file.arrayBuffer()) : await file.text();
                     setFileName(file.name);
-                    setFileContent(text);
+                    setFileContent(content);
+                    setFileContentEncoding(isXlsx ? 'base64' : '');
                     setStatus(`Loaded file: ${file.name}`);
                   }}
                 />
