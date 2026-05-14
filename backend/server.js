@@ -3212,6 +3212,42 @@ app.get('/api/jobs', async (req, res) => {
   res.json(filterJobs(jobs));
 });
 
+const loadJobsFromMysql = async () => {
+  if (!canUseMysql()) return [];
+  return withMysqlConnection(async (conn) => {
+    const [rows] = await conn.query('SELECT payload FROM jobs ORDER BY id DESC');
+    return (Array.isArray(rows) ? rows : [])
+      .map((row) => {
+        const raw = row?.payload;
+        if (!raw) return null;
+        if (typeof raw === 'string') {
+          try { return JSON.parse(raw); } catch { return null; }
+        }
+        return raw;
+      })
+      .filter(Boolean);
+  });
+};
+
+const loadJobByIdFromMysql = async (jobId) => {
+  if (!canUseMysql()) return null;
+  const targetId = String(jobId || '').trim();
+  const safeNumericId = /^\d+$/.test(targetId) ? Number(targetId) : null;
+  return withMysqlConnection(async (conn) => {
+    const sql = safeNumericId !== null
+      ? 'SELECT payload FROM jobs WHERE external_id = ? OR id = ? ORDER BY id DESC LIMIT 1'
+      : 'SELECT payload FROM jobs WHERE external_id = ? ORDER BY id DESC LIMIT 1';
+    const params = safeNumericId !== null ? [targetId, safeNumericId] : [targetId];
+    const [rows] = await conn.query(sql, params);
+    const raw = Array.isArray(rows) && rows[0] ? rows[0].payload : null;
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+      try { return JSON.parse(raw); } catch { return null; }
+    }
+    return raw;
+  });
+};
+
 app.post('/api/jobs', async (req, res) => {
   if (canUseMysql()) {
     try {
@@ -3256,15 +3292,6 @@ app.post('/api/jobs', async (req, res) => {
       }).catch((error) => {
         console.error('Background Google sync failed on create:', error.message);
       });
-
-      // Optional JSON shadow write for emergency fallback cache.
-      try {
-        const jobs = readJsonFile(jobsFile, []);
-        jobs.push(newJob);
-        fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
-      } catch (error) {
-        console.error('JSON jobs shadow write failed:', error.message);
-      }
 
       notifyTechnicianPush(newJob, 'job_assigned');
 
@@ -3360,17 +3387,6 @@ app.put('/api/jobs/:id', async (req, res) => {
       }).catch((error) => {
         console.error('Background Google sync failed on update:', error.message);
       });
-
-      // Optional JSON shadow sync.
-      try {
-        const jsonJobs = readJsonFile(jobsFile, []);
-        const idx = jsonJobs.findIndex((job) => String(job?._id || '').trim() === targetId);
-        if (idx === -1) jsonJobs.push(updatedJob);
-        else jsonJobs[idx] = updatedJob;
-        fs.writeFileSync(jobsFile, JSON.stringify(jsonJobs, null, 2));
-      } catch (error) {
-        console.error('JSON jobs shadow update failed:', error.message);
-      }
 
       notifyTechnicianPush(updatedJob, nextStatus === 'completed' ? 'job_completed' : 'job_updated');
 
@@ -3525,16 +3541,6 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
         console.error('Background Google sync failed on complete:', error.message);
       });
 
-      try {
-        const jsonJobs = readJsonFile(jobsFile, []);
-        const idx = jsonJobs.findIndex((job) => String(job?._id || '').trim() === targetId);
-        if (idx === -1) jsonJobs.push(updatedJob);
-        else jsonJobs[idx] = updatedJob;
-        fs.writeFileSync(jobsFile, JSON.stringify(jsonJobs, null, 2));
-      } catch (error) {
-        console.error('JSON jobs shadow update failed:', error.message);
-      }
-
       notifyTechnicianPush(updatedJob, 'job_completed');
 
       return res.json(updatedJob);
@@ -3557,8 +3563,9 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
 
 app.get('/api/jobs/:id/pdf', async (req, res) => {
   try {
-    const jobs = readJsonFile(jobsFile, []);
-    const job = jobs.find((entry) => String(entry?._id || '') === String(req.params.id || ''));
+    const job = canUseMysql()
+      ? await loadJobByIdFromMysql(req.params.id)
+      : readJsonFile(jobsFile, []).find((entry) => String(entry?._id || '') === String(req.params.id || ''));
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
     const settings = readSettings();
@@ -5495,17 +5502,14 @@ app.post('/api/google/tasks/sync-job/:jobId', async (req, res) => {
   if (!jobId) return res.status(400).json({ error: 'jobId is required' });
   if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured' });
 
-  const jobs = readJsonFile(jobsFile, []);
-  const index = jobs.findIndex((entry) => String(entry?._id || '') === jobId);
-  if (index === -1) return res.status(404).json({ error: 'Job not found' });
+  const mysqlJob = await loadJobByIdFromMysql(jobId);
+  if (!mysqlJob) return res.status(404).json({ error: 'Job not found' });
 
-  const job = { ...jobs[index] };
+  const job = { ...mysqlJob };
   const statusLower = String(job.status || '').trim().toLowerCase();
   const markCompleted = statusLower === 'completed';
   await syncJobGoogleTaskSafely(job, { markCompleted });
   await syncJobGoogleCalendarSafely(job);
-  jobs[index] = job;
-  fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
 
   try {
     await syncJobToMysql(job);
@@ -8255,7 +8259,7 @@ app.post('/api/renewals/:id/assign-technician', async (req, res) => {
   }
 
   const settings = await loadCurrentSettingsForNumbering();
-  const jobs = readJsonFile(jobsFile, []);
+  const jobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
   const createdJobs = [];
   let lastGeneratedJobNumber = '';
   selectedRows.forEach((row) => {
@@ -8299,7 +8303,11 @@ app.post('/api/renewals/:id/assign-technician', async (req, res) => {
   });
   await updateSettingsNextJobNumber(lastGeneratedJobNumber, settings);
 
-  fs.writeFileSync(jobsFile, JSON.stringify([...jobs, ...createdJobs], null, 2));
+  if (canUseMysql()) {
+    await Promise.all(createdJobs.map((job) => syncJobToMysql(job)));
+  } else {
+    fs.writeFileSync(jobsFile, JSON.stringify([...jobs, ...createdJobs], null, 2));
+  }
   records[recordIndex] = {
     ...renewal,
     technicianAssignments: technicians.map((tech) => [tech.firstName, tech.lastName].filter(Boolean).join(' ').trim() || tech.empCode || 'Technician'),
