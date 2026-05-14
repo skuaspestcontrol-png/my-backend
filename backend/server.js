@@ -1885,6 +1885,19 @@ const premiseSnapshotColumns = [
   { name: 'premise_google_map_url', definition: 'TEXT NULL' }
 ];
 
+const customerPremiseModernColumns = [
+  { name: 'premise_code', definition: 'VARCHAR(100) NULL' },
+  { name: 'premise_name', definition: 'VARCHAR(255) NULL' },
+  { name: 'attention_name', definition: 'VARCHAR(255) NULL' },
+  { name: 'mobile', definition: 'VARCHAR(50) NULL' },
+  { name: 'alt_mobile', definition: 'VARCHAR(50) NULL' },
+  { name: 'gst_number', definition: 'VARCHAR(50) NULL' },
+  { name: 'address_line_1', definition: 'TEXT NULL' },
+  { name: 'address_line_2', definition: 'TEXT NULL' },
+  { name: 'area', definition: 'VARCHAR(255) NULL' },
+  { name: 'landmark', definition: 'VARCHAR(255) NULL' }
+];
+
 const safeJsonParse = (value, fallback = {}) => {
   if (!value) return fallback;
   if (typeof value === 'object') return value;
@@ -1905,15 +1918,23 @@ const normalizePremisePayload = (body = {}, customer = {}, fallbackId = '') => {
   const address = String(body.address || body.premiseAddress || '').trim();
   return {
     premiseId: String(body.premiseId || body.premise_id || fallbackId || `PREM-${Date.now()}`).trim(),
+    premiseCode: String(body.premiseCode || body.premise_code || body.premiseId || body.premise_id || fallbackId || `PREM-${Date.now()}`).trim(),
     premiseLabel: String(body.premiseLabel || body.premise_label || '').trim() || 'Main Premise',
+    premiseName: String(body.premiseName || body.premise_name || body.premiseLabel || body.premise_label || '').trim() || 'Main Premise',
     premiseType: ['Billing', 'Shipping', 'Service', 'Other'].includes(body.premiseType || body.premise_type)
       ? (body.premiseType || body.premise_type)
       : 'Service',
     contactPerson: String(body.contactPerson || body.contact_person || customer.contactPersonName || customer.name || '').trim(),
+    attentionName: String(body.attentionName || body.attention_name || body.contactPerson || body.contact_person || customer.contactPersonName || customer.name || '').trim(),
     phone: String(body.phone || customer.mobileNumber || customer.workPhone || '').trim(),
+    mobile: String(body.mobile || body.phone || customer.mobileNumber || customer.workPhone || '').trim(),
+    altMobile: String(body.altMobile || body.alt_mobile || customer.altNumber || '').trim(),
     email: String(body.email || customer.emailId || customer.email || '').trim(),
     address,
+    addressLine1: String(body.addressLine1 || body.address_line_1 || body.address || body.premiseAddress || '').trim(),
+    addressLine2: String(body.addressLine2 || body.address_line_2 || '').trim(),
     areaName: String(body.areaName || body.area_name || '').trim(),
+    area: String(body.area || body.areaName || body.area_name || '').trim(),
     city: String(body.city || '').trim(),
     state: String(body.state || '').trim(),
     pincode: String(body.pincode || '').trim(),
@@ -1924,7 +1945,9 @@ const normalizePremisePayload = (body = {}, customer = {}, fallbackId = '') => {
     googlePlaceName: String(body.googlePlaceName || body.google_place_name || '').trim(),
     googleMapUrl: String(body.googleMapUrl || body.google_map_url || '').trim(),
     gstin: String(body.gstin || customer.gstNumber || '').trim(),
+    gstNumber: String(body.gstNumber || body.gst_number || body.gstin || customer.gstNumber || '').trim(),
     placeOfSupply: String(body.placeOfSupply || body.place_of_supply || body.state || customer.placeOfSupply || '').trim(),
+    landmark: String(body.landmark || '').trim(),
     isDefault: body.isDefault ?? body.is_default ? 1 : 0,
     isBilling: body.isBilling ?? body.is_billing ? 1 : 0,
     isShipping: body.isShipping ?? body.is_shipping ? 1 : 0,
@@ -1936,17 +1959,27 @@ const mapPremiseRow = (row = {}) => ({
   id: row.id,
   premiseId: row.premise_id,
   premise_id: row.premise_id,
+  premiseCode: row.premise_code || row.premise_id || '',
+  premise_code: row.premise_code || row.premise_id || '',
   customerId: row.customer_id,
   premiseLabel: row.premise_label || '',
   premise_label: row.premise_label || '',
+  premiseName: row.premise_name || row.premise_label || '',
+  premise_name: row.premise_name || row.premise_label || '',
   premiseType: row.premise_type || 'Service',
   premise_type: row.premise_type || 'Service',
   contactPerson: row.contact_person || '',
+  attentionName: row.attention_name || row.contact_person || '',
   phone: row.phone || '',
+  mobile: row.mobile || row.phone || '',
+  altMobile: row.alt_mobile || '',
   email: row.email || '',
   address: row.address || '',
+  addressLine1: row.address_line_1 || row.address || '',
+  addressLine2: row.address_line_2 || '',
   areaName: row.area_name || '',
   area_name: row.area_name || '',
+  area: row.area || row.area_name || '',
   city: row.city || '',
   state: row.state || '',
   pincode: row.pincode || '',
@@ -1957,7 +1990,9 @@ const mapPremiseRow = (row = {}) => ({
   googlePlaceName: row.google_place_name || '',
   googleMapUrl: row.google_map_url || '',
   gstin: row.gstin || '',
+  gstNumber: row.gst_number || row.gstin || '',
   placeOfSupply: row.place_of_supply || '',
+  landmark: row.landmark || '',
   isDefault: !!row.is_default,
   isBilling: !!row.is_billing,
   isShipping: !!row.is_shipping,
@@ -1971,16 +2006,26 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
       id INT AUTO_INCREMENT PRIMARY KEY,
       premise_id VARCHAR(100) UNIQUE,
       customer_id INT NOT NULL,
+      premise_code VARCHAR(100) NULL,
+      premise_name VARCHAR(255) NULL,
       premise_label VARCHAR(255) NULL,
       premise_type ENUM('Billing','Shipping','Service','Other') DEFAULT 'Service',
+      attention_name VARCHAR(255) NULL,
       contact_person VARCHAR(255) NULL,
+      mobile VARCHAR(50) NULL,
+      alt_mobile VARCHAR(50) NULL,
       phone VARCHAR(50) NULL,
       email VARCHAR(255) NULL,
+      gst_number VARCHAR(50) NULL,
+      address_line_1 TEXT NULL,
+      address_line_2 TEXT NULL,
       address TEXT NULL,
+      area VARCHAR(255) NULL,
       area_name VARCHAR(255) NULL,
       city VARCHAR(100) NULL,
       state VARCHAR(100) NULL,
       pincode VARCHAR(20) NULL,
+      landmark VARCHAR(255) NULL,
       country VARCHAR(100) DEFAULT 'India',
       latitude DECIMAL(10,8) NULL,
       longitude DECIMAL(11,8) NULL,
@@ -2000,6 +2045,7 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
   await ensureColumnsIfMissing(conn, 'customer_premises', [
     { name: 'premise_id', definition: 'VARCHAR(100) NULL' },
     { name: 'customer_id', definition: 'INT NOT NULL' },
+    ...customerPremiseModernColumns,
     { name: 'premise_label', definition: 'VARCHAR(255) NULL' },
     { name: 'premise_type', definition: "ENUM('Billing','Shipping','Service','Other') DEFAULT 'Service'" },
     { name: 'contact_person', definition: 'VARCHAR(255) NULL' },
@@ -2027,6 +2073,7 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
   await ensureColumnsIfMissing(conn, 'jobs', premiseSnapshotColumns);
   await ensureColumnsIfMissing(conn, 'invoices', premiseSnapshotColumns);
   await ensureColumnsIfMissing(conn, 'quotations', premiseSnapshotColumns);
+  await ensureColumnsIfMissing(conn, 'contracts', premiseSnapshotColumns);
   try {
     await conn.query('CREATE UNIQUE INDEX uk_customer_premises_premise_id ON customer_premises (premise_id)');
   } catch (error) {
@@ -2087,22 +2134,35 @@ const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
   const payload = JSON.stringify(premise);
   await conn.query(
     `INSERT INTO customer_premises (
-      premise_id, customer_id, premise_label, premise_type, contact_person, phone, email, address,
-      area_name, city, state, pincode, country, latitude, longitude, google_place_id, google_place_name,
+      premise_id, customer_id, premise_code, premise_name, premise_label, premise_type,
+      attention_name, contact_person, mobile, alt_mobile, phone, email, gst_number,
+      address_line_1, address_line_2, address, area, area_name, city, state, pincode, landmark,
+      country, latitude, longitude, google_place_id, google_place_name,
       google_map_url, gstin, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
-      premise_label=VALUES(premise_label), premise_type=VALUES(premise_type), contact_person=VALUES(contact_person),
-      phone=VALUES(phone), email=VALUES(email), address=VALUES(address), area_name=VALUES(area_name),
+      premise_code=VALUES(premise_code), premise_name=VALUES(premise_name),
+      premise_label=VALUES(premise_label), premise_type=VALUES(premise_type),
+      attention_name=VALUES(attention_name), contact_person=VALUES(contact_person),
+      mobile=VALUES(mobile), alt_mobile=VALUES(alt_mobile), phone=VALUES(phone),
+      email=VALUES(email), gst_number=VALUES(gst_number),
+      address_line_1=VALUES(address_line_1), address_line_2=VALUES(address_line_2),
+      address=VALUES(address), area=VALUES(area), area_name=VALUES(area_name),
       city=VALUES(city), state=VALUES(state), pincode=VALUES(pincode), country=VALUES(country),
+      landmark=VALUES(landmark),
       latitude=VALUES(latitude), longitude=VALUES(longitude), google_place_id=VALUES(google_place_id),
       google_place_name=VALUES(google_place_name), google_map_url=VALUES(google_map_url), gstin=VALUES(gstin),
       place_of_supply=VALUES(place_of_supply), is_default=VALUES(is_default), is_billing=VALUES(is_billing),
       is_shipping=VALUES(is_shipping), is_active=VALUES(is_active), payload=VALUES(payload)`,
     [
-      premise.premiseId, customerRowId, premise.premiseLabel, premise.premiseType, premise.contactPerson,
-      premise.phone, premise.email, premise.address, premise.areaName, premise.city, premise.state,
-      premise.pincode, premise.country, premise.latitude ? Number(premise.latitude) : null,
+      premise.premiseId, customerRowId, premise.premiseCode || premise.premiseId,
+      premise.premiseName || premise.premiseLabel, premise.premiseLabel, premise.premiseType,
+      premise.attentionName || premise.contactPerson, premise.contactPerson,
+      premise.mobile || premise.phone, premise.altMobile || '', premise.phone, premise.email,
+      premise.gstNumber || premise.gstin, premise.addressLine1 || premise.address,
+      premise.addressLine2 || '', premise.address, premise.area || premise.areaName,
+      premise.areaName, premise.city, premise.state,
+      premise.pincode, premise.landmark || '', premise.country, premise.latitude ? Number(premise.latitude) : null,
       premise.longitude ? Number(premise.longitude) : null, premise.googlePlaceId, premise.googlePlaceName,
       premise.googleMapUrl, premise.gstin, premise.placeOfSupply, premise.isDefault, premise.isBilling,
       premise.isShipping, premise.isActive, payload

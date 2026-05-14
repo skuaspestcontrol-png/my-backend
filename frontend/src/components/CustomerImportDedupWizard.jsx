@@ -1,271 +1,215 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { AlertTriangle, CheckCircle2, Download, FileUp, Layers, ShieldAlert, Sparkles, X } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Download, FileSpreadsheet, GitMerge, MapPinned, SearchCheck, UploadCloud, X } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
+const fields = [
+  ['customerName', 'Customer Name'],
+  ['companyName', 'Company Name'],
+  ['contactPersonName', 'Contact Person'],
+  ['mobileNumber', 'Mobile'],
+  ['whatsappNumber', 'WhatsApp'],
+  ['email', 'Email'],
+  ['gstNumber', 'GST'],
+  ['billingAddress', 'Billing Address'],
+  ['shippingAddress', 'Shipping Address'],
+  ['billingArea', 'Area'],
+  ['billingState', 'State'],
+  ['billingPincode', 'Pincode'],
+  ['salesPerson', 'Sales Person'],
+  ['serviceType', 'Service Type'],
+  ['shippingSameAsBilling', 'Shipping Same As Billing'],
+  ['altNumber', 'Alt Mobile']
+];
+
+const steps = [
+  ['Upload', UploadCloud],
+  ['Map', MapPinned],
+  ['Detect', SearchCheck],
+  ['Merge', GitMerge],
+  ['Summary', CheckCircle2]
+];
+
+const exportScopes = [
+  ['all', 'All Customers'],
+  ['active', 'Active Customers'],
+  ['duplicates', 'Duplicate Customers'],
+  ['multiple_premises', 'Customers with Multiple Premises'],
+  ['area_wise', 'Area Wise'],
+  ['sales_person_wise', 'Sales Person Wise'],
+  ['service_wise', 'Service Wise']
+];
+
+const shell = {
+  overlay: { position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(15,23,42,0.54)', backdropFilter: 'blur(6px)', display: 'grid', placeItems: 'center', padding: '12px' },
+  modal: { width: 'min(1180px, 100%)', height: 'min(92vh, 860px)', background: '#fff', borderRadius: '16px', overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto auto 1fr auto', boxShadow: '0 24px 60px rgba(15,23,42,0.24)' },
+  header: { padding: '14px 16px', background: 'var(--color-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' },
+  title: { margin: 0, fontSize: '20px', fontWeight: 850, letterSpacing: 0 },
+  sub: { margin: '3px 0 0', fontSize: '12px', opacity: 0.9, fontWeight: 600 },
+  close: { border: '1px solid rgba(255,255,255,0.38)', background: 'rgba(255,255,255,0.12)', color: '#fff', borderRadius: '9px', height: '34px', padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 800, cursor: 'pointer' },
+  steps: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '6px', padding: '10px 12px', borderBottom: '1px solid #e5e7eb', background: '#fff' },
+  step: { minHeight: '40px', border: '1px solid #dbe2ea', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', fontWeight: 850, color: '#475569', background: '#f8fafc' },
+  body: { overflow: 'auto', padding: '12px', background: '#f8fafc', display: 'grid', gap: '10px' },
+  panel: { background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '12px', display: 'grid', gap: '10px' },
+  h3: { margin: 0, fontSize: '15px', color: '#0f172a', fontWeight: 850, display: 'flex', alignItems: 'center', gap: '7px' },
+  note: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 600 },
+  drop: { border: '1.5px dashed rgba(159,23,77,0.38)', borderRadius: '14px', background: 'rgba(252,231,243,0.36)', padding: '22px 14px', display: 'grid', placeItems: 'center', gap: '8px', textAlign: 'center' },
+  btn: { border: '1px solid rgba(159,23,77,0.32)', background: 'var(--color-primary)', color: '#fff', borderRadius: '9px', height: '34px', padding: '0 12px', fontSize: '12px', fontWeight: 850, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' },
+  lightBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '9px', height: '34px', padding: '0 12px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' },
+  dangerBtn: { border: '1px solid rgba(220,38,38,0.28)', background: '#fff1f2', color: '#991b1b', borderRadius: '9px', height: '32px', padding: '0 10px', fontSize: '11px', fontWeight: 850, cursor: 'pointer' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' },
+  card: { background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '9px' },
+  label: { margin: 0, color: '#64748b', fontSize: '10px', fontWeight: 850, textTransform: 'uppercase' },
+  value: { margin: '4px 0 0', color: '#0f172a', fontSize: '20px', fontWeight: 900 },
+  select: { width: '100%', minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '5px 8px', fontSize: '12px', color: '#111827', background: '#fff' },
+  input: { width: '100%', minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '5px 8px', fontSize: '12px', color: '#111827', background: '#fff' },
+  tableWrap: { overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' },
+  table: { width: '100%', borderCollapse: 'collapse', minWidth: '880px' },
+  th: { textAlign: 'left', padding: '9px', fontSize: '10px', color: '#64748b', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase', fontWeight: 900 },
+  td: { padding: '9px', fontSize: '12px', color: '#334155', borderBottom: '1px solid #eef2f7', verticalAlign: 'top', fontWeight: 650 },
+  footer: { borderTop: '1px solid #e5e7eb', padding: '10px 12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' },
+  actions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+  compare: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' },
+  pill: { display: 'inline-flex', borderRadius: '999px', padding: '3px 8px', fontSize: '10px', fontWeight: 900, background: '#ecfdf5', color: '#166534' }
+};
+
 const arrayBufferToBase64 = (buffer) => {
   const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000;
   let binary = '';
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return window.btoa(binary);
 };
 
-const steps = [
-  'Upload Excel/CSV',
-  'Field Mapping',
-  'Validation & Duplicate Preview',
-  'Review Actions',
-  'Final Import Summary'
-];
-
-const statusTone = {
-  'New Customer': { bg: 'rgba(22,163,74,0.13)', color: '#166534', border: '1px solid rgba(22,163,74,0.28)' },
-  'Exact Duplicate': { bg: 'rgba(220,38,38,0.12)', color: '#991b1b', border: '1px solid rgba(220,38,38,0.28)' },
-  'Possible Duplicate': { bg: 'rgba(217,119,6,0.12)', color: '#92400e', border: '1px solid rgba(217,119,6,0.32)' },
-  'Needs Review': { bg: 'rgba(252,231,243,0.68)', color: 'var(--color-primary-dark)', border: '1px solid rgba(159,23,77,0.28)' },
-  'Invalid Row': { bg: 'rgba(100,116,139,0.12)', color: '#334155', border: '1px solid rgba(100,116,139,0.3)' }
-};
-
-const actionOptions = [
-  { value: 'create_new', label: 'Create as new customer' },
-  { value: 'skip', label: 'Delete / skip this import row' },
-  { value: 'add_address', label: 'Merge + add premise' },
-  { value: 'update_existing', label: 'Update existing customer' },
-  { value: 'merge_with_existing', label: 'Merge with existing customer' },
-  { value: 'mark_different', label: 'Mark as different customer' },
-  { value: 'needs_review', label: 'Needs review' }
-];
-
-const modalShell = {
-  overlay: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(2,6,23,0.58)',
-    backdropFilter: 'blur(8px)',
-    display: 'grid',
-    placeItems: 'center',
-    zIndex: 4000,
-    padding: '16px'
-  },
-  modal: {
-    width: 'min(1320px, 100%)',
-    maxHeight: '92vh',
-    overflow: 'hidden',
-    background: 'rgba(255,255,255,0.94)',
-    border: '1px solid rgba(159, 23, 77, 0.22)',
-    borderRadius: '22px',
-    boxShadow: 'var(--shadow)',
-    display: 'grid',
-    gridTemplateRows: 'auto auto 1fr auto'
-  },
-  header: {
-    padding: '16px 18px',
-    borderBottom: '1px solid rgba(159, 23, 77, 0.16)',
-    background: 'var(--color-primary)',
-    color: '#fff',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '10px'
-  },
-  body: { padding: '14px', overflowY: 'auto', display: 'grid', gap: '10px' },
-  footer: { padding: '12px 14px', borderTop: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' },
-  stepBar: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '6px', padding: '10px 14px', borderBottom: '1px solid rgba(159, 23, 77, 0.14)', background: '#fff' },
-  stepChip: { borderRadius: '10px', border: '1px solid var(--color-primary-soft)', background: '#f8fafc', color: '#334155', fontSize: '11px', fontWeight: 800, padding: '8px', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' },
-  panel: { border: '1px solid rgba(159, 23, 77, 0.2)', borderRadius: '14px', background: '#fff', padding: '12px', display: 'grid', gap: '10px' },
-  sectionTitle: { margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '7px' },
-  sub: { margin: 0, fontSize: '12px', color: '#475569' },
-  btn: { border: '1px solid rgba(159, 23, 77, 0.34)', borderRadius: '9px', minHeight: '35px', padding: '0 11px', fontSize: '12px', fontWeight: 700, background: 'var(--color-primary)', color: '#fff', cursor: 'pointer' },
-  btnLight: { border: '1px solid #D1D5DB', borderRadius: '9px', minHeight: '35px', padding: '0 11px', fontSize: '12px', fontWeight: 700, background: '#fff', color: '#0f172a', cursor: 'pointer' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' },
-  card: { borderRadius: '11px', border: '1px solid rgba(159, 23, 77, 0.2)', background: 'rgba(248,250,252,0.9)', padding: '10px' },
-  cardLabel: { margin: 0, fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  cardValue: { margin: '6px 0 0 0', fontSize: '22px', fontWeight: 800, color: '#0f172a' },
-  tableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', overflow: 'auto' },
-  table: { width: '100%', borderCollapse: 'collapse', minWidth: '1080px' },
-  th: { textAlign: 'left', padding: '8px 9px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' },
-  td: { padding: '8px 9px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 600, verticalAlign: 'top' },
-  badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '3px 8px', fontSize: '11px', fontWeight: 700 },
-  input: { width: '100%', minHeight: '35px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '8px 10px', fontSize: '13px' },
-  actions: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  compareGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(220px, 1fr))', gap: '8px', marginTop: '8px' },
-  compareBox: { border: '1px solid #E5E7EB', borderRadius: '10px', background: '#f8fafc', padding: '9px', display: 'grid', gap: '5px' },
-  compareLabel: { fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' },
-  compareValue: { fontSize: '12px', color: '#0f172a', fontWeight: 700 },
-  miniBtn: { border: '1px solid #D1D5DB', borderRadius: '8px', minHeight: '30px', padding: '0 9px', fontSize: '11px', fontWeight: 800, background: '#fff', color: '#0f172a', cursor: 'pointer' },
-  miniBtnActive: { borderColor: 'rgba(159,23,77,0.45)', background: 'rgba(252,231,243,0.78)', color: 'var(--color-primary-deep)', boxShadow: '0 0 0 3px rgba(159,23,77,0.12)' },
-  dangerBtn: { border: '1px solid rgba(220,38,38,0.28)', borderRadius: '8px', minHeight: '30px', padding: '0 9px', fontSize: '11px', fontWeight: 800, background: 'rgba(254,242,242,0.9)', color: '#991b1b', cursor: 'pointer' },
-  dangerBtnActive: { borderColor: 'rgba(220,38,38,0.48)', background: 'rgba(254,226,226,0.96)', boxShadow: '0 0 0 3px rgba(220,38,38,0.12)' }
-};
-
-const initialMapping = {
-  segment: '',
-  companyName: '',
-  contactPersonName: '',
-  displayName: '',
-  position: '',
-  positionCustom: '',
-  customerName: '',
-  mobileNumber: '',
-  whatsappSameAsMobile: '',
-  whatsappNumber: '',
-  altNumber: '',
-  email: '',
-  emailId: '',
-  hasGst: '',
-  gstNumber: '',
-  billingAttention: '',
-  billingStreet1: '',
-  billingStreet2: '',
-  billingAddress: '',
-  address: '',
-  billingArea: '',
-  billingState: '',
-  billingPincode: '',
-  billingPhoneCode: '',
-  billingPhone: '',
-  shippingSameAsBilling: '',
-  shippingAttention: '',
-  shippingStreet1: '',
-  shippingStreet2: '',
-  shippingAddress: '',
-  shippingArea: '',
-  shippingState: '',
-  shippingPincode: '',
-  shippingPhoneCode: '',
-  shippingPhone: '',
-  areaSqft: '',
-  googlePlaceId: '',
-  googlePlaceName: '',
-  googlePhone: '',
-  googleWebsite: '',
-  latitude: '',
-  longitude: '',
-  serviceType: ''
+const formatSize = (size) => {
+  if (!size) return '-';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
 };
 
 export default function CustomerImportDedupWizard({ open, onClose, onComplete }) {
+  const fileRef = useRef(null);
   const [step, setStep] = useState(1);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
-  const [fileName, setFileName] = useState('');
-  const [fileContent, setFileContent] = useState('');
-  const [fileContentEncoding, setFileContentEncoding] = useState('');
   const [batch, setBatch] = useState(null);
   const [headers, setHeaders] = useState([]);
-  const [mapping, setMapping] = useState(initialMapping);
+  const [rowPreview, setRowPreview] = useState([]);
+  const [mapping, setMapping] = useState({});
   const [rows, setRows] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [selectedRowId, setSelectedRowId] = useState('');
+  const [exportScope, setExportScope] = useState('all');
+  const [exportFormat, setExportFormat] = useState('csv');
+  const [exportFilter, setExportFilter] = useState('');
 
-  const canNext = useMemo(() => {
-    if (step === 1) return !!fileContent;
-    if (step === 2) return !!batch;
-    if (step === 3) return rows.length > 0;
-    if (step === 4) return rows.length > 0;
-    return true;
-  }, [batch, fileContent, rows.length, step]);
+  const selectedRow = useMemo(() => rows.find((row) => row._id === selectedRowId) || rows.find((row) => row.matchedCustomerId) || rows[0] || null, [rows, selectedRowId]);
+  const canContinue = step === 1 ? !!batch : step === 2 ? !!batch : step === 3 ? rows.length > 0 : true;
 
   if (!open) return null;
 
-  const resetWizard = () => {
+  const reset = () => {
     setStep(1);
     setBusy(false);
     setStatus('');
-    setFileName('');
-    setFileContent('');
-    setFileContentEncoding('');
     setBatch(null);
     setHeaders([]);
-    setMapping(initialMapping);
+    setRowPreview([]);
+    setMapping({});
     setRows([]);
     setSummary(null);
+    setSelectedRowId('');
   };
 
-  const handleClose = () => {
-    resetWizard();
+  const close = () => {
+    reset();
     onClose?.();
   };
 
-  const loadPreview = async (batchId) => {
-    const res = await axios.get(`${API_BASE}/api/customers/import/batches/${batchId}/preview`);
-    setBatch(res.data?.batch || null);
-    setRows(Array.isArray(res.data?.rows) ? res.data.rows : []);
-    setSummary(res.data?.batch?.stats || null);
-  };
-
-  const processUpload = async () => {
+  const uploadFile = async (file) => {
+    if (!file) return;
     try {
       setBusy(true);
+      const lower = file.name.toLowerCase();
+      const isExcel = lower.endsWith('.xlsx') || lower.endsWith('.xls');
+      const content = isExcel ? arrayBufferToBase64(await file.arrayBuffer()) : await file.text();
       const res = await axios.post(`${API_BASE}/api/customers/import/upload`, {
-        fileName,
-        content: fileContent,
-        contentEncoding: fileContentEncoding,
-        mapping
+        fileName: file.name,
+        fileSize: file.size,
+        content,
+        contentEncoding: isExcel ? 'base64' : ''
       });
-      const nextBatch = res.data?.batch || null;
-      setBatch(nextBatch);
-      setHeaders(Array.isArray(nextBatch?.headers) ? nextBatch.headers : []);
-      setMapping(nextBatch?.mapping || initialMapping);
-      setRows(Array.isArray(res.data?.previewRows) ? res.data.previewRows : []);
-      setSummary(nextBatch?.stats || null);
-      setStatus('Import file uploaded and analyzed successfully.');
-      setStep(2);
+      setBatch(res.data.batch);
+      setHeaders(res.data.headers || []);
+      setRowPreview(res.data.rowPreview || []);
+      setMapping(res.data.batch?.mapping || {});
+      setStatus(`${file.name} loaded. ${res.data.totalRows || 0} rows detected.`);
     } catch (error) {
-      setStatus(error?.response?.data?.error || 'Unable to upload import file.');
+      setStatus(error?.response?.data?.error || 'Unable to upload file.');
     } finally {
       setBusy(false);
     }
   };
 
-  const applyMapping = async () => {
-    if (!batch?._id) return;
+  const saveMapping = async () => {
     try {
       setBusy(true);
-      await axios.post(`${API_BASE}/api/customers/import/batches/${batch._id}/remap`, { mapping });
-      await loadPreview(batch._id);
-      setStatus('Field mapping applied.');
+      const res = await axios.post(`${API_BASE}/api/customers/import/map`, { batchId: batch._id, mapping, templateName: 'Default Customer Import' });
+      setBatch(res.data.batch);
+      setStatus('Mapping saved.');
       setStep(3);
     } catch (error) {
-      setStatus(error?.response?.data?.error || 'Unable to apply field mapping.');
+      setStatus(error?.response?.data?.error || 'Unable to save mapping.');
     } finally {
       setBusy(false);
     }
   };
 
-  const setRowAction = async (rowId, action, targetCustomerId = '', reason = '') => {
+  const detectDuplicates = async () => {
     try {
-      const res = await axios.post(`${API_BASE}/api/customers/import/rows/${rowId}/action`, { action, targetCustomerId, reason });
-      const updatedRow = res.data || {};
-      setRows((prev) => prev.map((row) => (row._id === rowId ? { ...row, ...updatedRow } : row)));
-      const label = actionOptions.find((option) => option.value === action)?.label || 'Action';
-      setStatus(`${label} selected for row #${updatedRow.rowNumber || ''}.`.trim());
+      setBusy(true);
+      const res = await axios.post(`${API_BASE}/api/customers/import/detect-duplicates`, { batchId: batch._id, mapping });
+      setBatch(res.data.batch);
+      setRows(res.data.rows || []);
+      setSummary(res.data.summary || res.data.batch?.stats || null);
+      setSelectedRowId((res.data.rows || [])[0]?._id || '');
+      setStatus('Smart duplicate detection completed.');
+      setStep(4);
+    } catch (error) {
+      setStatus(error?.response?.data?.error || 'Unable to detect duplicates.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setRowAction = async (row, action) => {
+    try {
+      const res = await axios.post(`${API_BASE}/api/customers/import/merge`, {
+        rowId: row._id,
+        action,
+        targetCustomerId: row.selectedTargetCustomerId || row.matchedCustomerId,
+        reason: 'Smart import action'
+      });
+      setRows((prev) => prev.map((entry) => (entry._id === row._id ? { ...entry, ...res.data } : entry)));
+      setStatus(`Action updated for row #${res.data.rowNumber}.`);
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Unable to update row action.');
     }
   };
 
-  const applyBulk = async (mode) => {
-    const candidates = rows.filter((row) => {
-      if (mode === 'new') return row.status === 'New Customer';
-      if (mode === 'exact') return row.status === 'Exact Duplicate';
-      if (mode === 'possible') return row.status === 'Possible Duplicate' || row.status === 'Needs Review';
-      return false;
-    });
-
-    const action = mode === 'new' ? 'create_new' : mode === 'exact' ? 'skip' : 'merge_with_existing';
-
+  const bulkAction = async (action) => {
+    const targets = rows.filter((row) => action === 'skip' ? row.matchedCustomerId : row.status !== 'Invalid Row');
+    setBusy(true);
     try {
-      setBusy(true);
-      await Promise.all(candidates.map((row) => axios.post(`${API_BASE}/api/customers/import/rows/${row._id}/action`, {
+      const updated = await Promise.all(targets.map((row) => axios.post(`${API_BASE}/api/customers/import/merge`, {
+        rowId: row._id,
         action,
-        targetCustomerId: row.matchedCustomerId,
-        reason: 'Bulk action applied'
+        targetCustomerId: row.selectedTargetCustomerId || row.matchedCustomerId,
+        reason: 'Bulk smart import action'
       })));
-      await loadPreview(batch._id);
+      const byId = new Map(updated.map((res) => [res.data._id, res.data]));
+      setRows((prev) => prev.map((row) => byId.get(row._id) || row));
       setStatus('Bulk action applied.');
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Unable to apply bulk action.');
@@ -274,14 +218,14 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
     }
   };
 
-  const confirmImport = async () => {
-    if (!batch?._id) return;
+  const finalize = async () => {
     try {
       setBusy(true);
-      const res = await axios.post(`${API_BASE}/api/customers/import/batches/${batch._id}/confirm`, { actor: localStorage.getItem('portal_user_name') || 'Admin' });
-      setSummary(res.data?.batch?.stats || null);
-      setRows(Array.isArray(res.data?.rows) ? res.data.rows : []);
-      setStatus('Import completed successfully.');
+      const res = await axios.post(`${API_BASE}/api/customers/import/finalize`, { batchId: batch._id, actor: localStorage.getItem('portal_user_name') || 'Admin' });
+      setBatch(res.data.batch);
+      setRows(res.data.rows || []);
+      setSummary(res.data.batch?.stats || null);
+      setStatus('Import finalized.');
       setStep(5);
       onComplete?.();
     } catch (error) {
@@ -291,276 +235,241 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
     }
   };
 
-  const exportDuplicateReport = async (format = 'csv') => {
-    try {
-      const res = await axios.get(`${API_BASE}/api/customers/duplicates/report`, { params: { format }, responseType: 'blob' });
-      const extension = format === 'pdf' ? 'pdf' : 'csv';
-      const url = URL.createObjectURL(res.data);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `customer_duplicate_report.${extension}`;
-      anchor.click();
-      URL.revokeObjectURL(url);
-    } catch (_error) {
-      setStatus('Unable to export duplicate report.');
-    }
+  const exportCustomers = () => {
+    const params = new URLSearchParams({ scope: exportScope, format: exportFormat });
+    if (exportScope === 'area_wise') params.set('area', exportFilter);
+    if (exportScope === 'sales_person_wise') params.set('salesPerson', exportFilter);
+    if (exportScope === 'service_wise') params.set('serviceType', exportFilter);
+    window.open(`${API_BASE}/api/customers/export?${params.toString()}`, '_blank');
   };
 
-  const actionClearsTarget = (action) => action === 'create_new' || action === 'mark_different';
-
-  const selectedTargetForRow = (row) => (
-    row.selectedTargetCustomerId != null ? row.selectedTargetCustomerId : (row.matchedCustomerId || '')
-  );
-
-  const handleActionChange = (row, action) => {
-    const targetCustomerId = actionClearsTarget(action) ? '' : selectedTargetForRow(row);
-    setRowAction(row._id, action, targetCustomerId);
-  };
-
-  const renderCustomerSummary = (title, values = {}) => (
-    <div style={modalShell.compareBox}>
-      <div style={modalShell.compareLabel}>{title}</div>
-      <div style={modalShell.compareValue}>{values.name || '-'}</div>
-      <div style={{ fontSize: '11px', color: '#475569' }}>{values.phone || '-'} | {values.email || '-'}</div>
-      <div style={{ fontSize: '11px', color: '#475569' }}>{values.address || '-'}</div>
-      <div style={{ fontSize: '11px', color: '#475569' }}>{values.area || '-'} | {values.segment || '-'}</div>
+  const renderStat = (label, value) => (
+    <div style={shell.card}>
+      <p style={shell.label}>{label}</p>
+      <p style={shell.value}>{value || 0}</p>
     </div>
   );
 
-  const renderDuplicateCompare = (row) => {
-    const hasDuplicate = row.status === 'Exact Duplicate' || row.status === 'Possible Duplicate' || row.status === 'Needs Review' || row.matchedCustomerId;
-    if (!hasDuplicate) return null;
-    const selectedMatch = (row.possibleMatches || []).find((match) => match.customerId === (row.selectedTargetCustomerId || row.matchedCustomerId))
-      || (row.possibleMatches || [])[0]
-      || {};
-    return (
-      <div style={{ borderTop: '1px solid #eef2f7', marginTop: '8px', paddingTop: '8px' }}>
-        <div style={{ ...modalShell.compareLabel, color: 'var(--color-primary-deep)' }}>Compare Before Upload</div>
-        <div style={modalShell.compareGrid}>
-          {renderCustomerSummary('Imported Row', {
-            name: row.clean?.customerName,
-            phone: row.clean?.mobileNumber,
-            email: row.clean?.email,
-            address: row.clean?.shippingAddress || row.clean?.billingAddress || row.clean?.address,
-            area: row.clean?.shippingArea || row.clean?.billingArea,
-            segment: row.clean?.segment || row.clean?.serviceType
-          })}
-          {renderCustomerSummary('Existing Customer', {
-            name: selectedMatch.customerName || row.matchedCustomerName,
-            phone: selectedMatch.phone,
-            email: selectedMatch.email,
-            address: selectedMatch.address,
-            area: selectedMatch.area,
-            segment: selectedMatch.segment
-          })}
-        </div>
-        <div style={{ ...modalShell.actions, marginTop: '8px' }}>
-          <button type="button" style={{ ...modalShell.dangerBtn, ...(row.selectedAction === 'skip' ? modalShell.dangerBtnActive : null) }} onClick={() => setRowAction(row._id, 'skip', row.selectedTargetCustomerId || row.matchedCustomerId, 'Deleted from import during duplicate review')}>Delete / do not upload</button>
-          <button type="button" style={{ ...modalShell.miniBtn, ...(row.selectedAction === 'add_address' ? modalShell.miniBtnActive : null) }} onClick={() => setRowAction(row._id, 'add_address', row.selectedTargetCustomerId || row.matchedCustomerId)}>Merge + add premise</button>
-          <button type="button" style={{ ...modalShell.miniBtn, ...(row.selectedAction === 'merge_with_existing' ? modalShell.miniBtnActive : null) }} onClick={() => setRowAction(row._id, 'merge_with_existing', row.selectedTargetCustomerId || row.matchedCustomerId)}>Merge customer</button>
-          <button type="button" style={{ ...modalShell.miniBtn, ...(row.selectedAction === 'update_existing' ? modalShell.miniBtnActive : null) }} onClick={() => setRowAction(row._id, 'update_existing', row.selectedTargetCustomerId || row.matchedCustomerId)}>Update existing</button>
-        </div>
+  const renderPerson = (title, data = {}) => (
+    <div style={shell.card}>
+      <p style={shell.label}>{title}</p>
+      <div style={{ marginTop: '7px', display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 750, color: '#0f172a' }}>
+        <div>{data.name || '-'}</div>
+        <div style={{ color: '#64748b' }}>{data.mobile || '-'} | {data.email || '-'}</div>
+        <div style={{ color: '#64748b' }}>{data.gst || data.gstNumber || '-'}</div>
+        <div style={{ color: '#64748b' }}>{data.address || '-'}</div>
       </div>
-    );
-  };
+    </div>
+  );
 
-  const total = summary?.totalRows || rows.length;
+  const stepIcon = steps[step - 1]?.[1] || UploadCloud;
+  const StepIcon = stepIcon;
 
   return (
-    <div style={modalShell.overlay}>
-      <div style={modalShell.modal}>
-        <div style={modalShell.header}>
+    <div style={shell.overlay}>
+      <div style={shell.modal}>
+        <div style={shell.header}>
           <div>
-            <div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em' }}>Customer Import Deduplication Wizard</div>
-            <div style={{ fontSize: '12px', fontWeight: 600, opacity: 0.9 }}>SKUAS Pest Control CRM - Sales {'>'} Customers {'>'} Active Customers</div>
+            <h2 style={shell.title}>Smart Customer Import / Export</h2>
+            <p style={shell.sub}>Deduplicate, merge, and add customer premises without duplicate customer spam.</p>
           </div>
-          <button type="button" style={{ ...modalShell.btnLight, borderColor: 'rgba(255,255,255,0.44)', background: 'rgba(255,255,255,0.12)', color: '#fff' }} onClick={handleClose}>
-            <X size={14} /> Close
-          </button>
+          <button type="button" style={shell.close} onClick={close}><X size={15} /> Close</button>
         </div>
 
-        <div style={modalShell.stepBar}>
-          {steps.map((label, idx) => (
-            <div key={label} style={{ ...modalShell.stepChip, ...(step === idx + 1 ? { background: 'var(--color-primary)', color: '#fff', borderColor: 'rgba(159, 23, 77, 0.52)' } : null) }}>
-              Step {idx + 1}: {label}
+        <div style={shell.steps}>
+          {steps.map(([label, Icon], idx) => (
+            <div key={label} style={{ ...shell.step, ...(idx + 1 === step ? { background: 'var(--color-primary)', color: '#fff', borderColor: 'var(--color-primary)' } : null) }}>
+              <Icon size={14} /> {label}
             </div>
           ))}
         </div>
 
-        <div style={modalShell.body}>
-          {status ? (
-            <div style={{ ...modalShell.panel, borderColor: 'rgba(159, 23, 77, 0.32)', color: 'var(--color-primary-deep)', fontWeight: 700 }}>{status}</div>
-          ) : null}
+        <div style={shell.body}>
+          {status ? <div style={{ ...shell.panel, color: 'var(--color-primary-deep)', fontWeight: 800 }}>{status}</div> : null}
 
           {step === 1 ? (
-            <div style={modalShell.panel}>
-              <h3 style={modalShell.sectionTitle}><FileUp size={16} /> Upload Excel/CSV/JSON</h3>
-              <p style={modalShell.sub}>Import data into temporary batch and analyze duplicates before saving customers.</p>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <input
-                  type="file"
-                  accept=".xlsx,.csv,.json,.txt"
-                  onChange={async (event) => {
-                    const file = event.target.files?.[0];
-                    if (!file) return;
-                    const isXlsx = file.name.toLowerCase().endsWith('.xlsx');
-                    const content = isXlsx ? arrayBufferToBase64(await file.arrayBuffer()) : await file.text();
-                    setFileName(file.name);
-                    setFileContent(content);
-                    setFileContentEncoding(isXlsx ? 'base64' : '');
-                    setStatus(`Loaded file: ${file.name}`);
+            <>
+              <div style={shell.panel}>
+                <h3 style={shell.h3}><StepIcon size={16} /> Upload Excel/CSV</h3>
+                <div
+                  style={shell.drop}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    uploadFile(event.dataTransfer.files?.[0]);
                   }}
-                />
-                <button type="button" style={modalShell.btn} onClick={processUpload} disabled={busy || !fileContent}>Analyze Import</button>
-                <button type="button" style={modalShell.btnLight} onClick={() => window.open(`${API_BASE}/api/customers/import/sample`, '_blank')}>Download Sample Format</button>
+                >
+                  <FileSpreadsheet size={34} color="var(--color-primary)" />
+                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a' }}>Drop customer file here</div>
+                  <p style={shell.note}>Supports .xlsx, .xls, and .csv</p>
+                  <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(event) => uploadFile(event.target.files?.[0])} />
+                  <button type="button" style={shell.btn} onClick={() => fileRef.current?.click()} disabled={busy}>Browse File</button>
+                </div>
               </div>
-            </div>
+              {batch ? (
+                <div style={shell.grid}>
+                  {renderStat('Total Rows', batch.totalRows)}
+                  {renderStat('File Size', formatSize(batch.fileSize))}
+                  {renderStat('Columns', headers.length)}
+                </div>
+              ) : null}
+              {headers.length ? (
+                <div style={shell.panel}>
+                  <h3 style={shell.h3}>Column Preview</h3>
+                  <div style={shell.actions}>{headers.slice(0, 18).map((header) => <span key={header} style={shell.pill}>{header}</span>)}</div>
+                </div>
+              ) : null}
+            </>
           ) : null}
 
           {step === 2 ? (
-            <div style={modalShell.panel}>
-              <h3 style={modalShell.sectionTitle}><Layers size={16} /> Field Mapping</h3>
-              <p style={modalShell.sub}>Map your input headers to required customer fields before validation and duplicate detection.</p>
-              <div style={modalShell.grid}>
-                {Object.keys(initialMapping).map((key) => (
-                  <div key={key}>
-                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>{key}</div>
-                    <select style={modalShell.input} value={mapping[key] || ''} onChange={(event) => setMapping((prev) => ({ ...prev, [key]: event.target.value }))}>
+            <div style={shell.panel}>
+              <h3 style={shell.h3}><MapPinned size={16} /> Auto Field Mapping</h3>
+              <p style={shell.note}>Review the detected fields. Dropdowns are compact for fast cleanup on desktop and mobile.</p>
+              <div style={shell.grid}>
+                {fields.map(([key, label]) => (
+                  <label key={key} style={{ display: 'grid', gap: '4px' }}>
+                    <span style={shell.label}>{label}</span>
+                    <select style={shell.select} value={mapping[key] || ''} onChange={(event) => setMapping((prev) => ({ ...prev, [key]: event.target.value }))}>
                       <option value="">Not mapped</option>
                       {headers.map((header) => <option key={`${key}-${header}`} value={header}>{header}</option>)}
                     </select>
-                  </div>
+                  </label>
                 ))}
               </div>
-              <div style={modalShell.actions}>
-                <button type="button" style={modalShell.btn} onClick={applyMapping} disabled={busy}>Apply Mapping</button>
+              <div style={shell.actions}>
+                <button type="button" style={shell.lightBtn} onClick={saveMapping} disabled={busy}>Save Mapping Template</button>
               </div>
             </div>
           ) : null}
 
-          {step === 3 || step === 4 || step === 5 ? (
-            <>
-              <div style={modalShell.grid}>
-                <div style={modalShell.card}><p style={modalShell.cardLabel}>Total Imported Rows</p><p style={modalShell.cardValue}>{total || 0}</p></div>
-                <div style={modalShell.card}><p style={modalShell.cardLabel}>New Customers</p><p style={modalShell.cardValue}>{summary?.newCustomers || 0}</p></div>
-                <div style={modalShell.card}><p style={modalShell.cardLabel}>Exact Duplicates</p><p style={modalShell.cardValue}>{summary?.exactDuplicates || 0}</p></div>
-                <div style={modalShell.card}><p style={modalShell.cardLabel}>Possible Duplicates</p><p style={modalShell.cardValue}>{summary?.possibleDuplicates || 0}</p></div>
-                <div style={modalShell.card}><p style={modalShell.cardLabel}>Needs Review</p><p style={modalShell.cardValue}>{summary?.needsReview || 0}</p></div>
-                <div style={modalShell.card}><p style={modalShell.cardLabel}>Invalid Rows</p><p style={modalShell.cardValue}>{summary?.invalidRows || 0}</p></div>
-              </div>
-
-              {step === 4 ? (
-                <div style={modalShell.panel}>
-                  <h3 style={modalShell.sectionTitle}><Sparkles size={16} /> Admin Bulk Actions</h3>
-                  <div style={modalShell.actions}>
-                    <button type="button" style={modalShell.btnLight} onClick={() => applyBulk('new')} disabled={busy}>Import all new customers</button>
-                    <button type="button" style={modalShell.btnLight} onClick={() => applyBulk('exact')} disabled={busy}>Skip all exact duplicates</button>
-                    <button type="button" style={modalShell.btnLight} onClick={() => applyBulk('possible')} disabled={busy}>Merge selected possible duplicates</button>
-                    <button type="button" style={modalShell.btnLight} onClick={() => exportDuplicateReport('csv')}><Download size={14} /> Export duplicate report</button>
-                  </div>
+          {step === 3 ? (
+            <div style={shell.panel}>
+              <h3 style={shell.h3}><SearchCheck size={16} /> Smart Duplicate Detection</h3>
+              <p style={shell.note}>High priority: mobile, WhatsApp, email, GST. Secondary: customer/company name and address similarity.</p>
+              {rowPreview.length ? (
+                <div style={shell.tableWrap}>
+                  <table style={shell.table}>
+                    <thead><tr>{headers.slice(0, 8).map((header) => <th key={header} style={shell.th}>{header}</th>)}</tr></thead>
+                    <tbody>
+                      {rowPreview.map((row, idx) => (
+                        <tr key={idx}>{headers.slice(0, 8).map((header) => <td key={header} style={shell.td}>{row[header] || '-'}</td>)}</tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : null}
+              <button type="button" style={shell.btn} onClick={detectDuplicates} disabled={busy}>Run Duplicate Detection</button>
+            </div>
+          ) : null}
 
-              <div style={modalShell.tableWrap}>
-                <table style={modalShell.table}>
-                  <thead>
-                    <tr>
-                      <th style={modalShell.th}>Row</th>
-                      <th style={modalShell.th}>Imported Data</th>
-                      <th style={modalShell.th}>Status</th>
-                      <th style={modalShell.th}>Matching Existing Customer</th>
-                      <th style={modalShell.th}>Match Reason</th>
-                      <th style={modalShell.th}>Confidence</th>
-                      <th style={modalShell.th}>Suggested Action</th>
-                      <th style={modalShell.th}>Admin Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.slice(0, 300).map((row) => (
-                      <tr key={row._id}>
-                        <td style={modalShell.td}>#{row.rowNumber}</td>
-                        <td style={modalShell.td}>
-                          <div>{row.clean?.customerName || '-'}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>{row.clean?.mobileNumber || '-'} | {row.clean?.email || '-'}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>{row.clean?.billingAddress || row.clean?.address || '-'}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>{row.clean?.segment || row.clean?.serviceType || '-'}</div>
-                          {renderDuplicateCompare(row)}
-                        </td>
-                        <td style={modalShell.td}>
-                          <span style={{ ...modalShell.badge, ...(statusTone[row.status] || statusTone['Needs Review']) }}>{row.status}</span>
-                        </td>
-                        <td style={modalShell.td}>{row.matchedCustomerName || '-'}</td>
-                        <td style={modalShell.td}>{row.matchReason || '-'}</td>
-                        <td style={modalShell.td}>{row.confidence || 0}%</td>
-                        <td style={modalShell.td}>
-                          <div>{row.previewActionLabel || row.suggestedAction || '-'}</div>
-                          {Array.isArray(row.premisePlan) && row.premisePlan.length > 0 ? (
-                            <div style={{ marginTop: '5px', display: 'grid', gap: '3px' }}>
-                              {row.premisePlan.map((entry, index) => (
-                                <div key={`${row._id}-premise-${index}`} style={{ fontSize: '11px', color: entry.isDuplicate ? '#991b1b' : '#166534', fontWeight: 800 }}>
-                                  {entry.isDuplicate ? 'Duplicate Address Found → Skip Premise' : 'New Address Found → Add Premise'}
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                        </td>
-                        <td style={modalShell.td}>
-                          {step === 3 || step === 4 ? (
-                            <div style={{ display: 'grid', gap: '6px' }}>
-                              <select
-                                style={modalShell.input}
-                                value={row.selectedAction || row.suggestedAction || 'needs_review'}
-                                onChange={(event) => handleActionChange(row, event.target.value)}
-                              >
-                                {actionOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                              </select>
-                              {(row.possibleMatches && row.possibleMatches.length > 0) || row.matchedCustomerId ? (
-                                <select
-                                  style={modalShell.input}
-                                  value={selectedTargetForRow(row)}
-                                  onChange={(event) => setRowAction(row._id, row.selectedAction || row.suggestedAction, event.target.value)}
-                                >
-                                  <option value="">Select target customer</option>
-                                  {(row.possibleMatches || []).map((match) => (
-                                    <option key={`${row._id}-${match.customerId}`} value={match.customerId}>{match.customerName} ({match.score}%)</option>
-                                  ))}
-                                </select>
-                              ) : null}
-                            </div>
-                          ) : (
-                            <span>{row.finalMessage || '-'}</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {step === 4 ? (
+            <>
+              <div style={shell.grid}>
+                {renderStat('Total Imported', summary?.totalRows || rows.length)}
+                {renderStat('New Customers', summary?.newCustomers)}
+                {renderStat('Duplicate Customers', (summary?.exactDuplicates || 0) + (summary?.possibleDuplicates || 0))}
+                {renderStat('New Premises Added', summary?.newPremisesAdded)}
+              </div>
+              <div style={shell.panel}>
+                <h3 style={shell.h3}><GitMerge size={16} /> Customer Merge Preview</h3>
+                <div style={shell.compare}>
+                  {renderPerson('Existing CRM Customer', {
+                    name: selectedRow?.matchedCustomerName,
+                    mobile: selectedRow?.possibleMatches?.[0]?.phone,
+                    email: selectedRow?.possibleMatches?.[0]?.email,
+                    address: selectedRow?.possibleMatches?.[0]?.address
+                  })}
+                  {renderPerson('Imported Customer', {
+                    name: selectedRow?.clean?.customerName,
+                    mobile: selectedRow?.clean?.mobileNumber,
+                    email: selectedRow?.clean?.email,
+                    gst: selectedRow?.clean?.gstNumber,
+                    address: selectedRow?.clean?.shippingAddress || selectedRow?.clean?.billingAddress
+                  })}
+                </div>
+                <div style={shell.actions}>
+                  {selectedRow ? <button type="button" style={shell.btn} onClick={() => setRowAction(selectedRow, 'merge_with_existing')}>Merge</button> : null}
+                  {selectedRow ? <button type="button" style={shell.lightBtn} onClick={() => setRowAction(selectedRow, 'add_address')}>Add New Premise</button> : null}
+                  {selectedRow ? <button type="button" style={shell.lightBtn} onClick={() => setRowAction(selectedRow, 'update_existing')}>Merge Best Data</button> : null}
+                  {selectedRow ? <button type="button" style={shell.dangerBtn} onClick={() => setRowAction(selectedRow, 'skip')}>Delete Imported Duplicate</button> : null}
+                </div>
+              </div>
+              <div style={shell.panel}>
+                <div style={shell.actions}>
+                  <button type="button" style={shell.lightBtn} onClick={() => bulkAction('merge_with_existing')} disabled={busy}>Bulk Merge</button>
+                  <button type="button" style={shell.lightBtn} onClick={() => bulkAction('skip')} disabled={busy}>Bulk Delete Duplicates</button>
+                  <button type="button" style={shell.lightBtn} onClick={() => bulkAction('update_existing')} disabled={busy}>Bulk Update Missing Fields</button>
+                </div>
+                <div style={shell.tableWrap}>
+                  <table style={shell.table}>
+                    <thead>
+                      <tr><th style={shell.th}>Row</th><th style={shell.th}>Imported</th><th style={shell.th}>Existing Match</th><th style={shell.th}>Preview</th><th style={shell.th}>Action</th></tr>
+                    </thead>
+                    <tbody>
+                      {rows.slice(0, 220).map((row) => (
+                        <tr key={row._id} onClick={() => setSelectedRowId(row._id)} style={{ background: selectedRowId === row._id ? 'rgba(252,231,243,0.5)' : '#fff', cursor: 'pointer' }}>
+                          <td style={shell.td}>#{row.rowNumber}</td>
+                          <td style={shell.td}>{row.clean?.customerName || '-'}<br /><span style={{ color: '#64748b' }}>{row.clean?.mobileNumber || '-'} | {row.clean?.email || '-'}</span></td>
+                          <td style={shell.td}>{row.matchedCustomerName || 'New customer'}<br /><span style={{ color: '#64748b' }}>{row.confidence || 0}% match</span></td>
+                          <td style={shell.td}>{row.previewActionLabel || 'New Customer → Create Customer'}</td>
+                          <td style={shell.td}>{row.selectedAction || row.suggestedAction || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </>
           ) : null}
 
           {step === 5 ? (
-            <div style={modalShell.panel}>
-              <h3 style={modalShell.sectionTitle}><CheckCircle2 size={16} /> Final Import Summary</h3>
-              <div style={modalShell.grid}>
-                <div style={modalShell.card}><p style={modalShell.cardLabel}>Imported As New</p><p style={modalShell.cardValue}>{summary?.importedAsNew || 0}</p></div>
-                <div style={modalShell.card}><p style={modalShell.cardLabel}>Updated Existing</p><p style={modalShell.cardValue}>{summary?.updatedExisting || 0}</p></div>
-                <div style={modalShell.card}><p style={modalShell.cardLabel}>Merged Records</p><p style={modalShell.cardValue}>{summary?.mergedRecords || 0}</p></div>
-                <div style={modalShell.card}><p style={modalShell.cardLabel}>Skipped Rows</p><p style={modalShell.cardValue}>{summary?.skippedRows || 0}</p></div>
+            <>
+              <div style={shell.grid}>
+                {renderStat('Total Imported', summary?.totalRows || rows.length)}
+                {renderStat('New Customers', summary?.importedAsNew)}
+                {renderStat('Merged Customers', summary?.mergedRecords)}
+                {renderStat('Skipped Customers', summary?.skippedRows)}
+                {renderStat('New Premises Added', summary?.newPremisesAdded)}
+                {renderStat('Updated Customers', summary?.updatedExisting)}
+                {renderStat('Failed Rows', summary?.failedRows)}
               </div>
-            </div>
+              <div style={shell.panel}>
+                <h3 style={shell.h3}><Download size={16} /> Export Customers</h3>
+                <div style={shell.grid}>
+                  <select style={shell.select} value={exportScope} onChange={(event) => setExportScope(event.target.value)}>
+                    {exportScopes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                  <select style={shell.select} value={exportFormat} onChange={(event) => setExportFormat(event.target.value)}>
+                    <option value="csv">CSV</option>
+                    <option value="excel">Excel</option>
+                  </select>
+                  {['area_wise', 'sales_person_wise', 'service_wise'].includes(exportScope) ? (
+                    <input style={shell.input} value={exportFilter} onChange={(event) => setExportFilter(event.target.value)} placeholder="Filter value" />
+                  ) : null}
+                  <button type="button" style={shell.btn} onClick={exportCustomers}><Download size={14} /> Export</button>
+                </div>
+              </div>
+              <div style={shell.panel}>
+                <h3 style={shell.h3}>Import Logs</h3>
+                <div style={shell.tableWrap}>
+                  <table style={shell.table}>
+                    <thead><tr><th style={shell.th}>Row</th><th style={shell.th}>Result</th><th style={shell.th}>Message</th></tr></thead>
+                    <tbody>{rows.slice(0, 220).map((row) => <tr key={row._id}><td style={shell.td}>#{row.rowNumber}</td><td style={shell.td}>{row.finalResult || '-'}</td><td style={shell.td}>{row.finalMessage || '-'}</td></tr>)}</tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           ) : null}
         </div>
 
-        <div style={modalShell.footer}>
-          <div style={{ fontSize: '12px', color: '#475569', fontWeight: 700 }}>
-            {step <= 4 ? 'Always review exact/possible duplicates before final import.' : 'Import completed. You can close the wizard now.'}
-          </div>
-          <div style={modalShell.actions}>
-            {step > 1 ? <button type="button" style={modalShell.btnLight} onClick={() => setStep((prev) => Math.max(1, prev - 1))}>Back</button> : null}
-            {step < 4 ? <button type="button" style={modalShell.btn} onClick={() => setStep((prev) => prev + 1)} disabled={!canNext}>Next</button> : null}
-            {step === 4 ? <button type="button" style={modalShell.btn} onClick={confirmImport} disabled={busy}>Finalize Import</button> : null}
-            {step === 5 ? <button type="button" style={modalShell.btn} onClick={handleClose}>Done</button> : null}
+        <div style={shell.footer}>
+          <span style={shell.note}>Smart import protects customer records and stores multiple addresses as premises.</span>
+          <div style={shell.actions}>
+            <button type="button" style={shell.lightBtn} onClick={step === 1 ? close : () => setStep((prev) => Math.max(1, prev - 1))}>{step === 1 ? 'Cancel' : 'Back'}</button>
+            {step < 4 ? <button type="button" style={shell.btn} onClick={step === 2 ? saveMapping : () => setStep((prev) => prev + 1)} disabled={!canContinue || busy}>Continue <ArrowRight size={14} /></button> : null}
+            {step === 4 ? <button type="button" style={shell.btn} onClick={finalize} disabled={busy}>Finalize Import</button> : null}
+            {step === 5 ? <button type="button" style={shell.btn} onClick={close}>Done</button> : null}
           </div>
         </div>
       </div>

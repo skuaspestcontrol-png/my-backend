@@ -549,8 +549,8 @@ const decideSuggestedAction = ({ status, score, sameCustomerDifferentAddress = f
   if (status === 'Invalid Row') return 'skip';
   if (status === 'New Customer') return 'create_new';
   if (sameCustomerDifferentAddress) return 'add_address';
-  if (status === 'Exact Duplicate') return 'skip';
-  if (status === 'Possible Duplicate') return score >= 90 ? 'merge_with_existing' : 'needs_review';
+  if (status === 'Exact Duplicate') return 'merge_with_existing';
+  if (status === 'Possible Duplicate') return score >= 75 ? 'merge_with_existing' : 'needs_review';
   if (status === 'Needs Review') return 'needs_review';
   return 'create_new';
 };
@@ -566,7 +566,9 @@ const summarizeBatchRows = (rows) => {
     skippedRows: 0,
     mergedRecords: 0,
     updatedExisting: 0,
-    importedAsNew: 0
+    importedAsNew: 0,
+    newPremisesAdded: 0,
+    failedRows: 0
   };
 
   rows.forEach((row) => {
@@ -579,6 +581,8 @@ const summarizeBatchRows = (rows) => {
     if (row.finalResult === 'merged') summary.mergedRecords += 1;
     if (row.finalResult === 'updated') summary.updatedExisting += 1;
     if (row.finalResult === 'created') summary.importedAsNew += 1;
+    if (row.finalResult === 'error') summary.failedRows += 1;
+    summary.newPremisesAdded += Number(row.addedPremisesCount || 0);
   });
 
   return summary;
@@ -844,12 +848,21 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
     const addressKey = premiseAddressKey(address);
     return {
       premiseId: `PREM-${targetCustomerId}-${addressKey}`,
+      premiseCode: `PREM-${targetCustomerId}-${addressKey}`,
       premiseLabel: isShippingAddress ? `Shipping Address${areaName ? ` / ${areaName}` : ''}` : 'Billing Address',
+      premiseName: isShippingAddress ? `Shipping Address${areaName ? ` / ${areaName}` : ''}` : 'Billing Address',
       premiseType: isShippingAddress ? 'Shipping' : 'Billing',
+      attentionName: clean.billingAttention || clean.shippingAttention || clean.contactPersonName || clean.customerName || targetCustomer.contactPersonName || targetCustomer.name || '',
       contactPerson: clean.contactPersonName || clean.customerName || targetCustomer.contactPersonName || targetCustomer.name || '',
+      mobile: clean.mobileNumber || targetCustomer.mobileNumber || targetCustomer.workPhone || '',
+      altMobile: clean.altNumber || targetCustomer.altNumber || '',
       phone: clean.mobileNumber || targetCustomer.mobileNumber || targetCustomer.workPhone || '',
       email: clean.email || targetCustomer.emailId || targetCustomer.email || '',
+      gstNumber: clean.gstNumber || targetCustomer.gstNumber || '',
+      addressLine1: isShippingAddress ? (clean.shippingStreet1 || address) : (clean.billingStreet1 || address),
+      addressLine2: isShippingAddress ? (clean.shippingStreet2 || '') : (clean.billingStreet2 || ''),
       address,
+      area: areaName,
       areaName,
       city: clean.city || targetCustomer.city || '',
       state: isShippingAddress ? (clean.shippingState || clean.billingState || targetCustomer.billingState || targetCustomer.state || '') : (clean.billingState || targetCustomer.billingState || targetCustomer.state || ''),
@@ -862,6 +875,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       googleMapUrl: clean.googleMapUrl || '',
       gstin: clean.gstNumber || targetCustomer.gstNumber || '',
       placeOfSupply: clean.billingState || targetCustomer.placeOfSupply || targetCustomer.state || '',
+      landmark: clean.landmark || '',
       isDefault: isDefault ? 1 : 0,
       isBilling: isShippingAddress ? 0 : 1,
       isShipping: isShippingAddress ? 1 : 0,
@@ -1549,6 +1563,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
         selectedAction: 'merge_with_existing',
         selectedTargetCustomerId: targetId,
         finalResult: 'merged',
+        addedPremisesCount: result.added.length,
         finalMessage: result.added.length
           ? `Matched existing customer; added ${result.added.length} premise(s)`
           : 'Matched existing customer; duplicate premise skipped',
@@ -1593,6 +1608,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       return {
         ...row,
         finalResult: 'updated',
+        addedPremisesCount: result.added.length,
         finalMessage: `Merged customer and ${result.added.length ? `added ${result.added.length} premise(s)` : 'skipped duplicate premise(s)'}`,
         selectedTargetCustomerId: targetId,
         updatedAt: nowIso()
@@ -1613,6 +1629,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       return {
         ...row,
         finalResult: 'updated',
+        addedPremisesCount: result.added.length,
         finalMessage: result.added.length
           ? `Merged customer and added ${result.added.length} premise(s)`
           : 'Merged customer; duplicate premise skipped',
@@ -1637,6 +1654,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       return {
         ...row,
         finalResult: 'merged',
+        addedPremisesCount: result.added.length,
         finalMessage: result.added.length
           ? `Merged into customer and added ${result.added.length} premise(s)`
           : 'Merged into customer; duplicate premise skipped',
@@ -1721,6 +1739,14 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
     };
   };
 
+  const getImportBatchPayload = (batchId) => {
+    const batch = getBatches().find((entry) => normalizeText(entry._id) === normalizeText(batchId));
+    if (!batch) return null;
+    const rows = getImportRows().filter((row) => normalizeText(row.batchId) === normalizeText(batchId));
+    const matches = getMatches().filter((row) => normalizeText(row.batchId) === normalizeText(batchId));
+    return { batch, rows, matches };
+  };
+
   app.post('/api/customers/import/upload', async (req, res) => {
     try {
       const fileName = normalizeText(req.body?.fileName || 'customers-import.csv');
@@ -1741,6 +1767,8 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
         mapping,
         rawRows: rows,
         totalRows: rows.length,
+        fileSize: toNumber(req.body?.fileSize, Buffer.byteLength(content, 'utf8')),
+        columnPreview: headers.slice(0, 18),
         createdAt: nowIso(),
         updatedAt: nowIso(),
         stats: {
@@ -1753,32 +1781,158 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
           skippedRows: 0,
           mergedRecords: 0,
           updatedExisting: 0,
-          importedAsNew: 0
+          importedAsNew: 0,
+          newPremisesAdded: 0,
+          failedRows: 0
         }
       };
 
       const batches = getBatches();
       batches.push(batch);
       saveBatches(batches);
-
-      const { analyzedRows, allMatches } = await analyzeRows({ rawRows: rows, mapping, batchId });
-      const importRows = getImportRows();
-      saveImportRows([...importRows, ...analyzedRows]);
-      const matches = getMatches();
-      saveMatches([...matches, ...allMatches]);
-      refreshBatchStats(batchId);
+      saveImportRows(getImportRows().filter((row) => normalizeText(row.batchId) !== batchId));
+      saveMatches(getMatches().filter((row) => normalizeText(row.batchId) !== batchId));
       logAudit('customer_import_uploaded', { batchId, fileName, totalRows: rows.length }, normalizeText(req.body?.actor || 'System'));
 
       const latestBatch = getBatches().find((entry) => normalizeText(entry._id) === batchId);
-      const previewRows = analyzedRows.slice(0, 100);
       return res.json({
-        message: 'Import uploaded and analyzed',
+        message: 'Import uploaded and parsed',
         batch: latestBatch,
-        previewRows
+        headers,
+        totalRows: rows.length,
+        columnPreview: headers.slice(0, 18),
+        rowPreview: rows.slice(0, 6)
       });
     } catch (error) {
       console.error('Import upload failed:', error.message);
-      return res.status(500).json({ error: 'Unable to upload and analyze import file' });
+      return res.status(500).json({ error: 'Unable to upload import file' });
+    }
+  });
+
+  app.post('/api/customers/import/map', async (req, res) => {
+    try {
+      const batchId = normalizeText(req.body?.batchId || req.body?.batch_id);
+      const requestedMapping = req.body?.mapping && typeof req.body.mapping === 'object' ? req.body.mapping : null;
+      if (!batchId) return res.status(400).json({ error: 'batchId is required' });
+      if (!requestedMapping) return res.status(400).json({ error: 'mapping is required' });
+
+      const batches = getBatches();
+      const batchIndex = batches.findIndex((entry) => normalizeText(entry._id) === batchId);
+      if (batchIndex < 0) return res.status(404).json({ error: 'Import batch not found' });
+      const mapping = mergeMappingWithInferred(batches[batchIndex].headers || [], requestedMapping);
+      batches[batchIndex] = {
+        ...batches[batchIndex],
+        mapping,
+        mappingTemplateName: normalizeText(req.body?.templateName || batches[batchIndex].mappingTemplateName || ''),
+        status: 'Mapped',
+        updatedAt: nowIso()
+      };
+      saveBatches(batches);
+      logAudit('customer_import_mapped', { batchId }, normalizeText(req.body?.actor || 'System'));
+      return res.json({ message: 'Mapping saved', batch: batches[batchIndex], mapping });
+    } catch (error) {
+      console.error('Import mapping failed:', error.message);
+      return res.status(500).json({ error: 'Unable to save import mapping' });
+    }
+  });
+
+  app.post('/api/customers/import/detect-duplicates', async (req, res) => {
+    try {
+      const batchId = normalizeText(req.body?.batchId || req.body?.batch_id);
+      if (!batchId) return res.status(400).json({ error: 'batchId is required' });
+      const batches = getBatches();
+      const batchIndex = batches.findIndex((entry) => normalizeText(entry._id) === batchId);
+      if (batchIndex < 0) return res.status(404).json({ error: 'Import batch not found' });
+      const batch = batches[batchIndex];
+      const mapping = mergeMappingWithInferred(batch.headers || [], req.body?.mapping || batch.mapping || {});
+      const { analyzedRows, allMatches } = await analyzeRows({ rawRows: Array.isArray(batch.rawRows) ? batch.rawRows : [], mapping, batchId });
+      saveImportRows([...getImportRows().filter((row) => normalizeText(row.batchId) !== batchId), ...analyzedRows]);
+      saveMatches([...getMatches().filter((row) => normalizeText(row.batchId) !== batchId), ...allMatches]);
+      batches[batchIndex] = {
+        ...batch,
+        mapping,
+        status: 'Duplicates Detected',
+        updatedAt: nowIso(),
+        stats: summarizeBatchRows(analyzedRows)
+      };
+      saveBatches(batches);
+      logAudit('customer_import_duplicates_detected', { batchId, stats: summarizeBatchRows(analyzedRows) }, normalizeText(req.body?.actor || 'System'));
+      return res.json({
+        message: 'Duplicates detected',
+        batch: getBatches().find((entry) => normalizeText(entry._id) === batchId),
+        rows: analyzedRows,
+        matches: allMatches,
+        summary: summarizeBatchRows(analyzedRows)
+      });
+    } catch (error) {
+      console.error('Duplicate detection failed:', error.message);
+      return res.status(500).json({ error: 'Unable to detect duplicate customers' });
+    }
+  });
+
+  app.post('/api/customers/import/merge', (req, res) => {
+    const rowId = normalizeText(req.body?.rowId || req.body?.row_id);
+    if (!rowId) return res.status(400).json({ error: 'rowId is required' });
+    const row = updateImportRowAction({
+      rowId,
+      action: req.body?.action || 'merge_with_existing',
+      targetCustomerId: req.body?.targetCustomerId,
+      reason: req.body?.reason || 'Smart import merge action'
+    });
+    if (!row) return res.status(404).json({ error: 'Import row not found' });
+    refreshBatchStats(row.batchId);
+    return res.json(row);
+  });
+
+  const finalizeImportBatch = async ({ batchId, actor = 'System' }) => {
+    const rows = getImportRows().filter((row) => normalizeText(row.batchId) === batchId);
+    if (rows.length === 0) return { ok: false, status: 404, error: 'No import rows found for this batch' };
+
+    const updatedRows = [];
+    for (const row of rows) {
+      updatedRows.push(await applyImportRowAction({ row, actor }));
+    }
+    const allRows = getImportRows();
+    const remaining = allRows.filter((row) => normalizeText(row.batchId) !== batchId);
+    saveImportRows([...remaining, ...updatedRows]);
+
+    const batches = getBatches();
+    const batchIndex = batches.findIndex((entry) => normalizeText(entry._id) === batchId);
+    if (batchIndex >= 0) {
+      batches[batchIndex] = {
+        ...batches[batchIndex],
+        status: 'Completed',
+        updatedAt: nowIso(),
+        completedAt: nowIso(),
+        stats: summarizeBatchRows(updatedRows)
+      };
+      saveBatches(batches);
+    }
+
+    logAudit('customer_import_confirmed', {
+      batchId,
+      stats: summarizeBatchRows(updatedRows)
+    }, actor);
+
+    return {
+      ok: true,
+      message: 'Import batch processed successfully',
+      batch: getBatches().find((entry) => normalizeText(entry._id) === batchId),
+      rows: updatedRows
+    };
+  };
+
+  app.post('/api/customers/import/finalize', async (req, res) => {
+    try {
+      const result = await finalizeImportBatch({
+        batchId: normalizeText(req.body?.batchId || req.body?.batch_id),
+        actor: normalizeText(req.body?.actor || 'System')
+      });
+      if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
+      return res.json(result);
+    } catch (error) {
+      console.error('Import finalize failed:', error.message);
+      return res.status(500).json({ error: 'Unable to finalize import and save customers' });
     }
   });
 
@@ -1862,42 +2016,12 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
 
   app.post('/api/customers/import/batches/:batchId/confirm', async (req, res) => {
     try {
-      const batchId = normalizeText(req.params.batchId);
-      const actor = normalizeText(req.body?.actor || 'System');
-      const rows = getImportRows().filter((row) => normalizeText(row.batchId) === batchId);
-      if (rows.length === 0) return res.status(404).json({ error: 'No import rows found for this batch' });
-
-      const updatedRows = [];
-      for (const row of rows) {
-        updatedRows.push(await applyImportRowAction({ row, actor }));
-      }
-      const allRows = getImportRows();
-      const remaining = allRows.filter((row) => normalizeText(row.batchId) !== batchId);
-      saveImportRows([...remaining, ...updatedRows]);
-
-      const batches = getBatches();
-      const batchIndex = batches.findIndex((entry) => normalizeText(entry._id) === batchId);
-      if (batchIndex >= 0) {
-        batches[batchIndex] = {
-          ...batches[batchIndex],
-          status: 'Completed',
-          updatedAt: nowIso(),
-          completedAt: nowIso(),
-          stats: summarizeBatchRows(updatedRows)
-        };
-        saveBatches(batches);
-      }
-
-      logAudit('customer_import_confirmed', {
-        batchId,
-        stats: summarizeBatchRows(updatedRows)
-      }, actor);
-
-      return res.json({
-        message: 'Import batch processed successfully',
-        batch: getBatches().find((entry) => normalizeText(entry._id) === batchId),
-        rows: updatedRows
+      const result = await finalizeImportBatch({
+        batchId: normalizeText(req.params.batchId),
+        actor: normalizeText(req.body?.actor || 'System')
       });
+      if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
+      return res.json(result);
     } catch (error) {
       console.error('Import confirm failed:', error.message);
       return res.status(500).json({ error: 'Unable to finalize import and save customers' });
@@ -2007,6 +2131,72 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
     } catch (error) {
       console.error('Duplicate report failed:', error.message);
       return res.status(500).json({ error: 'Unable to generate duplicate report' });
+    }
+  });
+
+  app.get('/api/customers/export', async (req, res) => {
+    try {
+      const scope = normalizeLower(req.query.scope || 'all');
+      const format = normalizeLower(req.query.format || 'csv');
+      const area = normalizeLower(req.query.area || '');
+      const salesPerson = normalizeLower(req.query.salesPerson || req.query.sales_person || '');
+      const serviceType = normalizeLower(req.query.serviceType || req.query.service_type || '');
+
+      let customers = getCustomers().filter((entry) => scope === 'all' || entry.active !== false);
+      const duplicateIds = new Set(buildDuplicateReport().possibleDuplicateCustomerIds || []);
+
+      if (scope === 'active') customers = customers.filter((entry) => entry.active !== false && !entry.isMerged);
+      if (scope === 'duplicates') customers = customers.filter((entry) => duplicateIds.has(entry._id));
+      if (scope === 'multiple_premises') {
+        customers = customers.filter((entry) => {
+          const addresses = [
+            entry.billingAddress,
+            entry.shippingAddress,
+            ...(Array.isArray(entry.addressBook) ? entry.addressBook : [])
+          ].map((value) => normalizeAddress(value)).filter(Boolean);
+          return new Set(addresses).size > 1;
+        });
+      }
+      if (scope === 'area_wise' && area) customers = customers.filter((entry) => normalizeLower(entry.billingArea || entry.area || entry.shippingArea).includes(area));
+      if (scope === 'sales_person_wise' && salesPerson) customers = customers.filter((entry) => normalizeLower(entry.salesPerson || entry.sales_person).includes(salesPerson));
+      if (scope === 'service_wise' && serviceType) customers = customers.filter((entry) => normalizeLower(entry.serviceType || entry.segment).includes(serviceType));
+
+      const rows = [
+        ['Customer ID', 'Customer Name', 'Company Name', 'Contact Person', 'Mobile', 'WhatsApp', 'Email', 'GST', 'Billing Address', 'Shipping Address', 'Area', 'State', 'Pincode', 'Service Type', 'Premise Count', 'Active'],
+        ...customers.map((customer) => {
+          const addresses = [
+            customer.billingAddress,
+            customer.shippingAddress,
+            ...(Array.isArray(customer.addressBook) ? customer.addressBook : [])
+          ].map((value) => normalizeAddress(value)).filter(Boolean);
+          return [
+            customer._id || '',
+            customer.displayName || customer.name || '',
+            customer.companyName || '',
+            customer.contactPersonName || '',
+            customer.mobileNumber || customer.workPhone || '',
+            customer.whatsappNumber || '',
+            customer.emailId || customer.email || '',
+            customer.gstNumber || '',
+            customer.billingAddress || customer.address || '',
+            customer.shippingAddress || '',
+            customer.billingArea || customer.area || customer.shippingArea || '',
+            customer.billingState || customer.state || customer.shippingState || '',
+            customer.billingPincode || customer.pincode || customer.shippingPincode || '',
+            customer.serviceType || customer.segment || '',
+            new Set(addresses).size,
+            customer.active === false ? 'No' : 'Yes'
+          ];
+        })
+      ];
+      const csv = toCsv(rows);
+      const extension = format === 'excel' || format === 'xlsx' ? 'xls' : 'csv';
+      res.setHeader('Content-Type', extension === 'xls' ? 'application/vnd.ms-excel' : 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="customers_${scope}_${new Date().toISOString().slice(0, 10)}.${extension}"`);
+      return res.send(csv);
+    } catch (error) {
+      console.error('Customer export failed:', error.message);
+      return res.status(500).json({ error: 'Unable to export customers' });
     }
   });
 
