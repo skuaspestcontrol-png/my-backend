@@ -11,6 +11,29 @@ const toNumber = (v, d = 0) => {
 
 const clean = (v) => String(v ?? '').trim();
 
+const parseJsonObject = (value) => {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+};
+
+const loadMainAppSettings = async () => {
+  try {
+    const [row] = await dbQuery('SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1', ['main']);
+    return parseJsonObject(row?.setting_value);
+  } catch (error) {
+    return {};
+  }
+};
+
 const ensureTables = async () => {
   await dbQuery(`CREATE TABLE IF NOT EXISTS quotation_template_settings (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -641,8 +664,15 @@ router.get('/quotations/:id/pdf', async (req, res) => {
   const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [id]);
   const [templateSettings] = await dbQuery('SELECT * FROM quotation_template_settings ORDER BY id ASC LIMIT 1');
   const [commonParagraphs] = await dbQuery('SELECT * FROM quotation_common_paragraphs ORDER BY id ASC LIMIT 1');
+  const companySettings = await loadMainAppSettings();
 
-  const pdf = await generateQuotationPdfBuffer({ quotation, items, templateSettings: templateSettings || {}, commonParagraphs: commonParagraphs || {} });
+  const pdf = await generateQuotationPdfBuffer({
+    quotation,
+    items,
+    templateSettings: templateSettings || {},
+    commonParagraphs: commonParagraphs || {},
+    companySettings
+  });
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename=${clean(quotation.quotation_number || `quotation-${id}`)}.pdf`);

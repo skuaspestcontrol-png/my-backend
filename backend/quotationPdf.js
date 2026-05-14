@@ -21,6 +21,55 @@ const formatDate = (value) => {
 
 const formatINR = (value) => toNumber(value, 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const fontPathCandidates = (fileNames) => [
+  ...fileNames.map((fileName) => path.join(__dirname, 'assets', 'fonts', fileName)),
+  ...fileNames.map((fileName) => path.join(__dirname, 'fonts', fileName)),
+  ...fileNames.map((fileName) => path.join(process.cwd(), 'assets', 'fonts', fileName)),
+  ...fileNames.map((fileName) => path.join(process.cwd(), 'fonts', fileName)),
+  ...fileNames.map((fileName) => path.join('/usr/share/fonts/truetype/msttcorefonts', fileName)),
+  ...fileNames.map((fileName) => path.join('/usr/share/fonts/truetype/microsoft', fileName)),
+  ...fileNames.map((fileName) => path.join('/Library/Fonts', fileName)),
+  ...fileNames.map((fileName) => path.join('/System/Library/Fonts/Supplemental', fileName))
+];
+
+const findExistingFont = (fileNames) => fontPathCandidates(fileNames).find((candidate) => {
+  try {
+    return fs.existsSync(candidate);
+  } catch {
+    return false;
+  }
+});
+
+const registerQuotationFonts = (doc) => {
+  const pdfFont = { regular: 'Helvetica', bold: 'Helvetica-Bold' };
+  const calibriRegularPath = clean(process.env.CALIBRI_FONT_PATH)
+    || findExistingFont(['calibri.ttf', 'Calibri.ttf', 'calibri-regular.ttf', 'Calibri-Regular.ttf']);
+  const calibriBoldPath = clean(process.env.CALIBRI_BOLD_FONT_PATH)
+    || findExistingFont(['calibrib.ttf', 'Calibri-Bold.ttf', 'calibri-bold.ttf', 'Calibri Bold.ttf']);
+
+  try {
+    if (calibriRegularPath && fs.existsSync(calibriRegularPath)) {
+      doc.registerFont('Calibri', calibriRegularPath);
+      pdfFont.regular = 'Calibri';
+    }
+    if (calibriBoldPath && fs.existsSync(calibriBoldPath)) {
+      doc.registerFont('Calibri-Bold', calibriBoldPath);
+      pdfFont.bold = 'Calibri-Bold';
+    } else if (pdfFont.regular === 'Calibri') {
+      pdfFont.bold = 'Calibri';
+    }
+  } catch (error) {
+    console.error('Quotation PDF Calibri font registration failed:', error.message);
+    pdfFont.regular = 'Helvetica';
+    pdfFont.bold = 'Helvetica-Bold';
+  }
+
+  doc._quotationPdfFont = pdfFont;
+  return pdfFont;
+};
+
+const getPdfFont = (doc) => doc._quotationPdfFont || { regular: 'Helvetica', bold: 'Helvetica-Bold' };
+
 const resolveUploadAsset = (input = '') => {
   const raw = clean(input);
   if (!raw) return '';
@@ -45,59 +94,92 @@ const resolveUploadAsset = (input = '') => {
 const amountInWords = (amount) => `${Math.floor(Math.max(0, toNumber(amount, 0))).toLocaleString('en-IN')} Rupees Only`;
 
 const drawFooter = (doc, settings = {}) => {
+  const pdfFont = getPdfFont(doc);
   const showPage = String(settings.show_page_number || '1') !== '0';
   const footerText = clean(settings.footer_text);
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
   const y = doc.page.height - 24;
   if (footerText) {
-    doc.font('Helvetica').fontSize(8).fillColor('#64748b').text(footerText, left, y, { width: right - left - 120, align: 'left' });
+    doc.font(pdfFont.regular).fontSize(8).fillColor('#64748b').text(footerText, left, y, { width: right - left - 120, align: 'left' });
   }
   if (showPage) {
-    doc.font('Helvetica').fontSize(8).fillColor('#64748b').text(`Page ${doc.page.number}`, right - 120, y, { width: 120, align: 'right' });
+    doc.font(pdfFont.regular).fontSize(8).fillColor('#64748b').text(`Page ${doc.page.number}`, right - 120, y, { width: 120, align: 'right' });
   }
 };
 
-const drawHeader = (doc, settings = {}, quotation = {}) => {
+const drawHeader = (doc, settings = {}, companySettings = {}) => {
+  const pdfFont = getPdfFont(doc);
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
   const width = right - left;
-  const logo = resolveUploadAsset(settings.logo_url);
-  const logoW = Math.max(30, toNumber(settings.logo_width, 90));
-  const logoH = Math.max(24, toNumber(settings.logo_height, 70));
-  const align = clean(settings.header_alignment || 'left').toLowerCase();
+  const logo = resolveUploadAsset(
+    companySettings.gstCompanyLogoUrl
+    || companySettings.dashboardImageUrl
+    || companySettings.companyLogoUrl
+    || settings.logo_url
+  );
   const lineColor = clean(settings.header_line_color || '#9F174D');
-
-  let logoX = left;
-  if (align === 'center') logoX = left + (width - logoW) / 2;
-  if (align === 'right') logoX = right - logoW;
-
+  const companyName = clean(
+    companySettings.gstCompanyName
+    || companySettings.companyName
+    || settings.company_name
+    || 'SKUAS Pest Control Private Limited'
+  );
+  const companyAddress = clean(
+    companySettings.gstBillingAddress
+    || companySettings.companyAddress
+    || settings.company_address
+  );
+  const companyCityLine = [
+    clean(companySettings.gstCity || companySettings.companyCity),
+    clean(companySettings.gstState || companySettings.companyState)
+  ].filter(Boolean).join(',');
+  const companyPin = clean(companySettings.gstPincode || companySettings.companyPincode);
+  const companyEmail = clean(companySettings.gstEmail || companySettings.companyEmail || settings.email);
+  const companyPhone = clean(companySettings.gstPhone || companySettings.companyMobile || settings.phone);
+  const companyWebsite = clean(companySettings.companyWebsite || settings.website);
+  const companyGst = clean(companySettings.companyGstNumber || companySettings.gstRegistrationNumber || settings.gstin);
+  const companyDetailLines = [
+    companyAddress,
+    companyCityLine || companyPin ? `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India` : '',
+    `Email: ${companyEmail || '-'}`,
+    `Tel: ${companyPhone || '-'}`,
+    `Web: ${companyWebsite || '-'}`,
+    String(settings.show_gstin || '1') !== '0' ? `GST Details: ${companyGst || '-'}` : ''
+  ].filter(Boolean);
+  const headerTopY = 45;
   const showLogo = String(settings.show_logo || '1') !== '0';
+
+  doc.font(pdfFont.bold).fontSize(10.2);
+  const companyNameWidth = doc.widthOfString(companyName);
+  const headerX = Math.max(left + 240, right - companyNameWidth);
+  const headerWidth = right - headerX;
+  const detailLineHeight = 9.1;
+  const headerBoxHeight = 11.2 + (companyDetailLines.length * detailLineHeight);
+  const logoWidth = logo && showLogo ? Math.max(160, toNumber(settings.logo_width, 400)) : 0;
+  const logoHeight = logo && showLogo ? Math.max(80, toNumber(settings.logo_height, 160)) : 0;
+  const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
+
   if (logo && showLogo) {
-    try { doc.image(logo, logoX, 30, { width: logoW, height: logoH }); } catch (_e) {}
+    try { doc.image(logo, left, logoY, { fit: [logoWidth, logoHeight] }); } catch (_e) {}
   }
 
-  doc.font('Helvetica-Bold').fontSize(Math.max(12, toNumber(settings.heading_font_size, 14))).fillColor('#111827')
-    .text(clean(settings.company_name || 'SKUAS Pest Control Private Limited'), left, 30, { width, align });
+  doc.font(pdfFont.bold).fontSize(10.2).fillColor('#111827')
+    .text(companyName, headerX, headerTopY, { width: width, align: 'left', lineBreak: false });
+  doc.font(pdfFont.regular).fontSize(8.1).fillColor('#475569');
+  companyDetailLines.forEach((line) => {
+    doc.text(line, headerX, doc.y + 1, { width: headerWidth, align: 'left', lineGap: 0 });
+  });
 
-  doc.font('Helvetica').fontSize(Math.max(9, toNumber(settings.body_font_size, 10))).fillColor('#374151');
-  const addr = clean(settings.company_address);
-  if (addr) doc.text(addr, left, doc.y + 1, { width, align });
-  const contacts = [clean(settings.phone), clean(settings.email), clean(settings.website)].filter(Boolean).join(' | ');
-  if (contacts) doc.text(contacts, left, doc.y + 1, { width, align });
-  if (String(settings.show_gstin || '1') !== '0' && clean(settings.gstin)) doc.text(`GSTIN: ${clean(settings.gstin)}`, left, doc.y + 1, { width, align });
-
-  doc.font('Helvetica').fontSize(10).fillColor('#111827')
-    .text(`Date: ${formatDate(quotation.quotation_date)}`, right - 220, 32, { width: 220, align: 'right' })
-    .text(`Ref: ${clean(quotation.quotation_number)}`, right - 220, doc.y + 3, { width: 220, align: 'right' });
-
-  const lineY = Math.max(doc.y + 10, 114);
+  const lineY = Math.max(doc.y + 8, 118);
   doc.moveTo(left, lineY).lineTo(right, lineY).lineWidth(1).strokeColor(lineColor).stroke();
-  doc.y = lineY + 10;
+  doc.y = lineY + 18;
 };
 
 const getRowHeight = (doc, cols, textList, fontSize = 9, minHeight = 22) => {
-  doc.font('Helvetica').fontSize(fontSize);
+  const pdfFont = getPdfFont(doc);
+  doc.font(pdfFont.regular).fontSize(fontSize);
   let max = minHeight;
   cols.forEach((col, i) => {
     const text = String(textList[i] ?? '');
@@ -108,6 +190,7 @@ const getRowHeight = (doc, cols, textList, fontSize = 9, minHeight = 22) => {
 };
 
 const drawTableRow = (doc, cols, y, values, options = {}) => {
+  const pdfFont = getPdfFont(doc);
   const fontSize = options.fontSize || 9;
   const h = options.height || getRowHeight(doc, cols, values, fontSize, options.minHeight || 22);
   const borderColor = options.borderColor || '#d1d5db';
@@ -121,14 +204,15 @@ const drawTableRow = (doc, cols, y, values, options = {}) => {
   }
 
   cols.forEach((col, i) => {
-    doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(fontSize).fillColor('#111827')
+    doc.font(options.bold ? pdfFont.bold : pdfFont.regular).fontSize(fontSize).fillColor('#111827')
       .text(String(values[i] ?? ''), col.x + 4, y + 4, { width: col.w - 8, height: h - 8 });
   });
   return h;
 };
 
-const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettings = {}, commonParagraphs = {} }) => new Promise((resolve, reject) => {
+const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettings = {}, commonParagraphs = {}, companySettings = {} }) => new Promise((resolve, reject) => {
   const doc = new PDFDocument({ size: 'A4', margins: { top: 30, bottom: 34, left: 44, right: 44 }, bufferPages: true });
+  const pdfFont = registerQuotationFonts(doc);
   const chunks = [];
   doc.on('data', (c) => chunks.push(c));
   doc.on('end', () => {
@@ -146,36 +230,41 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   const usableBottom = () => doc.page.height - doc.page.margins.bottom - 30;
   const newPage = () => {
     doc.addPage();
-    drawHeader(doc, templateSettings, quotation);
+    drawHeader(doc, templateSettings, companySettings);
   };
   const ensureSpace = (needed = 40) => {
     if (doc.y + needed > usableBottom()) newPage();
   };
 
-  drawHeader(doc, templateSettings, quotation);
+  drawHeader(doc, templateSettings, companySettings);
 
-  doc.font('Helvetica').fontSize(10).fillColor('#111827')
-    .text('To,')
-    .text(clean(quotation.customer_name || quotation.company_name || 'Customer'))
-    .text(clean(quotation.address || '-'));
+  doc.font(pdfFont.regular).fontSize(10).fillColor('#111827')
+    .text(`Date: ${formatDate(quotation.quotation_date)}`, left, doc.y, { width: right - left, align: 'left' })
+    .text(`Ref: ${clean(quotation.quotation_number)}`, left, doc.y + 2, { width: right - left, align: 'left' });
+
+  doc.moveDown(1);
+  doc.font(pdfFont.regular).fontSize(10).fillColor('#111827')
+    .text('To,', left, doc.y, { width: right - left, align: 'left' })
+    .text(clean(quotation.customer_name || quotation.company_name || 'Customer'), left, doc.y + 2, { width: right - left, align: 'left' })
+    .text(clean(quotation.address || '-'), left, doc.y + 2, { width: right - left, align: 'left' });
 
   ensureSpace(40);
   doc.moveDown(0.4);
   const title = items.length > 1
     ? 'Quotation for Pest Control Services'
     : `Quotation for ${clean(items[0]?.service_name || 'Pest Control Service')}`;
-  doc.font('Helvetica-Bold').fontSize(Math.max(13, toNumber(templateSettings.heading_font_size, 14))).fillColor(clean(templateSettings.primary_color || '#9F174D')).text(title);
+  doc.font(pdfFont.bold).fontSize(10).fillColor('#111827').text(title, left, doc.y, { width: right - left, align: 'left' });
 
   const opening = clean(quotation.opening_paragraph || commonParagraphs.opening_paragraph);
   if (opening) {
     ensureSpace(60);
     doc.moveDown(0.3);
-    doc.font('Helvetica').fontSize(Math.max(9, toNumber(templateSettings.body_font_size, 10))).fillColor('#111827').text(opening, { align: 'justify' });
+    doc.font(pdfFont.regular).fontSize(10).fillColor('#111827').text(opening, left, doc.y, { width: right - left, align: 'left', lineGap: 1 });
   }
 
   ensureSpace(48);
   doc.moveDown(0.7);
-  doc.font('Helvetica-Bold').fontSize(10).fillColor(clean(templateSettings.primary_color || '#9F174D')).text('SERVICE SUMMARY');
+  doc.font(pdfFont.bold).fontSize(10).fillColor(clean(templateSettings.primary_color || '#9F174D')).text('SERVICE SUMMARY');
   doc.moveDown(0.2);
 
   const serviceCols = [
@@ -188,7 +277,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   let h = drawTableRow(doc, serviceCols, doc.y, ['#', 'Service', 'Frequency', 'GST %', 'Amount'], {
     bold: true,
-    fontSize: Math.max(8, toNumber(templateSettings.table_font_size, 9)),
+    fontSize: Math.max(10, toNumber(templateSettings.table_font_size, 10)),
     borderColor: clean(templateSettings.border_color || '#cbd5e1'),
     minHeight: 24
   });
@@ -210,19 +299,19 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
       `₹ ${formatINR(item.total_amount)}`
     ];
 
-    const rowHeight = getRowHeight(doc, serviceCols, rowVals, 8.4, 32);
+    const rowHeight = getRowHeight(doc, serviceCols, rowVals, 10, 34);
     ensureSpace(rowHeight + 2);
     h = drawTableRow(doc, serviceCols, doc.y, rowVals, {
-      fontSize: 8.4,
+      fontSize: 10,
       borderColor: clean(templateSettings.border_color || '#cbd5e1'),
-      minHeight: 32
+      minHeight: 34
     });
     doc.y += h;
   });
 
   ensureSpace(70);
   doc.moveDown(0.6);
-  doc.font('Helvetica-Bold').fontSize(10).fillColor(clean(templateSettings.primary_color || '#9F174D')).text('RECOMMENDATION TABLE');
+  doc.font(pdfFont.bold).fontSize(10).fillColor(clean(templateSettings.primary_color || '#9F174D')).text('RECOMMENDATION TABLE');
   doc.moveDown(0.2);
 
   const recCols = [
@@ -235,7 +324,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   h = drawTableRow(doc, recCols, doc.y, ['#', 'Service', 'Infestation', 'Image', 'Recommendation'], {
     bold: true,
-    fontSize: Math.max(8, toNumber(templateSettings.table_font_size, 9)),
+    fontSize: Math.max(10, toNumber(templateSettings.table_font_size, 10)),
     borderColor: clean(templateSettings.border_color || '#cbd5e1'),
     minHeight: 24
   });
@@ -244,13 +333,13 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   items.forEach((item, index) => {
     const recText = clean(item.recommendation || item.what_we_do || '-');
     const rowVals = [String(index + 1), clean(item.service_name || '-'), clean(item.infestation_level || '-'), '', recText];
-    const rowHeight = Math.max(54, getRowHeight(doc, recCols, rowVals, 8.2, 54));
+    const rowHeight = Math.max(58, getRowHeight(doc, recCols, rowVals, 10, 58));
     ensureSpace(rowHeight + 2);
     const y = doc.y;
     h = drawTableRow(doc, recCols, y, rowVals, {
-      fontSize: 8.2,
+      fontSize: 10,
       borderColor: clean(templateSettings.border_color || '#cbd5e1'),
-      minHeight: 54
+      minHeight: 58
     });
 
     const img = resolveUploadAsset(item.infestation_image_url);
@@ -278,7 +367,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   doc.moveDown(0.5);
   const sumX = right - 200;
   const line = (label, value, bold = false) => {
-    doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(10).fillColor('#111827').text(label, sumX, doc.y, { width: 110 });
+    doc.font(bold ? pdfFont.bold : pdfFont.regular).fontSize(10).fillColor('#111827').text(label, sumX, doc.y, { width: 110 });
     doc.text(value, sumX + 110, doc.y - 10, { width: 90, align: 'right' });
     doc.moveDown(0.2);
   };
@@ -287,8 +376,8 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   line('Round Off', `₹ ${formatINR(roundOff)}`);
   line('Grand Total', `₹ ${formatINR(grand)}`, true);
   doc.moveDown(0.2);
-  doc.font('Helvetica-Bold').fontSize(10).text('Amount in words');
-  doc.font('Helvetica').fontSize(9).text(amountInWords(grand));
+  doc.font(pdfFont.bold).fontSize(10).text('Amount in words');
+  doc.font(pdfFont.regular).fontSize(10).text(amountInWords(grand));
 
   const blocks = [
     ['Payment Terms', clean(quotation.payment_terms || commonParagraphs.payment_terms)],
@@ -300,13 +389,13 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   blocks.forEach(([titleText, body]) => {
     ensureSpace(70);
     doc.moveDown(0.3);
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(clean(templateSettings.primary_color || '#9F174D')).text(titleText);
-    doc.font('Helvetica').fontSize(9.2).fillColor('#111827').text(body, { align: 'justify' });
+    doc.font(pdfFont.bold).fontSize(10).fillColor(clean(templateSettings.primary_color || '#9F174D')).text(titleText);
+    doc.font(pdfFont.regular).fontSize(10).fillColor('#111827').text(body, { align: 'left', lineGap: 1 });
   });
 
   ensureSpace(90);
   doc.moveDown(0.4);
-  doc.font('Helvetica').fontSize(10).fillColor('#111827').text('Yours Truly,');
+  doc.font(pdfFont.regular).fontSize(10).fillColor('#111827').text('Yours Truly,');
   doc.text('For Skuas Pest Control Pvt Ltd');
 
   if (String(templateSettings.show_signature || '1') !== '0') {
