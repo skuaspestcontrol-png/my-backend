@@ -94,6 +94,17 @@ const toCsv = (rows) => {
   return rows.map((row) => row.map(esc).join(',')).join('\n');
 };
 
+const parseJsonPayload = (value, fallback = {}) => {
+  if (!value) return fallback;
+  if (typeof value === 'object') return value;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 const parseCsvLine = (line) => {
   const out = [];
   let current = '';
@@ -393,6 +404,7 @@ const normalizeImportRow = (raw = {}, mapping = {}) => {
     shippingStreet1,
     shippingStreet2,
     shippingAddress,
+    normalizedShippingAddress: normalizeAddress(shippingAddress),
     shippingArea,
     shippingState,
     shippingPincode,
@@ -426,6 +438,7 @@ const normalizeExistingCustomer = (customer = {}) => {
   const mobile = normalizePhone(customer.mobileNumber || customer.workPhone || '');
   const email = normalizeEmail(customer.emailId || customer.email || '');
   const addressText = normalizeText(customer.billingAddress || customer.address || [customer.billingStreet1, customer.billingStreet2].filter(Boolean).join(', '));
+  const shippingAddressText = normalizeText(customer.shippingAddress || [customer.shippingStreet1, customer.shippingStreet2].filter(Boolean).join(', '));
   return {
     ...customer,
     _displayName: displayName,
@@ -433,7 +446,9 @@ const normalizeExistingCustomer = (customer = {}) => {
     _mobile: mobile,
     _email: email,
     _address: addressText,
-    _normalizedAddress: normalizeAddress(addressText)
+    _normalizedAddress: normalizeAddress(addressText),
+    _shippingAddress: shippingAddressText,
+    _normalizedShippingAddress: normalizeAddress(shippingAddressText)
   };
 };
 
@@ -446,6 +461,8 @@ const dedupeScore = (importClean, existingCustomer) => {
   const emailMatch = importClean.email && existingCustomer._email && importClean.email === existingCustomer._email;
   const nameExact = importClean.customerName && existingCustomer._displayName && normalizeLower(importClean.customerName) === normalizeLower(existingCustomer._displayName);
   const addressExact = importClean.normalizedAddress && existingCustomer._normalizedAddress && importClean.normalizedAddress === existingCustomer._normalizedAddress;
+  const shippingAddressExact = importClean.normalizedShippingAddress
+    && (importClean.normalizedShippingAddress === existingCustomer._normalizedShippingAddress || importClean.normalizedShippingAddress === existingCustomer._normalizedAddress);
 
   const nameSimilarity = combinedSimilarity(importClean.customerName, existingCustomer._displayName);
   const addressSimilarity = combinedSimilarity(importClean.address, existingCustomer._address);
@@ -488,18 +505,31 @@ const dedupeScore = (importClean, existingCustomer) => {
   else if (score >= 75) classification = 'Possible Duplicate';
   else if (score >= 60) classification = 'Needs Review';
 
+  const sameCustomerDifferentAddress = (phoneMatch || emailMatch || nameExact)
+    && (
+      (importClean.normalizedAddress && existingCustomer._normalizedAddress && !addressExact && addressSimilarity < 90)
+      || (importClean.normalizedShippingAddress && !shippingAddressExact)
+    );
+  if (sameCustomerDifferentAddress) {
+    score = Math.max(score, 90);
+    classification = 'Possible Duplicate';
+    reasons.push('Same customer with different address - add as new premise');
+  }
+
   return {
     score,
     reasons: Array.from(new Set(reasons)),
     classification,
     nameSimilarity,
-    addressSimilarity
+    addressSimilarity,
+    sameCustomerDifferentAddress
   };
 };
 
-const decideSuggestedAction = ({ status, score }) => {
+const decideSuggestedAction = ({ status, score, sameCustomerDifferentAddress = false }) => {
   if (status === 'Invalid Row') return 'skip';
   if (status === 'New Customer') return 'create_new';
+  if (sameCustomerDifferentAddress) return 'add_address';
   if (status === 'Exact Duplicate') return 'skip';
   if (status === 'Possible Duplicate') return score >= 90 ? 'merge_with_existing' : 'needs_review';
   if (status === 'Needs Review') return 'needs_review';
@@ -724,6 +754,107 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
     return true;
   };
 
+  const fetchCustomersForDedupe = async () => {
+    if (typeof mysql.canUseMysql === 'function' && mysql.canUseMysql() && typeof mysql.withMysqlConnection === 'function') {
+      try {
+        const mysqlRows = await mysql.withMysqlConnection(async (conn) => {
+          const [rows] = await conn.query('SELECT id, external_id, payload FROM customers ORDER BY id DESC');
+          return Array.isArray(rows) ? rows : [];
+        });
+        if (mysqlRows.length) {
+          return mysqlRows
+            .map((row) => {
+              const payload = parseJsonPayload(row.payload, {});
+              const externalId = normalizeText(row.external_id || payload._id || row.id);
+              return externalId ? { ...payload, _id: externalId } : null;
+            })
+            .filter(Boolean);
+        }
+      } catch (error) {
+        console.error('Customer import MySQL dedupe load failed:', error.message);
+      }
+    }
+    return getCustomers();
+  };
+
+  const findCustomerById = (customerId) => getCustomers().find((row) => normalizeText(row._id) === normalizeText(customerId)) || null;
+
+  const appendCustomerAddressBook = (customerId, addressText) => {
+    const address = normalizeText(addressText);
+    if (!address) return null;
+    const customers = getCustomers();
+    const index = customers.findIndex((row) => normalizeText(row._id) === normalizeText(customerId));
+    if (index < 0) return null;
+    const current = customers[index];
+    const addressBook = Array.isArray(current.addressBook) ? current.addressBook : [];
+    const exists = addressBook.some((entry) => normalizeAddress(entry) === normalizeAddress(address));
+    if (!exists) {
+      customers[index] = { ...current, addressBook: [...addressBook, address], updatedAt: nowIso() };
+      saveCustomers(customers);
+      return customers[index];
+    }
+    return current;
+  };
+
+  const buildPremiseFromImport = (clean = {}, targetCustomer = {}, targetCustomerId = '') => {
+    const address = normalizeText(clean.shippingAddress || clean.billingAddress || clean.address || [clean.shippingStreet1, clean.shippingStreet2, clean.billingStreet1, clean.billingStreet2].filter(Boolean).join(', '));
+    const addressKey = normalizeAddress(address).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 36) || Date.now();
+    const isShippingAddress = !!normalizeText(clean.shippingAddress) && normalizeAddress(clean.shippingAddress) !== normalizeAddress(clean.billingAddress || clean.address);
+    return {
+      premiseId: `PREM-${targetCustomerId}-${addressKey}`,
+      premiseLabel: isShippingAddress ? 'Imported Shipping Address' : (clean.segment ? `${clean.segment} Address` : 'Imported Service Address'),
+      premiseType: isShippingAddress ? 'Shipping' : 'Service',
+      contactPerson: clean.contactPersonName || clean.customerName || targetCustomer.contactPersonName || targetCustomer.name || '',
+      phone: clean.mobileNumber || targetCustomer.mobileNumber || targetCustomer.workPhone || '',
+      email: clean.email || targetCustomer.emailId || targetCustomer.email || '',
+      address,
+      areaName: isShippingAddress ? (clean.shippingArea || clean.billingArea || '') : (clean.billingArea || ''),
+      city: clean.city || targetCustomer.city || '',
+      state: isShippingAddress ? (clean.shippingState || clean.billingState || targetCustomer.billingState || targetCustomer.state || '') : (clean.billingState || targetCustomer.billingState || targetCustomer.state || ''),
+      pincode: isShippingAddress ? (clean.shippingPincode || clean.billingPincode || '') : (clean.billingPincode || ''),
+      country: 'India',
+      latitude: clean.latitude || null,
+      longitude: clean.longitude || null,
+      googlePlaceId: clean.googlePlaceId || '',
+      googlePlaceName: clean.googlePlaceName || '',
+      googleMapUrl: clean.googleMapUrl || '',
+      gstin: clean.gstNumber || targetCustomer.gstNumber || '',
+      placeOfSupply: clean.billingState || targetCustomer.placeOfSupply || targetCustomer.state || '',
+      isDefault: 0,
+      isBilling: 0,
+      isShipping: isShippingAddress || clean.shippingSameAsBilling ? 1 : 0,
+      isActive: 1
+    };
+  };
+
+  const addPremiseToMysql = async ({ targetCustomerId, premise }) => {
+    if (!normalizeText(targetCustomerId) || !normalizeText(premise?.address)) return false;
+    if (typeof mysql.canUseMysql !== 'function' || !mysql.canUseMysql()) return false;
+    if (typeof mysql.withMysqlConnection !== 'function' || typeof mysql.ensureCustomerPremisesInfrastructure !== 'function') return false;
+
+    await mysql.withMysqlConnection(async (conn) => {
+      await mysql.ensureCustomerPremisesInfrastructure(conn);
+      const [customerRows] = await conn.query('SELECT id FROM customers WHERE external_id = ? LIMIT 1', [targetCustomerId]);
+      const customerRowId = Number(customerRows?.[0]?.id || 0);
+      if (!customerRowId) throw new Error('Matched customer not found in MySQL');
+      if (typeof mysql.insertOrUpdatePremise === 'function') {
+        await mysql.insertOrUpdatePremise(conn, customerRowId, premise);
+        return;
+      }
+      throw new Error('Customer premise writer is unavailable');
+    });
+    return true;
+  };
+
+  const addImportedAddressToExistingCustomer = async ({ targetCustomerId, clean, actor }) => {
+    const target = findCustomerById(targetCustomerId) || {};
+    const premise = buildPremiseFromImport(clean, target, targetCustomerId);
+    appendCustomerAddressBook(targetCustomerId, premise.address);
+    await addPremiseToMysql({ targetCustomerId, premise });
+    logAudit('import_row_added_customer_premise', { targetCustomerId, premiseId: premise.premiseId }, actor);
+    return { ok: true, premise };
+  };
+
   const logAudit = (action, payload = {}, actor = 'System') => {
     const rows = getAudit();
     rows.push({
@@ -877,14 +1008,18 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
         reason: entry.reasons.join(' | ') || 'Similarity match',
         nameSimilarity: entry.nameSimilarity,
         addressSimilarity: entry.addressSimilarity,
+        sameCustomerDifferentAddress: !!entry.sameCustomerDifferentAddress,
         phone: entry.existing.mobileNumber || entry.existing.workPhone || '',
-        email: entry.existing.emailId || entry.existing.email || ''
+        email: entry.existing.emailId || entry.existing.email || '',
+        address: entry.existing.shippingAddress || entry.existing.billingAddress || entry.existing.address || '',
+        area: entry.existing.shippingArea || entry.existing.billingArea || entry.existing.area || '',
+        segment: entry.existing.segment || entry.existing.serviceType || ''
       }))
     };
   };
 
-  const analyzeRows = ({ rawRows, mapping, batchId }) => {
-    const customers = getCustomers().filter((entry) => entry.active !== false && !entry.isMerged);
+  const analyzeRows = async ({ rawRows, mapping, batchId }) => {
+    const customers = (await fetchCustomersForDedupe()).filter((entry) => entry.active !== false && !entry.isMerged);
     const analyzedRows = [];
     const allMatches = [];
 
@@ -910,7 +1045,11 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
         possibleMatches = scoreResult.possibleMatches;
       }
 
-      const suggestedAction = decideSuggestedAction({ status, score: confidence });
+      const suggestedAction = decideSuggestedAction({
+        status,
+        score: confidence,
+        sameCustomerDifferentAddress: possibleMatches.some((match) => match.sameCustomerDifferentAddress)
+      });
       const rowId = `CIR-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`;
       analyzedRows.push({
         _id: rowId,
@@ -1232,6 +1371,26 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       };
     }
 
+    if (action === 'add_address') {
+      const targetId = normalizeText(row.selectedTargetCustomerId || row.matchedCustomerId);
+      const result = await addImportedAddressToExistingCustomer({ targetCustomerId: targetId, clean: row.clean, actor });
+      if (!result.ok) {
+        return {
+          ...row,
+          finalResult: 'error',
+          finalMessage: result.error || 'Unable to add imported address',
+          updatedAt: nowIso()
+        };
+      }
+      return {
+        ...row,
+        finalResult: 'updated',
+        finalMessage: `Added new address to existing customer (${result.premise.premiseLabel})`,
+        selectedTargetCustomerId: targetId,
+        updatedAt: nowIso()
+      };
+    }
+
     if (action === 'merge_with_existing') {
       const targetId = normalizeText(row.selectedTargetCustomerId || row.matchedCustomerId);
       let sourceCustomerId = '';
@@ -1343,7 +1502,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
     };
   };
 
-  app.post('/api/customers/import/upload', (req, res) => {
+  app.post('/api/customers/import/upload', async (req, res) => {
     try {
       const fileName = normalizeText(req.body?.fileName || 'customers-import.csv');
       const content = String(req.body?.content || '');
@@ -1383,7 +1542,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       batches.push(batch);
       saveBatches(batches);
 
-      const { analyzedRows, allMatches } = analyzeRows({ rawRows: rows, mapping, batchId });
+      const { analyzedRows, allMatches } = await analyzeRows({ rawRows: rows, mapping, batchId });
       const importRows = getImportRows();
       saveImportRows([...importRows, ...analyzedRows]);
       const matches = getMatches();
@@ -1404,7 +1563,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
     }
   });
 
-  app.post('/api/customers/import/batches/:batchId/remap', (req, res) => {
+  app.post('/api/customers/import/batches/:batchId/remap', async (req, res) => {
     try {
       const batchId = normalizeText(req.params.batchId);
       const requestedMapping = req.body?.mapping && typeof req.body.mapping === 'object' ? req.body.mapping : null;
@@ -1417,7 +1576,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       const batch = batches[batchIndex];
       const rawRows = Array.isArray(batch.rawRows) ? batch.rawRows : [];
       const mapping = mergeMappingWithInferred(batch.headers || [], requestedMapping);
-      const { analyzedRows, allMatches } = analyzeRows({ rawRows, mapping, batchId });
+      const { analyzedRows, allMatches } = await analyzeRows({ rawRows, mapping, batchId });
 
       const remainingRows = getImportRows().filter((row) => normalizeText(row.batchId) !== batchId);
       saveImportRows([...remainingRows, ...analyzedRows]);

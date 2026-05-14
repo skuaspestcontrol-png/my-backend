@@ -32,7 +32,8 @@ const statusTone = {
 
 const actionOptions = [
   { value: 'create_new', label: 'Create as new customer' },
-  { value: 'skip', label: 'Skip import' },
+  { value: 'skip', label: 'Delete / skip this import row' },
+  { value: 'add_address', label: 'Add as new shipping/service address' },
   { value: 'update_existing', label: 'Update existing customer' },
   { value: 'merge_with_existing', label: 'Merge with existing customer' },
   { value: 'mark_different', label: 'Mark as different customer' },
@@ -90,7 +91,13 @@ const modalShell = {
   td: { padding: '8px 9px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 600, verticalAlign: 'top' },
   badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '3px 8px', fontSize: '11px', fontWeight: 700 },
   input: { width: '100%', minHeight: '35px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '8px 10px', fontSize: '13px' },
-  actions: { display: 'flex', gap: '8px', flexWrap: 'wrap' }
+  actions: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
+  compareGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(220px, 1fr))', gap: '8px', marginTop: '8px' },
+  compareBox: { border: '1px solid #E5E7EB', borderRadius: '10px', background: '#f8fafc', padding: '9px', display: 'grid', gap: '5px' },
+  compareLabel: { fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  compareValue: { fontSize: '12px', color: '#0f172a', fontWeight: 700 },
+  miniBtn: { border: '1px solid #D1D5DB', borderRadius: '8px', minHeight: '30px', padding: '0 9px', fontSize: '11px', fontWeight: 800, background: '#fff', color: '#0f172a', cursor: 'pointer' },
+  dangerBtn: { border: '1px solid rgba(220,38,38,0.28)', borderRadius: '8px', minHeight: '30px', padding: '0 9px', fontSize: '11px', fontWeight: 800, background: 'rgba(254,242,242,0.9)', color: '#991b1b', cursor: 'pointer' }
 };
 
 const initialMapping = {
@@ -296,6 +303,53 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
     }
   };
 
+  const renderCustomerSummary = (title, values = {}) => (
+    <div style={modalShell.compareBox}>
+      <div style={modalShell.compareLabel}>{title}</div>
+      <div style={modalShell.compareValue}>{values.name || '-'}</div>
+      <div style={{ fontSize: '11px', color: '#475569' }}>{values.phone || '-'} | {values.email || '-'}</div>
+      <div style={{ fontSize: '11px', color: '#475569' }}>{values.address || '-'}</div>
+      <div style={{ fontSize: '11px', color: '#475569' }}>{values.area || '-'} | {values.segment || '-'}</div>
+    </div>
+  );
+
+  const renderDuplicateCompare = (row) => {
+    const hasDuplicate = row.status === 'Exact Duplicate' || row.status === 'Possible Duplicate' || row.status === 'Needs Review' || row.matchedCustomerId;
+    if (!hasDuplicate) return null;
+    const selectedMatch = (row.possibleMatches || []).find((match) => match.customerId === (row.selectedTargetCustomerId || row.matchedCustomerId))
+      || (row.possibleMatches || [])[0]
+      || {};
+    return (
+      <div style={{ borderTop: '1px solid #eef2f7', marginTop: '8px', paddingTop: '8px' }}>
+        <div style={{ ...modalShell.compareLabel, color: 'var(--color-primary-deep)' }}>Compare Before Upload</div>
+        <div style={modalShell.compareGrid}>
+          {renderCustomerSummary('Imported Row', {
+            name: row.clean?.customerName,
+            phone: row.clean?.mobileNumber,
+            email: row.clean?.email,
+            address: row.clean?.shippingAddress || row.clean?.billingAddress || row.clean?.address,
+            area: row.clean?.shippingArea || row.clean?.billingArea,
+            segment: row.clean?.segment || row.clean?.serviceType
+          })}
+          {renderCustomerSummary('Existing Customer', {
+            name: selectedMatch.customerName || row.matchedCustomerName,
+            phone: selectedMatch.phone,
+            email: selectedMatch.email,
+            address: selectedMatch.address,
+            area: selectedMatch.area,
+            segment: selectedMatch.segment
+          })}
+        </div>
+        <div style={{ ...modalShell.actions, marginTop: '8px' }}>
+          <button type="button" style={modalShell.dangerBtn} onClick={() => setRowAction(row._id, 'skip', row.selectedTargetCustomerId || row.matchedCustomerId, 'Deleted from import during duplicate review')}>Delete / do not upload</button>
+          <button type="button" style={modalShell.miniBtn} onClick={() => setRowAction(row._id, 'add_address', row.selectedTargetCustomerId || row.matchedCustomerId)}>Add as new address</button>
+          <button type="button" style={modalShell.miniBtn} onClick={() => setRowAction(row._id, 'create_new', '')}>Upload as new customer</button>
+          <button type="button" style={modalShell.miniBtn} onClick={() => setRowAction(row._id, 'update_existing', row.selectedTargetCustomerId || row.matchedCustomerId)}>Update existing</button>
+        </div>
+      </div>
+    );
+  };
+
   const total = summary?.totalRows || rows.length;
 
   return (
@@ -416,6 +470,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                           <div style={{ fontSize: '11px', color: '#64748b' }}>{row.clean?.mobileNumber || '-'} | {row.clean?.email || '-'}</div>
                           <div style={{ fontSize: '11px', color: '#64748b' }}>{row.clean?.billingAddress || row.clean?.address || '-'}</div>
                           <div style={{ fontSize: '11px', color: '#64748b' }}>{row.clean?.segment || row.clean?.serviceType || '-'}</div>
+                          {renderDuplicateCompare(row)}
                         </td>
                         <td style={modalShell.td}>
                           <span style={{ ...modalShell.badge, ...(statusTone[row.status] || statusTone['Needs Review']) }}>{row.status}</span>

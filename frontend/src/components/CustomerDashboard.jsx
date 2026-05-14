@@ -176,7 +176,7 @@ const shell = {
   toolbar: { padding: '10px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: '#fff' },
   toolLabel: { fontSize: '12px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' },
   customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', padding: '8px 12px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', maxWidth: '100%', borderRadius: '14px', border: '1px solid var(--color-border)' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', maxWidth: '100%', borderRadius: 0, border: '1px solid var(--color-border)' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '10px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
@@ -973,12 +973,50 @@ export default function CustomerDashboard() {
 
   const deleteSelected = async () => {
     if (selectedIds.length === 0) return;
+    const ok = window.confirm(`Delete ${selectedIds.length} selected customer${selectedIds.length === 1 ? '' : 's'}?`);
+    if (!ok) return;
     try {
       await Promise.all(selectedIds.map((id) => axios.delete(`${API_BASE_URL}/api/customers/${id}`)));
       setShowMoreMenu(false);
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
     } catch (error) {
       console.error('Failed to delete customers', error);
+    }
+  };
+
+  const deleteAllCustomers = async () => {
+    const ids = customers.map((customer) => customer?._id).filter(Boolean);
+    if (ids.length === 0) return;
+    const ok = window.confirm(`Delete all ${ids.length} customers? This cannot be undone.`);
+    if (!ok) return;
+    try {
+      await Promise.all(ids.map((id) => axios.delete(`${API_BASE_URL}/api/customers/${id}`)));
+      setShowMoreMenu(false);
+      setSelectedIds([]);
+      await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
+    } catch (error) {
+      console.error('Failed to delete all customers', error);
+      window.alert(error?.response?.data?.error || 'Unable to delete all customers.');
+    }
+  };
+
+  const deleteDuplicateReportCustomers = async () => {
+    const ids = Array.from(new Set((duplicateRows || []).map((row) => row.customerBId).filter(Boolean)));
+    if (ids.length === 0) {
+      window.alert('No duplicate report customers found to delete.');
+      setShowMoreMenu(false);
+      return;
+    }
+    const ok = window.confirm(`Delete ${ids.length} duplicate customer${ids.length === 1 ? '' : 's'} from the duplicate report? The first customer in each pair will be kept.`);
+    if (!ok) return;
+    try {
+      await Promise.all(ids.map((id) => axios.delete(`${API_BASE_URL}/api/customers/${id}`)));
+      setShowMoreMenu(false);
+      setSelectedIds((prev) => prev.filter((id) => !ids.includes(id)));
+      await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
+    } catch (error) {
+      console.error('Failed to delete duplicate report customers', error);
+      window.alert(error?.response?.data?.error || 'Unable to delete duplicate report customers.');
     }
   };
 
@@ -1259,6 +1297,12 @@ export default function CustomerDashboard() {
                 <button type="button" style={shell.menuButton} onClick={deleteSelected}>
                   Delete Selected ({selectedIds.length})
                 </button>
+                <button type="button" style={shell.menuButton} onClick={deleteDuplicateReportCustomers}>
+                  Delete Duplicate Report Customers ({duplicateRows.length})
+                </button>
+                <button type="button" style={shell.menuButton} onClick={deleteAllCustomers}>
+                  Delete All Customers ({customers.length})
+                </button>
                 <button
                   type="button"
                   style={{ ...shell.menuButton, opacity: selectedIds.length === 2 ? 1 : 0.45 }}
@@ -1330,7 +1374,6 @@ export default function CustomerDashboard() {
                     <button type="button" style={{ ...shell.headSortButton, ...shell.headLabelWrap }} onClick={toggleNameSort} title="Sort by customer name">
                       <span>{column.label}</span>
                       <ArrowUpDown size={12} />
-                      <span>{nameSortDirection === 'asc' ? 'A-Z' : 'Z-A'}</span>
                     </button>
                   ) : (
                     <span style={shell.headLabelWrap}>{column.label}</span>

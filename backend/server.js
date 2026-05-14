@@ -8352,7 +8352,9 @@ registerCustomerDedupModule({
   mysql: {
     canUseMysql,
     withMysqlConnection,
-    ensureCustomerPlaceColumns
+    ensureCustomerPlaceColumns,
+    ensureCustomerPremisesInfrastructure,
+    insertOrUpdatePremise
   },
   files: {
     customersFile,
