@@ -439,10 +439,17 @@ const normalizeExistingCustomer = (customer = {}) => {
   const email = normalizeEmail(customer.emailId || customer.email || '');
   const addressText = normalizeText(customer.billingAddress || customer.address || [customer.billingStreet1, customer.billingStreet2].filter(Boolean).join(', '));
   const shippingAddressText = normalizeText(customer.shippingAddress || [customer.shippingStreet1, customer.shippingStreet2].filter(Boolean).join(', '));
+  const nameKeys = [
+    displayName,
+    customer.name,
+    customer.companyName,
+    customer.contactPersonName
+  ].map((value) => normalizeLower(value)).filter(Boolean);
   return {
     ...customer,
     _displayName: displayName,
     _normalizedName: normalizeLower(displayName),
+    _nameKeys: Array.from(new Set(nameKeys)),
     _mobile: mobile,
     _email: email,
     _address: addressText,
@@ -459,7 +466,16 @@ const dedupeScore = (importClean, existingCustomer) => {
 
   const phoneMatch = importClean.mobileNumber && existingCustomer._mobile && importClean.mobileNumber === existingCustomer._mobile;
   const emailMatch = importClean.email && existingCustomer._email && importClean.email === existingCustomer._email;
-  const nameExact = importClean.customerName && existingCustomer._displayName && normalizeLower(importClean.customerName) === normalizeLower(existingCustomer._displayName);
+  const importNameKeys = [
+    importClean.customerName,
+    importClean.displayName,
+    importClean.companyName,
+    importClean.contactPersonName
+  ].map((value) => normalizeLower(value)).filter(Boolean);
+  const existingNameKeys = Array.isArray(existingCustomer._nameKeys) && existingCustomer._nameKeys.length
+    ? existingCustomer._nameKeys
+    : [normalizeLower(existingCustomer._displayName)].filter(Boolean);
+  const nameExact = importNameKeys.some((name) => existingNameKeys.includes(name));
   const addressExact = importClean.normalizedAddress && existingCustomer._normalizedAddress && importClean.normalizedAddress === existingCustomer._normalizedAddress;
   const shippingAddressExact = importClean.normalizedShippingAddress
     && (importClean.normalizedShippingAddress === existingCustomer._normalizedShippingAddress || importClean.normalizedShippingAddress === existingCustomer._normalizedAddress);
@@ -474,6 +490,9 @@ const dedupeScore = (importClean, existingCustomer) => {
     score = 100;
     reasons.push('Exact mobile number match');
     if (!nameExact) reasons.push('Same phone + different name (high-risk duplicate)');
+  } else if (nameExact) {
+    score = Math.max(score, 90);
+    reasons.push('Exact company/customer name match');
   }
 
   if (emailMatch) {
@@ -796,19 +815,42 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
     return current;
   };
 
-  const buildPremiseFromImport = (clean = {}, targetCustomer = {}, targetCustomerId = '') => {
-    const address = normalizeText(clean.shippingAddress || clean.billingAddress || clean.address || [clean.shippingStreet1, clean.shippingStreet2, clean.billingStreet1, clean.billingStreet2].filter(Boolean).join(', '));
-    const addressKey = normalizeAddress(address).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 36) || Date.now();
-    const isShippingAddress = !!normalizeText(clean.shippingAddress) && normalizeAddress(clean.shippingAddress) !== normalizeAddress(clean.billingAddress || clean.address);
+  const premiseAddressKey = (address) => normalizeAddress(address).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 36) || Date.now();
+
+  const customerKnownAddressKeys = (customer = {}) => {
+    const values = [
+      customer.billingAddress,
+      customer.shippingAddress,
+      customer.address,
+      ...(Array.isArray(customer.addressBook) ? customer.addressBook : [])
+    ];
+    return new Set(values.map((value) => normalizeAddress(value)).filter(Boolean));
+  };
+
+  const importedShippingDiffersFromBilling = (clean = {}) => {
+    const billingAddress = normalizeAddress(clean.billingAddress || clean.address);
+    const shippingAddress = normalizeAddress(clean.shippingAddress);
+    if (!shippingAddress) return false;
+    if (clean.shippingSameAsBilling) return false;
+    return shippingAddress !== billingAddress;
+  };
+
+  const buildPremisePayload = ({ clean = {}, targetCustomer = {}, targetCustomerId = '', kind = 'billing', isDefault = 0 }) => {
+    const isShippingAddress = kind === 'shipping';
+    const address = isShippingAddress
+      ? normalizeText(clean.shippingAddress)
+      : normalizeText(clean.billingAddress || clean.address);
+    const areaName = isShippingAddress ? (clean.shippingArea || clean.billingArea || '') : (clean.billingArea || '');
+    const addressKey = premiseAddressKey(address);
     return {
       premiseId: `PREM-${targetCustomerId}-${addressKey}`,
-      premiseLabel: isShippingAddress ? 'Imported Shipping Address' : (clean.segment ? `${clean.segment} Address` : 'Imported Service Address'),
-      premiseType: isShippingAddress ? 'Shipping' : 'Service',
+      premiseLabel: isShippingAddress ? `Shipping Address${areaName ? ` / ${areaName}` : ''}` : 'Billing Address',
+      premiseType: isShippingAddress ? 'Shipping' : 'Billing',
       contactPerson: clean.contactPersonName || clean.customerName || targetCustomer.contactPersonName || targetCustomer.name || '',
       phone: clean.mobileNumber || targetCustomer.mobileNumber || targetCustomer.workPhone || '',
       email: clean.email || targetCustomer.emailId || targetCustomer.email || '',
       address,
-      areaName: isShippingAddress ? (clean.shippingArea || clean.billingArea || '') : (clean.billingArea || ''),
+      areaName,
       city: clean.city || targetCustomer.city || '',
       state: isShippingAddress ? (clean.shippingState || clean.billingState || targetCustomer.billingState || targetCustomer.state || '') : (clean.billingState || targetCustomer.billingState || targetCustomer.state || ''),
       pincode: isShippingAddress ? (clean.shippingPincode || clean.billingPincode || '') : (clean.billingPincode || ''),
@@ -820,39 +862,161 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       googleMapUrl: clean.googleMapUrl || '',
       gstin: clean.gstNumber || targetCustomer.gstNumber || '',
       placeOfSupply: clean.billingState || targetCustomer.placeOfSupply || targetCustomer.state || '',
-      isDefault: 0,
-      isBilling: 0,
-      isShipping: isShippingAddress || clean.shippingSameAsBilling ? 1 : 0,
+      isDefault: isDefault ? 1 : 0,
+      isBilling: isShippingAddress ? 0 : 1,
+      isShipping: isShippingAddress ? 1 : 0,
       isActive: 1
     };
   };
 
-  const addPremiseToMysql = async ({ targetCustomerId, premise }) => {
-    if (!normalizeText(targetCustomerId) || !normalizeText(premise?.address)) return false;
-    if (typeof mysql.canUseMysql !== 'function' || !mysql.canUseMysql()) return false;
-    if (typeof mysql.withMysqlConnection !== 'function' || typeof mysql.ensureCustomerPremisesInfrastructure !== 'function') return false;
+  const buildPremiseFromImport = (clean = {}, targetCustomer = {}, targetCustomerId = '') => {
+    const kind = importedShippingDiffersFromBilling(clean) ? 'shipping' : 'billing';
+    const address = kind === 'shipping' ? clean.shippingAddress : (clean.billingAddress || clean.address);
+    const addressKey = premiseAddressKey(address);
+    return {
+      ...buildPremisePayload({ clean, targetCustomer, targetCustomerId, kind, isDefault: 0 }),
+      premiseId: `PREM-${targetCustomerId}-${addressKey}`
+    };
+  };
 
-    await mysql.withMysqlConnection(async (conn) => {
+  const buildImportPremisePlan = ({ clean = {}, targetCustomer = {}, targetCustomerId = '', assumeHasDefaultPremise = true }) => {
+    const knownAddressKeys = customerKnownAddressKeys(targetCustomer);
+    const plan = [];
+    const pushPremise = ({ kind, address, isDefault = 0 }) => {
+      const normalizedAddress = normalizeAddress(address);
+      if (!normalizedAddress) return;
+      const isDuplicate = knownAddressKeys.has(normalizedAddress) || plan.some((entry) => entry.normalizedAddress === normalizedAddress);
+      const addressKey = premiseAddressKey(address);
+      const premise = {
+        ...buildPremisePayload({ clean, targetCustomer, targetCustomerId, kind, isDefault }),
+        premiseId: `PREM-${targetCustomerId}-${addressKey}`
+      };
+      plan.push({
+        kind,
+        normalizedAddress,
+        isDuplicate,
+        action: isDuplicate ? 'skip_premise' : 'add_premise',
+        premise
+      });
+      knownAddressKeys.add(normalizedAddress);
+    };
+
+    if (!assumeHasDefaultPremise) {
+      pushPremise({ kind: 'billing', address: clean.billingAddress || clean.address, isDefault: 1 });
+    }
+
+    if (importedShippingDiffersFromBilling(clean)) {
+      pushPremise({ kind: 'shipping', address: clean.shippingAddress, isDefault: 0 });
+    }
+
+    return plan;
+  };
+
+  const previewImportPremisePlan = ({ clean = {}, targetCustomer = {}, targetCustomerId = '' }) => {
+    const hasKnownBilling = !!normalizeText(targetCustomer.billingAddress || targetCustomer.address);
+    return buildImportPremisePlan({
+      clean,
+      targetCustomer,
+      targetCustomerId,
+      assumeHasDefaultPremise: hasKnownBilling
+    });
+  };
+
+  const addPremisesToMysql = async ({ targetCustomerId, clean, targetCustomer }) => {
+    if (!normalizeText(targetCustomerId)) return { added: [], skipped: [], available: false };
+    if (typeof mysql.canUseMysql !== 'function' || !mysql.canUseMysql()) return { added: [], skipped: [], available: false };
+    if (typeof mysql.withMysqlConnection !== 'function' || typeof mysql.ensureCustomerPremisesInfrastructure !== 'function') return { added: [], skipped: [], available: false };
+
+    return mysql.withMysqlConnection(async (conn) => {
       await mysql.ensureCustomerPremisesInfrastructure(conn);
       const [customerRows] = await conn.query('SELECT id FROM customers WHERE external_id = ? LIMIT 1', [targetCustomerId]);
       const customerRowId = Number(customerRows?.[0]?.id || 0);
       if (!customerRowId) throw new Error('Matched customer not found in MySQL');
+      const [existingPremises] = await conn.query('SELECT id, premise_id, address, is_default FROM customer_premises WHERE customer_id = ? AND is_active = 1', [customerRowId]);
+      const existingAddressKeys = new Set((existingPremises || []).map((row) => normalizeAddress(row.address)).filter(Boolean));
+      let hasDefaultPremise = (existingPremises || []).some((row) => Number(row.is_default || 0) === 1);
+      const plan = buildImportPremisePlan({
+        clean,
+        targetCustomer,
+        targetCustomerId,
+        assumeHasDefaultPremise: hasDefaultPremise
+      });
+      const added = [];
+      const skipped = [];
       if (typeof mysql.insertOrUpdatePremise === 'function') {
-        await mysql.insertOrUpdatePremise(conn, customerRowId, premise);
-        return;
+        for (const entry of plan) {
+          const normalizedAddress = normalizeAddress(entry.premise.address);
+          if (!normalizedAddress || existingAddressKeys.has(normalizedAddress)) {
+            const matchingPremise = (existingPremises || []).find((row) => normalizeAddress(row.address) === normalizedAddress);
+            if (entry.kind === 'billing' && !hasDefaultPremise && matchingPremise?.id) {
+              await conn.query('UPDATE customer_premises SET is_default = 0 WHERE customer_id = ?', [customerRowId]);
+              await conn.query(
+                "UPDATE customer_premises SET is_default = 1, is_billing = 1, premise_type = 'Billing' WHERE id = ?",
+                [matchingPremise.id]
+              );
+              hasDefaultPremise = true;
+              added.push({ ...entry.premise, premiseId: matchingPremise.premise_id || entry.premise.premiseId });
+              continue;
+            }
+            skipped.push({ ...entry.premise, reason: 'Duplicate Address Found' });
+            continue;
+          }
+          await mysql.insertOrUpdatePremise(conn, customerRowId, entry.premise);
+          existingAddressKeys.add(normalizedAddress);
+          added.push(entry.premise);
+        }
+        return { added, skipped, available: true };
       }
       throw new Error('Customer premise writer is unavailable');
     });
-    return true;
+  };
+
+  const addPremiseToMysql = async ({ targetCustomerId, premise }) => {
+    if (!normalizeText(targetCustomerId) || !normalizeText(premise?.address)) return false;
+    const clean = {
+      billingAddress: premise.premiseType === 'Billing' ? premise.address : '',
+      shippingAddress: premise.premiseType === 'Shipping' ? premise.address : '',
+      shippingArea: premise.areaName,
+      billingArea: premise.areaName,
+      shippingSameAsBilling: false
+    };
+    const result = await addPremisesToMysql({ targetCustomerId, clean, targetCustomer: {} });
+    return !!result.available;
+  };
+
+  const addImportedPremisesToExistingCustomer = async ({ targetCustomerId, clean, actor, updateMainRecord = true }) => {
+    const target = findCustomerById(targetCustomerId) || {};
+    const previewPlan = previewImportPremisePlan({ clean, targetCustomer: target, targetCustomerId });
+    const addedLocal = [];
+    const skippedLocal = [];
+    previewPlan.forEach((entry) => {
+      if (entry.isDuplicate) {
+        skippedLocal.push({ ...entry.premise, reason: 'Duplicate Address Found' });
+        return;
+      }
+      appendCustomerAddressBook(targetCustomerId, entry.premise.address);
+      addedLocal.push(entry.premise);
+    });
+    let targetAfterUpdate = target;
+    if (updateMainRecord) {
+      const updated = updateExistingFromImport({ targetCustomerId, clean });
+      if (!updated.ok) return { ok: false, error: updated.error || 'Target customer not found', added: [], skipped: [] };
+      targetAfterUpdate = updated.customer || target;
+    }
+    const mysqlResult = await addPremisesToMysql({ targetCustomerId, clean, targetCustomer: target });
+    const added = mysqlResult.available ? mysqlResult.added : addedLocal;
+    const skipped = mysqlResult.available ? mysqlResult.skipped : skippedLocal;
+    logAudit('import_row_merged_customer_premises', {
+      targetCustomerId,
+      addedPremiseIds: added.map((premise) => premise.premiseId),
+      skippedPremiseIds: skipped.map((premise) => premise.premiseId)
+    }, actor);
+    return { ok: true, added, skipped, customer: targetAfterUpdate };
   };
 
   const addImportedAddressToExistingCustomer = async ({ targetCustomerId, clean, actor }) => {
-    const target = findCustomerById(targetCustomerId) || {};
-    const premise = buildPremiseFromImport(clean, target, targetCustomerId);
-    appendCustomerAddressBook(targetCustomerId, premise.address);
-    await addPremiseToMysql({ targetCustomerId, premise });
-    logAudit('import_row_added_customer_premise', { targetCustomerId, premiseId: premise.premiseId }, actor);
-    return { ok: true, premise };
+    const result = await addImportedPremisesToExistingCustomer({ targetCustomerId, clean, actor, updateMainRecord: true });
+    return { ok: true, premise: result.added[0] || result.skipped[0] || null, ...result };
   };
 
   const logAudit = (action, payload = {}, actor = 'System') => {
@@ -991,9 +1155,22 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
         matchedCustomerId: '',
         matchedCustomerName: '',
         matchReason: 'No matching customer found',
+        previewAction: 'create_customer',
+        previewActionLabel: 'New Customer → Create Customer',
+        premisePlan: [],
         possibleMatches: []
       };
     }
+
+    const premisePlan = previewImportPremisePlan({ clean, targetCustomer: top.existing, targetCustomerId: top.existing._id });
+    const hasNewPremise = premisePlan.some((entry) => !entry.isDuplicate);
+    const hasDuplicatePremise = premisePlan.some((entry) => entry.isDuplicate);
+    const previewAction = hasNewPremise ? 'add_premise' : hasDuplicatePremise ? 'skip_premise' : 'merge';
+    const previewActionLabel = hasNewPremise
+      ? 'New Address Found → Add Premise'
+      : hasDuplicatePremise
+        ? 'Duplicate Address Found → Skip Premise'
+        : 'Existing Customer Found → Merge';
 
     return {
       status: top.classification,
@@ -1001,6 +1178,9 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       matchedCustomerId: top.existing._id,
       matchedCustomerName: top.existing.displayName || top.existing.name || '',
       matchReason: top.reasons.join(' | ') || 'Similarity match',
+      previewAction,
+      previewActionLabel,
+      premisePlan,
       possibleMatches: candidates.slice(0, 5).map((entry) => ({
         customerId: entry.existing._id,
         customerName: entry.existing.displayName || entry.existing.name || '',
@@ -1013,7 +1193,13 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
         email: entry.existing.emailId || entry.existing.email || '',
         address: entry.existing.shippingAddress || entry.existing.billingAddress || entry.existing.address || '',
         area: entry.existing.shippingArea || entry.existing.billingArea || entry.existing.area || '',
-        segment: entry.existing.segment || entry.existing.serviceType || ''
+        segment: entry.existing.segment || entry.existing.serviceType || '',
+        previewActionLabel: (() => {
+          const matchPlan = previewImportPremisePlan({ clean, targetCustomer: entry.existing, targetCustomerId: entry.existing._id });
+          if (matchPlan.some((planEntry) => !planEntry.isDuplicate)) return 'New Address Found → Add Premise';
+          if (matchPlan.some((planEntry) => planEntry.isDuplicate)) return 'Duplicate Address Found → Skip Premise';
+          return 'Existing Customer Found → Merge';
+        })()
       }))
     };
   };
@@ -1030,11 +1216,16 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       let matchReason = 'No duplicate found';
       let matchedCustomerId = '';
       let matchedCustomerName = '';
+      let previewAction = 'create_customer';
+      let previewActionLabel = 'New Customer → Create Customer';
+      let premisePlan = [];
       let possibleMatches = [];
       if (validationErrors.length > 0) {
         status = 'Invalid Row';
         confidence = 0;
         matchReason = validationErrors.join(' | ');
+        previewAction = 'skip';
+        previewActionLabel = 'Invalid Row → Skip';
       } else {
         const scoreResult = scoreAgainstExisting(clean, customers);
         status = scoreResult.status;
@@ -1042,6 +1233,9 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
         matchedCustomerId = scoreResult.matchedCustomerId;
         matchedCustomerName = scoreResult.matchedCustomerName;
         matchReason = scoreResult.matchReason;
+        previewAction = scoreResult.previewAction;
+        previewActionLabel = scoreResult.previewActionLabel;
+        premisePlan = scoreResult.premisePlan;
         possibleMatches = scoreResult.possibleMatches;
       }
 
@@ -1050,6 +1244,9 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
         score: confidence,
         sameCustomerDifferentAddress: possibleMatches.some((match) => match.sameCustomerDifferentAddress)
       });
+      const selectedAction = matchedCustomerId && status !== 'Invalid Row'
+        ? (previewAction === 'add_premise' ? 'add_address' : 'merge_with_existing')
+        : suggestedAction;
       const rowId = `CIR-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`;
       analyzedRows.push({
         _id: rowId,
@@ -1063,8 +1260,11 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
         matchedCustomerName,
         matchReason,
         confidence,
+        previewAction,
+        previewActionLabel,
+        premisePlan,
         suggestedAction,
-        selectedAction: suggestedAction,
+        selectedAction,
         selectedTargetCustomerId: matchedCustomerId,
         selectedReason: '',
         finalResult: '',
@@ -1332,6 +1532,30 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       };
     }
 
+    if ((action === 'create_new' || action === 'mark_different') && normalizeText(row.matchedCustomerId || row.selectedTargetCustomerId)) {
+      const targetId = normalizeText(row.selectedTargetCustomerId || row.matchedCustomerId);
+      const result = await addImportedPremisesToExistingCustomer({ targetCustomerId: targetId, clean: row.clean, actor, updateMainRecord: true });
+      if (!result.ok) {
+        return {
+          ...row,
+          finalResult: 'error',
+          finalMessage: result.error || 'Unable to merge matched customer',
+          updatedAt: nowIso()
+        };
+      }
+      await persistCustomerToMysql(result.customer);
+      return {
+        ...row,
+        selectedAction: 'merge_with_existing',
+        selectedTargetCustomerId: targetId,
+        finalResult: 'merged',
+        finalMessage: result.added.length
+          ? `Matched existing customer; added ${result.added.length} premise(s)`
+          : 'Matched existing customer; duplicate premise skipped',
+        updatedAt: nowIso()
+      };
+    }
+
     if (action === 'create_new' || action === 'mark_different') {
       const payload = buildCustomerPayloadFromImport(row.clean);
       const created = createCustomerRecord(payload);
@@ -1352,12 +1576,12 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
 
     if (action === 'update_existing') {
       const targetId = normalizeText(row.selectedTargetCustomerId || row.matchedCustomerId);
-      const updated = updateExistingFromImport({ targetCustomerId: targetId, clean: row.clean });
-      if (!updated.ok) {
+      const result = await addImportedPremisesToExistingCustomer({ targetCustomerId: targetId, clean: row.clean, actor, updateMainRecord: true });
+      if (!result.ok) {
         return {
           ...row,
           finalResult: 'error',
-          finalMessage: updated.error || 'Unable to update existing customer',
+          finalMessage: result.error || 'Unable to merge imported customer',
           updatedAt: nowIso()
         };
       }
@@ -1365,11 +1589,11 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
         rowId: row._id,
         targetCustomerId: targetId
       }, actor);
-      await persistCustomerToMysql(updated.customer);
+      await persistCustomerToMysql(result.customer);
       return {
         ...row,
         finalResult: 'updated',
-        finalMessage: `Updated customer ${updated.customer.displayName}`,
+        finalMessage: `Merged customer and ${result.added.length ? `added ${result.added.length} premise(s)` : 'skipped duplicate premise(s)'}`,
         selectedTargetCustomerId: targetId,
         updatedAt: nowIso()
       };
@@ -1389,7 +1613,9 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
       return {
         ...row,
         finalResult: 'updated',
-        finalMessage: `Added new address to existing customer (${result.premise.premiseLabel})`,
+        finalMessage: result.added.length
+          ? `Merged customer and added ${result.added.length} premise(s)`
+          : 'Merged customer; duplicate premise skipped',
         selectedTargetCustomerId: targetId,
         updatedAt: nowIso()
       };
@@ -1397,34 +1623,23 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
 
     if (action === 'merge_with_existing') {
       const targetId = normalizeText(row.selectedTargetCustomerId || row.matchedCustomerId);
-      let sourceCustomerId = '';
-      const importedAsCustomer = createCustomerRecord(buildCustomerPayloadFromImport(row.clean));
-      await persistCustomerToMysql(importedAsCustomer);
-      sourceCustomerId = importedAsCustomer._id;
-
-      const mergeResult = mergeCustomers({
-        sourceCustomerId,
-        targetCustomerId: targetId,
-        reason: normalizeText(row.selectedReason || row.matchReason || 'Merged during import dedupe'),
-        actor,
-        sourcePayload: row.clean
-      });
-
-      if (!mergeResult.ok) {
+      const result = await addImportedPremisesToExistingCustomer({ targetCustomerId: targetId, clean: row.clean, actor, updateMainRecord: true });
+      if (!result.ok) {
         return {
           ...row,
           finalResult: 'error',
-          finalMessage: mergeResult.error || 'Merge failed',
+          finalMessage: result.error || 'Merge failed',
           updatedAt: nowIso()
         };
       }
-      await persistCustomerToMysql(mergeResult.target);
-      await persistCustomerToMysql(mergeResult.source);
+      await persistCustomerToMysql(result.customer);
 
       return {
         ...row,
         finalResult: 'merged',
-        finalMessage: `Merged into customer ${mergeResult.target.displayName || mergeResult.target.name}`,
+        finalMessage: result.added.length
+          ? `Merged into customer and added ${result.added.length} premise(s)`
+          : 'Merged into customer; duplicate premise skipped',
         selectedTargetCustomerId: targetId,
         updatedAt: nowIso()
       };

@@ -33,7 +33,7 @@ const statusTone = {
 const actionOptions = [
   { value: 'create_new', label: 'Create as new customer' },
   { value: 'skip', label: 'Delete / skip this import row' },
-  { value: 'add_address', label: 'Add as new shipping/service address' },
+  { value: 'add_address', label: 'Merge + add premise' },
   { value: 'update_existing', label: 'Update existing customer' },
   { value: 'merge_with_existing', label: 'Merge with existing customer' },
   { value: 'mark_different', label: 'Mark as different customer' },
@@ -356,8 +356,8 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
         </div>
         <div style={{ ...modalShell.actions, marginTop: '8px' }}>
           <button type="button" style={{ ...modalShell.dangerBtn, ...(row.selectedAction === 'skip' ? modalShell.dangerBtnActive : null) }} onClick={() => setRowAction(row._id, 'skip', row.selectedTargetCustomerId || row.matchedCustomerId, 'Deleted from import during duplicate review')}>Delete / do not upload</button>
-          <button type="button" style={{ ...modalShell.miniBtn, ...(row.selectedAction === 'add_address' ? modalShell.miniBtnActive : null) }} onClick={() => setRowAction(row._id, 'add_address', row.selectedTargetCustomerId || row.matchedCustomerId)}>Add as new address</button>
-          <button type="button" style={{ ...modalShell.miniBtn, ...(row.selectedAction === 'create_new' ? modalShell.miniBtnActive : null) }} onClick={() => setRowAction(row._id, 'create_new', '')}>Upload as new customer</button>
+          <button type="button" style={{ ...modalShell.miniBtn, ...(row.selectedAction === 'add_address' ? modalShell.miniBtnActive : null) }} onClick={() => setRowAction(row._id, 'add_address', row.selectedTargetCustomerId || row.matchedCustomerId)}>Merge + add premise</button>
+          <button type="button" style={{ ...modalShell.miniBtn, ...(row.selectedAction === 'merge_with_existing' ? modalShell.miniBtnActive : null) }} onClick={() => setRowAction(row._id, 'merge_with_existing', row.selectedTargetCustomerId || row.matchedCustomerId)}>Merge customer</button>
           <button type="button" style={{ ...modalShell.miniBtn, ...(row.selectedAction === 'update_existing' ? modalShell.miniBtnActive : null) }} onClick={() => setRowAction(row._id, 'update_existing', row.selectedTargetCustomerId || row.matchedCustomerId)}>Update existing</button>
         </div>
       </div>
@@ -492,7 +492,18 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                         <td style={modalShell.td}>{row.matchedCustomerName || '-'}</td>
                         <td style={modalShell.td}>{row.matchReason || '-'}</td>
                         <td style={modalShell.td}>{row.confidence || 0}%</td>
-                        <td style={modalShell.td}>{row.suggestedAction || '-'}</td>
+                        <td style={modalShell.td}>
+                          <div>{row.previewActionLabel || row.suggestedAction || '-'}</div>
+                          {Array.isArray(row.premisePlan) && row.premisePlan.length > 0 ? (
+                            <div style={{ marginTop: '5px', display: 'grid', gap: '3px' }}>
+                              {row.premisePlan.map((entry, index) => (
+                                <div key={`${row._id}-premise-${index}`} style={{ fontSize: '11px', color: entry.isDuplicate ? '#991b1b' : '#166534', fontWeight: 800 }}>
+                                  {entry.isDuplicate ? 'Duplicate Address Found → Skip Premise' : 'New Address Found → Add Premise'}
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </td>
                         <td style={modalShell.td}>
                           {step === 3 || step === 4 ? (
                             <div style={{ display: 'grid', gap: '6px' }}>
