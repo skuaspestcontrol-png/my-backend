@@ -143,15 +143,49 @@ const inferMapping = (headers) => {
     return index >= 0 ? headers[index] : '';
   };
   return {
+    segment: find(['segment', 'service type', 'service']),
+    companyName: find(['company name', 'company']),
+    contactPersonName: find(['contact person name', 'contact person']),
+    displayName: find(['display name']),
+    position: find(['position', 'designation']),
+    positionCustom: find(['position custom', 'custom position']),
     customerName: find(['display name', 'customer name', 'name', 'contact person']),
     mobileNumber: find(['mobile', 'phone', 'workphone', 'work phone']),
-    address: find(['billing address', 'address', 'street', 'location']),
-    serviceType: find(['service type', 'segment', 'service']),
+    whatsappSameAsMobile: find(['whatsapp same']),
+    whatsappNumber: find(['whatsapp']),
+    altNumber: find(['alt number', 'alternate mobile', 'alternate phone']),
     email: find(['email']),
-    companyName: find(['company']),
+    emailId: find(['email id', 'email']),
+    hasGst: find(['gst registered', 'has gst']),
+    gstNumber: find(['gst number', 'gstin']),
+    billingAttention: find(['billing attention']),
+    billingStreet1: find(['billing street 1', 'street 1']),
+    billingStreet2: find(['billing street 2', 'street 2']),
+    billingAddress: find(['billing address', 'address', 'location']),
+    address: find(['billing address', 'address', 'street', 'location']),
     billingArea: find(['billing area', 'area']),
     billingState: find(['billing state', 'state']),
-    billingPincode: find(['billing pincode', 'pincode', 'zip'])
+    billingPincode: find(['billing pincode', 'pincode', 'zip']),
+    billingPhoneCode: find(['billing phone code']),
+    billingPhone: find(['billing phone']),
+    shippingSameAsBilling: find(['shipping same']),
+    shippingAttention: find(['shipping attention']),
+    shippingStreet1: find(['shipping street 1']),
+    shippingStreet2: find(['shipping street 2']),
+    shippingAddress: find(['shipping address']),
+    shippingArea: find(['shipping area']),
+    shippingState: find(['shipping state']),
+    shippingPincode: find(['shipping pincode']),
+    shippingPhoneCode: find(['shipping phone code']),
+    shippingPhone: find(['shipping phone']),
+    areaSqft: find(['area in sqft', 'area sqft', 'sqft']),
+    googlePlaceId: find(['google place id']),
+    googlePlaceName: find(['google place name']),
+    googlePhone: find(['google phone']),
+    googleWebsite: find(['google website']),
+    latitude: find(['latitude']),
+    longitude: find(['longitude']),
+    serviceType: find(['service type', 'segment', 'service'])
   };
 };
 
@@ -162,35 +196,90 @@ const normalizeImportRow = (raw = {}, mapping = {}) => {
     return fallback;
   };
 
-  const customerName = properCase(collapseSpaces(pick('customerName', raw.customerName || raw.name || raw.displayName || '')));
-  const mobileNumber = normalizePhone(pick('mobileNumber', raw.mobileNumber || raw.workPhone || ''));
-  const email = normalizeEmail(pick('email', raw.email || raw.emailId || ''));
-  const address = collapseSpaces(pick('address', raw.billingAddress || raw.address || ''));
-  const normalizedAddress = normalizeAddress(address);
-  const serviceType = properCase(collapseSpaces(pick('serviceType', raw.serviceType || raw.segment || '')));
+  const boolValue = (value) => {
+    const text = normalizeLower(value);
+    return ['1', 'true', 'yes', 'y', 'same'].includes(text);
+  };
+
+  const displayName = properCase(collapseSpaces(pick('displayName', raw.displayName || raw.name || '')));
+  const contactPersonName = properCase(collapseSpaces(pick('contactPersonName', raw.contactPersonName || raw.customerName || raw.name || '')));
   const companyName = properCase(collapseSpaces(pick('companyName', raw.companyName || '')));
+  const customerName = properCase(collapseSpaces(pick('customerName', raw.customerName || raw.name || displayName || contactPersonName || companyName || '')));
+  const mobileNumber = normalizePhone(pick('mobileNumber', raw.mobileNumber || raw.workPhone || ''));
+  const whatsappNumber = normalizePhone(pick('whatsappNumber', raw.whatsappNumber || raw.whatsapp || mobileNumber));
+  const altNumber = normalizePhone(pick('altNumber', raw.altNumber || raw.alternateMobile || raw.alternatePhone || ''));
+  const email = normalizeEmail(pick('email', pick('emailId', raw.email || raw.emailId || '')));
+  const billingStreet1 = collapseSpaces(pick('billingStreet1', raw.billingStreet1 || raw.street1 || ''));
+  const billingStreet2 = collapseSpaces(pick('billingStreet2', raw.billingStreet2 || raw.street2 || ''));
+  const address = collapseSpaces(pick('address', pick('billingAddress', raw.billingAddress || raw.address || [billingStreet1, billingStreet2].filter(Boolean).join(', '))));
+  const normalizedAddress = normalizeAddress(address);
+  const segment = properCase(collapseSpaces(pick('segment', pick('serviceType', raw.segment || raw.serviceType || '')))) || 'Residential';
   const billingArea = properCase(collapseSpaces(pick('billingArea', raw.billingArea || raw.area || '')));
   const billingState = properCase(collapseSpaces(pick('billingState', raw.billingState || raw.state || '')));
   const billingPincode = normalizeText(pick('billingPincode', raw.billingPincode || raw.pincode || ''));
+  const shippingSameAsBilling = boolValue(pick('shippingSameAsBilling', raw.shippingSameAsBilling || ''));
+  const shippingStreet1 = collapseSpaces(pick('shippingStreet1', raw.shippingStreet1 || ''));
+  const shippingStreet2 = collapseSpaces(pick('shippingStreet2', raw.shippingStreet2 || ''));
+  const shippingAddress = collapseSpaces(pick('shippingAddress', raw.shippingAddress || '')) || (shippingSameAsBilling ? address : '');
+  const shippingArea = properCase(collapseSpaces(pick('shippingArea', raw.shippingArea || ''))) || (shippingSameAsBilling ? billingArea : '');
+  const shippingState = properCase(collapseSpaces(pick('shippingState', raw.shippingState || ''))) || (shippingSameAsBilling ? billingState : '');
+  const shippingPincode = normalizeText(pick('shippingPincode', raw.shippingPincode || '')) || (shippingSameAsBilling ? billingPincode : '');
+  const gstNumber = normalizeText(pick('gstNumber', raw.gstNumber || raw.gstin || '')).toUpperCase();
+  const hasGst = boolValue(pick('hasGst', raw.hasGst || raw.gstRegistered || '')) || !!gstNumber;
 
   const clean = {
+    segment,
+    companyName,
+    contactPersonName,
+    displayName: displayName || customerName || companyName || contactPersonName,
+    position: normalizeText(pick('position', raw.position || 'Owner')) || 'Owner',
+    positionCustom: normalizeText(pick('positionCustom', raw.positionCustom || '')),
     customerName,
     mobileNumber,
+    whatsappSameAsMobile: boolValue(pick('whatsappSameAsMobile', raw.whatsappSameAsMobile || '')) || whatsappNumber === mobileNumber,
+    whatsappNumber,
+    altNumber,
     email,
+    emailId: email,
+    hasGst,
+    gstRegistered: hasGst,
+    gstNumber: hasGst ? gstNumber : '',
+    billingAttention: properCase(collapseSpaces(pick('billingAttention', raw.billingAttention || ''))),
+    billingStreet1,
+    billingStreet2,
+    billingAddress: address,
     address,
     normalizedAddress,
-    serviceType,
-    companyName,
+    serviceType: segment,
     billingArea,
     billingState,
-    billingPincode
+    billingPincode,
+    billingPhoneCode: normalizeText(pick('billingPhoneCode', raw.billingPhoneCode || '+91')) || '+91',
+    billingPhone: normalizePhone(pick('billingPhone', raw.billingPhone || mobileNumber)),
+    shippingSameAsBilling,
+    shippingAttention: properCase(collapseSpaces(pick('shippingAttention', raw.shippingAttention || ''))),
+    shippingStreet1,
+    shippingStreet2,
+    shippingAddress,
+    shippingArea,
+    shippingState,
+    shippingPincode,
+    shippingPhoneCode: normalizeText(pick('shippingPhoneCode', raw.shippingPhoneCode || '+91')) || '+91',
+    shippingPhone: normalizePhone(pick('shippingPhone', raw.shippingPhone || mobileNumber)),
+    areaSqft: toNumber(pick('areaSqft', raw.areaSqft || 0), 0),
+    googlePlaceId: normalizeText(pick('googlePlaceId', raw.googlePlaceId || raw.google_place_id || '')),
+    googlePlaceName: normalizeText(pick('googlePlaceName', raw.googlePlaceName || raw.google_place_name || '')),
+    googlePhone: normalizeText(pick('googlePhone', raw.googlePhone || raw.google_phone || '')),
+    googleWebsite: normalizeText(pick('googleWebsite', raw.googleWebsite || raw.google_website || '')),
+    latitude: normalizeText(pick('latitude', raw.latitude || '')),
+    longitude: normalizeText(pick('longitude', raw.longitude || ''))
   };
 
   const validationErrors = [];
   if (!clean.customerName) validationErrors.push('Customer name is required');
   if (!clean.mobileNumber) validationErrors.push('Mobile number is required');
-  if (!clean.address) validationErrors.push('Address is required');
-  if (!clean.serviceType) validationErrors.push('Service type is required');
+  if (!clean.billingAddress) validationErrors.push('Billing address is required');
+  if (!clean.segment) validationErrors.push('Segment is required');
 
   return {
     clean,
@@ -315,48 +404,57 @@ const summarizeBatchRows = (rows) => {
 };
 
 const buildCustomerPayloadFromImport = (clean) => {
-  const displayName = clean.customerName;
-  const billingAddress = clean.address;
+  const displayName = clean.displayName || clean.customerName || clean.companyName || clean.contactPersonName;
+  const billingAddress = clean.billingAddress || clean.address;
+  const shippingSameAsBilling = !!clean.shippingSameAsBilling || !clean.shippingAddress;
   return {
     displayName,
     name: displayName,
-    segment: clean.serviceType || 'Residential',
+    segment: clean.segment || clean.serviceType || 'Residential',
     companyName: clean.companyName || displayName,
-    contactPersonName: displayName,
-    position: 'Owner',
-    positionCustom: '',
+    contactPersonName: clean.contactPersonName || displayName,
+    position: clean.position || 'Owner',
+    positionCustom: clean.positionCustom || '',
     mobileNumber: clean.mobileNumber,
-    whatsappNumber: clean.mobileNumber,
-    altNumber: '',
+    whatsappSameAsMobile: !!clean.whatsappSameAsMobile,
+    whatsappNumber: clean.whatsappNumber || clean.mobileNumber,
+    altNumber: clean.altNumber || '',
     emailId: clean.email,
     email: clean.email,
-    hasGst: false,
-    gstRegistered: false,
-    gstNumber: '',
-    billingAttention: '',
-    billingStreet1: '',
-    billingStreet2: '',
+    hasGst: !!clean.hasGst,
+    gstRegistered: !!clean.hasGst,
+    gstNumber: clean.hasGst ? (clean.gstNumber || '') : '',
+    billingAttention: clean.billingAttention || '',
+    billingStreet1: clean.billingStreet1 || billingAddress,
+    billingStreet2: clean.billingStreet2 || '',
     billingAddress,
     billingArea: clean.billingArea,
     billingState: clean.billingState || 'Delhi',
     billingPincode: clean.billingPincode,
-    billingPhoneCode: '+91',
-    billingPhone: clean.mobileNumber,
-    shippingAttention: '',
-    shippingStreet1: '',
-    shippingStreet2: '',
-    shippingAddress: billingAddress,
-    shippingArea: clean.billingArea,
-    shippingState: clean.billingState || 'Delhi',
-    shippingPincode: clean.billingPincode,
-    shippingPhoneCode: '+91',
-    shippingPhone: clean.mobileNumber,
+    billingPhoneCode: clean.billingPhoneCode || '+91',
+    billingPhone: clean.billingPhone || clean.mobileNumber,
+    shippingSameAsBilling,
+    shippingAttention: clean.shippingAttention || (shippingSameAsBilling ? clean.billingAttention : ''),
+    shippingStreet1: clean.shippingStreet1 || (shippingSameAsBilling ? clean.billingStreet1 : ''),
+    shippingStreet2: clean.shippingStreet2 || (shippingSameAsBilling ? clean.billingStreet2 : ''),
+    shippingAddress: clean.shippingAddress || billingAddress,
+    shippingArea: clean.shippingArea || (shippingSameAsBilling ? clean.billingArea : ''),
+    shippingState: clean.shippingState || (shippingSameAsBilling ? clean.billingState : '') || 'Delhi',
+    shippingPincode: clean.shippingPincode || (shippingSameAsBilling ? clean.billingPincode : ''),
+    shippingPhoneCode: clean.shippingPhoneCode || '+91',
+    shippingPhone: clean.shippingPhone || clean.mobileNumber,
     area: clean.billingArea,
     state: clean.billingState || 'Delhi',
     pincode: clean.billingPincode,
-    areaSqft: 0,
+    areaSqft: clean.areaSqft || 0,
     workPhone: clean.mobileNumber,
     placeOfSupply: clean.billingState || 'Delhi',
+    googlePlaceId: clean.googlePlaceId || '',
+    googlePlaceName: clean.googlePlaceName || '',
+    googlePhone: clean.googlePhone || '',
+    googleWebsite: clean.googleWebsite || '',
+    latitude: clean.latitude || '',
+    longitude: clean.longitude || '',
     receivables: 0,
     unusedCredits: 0,
     active: true,
@@ -820,18 +918,39 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
       contactPersonName: normalizeText(current.contactPersonName || clean.customerName),
       mobileNumber: normalizePhone(current.mobileNumber || current.workPhone || clean.mobileNumber),
       workPhone: normalizePhone(current.workPhone || current.mobileNumber || clean.mobileNumber),
-      whatsappNumber: normalizePhone(current.whatsappNumber || current.mobileNumber || clean.mobileNumber),
+      whatsappNumber: normalizePhone(current.whatsappNumber || clean.whatsappNumber || current.mobileNumber || clean.mobileNumber),
+      altNumber: normalizePhone(current.altNumber || clean.altNumber),
       emailId: normalizeEmail(current.emailId || current.email || clean.email),
       email: normalizeEmail(current.email || current.emailId || clean.email),
-      billingAddress: normalizeText(current.billingAddress || clean.address),
+      hasGst: current.hasGst ?? clean.hasGst ?? false,
+      gstRegistered: current.gstRegistered ?? clean.hasGst ?? false,
+      gstNumber: normalizeText(current.gstNumber || clean.gstNumber),
+      billingAttention: normalizeText(current.billingAttention || clean.billingAttention),
+      billingStreet1: normalizeText(current.billingStreet1 || clean.billingStreet1),
+      billingStreet2: normalizeText(current.billingStreet2 || clean.billingStreet2),
+      billingAddress: normalizeText(current.billingAddress || clean.billingAddress || clean.address),
       billingArea: normalizeText(current.billingArea || clean.billingArea),
       billingState: normalizeText(current.billingState || clean.billingState || 'Delhi'),
       billingPincode: normalizeText(current.billingPincode || clean.billingPincode),
-      shippingAddress: normalizeText(current.shippingAddress || current.billingAddress || clean.address),
+      billingPhoneCode: normalizeText(current.billingPhoneCode || clean.billingPhoneCode || '+91'),
+      billingPhone: normalizePhone(current.billingPhone || clean.billingPhone || clean.mobileNumber),
+      shippingAttention: normalizeText(current.shippingAttention || clean.shippingAttention),
+      shippingStreet1: normalizeText(current.shippingStreet1 || clean.shippingStreet1),
+      shippingStreet2: normalizeText(current.shippingStreet2 || clean.shippingStreet2),
+      shippingAddress: normalizeText(current.shippingAddress || current.billingAddress || clean.shippingAddress || clean.billingAddress || clean.address),
       shippingArea: normalizeText(current.shippingArea || current.billingArea || clean.billingArea),
       shippingState: normalizeText(current.shippingState || current.billingState || clean.billingState || 'Delhi'),
       shippingPincode: normalizeText(current.shippingPincode || current.billingPincode || clean.billingPincode),
-      segment: normalizeText(current.segment || clean.serviceType || 'Residential'),
+      shippingPhoneCode: normalizeText(current.shippingPhoneCode || clean.shippingPhoneCode || '+91'),
+      shippingPhone: normalizePhone(current.shippingPhone || clean.shippingPhone || clean.mobileNumber),
+      segment: normalizeText(current.segment || clean.segment || clean.serviceType || 'Residential'),
+      areaSqft: toNumber(current.areaSqft || clean.areaSqft || 0, 0),
+      googlePlaceId: normalizeText(current.googlePlaceId || clean.googlePlaceId),
+      googlePlaceName: normalizeText(current.googlePlaceName || clean.googlePlaceName),
+      googlePhone: normalizeText(current.googlePhone || clean.googlePhone),
+      googleWebsite: normalizeText(current.googleWebsite || clean.googleWebsite),
+      latitude: normalizeText(current.latitude || clean.latitude),
+      longitude: normalizeText(current.longitude || clean.longitude),
       updatedAt: nowIso()
     };
 
@@ -1303,9 +1422,129 @@ function registerCustomerDedupModule({ app, readJsonFile, files }) {
 
   app.get('/api/customers/import/sample', (req, res) => {
     const csv = [
-      ['customerName', 'mobileNumber', 'email', 'address', 'serviceType', 'companyName', 'billingArea', 'billingState', 'billingPincode'].join(','),
-      ['Priya Jain', '9810783477', 'priya@example.com', '22 Ground Floor Sarai Jullena', 'Residential', 'N/A', 'Sarai Jullena', 'Delhi', '110025'].join(','),
-      ['Trimaster Private Limited', '9667959373', 'accounts@trimaster.com', '222 Okhla Phase-3 New Delhi', 'Commercial', 'Trimaster Private Limited', 'Okhla', 'Delhi', '110020'].join(',')
+      [
+        'segment',
+        'companyName',
+        'contactPersonName',
+        'displayName',
+        'position',
+        'positionCustom',
+        'mobileNumber',
+        'whatsappSameAsMobile',
+        'whatsappNumber',
+        'altNumber',
+        'emailId',
+        'hasGst',
+        'gstNumber',
+        'billingAttention',
+        'billingStreet1',
+        'billingStreet2',
+        'billingAddress',
+        'billingArea',
+        'billingState',
+        'billingPincode',
+        'billingPhoneCode',
+        'billingPhone',
+        'shippingSameAsBilling',
+        'shippingAttention',
+        'shippingStreet1',
+        'shippingStreet2',
+        'shippingAddress',
+        'shippingArea',
+        'shippingState',
+        'shippingPincode',
+        'shippingPhoneCode',
+        'shippingPhone',
+        'areaSqft',
+        'googlePlaceId',
+        'googlePlaceName',
+        'googlePhone',
+        'googleWebsite',
+        'latitude',
+        'longitude'
+      ].join(','),
+      [
+        'Residential',
+        '',
+        'Priya Jain',
+        'Priya Jain',
+        'Owner',
+        '',
+        '9810783477',
+        'Yes',
+        '9810783477',
+        '',
+        'priya@example.com',
+        'No',
+        '',
+        'Priya Jain',
+        '22 Ground Floor',
+        'Sarai Jullena',
+        '22 Ground Floor Sarai Jullena Delhi',
+        'Sarai Jullena',
+        'Delhi',
+        '110025',
+        '+91',
+        '9810783477',
+        'Yes',
+        'Priya Jain',
+        '22 Ground Floor',
+        'Sarai Jullena',
+        '22 Ground Floor Sarai Jullena Delhi',
+        'Sarai Jullena',
+        'Delhi',
+        '110025',
+        '+91',
+        '9810783477',
+        '1200',
+        '',
+        '',
+        '',
+        '',
+        '',
+        ''
+      ].join(','),
+      [
+        'Commercial',
+        'Trimaster Private Limited',
+        'Accounts Team',
+        'Trimaster Private Limited',
+        'Manager',
+        '',
+        '9667959373',
+        'Yes',
+        '9667959373',
+        '',
+        'accounts@trimaster.com',
+        'Yes',
+        '07ABCDE1234F1Z5',
+        'Accounts Team',
+        '222 Okhla Phase-3',
+        '',
+        '222 Okhla Phase-3 New Delhi',
+        'Okhla',
+        'Delhi',
+        '110020',
+        '+91',
+        '9667959373',
+        'Yes',
+        'Accounts Team',
+        '222 Okhla Phase-3',
+        '',
+        '222 Okhla Phase-3 New Delhi',
+        'Okhla',
+        'Delhi',
+        '110020',
+        '+91',
+        '9667959373',
+        '3500',
+        '',
+        '',
+        '',
+        '',
+        '',
+        ''
+      ].join(',')
     ].join('\n');
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="customers-import-sample-dedupe.csv"');

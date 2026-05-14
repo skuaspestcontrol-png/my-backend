@@ -12,6 +12,12 @@ CREATE TABLE IF NOT EXISTS customers (
   city VARCHAR(255) NULL,
   state VARCHAR(255) NULL,
   pincode VARCHAR(20) NULL,
+  google_place_id VARCHAR(255) NULL,
+  google_place_name VARCHAR(255) NULL,
+  google_phone VARCHAR(50) NULL,
+  google_website VARCHAR(255) NULL,
+  latitude DECIMAL(10,8) NULL,
+  longitude DECIMAL(11,8) NULL,
   payload JSON NOT NULL,
   source_created_at DATETIME NULL,
   source_updated_at DATETIME NULL,
@@ -21,7 +27,8 @@ CREATE TABLE IF NOT EXISTS customers (
   UNIQUE KEY uk_customers_external_id (external_id),
   KEY idx_customers_mobile (mobile_number),
   KEY idx_customers_name (display_name, customer_name),
-  KEY idx_customers_location (area_name, city, state, pincode)
+  KEY idx_customers_location (area_name, city, state, pincode),
+  KEY idx_customers_place (google_place_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS employees (

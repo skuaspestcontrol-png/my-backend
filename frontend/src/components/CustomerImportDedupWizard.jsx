@@ -84,15 +84,49 @@ const modalShell = {
 };
 
 const initialMapping = {
+  segment: '',
+  companyName: '',
+  contactPersonName: '',
+  displayName: '',
+  position: '',
+  positionCustom: '',
   customerName: '',
   mobileNumber: '',
-  address: '',
-  serviceType: '',
+  whatsappSameAsMobile: '',
+  whatsappNumber: '',
+  altNumber: '',
   email: '',
-  companyName: '',
+  emailId: '',
+  hasGst: '',
+  gstNumber: '',
+  billingAttention: '',
+  billingStreet1: '',
+  billingStreet2: '',
+  billingAddress: '',
+  address: '',
   billingArea: '',
   billingState: '',
-  billingPincode: ''
+  billingPincode: '',
+  billingPhoneCode: '',
+  billingPhone: '',
+  shippingSameAsBilling: '',
+  shippingAttention: '',
+  shippingStreet1: '',
+  shippingStreet2: '',
+  shippingAddress: '',
+  shippingArea: '',
+  shippingState: '',
+  shippingPincode: '',
+  shippingPhoneCode: '',
+  shippingPhone: '',
+  areaSqft: '',
+  googlePlaceId: '',
+  googlePlaceName: '',
+  googlePhone: '',
+  googleWebsite: '',
+  latitude: '',
+  longitude: '',
+  serviceType: ''
 };
 
 export default function CustomerImportDedupWizard({ open, onClose, onComplete }) {
@@ -365,8 +399,8 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                         <td style={modalShell.td}>
                           <div>{row.clean?.customerName || '-'}</div>
                           <div style={{ fontSize: '11px', color: '#64748b' }}>{row.clean?.mobileNumber || '-'} | {row.clean?.email || '-'}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>{row.clean?.address || '-'}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>{row.clean?.serviceType || '-'}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b' }}>{row.clean?.billingAddress || row.clean?.address || '-'}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b' }}>{row.clean?.segment || row.clean?.serviceType || '-'}</div>
                         </td>
                         <td style={modalShell.td}>
                           <span style={{ ...modalShell.badge, ...(statusTone[row.status] || statusTone['Needs Review']) }}>{row.status}</span>

@@ -38,6 +38,48 @@ const allColumns = [
   { key: 'areaSqft', label: 'Area in sqft' }
 ];
 
+const customerImportExportColumns = [
+  { key: 'segment', label: 'Segment' },
+  { key: 'companyName', label: 'Company Name' },
+  { key: 'contactPersonName', label: 'Contact Person Name' },
+  { key: 'displayName', label: 'Display Name' },
+  { key: 'position', label: 'Position' },
+  { key: 'positionCustom', label: 'Position Custom' },
+  { key: 'mobileNumber', label: 'Mobile Number' },
+  { key: 'whatsappSameAsMobile', label: 'WhatsApp Same As Mobile' },
+  { key: 'whatsappNumber', label: 'WhatsApp Number' },
+  { key: 'altNumber', label: 'Alt Number' },
+  { key: 'emailId', label: 'Email Id' },
+  { key: 'hasGst', label: 'GST Registered' },
+  { key: 'gstNumber', label: 'GST Number' },
+  { key: 'billingAttention', label: 'Billing Attention' },
+  { key: 'billingStreet1', label: 'Billing Street 1' },
+  { key: 'billingStreet2', label: 'Billing Street 2' },
+  { key: 'billingAddress', label: 'Billing Address' },
+  { key: 'billingArea', label: 'Billing Area' },
+  { key: 'billingState', label: 'Billing State' },
+  { key: 'billingPincode', label: 'Billing Pincode' },
+  { key: 'billingPhoneCode', label: 'Billing Phone Code' },
+  { key: 'billingPhone', label: 'Billing Phone' },
+  { key: 'shippingSameAsBilling', label: 'Shipping Same As Billing' },
+  { key: 'shippingAttention', label: 'Shipping Attention' },
+  { key: 'shippingStreet1', label: 'Shipping Street 1' },
+  { key: 'shippingStreet2', label: 'Shipping Street 2' },
+  { key: 'shippingAddress', label: 'Shipping Address' },
+  { key: 'shippingArea', label: 'Shipping Area' },
+  { key: 'shippingState', label: 'Shipping State' },
+  { key: 'shippingPincode', label: 'Shipping Pincode' },
+  { key: 'shippingPhoneCode', label: 'Shipping Phone Code' },
+  { key: 'shippingPhone', label: 'Shipping Phone' },
+  { key: 'areaSqft', label: 'Area in sqft' },
+  { key: 'googlePlaceId', label: 'Google Place Id' },
+  { key: 'googlePlaceName', label: 'Google Place Name' },
+  { key: 'googlePhone', label: 'Google Phone' },
+  { key: 'googleWebsite', label: 'Google Website' },
+  { key: 'latitude', label: 'Latitude' },
+  { key: 'longitude', label: 'Longitude' }
+];
+
 const defaultVisibleColumns = ['name', 'segment', 'companyName', 'contactPersonName', 'mobileNumber', 'emailId', 'billingState', 'shippingState'];
 const stateOptions = [
   'Andhra Pradesh',
@@ -971,7 +1013,7 @@ export default function CustomerDashboard() {
       return;
     }
 
-    const headers = allColumns.map((column) => column.key);
+    const headers = customerImportExportColumns.map((column) => column.key);
     const csvRows = [
       headers.join(','),
       ...sourceRows.map((customer) =>
@@ -1048,8 +1090,31 @@ export default function CustomerDashboard() {
 
   const handleCellValue = (customer, key) => {
     if (!isCustomerRecord(customer)) return '';
+    if (key === 'displayName') return customer.displayName || customer.name || '';
     if (key === 'name') return customer.displayName || customer.name || '';
     if (key === 'hasGst') return customer.hasGst || customer.gstRegistered ? 'Yes' : 'No';
+    if (key === 'whatsappSameAsMobile') return (customer.whatsappNumber || '') && (customer.mobileNumber || customer.workPhone || '') && customer.whatsappNumber === (customer.mobileNumber || customer.workPhone) ? 'Yes' : 'No';
+    if (key === 'shippingSameAsBilling') {
+      const billing = [
+        customer.billingAttention,
+        customer.billingStreet1,
+        customer.billingStreet2,
+        customer.billingAddress,
+        customer.billingArea,
+        customer.billingState,
+        customer.billingPincode
+      ].map((value) => String(value || '').trim()).join('|');
+      const shipping = [
+        customer.shippingAttention,
+        customer.shippingStreet1,
+        customer.shippingStreet2,
+        customer.shippingAddress,
+        customer.shippingArea,
+        customer.shippingState,
+        customer.shippingPincode
+      ].map((value) => String(value || '').trim()).join('|');
+      return billing && billing === shipping ? 'Yes' : 'No';
+    }
     if (key === 'position') return customer.positionCustom || customer.position || '';
     if (key === 'emailId') return customer.emailId || customer.email || '';
     if (key === 'mobileNumber') return customer.mobileNumber || customer.workPhone || '';
@@ -1068,6 +1133,8 @@ export default function CustomerDashboard() {
     if (key === 'shippingState') return customer.shippingState || '';
     if (key === 'shippingPincode') return customer.shippingPincode || '';
     if (key === 'areaSqft') return customer.areaSqft ? String(customer.areaSqft) : '';
+    if (key === 'billingPhoneCode') return customer.billingPhoneCode || '+91';
+    if (key === 'shippingPhoneCode') return customer.shippingPhoneCode || '+91';
     return customer[key] || '';
   };
 
