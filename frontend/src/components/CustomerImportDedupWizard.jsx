@@ -99,6 +99,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
 
   const selectedRow = useMemo(() => rows.find((row) => row._id === selectedRowId) || rows.find((row) => row.matchedCustomerId) || rows[0] || null, [rows, selectedRowId]);
   const canContinue = step === 1 ? !!batch : step === 2 ? !!batch : step === 3 ? rows.length > 0 : true;
+  const visibleImportRows = rows;
 
   if (!open) return null;
 
@@ -210,8 +211,13 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
   };
 
   const finalize = async () => {
+    if (!batch?._id) {
+      setStatus('No import batch is ready to finalize.');
+      return;
+    }
     try {
       setBusy(true);
+      setStatus(`Finalizing ${rows.length || batch.totalRows || 0} import row(s). Please wait...`);
       const res = await axios.post(`${API_BASE}/api/customers/import/finalize`, { batchId: batch._id, actor: localStorage.getItem('portal_user_name') || 'Admin' });
       setBatch(res.data.batch);
       setRows(res.data.rows || []);
@@ -391,14 +397,16 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                   <button type="button" style={shell.lightBtn} onClick={() => bulkAction('merge_with_existing')} disabled={busy}>Bulk Merge</button>
                   <button type="button" style={shell.lightBtn} onClick={() => bulkAction('skip')} disabled={busy}>Bulk Delete Duplicates</button>
                   <button type="button" style={shell.lightBtn} onClick={() => bulkAction('update_existing')} disabled={busy}>Bulk Update Missing Fields</button>
+                  <button type="button" style={shell.btn} onClick={finalize} disabled={busy}>{busy ? 'Finalizing...' : `Finalize ${rows.length || batch?.totalRows || 0} Rows`}</button>
                 </div>
+                <p style={shell.note}>Showing all {visibleImportRows.length} analyzed import rows.</p>
                 <div style={shell.tableWrap}>
                   <table style={shell.table}>
                     <thead>
                       <tr><th style={shell.th}>Row</th><th style={shell.th}>Imported</th><th style={shell.th}>Existing Match</th><th style={shell.th}>Preview</th><th style={shell.th}>Action</th></tr>
                     </thead>
                     <tbody>
-                      {rows.slice(0, 220).map((row) => (
+                      {visibleImportRows.map((row) => (
                         <tr key={row._id} onClick={() => setSelectedRowId(row._id)} style={{ background: selectedRowId === row._id ? 'rgba(252,231,243,0.5)' : '#fff', cursor: 'pointer' }}>
                           <td style={shell.td}>#{row.rowNumber}</td>
                           <td style={shell.td}>{row.clean?.customerName || '-'}<br /><span style={{ color: '#64748b' }}>{row.clean?.mobileNumber || '-'} | {row.clean?.email || '-'}</span></td>
@@ -443,10 +451,11 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
               </div>
               <div style={shell.panel}>
                 <h3 style={shell.h3}>Import Logs</h3>
+                <p style={shell.note}>Showing all {visibleImportRows.length} finalized import rows.</p>
                 <div style={shell.tableWrap}>
                   <table style={shell.table}>
                     <thead><tr><th style={shell.th}>Row</th><th style={shell.th}>Result</th><th style={shell.th}>Message</th></tr></thead>
-                    <tbody>{rows.slice(0, 220).map((row) => <tr key={row._id}><td style={shell.td}>#{row.rowNumber}</td><td style={shell.td}>{row.finalResult || '-'}</td><td style={shell.td}>{row.finalMessage || '-'}</td></tr>)}</tbody>
+                    <tbody>{visibleImportRows.map((row) => <tr key={row._id}><td style={shell.td}>#{row.rowNumber}</td><td style={shell.td}>{row.finalResult || '-'}</td><td style={shell.td}>{row.finalMessage || '-'}</td></tr>)}</tbody>
                   </table>
                 </div>
               </div>
@@ -459,7 +468,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
           <div style={shell.actions}>
             <button type="button" style={shell.lightBtn} onClick={step === 1 ? close : () => setStep((prev) => Math.max(1, prev - 1))}>{step === 1 ? 'Cancel' : 'Back'}</button>
             {step < 4 ? <button type="button" style={shell.btn} onClick={step === 2 ? saveMapping : () => setStep((prev) => prev + 1)} disabled={!canContinue || busy}>Continue <ArrowRight size={14} /></button> : null}
-            {step === 4 ? <button type="button" style={shell.btn} onClick={finalize} disabled={busy}>Finalize Import</button> : null}
+            {step === 4 ? <button type="button" style={shell.btn} onClick={finalize} disabled={busy}>{busy ? 'Finalizing...' : 'Finalize Import'}</button> : null}
             {step === 5 ? <button type="button" style={shell.btn} onClick={close}>Done</button> : null}
           </div>
         </div>
