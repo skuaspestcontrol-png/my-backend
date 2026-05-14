@@ -661,7 +661,7 @@ const mergeUniqueText = (a, b) => {
   return out;
 };
 
-function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
+function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, uploadMiddleware = null }) {
   const {
     customersFile,
     invoicesFile,
@@ -1747,13 +1747,37 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
     return { batch, rows, matches };
   };
 
-  app.post('/api/customers/import/upload', async (req, res) => {
+  const importUploadMiddleware = uploadMiddleware && typeof uploadMiddleware.single === 'function'
+    ? uploadMiddleware.single('file')
+    : (_req, _res, next) => next();
+
+  app.post('/api/customers/import/upload', importUploadMiddleware, async (req, res) => {
     try {
-      const fileName = normalizeText(req.body?.fileName || 'customers-import.csv');
-      const content = String(req.body?.content || '');
+      const uploadedFile = req.file || null;
+      const fileName = normalizeText(req.body?.fileName || uploadedFile?.originalname || 'customers-import.csv');
+      let content = String(req.body?.content || '');
+      let contentEncoding = req.body?.contentEncoding || '';
+      const lowerFileName = normalizeLower(fileName);
+
+      if (uploadedFile?.path && fs.existsSync(uploadedFile.path)) {
+        const buffer = fs.readFileSync(uploadedFile.path);
+        if (lowerFileName.endsWith('.xlsx') || lowerFileName.endsWith('.xls')) {
+          content = buffer.toString('base64');
+          contentEncoding = 'base64';
+        } else {
+          content = buffer.toString('utf8');
+          contentEncoding = '';
+        }
+        try {
+          fs.unlinkSync(uploadedFile.path);
+        } catch (unlinkError) {
+          console.error('Unable to remove temporary import upload:', unlinkError.message);
+        }
+      }
+
       if (!content.trim()) return res.status(400).json({ error: 'Import file content is required' });
 
-      const { headers, rows } = parseImportContent({ fileName, content, contentEncoding: req.body?.contentEncoding });
+      const { headers, rows } = parseImportContent({ fileName, content, contentEncoding });
       if (rows.length === 0) return res.status(400).json({ error: 'No import rows found' });
 
       const mapping = mergeMappingWithInferred(headers, req.body?.mapping);
@@ -1767,7 +1791,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
         mapping,
         rawRows: rows,
         totalRows: rows.length,
-        fileSize: toNumber(req.body?.fileSize, Buffer.byteLength(content, 'utf8')),
+        fileSize: toNumber(req.body?.fileSize || uploadedFile?.size, Buffer.byteLength(content, 'utf8')),
         columnPreview: headers.slice(0, 18),
         createdAt: nowIso(),
         updatedAt: nowIso(),

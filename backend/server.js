@@ -8417,6 +8417,7 @@ registerHrModule({
 registerCustomerDedupModule({
   app,
   readJsonFile,
+  uploadMiddleware: upload,
   mysql: {
     canUseMysql,
     withMysqlConnection,

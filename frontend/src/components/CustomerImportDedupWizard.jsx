@@ -74,13 +74,6 @@ const shell = {
   pill: { display: 'inline-flex', borderRadius: '999px', padding: '3px 8px', fontSize: '10px', fontWeight: 900, background: '#ecfdf5', color: '#166534' }
 };
 
-const arrayBufferToBase64 = (buffer) => {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return window.btoa(binary);
-};
-
 const formatSize = (size) => {
   if (!size) return '-';
   if (size < 1024) return `${size} B`;
@@ -131,14 +124,12 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
     if (!file) return;
     try {
       setBusy(true);
-      const lower = file.name.toLowerCase();
-      const isExcel = lower.endsWith('.xlsx') || lower.endsWith('.xls');
-      const content = isExcel ? arrayBufferToBase64(await file.arrayBuffer()) : await file.text();
-      const res = await axios.post(`${API_BASE}/api/customers/import/upload`, {
-        fileName: file.name,
-        fileSize: file.size,
-        content,
-        contentEncoding: isExcel ? 'base64' : ''
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileName', file.name);
+      formData.append('fileSize', String(file.size));
+      const res = await axios.post(`${API_BASE}/api/customers/import/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       setBatch(res.data.batch);
       setHeaders(res.data.headers || []);
