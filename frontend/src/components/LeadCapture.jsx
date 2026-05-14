@@ -1970,13 +1970,25 @@ export default function LeadCapture() {
   const isFollowupCompact = viewportWidth <= 980;
   const followupGridStyle = isFollowupCompact ? { ...s.followupGrid, gridTemplateColumns: '1fr' } : s.followupGrid;
   const followupNoteStyle = { ...s.followupField, gridColumn: isFollowupCompact ? '1 / -1' : 'span 2' };
-  const leadModalStyle = isMobile ? { ...s.cn, width: '96vw', maxWidth: '96vw', maxHeight: '92vh' } : s.cn;
+  const leadOverlayStyle = isMobile
+    ? { ...s.ov, padding: isTiny ? '6px' : '10px', overflowX: 'hidden', placeItems: 'center' }
+    : s.ov;
+  const leadModalStyle = isMobile
+    ? { ...s.cn, width: '100%', maxWidth: 'calc(100vw - 20px)', maxHeight: '92vh', boxSizing: 'border-box' }
+    : s.cn;
   const leadModalHeadStyle = isMobile ? { ...s.hd, minHeight: '60px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', fontSize: '22px', padding: '14px 16px' } : s.hd;
-  const leadModalBodyStyle = isMobile ? { ...s.body, padding: '14px', WebkitOverflowScrolling: 'touch' } : s.body;
+  const leadModalBodyStyle = isMobile ? { ...s.body, padding: '14px', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } : s.body;
   const leadGridStyle = isTablet || isMobile ? { ...s.gd, gridTemplateColumns: '1fr' } : s.gd;
   const leadFieldHalfStyle = isTablet || isMobile ? { ...s.fieldHalf, gridColumn: '1 / -1' } : s.fieldHalf;
   const leadFieldWideStyle = isTablet || isMobile ? { ...s.fieldWide, gridColumn: '1 / -1' } : s.fieldWide;
   const mapsRowStyle = isTablet || isMobile ? { ...s.mapsRow, flexDirection: 'column' } : s.mapsRow;
+  const leadSectionStyle = isMobile ? { ...s.section, width: '100%', boxSizing: 'border-box', overflow: 'hidden' } : s.section;
+  const leadInlineLabelRowStyle = isMobile
+    ? { ...s.inlineLabelRow, alignItems: 'flex-start', gap: '6px', flexWrap: 'wrap' }
+    : s.inlineLabelRow;
+  const leadSmallToggleStyle = isMobile
+    ? { ...s.smallToggle, maxWidth: '100%', whiteSpace: 'normal', lineHeight: 1.2 }
+    : s.smallToggle;
   const leadDateInputStyle = { ...s.in, minHeight: '46px', height: '46px', lineHeight: 1.2, WebkitAppearance: 'none', appearance: 'none' };
   const analyticsTitleStyle = isTiny ? { ...s.analyticsTitle, fontSize: '20px' } : s.analyticsTitle;
   const registerTitleStyle = isTiny ? { ...s.registerTitle, fontSize: '16px' } : s.registerTitle;
@@ -2604,7 +2616,7 @@ export default function LeadCapture() {
       ) : null}
 
       {show && (
-        <div style={s.ov}>
+        <div style={leadOverlayStyle}>
           <form style={leadModalStyle} onSubmit={save}>
             <div style={leadModalHeadStyle}>
               <span>{editingLeadId ? 'Edit Lead Form' : 'Lead Entry Form'}</span>
@@ -2612,7 +2624,7 @@ export default function LeadCapture() {
             </div>
 
             <div style={leadModalCompactBodyStyle}>
-              <div style={s.section}>
+              <div style={leadSectionStyle}>
                 <div style={s.sectionTitle}><User size={14} /> Customer Details</div>
                 <div style={leadGridStyle}>
                   <div>
@@ -2667,9 +2679,9 @@ export default function LeadCapture() {
                     />
                   </div>
                   <div>
-                    <div style={s.inlineLabelRow}>
+                    <div style={leadInlineLabelRowStyle}>
                       <label style={{ ...s.lb, marginBottom: 0 }}>Whatsapp Number</label>
-                      <label style={{ ...s.smallToggle, opacity: form.mobile.trim() ? 1 : 0.45, cursor: form.mobile.trim() ? 'pointer' : 'not-allowed' }}>
+                      <label style={{ ...leadSmallToggleStyle, opacity: form.mobile.trim() ? 1 : 0.45, cursor: form.mobile.trim() ? 'pointer' : 'not-allowed' }}>
                         <input
                           type="checkbox"
                           checked={sameAsMobile}
@@ -2698,7 +2710,7 @@ export default function LeadCapture() {
                 </div>
               </div>
 
-              <div style={s.section}>
+              <div style={leadSectionStyle}>
                 <div style={s.sectionTitle}><MapPin size={14} /> Property Details</div>
                 <div style={leadGridStyle}>
                   <div style={leadFieldWideStyle}>
@@ -2707,7 +2719,7 @@ export default function LeadCapture() {
                       <input
                         ref={searchAddressInputRef}
                         value={form.searchAddress}
-                        style={{ ...s.in, marginBottom: 0, flex: 1 }}
+                        style={{ ...s.in, marginBottom: 0, flex: 1, minWidth: 0 }}
                         onChange={(e) => {
                           setSearchError('');
                           const value = e.target.value;
@@ -2795,7 +2807,7 @@ export default function LeadCapture() {
                 </div>
               </div>
 
-              <div style={s.section}>
+              <div style={leadSectionStyle}>
                 <div style={s.sectionTitle}><ClipboardList size={14} /> Lead Details</div>
                 <div style={leadGridStyle}>
                   <div className="field">
