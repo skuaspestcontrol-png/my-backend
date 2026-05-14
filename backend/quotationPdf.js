@@ -74,20 +74,50 @@ const resolveUploadAsset = (input = '') => {
   const raw = clean(input);
   if (!raw) return '';
   if (raw.startsWith('data:image/')) return raw;
-  const uploadsDir = path.join(process.env.HOME || '/home/u610009593', 'uploads-skuas-crm');
-  const dirs = [uploadsDir, path.join(__dirname, 'uploads'), path.join(__dirname, '..', 'uploads')];
-  const findFile = (name) => {
+  const primaryUploadsDir = String(
+    process.env.UPLOADS_DIR
+    || process.env.UPLOADS_ROOT_DIR
+    || path.join(process.env.HOME || '/home/u610009593', 'uploads-skuas-crm')
+  ).trim();
+  const dirs = [
+    primaryUploadsDir,
+    '/home/u610009593/uploads-skuas-crm',
+    path.join(__dirname, '..', 'storage', 'uploads'),
+    path.join(__dirname, 'uploads'),
+    path.join(__dirname, '..', 'uploads'),
+    path.join(__dirname, '..', 'public', 'uploads')
+  ].filter(Boolean);
+  const findFile = (name = '') => {
     const safeName = decodeURIComponent(String(name || '').trim());
     if (!safeName) return '';
+    const normalized = safeName.replace(/\\/g, '/').replace(/^\/?uploads\/?/, '').replace(/^\/+/, '');
+    if (!normalized || normalized.includes('..')) return '';
     for (const dir of dirs) {
-      const p = path.join(dir, path.basename(safeName));
-      if (fs.existsSync(p)) return p;
+      const byRelativePath = path.join(dir, normalized);
+      if (fs.existsSync(byRelativePath)) return byRelativePath;
+      const byFileName = path.join(dir, path.basename(normalized));
+      if (fs.existsSync(byFileName)) return byFileName;
     }
     return '';
   };
   if (raw.startsWith('/uploads/')) return findFile(raw.split('/uploads/')[1]);
   if (raw.includes('/uploads/')) return findFile(raw.split('/uploads/').pop());
-  if (fs.existsSync(raw)) return raw;
+  if (raw.startsWith('/')) {
+    if (fs.existsSync(raw)) return raw;
+    return findFile(raw);
+  }
+  if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+    const local = findFile(raw);
+    if (local) return local;
+    if (fs.existsSync(raw)) return raw;
+  }
+  try {
+    const url = new URL(raw);
+    const fileName = path.basename(url.pathname || '');
+    return fileName ? findFile(fileName) : '';
+  } catch (_error) {
+    if (fs.existsSync(raw)) return raw;
+  }
   return '';
 };
 
