@@ -171,8 +171,8 @@ const shell = {
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
   title: { margin: 0, fontSize: '30px', fontWeight: 800, letterSpacing: '-0.03em', color: '#1f2937' },
   topActions: { display: 'flex', alignItems: 'center', gap: '8px' },
-  buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', padding: '9px 14px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px' },
-  buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '10px', width: '40px', height: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '9px', padding: '7px 11px', minHeight: '34px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px' },
+  buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '9px', width: '34px', height: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   toolbar: { padding: '10px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: '#fff' },
   toolLabel: { fontSize: '12px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' },
   customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', padding: '8px 12px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
@@ -190,8 +190,8 @@ const shell = {
   rowActionButton: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '8px', minWidth: '64px', minHeight: '28px', padding: '4px 10px', fontSize: '8px', fontWeight: 400, cursor: 'pointer' },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
-  menu: { position: 'absolute', right: 0, top: '42px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '10px', width: '220px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 20, overflow: 'hidden', padding: '4px 0' },
-  menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '9px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', lineHeight: 1.35, whiteSpace: 'normal' },
+  menu: { position: 'absolute', right: 0, top: '38px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', width: '188px', boxShadow: '0 12px 28px rgba(15,23,42,0.12)', zIndex: 20, overflow: 'hidden', padding: '3px 0' },
+  menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '7px 10px', fontSize: '11px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', lineHeight: 1.25, whiteSpace: 'normal' },
   popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '250px', zIndex: 40 },
   popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
@@ -1233,8 +1233,8 @@ export default function CustomerDashboard() {
     : shell.modalFooter;
   const duplicateModalBodyStyle = isTablet || isMobile ? { ...modalBodyStyle, display: 'grid', gap: '10px' } : { ...shell.modalBody, display: 'grid', gap: '10px' };
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
-  const ghostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
-  const primaryButtonStyle = isTiny ? { ...shell.buttonPrimary, padding: '8px 12px', fontSize: '13px' } : shell.buttonPrimary;
+  const ghostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '32px', height: '32px' } : shell.buttonGhost;
+  const primaryButtonStyle = isTiny ? { ...shell.buttonPrimary, padding: '6px 10px', fontSize: '11px', minHeight: '32px' } : shell.buttonPrimary;
   const customizeButtonStyle = isTiny ? { ...shell.customizeButton, padding: '7px 10px', fontSize: '11px' } : shell.customizeButton;
   const historyTitleTinyStyle = isTiny ? { ...historyTitleStyle, fontSize: '20px' } : historyTitleStyle;
 
