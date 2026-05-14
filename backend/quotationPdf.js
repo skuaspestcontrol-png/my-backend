@@ -7,6 +7,7 @@ const toNumber = (v, d = 0) => {
   return Number.isFinite(n) ? n : d;
 };
 const clean = (v) => String(v ?? '').trim();
+const renewalLetterLogoSize = [400, 160];
 
 const formatDate = (value) => {
   const raw = clean(value);
@@ -187,8 +188,9 @@ const drawHeader = (doc, settings = {}, companySettings = {}) => {
   const headerWidth = right - headerX;
   const detailLineHeight = 9.1;
   const headerBoxHeight = 11.2 + (companyDetailLines.length * detailLineHeight);
-  const logoWidth = logo && showLogo ? Math.max(160, toNumber(settings.logo_width, 400)) : 0;
-  const logoHeight = logo && showLogo ? Math.max(80, toNumber(settings.logo_height, 160)) : 0;
+  const [renewalLetterLogoWidth, renewalLetterLogoHeight] = renewalLetterLogoSize;
+  const logoWidth = logo && showLogo ? renewalLetterLogoWidth : 0;
+  const logoHeight = logo && showLogo ? renewalLetterLogoHeight : 0;
   const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
 
   if (logo && showLogo) {
