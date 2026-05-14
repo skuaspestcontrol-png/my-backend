@@ -1748,12 +1748,52 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
   };
 
   const importUploadMiddleware = uploadMiddleware && typeof uploadMiddleware.single === 'function'
-    ? uploadMiddleware.single('file')
+    ? (req, res, next) => {
+        uploadMiddleware.single('file')(req, res, (error) => {
+          if (error) {
+            console.error('[Customer Import Upload] multer failed:', {
+              message: error.message,
+              code: error.code || '',
+              path: error.path || ''
+            });
+            const status = error.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+            return res.status(status).json({
+              error: error.code === 'LIMIT_FILE_SIZE'
+                ? 'Customer import file must be 20MB or smaller'
+                : error.message || 'Customer import upload failed'
+            });
+          }
+          console.log('[Customer Import Upload] multer accepted:', {
+            file: req.file ? {
+              originalname: req.file.originalname,
+              filename: req.file.filename,
+              mimetype: req.file.mimetype,
+              size: req.file.size,
+              path: req.file.path,
+              destination: req.file.destination
+            } : null,
+            bodyKeys: Object.keys(req.body || {})
+          });
+          return next();
+        });
+      }
     : (_req, _res, next) => next();
 
   app.post('/api/customers/import/upload', importUploadMiddleware, async (req, res) => {
     try {
       const uploadedFile = req.file || null;
+      console.log('[Customer Import Upload] request received:', {
+        hasFile: Boolean(uploadedFile),
+        file: uploadedFile ? {
+          originalname: uploadedFile.originalname,
+          filename: uploadedFile.filename,
+          mimetype: uploadedFile.mimetype,
+          size: uploadedFile.size,
+          path: uploadedFile.path,
+          destination: uploadedFile.destination
+        } : null,
+        bodyKeys: Object.keys(req.body || {})
+      });
       const fileName = normalizeText(req.body?.fileName || uploadedFile?.originalname || 'customers-import.csv');
       let content = String(req.body?.content || '');
       let contentEncoding = req.body?.contentEncoding || '';
@@ -1828,8 +1868,11 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
         rowPreview: rows.slice(0, 6)
       });
     } catch (error) {
-      console.error('Import upload failed:', error.message);
-      return res.status(500).json({ error: 'Unable to upload import file' });
+      console.error('[Customer Import Upload] API failed:', {
+        message: error.message,
+        stack: error.stack
+      });
+      return res.status(500).json({ error: error.message || 'Unable to upload import file' });
     }
   });
 

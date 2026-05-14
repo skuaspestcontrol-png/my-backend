@@ -2,7 +2,18 @@ import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { ArrowRight, CheckCircle2, Download, FileSpreadsheet, GitMerge, MapPinned, SearchCheck, UploadCloud, X } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const normalizeApiBase = (value = '') => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const parsed = new URL(raw, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+    return parsed.origin === 'http://localhost' && !/^https?:\/\//i.test(raw) ? '' : parsed.origin.replace(/\/+$/, '');
+  } catch {
+    return raw.replace(/\/+$/, '').replace(/\/sales\/customers$/i, '');
+  }
+};
+
+const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL);
 
 const fields = [
   ['customerName', 'Customer Name'],

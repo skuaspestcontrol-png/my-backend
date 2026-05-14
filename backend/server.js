@@ -235,12 +235,14 @@ app.post('/api/admin/apply-hostinger-all-modules-sql', (req, res) => {
 app.use(cors({
   origin: [
     "https://crm.skuaspestcontrol.com",
+    "https://api.skuaspestcontrol.com",
     "https://www.skuaspestcontrol.com",
     "https://skuaspestcontrol.com",
     "http://localhost:5173",
     "http://localhost:3000"
   ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-api-key", "x-admin-migration-token", "x-migration-token"],
   credentials: true
 }));
 app.use(express.json({ limit: '25mb' }));
@@ -339,6 +341,8 @@ const uploadsRootDir = ensureStartupDir(
   'Uploads'
 );
 const uploadsDir = uploadsRootDir;
+const customerImportUploadsDir = String(process.env.CUSTOMER_IMPORT_UPLOADS_DIR || '').trim()
+  || path.join(__dirname, '..', 'storage', 'uploads', 'imports');
 const employeeUploadsDir = path.join(uploadsDir, 'employees');
 const employeePhotoUploadsDir = path.join(employeeUploadsDir, 'photos');
 const employeeAadhaarUploadsDir = path.join(employeeUploadsDir, 'aadhaar');
@@ -347,6 +351,7 @@ const employeeDocumentsUploadsDir = path.join(employeeUploadsDir, 'documents');
 const uploadsMirrorDir = String(process.env.UPLOADS_MIRROR_DIR || '').trim();
 [
   uploadsDir,
+  customerImportUploadsDir,
   employeeUploadsDir,
   employeePhotoUploadsDir,
   employeeAadhaarUploadsDir,
@@ -361,6 +366,7 @@ if (uploadsMirrorDir) {
   }
 }
 console.log('Employee upload root:', employeeUploadsDir);
+console.log('Customer import upload dir:', customerImportUploadsDir);
 console.log('Employee upload photos dir:', employeePhotoUploadsDir);
 console.log('Employee upload aadhaar dir:', employeeAadhaarUploadsDir);
 console.log('Employee upload pan dir:', employeePanUploadsDir);
@@ -567,6 +573,20 @@ const storage = multer.diskStorage({
     cb(null, `${timestamp}-${safeBase}${ext}`);
   }
 });
+const customerImportStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    fs.mkdirSync(customerImportUploadsDir, { recursive: true });
+    console.log('[Customer Import Upload] destination:', customerImportUploadsDir);
+    cb(null, customerImportUploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const ext = path.extname(String(file.originalname || '')).toLowerCase();
+    const baseName = path.basename(String(file.originalname || ''), ext);
+    const safeBase = toSafeUploadBaseName(baseName);
+    cb(null, `${timestamp}-${safeBase}${ext}`);
+  }
+});
 const employeePhotoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     console.log('Employee photo multer destination:', employeePhotoUploadsDir);
@@ -609,6 +629,27 @@ const employeeDocumentStorage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
+const customerImportUpload = multer({
+  storage: customerImportStorage,
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(String(file.originalname || '')).toLowerCase();
+    const allowedExtensions = new Set(['.xlsx', '.xls', '.csv']);
+    const allowedMimes = new Set([
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+      'text/csv',
+      'application/csv',
+      'text/plain',
+      'application/octet-stream'
+    ]);
+    if (allowedExtensions.has(ext) || allowedMimes.has(String(file.mimetype || '').toLowerCase())) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Only xlsx, xls, and csv customer import files are allowed'));
+  }
+});
 const employeePhotoUpload = multer({
   storage: employeePhotoStorage,
   fileFilter: (req, file, cb) => {
@@ -8417,7 +8458,7 @@ registerHrModule({
 registerCustomerDedupModule({
   app,
   readJsonFile,
-  uploadMiddleware: upload,
+  uploadMiddleware: customerImportUpload,
   mysql: {
     canUseMysql,
     withMysqlConnection,

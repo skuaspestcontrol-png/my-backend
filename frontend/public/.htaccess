@@ -1,0 +1,14 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Keep API requests out of the frontend SPA rewrite. The React app should call
+  # the configured backend API host directly, but this prevents Apache from
+  # serving index.html or a forbidden static response for /api paths.
+  RewriteRule ^api(/.*)?$ - [L]
+
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  RewriteRule ^ index.html [L]
+</IfModule>
