@@ -250,10 +250,11 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   ensureSpace(40);
   doc.moveDown(0.4);
+  const primaryColor = clean(templateSettings.primary_color || companySettings.brandingAccentColor || '#9F174D');
   const title = items.length > 1
     ? 'Quotation for Pest Control Services'
     : `Quotation for ${clean(items[0]?.service_name || 'Pest Control Service')}`;
-  doc.font(pdfFont.bold).fontSize(10).fillColor('#111827').text(title, left, doc.y, { width: right - left, align: 'left' });
+  doc.font(pdfFont.bold).fontSize(12).fillColor(primaryColor).text(title, left, doc.y, { width: right - left, align: 'center' });
 
   const opening = clean(quotation.opening_paragraph || commonParagraphs.opening_paragraph);
   if (opening) {
@@ -264,7 +265,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   ensureSpace(48);
   doc.moveDown(0.7);
-  doc.font(pdfFont.bold).fontSize(10).fillColor(clean(templateSettings.primary_color || '#9F174D')).text('SERVICE SUMMARY');
+  doc.font(pdfFont.bold).fontSize(10).fillColor(primaryColor).text('SERVICE SUMMARY', left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(0.2);
 
   const serviceCols = [
@@ -311,7 +312,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   ensureSpace(70);
   doc.moveDown(0.6);
-  doc.font(pdfFont.bold).fontSize(10).fillColor(clean(templateSettings.primary_color || '#9F174D')).text('RECOMMENDATION TABLE');
+  doc.font(pdfFont.bold).fontSize(10).fillColor(primaryColor).text('RECOMMENDATION TABLE', left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(0.2);
 
   const recCols = [
@@ -376,8 +377,8 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   line('Round Off', `₹ ${formatINR(roundOff)}`);
   line('Grand Total', `₹ ${formatINR(grand)}`, true);
   doc.moveDown(0.2);
-  doc.font(pdfFont.bold).fontSize(10).text('Amount in words');
-  doc.font(pdfFont.regular).fontSize(10).text(amountInWords(grand));
+  doc.font(pdfFont.bold).fontSize(10).text('Amount in words', left, doc.y, { width: right - left, align: 'left' });
+  doc.font(pdfFont.regular).fontSize(10).text(amountInWords(grand), left, doc.y, { width: right - left, align: 'left' });
 
   const blocks = [
     ['Payment Terms', clean(quotation.payment_terms || commonParagraphs.payment_terms)],
@@ -389,14 +390,14 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   blocks.forEach(([titleText, body]) => {
     ensureSpace(70);
     doc.moveDown(0.3);
-    doc.font(pdfFont.bold).fontSize(10).fillColor(clean(templateSettings.primary_color || '#9F174D')).text(titleText);
-    doc.font(pdfFont.regular).fontSize(10).fillColor('#111827').text(body, { align: 'left', lineGap: 1 });
+    doc.font(pdfFont.bold).fontSize(10).fillColor(primaryColor).text(titleText, left, doc.y, { width: right - left, align: 'left' });
+    doc.font(pdfFont.regular).fontSize(10).fillColor('#111827').text(body, left, doc.y, { width: right - left, align: 'left', lineGap: 1 });
   });
 
   ensureSpace(90);
   doc.moveDown(0.4);
-  doc.font(pdfFont.regular).fontSize(10).fillColor('#111827').text('Yours Truly,');
-  doc.text('For Skuas Pest Control Pvt Ltd');
+  doc.font(pdfFont.regular).fontSize(10).fillColor('#111827').text('Yours Truly,', left, doc.y, { width: right - left, align: 'left' });
+  doc.text('For Skuas Pest Control Pvt Ltd', left, doc.y, { width: right - left, align: 'left' });
 
   if (String(templateSettings.show_signature || '1') !== '0') {
     const signature = resolveUploadAsset(templateSettings.signature_image_url);
@@ -406,9 +407,9 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   }
 
   doc.moveDown(3.3);
-  doc.text(clean(quotation.sales_person || templateSettings.default_sales_person));
-  doc.text(clean(quotation.designation || templateSettings.default_designation));
-  doc.text(clean(quotation.mobile || templateSettings.default_mobile));
+  doc.text(clean(quotation.sales_person || templateSettings.default_sales_person), left, doc.y, { width: right - left, align: 'left' });
+  doc.text(clean(quotation.designation || templateSettings.default_designation), left, doc.y, { width: right - left, align: 'left' });
+  doc.text(clean(quotation.mobile || templateSettings.default_mobile), left, doc.y, { width: right - left, align: 'left' });
 
   doc.end();
 });

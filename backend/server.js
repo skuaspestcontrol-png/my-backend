@@ -1929,6 +1929,33 @@ const premiseSnapshotColumns = [
   { name: 'premise_google_map_url', definition: 'TEXT NULL' }
 ];
 
+let contractsTableEnsured = false;
+const ensureContractsTable = async (conn) => {
+  if (contractsTableEnsured) return;
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS contracts (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      external_id VARCHAR(120) NULL,
+      customer_external_id VARCHAR(120) NULL,
+      customer_name VARCHAR(255) NULL,
+      contract_number VARCHAR(120) NULL,
+      contract_status VARCHAR(80) NULL,
+      contract_start_date DATE NULL,
+      contract_end_date DATE NULL,
+      total_amount DECIMAL(18,2) NULL,
+      payload JSON NULL,
+      source_created_at DATETIME NULL,
+      source_updated_at DATETIME NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_contracts_external_id (external_id),
+      KEY idx_contracts_number (contract_number),
+      KEY idx_contracts_customer_external (customer_external_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  contractsTableEnsured = true;
+};
+
 const customerPremiseModernColumns = [
   { name: 'premise_code', definition: 'VARCHAR(100) NULL' },
   { name: 'premise_name', definition: 'VARCHAR(255) NULL' },
@@ -2117,6 +2144,7 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
   await ensureColumnsIfMissing(conn, 'jobs', premiseSnapshotColumns);
   await ensureColumnsIfMissing(conn, 'invoices', premiseSnapshotColumns);
   await ensureColumnsIfMissing(conn, 'quotations', premiseSnapshotColumns);
+  await ensureContractsTable(conn);
   await ensureColumnsIfMissing(conn, 'contracts', premiseSnapshotColumns);
   try {
     await conn.query('CREATE UNIQUE INDEX uk_customer_premises_premise_id ON customer_premises (premise_id)');

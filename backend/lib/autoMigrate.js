@@ -349,6 +349,23 @@ const tableDefinitions = [
     ])
   },
   {
+    name: 'contracts',
+    createSql: createBaseTableSql('contracts', [
+      'customer_external_id VARCHAR(120) NULL',
+      'customer_name VARCHAR(255) NULL',
+      'contract_number VARCHAR(120) NULL',
+      'contract_status VARCHAR(80) NULL',
+      'contract_start_date DATE NULL',
+      'contract_end_date DATE NULL',
+      'total_amount DECIMAL(18,2) NULL',
+      'source_created_at DATETIME NULL',
+      'source_updated_at DATETIME NULL'
+    ], [
+      'KEY idx_contracts_number (contract_number)',
+      'KEY idx_contracts_customer_external (customer_external_id)'
+    ])
+  },
+  {
     name: 'invoice_items',
     createSql: `
       CREATE TABLE IF NOT EXISTS invoice_items (
