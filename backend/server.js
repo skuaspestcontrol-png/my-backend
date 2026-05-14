@@ -1345,6 +1345,8 @@ const resolveGstCompanyLogoPath = (settings = {}) => {
   return parseJobLogoPath(settings.dashboardImageUrl || '');
 };
 
+const letterLogoSize = [400, 160];
+
 const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve, reject) => {
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
   const chunks = [];
@@ -1364,7 +1366,7 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   const logoPath = resolveGstCompanyLogoPath(settings);
   if (logoPath) {
     try {
-      doc.image(logoPath, 42, 36, { fit: [84, 84], align: 'left' });
+      doc.image(logoPath, 42, 36, { fit: letterLogoSize, align: 'left' });
     } catch (_error) {
       // ignore logo load errors and continue
     }
@@ -7626,8 +7628,9 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const pageRight = doc.page.width - doc.page.margins.right;
     const contentWidth = pageRight - pageLeft;
     const logoPath = resolveGstCompanyLogoPath(settings);
-    const logoWidth = logoPath ? 400 : 0;
-    const logoHeight = logoPath ? 160 : 0;
+    const [letterLogoWidth, letterLogoHeight] = letterLogoSize;
+    const logoWidth = logoPath ? letterLogoWidth : 0;
+    const logoHeight = logoPath ? letterLogoHeight : 0;
     const headerTopY = 45;
     const companyDetailLines = [
       companyAddress,
