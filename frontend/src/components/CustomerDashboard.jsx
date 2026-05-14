@@ -1084,6 +1084,7 @@ export default function CustomerDashboard() {
   const mergeSelectedCustomers = async () => {
     if (selectedIds.length !== 2) {
       window.alert('Select exactly 2 customers to merge.');
+      setShowMoreMenu(false);
       return;
     }
     const targetCustomerId = selectedIds[0];
@@ -1305,10 +1306,11 @@ export default function CustomerDashboard() {
                 </button>
                 <button
                   type="button"
-                  style={{ ...shell.menuButton, opacity: selectedIds.length === 2 ? 1 : 0.45 }}
+                  style={{ ...shell.menuButton, opacity: selectedIds.length === 2 ? 1 : 0.45, cursor: selectedIds.length === 2 ? 'pointer' : 'not-allowed' }}
+                  disabled={selectedIds.length !== 2}
                   onClick={mergeSelectedCustomers}
                 >
-                  Merge Selected (2)
+                  Merge Selected ({selectedIds.length}/2)
                 </button>
               </div>
             ) : null}

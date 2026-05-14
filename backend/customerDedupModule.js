@@ -1322,12 +1322,12 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
     return rows[index];
   };
 
-  const mergeCustomers = ({ sourceCustomerId, targetCustomerId, reason, actor = 'System', sourcePayload = null }) => {
+  const mergeCustomers = async ({ sourceCustomerId, targetCustomerId, reason, actor = 'System', sourcePayload = null }) => {
     if (!sourceCustomerId || !targetCustomerId || sourceCustomerId === targetCustomerId) {
       return { ok: false, error: 'Source and target customer IDs are required and must be different.' };
     }
 
-    const customers = getCustomers();
+    const customers = await fetchCustomersForDedupe();
     const targetIndex = customers.findIndex((row) => normalizeText(row._id) === normalizeText(targetCustomerId));
     const sourceIndex = customers.findIndex((row) => normalizeText(row._id) === normalizeText(sourceCustomerId));
 
@@ -1374,6 +1374,8 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
     customers[targetIndex] = target;
     customers[sourceIndex] = source;
     saveCustomers(customers);
+    await persistCustomerToMysql(target);
+    await persistCustomerToMysql(source);
 
     const invoices = getInvoices().map((invoice) => {
       const currentId = normalizeText(invoice.customerId);
@@ -2095,20 +2097,25 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
     }
   });
 
-  app.post('/api/customers/merge', (req, res) => {
-    const sourceCustomerId = normalizeText(req.body?.sourceCustomerId);
-    const targetCustomerId = normalizeText(req.body?.targetCustomerId);
-    const reason = normalizeText(req.body?.reason || 'Merged from duplicate tool');
-    const actor = normalizeText(req.body?.actor || 'System');
+  app.post('/api/customers/merge', async (req, res) => {
+    try {
+      const sourceCustomerId = normalizeText(req.body?.sourceCustomerId);
+      const targetCustomerId = normalizeText(req.body?.targetCustomerId);
+      const reason = normalizeText(req.body?.reason || 'Merged from duplicate tool');
+      const actor = normalizeText(req.body?.actor || 'System');
 
-    const result = mergeCustomers({ sourceCustomerId, targetCustomerId, reason, actor });
-    if (!result.ok) return res.status(400).json({ error: result.error || 'Merge failed' });
+      const result = await mergeCustomers({ sourceCustomerId, targetCustomerId, reason, actor });
+      if (!result.ok) return res.status(400).json({ error: result.error || 'Merge failed' });
 
-    return res.json({
-      message: 'Customers merged successfully',
-      target: result.target,
-      source: result.source
-    });
+      return res.json({
+        message: 'Customers merged successfully',
+        target: result.target,
+        source: result.source
+      });
+    } catch (error) {
+      console.error('Customer merge failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Merge failed' });
+    }
   });
 
   app.get('/api/customers/similar-search', (req, res) => {

@@ -3986,7 +3986,7 @@ app.get('/api/customers', async (req, res) => {
           }
           return null;
         })
-        .filter((row) => row && String(row._id || '').trim());
+        .filter((row) => row && String(row._id || '').trim() && row.active !== false && !row.isMerged);
       console.info(`[Customers API] source=mysql rows=${parsed.length}`);
       return res.json(parsed);
     }
