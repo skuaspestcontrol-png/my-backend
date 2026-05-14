@@ -97,7 +97,9 @@ const modalShell = {
   compareLabel: { fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' },
   compareValue: { fontSize: '12px', color: '#0f172a', fontWeight: 700 },
   miniBtn: { border: '1px solid #D1D5DB', borderRadius: '8px', minHeight: '30px', padding: '0 9px', fontSize: '11px', fontWeight: 800, background: '#fff', color: '#0f172a', cursor: 'pointer' },
-  dangerBtn: { border: '1px solid rgba(220,38,38,0.28)', borderRadius: '8px', minHeight: '30px', padding: '0 9px', fontSize: '11px', fontWeight: 800, background: 'rgba(254,242,242,0.9)', color: '#991b1b', cursor: 'pointer' }
+  miniBtnActive: { borderColor: 'rgba(159,23,77,0.45)', background: 'rgba(252,231,243,0.78)', color: 'var(--color-primary-deep)', boxShadow: '0 0 0 3px rgba(159,23,77,0.12)' },
+  dangerBtn: { border: '1px solid rgba(220,38,38,0.28)', borderRadius: '8px', minHeight: '30px', padding: '0 9px', fontSize: '11px', fontWeight: 800, background: 'rgba(254,242,242,0.9)', color: '#991b1b', cursor: 'pointer' },
+  dangerBtnActive: { borderColor: 'rgba(220,38,38,0.48)', background: 'rgba(254,226,226,0.96)', boxShadow: '0 0 0 3px rgba(220,38,38,0.12)' }
 };
 
 const initialMapping = {
@@ -236,10 +238,11 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
 
   const setRowAction = async (rowId, action, targetCustomerId = '', reason = '') => {
     try {
-      await axios.post(`${API_BASE}/api/customers/import/rows/${rowId}/action`, { action, targetCustomerId, reason });
-      setRows((prev) => prev.map((row) => (
-        row._id === rowId ? { ...row, selectedAction: action, selectedTargetCustomerId: targetCustomerId || row.selectedTargetCustomerId } : row
-      )));
+      const res = await axios.post(`${API_BASE}/api/customers/import/rows/${rowId}/action`, { action, targetCustomerId, reason });
+      const updatedRow = res.data || {};
+      setRows((prev) => prev.map((row) => (row._id === rowId ? { ...row, ...updatedRow } : row)));
+      const label = actionOptions.find((option) => option.value === action)?.label || 'Action';
+      setStatus(`${label} selected for row #${updatedRow.rowNumber || ''}.`.trim());
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Unable to update row action.');
     }
@@ -303,6 +306,17 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
     }
   };
 
+  const actionClearsTarget = (action) => action === 'create_new' || action === 'mark_different';
+
+  const selectedTargetForRow = (row) => (
+    row.selectedTargetCustomerId != null ? row.selectedTargetCustomerId : (row.matchedCustomerId || '')
+  );
+
+  const handleActionChange = (row, action) => {
+    const targetCustomerId = actionClearsTarget(action) ? '' : selectedTargetForRow(row);
+    setRowAction(row._id, action, targetCustomerId);
+  };
+
   const renderCustomerSummary = (title, values = {}) => (
     <div style={modalShell.compareBox}>
       <div style={modalShell.compareLabel}>{title}</div>
@@ -341,10 +355,10 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
           })}
         </div>
         <div style={{ ...modalShell.actions, marginTop: '8px' }}>
-          <button type="button" style={modalShell.dangerBtn} onClick={() => setRowAction(row._id, 'skip', row.selectedTargetCustomerId || row.matchedCustomerId, 'Deleted from import during duplicate review')}>Delete / do not upload</button>
-          <button type="button" style={modalShell.miniBtn} onClick={() => setRowAction(row._id, 'add_address', row.selectedTargetCustomerId || row.matchedCustomerId)}>Add as new address</button>
-          <button type="button" style={modalShell.miniBtn} onClick={() => setRowAction(row._id, 'create_new', '')}>Upload as new customer</button>
-          <button type="button" style={modalShell.miniBtn} onClick={() => setRowAction(row._id, 'update_existing', row.selectedTargetCustomerId || row.matchedCustomerId)}>Update existing</button>
+          <button type="button" style={{ ...modalShell.dangerBtn, ...(row.selectedAction === 'skip' ? modalShell.dangerBtnActive : null) }} onClick={() => setRowAction(row._id, 'skip', row.selectedTargetCustomerId || row.matchedCustomerId, 'Deleted from import during duplicate review')}>Delete / do not upload</button>
+          <button type="button" style={{ ...modalShell.miniBtn, ...(row.selectedAction === 'add_address' ? modalShell.miniBtnActive : null) }} onClick={() => setRowAction(row._id, 'add_address', row.selectedTargetCustomerId || row.matchedCustomerId)}>Add as new address</button>
+          <button type="button" style={{ ...modalShell.miniBtn, ...(row.selectedAction === 'create_new' ? modalShell.miniBtnActive : null) }} onClick={() => setRowAction(row._id, 'create_new', '')}>Upload as new customer</button>
+          <button type="button" style={{ ...modalShell.miniBtn, ...(row.selectedAction === 'update_existing' ? modalShell.miniBtnActive : null) }} onClick={() => setRowAction(row._id, 'update_existing', row.selectedTargetCustomerId || row.matchedCustomerId)}>Update existing</button>
         </div>
       </div>
     );
@@ -485,14 +499,14 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                               <select
                                 style={modalShell.input}
                                 value={row.selectedAction || row.suggestedAction || 'needs_review'}
-                                onChange={(event) => setRowAction(row._id, event.target.value, row.matchedCustomerId)}
+                                onChange={(event) => handleActionChange(row, event.target.value)}
                               >
                                 {actionOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                               </select>
                               {(row.possibleMatches && row.possibleMatches.length > 0) || row.matchedCustomerId ? (
                                 <select
                                   style={modalShell.input}
-                                  value={row.selectedTargetCustomerId || row.matchedCustomerId || ''}
+                                  value={selectedTargetForRow(row)}
                                   onChange={(event) => setRowAction(row._id, row.selectedAction || row.suggestedAction, event.target.value)}
                                 >
                                   <option value="">Select target customer</option>

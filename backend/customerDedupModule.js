@@ -1089,14 +1089,18 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
     return { analyzedRows, allMatches };
   };
 
-  const updateImportRowAction = ({ rowId, action, targetCustomerId, reason }) => {
+  const updateImportRowAction = (params = {}) => {
+    const { rowId, action, targetCustomerId, reason } = params;
     const rows = getImportRows();
     const index = rows.findIndex((row) => normalizeText(row._id) === normalizeText(rowId));
     if (index < 0) return null;
+    const hasTargetCustomerId = Object.prototype.hasOwnProperty.call(params, 'targetCustomerId');
     rows[index] = {
       ...rows[index],
       selectedAction: normalizeText(action || rows[index].selectedAction || 'needs_review'),
-      selectedTargetCustomerId: normalizeText(targetCustomerId || rows[index].selectedTargetCustomerId || rows[index].matchedCustomerId || ''),
+      selectedTargetCustomerId: hasTargetCustomerId
+        ? normalizeText(targetCustomerId)
+        : normalizeText(rows[index].selectedTargetCustomerId || rows[index].matchedCustomerId || ''),
       selectedReason: normalizeText(reason || rows[index].selectedReason || ''),
       updatedAt: nowIso()
     };
@@ -1620,12 +1624,15 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {} }) {
   });
 
   app.post('/api/customers/import/rows/:rowId/action', (req, res) => {
-    const row = updateImportRowAction({
+    const actionPayload = {
       rowId: req.params.rowId,
       action: req.body?.action,
-      targetCustomerId: req.body?.targetCustomerId,
       reason: req.body?.reason
-    });
+    };
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'targetCustomerId')) {
+      actionPayload.targetCustomerId = req.body.targetCustomerId;
+    }
+    const row = updateImportRowAction(actionPayload);
     if (!row) return res.status(404).json({ error: 'Import row not found' });
     refreshBatchStats(row.batchId);
     res.json(row);
