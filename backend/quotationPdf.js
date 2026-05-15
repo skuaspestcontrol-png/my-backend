@@ -330,10 +330,17 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     .text(`Ref: ${clean(quotation.quotation_number)}`, left, doc.y + 2, { width: right - left, align: 'left' });
 
   doc.moveDown(1);
+  const customerDetailLines = [
+    `Customer Name: ${clean(quotation.customer_name)}`,
+    `Company Name: ${clean(quotation.company_name)}`,
+    `Address: ${clean(quotation.address)}`,
+    `Phone: ${clean(quotation.phone)}`,
+    `Email: ${clean(quotation.email)}`,
+    `GSTIN: ${clean(quotation.gstin)}`
+  ];
   doc.font(pdfFont.regular).fontSize(pdfTextSize.body).fillColor('#111827')
     .text('To,', left, doc.y, { width: right - left, align: 'left' })
-    .text(clean(quotation.customer_name || quotation.company_name || 'Customer'), left, doc.y + 2, { width: right - left, align: 'left' })
-    .text(clean(quotation.address || '-'), left, doc.y + 2, { width: right - left, align: 'left' });
+    .text(customerDetailLines.join('\n'), left, doc.y + 2, { width: right - left, align: 'left' });
 
   ensureSpace(40);
   doc.moveDown(0.4);

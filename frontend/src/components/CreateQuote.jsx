@@ -80,6 +80,16 @@ const getItemServiceName = (item = {}) => (
   || ''
 ).trim();
 
+const getItemField = (item = {}, ...keys) => {
+  for (const key of keys) {
+    const value = item?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      return String(value).trim();
+    }
+  }
+  return '';
+};
+
 const money = (v) => `₹ ${num(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function CreateQuote() {
@@ -241,27 +251,27 @@ export default function CreateQuote() {
   const selectServiceTemplate = (idx, itemId) => {
     const selected = serviceCatalog.find((entry) => String(entry._id || '') === String(itemId || ''));
     if (!selected) return;
-    const defaultLevel = selected.default_infestation_level || selected.infestationLevel || '';
+    const defaultLevel = getItemField(selected, 'default_infestation_level', 'infestationLevel');
     const level = levels.find((l) => String(l.level_name || '').toLowerCase() === String(defaultLevel).toLowerCase());
-    const taxRate = parsePercent(selected.intraTaxRate || selected.taxRate || selected.gstRate || '18%');
-    const rate = num(selected.sellingPrice || selected.rate || 0);
-    const description = selected.serviceDescription || selected.salesDescription || selected.description || '';
-    const aboutPest = selected.aboutPest || selected.about_pest || description;
-    const whatWeDo = selected.whatWeDo || selected.what_we_do || selected.treatmentMethod || selected.salesDescription || description;
-    const defaultRecommendation = recommendationDefault || selected.recommendation || description;
+    const taxRate = parsePercent(getItemField(selected, 'intraTaxRate', 'taxRate', 'gstRate') || '18%');
+    const rate = num(selected.sellingPrice ?? selected.rate ?? 0);
+    const description = getItemField(selected, 'serviceDescription', 'salesDescription', 'description');
+    const aboutPest = getItemField(selected, 'aboutPest', 'about_pest') || description;
+    const whatWeDo = getItemField(selected, 'whatWeDo', 'what_we_do', 'treatmentMethod') || description;
+    const defaultRecommendation = recommendationDefault || getItemField(selected, 'recommendation') || description;
     const serviceName = getItemServiceName(selected);
     updateItem(idx, {
       service_template_id: selected._id,
       service_name: serviceName,
-      service_code: selected.hsnSac || selected.sac || selected._id || '',
-      pest_name: selected.pestsCovered || '',
-      service_title: selected.serviceTitle || selected.service_title || serviceName,
+      service_code: getItemField(selected, 'hsnSac', 'sac', '_id'),
+      pest_name: getItemField(selected, 'pestsCovered', 'pests_covered'),
+      service_title: getItemField(selected, 'serviceTitle', 'service_title') || serviceName,
       about_pest: aboutPest,
       what_we_do: whatWeDo,
-      treatment_points: whatWeDo || selected.treatmentMethod || '',
+      treatment_points: whatWeDo,
       infestation_level: defaultLevel,
       infestation_image_url: level?.image_url || '',
-      frequency: selected.frequency || '',
+      frequency: getItemField(selected, 'frequency'),
       recommendation: defaultRecommendation,
       gst_percentage: taxRate,
       rate_without_gst: rate,
@@ -524,7 +534,7 @@ export default function CreateQuote() {
               <div key={`item-${idx}`} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ margin: 0, fontWeight: 800 }}>Service #{idx + 1}</p>{items.length > 1 ? <button type="button" style={{ ...btnDanger, minHeight: 32, padding: '0 10px' }} onClick={() => setItems((prev) => prev.filter((_, i) => i !== idx))}>Remove</button> : null}</div>
                 <div style={serviceTopGridStyle}>
-                  <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Service Template</p><select style={input} value={item.service_template_id || ''} onChange={(e) => selectServiceTemplate(idx, e.target.value)}><option value="">Select item</option>{serviceCatalog.map((entry) => <option key={entry._id} value={entry._id}>{getItemServiceName(entry) || entry._id}</option>)}</select></div>
+                  <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Service Name</p><select style={input} value={item.service_template_id || ''} onChange={(e) => selectServiceTemplate(idx, e.target.value)}><option value="">Select item</option>{serviceCatalog.map((entry) => <option key={entry._id} value={entry._id}>{getItemServiceName(entry) || entry._id}</option>)}</select></div>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Service Title</p><input style={input} value={item.service_title || ''} onChange={(e) => updateItem(idx, { service_title: e.target.value })} /></div>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Pest Name</p><input style={input} value={item.pest_name || ''} onChange={(e) => updateItem(idx, { pest_name: e.target.value })} /></div>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Frequency</p><input style={input} value={item.frequency || ''} onChange={(e) => updateItem(idx, { frequency: e.target.value })} /></div>
