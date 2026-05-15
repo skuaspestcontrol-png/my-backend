@@ -57,6 +57,74 @@ const cleanPaymentTerms = (value = '') => {
     .join('\n');
 };
 
+const customerDetailLinesForQuotation = (quotation = {}) => {
+  const customerName = clean(quotation.customer_name);
+  const companyName = clean(quotation.company_name);
+  const detailLines = companyName
+    ? [
+        ['Company Name', companyName],
+        ['Customer Name', customerName]
+      ]
+    : [
+        ['Customer Name', customerName],
+        ['Company Name', '']
+      ];
+
+  return [
+    ...detailLines,
+    ['Address', clean(quotation.address)],
+    ['Phone', clean(quotation.phone)],
+    ['Email', clean(quotation.email)],
+    ['GSTIN', clean(quotation.gstin)]
+  ];
+};
+
+const drawLabeledDetailBlock = (doc, rows = [], x, y, width, options = {}) => {
+  const pdfFont = getPdfFont(doc);
+  const labelWidth = options.labelWidth || 88;
+  const fontSize = options.fontSize || pdfTextSize.body;
+  const lineGap = Number.isFinite(Number(options.lineGap)) ? Number(options.lineGap) : 2;
+  let cursorY = y;
+
+  rows.forEach(([label, value]) => {
+    const text = clean(value);
+    const valueX = x + labelWidth;
+    const valueWidth = Math.max(10, width - labelWidth);
+    const rowHeight = Math.max(
+      doc.font(pdfFont.bold).fontSize(fontSize).heightOfString(`${label}:`, { width: labelWidth - 4, lineGap }),
+      doc.font(pdfFont.regular).fontSize(fontSize).heightOfString(text || ' ', { width: valueWidth, lineGap })
+    );
+
+    doc.font(pdfFont.bold).fontSize(fontSize).fillColor('#111827')
+      .text(`${label}:`, x, cursorY, { width: labelWidth - 4, align: 'left', lineGap });
+    doc.font(pdfFont.regular).fontSize(fontSize).fillColor('#111827')
+      .text(text, valueX, cursorY, { width: valueWidth, align: 'left', lineGap });
+
+    cursorY += rowHeight + 2;
+  });
+
+  doc.y = cursorY;
+};
+
+const drawParagraphBlock = (doc, text, x, y, width, options = {}) => {
+  const pdfFont = getPdfFont(doc);
+  const fontSize = options.fontSize || pdfTextSize.body;
+  const align = options.align || 'justify';
+  const lineGap = Number.isFinite(Number(options.lineGap)) ? Number(options.lineGap) : 1.2;
+  const paragraphGap = Number.isFinite(Number(options.paragraphGap)) ? Number(options.paragraphGap) : 4;
+  const blocks = clean(text).split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
+  doc.font(pdfFont.regular).fontSize(fontSize).fillColor('#111827');
+
+  if (!blocks.length) {
+    doc.text('-', x, y, { width, align: 'left', lineGap });
+    return;
+  }
+
+  blocks.forEach((block, index) => {
+    doc.text(block, x, index === 0 ? y : doc.y + paragraphGap, { width, align, lineGap });
+  });
+};
+
 const fontPathCandidates = (fileNames) => [
   ...fileNames.map((fileName) => path.join(__dirname, 'assets', 'fonts', fileName)),
   ...fileNames.map((fileName) => path.join(__dirname, 'fonts', fileName)),
@@ -330,30 +398,29 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     .text(`Ref: ${clean(quotation.quotation_number)}`, left, doc.y + 2, { width: right - left, align: 'left' });
 
   doc.moveDown(1);
-  const customerDetailLines = [
-    `Customer Name: ${clean(quotation.customer_name)}`,
-    `Company Name: ${clean(quotation.company_name)}`,
-    `Address: ${clean(quotation.address)}`,
-    `Phone: ${clean(quotation.phone)}`,
-    `Email: ${clean(quotation.email)}`,
-    `GSTIN: ${clean(quotation.gstin)}`
-  ];
   doc.font(pdfFont.regular).fontSize(pdfTextSize.body).fillColor('#111827')
-    .text('To,', left, doc.y, { width: right - left, align: 'left' })
-    .text(customerDetailLines.join('\n'), left, doc.y + 2, { width: right - left, align: 'left' });
+    .text('To,', left, doc.y, { width: right - left, align: 'left' });
+  drawLabeledDetailBlock(
+    doc,
+    customerDetailLinesForQuotation(quotation),
+    left,
+    doc.y + 4,
+    right - left,
+    { labelWidth: 86, fontSize: pdfTextSize.body, lineGap: 2 }
+  );
 
   ensureSpace(40);
-  doc.moveDown(0.4);
+  doc.moveDown(0.9);
   const primaryColor = clean(templateSettings.primary_color || companySettings.brandingAccentColor || '#9F174D');
-  const pestNames = formatJoinedNames(items.map((item) => item?.pest_name || item?.service_name));
-  const title = `Quotation for ${pestNames || 'Pest Control Service'}`;
+  const serviceTitles = formatJoinedNames(items.map((item) => item?.service_title || item?.service_name || item?.pest_name));
+  const title = `Quotation for ${serviceTitles || 'Pest Control Service'}`;
   doc.font(pdfFont.bold).fontSize(pdfTextSize.title).fillColor(primaryColor).text(title, left, doc.y, { width: right - left, align: 'center' });
 
   const opening = clean(quotation.opening_paragraph || commonParagraphs.opening_paragraph);
   if (opening) {
     ensureSpace(60);
     doc.moveDown(0.3);
-    doc.font(pdfFont.regular).fontSize(pdfTextSize.body).fillColor('#111827').text(opening, left, doc.y, { width: right - left, align: 'justify', lineGap: 1 });
+    drawParagraphBlock(doc, opening, left, doc.y, right - left, { align: 'justify', lineGap: 1.2 });
   }
 
   ensureSpace(48);
@@ -364,7 +431,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     .map((item) => clean(item.about_pest))
     .filter(Boolean)
     .join('\n\n');
-  doc.font(pdfFont.regular).fontSize(pdfTextSize.body).fillColor('#111827').text(aboutPest || '-', left, doc.y, { width: right - left, align: 'left', lineGap: 1 });
+  drawParagraphBlock(doc, aboutPest || '-', left, doc.y, right - left, { align: 'justify', lineGap: 1.2 });
 
   ensureSpace(48);
   doc.moveDown(0.45);
@@ -374,7 +441,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     .map((item) => clean(item.what_we_do))
     .filter(Boolean)
     .join('\n\n');
-  doc.font(pdfFont.regular).fontSize(pdfTextSize.body).fillColor('#111827').text(whatWeDo || '-', left, doc.y, { width: right - left, align: 'left', lineGap: 1 });
+  drawParagraphBlock(doc, whatWeDo || '-', left, doc.y, right - left, { align: 'justify', lineGap: 1.2 });
 
   ensureSpace(70);
   doc.moveDown(0.45);
@@ -499,7 +566,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
       if (titleText === 'Payment Terms') doc.moveDown(0.25);
     }
     const bodySize = titleText === 'Payment Terms' ? pdfTextSize.paymentBody : pdfTextSize.body;
-    doc.font(pdfFont.regular).fontSize(bodySize).fillColor('#111827').text(body, left, doc.y, { width: right - left, align: 'left', lineGap: 1 });
+    doc.font(pdfFont.regular).fontSize(bodySize).fillColor('#111827').text(body, left, doc.y, { width: right - left, align: titleText === 'Payment Terms' ? 'left' : 'justify', lineGap: 1 });
     if (titleText === 'Payment Terms') doc.moveDown(1.2);
   });
 
