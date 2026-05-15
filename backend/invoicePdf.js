@@ -557,7 +557,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ay = doc.y;
     });
 
-    const rightW = 178;
+    const rightW = 240;
     const rightX = right - rightW;
     doc.font('Helvetica-Bold').fontSize(18).fillColor(company.primaryColor).text('TAX INVOICE', rightX, y + 8, { width: rightW, align: 'right' });
 
@@ -567,9 +567,11 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ['Sales Person', clean(invoice.salesperson) || '-']
     ];
     let my = y + 34;
+    const metaLabelW = 92;
+    const metaValueW = rightW - metaLabelW;
     meta.forEach(([k, v]) => {
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text(`${k} :`, rightX + 2, my, { width: 84, align: 'left' });
-      doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(`${v}`, rightX + 88, my, { width: rightW - 90, align: 'left' });
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text(`${k} :`, rightX, my, { width: metaLabelW, align: 'left' });
+      doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(`${v}`, rightX + metaLabelW, my, { width: metaValueW, align: 'right' });
       my += 12;
     });
 
