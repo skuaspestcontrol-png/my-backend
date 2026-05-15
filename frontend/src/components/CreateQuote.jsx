@@ -65,6 +65,7 @@ export default function CreateQuote() {
   const [active, setActive] = useState(0);
   const [leadRows, setLeadRows] = useState([]);
   const [customerRows, setCustomerRows] = useState([]);
+  const [employeeRows, setEmployeeRows] = useState([]);
   const [services, setServices] = useState([]);
   const [levels, setLevels] = useState([]);
   const [prefixSettings, setPrefixSettings] = useState({});
@@ -97,6 +98,7 @@ export default function CreateQuote() {
     quotation_number: '',
     validity_days: 15,
     prepared_by: '',
+    sales_person_employee_id: '',
     sales_person: '',
     designation: '',
     mobile: '',
@@ -118,9 +120,10 @@ export default function CreateQuote() {
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      const [leadRes, customerRes, serviceRes, levelRes, prefixRes, commonRes, templateRes] = await Promise.all([
+      const [leadRes, customerRes, employeeRes, serviceRes, levelRes, prefixRes, commonRes, templateRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/leads`).catch(() => ({ data: [] })),
         axios.get(`${API_BASE_URL}/api/customers`).catch(() => ({ data: [] })),
+        axios.get(`${API_BASE_URL}/api/employees`).catch(() => ({ data: [] })),
         axios.get(`${API_BASE_URL}/api/settings/quotation-services`),
         axios.get(`${API_BASE_URL}/api/settings/infestation-levels`),
         axios.get(`${API_BASE_URL}/api/settings/quotation-prefixes`),
@@ -130,6 +133,7 @@ export default function CreateQuote() {
       if (!mounted) return;
       setLeadRows(Array.isArray(leadRes.data) ? leadRes.data : []);
       setCustomerRows(Array.isArray(customerRes.data) ? customerRes.data : []);
+      setEmployeeRows(Array.isArray(employeeRes.data) ? employeeRes.data : []);
       setServices(Array.isArray(serviceRes.data) ? serviceRes.data.filter((s) => Number(s.is_active || 0) === 1) : []);
       setLevels(Array.isArray(levelRes.data) ? levelRes.data.filter((s) => Number(s.is_active || 0) === 1) : []);
       setPrefixSettings(prefixRes.data || {});
@@ -143,8 +147,6 @@ export default function CreateQuote() {
         mobile: p.mobile || templateRes.data?.default_mobile || '',
         opening_paragraph: p.opening_paragraph || commonRes.data?.opening_paragraph || '',
         payment_terms: p.payment_terms || commonRes.data?.payment_terms || '',
-        warranty_note: p.warranty_note || commonRes.data?.warranty_paragraph || '',
-        disclaimer: p.disclaimer || commonRes.data?.disclaimer_paragraph || '',
         closing_paragraph: p.closing_paragraph || commonRes.data?.closing_paragraph || commonRes.data?.relationship_closing_paragraph || ''
       }));
     };
@@ -232,8 +234,44 @@ export default function CreateQuote() {
     const pref = String(prefixSettings.prefix || 'SPC/');
     const next = String(prefixSettings.next_number || 1).padStart(Number(prefixSettings.padding_digits || 4), '0');
     const code = String(items[0]?.service_code || 'GEN');
-    return `${pref}${year}/${code}/${next}`;
+    const template = String(prefixSettings.format_template || '{{prefix}}{{year}}/{{service_code}}/{{number}}');
+    return template
+      .replaceAll('{{prefix}}', pref)
+      .replaceAll('{{year}}', year)
+      .replaceAll('{{service_code}}', Number(prefixSettings.enable_service_code ?? 1) === 1 ? code : '')
+      .replaceAll('{{number}}', next)
+      .replace(/\/+/g, '/');
   }, [prefixSettings, items]);
+
+  const employeeName = (employee = {}) => (
+    employee.fullName
+    || employee.name
+    || [employee.firstName, employee.lastName].filter(Boolean).join(' ')
+    || employee.empCode
+    || ''
+  ).trim();
+
+  const employeeDesignation = (employee = {}) => (
+    employee.designation
+    || employee.roleName
+    || employee.role
+    || ''
+  ).trim();
+
+  const selectSalesPerson = (employeeId) => {
+    const employee = employeeRows.find((entry) => String(entry._id || entry.id || entry.external_id || '') === String(employeeId || ''));
+    if (!employee) {
+      setForm((p) => ({ ...p, sales_person_employee_id: employeeId }));
+      return;
+    }
+    setForm((p) => ({
+      ...p,
+      sales_person_employee_id: String(employee._id || employee.id || employee.external_id || ''),
+      sales_person: employeeName(employee),
+      designation: employeeDesignation(employee),
+      mobile: employee.mobile || employee.phone || p.mobile || ''
+    }));
+  };
 
   const selectLead = (leadId) => {
     const lead = leadRows.find((l) => String(l._id || l.id || '') === String(leadId));
@@ -371,7 +409,7 @@ export default function CreateQuote() {
               </div>
             ) : null}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-              {['customer_name','company_name','address','phone','whatsapp','email','gstin'].map((key) => (
+              {['customer_name','company_name','address','phone','email','gstin'].map((key) => (
                 <div key={key} style={key === 'address' ? { gridColumn: '1 / span 3' } : {}}><p style={{ ...label, textTransform: 'capitalize' }}>{key.replaceAll('_', ' ')}</p>{key === 'address' ? <textarea style={{ ...input, minHeight: 58 }} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /> : <input style={input} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} />}</div>
               ))}
             </div>
@@ -383,13 +421,11 @@ export default function CreateQuote() {
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Quotation Date</p><input type="date" style={input} value={form.quotation_date || ''} onChange={(e) => setForm((p) => ({ ...p, quotation_date: e.target.value }))} /></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Quotation Number</p><input style={input} value={form.quotation_number || ''} placeholder={quotationPreview} onChange={(e) => setForm((p) => ({ ...p, quotation_number: e.target.value }))} /></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Validity Days</p><input type="number" style={input} value={form.validity_days || 15} onChange={(e) => setForm((p) => ({ ...p, validity_days: Number(e.target.value) || 1 }))} /></div>
-            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Prepared By</p><input style={input} value={form.prepared_by || ''} onChange={(e) => setForm((p) => ({ ...p, prepared_by: e.target.value }))} /></div>
-            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Sales Person</p><input style={input} value={form.sales_person || ''} onChange={(e) => setForm((p) => ({ ...p, sales_person: e.target.value }))} /></div>
+            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Rate Type</p><select style={input} value={form.rate_type || 'With GST'} onChange={(e) => setForm((p) => ({ ...p, rate_type: e.target.value }))}><option>With GST</option><option>Without GST</option></select></div>
+            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Sales Person</p><select style={input} value={form.sales_person_employee_id || ''} onChange={(e) => selectSalesPerson(e.target.value)}><option value="">Select employee</option>{employeeRows.map((employee) => <option key={employee._id || employee.id || employee.empCode || employeeName(employee)} value={employee._id || employee.id || employee.external_id || ''}>{employeeName(employee) || employee.mobile || employee.empCode}</option>)}</select></div>
+            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Sales Person Name</p><input style={input} value={form.sales_person || ''} onChange={(e) => setForm((p) => ({ ...p, sales_person: e.target.value }))} /></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Designation</p><input style={input} value={form.designation || ''} onChange={(e) => setForm((p) => ({ ...p, designation: e.target.value }))} /></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Mobile</p><input style={input} value={form.mobile || ''} onChange={(e) => setForm((p) => ({ ...p, mobile: e.target.value }))} /></div>
-            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Rate Type</p><select style={input} value={form.rate_type || 'With GST'} onChange={(e) => setForm((p) => ({ ...p, rate_type: e.target.value }))}><option>With GST</option><option>Without GST</option></select></div>
-            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Contract Start Date</p><input type="date" style={input} value={form.contract_start_date || ''} onChange={(e) => setForm((p) => ({ ...p, contract_start_date: e.target.value }))} /></div>
-            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Contract End Date</p><input type="date" style={input} value={form.contract_end_date || ''} onChange={(e) => setForm((p) => ({ ...p, contract_end_date: e.target.value }))} /></div>
           </div>
         )}
 
@@ -474,10 +510,7 @@ export default function CreateQuote() {
             {[
               ['opening_paragraph', 'Opening Paragraph'],
               ['payment_terms', 'Payment Terms'],
-              ['warranty_note', 'Warranty Note'],
-              ['disclaimer', 'Disclaimer'],
-              ['closing_paragraph', 'Closing Paragraph'],
-              ['internal_note', 'Internal Note']
+              ['closing_paragraph', 'Closing Paragraph']
             ].map(([key, label]) => (
               <div key={key}><p style={{ margin: '0 0 6px', fontWeight: 700 }}>{label}</p><textarea style={{ ...input, minHeight: 60 }} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /></div>
             ))}

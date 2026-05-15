@@ -390,6 +390,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   });
 
   ensureSpace(24);
+  doc.moveDown(0.55);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text(title, left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(0.1);
 
