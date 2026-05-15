@@ -268,7 +268,7 @@ export default function Dashboard() {
       : shell.hero;
 
   const metricsStyle = isMobile
-    ? { ...shell.metrics, gridTemplateColumns: '1fr' }
+    ? { ...shell.metrics, gridTemplateColumns: '1fr', width: isSmallMobile ? '88%' : '90%', maxWidth: '560px', margin: '0 auto' }
     : isTablet
       ? { ...shell.metrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
       : isLaptop
