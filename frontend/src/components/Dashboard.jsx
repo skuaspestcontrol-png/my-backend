@@ -268,7 +268,7 @@ export default function Dashboard() {
       : shell.hero;
 
   const metricsStyle = isMobile
-    ? { ...shell.metrics, gridTemplateColumns: '1fr', width: isSmallMobile ? '88%' : '90%', maxWidth: '560px', margin: '0 auto' }
+    ? { ...shell.metrics, gridTemplateColumns: '1fr', width: 'calc(100% - 28px)', maxWidth: '560px' }
     : isTablet
       ? { ...shell.metrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
       : isLaptop
@@ -292,7 +292,7 @@ export default function Dashboard() {
     fontWeight: 700
   };
   const metricStyle = isMobile
-    ? { ...shell.metric, padding: '12px 14px', borderRadius: '14px' }
+    ? { ...shell.metric, padding: '10px 12px', borderRadius: '14px' }
     : shell.metric;
   const metricLabelStyle = isMobile
     ? { ...shell.metricLabel, fontSize: '10px' }
