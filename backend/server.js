@@ -1783,6 +1783,32 @@ const parseMysqlLeadPayload = (rawPayload) => {
 };
 
 const normalizeLeadMobile = (value) => String(value || '').replace(/\D/g, '').slice(-10);
+const LEAD_SEQUENCE_START = 5400;
+const LEAD_SEQUENCE_LIMIT = 1000000;
+
+const extractLeadSequenceNumber = (value) => {
+  const raw = String(value || '').trim();
+  if (!/^\d+$/.test(raw)) return 0;
+  const num = Number(raw);
+  if (!Number.isSafeInteger(num)) return 0;
+  return num >= LEAD_SEQUENCE_START && num < LEAD_SEQUENCE_LIMIT ? num : 0;
+};
+
+const createNextLeadNumber = async (conn) => {
+  let maxSequence = LEAD_SEQUENCE_START - 1;
+
+  const [rows] = await conn.query("SELECT external_id FROM leads WHERE external_id REGEXP '^[0-9]+$'");
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    maxSequence = Math.max(maxSequence, extractLeadSequenceNumber(row?.external_id));
+  });
+
+  const jsonRows = readJsonFile(leadsFile, []);
+  (Array.isArray(jsonRows) ? jsonRows : []).forEach((entry) => {
+    maxSequence = Math.max(maxSequence, extractLeadSequenceNumber(entry?._id));
+  });
+
+  return String(maxSequence + 1);
+};
 
 const normalizeLeadShape = (input = {}, fallbackId = '') => {
   const source = (input && typeof input === 'object') ? input : {};
@@ -2503,10 +2529,11 @@ app.post('/api/leads', async (req, res) => {
   }
   try {
     const incoming = req.body || {};
-    const generatedId = String(incoming._id || Date.now().toString()).trim();
-    const newLead = normalizeLeadShape({ ...incoming, _id: generatedId }, generatedId);
-    await withMysqlConnection(async (conn) => {
-      await upsertLeadToMysql(conn, newLead);
+    const newLead = await withMysqlConnection(async (conn) => {
+      const generatedId = String(incoming._id || await createNextLeadNumber(conn)).trim();
+      const lead = normalizeLeadShape({ ...incoming, _id: generatedId }, generatedId);
+      await upsertLeadToMysql(conn, lead);
+      return lead;
     });
     return res.json(newLead);
   } catch (error) {
