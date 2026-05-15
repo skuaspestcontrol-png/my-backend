@@ -246,6 +246,8 @@ export default function CreateQuote() {
     const taxRate = parsePercent(selected.intraTaxRate || selected.taxRate || selected.gstRate || '18%');
     const rate = num(selected.sellingPrice || selected.rate || 0);
     const description = selected.serviceDescription || selected.salesDescription || selected.description || '';
+    const aboutPest = selected.aboutPest || selected.about_pest || description;
+    const whatWeDo = selected.whatWeDo || selected.what_we_do || selected.treatmentMethod || selected.salesDescription || description;
     const defaultRecommendation = recommendationDefault || selected.recommendation || description;
     const serviceName = getItemServiceName(selected);
     updateItem(idx, {
@@ -254,9 +256,9 @@ export default function CreateQuote() {
       service_code: selected.hsnSac || selected.sac || selected._id || '',
       pest_name: selected.pestsCovered || '',
       service_title: selected.serviceTitle || selected.service_title || serviceName,
-      about_pest: description,
-      what_we_do: selected.treatmentMethod || selected.salesDescription || description,
-      treatment_points: selected.treatmentMethod || '',
+      about_pest: aboutPest,
+      what_we_do: whatWeDo,
+      treatment_points: whatWeDo || selected.treatmentMethod || '',
       infestation_level: defaultLevel,
       infestation_image_url: level?.image_url || '',
       frequency: selected.frequency || '',

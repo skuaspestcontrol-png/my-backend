@@ -14,7 +14,14 @@ const columns = [
   { key: 'hsnSac', label: 'HSN/SAC' }
 ];
 
-const units = ['pcs', 'box', 'ltr', 'kg', 'ml'];
+const units = [
+  { value: 'pcs', label: 'pcs' },
+  { value: 'box', label: 'box' },
+  { value: 'ltr', label: 'ltr' },
+  { value: 'kg', label: 'kg' },
+  { value: 'ml', label: 'ml' },
+  { value: 'num', label: 'Number' }
+];
 const taxPreferences = ['Taxable', 'Non-Taxable'];
 const salesAccounts = ['Sales', 'Service Income', 'Other Income'];
 const purchaseAccounts = ['Cost of Goods Sold', 'Purchases', 'Direct Expenses'];
@@ -32,10 +39,11 @@ const defaultColumnWidths = {
 const emptyForm = {
   itemType: 'service',
   name: '',
-  treatmentMethod: '',
+  aboutPest: '',
   pestsCovered: '',
   serviceDescription: '',
   frequency: '',
+  whatWeDo: '',
   unit: 'pcs',
   sac: '',
   taxPreference: 'Taxable',
@@ -510,10 +518,11 @@ export default function ItemsDashboard() {
   const mapItemToForm = (item) => ({
     itemType: item.itemType || 'service',
     name: item.name || '',
-    treatmentMethod: item.treatmentMethod || '',
+    aboutPest: item.aboutPest ?? item.about_pest ?? item.serviceDescription ?? item.salesDescription ?? item.description ?? '',
     pestsCovered: item.pestsCovered || '',
     serviceDescription: item.serviceDescription ?? item.salesDescription ?? item.description ?? '',
     frequency: item.frequency ?? item.description ?? '',
+    whatWeDo: item.whatWeDo ?? item.what_we_do ?? item.treatmentMethod ?? '',
     unit: item.unit || 'pcs',
     sac: item.sac || item.hsnSac || '',
     taxPreference: item.taxPreference || 'Taxable',
@@ -545,19 +554,21 @@ export default function ItemsDashboard() {
     event.preventDefault();
     if (!form.name.trim()) return;
     const isServiceItem = form.itemType === 'service';
-    const treatmentMethod = isServiceItem ? form.treatmentMethod.trim() : '';
+    const aboutPest = isServiceItem ? form.aboutPest.trim() : '';
     const pestsCovered = isServiceItem ? form.pestsCovered.trim() : '';
     const serviceDescription = isServiceItem ? form.serviceDescription.trim() : '';
     const frequency = isServiceItem ? form.frequency.trim() : '';
+    const whatWeDo = isServiceItem ? form.whatWeDo.trim() : '';
     const salesDescription = form.salesDescription.trim() || frequency || serviceDescription;
 
     const payload = {
       itemType: form.itemType,
       name: form.name.trim(),
-      treatmentMethod,
+      aboutPest,
       pestsCovered,
       serviceDescription,
       frequency,
+      whatWeDo,
       unit: form.unit,
       sac: form.sac.trim(),
       hsnSac: form.sac.trim(),
@@ -821,11 +832,11 @@ export default function ItemsDashboard() {
 
                 {form.itemType === 'service' ? (
                   <>
-                    <label style={shell.label}>Treatment Method</label>
-                    <input
-                      style={shell.input}
-                      value={form.treatmentMethod}
-                      onChange={(event) => updateForm('treatmentMethod', event.target.value)}
+                    <label style={shell.label}>About Pest</label>
+                    <textarea
+                      style={shell.textArea}
+                      value={form.aboutPest}
+                      onChange={(event) => updateForm('aboutPest', event.target.value)}
                     />
 
                     <label style={shell.label}>Pests Covered</label>
@@ -848,13 +859,20 @@ export default function ItemsDashboard() {
                       value={form.frequency}
                       onChange={(event) => updateForm('frequency', event.target.value)}
                     />
+
+                    <label style={shell.label}>What We Do?</label>
+                    <textarea
+                      style={shell.textArea}
+                      value={form.whatWeDo}
+                      onChange={(event) => updateForm('whatWeDo', event.target.value)}
+                    />
                   </>
                 ) : null}
 
                 <label style={shell.label}>Unit</label>
                 <select style={shell.input} value={form.unit} onChange={(event) => updateForm('unit', event.target.value)}>
                   {units.map((unit) => (
-                    <option key={unit} value={unit}>{unit}</option>
+                    <option key={unit.value} value={unit.value}>{unit.label}</option>
                   ))}
                 </select>
 
