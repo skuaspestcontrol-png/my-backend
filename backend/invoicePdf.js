@@ -224,14 +224,35 @@ const resolveCompany = (settings = {}, invoice = {}) => {
   };
 };
 
+const splitAddressText = (value = '') => clean(value).split(/\r?\n|,/).map(clean).filter(Boolean);
+
+const resolveAddressParts = ({ invoiceText = '', customer = {}, prefix = 'billing', fallbackAddress = '' }) => {
+  const fallbackParts = splitAddressText(invoiceText || fallbackAddress);
+  const attention = clean(customer[`${prefix}Attention`] || fallbackParts[0]);
+  const street1 = clean(customer[`${prefix}Street1`] || customer[`${prefix}Address`] || fallbackParts[attention && fallbackParts[0] === attention ? 1 : 0]);
+  const street2 = clean(customer[`${prefix}Street2`] || fallbackParts[attention && fallbackParts[0] === attention ? 2 : 1]);
+  const area = clean(customer[`${prefix}Area`] || fallbackParts[attention && fallbackParts[0] === attention ? 3 : 2]);
+  const state = clean(customer[`${prefix}State`] || customer.state);
+  const pincode = clean(customer[`${prefix}Pincode`] || customer.pincode);
+  return { attention, street1, street2, area, state, pincode };
+};
+
 const resolveBillTo = (invoice = {}, customer = {}) => {
+  const parts = resolveAddressParts({
+    invoiceText: invoice.billingAddressText,
+    customer,
+    prefix: 'billing',
+    fallbackAddress: customer.billingAddress
+  });
   const title = clean(customer.billingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
   return {
     title,
-    address: clean(customer.billingAddress || customer.billingStreet1 || invoice.billingAddressText),
-    state: clean(customer.billingState || customer.state),
-    country: clean(customer.billingCountry),
-    pincode: clean(customer.billingPincode || customer.pincode),
+    attention: clean(parts.attention || title),
+    street1: parts.street1,
+    street2: parts.street2,
+    area: parts.area,
+    state: parts.state,
+    pincode: parts.pincode,
     gstin: pickFirstText(
       customer.gstNumber,
       customer.gstin,
@@ -245,13 +266,21 @@ const resolveBillTo = (invoice = {}, customer = {}) => {
 };
 
 const resolveShipTo = (invoice = {}, customer = {}) => {
+  const parts = resolveAddressParts({
+    invoiceText: invoice.shippingAddressText,
+    customer,
+    prefix: 'shipping',
+    fallbackAddress: customer.shippingAddress || customer.billingAddress
+  });
   const title = clean(customer.shippingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
   return {
     title,
-    address: clean(customer.shippingAddress || customer.shippingStreet1 || invoice.shippingAddressText || customer.billingAddress),
-    state: clean(customer.shippingState || customer.state),
-    country: clean(customer.shippingCountry),
-    pincode: clean(customer.shippingPincode || customer.pincode),
+    attention: clean(parts.attention || title),
+    street1: parts.street1,
+    street2: parts.street2,
+    area: parts.area,
+    state: parts.state,
+    pincode: parts.pincode,
     gstin: pickFirstText(
       customer.gstNumber,
       customer.gstin,
@@ -315,9 +344,12 @@ const deriveContractRange = (invoice = {}) => {
 };
 
 const addressLinesForInvoiceParty = (party = {}) => [
-  party.address,
-  party.state,
-  party.pincode,
+  party.street1,
+  party.street2,
+  [
+    party.area,
+    [party.state, party.pincode].map(clean).filter(Boolean).join('-')
+  ].map(clean).filter(Boolean).join(', '),
   party.gstin ? `GSTIN: ${party.gstin}` : ''
 ].map(clean).filter(Boolean);
 
@@ -373,6 +405,44 @@ const drawCenteredCell = (doc, text, x, y, w, h, options = {}) => {
     height: innerH,
     align,
     lineGap: 0.5
+  });
+};
+
+const drawCenteredRichCell = (doc, segments = [], x, y, w, h, options = {}) => {
+  const {
+    border = COLORS.border,
+    color = COLORS.text,
+    size = 8,
+    padX = 3,
+    padY = 2,
+    lineGap = 1
+  } = options;
+  if (border && border !== 'none') {
+    doc.save();
+    doc.strokeColor(border).lineWidth(0.6).rect(x, y, w, h).stroke();
+    doc.restore();
+  }
+  const innerW = w - (padX * 2);
+  const segmentHeights = segments
+    .filter((segment) => clean(segment.text))
+    .map((segment) => doc.font(segment.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(segment.size || size).heightOfString(segment.text, {
+      width: innerW,
+      lineGap
+    }));
+  const totalTextHeight = segmentHeights.reduce((sum, height) => sum + height, 0) + Math.max(0, segmentHeights.length - 1);
+  let cursorY = y + padY + Math.max(0, ((h - (padY * 2)) - totalTextHeight) / 2);
+
+  segments.forEach((segment) => {
+    const text = clean(segment.text);
+    if (!text) return;
+    const fontName = segment.bold ? 'Helvetica-Bold' : 'Helvetica';
+    const fontSize = segment.size || size;
+    doc.font(fontName).fontSize(fontSize).fillColor(segment.color || color).text(text, x + padX, cursorY, {
+      width: innerW,
+      lineGap,
+      align: segment.align || 'left'
+    });
+    cursorY = doc.y + 1;
   });
 };
 
@@ -486,7 +556,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
     const rightW = 178;
     const rightX = right - rightW;
-    doc.font('Helvetica-Bold').fontSize(18).fillColor(COLORS.title).text('TAX INVOICE', rightX, y + 8, { width: rightW, align: 'right' });
+    doc.font('Helvetica-Bold').fontSize(18).fillColor(company.primaryColor).text('TAX INVOICE', rightX, y + 8, { width: rightW, align: 'right' });
 
     const meta = [
       ['Invoice #', clean(invoice.invoiceNumber) || '-'],
@@ -507,16 +577,16 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const cardW = (contentW - cardGap) / 2;
     const cardH = 102;
 
-    drawCell(doc, 'Bill To', left, y, cardW, 16, { bold: true, color: company.primaryColor, size: 10, border: 'none' });
+    drawCell(doc, 'Bill To', left, y, cardW, 16, { bold: true, color: company.primaryColor, size: 9.8, border: 'none' });
     drawCell(doc, '', left, y + 16, cardW, cardH - 16, { border: 'none' });
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(billTo.title, left + 5, y + 22, { width: cardW - 10, lineGap: 1 });
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(billTo.attention || billTo.title, left + 5, y + 22, { width: cardW - 10, lineGap: 1 });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
       .text(addressLinesForInvoiceParty(billTo).join('\n'), left + 5, y + 34, { width: cardW - 10, lineGap: 1 });
 
     const shipX = left + cardW + cardGap;
-    drawCell(doc, 'Ship To', shipX, y, cardW, 16, { bold: true, color: company.primaryColor, size: 10, border: 'none' });
+    drawCell(doc, 'Ship To', shipX, y, cardW, 16, { bold: true, color: company.primaryColor, size: 9.8, border: 'none' });
     drawCell(doc, '', shipX, y + 16, cardW, cardH - 16, { border: 'none' });
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(shipTo.title, shipX + 5, y + 22, { width: cardW - 10, lineGap: 1 });
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(shipTo.attention || shipTo.title, shipX + 5, y + 22, { width: cardW - 10, lineGap: 1 });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
       .text(addressLinesForInvoiceParty(shipTo).join('\n'), shipX + 5, y + 34, { width: cardW - 10, lineGap: 1 });
 
@@ -525,7 +595,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     // Subject row
     const subjectH = 16;
     drawCell(doc, '', left, y, contentW, subjectH, { border: 'none' });
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(company.primaryColor).text('Subject :', left + 2, y + 3);
+    doc.font('Helvetica-Bold').fontSize(9.8).fillColor(company.primaryColor).text('Subject :', left + 2, y + 3);
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(deriveSubjectFromItems(invoice), left + 52, y + 3, { width: contentW - 54 });
     y += subjectH + 6;
 
@@ -575,28 +645,11 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
       cols.forEach((c) => {
         if (c.k === 'desc') {
-          drawCell(doc, '', cx, y, c.w, rh, { align: c.a, size: 8, border: COLORS.border, bold: false, color: '#000000' });
-          doc.font('Helvetica-Bold').fontSize(8).fillColor('#000000').text(String(row.description || ''), cx + 3, y + 2, {
-            width: c.w - 6,
-            lineGap: 1,
-            align: 'left'
-          });
-          if (row.details) {
-            const descBottomY = doc.y;
-            doc.font('Helvetica').fontSize(8).fillColor('#000000').text(String(row.details || ''), cx + 3, Math.min(descBottomY + 1, y + rh - 10), {
-              width: c.w - 6,
-              lineGap: 1,
-              align: 'left'
-            });
-          }
-          if (contractLine) {
-            const contractTopY = Math.min(doc.y + 1, y + rh - 9);
-            doc.font('Helvetica').fontSize(8).fillColor('#000000').text(contractLine, cx + 3, contractTopY, {
-              width: c.w - 6,
-              lineGap: 1,
-              align: 'left'
-            });
-          }
+          drawCenteredRichCell(doc, [
+            { text: row.description, bold: true },
+            { text: row.details, bold: false },
+            { text: contractLine, bold: false }
+          ], cx, y, c.w, rh, { size: 8, border: COLORS.border, color: '#000000', lineGap: 1 });
         } else {
           drawCenteredCell(doc, values[c.k], cx, y, c.w, rh, { align: c.a, size: 8, border: COLORS.border, bold: false, color: '#000000' });
         }
@@ -636,7 +689,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
     drawCell(doc, '', sumLeftX, y, leftW, leftH, { border: 'none' });
     let ly = y + 4;
-    const headingStyle = { font: 'Helvetica-Bold', size: 8, color: '#12364a' };
+    const headingStyle = { font: 'Helvetica-Bold', size: 9.8, color: company.primaryColor };
     const bodyStyle = { font: 'Helvetica', size: 8, color: COLORS.text };
     const drawLine = (text, style) => {
       if (!text) {
