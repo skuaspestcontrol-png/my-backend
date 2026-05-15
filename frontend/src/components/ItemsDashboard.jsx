@@ -1,17 +1,21 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { ChevronDown, MoreHorizontal, Plus, SlidersHorizontal, Search, X } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, ChevronDown, MoreHorizontal, Plus, SlidersHorizontal, Search, X } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const ITEMS_PER_PAGE = 25;
+const VISIBLE_COLUMNS_STORAGE_KEY = 'items_visible_columns_v2';
 
 const columns = [
   { key: 'name', label: 'Name' },
+  { key: 'description', label: 'Description' },
+  { key: 'hsnSac', label: 'HSN/SAC' },
+  { key: 'rate', label: 'Rate' },
   { key: 'purchaseDescription', label: 'Purchase Description' },
   { key: 'purchaseRate', label: 'Purchase Rate' },
-  { key: 'description', label: 'Description' },
-  { key: 'rate', label: 'Rate' },
-  { key: 'hsnSac', label: 'HSN/SAC' }
+  { key: 'unit', label: 'Unit' },
+  { key: 'itemType', label: 'Type' }
 ];
 
 const units = [
@@ -29,12 +33,15 @@ const preferredVendors = ['No vendor', 'Vendor A', 'Vendor B'];
 const taxRateOptions = ['18%'];
 const defaultColumnWidths = {
   name: 220,
+  description: 360,
+  hsnSac: 140,
+  rate: 120,
   purchaseDescription: 240,
   purchaseRate: 140,
-  description: 240,
-  rate: 120,
-  hsnSac: 140
+  unit: 90,
+  itemType: 100
 };
+const defaultVisibleColumns = ['name', 'description', 'hsnSac'];
 
 const emptyForm = {
   itemType: 'service',
@@ -136,13 +143,13 @@ const shell = {
     cursor: 'pointer'
   },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-border)' },
-  table: { width: '100%', minWidth: '1100px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
+  table: { width: '100%', minWidth: '820px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: {
     textAlign: 'left',
     fontSize: '10px',
     fontWeight: 700,
     color: '#6b7280',
-    padding: '10px 10px',
+    padding: '8px 10px',
     borderBottom: '1px solid var(--color-border)',
     textTransform: 'uppercase',
     position: 'relative',
@@ -151,10 +158,23 @@ const shell = {
     textOverflow: 'ellipsis'
   },
   headerInner: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' },
+  headerLabelButton: {
+    border: 'none',
+    background: 'transparent',
+    padding: 0,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    color: 'inherit',
+    font: 'inherit',
+    fontWeight: 'inherit',
+    textTransform: 'inherit',
+    cursor: 'pointer'
+  },
   resizeHandle: { width: '8px', cursor: 'col-resize', alignSelf: 'stretch', marginRight: '-10px', marginLeft: '8px' },
   row: { borderBottom: '1px solid #eef2f7' },
-  cell: { padding: '10px 10px', fontSize: '8px', fontWeight: 400, color: '#111827', verticalAlign: 'top', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  nameCell: { color: 'var(--color-primary)', fontWeight: 400 },
+  cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 500, color: '#334155', verticalAlign: 'middle', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  nameCell: { color: '#334155', fontWeight: 600 },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
   menu: {
@@ -329,6 +349,27 @@ const shell = {
     fontSize: '12px',
     fontWeight: 700,
     cursor: 'pointer'
+  },
+  pagination: {
+    padding: '9px 12px',
+    borderTop: '1px solid var(--color-border)',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '12px',
+    color: '#475569',
+    background: '#fff'
+  },
+  pageButton: {
+    border: '1px solid #d1d5db',
+    background: '#fff',
+    color: '#334155',
+    borderRadius: '8px',
+    padding: '6px 10px',
+    fontSize: '12px',
+    fontWeight: 700,
+    cursor: 'pointer'
   }
 };
 
@@ -344,16 +385,18 @@ export default function ItemsDashboard() {
   const [editingItemId, setEditingItemId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [nameSortDirection, setNameSortDirection] = useState('asc');
   const [visibleColumns, setVisibleColumns] = useState(() => {
-    const saved = localStorage.getItem('items_visible_columns');
-    if (!saved) return columns.map((column) => column.key);
+    const saved = localStorage.getItem(VISIBLE_COLUMNS_STORAGE_KEY);
+    if (!saved) return defaultVisibleColumns;
     try {
       const parsed = JSON.parse(saved);
       const keys = columns.map((column) => column.key);
       const normalized = Array.isArray(parsed) ? parsed.filter((entry) => keys.includes(entry)) : [];
-      return normalized.length > 0 ? normalized : keys;
+      return normalized.length > 0 ? normalized : defaultVisibleColumns;
     } catch {
-      return columns.map((column) => column.key);
+      return defaultVisibleColumns;
     }
   });
   const [columnWidths, setColumnWidths] = useState(() => {
@@ -382,6 +425,15 @@ export default function ItemsDashboard() {
     () => columns.filter((column) => visibleColumns.includes(column.key)),
     [visibleColumns]
   );
+  const sortedItems = useMemo(() => {
+    const direction = nameSortDirection === 'desc' ? -1 : 1;
+    return [...items].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }) * direction);
+  }, [items, nameSortDirection]);
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / ITEMS_PER_PAGE));
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedItems.slice(start, start + ITEMS_PER_PAGE);
+  }, [currentPage, sortedItems]);
 
   const loadItems = async () => {
     try {
@@ -398,12 +450,16 @@ export default function ItemsDashboard() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('items_visible_columns', JSON.stringify(visibleColumns));
+    localStorage.setItem(VISIBLE_COLUMNS_STORAGE_KEY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
   useEffect(() => {
     localStorage.setItem('items_column_widths', JSON.stringify(columnWidths));
   }, [columnWidths]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(Math.max(1, page), totalPages));
+  }, [totalPages]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -451,14 +507,15 @@ export default function ItemsDashboard() {
     };
   }, [showCustomize, showMoreMenu]);
 
-  const isAllSelected = items.length > 0 && selectedIds.length === items.length;
+  const visibleItemIds = paginatedItems.map((item) => item._id).filter(Boolean);
+  const isAllSelected = visibleItemIds.length > 0 && visibleItemIds.every((id) => selectedIds.includes(id));
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
-      setSelectedIds([]);
+      setSelectedIds((prev) => prev.filter((id) => !visibleItemIds.includes(id)));
       return;
     }
-    setSelectedIds(items.map((item) => item._id));
+    setSelectedIds((prev) => Array.from(new Set([...prev, ...visibleItemIds])));
   };
 
   const toggleSelectOne = (itemId) => {
@@ -543,8 +600,13 @@ export default function ItemsDashboard() {
     if (selectedIds.length !== 1) return;
     const selected = items.find((item) => item._id === selectedIds[0]);
     if (!selected) return;
-    setEditingItemId(selected._id);
-    setForm(mapItemToForm(selected));
+    openEditItem(selected);
+  };
+
+  const openEditItem = (item) => {
+    if (!item?._id) return;
+    setEditingItemId(item._id);
+    setForm(mapItemToForm(item));
     setSaveError('');
     setShowAddModal(true);
     setShowMoreMenu(false);
@@ -623,6 +685,10 @@ export default function ItemsDashboard() {
 
   const handleCellValue = (item, key) => {
     if (key === 'purchaseRate' || key === 'rate') return formatINR(item[key]);
+    if (key === 'description') {
+      return item.description || item.serviceDescription || item.salesDescription || item.purchaseDescription || '';
+    }
+    if (key === 'hsnSac') return item.hsnSac || item.sac || '';
     return item[key] || '';
   };
   const isMobile = viewportWidth <= 900;
@@ -710,6 +776,13 @@ export default function ItemsDashboard() {
             <div ref={customizePanelRef} style={shell.popover}>
               <div style={shell.popoverHeader}>Table Columns</div>
               <div style={shell.popoverBody}>
+                <button
+                  type="button"
+                  style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
+                  onClick={() => setVisibleColumns(defaultVisibleColumns)}
+                >
+                  Reset Default Columns
+                </button>
                 {columns.map((column) => (
                   <label key={column.key} style={shell.popoverItem}>
                     <input
@@ -736,7 +809,19 @@ export default function ItemsDashboard() {
               {visibleColumnDefs.map((column) => (
                 <th key={column.key} style={{ ...shell.headCell, width: `${columnWidths[column.key] || defaultColumnWidths[column.key] || 140}px` }}>
                   <div style={shell.headerInner}>
-                    <span>{column.label}</span>
+                    {column.key === 'name' ? (
+                      <button
+                        type="button"
+                        style={shell.headerLabelButton}
+                        onClick={() => setNameSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                        aria-label={`Sort name ${nameSortDirection === 'asc' ? 'descending' : 'ascending'}`}
+                      >
+                        <span>{column.label}</span>
+                        {nameSortDirection === 'asc' ? <ArrowDownAZ size={14} /> : <ArrowUpAZ size={14} />}
+                      </button>
+                    ) : (
+                      <span>{column.label}</span>
+                    )}
                     <span
                       style={shell.resizeHandle}
                       onMouseDown={(event) => startResize(column.key, event)}
@@ -748,7 +833,7 @@ export default function ItemsDashboard() {
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
+            {paginatedItems.map((item) => (
               <tr key={item._id || item.name} style={shell.row}>
                 <td style={{ ...shell.cell, ...shell.checkboxWrap }}>
                   <input
@@ -767,12 +852,13 @@ export default function ItemsDashboard() {
                             ...shell.cell,
                             ...shell.nameCell,
                             width: `${columnWidths[column.key] || defaultColumnWidths[column.key] || 140}px`,
-                            cursor: 'pointer',
-                            textDecoration: 'underline dotted rgba(159,23,77,0.45)'
+                            cursor: 'pointer'
                           }
                         : { ...shell.cell, width: `${columnWidths[column.key] || defaultColumnWidths[column.key] || 140}px` }
                     }
                     onClick={column.key === 'name' ? () => item._id && setSelectedIds([item._id]) : undefined}
+                    onDoubleClick={column.key === 'name' ? () => openEditItem(item) : undefined}
+                    title={column.key === 'name' ? 'Double-click to edit' : undefined}
                   >
                     {handleCellValue(item, column.key)}
                   </td>
@@ -781,6 +867,34 @@ export default function ItemsDashboard() {
             ))}
           </tbody>
         </table>
+        <div style={shell.pagination}>
+          <span>
+            Showing {sortedItems.length === 0 ? 0 : ((currentPage - 1) * ITEMS_PER_PAGE) + 1}
+            {' - '}
+            {Math.min(currentPage * ITEMS_PER_PAGE, sortedItems.length)}
+            {' of '}
+            {sortedItems.length}
+          </span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              style={{ ...shell.pageButton, opacity: currentPage === 1 ? 0.45 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            >
+              Previous
+            </button>
+            <span>Page {currentPage} / {totalPages}</span>
+            <button
+              type="button"
+              style={{ ...shell.pageButton, opacity: currentPage === totalPages ? 0.45 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
 
       {showAddModal ? createPortal(
