@@ -83,11 +83,11 @@ const drawLabeledDetailBlock = (doc, rows = [], x, y, width, options = {}) => {
     const labelText = clean(label);
     const text = clean(value);
     const inlineText = labelText ? `${labelText}: ${text}` : text;
-    const rowHeight = doc.font(labelText ? pdfFont.bold : pdfFont.regular)
+    const rowHeight = doc.font(pdfFont.regular)
       .fontSize(fontSize)
       .heightOfString(inlineText || ' ', { width, lineGap });
 
-    doc.font(labelText ? pdfFont.bold : pdfFont.regular).fontSize(fontSize).fillColor('#111827')
+    doc.font(pdfFont.regular).fontSize(fontSize).fillColor('#111827')
       .text(inlineText, x, cursorY, { width, align: 'left', lineGap });
 
     cursorY += rowHeight + (options.rowGap ?? 0);
