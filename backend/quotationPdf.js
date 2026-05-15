@@ -374,30 +374,32 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('Recommendation', left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(0.1);
 
+  const recTableWidth = Math.min(430, right - left);
   const recCols = [
-    { x: left, w: 52 },
-    { x: left + 52, w: 150 },
-    { x: left + 202, w: right - left - 202 }
+    { x: left, w: 46 },
+    { x: left + 46, w: 118 },
+    { x: left + 164, w: recTableWidth - 164 }
   ];
 
   let h = drawTableRow(doc, recCols, doc.y, ['Sr No', 'Infestation Level', 'Recommendation'], {
     isHeader: true,
     fontSize: pdfTextSize.table,
     borderColor: '#111827',
-    minHeight: 22
+    minHeight: 18,
+    paddingY: 5
   });
   doc.y += h;
 
   items.forEach((item, index) => {
     const recText = clean(item.recommendation || item.what_we_do || '-');
     const rowVals = [String(index + 1), clean(item.infestation_level || '-'), recText];
-    const rowHeight = getRowHeight(doc, recCols, rowVals, pdfTextSize.table, 30, 8);
+    const rowHeight = getRowHeight(doc, recCols, rowVals, pdfTextSize.table, 22, 6);
     ensureSpace(rowHeight + 2);
     h = drawTableRow(doc, recCols, doc.y, rowVals, {
       fontSize: pdfTextSize.table,
       borderColor: '#111827',
-      minHeight: 30,
-      paddingY: 4,
+      minHeight: 22,
+      paddingY: 3,
       verticalAlign: 'middle',
       alignments: ['center', 'center', 'left']
     });
