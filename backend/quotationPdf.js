@@ -240,13 +240,13 @@ const drawHeader = (doc, settings = {}, companySettings = {}) => {
   doc.y = headerBottomY + 18;
 };
 
-const getRowHeight = (doc, cols, textList, fontSize = pdfTextSize.table, minHeight = 22) => {
+const getRowHeight = (doc, cols, textList, fontSize = pdfTextSize.table, minHeight = 22, paddingY = 12) => {
   const pdfFont = getPdfFont(doc);
   doc.font(pdfFont.regular).fontSize(fontSize);
   let max = minHeight;
   cols.forEach((col, i) => {
     const text = String(textList[i] ?? '');
-    const h = doc.heightOfString(text, { width: Math.max(6, col.w - 8), lineGap: 0 }) + 12;
+    const h = doc.heightOfString(text, { width: Math.max(6, col.w - 8), lineGap: 0 }) + paddingY;
     if (h > max) max = h;
   });
   return max;
@@ -255,7 +255,8 @@ const getRowHeight = (doc, cols, textList, fontSize = pdfTextSize.table, minHeig
 const drawTableRow = (doc, cols, y, values, options = {}) => {
   const pdfFont = getPdfFont(doc);
   const fontSize = options.fontSize || pdfTextSize.table;
-  const h = options.height || getRowHeight(doc, cols, values, fontSize, options.minHeight || 22);
+  const cellPaddingY = Number.isFinite(Number(options.paddingY)) ? Number(options.paddingY) : (options.isHeader ? 7 : 6);
+  const h = options.height || getRowHeight(doc, cols, values, fontSize, options.minHeight || 22, cellPaddingY * 2);
   const borderColor = options.borderColor || '#111827';
   const isHeader = !!options.isHeader;
   const cursorY = doc.y;
@@ -271,9 +272,9 @@ const drawTableRow = (doc, cols, y, values, options = {}) => {
       .font(isHeader || options.bold ? pdfFont.bold : pdfFont.regular)
       .fontSize(fontSize)
       .fillColor(isHeader ? '#ffffff' : '#111827')
-      .text(String(values[i] ?? ''), col.x + 4, y + (isHeader ? 7 : 6), {
+      .text(String(values[i] ?? ''), col.x + 4, y + cellPaddingY, {
         width: col.w - 8,
-        height: h - 8,
+        height: h - (cellPaddingY * 2),
         align: options.alignments?.[i] || (isHeader ? 'center' : 'left'),
         lineGap: 0,
         ellipsis: options.ellipsis === true
@@ -378,12 +379,13 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   items.forEach((item, index) => {
     const recText = clean(item.recommendation || item.what_we_do || '-');
     const rowVals = [String(index + 1), clean(item.service_name || '-'), clean(item.infestation_level || '-'), recText];
-    const rowHeight = Math.max(58, getRowHeight(doc, recCols, rowVals, pdfTextSize.table, 58));
+    const rowHeight = getRowHeight(doc, recCols, rowVals, pdfTextSize.table, 30, 8);
     ensureSpace(rowHeight + 2);
     h = drawTableRow(doc, recCols, doc.y, rowVals, {
       fontSize: pdfTextSize.table,
       borderColor: '#111827',
-      minHeight: 58,
+      minHeight: 30,
+      paddingY: 4,
       alignments: ['center', 'left', 'center', 'left']
     });
     doc.y += h;
@@ -424,12 +426,13 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
       `Rs. ${formatINR(item.total_amount)}`
     ];
 
-    const rowHeight = getRowHeight(doc, serviceCols, rowVals, pdfTextSize.table, 34);
+    const rowHeight = getRowHeight(doc, serviceCols, rowVals, pdfTextSize.table, 30, 8);
     ensureSpace(rowHeight + 2);
     h = drawTableRow(doc, serviceCols, doc.y, rowVals, {
       fontSize: pdfTextSize.table,
       borderColor: '#111827',
-      minHeight: 34,
+      minHeight: 30,
+      paddingY: 4,
       alignments: ['center', 'left', 'center', 'center', 'center']
     });
     doc.y += h;
