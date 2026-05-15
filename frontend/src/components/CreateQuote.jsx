@@ -25,9 +25,7 @@ const makeItem = () => ({
   gst_percentage: 18,
   gst_amount: 0,
   rate_with_gst: 0,
-  total_amount: 0,
-  contract_start_date: '',
-  contract_end_date: ''
+  total_amount: 0
 });
 
 const input = { width: '100%', minHeight: 40, borderRadius: 11, border: '1px solid var(--border)', padding: '0 12px', fontSize: 14, boxSizing: 'border-box' };
@@ -102,8 +100,6 @@ export default function CreateQuote() {
     sales_person: '',
     designation: '',
     mobile: '',
-    contract_start_date: '',
-    contract_end_date: '',
     round_off: 0,
     rate_type: 'With GST',
     status: 'Draft',
@@ -169,9 +165,7 @@ export default function CreateQuote() {
         setForm((prev) => ({
           ...prev,
           ...data,
-          quotation_date: data.quotation_date ? String(data.quotation_date).slice(0, 10) : prev.quotation_date,
-          contract_start_date: data.contract_start_date ? String(data.contract_start_date).slice(0, 10) : '',
-          contract_end_date: data.contract_end_date ? String(data.contract_end_date).slice(0, 10) : ''
+          quotation_date: data.quotation_date ? String(data.quotation_date).slice(0, 10) : prev.quotation_date
         }));
         setItems(Array.isArray(data.items) && data.items.length ? data.items : [makeItem()]);
         setStatus('Quotation loaded');
@@ -345,15 +339,17 @@ export default function CreateQuote() {
   const saveQuotation = async (mode = 'Draft') => {
     try {
       setStatus('Saving quotation...');
+      const { contract_start_date: _contractStartDate, contract_end_date: _contractEndDate, ...quotationPayload } = form;
+      const payloadItems = items.map(({ contract_start_date: _itemContractStartDate, contract_end_date: _itemContractEndDate, ...item }) => item);
       const payload = {
-        ...form,
+        ...quotationPayload,
         status: mode,
         quotation_number: form.quotation_number || '',
         subtotal_without_gst: Number(subtotalWithout.toFixed(2)),
         gst_total: Number(gstTotal.toFixed(2)),
         grand_total: grandTotal,
         amount_in_words: `${grandTotal.toLocaleString('en-IN')} Rupees Only`,
-        items
+        items: payloadItems
       };
       const method = isEditMode ? 'put' : 'post';
       const url = isEditMode ? `${API_BASE_URL}/api/quotations/${editId}` : `${API_BASE_URL}/api/quotations`;
@@ -459,10 +455,6 @@ export default function CreateQuote() {
                 </div>
 
                 <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Recommendation</p><textarea style={{ ...input, minHeight: 56 }} value={item.recommendation || ''} onChange={(e) => updateItem(idx, { recommendation: e.target.value })} /></div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Contract Start Date</p><input type="date" style={input} value={item.contract_start_date || form.contract_start_date || ''} onChange={(e) => updateItem(idx, { contract_start_date: e.target.value })} /></div>
-                  <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Contract End Date</p><input type="date" style={input} value={item.contract_end_date || form.contract_end_date || ''} onChange={(e) => updateItem(idx, { contract_end_date: e.target.value })} /></div>
-                </div>
               </div>
             ))}
 

@@ -494,8 +494,6 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   doc.moveDown(3.3);
   doc.font(pdfFont.regular).fontSize(pdfTextSize.signature).text(clean(quotation.sales_person || templateSettings.default_sales_person), left, doc.y, { width: right - left, align: 'left' });
-  doc.font(pdfFont.regular).fontSize(pdfTextSize.signature).text(clean(quotation.designation || templateSettings.default_designation), left, doc.y, { width: right - left, align: 'left' });
-  doc.font(pdfFont.regular).fontSize(pdfTextSize.signature).text(clean(quotation.mobile || templateSettings.default_mobile), left, doc.y, { width: right - left, align: 'left' });
 
   doc.end();
 });
