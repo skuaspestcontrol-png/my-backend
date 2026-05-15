@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, loadBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
@@ -26,6 +26,7 @@ import {
 import SettingsPanel from './Settings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const INACTIVITY_LOGOUT_MS = 5 * 60 * 1000;
 
 const SidebarSection = ({ title, children }) => (
   <div style={{ marginTop: '14px' }}>
@@ -184,13 +185,36 @@ export default function DashboardLayout({ children }) {
     background: active ? 'var(--color-primary)' : 'var(--color-white)'
   });
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('portal_user_name');
     localStorage.removeItem('portal_user_role');
     localStorage.removeItem('portal_user_id');
     navigate('/', { replace: true });
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    let logoutTimer;
+    const resetLogoutTimer = () => {
+      window.clearTimeout(logoutTimer);
+      logoutTimer = window.setTimeout(() => {
+        handleLogout();
+      }, INACTIVITY_LOGOUT_MS);
+    };
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+
+    resetLogoutTimer();
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetLogoutTimer, { passive: true });
+    });
+
+    return () => {
+      window.clearTimeout(logoutTimer);
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetLogoutTimer);
+      });
+    };
+  }, [handleLogout]);
 
   const companyName = settings.companyName || 'SKUAS MASTER';
   const portalUserName = String(localStorage.getItem('portal_user_name') || 'SKUAS').trim() || 'SKUAS';

@@ -243,7 +243,7 @@ const shell = {
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '10px 10px', fontSize: '8px', fontWeight: 400, color: '#111827', verticalAlign: 'top', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   invoiceCell: { color: 'var(--color-primary)', fontWeight: 400, textDecoration: 'underline dotted rgba(159,23,77,0.4)' },
-  checkboxWrap: { width: '40px', textAlign: 'center' },
+  checkboxWrap: { width: '34px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
   statusBadge: { fontWeight: 700 },
   menu: { position: 'absolute', right: 16, top: '56px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '10px', minWidth: '200px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 30, overflow: 'hidden' },
@@ -2143,12 +2143,12 @@ export default function InvoiceDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
-  const invoiceMobileColumnWidths = ['40px', '40px', ...visibleColumnDefs.map((column) => {
+  const invoiceMobileColumnWidths = ['34px', ...visibleColumnDefs.map((column) => {
     const style = getColumnStyle(column.key);
     const width = parseInt(style.minWidth || style.width, 10);
     return `${Number.isFinite(width) ? width : 150}px`;
   }), '80px'];
-  const invoiceMobileMinWidth = 40 + 40 + visibleColumnDefs.reduce((sum, column) => {
+  const invoiceMobileMinWidth = 34 + visibleColumnDefs.reduce((sum, column) => {
       const style = getColumnStyle(column.key);
       const width = parseInt(style.minWidth || style.width, 10);
       return sum + (Number.isFinite(width) ? width : 150);
@@ -2287,7 +2287,6 @@ export default function InvoiceDashboard() {
         <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
           <colgroup>
             <col style={shell.checkboxWrap} />
-            <col style={shell.checkboxWrap} />
             {visibleColumnDefs.map((column) => (
               <col key={column.key} style={getColumnStyle(column.key)} />
             ))}
@@ -2295,7 +2294,6 @@ export default function InvoiceDashboard() {
           </colgroup>
           <thead>
             <tr>
-              <th style={{ ...shell.headCell, ...shell.checkboxWrap }} />
               <th style={{ ...shell.headCell, ...shell.checkboxWrap }}>
                 <input type="checkbox" style={shell.checkbox} checked={isAllSelected} onChange={toggleSelectAll} />
               </th>
@@ -2310,7 +2308,6 @@ export default function InvoiceDashboard() {
           <tbody>
             {invoices.map((invoice) => (
               <tr key={invoice._id} style={shell.row}>
-                <td style={{ ...shell.cell, ...shell.checkboxWrap }} data-label="Select" />
                 <td style={{ ...shell.cell, ...shell.checkboxWrap }} data-label="Select">
                   <input
                     type="checkbox"
