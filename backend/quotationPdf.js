@@ -67,17 +67,22 @@ const customerDetailLinesForQuotation = (quotation = {}) => {
   const customerName = clean(quotation.customer_name);
   const companyName = clean(quotation.company_name);
   const address = clean(quotation.address);
-  const detailLines = companyName
-    ? [[companyName, true], [customerName, false]]
-    : [[customerName, true], ['', false]];
+  const identityLines = companyName
+    ? [
+        { label: '', value: companyName, bold: true },
+        { label: '', value: customerName, bold: false }
+      ]
+    : [
+        { label: '', value: customerName, bold: true }
+      ];
 
   return [
-    ...detailLines.map(([value, bold]) => ({ label: '', value, bold })),
+    ...identityLines,
     { label: '', value: address, bold: false },
     { label: 'Phone', value: clean(quotation.phone), bold: false },
     { label: 'Email', value: clean(quotation.email), bold: false },
     { label: 'GSTIN', value: clean(quotation.gstin), bold: false }
-  ];
+  ].filter((row) => clean(row.value));
 };
 
 const drawLabeledDetailBlock = (doc, rows = [], x, y, width, options = {}) => {
@@ -515,20 +520,23 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     )
   );
   const serviceTableWidth = right - left;
-  const serviceFixedWidth = 30 + serviceNameWidth + 72;
+  const fourthColumnWidth = isGstQuotation ? 112 : 72;
+  const serviceFixedWidth = 30 + serviceNameWidth + fourthColumnWidth;
   const remainingServiceWidth = Math.max(230, serviceTableWidth - serviceFixedWidth);
-  const frequencyWidth = Math.round(remainingServiceWidth * 0.48);
+  const frequencyWidth = Math.round(remainingServiceWidth * (isGstQuotation ? 0.46 : 0.48));
   const amountWidth = remainingServiceWidth - frequencyWidth;
   const serviceCols = [
     { x: left, w: 30 },
     { x: left + 30, w: serviceNameWidth },
     { x: left + 30 + serviceNameWidth, w: frequencyWidth },
-    { x: left + 30 + serviceNameWidth + frequencyWidth, w: 72 },
-    { x: left + 30 + serviceNameWidth + frequencyWidth + 72, w: amountWidth }
+    { x: left + 30 + serviceNameWidth + frequencyWidth, w: fourthColumnWidth },
+    { x: left + 30 + serviceNameWidth + frequencyWidth + fourthColumnWidth, w: amountWidth }
   ];
 
-  const amountHeading = isGstQuotation ? 'Amount without GST' : 'Total Amount';
-  h = drawTableRow(doc, serviceCols, doc.y, ['#', 'Service', 'Frequency', 'GST %', amountHeading], {
+  const serviceHeadings = isGstQuotation
+    ? ['#', 'Service', 'Frequency', 'Amount without GST', 'Amount with GST']
+    : ['#', 'Service', 'Frequency', 'GST %', 'Total Amount'];
+  h = drawTableRow(doc, serviceCols, doc.y, serviceHeadings, {
     isHeader: true,
     fontSize: pdfTextSize.table,
     borderColor: '#111827',
@@ -542,8 +550,8 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
       String(index + 1),
       clean(item.service_name || '-'),
       clean(item.frequency || '-'),
-      isGstQuotation ? `${toNumber(item.gst_percentage, 0)}%` : '-',
-      formatINR(isGstQuotation ? amountWithoutGst : item.total_amount)
+      isGstQuotation ? formatINR(amountWithoutGst) : '-',
+      formatINR(item.total_amount)
     ];
 
     const rowHeight = getRowHeight(doc, serviceCols, rowVals, pdfTextSize.table, 30, 8);
