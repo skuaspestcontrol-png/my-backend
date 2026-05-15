@@ -54,6 +54,21 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const parsePercent = (value, fallback = 18) => {
+  const n = Number(String(value ?? '').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const getItemServiceName = (item = {}) => (
+  item.serviceName
+  || item.service_name
+  || item.serviceType
+  || item.service_type
+  || item.name
+  || item.itemName
+  || ''
+).trim();
+
 const money = (v) => `₹ ${num(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function CreateQuote() {
@@ -64,11 +79,10 @@ export default function CreateQuote() {
   const [leadRows, setLeadRows] = useState([]);
   const [customerRows, setCustomerRows] = useState([]);
   const [employeeRows, setEmployeeRows] = useState([]);
-  const [services, setServices] = useState([]);
+  const [serviceCatalog, setServiceCatalog] = useState([]);
   const [levels, setLevels] = useState([]);
   const [prefixSettings, setPrefixSettings] = useState({});
   const [commonParagraphs, setCommonParagraphs] = useState({});
-  const [templateSettings, setTemplateSettings] = useState({});
   const [premiseRows, setPremiseRows] = useState([]);
   const [status, setStatus] = useState('');
   const [savedId, setSavedId] = useState(null);
@@ -116,11 +130,11 @@ export default function CreateQuote() {
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      const [leadRes, customerRes, employeeRes, serviceRes, levelRes, prefixRes, commonRes, templateRes] = await Promise.all([
+      const [leadRes, customerRes, employeeRes, itemRes, levelRes, prefixRes, commonRes, templateRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/leads`).catch(() => ({ data: [] })),
         axios.get(`${API_BASE_URL}/api/customers`).catch(() => ({ data: [] })),
         axios.get(`${API_BASE_URL}/api/employees`).catch(() => ({ data: [] })),
-        axios.get(`${API_BASE_URL}/api/settings/quotation-services`),
+        axios.get(`${API_BASE_URL}/api/items`),
         axios.get(`${API_BASE_URL}/api/settings/infestation-levels`),
         axios.get(`${API_BASE_URL}/api/settings/quotation-prefixes`),
         axios.get(`${API_BASE_URL}/api/settings/quotation-common-paragraphs`),
@@ -130,11 +144,12 @@ export default function CreateQuote() {
       setLeadRows(Array.isArray(leadRes.data) ? leadRes.data : []);
       setCustomerRows(Array.isArray(customerRes.data) ? customerRes.data : []);
       setEmployeeRows(Array.isArray(employeeRes.data) ? employeeRes.data : []);
-      setServices(Array.isArray(serviceRes.data) ? serviceRes.data.filter((s) => Number(s.is_active || 0) === 1) : []);
+      setServiceCatalog(Array.isArray(itemRes.data)
+        ? itemRes.data.filter((item) => item.sellable !== false && String(item.itemType || item.item_type || 'service').toLowerCase() === 'service')
+        : []);
       setLevels(Array.isArray(levelRes.data) ? levelRes.data.filter((s) => Number(s.is_active || 0) === 1) : []);
       setPrefixSettings(prefixRes.data || {});
       setCommonParagraphs(commonRes.data || {});
-      setTemplateSettings(templateRes.data || {});
       setForm((p) => ({
         ...p,
         prepared_by: p.prepared_by || templateRes.data?.default_sales_person || '',
@@ -196,26 +211,31 @@ export default function CreateQuote() {
     });
   };
 
-  const selectServiceTemplate = (idx, templateId) => {
-    const t = services.find((s) => Number(s.id) === Number(templateId));
-    if (!t) return;
-    const level = levels.find((l) => String(l.level_name || '').toLowerCase() === String(t.default_infestation_level || '').toLowerCase());
+  const selectServiceTemplate = (idx, itemId) => {
+    const selected = serviceCatalog.find((entry) => String(entry._id || '') === String(itemId || ''));
+    if (!selected) return;
+    const defaultLevel = selected.default_infestation_level || selected.infestationLevel || '';
+    const level = levels.find((l) => String(l.level_name || '').toLowerCase() === String(defaultLevel).toLowerCase());
+    const taxRate = parsePercent(selected.intraTaxRate || selected.taxRate || selected.gstRate || '18%');
+    const rate = num(selected.sellingPrice || selected.rate || 0);
+    const description = selected.serviceDescription || selected.salesDescription || selected.description || '';
+    const serviceName = getItemServiceName(selected);
     updateItem(idx, {
-      service_template_id: t.id,
-      service_name: t.service_name,
-      service_code: t.service_code,
-      pest_name: t.pest_name,
-      service_title: t.quotation_title,
-      about_pest: t.about_pest,
-      what_we_do: t.what_we_do,
-      treatment_points: t.treatment_points,
-      infestation_level: t.default_infestation_level,
+      service_template_id: selected._id,
+      service_name: serviceName,
+      service_code: selected.hsnSac || selected.sac || selected._id || '',
+      pest_name: selected.pestsCovered || '',
+      service_title: selected.serviceTitle || selected.service_title || serviceName,
+      about_pest: description,
+      what_we_do: selected.treatmentMethod || selected.salesDescription || description,
+      treatment_points: selected.treatmentMethod || '',
+      infestation_level: defaultLevel,
       infestation_image_url: level?.image_url || '',
-      frequency: t.default_frequency,
-      recommendation: t.default_recommendation,
-      gst_percentage: num(t.default_gst_percentage || 18),
-      rate_without_gst: num(t.default_rate_without_gst || 0),
-      rate_with_gst: num(t.default_rate_with_gst || 0)
+      frequency: selected.frequency || '',
+      recommendation: selected.recommendation || description,
+      gst_percentage: taxRate,
+      rate_without_gst: rate,
+      rate_with_gst: Number((rate + ((rate * taxRate) / 100)).toFixed(2))
     });
   };
 
@@ -431,7 +451,7 @@ export default function CreateQuote() {
               <div key={`item-${idx}`} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ margin: 0, fontWeight: 800 }}>Service #{idx + 1}</p>{items.length > 1 ? <button type="button" style={{ ...btnDanger, minHeight: 32, padding: '0 10px' }} onClick={() => setItems((prev) => prev.filter((_, i) => i !== idx))}>Remove</button> : null}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                  <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Service Template</p><select style={input} value={item.service_template_id || ''} onChange={(e) => selectServiceTemplate(idx, e.target.value)}><option value="">Select service</option>{services.map((s) => <option key={s.id} value={s.id}>{s.service_name}</option>)}</select></div>
+                  <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Service Template</p><select style={input} value={item.service_template_id || ''} onChange={(e) => selectServiceTemplate(idx, e.target.value)}><option value="">Select item</option>{serviceCatalog.map((entry) => <option key={entry._id} value={entry._id}>{getItemServiceName(entry) || entry._id}</option>)}</select></div>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Service Title</p><input style={input} value={item.service_title || ''} onChange={(e) => updateItem(idx, { service_title: e.target.value })} /></div>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Pest Name</p><input style={input} value={item.pest_name || ''} onChange={(e) => updateItem(idx, { pest_name: e.target.value })} /></div>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Frequency</p><input style={input} value={item.frequency || ''} onChange={(e) => updateItem(idx, { frequency: e.target.value })} /></div>
@@ -506,14 +526,6 @@ export default function CreateQuote() {
             ].map(([key, label]) => (
               <div key={key}><p style={{ margin: '0 0 6px', fontWeight: 700 }}>{label}</p><textarea style={{ ...input, minHeight: 60 }} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /></div>
             ))}
-
-            <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 10 }}>
-              <p style={{ margin: '0 0 6px', fontWeight: 800 }}>PDF Style Preview (from Quotation Template settings)</p>
-              <p style={{ margin: 0 }}>Company: {templateSettings.company_name || '-'}</p>
-              <p style={{ margin: 0 }}>Logo Alignment: {templateSettings.header_alignment || '-'}</p>
-              <p style={{ margin: 0 }}>Primary Color: {templateSettings.primary_color || '-'}</p>
-              <p style={{ margin: 0 }}>Font: {templateSettings.font_family || '-'}</p>
-            </div>
           </div>
         )}
       </div>
