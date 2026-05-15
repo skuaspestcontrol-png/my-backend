@@ -268,13 +268,26 @@ const drawTableRow = (doc, cols, y, values, options = {}) => {
     } else {
       doc.stroke();
     }
+    const text = String(values[i] ?? '');
+    const textWidth = Math.max(6, col.w - 8);
+    const textHeight = doc
+      .font(isHeader || options.bold ? pdfFont.bold : pdfFont.regular)
+      .fontSize(fontSize)
+      .heightOfString(text, {
+        width: textWidth,
+        lineGap: 0
+      });
+    const availableHeight = h - (cellPaddingY * 2);
+    const textY = options.verticalAlign === 'middle'
+      ? y + cellPaddingY + Math.max(0, (availableHeight - textHeight) / 2)
+      : y + cellPaddingY;
     doc
       .font(isHeader || options.bold ? pdfFont.bold : pdfFont.regular)
       .fontSize(fontSize)
       .fillColor(isHeader ? '#ffffff' : '#111827')
-      .text(String(values[i] ?? ''), col.x + 4, y + cellPaddingY, {
-        width: col.w - 8,
-        height: h - (cellPaddingY * 2),
+      .text(text, col.x + 4, textY, {
+        width: textWidth,
+        height: availableHeight,
         align: options.alignments?.[i] || (isHeader ? 'center' : 'left'),
         lineGap: 0,
         ellipsis: options.ellipsis === true
@@ -386,6 +399,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
       borderColor: '#111827',
       minHeight: 30,
       paddingY: 4,
+      verticalAlign: 'middle',
       alignments: ['center', 'left', 'center', 'left']
     });
     doc.y += h;
@@ -398,10 +412,10 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   const serviceCols = [
     { x: left, w: 30 },
-    { x: left + 30, w: 208 },
-    { x: left + 238, w: 80 },
-    { x: left + 318, w: 72 },
-    { x: left + 390, w: 122 }
+    { x: left + 30, w: 160 },
+    { x: left + 190, w: 110 },
+    { x: left + 300, w: 72 },
+    { x: left + 372, w: 140 }
   ];
 
   h = drawTableRow(doc, serviceCols, doc.y, ['#', 'Service', 'Frequency', 'GST %', 'Amount'], {
@@ -428,10 +442,14 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
       borderColor: '#111827',
       minHeight: 30,
       paddingY: 4,
+      verticalAlign: 'middle',
       alignments: ['center', 'left', 'center', 'center', 'center']
     });
     doc.y += h;
   });
+
+  ensureSpace(28);
+  doc.moveDown(0.9);
 
   const baseClosingText = clean(
     quotation.closing_paragraph
