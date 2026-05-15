@@ -347,7 +347,6 @@ const deriveContractRange = (invoice = {}) => {
 
 const addressLinesForInvoiceParty = (party = {}) => [
   party.street1,
-  party.street2,
   [
     party.area,
     [party.state, party.pincode].map(clean).filter(Boolean).join('-')
@@ -579,28 +578,28 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     // Bill To and Ship To
     const cardGap = 6;
     const cardW = (contentW - cardGap) / 2;
-    const cardH = 102;
+    const cardH = 78;
 
-    drawCell(doc, 'Bill To', left, y, cardW, 16, { bold: true, color: company.primaryColor, size: 9.8, border: 'none' });
-    drawCell(doc, '', left, y + 16, cardW, cardH - 16, { border: 'none' });
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(billTo.attention || billTo.title, left + 5, y + 22, { width: cardW - 10, lineGap: 1 });
+    drawCell(doc, 'Bill To', left + 5, y, cardW - 5, 14, { bold: true, color: company.primaryColor, size: 9.8, border: 'none', padX: 0, padY: 1 });
+    drawCell(doc, '', left, y + 14, cardW, cardH - 14, { border: 'none' });
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(billTo.attention || billTo.title, left + 5, y + 16, { width: cardW - 10, lineGap: 1 });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
-      .text(addressLinesForInvoiceParty(billTo).join('\n'), left + 5, y + 34, { width: cardW - 10, lineGap: 1 });
+      .text(addressLinesForInvoiceParty(billTo).join('\n'), left + 5, y + 28, { width: cardW - 10, lineGap: 1 });
 
     const shipX = left + cardW + cardGap;
-    drawCell(doc, 'Ship To', shipX, y, cardW, 16, { bold: true, color: company.primaryColor, size: 9.8, border: 'none' });
-    drawCell(doc, '', shipX, y + 16, cardW, cardH - 16, { border: 'none' });
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(shipTo.attention || shipTo.title, shipX + 5, y + 22, { width: cardW - 10, lineGap: 1 });
+    drawCell(doc, 'Ship To', shipX + 5, y, cardW - 5, 14, { bold: true, color: company.primaryColor, size: 9.8, border: 'none', padX: 0, padY: 1 });
+    drawCell(doc, '', shipX, y + 14, cardW, cardH - 14, { border: 'none' });
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(shipTo.attention || shipTo.title, shipX + 5, y + 16, { width: cardW - 10, lineGap: 1 });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
-      .text(addressLinesForInvoiceParty(shipTo).join('\n'), shipX + 5, y + 34, { width: cardW - 10, lineGap: 1 });
+      .text(addressLinesForInvoiceParty(shipTo).join('\n'), shipX + 5, y + 28, { width: cardW - 10, lineGap: 1 });
 
-    y += cardH + 6;
+    y += cardH + 2;
 
     // Subject row
     const subjectH = 16;
     drawCell(doc, '', left, y, contentW, subjectH, { border: 'none' });
     doc.font('Helvetica-Bold').fontSize(9.8).fillColor(company.primaryColor).text('Subject :', left + 2, y + 3);
-    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(deriveSubjectFromItems(invoice), left + 52, y + 3, { width: contentW - 54 });
+    doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(deriveSubjectFromItems(invoice), left + 52, y + 3, { width: contentW - 54 });
     y += subjectH + 6;
 
     // Items table
