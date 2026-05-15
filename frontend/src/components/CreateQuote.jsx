@@ -98,6 +98,7 @@ export default function CreateQuote() {
   const [status, setStatus] = useState('');
   const [savedId, setSavedId] = useState(null);
   const [recommendationDefault, setRecommendationDefault] = useState(getStoredRecommendationDefault);
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1024 : window.innerWidth));
 
   const [form, setForm] = useState({
     source_type: 'Manual',
@@ -138,6 +139,13 @@ export default function CreateQuote() {
   });
 
   const [items, setItems] = useState([makeItem()]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -418,23 +426,48 @@ export default function CreateQuote() {
     window.open(`${API_BASE_URL}/api/quotations/${savedId}/pdf`, '_blank');
   };
 
+  const isMobile = viewportWidth <= 760;
+  const isTiny = viewportWidth <= 430;
+  const pageStyle = { padding: isMobile ? 10 : 16, display: 'grid', gap: 12, maxWidth: '100%', overflowX: 'hidden' };
+  const headerStyle = { display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' };
+  const titleStyle = { margin: 0, fontSize: isMobile ? 22 : 24, color: 'var(--text)' };
+  const tabsStyle = { display: 'flex', gap: 8, flexWrap: 'wrap' };
+  const tabStyle = (idx) => ({
+    ...btnGhost,
+    minHeight: 36,
+    borderRadius: 999,
+    border: idx === active ? '1px solid var(--sky-deep)' : '1px solid var(--border)',
+    background: idx === active ? 'rgba(159,23,77,0.1)' : '#fff',
+    padding: isTiny ? '0 12px' : btnGhost.padding,
+    maxWidth: '100%'
+  });
+  const customerGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 10 };
+  const addressFieldStyle = isMobile ? {} : { gridColumn: '1 / span 3' };
+  const quoteGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 10 };
+  const serviceTopGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 8 };
+  const serviceTextGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8 };
+  const serviceAmountGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(6, 1fr)', gap: 8 };
+  const pricingGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 10 };
+  const footerActionsStyle = { display: 'flex', gap: 8, flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' };
+  const footerButtonStyle = isMobile ? { minWidth: '100%' } : {};
+
   return (
-    <section style={{ padding: 16, display: 'grid', gap: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: 24, color: 'var(--text)' }}>{isEditMode ? 'Edit Quotation' : 'Create Quotation'}</h2>
+    <section style={pageStyle}>
+      <div style={headerStyle}>
+        <h2 style={titleStyle}>{isEditMode ? 'Edit Quotation' : 'Create Quotation'}</h2>
         <div style={{ fontWeight: 800, color: 'var(--sky-deep)' }}>Preview Number: {form.quotation_number || quotationPreview}</div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div style={tabsStyle}>
         {tabs.map((tab, idx) => (
-          <button key={tab} type="button" onClick={() => setActive(idx)} style={{ ...btnGhost, minHeight: 36, borderRadius: 999, border: idx === active ? '1px solid var(--sky-deep)' : '1px solid var(--border)', background: idx === active ? 'rgba(159,23,77,0.1)' : '#fff' }}>{tab}</button>
+          <button key={tab} type="button" onClick={() => setActive(idx)} style={tabStyle(idx)}>{tab}</button>
         ))}
       </div>
 
       <div style={panel}>
         {active === 0 && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <div style={customerGridStyle}>
               <div><p style={label}>Source</p><select style={input} value={form.source_type} onChange={(e) => setForm((p) => ({ ...p, source_type: e.target.value }))}><option>Manual</option><option>Lead</option><option>Customer</option></select></div>
               <div><p style={label}>Search Lead</p><select style={input} value={form.lead_id} onChange={(e) => selectLead(e.target.value)}><option value="">Select lead</option>{leadRows.map((l) => <option key={l._id || l.id} value={l._id || l.id}>{l.customerName || l.mobileNumber || l._id}</option>)}</select></div>
               <div><p style={label}>Search Customer</p><select style={input} value={form.customer_id} onChange={(e) => selectCustomer(e.target.value)}><option value="">Select customer</option>{customerRows.map((c) => <option key={c._id || c.id} value={c._id || c.id}>{c.customerName || c.name || c.mobileNumber}</option>)}</select></div>
@@ -451,16 +484,16 @@ export default function CreateQuote() {
                 </select>
               </div>
             ) : null}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <div style={customerGridStyle}>
               {['customer_name','company_name','address','phone','email','gstin'].map((key) => (
-                <div key={key} style={key === 'address' ? { gridColumn: '1 / span 3' } : {}}><p style={{ ...label, textTransform: 'capitalize' }}>{key.replaceAll('_', ' ')}</p>{key === 'address' ? <textarea style={{ ...input, minHeight: 58 }} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /> : <input style={input} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} />}</div>
+                <div key={key} style={key === 'address' ? addressFieldStyle : {}}><p style={{ ...label, textTransform: 'capitalize' }}>{key.replaceAll('_', ' ')}</p>{key === 'address' ? <textarea style={{ ...input, minHeight: 58 }} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /> : <input style={input} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} />}</div>
               ))}
             </div>
           </>
         )}
 
         {active === 1 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+          <div style={quoteGridStyle}>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Quotation Date</p><input type="date" style={input} value={form.quotation_date || ''} onChange={(e) => setForm((p) => ({ ...p, quotation_date: e.target.value }))} /></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Quotation Number</p><input style={input} value={form.quotation_number || ''} placeholder={quotationPreview} onChange={(e) => setForm((p) => ({ ...p, quotation_number: e.target.value }))} /></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Validity Days</p><input type="number" style={input} value={form.validity_days || 15} onChange={(e) => setForm((p) => ({ ...p, validity_days: Number(e.target.value) || 1 }))} /></div>
@@ -477,19 +510,19 @@ export default function CreateQuote() {
             {items.map((item, idx) => (
               <div key={`item-${idx}`} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ margin: 0, fontWeight: 800 }}>Service #{idx + 1}</p>{items.length > 1 ? <button type="button" style={{ ...btnDanger, minHeight: 32, padding: '0 10px' }} onClick={() => setItems((prev) => prev.filter((_, i) => i !== idx))}>Remove</button> : null}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                <div style={serviceTopGridStyle}>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Service Template</p><select style={input} value={item.service_template_id || ''} onChange={(e) => selectServiceTemplate(idx, e.target.value)}><option value="">Select item</option>{serviceCatalog.map((entry) => <option key={entry._id} value={entry._id}>{getItemServiceName(entry) || entry._id}</option>)}</select></div>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Service Title</p><input style={input} value={item.service_title || ''} onChange={(e) => updateItem(idx, { service_title: e.target.value })} /></div>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Pest Name</p><input style={input} value={item.pest_name || ''} onChange={(e) => updateItem(idx, { pest_name: e.target.value })} /></div>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Frequency</p><input style={input} value={item.frequency || ''} onChange={(e) => updateItem(idx, { frequency: e.target.value })} /></div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={serviceTextGridStyle}>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>About Pest</p><textarea style={{ ...input, minHeight: 64 }} value={item.about_pest || ''} onChange={(e) => updateItem(idx, { about_pest: e.target.value })} /></div>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>What We Do</p><textarea style={{ ...input, minHeight: 64 }} value={item.what_we_do || ''} onChange={(e) => updateItem(idx, { what_we_do: e.target.value })} /></div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+                <div style={serviceAmountGridStyle}>
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Infestation Level</p><select style={input} value={item.infestation_level || ''} onChange={(e) => {
                     const l = levels.find((r) => String(r.level_name || '') === String(e.target.value));
                     updateItem(idx, { infestation_level: e.target.value, infestation_image_url: l?.image_url || '' });
@@ -511,9 +544,14 @@ export default function CreateQuote() {
 
         {active === 3 && (
           <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', minWidth: isMobile ? 680 : '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
               <thead>
-                <tr>{['Sr No', 'Service', 'Infestation Level', 'Image', 'Recommendation/Suggestion'].map((h) => <th key={h} style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)' }}>{h}</th>)}</tr>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)', width: 70 }}>Sr No</th>
+                  <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)', width: 180 }}>Service</th>
+                  <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)', width: 150 }}>Infestation Level</th>
+                  <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)' }}>Recommendation/Suggestion</th>
+                </tr>
               </thead>
               <tbody>
                 {items.map((item, idx) => (
@@ -521,10 +559,7 @@ export default function CreateQuote() {
                     <td style={{ padding: 8 }}>{idx + 1}</td>
                     <td style={{ padding: 8 }}>{item.service_name || '-'}</td>
                     <td style={{ padding: 8 }}>{item.infestation_level || '-'}</td>
-                    <td style={{ padding: 8 }}>
-                      {item.infestation_image_url ? <img src={item.infestation_image_url} alt="infestation" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 8 }} /> : '-'}
-                    </td>
-                    <td style={{ padding: 8 }}><textarea style={{ ...input, minHeight: 54 }} value={item.recommendation || ''} onChange={(e) => updateRecommendation(idx, e.target.value)} /></td>
+                    <td style={{ padding: 8 }}><textarea style={{ ...input, minHeight: 72, resize: 'vertical' }} value={item.recommendation || ''} onChange={(e) => updateRecommendation(idx, e.target.value)} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -534,7 +569,7 @@ export default function CreateQuote() {
 
         {active === 4 && (
           <div style={{ display: 'grid', gap: 10 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+            <div style={pricingGridStyle}>
               <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Subtotal (Without GST)</p><input style={input} readOnly value={money(subtotalWithout)} /></div>
               <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>GST Total</p><input style={input} readOnly value={money(gstTotal)} /></div>
               <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Round Off</p><input type="number" style={input} value={form.round_off || 0} onChange={(e) => setForm((p) => ({ ...p, round_off: Number(e.target.value) || 0 }))} /></div>
@@ -559,10 +594,10 @@ export default function CreateQuote() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
         <p style={{ margin: 0, color: status.toLowerCase().includes('failed') || status.toLowerCase().includes('could not') ? '#dc2626' : '#2563eb', fontWeight: 700 }}>{status}</p>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" style={btnGhost} onClick={() => saveQuotation('Draft')}>Save Draft</button>
-          <button type="button" style={btnPrimary} onClick={() => saveQuotation('Final')}>Save Quotation</button>
-          <button type="button" style={btnGhost} onClick={openPdf}>Preview / Download PDF</button>
+        <div style={footerActionsStyle}>
+          <button type="button" style={{ ...btnGhost, ...footerButtonStyle }} onClick={() => saveQuotation('Draft')}>Save Draft</button>
+          <button type="button" style={{ ...btnPrimary, ...footerButtonStyle }} onClick={() => saveQuotation('Final')}>Save Quotation</button>
+          <button type="button" style={{ ...btnGhost, ...footerButtonStyle }} onClick={openPdf}>Preview / Download PDF</button>
         </div>
       </div>
     </section>

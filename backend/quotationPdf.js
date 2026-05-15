@@ -30,7 +30,7 @@ const formatDate = (value) => {
   return `${dd}/${mm}/${yyyy}`;
 };
 
-const formatINR = (value) => toNumber(value, 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const formatINR = (value) => `${Math.round(toNumber(value, 0)).toLocaleString('en-IN')}/-`;
 const defaultPaymentTerms = [
   '100% Advance along with your confirmation order.',
   'All payments should be payable to Skuas Pest Control Private Limited.',
@@ -374,11 +374,11 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('Recommendation', left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(0.1);
 
-  const recTableWidth = Math.min(430, right - left);
+  const recTableWidth = right - left;
   const recCols = [
     { x: left, w: 46 },
-    { x: left + 46, w: 118 },
-    { x: left + 164, w: recTableWidth - 164 }
+    { x: left + 46, w: 116 },
+    { x: left + 162, w: recTableWidth - 162 }
   ];
 
   let h = drawTableRow(doc, recCols, doc.y, ['Sr No', 'Infestation Level', 'Recommendation'], {
@@ -448,7 +448,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
       clean(item.service_name || '-'),
       clean(item.frequency || '-'),
       `${toNumber(item.gst_percentage, 0)}%`,
-      `Rs. ${formatINR(item.total_amount)}`
+      formatINR(item.total_amount)
     ];
 
     const rowHeight = getRowHeight(doc, serviceCols, rowVals, pdfTextSize.table, 30, 8);

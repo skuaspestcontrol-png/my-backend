@@ -229,12 +229,13 @@ const shell = {
   buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', padding: '9px 14px', background: '#6b7280', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px' },
   buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '12px', width: '48px', height: '48px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   summaryWrap: { padding: '14px 16px', background: '#fff' },
-  summaryCard: { border: '1px solid var(--color-border)', borderRadius: '12px', padding: '14px 16px', background: '#fbfbfd' },
-  summaryTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase' },
-  summaryGrid: { display: 'grid', gridTemplateColumns: '1.7fr 1fr 1fr 1fr 1.4fr', gap: '18px', marginTop: '14px' },
-  summaryMetric: { display: 'flex', flexDirection: 'column', gap: '4px' },
-  summaryLabel: { color: '#475569', fontSize: '13px', fontWeight: 500 },
-  summaryValue: { color: '#111827', fontSize: '34px', fontWeight: 800 },
+  summaryCard: { display: 'grid', gap: '12px' },
+  summaryTitle: { margin: 0, fontSize: '13px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '12px' },
+  summaryMetric: { border: '1px solid var(--color-border)', borderRadius: '12px', padding: '12px 14px', background: '#fff', minHeight: '96px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '8px' },
+  summaryLabel: { color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.25 },
+  summaryValue: { color: '#111827', fontSize: '24px', fontWeight: 800, lineHeight: 1.05 },
+  summaryHint: { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1.35 },
   summaryAccent: { color: '#d97706' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderTop: '1px solid #eef2f7', borderRadius: '14px', border: '1px solid var(--color-border)' },
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
@@ -2082,10 +2083,14 @@ export default function InvoiceDashboard() {
     : shell.topbar;
   const topActionsStyle = isMobile ? { ...shell.topActions, width: '100%', justifyContent: 'flex-end', gap: isTiny ? '6px' : shell.topActions.gap } : shell.topActions;
   const summaryGridStyle = isMobile
-    ? { ...shell.summaryGrid, gridTemplateColumns: '1fr' }
+    ? { ...shell.summaryGrid, gridTemplateColumns: isTiny ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: '10px' }
     : isTablet
       ? { ...shell.summaryGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
       : shell.summaryGrid;
+  const summaryMetricStyle = isMobile
+    ? { ...shell.summaryMetric, minHeight: '112px', padding: isTiny ? '12px' : '12px 14px' }
+    : shell.summaryMetric;
+  const summaryValueStyle = isMobile ? { ...shell.summaryValue, fontSize: isTiny ? '22px' : '24px' } : shell.summaryValue;
   const toolbarStyle = isMobile ? { ...shell.toolbar, flexDirection: 'column', alignItems: 'stretch', padding: isTiny ? '8px 12px' : shell.toolbar.padding } : shell.toolbar;
   const customerRowStyle = isMobile ? { ...shell.customerRow, gridTemplateColumns: '1fr' } : shell.customerRow;
   const addressSplitStyle = isMobile ? { ...shell.addressSplit, gridTemplateColumns: '1fr' } : shell.addressSplit;
@@ -2216,25 +2221,30 @@ export default function InvoiceDashboard() {
         <div style={shell.summaryCard}>
           <h3 style={shell.summaryTitle}>Payment Summary</h3>
           <div style={summaryGridStyle}>
-            <div style={shell.summaryMetric}>
+            <div style={summaryMetricStyle}>
               <span style={shell.summaryLabel}>Total Outstanding Receivables</span>
-              <span style={shell.summaryValue}>{formatINR(summary.totalOutstanding)}</span>
+              <span style={summaryValueStyle}>{formatINR(summary.totalOutstanding)}</span>
+              <span style={shell.summaryHint}>Unpaid balance</span>
             </div>
-            <div style={shell.summaryMetric}>
+            <div style={summaryMetricStyle}>
               <span style={shell.summaryLabel}>Due Today</span>
-              <span style={{ ...shell.summaryValue, ...shell.summaryAccent }}>{formatINR(summary.dueToday)}</span>
+              <span style={{ ...summaryValueStyle, ...shell.summaryAccent }}>{formatINR(summary.dueToday)}</span>
+              <span style={shell.summaryHint}>Today receivables</span>
             </div>
-            <div style={shell.summaryMetric}>
+            <div style={summaryMetricStyle}>
               <span style={shell.summaryLabel}>Due Within 30 Days</span>
-              <span style={shell.summaryValue}>{formatINR(summary.dueWithin30)}</span>
+              <span style={summaryValueStyle}>{formatINR(summary.dueWithin30)}</span>
+              <span style={shell.summaryHint}>Upcoming dues</span>
             </div>
-            <div style={shell.summaryMetric}>
+            <div style={summaryMetricStyle}>
               <span style={shell.summaryLabel}>Overdue Invoice</span>
-              <span style={shell.summaryValue}>{formatINR(summary.overdue)}</span>
+              <span style={summaryValueStyle}>{formatINR(summary.overdue)}</span>
+              <span style={shell.summaryHint}>Past due amount</span>
             </div>
-            <div style={shell.summaryMetric}>
+            <div style={summaryMetricStyle}>
               <span style={shell.summaryLabel}>Average Customer Payment Day</span>
-              <span style={shell.summaryValue}>{summary.avgDays} Days</span>
+              <span style={summaryValueStyle}>{summary.avgDays} Days</span>
+              <span style={shell.summaryHint}>Payment cycle</span>
             </div>
           </div>
         </div>

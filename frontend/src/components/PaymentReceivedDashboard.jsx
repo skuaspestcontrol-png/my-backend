@@ -27,12 +27,13 @@ const shell = {
   stat: {
     border: '1px solid rgba(159, 23, 77, 0.18)',
     background: '#fff',
-    borderRadius: '16px',
-    padding: '14px',
+    borderRadius: '12px',
+    padding: '12px 14px',
+    minHeight: '96px',
     boxShadow: 'var(--shadow-sm)'
   },
-  statLabel: { margin: 0, color: '#6B7280', fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
-  statValue: { margin: '8px 0 0 0', color: '#111827', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em' },
+  statLabel: { margin: 0, color: '#64748b', fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', lineHeight: 1.25 },
+  statValue: { margin: '12px 0 0 0', color: '#111827', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05 },
   tablePanel: {
     border: '1px solid var(--color-border)',
     background: '#fff',
@@ -195,7 +196,9 @@ export default function PaymentReceivedDashboard() {
   }, [rows, invoices]);
 
   const isMobile = viewportWidth < 768;
-  const statsStyle = isMobile ? { ...shell.statsGrid, gridTemplateColumns: '1fr' } : shell.statsGrid;
+  const isTiny = viewportWidth < 390;
+  const statsStyle = isMobile ? { ...shell.statsGrid, gridTemplateColumns: isTiny ? '1fr' : 'repeat(2, minmax(0, 1fr))' } : shell.statsGrid;
+  const statStyle = isMobile ? { ...shell.stat, minHeight: '104px' } : shell.stat;
 
   return (
     <section style={shell.page}>
@@ -205,15 +208,15 @@ export default function PaymentReceivedDashboard() {
       </div>
 
       <div style={statsStyle}>
-        <article style={shell.stat}>
+        <article style={statStyle}>
           <p style={shell.statLabel}>Total Received</p>
           <p style={shell.statValue}><IndianRupee size={18} style={{ verticalAlign: 'middle' }} /> {formatINR(summary.totalReceived).replace('₹', '')}</p>
         </article>
-        <article style={shell.stat}>
+        <article style={statStyle}>
           <p style={shell.statLabel}>Payment Entries</p>
           <p style={shell.statValue}><Receipt size={18} style={{ verticalAlign: 'middle' }} /> {summary.totalEntries}</p>
         </article>
-        <article style={shell.stat}>
+        <article style={statStyle}>
           <p style={shell.statLabel}>Unpaid Invoices</p>
           <p style={shell.statValue}><WalletCards size={18} style={{ verticalAlign: 'middle' }} /> {summary.unpaidInvoices}</p>
         </article>
