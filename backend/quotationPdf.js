@@ -157,8 +157,6 @@ const resolveUploadAsset = (input = '') => {
   return '';
 };
 
-const amountInWords = (amount) => `${Math.floor(Math.max(0, toNumber(amount, 0))).toLocaleString('en-IN')} Rupees Only`;
-
 const drawFooter = (doc, settings = {}) => {
   const pdfFont = getPdfFont(doc);
   const showPage = String(settings.show_page_number || '1') !== '0';
@@ -332,7 +330,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   if (opening) {
     ensureSpace(60);
     doc.moveDown(0.3);
-    doc.font(pdfFont.regular).fontSize(pdfTextSize.body).fillColor('#111827').text(opening, left, doc.y, { width: right - left, align: 'left', lineGap: 1 });
+    doc.font(pdfFont.regular).fontSize(pdfTextSize.body).fillColor('#111827').text(opening, left, doc.y, { width: right - left, align: 'justify', lineGap: 1 });
   }
 
   ensureSpace(48);
@@ -357,7 +355,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   ensureSpace(70);
   doc.moveDown(0.45);
-  doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('RECOMMENDATION', left, doc.y, { width: right - left, align: 'left' });
+  doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('Recommendation', left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(0.1);
 
   const recCols = [
@@ -405,8 +403,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     doc.y += h;
   });
 
-  ensureSpace(48);
-  doc.moveDown(0.45);
+  ensureSpace(24);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text(title, left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(0.1);
 
@@ -451,18 +448,6 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     doc.y += h;
   });
 
-  const subtotal = toNumber(quotation.subtotal_without_gst, 0);
-  const gstTotal = toNumber(quotation.gst_total, 0);
-  const roundOff = toNumber(quotation.round_off, 0);
-  const itemGrandTotal = items.reduce((sum, item) => sum + toNumber(item?.total_amount, 0), 0);
-  const calculatedGrandTotal = subtotal + gstTotal + roundOff;
-  const grand = toNumber(quotation.grand_total, 0) || calculatedGrandTotal || itemGrandTotal;
-
-  ensureSpace(46);
-  doc.moveDown(0.5);
-  doc.font(pdfFont.bold).fontSize(pdfTextSize.table).text('Amount in words', left, doc.y, { width: right - left, align: 'left' });
-  doc.font(pdfFont.regular).fontSize(pdfTextSize.table).text(amountInWords(grand), left, doc.y, { width: right - left, align: 'left' });
-
   const baseClosingText = clean(
     quotation.closing_paragraph
     || commonParagraphs.closing_paragraph
@@ -476,7 +461,6 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     : `${baseClosingText}\nFor any clarification, please feel free to contact me.`;
   const blocks = [
     ['Payment Terms', cleanPaymentTerms(quotation.payment_terms || commonParagraphs.payment_terms)],
-    ['Warranty', clean(quotation.warranty_note || commonParagraphs.warranty_paragraph)],
     ['', closingText]
   ].filter(([, txt]) => txt);
 
@@ -486,6 +470,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     if (titleText) {
       const headingSize = titleText === 'Payment Terms' ? pdfTextSize.paymentHeading : pdfTextSize.sectionHeading;
       doc.font(pdfFont.bold).fontSize(headingSize).fillColor(primaryColor).text(titleText, left, doc.y, { width: right - left, align: 'left' });
+      if (titleText === 'Payment Terms') doc.moveDown(0.25);
     }
     const bodySize = titleText === 'Payment Terms' ? pdfTextSize.paymentBody : pdfTextSize.body;
     doc.font(pdfFont.regular).fontSize(bodySize).fillColor('#111827').text(body, left, doc.y, { width: right - left, align: 'left', lineGap: 1 });
