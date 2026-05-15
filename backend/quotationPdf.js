@@ -18,6 +18,12 @@ const pdfTextSize = {
   table: 8.8,
   footer: 9.6
 };
+const sectionSpacing = {
+  beforeHeading: 0.8,
+  afterHeading: 0.22,
+  afterContent: 0.7,
+  afterTable: 0.65
+};
 
 const formatDate = (value) => {
   const raw = clean(value);
@@ -61,14 +67,16 @@ const customerDetailLinesForQuotation = (quotation = {}) => {
   const customerName = clean(quotation.customer_name);
   const companyName = clean(quotation.company_name);
   const address = clean(quotation.address);
-  const detailLines = companyName ? [companyName, customerName] : [customerName, ''];
+  const detailLines = companyName
+    ? [[companyName, true], [customerName, false]]
+    : [[customerName, true], ['', false]];
 
   return [
-    ...detailLines.map((line) => ['', line]),
-    ['', address],
-    ['Phone', clean(quotation.phone)],
-    ['Email', clean(quotation.email)],
-    ['GSTIN', clean(quotation.gstin)]
+    ...detailLines.map(([value, bold]) => ({ label: '', value, bold })),
+    { label: '', value: address, bold: false },
+    { label: 'Phone', value: clean(quotation.phone), bold: false },
+    { label: 'Email', value: clean(quotation.email), bold: false },
+    { label: 'GSTIN', value: clean(quotation.gstin), bold: false }
   ];
 };
 
@@ -79,21 +87,36 @@ const drawLabeledDetailBlock = (doc, rows = [], x, y, width, options = {}) => {
   const lineGap = Number.isFinite(Number(options.lineGap)) ? Number(options.lineGap) : 2;
   let cursorY = y;
 
-  rows.forEach(([label, value]) => {
-    const labelText = clean(label);
-    const text = clean(value);
+  rows.forEach((row) => {
+    const labelText = clean(row?.label);
+    const text = clean(row?.value);
     const inlineText = labelText ? `${labelText}: ${text}` : text;
-    const rowHeight = doc.font(pdfFont.regular)
+    const rowFont = row?.bold ? pdfFont.bold : pdfFont.regular;
+    const rowHeight = doc.font(rowFont)
       .fontSize(fontSize)
       .heightOfString(inlineText || ' ', { width, lineGap });
 
-    doc.font(pdfFont.regular).fontSize(fontSize).fillColor('#111827')
+    doc.font(rowFont).fontSize(fontSize).fillColor('#111827')
       .text(inlineText, x, cursorY, { width, align: 'left', lineGap });
 
     cursorY += rowHeight + (options.rowGap ?? 0);
   });
 
   doc.y = cursorY;
+};
+
+const drawInlineLabelValue = (doc, label, value, x, y, width, options = {}) => {
+  const pdfFont = getPdfFont(doc);
+  const fontSize = options.fontSize || pdfTextSize.body;
+  const lineGap = Number.isFinite(Number(options.lineGap)) ? Number(options.lineGap) : 0;
+  const labelText = clean(label);
+  const valueText = clean(value);
+  const labelWidth = doc.font(pdfFont.bold).fontSize(fontSize).widthOfString(labelText);
+
+  doc.font(pdfFont.bold).fontSize(fontSize).fillColor('#111827')
+    .text(labelText, x, y, { width: labelWidth, align: 'left', lineBreak: false, lineGap });
+  doc.font(pdfFont.regular).fontSize(fontSize).fillColor('#111827')
+    .text(valueText, x + labelWidth, y, { width: Math.max(10, width - labelWidth), align: 'left', lineGap });
 };
 
 const drawParagraphBlock = (doc, text, x, y, width, options = {}) => {
@@ -383,12 +406,13 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   drawHeader(doc, templateSettings, companySettings);
 
-  doc.font(pdfFont.regular).fontSize(pdfTextSize.body).fillColor('#111827')
-    .text(`Date: ${formatDate(quotation.quotation_date)}`, left, doc.y, { width: right - left, align: 'left' })
-    .text(`Ref: ${clean(quotation.quotation_number)}`, left, doc.y + 2, { width: right - left, align: 'left' });
+  drawInlineLabelValue(doc, 'Date: ', formatDate(quotation.quotation_date), left, doc.y, right - left, { fontSize: pdfTextSize.body });
+  doc.y += doc.currentLineHeight(true) + 2;
+  drawInlineLabelValue(doc, 'Ref: ', clean(quotation.quotation_number), left, doc.y, right - left, { fontSize: pdfTextSize.body });
+  doc.y += doc.currentLineHeight(true);
 
   doc.moveDown(1);
-  doc.font(pdfFont.regular).fontSize(pdfTextSize.body).fillColor('#111827')
+  doc.font(pdfFont.bold).fontSize(pdfTextSize.body).fillColor('#111827')
     .text('To,', left, doc.y, { width: right - left, align: 'left' });
   drawLabeledDetailBlock(
     doc,
@@ -402,6 +426,8 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   ensureSpace(40);
   doc.moveDown(0.35);
   const primaryColor = clean(templateSettings.primary_color || companySettings.brandingAccentColor || '#9F174D');
+  const rateType = clean(quotation.rate_type || 'With GST');
+  const isGstQuotation = !/^without\s+gst$/i.test(rateType);
   const serviceTitles = formatJoinedNames(items.map((item) => item?.service_title || item?.service_name || item?.pest_name));
   const title = `Quotation for ${serviceTitles || 'Pest Control Service'}`;
   doc.font(pdfFont.bold).fontSize(pdfTextSize.title).fillColor(primaryColor).text(title, left, doc.y, { width: right - left, align: 'center' });
@@ -414,29 +440,31 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   }
 
   ensureSpace(48);
-  doc.moveDown(0.45);
+  doc.moveDown(sectionSpacing.beforeHeading);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('About Pest', left, doc.y, { width: right - left, align: 'left' });
-  doc.moveDown(0.1);
+  doc.moveDown(sectionSpacing.afterHeading);
   const aboutPest = items
     .map((item) => clean(item.about_pest))
     .filter(Boolean)
     .join('\n\n');
   drawParagraphBlock(doc, aboutPest || '-', left, doc.y, right - left, { align: 'justify', lineGap: 1.2 });
+  doc.moveDown(sectionSpacing.afterContent);
 
   ensureSpace(48);
-  doc.moveDown(0.45);
+  doc.moveDown(sectionSpacing.beforeHeading);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('What We Do?', left, doc.y, { width: right - left, align: 'left' });
-  doc.moveDown(0.1);
+  doc.moveDown(sectionSpacing.afterHeading);
   const whatWeDo = items
     .map((item) => clean(item.what_we_do))
     .filter(Boolean)
     .join('\n\n');
   drawParagraphBlock(doc, whatWeDo || '-', left, doc.y, right - left, { align: 'justify', lineGap: 1.2 });
+  doc.moveDown(sectionSpacing.afterContent);
 
   ensureSpace(70);
-  doc.moveDown(0.45);
+  doc.moveDown(sectionSpacing.beforeHeading);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('Recommendation', left, doc.y, { width: right - left, align: 'left' });
-  doc.moveDown(0.1);
+  doc.moveDown(sectionSpacing.afterHeading);
 
   const recTableWidth = right - left;
   const recCols = [
@@ -469,11 +497,12 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     });
     doc.y += h;
   });
+  doc.moveDown(sectionSpacing.afterTable);
 
   ensureSpace(24);
-  doc.moveDown(0.55);
+  doc.moveDown(sectionSpacing.beforeHeading);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text(title, left, doc.y, { width: right - left, align: 'left' });
-  doc.moveDown(0.1);
+  doc.moveDown(sectionSpacing.afterHeading);
 
   const serviceNameWidth = Math.max(
     82,
@@ -498,7 +527,8 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     { x: left + 30 + serviceNameWidth + frequencyWidth + 72, w: amountWidth }
   ];
 
-  h = drawTableRow(doc, serviceCols, doc.y, ['#', 'Service', 'Frequency', 'GST %', 'Amount'], {
+  const amountHeading = isGstQuotation ? 'Amount without GST' : 'Total Amount';
+  h = drawTableRow(doc, serviceCols, doc.y, ['#', 'Service', 'Frequency', 'GST %', amountHeading], {
     isHeader: true,
     fontSize: pdfTextSize.table,
     borderColor: '#111827',
@@ -507,12 +537,13 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   doc.y += h;
 
   items.forEach((item, index) => {
+    const amountWithoutGst = toNumber(item.quantity, 1) * toNumber(item.rate_without_gst, 0);
     const rowVals = [
       String(index + 1),
       clean(item.service_name || '-'),
       clean(item.frequency || '-'),
-      `${toNumber(item.gst_percentage, 0)}%`,
-      formatINR(item.total_amount)
+      isGstQuotation ? `${toNumber(item.gst_percentage, 0)}%` : '-',
+      formatINR(isGstQuotation ? amountWithoutGst : item.total_amount)
     ];
 
     const rowHeight = getRowHeight(doc, serviceCols, rowVals, pdfTextSize.table, 30, 8);
@@ -527,9 +558,10 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     });
     doc.y += h;
   });
+  doc.moveDown(sectionSpacing.afterTable);
 
   ensureSpace(28);
-  doc.moveDown(0.9);
+  doc.moveDown(sectionSpacing.beforeHeading);
 
   const baseClosingText = clean(
     quotation.closing_paragraph
@@ -549,11 +581,11 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   blocks.forEach(([titleText, body]) => {
     ensureSpace(70);
-    doc.moveDown(0.1);
+    doc.moveDown(titleText ? sectionSpacing.beforeHeading : 0.2);
     if (titleText) {
       const headingSize = titleText === 'Payment Terms' ? pdfTextSize.paymentHeading : pdfTextSize.sectionHeading;
       doc.font(pdfFont.bold).fontSize(headingSize).fillColor(primaryColor).text(titleText, left, doc.y, { width: right - left, align: 'left' });
-      if (titleText === 'Payment Terms') doc.moveDown(0.05);
+      if (titleText === 'Payment Terms') doc.moveDown(sectionSpacing.afterHeading);
     }
     const bodySize = titleText === 'Payment Terms' ? pdfTextSize.paymentBody : pdfTextSize.body;
     doc.font(pdfFont.regular).fontSize(bodySize).fillColor('#111827').text(body, left, doc.y, { width: right - left, align: titleText === 'Payment Terms' ? 'left' : 'justify', lineGap: 1 });
