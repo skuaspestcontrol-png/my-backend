@@ -258,6 +258,7 @@ const drawTableRow = (doc, cols, y, values, options = {}) => {
   const h = options.height || getRowHeight(doc, cols, values, fontSize, options.minHeight || 22);
   const borderColor = options.borderColor || '#111827';
   const isHeader = !!options.isHeader;
+  const cursorY = doc.y;
 
   cols.forEach((col, i) => {
     doc.rect(col.x, y, col.w, h).lineWidth(0.8).strokeColor(borderColor);
@@ -278,6 +279,7 @@ const drawTableRow = (doc, cols, y, values, options = {}) => {
         ellipsis: options.ellipsis === true
       });
   });
+  doc.y = cursorY;
   return h;
 };
 
@@ -360,13 +362,12 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   const recCols = [
     { x: left, w: 30 },
-    { x: left + 30, w: 120 },
-    { x: left + 150, w: 80 },
-    { x: left + 230, w: 72 },
-    { x: left + 302, w: 210 }
+    { x: left + 30, w: 140 },
+    { x: left + 170, w: 90 },
+    { x: left + 260, w: 252 }
   ];
 
-  let h = drawTableRow(doc, recCols, doc.y, ['#', 'Service', 'Infestation', 'Image', 'Recommendation'], {
+  let h = drawTableRow(doc, recCols, doc.y, ['#', 'Service', 'Infestation', 'Recommendation'], {
     isHeader: true,
     fontSize: pdfTextSize.table,
     borderColor: '#111827',
@@ -376,30 +377,15 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   items.forEach((item, index) => {
     const recText = clean(item.recommendation || item.what_we_do || '-');
-    const rowVals = [String(index + 1), clean(item.service_name || '-'), clean(item.infestation_level || '-'), '', recText];
+    const rowVals = [String(index + 1), clean(item.service_name || '-'), clean(item.infestation_level || '-'), recText];
     const rowHeight = Math.max(58, getRowHeight(doc, recCols, rowVals, pdfTextSize.table, 58));
     ensureSpace(rowHeight + 2);
-    const y = doc.y;
-    h = drawTableRow(doc, recCols, y, rowVals, {
+    h = drawTableRow(doc, recCols, doc.y, rowVals, {
       fontSize: pdfTextSize.table,
       borderColor: '#111827',
       minHeight: 58,
-      alignments: ['center', 'left', 'center', 'center', 'left']
+      alignments: ['center', 'left', 'center', 'left']
     });
-
-    const img = resolveUploadAsset(item.infestation_image_url);
-    if (img) {
-      try {
-        const pad = 4;
-        const maxW = recCols[3].w - pad * 2;
-        const maxH = h - pad * 2;
-        const size = Math.min(maxW, maxH, 52);
-        const x = recCols[3].x + (recCols[3].w - size) / 2;
-        const iy = y + (h - size) / 2;
-        doc.image(img, x, iy, { width: size, height: size, fit: [size, size] });
-      } catch (_e) {}
-    }
-
     doc.y += h;
   });
 
@@ -474,6 +460,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     }
     const bodySize = titleText === 'Payment Terms' ? pdfTextSize.paymentBody : pdfTextSize.body;
     doc.font(pdfFont.regular).fontSize(bodySize).fillColor('#111827').text(body, left, doc.y, { width: right - left, align: 'left', lineGap: 1 });
+    if (titleText === 'Payment Terms') doc.moveDown(1.2);
   });
 
   ensureSpace(90);
