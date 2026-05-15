@@ -168,7 +168,13 @@ export default function LeadFollowups() {
   }, [followups, today, weekEnd]);
 
   const isMobile = viewportWidth < 768;
-  const statGridStyle = isMobile ? { ...shell.statGrid, gridTemplateColumns: '1fr' } : viewportWidth < 1100 ? { ...shell.statGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.statGrid;
+  const statGridStyle = isMobile ? { ...shell.statGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' } : viewportWidth < 1100 ? { ...shell.statGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.statGrid;
+  const statCardStyle = isMobile
+    ? { ...shell.statCard, minHeight: '118px', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', padding: '12px' }
+    : shell.statCard;
+  const statIconStyle = isMobile ? { ...shell.statIcon, width: '38px', height: '38px', borderRadius: '11px' } : shell.statIcon;
+  const statValueStyle = isMobile ? { ...shell.statValue, fontSize: '22px' } : shell.statValue;
+  const statLabelStyle = isMobile ? { ...shell.statLabel, margin: '5px 0 0', fontSize: '10px', lineHeight: 1.2 } : shell.statLabel;
   const filterStyle = isMobile
     ? { ...shell.filters, gridTemplateColumns: '1fr', padding: '14px', gap: '10px' }
     : viewportWidth < 1200
@@ -205,69 +211,73 @@ export default function LeadFollowups() {
           <h1 style={shell.title}>Lead Follow-ups</h1>
           <p style={shell.subtitle}>Track and manage all your lead follow-up activities</p>
         </div>
-        <button type="button" style={shell.refreshBtn} onClick={loadLeads} disabled={loading}>
-          <RefreshCw size={15} />
-          {loading ? 'Refreshing' : 'Refresh'}
-        </button>
+        {!isMobile ? (
+          <button type="button" style={shell.refreshBtn} onClick={loadLeads} disabled={loading}>
+            <RefreshCw size={15} />
+            {loading ? 'Refreshing' : 'Refresh'}
+          </button>
+        ) : null}
       </div>
 
       <div style={statGridStyle}>
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.label} style={shell.statCard}>
-              <span style={{ ...shell.statIcon, color: stat.color, background: stat.bg }}>
+            <div key={stat.label} style={statCardStyle}>
+              <span style={{ ...statIconStyle, color: stat.color, background: stat.bg }}>
                 <Icon size={24} />
               </span>
               <span>
-                <p style={shell.statValue}>{stat.value}</p>
-                <p style={shell.statLabel}>{stat.label}</p>
+                <p style={statValueStyle}>{stat.value}</p>
+                <p style={statLabelStyle}>{stat.label}</p>
               </span>
             </div>
           );
         })}
       </div>
 
-      <div style={filterStyle}>
-        <div>
-          <label style={shell.label}>From Date</label>
-          <input type="date" style={shell.input} value={draftFilters.fromDate} onChange={(event) => setDraftFilters((prev) => ({ ...prev, fromDate: event.target.value }))} />
+      {!isMobile ? (
+        <div style={filterStyle}>
+          <div>
+            <label style={shell.label}>From Date</label>
+            <input type="date" style={shell.input} value={draftFilters.fromDate} onChange={(event) => setDraftFilters((prev) => ({ ...prev, fromDate: event.target.value }))} />
+          </div>
+          <div>
+            <label style={shell.label}>To Date</label>
+            <input type="date" style={shell.input} value={draftFilters.toDate} onChange={(event) => setDraftFilters((prev) => ({ ...prev, toDate: event.target.value }))} />
+          </div>
+          <div>
+            <label style={shell.label}>Assigned To</label>
+            <select style={shell.input} value={draftFilters.assignedTo} onChange={(event) => setDraftFilters((prev) => ({ ...prev, assignedTo: event.target.value }))}>
+              <option value={ALL_VALUE}>All</option>
+              {assignedOptions.map((name) => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={shell.label}>Urgency</label>
+            <select style={shell.input} value={draftFilters.urgency} onChange={(event) => setDraftFilters((prev) => ({ ...prev, urgency: event.target.value }))}>
+              <option value={ALL_VALUE}>All</option>
+              {['Overdue', 'Today', 'High', 'This Week', 'Upcoming'].map((name) => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </div>
+          <button type="button" style={shell.applyBtn} onClick={() => setFilters(draftFilters)}>
+            <Filter size={15} />
+            Apply
+          </button>
+          <button
+            type="button"
+            style={shell.clearBtn}
+            onClick={() => {
+              const empty = { fromDate: '', toDate: '', assignedTo: ALL_VALUE, urgency: ALL_VALUE };
+              setDraftFilters(empty);
+              setFilters(empty);
+            }}
+            title="Clear filters"
+          >
+            <X size={18} />
+          </button>
         </div>
-        <div>
-          <label style={shell.label}>To Date</label>
-          <input type="date" style={shell.input} value={draftFilters.toDate} onChange={(event) => setDraftFilters((prev) => ({ ...prev, toDate: event.target.value }))} />
-        </div>
-        <div>
-          <label style={shell.label}>Assigned To</label>
-          <select style={shell.input} value={draftFilters.assignedTo} onChange={(event) => setDraftFilters((prev) => ({ ...prev, assignedTo: event.target.value }))}>
-            <option value={ALL_VALUE}>All</option>
-            {assignedOptions.map((name) => <option key={name} value={name}>{name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={shell.label}>Urgency</label>
-          <select style={shell.input} value={draftFilters.urgency} onChange={(event) => setDraftFilters((prev) => ({ ...prev, urgency: event.target.value }))}>
-            <option value={ALL_VALUE}>All</option>
-            {['Overdue', 'Today', 'High', 'This Week', 'Upcoming'].map((name) => <option key={name} value={name}>{name}</option>)}
-          </select>
-        </div>
-        <button type="button" style={shell.applyBtn} onClick={() => setFilters(draftFilters)}>
-          <Filter size={15} />
-          Apply
-        </button>
-        <button
-          type="button"
-          style={shell.clearBtn}
-          onClick={() => {
-            const empty = { fromDate: '', toDate: '', assignedTo: ALL_VALUE, urgency: ALL_VALUE };
-            setDraftFilters(empty);
-            setFilters(empty);
-          }}
-          title="Clear filters"
-        >
-          <X size={18} />
-        </button>
-      </div>
+      ) : null}
 
       <div style={shell.tabs}>
         {tabs.map((tab) => {

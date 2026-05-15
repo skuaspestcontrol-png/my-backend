@@ -567,10 +567,11 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ['Sales Person', clean(invoice.salesperson) || '-']
     ];
     let my = y + 34;
-    const metaLabelW = 92;
-    const metaValueX = right - 146;
-    const metaValueW = 148;
-    const metaLabelX = metaValueX - metaLabelW - 6;
+    const metaValueW = 122;
+    const metaGap = 8;
+    const metaLabelW = 86;
+    const metaValueX = right - metaValueW;
+    const metaLabelX = metaValueX - metaGap - metaLabelW;
     meta.forEach(([k, v]) => {
       doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text(`${k} :`, metaLabelX, my, { width: metaLabelW, align: 'right' });
       doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(`${v}`, metaValueX, my, { width: metaValueW, align: 'right' });

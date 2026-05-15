@@ -2035,16 +2035,18 @@ export default function LeadCapture() {
             <h3 style={analyticsTitleStyle}>Lead Master Overview Summary</h3>
             <p style={s.analyticsSub}>Year-wise, month-wise, pest issue-wise, source-wise, status-wise, and assigned-wise lead analytics.</p>
           </div>
-          <div style={analyticsActionsStyle}>
-            <button type="button" style={s.analyticsBtn} onClick={refreshLeadData}>
-              <RefreshCw size={14} />
-              Refresh
-            </button>
-            <button type="button" style={{ ...s.analyticsBtn, ...s.analyticsBtnPrimary }} onClick={exportData}>
-              <Download size={14} />
-              Export CSV
-            </button>
-          </div>
+          {!isMobile ? (
+            <div style={analyticsActionsStyle}>
+              <button type="button" style={s.analyticsBtn} onClick={refreshLeadData}>
+                <RefreshCw size={14} />
+                Refresh
+              </button>
+              <button type="button" style={{ ...s.analyticsBtn, ...s.analyticsBtnPrimary }} onClick={exportData}>
+                <Download size={14} />
+                Export CSV
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div style={s.metricsGrid}>
@@ -2080,95 +2082,97 @@ export default function LeadCapture() {
           </div>
         </div>
 
-        <div style={s.filtersPanel}>
-          <div style={filtersGridStyle}>
-            <div style={s.filterField}>
-              <label style={s.filterLabel}>Year</label>
-              <select
-                value={overviewDraftFilters.year}
-                style={s.filterSelect}
-                onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, year: event.target.value }))}
-              >
-                <option value={ALL_FILTER_VALUE}>All Years</option>
-                {yearFilterOptions.map((year) => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-            <div style={s.filterField}>
-              <label style={s.filterLabel}>Month</label>
-              <select
-                value={overviewDraftFilters.month}
-                style={s.filterSelect}
-                onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, month: event.target.value }))}
-              >
-                <option value={ALL_FILTER_VALUE}>All Months</option>
-                {MONTH_FILTER_OPTIONS.map((month) => (
-                  <option key={month.value} value={month.value}>{month.label}</option>
-                ))}
-              </select>
-            </div>
-            <div style={s.filterField}>
-              <label style={s.filterLabel}>Pest Issue</label>
-              <select
-                value={overviewDraftFilters.pestIssue}
-                style={s.filterSelect}
-                onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, pestIssue: event.target.value }))}
-              >
-                <option value={ALL_FILTER_VALUE}>All Pest Issues</option>
-                {pestIssueFilterOptions.map((issue) => (
-                  <option key={issue} value={issue}>{issue}</option>
-                ))}
-              </select>
-            </div>
-            <div style={s.filterField}>
-              <label style={s.filterLabel}>Lead Source</label>
-              <select
-                value={overviewDraftFilters.leadSource}
-                style={s.filterSelect}
-                onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, leadSource: event.target.value }))}
-              >
-                <option value={ALL_FILTER_VALUE}>All Sources</option>
-                {leadSourceFilterOptions.map((source) => (
-                  <option key={source} value={source}>{source}</option>
-                ))}
-              </select>
-            </div>
-            <div style={s.filterField}>
-              <label style={s.filterLabel}>Status</label>
-              <select
-                value={overviewDraftFilters.status}
-                style={s.filterSelect}
-                onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, status: event.target.value }))}
-              >
-                <option value={ALL_FILTER_VALUE}>All Statuses</option>
-                {statusFilterOptions.map((status) => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </div>
-            <div style={s.filterField}>
-              <label style={s.filterLabel}>Assigned To</label>
-              <select
-                value={overviewDraftFilters.assignedTo}
-                style={s.filterSelect}
-                onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, assignedTo: event.target.value }))}
-              >
-                <option value={ALL_FILTER_VALUE}>All Assignees</option>
-                {assignedToFilterOptions.map((assignedTo) => (
-                  <option key={assignedTo} value={assignedTo}>{assignedTo}</option>
-                ))}
-              </select>
-            </div>
-            <div style={filterActionFieldStyle}>
-              <label style={{ ...s.filterLabel, visibility: 'hidden', margin: 0, height: 0 }}>Actions</label>
-              <div style={filterActionsStyle}>
-                <button type="button" style={applyButtonStyle} onClick={applyOverviewFilters}>Apply</button>
-                <button type="button" style={s.clearButton} onClick={clearOverviewFilters} title="Clear filters">×</button>
+        {!isMobile ? (
+          <div style={s.filtersPanel}>
+            <div style={filtersGridStyle}>
+              <div style={s.filterField}>
+                <label style={s.filterLabel}>Year</label>
+                <select
+                  value={overviewDraftFilters.year}
+                  style={s.filterSelect}
+                  onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, year: event.target.value }))}
+                >
+                  <option value={ALL_FILTER_VALUE}>All Years</option>
+                  {yearFilterOptions.map((year) => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={s.filterField}>
+                <label style={s.filterLabel}>Month</label>
+                <select
+                  value={overviewDraftFilters.month}
+                  style={s.filterSelect}
+                  onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, month: event.target.value }))}
+                >
+                  <option value={ALL_FILTER_VALUE}>All Months</option>
+                  {MONTH_FILTER_OPTIONS.map((month) => (
+                    <option key={month.value} value={month.value}>{month.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={s.filterField}>
+                <label style={s.filterLabel}>Pest Issue</label>
+                <select
+                  value={overviewDraftFilters.pestIssue}
+                  style={s.filterSelect}
+                  onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, pestIssue: event.target.value }))}
+                >
+                  <option value={ALL_FILTER_VALUE}>All Pest Issues</option>
+                  {pestIssueFilterOptions.map((issue) => (
+                    <option key={issue} value={issue}>{issue}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={s.filterField}>
+                <label style={s.filterLabel}>Lead Source</label>
+                <select
+                  value={overviewDraftFilters.leadSource}
+                  style={s.filterSelect}
+                  onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, leadSource: event.target.value }))}
+                >
+                  <option value={ALL_FILTER_VALUE}>All Sources</option>
+                  {leadSourceFilterOptions.map((source) => (
+                    <option key={source} value={source}>{source}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={s.filterField}>
+                <label style={s.filterLabel}>Status</label>
+                <select
+                  value={overviewDraftFilters.status}
+                  style={s.filterSelect}
+                  onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, status: event.target.value }))}
+                >
+                  <option value={ALL_FILTER_VALUE}>All Statuses</option>
+                  {statusFilterOptions.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={s.filterField}>
+                <label style={s.filterLabel}>Assigned To</label>
+                <select
+                  value={overviewDraftFilters.assignedTo}
+                  style={s.filterSelect}
+                  onChange={(event) => setOverviewDraftFilters((prev) => ({ ...prev, assignedTo: event.target.value }))}
+                >
+                  <option value={ALL_FILTER_VALUE}>All Assignees</option>
+                  {assignedToFilterOptions.map((assignedTo) => (
+                    <option key={assignedTo} value={assignedTo}>{assignedTo}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={filterActionFieldStyle}>
+                <label style={{ ...s.filterLabel, visibility: 'hidden', margin: 0, height: 0 }}>Actions</label>
+                <div style={filterActionsStyle}>
+                  <button type="button" style={applyButtonStyle} onClick={applyOverviewFilters}>Apply</button>
+                  <button type="button" style={s.clearButton} onClick={clearOverviewFilters} title="Clear filters">×</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       <div style={s.registerCard}>
