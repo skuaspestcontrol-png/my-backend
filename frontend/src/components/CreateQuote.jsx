@@ -272,6 +272,14 @@ export default function CreateQuote() {
     || ''
   ).trim();
 
+  const salesPersonRows = useMemo(
+    () => employeeRows.filter((employee) => {
+      const role = String(employee.role || '').trim().toLowerCase();
+      return role === 'sales';
+    }),
+    [employeeRows]
+  );
+
   const selectSalesPerson = (employeeId) => {
     const employee = employeeRows.find((entry) => String(entry._id || entry.id || entry.external_id || '') === String(employeeId || ''));
     if (!employee) {
@@ -438,7 +446,7 @@ export default function CreateQuote() {
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Quotation Number</p><input style={input} value={form.quotation_number || ''} placeholder={quotationPreview} onChange={(e) => setForm((p) => ({ ...p, quotation_number: e.target.value }))} /></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Validity Days</p><input type="number" style={input} value={form.validity_days || 15} onChange={(e) => setForm((p) => ({ ...p, validity_days: Number(e.target.value) || 1 }))} /></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Rate Type</p><select style={input} value={form.rate_type || 'With GST'} onChange={(e) => setForm((p) => ({ ...p, rate_type: e.target.value }))}><option>With GST</option><option>Without GST</option></select></div>
-            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Sales Person</p><select style={input} value={form.sales_person_employee_id || ''} onChange={(e) => selectSalesPerson(e.target.value)}><option value="">Select employee</option>{employeeRows.map((employee) => <option key={employee._id || employee.id || employee.empCode || employeeName(employee)} value={employee._id || employee.id || employee.external_id || ''}>{employeeName(employee) || employee.mobile || employee.empCode}</option>)}</select></div>
+            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Sales Person</p><select style={input} value={form.sales_person_employee_id || ''} onChange={(e) => selectSalesPerson(e.target.value)}><option value="">Select sales person</option>{salesPersonRows.map((employee) => <option key={employee._id || employee.id || employee.empCode || employeeName(employee)} value={employee._id || employee.id || employee.external_id || ''}>{employeeName(employee) || employee.mobile || employee.empCode}</option>)}</select></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Sales Person Name</p><input style={input} value={form.sales_person || ''} onChange={(e) => setForm((p) => ({ ...p, sales_person: e.target.value }))} /></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Designation</p><input style={input} value={form.designation || ''} onChange={(e) => setForm((p) => ({ ...p, designation: e.target.value }))} /></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Mobile</p><input style={input} value={form.mobile || ''} onChange={(e) => setForm((p) => ({ ...p, mobile: e.target.value }))} /></div>
