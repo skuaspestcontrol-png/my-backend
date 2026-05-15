@@ -7,7 +7,8 @@ const COLORS = {
   text: '#000000',
   border: '#9e9e9e',
   headerBg: '#f2f3f4',
-  title: '#000000'
+  title: '#000000',
+  primary: '#9F174D'
 };
 
 const PAGE_MARGIN = {
@@ -32,6 +33,10 @@ const pickFirstText = (...values) => {
   }
   return '';
 };
+
+const normalizeInvoiceType = (invoice = {}) => (
+  clean(invoice.invoiceType || invoice.invoice_type || invoice.type).toUpperCase() === 'NON GST' ? 'NON GST' : 'GST'
+);
 
 const formatINR = (value) => {
   const n = toNumber(value, 0);
@@ -158,16 +163,37 @@ const parseLocalAsset = (input = '') => {
   return '';
 };
 
+const resolveFirstLocalAsset = (...sources) => {
+  for (const source of sources) {
+    const local = parseLocalAsset(source);
+    if (local) return local;
+  }
+  return '';
+};
+
 const resolveCompany = (settings = {}, invoice = {}) => {
-  const isNonGst = clean(invoice.invoiceType).toUpperCase() === 'NON GST';
-  const logoSource = isNonGst
-    ? settings.nonGstCompanyLogoUrl
-    : (settings.gstCompanyLogoUrl || settings.dashboardImageUrl);
+  const isNonGst = normalizeInvoiceType(invoice) === 'NON GST';
+  const primaryColor = clean(settings.brandingAccentColor || settings.primaryColor || settings.primary_color) || COLORS.primary;
+  const logo = isNonGst
+    ? resolveFirstLocalAsset(
+      settings.nonGstCompanyLogoUrl,
+      settings.nonGstLogoUrl,
+      settings.nonGstBrandingLogoUrl,
+      settings.nonGstDashboardImageUrl
+    )
+    : resolveFirstLocalAsset(
+      settings.gstCompanyLogoUrl,
+      settings.gstLogoUrl,
+      settings.gstBrandingLogoUrl,
+      settings.companyLogoUrl,
+      settings.dashboardImageUrl
+    );
   const address1 = clean((isNonGst ? settings.nonGstBillingAddress : settings.gstBillingAddress) || settings.companyAddress);
   const rawAddress2 = clean((isNonGst ? settings.nonGstAddress : '') || '');
   const address2 = rawAddress2 && rawAddress2 !== address1 ? rawAddress2 : '';
   return {
     isNonGst,
+    primaryColor,
     name: clean((isNonGst ? settings.nonGstCompanyName : settings.gstCompanyName) || settings.companyName) || 'SKUAS Pest Control',
     tagline: clean(settings.aboutTagline),
     address1,
@@ -188,7 +214,7 @@ const resolveCompany = (settings = {}, invoice = {}) => {
         settings.gstin,
         settings.gstNumber
       ),
-    logo: parseLocalAsset(logoSource),
+    logo,
     signature: parseLocalAsset(isNonGst ? settings.nonGstDigitalSignatureUrl : settings.gstDigitalSignatureUrl),
     bankName: isNonGst ? '' : clean(settings.gstBankName),
     bankAccount: isNonGst ? '' : clean(settings.gstBankAccountNumber),
@@ -288,6 +314,13 @@ const deriveContractRange = (invoice = {}) => {
   return `${formatDate(start)} to ${formatDate(end)}`;
 };
 
+const addressLinesForInvoiceParty = (party = {}) => [
+  party.address,
+  party.state,
+  party.pincode,
+  party.gstin ? `GSTIN: ${party.gstin}` : ''
+].map(clean).filter(Boolean);
+
 const drawCell = (doc, text, x, y, w, h, { bold = false, align = 'left', bg = null, border = COLORS.border, color = COLORS.text, size = BASE_FONT_SIZE, padX = 3, padY = 2 } = {}) => {
   if (bg) {
     doc.save();
@@ -302,6 +335,42 @@ const drawCell = (doc, text, x, y, w, h, { bold = false, align = 'left', bg = nu
   doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size).fillColor(color).text(String(text || ''), x + padX, y + padY, {
     width: w - (padX * 2),
     height: h - (padY * 2),
+    align,
+    lineGap: 0.5
+  });
+};
+
+const drawCenteredCell = (doc, text, x, y, w, h, options = {}) => {
+  const {
+    bold = false,
+    align = 'left',
+    bg = null,
+    border = COLORS.border,
+    color = COLORS.text,
+    size = BASE_FONT_SIZE,
+    padX = 3,
+    padY = 2
+  } = options;
+  if (bg) {
+    doc.save();
+    doc.fillColor(bg).rect(x, y, w, h).fill();
+    doc.restore();
+  }
+  if (border && border !== 'none') {
+    doc.save();
+    doc.strokeColor(border).lineWidth(0.6).rect(x, y, w, h).stroke();
+    doc.restore();
+  }
+  const fontName = bold ? 'Helvetica-Bold' : 'Helvetica';
+  const innerW = w - (padX * 2);
+  const innerH = h - (padY * 2);
+  const textHeight = doc.font(fontName).fontSize(size).heightOfString(String(text || ''), {
+    width: innerW,
+    lineGap: 0.5
+  });
+  doc.font(fontName).fontSize(size).fillColor(color).text(String(text || ''), x + padX, y + padY + Math.max(0, (innerH - textHeight) / 2), {
+    width: innerW,
+    height: innerH,
     align,
     lineGap: 0.5
   });
@@ -438,43 +507,25 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const cardW = (contentW - cardGap) / 2;
     const cardH = 102;
 
-    drawCell(doc, 'Bill To', left, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: 'none' });
+    drawCell(doc, 'Bill To', left, y, cardW, 16, { bold: true, color: company.primaryColor, size: 10, border: 'none' });
     drawCell(doc, '', left, y + 16, cardW, cardH - 16, { border: 'none' });
     doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(billTo.title, left + 5, y + 22, { width: cardW - 10, lineGap: 1 });
-    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(
-      [
-        billTo.address,
-        `State: ${billTo.state || '-'}`,
-        `Pincode - ${billTo.pincode || '-'}`,
-        `GSTIN: ${billTo.gstin || ''}`
-      ].join('\n'),
-      left + 5,
-      y + 34,
-      { width: cardW - 10, lineGap: 1 }
-    );
+    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
+      .text(addressLinesForInvoiceParty(billTo).join('\n'), left + 5, y + 34, { width: cardW - 10, lineGap: 1 });
 
     const shipX = left + cardW + cardGap;
-    drawCell(doc, 'Ship To', shipX, y, cardW, 16, { bold: true, color: '#ef4444', size: 10, border: 'none' });
+    drawCell(doc, 'Ship To', shipX, y, cardW, 16, { bold: true, color: company.primaryColor, size: 10, border: 'none' });
     drawCell(doc, '', shipX, y + 16, cardW, cardH - 16, { border: 'none' });
     doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(shipTo.title, shipX + 5, y + 22, { width: cardW - 10, lineGap: 1 });
-    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(
-      [
-        shipTo.address,
-        `State: ${shipTo.state || '-'}`,
-        `Pincode - ${shipTo.pincode || '-'}`,
-        `GSTIN: ${shipTo.gstin || ''}`
-      ].join('\n'),
-      shipX + 5,
-      y + 34,
-      { width: cardW - 10, lineGap: 1 }
-    );
+    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
+      .text(addressLinesForInvoiceParty(shipTo).join('\n'), shipX + 5, y + 34, { width: cardW - 10, lineGap: 1 });
 
     y += cardH + 6;
 
     // Subject row
     const subjectH = 16;
     drawCell(doc, '', left, y, contentW, subjectH, { border: 'none' });
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#ef4444').text('Subject :', left + 2, y + 3);
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(company.primaryColor).text('Subject :', left + 2, y + 3);
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(deriveSubjectFromItems(invoice), left + 52, y + 3, { width: contentW - 54 });
     y += subjectH + 6;
 
@@ -547,7 +598,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
             });
           }
         } else {
-          drawCell(doc, values[c.k], cx, y, c.w, rh, { align: c.a, size: 8, border: COLORS.border, bold: false, color: '#000000' });
+          drawCenteredCell(doc, values[c.k], cx, y, c.w, rh, { align: c.a, size: 8, border: COLORS.border, bold: false, color: '#000000' });
         }
         cx += c.w;
       });
