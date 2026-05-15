@@ -268,7 +268,7 @@ export default function Dashboard() {
       : shell.hero;
 
   const metricsStyle = isMobile
-    ? { ...shell.metrics, gridTemplateColumns: '1fr', width: 'calc(100% - 28px)', maxWidth: '560px' }
+    ? { ...shell.metrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }
     : isTablet
       ? { ...shell.metrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
       : isLaptop
@@ -292,16 +292,16 @@ export default function Dashboard() {
     fontWeight: 700
   };
   const metricStyle = isMobile
-    ? { ...shell.metric, padding: '10px 12px', borderRadius: '14px' }
+    ? { ...shell.metric, padding: '12px 14px', borderRadius: '10px', minHeight: '122px' }
     : shell.metric;
   const metricLabelStyle = isMobile
-    ? { ...shell.metricLabel, fontSize: '10px' }
+    ? { ...shell.metricLabel, fontSize: '9px', lineHeight: 1.25 }
     : shell.metricLabel;
   const metricValueStyle = isMobile
-    ? { ...shell.metricValue, margin: '8px 0 0 0', fontSize: '24px' }
+    ? { ...shell.metricValue, margin: '8px 0 0 0', fontSize: '23px', lineHeight: 1.05 }
     : shell.metricValue;
   const metricSubStyle = isMobile
-    ? { ...shell.metricSub, margin: '4px 0 0 0', fontSize: '12px' }
+    ? { ...shell.metricSub, margin: '6px 0 0 0', fontSize: '11px', lineHeight: 1.35 }
     : shell.metricSub;
 
   const graphGridStyle = viewportWidth >= 1200

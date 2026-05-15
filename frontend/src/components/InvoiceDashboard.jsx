@@ -2079,9 +2079,9 @@ export default function InvoiceDashboard() {
   const isTablet = viewportWidth > 900 && viewportWidth <= 1200;
   const isTiny = viewportWidth <= 380;
   const topbarStyle = isMobile
-    ? { ...shell.topbar, flexDirection: 'column', alignItems: 'stretch', padding: isTiny ? '10px 12px' : shell.topbar.padding }
+    ? { ...shell.topbar, alignItems: 'center', padding: isTiny ? '10px 12px' : shell.topbar.padding }
     : shell.topbar;
-  const topActionsStyle = isMobile ? { ...shell.topActions, width: '100%', justifyContent: 'flex-end', gap: isTiny ? '6px' : shell.topActions.gap } : shell.topActions;
+  const topActionsStyle = isMobile ? { ...shell.topActions, width: 'auto', justifyContent: 'flex-end', gap: isTiny ? '6px' : shell.topActions.gap } : shell.topActions;
   const summaryGridStyle = isMobile
     ? { ...shell.summaryGrid, gridTemplateColumns: isTiny ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: '10px' }
     : isTablet
@@ -2252,6 +2252,7 @@ export default function InvoiceDashboard() {
 
       <div style={toolbarStyle}>
         <span style={shell.toolLabel}>Invoice Register</span>
+        {!isMobile ? (
         <div style={{ position: 'relative' }}>
           <button
             ref={customizeButtonRef}
@@ -2279,6 +2280,7 @@ export default function InvoiceDashboard() {
             </div>
           ) : null}
         </div>
+        ) : null}
       </div>
 
       <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
@@ -2363,9 +2365,13 @@ export default function InvoiceDashboard() {
                           return;
                         }
                         const rect = event.currentTarget.getBoundingClientRect();
+                        const menuWidth = 176;
+                        const menuHeight = 112;
+                        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+                        const shouldOpenUp = isMobile || viewportHeight - rect.bottom < menuHeight + 12;
                         setRowActionMenuPos({
-                          top: Math.max(10, rect.top - 8),
-                          left: Math.max(10, rect.right - 176)
+                          top: shouldOpenUp ? Math.max(10, rect.top - menuHeight - 8) : Math.max(10, rect.bottom + 8),
+                          left: Math.max(10, rect.right - menuWidth)
                         });
                         setRowActionInvoiceId(invoice._id);
                       }}
