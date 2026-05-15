@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { ArrowDownAZ, ArrowUpAZ, ChevronDown, MoreHorizontal, Plus, SlidersHorizontal, Search, X } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-const ITEMS_PER_PAGE = 25;
+const ITEMS_PER_PAGE = 20;
 const VISIBLE_COLUMNS_STORAGE_KEY = 'items_visible_columns_v2';
 
 const columns = [
@@ -149,10 +149,11 @@ const shell = {
     fontSize: '10px',
     fontWeight: 700,
     color: '#6b7280',
-    padding: '8px 10px',
+    padding: '3px 10px',
     borderBottom: '1px solid var(--color-border)',
     textTransform: 'uppercase',
     position: 'relative',
+    lineHeight: 1.05,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis'
@@ -173,8 +174,8 @@ const shell = {
   },
   resizeHandle: { width: '8px', cursor: 'col-resize', alignSelf: 'stretch', marginRight: '-10px', marginLeft: '8px' },
   row: { borderBottom: '1px solid #eef2f7' },
-  cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 500, color: '#334155', verticalAlign: 'middle', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  nameCell: { color: '#334155', fontWeight: 600 },
+  cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  nameCell: { color: 'var(--color-primary)', fontWeight: 700 },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
   menu: {
