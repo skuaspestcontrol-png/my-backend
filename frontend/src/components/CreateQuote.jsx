@@ -342,6 +342,15 @@ export default function CreateQuote() {
       ...p,
       source_type: 'Lead',
       lead_id: String(lead._id || lead.id || ''),
+      customer_id: '',
+      customer_premise_id: '',
+      premise_label: '',
+      premise_address: '',
+      premise_area_name: '',
+      premise_city: '',
+      premise_state: '',
+      premise_pincode: '',
+      premise_google_map_url: '',
       customer_name: lead.customerName || '',
       company_name: lead.companyName || '',
       address: lead.address || '',
@@ -351,6 +360,7 @@ export default function CreateQuote() {
       gstin: lead.gstin || '',
       quotation_number: ''
     }));
+    setPremiseRows([]);
   };
 
   const applyPremise = (premise) => {
@@ -383,6 +393,7 @@ export default function CreateQuote() {
     setForm((p) => ({
       ...p,
       source_type: 'Customer',
+      lead_id: '',
       customer_id: String(c._id || c.id || ''),
       customer_name: c.customerName || c.name || '',
       company_name: c.companyName || '',
@@ -402,6 +413,24 @@ export default function CreateQuote() {
       console.error('Failed to load customer premises', error);
       setPremiseRows([]);
     }
+  };
+
+  const handleSourceTypeChange = (sourceType) => {
+    setForm((p) => ({
+      ...p,
+      source_type: sourceType,
+      lead_id: sourceType === 'Lead' ? p.lead_id : '',
+      customer_id: sourceType === 'Customer' ? p.customer_id : '',
+      customer_premise_id: sourceType === 'Customer' ? p.customer_premise_id : '',
+      premise_label: sourceType === 'Customer' ? p.premise_label : '',
+      premise_address: sourceType === 'Customer' ? p.premise_address : '',
+      premise_area_name: sourceType === 'Customer' ? p.premise_area_name : '',
+      premise_city: sourceType === 'Customer' ? p.premise_city : '',
+      premise_state: sourceType === 'Customer' ? p.premise_state : '',
+      premise_pincode: sourceType === 'Customer' ? p.premise_pincode : '',
+      premise_google_map_url: sourceType === 'Customer' ? p.premise_google_map_url : ''
+    }));
+    if (sourceType !== 'Customer') setPremiseRows([]);
   };
 
   const saveQuotation = async (mode = 'Draft') => {
@@ -473,6 +502,9 @@ export default function CreateQuote() {
     cursor: termsEditable ? 'text' : 'default',
     resize: termsEditable ? 'vertical' : 'none'
   };
+  const isLeadSource = form.source_type === 'Lead';
+  const isCustomerSource = form.source_type === 'Customer';
+  const inactiveLookupStyle = { ...input, background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed' };
 
   return (
     <section style={pageStyle}>
@@ -491,9 +523,9 @@ export default function CreateQuote() {
         {active === 0 && (
           <>
             <div style={customerGridStyle}>
-              <div><p style={label}>Source</p><select style={input} value={form.source_type} onChange={(e) => setForm((p) => ({ ...p, source_type: e.target.value }))}><option>Manual</option><option>Lead</option><option>Customer</option></select></div>
-              <div><p style={label}>Search Lead</p><select style={input} value={form.lead_id} onChange={(e) => selectLead(e.target.value)}><option value="">Select lead</option>{leadRows.map((l) => <option key={l._id || l.id} value={l._id || l.id}>{l.customerName || l.mobileNumber || l._id}</option>)}</select></div>
-              <div><p style={label}>Search Customer</p><select style={input} value={form.customer_id} onChange={(e) => selectCustomer(e.target.value)}><option value="">Select customer</option>{customerRows.map((c) => <option key={c._id || c.id} value={c._id || c.id}>{c.customerName || c.name || c.mobileNumber}</option>)}</select></div>
+              <div><p style={label}>Source</p><select style={input} value={form.source_type} onChange={(e) => handleSourceTypeChange(e.target.value)}><option>Manual</option><option>Lead</option><option>Customer</option></select></div>
+              <div><p style={label}>Search Lead</p><select style={isLeadSource ? input : inactiveLookupStyle} value={isLeadSource ? form.lead_id : ''} disabled={!isLeadSource} onChange={(e) => selectLead(e.target.value)}><option value="">Select lead</option>{leadRows.map((l) => <option key={l._id || l.id} value={l._id || l.id}>{l.customerName || l.mobileNumber || l._id}</option>)}</select></div>
+              <div><p style={label}>Search Customer</p><select style={isCustomerSource ? input : inactiveLookupStyle} value={isCustomerSource ? form.customer_id : ''} disabled={!isCustomerSource} onChange={(e) => selectCustomer(e.target.value)}><option value="">Select customer</option>{customerRows.map((c) => <option key={c._id || c.id} value={c._id || c.id}>{c.customerName || c.name || c.mobileNumber}</option>)}</select></div>
             </div>
             {premiseRows.length > 0 ? (
               <div style={{ marginTop: 10 }}>
