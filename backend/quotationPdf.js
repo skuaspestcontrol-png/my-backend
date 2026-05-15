@@ -413,14 +413,9 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   doc.y += h;
 
   items.forEach((item, index) => {
-    const details = [
-      clean(item.service_name),
-      `Contract: ${formatDate(item.contract_start_date || quotation.contract_start_date)} to ${formatDate(item.contract_end_date || quotation.contract_end_date)}`
-    ].filter(Boolean).join('\n');
-
     const rowVals = [
       String(index + 1),
-      details,
+      clean(item.service_name || '-'),
       clean(item.frequency || '-'),
       `${toNumber(item.gst_percentage, 0)}%`,
       `Rs. ${formatINR(item.total_amount)}`
