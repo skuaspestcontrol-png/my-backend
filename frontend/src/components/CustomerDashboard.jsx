@@ -204,7 +204,19 @@ const shell = {
   cell: { padding: '10px 10px', fontSize: '8px', fontWeight: 400, color: '#111827', verticalAlign: 'top', lineHeight: 1.25 },
   cellClamp: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   nameCell: { color: 'var(--color-primary)', fontWeight: 400, cursor: 'pointer', textDecoration: 'underline dotted rgba(159,23,77,0.45)' },
-  rowActionButton: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '8px', minWidth: '64px', minHeight: '28px', padding: '4px 10px', fontSize: '8px', fontWeight: 400, cursor: 'pointer' },
+  rowActionButton: {
+    border: '1px solid #d1d5db',
+    background: '#fff',
+    color: '#111827',
+    borderRadius: '10px',
+    minWidth: '82px',
+    minHeight: '36px',
+    padding: '0 14px',
+    fontSize: '13px',
+    lineHeight: 1.2,
+    fontWeight: 700,
+    cursor: 'pointer'
+  },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
   menu: { position: 'absolute', right: 0, top: '38px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', width: '188px', boxShadow: '0 12px 28px rgba(15,23,42,0.12)', zIndex: 20, overflow: 'hidden', padding: '3px 0' },
@@ -1467,7 +1479,7 @@ export default function CustomerDashboard() {
                   </button>
                   <button
                     type="button"
-                    style={{ ...shell.rowActionButton, color: '#b91c1c', borderColor: '#fecaca' }}
+                    style={{ ...shell.rowActionButton, color: '#dc2626', borderColor: '#fecaca', background: '#fff' }}
                     onClick={() => deleteOneCustomer(customer._id)}
                   >
                     Delete

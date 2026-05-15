@@ -113,40 +113,42 @@ const parseLocalAsset = (input = '') => {
   ).trim();
   const uploadDirs = [
     primaryUploadsDir,
+    '/home/u610009593/uploads-skuas-crm',
+    String(process.env.UPLOADS_MIRROR_DIR || '').trim(),
     path.join(__dirname, '..', 'storage', 'uploads'),
     path.join(__dirname, 'uploads'),
     path.join(__dirname, '..', 'uploads'),
     path.join(__dirname, '..', 'public', 'uploads')
-  ];
-  const resolveUploadLocal = (fileName) => {
-    const safeName = decodeURIComponent(String(fileName || '').trim());
-    if (!safeName) return '';
+  ].filter(Boolean);
+  const resolveUploadLocal = (name = '') => {
+    const safeName = decodeURIComponent(String(name || '').trim());
+    const normalized = safeName.replace(/\\/g, '/').replace(/^\/?uploads\/?/, '').replace(/^\/+/, '');
+    if (!normalized || normalized.includes('..')) return '';
     for (const dir of uploadDirs) {
-      const local = path.join(dir, path.basename(safeName));
-      if (fs.existsSync(local)) return local;
+      const byRelativePath = path.join(dir, normalized);
+      if (fs.existsSync(byRelativePath)) return byRelativePath;
+      const byFileName = path.join(dir, path.basename(normalized));
+      if (fs.existsSync(byFileName)) return byFileName;
     }
     return '';
   };
 
   if (raw.startsWith('/uploads/')) {
-    const local = resolveUploadLocal(raw.split('/uploads/')[1]);
-    if (fs.existsSync(local)) return local;
+    return resolveUploadLocal(raw.split('/uploads/')[1]);
   }
   if (raw.includes('/uploads/')) {
-    const local = resolveUploadLocal(raw.split('/uploads/').pop());
-    if (fs.existsSync(local)) return local;
+    return resolveUploadLocal(raw.split('/uploads/').pop());
   }
 
   if (raw.startsWith('/')) {
     if (fs.existsSync(raw)) return raw;
-    const local = path.join(__dirname, raw);
-    if (fs.existsSync(local)) return local;
+    return resolveUploadLocal(raw);
   }
 
   if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
-    const cleanRelative = raw.replace(/^\/?uploads\/?/, '').replace(/^\/+/, '');
-    const local = resolveUploadLocal(cleanRelative);
+    const local = resolveUploadLocal(raw);
     if (fs.existsSync(local)) return local;
+    if (fs.existsSync(raw)) return raw;
   }
 
   try {
@@ -495,7 +497,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
         doc.image(company.logo, watermarkX, watermarkY, { fit: [watermarkW, watermarkH], align: 'center', valign: 'center' });
         doc.restore();
       } catch (_e) {
-        // ignore watermark issues
+        console.error('Invoice PDF watermark logo failed:', company.logo, _e.message);
       }
     }
 
@@ -527,7 +529,9 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const logoBoxW = 68;
     const logoBoxH = 50;
     if (company.logo) {
-      try { doc.image(company.logo, left + 11, y + 11, { fit: [logoBoxW - 6, logoBoxH - 6] }); } catch (_e) {}
+      try { doc.image(company.logo, left + 11, y + 11, { fit: [logoBoxW - 6, logoBoxH - 6] }); } catch (_e) {
+        console.error('Invoice PDF header logo failed:', company.logo, _e.message);
+      }
     } else {
       doc.font('Helvetica').fontSize(8).fillColor('#6b7280').text('LOGO', left + 26, y + 30);
     }
