@@ -526,8 +526,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const headerH = 118;
     drawCell(doc, '', left, y, contentW, headerH, { border: 'none' });
 
-    const logoBoxW = 68;
-    const logoBoxH = 50;
+    const logoBoxW = 102;
+    const logoBoxH = 75;
     if (company.logo) {
       try { doc.image(company.logo, left + 11, y + 11, { fit: [logoBoxW - 6, logoBoxH - 6] }); } catch (_e) {
         console.error('Invoice PDF header logo failed:', company.logo, _e.message);
