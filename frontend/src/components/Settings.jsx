@@ -19,11 +19,6 @@ import WhatsAppLogs from '../pages/whatsapp/WhatsAppLogs';
 import EmailSettings from '../pages/settings/EmailSettings';
 import EmailTemplates from '../pages/settings/EmailTemplates';
 import EmailLogs from '../pages/email/EmailLogs';
-import QuotationTemplateSettings from '../pages/settings/quotation/QuotationTemplateSettings';
-import QuotationPrefixSettings from '../pages/settings/quotation/QuotationPrefixSettings';
-import QuotationServiceTemplatesSettings from '../pages/settings/quotation/QuotationServiceTemplatesSettings';
-import QuotationCommonParagraphsSettings from '../pages/settings/quotation/QuotationCommonParagraphsSettings';
-import InfestationLevelsSettings from '../pages/settings/quotation/InfestationLevelsSettings';
 import GoogleIntegrationSettings from '../pages/settings/GoogleIntegrationSettings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -140,17 +135,6 @@ const sectionGroups = [
     ]
   },
   {
-    key: 'quotation',
-    label: 'Quotation Settings',
-    items: [
-      { key: 'quotationTemplate', label: 'Template' },
-      { key: 'quotationPrefixes', label: 'Prefixes' },
-      { key: 'quotationServices', label: 'Services' },
-      { key: 'quotationCommonParagraphs', label: 'Paragraphs' },
-      { key: 'infestationLevels', label: 'Infestation Levels' }
-    ]
-  },
-  {
     key: 'whatsapp',
     label: 'WhatsApp Settings',
     items: [
@@ -231,6 +215,12 @@ const defaultForm = {
   invoicePrefix: 'SPC-',
   invoiceNextNumber: '66',
   invoiceNumberPadding: '4',
+  quotationPrefix: 'SPC/',
+  quotationFinancialYear: String(new Date().getFullYear()),
+  quotationNextNumber: '1',
+  quotationNumberPadding: '4',
+  quotationFormatTemplate: '{{prefix}}{{year}}/{{service_code}}/{{number}}',
+  quotationEnableServiceCode: true,
   renewalPrefix: 'SPC/REN/',
   renewalNextNumber: '1',
   renewalPadding: '3',
@@ -677,6 +667,11 @@ const getSectionCompletion = (form, securityForm) => {
       form.invoicePrefix,
       form.invoiceNextNumber,
       form.invoiceNumberPadding,
+      form.quotationPrefix,
+      form.quotationFinancialYear,
+      form.quotationNextNumber,
+      form.quotationNumberPadding,
+      form.quotationFormatTemplate,
       form.renewalPrefix,
       form.renewalNextNumber,
       form.renewalNumberPadding,
@@ -687,11 +682,6 @@ const getSectionCompletion = (form, securityForm) => {
       form.employeeCodeNextNumber,
       form.employeeCodePadding
     ].every(isFilled),
-    quotationTemplate: true,
-    quotationPrefixes: true,
-    quotationServices: true,
-    quotationCommonParagraphs: true,
-    infestationLevels: true,
     whatsappApiSettings: [form.whatsappPhoneNumber, form.whatsappInstanceId, form.whatsappAccessToken].every(isFilled),
     whatsappTemplates: true,
     whatsappLogs: true,
@@ -712,8 +702,7 @@ export default function Settings({ modalMode = false }) {
   const [isSaving, setIsSaving] = useState(false);
   const [activeSection, setActiveSection] = useState(flatSections[0].key);
   const [expandedGroups, setExpandedGroups] = useState({
-    general: true,
-    quotation: false,
+    general: false,
     whatsapp: false,
     email: false
   });
@@ -763,13 +752,15 @@ export default function Settings({ modalMode = false }) {
 
     const loadSettings = async () => {
       try {
-        const [res, quotationCommonRes] = await Promise.all([
+        const [res, quotationCommonRes, quotationPrefixRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/api/settings`),
-          axios.get(`${API_BASE_URL}/api/settings/quotation-common-paragraphs`).catch(() => ({ data: {} }))
+          axios.get(`${API_BASE_URL}/api/settings/quotation-common-paragraphs`).catch(() => ({ data: {} })),
+          axios.get(`${API_BASE_URL}/api/settings/quotation-prefixes`).catch(() => ({ data: {} }))
         ]);
         if (!active) return;
         const data = res.data || {};
         const quotationCommon = quotationCommonRes.data || {};
+        const quotationPrefix = quotationPrefixRes.data || {};
 
         const gstCompanyName = String(data.gstCompanyName || data.companyName || '').trim();
         const gstBillingAddress = String(data.gstBillingAddress || data.companyAddress || '').trim();
@@ -858,6 +849,12 @@ export default function Settings({ modalMode = false }) {
           invoicePrefix: data.invoicePrefix || 'SPC-',
           invoiceNextNumber: String(data.invoiceNextNumber ?? 66),
           invoiceNumberPadding: String(data.invoiceNumberPadding ?? 4),
+          quotationPrefix: quotationPrefix.prefix || data.quotationPrefix || 'SPC/',
+          quotationFinancialYear: quotationPrefix.financial_year || data.quotationFinancialYear || String(new Date().getFullYear()),
+          quotationNextNumber: String(quotationPrefix.next_number ?? data.quotationNextNumber ?? 1),
+          quotationNumberPadding: String(quotationPrefix.padding_digits ?? data.quotationNumberPadding ?? 4),
+          quotationFormatTemplate: quotationPrefix.format_template || data.quotationFormatTemplate || '{{prefix}}{{year}}/{{service_code}}/{{number}}',
+          quotationEnableServiceCode: Number(quotationPrefix.enable_service_code ?? data.quotationEnableServiceCode ?? 1) === 1,
           renewalPrefix: data.renewalPrefix || 'SPC/REN/',
           renewalNextNumber: String(data.renewalNextNumber ?? 1),
           renewalPadding: String(data.renewalPadding ?? data.renewalNumberPadding ?? 3),
@@ -1178,6 +1175,12 @@ export default function Settings({ modalMode = false }) {
       invoicePrefix: String(form.invoicePrefix || '').trim() || 'SPC-',
       invoiceNextNumber: Math.max(1, Number(form.invoiceNextNumber) || 1),
       invoiceNumberPadding: Math.max(1, Number(form.invoiceNumberPadding) || 4),
+      quotationPrefix: String(form.quotationPrefix || '').trim() || 'SPC/',
+      quotationFinancialYear: String(form.quotationFinancialYear || '').trim() || String(new Date().getFullYear()),
+      quotationNextNumber: Math.max(1, Number(form.quotationNextNumber) || 1),
+      quotationNumberPadding: Math.max(1, Number(form.quotationNumberPadding) || 4),
+      quotationFormatTemplate: String(form.quotationFormatTemplate || '').trim() || '{{prefix}}{{year}}/{{service_code}}/{{number}}',
+      quotationEnableServiceCode: Boolean(form.quotationEnableServiceCode),
       renewalPrefix: String(form.renewalPrefix || '').trim() || 'SPC/REN/',
       renewalNextNumber: Math.max(1, Number(form.renewalNextNumber) || 1),
       renewalPadding: Math.max(1, Number(form.renewalPadding || form.renewalNumberPadding) || 3),
@@ -1225,6 +1228,16 @@ export default function Settings({ modalMode = false }) {
         ...(quotationCommonRes.data || {}),
         payment_terms: payload.quotationPaymentTerms
       });
+      const quotationPrefixRes = await axios.get(`${API_BASE_URL}/api/settings/quotation-prefixes`).catch(() => ({ data: {} }));
+      await axios.put(`${API_BASE_URL}/api/settings/quotation-prefixes`, {
+        ...(quotationPrefixRes.data || {}),
+        prefix: payload.quotationPrefix,
+        financial_year: payload.quotationFinancialYear,
+        enable_service_code: payload.quotationEnableServiceCode ? 1 : 0,
+        next_number: payload.quotationNextNumber,
+        padding_digits: payload.quotationNumberPadding,
+        format_template: payload.quotationFormatTemplate
+      });
       const savedRaw = res.data?.settings ? { ...payload, ...res.data.settings } : payload;
       const saved = {
         ...savedRaw,
@@ -1232,6 +1245,8 @@ export default function Settings({ modalMode = false }) {
         gstStateCode: normalizeGstStateCode(savedRaw.gstStateCode || deriveGstStateCodeFromGstin(savedRaw.companyGstNumber)),
         invoiceNextNumber: String(savedRaw.invoiceNextNumber ?? payload.invoiceNextNumber),
         invoiceNumberPadding: String(savedRaw.invoiceNumberPadding ?? payload.invoiceNumberPadding),
+        quotationNextNumber: String(payload.quotationNextNumber),
+        quotationNumberPadding: String(payload.quotationNumberPadding),
         jobNextNumber: String(savedRaw.jobNextNumber ?? payload.jobNextNumber),
         jobNumberPadding: String(savedRaw.jobNumberPadding ?? payload.jobNumberPadding),
         employeeCodeNextNumber: String(savedRaw.employeeCodeNextNumber ?? payload.employeeCodeNextNumber),
@@ -1876,6 +1891,54 @@ export default function Settings({ modalMode = false }) {
       </div>
 
       <div style={shell.divider} />
+      <p style={{ ...shell.sectionHeading, marginTop: '2px' }}>Quotation Numbering</p>
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Quotation Prefix</p>
+          <input style={shell.input} value={form.quotationPrefix} onChange={(event) => updateField('quotationPrefix', event.target.value)} placeholder="SPC/" />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Financial Year</p>
+          <input style={shell.input} value={form.quotationFinancialYear} onChange={(event) => updateField('quotationFinancialYear', event.target.value)} />
+        </div>
+      </div>
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Next Quotation Number</p>
+          <input
+            style={shell.input}
+            inputMode="numeric"
+            value={form.quotationNextNumber}
+            onChange={(event) => updateField('quotationNextNumber', event.target.value.replace(/\D/g, ''))}
+          />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Quotation Number Padding</p>
+          <input
+            style={shell.input}
+            inputMode="numeric"
+            value={form.quotationNumberPadding}
+            onChange={(event) => updateField('quotationNumberPadding', event.target.value.replace(/\D/g, ''))}
+          />
+        </div>
+      </div>
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Format Template</p>
+          <input style={shell.input} value={form.quotationFormatTemplate} onChange={(event) => updateField('quotationFormatTemplate', event.target.value)} />
+          <p style={shell.hint}>{'Use {{prefix}}, {{year}}, {{service_code}}, {{number}}'}</p>
+        </div>
+        <label style={{ ...shell.checkItem, alignSelf: 'end', minHeight: '42px' }}>
+          <input
+            type="checkbox"
+            checked={Boolean(form.quotationEnableServiceCode)}
+            onChange={(event) => updateField('quotationEnableServiceCode', event.target.checked)}
+          />
+          Enable Service Short Code
+        </label>
+      </div>
+
+      <div style={shell.divider} />
       <p style={{ ...shell.sectionHeading, marginTop: '2px' }}>Renewal Numbering</p>
       <div style={shell.twoCol}>
         <div style={shell.field}>
@@ -2470,11 +2533,6 @@ export default function Settings({ modalMode = false }) {
     if (activeSection === 'nonGstCompany') return renderNonGstCompany();
     if (activeSection === 'bankAccounts') return renderBankAccounts();
     if (activeSection === 'documentPrefixes') return renderDocumentPrefixes();
-    if (activeSection === 'quotationTemplate') return <QuotationTemplateSettings />;
-    if (activeSection === 'quotationPrefixes') return <QuotationPrefixSettings />;
-    if (activeSection === 'quotationServices') return <QuotationServiceTemplatesSettings />;
-    if (activeSection === 'quotationCommonParagraphs') return <QuotationCommonParagraphsSettings />;
-    if (activeSection === 'infestationLevels') return <InfestationLevelsSettings />;
     if (activeSection === 'whatsappApiSettings') return <WhatsAppSettings />;
     if (activeSection === 'whatsappTemplates') return <WhatsAppTemplates />;
     if (activeSection === 'whatsappLogs') return <WhatsAppLogs />;
