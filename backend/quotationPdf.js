@@ -375,13 +375,12 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   doc.moveDown(0.1);
 
   const recCols = [
-    { x: left, w: 30 },
-    { x: left + 30, w: 140 },
-    { x: left + 170, w: 90 },
-    { x: left + 260, w: 252 }
+    { x: left, w: 52 },
+    { x: left + 52, w: 150 },
+    { x: left + 202, w: right - left - 202 }
   ];
 
-  let h = drawTableRow(doc, recCols, doc.y, ['#', 'Service', 'Infestation', 'Recommendation'], {
+  let h = drawTableRow(doc, recCols, doc.y, ['Sr No', 'Infestation Level', 'Recommendation'], {
     isHeader: true,
     fontSize: pdfTextSize.table,
     borderColor: '#111827',
@@ -391,7 +390,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   items.forEach((item, index) => {
     const recText = clean(item.recommendation || item.what_we_do || '-');
-    const rowVals = [String(index + 1), clean(item.service_name || '-'), clean(item.infestation_level || '-'), recText];
+    const rowVals = [String(index + 1), clean(item.infestation_level || '-'), recText];
     const rowHeight = getRowHeight(doc, recCols, rowVals, pdfTextSize.table, 30, 8);
     ensureSpace(rowHeight + 2);
     h = drawTableRow(doc, recCols, doc.y, rowVals, {
@@ -400,7 +399,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
       minHeight: 30,
       paddingY: 4,
       verticalAlign: 'middle',
-      alignments: ['center', 'left', 'center', 'left']
+      alignments: ['center', 'center', 'left']
     });
     doc.y += h;
   });
@@ -410,12 +409,27 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text(title, left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(0.1);
 
+  const serviceNameWidth = Math.max(
+    82,
+    Math.min(
+      140,
+      Math.ceil(Math.max(
+        doc.font(pdfFont.bold).fontSize(pdfTextSize.table).widthOfString('Service'),
+        ...items.map((item) => doc.font(pdfFont.regular).fontSize(pdfTextSize.table).widthOfString(clean(item.service_name || '-')))
+      )) + 16
+    )
+  );
+  const serviceTableWidth = right - left;
+  const serviceFixedWidth = 30 + serviceNameWidth + 72;
+  const remainingServiceWidth = Math.max(230, serviceTableWidth - serviceFixedWidth);
+  const frequencyWidth = Math.round(remainingServiceWidth * 0.48);
+  const amountWidth = remainingServiceWidth - frequencyWidth;
   const serviceCols = [
     { x: left, w: 30 },
-    { x: left + 30, w: 160 },
-    { x: left + 190, w: 110 },
-    { x: left + 300, w: 72 },
-    { x: left + 372, w: 140 }
+    { x: left + 30, w: serviceNameWidth },
+    { x: left + 30 + serviceNameWidth, w: frequencyWidth },
+    { x: left + 30 + serviceNameWidth + frequencyWidth, w: 72 },
+    { x: left + 30 + serviceNameWidth + frequencyWidth + 72, w: amountWidth }
   ];
 
   h = drawTableRow(doc, serviceCols, doc.y, ['#', 'Service', 'Frequency', 'GST %', 'Amount'], {
@@ -493,7 +507,13 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   }
 
   doc.moveDown(3.3);
-  doc.font(pdfFont.regular).fontSize(pdfTextSize.signature).text(clean(quotation.sales_person || templateSettings.default_sales_person), left, doc.y, { width: right - left, align: 'left' });
+  [
+    clean(quotation.sales_person || templateSettings.default_sales_person),
+    clean(quotation.designation || templateSettings.default_designation),
+    clean(quotation.mobile || templateSettings.default_mobile)
+  ].filter(Boolean).forEach((line) => {
+    doc.font(pdfFont.regular).fontSize(pdfTextSize.signature).text(line, left, doc.y, { width: right - left, align: 'left' });
+  });
 
   doc.end();
 });

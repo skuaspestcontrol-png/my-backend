@@ -3,10 +3,21 @@ import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const QUOTATION_RECOMMENDATION_DEFAULT_KEY = 'quotation_default_recommendation';
 
 const tabs = ['Customer Details', 'Quotation Details', 'Services', 'Recommendation Table', 'Pricing', 'Terms & Preview'];
 
-const makeItem = () => ({
+const getStoredRecommendationDefault = () => {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem(QUOTATION_RECOMMENDATION_DEFAULT_KEY) || '';
+};
+
+const saveStoredRecommendationDefault = (value) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(QUOTATION_RECOMMENDATION_DEFAULT_KEY, value || '');
+};
+
+const makeItem = (recommendationDefault = getStoredRecommendationDefault()) => ({
   service_template_id: '',
   service_name: '',
   service_code: '',
@@ -18,7 +29,7 @@ const makeItem = () => ({
   infestation_level: '',
   infestation_image_url: '',
   frequency: '',
-  recommendation: '',
+  recommendation: recommendationDefault,
   area_covered: '',
   quantity: 1,
   rate_without_gst: 0,
@@ -86,6 +97,7 @@ export default function CreateQuote() {
   const [premiseRows, setPremiseRows] = useState([]);
   const [status, setStatus] = useState('');
   const [savedId, setSavedId] = useState(null);
+  const [recommendationDefault, setRecommendationDefault] = useState(getStoredRecommendationDefault);
 
   const [form, setForm] = useState({
     source_type: 'Manual',
@@ -211,6 +223,12 @@ export default function CreateQuote() {
     });
   };
 
+  const updateRecommendation = (idx, value) => {
+    updateItem(idx, { recommendation: value });
+    setRecommendationDefault(value);
+    saveStoredRecommendationDefault(value);
+  };
+
   const selectServiceTemplate = (idx, itemId) => {
     const selected = serviceCatalog.find((entry) => String(entry._id || '') === String(itemId || ''));
     if (!selected) return;
@@ -219,6 +237,7 @@ export default function CreateQuote() {
     const taxRate = parsePercent(selected.intraTaxRate || selected.taxRate || selected.gstRate || '18%');
     const rate = num(selected.sellingPrice || selected.rate || 0);
     const description = selected.serviceDescription || selected.salesDescription || selected.description || '';
+    const defaultRecommendation = recommendationDefault || selected.recommendation || description;
     const serviceName = getItemServiceName(selected);
     updateItem(idx, {
       service_template_id: selected._id,
@@ -232,7 +251,7 @@ export default function CreateQuote() {
       infestation_level: defaultLevel,
       infestation_image_url: level?.image_url || '',
       frequency: selected.frequency || '',
-      recommendation: selected.recommendation || description,
+      recommendation: defaultRecommendation,
       gst_percentage: taxRate,
       rate_without_gst: rate,
       rate_with_gst: Number((rate + ((rate * taxRate) / 100)).toFixed(2))
@@ -482,11 +501,11 @@ export default function CreateQuote() {
                   <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Total Amount</p><input style={input} readOnly value={money(item.total_amount || 0)} /></div>
                 </div>
 
-                <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Recommendation</p><textarea style={{ ...input, minHeight: 56 }} value={item.recommendation || ''} onChange={(e) => updateItem(idx, { recommendation: e.target.value })} /></div>
+                <div><p style={{ margin: '0 0 5px', fontWeight: 700 }}>Recommendation</p><textarea style={{ ...input, minHeight: 56 }} value={item.recommendation || ''} onChange={(e) => updateRecommendation(idx, e.target.value)} /></div>
               </div>
             ))}
 
-            <button type="button" style={btnGhost} onClick={() => setItems((prev) => [...prev, makeItem()])}>+ Add Service</button>
+            <button type="button" style={btnGhost} onClick={() => setItems((prev) => [...prev, makeItem(recommendationDefault)])}>+ Add Service</button>
           </div>
         )}
 
@@ -505,7 +524,7 @@ export default function CreateQuote() {
                     <td style={{ padding: 8 }}>
                       {item.infestation_image_url ? <img src={item.infestation_image_url} alt="infestation" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 8 }} /> : '-'}
                     </td>
-                    <td style={{ padding: 8 }}><textarea style={{ ...input, minHeight: 54 }} value={item.recommendation || ''} onChange={(e) => updateItem(idx, { recommendation: e.target.value })} /></td>
+                    <td style={{ padding: 8 }}><textarea style={{ ...input, minHeight: 54 }} value={item.recommendation || ''} onChange={(e) => updateRecommendation(idx, e.target.value)} /></td>
                   </tr>
                 ))}
               </tbody>
