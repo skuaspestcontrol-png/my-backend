@@ -60,19 +60,12 @@ const cleanPaymentTerms = (value = '') => {
 const customerDetailLinesForQuotation = (quotation = {}) => {
   const customerName = clean(quotation.customer_name);
   const companyName = clean(quotation.company_name);
-  const detailLines = companyName
-    ? [
-        ['Company Name', companyName],
-        ['Customer Name', customerName]
-      ]
-    : [
-        ['Customer Name', customerName],
-        ['Company Name', '']
-      ];
+  const address = clean(quotation.address);
+  const detailLines = companyName ? [companyName, customerName] : [customerName, ''];
 
   return [
-    ...detailLines,
-    ['Address', clean(quotation.address)],
+    ...detailLines.map((line) => ['', line]),
+    ['', address],
     ['Phone', clean(quotation.phone)],
     ['Email', clean(quotation.email)],
     ['GSTIN', clean(quotation.gstin)]
@@ -87,20 +80,17 @@ const drawLabeledDetailBlock = (doc, rows = [], x, y, width, options = {}) => {
   let cursorY = y;
 
   rows.forEach(([label, value]) => {
+    const labelText = clean(label);
     const text = clean(value);
-    const valueX = x + labelWidth;
-    const valueWidth = Math.max(10, width - labelWidth);
-    const rowHeight = Math.max(
-      doc.font(pdfFont.bold).fontSize(fontSize).heightOfString(`${label}:`, { width: labelWidth - 4, lineGap }),
-      doc.font(pdfFont.regular).fontSize(fontSize).heightOfString(text || ' ', { width: valueWidth, lineGap })
-    );
+    const inlineText = labelText ? `${labelText}: ${text}` : text;
+    const rowHeight = doc.font(labelText ? pdfFont.bold : pdfFont.regular)
+      .fontSize(fontSize)
+      .heightOfString(inlineText || ' ', { width, lineGap });
 
-    doc.font(pdfFont.bold).fontSize(fontSize).fillColor('#111827')
-      .text(`${label}:`, x, cursorY, { width: labelWidth - 4, align: 'left', lineGap });
-    doc.font(pdfFont.regular).fontSize(fontSize).fillColor('#111827')
-      .text(text, valueX, cursorY, { width: valueWidth, align: 'left', lineGap });
+    doc.font(labelText ? pdfFont.bold : pdfFont.regular).fontSize(fontSize).fillColor('#111827')
+      .text(inlineText, x, cursorY, { width, align: 'left', lineGap });
 
-    cursorY += rowHeight + 2;
+    cursorY += rowHeight + (options.rowGap ?? 0);
   });
 
   doc.y = cursorY;
@@ -404,13 +394,13 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     doc,
     customerDetailLinesForQuotation(quotation),
     left,
-    doc.y + 4,
+    doc.y + 2,
     right - left,
-    { labelWidth: 86, fontSize: pdfTextSize.body, lineGap: 2 }
+    { fontSize: pdfTextSize.body, lineGap: 0, rowGap: 0 }
   );
 
   ensureSpace(40);
-  doc.moveDown(0.9);
+  doc.moveDown(0.35);
   const primaryColor = clean(templateSettings.primary_color || companySettings.brandingAccentColor || '#9F174D');
   const serviceTitles = formatJoinedNames(items.map((item) => item?.service_title || item?.service_name || item?.pest_name));
   const title = `Quotation for ${serviceTitles || 'Pest Control Service'}`;
@@ -559,15 +549,15 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   blocks.forEach(([titleText, body]) => {
     ensureSpace(70);
-    doc.moveDown(0.3);
+    doc.moveDown(0.1);
     if (titleText) {
       const headingSize = titleText === 'Payment Terms' ? pdfTextSize.paymentHeading : pdfTextSize.sectionHeading;
       doc.font(pdfFont.bold).fontSize(headingSize).fillColor(primaryColor).text(titleText, left, doc.y, { width: right - left, align: 'left' });
-      if (titleText === 'Payment Terms') doc.moveDown(0.25);
+      if (titleText === 'Payment Terms') doc.moveDown(0.05);
     }
     const bodySize = titleText === 'Payment Terms' ? pdfTextSize.paymentBody : pdfTextSize.body;
     doc.font(pdfFont.regular).fontSize(bodySize).fillColor('#111827').text(body, left, doc.y, { width: right - left, align: titleText === 'Payment Terms' ? 'left' : 'justify', lineGap: 1 });
-    if (titleText === 'Payment Terms') doc.moveDown(1.2);
+    if (titleText === 'Payment Terms') doc.moveDown(0.45);
   });
 
   ensureSpace(90);
