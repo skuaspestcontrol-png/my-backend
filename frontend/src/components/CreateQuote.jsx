@@ -98,6 +98,7 @@ export default function CreateQuote() {
   const [status, setStatus] = useState('');
   const [savedId, setSavedId] = useState(null);
   const [recommendationDefault, setRecommendationDefault] = useState(getStoredRecommendationDefault);
+  const [termsEditable, setTermsEditable] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1024 : window.innerWidth));
 
   const [form, setForm] = useState({
@@ -450,6 +451,16 @@ export default function CreateQuote() {
   const pricingGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 10 };
   const footerActionsStyle = { display: 'flex', gap: 8, flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' };
   const footerButtonStyle = isMobile ? { minWidth: '100%' } : {};
+  const termsTextAreaStyle = {
+    ...input,
+    minHeight: 70,
+    padding: '10px 12px',
+    lineHeight: 1.45,
+    background: termsEditable ? '#fff' : '#f8fafc',
+    color: termsEditable ? 'var(--text)' : '#1f2937',
+    cursor: termsEditable ? 'text' : 'default',
+    resize: termsEditable ? 'vertical' : 'none'
+  };
 
   return (
     <section style={pageStyle}>
@@ -581,12 +592,29 @@ export default function CreateQuote() {
 
         {active === 5 && (
           <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                style={termsEditable ? btnPrimary : btnGhost}
+                onClick={() => setTermsEditable((prev) => !prev)}
+              >
+                {termsEditable ? 'Lock Terms' : 'Edit Terms'}
+              </button>
+            </div>
             {[
               ['opening_paragraph', 'Opening Paragraph'],
               ['payment_terms', 'Payment Terms'],
               ['closing_paragraph', 'Closing Paragraph']
             ].map(([key, label]) => (
-              <div key={key}><p style={{ margin: '0 0 6px', fontWeight: 700 }}>{label}</p><textarea style={{ ...input, minHeight: 60 }} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /></div>
+              <div key={key}>
+                <p style={{ margin: '0 0 6px', fontWeight: 700 }}>{label}</p>
+                <textarea
+                  style={termsTextAreaStyle}
+                  value={form[key] || ''}
+                  readOnly={!termsEditable}
+                  onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
+                />
+              </div>
             ))}
           </div>
         )}

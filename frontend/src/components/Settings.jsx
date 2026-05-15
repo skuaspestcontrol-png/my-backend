@@ -208,7 +208,6 @@ const defaultForm = {
   gstTermsAndConditions: '',
   nonGstTermsAndConditions: '',
   renewalLetterTermsAndConditions: '',
-  quotationPaymentTerms: '',
   customerNotesDefault: '',
   settingsAccessPin: '',
   invoiceNumberMode: 'auto',
@@ -688,7 +687,7 @@ const getSectionCompletion = (form, securityForm) => {
     emailApiSettings: [form.smtpSenderName, form.smtpFromEmail, form.smtpUser, form.smtpHost, form.smtpPort].every(isFilled),
     emailTemplates: true,
     emailLogs: true,
-    termsConditions: [form.gstTermsAndConditions, form.nonGstTermsAndConditions, form.renewalLetterTermsAndConditions, form.quotationPaymentTerms].every(isFilled),
+    termsConditions: [form.gstTermsAndConditions, form.nonGstTermsAndConditions, form.renewalLetterTermsAndConditions].every(isFilled),
     invoiceSettings: Boolean(form.invoiceTemplate && Array.isArray(form.invoiceVisibleColumns) && form.invoiceVisibleColumns.length > 0),
     security: securityReady
   };
@@ -752,14 +751,12 @@ export default function Settings({ modalMode = false }) {
 
     const loadSettings = async () => {
       try {
-        const [res, quotationCommonRes, quotationPrefixRes] = await Promise.all([
+        const [res, quotationPrefixRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/api/settings`),
-          axios.get(`${API_BASE_URL}/api/settings/quotation-common-paragraphs`).catch(() => ({ data: {} })),
           axios.get(`${API_BASE_URL}/api/settings/quotation-prefixes`).catch(() => ({ data: {} }))
         ]);
         if (!active) return;
         const data = res.data || {};
-        const quotationCommon = quotationCommonRes.data || {};
         const quotationPrefix = quotationPrefixRes.data || {};
 
         const gstCompanyName = String(data.gstCompanyName || data.companyName || '').trim();
@@ -841,7 +838,6 @@ export default function Settings({ modalMode = false }) {
           gstTermsAndConditions: data.gstTermsAndConditions || data.termsAndConditionsDefault || '',
           nonGstTermsAndConditions: data.nonGstTermsAndConditions || '',
           renewalLetterTermsAndConditions: data.renewalLetterTermsAndConditions || '',
-          quotationPaymentTerms: quotationCommon.payment_terms || data.quotationPaymentTerms || '',
           customerNotesDefault: data.customerNotesDefault || '',
           termsAndConditionsDefault: data.termsAndConditionsDefault || data.gstTermsAndConditions || '',
           settingsAccessPin: data.settingsAccessPin || '',
@@ -1167,7 +1163,6 @@ export default function Settings({ modalMode = false }) {
       gstTermsAndConditions: String(form.gstTermsAndConditions || '').trim(),
       nonGstTermsAndConditions: String(form.nonGstTermsAndConditions || '').trim(),
       renewalLetterTermsAndConditions: String(form.renewalLetterTermsAndConditions || '').trim(),
-      quotationPaymentTerms: String(form.quotationPaymentTerms || '').trim(),
       customerNotesDefault: String(form.customerNotesDefault || '').trim(),
       termsAndConditionsDefault: String(form.gstTermsAndConditions || form.termsAndConditionsDefault || '').trim(),
       settingsAccessPin: String(form.settingsAccessPin || '').trim(),
@@ -1223,11 +1218,6 @@ export default function Settings({ modalMode = false }) {
       setIsSaving(true);
       setStatus('Saving changes...');
       const res = await axios.post(`${API_BASE_URL}/api/settings/save`, payload);
-      const quotationCommonRes = await axios.get(`${API_BASE_URL}/api/settings/quotation-common-paragraphs`).catch(() => ({ data: {} }));
-      await axios.put(`${API_BASE_URL}/api/settings/quotation-common-paragraphs`, {
-        ...(quotationCommonRes.data || {}),
-        payment_terms: payload.quotationPaymentTerms
-      });
       const quotationPrefixRes = await axios.get(`${API_BASE_URL}/api/settings/quotation-prefixes`).catch(() => ({ data: {} }));
       await axios.put(`${API_BASE_URL}/api/settings/quotation-prefixes`, {
         ...(quotationPrefixRes.data || {}),
@@ -1241,7 +1231,6 @@ export default function Settings({ modalMode = false }) {
       const savedRaw = res.data?.settings ? { ...payload, ...res.data.settings } : payload;
       const saved = {
         ...savedRaw,
-        quotationPaymentTerms: payload.quotationPaymentTerms,
         gstStateCode: normalizeGstStateCode(savedRaw.gstStateCode || deriveGstStateCodeFromGstin(savedRaw.companyGstNumber)),
         invoiceNextNumber: String(savedRaw.invoiceNextNumber ?? payload.invoiceNextNumber),
         invoiceNumberPadding: String(savedRaw.invoiceNumberPadding ?? payload.invoiceNumberPadding),
@@ -2212,14 +2201,6 @@ export default function Settings({ modalMode = false }) {
           style={{ ...shell.textArea, minHeight: '165px' }}
           value={form.renewalLetterTermsAndConditions}
           onChange={(event) => updateField('renewalLetterTermsAndConditions', event.target.value)}
-        />
-      </div>
-      <div style={shell.field}>
-        <p style={shell.fieldLabel}>Quotation Payment Terms</p>
-        <textarea
-          style={{ ...shell.textArea, minHeight: '165px' }}
-          value={form.quotationPaymentTerms}
-          onChange={(event) => updateField('quotationPaymentTerms', event.target.value)}
         />
       </div>
     </>
