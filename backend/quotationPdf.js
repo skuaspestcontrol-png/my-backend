@@ -71,10 +71,20 @@ const ownTextOrDefault = (source = {}, key, fallback = '') => (
 
 const hasOwnTextField = (source = {}, key) => Object.prototype.hasOwnProperty.call(source, key) && source[key] !== null;
 
+const appendAddressMeta = (address = '', city = '', pincode = '') => {
+  const base = clean(address);
+  const parts = [clean(city), clean(pincode)].filter(Boolean);
+  if (!parts.length) return base;
+  const lowerBase = base.toLowerCase();
+  const missingParts = parts.filter((part) => !lowerBase.includes(part.toLowerCase()));
+  if (!missingParts.length) return base;
+  return [base, missingParts.join(' - ')].filter(Boolean).join('\n');
+};
+
 const customerDetailLinesForQuotation = (quotation = {}) => {
   const customerName = clean(quotation.customer_name);
   const companyName = clean(quotation.company_name);
-  const address = clean(quotation.address);
+  const address = appendAddressMeta(quotation.address, quotation.premise_city, quotation.premise_pincode);
   const identityLines = companyName
     ? [
         { label: '', value: companyName, bold: true },

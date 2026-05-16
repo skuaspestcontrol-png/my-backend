@@ -354,6 +354,8 @@ export default function CreateQuote() {
       customer_name: lead.customerName || '',
       company_name: lead.companyName || '',
       address: lead.address || '',
+      premise_city: lead.city || '',
+      premise_pincode: lead.pincode || lead.pinCode || lead.postalCode || lead.postal_code || lead.zip || '',
       phone: lead.mobileNumber || lead.mobile || '',
       whatsapp: lead.whatsappNumber || '',
       email: lead.emailId || lead.email || '',
@@ -398,6 +400,8 @@ export default function CreateQuote() {
       customer_name: c.customerName || c.name || '',
       company_name: c.companyName || '',
       address: c.billingAddress || c.address || '',
+      premise_city: c.billingCity || c.city || '',
+      premise_pincode: c.billingPincode || c.pincode || '',
       phone: c.mobileNumber || c.mobile || '',
       whatsapp: c.whatsappNumber || '',
       email: c.emailId || c.email || '',
@@ -495,6 +499,8 @@ export default function CreateQuote() {
   const customerGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 10 };
   const addressFieldStyle = isMobile ? {} : { gridColumn: '1 / span 3' };
   const quoteGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 10 };
+  const addressGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 2fr) minmax(190px, 0.65fr)', gap: 10, alignItems: 'stretch' };
+  const cityPinGridStyle = { display: 'grid', gridTemplateRows: isMobile ? 'auto' : '1fr 1fr', gap: 10 };
   const serviceTopGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 8 };
   const serviceTextGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8 };
   const serviceAmountGridStyle = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(6, 1fr)', gap: 8 };
@@ -549,8 +555,27 @@ export default function CreateQuote() {
               </div>
             ) : null}
             <div style={customerGridStyle}>
-              {['customer_name','company_name','address','phone','email','gstin'].map((key) => (
-                <div key={key} style={key === 'address' ? addressFieldStyle : {}}><p style={{ ...label, textTransform: 'capitalize' }}>{key.replaceAll('_', ' ')}</p>{key === 'address' ? <textarea style={{ ...input, minHeight: 58 }} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /> : <input style={input} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} />}</div>
+              {['customer_name','company_name'].map((key) => (
+                <div key={key}><p style={{ ...label, textTransform: 'capitalize' }}>{key.replaceAll('_', ' ')}</p><input style={input} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /></div>
+              ))}
+            </div>
+            <div style={addressGridStyle}>
+              <div>
+                <p style={label}>Address</p>
+                <textarea
+                  style={{ ...input, minHeight: isMobile ? 74 : 112, paddingTop: 10, resize: 'vertical' }}
+                  value={form.address || ''}
+                  onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
+                />
+              </div>
+              <div style={cityPinGridStyle}>
+                <div><p style={label}>City</p><input style={input} value={form.premise_city || ''} onChange={(e) => setForm((p) => ({ ...p, premise_city: e.target.value }))} /></div>
+                <div><p style={label}>Pincode</p><input style={input} value={form.premise_pincode || ''} onChange={(e) => setForm((p) => ({ ...p, premise_pincode: e.target.value }))} /></div>
+              </div>
+            </div>
+            <div style={customerGridStyle}>
+              {['phone','email','gstin'].map((key) => (
+                <div key={key}><p style={{ ...label, textTransform: 'capitalize' }}>{key}</p><input style={input} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /></div>
               ))}
             </div>
           </>
