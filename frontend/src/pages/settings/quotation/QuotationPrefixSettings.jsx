@@ -8,6 +8,7 @@ const defaultMap = {
   'Termite Control': 'TC',
   'Rodent Control': 'RC',
   'General Pest Control': 'GPC',
+  'Bedbug Control': 'BBC',
   'Bed Bug Control': 'BBC',
   'Mosquito Control': 'MC',
   'AMC Pest Control': 'AMC'

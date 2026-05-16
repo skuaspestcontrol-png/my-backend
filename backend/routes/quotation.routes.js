@@ -241,6 +241,7 @@ const ensureTables = async () => {
       'Termite Control': 'TC',
       'Rodent Control': 'RC',
       'General Pest Control': 'GPC',
+      'Bedbug Control': 'BBC',
       'Bed Bug Control': 'BBC',
       'Mosquito Control': 'MC',
       'AMC Pest Control': 'AMC'
@@ -305,7 +306,10 @@ const resolveServiceCode = (prefixSettings, firstItem) => {
   if (codeFromItem) return codeFromItem;
   let map = {};
   try { map = JSON.parse(prefixSettings.service_code_map_json || '{}'); } catch (_e) {}
-  return clean(map[clean(firstItem?.service_name)] || 'GEN');
+  const serviceName = clean(firstItem?.service_name);
+  const normalizedServiceName = serviceName.toLowerCase().replace(/\s+/g, ' ');
+  const normalizedMatch = Object.entries(map).find(([name]) => clean(name).toLowerCase().replace(/\s+/g, ' ') === normalizedServiceName);
+  return clean(map[serviceName] || normalizedMatch?.[1] || 'GEN');
 };
 
 const generateQuotationNumber = async (conn, firstItem) => {

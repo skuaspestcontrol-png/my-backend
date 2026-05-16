@@ -3,16 +3,15 @@ import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { loadGooglePlacesScript } from '../utils/googlePlaces';
+import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
 import {
   CalendarDays,
   ChevronDown,
   ClipboardList,
-  Download,
   MapPin,
   MoreHorizontal,
   PhoneCall,
   Plus,
-  RefreshCw,
   Search,
   User,
   X
@@ -200,9 +199,6 @@ const s = {
   analyticsTitleWrap: { display: 'grid', gap: '2px' },
   analyticsTitle: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111111' },
   analyticsSub: { margin: 0, color: '#64748b', fontSize: '12px', fontWeight: 600 },
-  analyticsActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
-  analyticsBtn: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#111111', borderRadius: '8px', padding: '7px 10px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
-  analyticsBtnPrimary: { border: '1px solid rgba(159, 23, 77, 0.35)', background: 'rgba(252, 231, 243, 0.28)', color: 'var(--color-primary-dark)' },
   metricsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' },
   metricCard: { border: '1px solid rgba(17,17,17,0.08)', borderRadius: '10px', background: '#fff', padding: '8px 10px', display: 'grid', gap: '4px' },
   metricLabel: { margin: 0, color: '#64748b', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 },
@@ -1100,15 +1096,6 @@ export default function LeadCapture() {
     setSelectedLeadIds([]);
   };
 
-  const refreshLeadData = async () => {
-    try {
-      await fetchLeadsAndEmployees();
-      setSelectedLeadIds([]);
-    } catch (error) {
-      console.error('Refresh failed', error);
-    }
-  };
-
   const updateForm = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
@@ -1674,7 +1661,7 @@ export default function LeadCapture() {
     if (key === 'city') return lead.city || '';
     if (key === 'state') return lead.state || '';
     if (key === 'pincode') return lead.pincode || lead.pinCode || lead.postalCode || lead.postal_code || lead.zip || '';
-    if (key === 'pestIssue') return lead.pestIssue || '';
+    if (key === 'pestIssue') return pestIssueShort(lead.pestIssue);
     if (key === 'leadSource') return lead.leadSource || '';
     if (key === 'propertyType') return lead.propertyType || lead.customerSegment || '';
     if (key === 'status') return getLeadStatus(lead);
@@ -1955,7 +1942,6 @@ export default function LeadCapture() {
   const isTiny = viewportWidth <= 380;
   const pageStyle = { padding: isMobile ? '8px' : '12px' };
   const analyticsHeaderStyle = isMobile ? { ...s.analyticsHeader, flexDirection: 'column', alignItems: 'stretch' } : s.analyticsHeader;
-  const analyticsActionsStyle = isMobile ? { ...s.analyticsActions, width: '100%', justifyContent: 'space-between' } : s.analyticsActions;
   const filtersGridStyle = isMobile
     ? { ...s.filtersGrid, gridTemplateColumns: '1fr', minWidth: 0 }
     : isTablet
@@ -2035,18 +2021,6 @@ export default function LeadCapture() {
             <h3 style={analyticsTitleStyle}>Lead Master Overview Summary</h3>
             <p style={s.analyticsSub}>Year-wise, month-wise, pest issue-wise, source-wise, status-wise, and assigned-wise lead analytics.</p>
           </div>
-          {!isMobile ? (
-            <div style={analyticsActionsStyle}>
-              <button type="button" style={s.analyticsBtn} onClick={refreshLeadData}>
-                <RefreshCw size={14} />
-                Refresh
-              </button>
-              <button type="button" style={{ ...s.analyticsBtn, ...s.analyticsBtnPrimary }} onClick={exportData}>
-                <Download size={14} />
-                Export CSV
-              </button>
-            </div>
-          ) : null}
         </div>
 
         <div style={s.metricsGrid}>
@@ -2120,7 +2094,7 @@ export default function LeadCapture() {
                 >
                   <option value={ALL_FILTER_VALUE}>All Pest Issues</option>
                   {pestIssueFilterOptions.map((issue) => (
-                    <option key={issue} value={issue}>{issue}</option>
+                    <option key={issue} value={issue}>{pestIssueLabel(issue)}</option>
                   ))}
                 </select>
               </div>
@@ -2532,7 +2506,7 @@ export default function LeadCapture() {
                 <div style={viewGridStyle}>
                   <div style={s.viewItem}>
                     <span style={s.viewItemLabel}>Pest Issue</span>
-                    <span style={s.viewItemValue}>{viewedLead.pestIssue || '-'}</span>
+                    <span style={s.viewItemValue}>{viewedLead.pestIssue ? pestIssueLabel(viewedLead.pestIssue) : '-'}</span>
                   </div>
                   <div style={s.viewItem}>
                     <span style={s.viewItemLabel}>Property Type</span>
@@ -2826,7 +2800,7 @@ export default function LeadCapture() {
                     >
                       <option value="">Select service</option>
                       {PEST_ISSUES.map((issue) => (
-                        <option key={issue} value={issue}>{issue}</option>
+                        <option key={issue} value={issue}>{pestIssueLabel(issue)}</option>
                       ))}
                     </select>
                   </div>

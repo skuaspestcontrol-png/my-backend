@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { pestIssueShort } from '../utils/pestIssueCodes';
 
 export default function LeadDashboard() {
   const [leads, setLeads] = useState([]);
@@ -96,7 +97,7 @@ export default function LeadDashboard() {
                       <div className="crm-cell-wrap">{lead.mobileNumber}</div>
                       <div className="crm-table-muted">{lead.areaName}</div>
                     </td>
-                    <td style={tdStyle} data-label="Pest Issue">{lead.pestIssue || '-'}</td>
+                    <td style={tdStyle} data-label="Pest Issue" title={lead.pestIssue || ''}>{pestIssueShort(lead.pestIssue)}</td>
                     <td style={tdStyle} data-label="Source">{lead.leadSource === 'Other' ? lead.customLeadSource : lead.leadSource}</td>
                     <td style={tdStyle} data-label="Assigned To">{lead.assignedTo || 'Unassigned'}</td>
                     <td style={tdStyle} data-label="Status">
