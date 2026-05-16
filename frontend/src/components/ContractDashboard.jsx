@@ -16,6 +16,7 @@ import {
   LayoutGrid,
   MapPin,
   Package,
+  Plus,
   Receipt,
   RefreshCcw,
   SlidersHorizontal,
@@ -73,15 +74,15 @@ const shell = {
     overflow: 'hidden'
   },
   head: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'start', gap: '10px' },
-  titleWrap: { display: 'grid', gap: '2px', minWidth: 0 },
+  titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111827', display: 'inline-flex', alignItems: 'center', gap: '8px' },
   subtitle: { margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 600 },
-  headActions: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' },
+  headActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' },
   beta: { border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.6)', color: 'var(--color-primary)', borderRadius: '999px', padding: '7px 12px', fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap' },
-  newBtn: { border: '1px solid var(--color-primary-dark)', background: 'var(--color-primary)', color: '#fff', borderRadius: '8px', padding: '9px 14px', fontSize: '13px', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' },
+  newBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '9px', padding: '7px 11px', minHeight: '34px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap' },
   card: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', overflow: 'hidden' },
-  cardTop: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: 'var(--surface-soft, #f8fafc)' },
-  cardTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text)' },
+  cardTop: { padding: '14px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', background: '#fff' },
+  cardTitle: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   shownPill: { border: '1px solid var(--color-border)', background: '#f8fafc', color: '#334155', borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 },
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
@@ -896,14 +897,17 @@ export default function ContractDashboard() {
     <div style={shell.page}>
       <div style={shell.card}>
         <div style={shell.cardTop}>
-          <h3 style={shell.cardTitle}>All Contracts</h3>
+          <div style={shell.titleWrap}>
+            <h1 style={shell.cardTitle}>All Contracts</h1>
+          </div>
           <div style={shell.headActions}>
             <button
               type="button"
               style={shell.newBtn}
               onClick={() => navigate('/sales/invoices', { state: { openNewInvoice: true } })}
             >
-              + New Contract
+              <Plus size={16} />
+              New Contract
             </button>
           </div>
         </div>
