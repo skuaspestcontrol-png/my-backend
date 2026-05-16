@@ -9,7 +9,6 @@ import {
   CheckCheck,
   Filter,
   List,
-  RefreshCw,
   Smile,
   X
 } from 'lucide-react';
@@ -22,7 +21,6 @@ const shell = {
   header: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' },
   title: { margin: 0, color: 'var(--color-text)', fontSize: '22px', fontWeight: 800, letterSpacing: '-0.02em' },
   subtitle: { margin: '2px 0 0', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 700 },
-  refreshBtn: { border: '1px solid var(--color-primary-soft)', background: 'var(--color-white)', color: 'var(--color-primary)', borderRadius: '10px', height: '38px', minWidth: '118px', padding: '0 14px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' },
   statGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' },
   statCard: { minHeight: '76px', background: 'var(--color-white)', border: '1px solid var(--color-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' },
   statIcon: { width: '42px', height: '42px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -220,12 +218,6 @@ export default function LeadFollowups() {
           <h1 style={shell.title}>Lead Follow-ups</h1>
           <p style={shell.subtitle}>Track and manage all your lead follow-up activities</p>
         </div>
-        {!isMobile ? (
-          <button type="button" style={shell.refreshBtn} onClick={loadLeads} disabled={loading}>
-            <RefreshCw size={15} />
-            {loading ? 'Refreshing' : 'Refresh'}
-          </button>
-        ) : null}
       </div>
 
       <div style={statGridStyle}>
