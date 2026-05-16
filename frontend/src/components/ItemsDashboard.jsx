@@ -452,7 +452,7 @@ export default function ItemsDashboard() {
     loadItems();
   }, []);
 
-  useAutoRefresh(() => loadItems({ preserveSelection: true }), { enabled: !showModal });
+  useAutoRefresh(() => loadItems({ preserveSelection: true }), { enabled: !showAddModal });
 
   useEffect(() => {
     localStorage.setItem(VISIBLE_COLUMNS_STORAGE_KEY, JSON.stringify(visibleColumns));
