@@ -187,16 +187,16 @@ export default function CreateQuote() {
         sales_person: p.sales_person || templateRes.data?.default_sales_person || '',
         designation: p.designation || templateRes.data?.default_designation || '',
         mobile: p.mobile || templateRes.data?.default_mobile || '',
-        opening_paragraph: p.opening_paragraph || commonRes.data?.opening_paragraph || '',
-        payment_terms: p.payment_terms || commonRes.data?.payment_terms || '',
-        closing_paragraph: p.closing_paragraph || commonRes.data?.closing_paragraph || commonRes.data?.relationship_closing_paragraph || ''
+        opening_paragraph: isEditMode ? p.opening_paragraph : (p.opening_paragraph || commonRes.data?.opening_paragraph || ''),
+        payment_terms: isEditMode ? p.payment_terms : (p.payment_terms || commonRes.data?.payment_terms || ''),
+        closing_paragraph: isEditMode ? p.closing_paragraph : (p.closing_paragraph || commonRes.data?.closing_paragraph || commonRes.data?.relationship_closing_paragraph || '')
       }));
     };
     load().catch(() => setStatus('Could not load quotation dependencies'));
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [isEditMode]);
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -453,7 +453,16 @@ export default function CreateQuote() {
       const res = await axios[method](url, payload);
       const returnedId = res.data?.id || (isEditMode ? Number(editId) : null);
       setSavedId(returnedId);
-      setForm((p) => ({ ...p, quotation_number: res.data?.quotation_number || p.quotation_number }));
+      setForm((p) => ({
+        ...p,
+        ...res.data,
+        quotation_number: res.data?.quotation_number || p.quotation_number,
+        quotation_date: res.data?.quotation_date ? String(res.data.quotation_date).slice(0, 10) : p.quotation_date,
+        opening_paragraph: res.data?.opening_paragraph ?? p.opening_paragraph,
+        payment_terms: res.data?.payment_terms ?? p.payment_terms,
+        closing_paragraph: res.data?.closing_paragraph ?? p.closing_paragraph
+      }));
+      if (Array.isArray(res.data?.items) && res.data.items.length) setItems(res.data.items);
       setStatus(`Quotation ${isEditMode ? 'updated' : 'saved'}${res.data?.quotation_number ? `: ${res.data.quotation_number}` : ''}`);
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Failed to save quotation');

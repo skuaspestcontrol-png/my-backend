@@ -63,6 +63,14 @@ const cleanPaymentTerms = (value = '') => {
     .join('\n');
 };
 
+const ownTextOrDefault = (source = {}, key, fallback = '') => (
+  Object.prototype.hasOwnProperty.call(source, key) && source[key] !== null
+    ? clean(source[key])
+    : clean(fallback)
+);
+
+const hasOwnTextField = (source = {}, key) => Object.prototype.hasOwnProperty.call(source, key) && source[key] !== null;
+
 const customerDetailLinesForQuotation = (quotation = {}) => {
   const customerName = clean(quotation.customer_name);
   const companyName = clean(quotation.company_name);
@@ -437,7 +445,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   const title = `Quotation for ${serviceTitles || 'Pest Control Service'}`;
   doc.font(pdfFont.bold).fontSize(pdfTextSize.title).fillColor(primaryColor).text(title, left, doc.y, { width: right - left, align: 'center' });
 
-  const opening = clean(quotation.opening_paragraph || commonParagraphs.opening_paragraph);
+  const opening = ownTextOrDefault(quotation, 'opening_paragraph', commonParagraphs.opening_paragraph);
   if (opening) {
     ensureSpace(60);
     doc.moveDown(0.3);
@@ -546,12 +554,14 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   items.forEach((item, index) => {
     const amountWithoutGst = toNumber(item.quantity, 1) * toNumber(item.rate_without_gst, 0);
+    const gstAmount = toNumber(item.gst_amount, amountWithoutGst * (toNumber(item.gst_percentage, 0) / 100));
+    const amountWithGst = amountWithoutGst + gstAmount;
     const rowVals = [
       String(index + 1),
       clean(item.service_name || '-'),
       clean(item.frequency || '-'),
       isGstQuotation ? formatINR(amountWithoutGst) : '-',
-      formatINR(item.total_amount)
+      formatINR(isGstQuotation ? amountWithGst : item.total_amount)
     ];
 
     const rowHeight = getRowHeight(doc, serviceCols, rowVals, pdfTextSize.table, 30, 8);
@@ -562,7 +572,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
       minHeight: 30,
       paddingY: 4,
       verticalAlign: 'middle',
-      alignments: ['center', 'left', 'center', 'center', 'center']
+      alignments: ['center', 'left', 'left', 'center', 'center']
     });
     doc.y += h;
   });
@@ -571,19 +581,23 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   ensureSpace(28);
   doc.moveDown(sectionSpacing.beforeHeading);
 
-  const baseClosingText = clean(
-    quotation.closing_paragraph
-    || commonParagraphs.closing_paragraph
-    || commonParagraphs.relationship_closing_paragraph
-  ) || [
+  const closingFallback = hasOwnTextField(quotation, 'closing_paragraph') ? '' : [
     'We look forward to working with you and hope this is the beginning of a long and prosperous relationship.',
     'For any clarification, please feel free to contact me.'
   ].join('\n');
-  const closingText = /clarification/i.test(baseClosingText)
+  const baseClosingText = ownTextOrDefault(
+    quotation,
+    'closing_paragraph',
+    commonParagraphs.closing_paragraph || commonParagraphs.relationship_closing_paragraph || closingFallback
+  );
+  const closingText = !baseClosingText
+    ? ''
+    : /clarification/i.test(baseClosingText)
     ? baseClosingText
     : `${baseClosingText}\nFor any clarification, please feel free to contact me.`;
+  const paymentTermsText = ownTextOrDefault(quotation, 'payment_terms', commonParagraphs.payment_terms);
   const blocks = [
-    ['Payment Terms', cleanPaymentTerms(quotation.payment_terms || commonParagraphs.payment_terms)],
+    ['Payment Terms', paymentTermsText ? cleanPaymentTerms(paymentTermsText) : ''],
     ['', closingText]
   ].filter(([, txt]) => txt);
 
