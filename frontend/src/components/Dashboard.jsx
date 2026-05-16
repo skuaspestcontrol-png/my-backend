@@ -216,13 +216,13 @@ export default function Dashboard() {
   }, [invoices, vendorBills]);
 
   const topCards = useMemo(() => ({
-    leadsCount: Number(summary?.leadsCount || 0),
+    leadsCount: leads.length || Number(summary?.leadsCount || 0),
     customersCount: Number(summary?.customersCount || 0),
     employeesCount: Number(summary?.employeesCount || 0),
     jobsCount: Number(summary?.jobsCount || 0),
     invoicesCount: Number(summary?.invoicesCount || invoices.length),
-    invoicesTotalAmount: Number(summary?.invoicesTotalAmount || 0)
-  }), [summary, invoices.length]);
+    invoicesTotalAmount: invoices.reduce((sum, invoice) => sum + toNum(invoice.total || invoice.amount || invoice.totalAmount), 0) || Number(summary?.invoicesTotalAmount || 0)
+  }), [summary, invoices, leads.length]);
 
   const leadPipeline = useMemo(() => {
     const totalLeads = leads.length;

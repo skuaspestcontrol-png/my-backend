@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import {
   AlertTriangle,
   CalendarCheck,
@@ -87,8 +88,8 @@ export default function LeadFollowups() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [page, setPage] = useState(1);
 
-  const loadLeads = async () => {
-    setLoading(true);
+  const loadLeads = async (options = {}) => {
+    if (!options.silent) setLoading(true);
     try {
       const res = await axios.get(`${API_BASE_URL}/api/leads`);
       setLeads(Array.isArray(res.data) ? res.data : []);
@@ -96,13 +97,15 @@ export default function LeadFollowups() {
       console.error('Failed to load lead follow-ups', error);
       setLeads([]);
     } finally {
-      setLoading(false);
+      if (!options.silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadLeads();
   }, []);
+
+  useAutoRefresh(() => loadLeads({ silent: true }));
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);

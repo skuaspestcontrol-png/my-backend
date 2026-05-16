@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import {
   AlertCircle,
   BadgeIndianRupee,
@@ -327,6 +328,39 @@ export default function ContractDashboard() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  const loadContractsData = async (options = {}) => {
+    if (!options.silent) setLoading(true);
+    setLoadError('');
+    try {
+      const [invoiceRes, customerRes, schedulesRes, paymentsRes] = await Promise.all([
+        axios.get(`${API_BASE}/api/invoices`),
+        axios.get(`${API_BASE}/api/customers`),
+        axios.get(`${API_BASE}/api/service-schedules`),
+        axios.get(`${API_BASE}/api/payments`)
+      ]);
+
+      const nextInvoices = Array.isArray(invoiceRes.data) ? invoiceRes.data : [];
+      const nextCustomers = Array.isArray(customerRes.data) ? customerRes.data : [];
+      const nextSchedules = Array.isArray(schedulesRes.data) ? schedulesRes.data : [];
+      const nextPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+      setInvoices(nextInvoices);
+      setCustomers(nextCustomers);
+      setServiceSchedules(nextSchedules);
+      setPayments(nextPayments);
+    } catch (error) {
+      console.error('Failed to load contracts dashboard data', error);
+      if (!options.silent) {
+        setLoadError('Unable to fetch contracts right now. Please refresh once.');
+        setInvoices([]);
+        setCustomers([]);
+        setServiceSchedules([]);
+        setPayments([]);
+      }
+    } finally {
+      if (!options.silent) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -369,6 +403,8 @@ export default function ContractDashboard() {
       mounted = false;
     };
   }, []);
+
+  useAutoRefresh(() => loadContractsData({ silent: true }), { enabled: !customerSummary.open });
 
   useEffect(() => {
     localStorage.setItem('contracts_column_widths', JSON.stringify(columnWidths));

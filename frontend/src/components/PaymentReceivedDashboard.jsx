@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { IndianRupee, Receipt, WalletCards } from 'lucide-react';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const PAYMENT_PAGE_SIZE = 20;
@@ -176,6 +177,11 @@ export default function PaymentReceivedDashboard() {
       mounted = false;
     };
   }, []);
+
+  useAutoRefresh(async () => {
+    await loadPaymentsData();
+    setStatus('Live payment data');
+  });
 
   const deletePayment = async (paymentId) => {
     if (!paymentId) return;

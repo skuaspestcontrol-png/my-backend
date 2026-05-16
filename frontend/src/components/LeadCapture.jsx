@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { loadGooglePlacesScript } from '../utils/googlePlaces';
 import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import {
   ArrowDown,
   ArrowUp,
@@ -843,6 +844,17 @@ export default function LeadCapture() {
       mounted = false;
     };
   }, []);
+
+  useAutoRefresh(async () => {
+    const [leadRes, employeeRes, customerRes] = await Promise.allSettled([
+      axios.get(`${API_BASE_URL}/api/leads`),
+      axios.get(`${API_BASE_URL}/api/employees`),
+      axios.get(`${API_BASE_URL}/api/customers`)
+    ]);
+    if (leadRes.status === 'fulfilled') setLeads(toObjectList(leadRes.value?.data));
+    if (employeeRes.status === 'fulfilled') setEmployees(toObjectList(employeeRes.value?.data));
+    if (customerRes.status === 'fulfilled') setCustomers(toObjectList(customerRes.value?.data));
+  }, { enabled: !show && !viewLeadId && !logFollowupLeadId });
 
   useEffect(() => {
     try {

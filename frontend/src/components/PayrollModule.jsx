@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { CalendarDays, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, ShieldCheck, UserRoundCheck } from 'lucide-react';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -264,6 +265,8 @@ export default function PayrollModule() {
     reloadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year]);
+
+  useAutoRefresh(() => reloadAll(), { enabled: !paymentModal.open && !adjustModal.open && !slipViewer.open });
 
   const employeeMap = useMemo(() => {
     const next = new Map();

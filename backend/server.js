@@ -712,7 +712,7 @@ const readJsonFile = (filePath, fallback) => {
 
 let dashboardSummaryCache = null;
 let dashboardSummaryCachedAt = 0;
-const DASHBOARD_SUMMARY_TTL_MS = 60 * 1000;
+const DASHBOARD_SUMMARY_TTL_MS = 5 * 1000;
 
 const canUseMysql = () => {
   return Boolean(

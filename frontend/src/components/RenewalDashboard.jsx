@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import {
   CalendarClock,
   CheckCircle2,
@@ -216,9 +217,9 @@ export default function RenewalDashboard() {
       await loadData(filters, { autoSync: false });
     };
     initialLoad();
-    const timer = window.setInterval(() => loadData(filters, { autoSync: false }), 60000);
-    return () => window.clearInterval(timer);
   }, []);
+
+  useAutoRefresh(() => loadData(filters, { autoSync: false, autoGenerateLetters: false }), { enabled: !modal.type });
 
   const salesPeople = useMemo(() => {
     const list = employees

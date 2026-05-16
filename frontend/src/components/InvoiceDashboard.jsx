@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import { ChevronDown, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
 import {
   defaultInvoiceVisibleColumns,
@@ -846,7 +847,7 @@ export default function InvoiceDashboard() {
     return String(companySettings.gstTermsAndConditions || '').trim();
   };
 
-  const loadInvoices = async () => {
+  const loadInvoices = async (options = {}) => {
     try {
       const [invoicesRes, paymentsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/invoices`),
@@ -854,8 +855,8 @@ export default function InvoiceDashboard() {
       ]);
       setInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
       setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
-      setSelectedIds([]);
-      setPage(1);
+      if (!options.preserveSelection) setSelectedIds([]);
+      if (!options.preservePage) setPage(1);
     } catch (error) {
       console.error('Failed to load invoices', error);
     } finally {
@@ -911,24 +912,7 @@ export default function InvoiceDashboard() {
     loadMasterData();
   }, []);
 
-  useEffect(() => {
-    const refreshInvoices = () => {
-      loadInvoices();
-    };
-    const onFocus = () => {
-      refreshInvoices();
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') refreshInvoices();
-    };
-
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
-  }, []);
+  useAutoRefresh(() => loadInvoices({ preserveSelection: true, preservePage: true }), { enabled: !showModal });
 
   useEffect(() => {
     localStorage.setItem('invoice_visible_columns', JSON.stringify(normalizeInvoiceVisibleColumns(visibleColumns)));

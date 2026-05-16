@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, FileText, RefreshCw, UserRound } from 'lucide-react';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -119,6 +120,8 @@ export default function ServiceCalendar() {
       mounted = false;
     };
   }, []);
+
+  useAutoRefresh(loadSchedules);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;

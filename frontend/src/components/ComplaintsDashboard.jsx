@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { AlertCircle, List, Plus, Save, Send, Users } from 'lucide-react';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -86,6 +87,8 @@ export default function ComplaintsDashboard() {
   useEffect(() => {
     loadData().catch((error) => console.error('complaints load failed', error));
   }, []);
+
+  useAutoRefresh(() => loadData(), { enabled: !showNew });
 
   const technicianOptions = useMemo(() => employees.filter((entry) => String(entry.role || '').trim().toLowerCase() === 'technician'), [employees]);
 

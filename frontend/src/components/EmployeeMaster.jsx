@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Edit, Eye, EyeOff, Plus, Trash2, UploadCloud, UserCheck, X } from 'lucide-react';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -291,6 +292,8 @@ export default function EmployeeMaster() {
       setStatus('Failed to load employee records.');
     });
   }, []);
+
+  useAutoRefresh(() => loadData(), { enabled: !showModal });
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);

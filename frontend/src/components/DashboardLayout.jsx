@@ -477,8 +477,8 @@ export default function DashboardLayout({ children }) {
             <Menu size={18} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, marginLeft: 'auto' }}>
-            <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: 600, letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: isMobile ? 'none' : 'inline' }}>
-              {portalUserRole} <strong style={{ fontSize: '13px', color: 'var(--color-text)' }}>{portalUserName}</strong>
+            <span style={{ fontSize: '13px', color: 'var(--color-text)', fontWeight: 800, letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: isMobile ? 'none' : 'inline' }}>
+              {portalUserRole} {portalUserName}
             </span>
             <button
               type="button"

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Trash2, X, Pencil } from 'lucide-react';
 import { attachPlacesAutocomplete } from '../utils/googlePlaces';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
@@ -101,6 +102,8 @@ export default function VendorDashboard() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useAutoRefresh(loadVendors, { enabled: !showModal });
 
   useEffect(() => {
     if (!showModal) return () => {};

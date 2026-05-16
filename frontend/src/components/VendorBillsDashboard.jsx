@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Plus, Trash2, X } from 'lucide-react';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -124,6 +125,8 @@ export default function VendorBillsDashboard() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useAutoRefresh(loadData, { enabled: !showModal });
 
   const setFormWithTotals = (next) => {
     const rows = Array.isArray(next.items) ? next.items : [];

@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowUpDown, MoreHorizontal, Plus, X } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import { attachPlacesAutocomplete } from '../utils/googlePlaces';
 
 const normalizeApiBase = (value = '') => {
@@ -378,15 +379,15 @@ export default function CustomerDashboard() {
     };
   };
 
-  const loadCustomers = async () => {
+  const loadCustomers = async (options = {}) => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/customers`);
       setCustomers(sanitizeCustomerRows(res.data));
-      setSelectedIds([]);
+      if (!options.preserveSelection) setSelectedIds([]);
     } catch (error) {
       console.error('Failed to load customers', error);
       setCustomers([]);
-      setSelectedIds([]);
+      if (!options.preserveSelection) setSelectedIds([]);
     }
   };
 
@@ -429,6 +430,14 @@ export default function CustomerDashboard() {
     }, 0);
     return () => clearTimeout(timer);
   }, []);
+
+  useAutoRefresh(async () => {
+    await Promise.all([
+      loadCustomers({ preserveSelection: true }),
+      loadTransactions(),
+      loadDuplicateReport()
+    ]);
+  }, { enabled: !showModal && !showImportWizard });
 
   useEffect(() => {
     const incomingState = location.state;

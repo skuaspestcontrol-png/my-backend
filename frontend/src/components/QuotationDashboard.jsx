@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FileText, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -219,18 +220,18 @@ function QuotationDashboardInner() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const load = async () => {
+  const load = async (options = {}) => {
     try {
-      setLoading(true);
+      if (!options.silent) setLoading(true);
       setStatus('');
       const res = await axios.get(`${API_BASE_URL}/api/quotations`);
       const nextRows = Array.isArray(res.data) ? res.data : [];
       setRows(nextRows);
-      setPage(1);
+      if (!options.preservePage) setPage(1);
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Could not load quotations');
     } finally {
-      setLoading(false);
+      if (!options.silent) setLoading(false);
     }
   };
 
@@ -251,6 +252,8 @@ function QuotationDashboardInner() {
   useEffect(() => {
     load();
   }, []);
+
+  useAutoRefresh(() => load({ silent: true, preservePage: true }));
 
   const summary = useMemo(() => {
     const total = rows.length;

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { ArrowDownAZ, ArrowUpAZ, ChevronDown, MoreHorizontal, Plus, SlidersHorizontal, Search, X } from 'lucide-react';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ITEMS_PER_PAGE = 20;
@@ -437,11 +438,11 @@ export default function ItemsDashboard() {
     return sortedItems.slice(start, start + ITEMS_PER_PAGE);
   }, [currentPage, sortedItems]);
 
-  const loadItems = async () => {
+  const loadItems = async (options = {}) => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/items`);
       setItems(Array.isArray(res.data) ? res.data : []);
-      setSelectedIds([]);
+      if (!options.preserveSelection) setSelectedIds([]);
     } catch (error) {
       console.error('Failed to load items', error);
     }
@@ -450,6 +451,8 @@ export default function ItemsDashboard() {
   useEffect(() => {
     loadItems();
   }, []);
+
+  useAutoRefresh(() => loadItems({ preserveSelection: true }), { enabled: !showModal });
 
   useEffect(() => {
     localStorage.setItem(VISIBLE_COLUMNS_STORAGE_KEY, JSON.stringify(visibleColumns));
