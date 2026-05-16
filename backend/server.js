@@ -1794,6 +1794,50 @@ const extractLeadSequenceNumber = (value) => {
   return num >= LEAD_SEQUENCE_START && num < LEAD_SEQUENCE_LIMIT ? num : 0;
 };
 
+const isLegacyTimestampLeadId = (value) => {
+  const raw = String(value || '').trim();
+  if (!/^\d{12,}$/.test(raw)) return false;
+  const num = Number(raw);
+  return Number.isSafeInteger(num) && num >= LEAD_SEQUENCE_LIMIT;
+};
+
+const repairLegacyLeadNumbers = async (conn) => {
+  const [rows] = await conn.query('SELECT id, external_id, payload FROM leads ORDER BY id ASC');
+  const list = Array.isArray(rows) ? rows : [];
+  const occupied = new Set();
+  const sequenceValues = [];
+
+  list.forEach((row) => {
+    const seq = extractLeadSequenceNumber(row?.external_id);
+    if (!seq) return;
+    occupied.add(seq);
+    sequenceValues.push(seq);
+  });
+
+  let nextSequence = sequenceValues.length > 0 ? Math.max(...sequenceValues) + 1 : LEAD_SEQUENCE_START;
+  const nextAvailableSequence = () => {
+    while (occupied.has(nextSequence)) nextSequence += 1;
+    const value = nextSequence;
+    occupied.add(value);
+    nextSequence += 1;
+    return value;
+  };
+
+  for (const row of list) {
+    const currentId = String(row?.external_id || '').trim();
+    if (!isLegacyTimestampLeadId(currentId)) continue;
+    const lead = normalizeLeadShape(parseMysqlLeadPayload(row?.payload) || {}, currentId);
+    const nextId = String(nextAvailableSequence());
+    const updatedLead = { ...lead, _id: nextId };
+    await conn.query(
+      `UPDATE leads
+       SET external_id = ?, payload = ?
+       WHERE id = ?`,
+      [nextId, JSON.stringify(updatedLead), row.id]
+    );
+  }
+};
+
 const createNextLeadNumber = async (conn) => {
   let maxSequence = LEAD_SEQUENCE_START - 1;
 
@@ -2510,6 +2554,7 @@ app.get('/api/leads', async (req, res) => {
   }
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
+      await repairLegacyLeadNumbers(conn);
       const [rows] = await conn.query('SELECT payload FROM leads ORDER BY id DESC');
       return Array.isArray(rows) ? rows : [];
     });
@@ -2530,7 +2575,11 @@ app.post('/api/leads', async (req, res) => {
   try {
     const incoming = req.body || {};
     const newLead = await withMysqlConnection(async (conn) => {
-      const generatedId = String(incoming._id || await createNextLeadNumber(conn)).trim();
+      await repairLegacyLeadNumbers(conn);
+      const incomingId = String(incoming._id || '').trim();
+      const generatedId = incomingId && !isLegacyTimestampLeadId(incomingId)
+        ? incomingId
+        : await createNextLeadNumber(conn);
       const lead = normalizeLeadShape({ ...incoming, _id: generatedId }, generatedId);
       await upsertLeadToMysql(conn, lead);
       return lead;
@@ -2836,6 +2885,7 @@ app.put('/api/leads/:id', async (req, res) => {
   try {
     const leadId = String(req.params.id || '').trim();
     const existingRow = await withMysqlConnection(async (conn) => {
+      await repairLegacyLeadNumbers(conn);
       const isNumeric = /^\d+$/.test(leadId);
       const query = isNumeric
         ? 'SELECT payload, external_id FROM leads WHERE external_id = ? OR id = ? LIMIT 1'
