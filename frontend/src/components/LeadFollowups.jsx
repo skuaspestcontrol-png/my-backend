@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   CalendarCheck,
   CalendarClock,
   CalendarDays,
@@ -20,7 +23,7 @@ const FOLLOWUP_PAGE_SIZE = 20;
 const FOLLOWUP_COLUMN_WIDTHS_KEY = 'lead_followups_column_widths';
 
 const defaultColumnWidths = {
-  lead: 150,
+  lead: 72,
   customer: 150,
   status: 100,
   urgency: 105,
@@ -64,8 +67,13 @@ const shell = {
   tableWrap: { overflowX: 'auto' },
   table: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
   th: { background: 'var(--color-primary-light)', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 800, textAlign: 'left', padding: '11px 14px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', position: 'relative', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  leadTh: { paddingLeft: '8px', paddingRight: '8px' },
+  sortBtn: { width: '100%', minWidth: 0, border: 'none', background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', font: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit', cursor: 'pointer' },
+  sortLabel: { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  sortIcon: { flexShrink: 0, opacity: 0.72 },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   td: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '13px', fontWeight: 650 },
+  leadTd: { paddingLeft: '8px', paddingRight: '8px' },
   empty: { minHeight: '96px', display: 'grid', placeItems: 'center', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 700 },
   actionBtn: { border: '1px solid var(--color-border)', background: 'var(--color-white)', color: 'var(--color-primary)', borderRadius: '10px', height: '34px', minWidth: '92px', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
   pagination: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: 'var(--color-white)' },
@@ -90,6 +98,23 @@ const formatDate = (value) => {
 };
 const getLeadMobile = (lead) => String(lead.mobile || lead.mobileNumber || '').trim();
 const getAssignedTo = (lead) => String(lead.assignedTo || '').trim() || 'Unassigned';
+const compareValues = (left, right) => {
+  if (left == null && right == null) return 0;
+  if (left == null) return 1;
+  if (right == null) return -1;
+  if (typeof left === 'number' && typeof right === 'number') return left - right;
+  return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' });
+};
+const getSortValue = (lead, key) => {
+  if (key === 'lead') return lead._id || '';
+  if (key === 'customer') return lead.customerName || lead.displayName || '';
+  if (key === 'status') return lead.status || lead.leadStatus || '';
+  if (key === 'urgency') return ['Overdue', 'Today', 'High', 'This Week', 'Upcoming'].indexOf(lead.urgency);
+  if (key === 'assignedTo') return lead.assignedToDisplay || '';
+  if (key === 'lastFollowup') return toDateOnly(lead.lastFollowupDate || lead.lastFollowUpDate)?.getTime();
+  if (key === 'nextFollowup') return toDateOnly(lead.followupDate)?.getTime();
+  return lead._id || '';
+};
 const getUrgency = (lead, today) => {
   const date = toDateOnly(lead.followupDate);
   if (!date) return 'Upcoming';
@@ -111,11 +136,15 @@ export default function LeadFollowups() {
   const [filters, setFilters] = useState(draftFilters);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [page, setPage] = useState(1);
+  const [sortConfig, setSortConfig] = useState({ key: 'nextFollowup', direction: 'asc' });
   const resizeStateRef = useRef(null);
   const [columnWidths, setColumnWidths] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(FOLLOWUP_COLUMN_WIDTHS_KEY) || '{}');
-      return saved && typeof saved === 'object' ? { ...defaultColumnWidths, ...saved } : defaultColumnWidths;
+      if (!saved || typeof saved !== 'object') return defaultColumnWidths;
+      const next = { ...defaultColumnWidths, ...saved };
+      if (!saved.lead || Number(saved.lead) >= 120) next.lead = defaultColumnWidths.lead;
+      return next;
     } catch (_error) {
       return defaultColumnWidths;
     }
@@ -203,18 +232,27 @@ export default function LeadFollowups() {
     });
   }, [activeTab, filters, followups, today, weekEnd]);
 
-  const totalPages = Math.max(1, Math.ceil(tabRows.length / FOLLOWUP_PAGE_SIZE));
+  const sortedRows = useMemo(() => {
+    if (!sortConfig.key) return tabRows;
+    const direction = sortConfig.direction === 'desc' ? -1 : 1;
+    return [...tabRows].sort((left, right) => {
+      const result = compareValues(getSortValue(left, sortConfig.key), getSortValue(right, sortConfig.key));
+      return result * direction;
+    });
+  }, [sortConfig, tabRows]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / FOLLOWUP_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const paginatedRows = useMemo(() => {
     const start = (safePage - 1) * FOLLOWUP_PAGE_SIZE;
-    return tabRows.slice(start, start + FOLLOWUP_PAGE_SIZE);
-  }, [safePage, tabRows]);
-  const firstRecord = tabRows.length ? ((safePage - 1) * FOLLOWUP_PAGE_SIZE) + 1 : 0;
-  const lastRecord = Math.min(safePage * FOLLOWUP_PAGE_SIZE, tabRows.length);
+    return sortedRows.slice(start, start + FOLLOWUP_PAGE_SIZE);
+  }, [safePage, sortedRows]);
+  const firstRecord = sortedRows.length ? ((safePage - 1) * FOLLOWUP_PAGE_SIZE) + 1 : 0;
+  const lastRecord = Math.min(safePage * FOLLOWUP_PAGE_SIZE, sortedRows.length);
 
   useEffect(() => {
     setPage(1);
-  }, [activeTab, filters]);
+  }, [activeTab, filters, sortConfig]);
 
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
@@ -255,7 +293,12 @@ export default function LeadFollowups() {
   const tabBadgeStyle = isMobile
     ? { ...shell.badge, minWidth: '18px', height: '18px', padding: '0 6px', fontSize: '10px', flexShrink: 0 }
     : shell.badge;
-  const getColumnWidth = (columnKey) => Math.max(80, Number(columnWidths[columnKey] || defaultColumnWidths[columnKey] || 120));
+  const getColumnMinWidth = (columnKey) => {
+    if (columnKey === 'lead') return 64;
+    if (columnKey === 'actions') return 96;
+    return 80;
+  };
+  const getColumnWidth = (columnKey) => Math.max(getColumnMinWidth(columnKey), Number(columnWidths[columnKey] || defaultColumnWidths[columnKey] || 120));
   const startColumnResize = (event, columnKey) => {
     event.preventDefault();
     event.stopPropagation();
@@ -268,7 +311,7 @@ export default function LeadFollowups() {
     const onMouseMove = (moveEvent) => {
       if (!resizeStateRef.current) return;
       const delta = moveEvent.clientX - resizeStateRef.current.startX;
-      const minWidth = columnKey === 'actions' ? 96 : 80;
+      const minWidth = getColumnMinWidth(columnKey);
       const nextWidth = Math.max(minWidth, resizeStateRef.current.startWidth + delta);
       setColumnWidths((prev) => ({ ...prev, [columnKey]: nextWidth }));
     };
@@ -284,16 +327,34 @@ export default function LeadFollowups() {
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
   };
-  const renderResizableHeader = (column) => (
-    <th key={column.key} style={{ ...shell.th, width: `${getColumnWidth(column.key)}px`, minWidth: `${getColumnWidth(column.key)}px` }}>
-      {column.label}
-      <span
-        aria-hidden="true"
-        style={shell.resizeHandle}
-        onMouseDown={(event) => startColumnResize(event, column.key)}
-      />
-    </th>
-  );
+  const updateSort = (columnKey) => {
+    setSortConfig((current) => ({
+      key: columnKey,
+      direction: current.key === columnKey && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+  const renderSortIcon = (columnKey) => {
+    if (sortConfig.key !== columnKey) return <ArrowUpDown size={13} style={shell.sortIcon} aria-hidden="true" />;
+    if (sortConfig.direction === 'asc') return <ArrowUp size={13} style={shell.sortIcon} aria-hidden="true" />;
+    return <ArrowDown size={13} style={shell.sortIcon} aria-hidden="true" />;
+  };
+  const renderResizableHeader = (column) => {
+    const isSorted = sortConfig.key === column.key;
+    const sortDirectionLabel = sortConfig.direction === 'asc' ? 'ascending' : 'descending';
+    return (
+      <th key={column.key} style={{ ...shell.th, ...(column.key === 'lead' ? shell.leadTh : {}), width: `${getColumnWidth(column.key)}px`, minWidth: `${getColumnWidth(column.key)}px` }} aria-sort={isSorted ? sortDirectionLabel : 'none'}>
+        <button type="button" style={shell.sortBtn} onClick={() => updateSort(column.key)} title={`Sort by ${column.label}`}>
+          <span style={shell.sortLabel}>{column.label}</span>
+          {renderSortIcon(column.key)}
+        </button>
+        <span
+          aria-hidden="true"
+          style={shell.resizeHandle}
+          onMouseDown={(event) => startColumnResize(event, column.key)}
+        />
+      </th>
+    );
+  };
   const followupMobileColumns = followupColumns.map((column) => `${getColumnWidth(column.key)}px`).join(' ');
   const tableMinWidth = followupColumns.reduce((sum, column) => sum + getColumnWidth(column.key), 0);
   const tableStyle = {
@@ -435,7 +496,7 @@ export default function LeadFollowups() {
             <tbody>
               {paginatedRows.map((lead) => (
                 <tr key={lead._id || `${lead.customerName}-${lead.followupDate}`}>
-                  <td style={shell.td} data-label="Lead"><span className="crm-cell-wrap">{lead._id || '-'}</span></td>
+                  <td style={{ ...shell.td, ...shell.leadTd }} data-label="Lead"><span className="crm-cell-wrap">{lead._id || '-'}</span></td>
                   <td style={shell.td} data-label="Customer">
                     <div className="crm-table-primary crm-cell-wrap">{lead.customerName || lead.displayName || '-'}</div>
                     <div className="crm-table-muted">{getLeadMobile(lead) || '-'}</div>
@@ -469,7 +530,7 @@ export default function LeadFollowups() {
         </div>
         <div style={shell.pagination}>
           <span style={shell.paginationInfo}>
-            {tabRows.length ? `${firstRecord}-${lastRecord} of ${tabRows.length} follow-ups • 20 per page` : '20 per page'}
+            {sortedRows.length ? `${firstRecord}-${lastRecord} of ${sortedRows.length} follow-ups • 20 per page` : '20 per page'}
           </span>
           <div style={shell.paginationActions}>
             <button

@@ -636,22 +636,25 @@ export default function DashboardLayout({ children }) {
               {notificationsOpen ? (
                 <div
                   style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 10px)',
-                    right: 0,
-                    width: isMobile ? 'min(86vw, 320px)' : '340px',
-                    maxHeight: '420px',
+                    position: isMobile ? 'fixed' : 'absolute',
+                    top: isMobile ? `calc(${topbarHeight} + 8px)` : 'calc(100% + 10px)',
+                    right: isMobile ? '12px' : 0,
+                    left: isMobile ? '12px' : 'auto',
+                    width: isMobile ? 'auto' : '340px',
+                    maxWidth: isMobile ? 'calc(100vw - 24px)' : 'none',
+                    maxHeight: isMobile ? `calc(100dvh - ${topbarHeight} - 24px)` : '420px',
                     overflowY: 'auto',
                     background: '#fff',
                     border: '1px solid var(--color-border)',
                     borderRadius: '12px',
                     boxShadow: '0 18px 44px rgba(15,23,42,0.18)',
                     zIndex: 6000,
-                    padding: '10px'
+                    padding: '10px',
+                    boxSizing: 'border-box'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '2px 2px 8px' }}>
-                    <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '2px 2px 8px', minWidth: 0 }}>
+                    <div style={{ minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--color-text)' }}>Today Notifications</p>
                       <p style={{ margin: '2px 0 0', fontSize: '11px', fontWeight: 700, color: 'var(--color-muted)' }}>Lead follow-up tasks due today</p>
                     </div>
@@ -685,12 +688,13 @@ export default function DashboardLayout({ children }) {
                             textAlign: 'left',
                             cursor: 'pointer',
                             display: 'grid',
-                            gap: '3px'
+                            gap: '3px',
+                            minWidth: 0
                           }}
                         >
-                          <span style={{ fontSize: '12px', fontWeight: isRead ? 600 : 800, color: 'var(--color-text)' }}>{item.title}</span>
-                          <span style={{ fontSize: '11px', fontWeight: isRead ? 500 : 700, color: 'var(--color-muted)' }}>{item.subtitle || 'Unassigned'}</span>
-                          <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--color-primary)' }}>{item.status}</span>
+                          <span style={{ fontSize: '12px', fontWeight: isRead ? 600 : 800, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</span>
+                          <span style={{ fontSize: '11px', fontWeight: isRead ? 500 : 700, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.subtitle || 'Unassigned'}</span>
+                          <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--color-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.status}</span>
                         </button>
                       );
                     })}
