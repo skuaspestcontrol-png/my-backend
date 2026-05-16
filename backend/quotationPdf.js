@@ -9,7 +9,7 @@ const toNumber = (v, d = 0) => {
 const clean = (v) => String(v ?? '').trim();
 const renewalLetterLogoSize = [400, 160];
 const pdfTextSize = {
-  title: 16,
+  title: 12.5,
   body: 9.6,
   sectionHeading: 9.8,
   paymentHeading: 9.8,

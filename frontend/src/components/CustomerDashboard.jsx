@@ -190,9 +190,10 @@ const shell = {
   topActions: { display: 'flex', alignItems: 'center', gap: '8px' },
   buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '9px', padding: '7px 11px', minHeight: '34px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px' },
   buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '9px', width: '34px', height: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
-  toolbar: { padding: '10px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: '#fff' },
-  toolLabel: { fontSize: '12px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' },
-  customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', padding: '8px 12px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
+  toolbar: { padding: '8px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: '#fff' },
+  toolLabel: { fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' },
+  duplicateFilterButton: { display: 'inline-flex', alignItems: 'center', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '999px', padding: '4px 8px', minHeight: '24px', fontSize: '11px', lineHeight: 1.2, fontWeight: 800, cursor: 'pointer' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', maxWidth: '100%', borderRadius: 0, border: '1px solid var(--color-border)' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '3px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', lineHeight: 1.05 },
@@ -201,7 +202,7 @@ const shell = {
   headSortButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', background: 'transparent', padding: 0, color: '#6b7280', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer' },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   row: { borderBottom: '1px solid #eef2f7' },
-  cell: { padding: '10px 10px', fontSize: '8px', fontWeight: 400, color: '#111827', verticalAlign: 'top', lineHeight: 1.25 },
+  cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 500, color: '#334155', verticalAlign: 'middle', lineHeight: 1.25 },
   cellClamp: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   nameCell: { color: 'var(--color-primary)', fontWeight: 400, cursor: 'pointer', textDecoration: 'underline dotted rgba(159,23,77,0.45)' },
   rowActionButton: {
@@ -1366,7 +1367,7 @@ export default function CustomerDashboard() {
               </span>
               <button
                 type="button"
-                style={{ ...shell.customizeButton, background: showPossibleDuplicatesOnly ? '#fee2e2' : 'var(--color-primary-light)', borderColor: showPossibleDuplicatesOnly ? '#fca5a5' : '#c7d2fe', color: showPossibleDuplicatesOnly ? '#991b1b' : 'var(--color-primary-dark)' }}
+                style={{ ...shell.duplicateFilterButton, background: showPossibleDuplicatesOnly ? '#fee2e2' : 'var(--color-primary-light)', borderColor: showPossibleDuplicatesOnly ? '#fca5a5' : '#c7d2fe', color: showPossibleDuplicatesOnly ? '#991b1b' : 'var(--color-primary-dark)' }}
                 onClick={() => setShowPossibleDuplicatesOnly((prev) => !prev)}
               >
                 {showPossibleDuplicatesOnly ? 'Show All Customers' : 'Filter Possible Duplicates'}
@@ -1405,8 +1406,8 @@ export default function CustomerDashboard() {
         ) : null}
       </div>
 
-      <div style={shell.tableWrap}>
-        <table style={tableStyle}>
+      <div style={shell.tableWrap} className="crm-table-shell">
+        <table style={tableStyle} className="crm-compact-table">
           <thead>
             <tr>
               <th style={{ ...shell.headCell, ...shell.checkboxWrap }}>
