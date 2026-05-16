@@ -142,8 +142,8 @@ export default function Login() {
   };
 
   const submitResetPassword = async () => {
-    if (newPassword.length < 6) {
-      alert('New password must be at least 6 characters');
+    if (newPassword.length < 10) {
+      alert('New password must be at least 10 characters');
       return;
     }
     if (newPassword !== confirmPassword) {

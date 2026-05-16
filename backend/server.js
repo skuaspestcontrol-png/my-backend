@@ -67,9 +67,97 @@ if (!global.__SKUAS_MEMORY_LOG_INTERVAL__) {
 }
 
 const app = express();
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
 const SKUAS_API_URL = String(process.env.SKUAS_API_URL || 'https://api.skuaspestcontrol.com').replace(/\/+$/, '');
 const SKUAS_API_KEY = String(process.env.SKUAS_API_KEY || process.env.APP_API_KEY || '').trim();
-app.get("/api/db-test", async (req, res) => {
+const allowedCorsOrigins = new Set([
+  "https://crm.skuaspestcontrol.com",
+  "https://api.skuaspestcontrol.com",
+  "https://www.skuaspestcontrol.com",
+  "https://skuaspestcontrol.com",
+  "http://localhost:5173",
+  "http://localhost:3000"
+]);
+const isProduction = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
+const getClientIp = (req) => String(req.ip || req.socket?.remoteAddress || 'unknown');
+const getRequestKey = (req, scope = 'global') => `${scope}:${getClientIp(req)}`;
+const createMemoryRateLimiter = ({ windowMs, max, scope, message }) => {
+  const hits = new Map();
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = getRequestKey(req, scope);
+    const entry = hits.get(key) || { count: 0, resetAt: now + windowMs };
+    if (now > entry.resetAt) {
+      entry.count = 0;
+      entry.resetAt = now + windowMs;
+    }
+    entry.count += 1;
+    hits.set(key, entry);
+    if (entry.count > max) {
+      res.setHeader('Retry-After', Math.ceil((entry.resetAt - now) / 1000));
+      return res.status(429).json({ error: message || 'Too many requests. Please try again later.' });
+    }
+    return next();
+  };
+};
+const adminDebugToken = () => String(process.env.ADMIN_MIGRATION_TOKEN || process.env.ADMIN_DEBUG_TOKEN || '').trim();
+const readSecurityToken = (req) => String(
+  req.headers['x-admin-migration-token']
+  || req.headers['x-migration-token']
+  || req.headers.authorization?.replace(/^Bearer\s+/i, '')
+  || req.query?.token
+  || req.body?.token
+  || ''
+).trim();
+const requireAdminDebugAccess = (req, res, next) => {
+  if (!isProduction) return next();
+  const expectedToken = adminDebugToken();
+  if (expectedToken && readSecurityToken(req) === expectedToken) return next();
+  return res.status(404).json({ error: 'Not found' });
+};
+const securityHeaders = (_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+  if (isProduction) {
+    res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  }
+  return next();
+};
+const apiRateLimit = createMemoryRateLimiter({
+  windowMs: 60 * 1000,
+  max: 240,
+  scope: 'api',
+  message: 'Too many API requests. Please slow down.'
+});
+const sensitiveRateLimit = createMemoryRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  scope: 'sensitive',
+  message: 'Too many sensitive requests. Please try again later.'
+});
+
+app.use(securityHeaders);
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedCorsOrigins.has(origin)) return callback(null, true);
+    return callback(new Error('CORS origin denied'));
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-api-key", "x-admin-migration-token", "x-migration-token", "x-role", "x-portal-role", "x-user-name", "x-portal-user"],
+  credentials: true,
+  maxAge: 600
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use('/api', apiRateLimit);
+app.use(['/api/auth/forgot-password', '/api/auth/reset-password', '/api/admin'], sensitiveRateLimit);
+
+app.get("/api/db-test", requireAdminDebugAccess, async (req, res) => {
   try {
     await dbQuery('SELECT 1');
 
@@ -232,20 +320,6 @@ app.post('/api/admin/apply-hostinger-all-modules-sql', (req, res) => {
     });
   });
 });
-app.use(cors({
-  origin: [
-    "https://crm.skuaspestcontrol.com",
-    "https://api.skuaspestcontrol.com",
-    "https://www.skuaspestcontrol.com",
-    "https://skuaspestcontrol.com",
-    "http://localhost:5173",
-    "http://localhost:3000"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-api-key", "x-admin-migration-token", "x-migration-token"],
-  credentials: true
-}));
-app.use(express.json({ limit: '25mb' }));
 const readAdminMigrationToken = (req) => String(
   req.headers['x-admin-migration-token']
   || req.headers.authorization?.replace(/^Bearer\s+/i, '')
@@ -312,6 +386,12 @@ const MASTER_RESET_EMAIL = String(process.env.MASTER_RESET_EMAIL || 'skuaspestco
 const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
 const googleOauthStateStore = new Map();
+const hashOtp = (otp) => crypto.createHash('sha256').update(String(otp || '')).digest('hex');
+const safeTokenEqual = (left, right) => {
+  const a = Buffer.from(String(left || ''), 'utf8');
+  const b = Buffer.from(String(right || ''), 'utf8');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+};
 
 const ensureStartupDir = (preferredDir, fallbackDir, label) => {
   const preferred = String(preferredDir || '').trim();
@@ -476,10 +556,18 @@ recoverUploadsFromMirror();
 
 app.use(
   '/uploads',
-  express.static(uploadsRootDir)
+  express.static(uploadsRootDir, {
+    dotfiles: 'deny',
+    index: false,
+    fallthrough: false,
+    setHeaders: (res) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+  })
 );
 
-app.get('/uploads-test', (req, res) => {
+app.get('/uploads-test', requireAdminDebugAccess, (req, res) => {
   const fs = require('fs');
   res.json({
     uploadsRootDir,
@@ -517,6 +605,28 @@ const toSafeUploadBaseName = (rawName = '') => {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '') || 'file';
+};
+const allowedImageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const allowedImageMimeTypes = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
+const allowedDocumentExtensions = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp']);
+const allowedDocumentMimeTypes = new Set(['application/pdf', ...allowedImageMimeTypes]);
+const allowedAttachmentExtensions = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.csv', '.xls', '.xlsx']);
+const allowedAttachmentMimeTypes = new Set([
+  'application/pdf',
+  'text/csv',
+  'application/csv',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ...allowedImageMimeTypes
+]);
+const isAllowedUploadFile = (file, allowedExtensions, allowedMimeTypes) => {
+  const ext = path.extname(String(file?.originalname || '')).toLowerCase();
+  const mime = String(file?.mimetype || '').toLowerCase();
+  return allowedExtensions.has(ext) && allowedMimeTypes.has(mime);
+};
+const createUploadFileFilter = (allowedExtensions, allowedMimeTypes, message) => (_req, file, cb) => {
+  if (isAllowedUploadFile(file, allowedExtensions, allowedMimeTypes)) return cb(null, true);
+  return cb(new Error(message));
 };
 const toDataUrlFromUpload = (file) => {
   try {
@@ -628,7 +738,15 @@ const employeeDocumentStorage = multer.diskStorage({
     cb(null, `${docType}-${empCode}-${timestamp}-${originalBase}${ext}`);
   }
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: createUploadFileFilter(
+    allowedImageExtensions,
+    allowedImageMimeTypes,
+    'Only image files (jpg, jpeg, png, webp) are allowed'
+  )
+});
 const customerImportUpload = multer({
   storage: customerImportStorage,
   limits: { fileSize: 20 * 1024 * 1024 },
@@ -652,16 +770,22 @@ const customerImportUpload = multer({
 });
 const employeePhotoUpload = multer({
   storage: employeePhotoStorage,
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files (jpg, jpeg, png, webp) are allowed'));
-    }
-  }
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: createUploadFileFilter(
+    allowedImageExtensions,
+    allowedImageMimeTypes,
+    'Only image files (jpg, jpeg, png, webp) are allowed'
+  )
 });
-const employeeDocumentUpload = multer({ storage: employeeDocumentStorage });
+const employeeDocumentUpload = multer({
+  storage: employeeDocumentStorage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: createUploadFileFilter(
+    allowedDocumentExtensions,
+    allowedDocumentMimeTypes,
+    'Only PDF or image documents are allowed'
+  )
+});
 const jobCompletionUpload = upload.fields([
   { name: 'beforePhotoFile', maxCount: 1 },
   { name: 'afterPhotoFile', maxCount: 1 }
@@ -1631,17 +1755,17 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
     if (incomingEmail !== MASTER_RESET_EMAIL) {
-      return res.status(403).json({ error: 'Only master email can reset admin password' });
+      return res.json({ message: 'If this email is authorized, an OTP will be sent.' });
     }
 
     const otp = String(crypto.randomInt(100000, 1000000));
     const expiresAt = Date.now() + RESET_OTP_TTL_MS;
-    resetOtpStore.set(incomingEmail, { otp, expiresAt });
+    resetOtpStore.set(incomingEmail, { otpHash: hashOtp(otp), expiresAt, attempts: 0 });
 
     const settings = await loadCurrentSettingsForNumbering();
     await sendPasswordResetOtpEmail({ settings, recipient: incomingEmail, otp });
 
-    res.json({ message: 'OTP sent to master email' });
+    res.json({ message: 'If this email is authorized, an OTP will be sent.' });
   } catch (error) {
     console.error('Failed to send reset OTP:', error.message);
     res.status(500).json({ error: 'Could not send reset OTP. Check SMTP settings in backend.' });
@@ -1659,8 +1783,8 @@ app.post('/api/auth/reset-password', async (req, res) => {
   if (incomingEmail !== MASTER_RESET_EMAIL) {
     return res.status(403).json({ error: 'Only master email can reset admin password' });
   }
-  if (newPassword.length < 6) {
-    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  if (newPassword.length < 10) {
+    return res.status(400).json({ error: 'New password must be at least 10 characters' });
   }
 
   const saved = resetOtpStore.get(incomingEmail);
@@ -1671,7 +1795,13 @@ app.post('/api/auth/reset-password', async (req, res) => {
     resetOtpStore.delete(incomingEmail);
     return res.status(400).json({ error: 'OTP expired. Request a new OTP.' });
   }
-  if (saved.otp !== otp) {
+  if (Number(saved.attempts || 0) >= 5) {
+    resetOtpStore.delete(incomingEmail);
+    return res.status(400).json({ error: 'Too many OTP attempts. Request a new OTP.' });
+  }
+  if (!safeTokenEqual(saved.otpHash, hashOtp(otp))) {
+    saved.attempts = Number(saved.attempts || 0) + 1;
+    resetOtpStore.set(incomingEmail, saved);
     return res.status(400).json({ error: 'Invalid OTP' });
   }
 
@@ -8462,6 +8592,8 @@ app.post('/api/renewals/:id/assign-technician', async (req, res) => {
   return res.json({ message: 'Technician assignment created', jobs: createdJobs, renewal: records[recordIndex] });
 });
 
+app.use(['/api/payroll/debug', '/api/payroll/seed-sample'], requireAdminDebugAccess);
+
 registerPayrollModule({
   app,
   readJsonFile,
@@ -8675,7 +8807,23 @@ app.get('/api/technicians/:id/route-history', async (req, res) => {
 });
 
 app.post('/api/upload', upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file' });
   res.json({ imageUrl: `${resolveServerOrigin(req)}/uploads/${req.file.filename}` });
+});
+
+app.use((error, req, res, next) => {
+  if (!error) return next();
+  if (error.message === 'CORS origin denied') {
+    return res.status(403).json({ error: 'Origin is not allowed' });
+  }
+  if (Number(error.status) === 404) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  if (error instanceof multer.MulterError || /file|attachment|upload/i.test(String(error.message || ''))) {
+    return res.status(400).json({ error: error.message || 'Upload failed' });
+  }
+  console.error('Unhandled request error:', error && error.stack ? error.stack : error);
+  return res.status(500).json({ error: 'Internal server error' });
 });
 
 if (activeFrontendBuildDir && activeFrontendIndexFile) {
