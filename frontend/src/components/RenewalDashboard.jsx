@@ -490,11 +490,12 @@ export default function RenewalDashboard() {
       </div>
 
       {message ? <div style={{ ...shell.panelPad, border: '1px solid var(--color-primary-soft)', borderRadius: 10, background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', fontSize: 13, fontWeight: 800 }}>{message}</div> : null}
-      {renderFilters()}
 
       <section style={isMobile ? { ...shell.stats, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.stats}>
         {stats.map(([label, value]) => <div key={label} style={shell.stat}><div style={shell.statLabel}>{label}</div><div style={shell.statValue}>{value}</div></div>)}
       </section>
+
+      {renderFilters()}
 
       <section style={shell.panel}>
         <div style={isMobile ? shell.tabsMobile : shell.tabs}>

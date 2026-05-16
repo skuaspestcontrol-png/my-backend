@@ -2225,33 +2225,35 @@ export default function LeadCapture() {
             <span style={s.toolLabel}>Lead Master</span>
             <span style={s.toolbarMeta}>{`${filteredLeads.length} records shown`}</span>
           </div>
-          <div style={{ position: 'relative' }}>
-            <button
-              ref={customizeButtonRef}
-              type="button"
-              style={customizeButtonStyle}
-              onClick={() => setShowCustomize((prev) => !prev)}
-            >
-              Customize Fields
-            </button>
-            {showCustomize ? (
-              <div ref={customizePanelRef} style={s.popover}>
-                <div style={s.popoverHeader}>Show/Hide Columns</div>
-                <div style={s.popoverBody}>
-                  {leadColumns.map((column) => (
-                    <label key={column.key} style={s.popoverItem}>
-                      <input
-                        type="checkbox"
-                        checked={visibleColumns.includes(column.key)}
-                        onChange={() => toggleColumn(column.key)}
-                      />
-                      {column.label}
-                    </label>
-                  ))}
+          {!isMobile ? (
+            <div style={{ position: 'relative' }}>
+              <button
+                ref={customizeButtonRef}
+                type="button"
+                style={customizeButtonStyle}
+                onClick={() => setShowCustomize((prev) => !prev)}
+              >
+                Customize Fields
+              </button>
+              {showCustomize ? (
+                <div ref={customizePanelRef} style={s.popover}>
+                  <div style={s.popoverHeader}>Show/Hide Columns</div>
+                  <div style={s.popoverBody}>
+                    {leadColumns.map((column) => (
+                      <label key={column.key} style={s.popoverItem}>
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns.includes(column.key)}
+                          onChange={() => toggleColumn(column.key)}
+                        />
+                        {column.label}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div style={tableWrapStyle} className="crm-table-shell">

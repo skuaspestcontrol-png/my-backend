@@ -1356,47 +1356,53 @@ export default function CustomerDashboard() {
       <div style={toolbarStyle}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={shell.toolLabel}>Customer Master</span>
-          <span style={{ border: '1px solid rgba(159, 23, 77, 0.25)', background: 'var(--color-primary-light)', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 800, color: 'var(--color-primary-dark)' }}>
-            Data Health: {duplicateSummary?.customerDataHealthScore ?? 100}
-          </span>
-          <span style={{ border: '1px solid rgba(217,119,6,0.28)', background: 'rgba(254,243,199,0.7)', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 800, color: '#92400e' }}>
-            Possible Duplicates: {possibleDuplicateIds.length}
-          </span>
-          <button
-            type="button"
-            style={{ ...shell.customizeButton, background: showPossibleDuplicatesOnly ? '#fee2e2' : 'var(--color-primary-light)', borderColor: showPossibleDuplicatesOnly ? '#fca5a5' : '#c7d2fe', color: showPossibleDuplicatesOnly ? '#991b1b' : 'var(--color-primary-dark)' }}
-            onClick={() => setShowPossibleDuplicatesOnly((prev) => !prev)}
-          >
-            {showPossibleDuplicatesOnly ? 'Show All Customers' : 'Filter Possible Duplicates'}
-          </button>
-        </div>
-        <div style={{ position: 'relative' }}>
-          <button
-            ref={customizeButtonRef}
-            type="button"
-            style={customizeButtonStyle}
-            onClick={() => setShowCustomize((prev) => !prev)}
-          >
-            Customize Fields
-          </button>
-          {showCustomize ? (
-            <div ref={customizePanelRef} style={shell.popover}>
-              <div style={shell.popoverHeader}>Show/Hide Columns</div>
-              <div style={shell.popoverBody}>
-                {allColumns.map((column) => (
-                  <label key={column.key} style={shell.popoverItem}>
-                    <input
-                      type="checkbox"
-                      checked={visibleColumns.includes(column.key)}
-                      onChange={() => toggleColumn(column.key)}
-                    />
-                    {column.label}
-                  </label>
-                ))}
-              </div>
-            </div>
+          {!isMobile ? (
+            <>
+              <span style={{ border: '1px solid rgba(159, 23, 77, 0.25)', background: 'var(--color-primary-light)', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 800, color: 'var(--color-primary-dark)' }}>
+                Data Health: {duplicateSummary?.customerDataHealthScore ?? 100}
+              </span>
+              <span style={{ border: '1px solid rgba(217,119,6,0.28)', background: 'rgba(254,243,199,0.7)', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 800, color: '#92400e' }}>
+                Possible Duplicates: {possibleDuplicateIds.length}
+              </span>
+              <button
+                type="button"
+                style={{ ...shell.customizeButton, background: showPossibleDuplicatesOnly ? '#fee2e2' : 'var(--color-primary-light)', borderColor: showPossibleDuplicatesOnly ? '#fca5a5' : '#c7d2fe', color: showPossibleDuplicatesOnly ? '#991b1b' : 'var(--color-primary-dark)' }}
+                onClick={() => setShowPossibleDuplicatesOnly((prev) => !prev)}
+              >
+                {showPossibleDuplicatesOnly ? 'Show All Customers' : 'Filter Possible Duplicates'}
+              </button>
+            </>
           ) : null}
         </div>
+        {!isMobile ? (
+          <div style={{ position: 'relative' }}>
+            <button
+              ref={customizeButtonRef}
+              type="button"
+              style={customizeButtonStyle}
+              onClick={() => setShowCustomize((prev) => !prev)}
+            >
+              Customize Fields
+            </button>
+            {showCustomize ? (
+              <div ref={customizePanelRef} style={shell.popover}>
+                <div style={shell.popoverHeader}>Show/Hide Columns</div>
+                <div style={shell.popoverBody}>
+                  {allColumns.map((column) => (
+                    <label key={column.key} style={shell.popoverItem}>
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns.includes(column.key)}
+                        onChange={() => toggleColumn(column.key)}
+                      />
+                      {column.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div style={shell.tableWrap}>

@@ -180,6 +180,15 @@ export default function LeadFollowups() {
     : viewportWidth < 1200
       ? { ...shell.filters, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', padding: '14px 16px' }
       : shell.filters;
+  const tabsStyle = isMobile
+    ? { ...shell.tabs, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px', alignItems: 'stretch' }
+    : shell.tabs;
+  const tabStyle = isMobile
+    ? { ...shell.tab, width: '100%', height: '34px', padding: '0 8px', gap: '5px', fontSize: '11px', minWidth: 0 }
+    : shell.tab;
+  const tabBadgeStyle = isMobile
+    ? { ...shell.badge, minWidth: '18px', height: '18px', padding: '0 6px', fontSize: '10px', flexShrink: 0 }
+    : shell.badge;
   const followupMobileColumns = '150px 150px 100px 105px 145px 130px 130px 110px';
   const tableStyle = {
     ...shell.table,
@@ -201,7 +210,7 @@ export default function LeadFollowups() {
     { key: 'today', label: 'Today', count: counts.today, icon: CalendarDays },
     { key: 'tomorrow', label: 'Tomorrow', count: counts.tomorrow, icon: CalendarCheck },
     { key: 'week', label: 'This Week', count: counts.week, icon: CalendarClock },
-    { key: 'upcoming', label: 'All Upcoming', count: counts.upcoming, icon: List }
+    { key: 'upcoming', label: 'All Upcoming', mobileLabel: 'Upcoming', count: counts.upcoming, icon: List }
   ];
 
   return (
@@ -279,7 +288,7 @@ export default function LeadFollowups() {
         </div>
       ) : null}
 
-      <div style={shell.tabs}>
+      <div style={tabsStyle}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.key;
@@ -288,7 +297,7 @@ export default function LeadFollowups() {
               key={tab.key}
               type="button"
               style={{
-                ...shell.tab,
+                ...tabStyle,
                 color: active ? '#fff' : 'var(--color-muted)',
                 background: active ? 'var(--color-primary)' : 'var(--color-white)',
                 borderColor: active ? 'var(--color-primary)' : 'var(--color-border)',
@@ -296,9 +305,11 @@ export default function LeadFollowups() {
               }}
               onClick={() => setActiveTab(tab.key)}
             >
-              <Icon size={15} />
-              {tab.label}
-              {tab.count > 0 || ['overdue', 'today'].includes(tab.key) ? <span style={{ ...shell.badge, background: active ? 'rgba(255,255,255,0.22)' : 'var(--color-primary)', color: active ? '#fff' : '#fff' }}>{tab.count}</span> : null}
+              <Icon size={isMobile ? 14 : 15} />
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isMobile ? tab.mobileLabel || tab.label : tab.label}
+              </span>
+              {tab.count > 0 || ['overdue', 'today'].includes(tab.key) ? <span style={{ ...tabBadgeStyle, background: active ? 'rgba(255,255,255,0.22)' : 'var(--color-primary)', color: active ? '#fff' : '#fff' }}>{tab.count}</span> : null}
             </button>
           );
         })}

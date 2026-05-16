@@ -236,7 +236,7 @@ const shell = {
     backdropFilter: 'blur(12px)'
   },
   modal: {
-    background: 'rgba(255,255,255,0.9)',
+    background: '#fff',
     width: 'min(100%, 760px)',
     borderRadius: '24px',
     border: '1px solid rgba(159, 23, 77, 0.24)',
@@ -270,7 +270,7 @@ const shell = {
     justifyContent: 'center',
     cursor: 'pointer'
   },
-  formContent: { padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: '10px', overflowX: 'hidden' },
+  formContent: { padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: '10px', overflowX: 'hidden', background: '#fff' },
   topGrid: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'center' },
   typeRadios: { display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#111827' },
   sectionSplit: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '12px' },
@@ -329,7 +329,8 @@ const shell = {
     borderTop: '1px solid var(--color-border)',
     display: 'flex',
     justifyContent: 'flex-end',
-    gap: '8px'
+    gap: '8px',
+    background: '#fff'
   },
   cancelButton: {
     border: '1px solid #D1D5DB',
