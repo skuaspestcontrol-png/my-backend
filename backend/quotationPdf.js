@@ -517,28 +517,18 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text(title, left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(sectionSpacing.afterHeading);
 
-  const serviceNameWidth = Math.max(
-    82,
-    Math.min(
-      140,
-      Math.ceil(Math.max(
-        doc.font(pdfFont.bold).fontSize(pdfTextSize.table).widthOfString('Service'),
-        ...items.map((item) => doc.font(pdfFont.regular).fontSize(pdfTextSize.table).widthOfString(clean(item.service_name || '-')))
-      )) + 16
-    )
-  );
   const serviceTableWidth = right - left;
-  const fourthColumnWidth = isGstQuotation ? 112 : 72;
-  const serviceFixedWidth = 30 + serviceNameWidth + fourthColumnWidth;
-  const remainingServiceWidth = Math.max(230, serviceTableWidth - serviceFixedWidth);
-  const frequencyWidth = Math.round(remainingServiceWidth * (isGstQuotation ? 0.46 : 0.48));
-  const amountWidth = remainingServiceWidth - frequencyWidth;
+  const serviceNumberWidth = 30;
+  const serviceNameWidth = Math.round(serviceTableWidth * 0.26);
+  const frequencyWidth = Math.round(serviceTableWidth * (isGstQuotation ? 0.34 : 0.42));
+  const fourthColumnWidth = Math.round(serviceTableWidth * (isGstQuotation ? 0.22 : 0.14));
+  const amountWidth = serviceTableWidth - serviceNumberWidth - serviceNameWidth - frequencyWidth - fourthColumnWidth;
   const serviceCols = [
-    { x: left, w: 30 },
-    { x: left + 30, w: serviceNameWidth },
-    { x: left + 30 + serviceNameWidth, w: frequencyWidth },
-    { x: left + 30 + serviceNameWidth + frequencyWidth, w: fourthColumnWidth },
-    { x: left + 30 + serviceNameWidth + frequencyWidth + fourthColumnWidth, w: amountWidth }
+    { x: left, w: serviceNumberWidth },
+    { x: left + serviceNumberWidth, w: serviceNameWidth },
+    { x: left + serviceNumberWidth + serviceNameWidth, w: frequencyWidth },
+    { x: left + serviceNumberWidth + serviceNameWidth + frequencyWidth, w: fourthColumnWidth },
+    { x: left + serviceNumberWidth + serviceNameWidth + frequencyWidth + fourthColumnWidth, w: amountWidth }
   ];
 
   const serviceHeadings = isGstQuotation
