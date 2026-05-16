@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
@@ -17,6 +17,29 @@ import {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ALL_VALUE = '__all__';
 const FOLLOWUP_PAGE_SIZE = 20;
+const FOLLOWUP_COLUMN_WIDTHS_KEY = 'lead_followups_column_widths';
+
+const defaultColumnWidths = {
+  lead: 150,
+  customer: 150,
+  status: 100,
+  urgency: 105,
+  assignedTo: 145,
+  lastFollowup: 130,
+  nextFollowup: 130,
+  actions: 110
+};
+
+const followupColumns = [
+  { key: 'lead', label: 'Lead' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'status', label: 'Status' },
+  { key: 'urgency', label: 'Urgency' },
+  { key: 'assignedTo', label: 'Assigned To' },
+  { key: 'lastFollowup', label: 'Last Follow-up' },
+  { key: 'nextFollowup', label: 'Next Follow-up' },
+  { key: 'actions', label: 'Actions' }
+];
 
 const shell = {
   page: { display: 'grid', gap: '14px', color: 'var(--color-muted)' },
@@ -40,7 +63,8 @@ const shell = {
   tableTitle: { padding: '12px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '15px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' },
   tableWrap: { overflowX: 'auto' },
   table: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
-  th: { background: 'var(--color-primary-light)', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 800, textAlign: 'left', padding: '11px 14px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em' },
+  th: { background: 'var(--color-primary-light)', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 800, textAlign: 'left', padding: '11px 14px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', position: 'relative', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   td: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '13px', fontWeight: 650 },
   empty: { minHeight: '96px', display: 'grid', placeItems: 'center', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 700 },
   actionBtn: { border: '1px solid var(--color-border)', background: 'var(--color-white)', color: 'var(--color-primary)', borderRadius: '10px', height: '34px', minWidth: '92px', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
@@ -87,6 +111,15 @@ export default function LeadFollowups() {
   const [filters, setFilters] = useState(draftFilters);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [page, setPage] = useState(1);
+  const resizeStateRef = useRef(null);
+  const [columnWidths, setColumnWidths] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(FOLLOWUP_COLUMN_WIDTHS_KEY) || '{}');
+      return saved && typeof saved === 'object' ? { ...defaultColumnWidths, ...saved } : defaultColumnWidths;
+    } catch (_error) {
+      return defaultColumnWidths;
+    }
+  });
 
   const loadLeads = async (options = {}) => {
     if (!options.silent) setLoading(true);
@@ -112,6 +145,14 @@ export default function LeadFollowups() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FOLLOWUP_COLUMN_WIDTHS_KEY, JSON.stringify(columnWidths));
+    } catch (_error) {
+      // Ignore localStorage failures.
+    }
+  }, [columnWidths]);
 
   const today = useMemo(() => {
     const next = new Date();
@@ -214,13 +255,53 @@ export default function LeadFollowups() {
   const tabBadgeStyle = isMobile
     ? { ...shell.badge, minWidth: '18px', height: '18px', padding: '0 6px', fontSize: '10px', flexShrink: 0 }
     : shell.badge;
-  const followupMobileColumns = '150px 150px 100px 105px 145px 130px 130px 110px';
+  const getColumnWidth = (columnKey) => Math.max(80, Number(columnWidths[columnKey] || defaultColumnWidths[columnKey] || 120));
+  const startColumnResize = (event, columnKey) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const th = event.currentTarget.closest('th');
+    const startWidth = getColumnWidth(columnKey) || th?.offsetWidth || defaultColumnWidths[columnKey] || 120;
+    resizeStateRef.current = { columnKey, startX: event.clientX, startWidth };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMouseMove = (moveEvent) => {
+      if (!resizeStateRef.current) return;
+      const delta = moveEvent.clientX - resizeStateRef.current.startX;
+      const minWidth = columnKey === 'actions' ? 96 : 80;
+      const nextWidth = Math.max(minWidth, resizeStateRef.current.startWidth + delta);
+      setColumnWidths((prev) => ({ ...prev, [columnKey]: nextWidth }));
+    };
+
+    const onMouseUp = () => {
+      resizeStateRef.current = null;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+  const renderResizableHeader = (column) => (
+    <th key={column.key} style={{ ...shell.th, width: `${getColumnWidth(column.key)}px`, minWidth: `${getColumnWidth(column.key)}px` }}>
+      {column.label}
+      <span
+        aria-hidden="true"
+        style={shell.resizeHandle}
+        onMouseDown={(event) => startColumnResize(event, column.key)}
+      />
+    </th>
+  );
+  const followupMobileColumns = followupColumns.map((column) => `${getColumnWidth(column.key)}px`).join(' ');
+  const tableMinWidth = followupColumns.reduce((sum, column) => sum + getColumnWidth(column.key), 0);
   const tableStyle = {
     ...shell.table,
-    minWidth: isMobile ? 920 : '100%',
+    minWidth: isMobile ? Math.max(920, tableMinWidth) : Math.max(980, tableMinWidth),
     tableLayout: 'fixed',
     '--mobile-table-columns': followupMobileColumns,
-    '--mobile-table-min-width': '920px'
+    '--mobile-table-min-width': `${Math.max(920, tableMinWidth)}px`
   };
 
   const stats = [
@@ -342,20 +423,13 @@ export default function LeadFollowups() {
         <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
           <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
             <colgroup>
-              <col style={{ width: '150px' }} />
-              <col style={{ width: '150px' }} />
-              <col style={{ width: '100px' }} />
-              <col style={{ width: '105px' }} />
-              <col style={{ width: '145px' }} />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '110px' }} />
+              {followupColumns.map((column) => (
+                <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
+              ))}
             </colgroup>
             <thead>
               <tr>
-                {['Lead', 'Customer', 'Status', 'Urgency', 'Assigned To', 'Last Follow-up', 'Next Follow-up', 'Actions'].map((head) => (
-                  <th key={head} style={shell.th}>{head}</th>
-                ))}
+                {followupColumns.map(renderResizableHeader)}
               </tr>
             </thead>
             <tbody>

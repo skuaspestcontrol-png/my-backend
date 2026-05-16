@@ -1040,41 +1040,42 @@ export default function InvoiceDashboard() {
   const getColumnStyle = (columnKey) => {
     if (columnKey === 'date' || columnKey === 'dueDate') {
       return {
-        width: '130px',
-        minWidth: '130px',
-        maxWidth: '130px',
+        width: '118px',
+        minWidth: '118px',
+        maxWidth: '118px',
         textAlign: 'center',
         fontVariantNumeric: 'tabular-nums'
       };
     }
     if (columnKey === 'invoiceNumber') {
       return {
-        width: '150px',
-        minWidth: '150px',
-        maxWidth: '150px'
+        width: '140px',
+        minWidth: '140px',
+        maxWidth: '140px'
       };
     }
     if (columnKey === 'amount' || columnKey === 'balanceDue') {
       return {
-        width: '140px',
-        minWidth: '140px',
-        maxWidth: '140px',
+        width: '118px',
+        minWidth: '118px',
+        maxWidth: '118px',
         textAlign: 'right',
         fontVariantNumeric: 'tabular-nums'
       };
     }
     if (columnKey === 'status') {
       return {
-        width: '110px',
-        minWidth: '110px',
-        maxWidth: '110px',
+        width: '96px',
+        minWidth: '96px',
+        maxWidth: '96px',
         textAlign: 'center'
       };
     }
     if (columnKey === 'customerName') {
       return {
-        width: 'auto',
-        minWidth: '220px'
+        width: '230px',
+        minWidth: '230px',
+        maxWidth: '230px'
       };
     }
     return {};
@@ -2149,7 +2150,7 @@ export default function InvoiceDashboard() {
     const width = parseInt(style.minWidth || style.width, 10);
     return `${Number.isFinite(width) ? width : 150}px`;
   }), '80px'];
-  const invoiceMobileMinWidth = 34 + visibleColumnDefs.reduce((sum, column) => {
+  const invoiceTableMinWidth = 34 + visibleColumnDefs.reduce((sum, column) => {
       const style = getColumnStyle(column.key);
       const width = parseInt(style.minWidth || style.width, 10);
       return sum + (Number.isFinite(width) ? width : 150);
@@ -2157,12 +2158,12 @@ export default function InvoiceDashboard() {
   const tableStyle = isMobile
     ? {
       ...shell.table,
-      minWidth: invoiceMobileMinWidth,
+      minWidth: invoiceTableMinWidth,
       tableLayout: 'fixed',
       '--mobile-table-columns': invoiceMobileColumnWidths.join(' '),
-      '--mobile-table-min-width': `${invoiceMobileMinWidth}px`
+      '--mobile-table-min-width': `${invoiceTableMinWidth}px`
     }
-    : { ...shell.table, minWidth: '100%' };
+    : { ...shell.table, width: `${invoiceTableMinWidth}px`, minWidth: `${invoiceTableMinWidth}px` };
   const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : shell.itemTable;
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
