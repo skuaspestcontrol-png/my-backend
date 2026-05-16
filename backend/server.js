@@ -2520,13 +2520,13 @@ const hasRecentWebsiteLeadByMobile = async (mobile) => {
 const buildWebsiteLead = (body = {}) => {
   const now = new Date();
   const name = String(body.name || body.customerName || '').trim();
-  const mobile = String(body.mobile || body.mobileNumber || '').trim();
+  const mobile = String(body.phone || body.mobile || body.mobileNumber || '').trim();
   const email = String(body.email || body.emailId || '').trim();
-  const serviceRequired = String(body.serviceRequired || body.serviceName || body.pestIssue || '').trim();
+  const serviceRequired = String(body.service || body.serviceRequired || body.serviceName || body.pestIssue || '').trim();
   const message = String(body.message || body.notes || body.remarks || '').trim();
   const city = String(body.city || '').trim();
   const address = String(body.address || '').trim();
-  const websitePage = String(body.websitePage || '').trim();
+  const websitePage = String(body.websitePage || body.source || '').trim();
   const leadId = `web-${now.getTime()}-${crypto.randomBytes(3).toString('hex')}`;
 
   return normalizeLeadShape({
@@ -2551,10 +2551,81 @@ const buildWebsiteLead = (body = {}) => {
     leadDate: now.toISOString().slice(0, 10),
     date: now.toISOString(),
     createdAt: now.toISOString(),
-    status: 'New',
-    leadStatus: 'New'
+    status: 'Hot',
+    leadStatus: 'Hot'
   }, leadId);
 };
+
+const saveWebsiteLead = async (body = {}) => {
+  const name = String(body?.name || body?.customerName || '').trim();
+  const mobile = String(body?.phone || body?.mobile || body?.mobileNumber || '').trim();
+  if (!name) {
+    const error = new Error('Name is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!mobile) {
+    const error = new Error('Phone is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (await hasRecentWebsiteLeadByMobile(mobile)) {
+    const error = new Error('Lead already submitted recently');
+    error.statusCode = 429;
+    throw error;
+  }
+
+  const lead = buildWebsiteLead({ ...body, name, phone: mobile });
+  let savedToMysql = false;
+  let mysqlError = '';
+  if (canUseMysql()) {
+    try {
+      await withMysqlConnection(async (conn) => {
+        await upsertLeadToMysql(conn, lead);
+      });
+      savedToMysql = true;
+    } catch (error) {
+      mysqlError = error.message || 'Failed to save lead in MySQL';
+      console.error('Website lead MySQL save failed:', mysqlError);
+    }
+  }
+  const savedToJson = saveLeadToJsonFallback(lead);
+
+  if (canUseMysql() && !savedToMysql) {
+    const error = new Error(mysqlError || 'Failed to save lead in MySQL');
+    error.statusCode = 500;
+    error.jsonBackupSaved = savedToJson;
+    throw error;
+  }
+  if (!savedToMysql && !savedToJson) {
+    const error = new Error('Failed to save lead');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  return { lead, savedToMysql, savedToJson };
+};
+
+app.post('/api/website-leads', async (req, res) => {
+  try {
+    const expectedKey = String(process.env.WEBSITE_LEAD_API_KEY || '').trim();
+    const suppliedKey = String(req.headers['x-api-key'] || '').trim();
+    if (!expectedKey || suppliedKey !== expectedKey) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const { lead } = await saveWebsiteLead(req.body || {});
+    return res.status(201).json({ success: true, message: 'Lead created', leadId: lead._id });
+  } catch (error) {
+    console.error('Website lead create failed:', error.message);
+    const status = Number(error.statusCode || 500);
+    return res.status(status).json({
+      success: false,
+      error: error.message || 'Failed to create lead',
+      ...(Object.prototype.hasOwnProperty.call(error, 'jsonBackupSaved') ? { jsonBackupSaved: error.jsonBackupSaved } : {})
+    });
+  }
+});
 
 app.post('/api/public/website-lead', async (req, res) => {
   try {
@@ -2564,45 +2635,16 @@ app.post('/api/public/website-lead', async (req, res) => {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
 
-    const name = String(req.body?.name || req.body?.customerName || '').trim();
-    const mobile = String(req.body?.mobile || req.body?.mobileNumber || '').trim();
-    if (!name) return res.status(400).json({ success: false, error: 'Name is required' });
-    if (!mobile) return res.status(400).json({ success: false, error: 'Mobile is required' });
-    if (await hasRecentWebsiteLeadByMobile(mobile)) {
-      return res.status(429).json({ success: false, error: 'Lead already submitted recently' });
-    }
-
-    const lead = buildWebsiteLead(req.body || {});
-    let savedToMysql = false;
-    let mysqlError = '';
-    if (canUseMysql()) {
-      try {
-        await withMysqlConnection(async (conn) => {
-          await upsertLeadToMysql(conn, lead);
-        });
-        savedToMysql = true;
-      } catch (error) {
-        mysqlError = error.message || 'Failed to save lead in MySQL';
-        console.error('Website lead MySQL save failed:', mysqlError);
-      }
-    }
-    const savedToJson = saveLeadToJsonFallback(lead);
-
-    if (canUseMysql() && !savedToMysql) {
-      return res.status(500).json({
-        success: false,
-        error: mysqlError || 'Failed to save lead in MySQL',
-        jsonBackupSaved: savedToJson
-      });
-    }
-    if (!savedToMysql && !savedToJson) {
-      return res.status(500).json({ success: false, error: 'Failed to save lead' });
-    }
-
+    const { lead } = await saveWebsiteLead(req.body || {});
     return res.json({ success: true, message: 'Lead created', leadId: lead._id });
   } catch (error) {
     console.error('Website lead create failed:', error.message);
-    return res.status(500).json({ success: false, error: error.message || 'Failed to create lead' });
+    const status = Number(error.statusCode || 500);
+    return res.status(status).json({
+      success: false,
+      error: error.message || 'Failed to create lead',
+      ...(Object.prototype.hasOwnProperty.call(error, 'jsonBackupSaved') ? { jsonBackupSaved: error.jsonBackupSaved } : {})
+    });
   }
 });
 
