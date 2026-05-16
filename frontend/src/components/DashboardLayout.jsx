@@ -25,6 +25,53 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const INACTIVITY_LOGOUT_MS = 5 * 60 * 1000;
+const NOTIFICATION_READ_STORAGE_KEY = 'skuas_read_notification_ids';
+
+const toDateOnly = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const isDoneLead = (lead) => ['booked', 'converted'].includes(String(lead?.status || lead?.leadStatus || '').trim().toLowerCase());
+
+const getTodayLeadFollowups = (rows = []) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return (Array.isArray(rows) ? rows : [])
+    .filter((lead) => {
+      const followupDate = toDateOnly(lead?.followupDate);
+      return followupDate && followupDate.getTime() === today.getTime() && !isDoneLead(lead);
+    })
+    .map((lead, index) => ({
+      id: String(lead._id || `${lead.customerName || 'lead'}-${lead.mobile || lead.mobileNumber || ''}-${lead.followupDate || ''}-${index}`),
+      title: String(lead.customerName || lead.displayName || 'Lead follow-up').trim(),
+      subtitle: [
+        String(lead.mobile || lead.mobileNumber || '').trim(),
+        String(lead.assignedTo || 'Unassigned').trim()
+      ].filter(Boolean).join(' • '),
+      status: String(lead.status || lead.leadStatus || 'Follow-up').trim()
+    }));
+};
+
+const loadReadNotificationIds = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(NOTIFICATION_READ_STORAGE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch (_error) {
+    return [];
+  }
+};
+
+const saveReadNotificationIds = (ids) => {
+  try {
+    localStorage.setItem(NOTIFICATION_READ_STORAGE_KEY, JSON.stringify(Array.from(new Set(ids.map(String)))));
+  } catch (_error) {
+    // Ignore localStorage issues.
+  }
+};
 
 const SidebarSection = ({ title, children, collapsed = false }) => (
   <div style={{ marginTop: collapsed ? '10px' : '14px' }}>
@@ -59,6 +106,9 @@ export default function DashboardLayout({ children }) {
   const [sidebarPinnedOpen, setSidebarPinnedOpen] = useState(false);
   const [sidebarHovering, setSidebarHovering] = useState(false);
   const [sidebarFocusWithin, setSidebarFocusWithin] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [leadNotifications, setLeadNotifications] = useState([]);
+  const [readNotificationIds, setReadNotificationIds] = useState(() => loadReadNotificationIds());
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -99,6 +149,37 @@ export default function DashboardLayout({ children }) {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const fetchLeadNotifications = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/leads`);
+        if (!active) return;
+        setLeadNotifications(getTodayLeadFollowups(res.data));
+      } catch (error) {
+        console.error('Could not load notifications', error);
+      }
+    };
+
+    fetchLeadNotifications();
+    const interval = window.setInterval(fetchLeadNotifications, 60000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onPointerDown = (event) => {
+      const target = event.target;
+      if (notificationsOpen && target instanceof Element && !target.closest('[data-topbar-notifications="true"]')) {
+        setNotificationsOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [notificationsOpen]);
 
   const isMobile = viewportWidth < 768;
   const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
@@ -227,6 +308,20 @@ export default function DashboardLayout({ children }) {
 
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS MASTER').trim() || 'SKUAS MASTER';
   const portalUserRole = String(localStorage.getItem('portal_user_role') || 'Admin').trim() || 'Admin';
+  const unreadNotificationCount = leadNotifications.filter((item) => !readNotificationIds.includes(item.id)).length;
+  const toggleNotificationRead = (id) => {
+    setReadNotificationIds((prev) => {
+      const key = String(id);
+      const next = prev.includes(key) ? prev.filter((entry) => entry !== key) : [...prev, key];
+      saveReadNotificationIds(next);
+      return next;
+    });
+  };
+  const markAllNotificationsRead = () => {
+    const next = leadNotifications.map((item) => item.id);
+    setReadNotificationIds(next);
+    saveReadNotificationIds(next);
+  };
   const companyInitials = companyName
     .split(' ')
     .filter(Boolean)
@@ -492,6 +587,117 @@ export default function DashboardLayout({ children }) {
               <span style={{ fontWeight: 400, flexShrink: 0 }}>{portalUserRole}</span>
               <span style={{ fontWeight: 800 }}>{companyName}</span>
             </span>
+            <div style={{ position: 'relative', display: 'inline-flex' }} data-topbar-notifications="true">
+              <button
+                type="button"
+                onClick={() => setNotificationsOpen((prev) => !prev)}
+                style={{
+                  border: '1px solid var(--color-border)',
+                  background: '#fff',
+                  color: 'var(--color-primary)',
+                  width: isMobile ? '38px' : '42px',
+                  height: isMobile ? '38px' : '42px',
+                  borderRadius: '999px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)',
+                  position: 'relative'
+                }}
+                aria-label="Open notifications"
+                title="Notifications"
+              >
+                <Bell size={isMobile ? 18 : 20} />
+                {unreadNotificationCount > 0 ? (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-3px',
+                      minWidth: '18px',
+                      height: '18px',
+                      padding: '0 5px',
+                      borderRadius: '999px',
+                      background: '#dc2626',
+                      color: '#fff',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid #fff'
+                    }}
+                  >
+                    {unreadNotificationCount}
+                  </span>
+                ) : null}
+              </button>
+              {notificationsOpen ? (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 10px)',
+                    right: 0,
+                    width: isMobile ? 'min(86vw, 320px)' : '340px',
+                    maxHeight: '420px',
+                    overflowY: 'auto',
+                    background: '#fff',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '12px',
+                    boxShadow: '0 18px 44px rgba(15,23,42,0.18)',
+                    zIndex: 6000,
+                    padding: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '2px 2px 8px' }}>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--color-text)' }}>Today Notifications</p>
+                      <p style={{ margin: '2px 0 0', fontSize: '11px', fontWeight: 700, color: 'var(--color-muted)' }}>Lead follow-up tasks due today</p>
+                    </div>
+                    {leadNotifications.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={markAllNotificationsRead}
+                        style={{ border: 'none', background: 'transparent', color: 'var(--color-primary)', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}
+                      >
+                        Mark all
+                      </button>
+                    ) : null}
+                  </div>
+                  <div style={{ display: 'grid', gap: '6px' }}>
+                    {leadNotifications.length === 0 ? (
+                      <div style={{ padding: '18px 10px', textAlign: 'center', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 700 }}>
+                        No lead follow-ups due today.
+                      </div>
+                    ) : leadNotifications.map((item) => {
+                      const isRead = readNotificationIds.includes(item.id);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => toggleNotificationRead(item.id)}
+                          style={{
+                            border: '1px solid var(--color-border)',
+                            borderRadius: '10px',
+                            background: isRead ? '#fff' : 'var(--color-primary-light)',
+                            padding: '9px 10px',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            display: 'grid',
+                            gap: '3px'
+                          }}
+                        >
+                          <span style={{ fontSize: '12px', fontWeight: isRead ? 600 : 800, color: 'var(--color-text)' }}>{item.title}</span>
+                          <span style={{ fontSize: '11px', fontWeight: isRead ? 500 : 700, color: 'var(--color-muted)' }}>{item.subtitle || 'Unassigned'}</span>
+                          <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--color-primary)' }}>{item.status}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
             <button
               type="button"
               onClick={() => navigate('/settings')}

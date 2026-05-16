@@ -71,26 +71,26 @@ const shell = {
     border: 'none',
     borderRadius: 0,
     background: 'transparent',
-    overflow: 'hidden'
+    overflow: 'visible'
   },
   head: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'start', gap: '10px' },
-  titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
+  titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 8px', borderRadius: '8px', background: 'var(--color-primary-light)', border: '1px solid var(--color-primary-soft)' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111827', display: 'inline-flex', alignItems: 'center', gap: '8px' },
   subtitle: { margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 600 },
   headActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' },
   beta: { border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.6)', color: 'var(--color-primary)', borderRadius: '999px', padding: '7px 12px', fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap' },
   newBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '9px', padding: '7px 11px', minHeight: '34px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap' },
-  card: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', overflow: 'hidden' },
-  cardTop: { padding: '14px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', background: '#fff' },
-  cardTitle: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
+  card: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', overflow: 'visible' },
+  cardTop: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: '#fff' },
+  cardTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   shownPill: { border: '1px solid var(--color-border)', background: '#f8fafc', color: '#334155', borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 },
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
-  chip: { border: '1px solid transparent', borderRadius: '999px', padding: '5px 10px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', gap: '6px', alignItems: 'center', cursor: 'pointer' },
+  chip: { border: '1px solid transparent', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', gap: '5px', alignItems: 'center', cursor: 'pointer' },
   customizeChip: { border: '1px solid #F9A8D4', borderRadius: '999px', padding: '5px 10px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', gap: '6px', alignItems: 'center', cursor: 'pointer', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' },
-  customizeMenu: { position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: '198px', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '10px', boxShadow: '0 12px 26px rgba(15,23,42,0.12)', padding: '8px', zIndex: 50, display: 'grid', gap: '6px' },
+  customizeMenu: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: '220px', maxHeight: '320px', overflowY: 'auto', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 18px 42px rgba(15,23,42,0.18)', padding: '10px', zIndex: 5000, display: 'grid', gap: '7px' },
   customizeTitle: { margin: 0, fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' },
-  customizeRow: { display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: '#334155', fontWeight: 700 },
+  customizeRow: { display: 'flex', alignItems: 'center', gap: '8px', minHeight: '30px', borderRadius: '8px', padding: '0 8px', fontSize: '12px', color: '#334155', fontWeight: 700, cursor: 'pointer' },
   filtersBox: { margin: '8px 12px 10px', border: '1px solid var(--color-border)', borderRadius: '10px', padding: '8px', display: 'grid', gap: '8px', background: 'var(--surface-elevated, #fff)' },
   filterGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' },
   filterField: { display: 'grid', gap: '4px' },
@@ -925,9 +925,9 @@ export default function ContractDashboard() {
                 onClick={() => setQuickFilter(entry.label)}
                 style={{ ...shell.chip, ...tone, boxShadow: active ? '0 8px 18px rgba(131, 24, 67, 0.15)' : 'none', borderColor: active ? 'rgba(131, 24, 67, 0.25)' : 'transparent' }}
               >
-                <Icon size={13} />
+                <Icon size={12} />
                 <span>{entry.label}</span>
-                <span style={{ background: 'rgba(255,255,255,0.65)', borderRadius: '999px', padding: '2px 7px' }}>{summaryCounts[entry.label] || 0}</span>
+                <span style={{ background: 'rgba(255,255,255,0.65)', borderRadius: '999px', padding: '1px 6px', fontSize: '11px', fontWeight: 700 }}>{summaryCounts[entry.label] || 0}</span>
               </button>
             );
           })}
@@ -947,6 +947,7 @@ export default function ContractDashboard() {
                   <label key={col.key} style={shell.customizeRow}>
                     <input
                       type="checkbox"
+                      style={{ width: '14px', height: '14px', accentColor: 'var(--color-primary)', flexShrink: 0 }}
                       checked={Boolean(visibleColumns[col.key])}
                       onChange={(event) => {
                         const checked = event.target.checked;
