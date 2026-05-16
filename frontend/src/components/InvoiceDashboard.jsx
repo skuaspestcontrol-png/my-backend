@@ -10,6 +10,7 @@ import {
 } from '../utils/invoicePreferences';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const INVOICE_PAGE_SIZE = 20;
 
 const termsOptions = ['Paid', 'Due on Receipt', 'Net 15', 'Net 30', 'Net 45', 'Net 60'];
 const termsToDays = { Paid: 0, 'Due on Receipt': 0, 'Net 15': 15, 'Net 30': 30, 'Net 45': 45, 'Net 60': 60 };
@@ -221,7 +222,7 @@ const shell = {
   page: { background: 'transparent', border: 'none', borderRadius: 0, boxShadow: 'none', overflow: 'visible', position: 'relative' },
   topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)', background: '#fff' },
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
-  title: { margin: 0, fontSize: '30px', fontWeight: 800, letterSpacing: '-0.03em', color: '#1f2937' },
+  title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   topActions: { display: 'flex', alignItems: 'center', gap: '8px' },
   toolbar: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: '#fff' },
   toolLabel: { fontSize: '12px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' },
@@ -652,6 +653,7 @@ export default function InvoiceDashboard() {
   const [itemsCatalog, setItemsCatalog] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [page, setPage] = useState(1);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
   const [rowActionInvoiceId, setRowActionInvoiceId] = useState('');
@@ -853,6 +855,7 @@ export default function InvoiceDashboard() {
       setInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
       setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
       setSelectedIds([]);
+      setPage(1);
     } catch (error) {
       console.error('Failed to load invoices', error);
     } finally {
@@ -1009,14 +1012,28 @@ export default function InvoiceDashboard() {
     };
   }, [rowActionInvoiceId, showCustomize, showMoreMenu]);
 
-  const isAllSelected = invoices.length > 0 && selectedIds.length === invoices.length;
+  const totalPages = Math.max(1, Math.ceil(invoices.length / INVOICE_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedInvoices = useMemo(() => {
+    const start = (safePage - 1) * INVOICE_PAGE_SIZE;
+    return invoices.slice(start, start + INVOICE_PAGE_SIZE);
+  }, [invoices, safePage]);
+  const firstRecord = invoices.length ? ((safePage - 1) * INVOICE_PAGE_SIZE) + 1 : 0;
+  const lastRecord = Math.min(safePage * INVOICE_PAGE_SIZE, invoices.length);
+  const visibleInvoiceIds = pagedInvoices.map((invoice) => invoice._id).filter(Boolean);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
+  const isAllSelected = visibleInvoiceIds.length > 0 && visibleInvoiceIds.every((id) => selectedIds.includes(id));
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
-      setSelectedIds([]);
+      setSelectedIds((prev) => prev.filter((id) => !visibleInvoiceIds.includes(id)));
       return;
     }
-    setSelectedIds(invoices.map((invoice) => invoice._id));
+    setSelectedIds((prev) => Array.from(new Set([...prev, ...visibleInvoiceIds])));
   };
 
   const toggleSelectOne = (invoiceId) => {
@@ -2306,7 +2323,7 @@ export default function InvoiceDashboard() {
             </tr>
           </thead>
           <tbody>
-            {invoices.map((invoice) => (
+            {pagedInvoices.map((invoice) => (
               <tr key={invoice._id} style={shell.row}>
                 <td style={{ ...shell.cell, ...shell.checkboxWrap }} data-label="Select">
                   <input
@@ -2382,6 +2399,16 @@ export default function InvoiceDashboard() {
             ))}
           </tbody>
         </table>
+      </div>
+      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#fff' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>
+          {invoices.length ? `Showing ${firstRecord} to ${lastRecord} of ${invoices.length} invoices • 20 per page` : 'Showing 0 invoices • 20 per page'}
+        </span>
+        <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+          <button type="button" style={tinyGhostButtonStyle} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Prev</button>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#111827' }}>Page {safePage} / {totalPages}</span>
+          <button type="button" style={tinyGhostButtonStyle} disabled={safePage >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))}>Next</button>
+        </div>
       </div>
 
       {rowActionInvoiceId

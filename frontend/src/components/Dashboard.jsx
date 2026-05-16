@@ -30,7 +30,7 @@ const shell = {
   badge: { display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#FCE7F3' },
   title: { margin: '12px 0 10px 0', fontSize: '34px', lineHeight: 1.05, letterSpacing: '-0.04em' },
   description: { margin: 0, color: 'rgba(255,255,255,0.9)', fontSize: '14px', lineHeight: 1.8, maxWidth: '720px', fontWeight: 600 },
-  tagline: { margin: 0, color: 'rgba(255,255,255,0.94)', fontSize: '24px', lineHeight: 1.35, maxWidth: '720px', fontWeight: 800 },
+  tagline: { margin: 0, color: 'rgba(255,255,255,0.94)', fontSize: '24px', lineHeight: 1.35, maxWidth: '720px', fontWeight: 500 },
   heroCard: { background: 'rgba(255,255,255,0.66)', border: '1px solid rgba(159, 23, 77, 0.22)', borderRadius: '20px', padding: '18px', backdropFilter: 'blur(10px)' },
   metrics: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px' },
   metric: { background: 'rgba(255,255,255,0.86)', border: '1px solid rgba(159, 23, 77, 0.18)', borderRadius: '18px', padding: '18px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)' },

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { IndianRupee, Receipt, WalletCards } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const PAYMENT_PAGE_SIZE = 20;
 
 const shell = {
   page: {
@@ -51,7 +52,12 @@ const shell = {
     textTransform: 'uppercase',
     letterSpacing: '0.06em'
   },
-  td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#334155', fontSize: '13px', verticalAlign: 'top' }
+  td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#334155', fontSize: '13px', verticalAlign: 'top' },
+  pagination: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: '#fff' },
+  paginationInfo: { color: '#64748b', fontSize: '12px', fontWeight: 700 },
+  paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  paginationBtn: { minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: 'var(--color-primary)', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
+  paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }
   , actionButton: {
     border: '1px solid #fecaca',
     background: '#fff1f2',
@@ -135,6 +141,7 @@ export default function PaymentReceivedDashboard() {
   const [invoices, setInvoices] = useState([]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [status, setStatus] = useState('Loading payments...');
+  const [page, setPage] = useState(1);
 
   const loadPaymentsData = async () => {
     const [paymentsRes, invoicesRes] = await Promise.all([
@@ -184,6 +191,18 @@ export default function PaymentReceivedDashboard() {
   };
 
   const rows = useMemo(() => normalizePayments(payments, invoices), [payments, invoices]);
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAYMENT_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = useMemo(() => {
+    const start = (safePage - 1) * PAYMENT_PAGE_SIZE;
+    return rows.slice(start, start + PAYMENT_PAGE_SIZE);
+  }, [rows, safePage]);
+  const firstRecord = rows.length ? ((safePage - 1) * PAYMENT_PAGE_SIZE) + 1 : 0;
+  const lastRecord = Math.min(safePage * PAYMENT_PAGE_SIZE, rows.length);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
 
   const summary = useMemo(() => {
     const totalReceived = rows.reduce((sum, row) => sum + toNum(row.amount), 0);
@@ -242,7 +261,7 @@ export default function PaymentReceivedDashboard() {
                   <td style={shell.td} colSpan={6}>No payment records available yet.</td>
                 </tr>
               ) : (
-                rows.map((row) => (
+                pagedRows.map((row) => (
                   <tr key={row.id}>
                     <td style={shell.td}>{formatDate(row.date)}</td>
                     <td style={shell.td}>{row.invoiceNo}</td>
@@ -259,6 +278,29 @@ export default function PaymentReceivedDashboard() {
               )}
             </tbody>
           </table>
+        </div>
+        <div style={shell.pagination}>
+          <span style={shell.paginationInfo}>
+            {rows.length ? `${firstRecord}-${lastRecord} of ${rows.length} payments • 20 per page` : '20 per page'}
+          </span>
+          <div style={shell.paginationActions}>
+            <button
+              type="button"
+              style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }}
+              disabled={safePage <= 1}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }}
+              disabled={safePage >= totalPages}
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </section>

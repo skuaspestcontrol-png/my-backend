@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom';
 import { loadGooglePlacesScript } from '../utils/googlePlaces';
 import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
 import {
+  ArrowDown,
+  ArrowUp,
   CalendarDays,
   ChevronDown,
   ClipboardList,
@@ -78,6 +80,7 @@ const PROPERTY_TYPES = ['Residential', 'Commercial'];
 const LEAD_STATUSES = ['Cold', 'Warm', 'Hot', 'Booked', 'Decline'];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ALL_FILTER_VALUE = '__all__';
+const LEAD_PAGE_SIZE = 20;
 const MONTH_FILTER_OPTIONS = [
   { value: '1', label: 'January' },
   { value: '2', label: 'February' },
@@ -235,6 +238,8 @@ const s = {
   headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '5px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  headLabelWithSort: { display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, maxWidth: '100%' },
+  dateSortButton: { width: '18px', height: '18px', border: '1px solid rgba(107,114,128,0.28)', borderRadius: '6px', background: '#fff', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer', flexShrink: 0 },
   headActionCell: { background: 'var(--color-primary-light)' },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   row: { borderBottom: '1px solid #eef2f7' },
@@ -279,6 +284,11 @@ const s = {
   rowActionMenu: { position: 'fixed', width: '170px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 1200, overflow: 'hidden' },
   rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px' },
+  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: '#fff' },
+  paginationInfo: { color: '#64748b', fontSize: '12px', fontWeight: 700 },
+  paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  paginationButton: { minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: '#334155', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
+  paginationButtonDisabled: { opacity: 0.48, cursor: 'not-allowed' },
   viewDrawerOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.28)', zIndex: 2300 },
   viewDrawer: { position: 'fixed', top: 0, right: 0, width: 'min(460px, 96vw)', height: '100vh', background: '#fff', zIndex: 2400, boxShadow: '-16px 0 36px rgba(15,23,42,0.18)', display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--color-border)' },
   viewDrawerHead: { padding: '14px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-primary-light)' },
@@ -504,6 +514,8 @@ export default function LeadCapture() {
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [overviewFilters, setOverviewFilters] = useState(defaultOverviewFilters);
   const [overviewDraftFilters, setOverviewDraftFilters] = useState(defaultOverviewFilters);
+  const [leadSortDirection, setLeadSortDirection] = useState('desc');
+  const [leadPage, setLeadPage] = useState(1);
   const [visibleColumns, setVisibleColumns] = useState(() => {
     let saved = null;
     try {
@@ -655,9 +667,35 @@ export default function LeadCapture() {
     return leads.filter(matchesOverviewFilters);
   }, [leads, overviewFilters]);
 
+  const sortedLeads = useMemo(() => {
+    const direction = leadSortDirection === 'asc' ? 1 : -1;
+    return [...filteredLeads].sort((a, b) => {
+      const aTime = getLeadDateValue(a)?.getTime() || 0;
+      const bTime = getLeadDateValue(b)?.getTime() || 0;
+      return (aTime - bTime) * direction;
+    });
+  }, [filteredLeads, leadSortDirection]);
+
+  const totalLeadPages = Math.max(1, Math.ceil(sortedLeads.length / LEAD_PAGE_SIZE));
+  const safeLeadPage = Math.min(leadPage, totalLeadPages);
+  const paginatedLeads = useMemo(() => {
+    const start = (safeLeadPage - 1) * LEAD_PAGE_SIZE;
+    return sortedLeads.slice(start, start + LEAD_PAGE_SIZE);
+  }, [sortedLeads, safeLeadPage]);
+  const firstLeadRecord = sortedLeads.length ? ((safeLeadPage - 1) * LEAD_PAGE_SIZE) + 1 : 0;
+  const lastLeadRecord = Math.min(safeLeadPage * LEAD_PAGE_SIZE, sortedLeads.length);
+
+  useEffect(() => {
+    setLeadPage(1);
+  }, [overviewFilters, leadSortDirection]);
+
+  useEffect(() => {
+    setLeadPage((current) => Math.min(current, totalLeadPages));
+  }, [totalLeadPages]);
+
   const visibleLeadIds = useMemo(
-    () => filteredLeads.map((lead) => lead._id).filter(Boolean),
-    [filteredLeads]
+    () => paginatedLeads.map((lead) => lead._id).filter(Boolean),
+    [paginatedLeads]
   );
 
   const isAllSelected = useMemo(
@@ -2197,7 +2235,9 @@ export default function LeadCapture() {
         <div style={registerToolbarStyle}>
           <div style={toolbarLeftStyle}>
             <span style={s.toolLabel}>Lead Master</span>
-            <span style={s.toolbarMeta}>{`${filteredLeads.length} records shown`}</span>
+            <span style={s.toolbarMeta}>
+              {sortedLeads.length ? `${firstLeadRecord}-${lastLeadRecord} of ${sortedLeads.length} records` : '0 records'}
+            </span>
           </div>
           {!isMobile ? (
             <div style={{ position: 'relative' }}>
@@ -2246,7 +2286,22 @@ export default function LeadCapture() {
                 </th>
                 {visibleColumnDefs.map((column) => (
                   <th key={column.key} style={{ ...s.headCell, ...s.headCellResizable, ...getColumnStyle(column.key) }}>
-                    <span style={s.headLabelWrap}>{column.label}</span>
+                    {column.key === 'date' ? (
+                      <span style={s.headLabelWithSort}>
+                        <span style={s.headLabelWrap}>{column.label}</span>
+                        <button
+                          type="button"
+                          style={s.dateSortButton}
+                          onClick={() => setLeadSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'))}
+                          title={leadSortDirection === 'desc' ? 'Newest leads first' : 'Oldest leads first'}
+                          aria-label={leadSortDirection === 'desc' ? 'Sort lead date oldest first' : 'Sort lead date newest first'}
+                        >
+                          {leadSortDirection === 'desc' ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
+                        </button>
+                      </span>
+                    ) : (
+                      <span style={s.headLabelWrap}>{column.label}</span>
+                    )}
                     <span
                       role="separator"
                       aria-orientation="vertical"
@@ -2260,14 +2315,14 @@ export default function LeadCapture() {
               </tr>
             </thead>
             <tbody>
-              {filteredLeads.length === 0 ? (
+              {paginatedLeads.length === 0 ? (
                 <tr>
                   <td colSpan={visibleColumnDefs.length + 2} style={{ ...s.cell, textAlign: 'center', color: '#64748b', padding: '24px' }}>
                     No active leads found.
                   </td>
                 </tr>
               ) : (
-                filteredLeads.map((lead) => (
+                paginatedLeads.map((lead) => (
                   <tr key={lead._id} style={s.row}>
                     <td style={{ ...s.cell, ...s.checkboxWrap }} data-label="Select">
                       <input
@@ -2435,6 +2490,29 @@ export default function LeadCapture() {
               )}
             </tbody>
           </table>
+        </div>
+        <div style={s.pagination}>
+          <span style={s.paginationInfo}>
+            {sortedLeads.length ? `Page ${safeLeadPage} of ${totalLeadPages} • 20 per page` : '20 per page'}
+          </span>
+          <div style={s.paginationActions}>
+            <button
+              type="button"
+              style={{ ...s.paginationButton, ...(safeLeadPage <= 1 ? s.paginationButtonDisabled : {}) }}
+              disabled={safeLeadPage <= 1}
+              onClick={() => setLeadPage((current) => Math.max(1, current - 1))}
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              style={{ ...s.paginationButton, ...(safeLeadPage >= totalLeadPages ? s.paginationButtonDisabled : {}) }}
+              disabled={safeLeadPage >= totalLeadPages}
+              onClick={() => setLeadPage((current) => Math.min(totalLeadPages, current + 1))}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 

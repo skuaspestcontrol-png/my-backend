@@ -15,6 +15,7 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ALL_VALUE = '__all__';
+const FOLLOWUP_PAGE_SIZE = 20;
 
 const shell = {
   page: { display: 'grid', gap: '14px', color: 'var(--color-muted)' },
@@ -41,7 +42,12 @@ const shell = {
   th: { background: 'var(--color-primary-light)', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 800, textAlign: 'left', padding: '11px 14px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em' },
   td: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '13px', fontWeight: 650 },
   empty: { minHeight: '96px', display: 'grid', placeItems: 'center', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 700 },
-  actionBtn: { border: '1px solid var(--color-border)', background: 'var(--color-white)', color: 'var(--color-primary)', borderRadius: '10px', height: '34px', minWidth: '92px', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }
+  actionBtn: { border: '1px solid var(--color-border)', background: 'var(--color-white)', color: 'var(--color-primary)', borderRadius: '10px', height: '34px', minWidth: '92px', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
+  pagination: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: 'var(--color-white)' },
+  paginationInfo: { color: 'var(--color-muted)', fontSize: '12px', fontWeight: 700 },
+  paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  paginationBtn: { minHeight: '32px', border: '1px solid var(--color-border)', borderRadius: '8px', background: 'var(--color-white)', color: 'var(--color-primary)', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
+  paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }
 };
 
 const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
@@ -79,6 +85,7 @@ export default function LeadFollowups() {
   const [draftFilters, setDraftFilters] = useState({ fromDate: '', toDate: '', assignedTo: ALL_VALUE, urgency: ALL_VALUE });
   const [filters, setFilters] = useState(draftFilters);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [page, setPage] = useState(1);
 
   const loadLeads = async () => {
     setLoading(true);
@@ -151,6 +158,23 @@ export default function LeadFollowups() {
       return true;
     });
   }, [activeTab, filters, followups, today, weekEnd]);
+
+  const totalPages = Math.max(1, Math.ceil(tabRows.length / FOLLOWUP_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginatedRows = useMemo(() => {
+    const start = (safePage - 1) * FOLLOWUP_PAGE_SIZE;
+    return tabRows.slice(start, start + FOLLOWUP_PAGE_SIZE);
+  }, [safePage, tabRows]);
+  const firstRecord = tabRows.length ? ((safePage - 1) * FOLLOWUP_PAGE_SIZE) + 1 : 0;
+  const lastRecord = Math.min(safePage * FOLLOWUP_PAGE_SIZE, tabRows.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, filters]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
 
   const counts = useMemo(() => {
     const tomorrow = new Date(today);
@@ -332,7 +356,7 @@ export default function LeadFollowups() {
               </tr>
             </thead>
             <tbody>
-              {tabRows.map((lead) => (
+              {paginatedRows.map((lead) => (
                 <tr key={lead._id || `${lead.customerName}-${lead.followupDate}`}>
                   <td style={shell.td} data-label="Lead"><span className="crm-cell-wrap">{lead._id || '-'}</span></td>
                   <td style={shell.td} data-label="Customer">
@@ -357,7 +381,7 @@ export default function LeadFollowups() {
               ))}
             </tbody>
           </table>
-          {tabRows.length === 0 ? (
+          {paginatedRows.length === 0 ? (
             <div style={shell.empty}>
               <div style={{ textAlign: 'center' }}>
                 <Smile size={24} />
@@ -365,6 +389,29 @@ export default function LeadFollowups() {
               </div>
             </div>
           ) : null}
+        </div>
+        <div style={shell.pagination}>
+          <span style={shell.paginationInfo}>
+            {tabRows.length ? `${firstRecord}-${lastRecord} of ${tabRows.length} follow-ups • 20 per page` : '20 per page'}
+          </span>
+          <div style={shell.paginationActions}>
+            <button
+              type="button"
+              style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }}
+              disabled={safePage <= 1}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }}
+              disabled={safePage >= totalPages}
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>

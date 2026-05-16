@@ -8,7 +8,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const shell = {
   page: { display: 'grid', gap: 14 },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
-  title: { margin: 0, fontSize: 28, fontWeight: 800, color: 'var(--color-text)' },
+  title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--color-text)' },
   subtitle: { margin: 0, fontSize: 13, color: 'var(--color-muted)', fontWeight: 600 },
   actions: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   primaryBtn: {
@@ -211,7 +211,7 @@ function QuotationDashboardInner() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const perPage = 25;
+  const perPage = 20;
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -270,9 +270,9 @@ function QuotationDashboardInner() {
     ? { ...shell.header, flexDirection: 'column', alignItems: 'stretch', gap: 12 }
     : shell.header;
   const titleStyle = isTiny
-    ? { ...shell.title, fontSize: 22, lineHeight: 1.2 }
+    ? { ...shell.title, lineHeight: 1.2 }
     : isMobile
-      ? { ...shell.title, fontSize: 24, lineHeight: 1.2 }
+      ? { ...shell.title, lineHeight: 1.2 }
       : shell.title;
   const subtitleStyle = isMobile
     ? { ...shell.subtitle, fontSize: 12, lineHeight: 1.45, marginTop: 4 }

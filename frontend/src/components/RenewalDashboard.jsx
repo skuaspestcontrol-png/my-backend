@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const RENEWAL_PAGE_SIZE = 20;
 const statuses = ['All', 'Pending', 'Follow-up', 'Done', 'Declined', 'Overdue'];
 const ranges = [
   { value: 'threeMonths', label: 'Coming 3 Months' },
@@ -25,7 +26,7 @@ const tabs = ['Renewal Dashboard', 'Renewal Letters', 'Renewal List', 'Month Wis
 const shell = {
   page: { display: 'grid', gap: 12, fontFamily: 'Inter, system-ui, sans-serif' },
   hero: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' },
-  title: { margin: 0, fontSize: 'clamp(24px, 3vw, 34px)', fontWeight: 800, letterSpacing: 0, color: '#111827' },
+  title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111827' },
   subtitle: { margin: '4px 0 0', color: '#64748b', fontSize: 13, fontWeight: 650 },
   actions: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' },
   primaryBtn: { minHeight: 34, border: 'none', borderRadius: 9, padding: '0 12px', background: 'var(--color-primary)', color: '#fff', fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer' },
@@ -60,7 +61,12 @@ const shell = {
   modalHead: { minHeight: 60, padding: '14px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 22, fontWeight: 800 },
   modalBody: { padding: 18, display: 'grid', gap: 12, overflowY: 'auto' },
   mobileCard: { border: '1px solid #e5e7eb', borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: '#fff' },
-  mobileMeta: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, color: '#475569' }
+  mobileMeta: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, color: '#475569' },
+  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: '#fff' },
+  paginationInfo: { color: '#64748b', fontSize: 12, fontWeight: 700 },
+  paginationActions: { display: 'inline-flex', alignItems: 'center', gap: 8 },
+  paginationBtn: { minHeight: 32, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: 'var(--color-primary)', padding: '0 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
+  paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }
 };
 
 const formatDate = (value) => {
@@ -124,6 +130,7 @@ export default function RenewalDashboard() {
   const [modal, setModal] = useState({ type: '', row: null });
   const [form, setForm] = useState({});
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 760);
+  const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     range: 'threeMonths',
     month: new Date().getMonth() + 1,
@@ -237,6 +244,19 @@ export default function RenewalDashboard() {
     });
   }, [employees, rows]);
 
+  const totalPages = Math.max(1, Math.ceil(rows.length / RENEWAL_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = useMemo(() => {
+    const start = (safePage - 1) * RENEWAL_PAGE_SIZE;
+    return rows.slice(start, start + RENEWAL_PAGE_SIZE);
+  }, [rows, safePage]);
+  const firstRecord = rows.length ? ((safePage - 1) * RENEWAL_PAGE_SIZE) + 1 : 0;
+  const lastRecord = Math.min(safePage * RENEWAL_PAGE_SIZE, rows.length);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
   const updateFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
   const openModal = (type, row) => {
     setModal({ type, row });
@@ -279,9 +299,13 @@ export default function RenewalDashboard() {
     if (!window.confirm(`Delete renewal ${row.renewalId}?`)) return;
     runAction('Renewal deleted', () => axios.delete(`${API_BASE}/api/renewals/${row.renewalId}`));
   };
-  const applyFilters = () => loadData();
+  const applyFilters = () => {
+    setPage(1);
+    loadData();
+  };
   const resetFilters = () => {
     const next = { range: 'threeMonths', month: new Date().getMonth() + 1, year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', search: '' };
+    setPage(1);
     setFilters(next);
     loadData(next);
   };
@@ -320,7 +344,7 @@ export default function RenewalDashboard() {
     if (isMobile) {
       return (
         <div style={{ display: 'grid', gap: 8, padding: 10 }}>
-          {rows.map((row) => (
+          {pagedRows.map((row) => (
             <div key={row.renewalId} style={shell.mobileCard}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                 <strong style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.customerName}</strong>
@@ -354,7 +378,7 @@ export default function RenewalDashboard() {
           </colgroup>
           <thead><tr>{['Customer', 'Mobile', 'Area', 'Svc', 'Start', 'End', 'Due', 'Prev Amt', 'Proposed', 'Sales', 'Status', 'Follow-up', 'Actions'].map((h) => <th key={h} title={h} style={{ ...shell.th, textAlign: h === 'Actions' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
           <tbody>
-            {rows.map((row) => (
+            {pagedRows.map((row) => (
               <tr key={row.renewalId}>
                 <td style={shell.td} title={`${row.customerName} • ${displayRenewalId(row)}`}><strong>{row.customerName}</strong></td>
                 <td style={shell.td}>{row.mobile || '-'}</td>
@@ -382,6 +406,29 @@ export default function RenewalDashboard() {
             ))}
           </tbody>
         </table>
+        <div style={shell.pagination}>
+          <span style={shell.paginationInfo}>
+            {rows.length ? `${firstRecord}-${lastRecord} of ${rows.length} renewals • 20 per page` : '20 per page'}
+          </span>
+          <div style={shell.paginationActions}>
+            <button
+              type="button"
+              style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }}
+              disabled={safePage <= 1}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }}
+              disabled={safePage >= totalPages}
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     );
   };

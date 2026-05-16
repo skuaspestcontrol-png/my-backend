@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const CONTRACT_PAGE_SIZE = 20;
 
 const statusStyles = {
   Active: { background: 'rgba(22,163,74,0.16)', color: '#166534' },
@@ -72,7 +73,7 @@ const shell = {
   },
   head: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'start', gap: '10px' },
   titleWrap: { display: 'grid', gap: '2px', minWidth: 0 },
-  title: { margin: 0, fontSize: '38px', fontWeight: 800, letterSpacing: '-0.03em', color: '#111827', display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111827', display: 'inline-flex', alignItems: 'center', gap: '8px' },
   subtitle: { margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 600 },
   headActions: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' },
   beta: { border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.6)', color: 'var(--color-primary)', borderRadius: '999px', padding: '7px 12px', fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap' },
@@ -317,6 +318,7 @@ export default function ContractDashboard() {
     }
   });
   const [customerSummary, setCustomerSummary] = useState({ open: false, row: null, showHistory: false });
+  const [page, setPage] = useState(1);
   const resizeStateRef = useRef(null);
 
   useEffect(() => {
@@ -535,6 +537,22 @@ export default function ContractDashboard() {
   }, [allContracts, filters, quickFilter]);
 
   const sortedContracts = useMemo(() => filteredContracts, [filteredContracts]);
+  const totalPages = Math.max(1, Math.ceil(sortedContracts.length / CONTRACT_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginatedContracts = useMemo(() => {
+    const start = (safePage - 1) * CONTRACT_PAGE_SIZE;
+    return sortedContracts.slice(start, start + CONTRACT_PAGE_SIZE);
+  }, [safePage, sortedContracts]);
+  const firstRecord = sortedContracts.length ? ((safePage - 1) * CONTRACT_PAGE_SIZE) + 1 : 0;
+  const lastRecord = Math.min(safePage * CONTRACT_PAGE_SIZE, sortedContracts.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters, quickFilter]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
 
   const customerSummaryData = useMemo(() => {
     if (!customerSummary?.row) return null;
@@ -765,12 +783,13 @@ export default function ContractDashboard() {
           </tr>
         </thead>
         <tbody>
-          {sortedContracts.map((row, index) => {
+          {paginatedContracts.map((row, index) => {
             const selected = row.id === selectedContract?.id;
             const statusTone = statusStyles[row.status] || statusStyles.Active;
+            const rowNumber = ((safePage - 1) * CONTRACT_PAGE_SIZE) + index + 1;
             return (
               <tr key={row.id} onClick={() => setSelectedContractId(row.id)} style={selected ? shell.selectedRow : undefined}>
-                <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{index + 1}</td>
+                <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{rowNumber}</td>
                 {visibleColumns.contractNo ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
                 </td> : null}
@@ -956,13 +975,43 @@ export default function ContractDashboard() {
         <div style={tableWrapStyle}>{renderBody()}</div>
 
         <div style={footerStyle}>
-          <span style={shell.footText}>{`Showing 1 to ${filteredContracts.length} of ${filteredContracts.length} entries`}</span>
+          <span style={shell.footText}>
+            {sortedContracts.length ? `Showing ${firstRecord} to ${lastRecord} of ${sortedContracts.length} entries • 20 per page` : 'Showing 0 entries • 20 per page'}
+          </span>
           <div style={pagerStyle}>
-            <button type="button" style={shell.pageBtn}>«</button>
-            <button type="button" style={shell.pageBtn}>‹</button>
-            <button type="button" style={{ ...shell.pageBtn, ...shell.pageBtnActive }}>1</button>
-            <button type="button" style={shell.pageBtn}>›</button>
-            <button type="button" style={shell.pageBtn}>»</button>
+            <button
+              type="button"
+              style={shell.pageBtn}
+              disabled={safePage <= 1}
+              onClick={() => setPage(1)}
+            >
+              «
+            </button>
+            <button
+              type="button"
+              style={shell.pageBtn}
+              disabled={safePage <= 1}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              ‹
+            </button>
+            <button type="button" style={{ ...shell.pageBtn, ...shell.pageBtnActive }}>{safePage}</button>
+            <button
+              type="button"
+              style={shell.pageBtn}
+              disabled={safePage >= totalPages}
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            >
+              ›
+            </button>
+            <button
+              type="button"
+              style={shell.pageBtn}
+              disabled={safePage >= totalPages}
+              onClick={() => setPage(totalPages)}
+            >
+              »
+            </button>
           </div>
         </div>
       </div>
