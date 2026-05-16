@@ -81,10 +81,29 @@ const appendAddressMeta = (address = '', city = '', pincode = '') => {
   return [base, missingParts.join(' - ')].filter(Boolean).join('\n');
 };
 
+const isLeadQuotation = (quotation = {}) => clean(quotation.source_type).toLowerCase() === 'lead' || Boolean(clean(quotation.lead_id));
+
+const formatLeadCustomerAddress = (address = '', city = '', pincode = '') => {
+  const base = clean(address);
+  const cityText = clean(city);
+  const pincodeText = clean(pincode);
+  const metaLine = cityText && pincodeText ? `${cityText}-${pincodeText}` : cityText || pincodeText;
+  if (!metaLine) return base;
+
+  const lowerBase = base.toLowerCase();
+  const hasCity = cityText && lowerBase.includes(cityText.toLowerCase());
+  const hasPincode = pincodeText && lowerBase.includes(pincodeText.toLowerCase());
+  if ((cityText ? hasCity : true) && (pincodeText ? hasPincode : true)) return base;
+
+  return [base, metaLine].filter(Boolean).join('\n');
+};
+
 const customerDetailLinesForQuotation = (quotation = {}) => {
   const customerName = clean(quotation.customer_name);
   const companyName = clean(quotation.company_name);
-  const address = appendAddressMeta(quotation.address, quotation.premise_city, quotation.premise_pincode);
+  const address = isLeadQuotation(quotation)
+    ? formatLeadCustomerAddress(quotation.address, quotation.premise_city, quotation.premise_pincode)
+    : appendAddressMeta(quotation.address, quotation.premise_city, quotation.premise_pincode);
   const identityLines = companyName
     ? [
         { label: '', value: companyName, bold: true },
