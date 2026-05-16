@@ -567,7 +567,9 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     isHeader: true,
     fontSize: pdfTextSize.table,
     borderColor: '#111827',
-    minHeight: 22
+    minHeight: 15,
+    paddingY: 3,
+    verticalAlign: 'middle'
   });
   doc.y += h;
 

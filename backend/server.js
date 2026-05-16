@@ -712,7 +712,7 @@ const readJsonFile = (filePath, fallback) => {
 
 let dashboardSummaryCache = null;
 let dashboardSummaryCachedAt = 0;
-const DASHBOARD_SUMMARY_TTL_MS = 5 * 1000;
+const DASHBOARD_SUMMARY_TTL_MS = 60 * 1000;
 
 const canUseMysql = () => {
   return Boolean(
@@ -1345,8 +1345,6 @@ const resolveGstCompanyLogoPath = (settings = {}) => {
   return parseJobLogoPath(settings.dashboardImageUrl || '');
 };
 
-const letterLogoSize = [400, 160];
-
 const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve, reject) => {
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
   const chunks = [];
@@ -1366,7 +1364,7 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   const logoPath = resolveGstCompanyLogoPath(settings);
   if (logoPath) {
     try {
-      doc.image(logoPath, 42, 36, { fit: letterLogoSize, align: 'left' });
+      doc.image(logoPath, 42, 36, { fit: [84, 84], align: 'left' });
     } catch (_error) {
       // ignore logo load errors and continue
     }
@@ -1783,76 +1781,6 @@ const parseMysqlLeadPayload = (rawPayload) => {
 };
 
 const normalizeLeadMobile = (value) => String(value || '').replace(/\D/g, '').slice(-10);
-const LEAD_SEQUENCE_START = 5400;
-const LEAD_SEQUENCE_LIMIT = 1000000;
-
-const extractLeadSequenceNumber = (value) => {
-  const raw = String(value || '').trim();
-  if (!/^\d+$/.test(raw)) return 0;
-  const num = Number(raw);
-  if (!Number.isSafeInteger(num)) return 0;
-  return num >= LEAD_SEQUENCE_START && num < LEAD_SEQUENCE_LIMIT ? num : 0;
-};
-
-const isLegacyTimestampLeadId = (value) => {
-  const raw = String(value || '').trim();
-  if (!/^\d{12,}$/.test(raw)) return false;
-  const num = Number(raw);
-  return Number.isSafeInteger(num) && num >= LEAD_SEQUENCE_LIMIT;
-};
-
-const repairLegacyLeadNumbers = async (conn) => {
-  const [rows] = await conn.query('SELECT id, external_id, payload FROM leads ORDER BY id ASC');
-  const list = Array.isArray(rows) ? rows : [];
-  const occupied = new Set();
-  const sequenceValues = [];
-
-  list.forEach((row) => {
-    const seq = extractLeadSequenceNumber(row?.external_id);
-    if (!seq) return;
-    occupied.add(seq);
-    sequenceValues.push(seq);
-  });
-
-  let nextSequence = sequenceValues.length > 0 ? Math.max(...sequenceValues) + 1 : LEAD_SEQUENCE_START;
-  const nextAvailableSequence = () => {
-    while (occupied.has(nextSequence)) nextSequence += 1;
-    const value = nextSequence;
-    occupied.add(value);
-    nextSequence += 1;
-    return value;
-  };
-
-  for (const row of list) {
-    const currentId = String(row?.external_id || '').trim();
-    if (!isLegacyTimestampLeadId(currentId)) continue;
-    const lead = normalizeLeadShape(parseMysqlLeadPayload(row?.payload) || {}, currentId);
-    const nextId = String(nextAvailableSequence());
-    const updatedLead = { ...lead, _id: nextId };
-    await conn.query(
-      `UPDATE leads
-       SET external_id = ?, payload = ?
-       WHERE id = ?`,
-      [nextId, JSON.stringify(updatedLead), row.id]
-    );
-  }
-};
-
-const createNextLeadNumber = async (conn) => {
-  let maxSequence = LEAD_SEQUENCE_START - 1;
-
-  const [rows] = await conn.query("SELECT external_id FROM leads WHERE external_id REGEXP '^[0-9]+$'");
-  (Array.isArray(rows) ? rows : []).forEach((row) => {
-    maxSequence = Math.max(maxSequence, extractLeadSequenceNumber(row?.external_id));
-  });
-
-  const jsonRows = readJsonFile(leadsFile, []);
-  (Array.isArray(jsonRows) ? jsonRows : []).forEach((entry) => {
-    maxSequence = Math.max(maxSequence, extractLeadSequenceNumber(entry?._id));
-  });
-
-  return String(maxSequence + 1);
-};
 
 const normalizeLeadShape = (input = {}, fallbackId = '') => {
   const source = (input && typeof input === 'object') ? input : {};
@@ -2554,7 +2482,6 @@ app.get('/api/leads', async (req, res) => {
   }
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
-      await repairLegacyLeadNumbers(conn);
       const [rows] = await conn.query('SELECT payload FROM leads ORDER BY id DESC');
       return Array.isArray(rows) ? rows : [];
     });
@@ -2574,15 +2501,10 @@ app.post('/api/leads', async (req, res) => {
   }
   try {
     const incoming = req.body || {};
-    const newLead = await withMysqlConnection(async (conn) => {
-      await repairLegacyLeadNumbers(conn);
-      const incomingId = String(incoming._id || '').trim();
-      const generatedId = incomingId && !isLegacyTimestampLeadId(incomingId)
-        ? incomingId
-        : await createNextLeadNumber(conn);
-      const lead = normalizeLeadShape({ ...incoming, _id: generatedId }, generatedId);
-      await upsertLeadToMysql(conn, lead);
-      return lead;
+    const generatedId = String(incoming._id || Date.now().toString()).trim();
+    const newLead = normalizeLeadShape({ ...incoming, _id: generatedId }, generatedId);
+    await withMysqlConnection(async (conn) => {
+      await upsertLeadToMysql(conn, newLead);
     });
     return res.json(newLead);
   } catch (error) {
@@ -2885,7 +2807,6 @@ app.put('/api/leads/:id', async (req, res) => {
   try {
     const leadId = String(req.params.id || '').trim();
     const existingRow = await withMysqlConnection(async (conn) => {
-      await repairLegacyLeadNumbers(conn);
       const isNumeric = /^\d+$/.test(leadId);
       const query = isNumeric
         ? 'SELECT payload, external_id FROM leads WHERE external_id = ? OR id = ? LIMIT 1'
@@ -3873,10 +3794,8 @@ const normalizeItemRecord = (input = {}, fallbackExternalId = '') => {
     name: String(source.name || '').trim(),
     itemType,
     treatmentMethod: isServiceItem ? String(source.treatmentMethod || source.treatment_method || '').trim() : '',
-    aboutPest: isServiceItem ? String(source.aboutPest || source.about_pest || '').trim() : '',
     pestsCovered: isServiceItem ? String(source.pestsCovered || source.pests_covered || '').trim() : '',
     serviceDescription: isServiceItem ? String(source.serviceDescription || source.service_description || '').trim() : '',
-    whatWeDo: isServiceItem ? String(source.whatWeDo || source.what_we_do || '').trim() : '',
     unit: String(source.unit || '').trim(),
     sac: String(source.sac || '').trim(),
     hsnSac: String(source.hsnSac || source.hsn_sac || '').trim(),
@@ -7707,9 +7626,8 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const pageRight = doc.page.width - doc.page.margins.right;
     const contentWidth = pageRight - pageLeft;
     const logoPath = resolveGstCompanyLogoPath(settings);
-    const [letterLogoWidth, letterLogoHeight] = letterLogoSize;
-    const logoWidth = logoPath ? letterLogoWidth : 0;
-    const logoHeight = logoPath ? letterLogoHeight : 0;
+    const logoWidth = logoPath ? 400 : 0;
+    const logoHeight = logoPath ? 160 : 0;
     const headerTopY = 45;
     const companyDetailLines = [
       companyAddress,
