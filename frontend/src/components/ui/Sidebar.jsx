@@ -17,7 +17,7 @@ const items = [
 
 export default function Sidebar() {
   return (
-    <aside style={{ width: 260, background: '#fff', borderRight: 'none', padding: 12, overflowY: 'auto' }}>
+    <aside style={{ width: 260, background: '#fff', borderRight: '1px solid #E5E7EB', padding: 12, overflowY: 'auto' }}>
       <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', padding: 12 }}>CRM Portal</div>
       <nav style={{ display: 'grid', gap: 4 }}>
         {items.map(([label, path, Icon]) => (

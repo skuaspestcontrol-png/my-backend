@@ -235,7 +235,7 @@ export default function DashboardLayout({ children }) {
     fontWeight: active ? 800 : 600,
     letterSpacing: '0.01em',
     transition: 'all 0.18s ease',
-    border: '1px solid transparent',
+    border: 'none',
     boxShadow: active ? 'var(--shadow-md)' : 'none'
   });
 
@@ -260,7 +260,7 @@ export default function DashboardLayout({ children }) {
 
   const groupToggleStyle = (active) => ({
     ...baseLinkStyle(active),
-    border: '1px solid transparent',
+    border: 'none',
     justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
     cursor: 'pointer',
     background: active ? 'var(--color-primary)' : 'var(--color-white)'
@@ -364,7 +364,7 @@ export default function DashboardLayout({ children }) {
           flexDirection: 'column',
           overflowY: 'hidden',
           overflowX: 'hidden',
-          borderRight: 'none',
+          borderRight: '1px solid var(--color-border)',
           boxShadow: 'var(--shadow-sm)',
           backdropFilter: 'blur(16px)',
           transition: isDrawerMode ? undefined : 'width 0.2s ease, flex-basis 0.2s ease, min-width 0.2s ease'

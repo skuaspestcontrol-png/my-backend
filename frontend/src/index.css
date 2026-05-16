@@ -965,7 +965,7 @@ textarea:focus {
 
 .sidebar {
   background: var(--color-white);
-  border-right: none;
+  border-right: 1px solid var(--color-border);
 }
 
 .sidebar .active,
