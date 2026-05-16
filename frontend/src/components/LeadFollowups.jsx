@@ -482,7 +482,7 @@ export default function LeadFollowups() {
           <span style={shell.badge}>{tabRows.length}</span>
         </div>
         <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
-          <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
+          <table style={tableStyle} className="crm-compact-table crm-stack-mobile lead-followups-table">
             <colgroup>
               {followupColumns.map((column) => (
                 <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
@@ -497,9 +497,11 @@ export default function LeadFollowups() {
               {paginatedRows.map((lead) => (
                 <tr key={lead._id || `${lead.customerName}-${lead.followupDate}`}>
                   <td style={{ ...shell.td, ...shell.leadTd }} data-label="Lead"><span className="crm-cell-wrap">{lead._id || '-'}</span></td>
-                  <td style={shell.td} data-label="Customer">
-                    <div className="crm-table-primary crm-cell-wrap">{lead.customerName || lead.displayName || '-'}</div>
-                    <div className="crm-table-muted">{getLeadMobile(lead) || '-'}</div>
+                  <td style={shell.td} className="lead-followups-customer-cell" data-label="Customer">
+                    <div className="lead-followups-customer-stack">
+                      <span className="crm-table-primary crm-cell-wrap">{lead.customerName || lead.displayName || '-'}</span>
+                      <span className="crm-table-muted">{getLeadMobile(lead) || '-'}</span>
+                    </div>
                   </td>
                   <td style={shell.td} data-label="Status">{lead.status || lead.leadStatus || '-'}</td>
                   <td style={shell.td} data-label="Urgency">{lead.urgency}</td>
