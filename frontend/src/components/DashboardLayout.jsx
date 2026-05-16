@@ -364,7 +364,7 @@ export default function DashboardLayout({ children }) {
           flexDirection: 'column',
           overflowY: 'hidden',
           overflowX: 'hidden',
-          borderRight: '1px solid var(--color-border)',
+          borderRight: 'none',
           boxShadow: 'var(--shadow-sm)',
           backdropFilter: 'blur(16px)',
           transition: isDrawerMode ? undefined : 'width 0.2s ease, flex-basis 0.2s ease, min-width 0.2s ease'
