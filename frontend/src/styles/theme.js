@@ -7,7 +7,7 @@ export const theme = {
     card: 'var(--color-white)',
     text: 'var(--color-text)',
     muted: 'var(--color-muted)',
-    border: 'var(--color-border)',
+    border: 'var(--brand-border-color)',
     success: '#16A34A',
     warning: '#F59E0B',
     danger: '#DC2626',

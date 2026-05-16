@@ -23,6 +23,11 @@ const hexToRgb = (hex) => {
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 };
 
+const brandBorderFromAccent = (hex, alpha = 0.24) => {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const rgbToHex = ({ r, g, b }) => {
   const toHex = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
@@ -60,19 +65,20 @@ export const applyBrandingTheme = (settings = {}) => {
   root.style.setProperty('--color-primary-deep', palette.deep);
   root.style.setProperty('--color-primary-light', neutralLight);
   root.style.setProperty('--color-primary-soft', neutralSoft);
+  root.style.setProperty('--brand-border-color', brandBorderFromAccent(palette.primary));
 
   const appearance = String(settings.brandingAppearance || 'light').toLowerCase();
   if (appearance === 'dark') {
     root.style.setProperty('--color-bg', '#0F172A');
     root.style.setProperty('--color-text', '#E5E7EB');
     root.style.setProperty('--color-muted', '#94A3B8');
-    root.style.setProperty('--color-border', '#334155');
+    root.style.setProperty('--color-border', 'var(--brand-border-color)');
     root.style.setProperty('--color-white', '#111827');
   } else {
     root.style.setProperty('--color-bg', '#F8FAFC');
     root.style.setProperty('--color-text', '#111827');
     root.style.setProperty('--color-muted', '#6B7280');
-    root.style.setProperty('--color-border', '#E5E7EB');
+    root.style.setProperty('--color-border', 'var(--brand-border-color)');
     root.style.setProperty('--color-white', '#FFFFFF');
   }
 };

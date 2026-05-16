@@ -341,7 +341,7 @@ tbody td {
 button.outline {
   background: #ffffff !important;
   color: #374151 !important;
-  border: 1px solid #d1d5db !important;
+  border: 1px solid var(--brand-border-color) !important;
 }
 
 /* =========================================
