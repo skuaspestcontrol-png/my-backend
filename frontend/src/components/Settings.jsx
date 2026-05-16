@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
   defaultCompanyProfileSettings,
   defaultInvoiceFieldSettings,
@@ -2618,7 +2619,7 @@ export default function Settings({ modalMode = false }) {
                       onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
                     >
                       <span>{group.label}</span>
-                      <span>{isExpanded ? '▾' : '▸'}</span>
+                      {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                     </button>
                     {isExpanded ? group.items.map((section) => {
                       const isActive = section.key === activeSection;

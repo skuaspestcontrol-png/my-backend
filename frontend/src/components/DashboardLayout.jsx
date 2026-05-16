@@ -225,8 +225,7 @@ export default function DashboardLayout({ children }) {
     };
   }, [handleLogout]);
 
-  const companyName = settings.companyName || 'SKUAS MASTER';
-  const portalUserName = String(localStorage.getItem('portal_user_name') || 'SKUAS').trim() || 'SKUAS';
+  const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS MASTER').trim() || 'SKUAS MASTER';
   const portalUserRole = String(localStorage.getItem('portal_user_role') || 'Admin').trim() || 'Admin';
   const companyInitials = companyName
     .split(' ')
@@ -477,8 +476,21 @@ export default function DashboardLayout({ children }) {
             <Menu size={18} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, marginLeft: 'auto' }}>
-            <span style={{ fontSize: '13px', color: 'var(--color-text)', fontWeight: 800, letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: isMobile ? 'none' : 'inline' }}>
-              {portalUserRole} {portalUserName}
+            <span
+              style={{
+                fontSize: '13px',
+                color: 'var(--color-text)',
+                letterSpacing: '0.02em',
+                whiteSpace: 'nowrap',
+                display: isMobile ? 'none' : 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                minWidth: 0
+              }}
+              title={`${portalUserRole} ${companyName}`}
+            >
+              <span style={{ fontWeight: 400, flexShrink: 0 }}>{portalUserRole}</span>
+              <span style={{ fontWeight: 800 }}>{companyName}</span>
             </span>
             <button
               type="button"
