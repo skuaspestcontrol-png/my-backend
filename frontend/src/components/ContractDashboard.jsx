@@ -97,15 +97,15 @@ const shell = {
   subtitle: { margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 600 },
   headActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' },
   beta: { border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.6)', color: 'var(--color-primary)', borderRadius: '999px', padding: '7px 12px', fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap' },
-  newBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '9px', padding: '7px 11px', minHeight: '34px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap', maxWidth: '100%' },
+  newBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '9px', padding: '7px 11px', minHeight: '34px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap', maxWidth: '100%', boxSizing: 'border-box' },
   card: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', overflow: 'hidden', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   cardTop: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: '#fff', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   cardTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   shownPill: { border: '1px solid var(--color-border)', background: '#f8fafc', color: '#334155', borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 },
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
-  chip: { border: '1px solid transparent', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', gap: '5px', alignItems: 'center', cursor: 'pointer' },
-  customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', maxWidth: '100%' },
+  chip: { border: '1px solid transparent', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', gap: '5px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxSizing: 'border-box', minWidth: 0 },
+  customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', maxWidth: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap' },
   customizeMenu: { position: 'fixed', width: '292px', maxHeight: '420px', overflow: 'hidden', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 18px 38px rgba(15,23,42,0.18)', zIndex: 5500 },
   customizeHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   customizeBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
@@ -114,8 +114,8 @@ const shell = {
   filterGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' },
   filterField: { display: 'grid', gap: '4px' },
   filterLabel: { fontSize: '11px', color: '#64748b', fontWeight: 800 },
-  input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff' },
-  clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' },
+  input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff', boxSizing: 'border-box' },
+  clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', maxWidth: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', background: '#fff', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '8px 12px 8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', position: 'relative' },
@@ -789,8 +789,34 @@ export default function ContractDashboard() {
     `${getColumnWidth('actions')}px`
   ].filter(Boolean);
   const contractTableMinWidth = contractColumnList.reduce((sum, width) => sum + Number.parseInt(width, 10), 0);
-  const quickWrapStyle = isMobile ? { ...shell.quickWrap, alignItems: 'stretch', padding: '8px 10px 0' } : shell.quickWrap;
+  const compactMobile = viewportWidth <= 430;
+  const quickWrapStyle = isMobile
+    ? {
+      ...shell.quickWrap,
+      alignItems: 'stretch',
+      padding: '8px 10px 0',
+      gap: '7px'
+    }
+    : shell.quickWrap;
+  const quickLabelStyle = compactMobile ? { ...shell.quickLabel, flex: '1 0 100%' } : shell.quickLabel;
+  const chipStyle = compactMobile
+    ? {
+      ...shell.chip,
+      flex: '1 1 calc(50% - 7px)',
+      maxWidth: 'calc(50% - 4px)',
+      minHeight: '34px',
+      padding: '5px 7px',
+      fontSize: '10px'
+    }
+    : shell.chip;
+  const customizeWrapStyle = compactMobile
+    ? { position: 'relative', flex: '1 0 100%', marginLeft: 0, display: 'flex', justifyContent: 'flex-end' }
+    : { position: 'relative', marginLeft: 'auto' };
+  const customizeButtonStyle = compactMobile
+    ? { ...shell.customizeButton, width: 'min(100%, 212px)', minHeight: '34px', padding: '6px 9px', fontSize: '10px' }
+    : shell.customizeButton;
   const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
+  const clearButtonStyle = isMobile ? { ...shell.clearBtn, width: '100%' } : shell.clearBtn;
   const tableWrapStyle = isMobile
     ? {
       ...shell.tableWrap,
@@ -815,6 +841,7 @@ export default function ContractDashboard() {
   const pagerStyle = isMobile ? { ...shell.pager, justifyContent: 'center' } : shell.pager;
   const cardTopStyle = isMobile ? { ...shell.cardTop, flexDirection: 'column', alignItems: 'stretch' } : shell.cardTop;
   const headActionsStyle = isMobile ? { ...shell.headActions, justifyContent: 'stretch', width: '100%' } : shell.headActions;
+  const newButtonStyle = isMobile ? { ...shell.newBtn, width: 'fit-content' } : shell.newBtn;
 
   const openCustomerSummary = (row) => {
     setCustomerSummary({ open: true, row, showHistory: false });
@@ -979,7 +1006,7 @@ export default function ContractDashboard() {
           <div style={headActionsStyle}>
             <button
               type="button"
-              style={shell.newBtn}
+              style={newButtonStyle}
               onClick={() => navigate('/sales/invoices', { state: { openNewInvoice: true } })}
             >
               <Plus size={16} />
@@ -989,7 +1016,7 @@ export default function ContractDashboard() {
         </div>
 
         <div style={quickWrapStyle}>
-          <span style={shell.quickLabel}>Quick Filters:</span>
+          <span style={quickLabelStyle}>Quick Filters:</span>
           {quickFilters.map((entry) => {
             const Icon = entry.icon;
             const active = quickFilter === entry.label;
@@ -999,7 +1026,7 @@ export default function ContractDashboard() {
                 key={entry.label}
                 type="button"
                 onClick={() => setQuickFilter(entry.label)}
-                style={{ ...shell.chip, ...tone, boxShadow: active ? '0 8px 18px rgba(131, 24, 67, 0.15)' : 'none', borderColor: active ? 'rgba(131, 24, 67, 0.25)' : 'transparent' }}
+                style={{ ...chipStyle, ...tone, boxShadow: active ? '0 8px 18px rgba(131, 24, 67, 0.15)' : 'none', borderColor: active ? 'rgba(131, 24, 67, 0.25)' : 'transparent' }}
               >
                 <Icon size={12} />
                 <span>{entry.label}</span>
@@ -1007,11 +1034,11 @@ export default function ContractDashboard() {
               </button>
             );
           })}
-          <div style={{ position: 'relative', marginLeft: 'auto' }} data-contract-customize="true">
+          <div style={customizeWrapStyle} data-contract-customize="true">
             <button
               ref={customizeButtonRef}
               type="button"
-              style={shell.customizeButton}
+              style={customizeButtonStyle}
               onClick={() => {
                 updateCustomizeMenuPosition();
                 setShowCustomize((prev) => !prev);
@@ -1092,7 +1119,7 @@ export default function ContractDashboard() {
             <div style={{ ...shell.filterField, alignItems: 'flex-end' }}>
               <button
                 type="button"
-                style={shell.clearBtn}
+                style={clearButtonStyle}
                 onClick={() => {
                   setQuickFilter('All');
                   setFilters({ status: 'All Status', type: 'All Type', from: '', to: '', search: '' });
