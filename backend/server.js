@@ -17,6 +17,7 @@ const { registerCustomerDedupModule } = require('./customerDedupModule');
 const { createWhatsAppRouter } = require('./routes/whatsapp.routes');
 const { createEmailRouter } = require('./routes/email.routes');
 const { quotationRouter } = require('./routes/quotation.routes');
+const { salesPerformanceRouter } = require('./routes/salesPerformance.routes');
 const {
   PHONE_VALIDATION_ERROR,
   normalizeIndianMobileNumber,
@@ -370,6 +371,7 @@ app.post('/api/admin/run-migrations', async (req, res) => {
   });
 });
 app.use('/api', quotationRouter);
+app.use('/api', salesPerformanceRouter);
 const resolvePort = () => {
   const candidates = [
     process.env.PORT,

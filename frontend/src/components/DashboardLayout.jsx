@@ -10,15 +10,20 @@ import {
   CircleDollarSign,
   ChevronDown,
   ChevronRight,
+  FileDown,
   Database,
+  Gift,
   LayoutDashboard,
   Menu,
   MessageSquare,
   Package,
+  BarChart3,
+  Target,
   Settings,
   ShoppingCart,
   Smartphone,
   Truck,
+  TrendingUp,
   UserCheck,
   Users
 } from 'lucide-react';
@@ -99,6 +104,7 @@ export default function DashboardLayout({ children }) {
   const [settings, setSettings] = useState(() => loadBrandingSettings() || {});
   const [leadsMenuOpen, setLeadsMenuOpen] = useState(false);
   const [salesMenuOpen, setSalesMenuOpen] = useState(false);
+  const [salesPerformanceMenuOpen, setSalesPerformanceMenuOpen] = useState(false);
   const [purchaseMenuOpen, setPurchaseMenuOpen] = useState(false);
   const [fieldOpsMenuOpen, setFieldOpsMenuOpen] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
@@ -135,6 +141,9 @@ export default function DashboardLayout({ children }) {
     }
     if (location.pathname.startsWith('/sales/') || location.pathname.startsWith('/quotations')) {
       setSalesMenuOpen(true);
+    }
+    if (location.pathname.startsWith('/sales-performance')) {
+      setSalesPerformanceMenuOpen(true);
     }
     if (location.pathname.startsWith('/purchase/')) {
       setPurchaseMenuOpen(true);
@@ -213,10 +222,11 @@ export default function DashboardLayout({ children }) {
   const isActive = (path) => location.pathname === path;
   const isPrefixActive = (prefix) => location.pathname.startsWith(prefix);
 
-  const salesGroupActive = isPrefixActive('/sales/') || isPrefixActive('/quotations');
+  const salesGroupActive = isPrefixActive('/sales/') || isPrefixActive('/quotations') || isPrefixActive('/sales-performance');
   const leadsGroupActive = isActive('/leads') || isPrefixActive('/leads/');
   const purchaseGroupActive = isPrefixActive('/purchase/');
   const fieldOpsGroupActive = isPrefixActive('/operations/') || isActive('/schedule-job') || isActive('/technician-portal');
+  const salesPerformanceGroupActive = isPrefixActive('/sales-performance');
 
   const baseLinkStyle = (active) => ({
     display: 'flex',
@@ -470,6 +480,27 @@ export default function DashboardLayout({ children }) {
                 <Link to="/quotations" className={isActive('/quotations') || isActive('/quotations/new') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/quotations', isActive('/quotations') || isActive('/quotations/new'))}>Quotation</Link>
                 <Link to="/sales/payment-received" className={isActive('/sales/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/payment-received')}>Payment Received</Link>
                 <Link to="/sales/renewal" className={isActive('/sales/renewal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/renewal')}>Renewal</Link>
+              </>
+            ) : null}
+
+            <button type="button" className={salesPerformanceGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => toggleGroupMenu(setSalesPerformanceMenuOpen)} style={groupToggleStyle(salesPerformanceGroupActive)} title="Sales Performance" aria-label="Sales Performance">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+                <BarChart3 size={18} /> {!isSidebarCollapsed ? 'Sales Performance' : null}
+              </span>
+              {!isSidebarCollapsed ? salesPerformanceMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
+            </button>
+            {!isSidebarCollapsed && salesPerformanceMenuOpen ? (
+              <>
+                <Link to="/sales-performance/dashboard" className={isActive('/sales-performance/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/dashboard')}>Dashboard</Link>
+                <Link to="/sales-performance/target-setup" className={isActive('/sales-performance/target-setup') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/target-setup')}>Target Setup</Link>
+                <Link to="/sales-performance/weekly-performance" className={isActive('/sales-performance/weekly-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/weekly-performance')}>Weekly Performance</Link>
+                <Link to="/sales-performance/monthly-performance" className={isActive('/sales-performance/monthly-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/monthly-performance')}>Monthly Performance</Link>
+                <Link to="/sales-performance/yearly-performance" className={isActive('/sales-performance/yearly-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/yearly-performance')}>Yearly Performance</Link>
+                <Link to="/sales-performance/team-comparison" className={isActive('/sales-performance/team-comparison') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/team-comparison')}>Team Comparison</Link>
+                <Link to="/sales-performance/sales-person-report" className={isActive('/sales-performance/sales-person-report') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/sales-person-report')}>Sales Person Report</Link>
+                <Link to="/sales-performance/incentives" className={isActive('/sales-performance/incentives') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/incentives')}>Incentive / Commission</Link>
+                <Link to="/sales-performance/settings" className={isActive('/sales-performance/settings') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/settings')}>Performance Settings</Link>
+                <Link to="/sales-performance/export" className={isActive('/sales-performance/export') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/export')}>Export Reports</Link>
               </>
             ) : null}
 

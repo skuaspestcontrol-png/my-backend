@@ -93,6 +93,17 @@ const EmailTemplates = lazy(() => import('./pages/settings/EmailTemplates'));
 const EmailLogs = lazy(() => import('./pages/email/EmailLogs'));
 const UIDashboardPage = lazy(() => import('./pages/Dashboard'));
 const UICustomersPage = lazy(() => import('./pages/CustomersPage'));
+const SalesPerformanceDashboard = lazy(() => import('./pages/sales-performance/SalesPerformanceDashboard'));
+const SalesTargetSetup = lazy(() => import('./pages/sales-performance/SalesTargetSetup'));
+const WeeklyPerformance = lazy(() => import('./pages/sales-performance/WeeklyPerformance'));
+const MonthlyPerformance = lazy(() => import('./pages/sales-performance/MonthlyPerformance'));
+const YearlyPerformance = lazy(() => import('./pages/sales-performance/YearlyPerformance'));
+const YearlyComparisonChart = lazy(() => import('./pages/sales-performance/YearlyComparisonChart'));
+const TeamComparison = lazy(() => import('./pages/sales-performance/TeamComparison'));
+const SalesPersonReport = lazy(() => import('./pages/sales-performance/SalesPersonReport'));
+const SalesIncentives = lazy(() => import('./pages/sales-performance/SalesIncentives'));
+const SalesPerformanceSettings = lazy(() => import('./pages/sales-performance/SalesPerformanceSettings'));
+const SalesExportReports = lazy(() => import('./pages/sales-performance/SalesExportReports'));
 
 const ProtectedRoute = ({ children }) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -242,6 +253,18 @@ function App() {
             <Route path="/sales/invoices" element={<AppRoute element={<InvoiceDashboard />} />} />
             <Route path="/sales/payment-received" element={<AppRoute element={<PaymentReceivedDashboard />} />} />
             <Route path="/sales/renewal" element={<AppRoute element={renewalPage} />} />
+            <Route path="/sales-performance" element={<Navigate to="/sales-performance/dashboard" replace />} />
+            <Route path="/sales-performance/dashboard" element={<AppRoute element={<SalesPerformanceDashboard />} />} />
+            <Route path="/sales-performance/target-setup" element={<AppRoute element={<SalesTargetSetup />} />} />
+            <Route path="/sales-performance/weekly-performance" element={<AppRoute element={<WeeklyPerformance />} />} />
+            <Route path="/sales-performance/monthly-performance" element={<AppRoute element={<MonthlyPerformance />} />} />
+            <Route path="/sales-performance/yearly-performance" element={<AppRoute element={<YearlyPerformance />} />} />
+            <Route path="/sales-performance/yearly-comparison" element={<AppRoute element={<YearlyComparisonChart />} />} />
+            <Route path="/sales-performance/team-comparison" element={<AppRoute element={<TeamComparison />} />} />
+            <Route path="/sales-performance/sales-person-report" element={<AppRoute element={<SalesPersonReport />} />} />
+            <Route path="/sales-performance/incentives" element={<AppRoute element={<SalesIncentives />} />} />
+            <Route path="/sales-performance/settings" element={<AppRoute element={<SalesPerformanceSettings />} />} />
+            <Route path="/sales-performance/export" element={<AppRoute element={<SalesExportReports />} />} />
             <Route path="/purchase" element={<Navigate to="/purchase/vendors" replace />} />
             <Route path="/purchase/vendors" element={<AppRoute element={vendorsPage} />} />
             <Route path="/purchase/bills" element={<AppRoute element={billsPage} />} />
