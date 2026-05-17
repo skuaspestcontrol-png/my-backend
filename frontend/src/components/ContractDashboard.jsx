@@ -760,7 +760,7 @@ export default function ContractDashboard() {
     : shell.tableWrap;
   const tableStyle = {
     ...shell.table,
-    width: isMobile ? `${contractTableMinWidth}px` : `${contractTableMinWidth}px`,
+    width: `${contractTableMinWidth}px`,
     minWidth: `${contractTableMinWidth}px`,
     '--mobile-table-columns': contractColumnList.join(' '),
     '--mobile-table-min-width': `${contractTableMinWidth}px`
@@ -817,7 +817,7 @@ export default function ContractDashboard() {
       return <div style={shell.empty}>No contracts match your current filters.</div>;
     }
     return (
-      <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
+      <table style={tableStyle} className="crm-compact-table">
         <colgroup>
           <col style={{ width: `${getColumnWidth('rowNumber')}px` }} />
           {visibleColumns.contractNo ? <col style={{ width: `${getColumnWidth('contractNo')}px` }} /> : null}
