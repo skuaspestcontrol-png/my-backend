@@ -104,6 +104,17 @@ const SalesPersonReport = lazy(() => import('./pages/sales-performance/SalesPers
 const SalesIncentives = lazy(() => import('./pages/sales-performance/SalesIncentives'));
 const SalesPerformanceSettings = lazy(() => import('./pages/sales-performance/SalesPerformanceSettings'));
 const SalesExportReports = lazy(() => import('./pages/sales-performance/SalesExportReports'));
+const StockDashboard = lazy(() => import('./pages/stock-management/StockDashboard'));
+const StockProducts = lazy(() => import('./pages/stock-management/StockProducts'));
+const StockPurchase = lazy(() => import('./pages/stock-management/StockPurchase'));
+const StockIssueToTechnician = lazy(() => import('./pages/stock-management/StockIssueToTechnician'));
+const TechnicianStock = lazy(() => import('./pages/stock-management/TechnicianStock'));
+const StockUsage = lazy(() => import('./pages/stock-management/StockUsage'));
+const StockReturnsWastage = lazy(() => import('./pages/stock-management/StockReturnsWastage'));
+const LowStockAlert = lazy(() => import('./pages/stock-management/LowStockAlert'));
+const VendorStockReport = lazy(() => import('./pages/stock-management/VendorStockReport'));
+const StockLedger = lazy(() => import('./pages/stock-management/StockLedger'));
+const StockReports = lazy(() => import('./pages/stock-management/StockReports'));
 
 const ProtectedRoute = ({ children }) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -179,32 +190,6 @@ const certificatesPage = (
   />
 );
 
-const stockPage = (
-  <ModuleWorkspace
-    badge="Inventory Control"
-    title="Stock Management Workspace"
-    description="Track chemicals, equipment, replenishment, and field consumption so operations stay supplied without overspending."
-    stats={[
-      { label: 'Inventory State', value: 'Tracked' },
-      { label: 'Field Usage', value: 'Watch' },
-      { label: 'Reorder Style', value: 'Planned' }
-    ]}
-    queueTitle="Inventory Queue"
-    queueItems={[
-      { title: 'Fast-moving stock', description: 'Review materials most frequently consumed across scheduled service jobs.', meta: 'Monitor', tone: '#475569' },
-      { title: 'Reorder threshold setup', description: 'Create simple rules for high-usage chemicals, safety gear, and consumables.', meta: 'Policy', tone: '#d97706' },
-      { title: 'Dispatch linkage', description: 'Align stock planning with scheduled field assignments to avoid service delays.', meta: 'Ops sync', tone: 'var(--color-primary)' }
-    ]}
-    actions={[
-      { label: 'Open Purchase Workspace', href: '/purchase/vendors' },
-      { label: 'Open Assign Services', href: '/schedule-job' },
-      { label: 'Return to Dashboard', href: '/dashboard' }
-    ]}
-    sideTitle="Inventory should support service"
-    sideText="This workspace is strongest when it mirrors actual technician usage patterns and upcoming service demand."
-  />
-);
-
 const hrPage = (
   <ModuleWorkspace
     badge="People Ops"
@@ -265,6 +250,18 @@ function App() {
             <Route path="/sales-performance/incentives" element={<AppRoute element={<SalesIncentives />} />} />
             <Route path="/sales-performance/settings" element={<AppRoute element={<SalesPerformanceSettings />} />} />
             <Route path="/sales-performance/export" element={<AppRoute element={<SalesExportReports />} />} />
+            <Route path="/stock" element={<Navigate to="/stock/dashboard" replace />} />
+            <Route path="/stock/dashboard" element={<AppRoute element={<StockDashboard />} />} />
+            <Route path="/stock/products" element={<AppRoute element={<StockProducts />} />} />
+            <Route path="/stock/purchase" element={<AppRoute element={<StockPurchase />} />} />
+            <Route path="/stock/issue" element={<AppRoute element={<StockIssueToTechnician />} />} />
+            <Route path="/stock/technician-stock" element={<AppRoute element={<TechnicianStock />} />} />
+            <Route path="/stock/usage" element={<AppRoute element={<StockUsage />} />} />
+            <Route path="/stock/returns" element={<AppRoute element={<StockReturnsWastage />} />} />
+            <Route path="/stock/low-stock" element={<AppRoute element={<LowStockAlert />} />} />
+            <Route path="/stock/vendor-report" element={<AppRoute element={<VendorStockReport />} />} />
+            <Route path="/stock/ledger" element={<AppRoute element={<StockLedger />} />} />
+            <Route path="/stock/reports" element={<AppRoute element={<StockReports />} />} />
             <Route path="/purchase" element={<Navigate to="/purchase/vendors" replace />} />
             <Route path="/purchase/vendors" element={<AppRoute element={vendorsPage} />} />
             <Route path="/purchase/bills" element={<AppRoute element={billsPage} />} />
@@ -286,7 +283,6 @@ function App() {
             <Route path="/operations-portal" element={<AppRoute element={<OperationsPortal />} />} />
             <Route path="/complaints" element={<AppRoute element={complaintsPage} />} />
             <Route path="/certificates" element={<AppRoute element={certificatesPage} />} />
-            <Route path="/stock" element={<AppRoute element={stockPage} />} />
             <Route path="/hr-dashboard" element={<AppRoute element={<HRDashboard />} />} />
             <Route path="/employees" element={<AppRoute element={<EmployeeMaster />} />} />
             <Route path="/attendance" element={<AppRoute element={<Attendance />} />} />

@@ -107,6 +107,7 @@ export default function DashboardLayout({ children }) {
   const [salesPerformanceMenuOpen, setSalesPerformanceMenuOpen] = useState(false);
   const [purchaseMenuOpen, setPurchaseMenuOpen] = useState(false);
   const [fieldOpsMenuOpen, setFieldOpsMenuOpen] = useState(false);
+  const [stockMenuOpen, setStockMenuOpen] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 992);
   const [sidebarPinnedOpen, setSidebarPinnedOpen] = useState(false);
@@ -150,6 +151,9 @@ export default function DashboardLayout({ children }) {
     }
     if (location.pathname.startsWith('/operations/')) {
       setFieldOpsMenuOpen(true);
+    }
+    if (location.pathname.startsWith('/stock')) {
+      setStockMenuOpen(true);
     }
   }, [location.pathname]);
 
@@ -227,6 +231,7 @@ export default function DashboardLayout({ children }) {
   const purchaseGroupActive = isPrefixActive('/purchase/');
   const fieldOpsGroupActive = isPrefixActive('/operations/') || isActive('/schedule-job') || isActive('/technician-portal');
   const salesPerformanceGroupActive = isPrefixActive('/sales-performance');
+  const stockGroupActive = isPrefixActive('/stock');
 
   const baseLinkStyle = (active) => ({
     display: 'flex',
@@ -539,7 +544,27 @@ export default function DashboardLayout({ children }) {
           </SidebarSection>
 
           <SidebarSection title="Inventory" collapsed={isSidebarCollapsed}>
-            <Link to="/stock" className={isActive('/stock') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/stock')} title="Stock Management" aria-label="Stock Management"><Database size={18} /> {!isSidebarCollapsed ? 'Stock Management' : null}</Link>
+            <button type="button" className={stockGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => toggleGroupMenu(setStockMenuOpen)} style={groupToggleStyle(stockGroupActive)} title="Stock Management" aria-label="Stock Management">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+                <Database size={18} /> {!isSidebarCollapsed ? 'Stock Management' : null}
+              </span>
+              {!isSidebarCollapsed ? stockMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
+            </button>
+            {!isSidebarCollapsed && stockMenuOpen ? (
+              <>
+                <Link to="/stock/dashboard" className={isActive('/stock/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/dashboard')}>Dashboard</Link>
+                <Link to="/stock/products" className={isActive('/stock/products') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/products')}>Products / Chemicals Master</Link>
+                <Link to="/stock/purchase" className={isActive('/stock/purchase') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/purchase')}>Purchase Stock</Link>
+                <Link to="/stock/issue" className={isActive('/stock/issue') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/issue')}>Issue to Technician</Link>
+                <Link to="/stock/technician-stock" className={isActive('/stock/technician-stock') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/technician-stock')}>Technician Stock</Link>
+                <Link to="/stock/usage" className={isActive('/stock/usage') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/usage')}>Stock Usage / Consumption</Link>
+                <Link to="/stock/returns" className={isActive('/stock/returns') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/returns')}>Return / Wastage / Damage</Link>
+                <Link to="/stock/low-stock" className={isActive('/stock/low-stock') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/low-stock')}>Low Stock Alert</Link>
+                <Link to="/stock/vendor-report" className={isActive('/stock/vendor-report') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/vendor-report')}>Vendor Stock Report</Link>
+                <Link to="/stock/ledger" className={isActive('/stock/ledger') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/ledger')}>Stock Ledger</Link>
+                <Link to="/stock/reports" className={isActive('/stock/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/reports')}>Reports</Link>
+              </>
+            ) : null}
           </SidebarSection>
 
           <SidebarSection title="HR & Payroll" collapsed={isSidebarCollapsed}>
