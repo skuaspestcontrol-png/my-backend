@@ -105,10 +105,11 @@ const shell = {
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
   chip: { border: '1px solid transparent', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', gap: '5px', alignItems: 'center', cursor: 'pointer' },
-  customizeChip: { border: '1px solid #F9A8D4', borderRadius: '999px', padding: '5px 10px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', gap: '6px', alignItems: 'center', cursor: 'pointer', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' },
-  customizeMenu: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: '220px', maxHeight: '320px', overflowY: 'auto', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 18px 42px rgba(15,23,42,0.18)', padding: '10px', zIndex: 5000, display: 'grid', gap: '7px' },
-  customizeTitle: { margin: 0, fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' },
-  customizeRow: { display: 'flex', alignItems: 'center', gap: '8px', minHeight: '30px', borderRadius: '8px', padding: '0 8px', fontSize: '12px', color: '#334155', fontWeight: 700, cursor: 'pointer' },
+  customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', maxWidth: '100%' },
+  customizeMenu: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: '250px', maxHeight: '270px', overflowY: 'auto', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', zIndex: 40 },
+  customizeHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
+  customizeBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
+  customizeRow: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
   filtersBox: { margin: '8px 12px 10px', border: '1px solid var(--color-border)', borderRadius: '10px', padding: '8px', display: 'grid', gap: '8px', background: 'var(--surface-elevated, #fff)', width: 'calc(100% - 24px)', maxWidth: 'calc(100% - 24px)', minWidth: 0, boxSizing: 'border-box' },
   filterGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' },
   filterField: { display: 'grid', gap: '4px' },
@@ -969,29 +970,31 @@ export default function ContractDashboard() {
           <div style={{ position: 'relative', marginLeft: 'auto' }} data-contract-customize="true">
             <button
               type="button"
-              style={shell.customizeChip}
+              style={shell.customizeButton}
               onClick={() => setShowCustomize((prev) => !prev)}
             >
               <SlidersHorizontal size={13} />
-              <span>Customize</span>
+              <span>Customize Fields</span>
             </button>
             {showCustomize ? (
               <div style={shell.customizeMenu}>
-                <p style={shell.customizeTitle}>Show Columns</p>
-                {customColumns.map((col) => (
-                  <label key={col.key} style={shell.customizeRow}>
-                    <input
-                      type="checkbox"
-                      style={{ width: '14px', height: '14px', accentColor: 'var(--color-primary)', flexShrink: 0 }}
-                      checked={Boolean(visibleColumns[col.key])}
-                      onChange={(event) => {
-                        const checked = event.target.checked;
-                        setVisibleColumns((prev) => ({ ...prev, [col.key]: checked }));
-                      }}
-                    />
-                    <span>{col.label}</span>
-                  </label>
-                ))}
+                <div style={shell.customizeHeader}>Show/Hide Columns</div>
+                <div style={shell.customizeBody}>
+                  {customColumns.map((col) => (
+                    <label key={col.key} style={shell.customizeRow}>
+                      <input
+                        type="checkbox"
+                        style={{ width: '14px', height: '14px', accentColor: 'var(--color-primary)', flexShrink: 0 }}
+                        checked={Boolean(visibleColumns[col.key])}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          setVisibleColumns((prev) => ({ ...prev, [col.key]: checked }));
+                        }}
+                      />
+                      <span>{col.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             ) : null}
           </div>
