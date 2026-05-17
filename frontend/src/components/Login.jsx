@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, saveBrandingSettings } from '../utils/brandingTheme';
+import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 import { Eye, EyeOff } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -69,8 +70,7 @@ export default function Login() {
     e.preventDefault();
     setAuthLoading(true);
     const username = String(credentials.username || '').trim();
-    const normalizedUsernameMobile = username.replace(/\D+/g, '');
-    const loginMobile = normalizedUsernameMobile.length > 10 ? normalizedUsernameMobile.slice(-10) : normalizedUsernameMobile;
+    const loginMobile = normalizeIndianMobileNumber(username);
     const password = String(credentials.password || '').trim();
     const expectedUsername = String(settings.adminUsername || 'admin').trim() || 'admin';
     const expectedPassword = String(settings.adminPassword || 'admin123');
@@ -88,7 +88,7 @@ export default function Login() {
 
     if (loginMobile.length !== 10) {
       setAuthLoading(false);
-      alert('Enter a valid 10-digit mobile number for employee login.');
+      alert(PHONE_VALIDATION_ERROR);
       return;
     }
 
@@ -102,8 +102,7 @@ export default function Login() {
         || entry?.appAccessEnabled
         || roleEligible
       );
-      const mobile = String(entry?.mobile || '').trim().replace(/\D+/g, '');
-      const employeeMobile = mobile.length > 10 ? mobile.slice(-10) : mobile;
+      const employeeMobile = normalizeIndianMobileNumber(entry?.mobile || '');
       const employeePassword = String(entry?.portalPassword || '').trim();
       return hasPortal && employeeMobile && employeePassword && loginMobile === employeeMobile && password === employeePassword;
     });

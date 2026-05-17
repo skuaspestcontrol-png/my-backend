@@ -21,6 +21,7 @@ import EmailSettings from '../pages/settings/EmailSettings';
 import EmailTemplates from '../pages/settings/EmailTemplates';
 import EmailLogs from '../pages/email/EmailLogs';
 import GoogleIntegrationSettings from '../pages/settings/GoogleIntegrationSettings';
+import { PHONE_VALIDATION_ERROR, isValidIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -921,6 +922,10 @@ export default function Settings({ modalMode = false }) {
       setForm((prev) => ({ ...prev, [key]: toSixDigitPincode(value) }));
       return;
     }
+    if (['companyMobile', 'gstPhone', 'gstAlternatePhone', 'nonGstPhone', 'nonGstAlternatePhone', 'whatsappPhoneNumber'].includes(key)) {
+      setForm((prev) => ({ ...prev, [key]: normalizeIndianMobileNumber(value) }));
+      return;
+    }
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -1083,7 +1088,7 @@ export default function Settings({ modalMode = false }) {
     const gstCity = String(form.gstCity || form.companyCity || '').trim();
     const gstState = String(form.gstState || form.companyState || '').trim();
     const gstPincode = toSixDigitPincode(form.gstPincode || form.companyPincode || '');
-    const gstPhone = String(form.gstPhone || form.companyMobile || '').trim();
+    const gstPhone = normalizeIndianMobileNumber(form.gstPhone || form.companyMobile || '');
     const gstEmail = String(form.gstEmail || form.companyEmail || '').trim();
     const gstStateCode = normalizeGstStateCode(form.gstStateCode || deriveGstStateCodeFromGstin(form.companyGstNumber));
     const dashboardImageUrl = String(form.dashboardImageUrl || form.gstCompanyLogoUrl || '').trim();
@@ -1096,6 +1101,17 @@ export default function Settings({ modalMode = false }) {
     }
     if (!isValidPincode(nonGstPincode)) {
       setStatus('Non-GST company pincode must be exactly 6 digits.');
+      return;
+    }
+    const phoneValues = [
+      gstPhone,
+      form.gstAlternatePhone,
+      form.nonGstPhone,
+      form.nonGstAlternatePhone,
+      form.whatsappPhoneNumber
+    ];
+    if (phoneValues.some((value) => String(value || '').trim() && !isValidIndianMobileNumber(value))) {
+      setStatus(PHONE_VALIDATION_ERROR);
       return;
     }
     const nextAdminPassword = hasPasswordAttempt ? securityForm.newPassword : String(form.adminPassword || currentStoredPassword || 'admin123');
@@ -1112,7 +1128,7 @@ export default function Settings({ modalMode = false }) {
       gstStateCode,
       gstPincode,
       gstPhone,
-      gstAlternatePhone: String(form.gstAlternatePhone || '').trim(),
+      gstAlternatePhone: normalizeIndianMobileNumber(form.gstAlternatePhone || ''),
       gstEmail,
       gstCompanyLogoUrl,
       gstDigitalSignatureUrl: String(form.gstDigitalSignatureUrl || '').trim(),
@@ -1138,8 +1154,8 @@ export default function Settings({ modalMode = false }) {
       nonGstAddress: nonGstBillingAddress,
       nonGstState: String(form.nonGstState || '').trim(),
       nonGstPincode,
-      nonGstPhone: String(form.nonGstPhone || '').trim(),
-      nonGstAlternatePhone: String(form.nonGstAlternatePhone || '').trim(),
+      nonGstPhone: normalizeIndianMobileNumber(form.nonGstPhone || ''),
+      nonGstAlternatePhone: normalizeIndianMobileNumber(form.nonGstAlternatePhone || ''),
       nonGstEmail: String(form.nonGstEmail || '').trim(),
       nonGstCompanyLogoUrl: String(form.nonGstCompanyLogoUrl || '').trim(),
       nonGstDigitalSignatureUrl: String(form.nonGstDigitalSignatureUrl || '').trim(),
@@ -1200,7 +1216,7 @@ export default function Settings({ modalMode = false }) {
       smtpSecure: encryption === 'SSL',
       smtpTestTargetEmail: String(form.smtpTestTargetEmail || '').trim(),
       whatsappApiVersion: String(form.whatsappApiVersion || '').trim() || 'v23.0',
-      whatsappPhoneNumber: String(form.whatsappPhoneNumber || '').trim(),
+      whatsappPhoneNumber: normalizeIndianMobileNumber(form.whatsappPhoneNumber || ''),
       whatsappInstanceId: String(form.whatsappInstanceId || '').trim(),
       whatsappPhoneNumberId: String(form.whatsappInstanceId || '').trim(),
       whatsappAccessToken: String(form.whatsappAccessToken || '').trim(),
@@ -1378,9 +1394,10 @@ export default function Settings({ modalMode = false }) {
             style={shell.input}
             value={form.companyMobile}
             onChange={(event) => {
-              const value = event.target.value;
+              const value = normalizeIndianMobileNumber(event.target.value);
               setForm((prev) => ({ ...prev, companyMobile: value, gstPhone: prev.gstPhone || value }));
             }}
+            inputMode="numeric"
           />
         </div>
         <div style={shell.field}>
@@ -1710,14 +1727,15 @@ export default function Settings({ modalMode = false }) {
             style={shell.input}
             value={form.gstPhone}
             onChange={(event) => {
-              const value = event.target.value;
+              const value = normalizeIndianMobileNumber(event.target.value);
               setForm((prev) => ({ ...prev, gstPhone: value, companyMobile: value }));
             }}
+            inputMode="numeric"
           />
         </div>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Alternate Phone</p>
-          <input style={shell.input} value={form.gstAlternatePhone} onChange={(event) => updateField('gstAlternatePhone', event.target.value)} />
+          <input style={shell.input} inputMode="numeric" value={form.gstAlternatePhone} onChange={(event) => updateField('gstAlternatePhone', event.target.value)} />
         </div>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Email</p>
@@ -1798,14 +1816,14 @@ export default function Settings({ modalMode = false }) {
         </div>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Phone</p>
-          <input style={shell.input} value={form.nonGstPhone} onChange={(event) => updateField('nonGstPhone', event.target.value)} />
+          <input style={shell.input} inputMode="numeric" value={form.nonGstPhone} onChange={(event) => updateField('nonGstPhone', event.target.value)} />
         </div>
       </div>
 
       <div style={shell.twoCol}>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Alternate Phone</p>
-          <input style={shell.input} value={form.nonGstAlternatePhone} onChange={(event) => updateField('nonGstAlternatePhone', event.target.value)} />
+          <input style={shell.input} inputMode="numeric" value={form.nonGstAlternatePhone} onChange={(event) => updateField('nonGstAlternatePhone', event.target.value)} />
         </div>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Email</p>
@@ -2031,7 +2049,7 @@ export default function Settings({ modalMode = false }) {
       <div style={shell.threeCol}>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Phone Number</p>
-          <input style={shell.input} value={form.whatsappPhoneNumber} onChange={(event) => updateField('whatsappPhoneNumber', event.target.value)} />
+          <input style={shell.input} inputMode="numeric" value={form.whatsappPhoneNumber} onChange={(event) => updateField('whatsappPhoneNumber', event.target.value)} />
         </div>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Instance ID</p>

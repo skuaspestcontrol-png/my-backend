@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { loadGooglePlacesScript } from '../utils/googlePlaces';
 import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
+import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import {
   ArrowDown,
@@ -216,8 +217,8 @@ const s = {
   filterActions: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' },
   applyButton: { border: '1px solid rgba(159, 23, 77, 0.34)', background: 'var(--color-primary)', color: '#fff', borderRadius: '8px', padding: '0 12px', minHeight: '34px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' },
   clearButton: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', minWidth: '34px', minHeight: '34px', fontSize: '16px', lineHeight: 1, cursor: 'pointer' },
-  registerCard: { background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', overflow: 'visible', boxShadow: 'var(--shadow-sm)', backdropFilter: 'none' },
-  registerHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 12px', borderBottom: '1px solid var(--color-border)', background: '#fff' },
+  registerCard: { background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', overflow: 'visible', boxShadow: 'var(--shadow-sm)', backdropFilter: 'none', backgroundClip: 'padding-box' },
+  registerHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 12px', borderBottom: '1px solid var(--color-border)', background: '#fff', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', backgroundClip: 'padding-box' },
   registerTitleWrap: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 8px', borderRadius: '8px', background: 'var(--color-primary-light)', border: '1px solid var(--color-primary-soft)' },
   registerTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   registerActions: { display: 'flex', alignItems: 'center', gap: '8px' },
@@ -234,7 +235,7 @@ const s = {
   popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' },
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
-  tableWrap: { overflowX: 'hidden', overflowY: 'hidden', background: '#fff', position: 'relative', borderRadius: '14px', border: '1px solid var(--color-border)' },
+  tableWrap: { overflowX: 'hidden', overflowY: 'hidden', background: '#fff', position: 'relative', borderRadius: '0 0 16px 16px', borderTop: '1px solid var(--color-border)', backgroundClip: 'padding-box' },
   table: { width: '100%', minWidth: 0, borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left', tableLayout: 'fixed' },
   headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '5px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
@@ -321,7 +322,7 @@ const formatEmployeeName = (employee) => {
   return fullName || employee.empCode || 'Unnamed';
 };
 
-const normalizePhoneNumber = (value) => String(value || '').replace(/\D/g, '').slice(0, 10);
+const normalizePhoneNumber = normalizeIndianMobileNumber;
 const normalizePincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
 const toObjectList = (value) => (
   Array.isArray(value)
@@ -1925,11 +1926,11 @@ export default function LeadCapture() {
   const save = async (e) => {
     e.preventDefault();
     if (form.mobile.length !== 10) {
-      alert('Mobile number must be exactly 10 digits.');
+      alert(PHONE_VALIDATION_ERROR);
       return;
     }
     if (form.whatsappNumber && form.whatsappNumber.length !== 10) {
-      alert('WhatsApp number must be exactly 10 digits.');
+      alert(PHONE_VALIDATION_ERROR);
       return;
     }
     const pincode = normalizePincode(form.pincode);
@@ -2037,8 +2038,8 @@ export default function LeadCapture() {
     : '100%';
   const leadMobileColumns = `40px ${visibleColumnDefs.map((column) => `${mobileLeadColumnWidths[column.key] || 128}px`).join(' ')} 92px`;
   const tableWrapStyle = isMobile
-    ? { ...s.tableWrap, overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', maxWidth: '100%' }
-    : { ...s.tableWrap, overflowX: 'auto', overflowY: 'visible', maxWidth: '100%' };
+    ? { ...s.tableWrap, overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', maxWidth: '100%' }
+    : { ...s.tableWrap, overflowX: 'auto', overflowY: 'hidden', maxWidth: '100%' };
   const tableStyleTiny = isMobile
     ? { ...tableStyle, width: leadTableMinWidth, minWidth: leadTableMinWidth, tableLayout: 'fixed', '--mobile-table-columns': leadMobileColumns, '--mobile-table-min-width': leadTableMinWidth }
     : { ...tableStyle, minWidth: leadTableMinWidth };
@@ -2282,7 +2283,7 @@ export default function LeadCapture() {
           ) : null}
         </div>
 
-        <div style={tableWrapStyle} className="crm-table-shell">
+        <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped">
           <table style={tableStyleTiny} className="crm-compact-table crm-stack-mobile">
             <colgroup>
               <col style={s.checkboxWrap} />
@@ -2742,8 +2743,7 @@ export default function LeadCapture() {
                       style={s.in}
                       onChange={(e) => handleMobileChange(e.target.value)}
                       inputMode="numeric"
-                      maxLength={10}
-                      pattern="\d{10}"
+                      pattern="[0-9]{10}"
                       placeholder="10 digit mobile number"
                       required
                     />
@@ -2767,8 +2767,7 @@ export default function LeadCapture() {
                       style={{ ...s.in, opacity: sameAsMobile ? 0.9 : 1 }}
                       onChange={(e) => handleWhatsappChange(e.target.value)}
                       inputMode="numeric"
-                      maxLength={10}
-                      pattern="\d{10}"
+                      pattern="[0-9]{10}"
                       placeholder="10 digit WhatsApp number"
                       disabled={sameAsMobile}
                     />

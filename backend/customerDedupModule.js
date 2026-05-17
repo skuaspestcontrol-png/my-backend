@@ -1,6 +1,7 @@
 const fs = require('fs');
 const zlib = require('zlib');
 const PDFDocument = require('pdfkit');
+const { normalizeIndianMobileNumber } = require('./lib/phone');
 
 const normalizeText = (value) => String(value || '').trim();
 const normalizeLower = (value) => normalizeText(value).toLowerCase();
@@ -33,10 +34,7 @@ const properCase = (value) => normalizeText(value)
 const collapseSpaces = (value) => normalizeText(value).replace(/\s+/g, ' ');
 
 const normalizePhone = (value) => {
-  const digits = String(value || '').replace(/\D/g, '');
-  if (!digits) return '';
-  if (digits.length >= 10) return digits.slice(-10);
-  return digits;
+  return normalizeIndianMobileNumber(value);
 };
 
 const normalizeEmail = (value) => normalizeLower(value);

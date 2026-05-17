@@ -1187,6 +1187,12 @@ textarea:focus {
   scrollbar-width: thin;
 }
 
+.crm-table-shell.crm-table-shell--clipped {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  background-clip: padding-box;
+}
+
 .crm-compact-table {
   width: 100% !important;
   max-width: 100%;

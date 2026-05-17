@@ -3,6 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Edit, Eye, EyeOff, Plus, Trash2, UploadCloud, UserCheck, X } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -171,7 +172,7 @@ const toAnnual = (value) => {
 };
 
 const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
-const toTenDigitNumber = (value) => String(value || '').replace(/\D+/g, '').slice(0, 10);
+const toTenDigitNumber = normalizeIndianMobileNumber;
 const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
 const toAbsoluteUploadUrl = (value) => {
   const raw = String(value || '').trim();
@@ -423,11 +424,11 @@ export default function EmployeeMaster() {
       return;
     }
     if (toTenDigitNumber(form.mobile).length !== 10) {
-      setStatus('Mobile number must be exactly 10 digits.');
+      setStatus(PHONE_VALIDATION_ERROR);
       return;
     }
     if (form.emergencyContactNumber && toTenDigitNumber(form.emergencyContactNumber).length !== 10) {
-      setStatus('Emergency contact number must be exactly 10 digits.');
+      setStatus(PHONE_VALIDATION_ERROR);
       return;
     }
     const pincode = toSixDigitPincode(form.pincode);
@@ -645,7 +646,7 @@ export default function EmployeeMaster() {
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Mobile Number *</label>
-                    <input style={shell.input} inputMode="numeric" maxLength={10} required value={form.mobile} onChange={(event) => updateField('mobile', event.target.value)} />
+                    <input style={shell.input} inputMode="numeric" required value={form.mobile} onChange={(event) => updateField('mobile', event.target.value)} />
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Martial Status</label>
@@ -719,7 +720,7 @@ export default function EmployeeMaster() {
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Emergency Contact Number</label>
-                    <input style={shell.input} inputMode="numeric" maxLength={10} value={form.emergencyContactNumber} onChange={(event) => updateField('emergencyContactNumber', event.target.value)} />
+                    <input style={shell.input} inputMode="numeric" value={form.emergencyContactNumber} onChange={(event) => updateField('emergencyContactNumber', event.target.value)} />
                   </div>
                   <div style={shell.field}>
                     <label style={shell.label}>Email ID</label>

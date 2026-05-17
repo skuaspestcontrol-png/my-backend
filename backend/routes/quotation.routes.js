@@ -1,6 +1,7 @@
 const express = require('express');
 const { query: dbQuery, getConnection } = require('../lib/db');
 const { generateQuotationPdfBuffer } = require('../quotationPdf');
+const { normalizeOptionalIndianMobileNumber } = require('../lib/phone');
 
 const router = express.Router();
 
@@ -363,10 +364,10 @@ router.put('/settings/quotation-template', async (req, res) => {
   const payload = req.body || {};
   const values = [
     clean(payload.logo_url), toNumber(payload.logo_width, 90), toNumber(payload.logo_height, 70), clean(payload.header_alignment || 'left'),
-    clean(payload.company_name), clean(payload.company_address), clean(payload.phone), clean(payload.email), clean(payload.website), clean(payload.gstin),
+    clean(payload.company_name), clean(payload.company_address), normalizeOptionalIndianMobileNumber(payload.phone), clean(payload.email), clean(payload.website), clean(payload.gstin),
     clean(payload.header_line_color || '#9F174D'), clean(payload.primary_color || '#9F174D'), clean(payload.border_color || '#cbd5e1'), clean(payload.font_family || 'Helvetica'),
     toNumber(payload.font_size, 10), toNumber(payload.heading_font_size, 14), toNumber(payload.body_font_size, 10), toNumber(payload.table_font_size, 9),
-    clean(payload.footer_text), clean(payload.signature_image_url), clean(payload.default_sales_person), clean(payload.default_designation), clean(payload.default_mobile),
+    clean(payload.footer_text), clean(payload.signature_image_url), clean(payload.default_sales_person), clean(payload.default_designation), normalizeOptionalIndianMobileNumber(payload.default_mobile),
     boolToTiny(payload.show_logo, 1), boolToTiny(payload.show_gstin, 1), boolToTiny(payload.show_signature, 1), boolToTiny(payload.show_page_number, 1)
   ];
   if (id) {
@@ -555,8 +556,8 @@ router.post('/quotations', async (req, res) => {
       clean(b.customer_premise_id || b.customerPremiseId), clean(b.premise_label || b.premiseLabel), clean(b.premise_address || b.premiseAddress),
       clean(b.premise_area_name || b.premiseAreaName), clean(b.premise_city || b.premiseCity), clean(b.premise_state || b.premiseState),
       clean(b.premise_pincode || b.premisePincode), clean(b.premise_google_map_url || b.premiseGoogleMapUrl),
-      clean(b.phone), clean(b.whatsapp), clean(b.email), clean(b.gstin),
-      clean(b.quotation_date) || null, toNumber(b.validity_days, 15), clean(b.prepared_by), clean(b.sales_person), clean(b.designation), clean(b.mobile),
+      normalizeOptionalIndianMobileNumber(b.phone), normalizeOptionalIndianMobileNumber(b.whatsapp), clean(b.email), clean(b.gstin),
+      clean(b.quotation_date) || null, toNumber(b.validity_days, 15), clean(b.prepared_by), clean(b.sales_person), clean(b.designation), normalizeOptionalIndianMobileNumber(b.mobile),
       clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
       toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words), clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'),
       clean(b.opening_paragraph), clean(b.payment_terms), clean(b.warranty_note), clean(b.disclaimer), clean(b.closing_paragraph), clean(b.internal_note)
@@ -616,8 +617,8 @@ router.put('/quotations/:id', async (req, res) => {
       clean(b.customer_premise_id || b.customerPremiseId), clean(b.premise_label || b.premiseLabel), clean(b.premise_address || b.premiseAddress),
       clean(b.premise_area_name || b.premiseAreaName), clean(b.premise_city || b.premiseCity), clean(b.premise_state || b.premiseState),
       clean(b.premise_pincode || b.premisePincode), clean(b.premise_google_map_url || b.premiseGoogleMapUrl),
-      clean(b.phone), clean(b.whatsapp), clean(b.email), clean(b.gstin), clean(b.quotation_date) || null, toNumber(b.validity_days, 15),
-      clean(b.prepared_by), clean(b.sales_person), clean(b.designation), clean(b.mobile), clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
+      normalizeOptionalIndianMobileNumber(b.phone), normalizeOptionalIndianMobileNumber(b.whatsapp), clean(b.email), clean(b.gstin), clean(b.quotation_date) || null, toNumber(b.validity_days, 15),
+      clean(b.prepared_by), clean(b.sales_person), clean(b.designation), normalizeOptionalIndianMobileNumber(b.mobile), clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
       toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words),
       clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'), clean(b.opening_paragraph), clean(b.payment_terms), clean(b.warranty_note), clean(b.disclaimer), clean(b.closing_paragraph), clean(b.internal_note), id
     ]);

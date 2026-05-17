@@ -7,6 +7,7 @@ import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { attachPlacesAutocomplete } from '../utils/googlePlaces';
+import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 
 const normalizeApiBase = (value = '') => {
   const raw = String(value || '').trim();
@@ -184,8 +185,8 @@ const emptyForm = {
 const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
 
 const shell = {
-  page: { background: 'transparent', border: 'none', borderRadius: 0, boxShadow: 'none', overflow: 'visible', position: 'relative' },
-  topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)', background: '#fff' },
+  page: { background: '#fff', border: '1px solid var(--color-border)', borderRadius: '16px', boxShadow: 'var(--shadow-sm)', overflow: 'visible', position: 'relative', backgroundClip: 'padding-box' },
+  topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)', background: '#fff', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', backgroundClip: 'padding-box' },
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   topActions: { display: 'flex', alignItems: 'center', gap: '8px' },
@@ -195,7 +196,7 @@ const shell = {
   toolLabel: { fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
   customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' },
   duplicateFilterButton: { display: 'inline-flex', alignItems: 'center', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '999px', padding: '4px 8px', minHeight: '24px', fontSize: '11px', lineHeight: 1.2, fontWeight: 800, cursor: 'pointer' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', maxWidth: '100%', borderRadius: 0, border: '1px solid var(--color-border)' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', maxWidth: '100%', borderTop: '1px solid var(--color-border)', backgroundClip: 'padding-box' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '3px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', lineHeight: 1.05 },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
@@ -276,7 +277,7 @@ const shell = {
   historyMetaLabel: { margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
   historyMetaValue: { margin: '4px 0 0 0', fontSize: '14px', color: '#0f172a', fontWeight: 600 },
   historyEmpty: { margin: 0, padding: '16px 12px', fontSize: '13px', color: '#64748b' },
-  paginationBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '10px 16px', borderTop: '1px solid var(--color-border)', background: '#fff' },
+  paginationBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '10px 16px', borderTop: '1px solid var(--color-border)', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' },
   paginationText: { fontSize: '12px', color: '#475569', fontWeight: 600 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
   paginationButton: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
@@ -350,7 +351,7 @@ export default function CustomerDashboard() {
     [visibleColumns]
   );
   const rowsPerPage = 20;
-  const toTenDigitNumber = (value) => String(value || '').replace(/\D/g, '').slice(0, 10);
+  const toTenDigitNumber = normalizeIndianMobileNumber;
   const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
   const isValidPincode = (value) => !value || /^\d{6}$/.test(value);
   const normalizeIncomingCustomerPrefill = (prefill = {}) => {
@@ -906,15 +907,15 @@ export default function CustomerDashboard() {
     const altNumber = toTenDigitNumber(form.altNumber);
 
     if (mobile.length !== 10) {
-      setSaveError('Mobile Number must be exactly 10 digits.');
+      setSaveError(PHONE_VALIDATION_ERROR);
       return;
     }
     if (!form.whatsappSameAsMobile && whatsapp && whatsapp.length !== 10) {
-      setSaveError('WhatsApp Number must be exactly 10 digits.');
+      setSaveError(PHONE_VALIDATION_ERROR);
       return;
     }
     if (altNumber && altNumber.length !== 10) {
-      setSaveError('Alt Number must be exactly 10 digits.');
+      setSaveError(PHONE_VALIDATION_ERROR);
       return;
     }
     const gstNumber = String(form.gstNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
@@ -1415,7 +1416,7 @@ export default function CustomerDashboard() {
         ) : null}
       </div>
 
-      <div style={shell.tableWrap} className="crm-table-shell">
+      <div style={shell.tableWrap} className="crm-table-shell crm-table-shell--clipped">
         <table style={tableStyle} className="crm-compact-table">
           <thead>
             <tr>
@@ -1864,7 +1865,6 @@ export default function CustomerDashboard() {
                 style={shell.input}
                 value={form.mobileNumber}
                 inputMode="numeric"
-                maxLength={10}
                 onChange={(event) =>
                   setForm((prev) => {
                     const mobileNumber = toTenDigitNumber(event.target.value);
@@ -1884,7 +1884,6 @@ export default function CustomerDashboard() {
                   value={form.whatsappSameAsMobile ? form.mobileNumber : form.whatsappNumber}
                   disabled={form.whatsappSameAsMobile}
                   inputMode="numeric"
-                  maxLength={10}
                   onChange={(event) => setForm((prev) => ({ ...prev, whatsappNumber: toTenDigitNumber(event.target.value) }))}
                 />
                 <label style={{ fontSize: '11px', color: '#334155' }}>
@@ -1908,7 +1907,6 @@ export default function CustomerDashboard() {
                 style={shell.input}
                 value={form.altNumber}
                 inputMode="numeric"
-                maxLength={10}
                 onChange={(event) => setForm((prev) => ({ ...prev, altNumber: toTenDigitNumber(event.target.value) }))}
               />
 

@@ -3,6 +3,7 @@ const path = require('path');
 const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
 const { syncPayrollJsonFilesToMysql } = require('./lib/autoMigrate');
+const { normalizeIndianMobileNumber } = require('./lib/phone');
 
 const round2 = (value) => Number((Number(value) || 0).toFixed(2));
 const toNumber = (value, fallback = 0) => {
@@ -77,10 +78,8 @@ const getRoleFromReq = (req) => {
 const getActorName = (req) => normalizeText(req.headers['x-user-name'] || req.headers['x-portal-user'] || req.query.userName || req.body?.actor || 'System');
 const getActorEmployeeId = (req) => normalizeText(req.headers['x-user-id'] || req.headers['x-employee-id'] || req.query.userId || req.query.employeeId || req.body?.actorEmployeeId || '');
 const normalizeWhatsappPhone = (raw) => {
-  const digits = String(raw || '').replace(/\D/g, '');
-  if (!digits) return '';
-  if (digits.length === 10) return `91${digits}`;
-  if (digits.length >= 11 && digits.length <= 15) return digits;
+  const digits = normalizeIndianMobileNumber(raw);
+  if (/^\d{10}$/.test(digits)) return `91${digits}`;
   return '';
 };
 const resolveEmailConfig = (settings = {}) => ({

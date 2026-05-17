@@ -1,15 +1,14 @@
+const { normalizeIndianMobileNumber } = require('../lib/phone');
+
 const normalizePhoneNumber = (value) => {
-  const digits = String(value || '').replace(/\D+/g, '');
-  if (!digits) return '';
-  if (digits.length === 10) return `91${digits}`;
-  if (digits.length === 12 && digits.startsWith('91')) return digits;
-  if (digits.length >= 11 && digits.length <= 15) return digits;
+  const digits = normalizeIndianMobileNumber(value);
+  if (/^\d{10}$/.test(digits)) return `91${digits}`;
   return '';
 };
 
 const validatePhoneNumber = (value) => {
   const normalized = normalizePhoneNumber(value);
-  if (!normalized) return { ok: false, normalized: '', error: 'Valid phone number is required.' };
+  if (!normalized) return { ok: false, normalized: '', error: 'Please enter a valid 10 digit mobile number.' };
   return { ok: true, normalized };
 };
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { PHONE_VALIDATION_ERROR, isValidIndianMobileNumber, normalizeIndianMobileNumber } from '../../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -31,6 +32,10 @@ export default function WhatsAppSettings() {
 
   const save = async (event) => {
     event.preventDefault();
+    if (form.phoneNumber && !isValidIndianMobileNumber(form.phoneNumber)) {
+      setStatus(PHONE_VALIDATION_ERROR);
+      return;
+    }
     try {
       setBusy(true);
       setStatus('Saving...');
@@ -65,7 +70,7 @@ export default function WhatsAppSettings() {
       <form onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '12px', padding: '12px', display: 'grid', gap: '10px' }}>
         <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>API Base URL<input value={form.apiBaseUrl} onChange={(e) => setForm((p) => ({ ...p, apiBaseUrl: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
-          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Phone Number<input value={form.phoneNumber} onChange={(e) => setForm((p) => ({ ...p, phoneNumber: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
+          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Phone Number<input value={form.phoneNumber} inputMode="numeric" onChange={(e) => setForm((p) => ({ ...p, phoneNumber: normalizeIndianMobileNumber(e.target.value) }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Instance ID<input value={form.instanceId} onChange={(e) => setForm((p) => ({ ...p, instanceId: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Access Token<input value={form.accessToken} onChange={(e) => setForm((p) => ({ ...p, accessToken: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Provider Type<select value={form.providerType} onChange={(e) => setForm((p) => ({ ...p, providerType: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }}><option value="custom">Custom</option><option value="meta">Meta Graph</option></select></label>

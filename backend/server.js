@@ -18,6 +18,12 @@ const { createWhatsAppRouter } = require('./routes/whatsapp.routes');
 const { createEmailRouter } = require('./routes/email.routes');
 const { quotationRouter } = require('./routes/quotation.routes');
 const {
+  PHONE_VALIDATION_ERROR,
+  normalizeIndianMobileNumber,
+  normalizeOptionalIndianMobileNumber,
+  normalizePhoneFields
+} = require('./lib/phone');
+const {
   encrypt,
   normalizeKey,
   buildOAuthClient,
@@ -1115,8 +1121,8 @@ const sanitizeSettings = (raw = {}) => {
     gstState: normalizeSettingsText(source.gstState ?? source.companyState ?? defaultSettings.gstState),
     gstStateCode: normalizeSettingsText(source.gstStateCode ?? defaultSettings.gstStateCode),
     gstPincode: normalizeSettingsText(source.gstPincode ?? source.companyPincode ?? defaultSettings.gstPincode),
-    gstPhone: normalizeSettingsText(source.gstPhone ?? source.companyMobile ?? defaultSettings.gstPhone),
-    gstAlternatePhone: normalizeSettingsText(source.gstAlternatePhone ?? defaultSettings.gstAlternatePhone),
+    gstPhone: normalizeOptionalIndianMobileNumber(source.gstPhone ?? source.companyMobile ?? defaultSettings.gstPhone),
+    gstAlternatePhone: normalizeOptionalIndianMobileNumber(source.gstAlternatePhone ?? defaultSettings.gstAlternatePhone),
     gstEmail: normalizeSettingsText(source.gstEmail ?? source.companyEmail ?? defaultSettings.gstEmail),
     gstCompanyLogoUrl: normalizeSettingsText(source.gstCompanyLogoUrl ?? source.dashboardImageUrl ?? defaultSettings.gstCompanyLogoUrl),
     gstDigitalSignatureUrl: normalizeSettingsText(source.gstDigitalSignatureUrl ?? defaultSettings.gstDigitalSignatureUrl),
@@ -1128,7 +1134,7 @@ const sanitizeSettings = (raw = {}) => {
     companyPincode: normalizeSettingsText(source.companyPincode ?? source.gstPincode ?? defaultSettings.companyPincode),
     companyGstNumber: normalizeSettingsText(source.companyGstNumber ?? defaultSettings.companyGstNumber).toUpperCase(),
     companyEmail: normalizeSettingsText(source.companyEmail ?? source.gstEmail ?? defaultSettings.companyEmail),
-    companyMobile: normalizeSettingsText(source.companyMobile ?? source.gstPhone ?? defaultSettings.companyMobile),
+    companyMobile: normalizeOptionalIndianMobileNumber(source.companyMobile ?? source.gstPhone ?? defaultSettings.companyMobile),
     companyWebsite: normalizeSettingsText(source.companyWebsite ?? defaultSettings.companyWebsite),
     googleReviewLink: normalizeSettingsText(source.googleReviewLink ?? defaultSettings.googleReviewLink),
     aboutTagline: normalizeSettingsText(source.aboutTagline ?? defaultSettings.aboutTagline),
@@ -1139,8 +1145,8 @@ const sanitizeSettings = (raw = {}) => {
     nonGstAddress: normalizeSettingsText(source.nonGstAddress ?? source.nonGstBillingAddress ?? defaultSettings.nonGstAddress),
     nonGstState: normalizeSettingsText(source.nonGstState ?? defaultSettings.nonGstState),
     nonGstPincode: normalizeSettingsText(source.nonGstPincode ?? defaultSettings.nonGstPincode),
-    nonGstPhone: normalizeSettingsText(source.nonGstPhone ?? defaultSettings.nonGstPhone),
-    nonGstAlternatePhone: normalizeSettingsText(source.nonGstAlternatePhone ?? defaultSettings.nonGstAlternatePhone),
+    nonGstPhone: normalizeOptionalIndianMobileNumber(source.nonGstPhone ?? defaultSettings.nonGstPhone),
+    nonGstAlternatePhone: normalizeOptionalIndianMobileNumber(source.nonGstAlternatePhone ?? defaultSettings.nonGstAlternatePhone),
     nonGstEmail: normalizeSettingsText(source.nonGstEmail ?? defaultSettings.nonGstEmail),
     nonGstCompanyLogoUrl: normalizeSettingsText(source.nonGstCompanyLogoUrl ?? defaultSettings.nonGstCompanyLogoUrl),
     nonGstDigitalSignatureUrl: normalizeSettingsText(source.nonGstDigitalSignatureUrl ?? defaultSettings.nonGstDigitalSignatureUrl),
@@ -1187,7 +1193,7 @@ const sanitizeSettings = (raw = {}) => {
     smtpFromEmail: normalizeSettingsText(source.smtpFromEmail ?? defaultSettings.smtpFromEmail),
     smtpTestTargetEmail: normalizeSettingsText(source.smtpTestTargetEmail ?? defaultSettings.smtpTestTargetEmail),
     whatsappApiVersion: normalizeSettingsText(source.whatsappApiVersion ?? defaultSettings.whatsappApiVersion) || defaultSettings.whatsappApiVersion,
-    whatsappPhoneNumber: normalizeSettingsText(source.whatsappPhoneNumber ?? defaultSettings.whatsappPhoneNumber),
+    whatsappPhoneNumber: normalizeOptionalIndianMobileNumber(source.whatsappPhoneNumber ?? defaultSettings.whatsappPhoneNumber),
     whatsappInstanceId,
     whatsappPhoneNumberId,
     whatsappAccessToken: normalizeSettingsText(source.whatsappAccessToken ?? defaultSettings.whatsappAccessToken),
@@ -1910,7 +1916,7 @@ const parseMysqlLeadPayload = (rawPayload) => {
   return null;
 };
 
-const normalizeLeadMobile = (value) => String(value || '').replace(/\D/g, '').slice(-10);
+const normalizeLeadMobile = normalizeIndianMobileNumber;
 
 const normalizeLeadShape = (input = {}, fallbackId = '') => {
   const source = (input && typeof input === 'object') ? input : {};
@@ -1920,8 +1926,8 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
   const companyName = String(source.companyName || '').trim();
   const contactPersonName = String(source.contactPersonName || '').trim();
   const title = String(source.title || source.position || '').trim();
-  const mobileValue = String(source.mobile || source.mobileNumber || '').trim();
-  const whatsappNumber = String(source.whatsappNumber || '').trim();
+  const mobileValue = normalizeOptionalIndianMobileNumber(source.mobile || source.mobileNumber || '');
+  const whatsappNumber = normalizeOptionalIndianMobileNumber(source.whatsappNumber || '');
   const emailId = String(source.emailId || '').trim();
   const address = String(source.address || '').trim();
   const areaName = String(source.areaName || source.area || '').trim();
@@ -1936,7 +1942,7 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
   const date = String(source.date || source.createdAt || new Date().toISOString()).trim();
   const googlePlaceId = String(source.googlePlaceId || source.google_place_id || '').trim();
   const googlePlaceName = String(source.googlePlaceName || source.google_place_name || '').trim();
-  const googlePhone = String(source.googlePhone || source.google_phone || '').trim();
+  const googlePhone = normalizeOptionalIndianMobileNumber(source.googlePhone || source.google_phone || '');
   const googleWebsite = String(source.googleWebsite || source.google_website || '').trim();
   const latitude = String(source.latitude || '').trim();
   const longitude = String(source.longitude || '').trim();
@@ -2127,9 +2133,9 @@ const normalizePremisePayload = (body = {}, customer = {}, fallbackId = '') => {
       : 'Service',
     contactPerson: String(body.contactPerson || body.contact_person || customer.contactPersonName || customer.name || '').trim(),
     attentionName: String(body.attentionName || body.attention_name || body.contactPerson || body.contact_person || customer.contactPersonName || customer.name || '').trim(),
-    phone: String(body.phone || customer.mobileNumber || customer.workPhone || '').trim(),
-    mobile: String(body.mobile || body.phone || customer.mobileNumber || customer.workPhone || '').trim(),
-    altMobile: String(body.altMobile || body.alt_mobile || customer.altNumber || '').trim(),
+    phone: normalizeOptionalIndianMobileNumber(body.phone || customer.mobileNumber || customer.workPhone || ''),
+    mobile: normalizeOptionalIndianMobileNumber(body.mobile || body.phone || customer.mobileNumber || customer.workPhone || ''),
+    altMobile: normalizeOptionalIndianMobileNumber(body.altMobile || body.alt_mobile || customer.altNumber || ''),
     email: String(body.email || customer.emailId || customer.email || '').trim(),
     address,
     addressLine1: String(body.addressLine1 || body.address_line_1 || body.address || body.premiseAddress || '').trim(),
@@ -2520,7 +2526,7 @@ const hasRecentWebsiteLeadByMobile = async (mobile) => {
 const buildWebsiteLead = (body = {}) => {
   const now = new Date();
   const name = String(body.name || body.customerName || '').trim();
-  const mobile = String(body.phone || body.mobile || body.mobileNumber || '').trim();
+  const mobile = normalizeOptionalIndianMobileNumber(body.phone || body.mobile || body.mobileNumber || '');
   const email = String(body.email || body.emailId || '').trim();
   const serviceRequired = String(body.service || body.serviceRequired || body.serviceName || body.pestIssue || '').trim();
   const message = String(body.message || body.notes || body.remarks || '').trim();
@@ -2558,7 +2564,7 @@ const buildWebsiteLead = (body = {}) => {
 
 const saveWebsiteLead = async (body = {}) => {
   const name = String(body?.name || body?.customerName || '').trim();
-  const mobile = String(body?.phone || body?.mobile || body?.mobileNumber || '').trim();
+  const mobile = normalizeOptionalIndianMobileNumber(body?.phone || body?.mobile || body?.mobileNumber || '');
   if (!name) {
     const error = new Error('Name is required');
     error.statusCode = 400;
@@ -2566,6 +2572,11 @@ const saveWebsiteLead = async (body = {}) => {
   }
   if (!mobile) {
     const error = new Error('Phone is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!/^\d{10}$/.test(mobile)) {
+    const error = new Error(PHONE_VALIDATION_ERROR);
     error.statusCode = 400;
     throw error;
   }
@@ -2672,7 +2683,9 @@ app.post('/api/leads', async (req, res) => {
     return res.status(500).json({ error: 'MySQL is not configured for leads module' });
   }
   try {
-    const incoming = req.body || {};
+    const incoming = normalizePhoneFields(req.body || {}, [
+      'mobile', 'mobileNumber', 'whatsappNumber', 'googlePhone', 'google_phone', 'phone'
+    ]);
     const generatedId = String(incoming._id || Date.now().toString()).trim();
     const newLead = normalizeLeadShape({ ...incoming, _id: generatedId }, generatedId);
     await withMysqlConnection(async (conn) => {
@@ -2681,7 +2694,7 @@ app.post('/api/leads', async (req, res) => {
     return res.json(newLead);
   } catch (error) {
     console.error('Failed to save lead in MySQL:', error.message);
-    return res.status(500).json({ error: error.message || 'Failed to save lead in MySQL' });
+    return res.status(error.statusCode || 500).json({ error: error.message || 'Failed to save lead in MySQL' });
   }
 });
 
@@ -2991,9 +3004,12 @@ app.put('/api/leads/:id', async (req, res) => {
     if (!existingRow) return res.status(404).json({ error: 'Lead not found' });
 
     const existingLead = normalizeLeadShape(parseMysqlLeadPayload(existingRow.payload) || {}, existingRow.external_id || leadId);
+    const incoming = normalizePhoneFields(req.body && typeof req.body === 'object' ? req.body : {}, [
+      'mobile', 'mobileNumber', 'whatsappNumber', 'googlePhone', 'google_phone', 'phone'
+    ]);
     const updatedLead = normalizeLeadShape({
       ...existingLead,
-      ...(req.body && typeof req.body === 'object' ? req.body : {}),
+      ...incoming,
       _id: existingLead._id
     }, existingLead._id);
 
@@ -3004,7 +3020,7 @@ app.put('/api/leads/:id', async (req, res) => {
     return res.json(updatedLead);
   } catch (error) {
     console.error('Failed to update lead in MySQL:', error.message);
-    return res.status(500).json({ error: error.message || 'Failed to update lead in MySQL' });
+    return res.status(error.statusCode || 500).json({ error: error.message || 'Failed to update lead in MySQL' });
   }
 });
 
@@ -3093,7 +3109,7 @@ app.get('/api/employees', async (req, res) => {
 
 app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (req, res) => {
   try {
-    const emp = req.body || {};
+    const emp = normalizePhoneFields(req.body || {}, ['mobile', 'emergencyContactNumber', 'emergency_contact_number'], ['mobile']);
     if (req.file) {
       const relativePath = `/uploads/employees/photos/${req.file.filename}`;
       emp.profile_photo = relativePath;
@@ -3184,7 +3200,7 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
 
   } catch (error) {
     console.error("Employee save failed:", error.message);
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -3243,7 +3259,11 @@ const fetchEmployeeByAnyId = async (employeeId) => {
 
 app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async (req, res) => {
   const employeeId = String(req.params.id || '').trim();
-  const incoming = req.body && typeof req.body === 'object' ? req.body : {};
+  const incoming = normalizePhoneFields(
+    req.body && typeof req.body === 'object' ? req.body : {},
+    ['mobile', 'emergencyContactNumber', 'emergency_contact_number'],
+    ['mobile']
+  );
 
   // Handle profile photo upload
   if (req.file) {
@@ -3923,7 +3943,7 @@ app.post('/api/complaints', (req, res) => {
     ticketNumber: `CMP-${records.length + 1}`,
     customerId: String(req.body.customerId || ''),
     customerName: String(req.body.customerName || ''),
-    mobileNumber: String(req.body.mobileNumber || ''),
+    mobileNumber: normalizeOptionalIndianMobileNumber(req.body.mobileNumber || req.body.phone || ''),
     property: String(req.body.property || ''),
     contractId: String(req.body.contractId || ''),
     contractNumber: String(req.body.contractNumber || ''),
@@ -4207,72 +4227,80 @@ app.get('/api/customers', async (req, res) => {
 
 app.post('/api/customers', async (req, res) => {
   try {
+    const body = normalizePhoneFields(req.body, [
+      'mobileNumber', 'workPhone', 'whatsappNumber', 'altNumber', 'billingPhone', 'shippingPhone', 'googlePhone', 'google_phone'
+    ]);
     const allowFallback = isCustomersJsonFallbackEnabled();
-    const positionValue = req.body.position === 'Edit type'
-      ? (req.body.positionCustom || '').trim() || 'Edit type'
-      : (req.body.position || '');
-    const emailValue = req.body.emailId || req.body.email || '';
-    const mobileValue = req.body.mobileNumber || req.body.workPhone || '';
-    const billingStateValue = req.body.billingState || req.body.state || req.body.placeOfSupply || '';
-    const hasGstValue = !!req.body.hasGst || !!req.body.gstRegistered;
+    const positionValue = body.position === 'Edit type'
+      ? (body.positionCustom || '').trim() || 'Edit type'
+      : (body.position || '');
+    const emailValue = body.emailId || body.email || '';
+    const mobileValue = body.mobileNumber || body.workPhone || '';
+    const whatsappValue = body.whatsappNumber || mobileValue;
+    const altNumberValue = body.altNumber || '';
+    const billingPhoneValue = body.billingPhone || '';
+    const shippingPhoneValue = body.shippingPhone || '';
+    const googlePhoneValue = body.googlePhone || body.google_phone || '';
+    const billingStateValue = body.billingState || body.state || body.placeOfSupply || '';
+    const hasGstValue = !!body.hasGst || !!body.gstRegistered;
     const displayNameValue =
-      (req.body.displayName || '').trim() ||
-      req.body.contactPersonName ||
-      req.body.companyName ||
-      req.body.name ||
+      (body.displayName || '').trim() ||
+      body.contactPersonName ||
+      body.companyName ||
+      body.name ||
       '';
     const nowIso = new Date().toISOString();
     const newCustomer = {
       _id: `CUST-${Date.now()}`,
       name: displayNameValue,
       displayName: displayNameValue,
-      segment: req.body.segment || 'Residential',
-      companyName: req.body.companyName || req.body.name || '',
-      contactPersonName: req.body.contactPersonName || req.body.name || '',
+      segment: body.segment || 'Residential',
+      companyName: body.companyName || body.name || '',
+      contactPersonName: body.contactPersonName || body.name || '',
       position: positionValue,
-      positionCustom: req.body.positionCustom || '',
+      positionCustom: body.positionCustom || '',
       mobileNumber: mobileValue,
-      whatsappSameAsMobile: !!req.body.whatsappSameAsMobile,
-      whatsappNumber: req.body.whatsappNumber || mobileValue,
-      altNumber: req.body.altNumber || '',
+      whatsappSameAsMobile: !!body.whatsappSameAsMobile,
+      whatsappNumber: whatsappValue,
+      altNumber: altNumberValue,
       emailId: emailValue,
       email: emailValue,
       hasGst: hasGstValue,
       gstRegistered: hasGstValue,
-      gstNumber: hasGstValue ? (req.body.gstNumber || '') : '',
-      billingAttention: req.body.billingAttention || '',
-      billingStreet1: req.body.billingStreet1 || '',
-      billingStreet2: req.body.billingStreet2 || '',
-      billingAddress: req.body.billingAddress || '',
-      billingArea: req.body.billingArea || req.body.area || '',
+      gstNumber: hasGstValue ? (body.gstNumber || '') : '',
+      billingAttention: body.billingAttention || '',
+      billingStreet1: body.billingStreet1 || '',
+      billingStreet2: body.billingStreet2 || '',
+      billingAddress: body.billingAddress || '',
+      billingArea: body.billingArea || body.area || '',
       billingState: billingStateValue,
-      billingPincode: req.body.billingPincode || req.body.pincode || '',
-      billingPhoneCode: req.body.billingPhoneCode || '+91',
-      billingPhone: req.body.billingPhone || '',
-      shippingSameAsBilling: !!req.body.shippingSameAsBilling,
-      shippingAttention: req.body.shippingAttention || '',
-      shippingStreet1: req.body.shippingStreet1 || '',
-      shippingStreet2: req.body.shippingStreet2 || '',
-      shippingAddress: req.body.shippingAddress || '',
-      shippingArea: req.body.shippingArea || '',
-      shippingState: req.body.shippingState || '',
-      shippingPincode: req.body.shippingPincode || '',
-      shippingPhoneCode: req.body.shippingPhoneCode || '+91',
-      shippingPhone: req.body.shippingPhone || '',
-      area: req.body.area || '',
+      billingPincode: body.billingPincode || body.pincode || '',
+      billingPhoneCode: body.billingPhoneCode || '+91',
+      billingPhone: billingPhoneValue,
+      shippingSameAsBilling: !!body.shippingSameAsBilling,
+      shippingAttention: body.shippingAttention || '',
+      shippingStreet1: body.shippingStreet1 || '',
+      shippingStreet2: body.shippingStreet2 || '',
+      shippingAddress: body.shippingAddress || '',
+      shippingArea: body.shippingArea || '',
+      shippingState: body.shippingState || '',
+      shippingPincode: body.shippingPincode || '',
+      shippingPhoneCode: body.shippingPhoneCode || '+91',
+      shippingPhone: shippingPhoneValue,
+      area: body.area || '',
       state: billingStateValue,
-      pincode: req.body.pincode || '',
-      areaSqft: Number(req.body.areaSqft || 0),
+      pincode: body.pincode || '',
+      areaSqft: Number(body.areaSqft || 0),
       workPhone: mobileValue,
       placeOfSupply: billingStateValue,
-      receivables: Number(req.body.receivables || 0),
-      unusedCredits: Number(req.body.unusedCredits || 0),
-      googlePlaceId: req.body.googlePlaceId || req.body.google_place_id || '',
-      googlePlaceName: req.body.googlePlaceName || req.body.google_place_name || '',
-      googlePhone: req.body.googlePhone || req.body.google_phone || '',
-      googleWebsite: req.body.googleWebsite || req.body.google_website || '',
-      latitude: req.body.latitude || '',
-      longitude: req.body.longitude || '',
+      receivables: Number(body.receivables || 0),
+      unusedCredits: Number(body.unusedCredits || 0),
+      googlePlaceId: body.googlePlaceId || body.google_place_id || '',
+      googlePlaceName: body.googlePlaceName || body.google_place_name || '',
+      googlePhone: googlePhoneValue,
+      googleWebsite: body.googleWebsite || body.google_website || '',
+      latitude: body.latitude || '',
+      longitude: body.longitude || '',
       createdAt: nowIso
     };
 
@@ -4347,7 +4375,7 @@ app.post('/api/customers', async (req, res) => {
     return res.json(newCustomer);
   } catch (error) {
     console.error('Failed to create customer in MySQL:', error.message);
-    return res.status(500).json({ error: 'Failed to create customer' });
+    return res.status(error.statusCode || 500).json({ error: error.statusCode ? error.message : 'Failed to create customer' });
   }
 });
 
@@ -4466,10 +4494,13 @@ app.post('/api/customers/:customerId/premises/:premiseId/set-default', async (re
 
 app.put('/api/customers/:id', async (req, res) => {
   try {
+    const body = normalizePhoneFields(req.body, [
+      'mobileNumber', 'workPhone', 'whatsappNumber', 'altNumber', 'billingPhone', 'shippingPhone', 'googlePhone', 'google_phone'
+    ]);
     console.log('[Customers API] update request:', {
       id: req.params.id,
-      bodyKeys: Object.keys(req.body || {}),
-      hasPremisesPayload: Array.isArray(req.body?.premises) || Array.isArray(req.body?.customerPremises)
+      bodyKeys: Object.keys(body || {}),
+      hasPremisesPayload: Array.isArray(body?.premises) || Array.isArray(body?.customerPremises)
     });
     const allowFallback = isCustomersJsonFallbackEnabled();
     if (!canUseMysql()) {
@@ -4482,7 +4513,7 @@ app.put('/api/customers/:id', async (req, res) => {
       const index = list.findIndex((row) => String(row?._id || '').trim() === targetId);
       if (index === -1) return res.status(404).json({ error: 'Customer not found' });
       const existingCustomer = list[index] || {};
-      const updatedCustomer = { ...existingCustomer, ...req.body, _id: existingCustomer._id || targetId };
+      const updatedCustomer = { ...existingCustomer, ...body, _id: existingCustomer._id || targetId };
       list[index] = updatedCustomer;
       fs.writeFileSync(customersFile, JSON.stringify(list, null, 2));
       console.warn('[Customers API] source=fallback-json action=update reason=mysql_not_configured');
@@ -4523,48 +4554,53 @@ app.put('/api/customers/:id', async (req, res) => {
 
     const updatedCustomer = {
       ...existingCustomer,
-      ...req.body,
+      ...body,
       _id: existingCustomer._id || req.params.id,
       displayName:
-        (req.body.displayName || '').trim() ||
-        req.body.contactPersonName ||
-        req.body.companyName ||
-        req.body.name ||
+        (body.displayName || '').trim() ||
+        body.contactPersonName ||
+        body.companyName ||
+        body.name ||
         existingCustomer.displayName ||
         existingCustomer.name ||
         '',
       name:
-        (req.body.displayName || '').trim() ||
-        req.body.contactPersonName ||
-        req.body.companyName ||
-        req.body.name ||
+        (body.displayName || '').trim() ||
+        body.contactPersonName ||
+        body.companyName ||
+        body.name ||
         existingCustomer.name ||
         '',
       position:
-        req.body.position === 'Edit type'
-          ? (req.body.positionCustom || '').trim() || 'Edit type'
-          : (req.body.position ?? existingCustomer.position ?? ''),
-      emailId: req.body.emailId ?? req.body.email ?? existingCustomer.emailId ?? existingCustomer.email ?? '',
-      email: req.body.emailId ?? req.body.email ?? existingCustomer.email ?? existingCustomer.emailId ?? '',
-      mobileNumber: req.body.mobileNumber ?? req.body.workPhone ?? existingCustomer.mobileNumber ?? existingCustomer.workPhone ?? '',
-      workPhone: req.body.mobileNumber ?? req.body.workPhone ?? existingCustomer.workPhone ?? existingCustomer.mobileNumber ?? '',
-      billingArea: req.body.billingArea ?? req.body.area ?? existingCustomer.billingArea ?? existingCustomer.area ?? '',
-      billingState: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? existingCustomer.billingState ?? existingCustomer.state ?? existingCustomer.placeOfSupply ?? '',
-      billingPincode: req.body.billingPincode ?? req.body.pincode ?? existingCustomer.billingPincode ?? existingCustomer.pincode ?? '',
-      shippingArea: req.body.shippingArea ?? existingCustomer.shippingArea ?? '',
-      shippingState: req.body.shippingState ?? existingCustomer.shippingState ?? '',
-      shippingPincode: req.body.shippingPincode ?? existingCustomer.shippingPincode ?? '',
-      state: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? existingCustomer.state ?? existingCustomer.placeOfSupply ?? '',
-      placeOfSupply: req.body.billingState ?? req.body.state ?? req.body.placeOfSupply ?? existingCustomer.placeOfSupply ?? existingCustomer.state ?? '',
-      hasGst: req.body.hasGst ?? req.body.gstRegistered ?? existingCustomer.hasGst ?? existingCustomer.gstRegistered ?? false,
-      gstRegistered: req.body.hasGst ?? req.body.gstRegistered ?? existingCustomer.gstRegistered ?? existingCustomer.hasGst ?? false,
+        body.position === 'Edit type'
+          ? (body.positionCustom || '').trim() || 'Edit type'
+          : (body.position ?? existingCustomer.position ?? ''),
+      emailId: body.emailId ?? body.email ?? existingCustomer.emailId ?? existingCustomer.email ?? '',
+      email: body.emailId ?? body.email ?? existingCustomer.email ?? existingCustomer.emailId ?? '',
+      mobileNumber: body.mobileNumber ?? body.workPhone ?? existingCustomer.mobileNumber ?? existingCustomer.workPhone ?? '',
+      workPhone: body.mobileNumber ?? body.workPhone ?? existingCustomer.workPhone ?? existingCustomer.mobileNumber ?? '',
+      whatsappNumber: body.whatsappNumber ?? existingCustomer.whatsappNumber ?? body.mobileNumber ?? body.workPhone ?? existingCustomer.mobileNumber ?? existingCustomer.workPhone ?? '',
+      altNumber: body.altNumber ?? existingCustomer.altNumber ?? '',
+      billingPhone: body.billingPhone ?? existingCustomer.billingPhone ?? '',
+      shippingPhone: body.shippingPhone ?? existingCustomer.shippingPhone ?? '',
+      googlePhone: body.googlePhone ?? body.google_phone ?? existingCustomer.googlePhone ?? existingCustomer.google_phone ?? '',
+      billingArea: body.billingArea ?? body.area ?? existingCustomer.billingArea ?? existingCustomer.area ?? '',
+      billingState: body.billingState ?? body.state ?? body.placeOfSupply ?? existingCustomer.billingState ?? existingCustomer.state ?? existingCustomer.placeOfSupply ?? '',
+      billingPincode: body.billingPincode ?? body.pincode ?? existingCustomer.billingPincode ?? existingCustomer.pincode ?? '',
+      shippingArea: body.shippingArea ?? existingCustomer.shippingArea ?? '',
+      shippingState: body.shippingState ?? existingCustomer.shippingState ?? '',
+      shippingPincode: body.shippingPincode ?? existingCustomer.shippingPincode ?? '',
+      state: body.billingState ?? body.state ?? body.placeOfSupply ?? existingCustomer.state ?? existingCustomer.placeOfSupply ?? '',
+      placeOfSupply: body.billingState ?? body.state ?? body.placeOfSupply ?? existingCustomer.placeOfSupply ?? existingCustomer.state ?? '',
+      hasGst: body.hasGst ?? body.gstRegistered ?? existingCustomer.hasGst ?? existingCustomer.gstRegistered ?? false,
+      gstRegistered: body.hasGst ?? body.gstRegistered ?? existingCustomer.gstRegistered ?? existingCustomer.hasGst ?? false,
       gstNumber:
-        (req.body.hasGst ?? req.body.gstRegistered ?? existingCustomer.hasGst ?? existingCustomer.gstRegistered)
-          ? (req.body.gstNumber ?? existingCustomer.gstNumber ?? '')
+        (body.hasGst ?? body.gstRegistered ?? existingCustomer.hasGst ?? existingCustomer.gstRegistered)
+          ? (body.gstNumber ?? existingCustomer.gstNumber ?? '')
           : '',
-      areaSqft: Number(req.body.areaSqft ?? existingCustomer.areaSqft ?? 0),
-      receivables: Number(req.body.receivables ?? existingCustomer.receivables ?? 0),
-      unusedCredits: Number(req.body.unusedCredits ?? existingCustomer.unusedCredits ?? 0)
+      areaSqft: Number(body.areaSqft ?? existingCustomer.areaSqft ?? 0),
+      receivables: Number(body.receivables ?? existingCustomer.receivables ?? 0),
+      unusedCredits: Number(body.unusedCredits ?? existingCustomer.unusedCredits ?? 0)
     };
 
     await withMysqlConnection(async (conn) => {
@@ -4633,7 +4669,7 @@ app.put('/api/customers/:id', async (req, res) => {
       sqlMessage: error.sqlMessage,
       stack: error.stack
     });
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       error: error.sqlMessage || error.message || 'Failed to update customer'
     });
   }
@@ -5009,10 +5045,8 @@ const resolveInvoiceContext = async (invoiceId) => {
 };
 
 const normalizeWhatsappPhone = (raw) => {
-  const digits = String(raw || '').replace(/\D/g, '');
-  if (!digits) return '';
-  if (digits.length === 10) return `91${digits}`;
-  if (digits.length >= 11 && digits.length <= 15) return digits;
+  const digits = normalizeIndianMobileNumber(raw);
+  if (/^\d{10}$/.test(digits)) return `91${digits}`;
   return '';
 };
 
@@ -6235,7 +6269,9 @@ app.get('/api/vendors', async (req, res) => {
 app.post('/api/vendors', async (req, res) => {
   if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendors module' });
   try {
-    const vendor = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+    const vendor = normalizePhoneFields(req.body && typeof req.body === 'object' ? req.body : {}, [
+      'mobileNumber', 'mobile', 'whatsappNumber', 'googlePhone', 'google_phone'
+    ]);
     const externalId = String(vendor._id || `VND-${Date.now()}`).trim();
     const mapped = {
       external_id: externalId,
@@ -6302,7 +6338,7 @@ app.post('/api/vendors', async (req, res) => {
     return res.status(201).json(payload);
   } catch (error) {
     console.error('MySQL vendors write failed:', error.message);
-    return res.status(500).json({ error: error.message || 'Failed to save vendor in MySQL' });
+    return res.status(error.statusCode || 500).json({ error: error.message || 'Failed to save vendor in MySQL' });
   }
 });
 
@@ -6310,7 +6346,9 @@ app.put('/api/vendors/:id', async (req, res) => {
   if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendors module' });
   try {
     const vendorId = String(req.params.id || '').trim();
-    const vendor = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+    const vendor = normalizePhoneFields(req.body && typeof req.body === 'object' ? req.body : {}, [
+      'mobileNumber', 'mobile', 'whatsappNumber', 'googlePhone', 'google_phone'
+    ]);
     const payload = { ...vendor, _id: String(vendor._id || vendorId).trim() };
     const numericId = Number(vendorId);
     const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
@@ -6353,7 +6391,7 @@ app.put('/api/vendors/:id', async (req, res) => {
     return res.json(payload);
   } catch (error) {
     console.error('MySQL vendors update failed:', error.message);
-    return res.status(500).json({ error: error.message || 'Failed to update vendor in MySQL' });
+    return res.status(error.statusCode || 500).json({ error: error.message || 'Failed to update vendor in MySQL' });
   }
 });
 

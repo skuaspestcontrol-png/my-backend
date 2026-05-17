@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Trash2, X, Pencil } from 'lucide-react';
 import { attachPlacesAutocomplete } from '../utils/googlePlaces';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
@@ -70,7 +71,7 @@ const shell = {
   saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '18px', padding: '10px 20px', fontSize: '16px', fontWeight: 800, cursor: 'pointer' }
 };
 
-const toTenDigitNumber = (value) => String(value || '').replace(/\D+/g, '').slice(0, 10);
+const toTenDigitNumber = normalizeIndianMobileNumber;
 const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
 const isValidPincode = (value) => !value || /^\d{6}$/.test(value);
 
@@ -218,7 +219,7 @@ export default function VendorDashboard() {
     }
     const mobile = toTenDigitNumber(form.mobileNumber);
     if (mobile.length !== 10) {
-      setSaveError('Mobile number must be exactly 10 digits.');
+      setSaveError(PHONE_VALIDATION_ERROR);
       return;
     }
     const gstNumber = String(form.gstNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
@@ -337,7 +338,7 @@ export default function VendorDashboard() {
                   <div style={shell.field}><label style={shell.label}>Company Name*</label><input ref={companyNameInputRef} style={shell.input} value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
                   <div style={shell.field}><label style={shell.label}>Contact Person Name*</label><input style={shell.input} value={form.contactPersonName} onChange={(e) => update('contactPersonName', e.target.value)} /></div>
                   <div style={shell.field}><label style={shell.label}>Email Address*</label><input style={shell.input} type="email" value={form.emailId} onChange={(e) => update('emailId', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Mobile*</label><input style={shell.input} inputMode="numeric" maxLength={10} value={form.mobileNumber} onChange={(e) => update('mobileNumber', toTenDigitNumber(e.target.value))} /></div>
+                  <div style={shell.field}><label style={shell.label}>Mobile*</label><input style={shell.input} inputMode="numeric" value={form.mobileNumber} onChange={(e) => update('mobileNumber', toTenDigitNumber(e.target.value))} /></div>
                   <div style={shell.field}><label style={shell.label}>GST Number*</label><input style={shell.input} inputMode="text" maxLength={15} value={form.gstNumber} onChange={(e) => update('gstNumber', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))} /></div>
                 </div>
               </div>

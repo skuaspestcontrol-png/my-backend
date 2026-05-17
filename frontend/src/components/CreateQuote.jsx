@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
+import { normalizeIndianMobileNumber } from '../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const QUOTATION_RECOMMENDATION_DEFAULT_KEY = 'quotation_default_recommendation';
@@ -575,7 +576,7 @@ export default function CreateQuote() {
             </div>
             <div style={customerGridStyle}>
               {['phone','email','gstin'].map((key) => (
-                <div key={key}><p style={{ ...label, textTransform: 'capitalize' }}>{key}</p><input style={input} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /></div>
+                <div key={key}><p style={{ ...label, textTransform: 'capitalize' }}>{key}</p><input style={input} value={form[key] || ''} inputMode={key === 'phone' ? 'numeric' : undefined} onChange={(e) => setForm((p) => ({ ...p, [key]: key === 'phone' ? normalizeIndianMobileNumber(e.target.value) : e.target.value }))} /></div>
               ))}
             </div>
           </>
@@ -590,7 +591,7 @@ export default function CreateQuote() {
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Sales Person</p><select style={input} value={form.sales_person_employee_id || ''} onChange={(e) => selectSalesPerson(e.target.value)}><option value="">Select sales person</option>{salesPersonRows.map((employee) => <option key={employee._id || employee.id || employee.empCode || employeeName(employee)} value={employee._id || employee.id || employee.external_id || ''}>{employeeName(employee) || employee.mobile || employee.empCode}</option>)}</select></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Sales Person Name</p><input style={input} value={form.sales_person || ''} onChange={(e) => setForm((p) => ({ ...p, sales_person: e.target.value }))} /></div>
             <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Designation</p><input style={input} value={form.designation || ''} onChange={(e) => setForm((p) => ({ ...p, designation: e.target.value }))} /></div>
-            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Mobile</p><input style={input} value={form.mobile || ''} onChange={(e) => setForm((p) => ({ ...p, mobile: e.target.value }))} /></div>
+            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Mobile</p><input style={input} inputMode="numeric" value={form.mobile || ''} onChange={(e) => setForm((p) => ({ ...p, mobile: normalizeIndianMobileNumber(e.target.value) }))} /></div>
           </div>
         )}
 

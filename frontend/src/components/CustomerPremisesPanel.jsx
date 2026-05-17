@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Check, MapPin, Pencil, Plus, Star, Trash2, X } from 'lucide-react';
+import { normalizeIndianMobileNumber } from '../utils/phone';
 
 const normalizeApiBase = (value = '') => {
   const raw = String(value || '').trim();
@@ -270,7 +271,7 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
             <label style={styles.label}>Premise Label<input style={styles.input} value={draft.premiseLabel} onChange={(e) => setDraft((p) => ({ ...p, premiseLabel: e.target.value }))} /></label>
             <label style={styles.label}>Premise Type<select style={styles.input} value={draft.premiseType} onChange={(e) => setDraft((p) => ({ ...p, premiseType: e.target.value }))}><option>Billing</option><option>Shipping</option><option>Service</option><option>Other</option></select></label>
             <label style={styles.label}>Contact Person<input style={styles.input} value={draft.contactPerson} onChange={(e) => setDraft((p) => ({ ...p, contactPerson: e.target.value }))} /></label>
-            <label style={styles.label}>Phone<input style={styles.input} value={draft.phone} onChange={(e) => setDraft((p) => ({ ...p, phone: e.target.value }))} /></label>
+            <label style={styles.label}>Phone<input style={styles.input} inputMode="numeric" value={draft.phone} onChange={(e) => setDraft((p) => ({ ...p, phone: normalizeIndianMobileNumber(e.target.value) }))} /></label>
             <label style={styles.label}>Email<input style={styles.input} value={draft.email} onChange={(e) => setDraft((p) => ({ ...p, email: e.target.value }))} /></label>
             <label style={{ ...styles.label, gridColumn: '1 / -1' }}>Full Address<textarea style={styles.textarea} value={draft.address} onChange={(e) => setDraft((p) => ({ ...p, address: e.target.value }))} /></label>
             <label style={styles.label}>Area Name<input style={styles.input} value={draft.areaName} onChange={(e) => setDraft((p) => ({ ...p, areaName: e.target.value }))} /></label>

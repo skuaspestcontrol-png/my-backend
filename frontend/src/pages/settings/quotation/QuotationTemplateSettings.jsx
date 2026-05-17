@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import { normalizeIndianMobileNumber } from '../../../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -64,7 +65,7 @@ export default function QuotationTemplateSettings() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
         {['company_name','phone','email','website','gstin','default_sales_person','default_designation','default_mobile'].map((key) => (
-          <div key={key}><p style={{ margin: '0 0 6px', fontWeight: 700, textTransform: 'capitalize' }}>{key.replaceAll('_', ' ')}</p><input style={input} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} /></div>
+          <div key={key}><p style={{ margin: '0 0 6px', fontWeight: 700, textTransform: 'capitalize' }}>{key.replaceAll('_', ' ')}</p><input style={input} inputMode={key === 'phone' || key === 'default_mobile' ? 'numeric' : undefined} value={form[key] || ''} onChange={(e) => setForm((p) => ({ ...p, [key]: key === 'phone' || key === 'default_mobile' ? normalizeIndianMobileNumber(e.target.value) : e.target.value }))} /></div>
         ))}
       </div>
 

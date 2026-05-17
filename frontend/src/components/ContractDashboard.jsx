@@ -80,8 +80,8 @@ const shell = {
   headActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' },
   beta: { border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.6)', color: 'var(--color-primary)', borderRadius: '999px', padding: '7px 12px', fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap' },
   newBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '9px', padding: '7px 11px', minHeight: '34px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap' },
-  card: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', overflow: 'visible' },
-  cardTop: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: '#fff' },
+  card: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', overflow: 'visible', backgroundClip: 'padding-box' },
+  cardTop: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: '#fff', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', backgroundClip: 'padding-box' },
   cardTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   shownPill: { border: '1px solid var(--color-border)', background: '#f8fafc', color: '#334155', borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 },
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
@@ -97,7 +97,7 @@ const shell = {
   filterLabel: { fontSize: '11px', color: '#64748b', fontWeight: 800 },
   input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff' },
   clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', borderRadius: '14px', border: '1px solid var(--color-border)' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', background: '#fff', backgroundClip: 'padding-box' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '8px 12px 8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', position: 'relative' },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
@@ -114,7 +114,7 @@ const shell = {
   actionMenu: { position: 'fixed', width: '184px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 5000, overflow: 'hidden', padding: '4px' },
   actionMenuItem: { width: '100%', border: 'none', borderRadius: '6px', background: '#fff', textAlign: 'left', padding: '9px 10px', fontSize: '11px', fontWeight: 700, color: '#1f2937', cursor: 'pointer', lineHeight: 1.35, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' },
   actionMenuDanger: { color: '#dc2626' },
-  footer: { padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
+  footer: { padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', borderTop: '1px solid var(--color-border)', borderBottomLeftRadius: '14px', borderBottomRightRadius: '14px', background: '#fff', backgroundClip: 'padding-box' },
   footText: { fontSize: '12px', color: '#475569', fontWeight: 700 },
   pager: { display: 'inline-flex', gap: '6px', alignItems: 'center' },
   pageBtn: { minWidth: '34px', height: '34px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#475569', fontWeight: 700 },
@@ -1013,7 +1013,7 @@ export default function ContractDashboard() {
           </div>
         </div>
 
-        <div style={tableWrapStyle}>{renderBody()}</div>
+        <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped">{renderBody()}</div>
 
         <div style={footerStyle}>
           <span style={shell.footText}>

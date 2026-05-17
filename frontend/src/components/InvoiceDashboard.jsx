@@ -9,6 +9,7 @@ import {
   invoiceColumns as columns,
   normalizeInvoiceVisibleColumns
 } from '../utils/invoicePreferences';
+import { normalizeIndianMobileNumber } from '../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const INVOICE_PAGE_SIZE = 20;
@@ -220,8 +221,8 @@ const extractInvoiceSeq = (invoiceNumber, prefix) => {
 };
 
 const shell = {
-  page: { background: 'transparent', border: 'none', borderRadius: 0, boxShadow: 'none', overflow: 'visible', position: 'relative' },
-  topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)', background: '#fff' },
+  page: { background: '#fff', border: '1px solid var(--color-border)', borderRadius: '16px', boxShadow: 'var(--shadow-sm)', overflow: 'visible', position: 'relative', backgroundClip: 'padding-box' },
+  topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)', background: '#fff', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', backgroundClip: 'padding-box' },
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   topActions: { display: 'flex', alignItems: 'center', gap: '8px' },
@@ -239,7 +240,7 @@ const shell = {
   summaryValue: { color: '#111827', fontSize: '24px', fontWeight: 800, lineHeight: 1.05 },
   summaryHint: { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1.35 },
   summaryAccent: { color: '#d97706' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderTop: '1px solid #eef2f7', borderRadius: '14px', border: '1px solid var(--color-border)' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderTop: '1px solid var(--color-border)', backgroundClip: 'padding-box' },
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '10px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   row: { borderBottom: '1px solid #eef2f7' },
@@ -1280,7 +1281,7 @@ export default function InvoiceDashboard() {
     const customer = findCustomerForInvoice(invoice);
     const invoiceNumber = String(invoice.invoiceNumber || '').trim() || 'Invoice';
     const customerEmail = String(customer?.emailId || customer?.email || '').trim();
-    const customerWhatsapp = String(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '').replace(/\D/g, '');
+    const customerWhatsapp = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
     const shareText = buildShareText(invoice, customer);
 
     if (action === 'download') {
@@ -1299,7 +1300,7 @@ export default function InvoiceDashboard() {
     }
 
     if (action === 'whatsapp') {
-      const targetPhone = window.prompt('Enter WhatsApp number with country code', customerWhatsapp || '');
+      const targetPhone = normalizeIndianMobileNumber(window.prompt('Enter WhatsApp number with country code', customerWhatsapp || ''));
       if (!targetPhone) return;
       try {
         const response = await axios.post(`${API_BASE_URL}/api/invoices/${invoice._id}/send-whatsapp`, {
@@ -2285,7 +2286,7 @@ export default function InvoiceDashboard() {
         ) : null}
       </div>
 
-      <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
+      <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell crm-table-shell--clipped">
         <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
           <colgroup>
             <col style={shell.checkboxWrap} />
@@ -2385,7 +2386,7 @@ export default function InvoiceDashboard() {
           </tbody>
         </table>
       </div>
-      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#fff' }}>
+      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>
           {invoices.length ? `Showing ${firstRecord} to ${lastRecord} of ${invoices.length} invoices • 20 per page` : 'Showing 0 invoices • 20 per page'}
         </span>
