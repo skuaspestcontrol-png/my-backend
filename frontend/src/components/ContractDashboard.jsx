@@ -106,7 +106,7 @@ const shell = {
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
   chip: { border: '1px solid transparent', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', gap: '5px', alignItems: 'center', cursor: 'pointer' },
   customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', maxWidth: '100%' },
-  customizeMenu: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: '250px', maxHeight: '270px', overflowY: 'auto', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', zIndex: 40 },
+  customizeMenu: { position: 'fixed', width: '292px', maxHeight: '420px', overflow: 'hidden', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 18px 38px rgba(15,23,42,0.18)', zIndex: 5500 },
   customizeHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   customizeBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
   customizeRow: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
@@ -122,7 +122,7 @@ const shell = {
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   td: { textAlign: 'left', verticalAlign: 'middle', padding: '8px 6px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#fff' },
   selectedRow: { background: 'transparent' },
-  selectedCell: { background: '#f1f5f9' },
+  selectedCell: { background: '#fff' },
   selectedText: { color: '#111827' },
   subText: { marginTop: '1px', fontSize: '9px', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusPill: { borderRadius: '999px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, display: 'inline-block' },
@@ -319,6 +319,7 @@ export default function ContractDashboard() {
   const [selectedContractId, setSelectedContractId] = useState('');
   const [actionMenu, setActionMenu] = useState(null);
   const [showCustomize, setShowCustomize] = useState(false);
+  const [customizeMenuPosition, setCustomizeMenuPosition] = useState(null);
   const [visibleColumns, setVisibleColumns] = useState({
     contractNo: true,
     customer: true,
@@ -341,6 +342,30 @@ export default function ContractDashboard() {
   const [customerSummary, setCustomerSummary] = useState({ open: false, row: null, showHistory: false });
   const [page, setPage] = useState(1);
   const resizeStateRef = useRef(null);
+  const customizeButtonRef = useRef(null);
+
+  const updateCustomizeMenuPosition = () => {
+    const rect = customizeButtonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const menuWidth = Math.min(292, window.innerWidth - 16);
+    const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+    const availableBelow = window.innerHeight - rect.bottom - 10;
+    const availableAbove = rect.top - 10;
+    const opensAbove = availableBelow < 420 && availableAbove > availableBelow;
+    const availableSpace = opensAbove ? availableAbove : availableBelow;
+    const maxHeight = Math.min(420, Math.max(180, availableSpace));
+    const top = opensAbove
+      ? Math.max(8, rect.top - maxHeight - 8)
+      : Math.min(rect.bottom + 8, window.innerHeight - maxHeight - 8);
+
+    setCustomizeMenuPosition({
+      top,
+      left,
+      width: menuWidth,
+      maxHeight
+    });
+  };
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -448,6 +473,21 @@ export default function ContractDashboard() {
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [actionMenu, showCustomize]);
+
+  useEffect(() => {
+    if (!showCustomize) {
+      setCustomizeMenuPosition(null);
+      return undefined;
+    }
+
+    updateCustomizeMenuPosition();
+    window.addEventListener('resize', updateCustomizeMenuPosition);
+    window.addEventListener('scroll', updateCustomizeMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateCustomizeMenuPosition);
+      window.removeEventListener('scroll', updateCustomizeMenuPosition, true);
+    };
+  }, [showCustomize]);
 
   useEffect(() => {
     const clearMenu = () => setActionMenu(null);
@@ -969,17 +1009,30 @@ export default function ContractDashboard() {
           })}
           <div style={{ position: 'relative', marginLeft: 'auto' }} data-contract-customize="true">
             <button
+              ref={customizeButtonRef}
               type="button"
               style={shell.customizeButton}
-              onClick={() => setShowCustomize((prev) => !prev)}
+              onClick={() => {
+                updateCustomizeMenuPosition();
+                setShowCustomize((prev) => !prev);
+              }}
             >
               <SlidersHorizontal size={13} />
               <span>Customize Fields</span>
             </button>
-            {showCustomize ? (
-              <div style={shell.customizeMenu}>
+            {showCustomize && customizeMenuPosition ? createPortal((
+              <div
+                data-contract-customize="true"
+                style={{
+                  ...shell.customizeMenu,
+                  top: `${customizeMenuPosition.top}px`,
+                  left: `${customizeMenuPosition.left}px`,
+                  width: `${customizeMenuPosition.width}px`,
+                  maxHeight: `${customizeMenuPosition.maxHeight}px`
+                }}
+              >
                 <div style={shell.customizeHeader}>Show/Hide Columns</div>
-                <div style={shell.customizeBody}>
+                <div style={{ ...shell.customizeBody, maxHeight: `${Math.max(160, customizeMenuPosition.maxHeight - 42)}px` }}>
                   {customColumns.map((col) => (
                     <label key={col.key} style={shell.customizeRow}>
                       <input
@@ -996,7 +1049,7 @@ export default function ContractDashboard() {
                   ))}
                 </div>
               </div>
-            ) : null}
+            ), document.body) : null}
           </div>
         </div>
 
