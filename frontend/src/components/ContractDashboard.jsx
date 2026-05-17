@@ -63,6 +63,20 @@ const defaultColumnWidths = {
   actions: 150
 };
 
+const mobileColumnWidths = {
+  rowNumber: 44,
+  contractNo: 128,
+  customer: 140,
+  property: 132,
+  duration: 124,
+  services: 104,
+  status: 96,
+  total: 104,
+  paid: 96,
+  due: 96,
+  actions: 96
+};
+
 const shell = {
   page: {
     display: 'grid',
@@ -673,7 +687,13 @@ export default function ContractDashboard() {
     { key: 'due', label: 'Due (₹)' }
   ];
   const isMobile = viewportWidth <= 768;
-  const getColumnWidth = (columnKey) => Math.max(42, Number(columnWidths[columnKey] || defaultColumnWidths[columnKey] || 120));
+  const getColumnWidth = (columnKey) => {
+    const storedWidth = Number(columnWidths[columnKey] || 0);
+    const desktopWidth = defaultColumnWidths[columnKey] || 120;
+    const mobileWidth = mobileColumnWidths[columnKey] || desktopWidth;
+    const width = isMobile ? Math.max(storedWidth || 0, mobileWidth) : Math.max(storedWidth || 0, desktopWidth);
+    return Math.max(columnKey === 'rowNumber' ? 42 : 80, width);
+  };
   const startColumnResize = (event, columnKey) => {
     event.preventDefault();
     event.stopPropagation();
@@ -728,10 +748,19 @@ export default function ContractDashboard() {
   const contractTableMinWidth = contractColumnList.reduce((sum, width) => sum + Number.parseInt(width, 10), 0);
   const quickWrapStyle = isMobile ? { ...shell.quickWrap, alignItems: 'stretch' } : shell.quickWrap;
   const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
-  const tableWrapStyle = isMobile ? { ...shell.tableWrap, overflowX: 'auto', WebkitOverflowScrolling: 'touch' } : shell.tableWrap;
+  const tableWrapStyle = isMobile
+    ? {
+      ...shell.tableWrap,
+      overflowX: 'auto',
+      overflowY: 'hidden',
+      WebkitOverflowScrolling: 'touch',
+      overscrollBehaviorX: 'contain',
+      touchAction: 'pan-x'
+    }
+    : shell.tableWrap;
   const tableStyle = {
     ...shell.table,
-    width: `${contractTableMinWidth}px`,
+    width: isMobile ? `${contractTableMinWidth}px` : `${contractTableMinWidth}px`,
     minWidth: `${contractTableMinWidth}px`,
     '--mobile-table-columns': contractColumnList.join(' '),
     '--mobile-table-min-width': `${contractTableMinWidth}px`
