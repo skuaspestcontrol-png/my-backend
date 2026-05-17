@@ -3,7 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { ChevronDown, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
 import {
   defaultInvoiceVisibleColumns,
   invoiceColumns as columns,
@@ -2386,14 +2386,10 @@ export default function InvoiceDashboard() {
           </tbody>
         </table>
       </div>
-      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>
-          {invoices.length ? `Showing ${firstRecord} to ${lastRecord} of ${invoices.length} invoices • 20 per page` : 'Showing 0 invoices • 20 per page'}
-        </span>
+      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' }}>
         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-          <button type="button" style={tinyGhostButtonStyle} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Prev</button>
-          <span style={{ fontSize: 12, fontWeight: 800, color: '#111827' }}>Page {safePage} / {totalPages}</span>
-          <button type="button" style={tinyGhostButtonStyle} disabled={safePage >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))}>Next</button>
+          <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', height: '34px', padding: 0 }} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
+          <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', height: '34px', padding: 0 }} disabled={safePage >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { IndianRupee, Receipt, WalletCards } from 'lucide-react';
+import { ChevronLeft, ChevronRight, IndianRupee, Receipt, WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -54,10 +54,10 @@ const shell = {
     letterSpacing: '0.06em'
   },
   td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#334155', fontSize: '13px', verticalAlign: 'top' },
-  pagination: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: '#fff' },
+  pagination: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap', background: '#fff' },
   paginationInfo: { color: '#64748b', fontSize: '12px', fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  paginationBtn: { minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: 'var(--color-primary)', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
+  paginationBtn: { width: '34px', minWidth: '34px', minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: 'var(--color-primary)', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }
   , actionButton: {
     border: '1px solid #fecaca',
@@ -286,25 +286,26 @@ export default function PaymentReceivedDashboard() {
           </table>
         </div>
         <div style={shell.pagination}>
-          <span style={shell.paginationInfo}>
-            {rows.length ? `${firstRecord}-${lastRecord} of ${rows.length} payments • 20 per page` : '20 per page'}
-          </span>
           <div style={shell.paginationActions}>
             <button
               type="button"
               style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }}
               disabled={safePage <= 1}
               onClick={() => setPage((current) => Math.max(1, current - 1))}
+              aria-label="Previous page"
+              title="Previous page"
             >
-              Prev
+              <ChevronLeft size={16} />
             </button>
             <button
               type="button"
               style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }}
               disabled={safePage >= totalPages}
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              aria-label="Next page"
+              title="Next page"
             >
-              Next
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>

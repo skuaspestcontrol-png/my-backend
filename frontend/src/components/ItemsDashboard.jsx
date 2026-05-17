@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { ArrowDownAZ, ArrowUpAZ, ChevronDown, MoreHorizontal, Plus, SlidersHorizontal, Search, X } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, SlidersHorizontal, Search, X } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -357,7 +357,7 @@ const shell = {
     padding: '9px 12px',
     borderTop: '1px solid var(--color-border)',
     display: 'flex',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     gap: '8px',
     fontSize: '12px',
@@ -369,10 +369,16 @@ const shell = {
     background: '#fff',
     color: '#334155',
     borderRadius: '8px',
-    padding: '6px 10px',
+    width: '34px',
+    minWidth: '34px',
+    minHeight: '32px',
+    padding: 0,
     fontSize: '12px',
     fontWeight: 700,
-    cursor: 'pointer'
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   }
 };
 
@@ -873,30 +879,26 @@ export default function ItemsDashboard() {
           </tbody>
         </table>
         <div style={shell.pagination}>
-          <span>
-            Showing {sortedItems.length === 0 ? 0 : ((currentPage - 1) * ITEMS_PER_PAGE) + 1}
-            {' - '}
-            {Math.min(currentPage * ITEMS_PER_PAGE, sortedItems.length)}
-            {' of '}
-            {sortedItems.length}
-          </span>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
             <button
               type="button"
               style={{ ...shell.pageButton, opacity: currentPage === 1 ? 0.45 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              aria-label="Previous page"
+              title="Previous page"
             >
-              Previous
+              <ChevronLeft size={16} />
             </button>
-            <span>Page {currentPage} / {totalPages}</span>
             <button
               type="button"
               style={{ ...shell.pageButton, opacity: currentPage === totalPages ? 0.45 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              aria-label="Next page"
+              title="Next page"
             >
-              Next
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>

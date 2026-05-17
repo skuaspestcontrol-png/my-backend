@@ -10,6 +10,8 @@ import {
   CalendarRange,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Filter,
   FileText,
@@ -114,10 +116,10 @@ const shell = {
   actionMenu: { position: 'fixed', width: '184px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 5000, overflow: 'hidden', padding: '4px' },
   actionMenuItem: { width: '100%', border: 'none', borderRadius: '6px', background: '#fff', textAlign: 'left', padding: '9px 10px', fontSize: '11px', fontWeight: 700, color: '#1f2937', cursor: 'pointer', lineHeight: 1.35, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' },
   actionMenuDanger: { color: '#dc2626' },
-  footer: { padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', borderTop: '1px solid var(--color-border)', borderBottomLeftRadius: '14px', borderBottomRightRadius: '14px', background: '#fff', backgroundClip: 'padding-box' },
+  footer: { padding: '8px 12px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', flexWrap: 'wrap', borderTop: '1px solid var(--color-border)', borderBottomLeftRadius: '14px', borderBottomRightRadius: '14px', background: '#fff', backgroundClip: 'padding-box' },
   footText: { fontSize: '12px', color: '#475569', fontWeight: 700 },
   pager: { display: 'inline-flex', gap: '6px', alignItems: 'center' },
-  pageBtn: { minWidth: '34px', height: '34px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#475569', fontWeight: 700 },
+  pageBtn: { minWidth: '34px', width: '34px', height: '34px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#475569', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 },
   pageBtnActive: { border: '1px solid rgba(22,163,74,0.35)', background: 'rgba(22,163,74,0.16)', color: '#15803d', fontWeight: 800 },
   workspace: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', padding: '12px 14px', display: 'grid', gap: '10px' },
   workspaceTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
@@ -1016,42 +1018,26 @@ export default function ContractDashboard() {
         <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped">{renderBody()}</div>
 
         <div style={footerStyle}>
-          <span style={shell.footText}>
-            {sortedContracts.length ? `Showing ${firstRecord} to ${lastRecord} of ${sortedContracts.length} entries • 20 per page` : 'Showing 0 entries • 20 per page'}
-          </span>
           <div style={pagerStyle}>
             <button
               type="button"
               style={shell.pageBtn}
               disabled={safePage <= 1}
-              onClick={() => setPage(1)}
-            >
-              «
-            </button>
-            <button
-              type="button"
-              style={shell.pageBtn}
-              disabled={safePage <= 1}
               onClick={() => setPage((current) => Math.max(1, current - 1))}
+              aria-label="Previous page"
+              title="Previous page"
             >
-              ‹
+              <ChevronLeft size={16} />
             </button>
-            <button type="button" style={{ ...shell.pageBtn, ...shell.pageBtnActive }}>{safePage}</button>
             <button
               type="button"
               style={shell.pageBtn}
               disabled={safePage >= totalPages}
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              aria-label="Next page"
+              title="Next page"
             >
-              ›
-            </button>
-            <button
-              type="button"
-              style={shell.pageBtn}
-              disabled={safePage >= totalPages}
-              onClick={() => setPage(totalPages)}
-            >
-              »
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>

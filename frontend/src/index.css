@@ -1329,6 +1329,26 @@ textarea:focus {
     background: #fff !important;
   }
 
+  .crm-compact-table.crm-readable-mobile-table thead th {
+    height: 44px !important;
+    padding: 8px 10px !important;
+    line-height: 1.15 !important;
+    white-space: normal !important;
+    vertical-align: middle !important;
+  }
+
+  .crm-compact-table.crm-readable-mobile-table .crm-readable-header-button {
+    width: 100%;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    justify-content: flex-start;
+    white-space: normal !important;
+    line-height: 1.15 !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
   .crm-compact-table.crm-stack-mobile {
     display: block !important;
     min-width: max(100%, var(--mobile-table-min-width, 760px));

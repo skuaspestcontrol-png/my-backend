@@ -11,6 +11,8 @@ import {
   ArrowUp,
   CalendarDays,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   MapPin,
   MoreHorizontal,
@@ -286,10 +288,10 @@ const s = {
   rowActionMenu: { position: 'fixed', width: '170px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 1200, overflow: 'hidden' },
   rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px' },
-  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' },
+  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' },
   paginationInfo: { color: '#64748b', fontSize: '12px', fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  paginationButton: { minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: '#334155', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
+  paginationButton: { width: '34px', minWidth: '34px', minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: '#334155', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   paginationButtonDisabled: { opacity: 0.48, cursor: 'not-allowed' },
   viewDrawerOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.28)', zIndex: 2300 },
   viewDrawer: { position: 'fixed', top: 0, right: 0, width: 'min(460px, 96vw)', height: '100vh', background: '#fff', zIndex: 2400, boxShadow: '-16px 0 36px rgba(15,23,42,0.18)', display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--color-border)' },
@@ -2505,25 +2507,26 @@ export default function LeadCapture() {
           </table>
         </div>
         <div style={s.pagination}>
-          <span style={s.paginationInfo}>
-            {sortedLeads.length ? `Page ${safeLeadPage} of ${totalLeadPages} • 20 per page` : '20 per page'}
-          </span>
           <div style={s.paginationActions}>
             <button
               type="button"
               style={{ ...s.paginationButton, ...(safeLeadPage <= 1 ? s.paginationButtonDisabled : {}) }}
               disabled={safeLeadPage <= 1}
               onClick={() => setLeadPage((current) => Math.max(1, current - 1))}
+              aria-label="Previous page"
+              title="Previous page"
             >
-              Prev
+              <ChevronLeft size={16} />
             </button>
             <button
               type="button"
               style={{ ...s.paginationButton, ...(safeLeadPage >= totalLeadPages ? s.paginationButtonDisabled : {}) }}
               disabled={safeLeadPage >= totalLeadPages}
               onClick={() => setLeadPage((current) => Math.min(totalLeadPages, current + 1))}
+              aria-label="Next page"
+              title="Next page"
             >
-              Next
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>

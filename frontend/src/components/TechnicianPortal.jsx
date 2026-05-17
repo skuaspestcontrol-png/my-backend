@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import SignatureCanvas from 'react-signature-canvas';
-import { ArrowLeft, ClipboardList, FileCheck2, MapPin, UserCog } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, ClipboardList, FileCheck2, MapPin, UserCog } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -223,10 +223,10 @@ const shell = {
     cursor: 'pointer',
     textAlign: 'center'
   },
-  pager: { marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+  pager: { marginTop: '10px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   pagerText: { margin: 0, fontSize: '12px', color: '#475569', fontWeight: 700 },
   pagerActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  pagerBtn: { border: '1px solid #D1D5DB', background: '#fff', color: '#334155', borderRadius: '8px', minHeight: '30px', padding: '0 10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
+  pagerBtn: { border: '1px solid #D1D5DB', background: '#fff', color: '#334155', borderRadius: '8px', width: '34px', minWidth: '34px', minHeight: '30px', padding: 0, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   backBtn: {
     border: '1px solid rgba(148,163,184,0.4)',
     background: '#fff',
@@ -775,26 +775,26 @@ export default function TechnicianPortal() {
           )}
           {customerWiseJobs.length > 0 ? (
             <div style={pagerStyle}>
-              <p style={shell.pagerText}>
-                Showing {(customerPage - 1) * customersPerPage + 1}-{Math.min(customerPage * customersPerPage, customerWiseJobs.length)} of {customerWiseJobs.length} customers
-              </p>
               <div style={shell.pagerActions}>
                 <button
                   type="button"
                   style={{ ...shell.pagerBtn, opacity: customerPage === 1 ? 0.5 : 1 }}
                   disabled={customerPage === 1}
                   onClick={() => setCustomerPage((prev) => Math.max(1, prev - 1))}
+                  aria-label="Previous page"
+                  title="Previous page"
                 >
-                  Previous
+                  <ChevronLeft size={16} />
                 </button>
-                <p style={shell.pagerText}>Page {customerPage} of {totalCustomerPages}</p>
                 <button
                   type="button"
                   style={{ ...shell.pagerBtn, opacity: customerPage === totalCustomerPages ? 0.5 : 1 }}
                   disabled={customerPage === totalCustomerPages}
                   onClick={() => setCustomerPage((prev) => Math.min(totalCustomerPages, prev + 1))}
+                  aria-label="Next page"
+                  title="Next page"
                 >
-                  Next
+                  <ChevronRight size={16} />
                 </button>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FileText, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -442,14 +442,10 @@ function QuotationDashboardInner() {
           </table>
         </div>
         {rows.length > perPage ? (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderTop: '1px solid var(--color-border)' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-muted)' }}>
-              Showing {(safePage - 1) * perPage + 1} to {Math.min(safePage * perPage, rows.length)} of {rows.length}
-            </span>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, padding: '12px 14px', borderTop: '1px solid var(--color-border)' }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button type="button" style={shell.ghostBtn} disabled={safePage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Prev</button>
-              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--color-text)' }}>Page {safePage} / {totalPages}</span>
-              <button type="button" style={shell.ghostBtn} disabled={safePage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
+              <button type="button" style={{ ...shell.ghostBtn, width: 34, minWidth: 34, padding: 0, justifyContent: 'center' }} disabled={safePage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
+              <button type="button" style={{ ...shell.ghostBtn, width: 34, minWidth: 34, padding: 0, justifyContent: 'center' }} disabled={safePage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
             </div>
           </div>
         ) : null}

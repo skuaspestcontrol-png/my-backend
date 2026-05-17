@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { CalendarDays, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, ShieldCheck, UserRoundCheck } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, ShieldCheck, UserRoundCheck } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -932,12 +932,10 @@ export default function PayrollModule() {
           </tbody>
         </table>
       </div>
-      <div style={{ ...shell.actionRow, justifyContent: 'space-between' }}>
-        <p style={shell.footer}>Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, filteredPayrollItems.length)} of {filteredPayrollItems.length}</p>
+      <div style={{ ...shell.actionRow, justifyContent: 'flex-end' }}>
         <div style={shell.actionRow}>
-          <button type="button" style={shell.btnLight} disabled={page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>Previous</button>
-          <p style={shell.footer}>Page {page} of {totalPages}</p>
-          <button type="button" style={shell.btnLight} disabled={page >= totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}>Next</button>
+          <button type="button" style={{ ...shell.btnLight, width: 34, minWidth: 34, padding: 0, justifyContent: 'center' }} disabled={page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
+          <button type="button" style={{ ...shell.btnLight, width: 34, minWidth: 34, padding: 0, justifyContent: 'center' }} disabled={page >= totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
         </div>
       </div>
     </>

@@ -3,6 +3,8 @@ import axios from 'axios';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import {
   CalendarClock,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
   FileText,
   RefreshCw,
@@ -63,10 +65,10 @@ const shell = {
   modalBody: { padding: 18, display: 'grid', gap: 12, overflowY: 'auto' },
   mobileCard: { border: '1px solid #e5e7eb', borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: '#fff' },
   mobileMeta: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, color: '#475569' },
-  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: '#fff' },
+  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap', background: '#fff' },
   paginationInfo: { color: '#64748b', fontSize: 12, fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: 8 },
-  paginationBtn: { minHeight: 32, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: 'var(--color-primary)', padding: '0 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
+  paginationBtn: { width: 34, minWidth: 34, minHeight: 32, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: 'var(--color-primary)', padding: 0, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }
 };
 
@@ -408,25 +410,26 @@ export default function RenewalDashboard() {
           </tbody>
         </table>
         <div style={shell.pagination}>
-          <span style={shell.paginationInfo}>
-            {rows.length ? `${firstRecord}-${lastRecord} of ${rows.length} renewals • 20 per page` : '20 per page'}
-          </span>
           <div style={shell.paginationActions}>
             <button
               type="button"
               style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }}
               disabled={safePage <= 1}
               onClick={() => setPage((current) => Math.max(1, current - 1))}
+              aria-label="Previous page"
+              title="Previous page"
             >
-              Prev
+              <ChevronLeft size={16} />
             </button>
             <button
               type="button"
               style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }}
               disabled={safePage >= totalPages}
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              aria-label="Next page"
+              title="Next page"
             >
-              Next
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>

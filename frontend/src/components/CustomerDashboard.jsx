@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpDown, MoreHorizontal, Plus, X } from 'lucide-react';
+import { ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, X } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import useAutoRefresh from '../hooks/useAutoRefresh';
@@ -100,6 +100,35 @@ const customerImportExportColumns = [
 ];
 
 const defaultVisibleColumns = ['name', 'segment', 'companyName', 'contactPersonName', 'mobileNumber', 'emailId', 'billingState', 'shippingState'];
+const mobileCustomerColumnWidths = {
+  name: 190,
+  segment: 130,
+  companyName: 180,
+  contactPersonName: 170,
+  position: 130,
+  mobileNumber: 150,
+  whatsappNumber: 160,
+  altNumber: 140,
+  emailId: 200,
+  hasGst: 130,
+  gstNumber: 170,
+  billingAttention: 170,
+  billingStreet1: 190,
+  billingStreet2: 190,
+  billingAddress: 220,
+  billingArea: 160,
+  billingState: 150,
+  billingPincode: 150,
+  shippingAttention: 180,
+  shippingStreet1: 190,
+  shippingStreet2: 190,
+  shippingAddress: 220,
+  shippingArea: 170,
+  shippingState: 160,
+  shippingPincode: 160,
+  areaSqft: 130
+};
+const mobileCustomerDefaultColumnWidth = 150;
 const stateOptions = [
   'Andhra Pradesh',
   'Arunachal Pradesh',
@@ -277,10 +306,10 @@ const shell = {
   historyMetaLabel: { margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
   historyMetaValue: { margin: '4px 0 0 0', fontSize: '14px', color: '#0f172a', fontWeight: 600 },
   historyEmpty: { margin: 0, padding: '16px 12px', fontSize: '13px', color: '#64748b' },
-  paginationBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '10px 16px', borderTop: '1px solid var(--color-border)', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' },
+  paginationBar: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px', padding: '10px 16px', borderTop: '1px solid var(--color-border)', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' },
   paginationText: { fontSize: '12px', color: '#475569', fontWeight: 600 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  paginationButton: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
+  paginationButton: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '8px', width: '34px', minWidth: '34px', minHeight: '32px', padding: 0, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
 };
 
 const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -688,7 +717,9 @@ export default function CustomerDashboard() {
   };
 
   const getColumnStyle = (columnKey) => {
-    const width = columnWidths[columnKey];
+    const savedWidth = Number(columnWidths[columnKey]) || 0;
+    const mobileWidth = mobileCustomerColumnWidths[columnKey] || mobileCustomerDefaultColumnWidth;
+    const width = isMobile ? Math.max(savedWidth, mobileWidth) : savedWidth;
     if (!width) return {};
     return { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` };
   };
@@ -1239,7 +1270,9 @@ export default function CustomerDashboard() {
     : shell.topbar;
   const topActionsStyle = isMobile ? { ...shell.topActions, width: '100%', justifyContent: 'space-between' } : shell.topActions;
   const toolbarStyle = isMobile ? { ...shell.toolbar, flexDirection: 'column', alignItems: 'stretch', padding: isTiny ? '8px 12px' : shell.toolbar.padding } : shell.toolbar;
-  const mobileTableMinWidth = Math.max(isTiny ? 760 : 900, (visibleColumnDefs.length + 1) * 130);
+  const mobileTableMinWidth = 56 + visibleColumnDefs.reduce((sum, column) => (
+    sum + Math.max(Number(columnWidths[column.key]) || 0, mobileCustomerColumnWidths[column.key] || mobileCustomerDefaultColumnWidth)
+  ), 0) + 150;
   const tableStyle = isMobile
     ? { ...shell.table, minWidth: `${mobileTableMinWidth}px`, tableLayout: 'auto' }
     : shell.table;
@@ -1417,16 +1450,16 @@ export default function CustomerDashboard() {
       </div>
 
       <div style={shell.tableWrap} className="crm-table-shell crm-table-shell--clipped">
-        <table style={tableStyle} className="crm-compact-table">
+        <table style={tableStyle} className="crm-compact-table crm-readable-mobile-table">
           <thead>
             <tr>
-              <th style={{ ...shell.headCell, ...shell.checkboxWrap }}>
+              <th style={{ ...shell.headCell, ...shell.checkboxWrap, ...(isMobile ? { width: '56px', minWidth: '56px', maxWidth: '56px' } : {}) }}>
                 <input type="checkbox" style={shell.checkbox} checked={isAllSelected} onChange={toggleSelectAll} />
               </th>
               {visibleColumnDefs.map((column) => (
                 <th key={column.key} style={{ ...shell.headCell, ...shell.headCellResizable, ...getColumnStyle(column.key) }}>
                   {column.key === 'name' ? (
-                    <button type="button" style={{ ...shell.headSortButton, ...shell.headLabelWrap }} onClick={toggleNameSort} title="Sort by customer name">
+                    <button type="button" className="crm-readable-header-button" style={{ ...shell.headSortButton, ...shell.headLabelWrap }} onClick={toggleNameSort} title="Sort by customer name">
                       <span>{column.label}</span>
                       <ArrowUpDown size={12} />
                     </button>
@@ -1508,28 +1541,26 @@ export default function CustomerDashboard() {
         </table>
       </div>
       <div style={shell.paginationBar}>
-        <span style={shell.paginationText}>
-          Showing {pageStart}-{pageEnd} of {sortedCustomers.length} customers (20 per page)
-        </span>
         <div style={shell.paginationActions}>
           <button
             type="button"
             style={{ ...shell.paginationButton, opacity: currentPage === 1 ? 0.45 : 1 }}
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            aria-label="Previous page"
+            title="Previous page"
           >
-            Previous
+            <ChevronLeft size={16} />
           </button>
-          <span style={shell.paginationText}>
-            Page {currentPage} of {totalPages}
-          </span>
           <button
             type="button"
             style={{ ...shell.paginationButton, opacity: currentPage === totalPages ? 0.45 : 1 }}
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            aria-label="Next page"
+            title="Next page"
           >
-            Next
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>
