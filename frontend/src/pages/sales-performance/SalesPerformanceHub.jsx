@@ -52,7 +52,7 @@ import DashboardStatCard from '../../components/ui/DashboardStatCard';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
-import { currentMonth, currentYear, integer, monthOptions, money, percent, safeRows, salesExportUrl, apiGet } from './salesPerformanceApi';
+import { API_BASE_URL, currentMonth, currentYear, integer, monthOptions, money, percent, safeRows, salesExportUrl, apiGet } from './salesPerformanceApi';
 
 const views = {
   dashboard: {
