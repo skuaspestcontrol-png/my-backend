@@ -82,6 +82,8 @@ const shell = {
     display: 'grid',
     gap: '10px',
     width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
     boxSizing: 'border-box',
     padding: 0,
     border: 'none',
@@ -89,31 +91,31 @@ const shell = {
     background: 'transparent',
     overflow: 'visible'
   },
-  head: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'start', gap: '10px' },
+  head: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'start', gap: '10px', minWidth: 0 },
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 8px', borderRadius: '8px', background: 'var(--color-primary-light)', border: '1px solid var(--color-primary-soft)' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111827', display: 'inline-flex', alignItems: 'center', gap: '8px' },
   subtitle: { margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 600 },
-  headActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' },
+  headActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' },
   beta: { border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.6)', color: 'var(--color-primary)', borderRadius: '999px', padding: '7px 12px', fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap' },
-  newBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '9px', padding: '7px 11px', minHeight: '34px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap' },
-  card: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', overflow: 'visible', backgroundClip: 'padding-box' },
-  cardTop: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: '#fff', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', backgroundClip: 'padding-box' },
+  newBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '9px', padding: '7px 11px', minHeight: '34px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap', maxWidth: '100%' },
+  card: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', overflow: 'hidden', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
+  cardTop: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: '#fff', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   cardTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   shownPill: { border: '1px solid var(--color-border)', background: '#f8fafc', color: '#334155', borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 },
-  quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
+  quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
   chip: { border: '1px solid transparent', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', gap: '5px', alignItems: 'center', cursor: 'pointer' },
   customizeChip: { border: '1px solid #F9A8D4', borderRadius: '999px', padding: '5px 10px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', gap: '6px', alignItems: 'center', cursor: 'pointer', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' },
   customizeMenu: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: '220px', maxHeight: '320px', overflowY: 'auto', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 18px 42px rgba(15,23,42,0.18)', padding: '10px', zIndex: 5000, display: 'grid', gap: '7px' },
   customizeTitle: { margin: 0, fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' },
   customizeRow: { display: 'flex', alignItems: 'center', gap: '8px', minHeight: '30px', borderRadius: '8px', padding: '0 8px', fontSize: '12px', color: '#334155', fontWeight: 700, cursor: 'pointer' },
-  filtersBox: { margin: '8px 12px 10px', border: '1px solid var(--color-border)', borderRadius: '10px', padding: '8px', display: 'grid', gap: '8px', background: 'var(--surface-elevated, #fff)' },
+  filtersBox: { margin: '8px 12px 10px', border: '1px solid var(--color-border)', borderRadius: '10px', padding: '8px', display: 'grid', gap: '8px', background: 'var(--surface-elevated, #fff)', width: 'calc(100% - 24px)', maxWidth: 'calc(100% - 24px)', minWidth: 0, boxSizing: 'border-box' },
   filterGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' },
   filterField: { display: 'grid', gap: '4px' },
   filterLabel: { fontSize: '11px', color: '#64748b', fontWeight: 800 },
   input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff' },
   clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', background: '#fff', backgroundClip: 'padding-box' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', background: '#fff', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '8px 12px 8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', position: 'relative' },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
@@ -130,7 +132,7 @@ const shell = {
   actionMenu: { position: 'fixed', width: '184px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 5000, overflow: 'hidden', padding: '4px' },
   actionMenuItem: { width: '100%', border: 'none', borderRadius: '6px', background: '#fff', textAlign: 'left', padding: '9px 10px', fontSize: '11px', fontWeight: 700, color: '#1f2937', cursor: 'pointer', lineHeight: 1.35, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' },
   actionMenuDanger: { color: '#dc2626' },
-  footer: { padding: '8px 12px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', flexWrap: 'wrap', borderTop: '1px solid var(--color-border)', borderBottomLeftRadius: '14px', borderBottomRightRadius: '14px', background: '#fff', backgroundClip: 'padding-box' },
+  footer: { padding: '8px 12px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', flexWrap: 'wrap', borderTop: '1px solid var(--color-border)', borderBottomLeftRadius: '14px', borderBottomRightRadius: '14px', background: '#fff', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   footText: { fontSize: '12px', color: '#475569', fontWeight: 700 },
   pager: { display: 'inline-flex', gap: '6px', alignItems: 'center' },
   pageBtn: { minWidth: '34px', width: '34px', height: '34px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#475569', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 },
@@ -746,7 +748,7 @@ export default function ContractDashboard() {
     `${getColumnWidth('actions')}px`
   ].filter(Boolean);
   const contractTableMinWidth = contractColumnList.reduce((sum, width) => sum + Number.parseInt(width, 10), 0);
-  const quickWrapStyle = isMobile ? { ...shell.quickWrap, alignItems: 'stretch' } : shell.quickWrap;
+  const quickWrapStyle = isMobile ? { ...shell.quickWrap, alignItems: 'stretch', padding: '8px 10px 0' } : shell.quickWrap;
   const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
   const tableWrapStyle = isMobile
     ? {
@@ -768,8 +770,10 @@ export default function ContractDashboard() {
   const mobileStackCellStyle = isMobile
     ? { flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }
     : {};
-  const footerStyle = isMobile ? { ...shell.footer, flexDirection: 'column', alignItems: 'stretch' } : shell.footer;
+  const footerStyle = isMobile ? { ...shell.footer, flexDirection: 'column', alignItems: 'stretch', padding: '8px 10px' } : shell.footer;
   const pagerStyle = isMobile ? { ...shell.pager, justifyContent: 'center' } : shell.pager;
+  const cardTopStyle = isMobile ? { ...shell.cardTop, flexDirection: 'column', alignItems: 'stretch' } : shell.cardTop;
+  const headActionsStyle = isMobile ? { ...shell.headActions, justifyContent: 'stretch', width: '100%' } : shell.headActions;
 
   const openCustomerSummary = (row) => {
     setCustomerSummary({ open: true, row, showHistory: false });
@@ -927,11 +931,11 @@ export default function ContractDashboard() {
   return (
     <div style={shell.page}>
       <div style={shell.card}>
-        <div style={shell.cardTop}>
+        <div style={cardTopStyle}>
           <div style={shell.titleWrap}>
             <h1 style={shell.cardTitle}>All Contracts</h1>
           </div>
-          <div style={shell.headActions}>
+          <div style={headActionsStyle}>
             <button
               type="button"
               style={shell.newBtn}
