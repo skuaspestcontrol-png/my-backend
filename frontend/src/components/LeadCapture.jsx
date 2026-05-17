@@ -309,7 +309,7 @@ const s = {
   followupHead: { padding: '14px 16px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-primary)' },
   followupTitle: { margin: 0, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.01em', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '8px' },
   followupBody: { padding: '14px 16px', display: 'grid', gap: '12px', background: '#ffffff', overflowY: 'auto' },
-  followupLeadBadge: { border: '1px solid rgba(159,23,77,0.2)', borderRadius: '10px', background: 'rgba(252,231,243,0.7)', padding: '10px 12px', color: '#334155', fontSize: '14px', fontWeight: 700, lineHeight: 1.35, wordBreak: 'break-word' },
+  followupLeadBadge: { border: '1px solid #D1D5DB', borderRadius: '10px', background: '#F3F4F6', padding: '10px 12px', color: '#334155', fontSize: '14px', fontWeight: 700, lineHeight: 1.35, wordBreak: 'break-word' },
   followupGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', alignItems: 'start' },
   followupField: { minWidth: 0, display: 'grid', gap: '6px' },
   followupInput: { width: '100%', minWidth: 0, boxSizing: 'border-box', minHeight: '40px' },

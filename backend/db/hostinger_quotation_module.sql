@@ -179,8 +179,8 @@ SELECT 'SPC/', YEAR(CURDATE()), 1, 20, 4, '{{prefix}}{{year}}/{{service_code}}/{
 WHERE NOT EXISTS (SELECT 1 FROM quotation_prefix_settings LIMIT 1);
 
 INSERT INTO quotation_common_paragraphs (opening_paragraph, closing_paragraph, payment_terms, general_terms, warranty_paragraph, disclaimer_paragraph, relationship_closing_paragraph)
-SELECT 'Thank you for the kind courtesy extended to us. We are pleased to submit our offer for your pest control requirement.',
-       'We look forward to working with you and delivering consistent, safe, and effective pest management services.',
+SELECT 'Thank you for the kind courtesy extended to us during our visit at your premises. Based on the observation during the inspection & refers to the discussions had with you in connection with the above. We are pleased to submit our offer for Pest Control as detailed below.',
+       'We look forward to working with you and hope this is the beginning of a long and prosperous relationship.\nFor any clarification, please feel free to contact me.',
        '50% advance and remaining on completion unless otherwise agreed in writing.',
        'Service scheduling is subject to site readiness and safety compliance.',
        'Warranty is applicable as per selected service plan and infestation profile.',

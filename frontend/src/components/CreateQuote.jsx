@@ -492,8 +492,8 @@ export default function CreateQuote() {
     ...btnGhost,
     minHeight: 36,
     borderRadius: 999,
-    border: idx === active ? '1px solid var(--sky-deep)' : '1px solid var(--border)',
-    background: idx === active ? 'rgba(159,23,77,0.1)' : '#fff',
+    border: idx === active ? '1px solid #D1D5DB' : '1px solid var(--border)',
+    background: idx === active ? '#F3F4F6' : '#fff',
     padding: isTiny ? '0 12px' : btnGhost.padding,
     maxWidth: '100%'
   });
