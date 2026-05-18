@@ -18,6 +18,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import { apiGet, currentMonth, currentYear, downloadCsv, monthOptions, money, percent, safeRows } from './salesPerformanceApi';
+import './salesPerformance.css';
 
 const chartWrap = { width: '100%', height: 300 };
 const targetColor = '#111827';
@@ -56,7 +57,7 @@ export default function SalesPerformanceReports() {
       setEmployees(safeRows(res.employees));
       setSummary(res.summary || null);
     } catch (err) {
-      setError(err?.response?.data?.error || err?.message || 'Unable to load sales reports.');
+      setError(err?.response?.data?.error || err?.message || 'Unable to load sales performance data. Please refresh or check backend API.');
     } finally {
       setLoading(false);
     }
@@ -87,7 +88,7 @@ export default function SalesPerformanceReports() {
     yearlyAchievementPercent: Number(row.yearlyAchievementPercent || 0)
   })), [rows]);
   const isMobile = viewportWidth <= 640;
-  const chartWrap = { width: '100%', height: isMobile ? 180 : 300 };
+  const chartWrap = { width: '100%', height: isMobile ? 220 : 300 };
   const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
   const metricColor = (actual, target) => {
     const targetValue = Number(target || 0);
@@ -232,10 +233,12 @@ export default function SalesPerformanceReports() {
   const mobileButtonStyle = viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined;
 
   return (
-    <div style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
+    <div className="sales-performance-page sales-reports-page" style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <PageHeader
         title="Reports"
         subtitle="Review target vs achievement reports and export the current result set as CSV."
+        titleStyle={isMobile ? { fontSize: 28, lineHeight: 1.15 } : undefined}
+        subtitleStyle={isMobile ? { fontSize: 15, lineHeight: 1.4 } : undefined}
         action={(
           viewportWidth <= 640 ? null : (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', maxWidth: '100%' }}>
@@ -285,7 +288,7 @@ export default function SalesPerformanceReports() {
         <>
           <div style={summaryGridStyle}>
             {summaryCards.map((card) => (
-              <AppCard key={card.title} title={card.title} style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
+          <AppCard key={card.title} title={card.title} style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
                 <div style={{ fontSize: viewportWidth <= 640 ? 20 : 22, fontWeight: 800, color: 'var(--color-text)' }}>{card.value}</div>
               </AppCard>
             ))}
@@ -345,7 +348,7 @@ export default function SalesPerformanceReports() {
 
           <AppCard title="Report Table" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
             {rows.length ? (
-              <div style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
+              <div className="table-scroll-x sales-report-table-scroll" style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
                 <table style={tableStyle}>
                   <colgroup>

@@ -19,6 +19,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import { apiGet, currentMonth, currentYear, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
+import './salesPerformance.css';
 
 const chartWrap = { width: '100%', height: 300 };
 const targetColor = '#111827';
@@ -61,7 +62,7 @@ export default function SalesPerformanceDashboard() {
       setMatrix(safeRows(matrixRes.matrix));
       setEmployees(safeRows(dashboardRes.employees));
     } catch (err) {
-      setError(err?.response?.data?.error || err?.message || 'Unable to load sales performance dashboard.');
+      setError(err?.response?.data?.error || err?.message || 'Unable to load sales performance data. Please refresh or check backend API.');
     } finally {
       setLoading(false);
     }
@@ -79,7 +80,7 @@ export default function SalesPerformanceDashboard() {
 
   const salesPeople = useMemo(() => safeRows(employees), [employees]);
   const isMobile = viewportWidth <= 640;
-  const chartWrap = { width: '100%', height: isMobile ? 140 : 300 };
+  const chartWrap = { width: '100%', height: isMobile ? 220 : 300 };
   const monthByValue = useMemo(() => new Map(monthOptions.map((month) => [month.value, month.label])), []);
   const filtersGridStyle = viewportWidth >= 1100
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
@@ -91,18 +92,7 @@ export default function SalesPerformanceDashboard() {
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 700
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : {
-        display: 'grid',
-        gap: 10,
-        gridTemplateRows: 'repeat(2, minmax(0, 1fr))',
-        gridAutoFlow: 'column',
-        gridAutoColumns: 'minmax(158px, 1fr)',
-        overflowX: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        touchAction: 'pan-x',
-        overscrollBehaviorX: 'contain',
-        paddingBottom: 4
-      };
+      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', width: '100%' };
   const scrollHintStyle = {
     marginBottom: 8,
     color: '#6B7280',
@@ -131,10 +121,12 @@ export default function SalesPerformanceDashboard() {
   const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
 
   return (
-    <div style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
+    <div className="sales-performance-page sales-dashboard-page" style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <PageHeader
         title="Sales Performance"
         subtitle="Track monthly and yearly target vs achievement in a simple clean view."
+        titleStyle={isMobile ? { fontSize: 28, lineHeight: 1.15 } : undefined}
+        subtitleStyle={isMobile ? { fontSize: 15, lineHeight: 1.4 } : undefined}
         action={(
           viewportWidth <= 640 ? null : (
             <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>
@@ -144,8 +136,8 @@ export default function SalesPerformanceDashboard() {
         )}
       />
 
-      <AppCard title="Filters">
-        <div style={filtersGridStyle}>
+      <AppCard title="Filters" style={{ width: '100%', minWidth: 0 }}>
+        <div className="sales-filters-grid" style={filtersGridStyle}>
           <AppSelect label="Year" value={filters.year} onChange={(e) => setFilters({ ...filters, year: Number(e.target.value) })}>
             {Array.from({ length: 5 }, (_, index) => currentYear - 2 + index).map((year) => <option key={year} value={year}>{year}</option>)}
           </AppSelect>
@@ -179,13 +171,13 @@ export default function SalesPerformanceDashboard() {
         <AppCard><EmptyState title="Sales performance error" message={error} /></AppCard>
       ) : (
         <>
-          <div style={summaryGridStyle}>
+          <div className="sales-summary-grid" style={summaryGridStyle}>
             {summaryCards.map((card) => (
               <DashboardStatCard
                 key={card.key}
                 title={card.title}
                 value={summaryValue(card.key)}
-                style={isMobile ? { minWidth: 158 } : undefined}
+                style={isMobile ? { width: '100%', minWidth: 0 } : undefined}
                 contentStyle={isMobile ? { padding: 12, gap: 8 } : undefined}
                 titleStyle={isMobile ? { fontSize: 11 } : undefined}
                 valueStyle={isMobile ? { fontSize: 22 } : undefined}
@@ -193,10 +185,11 @@ export default function SalesPerformanceDashboard() {
             ))}
           </div>
 
-      <AppCard title="Monthly Target vs Achievement">
+      <AppCard title="Monthly Target vs Achievement" style={{ width: '100%', minWidth: 0 }}>
             {safeRows(data?.monthlyTrend).length ? (
-              <div style={chartWrap}>
-                <ResponsiveContainer>
+              <div className="sales-chart-scroll">
+                <div className="sales-chart-inner sales-chart-inner--wide" style={{ ...chartWrap, minWidth: isMobile ? 650 : '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={safeRows(data?.monthlyTrend)} margin={{ top: 8, right: 8, left: isMobile ? -8 : 0, bottom: isMobile ? 12 : 0 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
@@ -217,13 +210,14 @@ export default function SalesPerformanceDashboard() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+                </div>
               </div>
             ) : <EmptyState title="No monthly data" message="Targets and achievements will appear here." />}
           </AppCard>
 
-          <AppCard title="Year-Month Matrix">
+          <AppCard title="Year-Month Matrix" style={{ width: '100%', minWidth: 0 }}>
             {safeRows(matrix).length ? (
-              <div style={matrixScrollStyle}>
+              <div className="table-scroll-x sales-matrix-scroll" style={matrixScrollStyle}>
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all months.</div> : null}
                 <div style={matrixInnerStyle}>
                   <table
@@ -281,10 +275,11 @@ export default function SalesPerformanceDashboard() {
             ) : <EmptyState title="No matrix data" message="Year and month comparisons will appear here." />}
           </AppCard>
 
-          <AppCard title="Sales Person Performance">
+          <AppCard title="Sales Person Performance" style={{ width: '100%', minWidth: 0 }}>
             {safeRows(data?.salesPersonPerformance).length ? (
-              <div style={chartWrap}>
-                <ResponsiveContainer>
+              <div className="sales-chart-scroll">
+                <div className="sales-chart-inner" style={{ ...chartWrap, minWidth: isMobile ? 650 : '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={safeRows(data?.salesPersonPerformance)} margin={{ top: 8, right: 8, left: isMobile ? -10 : 0, bottom: isMobile ? 12 : 0 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
@@ -307,6 +302,7 @@ export default function SalesPerformanceDashboard() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+                </div>
               </div>
             ) : <EmptyState title="No team performance yet" message="Add targets and records to compare people here." />}
           </AppCard>

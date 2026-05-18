@@ -18,6 +18,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import { apiGet, currentMonth, currentYear, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
+import './salesPerformance.css';
 
 const chartWrap = { width: '100%', height: 300 };
 const targetColor = '#111827';
@@ -41,7 +42,7 @@ export default function SalesTeamPerformance() {
       setRows(safeRows(res.rows));
       setEmployees(safeRows(res.employees));
     } catch (err) {
-      setError(err?.response?.data?.error || err?.message || 'Unable to load team performance.');
+      setError(err?.response?.data?.error || err?.message || 'Unable to load sales performance data. Please refresh or check backend API.');
     } finally {
       setLoading(false);
     }
@@ -59,19 +60,19 @@ export default function SalesTeamPerformance() {
 
   const employeeOptions = useMemo(() => safeRows(employees), [employees]);
   const isMobile = viewportWidth <= 640;
-  const chartWrap = { width: '100%', height: isMobile ? 150 : 300 };
+  const chartWrap = { width: '100%', height: isMobile ? 220 : 300 };
   const filtersGridStyle = viewportWidth >= 1100
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 768
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' };
+      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(1, minmax(0, 1fr))' };
   const chartGridStyle = viewportWidth >= 900
     ? { display: 'grid', gap: 16, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
     : { display: 'grid', gap: 16, gridTemplateColumns: '1fr' };
   const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' };
   const tableStyle = {
     width: '100%',
-    minWidth: viewportWidth <= 640 ? '1160px' : '1260px',
+    minWidth: viewportWidth <= 640 ? '850px' : '1260px',
     tableLayout: 'fixed',
     borderCollapse: 'collapse'
   };
@@ -149,15 +150,17 @@ export default function SalesTeamPerformance() {
   };
 
   return (
-    <div style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
+    <div className="sales-performance-page sales-team-page" style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <PageHeader
         title="Team Performance"
         subtitle="Compare sales team members by monthly and yearly achievement."
-        action={<AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>Refresh</AppButton>}
+        titleStyle={isMobile ? { fontSize: 28, lineHeight: 1.15 } : undefined}
+        subtitleStyle={isMobile ? { fontSize: 15, lineHeight: 1.4 } : undefined}
+        action={viewportWidth <= 640 ? null : <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>Refresh</AppButton>}
       />
 
-      <AppCard title="Filters">
-        <div style={filtersGridStyle}>
+      <AppCard title="Filters" style={{ width: '100%', minWidth: 0 }}>
+        <div className="sales-filters-grid" style={filtersGridStyle}>
           <AppSelect label="Month" value={filters.month} onChange={(e) => setFilters({ ...filters, month: Number(e.target.value) })}>
             {monthOptions.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}
           </AppSelect>
@@ -168,10 +171,10 @@ export default function SalesTeamPerformance() {
             <option value="">All</option>
             {employeeOptions.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
           </AppSelect>
-          <AppInput label="Team View" value="Monthly + Yearly comparison" readOnly />
+          {!isMobile ? <AppInput label="Team View" value="Monthly + Yearly comparison" readOnly /> : null}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-          <AppButton onClick={() => load(filters)}>Apply Filters</AppButton>
+        <div style={{ display: 'flex', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', marginTop: 12 }}>
+          <AppButton onClick={() => load(filters)} fullWidth={viewportWidth <= 480} style={viewportWidth <= 480 ? { width: '100%' } : undefined}>Apply Filters</AppButton>
         </div>
       </AppCard>
 
@@ -181,9 +184,9 @@ export default function SalesTeamPerformance() {
         <AppCard><EmptyState title="Team performance error" message={error} /></AppCard>
       ) : (
         <>
-          <AppCard title="Team Performance Table">
+          <AppCard title="Team Performance Table" style={{ width: '100%', minWidth: 0 }}>
             {rows.length ? (
-              <div style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
+              <div className="table-scroll-x sales-team-table-scroll" style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
                 <table style={tableStyle}>
                   <colgroup>
@@ -249,7 +252,7 @@ export default function SalesTeamPerformance() {
           </AppCard>
 
           <div style={chartGridStyle}>
-            <AppCard title="Target vs Achievement">
+            <AppCard title="Target vs Achievement" style={{ width: '100%', minWidth: 0 }}>
               {rows.length ? (
                 <div style={chartWrap}>
                   <ResponsiveContainer>
@@ -273,7 +276,7 @@ export default function SalesTeamPerformance() {
               ) : <EmptyState title="No comparison data" message="Team target vs achievement chart will appear here." />}
             </AppCard>
 
-            <AppCard title="Achievement %">
+            <AppCard title="Achievement %" style={{ width: '100%', minWidth: 0 }}>
               {rows.length ? (
                 <div style={chartWrap}>
                   <ResponsiveContainer>

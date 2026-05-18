@@ -1,0 +1,96 @@
+.sales-performance-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.sales-performance-page .crm-page-header-copy {
+  min-width: 0;
+}
+
+.sales-performance-page .crm-page-header-copy p {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: normal;
+}
+
+.sales-performance-page .sales-chart-scroll,
+.sales-performance-page .table-scroll-x {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sales-performance-page .sales-chart-inner {
+  width: 100%;
+  min-width: 0;
+}
+
+.sales-dashboard-page .sales-matrix-scroll table {
+  min-width: 1180px;
+}
+
+.sales-team-page .sales-team-table-scroll table {
+  min-width: 850px;
+}
+
+.sales-reports-page .sales-report-table-scroll table {
+  min-width: 1720px;
+}
+
+@media (max-width: 768px) {
+  .sales-performance-page {
+    padding: 16px;
+  }
+
+  .sales-performance-page .crm-page-header-copy p {
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .sales-dashboard-page .sales-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sales-dashboard-page .sales-summary-grid > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sales-dashboard-page .sales-chart-inner--wide {
+    min-width: 650px;
+  }
+
+  .sales-performance-page .sales-chart-scroll,
+  .sales-performance-page .table-scroll-x {
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
+  }
+
+  .sales-team-page .sales-filters-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sales-performance-page .crm-page-header-action {
+    width: 100%;
+  }
+
+  .sales-performance-page .crm-page-header-action > * {
+    width: 100%;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sales-dashboard-page .sales-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sales-team-page .sales-filters-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
