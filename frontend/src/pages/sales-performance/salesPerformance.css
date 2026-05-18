@@ -45,12 +45,20 @@
 
 @media (max-width: 768px) {
   .sales-performance-page {
-    padding: 16px;
+    padding: 12px;
+  }
+
+  .sales-performance-page .crm-page-header {
+    gap: 8px;
+  }
+
+  .sales-performance-page .crm-page-header-copy {
+    gap: 2px;
   }
 
   .sales-performance-page .crm-page-header-copy p {
-    font-size: 15px;
-    line-height: 1.4;
+    font-size: 13px;
+    line-height: 1.3;
   }
 
   .sales-dashboard-page .sales-summary-grid {

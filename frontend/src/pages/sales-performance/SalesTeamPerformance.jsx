@@ -150,12 +150,24 @@ export default function SalesTeamPerformance() {
   };
 
   return (
-    <div className="crm-page sales-performance-page sales-team-page" style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
+    <div
+      className="crm-page sales-performance-page sales-team-page"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: isMobile ? 12 : 16,
+        width: '100%',
+        minWidth: 0,
+        overflowX: 'hidden',
+        alignItems: 'stretch',
+        justifyContent: 'flex-start'
+      }}
+    >
       <PageHeader
         title="Team Performance"
         subtitle="Compare sales team members by monthly and yearly achievement."
-        titleStyle={isMobile ? { fontSize: 28, lineHeight: 1.15 } : undefined}
-        subtitleStyle={isMobile ? { fontSize: 15, lineHeight: 1.4 } : undefined}
+        titleStyle={isMobile ? { fontSize: 24, lineHeight: 1.1 } : undefined}
+        subtitleStyle={isMobile ? { fontSize: 13, lineHeight: 1.3 } : undefined}
         action={viewportWidth <= 640 ? null : <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>Refresh</AppButton>}
       />
 

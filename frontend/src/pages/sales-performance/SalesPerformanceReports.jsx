@@ -233,12 +233,24 @@ export default function SalesPerformanceReports() {
   const mobileButtonStyle = viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined;
 
   return (
-    <div className="crm-page sales-performance-page sales-reports-page" style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
+    <div
+      className="crm-page sales-performance-page sales-reports-page"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: isMobile ? 12 : 16,
+        width: '100%',
+        minWidth: 0,
+        overflowX: 'hidden',
+        alignItems: 'stretch',
+        justifyContent: 'flex-start'
+      }}
+    >
       <PageHeader
         title="Reports"
         subtitle="Review target vs achievement reports and export the current result set as CSV."
-        titleStyle={isMobile ? { fontSize: 28, lineHeight: 1.15 } : undefined}
-        subtitleStyle={isMobile ? { fontSize: 15, lineHeight: 1.4 } : undefined}
+        titleStyle={isMobile ? { fontSize: 24, lineHeight: 1.1 } : undefined}
+        subtitleStyle={isMobile ? { fontSize: 13, lineHeight: 1.3 } : undefined}
         action={(
           viewportWidth <= 640 ? null : (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', maxWidth: '100%' }}>
