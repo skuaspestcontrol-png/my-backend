@@ -33,6 +33,7 @@ const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-b
 const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
 
 export default function StockPurchase() {
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [items, setItems] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [purchases, setPurchases] = useState([]);
@@ -65,6 +66,12 @@ export default function StockPurchase() {
   }, []);
 
   useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
     const qty = toNumber(form.quantity, 0);
     const rate = toNumber(form.rate, 0);
     const gst = toNumber(form.gstPercent, 0);
@@ -74,6 +81,15 @@ export default function StockPurchase() {
 
   const itemOptions = useMemo(() => safeRows(items), [items]);
   const vendorOptions = useMemo(() => safeRows(vendors), [vendors]);
+  const formGridStyle = viewportWidth <= 480
+    ? { display: 'grid', gap: 12, gridTemplateColumns: '1fr' }
+    : viewportWidth <= 768
+      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' };
+  const actionRowStyle = viewportWidth <= 480
+    ? { display: 'grid', gap: 8, width: '100%' }
+    : { display: 'flex', justifyContent: 'flex-end' };
+  const actionButtonStyle = viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined;
 
   const resetForm = () => setForm(initialForm);
 
@@ -116,8 +132,8 @@ export default function StockPurchase() {
       {error ? <AppCard><EmptyState title="Purchase error" message={error} /></AppCard> : null}
 
       <AppCard title="Add Purchase">
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0 }}>
+          <div style={formGridStyle}>
             <AppSelect label="Vendor" value={form.vendorId} onChange={(e) => setForm({ ...form, vendorId: e.target.value })}>
               <option value="">Optional</option>
               {vendorOptions.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendorLabel(vendor)}</option>)}
@@ -136,8 +152,8 @@ export default function StockPurchase() {
             <AppInput type="date" label="Expiry Date" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
           </div>
           <AppTextarea label="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <AppButton type="submit" loading={saving} iconLeft={<ShoppingCart size={16} />}>Save Purchase</AppButton>
+          <div style={actionRowStyle}>
+            <AppButton type="submit" loading={saving} iconLeft={<ShoppingCart size={16} />} style={actionButtonStyle}>Save Purchase</AppButton>
           </div>
         </form>
       </AppCard>

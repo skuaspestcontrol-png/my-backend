@@ -51,6 +51,7 @@ const badgeStyle = (status) => {
 };
 
 export default function StockItems() {
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [items, setItems] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [form, setForm] = useState(initialForm);
@@ -79,7 +80,22 @@ export default function StockItems() {
     load();
   }, []);
 
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const vendorOptions = useMemo(() => safeRows(vendors), [vendors]);
+  const formGridStyle = viewportWidth <= 480
+    ? { display: 'grid', gap: 12, gridTemplateColumns: '1fr' }
+    : viewportWidth <= 768
+      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' };
+  const actionRowStyle = viewportWidth <= 480
+    ? { display: 'grid', gap: 8, width: '100%' }
+    : { display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' };
+  const actionButtonStyle = viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined;
 
   const resetForm = () => setForm(initialForm);
 
@@ -161,8 +177,8 @@ export default function StockItems() {
       {error ? <AppCard><EmptyState title="Stock items error" message={error} /></AppCard> : null}
 
       <AppCard title={form.id ? 'Edit Item' : 'Add Item'}>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0 }}>
+          <div style={formGridStyle}>
             <AppInput label="Item Name" value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} required />
             <AppInput label="Item Code" value={form.itemCode} onChange={(e) => setForm({ ...form, itemCode: e.target.value })} />
             <AppSelect label="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
@@ -188,9 +204,9 @@ export default function StockItems() {
             </AppSelect>
           </div>
           <AppTextarea label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={actionRowStyle}>
             {form.id ? <AppButton variant="outline" onClick={resetForm} type="button">Cancel Edit</AppButton> : null}
-            <AppButton type="submit" loading={saving}>{form.id ? 'Update Item' : 'Save Item'}</AppButton>
+            <AppButton type="submit" loading={saving} style={actionButtonStyle}>{form.id ? 'Update Item' : 'Save Item'}</AppButton>
           </div>
         </form>
       </AppCard>

@@ -62,34 +62,35 @@ export default function SalesTeamPerformance() {
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 768
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : { display: 'grid', gap: 12, gridTemplateColumns: '1fr' };
+      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' };
   const chartGridStyle = viewportWidth >= 900
     ? { display: 'grid', gap: 16, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
     : { display: 'grid', gap: 16, gridTemplateColumns: '1fr' };
   const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' };
   const tableStyle = {
     width: '100%',
-    minWidth: viewportWidth <= 640 ? '980px' : '1120px',
+    minWidth: viewportWidth <= 640 ? '900px' : '1120px',
     tableLayout: 'fixed',
     borderCollapse: 'collapse'
   };
   const headCellStyle = {
-    padding: viewportWidth <= 640 ? '8px 10px' : '10px 12px',
+    padding: viewportWidth <= 640 ? '7px 8px' : '10px 12px',
     textAlign: 'left',
     whiteSpace: 'nowrap',
     wordBreak: 'normal',
     verticalAlign: 'middle',
-    height: viewportWidth <= 640 ? 40 : 42,
-    lineHeight: 1.2
+    height: viewportWidth <= 640 ? 38 : 42,
+    lineHeight: 1.15,
+    fontSize: viewportWidth <= 640 ? 11 : 12
   };
   const bodyCellStyle = {
-    padding: viewportWidth <= 640 ? '8px 10px' : '10px 12px',
+    padding: viewportWidth <= 640 ? '7px 8px' : '10px 12px',
     borderTop: '1px solid var(--color-border)',
     whiteSpace: 'nowrap',
     wordBreak: 'normal',
     verticalAlign: 'middle',
-    height: viewportWidth <= 640 ? 44 : 48,
-    lineHeight: 1.2,
+    height: viewportWidth <= 640 ? 40 : 48,
+    lineHeight: 1.15,
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   };

@@ -140,7 +140,7 @@ export default function SalesPerformanceReports() {
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }
       : viewportWidth >= 768
         ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-        : { display: 'grid', gap: 12, gridTemplateColumns: '1fr' };
+        : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' };
 
   const summaryGridStyle = viewportWidth >= 1200
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
@@ -148,7 +148,7 @@ export default function SalesPerformanceReports() {
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }
       : viewportWidth >= 600
         ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-        : { display: 'grid', gap: 12, gridTemplateColumns: '1fr' };
+        : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' };
 
   const exportCsv = () => {
     downloadCsv(rows.map((row) => ({
@@ -189,6 +189,7 @@ export default function SalesPerformanceReports() {
   const compactBodyStyle = {
     padding: '14px'
   };
+  const mobileButtonStyle = viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined;
 
   return (
     <div style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
@@ -196,9 +197,9 @@ export default function SalesPerformanceReports() {
         title="Reports"
         subtitle="Review target vs achievement reports and export the current result set as CSV."
         action={(
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '100%' }}>
-            <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>Refresh</AppButton>
-            <AppButton variant="outline" iconLeft={<Download size={16} />} onClick={exportCsv} disabled={!rows.length}>CSV Export</AppButton>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', maxWidth: '100%' }}>
+            <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading} style={mobileButtonStyle}>Refresh</AppButton>
+            <AppButton variant="outline" iconLeft={<Download size={16} />} onClick={exportCsv} disabled={!rows.length} style={mobileButtonStyle}>CSV Export</AppButton>
           </div>
         )}
       />
@@ -221,8 +222,8 @@ export default function SalesPerformanceReports() {
             {employeeOptions.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
           </AppSelect>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-          <AppButton onClick={() => load(filters)}>Apply Filters</AppButton>
+        <div style={{ display: 'flex', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', marginTop: 12 }}>
+          <AppButton onClick={() => load(filters)} style={viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined}>Apply Filters</AppButton>
         </div>
       </AppCard>
 

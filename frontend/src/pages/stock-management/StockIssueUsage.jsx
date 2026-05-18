@@ -75,6 +75,7 @@ const customerLabel = (row) =>
   String(row.name || row.displayName || row.customerName || row.companyName || `Customer ${row.id || row._id || ''}`).trim();
 
 export default function StockIssueUsage() {
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [activeTab, setActiveTab] = useState('issue');
   const [items, setItems] = useState([]);
   const [technicians, setTechnicians] = useState([]);
@@ -121,9 +122,22 @@ export default function StockIssueUsage() {
     load();
   }, []);
 
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const itemOptions = useMemo(() => safeRows(items), [items]);
   const techOptions = useMemo(() => safeRows(technicians), [technicians]);
   const customerOptions = useMemo(() => safeRows(customers), [customers]);
+  const formGridStyle = viewportWidth <= 480
+    ? { display: 'grid', gap: 12, gridTemplateColumns: '1fr' }
+    : viewportWidth <= 768
+      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' };
+  const submitRowStyle = viewportWidth <= 480 ? { display: 'grid', gap: 8, width: '100%' } : { display: 'flex', justifyContent: 'flex-end' };
+  const submitButtonStyle = viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined;
 
   const submitIssue = async (event) => {
     event.preventDefault();
@@ -193,7 +207,7 @@ export default function StockIssueUsage() {
 
   const renderIssue = () => (
     <form onSubmit={submitIssue} style={{ display: 'grid', gap: 12 }}>
-      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+      <div style={formGridStyle}>
         <AppSelect label="Technician" value={issueForm.technicianId} onChange={(e) => setIssueForm({ ...issueForm, technicianId: e.target.value })} required>
           <option value="">Select technician</option>
           {techOptions.map((tech) => <option key={tech.id} value={tech.id}>{tech.displayName || employeeLabel(tech)}</option>)}
@@ -211,15 +225,15 @@ export default function StockIssueUsage() {
         <AppInput label="Job / Contract Ref" value={issueForm.jobId} onChange={(e) => setIssueForm({ ...issueForm, jobId: e.target.value })} />
       </div>
       <AppTextarea label="Notes" value={issueForm.notes} onChange={(e) => setIssueForm({ ...issueForm, notes: e.target.value })} />
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <AppButton type="submit" loading={saving} iconLeft={<Send size={16} />}>Issue Stock</AppButton>
+      <div style={submitRowStyle}>
+        <AppButton type="submit" loading={saving} iconLeft={<Send size={16} />} style={submitButtonStyle}>Issue Stock</AppButton>
       </div>
     </form>
   );
 
   const renderUsage = () => (
     <form onSubmit={submitUsage} style={{ display: 'grid', gap: 12 }}>
-      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+      <div style={formGridStyle}>
         <AppSelect label="Technician" value={usageForm.technicianId} onChange={(e) => setUsageForm({ ...usageForm, technicianId: e.target.value })} required>
           <option value="">Select technician</option>
           {techOptions.map((tech) => <option key={tech.id} value={tech.id}>{tech.displayName || employeeLabel(tech)}</option>)}
@@ -238,15 +252,15 @@ export default function StockIssueUsage() {
         <AppInput label="Job / Contract Ref" value={usageForm.jobId} onChange={(e) => setUsageForm({ ...usageForm, jobId: e.target.value })} />
       </div>
       <AppTextarea label="Notes" value={usageForm.notes} onChange={(e) => setUsageForm({ ...usageForm, notes: e.target.value })} />
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <AppButton type="submit" loading={saving} iconLeft={<CheckCircle2 size={16} />}>Save Usage</AppButton>
+      <div style={submitRowStyle}>
+        <AppButton type="submit" loading={saving} iconLeft={<CheckCircle2 size={16} />} style={submitButtonStyle}>Save Usage</AppButton>
       </div>
     </form>
   );
 
   const renderMovement = () => (
     <form onSubmit={submitMovement} style={{ display: 'grid', gap: 12 }}>
-      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+      <div style={formGridStyle}>
         <AppSelect label="Technician" value={movementForm.technicianId} onChange={(e) => setMovementForm({ ...movementForm, technicianId: e.target.value })}>
           <option value="">Optional</option>
           {techOptions.map((tech) => <option key={tech.id} value={tech.id}>{tech.displayName || employeeLabel(tech)}</option>)}
@@ -276,8 +290,8 @@ export default function StockIssueUsage() {
         <AppInput type="number" step="0.001" min="0.001" label="Quantity" value={movementForm.quantity} onChange={(e) => setMovementForm({ ...movementForm, quantity: e.target.value })} required />
       </div>
       <AppInput label="Reason / Notes" value={movementForm.reason} onChange={(e) => setMovementForm({ ...movementForm, reason: e.target.value })} />
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <AppButton type="submit" loading={saving} iconLeft={<RotateCcw size={16} />}>Save Movement</AppButton>
+      <div style={submitRowStyle}>
+        <AppButton type="submit" loading={saving} iconLeft={<RotateCcw size={16} />} style={submitButtonStyle}>Save Movement</AppButton>
       </div>
     </form>
   );
@@ -287,7 +301,7 @@ export default function StockIssueUsage() {
       <PageHeader
         title="Issue & Usage"
         subtitle="Issue items to technicians, record site usage, and capture returns or wastage."
-        action={<AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={load} loading={loading}>Refresh</AppButton>}
+        action={viewportWidth > 768 ? <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={load} loading={loading}>Refresh</AppButton> : null}
       />
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

@@ -183,24 +183,18 @@ export default function DashboardLayout({ children }) {
   }, [settings]);
 
   useEffect(() => {
-    if (location.pathname === '/leads' || location.pathname.startsWith('/leads/')) {
-      setLeadsMenuOpen(true);
-    }
-    if (location.pathname.startsWith('/sales/') || location.pathname.startsWith('/quotations')) {
-      setSalesMenuOpen(true);
-    }
-    if (location.pathname.startsWith('/sales-performance')) {
-      setSalesPerformanceMenuOpen(true);
-    }
-    if (location.pathname.startsWith('/purchase/')) {
-      setPurchaseMenuOpen(true);
-    }
-    if (location.pathname.startsWith('/operations/')) {
-      setFieldOpsMenuOpen(true);
-    }
-    if (location.pathname.startsWith('/stock')) {
-      setStockMenuOpen(true);
-    }
+    const isLeadsRoute = location.pathname === '/leads' || location.pathname.startsWith('/leads/');
+    const isSalesRoute = location.pathname.startsWith('/sales/') || location.pathname.startsWith('/quotations');
+    const isSalesPerformanceRoute = location.pathname.startsWith('/sales-performance');
+    const isPurchaseRoute = location.pathname.startsWith('/purchase/');
+    const isFieldOpsRoute = location.pathname.startsWith('/operations/');
+    const isStockRoute = location.pathname.startsWith('/stock');
+    setLeadsMenuOpen(isLeadsRoute);
+    setSalesMenuOpen(isSalesRoute);
+    setSalesPerformanceMenuOpen(isSalesPerformanceRoute);
+    setPurchaseMenuOpen(isPurchaseRoute);
+    setFieldOpsMenuOpen(isFieldOpsRoute);
+    setStockMenuOpen(isStockRoute);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -333,6 +327,16 @@ export default function DashboardLayout({ children }) {
     color: 'var(--color-text)',
     boxShadow: 'none'
   });
+
+  const sidebarGroupLabelStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '12px',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
+  };
 
   const toggleGroupMenu = (setMenuOpen) => {
     if (isSidebarCollapsed) {
@@ -513,7 +517,7 @@ export default function DashboardLayout({ children }) {
 
           <SidebarSection title="Sales & Marketing" collapsed={isSidebarCollapsed}>
             <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setLeadsMenuOpen)} style={groupToggleStyle(leadsMenuOpen)} title="Leads" aria-label="Leads">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+              <span style={sidebarGroupLabelStyle}>
                 <Users size={18} /> {!isSidebarCollapsed ? 'Leads' : null}
               </span>
               {!isSidebarCollapsed ? leadsMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
@@ -525,7 +529,7 @@ export default function DashboardLayout({ children }) {
               </>
             ) : null}
             <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setSalesMenuOpen)} style={groupToggleStyle(salesMenuOpen)} title="Sales" aria-label="Sales">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+              <span style={sidebarGroupLabelStyle}>
                 <Briefcase size={18} /> {!isSidebarCollapsed ? 'Sales' : null}
               </span>
               {!isSidebarCollapsed ? salesMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
@@ -542,7 +546,7 @@ export default function DashboardLayout({ children }) {
             ) : null}
 
             <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setSalesPerformanceMenuOpen)} style={groupToggleStyle(salesPerformanceMenuOpen)} title="Sales Performance" aria-label="Sales Performance">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+              <span style={sidebarGroupLabelStyle}>
                 <BarChart3 size={18} /> {!isSidebarCollapsed ? 'Sales Performance' : null}
               </span>
               {!isSidebarCollapsed ? salesPerformanceMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
@@ -557,7 +561,7 @@ export default function DashboardLayout({ children }) {
             ) : null}
 
             <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setPurchaseMenuOpen)} style={groupToggleStyle(purchaseMenuOpen)} title="Purchase" aria-label="Purchase">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+              <span style={sidebarGroupLabelStyle}>
                 <ShoppingCart size={18} /> {!isSidebarCollapsed ? 'Purchase' : null}
               </span>
               {!isSidebarCollapsed ? purchaseMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
@@ -574,7 +578,7 @@ export default function DashboardLayout({ children }) {
 
           <SidebarSection title="Operations" collapsed={isSidebarCollapsed}>
             <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setFieldOpsMenuOpen)} style={groupToggleStyle(fieldOpsMenuOpen)} title="Field Operations" aria-label="Field Operations">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+              <span style={sidebarGroupLabelStyle}>
                 <Smartphone size={18} /> {!isSidebarCollapsed ? 'Field Operations' : null}
               </span>
               {!isSidebarCollapsed ? fieldOpsMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
@@ -592,7 +596,7 @@ export default function DashboardLayout({ children }) {
 
           <SidebarSection title="Inventory" collapsed={isSidebarCollapsed}>
             <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setStockMenuOpen)} style={groupToggleStyle(stockMenuOpen)} title="Stock Management" aria-label="Stock Management">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+              <span style={sidebarGroupLabelStyle}>
                 <Database size={18} /> {!isSidebarCollapsed ? 'Stock Management' : null}
               </span>
               {!isSidebarCollapsed ? stockMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}

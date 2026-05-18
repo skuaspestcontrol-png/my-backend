@@ -93,11 +93,11 @@ export default function StockDashboard() {
       <PageHeader
         title="Stock Dashboard"
         subtitle="Monitor office stock, technician stock, purchase flow, and low stock items."
-        action={(
+        action={viewportWidth > 768 ? (
           <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={load} loading={loading}>
             Refresh
           </AppButton>
-        )}
+        ) : null}
       />
 
       <div style={shortcutGridStyle}>

@@ -82,13 +82,13 @@ export default function SalesPerformanceDashboard() {
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 768
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : { display: 'grid', gap: 12, gridTemplateColumns: '1fr' };
+      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' };
 
   const summaryGridStyle = viewportWidth >= 1200
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 700
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : { display: 'grid', gap: 12, gridTemplateColumns: '1fr' };
+      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' };
 
   const summaryValue = (key) => {
     if (key === 'bestPerformer') return data?.summary?.bestPerformer?.employeeName || '---';
@@ -123,7 +123,7 @@ export default function SalesPerformanceDashboard() {
           </AppSelect>
           <AppInput label="Selected Team" value={filters.employeeId ? 'Single Sales Person' : 'All Team'} readOnly />
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+        <div style={{ display: 'flex', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', marginTop: 12 }}>
           <AppButton onClick={() => load(filters)}>Apply Filters</AppButton>
         </div>
       </AppCard>
