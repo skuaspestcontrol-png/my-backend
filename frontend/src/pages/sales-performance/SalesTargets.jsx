@@ -10,6 +10,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { apiDelete, apiGet, apiPost, apiPut, currentMonth, currentYear, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
+import './salesPerformance.css';
 
 const initialForm = {
   id: '',
@@ -30,6 +31,7 @@ const dangerColor = '#DC2626';
 const neutralTextColor = '#111827';
 
 export default function SalesTargets() {
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [targets, setTargets] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,32 @@ export default function SalesTargets() {
     load();
   }, []);
 
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const employeeOptions = useMemo(() => safeRows(employees), [employees]);
+  const isMobile = viewportWidth <= 768;
+  const pageGridStyle = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16,
+    width: '100%',
+    minWidth: 0,
+    overflowX: 'hidden'
+  };
+  const filtersGridStyle = viewportWidth >= 1200
+    ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', width: '100%', minWidth: 0 }
+    : viewportWidth >= 768
+      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', width: '100%', minWidth: 0 }
+      : { display: 'grid', gap: 12, gridTemplateColumns: '1fr', width: '100%', minWidth: 0 };
+  const formGridStyle = viewportWidth >= 1200
+    ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', width: '100%', minWidth: 0 }
+    : viewportWidth >= 768
+      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', width: '100%', minWidth: 0 }
+      : { display: 'grid', gap: 12, gridTemplateColumns: '1fr', width: '100%', minWidth: 0 };
 
   const resetForm = () => setForm(initialForm);
   const metricColor = (actual, target) => {
@@ -119,10 +146,12 @@ export default function SalesTargets() {
   };
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page sales-performance-page sales-targets-page" style={pageGridStyle}>
       <PageHeader
         title="Targets"
         subtitle="Set monthly and yearly sales targets and see achieved vs pending amounts."
+        titleStyle={isMobile ? { fontSize: 24, lineHeight: 1.1 } : undefined}
+        subtitleStyle={isMobile ? { fontSize: 13, lineHeight: 1.3 } : undefined}
         action={(
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>Refresh</AppButton>
@@ -131,8 +160,8 @@ export default function SalesTargets() {
         )}
       />
 
-      <AppCard title="Filters">
-        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+      <AppCard title="Filters" style={{ width: '100%', minWidth: 0 }}>
+        <div style={filtersGridStyle}>
           <AppSelect label="Year" value={filters.year} onChange={(e) => setFilters({ ...filters, year: Number(e.target.value) })}>
             {Array.from({ length: 5 }, (_, index) => currentYear - 2 + index).map((year) => <option key={year} value={year}>{year}</option>)}
           </AppSelect>
@@ -145,7 +174,7 @@ export default function SalesTargets() {
             <option value="">All</option>
             {employeeOptions.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
           </AppSelect>
-          <div style={{ display: 'flex', alignItems: 'end' }}>
+          <div style={{ display: 'flex', alignItems: 'end', minWidth: 0 }}>
             <AppButton onClick={() => load(filters)}>Apply Filters</AppButton>
           </div>
         </div>
@@ -153,9 +182,9 @@ export default function SalesTargets() {
 
       {error ? <AppCard><EmptyState title="Sales target error" message={error} /></AppCard> : null}
 
-      <AppCard title={form.id ? 'Edit Target' : 'Add Target'}>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+      <AppCard title={form.id ? 'Edit Target' : 'Add Target'} style={{ width: '100%', minWidth: 0 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, width: '100%', minWidth: 0 }}>
+          <div style={formGridStyle}>
             <AppSelect label="Sales Person" value={form.salesPersonId} onChange={(e) => setForm({ ...form, salesPersonId: e.target.value })} required>
               <option value="">Select person</option>
               {employeeOptions.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
@@ -181,11 +210,11 @@ export default function SalesTargets() {
         </form>
       </AppCard>
 
-      <AppCard title="Target List">
+      <AppCard title="Target List" style={{ width: '100%', minWidth: 0 }}>
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : safeRows(targets).length ? (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table style={tableStyle}>
               <thead>
                 <tr>
