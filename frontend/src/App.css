@@ -308,6 +308,29 @@ main > * {
   min-width: 0;
 }
 
+.crm-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.crm-page-header-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+.crm-page-header-action {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 100%;
+}
+
 table th {
   padding: var(--crm-table-cell-y) var(--crm-table-cell-x);
   font-size: 12px;
@@ -410,6 +433,20 @@ button.danger {
 
   table {
     font-size: 12px;
+  }
+
+  .crm-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .crm-page-header-action {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .crm-page-header-action > * {
+    width: 100%;
   }
 
 }

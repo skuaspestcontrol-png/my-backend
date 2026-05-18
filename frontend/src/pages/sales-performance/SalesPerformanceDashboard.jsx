@@ -37,6 +37,7 @@ const summaryCards = [
 ];
 
 export default function SalesPerformanceDashboard() {
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [filters, setFilters] = useState({ year: currentYear, month: currentMonth, employeeId: '' });
   const [data, setData] = useState(null);
   const [matrix, setMatrix] = useState([]);
@@ -70,7 +71,24 @@ export default function SalesPerformanceDashboard() {
     load();
   }, []);
 
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const salesPeople = useMemo(() => safeRows(employees), [employees]);
+  const filtersGridStyle = viewportWidth >= 1100
+    ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
+    : viewportWidth >= 768
+      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : { display: 'grid', gap: 12, gridTemplateColumns: '1fr' };
+
+  const summaryGridStyle = viewportWidth >= 1200
+    ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
+    : viewportWidth >= 700
+      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : { display: 'grid', gap: 12, gridTemplateColumns: '1fr' };
 
   const summaryValue = (key) => {
     if (key === 'bestPerformer') return data?.summary?.bestPerformer?.employeeName || '---';
@@ -80,7 +98,7 @@ export default function SalesPerformanceDashboard() {
   const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <PageHeader
         title="Sales Performance"
         subtitle="Track monthly and yearly target vs achievement in a simple clean view."
@@ -92,7 +110,7 @@ export default function SalesPerformanceDashboard() {
       />
 
       <AppCard title="Filters">
-        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        <div style={filtersGridStyle}>
           <AppSelect label="Year" value={filters.year} onChange={(e) => setFilters({ ...filters, year: Number(e.target.value) })}>
             {Array.from({ length: 5 }, (_, index) => currentYear - 2 + index).map((year) => <option key={year} value={year}>{year}</option>)}
           </AppSelect>
@@ -118,7 +136,7 @@ export default function SalesPerformanceDashboard() {
         <AppCard><EmptyState title="Sales performance error" message={error} /></AppCard>
       ) : (
         <>
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+          <div style={summaryGridStyle}>
             {summaryCards.map((card) => (
               <DashboardStatCard
                 key={card.key}

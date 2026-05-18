@@ -24,24 +24,9 @@ const targetColor = '#111827';
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
 const neutralTextColor = '#111827';
-const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto' };
-const tableStyle = { width: '100%', minWidth: '1120px', tableLayout: 'fixed', borderCollapse: 'collapse' };
-const headCellStyle = {
-  padding: '10px 12px',
-  textAlign: 'left',
-  whiteSpace: 'normal',
-  wordBreak: 'break-word',
-  verticalAlign: 'top'
-};
-const bodyCellStyle = {
-  padding: '10px 12px',
-  borderTop: '1px solid var(--color-border)',
-  whiteSpace: 'normal',
-  wordBreak: 'break-word',
-  verticalAlign: 'top'
-};
 
 export default function SalesTeamPerformance() {
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [filters, setFilters] = useState({ year: currentYear, month: currentMonth, salesPersonId: '' });
   const [rows, setRows] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -66,7 +51,48 @@ export default function SalesTeamPerformance() {
     load();
   }, []);
 
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const employeeOptions = useMemo(() => safeRows(employees), [employees]);
+  const filtersGridStyle = viewportWidth >= 1100
+    ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
+    : viewportWidth >= 768
+      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : { display: 'grid', gap: 12, gridTemplateColumns: '1fr' };
+  const chartGridStyle = viewportWidth >= 900
+    ? { display: 'grid', gap: 16, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+    : { display: 'grid', gap: 16, gridTemplateColumns: '1fr' };
+  const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' };
+  const tableStyle = {
+    width: '100%',
+    minWidth: viewportWidth <= 640 ? '980px' : '1120px',
+    tableLayout: 'fixed',
+    borderCollapse: 'collapse'
+  };
+  const headCellStyle = {
+    padding: viewportWidth <= 640 ? '8px 10px' : '10px 12px',
+    textAlign: 'left',
+    whiteSpace: 'nowrap',
+    wordBreak: 'normal',
+    verticalAlign: 'middle',
+    height: viewportWidth <= 640 ? 40 : 42,
+    lineHeight: 1.2
+  };
+  const bodyCellStyle = {
+    padding: viewportWidth <= 640 ? '8px 10px' : '10px 12px',
+    borderTop: '1px solid var(--color-border)',
+    whiteSpace: 'nowrap',
+    wordBreak: 'normal',
+    verticalAlign: 'middle',
+    height: viewportWidth <= 640 ? 44 : 48,
+    lineHeight: 1.2,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  };
 
   const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
   const statusColor = (status) => {
@@ -82,7 +108,7 @@ export default function SalesTeamPerformance() {
   };
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <PageHeader
         title="Team Performance"
         subtitle="Compare sales team members by monthly and yearly achievement."
@@ -90,7 +116,7 @@ export default function SalesTeamPerformance() {
       />
 
       <AppCard title="Filters">
-        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        <div style={filtersGridStyle}>
           <AppSelect label="Month" value={filters.month} onChange={(e) => setFilters({ ...filters, month: Number(e.target.value) })}>
             {monthOptions.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}
           </AppSelect>
@@ -135,7 +161,7 @@ export default function SalesTeamPerformance() {
                   </thead>
                   <tbody>
                     {rows.map((row) => (
-                      <tr key={row.employeeId}>
+                      <tr key={row.employeeId} style={{ height: viewportWidth <= 640 ? 44 : 48 }}>
                         <td style={bodyCellStyle}>{row.employeeName}</td>
                         <td style={bodyCellStyle}>{money(row.monthlyTarget)}</td>
                         <td style={bodyCellStyle}>
@@ -175,7 +201,7 @@ export default function SalesTeamPerformance() {
             ) : <EmptyState title="No team data" message="Add targets and source records to compare the team." />}
           </AppCard>
 
-          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+          <div style={chartGridStyle}>
             <AppCard title="Target vs Achievement">
               {rows.length ? (
                 <div style={chartWrap}>

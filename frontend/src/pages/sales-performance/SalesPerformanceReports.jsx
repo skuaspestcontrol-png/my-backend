@@ -24,23 +24,6 @@ const targetColor = '#111827';
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
 const neutralTextColor = '#111827';
-const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto' };
-const tableStyle = { width: '100%', minWidth: '1500px', tableLayout: 'fixed', borderCollapse: 'collapse' };
-const headCellStyle = {
-  padding: '10px 12px',
-  textAlign: 'left',
-  whiteSpace: 'normal',
-  wordBreak: 'break-word',
-  verticalAlign: 'top'
-};
-const bodyCellStyle = {
-  padding: '10px 12px',
-  borderTop: '1px solid var(--color-border)',
-  whiteSpace: 'normal',
-  wordBreak: 'break-word',
-  verticalAlign: 'top'
-};
-
 const reportTypeOptions = [
   { value: 'monthly', label: 'Monthly target vs achievement' },
   { value: 'yearly', label: 'Yearly target vs achievement' },
@@ -114,6 +97,33 @@ export default function SalesPerformanceReports() {
     if (value === 'excellent') return successColor;
     if (value === 'low') return dangerColor;
     return neutralTextColor;
+  };
+  const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' };
+  const tableStyle = {
+    width: '100%',
+    minWidth: viewportWidth <= 640 ? '1640px' : '1500px',
+    tableLayout: 'fixed',
+    borderCollapse: 'collapse'
+  };
+  const headCellStyle = {
+    padding: viewportWidth <= 640 ? '8px 10px' : '10px 12px',
+    textAlign: 'left',
+    whiteSpace: 'nowrap',
+    wordBreak: 'normal',
+    verticalAlign: 'middle',
+    height: viewportWidth <= 640 ? 40 : 42,
+    lineHeight: 1.2
+  };
+  const bodyCellStyle = {
+    padding: viewportWidth <= 640 ? '8px 10px' : '10px 12px',
+    borderTop: '1px solid var(--color-border)',
+    whiteSpace: 'nowrap',
+    wordBreak: 'normal',
+    verticalAlign: 'middle',
+    height: viewportWidth <= 640 ? 44 : 48,
+    lineHeight: 1.2,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
   };
 
   const summaryCards = [
@@ -227,7 +237,7 @@ export default function SalesPerformanceReports() {
           <div style={summaryGridStyle}>
             {summaryCards.map((card) => (
               <AppCard key={card.title} title={card.title} style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text)' }}>{card.value}</div>
+                <div style={{ fontSize: viewportWidth <= 640 ? 20 : 22, fontWeight: 800, color: 'var(--color-text)' }}>{card.value}</div>
               </AppCard>
             ))}
           </div>
@@ -311,7 +321,7 @@ export default function SalesPerformanceReports() {
                   </thead>
                   <tbody>
                     {rows.map((row) => (
-                      <tr key={`${row.employeeId}-${row.year}-${row.month}`}>
+                      <tr key={`${row.employeeId}-${row.year}-${row.month}`} style={{ height: viewportWidth <= 640 ? 44 : 48 }}>
                         <td style={bodyCellStyle}>{row.employeeName}</td>
                         <td style={bodyCellStyle}>{money(row.monthlyTarget)}</td>
                         <td style={bodyCellStyle}>

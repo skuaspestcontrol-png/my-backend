@@ -39,6 +39,7 @@ const dangerColor = '#DC2626';
 
 export default function StockDashboard() {
   const navigate = useNavigate();
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -60,6 +61,31 @@ export default function StockDashboard() {
     load();
   }, []);
 
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const shortcutGridStyle = viewportWidth <= 480
+    ? { display: 'grid', gap: 10, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+    : viewportWidth <= 768
+      ? { display: 'grid', gap: 10, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : { display: 'flex', flexWrap: 'wrap', gap: 10 };
+  const summaryGridStyle = viewportWidth <= 480
+    ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+    : viewportWidth <= 768
+      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' };
+  const chartGridStyle = viewportWidth <= 768
+    ? { display: 'grid', gap: 16, gridTemplateColumns: '1fr' }
+    : { display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' };
+  const compactButtonStyle = viewportWidth <= 480 ? { width: '100%', minWidth: 0, justifyContent: 'center' } : undefined;
+  const statCardStyle = viewportWidth <= 480 ? { padding: 0 } : undefined;
+  const statContentStyle = viewportWidth <= 480 ? { padding: 12, gap: 8 } : undefined;
+  const statTitleStyle = viewportWidth <= 480 ? { fontSize: 11 } : undefined;
+  const statValueStyle = viewportWidth <= 480 ? { fontSize: 22 } : undefined;
+
   const isHealthyStock = (value) => Number(value || 0) > 0;
 
   return (
@@ -74,11 +100,11 @@ export default function StockDashboard() {
         )}
       />
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-        <AppButton variant="secondary" onClick={() => navigate('/stock/items')}>Items</AppButton>
-        <AppButton variant="secondary" onClick={() => navigate('/stock/purchase')}>Stock In / Purchase</AppButton>
-        <AppButton variant="secondary" onClick={() => navigate('/stock/issue-usage')}>Issue &amp; Usage</AppButton>
-        <AppButton variant="secondary" onClick={() => navigate('/stock/reports')}>Reports</AppButton>
+      <div style={shortcutGridStyle}>
+        <AppButton variant="secondary" style={compactButtonStyle} onClick={() => navigate('/stock/items')}>Items</AppButton>
+        <AppButton variant="secondary" style={compactButtonStyle} onClick={() => navigate('/stock/purchase')}>Stock In / Purchase</AppButton>
+        <AppButton variant="secondary" style={compactButtonStyle} onClick={() => navigate('/stock/issue-usage')}>Issue &amp; Usage</AppButton>
+        <AppButton variant="secondary" style={compactButtonStyle} onClick={() => navigate('/stock/reports')}>Reports</AppButton>
       </div>
 
       {loading ? (
@@ -94,18 +120,22 @@ export default function StockDashboard() {
         </AppCard>
       ) : (
         <>
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+          <div style={summaryGridStyle}>
             {summaryCards.map((card) => (
               <DashboardStatCard
                 key={card.key}
                 title={card.title}
                 value={card.key.includes('Value') || card.key.includes('Purchase') ? money(data?.summary?.[card.key] || 0) : number(data?.summary?.[card.key] || 0)}
                 icon={card.icon}
+                style={statCardStyle}
+                contentStyle={statContentStyle}
+                titleStyle={statTitleStyle}
+                valueStyle={statValueStyle}
               />
             ))}
           </div>
 
-          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+          <div style={chartGridStyle}>
             <AppCard title="Category Wise Stock">
               {safeRows(data?.categoryWise).length ? (
                 <div style={chartWrap}>
