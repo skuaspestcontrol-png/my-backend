@@ -79,7 +79,7 @@ export default function SalesPerformanceDashboard() {
 
   const salesPeople = useMemo(() => safeRows(employees), [employees]);
   const isMobile = viewportWidth <= 640;
-  const chartWrap = { width: '100%', height: isMobile ? 150 : 300 };
+  const chartWrap = { width: '100%', height: isMobile ? 140 : 300 };
   const monthByValue = useMemo(() => new Map(monthOptions.map((month) => [month.value, month.label])), []);
   const filtersGridStyle = viewportWidth >= 1100
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
@@ -91,7 +91,18 @@ export default function SalesPerformanceDashboard() {
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 700
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' };
+      : {
+        display: 'grid',
+        gap: 10,
+        gridTemplateRows: 'repeat(2, minmax(0, 1fr))',
+        gridAutoFlow: 'column',
+        gridAutoColumns: 'minmax(158px, 1fr)',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-x',
+        overscrollBehaviorX: 'contain',
+        paddingBottom: 4
+      };
   const scrollHintStyle = {
     marginBottom: 8,
     color: '#6B7280',
@@ -145,10 +156,16 @@ export default function SalesPerformanceDashboard() {
             <option value="">All Team</option>
             {salesPeople.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
           </AppSelect>
-          <AppInput label="Selected Team" value={filters.employeeId ? 'Single Sales Person' : 'All Team'} readOnly />
+          {!isMobile ? (
+            <AppInput label="Selected Team" value={filters.employeeId ? 'Single Sales Person' : 'All Team'} readOnly />
+          ) : null}
         </div>
         <div style={{ display: 'flex', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', marginTop: 12 }}>
-          <AppButton onClick={() => load(filters)} style={viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined}>
+          <AppButton
+            onClick={() => load(filters)}
+            fullWidth={viewportWidth <= 480}
+            style={viewportWidth <= 480 ? { width: '100%' } : undefined}
+          >
             Apply Filters
           </AppButton>
         </div>
@@ -168,6 +185,10 @@ export default function SalesPerformanceDashboard() {
                 key={card.key}
                 title={card.title}
                 value={summaryValue(card.key)}
+                style={isMobile ? { minWidth: 158 } : undefined}
+                contentStyle={isMobile ? { padding: 12, gap: 8 } : undefined}
+                titleStyle={isMobile ? { fontSize: 11 } : undefined}
+                valueStyle={isMobile ? { fontSize: 22 } : undefined}
               />
             ))}
           </div>
