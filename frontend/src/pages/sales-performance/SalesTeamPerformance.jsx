@@ -76,11 +76,11 @@ export default function SalesTeamPerformance() {
   const headCellStyle = {
     padding: viewportWidth <= 640 ? '7px 8px' : '10px 12px',
     textAlign: 'left',
-    whiteSpace: 'nowrap',
-    wordBreak: 'normal',
-    verticalAlign: 'middle',
-    height: viewportWidth <= 640 ? 38 : 42,
-    lineHeight: 1.15,
+    whiteSpace: 'normal',
+    wordBreak: 'break-word',
+    verticalAlign: 'bottom',
+    height: viewportWidth <= 640 ? 42 : 56,
+    lineHeight: 1.1,
     fontSize: viewportWidth <= 640 ? 11 : 12
   };
   const bodyCellStyle = {
@@ -94,6 +94,9 @@ export default function SalesTeamPerformance() {
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   };
+  const teamColWidths = viewportWidth <= 640
+    ? ['16%', '10%', '10%', '8%', '10%', '10%', '8%', '8%', '8%', '10%', '10%']
+    : ['18%', '10%', '10%', '8%', '10%', '10%', '8%', '8%', '8%', '10%', '8%'];
 
   const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
   const statusColor = (status) => {
@@ -145,6 +148,11 @@ export default function SalesTeamPerformance() {
             {rows.length ? (
               <div style={tableWrapStyle}>
                 <table style={tableStyle}>
+                  <colgroup>
+                    {teamColWidths.map((width, index) => (
+                      <col key={index} style={{ width }} />
+                    ))}
+                  </colgroup>
                   <thead>
                     <tr>
                       <th style={headCellStyle}>Sales Person</th>

@@ -2627,25 +2627,25 @@ export default function Settings({ modalMode = false }) {
             <div
               style={{
                 width: '100%',
-                minHeight: isCompactLayout ? '56px' : '84px',
+                minHeight: isCompactLayout ? '50px' : '64px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: isCompactLayout ? '0 14px' : '0 22px',
+                padding: isCompactLayout ? '0 14px' : '0 18px',
                 color: '#ffffff',
                 fontWeight: 800,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                fontSize: isCompactLayout ? '12px' : '13px'
+                fontSize: isCompactLayout ? '11px' : '12px'
               }}
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                 {form.dashboardImageUrl ? (
                   <span
                     style={{
-                      width: isCompactLayout ? '28px' : '34px',
-                      height: isCompactLayout ? '28px' : '34px',
-                      borderRadius: '8px',
+                      width: isCompactLayout ? '28px' : '30px',
+                      height: isCompactLayout ? '28px' : '30px',
+                      borderRadius: '7px',
                       background: 'rgba(255,255,255,0.16)',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -2661,9 +2661,8 @@ export default function Settings({ modalMode = false }) {
                     />
                   </span>
                 ) : null}
-                <span>Settings Header</span>
+                <span>Settings</span>
               </span>
-              <span style={{ opacity: 0.85 }}>{form.brandingAccentColor || '#9F174D'}</span>
             </div>
           </header>
 
