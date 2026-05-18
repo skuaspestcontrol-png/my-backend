@@ -79,7 +79,7 @@ export default function SalesPerformanceDashboard() {
 
   const salesPeople = useMemo(() => safeRows(employees), [employees]);
   const isMobile = viewportWidth <= 640;
-  const chartWrap = { width: '100%', height: isMobile ? 180 : 300 };
+  const chartWrap = { width: '100%', height: isMobile ? 150 : 300 };
   const monthByValue = useMemo(() => new Map(monthOptions.map((month) => [month.value, month.label])), []);
   const filtersGridStyle = viewportWidth >= 1100
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
@@ -97,6 +97,19 @@ export default function SalesPerformanceDashboard() {
     color: '#6B7280',
     fontSize: isMobile ? 11 : 12,
     fontWeight: 600
+  };
+  const matrixScrollStyle = {
+    width: '100%',
+    maxWidth: '100%',
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    WebkitOverflowScrolling: 'touch',
+    touchAction: 'pan-x',
+    overscrollBehaviorX: 'contain'
+  };
+  const matrixInnerStyle = {
+    width: isMobile ? '1180px' : '100%',
+    minWidth: isMobile ? '1180px' : '100%'
   };
 
   const summaryValue = (key) => {
@@ -164,12 +177,12 @@ export default function SalesPerformanceDashboard() {
                     <XAxis
                       dataKey="label"
                       tick={{ fontSize: isMobile ? 10 : 12 }}
-                      height={isMobile ? 44 : 30}
+                      height={isMobile ? 36 : 30}
                       interval={0}
-                      angle={isMobile ? -20 : 0}
+                      angle={isMobile ? -15 : 0}
                       textAnchor={isMobile ? 'end' : 'middle'}
                     />
-                    <YAxis width={isMobile ? 32 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
+                    <YAxis width={isMobile ? 28 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
                     <Tooltip />
                     <Bar dataKey="target" fill={targetColor} radius={[8, 8, 0, 0]} />
                     <Bar dataKey="achieved" radius={[8, 8, 0, 0]}>
@@ -185,59 +198,60 @@ export default function SalesPerformanceDashboard() {
 
           <AppCard title="Year-Month Matrix">
             {safeRows(matrix).length ? (
-              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}>
+              <div style={matrixScrollStyle}>
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all months.</div> : null}
-                <table
-                  style={{
-                    width: '100%',
-                    minWidth: isMobile ? '1180px' : '100%',
-                    borderCollapse: 'collapse',
-                    tableLayout: 'fixed'
-                  }}
-                >
-                  <colgroup>
-                    <col style={{ width: isMobile ? '72px' : '10%' }} />
-                    {monthOptions.map((month) => (
-                      <col key={month.value} style={{ width: isMobile ? '92px' : '7.5%' }} />
-                    ))}
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th style={{ padding: isMobile ? '9px 10px' : '10px 12px', textAlign: 'left', whiteSpace: 'nowrap' }}>Year</th>
+                <div style={matrixInnerStyle}>
+                  <table
+                    style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      tableLayout: 'fixed'
+                    }}
+                  >
+                    <colgroup>
+                      <col style={{ width: isMobile ? '72px' : '10%' }} />
                       {monthOptions.map((month) => (
-                        <th key={month.value} style={{ padding: isMobile ? '9px 10px' : '10px 12px', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                          {month.label}
-                        </th>
+                        <col key={month.value} style={{ width: isMobile ? '92px' : '7.5%' }} />
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {matrix.map((row) => (
-                      <tr key={row.year} style={{ height: isMobile ? 44 : 48 }}>
-                        <td style={{ padding: isMobile ? '9px 10px' : '10px 12px', fontWeight: 700, whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
-                          {row.year}
-                        </td>
-                        {safeRows(row.cells).map((cell) => (
-                          <td
-                            key={`${row.year}-${cell.month}`}
-                            style={{
-                              padding: isMobile ? '9px 10px' : '10px 12px',
-                              whiteSpace: 'nowrap',
-                              verticalAlign: 'middle',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis'
-                            }}
-                          >
-                            <div style={{ fontWeight: 800, lineHeight: 1.1 }}>{percent(cell.achievementPercent)}</div>
-                            <div style={{ color: '#6B7280', fontSize: isMobile ? 11 : 12, lineHeight: 1.2 }}>
-                              {money(cell.achieved)} / {money(cell.target)}
-                            </div>
-                          </td>
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th style={{ padding: isMobile ? '9px 10px' : '10px 12px', textAlign: 'left', whiteSpace: 'nowrap' }}>Year</th>
+                        {monthOptions.map((month) => (
+                          <th key={month.value} style={{ padding: isMobile ? '9px 10px' : '10px 12px', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                            {month.label}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {matrix.map((row) => (
+                        <tr key={row.year} style={{ height: isMobile ? 44 : 48 }}>
+                          <td style={{ padding: isMobile ? '9px 10px' : '10px 12px', fontWeight: 700, whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                            {row.year}
+                          </td>
+                          {safeRows(row.cells).map((cell) => (
+                            <td
+                              key={`${row.year}-${cell.month}`}
+                              style={{
+                                padding: isMobile ? '9px 10px' : '10px 12px',
+                                whiteSpace: 'nowrap',
+                                verticalAlign: 'middle',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}
+                            >
+                              <div style={{ fontWeight: 800, lineHeight: 1.1 }}>{percent(cell.achievementPercent)}</div>
+                              <div style={{ color: '#6B7280', fontSize: isMobile ? 11 : 12, lineHeight: 1.2 }}>
+                                {money(cell.achieved)} / {money(cell.target)}
+                              </div>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : <EmptyState title="No matrix data" message="Year and month comparisons will appear here." />}
           </AppCard>
@@ -251,12 +265,12 @@ export default function SalesPerformanceDashboard() {
                     <XAxis
                       dataKey="employeeName"
                       tick={{ fontSize: isMobile ? 10 : 12 }}
-                      height={isMobile ? 44 : 30}
+                      height={isMobile ? 36 : 30}
                       interval={0}
-                      angle={isMobile ? -20 : 0}
+                      angle={isMobile ? -15 : 0}
                       textAnchor={isMobile ? 'end' : 'middle'}
                     />
-                    <YAxis width={isMobile ? 32 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
+                    <YAxis width={isMobile ? 28 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
                     <Tooltip />
                     <Bar dataKey="yearlyAchievementPercent" radius={[8, 8, 0, 0]}>
                       {safeRows(data?.salesPersonPerformance).map((entry) => (

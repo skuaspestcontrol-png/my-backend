@@ -59,7 +59,7 @@ export default function SalesTeamPerformance() {
 
   const employeeOptions = useMemo(() => safeRows(employees), [employees]);
   const isMobile = viewportWidth <= 640;
-  const chartWrap = { width: '100%', height: isMobile ? 180 : 300 };
+  const chartWrap = { width: '100%', height: isMobile ? 150 : 300 };
   const filtersGridStyle = viewportWidth >= 1100
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 768
@@ -102,9 +102,9 @@ export default function SalesTeamPerformance() {
     : ['20%', '10%', '10%', '8%', '10%', '10%', '8%', '9%', '9%', '10%', '8%'];
   const chartAxisProps = {
     tick: { fontSize: isMobile ? 10 : 12 },
-    height: isMobile ? 44 : 30,
+    height: isMobile ? 36 : 30,
     interval: 0,
-    angle: isMobile ? -20 : 0,
+    angle: isMobile ? -15 : 0,
     textAnchor: isMobile ? 'end' : 'middle'
   };
   const mobileCardStyle = {
