@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { IndianRupee, Receipt, WalletCards } from 'lucide-react';
+import { IndianRupee, WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -233,7 +233,7 @@ export default function VendorPaymentDashboard() {
         </article>
         <article style={shell.stat}>
           <p style={shell.statLabel}>Payment Entries</p>
-          <p style={shell.statValue}><Receipt size={18} style={{ verticalAlign: 'middle' }} /> {summary.paymentEntries}</p>
+          <p style={shell.statValue}><IndianRupee size={18} style={{ verticalAlign: 'middle' }} /> {summary.paymentEntries}</p>
         </article>
       </div>
 
