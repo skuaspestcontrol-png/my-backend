@@ -1769,7 +1769,7 @@ export default function Settings({ modalMode = false }) {
       </div>
 
       <div style={shell.divider} />
-      <h4 style={blockTitleStyle}>
+      <h4 style={brandingSectionTitleStyle}>
         GST Company Branding
       </h4>
       <p style={{ ...shell.hint, fontSize: '14px' }}>Upload logo, signature, and stamp used on GST invoices and documents.</p>
@@ -1849,7 +1849,7 @@ export default function Settings({ modalMode = false }) {
       </div>
 
       <div style={shell.divider} />
-      <h4 style={blockTitleStyle}>
+      <h4 style={brandingSectionTitleStyle}>
         Non-GST Company Branding
       </h4>
       <p style={{ ...shell.hint, fontSize: '14px' }}>Upload logo used on Non-GST invoices and documents.</p>
@@ -2568,8 +2568,8 @@ export default function Settings({ modalMode = false }) {
     ? { ...shell.panel, minHeight: 'auto' }
     : shell.panel;
   const panelHeaderStyle = isCompactLayout
-    ? { ...shell.panelHeader, padding: 0, gap: 0, background: form.brandingAccentColor || '#9F174D' }
-    : { ...shell.panelHeader, padding: 0, gap: 0, background: form.brandingAccentColor || '#9F174D' };
+    ? { ...shell.panelHeader, padding: 0, gap: 0, background: 'var(--color-primary)' }
+    : { ...shell.panelHeader, padding: 0, gap: 0, background: 'var(--color-primary)' };
   const panelTitleStyle = isCompactLayout
     ? { ...shell.panelTitle, fontSize: '22px', lineHeight: 1.2 }
     : shell.panelTitle;
@@ -2618,6 +2618,7 @@ export default function Settings({ modalMode = false }) {
   const sectionLeadSubTitleStyle = modalMode
     ? { ...shell.hint, fontSize: '13px', fontWeight: 700, color: '#475569' }
     : { ...shell.hint, fontSize: '18px', fontWeight: 700, color: '#475569' };
+  const brandingSectionTitleStyle = { margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text)', lineHeight: 1.2 };
 
   return (
     <section style={pageStyle}>
