@@ -277,7 +277,7 @@ export default function DashboardLayout({ children }) {
   const isActive = (path) => location.pathname === path;
   const isPrefixActive = (prefix) => location.pathname.startsWith(prefix);
 
-  const salesGroupActive = isPrefixActive('/sales/') || isPrefixActive('/quotations') || isPrefixActive('/sales-performance');
+  const salesGroupActive = isPrefixActive('/sales/') || isPrefixActive('/quotations');
   const leadsGroupActive = isActive('/leads') || isPrefixActive('/leads/');
   const purchaseGroupActive = isPrefixActive('/purchase/');
   const fieldOpsGroupActive = isPrefixActive('/operations/') || isActive('/schedule-job') || isActive('/technician-portal');
@@ -324,12 +324,14 @@ export default function DashboardLayout({ children }) {
     color: isActive(path) ? 'var(--color-white)' : 'var(--color-muted)'
   });
 
-  const groupToggleStyle = (active) => ({
-    ...baseLinkStyle(active),
+  const groupToggleStyle = (open) => ({
+    ...baseLinkStyle(false),
     border: 'none',
     justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
     cursor: 'pointer',
-    background: active ? 'var(--color-primary)' : 'var(--color-white)'
+    background: open ? 'var(--color-primary-light)' : 'var(--color-white)',
+    color: 'var(--color-text)',
+    boxShadow: 'none'
   });
 
   const toggleGroupMenu = (setMenuOpen) => {
@@ -510,7 +512,7 @@ export default function DashboardLayout({ children }) {
           </Link>
 
           <SidebarSection title="Sales & Marketing" collapsed={isSidebarCollapsed}>
-            <button type="button" className={leadsGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => toggleGroupMenu(setLeadsMenuOpen)} style={groupToggleStyle(leadsGroupActive)} title="Leads" aria-label="Leads">
+            <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setLeadsMenuOpen)} style={groupToggleStyle(leadsMenuOpen)} title="Leads" aria-label="Leads">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
                 <Users size={18} /> {!isSidebarCollapsed ? 'Leads' : null}
               </span>
@@ -522,7 +524,7 @@ export default function DashboardLayout({ children }) {
                 <Link to="/leads/followup" className={isActive('/leads/followup') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads/followup')}>Followup</Link>
               </>
             ) : null}
-            <button type="button" className={salesGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => toggleGroupMenu(setSalesMenuOpen)} style={groupToggleStyle(salesGroupActive)} title="Sales" aria-label="Sales">
+            <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setSalesMenuOpen)} style={groupToggleStyle(salesMenuOpen)} title="Sales" aria-label="Sales">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
                 <Briefcase size={18} /> {!isSidebarCollapsed ? 'Sales' : null}
               </span>
@@ -539,7 +541,7 @@ export default function DashboardLayout({ children }) {
               </>
             ) : null}
 
-            <button type="button" className={salesPerformanceGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => toggleGroupMenu(setSalesPerformanceMenuOpen)} style={groupToggleStyle(salesPerformanceGroupActive)} title="Sales Performance" aria-label="Sales Performance">
+            <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setSalesPerformanceMenuOpen)} style={groupToggleStyle(salesPerformanceMenuOpen)} title="Sales Performance" aria-label="Sales Performance">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
                 <BarChart3 size={18} /> {!isSidebarCollapsed ? 'Sales Performance' : null}
               </span>
@@ -554,7 +556,7 @@ export default function DashboardLayout({ children }) {
               </>
             ) : null}
 
-            <button type="button" className={purchaseGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => toggleGroupMenu(setPurchaseMenuOpen)} style={groupToggleStyle(purchaseGroupActive)} title="Purchase" aria-label="Purchase">
+            <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setPurchaseMenuOpen)} style={groupToggleStyle(purchaseMenuOpen)} title="Purchase" aria-label="Purchase">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
                 <ShoppingCart size={18} /> {!isSidebarCollapsed ? 'Purchase' : null}
               </span>
@@ -571,7 +573,7 @@ export default function DashboardLayout({ children }) {
           </SidebarSection>
 
           <SidebarSection title="Operations" collapsed={isSidebarCollapsed}>
-            <button type="button" className={fieldOpsGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => toggleGroupMenu(setFieldOpsMenuOpen)} style={groupToggleStyle(fieldOpsGroupActive)} title="Field Operations" aria-label="Field Operations">
+            <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setFieldOpsMenuOpen)} style={groupToggleStyle(fieldOpsMenuOpen)} title="Field Operations" aria-label="Field Operations">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
                 <Smartphone size={18} /> {!isSidebarCollapsed ? 'Field Operations' : null}
               </span>
@@ -589,7 +591,7 @@ export default function DashboardLayout({ children }) {
           </SidebarSection>
 
           <SidebarSection title="Inventory" collapsed={isSidebarCollapsed}>
-            <button type="button" className={stockGroupActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => toggleGroupMenu(setStockMenuOpen)} style={groupToggleStyle(stockGroupActive)} title="Stock Management" aria-label="Stock Management">
+            <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setStockMenuOpen)} style={groupToggleStyle(stockMenuOpen)} title="Stock Management" aria-label="Stock Management">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
                 <Database size={18} /> {!isSidebarCollapsed ? 'Stock Management' : null}
               </span>
