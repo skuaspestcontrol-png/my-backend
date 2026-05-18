@@ -105,15 +105,9 @@ const SalesIncentives = lazy(() => import('./pages/sales-performance/SalesIncent
 const SalesPerformanceSettings = lazy(() => import('./pages/sales-performance/SalesPerformanceSettings'));
 const SalesExportReports = lazy(() => import('./pages/sales-performance/SalesExportReports'));
 const StockDashboard = lazy(() => import('./pages/stock-management/StockDashboard'));
-const StockProducts = lazy(() => import('./pages/stock-management/StockProducts'));
+const StockItems = lazy(() => import('./pages/stock-management/StockItems'));
 const StockPurchase = lazy(() => import('./pages/stock-management/StockPurchase'));
-const StockIssueToTechnician = lazy(() => import('./pages/stock-management/StockIssueToTechnician'));
-const TechnicianStock = lazy(() => import('./pages/stock-management/TechnicianStock'));
-const StockUsage = lazy(() => import('./pages/stock-management/StockUsage'));
-const StockReturnsWastage = lazy(() => import('./pages/stock-management/StockReturnsWastage'));
-const LowStockAlert = lazy(() => import('./pages/stock-management/LowStockAlert'));
-const VendorStockReport = lazy(() => import('./pages/stock-management/VendorStockReport'));
-const StockLedger = lazy(() => import('./pages/stock-management/StockLedger'));
+const StockIssueUsage = lazy(() => import('./pages/stock-management/StockIssueUsage'));
 const StockReports = lazy(() => import('./pages/stock-management/StockReports'));
 
 const ProtectedRoute = ({ children }) => {
@@ -252,16 +246,18 @@ function App() {
             <Route path="/sales-performance/export" element={<AppRoute element={<SalesExportReports />} />} />
             <Route path="/stock" element={<Navigate to="/stock/dashboard" replace />} />
             <Route path="/stock/dashboard" element={<AppRoute element={<StockDashboard />} />} />
-            <Route path="/stock/products" element={<AppRoute element={<StockProducts />} />} />
+            <Route path="/stock/items" element={<AppRoute element={<StockItems />} />} />
             <Route path="/stock/purchase" element={<AppRoute element={<StockPurchase />} />} />
-            <Route path="/stock/issue" element={<AppRoute element={<StockIssueToTechnician />} />} />
-            <Route path="/stock/technician-stock" element={<AppRoute element={<TechnicianStock />} />} />
-            <Route path="/stock/usage" element={<AppRoute element={<StockUsage />} />} />
-            <Route path="/stock/returns" element={<AppRoute element={<StockReturnsWastage />} />} />
-            <Route path="/stock/low-stock" element={<AppRoute element={<LowStockAlert />} />} />
-            <Route path="/stock/vendor-report" element={<AppRoute element={<VendorStockReport />} />} />
-            <Route path="/stock/ledger" element={<AppRoute element={<StockLedger />} />} />
+            <Route path="/stock/issue-usage" element={<AppRoute element={<StockIssueUsage />} />} />
             <Route path="/stock/reports" element={<AppRoute element={<StockReports />} />} />
+            <Route path="/stock/products" element={<Navigate to="/stock/items" replace />} />
+            <Route path="/stock/issue" element={<Navigate to="/stock/issue-usage" replace />} />
+            <Route path="/stock/usage" element={<Navigate to="/stock/issue-usage" replace />} />
+            <Route path="/stock/returns" element={<Navigate to="/stock/issue-usage" replace />} />
+            <Route path="/stock/technician-stock" element={<Navigate to="/stock/reports" replace />} />
+            <Route path="/stock/low-stock" element={<Navigate to="/stock/reports" replace />} />
+            <Route path="/stock/vendor-report" element={<Navigate to="/stock/reports" replace />} />
+            <Route path="/stock/ledger" element={<Navigate to="/stock/reports" replace />} />
             <Route path="/purchase" element={<Navigate to="/purchase/vendors" replace />} />
             <Route path="/purchase/vendors" element={<AppRoute element={vendorsPage} />} />
             <Route path="/purchase/bills" element={<AppRoute element={billsPage} />} />

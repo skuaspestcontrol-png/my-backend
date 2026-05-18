@@ -553,15 +553,9 @@ export default function DashboardLayout({ children }) {
             {!isSidebarCollapsed && stockMenuOpen ? (
               <>
                 <Link to="/stock/dashboard" className={isActive('/stock/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/dashboard')}>Dashboard</Link>
-                <Link to="/stock/products" className={isActive('/stock/products') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/products')}>Products / Chemicals Master</Link>
-                <Link to="/stock/purchase" className={isActive('/stock/purchase') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/purchase')}>Purchase Stock</Link>
-                <Link to="/stock/issue" className={isActive('/stock/issue') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/issue')}>Issue to Technician</Link>
-                <Link to="/stock/technician-stock" className={isActive('/stock/technician-stock') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/technician-stock')}>Technician Stock</Link>
-                <Link to="/stock/usage" className={isActive('/stock/usage') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/usage')}>Stock Usage / Consumption</Link>
-                <Link to="/stock/returns" className={isActive('/stock/returns') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/returns')}>Return / Wastage / Damage</Link>
-                <Link to="/stock/low-stock" className={isActive('/stock/low-stock') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/low-stock')}>Low Stock Alert</Link>
-                <Link to="/stock/vendor-report" className={isActive('/stock/vendor-report') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/vendor-report')}>Vendor Stock Report</Link>
-                <Link to="/stock/ledger" className={isActive('/stock/ledger') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/ledger')}>Stock Ledger</Link>
+                <Link to="/stock/items" className={isActive('/stock/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/items')}>Items</Link>
+                <Link to="/stock/purchase" className={isActive('/stock/purchase') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/purchase')}>Stock In / Purchase</Link>
+                <Link to="/stock/issue-usage" className={isActive('/stock/issue-usage') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/issue-usage')}>Issue &amp; Usage</Link>
                 <Link to="/stock/reports" className={isActive('/stock/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/reports')}>Reports</Link>
               </>
             ) : null}
