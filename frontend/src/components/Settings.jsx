@@ -1450,7 +1450,24 @@ export default function Settings({ modalMode = false }) {
             background: form.brandingAppearance === 'dark' ? '#0f172a' : '#ffffff'
           }}
         >
-          <div style={{ height: '18px', background: form.brandingAccentColor || '#9F174D' }} />
+          <div
+            style={{
+              height: '28px',
+              background: form.brandingAccentColor || '#9F174D',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0 12px',
+              color: '#fff',
+              fontSize: '11px',
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase'
+            }}
+          >
+            <span>Brand Header</span>
+            <span style={{ opacity: 0.85 }}>{form.brandingAccentColor || '#9F174D'}</span>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', minHeight: '96px' }}>
             <div
               style={{
@@ -2551,8 +2568,8 @@ export default function Settings({ modalMode = false }) {
     ? { ...shell.panel, minHeight: 'auto' }
     : shell.panel;
   const panelHeaderStyle = isCompactLayout
-    ? { ...shell.panelHeader, padding: '14px 14px 12px', gap: '10px' }
-    : shell.panelHeader;
+    ? { ...shell.panelHeader, padding: 0, gap: 0, background: form.brandingAccentColor || '#9F174D' }
+    : { ...shell.panelHeader, padding: 0, gap: 0, background: form.brandingAccentColor || '#9F174D' };
   const panelTitleStyle = isCompactLayout
     ? { ...shell.panelTitle, fontSize: '22px', lineHeight: 1.2 }
     : shell.panelTitle;
@@ -2607,8 +2624,46 @@ export default function Settings({ modalMode = false }) {
       <div style={shell.workspaceShell}>
         <div style={panelStyle}>
           <header style={panelHeaderStyle}>
-            <div style={panelHeaderSideStyle}>
-              <div style={panelHeaderButtonsStyle} />
+            <div
+              style={{
+                width: '100%',
+                minHeight: isCompactLayout ? '56px' : '84px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: isCompactLayout ? '0 14px' : '0 22px',
+                color: '#ffffff',
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontSize: isCompactLayout ? '12px' : '13px'
+              }}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                {form.dashboardImageUrl ? (
+                  <span
+                    style={{
+                      width: isCompactLayout ? '28px' : '34px',
+                      height: isCompactLayout ? '28px' : '34px',
+                      borderRadius: '8px',
+                      background: 'rgba(255,255,255,0.16)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      flexShrink: 0
+                    }}
+                  >
+                    <img
+                      src={form.dashboardImageUrl}
+                      alt="Company logo"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', background: 'transparent' }}
+                    />
+                  </span>
+                ) : null}
+                <span>Settings Header</span>
+              </span>
+              <span style={{ opacity: 0.85 }}>{form.brandingAccentColor || '#9F174D'}</span>
             </div>
           </header>
 
