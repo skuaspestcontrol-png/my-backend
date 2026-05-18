@@ -43,6 +43,10 @@ const currentMonth = new Date().getMonth() + 1;
 const defaultYears = [currentYear - 1, currentYear, currentYear + 1];
 const monthList = Array.from({ length: 12 }, (_, index) => index + 1);
 const monthKey = (year, month) => `${Number(year)}-${String(Number(month)).padStart(2, '0')}`;
+const getSafeTargetMonth = (value) => {
+  const month = Number(value);
+  return Number.isFinite(month) && month > 0 ? month : null;
+};
 const percent = (achieved, target) => {
   const total = num(target);
   if (total <= 0) return 0;
@@ -54,6 +58,24 @@ const valueOf = (source, keys = []) => {
     if (raw !== undefined && raw !== null && raw !== '') return raw;
   }
   return null;
+};
+const hasColumn = (columns, ...names) => names.some((name) => columns.has(String(name).toLowerCase()));
+const stableTargetExternalId = (salesPersonId, targetType, targetYear, targetMonth = null) => {
+  const person = text(salesPersonId).replace(/[^a-z0-9]/gi, '').slice(0, 24) || 'TARGET';
+  const type = text(targetType).replace(/[^a-z0-9]/gi, '') || 'monthly';
+  const year = Number(targetYear) || currentYear;
+  const month = targetType === 'monthly' ? String(Number(targetMonth) || 0).padStart(2, '0') : '00';
+  return `SPT-${person}-${type}-${year}-${month}`;
+};
+const legacyTargetExternalId = (row = {}) => {
+  const salesPersonId = text(row.sales_person_id || row.employee_id || row.salesPersonId || row.employeeId || '');
+  const targetType = text(row.target_type || row.period_type || 'monthly').toLowerCase() || 'monthly';
+  const targetYear = Number(row.target_year || row.year || currentYear) || currentYear;
+  const targetMonth = targetType === 'monthly'
+    ? getSafeTargetMonth(row.target_month || row.month || null)
+    : null;
+  if (salesPersonId) return stableTargetExternalId(salesPersonId, targetType, targetYear, targetMonth);
+  return `SPT-LEGACY-${Number(row.id) || Date.now()}`;
 };
 const readJsonFile = (filePath) => {
   try {
@@ -91,6 +113,7 @@ const ensureColumn = async (tableName, columnName, ddl) => {
 const ensureSchema = async () => {
   await dbQuery(`CREATE TABLE IF NOT EXISTS sales_targets (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    external_id VARCHAR(120) NOT NULL,
     sales_person_id INT NOT NULL,
     target_type ENUM('monthly','yearly') NOT NULL DEFAULT 'monthly',
     target_month TINYINT NULL,
@@ -105,9 +128,11 @@ const ensureSchema = async () => {
     INDEX idx_sales_targets_person (sales_person_id),
     INDEX idx_sales_targets_type (target_type),
     INDEX idx_sales_targets_month_year (target_month, target_year),
+    UNIQUE KEY uk_sales_targets_external_id (external_id),
     UNIQUE KEY unique_sales_target (sales_person_id, target_type, target_month, target_year)
   )`);
 
+  await ensureColumn('sales_targets', 'external_id', 'external_id VARCHAR(120) NULL');
   await ensureColumn('sales_targets', 'sales_person_id', 'sales_person_id INT NULL');
   await ensureColumn('sales_targets', 'target_type', "target_type ENUM('monthly','yearly') NOT NULL DEFAULT 'monthly'");
   await ensureColumn('sales_targets', 'target_month', 'target_month TINYINT NULL');
@@ -139,6 +164,21 @@ const ensureSchema = async () => {
   if (oldColumns.has('year')) {
     try {
       await dbQuery('UPDATE sales_targets SET target_year = COALESCE(target_year, year) WHERE target_year IS NULL OR target_year = 0');
+    } catch (_error) {}
+  }
+  if (oldColumns.has('external_id')) {
+    try {
+      const legacyRows = await queryRows(
+        `SELECT id, external_id, sales_person_id, employee_id, target_type, period_type, target_month, month, target_year, year
+         FROM sales_targets
+         WHERE external_id IS NULL OR external_id = ''`
+      );
+      for (const row of legacyRows) {
+        const nextExternalId = legacyTargetExternalId(row);
+        try {
+          await dbQuery('UPDATE sales_targets SET external_id = ? WHERE id = ? AND (external_id IS NULL OR external_id = \'\')', [nextExternalId, row.id]);
+        } catch (_error) {}
+      }
     } catch (_error) {}
   }
 };
@@ -205,6 +245,67 @@ const employeeHasValue = (employee, value) => {
   const ref = text(value).toLowerCase();
   if (!ref) return false;
   return [employee.id, employee.dbId, employee.employeeCode, employee.name, employee.role, employee.roleName].map(text).filter(Boolean).some((item) => item.toLowerCase() === ref);
+};
+const resolveEmployee = (lookup, employeeValue, employeeNameValue = '') => {
+  const direct = pickEmployee(lookup, employeeValue);
+  if (direct) return direct;
+  const byName = pickEmployee(lookup, employeeNameValue);
+  if (byName) return byName;
+  return null;
+};
+const normalizeTargetRow = (row = {}, lookup = null) => {
+  const payload = safeJson(row.payload, {});
+  const source = { ...payload, ...row };
+  const salesPersonRaw = valueOf(source, [
+    'sales_person_id', 'salesPersonId', 'employee_id', 'employeeId', 'sales_person', 'salesPerson', 'assigned_to', 'assignedTo',
+    'sales_id', 'salesId', 'created_by', 'createdBy', 'employee_external_id', 'employeeExternalId'
+  ]);
+  const salesPersonNameRaw = valueOf(source, [
+    'sales_person_name', 'salesPersonName', 'employee_name', 'employeeName', 'assigned_to_name', 'assignedToName',
+    'created_by_name', 'createdByName'
+  ]);
+  const employee = lookup ? resolveEmployee(lookup, salesPersonRaw, salesPersonNameRaw) : null;
+  const targetType = text(source.target_type || source.period_type || 'monthly').toLowerCase() || 'monthly';
+  const targetMonth = getSafeTargetMonth(valueOf(source, ['target_month', 'month', 'week_number']));
+  const targetYear = Number(valueOf(source, ['target_year', 'year'])) || null;
+  const revenueTarget = num(valueOf(source, ['revenue_target', 'target_amount', 'amount', 'grand_total', 'total_amount']), 0);
+  const collectionTarget = num(valueOf(source, ['collection_target', 'lead_target', 'quotation_target', 'conversion_target']), 0);
+  return {
+    id: row.id,
+    externalId: text(source.external_id || source.target_external_id || ''),
+    salesPersonId: text(employee?.id || salesPersonRaw || ''),
+    salesPersonName: text(employee?.name || salesPersonNameRaw || ''),
+    salesPersonCode: text(employee?.employeeCode || source.employee_code || source.employeeCode || ''),
+    targetType,
+    targetMonth,
+    targetYear,
+    revenueTarget,
+    collectionTarget,
+    notes: text(source.notes || source.remark || ''),
+    isActive: Number(source.is_active ?? 1) !== 0,
+    employee
+  };
+};
+const buildTargetPersistData = async (columns, body = {}, employees = []) => {
+  const salesPersonId = text(body.salesPersonId || body.sales_person_id || '');
+  const targetType = text(body.targetType || body.target_type || 'monthly').toLowerCase();
+  const targetMonth = targetType === 'monthly' ? getSafeTargetMonth(body.targetMonth || body.target_month || body.month) : null;
+  const targetYear = Number(body.targetYear || body.target_year || body.year || 0);
+  const revenueTarget = num(body.revenueTarget || body.revenue_target || body.amount || 0);
+  const collectionTarget = num(body.collectionTarget || body.collection_target || body.leadTarget || body.lead_target || 0);
+  const externalId = stableTargetExternalId(salesPersonId, targetType, targetYear, targetMonth);
+  const data = {};
+  if (hasColumn(columns, 'external_id')) data.external_id = externalId;
+  if (hasColumn(columns, 'sales_person_id')) data.sales_person_id = salesPersonId;
+  if (hasColumn(columns, 'target_type')) data.target_type = targetType;
+  if (hasColumn(columns, 'target_month')) data.target_month = targetMonth;
+  if (hasColumn(columns, 'target_year')) data.target_year = targetYear;
+  if (hasColumn(columns, 'revenue_target')) data.revenue_target = revenueTarget;
+  if (hasColumn(columns, 'collection_target')) data.collection_target = collectionTarget;
+  if (hasColumn(columns, 'notes')) data.notes = text(body.notes || '');
+  if (hasColumn(columns, 'is_active')) data.is_active = 1;
+  if (hasColumn(columns, 'created_by')) data.created_by = body.createdBy || body.created_by || null;
+  return { data, externalId, salesPersonId, targetType, targetMonth, targetYear, collectionTarget, revenueTarget };
 };
 const normalizeSource = (kind, row = {}, lookup = null) => {
   const payload = safeJson(row.payload, {});
@@ -388,7 +489,12 @@ const loadSalesContext = async () => {
   ];
   const normalizedTargets = safeRows(targetRows).map((row) => ({
     id: row.id,
+    externalId: text(row.external_id || row.target_external_id || ''),
     salesPersonId: text(row.sales_person_id || row.employee_id || row.employeeId || ''),
+    salesPersonName: text(row.sales_person_name || row.employee_name || row.employeeName || ''),
+    salesPersonCode: text(row.sales_person_code || row.employee_code || row.employeeCode || ''),
+    employeeName: text(row.sales_person_name || row.employee_name || row.employeeName || ''),
+    employeeCode: text(row.sales_person_code || row.employee_code || row.employeeCode || ''),
     targetType: text(row.target_type || row.period_type || 'monthly').toLowerCase(),
     targetMonth: row.target_month ?? row.month ?? null,
     targetYear: row.target_year ?? row.year ?? null,
@@ -405,7 +511,7 @@ const findTargetRow = (targets, employee, targetType, year, month = null) => {
     const rowMonth = row.targetMonth === null || row.targetMonth === undefined || row.targetMonth === '' ? null : Number(row.targetMonth);
     if (targetType === 'monthly' && Number(rowMonth) !== Number(month)) return false;
     if (targetType === 'yearly' && rowMonth !== null) return false;
-    return employeeHasValue(employee, row.salesPersonId) || employeeHasValue(employee, row.employeeName) || employeeHasValue(employee, row.salesPersonName);
+    return employeeHasValue(employee, row.salesPersonId) || employeeHasValue(employee, row.salesPersonCode) || employeeHasValue(employee, row.employeeName) || employeeHasValue(employee, row.salesPersonName);
   });
   return candidate || null;
 };
@@ -453,9 +559,9 @@ const buildTargetRows = (context, filters = {}) => {
     return true;
   });
   return rows.map((row) => {
-    const employee = context.employees.find((item) => employeeHasValue(item, row.salesPersonId) || employeeHasValue(item, row.employeeName) || employeeHasValue(item, row.salesPersonName)) || null;
+    const employee = context.employees.find((item) => employeeHasValue(item, row.salesPersonId) || employeeHasValue(item, row.salesPersonCode) || employeeHasValue(item, row.employeeName) || employeeHasValue(item, row.salesPersonName)) || null;
     const targetTypeResolved = row.targetType === 'yearly' ? 'yearly' : 'monthly';
-    const summary = applyTargets(employee || { id: row.salesPersonId, name: row.salesPersonName || `Employee ${row.salesPersonId}` }, context, Number(row.targetYear), Number(row.targetMonth || currentMonth));
+    const summary = applyTargets(employee || { id: row.salesPersonId, name: row.salesPersonName || row.employeeName || '---' }, context, Number(row.targetYear), Number(row.targetMonth || currentMonth));
     const achievedRevenue = targetTypeResolved === 'yearly' ? num(summary.yearlyRevenueAchieved) : num(summary.monthlyRevenueAchieved);
     const achievedCollection = targetTypeResolved === 'yearly' ? num(summary.yearlyCollectionAchieved) : num(summary.monthlyCollectionAchieved);
     const targetRevenue = num(row.revenueTarget);
@@ -463,7 +569,7 @@ const buildTargetRows = (context, filters = {}) => {
     return {
       id: row.id,
       salesPersonId: row.salesPersonId,
-      salesPersonName: employee?.name || row.salesPersonName || `Employee ${row.salesPersonId}`,
+      salesPersonName: employee?.name || row.salesPersonName || row.employeeName || '---',
       targetType: targetTypeResolved,
       targetMonth: row.targetMonth || null,
       targetYear: row.targetYear,
@@ -609,25 +715,35 @@ router.post('/targets', async (req, res) => {
 
     const conn = await getConnection();
     try {
+      const columns = await getColumns('sales_targets');
+      const persist = await buildTargetPersistData(columns, body, []);
       await conn.beginTransaction();
       const [existingRows] = await conn.query(
         `SELECT id FROM sales_targets
-         WHERE sales_person_id = ? AND target_type = ? AND target_year = ? AND ${targetType === 'monthly' ? 'target_month = ?' : 'target_month IS NULL'}
+         WHERE (external_id = ? OR sales_person_id = ? OR employee_id = ?)
+         AND target_type = ? AND target_year = ? AND ${targetType === 'monthly' ? 'target_month = ?' : 'target_month IS NULL'}
          LIMIT 1`,
-        targetType === 'monthly' ? [salesPersonId, targetType, targetYear, targetMonth] : [salesPersonId, targetType, targetYear]
+        targetType === 'monthly'
+          ? [persist.externalId, salesPersonId, salesPersonId, targetType, targetYear, targetMonth]
+          : [persist.externalId, salesPersonId, salesPersonId, targetType, targetYear]
       );
       const existing = safeRows(existingRows)[0];
       if (existing) {
+        const updateData = { ...persist.data, is_active: 1 };
+        const updateFields = Object.keys(updateData);
+        const updateValues = updateFields.map((field) => updateData[field]);
         await conn.query(
-          `UPDATE sales_targets SET sales_person_id = ?, target_type = ?, target_month = ?, target_year = ?, revenue_target = ?, collection_target = ?, notes = ?, is_active = 1
-           WHERE id = ?`,
-          [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, collectionTarget, text(body.notes || ''), existing.id]
+          `UPDATE sales_targets SET ${updateFields.map((field) => `${field} = ?`).join(', ')} WHERE id = ?`,
+          [...updateValues, existing.id]
         );
       } else {
+        const insertData = persist.data;
+        const insertFields = Object.keys(insertData);
+        const insertValues = insertFields.map((field) => insertData[field]);
         await conn.query(
-          `INSERT INTO sales_targets (sales_person_id, target_type, target_month, target_year, revenue_target, collection_target, notes, is_active, created_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
-          [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, collectionTarget, text(body.notes || ''), body.createdBy || body.created_by || null]
+          `INSERT INTO sales_targets (${insertFields.join(', ')})
+           VALUES (${insertFields.map(() => '?').join(', ')})`,
+          insertValues
         );
       }
       await conn.commit();
@@ -660,19 +776,16 @@ router.put('/targets/:id', async (req, res) => {
     if (!targetYear) return sendError(res, 400, 'Year is required.');
     if (targetType === 'monthly' && !targetMonth) return sendError(res, 400, 'Month is required for monthly targets.');
 
-    await dbQuery(
-      `UPDATE sales_targets SET
-        sales_person_id = ?,
-        target_type = ?,
-        target_month = ?,
-        target_year = ?,
-        revenue_target = ?,
-        collection_target = ?,
-        notes = ?,
-        is_active = 1
-       WHERE id = ?`,
-      [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, collectionTarget, text(body.notes || ''), targetId]
+    const columns = await getColumns('sales_targets');
+    const persist = await buildTargetPersistData(columns, body, []);
+    const updateData = { ...persist.data, is_active: 1 };
+    const updateFields = Object.keys(updateData);
+    const updateValues = updateFields.map((field) => updateData[field]);
+    const result = await dbQuery(
+      `UPDATE sales_targets SET ${updateFields.map((field) => `${field} = ?`).join(', ')} WHERE id = ?`,
+      [...updateValues, targetId]
     );
+    if (!result || Number(result.affectedRows) === 0) return sendError(res, 404, 'Target not found.');
     return res.json({ success: true, message: 'Target updated.' });
   } catch (error) {
     console.error('Sales target update failed:', error.message);
@@ -682,8 +795,9 @@ router.put('/targets/:id', async (req, res) => {
 
 router.delete('/targets/:id', async (req, res) => {
   try {
-    await dbQuery('UPDATE sales_targets SET is_active = 0 WHERE id = ?', [req.params.id]);
-    return res.json({ success: true, message: 'Target deactivated.' });
+    const result = await dbQuery('DELETE FROM sales_targets WHERE id = ?', [req.params.id]);
+    if (!result || Number(result.affectedRows) === 0) return sendError(res, 404, 'Target not found.');
+    return res.json({ success: true, message: 'Target deleted.' });
   } catch (error) {
     console.error('Sales target delete failed:', error.message);
     return sendError(res, 500, 'Unable to delete target.');

@@ -23,9 +23,27 @@ const initialForm = {
   notes: ''
 };
 
-const tableStyle = { width: '100%', borderCollapse: 'collapse' };
-const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
-const headerStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const tableStyle = { width: '100%', minWidth: 1240, borderCollapse: 'collapse', tableLayout: 'fixed' };
+const cellStyle = {
+  padding: '8px 10px',
+  borderBottom: '1px solid var(--color-border)',
+  fontSize: 12,
+  lineHeight: 1.1,
+  verticalAlign: 'middle',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap'
+};
+const headerStyle = { ...cellStyle, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const nameCellStyle = { ...cellStyle, fontWeight: 700, color: '#111827' };
+const actionButtonStyle = {
+  minWidth: 34,
+  width: 34,
+  height: 34,
+  padding: 0,
+  gap: 0,
+  borderRadius: 10
+};
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
 const neutralTextColor = '#111827';
@@ -235,8 +253,8 @@ export default function SalesTargets() {
               </thead>
               <tbody>
                 {targets.map((row) => (
-                  <tr key={row.id}>
-                    <td style={cellStyle}>{row.salesPersonName}</td>
+                  <tr key={row.id} style={{ height: 42 }}>
+                    <td style={nameCellStyle}>{row.salesPersonName || '---'}</td>
                     <td style={cellStyle}>
                       <StatusBadge status={row.targetType === 'yearly' ? 'info' : 'active'}>
                         {row.targetType}
@@ -277,9 +295,26 @@ export default function SalesTargets() {
                       </span>
                     </td>
                     <td style={cellStyle}>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <AppButton variant="outline" size="sm" iconLeft={<Edit3 size={14} />} onClick={() => editRow(row)}>Edit</AppButton>
-                        <AppButton variant="danger" size="sm" iconLeft={<Trash2 size={14} />} onClick={() => handleDelete(row.id)} loading={saving}>Delete</AppButton>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center' }}>
+                        <AppButton
+                          variant="outline"
+                          size="sm"
+                          iconLeft={<Edit3 size={14} />}
+                          onClick={() => editRow(row)}
+                          aria-label="Edit target"
+                          title="Edit target"
+                          style={actionButtonStyle}
+                        />
+                        <AppButton
+                          variant="danger"
+                          size="sm"
+                          iconLeft={<Trash2 size={14} />}
+                          onClick={() => handleDelete(row.id)}
+                          loading={saving}
+                          aria-label="Delete target"
+                          title="Delete target"
+                          style={actionButtonStyle}
+                        />
                       </div>
                     </td>
                   </tr>
