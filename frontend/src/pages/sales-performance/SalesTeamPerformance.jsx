@@ -58,6 +58,8 @@ export default function SalesTeamPerformance() {
   }, []);
 
   const employeeOptions = useMemo(() => safeRows(employees), [employees]);
+  const isMobile = viewportWidth <= 640;
+  const chartWrap = { width: '100%', height: isMobile ? 180 : 300 };
   const filtersGridStyle = viewportWidth >= 1100
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 768
@@ -69,18 +71,18 @@ export default function SalesTeamPerformance() {
   const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' };
   const tableStyle = {
     width: '100%',
-    minWidth: viewportWidth <= 640 ? '900px' : '1120px',
+    minWidth: viewportWidth <= 640 ? '1120px' : '1120px',
     tableLayout: 'fixed',
     borderCollapse: 'collapse'
   };
   const headCellStyle = {
     padding: viewportWidth <= 640 ? '7px 8px' : '10px 12px',
     textAlign: 'left',
-    whiteSpace: 'normal',
-    wordBreak: 'break-word',
-    verticalAlign: 'bottom',
-    height: viewportWidth <= 640 ? 42 : 56,
-    lineHeight: 1.1,
+    whiteSpace: 'nowrap',
+    wordBreak: 'normal',
+    verticalAlign: 'middle',
+    height: viewportWidth <= 640 ? 40 : 42,
+    lineHeight: 1.2,
     fontSize: viewportWidth <= 640 ? 11 : 12
   };
   const bodyCellStyle = {
@@ -89,7 +91,7 @@ export default function SalesTeamPerformance() {
     whiteSpace: 'nowrap',
     wordBreak: 'normal',
     verticalAlign: 'middle',
-    height: viewportWidth <= 640 ? 40 : 48,
+    height: viewportWidth <= 640 ? 44 : 48,
     lineHeight: 1.15,
     overflow: 'hidden',
     textOverflow: 'ellipsis'
@@ -97,6 +99,40 @@ export default function SalesTeamPerformance() {
   const teamColWidths = viewportWidth <= 640
     ? ['16%', '10%', '10%', '8%', '10%', '10%', '8%', '8%', '8%', '10%', '10%']
     : ['18%', '10%', '10%', '8%', '10%', '10%', '8%', '8%', '8%', '10%', '8%'];
+  const chartAxisProps = {
+    tick: { fontSize: isMobile ? 10 : 12 },
+    height: isMobile ? 44 : 30,
+    interval: 0,
+    angle: isMobile ? -20 : 0,
+    textAnchor: isMobile ? 'end' : 'middle'
+  };
+  const mobileCardStyle = {
+    border: '1px solid var(--color-border)',
+    borderRadius: 12,
+    background: '#fff',
+    padding: 12,
+    display: 'grid',
+    gap: 10
+  };
+  const mobileGridStyle = {
+    display: 'grid',
+    gap: 10,
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
+  };
+  const mobileMetricStyle = {
+    border: '1px solid var(--color-border)',
+    borderRadius: 10,
+    padding: '8px 10px',
+    background: '#F9FAFB',
+    display: 'grid',
+    gap: 4
+  };
+  const scrollHintStyle = {
+    marginBottom: 8,
+    color: '#6B7280',
+    fontSize: isMobile ? 11 : 12,
+    fontWeight: 600
+  };
 
   const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
   const statusColor = (status) => {
@@ -146,7 +182,8 @@ export default function SalesTeamPerformance() {
         <>
           <AppCard title="Team Performance Table">
             {rows.length ? (
-              <div style={tableWrapStyle}>
+              <div style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
+                {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
                 <table style={tableStyle}>
                   <colgroup>
                     {teamColWidths.map((width, index) => (
@@ -215,10 +252,10 @@ export default function SalesTeamPerformance() {
               {rows.length ? (
                 <div style={chartWrap}>
                   <ResponsiveContainer>
-                    <BarChart data={rows}>
+                    <BarChart data={rows} margin={{ top: 8, right: 8, left: isMobile ? -8 : 0, bottom: isMobile ? 12 : 0 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="employeeName" />
-                    <YAxis />
+                    <XAxis dataKey="employeeName" {...chartAxisProps} />
+                    <YAxis width={isMobile ? 32 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
                     <Tooltip />
                       <Bar dataKey="monthlyTarget" fill={targetColor} radius={[8, 8, 0, 0]} />
                       <Bar dataKey="monthlyAchieved" radius={[8, 8, 0, 0]}>
@@ -239,10 +276,10 @@ export default function SalesTeamPerformance() {
               {rows.length ? (
                 <div style={chartWrap}>
                   <ResponsiveContainer>
-                    <BarChart data={rows}>
+                    <BarChart data={rows} margin={{ top: 8, right: 8, left: isMobile ? -8 : 0, bottom: isMobile ? 12 : 0 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="employeeName" />
-                    <YAxis />
+                    <XAxis dataKey="employeeName" {...chartAxisProps} />
+                    <YAxis width={isMobile ? 32 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
                     <Tooltip />
                       <Bar dataKey="yearlyAchievementPercent" radius={[8, 8, 0, 0]}>
                         {rows.map((entry) => (

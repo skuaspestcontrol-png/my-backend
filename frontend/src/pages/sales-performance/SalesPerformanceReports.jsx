@@ -86,6 +86,8 @@ export default function SalesPerformanceReports() {
     monthlyAchievementPercent: Number(row.monthlyAchievementPercent || 0),
     yearlyAchievementPercent: Number(row.yearlyAchievementPercent || 0)
   })), [rows]);
+  const isMobile = viewportWidth <= 640;
+  const chartWrap = { width: '100%', height: isMobile ? 180 : 300 };
   const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
   const metricColor = (actual, target) => {
     const targetValue = Number(target || 0);
@@ -141,6 +143,8 @@ export default function SalesPerformanceReports() {
       : viewportWidth >= 768
         ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
         : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' };
+  const reportTypeSpanStyle = viewportWidth <= 640 ? { gridColumn: '1 / -1' } : undefined;
+  const dateSpanStyle = viewportWidth <= 640 ? { gridColumn: '1 / -1' } : undefined;
 
   const summaryGridStyle = viewportWidth >= 1200
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
@@ -149,6 +153,40 @@ export default function SalesPerformanceReports() {
       : viewportWidth >= 600
         ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
         : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' };
+  const chartAxisProps = {
+    tick: { fontSize: isMobile ? 10 : 12 },
+    height: isMobile ? 44 : 30,
+    interval: 0,
+    angle: isMobile ? -20 : 0,
+    textAnchor: isMobile ? 'end' : 'middle'
+  };
+  const mobileReportCardStyle = {
+    border: '1px solid var(--color-border)',
+    borderRadius: 12,
+    background: '#fff',
+    padding: 12,
+    display: 'grid',
+    gap: 10
+  };
+  const mobileReportGridStyle = {
+    display: 'grid',
+    gap: 10,
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
+  };
+  const mobileMetricStyle = {
+    border: '1px solid var(--color-border)',
+    borderRadius: 10,
+    padding: '8px 10px',
+    background: '#F9FAFB',
+    display: 'grid',
+    gap: 4
+  };
+  const scrollHintStyle = {
+    marginBottom: 8,
+    color: '#6B7280',
+    fontSize: isMobile ? 11 : 12,
+    fontWeight: 600
+  };
 
   const exportCsv = () => {
     downloadCsv(rows.map((row) => ({
@@ -197,20 +235,28 @@ export default function SalesPerformanceReports() {
         title="Reports"
         subtitle="Review target vs achievement reports and export the current result set as CSV."
         action={(
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', maxWidth: '100%' }}>
-            <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading} style={mobileButtonStyle}>Refresh</AppButton>
-            <AppButton variant="outline" iconLeft={<Download size={16} />} onClick={exportCsv} disabled={!rows.length} style={mobileButtonStyle}>CSV Export</AppButton>
-          </div>
+          viewportWidth <= 640 ? null : (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', maxWidth: '100%' }}>
+              <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading} style={mobileButtonStyle}>Refresh</AppButton>
+              <AppButton variant="outline" iconLeft={<Download size={16} />} onClick={exportCsv} disabled={!rows.length} style={mobileButtonStyle}>CSV Export</AppButton>
+            </div>
+          )
         )}
       />
 
       <AppCard title="Filters" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
         <div style={filtersGridStyle}>
-          <AppSelect label="Report Type" value={filters.reportType} onChange={(e) => setFilters({ ...filters, reportType: e.target.value })}>
+          <div style={reportTypeSpanStyle}>
+            <AppSelect label="Report Type" value={filters.reportType} onChange={(e) => setFilters({ ...filters, reportType: e.target.value })}>
             {reportTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </AppSelect>
-          <AppInput label="Start Date" type="date" value={filters.startDate} onChange={(e) => setFilters({ ...filters, startDate: e.target.value })} />
-          <AppInput label="End Date" type="date" value={filters.endDate} onChange={(e) => setFilters({ ...filters, endDate: e.target.value })} />
+            </AppSelect>
+          </div>
+          <div style={dateSpanStyle}>
+            <AppInput label="Start Date" type="date" value={filters.startDate} onChange={(e) => setFilters({ ...filters, startDate: e.target.value })} />
+          </div>
+          <div style={dateSpanStyle}>
+            <AppInput label="End Date" type="date" value={filters.endDate} onChange={(e) => setFilters({ ...filters, endDate: e.target.value })} />
+          </div>
           <AppSelect label="Month" value={filters.month} onChange={(e) => setFilters({ ...filters, month: Number(e.target.value) })}>
             {monthOptions.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}
           </AppSelect>
@@ -247,10 +293,10 @@ export default function SalesPerformanceReports() {
             {chartData.length ? (
               <div style={chartWrap}>
                 <ResponsiveContainer>
-                  <BarChart data={chartData}>
+                  <BarChart data={chartData} margin={{ top: 8, right: 8, left: isMobile ? -8 : 0, bottom: isMobile ? 12 : 0 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="employeeName" />
-                    <YAxis />
+                    <XAxis dataKey="employeeName" {...chartAxisProps} />
+                    <YAxis width={isMobile ? 32 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
                     <Tooltip />
                     <Bar dataKey="monthlyTarget" fill={targetColor} radius={[8, 8, 0, 0]} />
                     <Bar dataKey="monthlyAchieved" radius={[8, 8, 0, 0]}>
@@ -273,10 +319,10 @@ export default function SalesPerformanceReports() {
             {chartData.length ? (
               <div style={chartWrap}>
                 <ResponsiveContainer>
-                  <BarChart data={chartData}>
+                  <BarChart data={chartData} margin={{ top: 8, right: 8, left: isMobile ? -8 : 0, bottom: isMobile ? 12 : 0 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="employeeName" />
-                    <YAxis />
+                    <XAxis dataKey="employeeName" {...chartAxisProps} />
+                    <YAxis width={isMobile ? 32 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
                     <Tooltip />
                     <Bar dataKey="yearlyTarget" fill={targetColor} radius={[8, 8, 0, 0]} />
                     <Bar dataKey="yearlyAchieved" radius={[8, 8, 0, 0]}>
@@ -297,8 +343,28 @@ export default function SalesPerformanceReports() {
 
           <AppCard title="Report Table" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
             {rows.length ? (
-              <div style={tableWrapStyle}>
+              <div style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
+                {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
                 <table style={tableStyle}>
+                  <colgroup>
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '5%' }} />
+                    <col style={{ width: '5%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '6%' }} />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th style={headCellStyle}>Sales Person</th>
