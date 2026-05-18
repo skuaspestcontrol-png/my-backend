@@ -497,15 +497,9 @@ export default function DashboardLayout({ children }) {
             {!isSidebarCollapsed && salesPerformanceMenuOpen ? (
               <>
                 <Link to="/sales-performance/dashboard" className={isActive('/sales-performance/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/dashboard')}>Dashboard</Link>
-                <Link to="/sales-performance/target-setup" className={isActive('/sales-performance/target-setup') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/target-setup')}>Target Setup</Link>
-                <Link to="/sales-performance/weekly-performance" className={isActive('/sales-performance/weekly-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/weekly-performance')}>Weekly Performance</Link>
-                <Link to="/sales-performance/monthly-performance" className={isActive('/sales-performance/monthly-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/monthly-performance')}>Monthly Performance</Link>
-                <Link to="/sales-performance/yearly-performance" className={isActive('/sales-performance/yearly-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/yearly-performance')}>Yearly Performance</Link>
-                <Link to="/sales-performance/team-comparison" className={isActive('/sales-performance/team-comparison') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/team-comparison')}>Team Comparison</Link>
-                <Link to="/sales-performance/sales-person-report" className={isActive('/sales-performance/sales-person-report') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/sales-person-report')}>Sales Person Report</Link>
-                <Link to="/sales-performance/incentives" className={isActive('/sales-performance/incentives') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/incentives')}>Incentive / Commission</Link>
-                <Link to="/sales-performance/settings" className={isActive('/sales-performance/settings') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/settings')}>Performance Settings</Link>
-                <Link to="/sales-performance/export" className={isActive('/sales-performance/export') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/export')}>Export Reports</Link>
+                <Link to="/sales-performance/targets" className={isActive('/sales-performance/targets') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/targets')}>Targets</Link>
+                <Link to="/sales-performance/team-performance" className={isActive('/sales-performance/team-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/team-performance')}>Team Performance</Link>
+                <Link to="/sales-performance/reports" className={isActive('/sales-performance/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/reports')}>Reports</Link>
               </>
             ) : null}
 

@@ -94,16 +94,9 @@ const EmailLogs = lazy(() => import('./pages/email/EmailLogs'));
 const UIDashboardPage = lazy(() => import('./pages/Dashboard'));
 const UICustomersPage = lazy(() => import('./pages/CustomersPage'));
 const SalesPerformanceDashboard = lazy(() => import('./pages/sales-performance/SalesPerformanceDashboard'));
-const SalesTargetSetup = lazy(() => import('./pages/sales-performance/SalesTargetSetup'));
-const WeeklyPerformance = lazy(() => import('./pages/sales-performance/WeeklyPerformance'));
-const MonthlyPerformance = lazy(() => import('./pages/sales-performance/MonthlyPerformance'));
-const YearlyPerformance = lazy(() => import('./pages/sales-performance/YearlyPerformance'));
-const YearlyComparisonChart = lazy(() => import('./pages/sales-performance/YearlyComparisonChart'));
-const TeamComparison = lazy(() => import('./pages/sales-performance/TeamComparison'));
-const SalesPersonReport = lazy(() => import('./pages/sales-performance/SalesPersonReport'));
-const SalesIncentives = lazy(() => import('./pages/sales-performance/SalesIncentives'));
-const SalesPerformanceSettings = lazy(() => import('./pages/sales-performance/SalesPerformanceSettings'));
-const SalesExportReports = lazy(() => import('./pages/sales-performance/SalesExportReports'));
+const SalesTargets = lazy(() => import('./pages/sales-performance/SalesTargets'));
+const SalesTeamPerformance = lazy(() => import('./pages/sales-performance/SalesTeamPerformance'));
+const SalesPerformanceReports = lazy(() => import('./pages/sales-performance/SalesPerformanceReports'));
 const StockDashboard = lazy(() => import('./pages/stock-management/StockDashboard'));
 const StockItems = lazy(() => import('./pages/stock-management/StockItems'));
 const StockPurchase = lazy(() => import('./pages/stock-management/StockPurchase'));
@@ -234,16 +227,19 @@ function App() {
             <Route path="/sales/renewal" element={<AppRoute element={renewalPage} />} />
             <Route path="/sales-performance" element={<Navigate to="/sales-performance/dashboard" replace />} />
             <Route path="/sales-performance/dashboard" element={<AppRoute element={<SalesPerformanceDashboard />} />} />
-            <Route path="/sales-performance/target-setup" element={<AppRoute element={<SalesTargetSetup />} />} />
-            <Route path="/sales-performance/weekly-performance" element={<AppRoute element={<WeeklyPerformance />} />} />
-            <Route path="/sales-performance/monthly-performance" element={<AppRoute element={<MonthlyPerformance />} />} />
-            <Route path="/sales-performance/yearly-performance" element={<AppRoute element={<YearlyPerformance />} />} />
-            <Route path="/sales-performance/yearly-comparison" element={<AppRoute element={<YearlyComparisonChart />} />} />
-            <Route path="/sales-performance/team-comparison" element={<AppRoute element={<TeamComparison />} />} />
-            <Route path="/sales-performance/sales-person-report" element={<AppRoute element={<SalesPersonReport />} />} />
-            <Route path="/sales-performance/incentives" element={<AppRoute element={<SalesIncentives />} />} />
-            <Route path="/sales-performance/settings" element={<AppRoute element={<SalesPerformanceSettings />} />} />
-            <Route path="/sales-performance/export" element={<AppRoute element={<SalesExportReports />} />} />
+            <Route path="/sales-performance/targets" element={<AppRoute element={<SalesTargets />} />} />
+            <Route path="/sales-performance/team-performance" element={<AppRoute element={<SalesTeamPerformance />} />} />
+            <Route path="/sales-performance/reports" element={<AppRoute element={<SalesPerformanceReports />} />} />
+            <Route path="/sales-performance/target-setup" element={<Navigate to="/sales-performance/targets" replace />} />
+            <Route path="/sales-performance/weekly-performance" element={<Navigate to="/sales-performance/team-performance" replace />} />
+            <Route path="/sales-performance/monthly-performance" element={<Navigate to="/sales-performance/reports" replace />} />
+            <Route path="/sales-performance/yearly-performance" element={<Navigate to="/sales-performance/reports" replace />} />
+            <Route path="/sales-performance/yearly-comparison" element={<Navigate to="/sales-performance/dashboard" replace />} />
+            <Route path="/sales-performance/team-comparison" element={<Navigate to="/sales-performance/team-performance" replace />} />
+            <Route path="/sales-performance/sales-person-report" element={<Navigate to="/sales-performance/reports" replace />} />
+            <Route path="/sales-performance/incentives" element={<Navigate to="/sales-performance/reports" replace />} />
+            <Route path="/sales-performance/settings" element={<Navigate to="/sales-performance/reports" replace />} />
+            <Route path="/sales-performance/export" element={<Navigate to="/sales-performance/reports" replace />} />
             <Route path="/stock" element={<Navigate to="/stock/dashboard" replace />} />
             <Route path="/stock/dashboard" element={<AppRoute element={<StockDashboard />} />} />
             <Route path="/stock/items" element={<AppRoute element={<StockItems />} />} />

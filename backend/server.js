@@ -17,7 +17,7 @@ const { registerCustomerDedupModule } = require('./customerDedupModule');
 const { createWhatsAppRouter } = require('./routes/whatsapp.routes');
 const { createEmailRouter } = require('./routes/email.routes');
 const { quotationRouter } = require('./routes/quotation.routes');
-const { salesPerformanceRouter } = require('./routes/salesPerformance.routes');
+const { salesPerformanceRoutes } = require('./routes/salesPerformanceRoutes');
 const { stockRoutes } = require('./routes/stockRoutes');
 const {
   PHONE_VALIDATION_ERROR,
@@ -372,7 +372,7 @@ app.post('/api/admin/run-migrations', async (req, res) => {
   });
 });
 app.use('/api', quotationRouter);
-app.use('/api', salesPerformanceRouter);
+app.use('/api/sales-performance', salesPerformanceRoutes);
 app.use('/api/stock', stockRoutes);
 const resolvePort = () => {
   const candidates = [

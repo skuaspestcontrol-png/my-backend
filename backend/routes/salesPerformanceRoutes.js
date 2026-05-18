@@ -1,0 +1,730 @@
+const fs = require('fs');
+const path = require('path');
+const express = require('express');
+const { query: dbQuery, getConnection } = require('../lib/db');
+
+const router = express.Router();
+
+const dataDir = path.join(__dirname, '..', 'data');
+const storageDataDir = path.join(__dirname, '..', '..', 'storage', 'data');
+const jsonPaths = {
+  leads: [path.join(dataDir, 'leads.json'), path.join(storageDataDir, 'leads.json')],
+  customers: [path.join(dataDir, 'customers.json'), path.join(storageDataDir, 'customers.json')],
+  employees: [path.join(dataDir, 'employees.json'), path.join(storageDataDir, 'employees.json')],
+  invoices: [path.join(dataDir, 'invoices.json'), path.join(storageDataDir, 'invoices.json')],
+  payments: [path.join(dataDir, 'payments.json'), path.join(storageDataDir, 'payments.json')],
+  renewals: [path.join(dataDir, 'renewals.json'), path.join(storageDataDir, 'renewals.json')],
+  quotations: [path.join(dataDir, 'quotations.json'), path.join(storageDataDir, 'quotations.json')],
+  contracts: [path.join(dataDir, 'contracts.json'), path.join(storageDataDir, 'contracts.json')]
+};
+
+const text = (value) => String(value ?? '').trim();
+const num = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+const safeRows = (value) => (Array.isArray(value) ? value : []);
+const safeJson = (value, fallback = {}) => {
+  if (!value) return fallback;
+  if (typeof value === 'object') return value;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch (_error) {
+      return fallback;
+    }
+  }
+  return fallback;
+};
+const sendError = (res, status, error) => res.status(status).json({ success: false, error });
+const monthLabel = (month) => new Date(2026, Math.max(0, Number(month) - 1), 1).toLocaleString('en-IN', { month: 'short' });
+const currentYear = new Date().getFullYear();
+const currentMonth = new Date().getMonth() + 1;
+const defaultYears = [currentYear - 1, currentYear, currentYear + 1];
+const monthList = Array.from({ length: 12 }, (_, index) => index + 1);
+const monthKey = (year, month) => `${Number(year)}-${String(Number(month)).padStart(2, '0')}`;
+const percent = (achieved, target) => {
+  const total = num(target);
+  if (total <= 0) return 0;
+  return Math.round((num(achieved) / total) * 1000) / 10;
+};
+const valueOf = (source, keys = []) => {
+  for (const key of keys) {
+    const raw = source?.[key];
+    if (raw !== undefined && raw !== null && raw !== '') return raw;
+  }
+  return null;
+};
+const readJsonFile = (filePath) => {
+  try {
+    if (!fs.existsSync(filePath)) return [];
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+};
+const readJsonCandidates = (files = []) => {
+  for (const file of files) {
+    const rows = readJsonFile(file);
+    if (rows.length) return rows;
+  }
+  return [];
+};
+const getColumns = async (tableName) => {
+  try {
+    const rows = await dbQuery(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+      [tableName]
+    );
+    return new Set(safeRows(rows).map((row) => text(row.COLUMN_NAME).toLowerCase()).filter(Boolean));
+  } catch (_error) {
+    return new Set();
+  }
+};
+const ensureColumn = async (tableName, columnName, ddl) => {
+  const columns = await getColumns(tableName);
+  if (columns.has(String(columnName).toLowerCase())) return;
+  await dbQuery(`ALTER TABLE ${tableName} ADD COLUMN ${ddl}`);
+};
+const ensureSchema = async () => {
+  await dbQuery(`CREATE TABLE IF NOT EXISTS sales_targets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sales_person_id INT NOT NULL,
+    target_type ENUM('monthly','yearly') NOT NULL DEFAULT 'monthly',
+    target_month TINYINT NULL,
+    target_year INT NOT NULL,
+    revenue_target DECIMAL(12,2) DEFAULT 0,
+    lead_target INT DEFAULT 0,
+    conversion_target INT DEFAULT 0,
+    notes TEXT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_sales_targets_person (sales_person_id),
+    INDEX idx_sales_targets_type (target_type),
+    INDEX idx_sales_targets_month_year (target_month, target_year),
+    UNIQUE KEY unique_sales_target (sales_person_id, target_type, target_month, target_year)
+  )`);
+
+  await ensureColumn('sales_targets', 'sales_person_id', 'sales_person_id INT NULL');
+  await ensureColumn('sales_targets', 'target_type', "target_type ENUM('monthly','yearly') NOT NULL DEFAULT 'monthly'");
+  await ensureColumn('sales_targets', 'target_month', 'target_month TINYINT NULL');
+  await ensureColumn('sales_targets', 'target_year', 'target_year INT NULL');
+  await ensureColumn('sales_targets', 'revenue_target', 'revenue_target DECIMAL(12,2) DEFAULT 0');
+  await ensureColumn('sales_targets', 'lead_target', 'lead_target INT DEFAULT 0');
+  await ensureColumn('sales_targets', 'conversion_target', 'conversion_target INT DEFAULT 0');
+  await ensureColumn('sales_targets', 'notes', 'notes TEXT NULL');
+  await ensureColumn('sales_targets', 'is_active', 'is_active TINYINT(1) DEFAULT 1');
+  await ensureColumn('sales_targets', 'created_by', 'created_by INT NULL');
+  await ensureColumn('sales_targets', 'created_at', 'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+  await ensureColumn('sales_targets', 'updated_at', 'updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+
+  const oldColumns = await getColumns('sales_targets');
+  if (oldColumns.has('employee_id')) {
+    try {
+      await dbQuery('UPDATE sales_targets SET sales_person_id = COALESCE(sales_person_id, employee_id) WHERE sales_person_id IS NULL OR sales_person_id = 0');
+    } catch (_error) {}
+  }
+  if (oldColumns.has('period_type')) {
+    try {
+      await dbQuery("UPDATE sales_targets SET target_type = COALESCE(target_type, period_type) WHERE (target_type IS NULL OR target_type = '') AND period_type IN ('monthly','yearly')");
+    } catch (_error) {}
+  }
+  if (oldColumns.has('month')) {
+    try {
+      await dbQuery('UPDATE sales_targets SET target_month = COALESCE(target_month, month) WHERE target_month IS NULL');
+    } catch (_error) {}
+  }
+  if (oldColumns.has('year')) {
+    try {
+      await dbQuery('UPDATE sales_targets SET target_year = COALESCE(target_year, year) WHERE target_year IS NULL OR target_year = 0');
+    } catch (_error) {}
+  }
+};
+let schemaReadyPromise = null;
+const ensureSchemaReady = async () => {
+  if (!schemaReadyPromise) schemaReadyPromise = ensureSchema();
+  return schemaReadyPromise;
+};
+const loadJsonSource = (key) => readJsonCandidates(jsonPaths[key] || []);
+const queryRows = async (sql, params = []) => {
+  try {
+    const rows = await dbQuery(sql, params);
+    return safeRows(rows);
+  } catch (_error) {
+    return [];
+  }
+};
+const loadRows = async (table, key, limit = 3000) => {
+  const rows = await queryRows(`SELECT * FROM ${table} ORDER BY id DESC LIMIT ${Number(limit) || 3000}`);
+  if (rows.length) return rows;
+  return loadJsonSource(key);
+};
+const normalizeEmployee = (row = {}, hasRoleColumns = true) => {
+  const payload = safeJson(row.payload, {});
+  const status = text(row.status || payload.status || 'Active');
+  const active = !status || ['active', '1', 'true', 'yes', 'enabled'].includes(status.toLowerCase());
+  const role = text(row.role || payload.role || '');
+  const roleName = text(row.role_name || payload.roleName || '');
+  const department = text(row.department || payload.department || '');
+  const name = text(row.full_name || payload.fullName || [row.first_name, row.last_name].filter(Boolean).join(' ') || payload.name || row.name || `Employee ${row.id || ''}`);
+  const salesKeywords = ['sales', 'marketing', 'business development', 'lead', 'revenue', 'bd'];
+  const isSales = hasRoleColumns ? salesKeywords.some((word) => `${role} ${roleName} ${department}`.toLowerCase().includes(word)) : true;
+  return {
+    id: text(row.external_id || row._id || row.id || payload._id || name),
+    dbId: row.id ?? null,
+    employeeCode: text(row.emp_code || payload.empCode || payload.employeeCode || ''),
+    name,
+    role,
+    roleName,
+    department,
+    status,
+    active,
+    isSales
+  };
+};
+const buildEmployeeLookup = (employees = []) => {
+  const byId = new Map();
+  const byName = new Map();
+  const byCode = new Map();
+  employees.forEach((employee) => {
+    if (employee.id) byId.set(String(employee.id).toLowerCase(), employee);
+    if (employee.dbId !== null && employee.dbId !== undefined) byId.set(String(employee.dbId).toLowerCase(), employee);
+    if (employee.employeeCode) byCode.set(String(employee.employeeCode).toLowerCase(), employee);
+    if (employee.name) byName.set(String(employee.name).toLowerCase(), employee);
+  });
+  return { byId, byName, byCode };
+};
+const pickEmployee = (lookup, value) => {
+  const ref = text(value).toLowerCase();
+  if (!ref) return null;
+  return lookup.byId.get(ref) || lookup.byCode.get(ref) || lookup.byName.get(ref) || null;
+};
+const employeeHasValue = (employee, value) => {
+  const ref = text(value).toLowerCase();
+  if (!ref) return false;
+  return [employee.id, employee.dbId, employee.employeeCode, employee.name, employee.role, employee.roleName].map(text).filter(Boolean).some((item) => item.toLowerCase() === ref);
+};
+const normalizeSource = (kind, row = {}, lookup = null) => {
+  const payload = safeJson(row.payload, {});
+  const source = { ...payload, ...row };
+  const employeeRaw = valueOf(source, [
+    'sales_person_id', 'sales_person', 'salesPerson', 'assigned_to', 'assignedTo', 'employee_id', 'employeeId',
+    'created_by', 'createdBy', 'sales_id', 'salesId', 'sold_by', 'soldBy'
+  ]);
+  const employeeNameRaw = valueOf(source, [
+    'sales_person_name', 'salesPersonName', 'assigned_to_name', 'assignedToName', 'employee_name', 'employeeName',
+    'created_by_name', 'createdByName'
+  ]);
+  const employee = lookup ? pickEmployee(lookup, employeeRaw) || pickEmployee(lookup, employeeNameRaw) : null;
+  const dateValue = valueOf(source, kind === 'payments'
+    ? ['payment_date', 'received_date', 'date', 'created_at', 'createdAt']
+    : kind === 'invoices'
+      ? ['invoice_date', 'date', 'created_at', 'createdAt']
+      : kind === 'quotations'
+        ? ['quotation_date', 'date', 'created_at', 'createdAt']
+        : kind === 'contracts'
+          ? ['contract_date', 'start_date', 'date', 'created_at', 'createdAt']
+          : ['lead_date', 'date', 'created_at', 'createdAt']);
+  const amountValue = valueOf(source, kind === 'payments'
+    ? ['payment_amount', 'amount', 'paid_amount', 'received_amount', 'receipt_amount', 'total_amount']
+    : kind === 'invoices'
+      ? ['grand_total', 'total_amount', 'invoice_total', 'amount', 'net_amount']
+      : kind === 'quotations'
+        ? ['quotation_value', 'grand_total', 'total_amount', 'amount', 'value']
+        : kind === 'contracts'
+          ? ['contract_value', 'total_amount', 'amount', 'annual_value', 'value']
+          : ['quotation_value', 'value', 'amount', 'estimated_value']);
+  const status = text(source.lead_status || source.status || source.leadStatus || '');
+  const converted = /converted|booked|won|closed/i.test(status);
+  return {
+    kind,
+    employeeId: employee?.id || text(employeeRaw || employeeNameRaw || ''),
+    employeeName: employee?.name || text(employeeNameRaw || ''),
+    date: dateValue ? new Date(dateValue) : null,
+    amount: num(amountValue, 0),
+    converted,
+    status,
+    source
+  };
+};
+const getDatesInRange = (year) => monthList.map((month) => new Date(Number(year), month - 1, 1));
+const matchesDate = (dt, year, month) => dt && dt.getFullYear() === Number(year) && dt.getMonth() + 1 === Number(month);
+const matchesYear = (dt, year) => dt && dt.getFullYear() === Number(year);
+const matchesRange = (dt, startDate, endDate) => {
+  if (!dt) return false;
+  if (startDate && dt < new Date(`${startDate}T00:00:00`)) return false;
+  if (endDate && dt > new Date(`${endDate}T23:59:59`)) return false;
+  return true;
+};
+const summarizeRecords = (records = [], employee, year, month, startDate = '', endDate = '') => {
+  const personRecords = records.filter((record) => {
+    const matchesEmployee = employee ? employeeHasValue(employee, record.employeeId) || employeeHasValue(employee, record.employeeName) : true;
+    return matchesEmployee && matchesRange(record.date, startDate, endDate);
+  });
+  const monthly = personRecords.filter((record) => matchesDate(record.date, year, month));
+  const yearly = personRecords.filter((record) => matchesYear(record.date, year));
+  const monthlyLeadsAssigned = monthly.filter((record) => record.kind === 'leads').length;
+  const monthlyLeadsConverted = monthly.filter((record) => record.kind === 'leads' && record.converted).length;
+  const yearlyLeadsAssigned = yearly.filter((record) => record.kind === 'leads').length;
+  const yearlyLeadsConverted = yearly.filter((record) => record.kind === 'leads' && record.converted).length;
+  const monthlyPayments = monthly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
+  const monthlyInvoices = monthly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
+  const monthlyQuotations = monthly.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
+  const yearlyPayments = yearly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
+  const yearlyInvoices = yearly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
+  const yearlyQuotations = yearly.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
+  const monthlyAchieved = monthlyPayments || monthlyInvoices || monthlyQuotations;
+  const yearlyAchieved = yearlyPayments || yearlyInvoices || yearlyQuotations;
+  return {
+    employeeId: employee?.id || '',
+    employeeName: employee?.name || 'Employee',
+    monthlyTarget: 0,
+    monthlyAchieved,
+    monthlyPending: 0,
+    monthlyAchievementPercent: 0,
+    yearlyTarget: 0,
+    yearlyAchieved,
+    yearlyPending: 0,
+    yearlyAchievementPercent: 0,
+    leadsAssigned: yearlyLeadsAssigned,
+    leadsConverted: yearlyLeadsConverted,
+    revenueGenerated: yearlyPayments || yearlyInvoices || yearlyQuotations || 0,
+    status: 'Low',
+    monthlyLeadsAssigned,
+    monthlyLeadsConverted,
+    summary: {
+      monthlyPayments,
+      monthlyInvoices,
+      monthlyQuotations,
+      yearlyPayments,
+      yearlyInvoices,
+      yearlyQuotations
+    }
+  };
+};
+const attachTargets = (row, monthlyTargetRow, yearlyTargetRow) => {
+  const monthlyTarget = monthlyTargetRow ? num(monthlyTargetRow.revenue_target) : 0;
+  const monthlyAchieved = num(row.monthlyAchieved);
+  const yearlyTarget = yearlyTargetRow ? num(yearlyTargetRow.revenue_target) : 0;
+  const yearlyAchieved = num(row.yearlyAchieved);
+  const monthlyAchievementPercent = percent(monthlyAchieved, monthlyTarget);
+  const yearlyAchievementPercent = percent(yearlyAchieved, yearlyTarget);
+  const monthlyPending = Math.max(monthlyTarget - monthlyAchieved, 0);
+  const yearlyPending = Math.max(yearlyTarget - yearlyAchieved, 0);
+  const status = yearlyAchievementPercent >= 100 ? 'Excellent' : yearlyAchievementPercent >= 75 ? 'Good' : 'Low';
+  return {
+    ...row,
+    monthlyTarget,
+    monthlyPending,
+    monthlyAchievementPercent,
+    yearlyTarget,
+    yearlyPending,
+    yearlyAchievementPercent,
+    status,
+    leadTarget: monthlyTargetRow ? num(monthlyTargetRow.lead_target) : 0,
+    conversionTarget: monthlyTargetRow ? num(monthlyTargetRow.conversion_target) : 0,
+    targetMonth: monthlyTargetRow?.target_month ?? null,
+    targetYear: monthlyTargetRow?.target_year ?? yearlyTargetRow?.target_year ?? null,
+    targetType: monthlyTargetRow?.target_type || yearlyTargetRow?.target_type || 'monthly',
+    notes: monthlyTargetRow?.notes || yearlyTargetRow?.notes || ''
+  };
+};
+const loadSalesPeople = async () => {
+  const [rows, employeeColumns] = await Promise.all([
+    loadRows('employees', 'employees', 3000),
+    getColumns('employees')
+  ]);
+  const hasRoleColumns = ['role', 'role_name', 'department'].some((column) => employeeColumns.has(column));
+  const mapped = rows.map((row) => normalizeEmployee(row, hasRoleColumns));
+  const active = mapped.filter((row) => row.active);
+  const sales = hasRoleColumns ? active.filter((row) => row.isSales) : active;
+  return sales.length ? sales : active;
+};
+const loadSalesContext = async () => {
+  const [employees, leadRows, invoiceRows, paymentRows, quotationRows, contractRows, targetRows] = await Promise.all([
+    loadSalesPeople(),
+    loadRows('leads', 'leads', 4000),
+    loadRows('invoices', 'invoices', 4000),
+    loadRows('payments', 'payments', 4000),
+    loadRows('quotations', 'quotations', 4000),
+    loadRows('contracts', 'contracts', 4000),
+    queryRows('SELECT * FROM sales_targets WHERE is_active = 1 ORDER BY target_year DESC, target_month DESC, id DESC')
+  ]);
+  const lookup = buildEmployeeLookup(employees);
+  const records = [
+    ...safeRows(leadRows).map((row) => normalizeSource('leads', row, lookup)),
+    ...safeRows(invoiceRows).map((row) => normalizeSource('invoices', row, lookup)),
+    ...safeRows(paymentRows).map((row) => normalizeSource('payments', row, lookup)),
+    ...safeRows(quotationRows).map((row) => normalizeSource('quotations', row, lookup)),
+    ...safeRows(contractRows).map((row) => normalizeSource('contracts', row, lookup))
+  ];
+  const normalizedTargets = safeRows(targetRows).map((row) => ({
+    id: row.id,
+    salesPersonId: text(row.sales_person_id || row.employee_id || row.employeeId || ''),
+    targetType: text(row.target_type || row.period_type || 'monthly').toLowerCase(),
+    targetMonth: row.target_month ?? row.month ?? null,
+    targetYear: row.target_year ?? row.year ?? null,
+    revenueTarget: num(row.revenue_target || row.target_amount || row.amount || 0),
+    leadTarget: num(row.lead_target || 0),
+    conversionTarget: num(row.conversion_target || 0),
+    notes: text(row.notes || row.remark || ''),
+    isActive: Number(row.is_active ?? 1) !== 0
+  }));
+  return { employees, records, targets: normalizedTargets, lookup };
+};
+const findTargetRow = (targets, employee, targetType, year, month = null) => {
+  const rows = targets.filter((row) => row.isActive && text(row.targetType) === text(targetType) && Number(row.targetYear) === Number(year));
+  const candidate = rows.find((row) => {
+    const rowMonth = row.targetMonth === null || row.targetMonth === undefined || row.targetMonth === '' ? null : Number(row.targetMonth);
+    if (targetType === 'monthly' && Number(rowMonth) !== Number(month)) return false;
+    if (targetType === 'yearly' && rowMonth !== null) return false;
+    return employeeHasValue(employee, row.salesPersonId) || employeeHasValue(employee, row.employeeName) || employeeHasValue(employee, row.salesPersonName);
+  });
+  return candidate || null;
+};
+const applyTargets = (employee, context, year, month, startDate = '', endDate = '') => {
+  const summary = summarizeRecords(context.records, employee, year, month, startDate, endDate);
+  const monthlyTargetRow = findTargetRow(context.targets, employee, 'monthly', year, month);
+  const yearlyTargetRow = findTargetRow(context.targets, employee, 'yearly', year);
+  return attachTargets(summary, monthlyTargetRow, yearlyTargetRow);
+};
+const buildMonthlyTrend = (context, year) => monthList.map((month) => {
+  const rows = context.employees.map((employee) => applyTargets(employee, context, year, month));
+  const target = rows.reduce((sum, row) => sum + num(row.monthlyTarget), 0);
+  const achieved = rows.reduce((sum, row) => sum + num(row.monthlyAchieved), 0);
+  return { month, label: monthLabel(month), target, achieved, achievementPercent: percent(achieved, target) };
+});
+const buildYearMatrix = (context, years = []) => years.map((year) => ({
+  year,
+  cells: monthList.map((month) => {
+    const rows = context.employees.map((employee) => applyTargets(employee, context, year, month));
+    const target = rows.reduce((sum, row) => sum + num(row.monthlyTarget), 0);
+    const achieved = rows.reduce((sum, row) => sum + num(row.monthlyAchieved), 0);
+    return { month, target, achieved, achievementPercent: percent(achieved, target) };
+  })
+}));
+const parseYearList = async (context) => {
+  const years = new Set(defaultYears);
+  context.targets.forEach((row) => {
+    if (row.targetYear) years.add(Number(row.targetYear));
+  });
+  context.records.forEach((row) => {
+    if (row.date) years.add(row.date.getFullYear());
+  });
+  return Array.from(years).filter(Boolean).sort((a, b) => a - b);
+};
+const buildTargetRows = (context, filters = {}) => {
+  const year = filters.year ? Number(filters.year) : null;
+  const month = filters.month ? Number(filters.month) : null;
+  const salesPersonId = text(filters.salesPersonId || '');
+  const targetType = text(filters.targetType || '');
+  const rows = context.targets.filter((row) => {
+    if (year && Number(row.targetYear) !== year) return false;
+    if (month && Number(row.targetMonth || 0) !== month) return false;
+    if (targetType && row.targetType !== targetType) return false;
+    if (salesPersonId && !employeeHasValue({ id: row.salesPersonId, dbId: row.salesPersonId, employeeCode: row.salesPersonId, name: row.salesPersonName || '' }, salesPersonId)) return false;
+    return true;
+  });
+  return rows.map((row) => {
+    const employee = context.employees.find((item) => employeeHasValue(item, row.salesPersonId) || employeeHasValue(item, row.employeeName) || employeeHasValue(item, row.salesPersonName)) || null;
+    const targetTypeResolved = row.targetType === 'yearly' ? 'yearly' : 'monthly';
+    const summary = applyTargets(employee || { id: row.salesPersonId, name: row.salesPersonName || `Employee ${row.salesPersonId}` }, context, Number(row.targetYear), Number(row.targetMonth || currentMonth));
+    const achievedRevenue = targetTypeResolved === 'yearly' ? num(summary.yearlyAchieved) : num(summary.monthlyAchieved);
+    const targetRevenue = num(row.revenueTarget);
+    return {
+      id: row.id,
+      salesPersonId: row.salesPersonId,
+      salesPersonName: employee?.name || row.salesPersonName || `Employee ${row.salesPersonId}`,
+      targetType: targetTypeResolved,
+      targetMonth: row.targetMonth || null,
+      targetYear: row.targetYear,
+      revenueTarget: targetRevenue,
+      leadTarget: row.leadTarget,
+      conversionTarget: row.conversionTarget,
+      achievedRevenue,
+      pendingRevenue: Math.max(targetRevenue - achievedRevenue, 0),
+      achievementPercent: percent(achievedRevenue, targetRevenue),
+      notes: row.notes || ''
+    };
+  });
+};
+const buildTeamRows = (context, filters = {}) => {
+  const year = Number(filters.year || currentYear);
+  const month = Number(filters.month || currentMonth);
+  const salesPersonId = text(filters.salesPersonId || '');
+  return context.employees
+    .filter((employee) => !salesPersonId || employeeHasValue(employee, salesPersonId))
+    .map((employee) => {
+      const summary = applyTargets(employee, context, year, month, filters.startDate || '', filters.endDate || '');
+      return {
+        employeeId: employee.id,
+        employeeName: employee.name,
+        monthlyTarget: summary.monthlyTarget,
+        monthlyAchieved: summary.monthlyAchieved,
+        monthlyPending: summary.monthlyPending,
+        monthlyAchievementPercent: summary.monthlyAchievementPercent,
+        yearlyTarget: summary.yearlyTarget,
+        yearlyAchieved: summary.yearlyAchieved,
+        yearlyPending: summary.yearlyPending,
+        yearlyAchievementPercent: summary.yearlyAchievementPercent,
+        leadsAssigned: summary.leadsAssigned,
+        leadsConverted: summary.leadsConverted,
+        revenueGenerated: summary.revenueGenerated,
+        status: summary.status
+      };
+    })
+    .sort((a, b) => num(b.yearlyAchievementPercent) - num(a.yearlyAchievementPercent));
+};
+const findBestPerformer = (rows = []) => {
+  const filtered = rows.filter((row) => num(row.yearlyTarget, 0) > 0 || num(row.yearlyAchieved, 0) > 0 || num(row.monthlyTarget, 0) > 0 || num(row.monthlyAchieved, 0) > 0);
+  return [...filtered].sort((a, b) => num(b.yearlyAchievementPercent, 0) - num(a.yearlyAchievementPercent, 0))[0] || null;
+};
+router.use(async (_req, _res, next) => {
+  try {
+    await ensureSchemaReady();
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get('/dashboard', async (req, res) => {
+  try {
+    const context = await loadSalesContext();
+    const year = Number(req.query.year || currentYear);
+    const month = Number(req.query.month || currentMonth);
+    const employeeId = text(req.query.employeeId || '');
+    const teamRows = buildTeamRows(context, { year, month, salesPersonId: employeeId });
+    const monthlyRows = teamRows.map((row) => row);
+    const yearlyRows = context.employees
+      .filter((employee) => !employeeId || employeeHasValue(employee, employeeId))
+      .map((employee) => {
+        const summary = applyTargets(employee, context, year, month);
+        return {
+          employeeId: employee.id,
+          employeeName: employee.name,
+          yearlyTarget: summary.yearlyTarget,
+          yearlyAchieved: summary.yearlyAchieved,
+          yearlyPending: summary.yearlyPending,
+          yearlyAchievementPercent: summary.yearlyAchievementPercent
+        };
+      });
+    const totalMonthlyTarget = teamRows.reduce((sum, row) => sum + num(row.monthlyTarget), 0);
+    const totalMonthlyAchieved = teamRows.reduce((sum, row) => sum + num(row.monthlyAchieved), 0);
+    const totalYearlyTarget = teamRows.reduce((sum, row) => sum + num(row.yearlyTarget), 0);
+    const totalYearlyAchieved = teamRows.reduce((sum, row) => sum + num(row.yearlyAchieved), 0);
+    const bestPerformer = findBestPerformer(yearlyRows);
+    const monthlyTrend = buildMonthlyTrend(context, year);
+    const years = await parseYearList(context);
+    const matrix = buildYearMatrix(context, years.slice(-4));
+    return res.json({
+      success: true,
+      employees: context.employees,
+      summary: {
+        totalMonthlyTarget,
+        totalMonthlyAchieved,
+        monthlyPending: Math.max(totalMonthlyTarget - totalMonthlyAchieved, 0),
+        monthlyAchievementPercent: percent(totalMonthlyAchieved, totalMonthlyTarget),
+        totalYearlyTarget,
+        totalYearlyAchieved,
+        yearlyPending: Math.max(totalYearlyTarget - totalYearlyAchieved, 0),
+        yearlyAchievementPercent: percent(totalYearlyAchieved, totalYearlyTarget),
+        bestPerformer: bestPerformer ? { employeeId: bestPerformer.employeeId, employeeName: bestPerformer.employeeName, yearlyAchievementPercent: bestPerformer.yearlyAchievementPercent } : null
+      },
+      monthlyTrend,
+      matrix,
+      salesPersonPerformance: teamRows,
+      month,
+      year
+    });
+  } catch (error) {
+    console.error('Sales performance dashboard failed:', error.message);
+    return sendError(res, 500, 'Unable to load sales performance dashboard.');
+  }
+});
+
+router.get('/targets', async (req, res) => {
+  try {
+    const context = await loadSalesContext();
+    const rows = buildTargetRows(context, req.query || {});
+    return res.json({ success: true, rows, employees: context.employees });
+  } catch (error) {
+    console.error('Sales targets failed:', error.message);
+    return sendError(res, 500, 'Unable to load sales targets.');
+  }
+});
+
+router.post('/targets', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const salesPersonId = text(body.salesPersonId || body.sales_person_id || '');
+    const targetType = text(body.targetType || body.target_type || 'monthly').toLowerCase();
+    const targetMonth = targetType === 'monthly' ? Number(body.targetMonth || body.target_month || 0) || null : null;
+    const targetYear = Number(body.targetYear || body.target_year || 0);
+    const revenueTarget = num(body.revenueTarget || body.revenue_target || 0);
+    const leadTarget = num(body.leadTarget || body.lead_target || 0);
+    const conversionTarget = num(body.conversionTarget || body.conversion_target || 0);
+    if (!salesPersonId) return sendError(res, 400, 'Sales person is required.');
+    if (!['monthly', 'yearly'].includes(targetType)) return sendError(res, 400, 'Target type must be monthly or yearly.');
+    if (!targetYear) return sendError(res, 400, 'Year is required.');
+    if (targetType === 'monthly' && !targetMonth) return sendError(res, 400, 'Month is required for monthly targets.');
+
+    const conn = await getConnection();
+    try {
+      await conn.beginTransaction();
+      const [existingRows] = await conn.query(
+        `SELECT id FROM sales_targets
+         WHERE sales_person_id = ? AND target_type = ? AND target_year = ? AND ${targetType === 'monthly' ? 'target_month = ?' : 'target_month IS NULL'}
+         LIMIT 1`,
+        targetType === 'monthly' ? [salesPersonId, targetType, targetYear, targetMonth] : [salesPersonId, targetType, targetYear]
+      );
+      const existing = safeRows(existingRows)[0];
+      if (existing) {
+        await conn.query(
+          `UPDATE sales_targets SET sales_person_id = ?, target_type = ?, target_month = ?, target_year = ?, revenue_target = ?, lead_target = ?, conversion_target = ?, notes = ?, is_active = 1
+           WHERE id = ?`,
+          [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, leadTarget, conversionTarget, text(body.notes || ''), existing.id]
+        );
+      } else {
+        await conn.query(
+          `INSERT INTO sales_targets (sales_person_id, target_type, target_month, target_year, revenue_target, lead_target, conversion_target, notes, is_active, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+          [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, leadTarget, conversionTarget, text(body.notes || ''), body.createdBy || body.created_by || null]
+        );
+      }
+      await conn.commit();
+      return res.json({ success: true, message: 'Target saved.' });
+    } catch (error) {
+      await conn.rollback().catch(() => {});
+      throw error;
+    } finally {
+      conn.release();
+    }
+  } catch (error) {
+    console.error('Sales target save failed:', error.message);
+    return sendError(res, 400, error.message || 'Unable to save target.');
+  }
+});
+
+router.put('/targets/:id', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const targetId = Number(req.params.id);
+    const salesPersonId = text(body.salesPersonId || body.sales_person_id || '');
+    const targetType = text(body.targetType || body.target_type || 'monthly').toLowerCase();
+    const targetMonth = targetType === 'monthly' ? Number(body.targetMonth || body.target_month || 0) || null : null;
+    const targetYear = Number(body.targetYear || body.target_year || 0);
+    const revenueTarget = num(body.revenueTarget || body.revenue_target || 0);
+    const leadTarget = num(body.leadTarget || body.lead_target || 0);
+    const conversionTarget = num(body.conversionTarget || body.conversion_target || 0);
+    if (!targetId) return sendError(res, 400, 'Target id is required.');
+    if (!salesPersonId) return sendError(res, 400, 'Sales person is required.');
+    if (!['monthly', 'yearly'].includes(targetType)) return sendError(res, 400, 'Target type must be monthly or yearly.');
+    if (!targetYear) return sendError(res, 400, 'Year is required.');
+    if (targetType === 'monthly' && !targetMonth) return sendError(res, 400, 'Month is required for monthly targets.');
+
+    await dbQuery(
+      `UPDATE sales_targets SET
+        sales_person_id = ?,
+        target_type = ?,
+        target_month = ?,
+        target_year = ?,
+        revenue_target = ?,
+        lead_target = ?,
+        conversion_target = ?,
+        notes = ?,
+        is_active = 1
+       WHERE id = ?`,
+      [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, leadTarget, conversionTarget, text(body.notes || ''), targetId]
+    );
+    return res.json({ success: true, message: 'Target updated.' });
+  } catch (error) {
+    console.error('Sales target update failed:', error.message);
+    return sendError(res, 400, error.message || 'Unable to update target.');
+  }
+});
+
+router.delete('/targets/:id', async (req, res) => {
+  try {
+    await dbQuery('UPDATE sales_targets SET is_active = 0 WHERE id = ?', [req.params.id]);
+    return res.json({ success: true, message: 'Target deactivated.' });
+  } catch (error) {
+    console.error('Sales target delete failed:', error.message);
+    return sendError(res, 500, 'Unable to delete target.');
+  }
+});
+
+router.get('/team-performance', async (req, res) => {
+  try {
+    const context = await loadSalesContext();
+    const year = Number(req.query.year || currentYear);
+    const month = Number(req.query.month || currentMonth);
+    const rows = buildTeamRows(context, { year, month, salesPersonId: req.query.salesPersonId || '' });
+    return res.json({ success: true, rows, employees: context.employees, year, month });
+  } catch (error) {
+    console.error('Sales team performance failed:', error.message);
+    return sendError(res, 500, 'Unable to load team performance.');
+  }
+});
+
+router.get('/year-month-matrix', async (req, res) => {
+  try {
+    const context = await loadSalesContext();
+    const years = (req.query.years ? String(req.query.years).split(',').map((value) => Number(value.trim())).filter(Boolean) : await parseYearList(context)).slice(-4);
+    const matrix = buildYearMatrix(context, years);
+    return res.json({ success: true, years, matrix, employees: context.employees });
+  } catch (error) {
+    console.error('Sales year month matrix failed:', error.message);
+    return sendError(res, 500, 'Unable to load year month matrix.');
+  }
+});
+
+router.get('/reports', async (req, res) => {
+  try {
+    const context = await loadSalesContext();
+    const year = Number(req.query.year || currentYear);
+    const month = Number(req.query.month || currentMonth);
+    const salesPersonId = text(req.query.salesPersonId || '');
+    const reportType = text(req.query.reportType || 'monthly').toLowerCase();
+    const filteredEmployees = context.employees.filter((employee) => !salesPersonId || employeeHasValue(employee, salesPersonId));
+    const rows = filteredEmployees.map((employee) => {
+      const summary = applyTargets(employee, context, year, month, req.query.startDate || '', req.query.endDate || '');
+      return {
+        employeeId: employee.id,
+        employeeName: employee.name,
+        month,
+        year,
+        reportType,
+        monthlyTarget: summary.monthlyTarget,
+        monthlyAchieved: summary.monthlyAchieved,
+        monthlyPending: summary.monthlyPending,
+        monthlyAchievementPercent: summary.monthlyAchievementPercent,
+        yearlyTarget: summary.yearlyTarget,
+        yearlyAchieved: summary.yearlyAchieved,
+        yearlyPending: summary.yearlyPending,
+        yearlyAchievementPercent: summary.yearlyAchievementPercent,
+        leadsAssigned: summary.leadsAssigned,
+        leadsConverted: summary.leadsConverted,
+        revenueGenerated: summary.revenueGenerated,
+        status: summary.status
+      };
+    });
+    const summary = {
+      rows: rows.length,
+      totalMonthlyTarget: rows.reduce((sum, row) => sum + num(row.monthlyTarget), 0),
+      totalMonthlyAchieved: rows.reduce((sum, row) => sum + num(row.monthlyAchieved), 0),
+      totalYearlyTarget: rows.reduce((sum, row) => sum + num(row.yearlyTarget), 0),
+      totalYearlyAchieved: rows.reduce((sum, row) => sum + num(row.yearlyAchieved), 0)
+    };
+    return res.json({ success: true, rows, summary, reportType, employees: context.employees });
+  } catch (error) {
+    console.error('Sales reports failed:', error.message);
+    return sendError(res, 500, 'Unable to load sales reports.');
+  }
+});
+
+module.exports = { salesPerformanceRoutes: router };

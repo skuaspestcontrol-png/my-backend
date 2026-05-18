@@ -1,6 +1,190 @@
-import SalesPerformanceHub from './SalesPerformanceHub';
+import React, { useEffect, useMemo, useState } from 'react';
+import { RefreshCcw } from 'lucide-react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from 'recharts';
+import AppButton from '../../components/ui/AppButton';
+import AppCard from '../../components/ui/AppCard';
+import AppInput from '../../components/ui/AppInput';
+import AppSelect from '../../components/ui/AppSelect';
+import DashboardStatCard from '../../components/ui/DashboardStatCard';
+import EmptyState from '../../components/ui/EmptyState';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import PageHeader from '../../components/ui/PageHeader';
+import { apiGet, currentMonth, currentYear, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
+
+const chartWrap = { width: '100%', height: 300 };
+
+const summaryCards = [
+  { key: 'totalMonthlyTarget', title: 'Total Monthly Target' },
+  { key: 'totalMonthlyAchieved', title: 'Total Monthly Achieved' },
+  { key: 'monthlyPending', title: 'Monthly Pending' },
+  { key: 'monthlyAchievementPercent', title: 'Monthly Achievement %' },
+  { key: 'totalYearlyTarget', title: 'Total Yearly Target' },
+  { key: 'totalYearlyAchieved', title: 'Total Yearly Achieved' },
+  { key: 'yearlyPending', title: 'Yearly Pending' },
+  { key: 'bestPerformer', title: 'Best Performer' }
+];
 
 export default function SalesPerformanceDashboard() {
-  return <SalesPerformanceHub view="dashboard" />;
-}
+  const [filters, setFilters] = useState({ year: currentYear, month: currentMonth, employeeId: '' });
+  const [data, setData] = useState(null);
+  const [matrix, setMatrix] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
+  const load = async (nextFilters = filters) => {
+    setLoading(true);
+    setError('');
+    try {
+      const [dashboardRes, matrixRes] = await Promise.all([
+        apiGet('/api/sales-performance/dashboard', {
+          year: nextFilters.year,
+          month: nextFilters.month,
+          employeeId: nextFilters.employeeId
+        }),
+        apiGet('/api/sales-performance/year-month-matrix')
+      ]);
+      setData(dashboardRes);
+      setMatrix(safeRows(matrixRes.matrix));
+      setEmployees(safeRows(dashboardRes.employees));
+    } catch (err) {
+      setError(err?.response?.data?.error || err?.message || 'Unable to load sales performance dashboard.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const salesPeople = useMemo(() => safeRows(employees), [employees]);
+
+  const summaryValue = (key) => {
+    if (key === 'bestPerformer') return data?.summary?.bestPerformer?.employeeName || '---';
+    if (String(key).includes('Percent')) return percent(data?.summary?.[key] || 0);
+    return money(data?.summary?.[key] || 0);
+  };
+
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <PageHeader
+        title="Sales Performance"
+        subtitle="Track monthly and yearly target vs achievement in a simple clean view."
+        action={(
+          <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>
+            Refresh
+          </AppButton>
+        )}
+      />
+
+      <AppCard title="Filters">
+        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+          <AppSelect label="Year" value={filters.year} onChange={(e) => setFilters({ ...filters, year: Number(e.target.value) })}>
+            {Array.from({ length: 5 }, (_, index) => currentYear - 2 + index).map((year) => <option key={year} value={year}>{year}</option>)}
+          </AppSelect>
+          <AppSelect label="Month" value={filters.month} onChange={(e) => setFilters({ ...filters, month: Number(e.target.value) })}>
+            {monthOptions.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}
+          </AppSelect>
+          <AppSelect label="Sales Person" value={filters.employeeId} onChange={(e) => setFilters({ ...filters, employeeId: e.target.value })}>
+            <option value="">All Team</option>
+            {salesPeople.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
+          </AppSelect>
+          <AppInput label="Selected Team" value={filters.employeeId ? 'Single Sales Person' : 'All Team'} readOnly />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+          <AppButton onClick={() => load(filters)}>Apply Filters</AppButton>
+        </div>
+      </AppCard>
+
+      {loading ? (
+        <div style={{ display: 'grid', placeItems: 'center', minHeight: 220 }}>
+          <LoadingSpinner size={26} />
+        </div>
+      ) : error ? (
+        <AppCard><EmptyState title="Sales performance error" message={error} /></AppCard>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            {summaryCards.map((card) => (
+              <DashboardStatCard
+                key={card.key}
+                title={card.title}
+                value={summaryValue(card.key)}
+              />
+            ))}
+          </div>
+
+          <AppCard title="Monthly Target vs Achievement">
+            {safeRows(data?.monthlyTrend).length ? (
+              <div style={chartWrap}>
+                <ResponsiveContainer>
+                  <BarChart data={safeRows(data?.monthlyTrend)}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="label" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="target" fill="var(--color-primary)" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="achieved" fill="#0F766E" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : <EmptyState title="No monthly data" message="Targets and achievements will appear here." />}
+          </AppCard>
+
+          <AppCard title="Year-Month Matrix">
+            {safeRows(matrix).length ? (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Year</th>
+                      {monthOptions.map((month) => <th key={month.value} style={{ padding: '10px 12px', textAlign: 'left' }}>{month.label}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {matrix.map((row) => (
+                      <tr key={row.year}>
+                        <td style={{ padding: '10px 12px', fontWeight: 700 }}>{row.year}</td>
+                        {safeRows(row.cells).map((cell) => (
+                          <td key={`${row.year}-${cell.month}`} style={{ padding: '10px 12px' }}>
+                            <div style={{ fontWeight: 700 }}>{percent(cell.achievementPercent)}</div>
+                            <div style={{ color: '#6B7280', fontSize: 12 }}>{money(cell.achieved)} / {money(cell.target)}</div>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <EmptyState title="No matrix data" message="Year and month comparisons will appear here." />}
+          </AppCard>
+
+          <AppCard title="Sales Person Performance">
+            {safeRows(data?.salesPersonPerformance).length ? (
+              <div style={chartWrap}>
+                <ResponsiveContainer>
+                  <BarChart data={safeRows(data?.salesPersonPerformance)}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="employeeName" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="yearlyAchievementPercent" fill="#2563EB" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : <EmptyState title="No team performance yet" message="Add targets and records to compare people here." />}
+          </AppCard>
+        </>
+      )}
+    </div>
+  );
+}
