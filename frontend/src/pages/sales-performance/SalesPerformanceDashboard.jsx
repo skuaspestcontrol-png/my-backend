@@ -85,7 +85,7 @@ export default function SalesPerformanceDashboard() {
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 768
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' };
+      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(1, minmax(0, 1fr))' };
 
   const summaryGridStyle = viewportWidth >= 1200
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
@@ -125,9 +125,11 @@ export default function SalesPerformanceDashboard() {
         title="Sales Performance"
         subtitle="Track monthly and yearly target vs achievement in a simple clean view."
         action={(
-          <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>
-            Refresh
-          </AppButton>
+          viewportWidth <= 640 ? null : (
+            <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>
+              Refresh
+            </AppButton>
+          )
         )}
       />
 
@@ -146,7 +148,9 @@ export default function SalesPerformanceDashboard() {
           <AppInput label="Selected Team" value={filters.employeeId ? 'Single Sales Person' : 'All Team'} readOnly />
         </div>
         <div style={{ display: 'flex', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', marginTop: 12 }}>
-          <AppButton onClick={() => load(filters)}>Apply Filters</AppButton>
+          <AppButton onClick={() => load(filters)} style={viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined}>
+            Apply Filters
+          </AppButton>
         </div>
       </AppCard>
 
