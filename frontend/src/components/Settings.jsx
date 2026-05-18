@@ -2639,28 +2639,7 @@ export default function Settings({ modalMode = false }) {
                 fontSize: isCompactLayout ? '11px' : '12px'
               }}
             >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                {form.dashboardImageUrl ? (
-                  <span
-                    style={{
-                      width: isCompactLayout ? '28px' : '30px',
-                      height: isCompactLayout ? '28px' : '30px',
-                      borderRadius: '7px',
-                      background: 'rgba(255,255,255,0.16)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      overflow: 'hidden',
-                      flexShrink: 0
-                    }}
-                  >
-                    <img
-                      src={form.dashboardImageUrl}
-                      alt="Company logo"
-                      style={{ width: '100%', height: '100%', objectFit: 'contain', background: 'transparent' }}
-                    />
-                  </span>
-                ) : null}
+              <span style={{ display: 'inline-flex', alignItems: 'center', minWidth: 0 }}>
                 <span>Settings</span>
               </span>
             </div>
