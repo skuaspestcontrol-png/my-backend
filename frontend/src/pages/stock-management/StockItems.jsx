@@ -8,7 +8,6 @@ import AppTextarea from '../../components/ui/AppTextarea';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
-import StatusBadge from '../../components/ui/StatusBadge';
 import { apiDelete, apiGet, apiPost, apiPut, number, safeRows, stockCategories, stockUnits } from './stockApi';
 
 const vendorLabel = (row) => String(row.name || row.vendor_name || row.company_name || row.displayName || `Vendor ${row.id || row._id || ''}`).trim();
@@ -34,6 +33,22 @@ const initialForm = {
 const tableStyle = { width: '100%', borderCollapse: 'collapse' };
 const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
 const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const greenColor = '#16A34A';
+const redColor = '#DC2626';
+const blackColor = '#111827';
+const badgeStyle = (status) => {
+  const value = String(status || '').toLowerCase();
+  let bg = '#F3F4F6';
+  let fg = blackColor;
+  if (value === 'in stock') {
+    bg = '#DCFCE7';
+    fg = greenColor;
+  } else if (value === 'low stock' || value === 'out of stock' || value === 'expired' || value === 'expiring soon') {
+    bg = '#FEE2E2';
+    fg = redColor;
+  }
+  return { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 10px', fontSize: 12, fontWeight: 700, background: bg, color: fg };
+};
 
 export default function StockItems() {
   const [items, setItems] = useState([]);
@@ -208,11 +223,7 @@ export default function StockItems() {
                     <td style={cellStyle}>{row.unit}</td>
                     <td style={cellStyle}>{number(row.currentStock)}</td>
                     <td style={cellStyle}>{number(row.minStockLevel)}</td>
-                    <td style={cellStyle}>
-                      <StatusBadge status={row.status === 'In Stock' ? 'active' : row.status === 'Low Stock' ? 'pending' : 'danger'}>
-                        {row.status}
-                      </StatusBadge>
-                    </td>
+                    <td style={cellStyle}><span style={badgeStyle(row.status)}>{row.status}</span></td>
                     <td style={cellStyle}>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <AppButton variant="outline" size="sm" iconLeft={<Edit3 size={14} />} onClick={() => editRow(row)}>Edit</AppButton>

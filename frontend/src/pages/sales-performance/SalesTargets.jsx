@@ -18,14 +18,16 @@ const initialForm = {
   targetMonth: currentMonth,
   targetYear: currentYear,
   revenueTarget: '',
-  leadTarget: '',
-  conversionTarget: '',
+  collectionTarget: '',
   notes: ''
 };
 
 const tableStyle = { width: '100%', borderCollapse: 'collapse' };
 const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
 const headerStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const successColor = '#16A34A';
+const dangerColor = '#DC2626';
+const neutralTextColor = '#111827';
 
 export default function SalesTargets() {
   const [targets, setTargets] = useState([]);
@@ -57,6 +59,11 @@ export default function SalesTargets() {
   const employeeOptions = useMemo(() => safeRows(employees), [employees]);
 
   const resetForm = () => setForm(initialForm);
+  const metricColor = (actual, target) => {
+    const targetValue = Number(target || 0);
+    if (targetValue <= 0) return neutralTextColor;
+    return Number(actual || 0) >= targetValue ? successColor : dangerColor;
+  };
 
   const editRow = (row) => {
     setForm({
@@ -66,8 +73,7 @@ export default function SalesTargets() {
       targetMonth: row.targetMonth || currentMonth,
       targetYear: row.targetYear,
       revenueTarget: String(row.revenueTarget || 0),
-      leadTarget: String(row.leadTarget || 0),
-      conversionTarget: String(row.conversionTarget || 0),
+      collectionTarget: String(row.collectionTarget || 0),
       notes: row.notes || ''
     });
   };
@@ -83,8 +89,7 @@ export default function SalesTargets() {
         targetMonth: form.targetType === 'monthly' ? Number(form.targetMonth) : null,
         targetYear: Number(form.targetYear),
         revenueTarget: Number(form.revenueTarget || 0),
-        leadTarget: Number(form.leadTarget || 0),
-        conversionTarget: Number(form.conversionTarget || 0),
+        collectionTarget: Number(form.collectionTarget || 0),
         notes: form.notes
       };
       if (form.id) await apiPut(`/api/sales-performance/targets/${form.id}`, payload);
@@ -166,8 +171,7 @@ export default function SalesTargets() {
             ) : null}
             <AppInput type="number" min="0" step="0.01" label="Year" value={form.targetYear} onChange={(e) => setForm({ ...form, targetYear: e.target.value })} required />
             <AppInput type="number" min="0" step="0.01" label="Revenue Target" value={form.revenueTarget} onChange={(e) => setForm({ ...form, revenueTarget: e.target.value })} required />
-            <AppInput type="number" min="0" step="1" label="Lead Target" value={form.leadTarget} onChange={(e) => setForm({ ...form, leadTarget: e.target.value })} />
-            <AppInput type="number" min="0" step="1" label="Conversion Target" value={form.conversionTarget} onChange={(e) => setForm({ ...form, conversionTarget: e.target.value })} />
+            <AppInput type="number" min="0" step="0.01" label="Collection Target" value={form.collectionTarget} onChange={(e) => setForm({ ...form, collectionTarget: e.target.value })} required />
           </div>
           <AppTextarea label="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
@@ -190,9 +194,13 @@ export default function SalesTargets() {
                   <th style={headerStyle}>Month</th>
                   <th style={headerStyle}>Year</th>
                   <th style={headerStyle}>Revenue Target</th>
-                  <th style={headerStyle}>Achieved</th>
-                  <th style={headerStyle}>Pending</th>
-                  <th style={headerStyle}>Achievement %</th>
+                  <th style={headerStyle}>Revenue Achieved</th>
+                  <th style={headerStyle}>Revenue Pending</th>
+                  <th style={headerStyle}>Revenue %</th>
+                  <th style={headerStyle}>Collection Target</th>
+                  <th style={headerStyle}>Collection Achieved</th>
+                  <th style={headerStyle}>Collection Pending</th>
+                  <th style={headerStyle}>Collection %</th>
                   <th style={headerStyle}>Action</th>
                 </tr>
               </thead>
@@ -208,9 +216,37 @@ export default function SalesTargets() {
                     <td style={cellStyle}>{row.targetType === 'monthly' ? monthOptions.find((month) => month.value === Number(row.targetMonth))?.label || '---' : '---'}</td>
                     <td style={cellStyle}>{row.targetYear}</td>
                     <td style={cellStyle}>{money(row.revenueTarget)}</td>
-                    <td style={cellStyle}>{money(row.achievedRevenue)}</td>
-                    <td style={cellStyle}>{money(row.pendingRevenue)}</td>
-                    <td style={cellStyle}>{percent(row.achievementPercent)}</td>
+                    <td style={cellStyle}>
+                      <span style={{ color: metricColor(row.achievedRevenue, row.revenueTarget), fontWeight: 700 }}>
+                        {money(row.achievedRevenue)}
+                      </span>
+                    </td>
+                    <td style={cellStyle}>
+                      <span style={{ color: metricColor(row.achievedRevenue, row.revenueTarget), fontWeight: 700 }}>
+                        {money(row.pendingRevenue)}
+                      </span>
+                    </td>
+                    <td style={cellStyle}>
+                      <span style={{ color: metricColor(row.achievedRevenue, row.revenueTarget), fontWeight: 700 }}>
+                        {percent(row.achievementPercent)}
+                      </span>
+                    </td>
+                    <td style={cellStyle}>{money(row.collectionTarget)}</td>
+                    <td style={cellStyle}>
+                      <span style={{ color: metricColor(row.achievedCollection, row.collectionTarget), fontWeight: 700 }}>
+                        {money(row.achievedCollection)}
+                      </span>
+                    </td>
+                    <td style={cellStyle}>
+                      <span style={{ color: metricColor(row.achievedCollection, row.collectionTarget), fontWeight: 700 }}>
+                        {money(row.pendingCollection)}
+                      </span>
+                    </td>
+                    <td style={cellStyle}>
+                      <span style={{ color: metricColor(row.achievedCollection, row.collectionTarget), fontWeight: 700 }}>
+                        {percent(row.collectionAchievementPercent)}
+                      </span>
+                    </td>
                     <td style={cellStyle}>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <AppButton variant="outline" size="sm" iconLeft={<Edit3 size={14} />} onClick={() => editRow(row)}>Edit</AppButton>

@@ -4,6 +4,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -20,6 +21,9 @@ import PageHeader from '../../components/ui/PageHeader';
 import { apiGet, currentMonth, currentYear, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
 
 const chartWrap = { width: '100%', height: 300 };
+const targetColor = '#111827';
+const successColor = '#16A34A';
+const dangerColor = '#DC2626';
 
 const summaryCards = [
   { key: 'totalMonthlyTarget', title: 'Total Monthly Target' },
@@ -73,6 +77,7 @@ export default function SalesPerformanceDashboard() {
     if (String(key).includes('Percent')) return percent(data?.summary?.[key] || 0);
     return money(data?.summary?.[key] || 0);
   };
+  const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
@@ -132,8 +137,12 @@ export default function SalesPerformanceDashboard() {
                     <XAxis dataKey="label" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="target" fill="var(--color-primary)" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="achieved" fill="#0F766E" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="target" fill={targetColor} radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="achieved" radius={[8, 8, 0, 0]}>
+                      {safeRows(data?.monthlyTrend).map((entry) => (
+                        <Cell key={entry.month} fill={isTargetMet(entry.achieved, entry.target) ? successColor : dangerColor} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -177,7 +186,14 @@ export default function SalesPerformanceDashboard() {
                     <XAxis dataKey="employeeName" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="yearlyAchievementPercent" fill="#2563EB" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="yearlyAchievementPercent" radius={[8, 8, 0, 0]}>
+                      {safeRows(data?.salesPersonPerformance).map((entry) => (
+                        <Cell
+                          key={entry.employeeId}
+                          fill={Number(entry.yearlyAchievementPercent || 0) >= 100 ? successColor : dangerColor}
+                        />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>

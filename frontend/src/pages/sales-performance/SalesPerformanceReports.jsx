@@ -4,6 +4,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,6 +20,26 @@ import PageHeader from '../../components/ui/PageHeader';
 import { apiGet, currentMonth, currentYear, downloadCsv, monthOptions, money, percent, safeRows } from './salesPerformanceApi';
 
 const chartWrap = { width: '100%', height: 300 };
+const targetColor = '#111827';
+const successColor = '#16A34A';
+const dangerColor = '#DC2626';
+const neutralTextColor = '#111827';
+const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto' };
+const tableStyle = { width: '100%', minWidth: '1500px', tableLayout: 'fixed', borderCollapse: 'collapse' };
+const headCellStyle = {
+  padding: '10px 12px',
+  textAlign: 'left',
+  whiteSpace: 'normal',
+  wordBreak: 'break-word',
+  verticalAlign: 'top'
+};
+const bodyCellStyle = {
+  padding: '10px 12px',
+  borderTop: '1px solid var(--color-border)',
+  whiteSpace: 'normal',
+  wordBreak: 'break-word',
+  verticalAlign: 'top'
+};
 
 const reportTypeOptions = [
   { value: 'monthly', label: 'Monthly target vs achievement' },
@@ -66,11 +87,27 @@ export default function SalesPerformanceReports() {
     employeeName: row.employeeName,
     monthlyTarget: Number(row.monthlyTarget || 0),
     monthlyAchieved: Number(row.monthlyAchieved || 0),
+    monthlyCollectionTarget: Number(row.monthlyCollectionTarget || 0),
+    monthlyCollectionAchieved: Number(row.monthlyCollectionAchieved || 0),
     yearlyTarget: Number(row.yearlyTarget || 0),
     yearlyAchieved: Number(row.yearlyAchieved || 0),
+    yearlyCollectionTarget: Number(row.yearlyCollectionTarget || 0),
+    yearlyCollectionAchieved: Number(row.yearlyCollectionAchieved || 0),
     monthlyAchievementPercent: Number(row.monthlyAchievementPercent || 0),
     yearlyAchievementPercent: Number(row.yearlyAchievementPercent || 0)
   })), [rows]);
+  const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
+  const metricColor = (actual, target) => {
+    const targetValue = Number(target || 0);
+    if (targetValue <= 0) return neutralTextColor;
+    return Number(actual || 0) >= targetValue ? successColor : dangerColor;
+  };
+  const statusColor = (status) => {
+    const value = String(status || '').toLowerCase();
+    if (value === 'excellent') return successColor;
+    if (value === 'low') return dangerColor;
+    return neutralTextColor;
+  };
 
   const summaryCards = [
     { title: 'Rows', value: summary?.rows || 0 },
@@ -89,10 +126,18 @@ export default function SalesPerformanceReports() {
       MonthlyAchieved: row.monthlyAchieved,
       MonthlyPending: row.monthlyPending,
       MonthlyAchievementPercent: row.monthlyAchievementPercent,
+      MonthlyCollectionTarget: row.monthlyCollectionTarget,
+      MonthlyCollectionAchieved: row.monthlyCollectionAchieved,
+      MonthlyCollectionPending: row.monthlyCollectionPending,
+      MonthlyCollectionPercent: row.monthlyCollectionPercent,
       YearlyTarget: row.yearlyTarget,
       YearlyAchieved: row.yearlyAchieved,
       YearlyPending: row.yearlyPending,
       YearlyAchievementPercent: row.yearlyAchievementPercent,
+      YearlyCollectionTarget: row.yearlyCollectionTarget,
+      YearlyCollectionAchieved: row.yearlyCollectionAchieved,
+      YearlyCollectionPending: row.yearlyCollectionPending,
+      YearlyCollectionPercent: row.yearlyCollectionPercent,
       LeadsAssigned: row.leadsAssigned,
       LeadsConverted: row.leadsConverted,
       RevenueGenerated: row.revenueGenerated,
@@ -161,8 +206,15 @@ export default function SalesPerformanceReports() {
                     <XAxis dataKey="employeeName" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="monthlyTarget" fill="var(--color-primary)" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="monthlyAchieved" fill="#0F766E" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="monthlyTarget" fill={targetColor} radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="monthlyAchieved" radius={[8, 8, 0, 0]}>
+                      {chartData.map((entry) => (
+                        <Cell
+                          key={`${entry.employeeName}-monthly`}
+                          fill={isTargetMet(entry.monthlyAchieved, entry.monthlyTarget) ? successColor : dangerColor}
+                        />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -180,8 +232,15 @@ export default function SalesPerformanceReports() {
                     <XAxis dataKey="employeeName" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="yearlyTarget" fill="#94A3B8" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="yearlyAchieved" fill="var(--color-primary)" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="yearlyTarget" fill={targetColor} radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="yearlyAchieved" radius={[8, 8, 0, 0]}>
+                      {chartData.map((entry) => (
+                        <Cell
+                          key={`${entry.employeeName}-yearly`}
+                          fill={isTargetMet(entry.yearlyAchieved, entry.yearlyTarget) ? successColor : dangerColor}
+                        />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -192,37 +251,93 @@ export default function SalesPerformanceReports() {
 
           <AppCard title="Report Table">
             {rows.length ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div style={tableWrapStyle}>
+                <table style={tableStyle}>
                   <thead>
                     <tr>
-                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Sales Person</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Monthly Target</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Monthly Achieved</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Monthly %</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Yearly Target</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Yearly Achieved</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Yearly %</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Leads</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Converted</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Revenue</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Status</th>
+                      <th style={headCellStyle}>Sales Person</th>
+                      <th style={headCellStyle}>Monthly Target</th>
+                      <th style={headCellStyle}>Monthly Achieved</th>
+                      <th style={headCellStyle}>Monthly %</th>
+                      <th style={headCellStyle}>Monthly Collection Target</th>
+                      <th style={headCellStyle}>Monthly Collection Achieved</th>
+                      <th style={headCellStyle}>Monthly Collection %</th>
+                      <th style={headCellStyle}>Yearly Target</th>
+                      <th style={headCellStyle}>Yearly Achieved</th>
+                      <th style={headCellStyle}>Yearly %</th>
+                      <th style={headCellStyle}>Yearly Collection Target</th>
+                      <th style={headCellStyle}>Yearly Collection Achieved</th>
+                      <th style={headCellStyle}>Yearly Collection %</th>
+                      <th style={headCellStyle}>Leads</th>
+                      <th style={headCellStyle}>Converted</th>
+                      <th style={headCellStyle}>Revenue</th>
+                      <th style={headCellStyle}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((row) => (
                       <tr key={`${row.employeeId}-${row.year}-${row.month}`}>
-                        <td style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>{row.employeeName}</td>
-                        <td style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>{money(row.monthlyTarget)}</td>
-                        <td style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>{money(row.monthlyAchieved)}</td>
-                        <td style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>{percent(row.monthlyAchievementPercent)}</td>
-                        <td style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>{money(row.yearlyTarget)}</td>
-                        <td style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>{money(row.yearlyAchieved)}</td>
-                        <td style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>{percent(row.yearlyAchievementPercent)}</td>
-                        <td style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>{row.leadsAssigned}</td>
-                        <td style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>{row.leadsConverted}</td>
-                        <td style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>{money(row.revenueGenerated)}</td>
-                        <td style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>{row.status}</td>
+                        <td style={bodyCellStyle}>{row.employeeName}</td>
+                        <td style={bodyCellStyle}>{money(row.monthlyTarget)}</td>
+                        <td style={bodyCellStyle}>
+                          <span style={{ color: metricColor(row.monthlyAchieved, row.monthlyTarget), fontWeight: 700 }}>
+                            {money(row.monthlyAchieved)}
+                          </span>
+                        </td>
+                        <td style={bodyCellStyle}>
+                          <span style={{ color: metricColor(row.monthlyAchieved, row.monthlyTarget), fontWeight: 700 }}>
+                            {percent(row.monthlyAchievementPercent)}
+                          </span>
+                        </td>
+                        <td style={bodyCellStyle}>
+                          <span style={{ color: metricColor(row.monthlyCollectionAchieved, row.monthlyCollectionTarget), fontWeight: 700 }}>
+                            {money(row.monthlyCollectionTarget)}
+                          </span>
+                        </td>
+                        <td style={bodyCellStyle}>
+                          <span style={{ color: metricColor(row.monthlyCollectionAchieved, row.monthlyCollectionTarget), fontWeight: 700 }}>
+                            {money(row.monthlyCollectionAchieved)}
+                          </span>
+                        </td>
+                        <td style={bodyCellStyle}>
+                          <span style={{ color: metricColor(row.monthlyCollectionAchieved, row.monthlyCollectionTarget), fontWeight: 700 }}>
+                            {percent(row.monthlyCollectionPercent)}
+                          </span>
+                        </td>
+                        <td style={bodyCellStyle}>{money(row.yearlyTarget)}</td>
+                        <td style={bodyCellStyle}>
+                          <span style={{ color: metricColor(row.yearlyAchieved, row.yearlyTarget), fontWeight: 700 }}>
+                            {money(row.yearlyAchieved)}
+                          </span>
+                        </td>
+                        <td style={bodyCellStyle}>
+                          <span style={{ color: metricColor(row.yearlyAchieved, row.yearlyTarget), fontWeight: 700 }}>
+                            {percent(row.yearlyAchievementPercent)}
+                          </span>
+                        </td>
+                        <td style={bodyCellStyle}>
+                          <span style={{ color: metricColor(row.yearlyCollectionAchieved, row.yearlyCollectionTarget), fontWeight: 700 }}>
+                            {money(row.yearlyCollectionTarget)}
+                          </span>
+                        </td>
+                        <td style={bodyCellStyle}>
+                          <span style={{ color: metricColor(row.yearlyCollectionAchieved, row.yearlyCollectionTarget), fontWeight: 700 }}>
+                            {money(row.yearlyCollectionAchieved)}
+                          </span>
+                        </td>
+                        <td style={bodyCellStyle}>
+                          <span style={{ color: metricColor(row.yearlyCollectionAchieved, row.yearlyCollectionTarget), fontWeight: 700 }}>
+                            {percent(row.yearlyCollectionPercent)}
+                          </span>
+                        </td>
+                        <td style={bodyCellStyle}>{row.leadsAssigned}</td>
+                        <td style={bodyCellStyle}>{row.leadsConverted}</td>
+                        <td style={bodyCellStyle}>{money(row.revenueGenerated)}</td>
+                        <td style={bodyCellStyle}>
+                          <span style={{ color: statusColor(row.status), fontWeight: 700 }}>
+                            {row.status}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

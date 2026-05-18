@@ -96,8 +96,7 @@ const ensureSchema = async () => {
     target_month TINYINT NULL,
     target_year INT NOT NULL,
     revenue_target DECIMAL(12,2) DEFAULT 0,
-    lead_target INT DEFAULT 0,
-    conversion_target INT DEFAULT 0,
+    collection_target DECIMAL(12,2) DEFAULT 0,
     notes TEXT NULL,
     is_active TINYINT(1) DEFAULT 1,
     created_by INT NULL,
@@ -114,8 +113,7 @@ const ensureSchema = async () => {
   await ensureColumn('sales_targets', 'target_month', 'target_month TINYINT NULL');
   await ensureColumn('sales_targets', 'target_year', 'target_year INT NULL');
   await ensureColumn('sales_targets', 'revenue_target', 'revenue_target DECIMAL(12,2) DEFAULT 0');
-  await ensureColumn('sales_targets', 'lead_target', 'lead_target INT DEFAULT 0');
-  await ensureColumn('sales_targets', 'conversion_target', 'conversion_target INT DEFAULT 0');
+  await ensureColumn('sales_targets', 'collection_target', 'collection_target DECIMAL(12,2) DEFAULT 0');
   await ensureColumn('sales_targets', 'notes', 'notes TEXT NULL');
   await ensureColumn('sales_targets', 'is_active', 'is_active TINYINT(1) DEFAULT 1');
   await ensureColumn('sales_targets', 'created_by', 'created_by INT NULL');
@@ -271,28 +269,30 @@ const summarizeRecords = (records = [], employee, year, month, startDate = '', e
   const monthlyLeadsConverted = monthly.filter((record) => record.kind === 'leads' && record.converted).length;
   const yearlyLeadsAssigned = yearly.filter((record) => record.kind === 'leads').length;
   const yearlyLeadsConverted = yearly.filter((record) => record.kind === 'leads' && record.converted).length;
-  const monthlyPayments = monthly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
   const monthlyInvoices = monthly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
   const monthlyQuotations = monthly.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
+  const monthlyPayments = monthly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyPayments = yearly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyInvoices = yearly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyQuotations = yearly.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
-  const monthlyAchieved = monthlyPayments || monthlyInvoices || monthlyQuotations;
-  const yearlyAchieved = yearlyPayments || yearlyInvoices || yearlyQuotations;
+  const monthlyRevenueAchieved = monthlyInvoices || monthlyQuotations || monthlyPayments;
+  const yearlyRevenueAchieved = yearlyInvoices || yearlyQuotations || yearlyPayments;
   return {
     employeeId: employee?.id || '',
     employeeName: employee?.name || 'Employee',
     monthlyTarget: 0,
-    monthlyAchieved,
+    monthlyRevenueAchieved,
+    monthlyCollectionAchieved: monthlyPayments,
     monthlyPending: 0,
     monthlyAchievementPercent: 0,
     yearlyTarget: 0,
-    yearlyAchieved,
+    yearlyRevenueAchieved,
+    yearlyCollectionAchieved: yearlyPayments,
     yearlyPending: 0,
     yearlyAchievementPercent: 0,
     leadsAssigned: yearlyLeadsAssigned,
     leadsConverted: yearlyLeadsConverted,
-    revenueGenerated: yearlyPayments || yearlyInvoices || yearlyQuotations || 0,
+    revenueGenerated: yearlyRevenueAchieved || 0,
     status: 'Low',
     monthlyLeadsAssigned,
     monthlyLeadsConverted,
@@ -307,26 +307,50 @@ const summarizeRecords = (records = [], employee, year, month, startDate = '', e
   };
 };
 const attachTargets = (row, monthlyTargetRow, yearlyTargetRow) => {
-  const monthlyTarget = monthlyTargetRow ? num(monthlyTargetRow.revenue_target) : 0;
-  const monthlyAchieved = num(row.monthlyAchieved);
-  const yearlyTarget = yearlyTargetRow ? num(yearlyTargetRow.revenue_target) : 0;
-  const yearlyAchieved = num(row.yearlyAchieved);
-  const monthlyAchievementPercent = percent(monthlyAchieved, monthlyTarget);
-  const yearlyAchievementPercent = percent(yearlyAchieved, yearlyTarget);
-  const monthlyPending = Math.max(monthlyTarget - monthlyAchieved, 0);
-  const yearlyPending = Math.max(yearlyTarget - yearlyAchieved, 0);
-  const status = yearlyAchievementPercent >= 100 ? 'Excellent' : yearlyAchievementPercent >= 75 ? 'Good' : 'Low';
+  const monthlyRevenueTarget = monthlyTargetRow ? num(monthlyTargetRow.revenue_target) : 0;
+  const monthlyCollectionTarget = monthlyTargetRow ? num(monthlyTargetRow.collection_target ?? monthlyTargetRow.lead_target ?? 0) : 0;
+  const monthlyRevenueAchieved = num(row.monthlyRevenueAchieved);
+  const monthlyCollectionAchieved = num(row.monthlyCollectionAchieved);
+  const yearlyRevenueTarget = yearlyTargetRow ? num(yearlyTargetRow.revenue_target) : 0;
+  const yearlyCollectionTarget = yearlyTargetRow ? num(yearlyTargetRow.collection_target ?? yearlyTargetRow.lead_target ?? 0) : 0;
+  const yearlyRevenueAchieved = num(row.yearlyRevenueAchieved);
+  const yearlyCollectionAchieved = num(row.yearlyCollectionAchieved);
+  const monthlyRevenuePercent = percent(monthlyRevenueAchieved, monthlyRevenueTarget);
+  const monthlyCollectionPercent = percent(monthlyCollectionAchieved, monthlyCollectionTarget);
+  const yearlyRevenuePercent = percent(yearlyRevenueAchieved, yearlyRevenueTarget);
+  const yearlyCollectionPercent = percent(yearlyCollectionAchieved, yearlyCollectionTarget);
+  const monthlyRevenuePending = Math.max(monthlyRevenueTarget - monthlyRevenueAchieved, 0);
+  const monthlyCollectionPending = Math.max(monthlyCollectionTarget - monthlyCollectionAchieved, 0);
+  const yearlyRevenuePending = Math.max(yearlyRevenueTarget - yearlyRevenueAchieved, 0);
+  const yearlyCollectionPending = Math.max(yearlyCollectionTarget - yearlyCollectionAchieved, 0);
+  const status = yearlyRevenuePercent >= 100 ? 'Excellent' : yearlyRevenuePercent >= 75 ? 'Good' : 'Low';
   return {
     ...row,
-    monthlyTarget,
-    monthlyPending,
-    monthlyAchievementPercent,
-    yearlyTarget,
-    yearlyPending,
-    yearlyAchievementPercent,
+    monthlyTarget: monthlyRevenueTarget,
+    monthlyRevenueTarget,
+    monthlyCollectionTarget,
+    monthlyRevenueAchieved,
+    monthlyCollectionAchieved,
+    monthlyAchieved: monthlyRevenueAchieved,
+    monthlyRevenuePending,
+    monthlyCollectionPending,
+    monthlyRevenuePercent,
+    monthlyCollectionPercent,
+    monthlyPending: monthlyRevenuePending,
+    monthlyAchievementPercent: monthlyRevenuePercent,
+    yearlyTarget: yearlyRevenueTarget,
+    yearlyRevenueTarget,
+    yearlyCollectionTarget,
+    yearlyRevenueAchieved,
+    yearlyCollectionAchieved,
+    yearlyAchieved: yearlyRevenueAchieved,
+    yearlyRevenuePending,
+    yearlyCollectionPending,
+    yearlyRevenuePercent,
+    yearlyCollectionPercent,
+    yearlyPending: yearlyRevenuePending,
+    yearlyAchievementPercent: yearlyRevenuePercent,
     status,
-    leadTarget: monthlyTargetRow ? num(monthlyTargetRow.lead_target) : 0,
-    conversionTarget: monthlyTargetRow ? num(monthlyTargetRow.conversion_target) : 0,
     targetMonth: monthlyTargetRow?.target_month ?? null,
     targetYear: monthlyTargetRow?.target_year ?? yearlyTargetRow?.target_year ?? null,
     targetType: monthlyTargetRow?.target_type || yearlyTargetRow?.target_type || 'monthly',
@@ -369,8 +393,7 @@ const loadSalesContext = async () => {
     targetMonth: row.target_month ?? row.month ?? null,
     targetYear: row.target_year ?? row.year ?? null,
     revenueTarget: num(row.revenue_target || row.target_amount || row.amount || 0),
-    leadTarget: num(row.lead_target || 0),
-    conversionTarget: num(row.conversion_target || 0),
+    collectionTarget: num(row.collection_target ?? row.lead_target ?? 0),
     notes: text(row.notes || row.remark || ''),
     isActive: Number(row.is_active ?? 1) !== 0
   }));
@@ -433,8 +456,10 @@ const buildTargetRows = (context, filters = {}) => {
     const employee = context.employees.find((item) => employeeHasValue(item, row.salesPersonId) || employeeHasValue(item, row.employeeName) || employeeHasValue(item, row.salesPersonName)) || null;
     const targetTypeResolved = row.targetType === 'yearly' ? 'yearly' : 'monthly';
     const summary = applyTargets(employee || { id: row.salesPersonId, name: row.salesPersonName || `Employee ${row.salesPersonId}` }, context, Number(row.targetYear), Number(row.targetMonth || currentMonth));
-    const achievedRevenue = targetTypeResolved === 'yearly' ? num(summary.yearlyAchieved) : num(summary.monthlyAchieved);
+    const achievedRevenue = targetTypeResolved === 'yearly' ? num(summary.yearlyRevenueAchieved) : num(summary.monthlyRevenueAchieved);
+    const achievedCollection = targetTypeResolved === 'yearly' ? num(summary.yearlyCollectionAchieved) : num(summary.monthlyCollectionAchieved);
     const targetRevenue = num(row.revenueTarget);
+    const targetCollection = num(row.collectionTarget);
     return {
       id: row.id,
       salesPersonId: row.salesPersonId,
@@ -443,11 +468,13 @@ const buildTargetRows = (context, filters = {}) => {
       targetMonth: row.targetMonth || null,
       targetYear: row.targetYear,
       revenueTarget: targetRevenue,
-      leadTarget: row.leadTarget,
-      conversionTarget: row.conversionTarget,
+      collectionTarget: targetCollection,
       achievedRevenue,
+      achievedCollection,
       pendingRevenue: Math.max(targetRevenue - achievedRevenue, 0),
       achievementPercent: percent(achievedRevenue, targetRevenue),
+      pendingCollection: Math.max(targetCollection - achievedCollection, 0),
+      collectionAchievementPercent: percent(achievedCollection, targetCollection),
       notes: row.notes || ''
     };
   });
@@ -459,21 +486,29 @@ const buildTeamRows = (context, filters = {}) => {
   return context.employees
     .filter((employee) => !salesPersonId || employeeHasValue(employee, salesPersonId))
     .map((employee) => {
-      const summary = applyTargets(employee, context, year, month, filters.startDate || '', filters.endDate || '');
-      return {
-        employeeId: employee.id,
-        employeeName: employee.name,
-        monthlyTarget: summary.monthlyTarget,
-        monthlyAchieved: summary.monthlyAchieved,
-        monthlyPending: summary.monthlyPending,
-        monthlyAchievementPercent: summary.monthlyAchievementPercent,
-        yearlyTarget: summary.yearlyTarget,
-        yearlyAchieved: summary.yearlyAchieved,
-        yearlyPending: summary.yearlyPending,
-        yearlyAchievementPercent: summary.yearlyAchievementPercent,
-        leadsAssigned: summary.leadsAssigned,
-        leadsConverted: summary.leadsConverted,
-        revenueGenerated: summary.revenueGenerated,
+        const summary = applyTargets(employee, context, year, month, filters.startDate || '', filters.endDate || '');
+        return {
+          employeeId: employee.id,
+          employeeName: employee.name,
+          monthlyTarget: summary.monthlyRevenueTarget,
+          monthlyAchieved: summary.monthlyRevenueAchieved,
+          monthlyPending: summary.monthlyRevenuePending,
+          monthlyAchievementPercent: summary.monthlyRevenuePercent,
+          yearlyTarget: summary.yearlyRevenueTarget,
+          yearlyAchieved: summary.yearlyRevenueAchieved,
+          yearlyPending: summary.yearlyRevenuePending,
+          yearlyAchievementPercent: summary.yearlyRevenuePercent,
+          monthlyCollectionTarget: summary.monthlyCollectionTarget,
+          monthlyCollectionAchieved: summary.monthlyCollectionAchieved,
+          monthlyCollectionPending: summary.monthlyCollectionPending,
+          monthlyCollectionPercent: summary.monthlyCollectionPercent,
+          yearlyCollectionTarget: summary.yearlyCollectionTarget,
+          yearlyCollectionAchieved: summary.yearlyCollectionAchieved,
+          yearlyCollectionPending: summary.yearlyCollectionPending,
+          yearlyCollectionPercent: summary.yearlyCollectionPercent,
+          leadsAssigned: summary.leadsAssigned,
+          leadsConverted: summary.leadsConverted,
+          revenueGenerated: summary.revenueGenerated,
         status: summary.status
       };
     })
@@ -566,8 +601,7 @@ router.post('/targets', async (req, res) => {
     const targetMonth = targetType === 'monthly' ? Number(body.targetMonth || body.target_month || 0) || null : null;
     const targetYear = Number(body.targetYear || body.target_year || 0);
     const revenueTarget = num(body.revenueTarget || body.revenue_target || 0);
-    const leadTarget = num(body.leadTarget || body.lead_target || 0);
-    const conversionTarget = num(body.conversionTarget || body.conversion_target || 0);
+    const collectionTarget = num(body.collectionTarget || body.collection_target || body.leadTarget || body.lead_target || 0);
     if (!salesPersonId) return sendError(res, 400, 'Sales person is required.');
     if (!['monthly', 'yearly'].includes(targetType)) return sendError(res, 400, 'Target type must be monthly or yearly.');
     if (!targetYear) return sendError(res, 400, 'Year is required.');
@@ -585,15 +619,15 @@ router.post('/targets', async (req, res) => {
       const existing = safeRows(existingRows)[0];
       if (existing) {
         await conn.query(
-          `UPDATE sales_targets SET sales_person_id = ?, target_type = ?, target_month = ?, target_year = ?, revenue_target = ?, lead_target = ?, conversion_target = ?, notes = ?, is_active = 1
+          `UPDATE sales_targets SET sales_person_id = ?, target_type = ?, target_month = ?, target_year = ?, revenue_target = ?, collection_target = ?, notes = ?, is_active = 1
            WHERE id = ?`,
-          [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, leadTarget, conversionTarget, text(body.notes || ''), existing.id]
+          [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, collectionTarget, text(body.notes || ''), existing.id]
         );
       } else {
         await conn.query(
-          `INSERT INTO sales_targets (sales_person_id, target_type, target_month, target_year, revenue_target, lead_target, conversion_target, notes, is_active, created_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
-          [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, leadTarget, conversionTarget, text(body.notes || ''), body.createdBy || body.created_by || null]
+          `INSERT INTO sales_targets (sales_person_id, target_type, target_month, target_year, revenue_target, collection_target, notes, is_active, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+          [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, collectionTarget, text(body.notes || ''), body.createdBy || body.created_by || null]
         );
       }
       await conn.commit();
@@ -619,8 +653,7 @@ router.put('/targets/:id', async (req, res) => {
     const targetMonth = targetType === 'monthly' ? Number(body.targetMonth || body.target_month || 0) || null : null;
     const targetYear = Number(body.targetYear || body.target_year || 0);
     const revenueTarget = num(body.revenueTarget || body.revenue_target || 0);
-    const leadTarget = num(body.leadTarget || body.lead_target || 0);
-    const conversionTarget = num(body.conversionTarget || body.conversion_target || 0);
+    const collectionTarget = num(body.collectionTarget || body.collection_target || body.leadTarget || body.lead_target || 0);
     if (!targetId) return sendError(res, 400, 'Target id is required.');
     if (!salesPersonId) return sendError(res, 400, 'Sales person is required.');
     if (!['monthly', 'yearly'].includes(targetType)) return sendError(res, 400, 'Target type must be monthly or yearly.');
@@ -634,12 +667,11 @@ router.put('/targets/:id', async (req, res) => {
         target_month = ?,
         target_year = ?,
         revenue_target = ?,
-        lead_target = ?,
-        conversion_target = ?,
+        collection_target = ?,
         notes = ?,
         is_active = 1
        WHERE id = ?`,
-      [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, leadTarget, conversionTarget, text(body.notes || ''), targetId]
+      [salesPersonId, targetType, targetMonth, targetYear, revenueTarget, collectionTarget, text(body.notes || ''), targetId]
     );
     return res.json({ success: true, message: 'Target updated.' });
   } catch (error) {

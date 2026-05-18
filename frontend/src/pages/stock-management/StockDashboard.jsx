@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -32,6 +33,9 @@ const summaryCards = [
 ];
 
 const chartWrap = { width: '100%', height: 300 };
+const neutralColor = '#111827';
+const successColor = '#16A34A';
+const dangerColor = '#DC2626';
 
 export default function StockDashboard() {
   const navigate = useNavigate();
@@ -55,6 +59,8 @@ export default function StockDashboard() {
   useEffect(() => {
     load();
   }, []);
+
+  const isHealthyStock = (value) => Number(value || 0) > 0;
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
@@ -109,7 +115,11 @@ export default function StockDashboard() {
                       <XAxis dataKey="category" />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="currentStock" fill="var(--color-primary)" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="currentStock" radius={[8, 8, 0, 0]}>
+                        {safeRows(data?.categoryWise).map((entry) => (
+                          <Cell key={entry.category} fill={neutralColor} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -125,8 +135,8 @@ export default function StockDashboard() {
                       <XAxis dataKey="month" />
                       <YAxis />
                       <Tooltip />
-                      <Line type="monotone" dataKey="purchase" stroke="#0F766E" strokeWidth={3} dot={false} />
-                      <Line type="monotone" dataKey="usage" stroke="#9F174D" strokeWidth={3} dot={false} />
+                      <Line type="monotone" dataKey="purchase" stroke={neutralColor} strokeWidth={3} dot={false} />
+                      <Line type="monotone" dataKey="usage" stroke={dangerColor} strokeWidth={3} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -142,7 +152,11 @@ export default function StockDashboard() {
                       <XAxis dataKey="itemName" hide />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="currentStock" fill="#D97706" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="currentStock" radius={[8, 8, 0, 0]}>
+                        {safeRows(data?.lowStockItems).map((entry) => (
+                          <Cell key={entry.itemName} fill={dangerColor} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -158,7 +172,11 @@ export default function StockDashboard() {
                       <XAxis dataKey="technicianName" hide />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="currentBalance" fill="#2563EB" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="currentBalance" radius={[8, 8, 0, 0]}>
+                        {safeRows(data?.technicianWise).map((entry) => (
+                          <Cell key={entry.technicianName} fill={isHealthyStock(entry.currentBalance) ? successColor : dangerColor} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
