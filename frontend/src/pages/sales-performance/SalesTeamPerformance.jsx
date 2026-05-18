@@ -150,7 +150,7 @@ export default function SalesTeamPerformance() {
   };
 
   return (
-    <div className="sales-performance-page sales-team-page" style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
+    <div className="crm-page sales-performance-page sales-team-page" style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <PageHeader
         title="Team Performance"
         subtitle="Compare sales team members by monthly and yearly achievement."
@@ -159,7 +159,7 @@ export default function SalesTeamPerformance() {
         action={viewportWidth <= 640 ? null : <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>Refresh</AppButton>}
       />
 
-      <AppCard title="Filters" style={{ width: '100%', minWidth: 0 }}>
+      <AppCard title="Filters" className="crm-filter-card" style={{ width: '100%', minWidth: 0 }}>
         <div className="sales-filters-grid" style={filtersGridStyle}>
           <AppSelect label="Month" value={filters.month} onChange={(e) => setFilters({ ...filters, month: Number(e.target.value) })}>
             {monthOptions.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}
@@ -184,7 +184,7 @@ export default function SalesTeamPerformance() {
         <AppCard><EmptyState title="Team performance error" message={error} /></AppCard>
       ) : (
         <>
-          <AppCard title="Team Performance Table" style={{ width: '100%', minWidth: 0 }}>
+          <AppCard title="Team Performance Table" className="crm-table-card" style={{ width: '100%', minWidth: 0 }}>
             {rows.length ? (
               <div className="table-scroll-x sales-team-table-scroll" style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
@@ -252,7 +252,7 @@ export default function SalesTeamPerformance() {
           </AppCard>
 
           <div style={chartGridStyle}>
-            <AppCard title="Target vs Achievement" style={{ width: '100%', minWidth: 0 }}>
+            <AppCard title="Target vs Achievement" className="crm-chart-card" style={{ width: '100%', minWidth: 0 }}>
               {rows.length ? (
                 <div style={chartWrap}>
                   <ResponsiveContainer>
@@ -276,7 +276,7 @@ export default function SalesTeamPerformance() {
               ) : <EmptyState title="No comparison data" message="Team target vs achievement chart will appear here." />}
             </AppCard>
 
-            <AppCard title="Achievement %" style={{ width: '100%', minWidth: 0 }}>
+            <AppCard title="Achievement %" className="crm-chart-card" style={{ width: '100%', minWidth: 0 }}>
               {rows.length ? (
                 <div style={chartWrap}>
                   <ResponsiveContainer>

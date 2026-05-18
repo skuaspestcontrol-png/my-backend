@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Building2, Home, Plus, UserCheck, Users } from 'lucide-react';
 import ActionMenu from '../components/ui/ActionMenu';
 import AppButton from '../components/ui/AppButton';
 import AppCard from '../components/ui/AppCard';
 import AppTable from '../components/ui/AppTable';
+import DashboardStatCard from '../components/ui/DashboardStatCard';
 import PageHeader from '../components/ui/PageHeader';
 import SearchBar from '../components/ui/SearchBar';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -47,15 +48,30 @@ export default function CustomersPage() {
     due: '₹0.00'
   })), [customers]);
 
+  const summary = useMemo(() => {
+    const total = customers.length;
+    const active = customers.filter((customer) => String(customer.status || 'active').toLowerCase() === 'active').length;
+    const residential = customers.filter((customer) => String(customer.segment || '').toLowerCase() === 'residential').length;
+    const commercial = customers.filter((customer) => String(customer.segment || '').toLowerCase() === 'commercial').length;
+    return { total, active, residential, commercial };
+  }, [customers]);
+
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section">
       <PageHeader
         title="Customers"
         subtitle="Manage customer records, status, and outstanding balances"
         action={<AppButton fullWidth iconLeft={<Plus size={18} />} style={{ maxWidth: 200 }}>Add Customer</AppButton>}
       />
 
-      <AppCard>
+      <section className="crm-grid crm-grid-4">
+        <DashboardStatCard title="Total Customers" value={String(summary.total)} icon={<Users size={18} />} />
+        <DashboardStatCard title="Active Customers" value={String(summary.active)} icon={<UserCheck size={18} />} />
+        <DashboardStatCard title="Residential" value={String(summary.residential)} icon={<Home size={18} />} />
+        <DashboardStatCard title="Commercial" value={String(summary.commercial)} icon={<Building2 size={18} />} />
+      </section>
+
+      <AppCard className="crm-filter-card">
         <div style={{ display: 'grid', gap: 12 }}>
           <SearchBar placeholder="Search by name, mobile, or city" />
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

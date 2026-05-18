@@ -121,7 +121,7 @@ export default function SalesPerformanceDashboard() {
   const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
 
   return (
-    <div className="sales-performance-page sales-dashboard-page" style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
+    <div className="crm-page sales-performance-page sales-dashboard-page" style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <PageHeader
         title="Sales Performance"
         subtitle="Track monthly and yearly target vs achievement in a simple clean view."
@@ -136,7 +136,7 @@ export default function SalesPerformanceDashboard() {
         )}
       />
 
-      <AppCard title="Filters" style={{ width: '100%', minWidth: 0 }}>
+      <AppCard title="Filters" className="crm-filter-card" style={{ width: '100%', minWidth: 0 }}>
         <div className="sales-filters-grid" style={filtersGridStyle}>
           <AppSelect label="Year" value={filters.year} onChange={(e) => setFilters({ ...filters, year: Number(e.target.value) })}>
             {Array.from({ length: 5 }, (_, index) => currentYear - 2 + index).map((year) => <option key={year} value={year}>{year}</option>)}
@@ -185,7 +185,7 @@ export default function SalesPerformanceDashboard() {
             ))}
           </div>
 
-      <AppCard title="Monthly Target vs Achievement" style={{ width: '100%', minWidth: 0 }}>
+      <AppCard title="Monthly Target vs Achievement" className="crm-chart-card" style={{ width: '100%', minWidth: 0 }}>
             {safeRows(data?.monthlyTrend).length ? (
               <div className="sales-chart-scroll">
                 <div className="sales-chart-inner sales-chart-inner--wide" style={{ ...chartWrap, minWidth: isMobile ? 650 : '100%' }}>
@@ -215,7 +215,7 @@ export default function SalesPerformanceDashboard() {
             ) : <EmptyState title="No monthly data" message="Targets and achievements will appear here." />}
           </AppCard>
 
-          <AppCard title="Year-Month Matrix" style={{ width: '100%', minWidth: 0 }}>
+          <AppCard title="Year-Month Matrix" className="crm-table-card" style={{ width: '100%', minWidth: 0 }}>
             {safeRows(matrix).length ? (
               <div className="table-scroll-x sales-matrix-scroll" style={matrixScrollStyle}>
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all months.</div> : null}
@@ -275,7 +275,7 @@ export default function SalesPerformanceDashboard() {
             ) : <EmptyState title="No matrix data" message="Year and month comparisons will appear here." />}
           </AppCard>
 
-          <AppCard title="Sales Person Performance" style={{ width: '100%', minWidth: 0 }}>
+          <AppCard title="Sales Person Performance" className="crm-chart-card" style={{ width: '100%', minWidth: 0 }}>
             {safeRows(data?.salesPersonPerformance).length ? (
               <div className="sales-chart-scroll">
                 <div className="sales-chart-inner" style={{ ...chartWrap, minWidth: isMobile ? 650 : '100%' }}>

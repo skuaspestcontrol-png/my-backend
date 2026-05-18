@@ -233,7 +233,7 @@ export default function SalesPerformanceReports() {
   const mobileButtonStyle = viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined;
 
   return (
-    <div className="sales-performance-page sales-reports-page" style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
+    <div className="crm-page sales-performance-page sales-reports-page" style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <PageHeader
         title="Reports"
         subtitle="Review target vs achievement reports and export the current result set as CSV."
@@ -249,7 +249,7 @@ export default function SalesPerformanceReports() {
         )}
       />
 
-      <AppCard title="Filters" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
+      <AppCard title="Filters" className="crm-filter-card" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
         <div style={filtersGridStyle}>
           <div style={reportTypeSpanStyle}>
             <AppSelect label="Report Type" value={filters.reportType} onChange={(e) => setFilters({ ...filters, reportType: e.target.value })}>
@@ -288,13 +288,13 @@ export default function SalesPerformanceReports() {
         <>
           <div style={summaryGridStyle}>
             {summaryCards.map((card) => (
-          <AppCard key={card.title} title={card.title} style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
+          <AppCard key={card.title} title={card.title} className="crm-kpi-card" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
                 <div style={{ fontSize: viewportWidth <= 640 ? 20 : 22, fontWeight: 800, color: 'var(--color-text)' }}>{card.value}</div>
               </AppCard>
             ))}
           </div>
 
-          <AppCard title="Monthly Target vs Achievement" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
+          <AppCard title="Monthly Target vs Achievement" className="crm-chart-card" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
             {chartData.length ? (
               <div style={chartWrap}>
                 <ResponsiveContainer>
@@ -320,7 +320,7 @@ export default function SalesPerformanceReports() {
             )}
           </AppCard>
 
-          <AppCard title="Yearly Target vs Achievement" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
+          <AppCard title="Yearly Target vs Achievement" className="crm-chart-card" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
             {chartData.length ? (
               <div style={chartWrap}>
                 <ResponsiveContainer>
@@ -346,7 +346,7 @@ export default function SalesPerformanceReports() {
             )}
           </AppCard>
 
-          <AppCard title="Report Table" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
+          <AppCard title="Report Table" className="crm-table-card" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
             {rows.length ? (
               <div className="table-scroll-x sales-report-table-scroll" style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}

@@ -162,7 +162,7 @@ export default function StockItems() {
   };
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section" style={{ display: 'grid', gap: 16 }}>
       <PageHeader
         title="Items"
         subtitle="Manage stock items, units, rates, opening stock, and minimum levels."
@@ -176,7 +176,7 @@ export default function StockItems() {
 
       {error ? <AppCard><EmptyState title="Stock items error" message={error} /></AppCard> : null}
 
-      <AppCard title={form.id ? 'Edit Item' : 'Add Item'}>
+      <AppCard title={form.id ? 'Edit Item' : 'Add Item'} className="crm-filter-card">
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0 }}>
           <div style={formGridStyle}>
             <AppInput label="Item Name" value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} required />
@@ -211,7 +211,7 @@ export default function StockItems() {
         </form>
       </AppCard>
 
-      <AppCard title="Stock Items List">
+      <AppCard title="Stock Items List" className="crm-table-card">
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : items.length ? (

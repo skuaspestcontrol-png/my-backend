@@ -89,7 +89,7 @@ export default function StockDashboard() {
   const isHealthyStock = (value) => Number(value || 0) > 0;
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section" style={{ display: 'grid', gap: 16 }}>
       <PageHeader
         title="Stock Dashboard"
         subtitle="Monitor office stock, technician stock, purchase flow, and low stock items."
@@ -136,7 +136,7 @@ export default function StockDashboard() {
           </div>
 
           <div style={chartGridStyle}>
-            <AppCard title="Category Wise Stock">
+            <AppCard title="Category Wise Stock" className="crm-chart-card">
               {safeRows(data?.categoryWise).length ? (
                 <div style={chartWrap}>
                   <ResponsiveContainer>
@@ -156,7 +156,7 @@ export default function StockDashboard() {
               ) : <EmptyState title="No stock yet" message="Add items or purchases to see category stock here." />}
             </AppCard>
 
-            <AppCard title="Purchase vs Usage">
+            <AppCard title="Purchase vs Usage" className="crm-chart-card">
               {safeRows(data?.monthlyTrend).length ? (
                 <div style={chartWrap}>
                   <ResponsiveContainer>
@@ -173,7 +173,7 @@ export default function StockDashboard() {
               ) : <EmptyState title="No monthly trend yet" message="Stock purchases and usage will appear here over time." />}
             </AppCard>
 
-            <AppCard title="Low Stock Items">
+            <AppCard title="Low Stock Items" className="crm-chart-card">
               {safeRows(data?.lowStockItems).length ? (
                 <div style={chartWrap}>
                   <ResponsiveContainer>
@@ -193,7 +193,7 @@ export default function StockDashboard() {
               ) : <EmptyState title="No low stock items" message="Items at or below the minimum stock level will show here." />}
             </AppCard>
 
-            <AppCard title="Technician Wise Stock">
+            <AppCard title="Technician Wise Stock" className="crm-chart-card">
               {safeRows(data?.technicianWise).length ? (
                 <div style={chartWrap}>
                   <ResponsiveContainer>

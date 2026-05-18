@@ -1,8 +1,8 @@
 import { theme } from '../../styles/theme';
 
-export default function AppCard({ children, title, action, style, headerStyle, bodyStyle }) {
+export default function AppCard({ children, title, action, style, headerStyle, bodyStyle, className }) {
   return (
-    <section style={{ background: '#fff', border: `1px solid ${theme.colors.border}`, borderRadius: 16, boxShadow: theme.shadow.sm, ...style }}>
+    <section className={['crm-card', className].filter(Boolean).join(' ')} style={style}>
       {title ? (
         <header style={{ padding: 16, borderBottom: `1px solid ${theme.colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, ...headerStyle }}>
           <h3 style={{ margin: 0, fontSize: 18, color: theme.colors.text }}>{title}</h3>

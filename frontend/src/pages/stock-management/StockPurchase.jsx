@@ -117,7 +117,7 @@ export default function StockPurchase() {
   };
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section" style={{ display: 'grid', gap: 16 }}>
       <PageHeader
         title="Stock In / Purchase"
         subtitle="Record purchases from vendors and add stock to office balance automatically."
@@ -131,7 +131,7 @@ export default function StockPurchase() {
 
       {error ? <AppCard><EmptyState title="Purchase error" message={error} /></AppCard> : null}
 
-      <AppCard title="Add Purchase">
+      <AppCard title="Add Purchase" className="crm-filter-card">
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0 }}>
           <div style={formGridStyle}>
             <AppSelect label="Vendor" value={form.vendorId} onChange={(e) => setForm({ ...form, vendorId: e.target.value })}>
@@ -158,7 +158,7 @@ export default function StockPurchase() {
         </form>
       </AppCard>
 
-      <AppCard title="Recent Purchases">
+      <AppCard title="Recent Purchases" className="crm-table-card">
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : purchases.length ? (

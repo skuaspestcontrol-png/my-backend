@@ -221,8 +221,8 @@ const extractInvoiceSeq = (invoiceNumber, prefix) => {
 };
 
 const shell = {
-  page: { background: '#fff', border: '1px solid var(--color-border)', borderRadius: '16px', boxShadow: 'var(--shadow-sm)', overflow: 'visible', position: 'relative', backgroundClip: 'padding-box' },
-  topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)', background: '#fff', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', backgroundClip: 'padding-box' },
+  page: { background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,251,0.94) 100%)', border: '1px solid rgba(239, 68, 68, 0.16)', borderRadius: '20px', boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)', overflow: 'visible', position: 'relative', backgroundClip: 'padding-box' },
+  topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '16px 18px', borderBottom: '1px solid rgba(239, 68, 68, 0.12)', background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', backgroundClip: 'padding-box' },
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   topActions: { display: 'flex', alignItems: 'center', gap: '8px' },
@@ -231,16 +231,16 @@ const shell = {
   customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', padding: '8px 12px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
   buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', padding: '9px 14px', background: '#6b7280', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px' },
   buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '12px', width: '48px', height: '48px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
-  summaryWrap: { padding: '14px 16px', background: '#fff' },
+  summaryWrap: { padding: '16px 18px', background: 'rgba(255,255,255,0.94)' },
   summaryCard: { display: 'grid', gap: '12px' },
   summaryTitle: { margin: 0, fontSize: '13px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' },
   summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '12px' },
-  summaryMetric: { border: '1px solid var(--color-border)', borderRadius: '12px', padding: '12px 14px', background: '#fff', minHeight: '96px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '8px' },
+  summaryMetric: { border: '1px solid rgba(239, 68, 68, 0.14)', borderRadius: '16px', padding: '12px 14px', background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,250,252,0.96) 100%)', minHeight: '96px', boxShadow: '0 10px 28px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.72)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '8px' },
   summaryLabel: { color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.25 },
   summaryValue: { color: '#111827', fontSize: '24px', fontWeight: 800, lineHeight: 1.05 },
   summaryHint: { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1.35 },
   summaryAccent: { color: '#d97706' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderTop: '1px solid var(--color-border)', backgroundClip: 'padding-box' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderTop: '1px solid rgba(239, 68, 68, 0.12)', backgroundClip: 'padding-box' },
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '10px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   row: { borderBottom: '1px solid #eef2f7' },
@@ -249,7 +249,7 @@ const shell = {
   checkboxWrap: { width: '34px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
   statusBadge: { fontWeight: 700 },
-  menu: { position: 'absolute', right: 16, top: '56px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '10px', minWidth: '200px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 30, overflow: 'hidden' },
+  menu: { position: 'absolute', right: 16, top: '56px', background: '#fff', border: '1px solid rgba(239, 68, 68, 0.14)', borderRadius: '12px', minWidth: '200px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 30, overflow: 'hidden' },
   menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center' },
   rowActionButton: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
@@ -2184,7 +2184,7 @@ export default function InvoiceDashboard() {
   const mobileItemInlineGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' };
 
   return (
-    <section style={shell.page}>
+    <section className="crm-page crm-section" style={shell.page}>
       <div style={topbarStyle}>
         <div style={shell.titleWrap}>
           <h1 style={titleStyle}>All Invoices</h1>

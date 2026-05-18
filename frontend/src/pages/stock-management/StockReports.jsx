@@ -276,7 +276,7 @@ export default function StockReports() {
   };
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section" style={{ display: 'grid', gap: 16 }}>
       <PageHeader
         title="Reports"
         subtitle="Filter stock movements, balances, purchases, usage, low stock, and expiry records."
@@ -289,7 +289,7 @@ export default function StockReports() {
         )}
       />
 
-      <AppCard title="Filters">
+      <AppCard title="Filters" className="crm-filter-card">
         <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
           <AppSelect label="Report Type" value={filters.reportType} onChange={(e) => setFilters({ ...filters, reportType: e.target.value })}>
             {reportTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
@@ -323,7 +323,7 @@ export default function StockReports() {
 
       {error ? <AppCard><EmptyState title="Report error" message={error} /></AppCard> : null}
 
-      <AppCard title={`${reportTypes.find((item) => item.value === filters.reportType)?.label || 'Report'} Summary`}>
+      <AppCard title={`${reportTypes.find((item) => item.value === filters.reportType)?.label || 'Report'} Summary`} className="crm-kpi-card">
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <div><strong>Rows:</strong> {summary.rows ?? rows.length}</div>
           {summary.value !== undefined ? <div><strong>Value:</strong> {money(summary.value)}</div> : null}
@@ -331,7 +331,7 @@ export default function StockReports() {
         </div>
       </AppCard>
 
-      <AppCard title="Report Table">
+      <AppCard title="Report Table" className="crm-table-card">
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : (

@@ -297,7 +297,7 @@ export default function StockIssueUsage() {
   );
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section" style={{ display: 'grid', gap: 16 }}>
       <PageHeader
         title="Issue & Usage"
         subtitle="Issue items to technicians, record site usage, and capture returns or wastage."
@@ -312,13 +312,13 @@ export default function StockIssueUsage() {
 
       {error ? <AppCard><EmptyState title="Stock movement error" message={error} /></AppCard> : null}
 
-      <AppCard title={activeTab === 'issue' ? 'Issue to Technician' : activeTab === 'usage' ? 'Usage at Site' : 'Return / Wastage'}>
+      <AppCard title={activeTab === 'issue' ? 'Issue to Technician' : activeTab === 'usage' ? 'Usage at Site' : 'Return / Wastage'} className="crm-filter-card">
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : activeTab === 'issue' ? renderIssue() : activeTab === 'usage' ? renderUsage() : renderMovement()}
       </AppCard>
 
-      <AppCard title="Technician Stock Balances">
+      <AppCard title="Technician Stock Balances" className="crm-table-card">
         {balances.length ? (
           <div style={{ overflowX: 'auto' }}>
             <table style={tableStyle}>

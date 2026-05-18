@@ -30,23 +30,23 @@ const todayRows = [
 
 export default function DashboardPage() {
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section">
       <PageHeader title="Dashboard" subtitle="Business snapshot and operational highlights" />
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+      <section className="crm-grid crm-grid-4">
         {stats.map(([title, value, icon]) => <DashboardStatCard key={title} title={title} value={value} icon={icon} />)}
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
-        <AppCard title="Income vs Expense"><div style={{ height: 180, border: '1px dashed #E5E7EB', borderRadius: 12, display: 'grid', placeItems: 'center', color: '#6B7280' }}>Chart Placeholder</div></AppCard>
-        <AppCard title="Lead Conversion"><div style={{ height: 180, border: '1px dashed #E5E7EB', borderRadius: 12, display: 'grid', placeItems: 'center', color: '#6B7280' }}>Chart Placeholder</div></AppCard>
-        <AppCard title="Service Status"><div style={{ height: 180, border: '1px dashed #E5E7EB', borderRadius: 12, display: 'grid', placeItems: 'center', color: '#6B7280' }}>Chart Placeholder</div></AppCard>
-        <AppCard title="Renewal Overview"><div style={{ height: 180, border: '1px dashed #E5E7EB', borderRadius: 12, display: 'grid', placeItems: 'center', color: '#6B7280' }}>Chart Placeholder</div></AppCard>
+      <section className="crm-grid crm-grid-4">
+        <AppCard title="Income vs Expense" className="crm-chart-card"><div style={{ height: 180, border: '1px dashed #E5E7EB', borderRadius: 12, display: 'grid', placeItems: 'center', color: '#6B7280' }}>Chart Placeholder</div></AppCard>
+        <AppCard title="Lead Conversion" className="crm-chart-card"><div style={{ height: 180, border: '1px dashed #E5E7EB', borderRadius: 12, display: 'grid', placeItems: 'center', color: '#6B7280' }}>Chart Placeholder</div></AppCard>
+        <AppCard title="Service Status" className="crm-chart-card"><div style={{ height: 180, border: '1px dashed #E5E7EB', borderRadius: 12, display: 'grid', placeItems: 'center', color: '#6B7280' }}>Chart Placeholder</div></AppCard>
+        <AppCard title="Renewal Overview" className="crm-chart-card"><div style={{ height: 180, border: '1px dashed #E5E7EB', borderRadius: 12, display: 'grid', placeItems: 'center', color: '#6B7280' }}>Chart Placeholder</div></AppCard>
       </section>
 
       <AppTable columns={todayColumns} rows={todayRows} />
 
-      <AppCard title="Renewal Reminder">
+      <AppCard title="Renewal Reminder" className="crm-card">
         <p style={{ margin: 0, color: '#6B7280' }}>11 contracts are due in the next 30 days. Prioritize follow-ups for high-value accounts.</p>
       </AppCard>
     </div>

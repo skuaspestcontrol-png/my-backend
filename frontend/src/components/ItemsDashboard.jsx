@@ -70,10 +70,10 @@ const emptyForm = {
 
 const shell = {
   page: {
-    background: 'transparent',
-    border: 'none',
-    borderRadius: 0,
-    boxShadow: 'none',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,251,0.94) 100%)',
+    border: '1px solid rgba(239, 68, 68, 0.16)',
+    borderRadius: '20px',
+    boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)',
     overflow: 'visible',
     position: 'relative'
   },
@@ -83,8 +83,8 @@ const shell = {
     alignItems: 'center',
     gap: '12px',
     padding: '16px 18px',
-    borderBottom: '1px solid var(--color-border)',
-    background: 'var(--color-primary-light)'
+    borderBottom: '1px solid rgba(239, 68, 68, 0.12)',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)'
   },
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
   title: { margin: 0, fontSize: '28px', fontWeight: 800, letterSpacing: '-0.03em', color: '#1f2937' },
@@ -143,7 +143,7 @@ const shell = {
     fontWeight: 800,
     cursor: 'pointer'
   },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-border)' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.12)' },
   table: { width: '100%', minWidth: '820px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: {
     textAlign: 'left',
@@ -184,8 +184,8 @@ const shell = {
     right: 0,
     top: '44px',
     background: '#fff',
-    border: '1px solid var(--color-border)',
-    borderRadius: '10px',
+    border: '1px solid rgba(239, 68, 68, 0.14)',
+    borderRadius: '12px',
     minWidth: '170px',
     boxShadow: '0 14px 32px rgba(15,23,42,0.12)',
     zIndex: 20,
@@ -731,7 +731,7 @@ export default function ItemsDashboard() {
   const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
 
   return (
-    <section style={shell.page}>
+    <section className="crm-page crm-section" style={shell.page}>
       <div style={topbarStyle}>
         <div style={shell.titleWrap}>
           <h1 style={titleStyle}>All Items</h1>

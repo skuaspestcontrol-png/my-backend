@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { CheckCircle2, Clock3, XCircle, Users } from 'lucide-react';
+import AppCard from '../components/ui/AppCard';
+import DashboardStatCard from '../components/ui/DashboardStatCard';
+import PageHeader from '../components/ui/PageHeader';
 import { pestIssueShort } from '../utils/pestIssueCodes';
 
 export default function LeadDashboard() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const navigate = useNavigate();
 
   // Fetch leads when the page loads
@@ -22,12 +25,6 @@ export default function LeadDashboard() {
       }
     };
     fetchLeads();
-  }, []);
-
-  useEffect(() => {
-    const onResize = () => setViewportWidth(window.innerWidth);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   // Helper function to format the date neatly
@@ -55,20 +52,41 @@ export default function LeadDashboard() {
     }
   };
 
+  const leadSummary = React.useMemo(() => {
+    const getStatus = (lead) => String(lead?.leadStatus || lead?.status || '').trim().toLowerCase();
+    return {
+      total: leads.length,
+      interested: leads.filter((lead) => getStatus(lead) === 'interested').length,
+      followup: leads.filter((lead) => getStatus(lead) === 'followup' || getStatus(lead) === 'follow-up').length,
+      converted: leads.filter((lead) => getStatus(lead) === 'converted' || getStatus(lead) === 'booked').length,
+      rejected: leads.filter((lead) => getStatus(lead) === 'rejected').length
+    };
+  }, [leads]);
+
   if (loading) return <div style={{ padding: '20px', textAlign: 'center' }}>Loading leads...</div>;
-  const isMobile = viewportWidth <= 900;
 
   return (
-    <div style={{ width: '100%', maxWidth: '100%', margin: isMobile ? '14px auto' : '28px auto', fontFamily: 'sans-serif', padding: isMobile ? '0 8px' : '0 20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-        <h2>Sales Lead Dashboard</h2>
-        <span style={{ backgroundColor: '#27272a', color: 'white', padding: '5px 15px', borderRadius: '20px', fontSize: '14px' }}>
-          Total Leads: {leads.length}
-        </span>
-      </div>
+    <div className="crm-page crm-section" style={{ width: '100%', maxWidth: '100%', margin: 0, fontFamily: 'var(--font-sans)' }}>
+      <PageHeader
+        title="Sales Lead Dashboard"
+        subtitle="Track new leads, follow-ups, and conversions in a clean operational view."
+        action={(
+          <div className="crm-badge" style={{ background: '#111827', color: '#fff', minHeight: 34, padding: '0 14px' }}>
+            Total Leads: {leads.length}
+          </div>
+        )}
+      />
 
-      <div style={{ overflowX: 'hidden', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }} className="crm-table-shell">
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }} className="crm-compact-table crm-stack-mobile">
+      <section className="crm-grid crm-grid-4">
+        <DashboardStatCard title="Total Leads" value={String(leadSummary.total)} icon={<Users size={18} />} />
+        <DashboardStatCard title="Follow-up" value={String(leadSummary.followup)} icon={<Clock3 size={18} />} />
+        <DashboardStatCard title="Converted" value={String(leadSummary.converted)} icon={<CheckCircle2 size={18} />} />
+        <DashboardStatCard title="Rejected" value={String(leadSummary.rejected)} icon={<XCircle size={18} />} />
+      </section>
+
+      <AppCard title="Lead Register" className="crm-table-card" style={{ overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }} className="crm-table-shell crm-scroll-table">
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }} className="crm-compact-table crm-stack-mobile">
           <thead>
             <tr style={{ backgroundColor: '#f4f4f5', borderBottom: '2px solid #e4e4e7' }}>
               <th style={thStyle}>Date</th>
@@ -133,8 +151,9 @@ export default function LeadDashboard() {
               })
             )}
           </tbody>
-        </table>
-      </div>
+          </table>
+        </div>
+      </AppCard>
     </div>
   );
 }

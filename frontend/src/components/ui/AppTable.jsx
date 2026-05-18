@@ -4,8 +4,8 @@ import LoadingSpinner from './LoadingSpinner';
 
 export default function AppTable({ columns = [], rows = [], loading = false, emptyTitle, renderRowActions }) {
   return (
-    <AppCard style={{ overflow: 'hidden' }}>
-      <div style={{ overflowX: 'auto' }}>
+    <AppCard className="crm-table-card" style={{ overflow: 'hidden' }}>
+      <div className="crm-scroll-table" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse' }}>
           <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
             <tr>
