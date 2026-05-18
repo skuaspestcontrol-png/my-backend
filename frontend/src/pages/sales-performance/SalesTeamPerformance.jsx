@@ -71,18 +71,19 @@ export default function SalesTeamPerformance() {
   const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' };
   const tableStyle = {
     width: '100%',
-    minWidth: viewportWidth <= 640 ? '1120px' : '1120px',
+    minWidth: viewportWidth <= 640 ? '1160px' : '1260px',
     tableLayout: 'fixed',
     borderCollapse: 'collapse'
   };
   const headCellStyle = {
     padding: viewportWidth <= 640 ? '7px 8px' : '10px 12px',
     textAlign: 'left',
-    whiteSpace: 'nowrap',
-    wordBreak: 'normal',
+    whiteSpace: 'normal',
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal',
     verticalAlign: 'middle',
-    height: viewportWidth <= 640 ? 40 : 42,
-    lineHeight: 1.2,
+    height: viewportWidth <= 640 ? 44 : 56,
+    lineHeight: 1.15,
     fontSize: viewportWidth <= 640 ? 11 : 12
   };
   const bodyCellStyle = {
@@ -97,8 +98,8 @@ export default function SalesTeamPerformance() {
     textOverflow: 'ellipsis'
   };
   const teamColWidths = viewportWidth <= 640
-    ? ['16%', '10%', '10%', '8%', '10%', '10%', '8%', '8%', '8%', '10%', '10%']
-    : ['18%', '10%', '10%', '8%', '10%', '10%', '8%', '8%', '8%', '10%', '8%'];
+    ? ['18%', '10%', '10%', '8%', '10%', '10%', '8%', '9%', '9%', '10%', '8%']
+    : ['20%', '10%', '10%', '8%', '10%', '10%', '8%', '9%', '9%', '10%', '8%'];
   const chartAxisProps = {
     tick: { fontSize: isMobile ? 10 : 12 },
     height: isMobile ? 44 : 30,
