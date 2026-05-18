@@ -49,6 +49,7 @@ const reportTypeOptions = [
 ];
 
 export default function SalesPerformanceReports() {
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -80,6 +81,12 @@ export default function SalesPerformanceReports() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const employeeOptions = useMemo(() => safeRows(employees), [employees]);
@@ -117,6 +124,22 @@ export default function SalesPerformanceReports() {
     { title: 'Yearly Achieved', value: money(summary?.totalYearlyAchieved || 0) }
   ];
 
+  const filtersGridStyle = viewportWidth >= 1400
+    ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
+    : viewportWidth >= 1100
+      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }
+      : viewportWidth >= 768
+        ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+        : { display: 'grid', gap: 12, gridTemplateColumns: '1fr' };
+
+  const summaryGridStyle = viewportWidth >= 1200
+    ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
+    : viewportWidth >= 900
+      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }
+      : viewportWidth >= 600
+        ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+        : { display: 'grid', gap: 12, gridTemplateColumns: '1fr' };
+
   const exportCsv = () => {
     downloadCsv(rows.map((row) => ({
       SalesPerson: row.employeeName,
@@ -145,21 +168,33 @@ export default function SalesPerformanceReports() {
     })), 'sales-performance-reports.csv');
   };
 
+  const compactCardStyle = {
+    minWidth: 0,
+    width: '100%',
+    borderRadius: 12
+  };
+  const compactHeaderStyle = {
+    padding: '12px 14px'
+  };
+  const compactBodyStyle = {
+    padding: '14px'
+  };
+
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div style={{ display: 'grid', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <PageHeader
         title="Reports"
         subtitle="Review target vs achievement reports and export the current result set as CSV."
         action={(
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '100%' }}>
             <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>Refresh</AppButton>
             <AppButton variant="outline" iconLeft={<Download size={16} />} onClick={exportCsv} disabled={!rows.length}>CSV Export</AppButton>
           </div>
         )}
       />
 
-      <AppCard title="Filters">
-        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+      <AppCard title="Filters" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
+        <div style={filtersGridStyle}>
           <AppSelect label="Report Type" value={filters.reportType} onChange={(e) => setFilters({ ...filters, reportType: e.target.value })}>
             {reportTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </AppSelect>
@@ -189,15 +224,15 @@ export default function SalesPerformanceReports() {
         <AppCard><EmptyState title="Sales report error" message={error} /></AppCard>
       ) : (
         <>
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+          <div style={summaryGridStyle}>
             {summaryCards.map((card) => (
-              <AppCard key={card.title} title={card.title}>
-                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text)' }}>{card.value}</div>
+              <AppCard key={card.title} title={card.title} style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text)' }}>{card.value}</div>
               </AppCard>
             ))}
           </div>
 
-          <AppCard title="Monthly Target vs Achievement">
+          <AppCard title="Monthly Target vs Achievement" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
             {chartData.length ? (
               <div style={chartWrap}>
                 <ResponsiveContainer>
@@ -223,7 +258,7 @@ export default function SalesPerformanceReports() {
             )}
           </AppCard>
 
-          <AppCard title="Yearly Target vs Achievement">
+          <AppCard title="Yearly Target vs Achievement" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
             {chartData.length ? (
               <div style={chartWrap}>
                 <ResponsiveContainer>
@@ -249,7 +284,7 @@ export default function SalesPerformanceReports() {
             )}
           </AppCard>
 
-          <AppCard title="Report Table">
+          <AppCard title="Report Table" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
             {rows.length ? (
               <div style={tableWrapStyle}>
                 <table style={tableStyle}>
