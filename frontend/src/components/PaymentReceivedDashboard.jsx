@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { ChevronLeft, ChevronRight, IndianRupee, Receipt, WalletCards } from 'lucide-react';
+import { ChevronLeft, ChevronRight, IndianRupee, WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -239,7 +239,7 @@ export default function PaymentReceivedDashboard() {
         </article>
         <article style={statStyle}>
           <p style={shell.statLabel}>Payment Entries</p>
-          <p style={shell.statValue}><Receipt size={18} style={{ verticalAlign: 'middle' }} /> {summary.totalEntries}</p>
+          <p style={shell.statValue}><IndianRupee size={18} style={{ verticalAlign: 'middle' }} /> {summary.totalEntries}</p>
         </article>
         <article style={statStyle}>
           <p style={shell.statLabel}>Unpaid Invoices</p>
