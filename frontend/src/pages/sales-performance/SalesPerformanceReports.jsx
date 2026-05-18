@@ -103,18 +103,20 @@ export default function SalesPerformanceReports() {
   const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' };
   const tableStyle = {
     width: '100%',
-    minWidth: viewportWidth <= 640 ? '1640px' : '1500px',
+    minWidth: viewportWidth <= 640 ? '1720px' : '1900px',
     tableLayout: 'fixed',
     borderCollapse: 'collapse'
   };
   const headCellStyle = {
     padding: viewportWidth <= 640 ? '8px 10px' : '10px 12px',
     textAlign: 'left',
-    whiteSpace: 'nowrap',
-    wordBreak: 'normal',
+    whiteSpace: 'normal',
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal',
     verticalAlign: 'middle',
-    height: viewportWidth <= 640 ? 40 : 42,
-    lineHeight: 1.2
+    height: viewportWidth <= 640 ? 48 : 58,
+    lineHeight: 1.15,
+    fontSize: viewportWidth <= 640 ? 11 : 12
   };
   const bodyCellStyle = {
     padding: viewportWidth <= 640 ? '8px 10px' : '10px 12px',
@@ -347,23 +349,23 @@ export default function SalesPerformanceReports() {
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
                 <table style={tableStyle}>
                   <colgroup>
-                    <col style={{ width: '14%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '18%' }} />
                     <col style={{ width: '7%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '7%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '7%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '7%' }} />
-                    <col style={{ width: '5%' }} />
-                    <col style={{ width: '5%' }} />
                     <col style={{ width: '7%' }} />
                     <col style={{ width: '6%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '6%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '6%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '6%' }} />
+                    <col style={{ width: '5%' }} />
+                    <col style={{ width: '5%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '5%' }} />
                   </colgroup>
                   <thead>
                     <tr>
