@@ -256,31 +256,36 @@ const s = {
     border: '1px solid #d1d5db',
     background: '#ffffff',
     color: '#334155',
-    padding: '4px 8px',
+    padding: '0 10px',
     borderRadius: '7px',
-    minWidth: '64px',
-    minHeight: '22px',
+    width: '92px',
+    height: '32px',
+    minWidth: '92px',
+    minHeight: '32px',
     fontSize: '10px',
     fontWeight: 500,
     display: 'inline-flex',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     gap: '4px',
     cursor: 'pointer',
     whiteSpace: 'nowrap',
     lineHeight: 1
   },
   statusInlineSelect: {
-    minHeight: '20px',
+    width: '92px',
+    height: '32px',
+    minHeight: '32px',
     borderRadius: '8px',
     border: '1px solid rgba(159, 23, 77, 0.3)',
     background: '#fff',
     color: '#0f172a',
     fontSize: '10px',
     fontWeight: 400,
-    padding: '2px 6px',
+    padding: '0 8px',
     outline: 'none',
-    minWidth: '84px'
+    minWidth: '92px',
+    boxSizing: 'border-box'
   },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center', width: '100%' },
   rowActionButton: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#1f2937', borderRadius: '8px', minWidth: '78px', minHeight: '28px', padding: '0 7px 0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, lineHeight: 1 },
@@ -2045,6 +2050,29 @@ export default function LeadCapture() {
   const tableStyleTiny = isMobile
     ? { ...tableStyle, width: leadTableMinWidth, minWidth: leadTableMinWidth, tableLayout: 'fixed', '--mobile-table-columns': leadMobileColumns, '--mobile-table-min-width': leadTableMinWidth }
     : { ...tableStyle, minWidth: leadTableMinWidth };
+  const statusBadgeButtonStyle = isMobile
+    ? {
+        ...s.statusBadgeButton,
+        width: '88px',
+        minWidth: '88px',
+        height: '30px',
+        minHeight: '30px',
+        padding: '0 8px',
+        justifyContent: 'center',
+        fontSize: '10px'
+      }
+    : s.statusBadgeButton;
+  const statusInlineSelectStyle = isMobile
+    ? {
+        ...s.statusInlineSelect,
+        width: '88px',
+        minWidth: '88px',
+        height: '30px',
+        minHeight: '30px',
+        padding: '0 6px',
+        fontSize: '10px'
+      }
+    : s.statusInlineSelect;
   const actionColumnStyle = isMobile
     ? { width: '92px', minWidth: '92px', maxWidth: '92px' }
     : { width: '84px', minWidth: '84px', maxWidth: '84px' };
@@ -2359,7 +2387,7 @@ export default function LeadCapture() {
                                 <select
                                   autoFocus
                                   value={statusDraftValue}
-                                  style={s.statusInlineSelect}
+                                  style={statusInlineSelectStyle}
                                   disabled={statusSavingLeadId === lead._id}
                                   onChange={(event) => {
                                     const next = event.target.value;
@@ -2378,7 +2406,7 @@ export default function LeadCapture() {
                               ) : (
                                 <button
                                   type="button"
-                                  style={{ ...s.statusBadgeButton, ...statusTone, cursor: convertedLead ? 'not-allowed' : 'pointer', opacity: convertedLead ? 0.9 : 1 }}
+                                  style={{ ...statusBadgeButtonStyle, ...statusTone, cursor: convertedLead ? 'not-allowed' : 'pointer', opacity: convertedLead ? 0.9 : 1 }}
                                   onClick={() => openStatusEditor(lead)}
                                   title={convertedLead ? 'Converted lead status is locked' : 'Click to change lead status'}
                                 >

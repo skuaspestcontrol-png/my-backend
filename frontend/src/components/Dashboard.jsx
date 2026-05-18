@@ -322,7 +322,10 @@ export default function Dashboard() {
     1
   );
 
-  const expenseColors = ['#56B881', '#EC7E37', '#3A6ECC', '#D45D79', '#8B5CF6'];
+  const successGreen = '#56B881';
+  const dangerRed = '#D45D79';
+  const neutralBlack = '#111827';
+  const expenseColors = ['#56B881', '#D45D79', '#111827', '#8B5CF6', '#0F766E'];
   const leadSourceColors = ['#3A6ECC', '#56B881', '#E8A03A', '#E14F61', '#45ABC8', '#7B61E8'];
   const leadFunnelRows = [
     { label: 'Total Leads', value: leadPipeline.totalLeads, color: '#4965dd' },
@@ -499,12 +502,12 @@ export default function Dashboard() {
           <p style={shell.panelSub}>Total Unpaid Invoices</p>
           <p style={shell.total}>{formatCurrency(analytics.totalReceivables)}</p>
           <div style={shell.progressTrack}>
-            <div style={{ width: `${analytics.totalReceivables > 0 ? (analytics.receivableCurrent / analytics.totalReceivables) * 100 : 0}%`, background: '#3A6ECC' }} />
-            <div style={{ width: `${analytics.totalReceivables > 0 ? (analytics.receivableOverdue / analytics.totalReceivables) * 100 : 0}%`, background: '#EC7E37' }} />
+            <div style={{ width: `${analytics.totalReceivables > 0 ? (analytics.receivableCurrent / analytics.totalReceivables) * 100 : 0}%`, background: successGreen }} />
+            <div style={{ width: `${analytics.totalReceivables > 0 ? (analytics.receivableOverdue / analytics.totalReceivables) * 100 : 0}%`, background: dangerRed }} />
           </div>
           <div style={shell.legendRow}>
-            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#3A6ECC' }} />Current: {formatCurrency(analytics.receivableCurrent)}</span>
-            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#EC7E37' }} />Overdue: {formatCurrency(analytics.receivableOverdue)}</span>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: successGreen }} />Current: {formatCurrency(analytics.receivableCurrent)}</span>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: dangerRed }} />Overdue: {formatCurrency(analytics.receivableOverdue)}</span>
           </div>
         </article>
 
@@ -515,12 +518,12 @@ export default function Dashboard() {
           <p style={shell.panelSub}>Total Unpaid Bills</p>
           <p style={shell.total}>{formatCurrency(analytics.totalPayables)}</p>
           <div style={shell.progressTrack}>
-            <div style={{ width: `${analytics.totalPayables > 0 ? (analytics.payableCurrent / analytics.totalPayables) * 100 : 0}%`, background: '#3A6ECC' }} />
-            <div style={{ width: `${analytics.totalPayables > 0 ? (analytics.payableOverdue / analytics.totalPayables) * 100 : 0}%`, background: '#EC7E37' }} />
+            <div style={{ width: `${analytics.totalPayables > 0 ? (analytics.payableCurrent / analytics.totalPayables) * 100 : 0}%`, background: successGreen }} />
+            <div style={{ width: `${analytics.totalPayables > 0 ? (analytics.payableOverdue / analytics.totalPayables) * 100 : 0}%`, background: dangerRed }} />
           </div>
           <div style={shell.legendRow}>
-            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#3A6ECC' }} />Current: {formatCurrency(analytics.payableCurrent)}</span>
-            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#EC7E37' }} />Overdue: {formatCurrency(analytics.payableOverdue)}</span>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: successGreen }} />Current: {formatCurrency(analytics.payableCurrent)}</span>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: dangerRed }} />Overdue: {formatCurrency(analytics.payableOverdue)}</span>
           </div>
         </article>
       </section>
@@ -532,8 +535,8 @@ export default function Dashboard() {
             <span style={{ color: '#475569', fontWeight: 700 }}>This Fiscal Year</span>
           </div>
           <div style={shell.legendRow}>
-            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#56B881' }} />Total Income: {formatCurrency(analytics.totalIncome)}</span>
-            <span style={shell.legendItem}><span style={{ ...shell.dot, background: '#D45D79' }} />Total Expense: {formatCurrency(analytics.totalExpenses)}</span>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: successGreen }} />Total Income: {formatCurrency(analytics.totalIncome)}</span>
+            <span style={shell.legendItem}><span style={{ ...shell.dot, background: dangerRed }} />Total Expense: {formatCurrency(analytics.totalExpenses)}</span>
           </div>
           <div style={shell.barWrap}>
             <div style={shell.bars}>
@@ -544,8 +547,8 @@ export default function Dashboard() {
                   <div key={m.label} style={shell.barRow}>
                     <span style={{ color: '#64748b', fontWeight: 700 }}>{m.label}</span>
                     <div style={{ position: 'relative', height: '16px', background: '#f1f5f9', borderRadius: '10px', overflow: 'hidden' }}>
-                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(income / incomeExpenseMax) * 100}%`, background: '#56B881' }} />
-                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(expense / incomeExpenseMax) * 100}%`, background: '#D45D79', opacity: 0.72 }} />
+                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(income / incomeExpenseMax) * 100}%`, background: successGreen }} />
+                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(expense / incomeExpenseMax) * 100}%`, background: dangerRed, opacity: 0.72 }} />
                     </div>
                     <span style={{ color: '#166534', fontWeight: 700, fontSize: '12px' }}>{formatCurrency(income)}</span>
                     <span style={{ color: '#9f1239', fontWeight: 700, fontSize: '12px' }}>{formatCurrency(expense)}</span>

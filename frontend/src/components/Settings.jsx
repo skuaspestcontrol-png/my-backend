@@ -1450,7 +1450,7 @@ export default function Settings({ modalMode = false }) {
             background: form.brandingAppearance === 'dark' ? '#0f172a' : '#ffffff'
           }}
         >
-          <div style={{ height: '10px', background: form.brandingAccentColor || '#9F174D' }} />
+          <div style={{ height: '18px', background: form.brandingAccentColor || '#9F174D' }} />
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', minHeight: '96px' }}>
             <div
               style={{
@@ -1461,7 +1461,7 @@ export default function Settings({ modalMode = false }) {
                 gap: '7px'
               }}
             >
-              <div style={{ height: '8px', borderRadius: '999px', background: form.brandingAccentColor || '#9F174D' }} />
+              <div style={{ height: '8px', borderRadius: '999px', background: 'rgba(148,163,184,0.35)' }} />
               <div style={{ height: '8px', borderRadius: '999px', background: 'rgba(148,163,184,0.4)' }} />
               <div style={{ height: '8px', borderRadius: '999px', background: 'rgba(148,163,184,0.25)' }} />
             </div>
