@@ -7,7 +7,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const defaultState = {
   logo_url: '', logo_width: 90, logo_height: 70, header_alignment: 'left',
   company_name: '', company_address: '', phone: '', email: '', website: '', gstin: '',
-  header_line_color: '#9F174D', primary_color: '#9F174D', border_color: '#cbd5e1',
+  header_line_color: '#EF4444', primary_color: '#EF4444', border_color: '#cbd5e1',
   font_family: 'Helvetica', font_size: 10, heading_font_size: 14, body_font_size: 10, table_font_size: 9,
   footer_text: '', signature_image_url: '', default_sales_person: '', default_designation: '', default_mobile: '',
   show_logo: 1, show_gstin: 1, show_signature: 1, show_page_number: 1

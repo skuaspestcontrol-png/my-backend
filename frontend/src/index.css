@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --color-primary: #9F174D;
-  --color-primary-dark: #831843;
-  --color-primary-deep: #701A3D;
+  --color-primary: #EF4444;
+  --color-primary-dark: #DC2626;
+  --color-primary-deep: #B91C1C;
   --color-primary-light: #F3F4F6;
   --color-primary-soft: #E5E7EB;
-  --brand-border-color: rgba(159, 23, 77, 0.24);
+  --brand-border-color: rgba(239, 68, 68, 0.24);
 
   --color-white: #FFFFFF;
   --color-bg: #FFFFFF;
@@ -25,7 +25,7 @@
 
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 12px 32px rgba(159, 23, 77, 0.12);
+  --shadow-lg: 0 12px 32px rgba(239, 68, 68, 0.12);
 
   --bg: var(--color-bg);
   --bg-soft: var(--color-primary-light);
@@ -1038,7 +1038,7 @@ textarea:focus {
 }
 
 .login-page {
-  background: linear-gradient(135deg, #701A3D 0%, #9F174D 50%, #BE185D 100%);
+  background: linear-gradient(135deg, #B91C1C 0%, #EF4444 50%, #F87171 100%);
 }
 
 .login-card {

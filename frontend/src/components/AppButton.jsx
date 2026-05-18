@@ -17,11 +17,11 @@ const sizeMap = {
 
 const variantMap = {
   primary:
-    'bg-[#9F174D] text-white border border-[#9F174D] shadow-sm hover:bg-[#831843] hover:border-[#831843] active:bg-[#701A3D] focus-visible:ring-[#9F174D]/40',
+    'bg-[#EF4444] text-white border border-[#EF4444] shadow-sm hover:bg-[#DC2626] hover:border-[#DC2626] active:bg-[#B91C1C] focus-visible:ring-[#EF4444]/40',
   secondary:
-    'bg-[#FDF2F8] text-[#9F174D] border border-[#FBCFE8] shadow-sm hover:bg-[#FCE7F3] active:bg-[#FBCFE8] focus-visible:ring-[#9F174D]/30',
+    'bg-[#FEF2F2] text-[#EF4444] border border-[#FECACA] shadow-sm hover:bg-[#FEE2E2] active:bg-[#FECACA] focus-visible:ring-[#EF4444]/30',
   outline:
-    'bg-white text-[#9F174D] border border-[#9F174D]/45 shadow-sm hover:bg-[#FDF2F8] hover:border-[#9F174D] active:bg-[#FCE7F3] focus-visible:ring-[#9F174D]/35',
+    'bg-white text-[#EF4444] border border-[#EF4444]/45 shadow-sm hover:bg-[#FEF2F2] hover:border-[#EF4444] active:bg-[#FEE2E2] focus-visible:ring-[#EF4444]/35',
   danger:
     'bg-red-600 text-white border border-red-600 shadow-sm hover:bg-red-700 hover:border-red-700 active:bg-red-800 focus-visible:ring-red-500/35'
 };
@@ -91,4 +91,3 @@ export default function AppButton({
     </button>
   );
 }
-

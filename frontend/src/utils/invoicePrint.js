@@ -15,7 +15,7 @@ const templateThemes = {
     tableHead: '#fff5f5'
   },
   clean: {
-    accent: '#9F174D',
+    accent: '#EF4444',
     accentSoft: '#FDF2F8',
     accentText: '#831843',
     border: '#E5E7EB',

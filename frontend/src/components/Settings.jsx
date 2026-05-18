@@ -259,7 +259,7 @@ const defaultForm = {
   invoiceFieldSettings: { ...defaultInvoiceFieldSettings },
   dashboardImageUrl: '',
   brandingAppearance: 'light',
-  brandingAccentColor: '#9F174D'
+  brandingAccentColor: '#EF4444'
 };
 
 const shell = {
@@ -725,7 +725,7 @@ export default function Settings({ modalMode = false }) {
   ));
   const passwordStrength = useMemo(() => getPasswordStrength(securityForm.newPassword), [securityForm.newPassword]);
   const panelBodyRef = useRef(null);
-  const brandingAccentOptions = ['#3B82F6', '#22C55E', '#EF4444', '#F59E0B', '#9F174D'];
+  const brandingAccentOptions = ['#3B82F6', '#22C55E', '#EF4444', '#F59E0B'];
   const isMobile = viewportWidth <= 768;
   const isCompactLayout = isMobile || isTouchDevice || viewportWidth <= 1100;
 
@@ -805,7 +805,7 @@ export default function Settings({ modalMode = false }) {
           googleReviewLink: data.googleReviewLink || '',
           dashboardImageUrl: data.dashboardImageUrl || gstCompanyLogoUrl,
           brandingAppearance: String(data.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
-          brandingAccentColor: String(data.brandingAccentColor || '#9F174D').trim() || '#9F174D',
+          brandingAccentColor: String(data.brandingAccentColor || '#EF4444').trim() || '#EF4444',
           aboutTagline: data.aboutTagline || '',
           companyServices: data.companyServices || '',
           nonGstCompanyName: data.nonGstCompanyName || '',
@@ -1145,7 +1145,7 @@ export default function Settings({ modalMode = false }) {
       googleReviewLink: String(form.googleReviewLink || '').trim(),
       dashboardImageUrl,
       brandingAppearance: form.brandingAppearance === 'dark' ? 'dark' : 'light',
-      brandingAccentColor: String(form.brandingAccentColor || '#9F174D').trim() || '#9F174D',
+      brandingAccentColor: String(form.brandingAccentColor || '#EF4444').trim() || '#EF4444',
       aboutTagline: String(form.aboutTagline || '').trim(),
       companyServices: String(form.companyServices || '').trim(),
       nonGstCompanyName: String(form.nonGstCompanyName || '').trim(),
@@ -1453,7 +1453,7 @@ export default function Settings({ modalMode = false }) {
           <div
             style={{
               height: '28px',
-              background: form.brandingAccentColor || '#9F174D',
+              background: form.brandingAccentColor || '#EF4444',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -1466,7 +1466,7 @@ export default function Settings({ modalMode = false }) {
             }}
           >
             <span>Brand Header</span>
-            <span style={{ opacity: 0.85 }}>{form.brandingAccentColor || '#9F174D'}</span>
+            <span style={{ opacity: 0.85 }}>{form.brandingAccentColor || '#EF4444'}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', minHeight: '96px' }}>
             <div
@@ -1485,7 +1485,7 @@ export default function Settings({ modalMode = false }) {
             <div style={{ padding: '12px' }}>
               <div style={{ fontWeight: 800, color: form.brandingAppearance === 'dark' ? '#e5e7eb' : '#111827' }}>Branding Preview</div>
               <div style={{ marginTop: '8px', fontSize: '12px', color: form.brandingAppearance === 'dark' ? '#94a3b8' : '#64748b' }}>
-                Pane: {form.brandingAppearance === 'dark' ? 'Dark' : 'Light'} • Accent: {form.brandingAccentColor || '#9F174D'}
+                Pane: {form.brandingAppearance === 'dark' ? 'Dark' : 'Light'} • Accent: {form.brandingAccentColor || '#EF4444'}
               </div>
             </div>
           </div>
@@ -1597,7 +1597,7 @@ export default function Settings({ modalMode = false }) {
             id="branding-custom-accent"
             ref={customAccentInputRef}
             type="color"
-            value={form.brandingAccentColor || '#9F174D'}
+            value={form.brandingAccentColor || '#EF4444'}
             onChange={(event) => updateField('brandingAccentColor', event.target.value)}
             aria-label="Choose custom accent color"
             style={{
