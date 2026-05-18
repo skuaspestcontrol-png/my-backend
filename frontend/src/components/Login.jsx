@@ -170,17 +170,17 @@ export default function Login() {
   };
 
   return (
-    <div style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #eef4ff 0%, #f7f9fd 52%, #ecf2fb 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '12px' : '24px' }}>
-      <div style={{ width: '100%', maxWidth: '900px', borderRadius: '16px', border: '1px solid #dde3ed', background: '#f5f5f7', boxShadow: '0 14px 34px rgba(15, 23, 42, 0.1)', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #eef4ff 0%, #f7f9fd 52%, #ecf2fb 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '8px' : '24px' }}>
+      <div style={{ width: '100%', maxWidth: '900px', borderRadius: isNarrow ? '14px' : '16px', border: '1px solid #dde3ed', background: '#f5f5f7', boxShadow: '0 14px 34px rgba(15, 23, 42, 0.1)', overflow: 'hidden' }}>
         <section style={{ display: 'grid', gridTemplateColumns: viewportWidth < 900 ? '1fr' : '1fr 1fr', minHeight: viewportWidth < 900 ? 'auto' : '420px' }}>
-          <div style={{ display: 'grid', placeItems: 'center', padding: isNarrow ? '14px 14px 0' : '18px 18px 8px' }}>
+          <div style={{ display: 'grid', placeItems: 'center', padding: isNarrow ? '8px 14px 0' : '18px 18px 8px' }}>
             {hasValidLogo ? (
               <img
                 src={settings.dashboardImageUrl}
                 alt="Company Logo"
                 onError={() => setLogoBroken(true)}
                 style={{
-                  width: isNarrow ? '186px' : '300px',
+                  width: isNarrow ? '220px' : '300px',
                   maxWidth: '95%',
                   height: 'auto',
                   objectFit: 'contain',
@@ -208,7 +208,7 @@ export default function Login() {
             )}
           </div>
 
-          <div style={{ padding: isNarrow ? '14px 14px 20px' : '28px 30px 26px', display: 'grid', alignContent: 'center', gap: '14px' }}>
+          <div style={{ padding: isNarrow ? '10px 14px 16px' : '28px 30px 26px', display: 'grid', alignContent: isNarrow ? 'start' : 'center', gap: isNarrow ? '10px' : '14px' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: isNarrow ? '24px' : '34px', color: 'var(--color-primary)', fontWeight: 800, lineHeight: 1.08 }}>Welcome</h2>
             </div>

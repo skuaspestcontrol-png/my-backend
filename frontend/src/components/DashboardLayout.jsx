@@ -61,6 +61,51 @@ const getTodayLeadFollowups = (rows = []) => {
     }));
 };
 
+const getNewLeadNotifications = (rows = []) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return (Array.isArray(rows) ? rows : [])
+    .filter((lead) => {
+      const leadDate = toDateOnly(lead?.date || lead?.createdAt || lead?.created_at || lead?.leadDate || lead?.lead_date);
+      return leadDate && leadDate.getTime() === today.getTime();
+    })
+    .map((lead, index) => ({
+      id: `new-lead-${String(lead._id || lead.id || `${lead.customerName || 'lead'}-${lead.mobile || lead.mobileNumber || ''}-${lead.date || lead.createdAt || ''}-${index}`)}`,
+      title: `New Lead: ${String(lead.customerName || lead.displayName || 'Lead').trim()}`,
+      subtitle: [
+        String(lead.mobile || lead.mobileNumber || '').trim(),
+        String(lead.leadSource || lead.source || 'Website').trim()
+      ].filter(Boolean).join(' • '),
+      status: String(lead.status || lead.leadStatus || 'New').trim() || 'New'
+    }));
+};
+
+const getTodayServiceScheduleNotifications = (rows = []) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return (Array.isArray(rows) ? rows : [])
+    .filter((job) => {
+      const scheduledDate = toDateOnly(job?.scheduledDate || job?.scheduled_date || job?.date);
+      return scheduledDate && scheduledDate.getTime() === today.getTime();
+    })
+    .map((job, index) => ({
+      id: `service-schedule-${String(job._id || job.id || `${job.customerName || 'job'}-${job.scheduledDate || job.scheduled_date || ''}-${index}`)}`,
+      title: `Today Service: ${String(job.customerName || job.customer || 'Scheduled job').trim()}`,
+      subtitle: [
+        String(job.scheduledTime || job.scheduled_time || '').trim() || '10:00',
+        String(job.assignedTo || job.technicianName || job.technician || 'Unassigned').trim()
+      ].filter(Boolean).join(' • '),
+      status: String(job.status || 'Scheduled').trim() || 'Scheduled'
+    }));
+};
+
+const buildLeadNotifications = (rows = [], jobs = []) => {
+  const newLeads = getNewLeadNotifications(rows).map((item) => ({ ...item, kind: 'new-lead' }));
+  const followups = getTodayLeadFollowups(rows).map((item) => ({ ...item, kind: 'follow-up' }));
+  const serviceSchedules = getTodayServiceScheduleNotifications(jobs).map((item) => ({ ...item, kind: 'service-schedule' }));
+  return [...newLeads, ...serviceSchedules, ...followups];
+};
+
 const loadReadNotificationIds = () => {
   try {
     const parsed = JSON.parse(localStorage.getItem(NOTIFICATION_READ_STORAGE_KEY) || '[]');
@@ -115,6 +160,7 @@ export default function DashboardLayout({ children }) {
   const [sidebarFocusWithin, setSidebarFocusWithin] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [leadNotifications, setLeadNotifications] = useState([]);
+  const [serviceSchedules, setServiceSchedules] = useState([]);
   const [readNotificationIds, setReadNotificationIds] = useState(() => loadReadNotificationIds());
 
   useEffect(() => {
@@ -167,9 +213,14 @@ export default function DashboardLayout({ children }) {
     let active = true;
     const fetchLeadNotifications = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/api/leads`);
+        const [leadRes, jobsRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/leads`),
+          axios.get(`${API_BASE_URL}/api/jobs`).catch(() => ({ data: [] }))
+        ]);
         if (!active) return;
-        setLeadNotifications(getTodayLeadFollowups(res.data));
+        const jobRows = Array.isArray(jobsRes.data) ? jobsRes.data : [];
+        setServiceSchedules(getTodayServiceScheduleNotifications(jobRows));
+        setLeadNotifications(buildLeadNotifications(leadRes.data, jobRows));
       } catch (error) {
         console.error('Could not load notifications', error);
       }
@@ -699,8 +750,8 @@ export default function DashboardLayout({ children }) {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '2px 2px 8px', minWidth: 0 }}>
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--color-text)' }}>Today Notifications</p>
-                      <p style={{ margin: '2px 0 0', fontSize: '11px', fontWeight: 700, color: 'var(--color-muted)' }}>Lead follow-up tasks due today</p>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--color-text)' }}>Website Notifications</p>
+                      <p style={{ margin: '2px 0 0', fontSize: '11px', fontWeight: 700, color: 'var(--color-muted)' }}>New leads, today service schedule, and follow-up tasks</p>
                     </div>
                     {leadNotifications.length > 0 ? (
                       <button
@@ -715,33 +766,123 @@ export default function DashboardLayout({ children }) {
                   <div style={{ display: 'grid', gap: '6px' }}>
                     {leadNotifications.length === 0 ? (
                       <div style={{ padding: '18px 10px', textAlign: 'center', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 700 }}>
-                        No lead follow-ups due today.
+                        No new leads, service schedules, or follow-ups due today.
                       </div>
-                    ) : leadNotifications.map((item) => {
-                      const isRead = readNotificationIds.includes(item.id);
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => toggleNotificationRead(item.id)}
-                          style={{
-                            border: '1px solid var(--color-border)',
-                            borderRadius: '10px',
-                            background: isRead ? '#fff' : 'var(--color-primary-light)',
-                            padding: '9px 10px',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                            display: 'grid',
-                            gap: '3px',
-                            minWidth: 0
-                          }}
-                        >
-                          <span style={{ fontSize: '12px', fontWeight: isRead ? 600 : 800, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</span>
-                          <span style={{ fontSize: '11px', fontWeight: isRead ? 500 : 700, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.subtitle || 'Unassigned'}</span>
-                          <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--color-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.status}</span>
-                        </button>
-                      );
-                    })}
+                    ) : (
+                      <>
+                        {leadNotifications.some((item) => item.kind === 'new-lead') ? (
+                          <div style={{ marginTop: '2px', padding: '0 2px' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', padding: '4px 8px', background: '#dcfce7', color: '#166534', fontSize: '10px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                              New Leads
+                            </div>
+                            <div style={{ display: 'grid', gap: '6px', marginTop: '6px' }}>
+                              {leadNotifications.filter((item) => item.kind === 'new-lead').map((item) => {
+                                const isRead = readNotificationIds.includes(item.id);
+                                return (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => toggleNotificationRead(item.id)}
+                                    style={{
+                                      border: '1px solid var(--color-border)',
+                                      borderRadius: '10px',
+                                      background: isRead ? '#fff' : 'var(--color-primary-light)',
+                                      padding: '9px 10px',
+                                      textAlign: 'left',
+                                      cursor: 'pointer',
+                                      display: 'grid',
+                                      gap: '3px',
+                                      minWidth: 0
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', minWidth: 0 }}>
+                                      <span style={{ fontSize: '12px', fontWeight: isRead ? 600 : 800, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</span>
+                                      <span style={{ flexShrink: 0, padding: '2px 6px', borderRadius: '999px', fontSize: '10px', fontWeight: 800, color: '#166534', background: '#dcfce7' }}>New Lead</span>
+                                    </div>
+                                    <span style={{ fontSize: '11px', fontWeight: isRead ? 500 : 700, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.subtitle || 'Unassigned'}</span>
+                                    <span style={{ fontSize: '10px', fontWeight: 800, color: '#166534', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.status}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : null}
+                        {leadNotifications.some((item) => item.kind === 'service-schedule') ? (
+                          <div style={{ marginTop: '2px', padding: '0 2px' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', padding: '4px 8px', background: '#dbeafe', color: '#1d4ed8', fontSize: '10px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                              Today Service Schedule
+                            </div>
+                            <div style={{ display: 'grid', gap: '6px', marginTop: '6px' }}>
+                              {leadNotifications.filter((item) => item.kind === 'service-schedule').map((item) => {
+                                const isRead = readNotificationIds.includes(item.id);
+                                return (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => toggleNotificationRead(item.id)}
+                                    style={{
+                                      border: '1px solid var(--color-border)',
+                                      borderRadius: '10px',
+                                      background: isRead ? '#fff' : 'var(--color-primary-light)',
+                                      padding: '9px 10px',
+                                      textAlign: 'left',
+                                      cursor: 'pointer',
+                                      display: 'grid',
+                                      gap: '3px',
+                                      minWidth: 0
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', minWidth: 0 }}>
+                                      <span style={{ fontSize: '12px', fontWeight: isRead ? 600 : 800, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</span>
+                                      <span style={{ flexShrink: 0, padding: '2px 6px', borderRadius: '999px', fontSize: '10px', fontWeight: 800, color: '#1d4ed8', background: '#dbeafe' }}>Schedule</span>
+                                    </div>
+                                    <span style={{ fontSize: '11px', fontWeight: isRead ? 500 : 700, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.subtitle || 'Unassigned'}</span>
+                                    <span style={{ fontSize: '10px', fontWeight: 800, color: '#1d4ed8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.status}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : null}
+                        {leadNotifications.some((item) => item.kind === 'follow-up') ? (
+                          <div style={{ marginTop: '2px', padding: '0 2px' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', padding: '4px 8px', background: '#dbeafe', color: '#1d4ed8', fontSize: '10px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                              Follow-ups
+                            </div>
+                            <div style={{ display: 'grid', gap: '6px', marginTop: '6px' }}>
+                              {leadNotifications.filter((item) => item.kind === 'follow-up').map((item) => {
+                                const isRead = readNotificationIds.includes(item.id);
+                                return (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => toggleNotificationRead(item.id)}
+                                    style={{
+                                      border: '1px solid var(--color-border)',
+                                      borderRadius: '10px',
+                                      background: isRead ? '#fff' : 'var(--color-primary-light)',
+                                      padding: '9px 10px',
+                                      textAlign: 'left',
+                                      cursor: 'pointer',
+                                      display: 'grid',
+                                      gap: '3px',
+                                      minWidth: 0
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', minWidth: 0 }}>
+                                      <span style={{ fontSize: '12px', fontWeight: isRead ? 600 : 800, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</span>
+                                      <span style={{ flexShrink: 0, padding: '2px 6px', borderRadius: '999px', fontSize: '10px', fontWeight: 800, color: '#1d4ed8', background: '#dbeafe' }}>Follow-up</span>
+                                    </div>
+                                    <span style={{ fontSize: '11px', fontWeight: isRead ? 500 : 700, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.subtitle || 'Unassigned'}</span>
+                                    <span style={{ fontSize: '10px', fontWeight: 800, color: '#1d4ed8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.status}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
                   </div>
                 </div>
               ) : null}

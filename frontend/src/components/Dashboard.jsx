@@ -292,6 +292,8 @@ export default function Dashboard() {
     fontSize: isMobile ? '12px' : '15px',
     fontWeight: 700
   };
+  const receivableColor = '#16a34a';
+  const payableColor = '#dc2626';
   const taglineStyle = isMobile
     ? { ...shell.tagline, fontSize: isSmallMobile ? '18px' : '20px', lineHeight: 1.3 }
     : isTablet || isLaptop
@@ -341,7 +343,15 @@ export default function Dashboard() {
 
         <div style={heroFinanceCardStyle}>
           <p style={heroFinanceTextStyle}>
-            Receivables: <strong>{formatCurrency(analytics.totalReceivables)}</strong> | Payables: <strong>{formatCurrency(analytics.totalPayables)}</strong>
+            <span style={{ color: receivableColor }}>
+              Receivables: <strong>{formatCurrency(analytics.totalReceivables)}</strong>
+            </span>
+            {' '}
+            <span style={{ color: '#111827' }}>|</span>
+            {' '}
+            <span style={{ color: payableColor }}>
+              Payables: <strong>{formatCurrency(analytics.totalPayables)}</strong>
+            </span>
           </p>
         </div>
       </section>
@@ -358,9 +368,9 @@ export default function Dashboard() {
           <p style={metricSubStyle}>Active customers</p>
         </div>
         <div style={metricStyle}>
-          <p style={metricLabelStyle}>Employees / Jobs</p>
-          <p style={metricValueStyle}>{topCards.employeesCount} / {topCards.jobsCount}</p>
-          <p style={metricSubStyle}>Workforce and dispatch</p>
+          <p style={metricLabelStyle}>Employees</p>
+          <p style={metricValueStyle}>{topCards.employeesCount}</p>
+          <p style={metricSubStyle}>Workforce</p>
         </div>
         <div style={metricStyle}>
           <p style={metricLabelStyle}>Invoices Value</p>
