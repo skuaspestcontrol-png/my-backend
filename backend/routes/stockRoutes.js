@@ -673,6 +673,9 @@ router.post('/items', async (req, res) => {
     const storageLocation = text(body.storageLocation || body.storage_location) || null;
     const description = text(body.description || '') || null;
     const isActive = body.isActive === false || body.is_active === 0 ? 0 : 1;
+    if ([openingStock, currentStock, minStockLevel, purchaseRate].some((value) => value < 0)) {
+      return sendError(res, 400, 'Stock and rate values cannot be negative.');
+    }
     const createdBy = body.createdBy || body.created_by || null;
 
     const conn = await getConnection();
@@ -738,8 +741,11 @@ router.put('/items/:id', async (req, res) => {
     const storageLocation = text(body.storageLocation || body.storage_location) || null;
     const description = text(body.description || '') || null;
     const isActive = body.isActive === false || body.is_active === 0 ? 0 : 1;
+    if ([openingStock, currentStock, minStockLevel, purchaseRate].some((value) => value < 0)) {
+      return sendError(res, 400, 'Stock and rate values cannot be negative.');
+    }
 
-    await dbQuery(
+    const result = await dbQuery(
       `UPDATE stock_items SET
         item_name = ?,
         item_code = ?,
@@ -758,6 +764,9 @@ router.put('/items/:id', async (req, res) => {
        WHERE id = ?`,
       [itemName, itemCode, category, unit, openingStock, currentStock, minStockLevel, purchaseRate, vendorId, batchNumber, expiryDate, storageLocation, description, isActive, itemId]
     );
+    if (Number(result?.affectedRows || 0) === 0) {
+      return sendError(res, 404, 'Item not found.');
+    }
     return res.json({ success: true, message: 'Item updated.' });
   } catch (error) {
     return sendError(res, 400, error.message || 'Unable to update item.');
@@ -766,8 +775,41 @@ router.put('/items/:id', async (req, res) => {
 
 router.delete('/items/:id', async (req, res) => {
   try {
-    await dbQuery('UPDATE stock_items SET is_active = 0 WHERE id = ?', [req.params.id]);
-    return res.json({ success: true, message: 'Item deactivated.' });
+    const itemId = Number(req.params.id);
+    if (!Number.isFinite(itemId)) {
+      return sendError(res, 400, 'Invalid item id.');
+    }
+
+    const refs = await dbQuery(
+      `SELECT
+         (SELECT COUNT(*) FROM stock_purchases WHERE item_id = ?) AS purchaseCount,
+         (SELECT COUNT(*) FROM stock_movements WHERE item_id = ?) AS movementCount,
+         (SELECT COUNT(*) FROM stock_technician_balances WHERE item_id = ?) AS balanceCount`,
+      [itemId, itemId, itemId]
+    );
+    const purchaseCount = Number(firstRow(refs)?.purchaseCount || 0);
+    const movementCount = Number(firstRow(refs)?.movementCount || 0);
+    const balanceCount = Number(firstRow(refs)?.balanceCount || 0);
+    const hasHistory = purchaseCount > 0 || movementCount > 0 || balanceCount > 0;
+
+    if (hasHistory) {
+      const updateResult = await dbQuery('UPDATE stock_items SET is_active = 0 WHERE id = ?', [itemId]);
+      if (Number(updateResult?.affectedRows || 0) === 0) {
+        return sendError(res, 404, 'Item not found.');
+      }
+      return res.json({
+        success: true,
+        message: 'Item has history, so it was deactivated instead of deleted.',
+        deleted: false,
+        deactivated: true
+      });
+    }
+
+    const deleteResult = await dbQuery('DELETE FROM stock_items WHERE id = ?', [itemId]);
+    if (Number(deleteResult?.affectedRows || 0) === 0) {
+      return sendError(res, 404, 'Item not found.');
+    }
+    return res.json({ success: true, message: 'Item deleted.', deleted: true });
   } catch (error) {
     return sendError(res, 500, error.message || 'Unable to delete item.');
   }

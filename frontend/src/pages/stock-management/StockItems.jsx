@@ -31,8 +31,9 @@ const initialForm = {
 };
 
 const tableStyle = { width: '100%', borderCollapse: 'collapse' };
-const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
+const cellStyle = { padding: '8px 10px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'middle' };
 const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const iconButtonStyle = { width: 34, minWidth: 34, height: 34, minHeight: 34, padding: 0, justifyContent: 'center' };
 const greenColor = '#16A34A';
 const redColor = '#DC2626';
 const blackColor = '#111827';
@@ -147,7 +148,7 @@ export default function StockItems() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Deactivate this item?')) return;
+    if (!window.confirm('Delete this item?')) return;
     setSaving(true);
     setError('');
     try {
@@ -230,7 +231,7 @@ export default function StockItems() {
               </thead>
               <tbody>
                 {items.map((row) => (
-                  <tr key={row.id}>
+                  <tr key={row.id} style={{ minHeight: 42 }}>
                     <td style={cellStyle}>
                       <div style={{ fontWeight: 700, color: '#111827' }}>{row.itemName}</div>
                       <div style={{ color: '#6B7280', fontSize: 12 }}>{row.itemCode || 'No code'}</div>
@@ -242,8 +243,25 @@ export default function StockItems() {
                     <td style={cellStyle}><span style={badgeStyle(row.status)}>{row.status}</span></td>
                     <td style={cellStyle}>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <AppButton variant="outline" size="sm" iconLeft={<Edit3 size={14} />} onClick={() => editRow(row)}>Edit</AppButton>
-                        <AppButton variant="danger" size="sm" iconLeft={<Trash2 size={14} />} onClick={() => handleDelete(row.id)} loading={saving}>Delete</AppButton>
+                        <AppButton
+                          variant="outline"
+                          size="sm"
+                          iconLeft={<Edit3 size={14} />}
+                          onClick={() => editRow(row)}
+                          title="Edit item"
+                          aria-label="Edit item"
+                          style={iconButtonStyle}
+                        />
+                        <AppButton
+                          variant="danger"
+                          size="sm"
+                          iconLeft={<Trash2 size={14} />}
+                          onClick={() => handleDelete(row.id)}
+                          loading={saving}
+                          title="Delete item"
+                          aria-label="Delete item"
+                          style={iconButtonStyle}
+                        />
                       </div>
                     </td>
                   </tr>
