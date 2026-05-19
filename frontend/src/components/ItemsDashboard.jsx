@@ -148,7 +148,14 @@ const shell = {
     fontWeight: 800,
     cursor: 'pointer'
   },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderTop: '1px solid rgba(239, 68, 68, 0.12)', backgroundClip: 'padding-box' },
+  tableWrap: {
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    background: '#fff',
+    border: '1px solid rgba(239, 68, 68, 0.12)',
+    borderRadius: '16px',
+    backgroundClip: 'padding-box'
+  },
   table: { width: '100%', minWidth: '820px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: {
     textAlign: 'left',
@@ -367,7 +374,8 @@ const shell = {
     gap: '8px',
     fontSize: '12px',
     color: '#475569',
-    background: '#fff'
+    background: '#fff',
+    backgroundClip: 'padding-box'
   },
   pageButton: {
     border: '1px solid #d1d5db',
