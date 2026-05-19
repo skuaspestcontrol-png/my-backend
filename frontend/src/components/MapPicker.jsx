@@ -9,6 +9,8 @@ import {
 const DEFAULT_CENTER = { lat: 20.5937, lng: 78.9629 };
 
 const toNumber = (value) => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string' && value.trim() === '') return null;
   const num = Number(value);
   return Number.isFinite(num) ? num : null;
 };
@@ -42,11 +44,15 @@ export default function MapPicker({
   const dragListenerRef = useRef(null);
   const onLocationChangeRef = useRef(onLocationChange);
   const onMapErrorRef = useRef(onMapError);
-  const [readyState, setReadyState] = useState(() => (hasGoogleMapsApiKey() ? 'loading' : 'error'));
 
   const hasCoordinates = useMemo(() => {
     return toNumber(latitude) !== null && toNumber(longitude) !== null;
   }, [latitude, longitude]);
+
+  const [readyState, setReadyState] = useState(() => {
+    if (!hasGoogleMapsApiKey()) return 'error';
+    return hasCoordinates ? 'loading' : 'idle';
+  });
 
   const mapsLink = useMemo(() => buildGoogleMapsUrl(latitude, longitude), [latitude, longitude]);
   const coordinateText = hasCoordinates
@@ -68,6 +74,14 @@ export default function MapPicker({
   }, []);
 
   useEffect(() => {
+    if (!hasGoogleMapsApiKey()) {
+      setReadyState('error');
+      return;
+    }
+    setReadyState(hasCoordinates ? 'loading' : 'idle');
+  }, [hasCoordinates]);
+
+  useEffect(() => {
     const handleAuthFailure = (event) => {
       const message = event?.detail?.message || 'Google Maps authentication failed.';
       setReadyState('error');
@@ -85,6 +99,10 @@ export default function MapPicker({
       if (!mapNodeRef.current) return;
       if (!hasGoogleMapsApiKey()) {
         setReadyState('error');
+        return;
+      }
+      if (!hasCoordinates) {
+        setReadyState('idle');
         return;
       }
       try {
@@ -182,7 +200,13 @@ export default function MapPicker({
           }
         }
 
-        setReadyState('ready');
+        if (typeof window.google?.maps?.event?.addListenerOnce === 'function') {
+          window.google.maps.event.addListenerOnce(mapRef.current, 'idle', () => {
+            if (!cancelled) setReadyState('ready');
+          });
+        } else {
+          setReadyState('ready');
+        }
       } catch (error) {
         if (!cancelled) {
           console.error('MapPicker failed to initialize:', error);
@@ -200,7 +224,7 @@ export default function MapPicker({
         dragListenerRef.current.remove();
       }
     };
-  }, []);
+  }, [hasCoordinates, latitude, longitude, markerTitle]);
 
   useEffect(() => {
     if (!mapRef.current || !markerRef.current) return;
@@ -263,7 +287,9 @@ export default function MapPicker({
             <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: '12px', textAlign: 'center', background: 'linear-gradient(180deg, rgba(248,250,252,0.96), rgba(241,245,249,0.92))', color: '#475569', fontSize: '12px', fontWeight: 700, lineHeight: 1.45 }}>
               {readyState === 'loading'
                 ? 'Loading Google Map preview...'
-                : unavailableMessage}
+                : readyState === 'idle'
+                  ? 'Search address or coordinates to preview map.'
+                  : unavailableMessage}
             </div>
           ) : null}
         </div>

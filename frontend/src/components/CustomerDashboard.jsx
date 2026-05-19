@@ -7,7 +7,11 @@ import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import MapPicker from './MapPicker';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { attachPlacesAutocomplete, loadGooglePlacesScript } from '../utils/googlePlaces';
+import {
+  attachPlacesAutocomplete,
+  loadGooglePlacesScript,
+  stripAutoFilledIndiaSuffix
+} from '../utils/googlePlaces';
 import {
   extractGoogleMapsCoordinates,
   isAllowedGoogleMapsUrl,
@@ -955,6 +959,15 @@ export default function CustomerDashboard() {
     };
   };
 
+  const sanitizeCustomerGoogleAddress = (address, best = {}) => {
+    const components = Array.isArray(best.address_components)
+      ? best.address_components
+      : Array.isArray(best.addressComponents)
+        ? best.addressComponents
+        : [];
+    return stripAutoFilledIndiaSuffix(address, components);
+  };
+
   const getCustomerPlaceLatLng = (place = {}) => {
     const rawLat = place.latitude ?? (typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat);
     const rawLng = place.longitude ?? (typeof place.location?.lng === 'function' ? place.location.lng() : place.location?.lng);
@@ -979,7 +992,7 @@ export default function CustomerDashboard() {
     const longitudeKey = `${prefix}Longitude`;
     const placeIdKey = `${prefix}GooglePlaceId`;
     const placeNameKey = `${prefix}GooglePlaceName`;
-    const address = String(data.address || data.formattedAddress || '').trim();
+    const address = sanitizeCustomerGoogleAddress(data.address || data.formattedAddress || '', data);
     const area = String(data.areaName || data.city || '').trim();
     const state = String(data.state || '').trim();
     const pincode = toSixDigitPincode(data.pincode || '');
@@ -1044,7 +1057,7 @@ export default function CustomerDashboard() {
 
   const applyCustomerAddressSuggestion = (section, place = {}, queryText = '', options = {}) => {
     const placeName = place.displayName?.text || place.displayName || place.name || '';
-    const address = place.formattedAddress || place.formatted_address || '';
+    const address = sanitizeCustomerGoogleAddress(place.formattedAddress || place.formatted_address || '', place);
     const googlePhone = place.nationalPhoneNumber || place.internationalPhoneNumber || place.formatted_phone_number || place.international_phone_number || '';
     const googleWebsite = place.websiteURI || place.website || '';
     const { lat, lng } = getCustomerPlaceLatLng(place);
@@ -1086,7 +1099,7 @@ export default function CustomerDashboard() {
       const first = response?.results?.[0];
       if (!first) return null;
 
-      const formattedAddress = String(first.formatted_address || '').trim();
+      const formattedAddress = sanitizeCustomerGoogleAddress(first.formatted_address || '', first);
       const extracted = extractCustomerAddressFields({
         formatted_address: formattedAddress,
         address_components: first.address_components
@@ -2673,8 +2686,6 @@ export default function CustomerDashboard() {
                     <label style={shell.label}>Attention</label>
                     <input style={shell.input} value={form.billingAttention} onChange={(event) => updateBillingField('billingAttention', event.target.value)} />
 
-                    {renderAddressSearchControls('billing')}
-
                     <label style={shell.label}>Address</label>
                     <textarea style={shell.textarea} placeholder="Address" value={form.billingStreet1} onChange={(event) => updateBillingField('billingStreet1', event.target.value)} />
 
@@ -2726,8 +2737,6 @@ export default function CustomerDashboard() {
                     <label style={shell.label}>Attention</label>
                     <input style={shell.input} value={form.shippingAttention} onChange={(event) => updateShippingField('shippingAttention', event.target.value)} />
 
-                    {renderAddressSearchControls('shipping')}
-
                     <label style={shell.label}>Address</label>
                     <textarea style={shell.textarea} placeholder="Address" value={form.shippingStreet1} onChange={(event) => updateShippingField('shippingStreet1', event.target.value)} />
 
@@ -2753,6 +2762,8 @@ export default function CustomerDashboard() {
                 value={form.areaSqft}
                 onChange={(event) => setForm((prev) => ({ ...prev, areaSqft: event.target.value }))}
               />
+
+              {renderAddressSearchControls('shipping')}
 
               <CustomerPremisesPanel
                 customerId={editingId}

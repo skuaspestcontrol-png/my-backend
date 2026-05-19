@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 import {
   attachPlacesAutocomplete,
   hasGoogleMapsApiKey,
-  loadGooglePlacesScript
+  loadGooglePlacesScript,
+  stripAutoFilledIndiaSuffix
 } from '../utils/googlePlaces';
 import {
   extractGoogleMapsCoordinates,
@@ -1383,6 +1384,15 @@ export default function LeadCapture() {
     return { areaName, city, state, pincode };
   };
 
+  const sanitizeGoogleAddress = (address, best = {}) => {
+    const components = Array.isArray(best.address_components)
+      ? best.address_components
+      : Array.isArray(best.addressComponents)
+        ? best.addressComponents
+        : [];
+    return stripAutoFilledIndiaSuffix(address, components);
+  };
+
   const validateLatLngRange = (lat, lng) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return 'Invalid coordinates. Please paste a valid latitude and longitude.';
     if (lat < -90 || lat > 90) return 'Latitude must be between -90 and 90.';
@@ -1510,7 +1520,7 @@ export default function LeadCapture() {
 
   const applySearchSuggestion = (place, queryText = '') => {
     const placeName = place.displayName?.text || place.displayName || '';
-    const address = place.formattedAddress || '';
+    const address = sanitizeGoogleAddress(place.formattedAddress || '', place);
     const googlePhone = place.nationalPhoneNumber || place.internationalPhoneNumber || '';
     const googleWebsite = place.websiteURI || '';
     const lat = typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat;
@@ -1548,16 +1558,17 @@ export default function LeadCapture() {
       const response = await geocoder.geocode({ location: { lat: Number(lat), lng: Number(lng) } });
       const first = response?.results?.[0];
       if (!first) return;
+      const formattedAddress = sanitizeGoogleAddress(first.formatted_address || '', first);
       const extracted = extractAddressFields({
-        formatted_address: first.formatted_address,
+        formatted_address: formattedAddress,
         address_components: first.address_components
       });
       setForm((prev) => {
         const nextPincode = extracted.pincode || prev.pincode;
         return {
           ...prev,
-          searchAddress: preserveSearchAddress ? prev.searchAddress : (first.formatted_address || prev.searchAddress || ''),
-          address: first.formatted_address || prev.address || '',
+          searchAddress: preserveSearchAddress ? prev.searchAddress : (formattedAddress || prev.searchAddress || ''),
+          address: formattedAddress || prev.address || '',
           areaName: extracted.areaName || prev.areaName,
           city: extracted.city || prev.city,
           state: extracted.state || prev.state,

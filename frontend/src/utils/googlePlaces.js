@@ -19,6 +19,18 @@ const normalizeComponent = (components = [], ...types) => {
   return '';
 };
 
+const stripAutoFilledIndiaSuffix = (value = '', components = []) => {
+  const formatted = String(value || '').trim();
+  if (!formatted) return '';
+  const country = normalizeComponent(components, 'country');
+  if (country.toLowerCase() !== 'india') return formatted;
+
+  return formatted
+    .replace(/,\s*India\s*$/i, '')
+    .replace(/\s+India\s*$/i, '')
+    .trim();
+};
+
 const extractPostalCode = (place = {}, components = []) => {
   let postalCode = normalizeComponent(components, 'postal_code');
   if (!postalCode) postalCode = normalizeComponent(components, 'postal_code_suffix');
@@ -292,5 +304,6 @@ export const attachPlacesAutocomplete = async ({
 export {
   GOOGLE_MAPS_AUTH_FAILURE_EVENT,
   getApiKey as getGoogleMapsApiKey,
-  hasGoogleMapsApiKey
+  hasGoogleMapsApiKey,
+  stripAutoFilledIndiaSuffix
 };
