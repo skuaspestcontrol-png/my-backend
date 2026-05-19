@@ -268,7 +268,11 @@ function App() {
             <Route path="/schedule-job" element={<AppRoute element={<ScheduleJob />} />} />
             <Route path="/operations/assign-services" element={<AppRoute element={<ScheduleJob />} />} />
             <Route path="/service-calendar" element={<AppRoute element={<ServiceCalendar />} />} />
-            <Route path="/technician-portal" element={<Navigate to="/operations/assigned-jobs" replace />} />
+            <Route path="/technician-portal" element={<Navigate to="/tasks/detail/index" replace />} />
+            <Route path="/tasks/detail" element={<AppRoute element={<TechnicianPortal />} />} />
+            <Route path="/tasks/detail/index" element={<AppRoute element={<TechnicianPortal />} />} />
+            <Route path="/tasks/detail/:jobId" element={<AppRoute element={<TechnicianPortal />} />} />
+            <Route path="/tasks/detail/index/:jobId" element={<AppRoute element={<TechnicianPortal />} />} />
             <Route path="/operations/assigned-jobs" element={<AppRoute element={<TechnicianPortal />} />} />
             <Route path="/operations/track-technicians" element={<AppRoute element={<TrackTechnicians />} />} />
             <Route path="/sales-portal" element={<AppRoute element={<SalesPortal />} />} />

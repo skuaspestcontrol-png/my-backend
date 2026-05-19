@@ -1,7 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import SignatureCanvas from 'react-signature-canvas';
-import { ArrowLeft, ChevronLeft, ChevronRight, ClipboardList, FileCheck2, MapPin, UserCog } from 'lucide-react';
+import {
+  ArrowLeft,
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  FileCheck2,
+  FlaskConical,
+  PenLine,
+  Plus,
+  Trash2,
+  Upload,
+  UserCog
+} from 'lucide-react';
+import { useLocation, useParams } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -29,6 +43,96 @@ const formatDisplayTime = (value) => {
 };
 
 const createCompletionCardNumber = () => `JC-${Date.now().toString().slice(-8)}`;
+
+const DEFAULT_CHECKLIST_ITEMS = [
+  'Customer issue confirmed',
+  'Site inspected',
+  'Treatment completed',
+  'Safety explained to customer',
+  'Before / during / after photos uploaded',
+  'Customer signature taken'
+];
+
+const createDraftId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+
+const createDefaultChemical = (label = '') => ({
+  id: createDraftId('chem'),
+  chemicalName: label,
+  quantityUsed: '',
+  dilutionRatio: '',
+  targetPest: '',
+  areaTreated: '',
+  safetyFollowed: false
+});
+
+const createDefaultChecklistItems = () =>
+  DEFAULT_CHECKLIST_ITEMS.map((label) => ({
+    id: createDraftId('check'),
+    label,
+    done: false
+  }));
+
+const normalizePhotoArray = (value, fallbackSingle = '') => {
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => String(entry || '').trim())
+      .filter(Boolean)
+      .slice(0, 6);
+  }
+  const single = String(value || fallbackSingle || '').trim();
+  return single ? [single] : [];
+};
+
+const normalizeChemicals = (value) => {
+  const rows = Array.isArray(value) ? value : [];
+  const normalized = rows
+    .map((row, index) => ({
+      id: String(row?.id || '').trim() || createDraftId(`chem-${index}`),
+      chemicalName: String(row?.chemicalName || row?.name || '').trim(),
+      quantityUsed: String(row?.quantityUsed || row?.quantity || '').trim(),
+      dilutionRatio: String(row?.dilutionRatio || row?.ratio || '').trim(),
+      targetPest: String(row?.targetPest || row?.pest || '').trim(),
+      areaTreated: String(row?.areaTreated || row?.area || '').trim(),
+      safetyFollowed: Boolean(row?.safetyFollowed ?? row?.safety ?? false)
+    }))
+    .filter((row, index, self) => {
+      const hasContent = Object.values(row).some((entry) => {
+        if (typeof entry === 'boolean') return entry;
+        return String(entry || '').trim() !== '';
+      });
+      return hasContent || index === 0;
+    });
+  return normalized.length > 0 ? normalized.slice(0, 12) : [createDefaultChemical()];
+};
+
+const normalizeChecklist = (value) => {
+  const rows = Array.isArray(value) ? value : [];
+  const normalized = rows.map((row, index) => ({
+    id: String(row?.id || '').trim() || createDraftId(`check-${index}`),
+    label: String(row?.label || DEFAULT_CHECKLIST_ITEMS[index] || `Checklist ${index + 1}`).trim(),
+    done: Boolean(row?.done || row?.checked || false)
+  }));
+  if (normalized.length > 0) {
+    return normalized;
+  }
+  return createDefaultChecklistItems();
+};
+
+const buildWizardDraft = (job = {}) => ({
+  beforePhotos: normalizePhotoArray(job.beforePhotos, job.beforePhoto),
+  afterPhotos: normalizePhotoArray(job.afterPhotos, job.afterPhoto),
+  chemicalsUsed: normalizeChemicals(job.chemicalsUsed),
+  checklistItems: normalizeChecklist(job.checklistItems),
+  reviewRemarks: String(job.reviewRemarks || job.remarks || '').trim()
+});
+
+const wizardSteps = [
+  { key: 'photos', label: 'Photos', icon: Camera, countLabel: '1' },
+  { key: 'chemicals', label: 'Chemicals', icon: FlaskConical, countLabel: '2' },
+  { key: 'checklist', label: 'Checklist', icon: ClipboardList, countLabel: '3' },
+  { key: 'signature', label: 'Signature', icon: PenLine, countLabel: '4' },
+  { key: 'review', label: 'Review', icon: FileCheck2, countLabel: '5' }
+];
 
 const formatAddress = (job) => {
   const pincode = String(job?.pincode || job?.pinCode || '').trim();
@@ -275,10 +379,180 @@ const shell = {
     letterSpacing: '0.04em',
     textTransform: 'uppercase'
   },
+  workflowTabs: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px' },
+  workflowTab: {
+    border: '1px solid rgba(159, 23, 77, 0.18)',
+    borderRadius: '12px',
+    background: '#fff',
+    color: '#64748b',
+    minHeight: '76px',
+    padding: '10px 8px',
+    display: 'grid',
+    gap: '6px',
+    justifyItems: 'center',
+    alignContent: 'center',
+    cursor: 'pointer',
+    boxShadow: '0 4px 10px rgba(15,23,42,0.05)'
+  },
+  workflowTabActive: {
+    background: 'var(--color-primary)',
+    borderColor: 'rgba(159, 23, 77, 0.45)',
+    color: '#fff',
+    boxShadow: '0 10px 24px rgba(159, 23, 77, 0.18)'
+  },
+  workflowTabIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
+  workflowTabLabel: { margin: 0, fontSize: '11px', fontWeight: 800, textAlign: 'center', lineHeight: 1.2 },
+  workflowCard: { border: '1px solid rgba(159, 23, 77, 0.18)', borderRadius: '16px', background: '#fff', padding: '14px', display: 'grid', gap: '12px' },
+  workflowHeader: { display: 'grid', gap: '4px' },
+  workflowTitle: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' },
+  workflowSub: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 600, lineHeight: 1.5 },
+  stepGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '12px' },
+  sectionCard: { border: '1px solid rgba(159, 23, 77, 0.14)', borderRadius: '14px', background: '#fff', padding: '12px', display: 'grid', gap: '10px' },
+  sectionTitleRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' },
+  sectionTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  sectionSub: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 600, lineHeight: 1.4 },
+  photoButton: {
+    border: '1px dashed rgba(159, 23, 77, 0.42)',
+    background: 'rgba(252,231,243,0.42)',
+    color: 'var(--color-primary-dark)',
+    borderRadius: '12px',
+    minHeight: '56px',
+    padding: '10px',
+    fontSize: '12px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    width: '100%'
+  },
+  photoGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' },
+  photoTile: {
+    position: 'relative',
+    border: '1px solid rgba(159, 23, 77, 0.16)',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    background: '#fff'
+  },
+  photoTileImg: { width: '100%', height: '110px', objectFit: 'cover', display: 'block' },
+  photoTileRemove: {
+    position: 'absolute',
+    top: '6px',
+    right: '6px',
+    width: '26px',
+    height: '26px',
+    borderRadius: '999px',
+    border: '1px solid rgba(159, 23, 77, 0.22)',
+    background: 'rgba(255,255,255,0.92)',
+    color: '#b91c1c',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer'
+  },
+  textInput: {
+    width: '100%',
+    minHeight: '42px',
+    border: '1px solid rgba(159, 23, 77, 0.18)',
+    borderRadius: '10px',
+    background: '#fff',
+    padding: '10px 12px',
+    fontSize: '13px',
+    color: '#0f172a',
+    boxSizing: 'border-box'
+  },
+  textArea: {
+    width: '100%',
+    minHeight: '84px',
+    border: '1px solid rgba(159, 23, 77, 0.18)',
+    borderRadius: '10px',
+    background: '#fff',
+    padding: '10px 12px',
+    fontSize: '13px',
+    color: '#0f172a',
+    boxSizing: 'border-box',
+    resize: 'vertical'
+  },
+  checkboxList: { display: 'grid', gap: '8px' },
+  checkboxItem: {
+    border: '1px solid rgba(159, 23, 77, 0.14)',
+    borderRadius: '10px',
+    background: '#fff',
+    padding: '10px 12px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px'
+  },
+  checkbox: { width: '18px', height: '18px', accentColor: 'var(--color-primary)' },
+  chemicalCard: { border: '1px solid rgba(159, 23, 77, 0.14)', borderRadius: '12px', background: '#fff', padding: '12px', display: 'grid', gap: '10px' },
+  chemicalHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' },
+  chemicalTitle: { margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' },
+  chemicalRemoveBtn: {
+    border: '1px solid #fecaca',
+    background: '#fff5f5',
+    color: '#b91c1c',
+    borderRadius: '8px',
+    minHeight: '28px',
+    padding: '0 10px',
+    fontSize: '11px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px'
+  },
+  chemicalGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' },
+  addChemicalBtn: {
+    width: '100%',
+    border: '1px solid rgba(159, 23, 77, 0.2)',
+    background: '#FDF2F8',
+    color: 'var(--color-primary-dark)',
+    borderRadius: '12px',
+    minHeight: '42px',
+    padding: '0 12px',
+    fontSize: '12px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px'
+  },
+  reviewGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' },
+  reviewStat: { border: '1px solid rgba(159, 23, 77, 0.14)', borderRadius: '12px', background: 'rgba(252,231,243,0.6)', padding: '10px 12px', display: 'grid', gap: '4px' },
+  reviewStatLabel: { margin: 0, fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  reviewStatValue: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' },
+  reviewNote: { borderRadius: '12px', background: '#FEF3C7', color: '#B45309', padding: '10px 12px', fontSize: '12px', fontWeight: 700, lineHeight: 1.5 },
+  wizardFooter: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px', marginTop: '2px' },
+  wizardBackBtn: {
+    border: '1px solid rgba(148,163,184,0.4)',
+    background: '#fff',
+    color: '#334155',
+    borderRadius: '12px',
+    minHeight: '46px',
+    padding: '0 14px',
+    fontSize: '13px',
+    fontWeight: 800,
+    cursor: 'pointer'
+  },
+  wizardNextBtn: {
+    border: '1px solid rgba(159, 23, 77, 0.34)',
+    background: 'var(--color-primary)',
+    color: '#fff',
+    borderRadius: '12px',
+    minHeight: '46px',
+    padding: '0 14px',
+    fontSize: '13px',
+    fontWeight: 800,
+    cursor: 'pointer'
+  },
   emptyText: { margin: '8px 0 0 0', color: '#64748b', fontSize: '13px' }
 };
 
 export default function TechnicianPortal() {
+  const location = useLocation();
+  const params = useParams();
   const [jobs, setJobs] = useState([]);
   const [technicians, setTechnicians] = useState([]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
@@ -286,12 +560,17 @@ export default function TechnicianPortal() {
   const [expandedCustomerKey, setExpandedCustomerKey] = useState('');
   const [completionCard, setCompletionCard] = useState(null);
   const [activeJob, setActiveJob] = useState(null);
+  const [wizardStep, setWizardStep] = useState('photos');
+  const [jobWizard, setJobWizard] = useState(() => buildWizardDraft({}));
   const [punchInTime, setPunchInTime] = useState(null);
   const [isPunchingIn, setIsPunchingIn] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isSavingAssignment, setIsSavingAssignment] = useState(false);
+  const [isSavingWizard, setIsSavingWizard] = useState(false);
   const [actionStatus, setActionStatus] = useState('');
   const sigCanvas = useRef({});
+  const beforePhotoInputRef = useRef(null);
+  const afterPhotoInputRef = useRef(null);
 
   const loadPortalData = useCallback(async () => {
     try {
@@ -422,10 +701,70 @@ export default function TechnicianPortal() {
   const detailsGridStyle = isMobile ? { ...shell.detailsGrid, gridTemplateColumns: '1fr' } : shell.detailsGrid;
   const pagerStyle = isMobile ? { ...shell.pager, flexDirection: 'column', alignItems: 'stretch' } : shell.pager;
   const signatureWidth = isMobile ? Math.max(260, Math.min(360, viewportWidth - 56)) : 520;
+  const routeJobId = useMemo(() => {
+    try {
+      return new URLSearchParams(location.search).get('jobId') || String(params?.jobId || '').trim() || '';
+    } catch (_error) {
+      return String(params?.jobId || '').trim() || '';
+    }
+  }, [location.search, params?.jobId]);
+
+  useEffect(() => {
+    if (!routeJobId || activeJob) return;
+    const match = jobs.find((job) => {
+      const jobId = String(job?._id || job?.id || '').trim();
+      return jobId === String(routeJobId).trim();
+    });
+    if (match) {
+      openJob(match);
+    }
+  }, [activeJob, jobs, routeJobId]);
+
+  const syncLocalJob = useCallback((nextJob) => {
+    if (!nextJob?._id) return;
+    setJobs((prev) => prev.map((job) => (String(job._id) === String(nextJob._id) ? { ...job, ...nextJob } : job)));
+    setActiveJob((prev) => (prev && String(prev._id) === String(nextJob._id) ? { ...prev, ...nextJob } : prev));
+  }, []);
+
+  const normalizeDraftForSave = useCallback((draft = jobWizard) => {
+    const nextDraft = buildWizardDraft({
+      beforePhotos: draft.beforePhotos,
+      afterPhotos: draft.afterPhotos,
+      chemicalsUsed: draft.chemicalsUsed,
+      checklistItems: draft.checklistItems,
+      reviewRemarks: draft.reviewRemarks
+    });
+    return {
+      ...nextDraft,
+      beforePhoto: nextDraft.beforePhotos[0] || '',
+      afterPhoto: nextDraft.afterPhotos[0] || '',
+      remarks: nextDraft.reviewRemarks || ''
+    };
+  }, [jobWizard]);
+
+  const persistWizardDraft = useCallback(async (draft = jobWizard) => {
+    if (!activeJob?._id || isSavingWizard) return null;
+    const savePayload = normalizeDraftForSave(draft);
+    try {
+      setIsSavingWizard(true);
+      const response = await axios.put(`${API_BASE_URL}/api/jobs/${activeJob._id}`, savePayload, { timeout: 30000 });
+      const savedJob = response?.data || { ...activeJob, ...savePayload };
+      syncLocalJob(savedJob);
+      return savedJob;
+    } catch (error) {
+      console.error('Failed to save technician wizard draft', error);
+      window.alert(error?.response?.data?.error || error?.message || 'Unable to save job progress.');
+      throw error;
+    } finally {
+      setIsSavingWizard(false);
+    }
+  }, [activeJob, isSavingWizard, normalizeDraftForSave, syncLocalJob, jobWizard]);
 
   const openJob = (job) => {
     setActiveJob(job);
     setPunchInTime(job.punchInTime || null);
+    setWizardStep('photos');
+    setJobWizard(buildWizardDraft(job));
     if (sigCanvas.current && typeof sigCanvas.current.clear === 'function') {
       sigCanvas.current.clear();
     }
@@ -453,6 +792,7 @@ export default function TechnicianPortal() {
   const handlePunchOut = async () => {
     if (!activeJob || isCompleting) return;
     setActionStatus('');
+    const normalizedDraft = normalizeDraftForSave(jobWizard);
     const signaturePadReady = sigCanvas.current && typeof sigCanvas.current.isEmpty === 'function' && typeof sigCanvas.current.getTrimmedCanvas === 'function';
     const sig = signaturePadReady && !sigCanvas.current.isEmpty()
       ? sigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
@@ -469,9 +809,18 @@ export default function TechnicianPortal() {
     };
     try {
       setIsCompleting(true);
+      await persistWizardDraft(normalizedDraft);
       const completedJobId = activeJob._id;
       const completePayload = new FormData();
       Object.entries(statusPayload).forEach(([key, value]) => completePayload.append(key, value || ''));
+      completePayload.append('beforePhoto', normalizedDraft.beforePhotos[0] || activeJob.beforePhoto || '');
+      completePayload.append('afterPhoto', normalizedDraft.afterPhotos[0] || activeJob.afterPhoto || '');
+      completePayload.append('beforePhotos', JSON.stringify(normalizedDraft.beforePhotos || []));
+      completePayload.append('afterPhotos', JSON.stringify(normalizedDraft.afterPhotos || []));
+      completePayload.append('chemicalsUsed', JSON.stringify(normalizedDraft.chemicalsUsed || []));
+      completePayload.append('checklistItems', JSON.stringify(normalizedDraft.checklistItems || []));
+      completePayload.append('reviewRemarks', normalizedDraft.reviewRemarks || '');
+      completePayload.append('remarks', normalizedDraft.reviewRemarks || '');
       completePayload.append('customerSignature', sig || '');
       await axios.post(`${API_BASE_URL}/api/jobs/${completedJobId}/complete`, completePayload, { timeout: 30000 });
       setCompletionCard({
@@ -488,8 +837,8 @@ export default function TechnicianPortal() {
         scheduledTime: activeJob.scheduledTime || '',
         technicianName: activeJob.technicianName || '-',
         technicianMobile: activeJob.technicianMobile || '-',
-        beforePhoto: activeJob.beforePhoto || '',
-        afterPhoto: activeJob.afterPhoto || '',
+        beforePhoto: normalizedDraft.beforePhotos[0] || activeJob.beforePhoto || '',
+        afterPhoto: normalizedDraft.afterPhotos[0] || activeJob.afterPhoto || '',
         customerSignature: sig
       });
       // Immediate UI update: remove completed job without waiting for full data refetch.
@@ -519,6 +868,115 @@ export default function TechnicianPortal() {
   const handleCompleteButton = () => {
     if (!activeJob) return;
     handlePunchOut();
+  };
+
+  const uploadWizardPhoto = async (file) => {
+    if (!file) return '';
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await axios.post(`${API_BASE_URL}/api/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000
+    });
+    return String(response?.data?.imageUrl || response?.data?.url || '').trim();
+  };
+
+  const handleWizardStepChange = async (nextStep) => {
+    if (!nextStep || nextStep === wizardStep) return;
+    await persistWizardDraft(jobWizard);
+    setWizardStep(nextStep);
+  };
+
+  const updateWizardDraft = (updater) => {
+    setJobWizard((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
+      return normalizeDraftForSave(next);
+    });
+  };
+
+  const handleAddChemicalRow = () => {
+    updateWizardDraft((prev) => ({
+      ...prev,
+      chemicalsUsed: [...normalizeChemicals(prev.chemicalsUsed), createDefaultChemical()]
+    }));
+  };
+
+  const handleRemoveChemicalRow = (index) => {
+    updateWizardDraft((prev) => {
+      const nextRows = normalizeChemicals(prev.chemicalsUsed).filter((_, rowIndex) => rowIndex !== index);
+      return {
+        ...prev,
+        chemicalsUsed: nextRows.length > 0 ? nextRows : [createDefaultChemical()]
+      };
+    });
+  };
+
+  const handleChemicalChange = (index, field, value) => {
+    updateWizardDraft((prev) => {
+      const nextRows = normalizeChemicals(prev.chemicalsUsed).map((row, rowIndex) =>
+        rowIndex === index ? { ...row, [field]: value } : row
+      );
+      return { ...prev, chemicalsUsed: nextRows };
+    });
+  };
+
+  const handleChecklistToggle = (index) => {
+    updateWizardDraft((prev) => {
+      const nextRows = normalizeChecklist(prev.checklistItems).map((row, rowIndex) =>
+        rowIndex === index ? { ...row, done: !row.done } : row
+      );
+      return { ...prev, checklistItems: nextRows };
+    });
+  };
+
+  const handleReviewRemarksChange = (value) => {
+    updateWizardDraft((prev) => ({ ...prev, reviewRemarks: value }));
+  };
+
+  const handlePhotoSelection = async (kind, event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (files.length === 0 || !activeJob?._id) return;
+    const key = kind === 'before' ? 'beforePhotos' : 'afterPhotos';
+    const maxItems = 6;
+    const currentList = normalizePhotoArray(jobWizard[key]);
+    const remainingSlots = Math.max(0, maxItems - currentList.length);
+    if (remainingSlots <= 0) {
+      window.alert(`You can add up to ${maxItems} ${kind} service photos.`);
+      return;
+    }
+    const selectedFiles = files.slice(0, remainingSlots);
+
+    try {
+      const uploadedUrls = [];
+      for (const file of selectedFiles) {
+        // eslint-disable-next-line no-await-in-loop
+        const url = await uploadWizardPhoto(file);
+        if (url) uploadedUrls.push(url);
+      }
+      if (uploadedUrls.length === 0) return;
+      const nextDraft = normalizeDraftForSave({
+        ...jobWizard,
+        [key]: [...currentList, ...uploadedUrls]
+      });
+      setJobWizard(nextDraft);
+      await persistWizardDraft(nextDraft);
+    } catch (error) {
+      console.error('Photo upload failed', error);
+      window.alert(error?.response?.data?.error || error?.message || 'Unable to upload photo.');
+    }
+  };
+
+  const handleRemovePhoto = async (kind, index) => {
+    const key = kind === 'before' ? 'beforePhotos' : 'afterPhotos';
+    const currentList = normalizePhotoArray(jobWizard[key]);
+    const nextList = currentList.filter((_, listIndex) => listIndex !== index);
+    const nextDraft = normalizeDraftForSave({
+      ...jobWizard,
+      [key]: nextList
+    });
+    setJobWizard(nextDraft);
+    await persistWizardDraft(nextDraft);
   };
 
   const handleReassignJob = async (job) => {
@@ -585,6 +1043,283 @@ export default function TechnicianPortal() {
       window.alert(error?.response?.data?.error || error?.message || 'Failed to remove assignment.');
     } finally {
       setIsSavingAssignment(false);
+    }
+  };
+
+  const wizardDraftView = useMemo(() => normalizeDraftForSave(jobWizard), [jobWizard, normalizeDraftForSave]);
+  const wizardChecklistDoneCount = wizardDraftView.checklistItems.filter((item) => item.done).length;
+  const wizardChecklistTotal = wizardDraftView.checklistItems.length;
+  const wizardStepIndex = Math.max(0, wizardSteps.findIndex((step) => step.key === wizardStep));
+  const wizardLastStepIndex = wizardSteps.length - 1;
+
+  const handleWizardBack = async () => {
+    if (wizardStep === 'photos') {
+      await persistWizardDraft(jobWizard);
+      setActiveJob(null);
+      return;
+    }
+    const nextIndex = Math.max(0, wizardStepIndex - 1);
+    await persistWizardDraft(jobWizard);
+    setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
+  };
+
+  const handleWizardNext = async () => {
+    if (wizardStepIndex >= wizardLastStepIndex) {
+      await handlePunchOut();
+      return;
+    }
+    const nextIndex = Math.min(wizardLastStepIndex, wizardStepIndex + 1);
+    await persistWizardDraft(jobWizard);
+    setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
+  };
+
+  const renderWizardStepContent = () => {
+    switch (wizardStep) {
+      case 'photos':
+        return (
+          <div style={shell.stepGrid}>
+            <div style={shell.sectionCard}>
+              <div style={shell.sectionTitleRow}>
+                <div>
+                  <p style={shell.sectionTitle}><Camera size={16} /> Before Service ({wizardDraftView.beforePhotos.length}/6)</p>
+                  <p style={shell.sectionSub}>Capture pre-service evidence before treatment starts.</p>
+                </div>
+              </div>
+              <div style={shell.photoGrid}>
+                {wizardDraftView.beforePhotos.map((photo, index) => (
+                  <div key={`before-${index}`} style={shell.photoTile}>
+                    <img src={photo} alt={`Before service ${index + 1}`} style={shell.photoTileImg} />
+                    <button type="button" style={shell.photoTileRemove} onClick={() => handleRemovePhoto('before', index)} aria-label={`Remove before photo ${index + 1}`}>
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                ))}
+                {wizardDraftView.beforePhotos.length < 6 ? (
+                  <button type="button" style={shell.photoButton} onClick={() => beforePhotoInputRef.current?.click()}>
+                    <Upload size={14} /> Add Photo
+                  </button>
+                ) : null}
+              </div>
+              <input
+                ref={beforePhotoInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: 'none' }}
+                onChange={(event) => handlePhotoSelection('before', event)}
+              />
+            </div>
+
+            <div style={shell.sectionCard}>
+              <div style={shell.sectionTitleRow}>
+                <div>
+                  <p style={shell.sectionTitle}><Camera size={16} /> After Service ({wizardDraftView.afterPhotos.length}/6)</p>
+                  <p style={shell.sectionSub}>Capture the finished work area after treatment.</p>
+                </div>
+              </div>
+              <div style={shell.photoGrid}>
+                {wizardDraftView.afterPhotos.map((photo, index) => (
+                  <div key={`after-${index}`} style={shell.photoTile}>
+                    <img src={photo} alt={`After service ${index + 1}`} style={shell.photoTileImg} />
+                    <button type="button" style={shell.photoTileRemove} onClick={() => handleRemovePhoto('after', index)} aria-label={`Remove after photo ${index + 1}`}>
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                ))}
+                {wizardDraftView.afterPhotos.length < 6 ? (
+                  <button type="button" style={shell.photoButton} onClick={() => afterPhotoInputRef.current?.click()}>
+                    <Upload size={14} /> Add Photo
+                  </button>
+                ) : null}
+              </div>
+              <input
+                ref={afterPhotoInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: 'none' }}
+                onChange={(event) => handlePhotoSelection('after', event)}
+              />
+            </div>
+          </div>
+        );
+      case 'chemicals':
+        return (
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {wizardDraftView.chemicalsUsed.map((chemical, index) => (
+              <div key={chemical.id || index} style={shell.chemicalCard}>
+                <div style={shell.chemicalHeader}>
+                  <p style={shell.chemicalTitle}>Chemical #{index + 1}</p>
+                  {wizardDraftView.chemicalsUsed.length > 1 ? (
+                    <button type="button" style={shell.chemicalRemoveBtn} onClick={() => handleRemoveChemicalRow(index)}>
+                      <Trash2 size={12} /> Remove
+                    </button>
+                  ) : null}
+                </div>
+                <div style={shell.chemicalGrid}>
+                  <div style={shell.field}>
+                    <p style={shell.label}>Chemical Name</p>
+                    <input
+                      type="text"
+                      value={chemical.chemicalName}
+                      onChange={(event) => handleChemicalChange(index, 'chemicalName', event.target.value)}
+                      placeholder="e.g. Cypermethrin 10% EC"
+                      style={shell.textInput}
+                    />
+                  </div>
+                  <div style={shell.field}>
+                    <p style={shell.label}>Quantity Used</p>
+                    <input
+                      type="text"
+                      value={chemical.quantityUsed}
+                      onChange={(event) => handleChemicalChange(index, 'quantityUsed', event.target.value)}
+                      placeholder="e.g. 250 ml"
+                      style={shell.textInput}
+                    />
+                  </div>
+                  <div style={shell.field}>
+                    <p style={shell.label}>Dilution Ratio</p>
+                    <input
+                      type="text"
+                      value={chemical.dilutionRatio}
+                      onChange={(event) => handleChemicalChange(index, 'dilutionRatio', event.target.value)}
+                      placeholder="e.g. 1:50"
+                      style={shell.textInput}
+                    />
+                  </div>
+                  <div style={shell.field}>
+                    <p style={shell.label}>Target Pest</p>
+                    <input
+                      type="text"
+                      value={chemical.targetPest}
+                      onChange={(event) => handleChemicalChange(index, 'targetPest', event.target.value)}
+                      placeholder="e.g. Cockroach"
+                      style={shell.textInput}
+                    />
+                  </div>
+                  <div style={{ ...shell.field, gridColumn: '1 / -1' }}>
+                    <p style={shell.label}>Area Treated</p>
+                    <input
+                      type="text"
+                      value={chemical.areaTreated}
+                      onChange={(event) => handleChemicalChange(index, 'areaTreated', event.target.value)}
+                      placeholder="e.g. Kitchen + utility room"
+                      style={shell.textInput}
+                    />
+                  </div>
+                </div>
+                <label style={shell.checkboxItem}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(chemical.safetyFollowed)}
+                    onChange={(event) => handleChemicalChange(index, 'safetyFollowed', event.target.checked)}
+                    style={shell.checkbox}
+                  />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>Safety instructions followed</span>
+                </label>
+              </div>
+            ))}
+            <button type="button" style={shell.addChemicalBtn} onClick={handleAddChemicalRow}>
+              <Plus size={14} /> Add another chemical
+            </button>
+          </div>
+        );
+      case 'checklist':
+        return (
+          <div style={shell.sectionCard}>
+            <div style={shell.sectionTitleRow}>
+              <div>
+                <p style={shell.sectionTitle}><ClipboardList size={16} /> Checklist ({wizardChecklistDoneCount}/{wizardChecklistTotal})</p>
+                <p style={shell.sectionSub}>Confirm job completion points before submitting.</p>
+              </div>
+            </div>
+            <div style={shell.checkboxList}>
+              {wizardDraftView.checklistItems.map((item, index) => (
+                <label key={item.id || index} style={shell.checkboxItem}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(item.done)}
+                    onChange={() => handleChecklistToggle(index)}
+                    style={shell.checkbox}
+                  />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>{item.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      case 'signature':
+        return (
+          <div style={shell.sectionCard}>
+            <div style={shell.sectionTitleRow}>
+              <div>
+                <p style={shell.sectionTitle}><PenLine size={16} /> Signature</p>
+                <p style={shell.sectionSub}>Capture customer sign-off before completing the job.</p>
+              </div>
+              <button
+                type="button"
+                style={shell.viewBtn}
+                onClick={() => sigCanvas.current && typeof sigCanvas.current.clear === 'function' && sigCanvas.current.clear()}
+              >
+                Clear
+              </button>
+            </div>
+            <div style={shell.signatureWrap}>
+              <SignatureCanvas
+                ref={sigCanvas}
+                penColor="black"
+                canvasProps={{ width: signatureWidth, height: 170, style: { borderRadius: '8px', width: '100%', maxWidth: `${signatureWidth}px` } }}
+              />
+            </div>
+          </div>
+        );
+      case 'review':
+        return (
+          <div style={shell.sectionCard}>
+            <div style={shell.sectionTitleRow}>
+              <div>
+                <p style={shell.sectionTitle}><FileCheck2 size={16} /> Review</p>
+                <p style={shell.sectionSub}>Please confirm site issue, completion, photos and signature before submitting.</p>
+              </div>
+            </div>
+            <div style={shell.reviewGrid}>
+              <div style={shell.reviewStat}>
+                <p style={shell.reviewStatLabel}>Photos</p>
+                <p style={shell.reviewStatValue}>
+                  {wizardDraftView.beforePhotos.length} before • {wizardDraftView.afterPhotos.length} after
+                </p>
+              </div>
+              <div style={shell.reviewStat}>
+                <p style={shell.reviewStatLabel}>Chemicals Logged</p>
+                <p style={shell.reviewStatValue}>{wizardDraftView.chemicalsUsed.length} entries</p>
+              </div>
+              <div style={shell.reviewStat}>
+                <p style={shell.reviewStatLabel}>Checklist</p>
+                <p style={shell.reviewStatValue}>{wizardChecklistDoneCount} of {wizardChecklistTotal} done</p>
+              </div>
+              <div style={shell.reviewStat}>
+                <p style={shell.reviewStatLabel}>Signature</p>
+                <p style={shell.reviewStatValue}>
+                  {sigCanvas.current && typeof sigCanvas.current.isEmpty === 'function' && !sigCanvas.current.isEmpty() ? 'Captured' : 'Missing'}
+                </p>
+              </div>
+            </div>
+            <div style={shell.reviewNote}>
+              Confirm that the service details are correct, then complete the job so the CRM can sync the activity back to the portal.
+            </div>
+            <div style={shell.field}>
+              <p style={shell.label}>Remarks</p>
+              <textarea
+                style={shell.textArea}
+                value={wizardDraftView.reviewRemarks}
+                onChange={(event) => handleReviewRemarksChange(event.target.value)}
+                placeholder="Enter service remarks..."
+              />
+            </div>
+          </div>
+        );
+      default:
+        return null;
     }
   };
 
@@ -855,26 +1590,53 @@ export default function TechnicianPortal() {
         )}
       </div>
 
-      <div style={shell.panel}>
-        <h3 style={shell.panelTitle}><MapPin size={16} /> 2. Customer Signature</h3>
-        <p style={shell.panelSub}>Capture signature before marking this job completed.</p>
-        <div style={shell.signatureWrap}>
-          <SignatureCanvas
-            ref={sigCanvas}
-            penColor="black"
-            canvasProps={{ width: signatureWidth, height: 170, style: { borderRadius: '8px', width: '100%', maxWidth: `${signatureWidth}px` } }}
-          />
+      <div style={shell.workflowCard}>
+        <div style={shell.workflowHeader}>
+          <h3 style={shell.workflowTitle}><FileCheck2 size={16} /> Technician Workflow</h3>
+          <p style={shell.workflowSub}>Step {wizardStepIndex + 1} of {wizardSteps.length}. Save each section to keep the technician task synced with the CRM.</p>
+        </div>
+
+        <div style={shell.workflowTabs}>
+          {wizardSteps.map((step) => {
+            const StepIcon = step.icon;
+            const isActiveStep = step.key === wizardStep;
+            return (
+              <button
+                key={step.key}
+                type="button"
+                style={{ ...shell.workflowTab, ...(isActiveStep ? shell.workflowTabActive : {}) }}
+                onClick={() => handleWizardStepChange(step.key)}
+                disabled={isSavingWizard || isCompleting}
+              >
+                <span style={shell.workflowTabIcon}><StepIcon size={18} /></span>
+                <p style={shell.workflowTabLabel}>{step.label}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        {renderWizardStepContent()}
+
+        <div style={shell.wizardFooter}>
+          <button
+            type="button"
+            style={shell.wizardBackBtn}
+            onClick={handleWizardBack}
+            disabled={isSavingWizard || isCompleting}
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            style={shell.wizardNextBtn}
+            onClick={handleWizardNext}
+            disabled={isSavingWizard || isCompleting}
+          >
+            {wizardStep === 'review' ? (isCompleting ? 'Saving...' : 'Complete Service') : (isSavingWizard ? 'Saving...' : 'Next')}
+          </button>
         </div>
       </div>
 
-      <button
-        type="button"
-        style={shell.completeBtn}
-        onClick={handleCompleteButton}
-        disabled={isCompleting}
-      >
-        {isCompleting ? 'Saving...' : 'Complete Job'}
-      </button>
       {actionStatus ? (
         <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: actionStatus.toLowerCase().includes('failed') ? '#b91c1c' : '#166534', fontWeight: 700 }}>
           {actionStatus}
