@@ -67,6 +67,14 @@ const stableTargetExternalId = (salesPersonId, targetType, targetYear, targetMon
   const month = targetType === 'monthly' ? String(Number(targetMonth) || 0).padStart(2, '0') : '00';
   return `SPT-${person}-${type}-${year}-${month}`;
 };
+const extractSalesPersonRefFromExternalId = (externalId = '') => {
+  const value = text(externalId);
+  if (!value.startsWith('SPT-')) return '';
+  const payload = value.slice(4);
+  const firstDash = payload.indexOf('-');
+  if (firstDash <= 0) return '';
+  return payload.slice(0, firstDash);
+};
 const legacyTargetExternalId = (row = {}) => {
   const salesPersonId = text(row.sales_person_id || row.employee_id || row.salesPersonId || row.employeeId || '');
   const targetType = text(row.target_type || row.period_type || 'monthly').toLowerCase() || 'monthly';
@@ -260,11 +268,12 @@ const normalizeTargetRow = (row = {}, lookup = null) => {
     'sales_person_id', 'salesPersonId', 'employee_id', 'employeeId', 'sales_person', 'salesPerson', 'assigned_to', 'assignedTo',
     'sales_id', 'salesId', 'created_by', 'createdBy', 'employee_external_id', 'employeeExternalId'
   ]);
+  const salesPersonRef = salesPersonRaw || extractSalesPersonRefFromExternalId(source.external_id || source.target_external_id || '');
   const salesPersonNameRaw = valueOf(source, [
     'sales_person_name', 'salesPersonName', 'employee_name', 'employeeName', 'assigned_to_name', 'assignedToName',
     'created_by_name', 'createdByName'
   ]);
-  const employee = lookup ? resolveEmployee(lookup, salesPersonRaw, salesPersonNameRaw) : null;
+  const employee = lookup ? resolveEmployee(lookup, salesPersonRef, salesPersonNameRaw) : null;
   const targetType = text(source.target_type || source.period_type || 'monthly').toLowerCase() || 'monthly';
   const targetMonth = getSafeTargetMonth(valueOf(source, ['target_month', 'month', 'week_number']));
   const targetYear = Number(valueOf(source, ['target_year', 'year'])) || null;
@@ -273,7 +282,7 @@ const normalizeTargetRow = (row = {}, lookup = null) => {
   return {
     id: row.id,
     externalId: text(source.external_id || source.target_external_id || ''),
-    salesPersonId: text(employee?.id || salesPersonRaw || ''),
+    salesPersonId: text(employee?.id || salesPersonRef || ''),
     salesPersonName: text(employee?.name || salesPersonNameRaw || ''),
     salesPersonCode: text(employee?.employeeCode || source.employee_code || source.employeeCode || ''),
     targetType,
@@ -570,6 +579,8 @@ const buildTargetRows = (context, filters = {}) => {
       id: row.id,
       salesPersonId: row.salesPersonId,
       salesPersonName: employee?.name || row.salesPersonName || row.employeeName || '---',
+      employeeName: employee?.name || row.salesPersonName || row.employeeName || '---',
+      sales_person_name: employee?.name || row.salesPersonName || row.employeeName || '---',
       targetType: targetTypeResolved,
       targetMonth: row.targetMonth || null,
       targetYear: row.targetYear,

@@ -23,7 +23,7 @@ const initialForm = {
   notes: ''
 };
 
-const tableStyle = { width: '100%', minWidth: 1240, borderCollapse: 'collapse', tableLayout: 'fixed' };
+const tableStyle = { width: '100%', minWidth: 1560, borderCollapse: 'collapse', tableLayout: 'fixed' };
 const cellStyle = {
   padding: '8px 10px',
   borderBottom: '1px solid var(--color-border)',
@@ -34,8 +34,30 @@ const cellStyle = {
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap'
 };
-const headerStyle = { ...cellStyle, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const headerStyle = {
+  padding: '10px 10px',
+  borderBottom: '1px solid var(--color-border)',
+  fontSize: 11,
+  lineHeight: 1.2,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  color: '#6B7280',
+  verticalAlign: 'middle',
+  whiteSpace: 'normal',
+  overflow: 'visible',
+  textOverflow: 'unset',
+  wordBreak: 'break-word',
+  overflowWrap: 'anywhere'
+};
 const nameCellStyle = { ...cellStyle, fontWeight: 700, color: '#111827' };
+const headerLabelStyle = {
+  display: 'inline-block',
+  lineHeight: 1.1,
+  whiteSpace: 'normal',
+  wordBreak: 'break-word',
+  overflowWrap: 'anywhere',
+  textAlign: 'left'
+};
 const actionButtonStyle = {
   minWidth: 34,
   width: 34,
@@ -83,6 +105,18 @@ export default function SalesTargets() {
   }, []);
 
   const employeeOptions = useMemo(() => safeRows(employees), [employees]);
+  const employeeNameMap = useMemo(() => {
+    const map = new Map();
+    employeeOptions.forEach((person) => {
+      const keys = [person.id, person.dbId, person.employeeCode, person.name]
+        .map((value) => String(value ?? '').trim())
+        .filter(Boolean);
+      keys.forEach((key) => {
+        if (!map.has(key.toLowerCase())) map.set(key.toLowerCase(), person.name);
+      });
+    });
+    return map;
+  }, [employeeOptions]);
   const isMobile = viewportWidth <= 768;
   const pageGridStyle = {
     display: 'flex',
@@ -109,6 +143,16 @@ export default function SalesTargets() {
     if (targetValue <= 0) return neutralTextColor;
     return Number(actual || 0) >= targetValue ? successColor : dangerColor;
   };
+  const displaySalesPersonName = (row) => (
+    row.salesPersonName
+    || row.employeeName
+    || row.sales_person_name
+    || row.employee_name
+    || employeeNameMap.get(String(row.salesPersonId || row.sales_person_id || row.employeeId || row.employee_id || row.salesPersonCode || row.employeeCode || '').trim().toLowerCase())
+    || row.salesPersonId
+    || row.sales_person_id
+    || '---'
+  );
 
   const editRow = (row) => {
     setForm({
@@ -234,27 +278,42 @@ export default function SalesTargets() {
         ) : safeRows(targets).length ? (
           <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table style={tableStyle}>
+              <colgroup>
+                <col style={{ width: '19%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '7%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '7%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '7%' }} />
+                <col style={{ width: '7%' }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={headerStyle}>Sales Person</th>
-                  <th style={headerStyle}>Type</th>
-                  <th style={headerStyle}>Month</th>
-                  <th style={headerStyle}>Year</th>
-                  <th style={headerStyle}>Revenue Target</th>
-                  <th style={headerStyle}>Revenue Achieved</th>
-                  <th style={headerStyle}>Revenue Pending</th>
-                  <th style={headerStyle}>Revenue %</th>
-                  <th style={headerStyle}>Collection Target</th>
-                  <th style={headerStyle}>Collection Achieved</th>
-                  <th style={headerStyle}>Collection Pending</th>
-                  <th style={headerStyle}>Collection %</th>
-                  <th style={headerStyle}>Action</th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Sales<br />Person</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Type</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Month</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Year</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Revenue<br />Target</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Revenue<br />Achieved</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Revenue<br />Pending</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Revenue<br />%</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Collection<br />Target</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Collection<br />Achieved</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Collection<br />Pending</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Collection<br />%</span></th>
+                  <th style={headerStyle}><span style={headerLabelStyle}>Action</span></th>
                 </tr>
               </thead>
               <tbody>
                 {targets.map((row) => (
                   <tr key={row.id} style={{ height: 42 }}>
-                    <td style={nameCellStyle}>{row.salesPersonName || '---'}</td>
+                    <td style={nameCellStyle}>{displaySalesPersonName(row)}</td>
                     <td style={cellStyle}>
                       <StatusBadge status={row.targetType === 'yearly' ? 'info' : 'active'}>
                         {row.targetType}
