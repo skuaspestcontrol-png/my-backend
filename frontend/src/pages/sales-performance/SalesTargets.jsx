@@ -23,7 +23,7 @@ const initialForm = {
   notes: ''
 };
 
-const tableStyle = { width: '100%', minWidth: 1560, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' };
+const tableStyle = { width: '100%', minWidth: 1660, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' };
 const cellStyle = {
   padding: '10px 12px',
   fontSize: 13,
@@ -274,21 +274,21 @@ export default function SalesTargets() {
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : safeRows(targets).length ? (
           <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table className="table-clean" style={tableStyle}>
+            <table className="table-clean sales-targets-table" style={tableStyle}>
               <colgroup>
-                <col style={{ width: '19%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '7%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '7%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '7%' }} />
-                <col style={{ width: '7%' }} />
+                <col style={{ width: '240px' }} />
+                <col style={{ width: '110px' }} />
+                <col style={{ width: '100px' }} />
+                <col style={{ width: '90px' }} />
+                <col style={{ width: '145px' }} />
+                <col style={{ width: '145px' }} />
+                <col style={{ width: '145px' }} />
+                <col style={{ width: '100px' }} />
+                <col style={{ width: '145px' }} />
+                <col style={{ width: '145px' }} />
+                <col style={{ width: '145px' }} />
+                <col style={{ width: '110px' }} />
+                <col style={{ width: '96px' }} />
               </colgroup>
               <thead>
                 <tr>

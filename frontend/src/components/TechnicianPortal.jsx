@@ -348,8 +348,8 @@ const shell = {
   detailsGrid: { marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px 12px' },
   field: { display: 'grid', gap: '6px' },
   label: { margin: 0, fontSize: '11px', color: '#334155', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' },
-  valueBox: { minHeight: '42px', border: '1px solid rgba(159, 23, 77, 0.2)', borderRadius: '10px', background: 'rgba(252,231,243,0.68)', padding: '10px 12px', color: '#0f172a', fontSize: '13px', fontWeight: 700 },
-  bigValueBox: { minHeight: '72px', border: '1px solid rgba(159, 23, 77, 0.2)', borderRadius: '10px', background: 'rgba(252,231,243,0.68)', padding: '10px 12px', color: '#0f172a', fontSize: '13px', fontWeight: 700, lineHeight: 1.6, whiteSpace: 'pre-wrap' },
+  valueBox: { minHeight: '42px', border: '1px solid var(--color-border)', borderRadius: '10px', background: '#F8FAFC', padding: '10px 12px', color: '#0f172a', fontSize: '13px', fontWeight: 700 },
+  bigValueBox: { minHeight: '72px', border: '1px solid var(--color-border)', borderRadius: '10px', background: '#F8FAFC', padding: '10px 12px', color: '#0f172a', fontSize: '13px', fontWeight: 700, lineHeight: 1.6, whiteSpace: 'pre-wrap' },
   statusPill: { display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', border: '1px solid rgba(159, 23, 77, 0.24)', background: 'rgba(252, 231, 243, 0.28)', color: 'var(--color-primary-dark)', padding: '6px 10px', fontSize: '12px', fontWeight: 700 },
   actionBtn: {
     border: '1px solid rgba(159, 23, 77, 0.34)',

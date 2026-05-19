@@ -6,6 +6,40 @@
   overflow-x: hidden;
 }
 
+.sales-performance-page .crm-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.sales-performance-page .crm-chart-card,
+.sales-performance-page .crm-table-card,
+.sales-performance-page .crm-filter-card,
+.sales-performance-page .crm-kpi-card {
+  width: 100%;
+  min-width: 0;
+}
+
+.sales-performance-page .sales-analytics-grid {
+  width: 100%;
+  align-items: stretch;
+}
+
+.sales-performance-page .sales-chart-frame {
+  width: 100%;
+  min-width: 0;
+}
+
+.sales-performance-page .sales-chart-card h3,
+.sales-performance-page .crm-kpi-card h3,
+.sales-performance-page .crm-filter-card h3,
+.sales-performance-page .crm-table-card h3 {
+  font-size: 16px !important;
+  line-height: 1.2;
+}
+
 .sales-performance-page .crm-page-header-copy {
   min-width: 0;
 }
@@ -31,8 +65,70 @@
   min-width: 0;
 }
 
+.sales-performance-page .sales-chart-scroll {
+  overflow-y: visible;
+}
+
 .sales-dashboard-page .sales-matrix-scroll table {
   min-width: 1180px;
+}
+
+.sales-dashboard-page .sales-matrix-table thead th.table-header-cell.table-number-cell,
+.sales-dashboard-page .sales-matrix-table tbody td.table-number-cell {
+  text-align: center !important;
+}
+
+.sales-dashboard-page .sales-matrix-table thead th.table-sticky-first,
+.sales-dashboard-page .sales-matrix-table tbody td.table-sticky-first {
+  text-align: left !important;
+}
+
+.sales-targets-page .sales-targets-table thead th.table-number-cell,
+.sales-targets-page .sales-targets-table thead th.table-percent-cell,
+.sales-targets-page .sales-targets-table thead th.table-status-cell,
+.sales-targets-page .sales-targets-table tbody td.table-number-cell,
+.sales-targets-page .sales-targets-table tbody td.table-percent-cell,
+.sales-targets-page .sales-targets-table tbody td.table-status-cell {
+  text-align: center !important;
+}
+
+.sales-targets-page .sales-targets-table thead th.table-sticky-first,
+.sales-targets-page .sales-targets-table tbody td.table-sticky-first,
+.sales-targets-page .sales-targets-table thead th.table-name-cell,
+.sales-targets-page .sales-targets-table tbody td.table-name-cell {
+  text-align: left !important;
+}
+
+.sales-team-page .sales-team-performance-table thead th.table-number-cell,
+.sales-team-page .sales-team-performance-table thead th.table-percent-cell,
+.sales-team-page .sales-team-performance-table thead th.table-status-cell,
+.sales-team-page .sales-team-performance-table tbody td.table-number-cell,
+.sales-team-page .sales-team-performance-table tbody td.table-percent-cell,
+.sales-team-page .sales-team-performance-table tbody td.table-status-cell {
+  text-align: center !important;
+}
+
+.sales-team-page .sales-team-performance-table thead th.table-sticky-first,
+.sales-team-page .sales-team-performance-table tbody td.table-sticky-first,
+.sales-team-page .sales-team-performance-table thead th.table-name-cell,
+.sales-team-page .sales-team-performance-table tbody td.table-name-cell {
+  text-align: left !important;
+}
+
+.sales-reports-page .sales-performance-report-table thead th.table-number-cell,
+.sales-reports-page .sales-performance-report-table thead th.table-percent-cell,
+.sales-reports-page .sales-performance-report-table thead th.table-status-cell,
+.sales-reports-page .sales-performance-report-table tbody td.table-number-cell,
+.sales-reports-page .sales-performance-report-table tbody td.table-percent-cell,
+.sales-reports-page .sales-performance-report-table tbody td.table-status-cell {
+  text-align: center !important;
+}
+
+.sales-reports-page .sales-performance-report-table thead th.table-sticky-first,
+.sales-reports-page .sales-performance-report-table tbody td.table-sticky-first,
+.sales-reports-page .sales-performance-report-table thead th.table-name-cell,
+.sales-reports-page .sales-performance-report-table tbody td.table-name-cell {
+  text-align: left !important;
 }
 
 .sales-team-page .sales-team-table-scroll table {
@@ -46,6 +142,11 @@
 @media (max-width: 768px) {
   .sales-performance-page {
     padding: 12px;
+  }
+
+  .sales-performance-page .crm-card {
+    border-radius: 18px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
   }
 
   .sales-performance-page .crm-page-header {
@@ -71,7 +172,7 @@
   }
 
   .sales-dashboard-page .sales-chart-inner--wide {
-    min-width: 650px;
+    min-width: 560px;
   }
 
   .sales-performance-page .sales-chart-scroll,

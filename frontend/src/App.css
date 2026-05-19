@@ -30,6 +30,23 @@ body {
   background: var(--color-bg);
 }
 
+.desktop-scale-control button.desktop-scale-control__trigger,
+.desktop-scale-control button.desktop-scale-control__option,
+.desktop-scale-control button.desktop-scale-control__reset {
+  min-width: 0 !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+.desktop-scale-control button.desktop-scale-control__trigger {
+  min-height: 44px !important;
+}
+
+.desktop-scale-control button.desktop-scale-control__option,
+.desktop-scale-control button.desktop-scale-control__reset {
+  min-height: 34px !important;
+}
+
 h1 {
   font-size: clamp(24px, 2vw, 28px);
   line-height: 1.15;

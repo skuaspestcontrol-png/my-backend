@@ -18,10 +18,22 @@ import DashboardStatCard from '../../components/ui/DashboardStatCard';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
-import { apiGet, currentMonth, currentYear, formatCompactIndianCurrency, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
+import {
+  ChartSurface,
+  CompactChartCard,
+  getBarChartProps,
+  getChartAxisProps,
+  getChartGridStyle,
+  getChartHeight,
+  getChartMargin,
+  getCurrencyAxisProps,
+  getPercentAxisProps,
+  SalesChartTooltip,
+  salesChartTheme
+} from './SalesChartPrimitives';
+import { apiGet, currentMonth, currentYear, monthOptions, money, percent, safeRows } from './salesPerformanceApi';
 import './salesPerformance.css';
 
-const chartWrap = { width: '100%', height: 300 };
 const targetColor = '#111827';
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
@@ -84,8 +96,6 @@ export default function SalesPerformanceDashboard() {
 
   const salesPeople = useMemo(() => safeRows(employees), [employees]);
   const isMobile = viewportWidth <= 640;
-  const chartWrap = { width: '100%', height: isMobile ? 220 : 300 };
-  const monthByValue = useMemo(() => new Map(monthOptions.map((month) => [month.value, month.label])), []);
   const filtersGridStyle = viewportWidth >= 1100
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 768
@@ -116,6 +126,15 @@ export default function SalesPerformanceDashboard() {
     width: isMobile ? '1180px' : '100%',
     minWidth: isMobile ? '1180px' : '100%'
   };
+  const chartGridStyle = getChartGridStyle(viewportWidth);
+  const chartHeight = getChartHeight({ mobile: isMobile });
+  const axisProps = getChartAxisProps({ mobile: isMobile });
+  const currencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
+  const percentAxisProps = getPercentAxisProps({ mobile: isMobile });
+  const monthlyTrendRows = safeRows(data?.monthlyTrend);
+  const salesPersonRows = safeRows(data?.salesPersonPerformance);
+  const monthlyBarChartProps = getBarChartProps(monthlyTrendRows.length, { mobile: isMobile });
+  const salesPersonBarChartProps = getBarChartProps(salesPersonRows.length, { mobile: isMobile });
 
   const summaryValue = (key) => {
     if (key === 'bestPerformer') return data?.summary?.bestPerformer?.employeeName || '---';
@@ -123,7 +142,7 @@ export default function SalesPerformanceDashboard() {
     return money(data?.summary?.[key] || 0);
   };
   const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
-  const formatCurrencyTooltip = (value, name) => [formatCompactIndianCurrency(value), currencyTooltipLabel[name] || name];
+  const formatCurrencyTooltip = (value) => money(value || 0);
 
   return (
     <div
@@ -194,43 +213,79 @@ export default function SalesPerformanceDashboard() {
                 key={card.key}
                 title={card.title}
                 value={summaryValue(card.key)}
-                style={isMobile ? { width: '100%', minWidth: 0 } : undefined}
-                contentStyle={isMobile ? { padding: 12, gap: 8 } : undefined}
+                style={{ width: '100%', minWidth: 0 }}
+                contentStyle={isMobile ? { padding: 12, gap: 8 } : { padding: 14, gap: 8 }}
                 titleStyle={isMobile ? { fontSize: 11 } : undefined}
-                valueStyle={isMobile ? { fontSize: 22 } : undefined}
+                valueStyle={isMobile ? { fontSize: 22 } : { fontSize: 26 }}
               />
             ))}
           </div>
 
-      <AppCard title="Monthly Target vs Achievement" className="crm-chart-card" style={{ width: '100%', minWidth: 0 }}>
-            {safeRows(data?.monthlyTrend).length ? (
-              <div className="sales-chart-scroll">
-                <div className="sales-chart-inner sales-chart-inner--wide" style={{ ...chartWrap, minWidth: isMobile ? 650 : '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={safeRows(data?.monthlyTrend)} margin={{ top: 8, right: 8, left: isMobile ? -8 : 0, bottom: isMobile ? 12 : 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fontSize: isMobile ? 10 : 12 }}
-                      height={isMobile ? 36 : 30}
-                      interval={0}
-                      angle={isMobile ? -15 : 0}
-                      textAnchor={isMobile ? 'end' : 'middle'}
-                    />
-                    <YAxis width={isMobile ? 40 : 52} tick={{ fontSize: isMobile ? 10 : 12 }} tickFormatter={formatCompactIndianCurrency} />
-                    <Tooltip formatter={formatCurrencyTooltip} />
-                    <Bar dataKey="target" fill={targetColor} radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="achieved" radius={[8, 8, 0, 0]}>
-                      {safeRows(data?.monthlyTrend).map((entry) => (
-                        <Cell key={entry.month} fill={isTargetMet(entry.achieved, entry.target) ? successColor : dangerColor} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+          <div className="sales-analytics-grid" style={chartGridStyle}>
+            <CompactChartCard title="Monthly Target vs Achievement" isMobile={isMobile}>
+              {monthlyTrendRows.length ? (
+                <div className="sales-chart-scroll">
+                  <ChartSurface height={chartHeight} minWidth={isMobile ? 560 : 0}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={monthlyTrendRows}
+                        margin={getChartMargin({ mobile: isMobile })}
+                        barCategoryGap={monthlyBarChartProps.barCategoryGap}
+                        barGap={monthlyBarChartProps.barGap}
+                      >
+                        <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
+                        <XAxis dataKey="label" {...axisProps} />
+                        <YAxis {...currencyAxisProps} />
+                        <Tooltip
+                          cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                          content={<SalesChartTooltip valueFormatter={formatCurrencyTooltip} />}
+                        />
+                        <Bar dataKey="target" name={currencyTooltipLabel.target} fill={targetColor} radius={[8, 8, 0, 0]} maxBarSize={monthlyBarChartProps.maxBarSize} />
+                        <Bar dataKey="achieved" name={currencyTooltipLabel.achieved} radius={[8, 8, 0, 0]} maxBarSize={monthlyBarChartProps.maxBarSize}>
+                          {monthlyTrendRows.map((entry) => (
+                            <Cell key={entry.month} fill={isTargetMet(entry.achieved, entry.target) ? successColor : dangerColor} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartSurface>
                 </div>
-              </div>
-            ) : <EmptyState title="No monthly data" message="Targets and achievements will appear here." />}
-          </AppCard>
+              ) : <EmptyState title="No monthly data" message="Targets and achievements will appear here." />}
+            </CompactChartCard>
+
+            <CompactChartCard title="Sales Person Performance" isMobile={isMobile}>
+              {salesPersonRows.length ? (
+                <div className="sales-chart-scroll">
+                  <ChartSurface height={chartHeight} minWidth={isMobile ? 560 : 0}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={salesPersonRows}
+                        margin={getChartMargin({ mobile: isMobile })}
+                        barCategoryGap={salesPersonBarChartProps.barCategoryGap}
+                        barGap={salesPersonBarChartProps.barGap}
+                      >
+                        <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
+                        <XAxis dataKey="employeeName" {...axisProps} />
+                        <YAxis {...percentAxisProps} />
+                        <Tooltip
+                          cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                          content={<SalesChartTooltip valueFormatter={(value) => percent(value || 0)} />}
+                        />
+                        <Bar dataKey="yearlyAchievementPercent" name="Achievement %" radius={[8, 8, 0, 0]} maxBarSize={salesPersonBarChartProps.maxBarSize}>
+                          {salesPersonRows.map((entry) => (
+                            <Cell
+                              key={entry.employeeId}
+                              fill={Number(entry.yearlyAchievementPercent || 0) >= 100 ? successColor : dangerColor}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartSurface>
+                </div>
+              ) : <EmptyState title="No team performance yet" message="Add targets and records to compare people here." />}
+            </CompactChartCard>
+          </div>
 
           <AppCard title="Year-Month Matrix" className="crm-table-card" style={{ width: '100%', minWidth: 0 }}>
             {safeRows(matrix).length ? (
@@ -238,7 +293,7 @@ export default function SalesPerformanceDashboard() {
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all months.</div> : null}
                 <div style={matrixInnerStyle}>
                   <table
-                    className="table-clean"
+                    className="table-clean sales-matrix-table"
                     style={{
                       width: '100%',
                       borderCollapse: 'separate',
@@ -276,12 +331,13 @@ export default function SalesPerformanceDashboard() {
                                 padding: isMobile ? '9px 10px' : '12px 14px',
                                 whiteSpace: 'nowrap',
                                 verticalAlign: 'middle',
+                                textAlign: 'center',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis'
                               }}
                             >
-                              <div style={{ fontWeight: 800, lineHeight: 1.1, textAlign: 'right' }}>{percent(cell.achievementPercent)}</div>
-                              <div style={{ color: '#6B7280', fontSize: isMobile ? 11 : 12, lineHeight: 1.2, textAlign: 'right' }}>
+                              <div style={{ fontWeight: 800, lineHeight: 1.1 }}>{percent(cell.achievementPercent)}</div>
+                              <div style={{ color: '#6B7280', fontSize: isMobile ? 11 : 12, lineHeight: 1.2 }}>
                                 {money(cell.achieved)} / {money(cell.target)}
                               </div>
                             </td>
@@ -293,38 +349,6 @@ export default function SalesPerformanceDashboard() {
                 </div>
               </div>
             ) : <EmptyState title="No matrix data" message="Year and month comparisons will appear here." />}
-          </AppCard>
-
-          <AppCard title="Sales Person Performance" className="crm-chart-card" style={{ width: '100%', minWidth: 0 }}>
-            {safeRows(data?.salesPersonPerformance).length ? (
-              <div className="sales-chart-scroll">
-                <div className="sales-chart-inner" style={{ ...chartWrap, minWidth: isMobile ? 650 : '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={safeRows(data?.salesPersonPerformance)} margin={{ top: 8, right: 8, left: isMobile ? -10 : 0, bottom: isMobile ? 12 : 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="employeeName"
-                      tick={{ fontSize: isMobile ? 10 : 12 }}
-                      height={isMobile ? 36 : 30}
-                      interval={0}
-                      angle={isMobile ? -15 : 0}
-                      textAnchor={isMobile ? 'end' : 'middle'}
-                    />
-                    <YAxis width={isMobile ? 28 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="yearlyAchievementPercent" radius={[8, 8, 0, 0]}>
-                      {safeRows(data?.salesPersonPerformance).map((entry) => (
-                        <Cell
-                          key={entry.employeeId}
-                          fill={Number(entry.yearlyAchievementPercent || 0) >= 100 ? successColor : dangerColor}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-                </div>
-              </div>
-            ) : <EmptyState title="No team performance yet" message="Add targets and records to compare people here." />}
           </AppCard>
         </>
       )}

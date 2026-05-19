@@ -17,10 +17,22 @@ import AppSelect from '../../components/ui/AppSelect';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
-import { apiGet, currentMonth, currentYear, formatCompactIndianCurrency, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
+import {
+  ChartSurface,
+  CompactChartCard,
+  getBarChartProps,
+  getChartAxisProps,
+  getChartGridStyle,
+  getChartHeight,
+  getChartMargin,
+  getCurrencyAxisProps,
+  getPercentAxisProps,
+  SalesChartTooltip,
+  salesChartTheme
+} from './SalesChartPrimitives';
+import { apiGet, currentMonth, currentYear, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
 import './salesPerformance.css';
 
-const chartWrap = { width: '100%', height: 300 };
 const targetColor = '#111827';
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
@@ -64,19 +76,16 @@ export default function SalesTeamPerformance() {
 
   const employeeOptions = useMemo(() => safeRows(employees), [employees]);
   const isMobile = viewportWidth <= 640;
-  const chartWrap = { width: '100%', height: isMobile ? 220 : 300 };
   const filtersGridStyle = viewportWidth >= 1100
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 768
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
       : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(1, minmax(0, 1fr))' };
-  const chartGridStyle = viewportWidth >= 900
-    ? { display: 'grid', gap: 16, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-    : { display: 'grid', gap: 16, gridTemplateColumns: '1fr' };
+  const chartGridStyle = getChartGridStyle(viewportWidth);
   const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' };
   const tableStyle = {
     width: '100%',
-    minWidth: viewportWidth <= 640 ? '850px' : '1260px',
+    minWidth: viewportWidth <= 640 ? '930px' : '1360px',
     tableLayout: 'fixed',
     borderCollapse: 'collapse'
   };
@@ -101,36 +110,13 @@ export default function SalesTeamPerformance() {
     textOverflow: 'ellipsis'
   };
   const teamColWidths = viewportWidth <= 640
-    ? ['18%', '10%', '10%', '8%', '10%', '10%', '8%', '9%', '9%', '10%', '8%']
-    : ['20%', '10%', '10%', '8%', '10%', '10%', '8%', '9%', '9%', '10%', '8%'];
-  const chartAxisProps = {
-    tick: { fontSize: isMobile ? 10 : 12 },
-    height: isMobile ? 36 : 30,
-    interval: 0,
-    angle: isMobile ? -15 : 0,
-    textAnchor: isMobile ? 'end' : 'middle'
-  };
-  const mobileCardStyle = {
-    border: '1px solid var(--color-border)',
-    borderRadius: 12,
-    background: '#fff',
-    padding: 12,
-    display: 'grid',
-    gap: 10
-  };
-  const mobileGridStyle = {
-    display: 'grid',
-    gap: 10,
-    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
-  };
-  const mobileMetricStyle = {
-    border: '1px solid var(--color-border)',
-    borderRadius: 10,
-    padding: '8px 10px',
-    background: '#F9FAFB',
-    display: 'grid',
-    gap: 4
-  };
+    ? ['220px', '120px', '120px', '90px', '120px', '120px', '90px', '110px', '110px', '130px', '100px']
+    : ['260px', '130px', '130px', '95px', '130px', '130px', '95px', '120px', '120px', '140px', '110px'];
+  const chartAxisProps = getChartAxisProps({ mobile: isMobile });
+  const chartHeight = getChartHeight({ mobile: isMobile });
+  const currencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
+  const percentAxisProps = getPercentAxisProps({ mobile: isMobile });
+  const barChartProps = getBarChartProps(rows.length, { mobile: isMobile });
   const scrollHintStyle = {
     marginBottom: 8,
     color: '#6B7280',
@@ -150,7 +136,6 @@ export default function SalesTeamPerformance() {
     if (targetValue <= 0) return neutralTextColor;
     return Number(actual || 0) >= targetValue ? successColor : dangerColor;
   };
-  const formatCurrencyTooltip = (value, name) => [formatCompactIndianCurrency(value), currencyTooltipLabel[name] || name];
 
   return (
     <div
@@ -199,11 +184,66 @@ export default function SalesTeamPerformance() {
         <AppCard><EmptyState title="Team performance error" message={error} /></AppCard>
       ) : (
         <>
+          <div style={chartGridStyle}>
+            <CompactChartCard title="Target vs Achievement" isMobile={isMobile}>
+              {rows.length ? (
+                <ChartSurface height={chartHeight}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={rows} margin={getChartMargin({ mobile: isMobile })} barCategoryGap={barChartProps.barCategoryGap} barGap={barChartProps.barGap}>
+                      <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
+                      <XAxis dataKey="employeeName" {...chartAxisProps} />
+                      <YAxis {...currencyAxisProps} />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                        content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
+                      />
+                      <Bar dataKey="monthlyTarget" name={currencyTooltipLabel.monthlyTarget} fill={targetColor} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize} />
+                      <Bar dataKey="monthlyAchieved" name={currencyTooltipLabel.monthlyAchieved} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize}>
+                        {rows.map((entry) => (
+                          <Cell
+                            key={entry.employeeId}
+                            fill={isTargetMet(entry.monthlyAchieved, entry.monthlyTarget) ? successColor : dangerColor}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartSurface>
+              ) : <EmptyState title="No comparison data" message="Team target vs achievement chart will appear here." />}
+            </CompactChartCard>
+
+            <CompactChartCard title="Achievement %" isMobile={isMobile}>
+              {rows.length ? (
+                <ChartSurface height={chartHeight}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={rows} margin={getChartMargin({ mobile: isMobile })} barCategoryGap={barChartProps.barCategoryGap} barGap={barChartProps.barGap}>
+                      <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
+                      <XAxis dataKey="employeeName" {...chartAxisProps} />
+                      <YAxis {...percentAxisProps} />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                        content={<SalesChartTooltip valueFormatter={(value) => percent(value || 0)} />}
+                      />
+                      <Bar dataKey="yearlyAchievementPercent" name="Yearly %" radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize}>
+                        {rows.map((entry) => (
+                          <Cell
+                            key={entry.employeeId}
+                            fill={Number(entry.yearlyAchievementPercent || 0) >= 100 ? successColor : dangerColor}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartSurface>
+              ) : <EmptyState title="No achievement data" message="Achievement percentage chart will appear here." />}
+            </CompactChartCard>
+          </div>
+
           <AppCard title="Team Performance Table" className="crm-table-card" style={{ width: '100%', minWidth: 0 }}>
             {rows.length ? (
               <div className="table-scroll-x sales-team-table-scroll" style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
-                <table className="table-clean" style={tableStyle}>
+                <table className="table-clean sales-team-performance-table" style={tableStyle}>
                   <colgroup>
                     {teamColWidths.map((width, index) => (
                       <col key={index} style={{ width }} />
@@ -265,55 +305,6 @@ export default function SalesTeamPerformance() {
               </div>
             ) : <EmptyState title="No team data" message="Add targets and source records to compare the team." />}
           </AppCard>
-
-          <div style={chartGridStyle}>
-            <AppCard title="Target vs Achievement" className="crm-chart-card" style={{ width: '100%', minWidth: 0 }}>
-              {rows.length ? (
-                <div style={chartWrap}>
-                  <ResponsiveContainer>
-                    <BarChart data={rows} margin={{ top: 8, right: 8, left: isMobile ? -8 : 0, bottom: isMobile ? 12 : 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="employeeName" {...chartAxisProps} />
-                    <YAxis width={isMobile ? 40 : 52} tick={{ fontSize: isMobile ? 10 : 12 }} tickFormatter={formatCompactIndianCurrency} />
-                    <Tooltip formatter={formatCurrencyTooltip} />
-                      <Bar dataKey="monthlyTarget" fill={targetColor} radius={[8, 8, 0, 0]} />
-                      <Bar dataKey="monthlyAchieved" radius={[8, 8, 0, 0]}>
-                        {rows.map((entry) => (
-                          <Cell
-                            key={entry.employeeId}
-                            fill={isTargetMet(entry.monthlyAchieved, entry.monthlyTarget) ? successColor : dangerColor}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : <EmptyState title="No comparison data" message="Team target vs achievement chart will appear here." />}
-            </AppCard>
-
-            <AppCard title="Achievement %" className="crm-chart-card" style={{ width: '100%', minWidth: 0 }}>
-              {rows.length ? (
-                <div style={chartWrap}>
-                  <ResponsiveContainer>
-                    <BarChart data={rows} margin={{ top: 8, right: 8, left: isMobile ? -8 : 0, bottom: isMobile ? 12 : 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="employeeName" {...chartAxisProps} />
-                    <YAxis width={isMobile ? 32 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
-                    <Tooltip />
-                      <Bar dataKey="yearlyAchievementPercent" radius={[8, 8, 0, 0]}>
-                        {rows.map((entry) => (
-                          <Cell
-                            key={entry.employeeId}
-                            fill={Number(entry.yearlyAchievementPercent || 0) >= 100 ? successColor : dangerColor}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : <EmptyState title="No achievement data" message="Achievement percentage chart will appear here." />}
-            </AppCard>
-          </div>
         </>
       )}
     </div>

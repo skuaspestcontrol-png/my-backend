@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, loadBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
+import DesktopViewScaleControl from './DesktopViewScaleControl';
 import {
   CalendarClock,
   Bell,
@@ -943,6 +944,8 @@ export default function DashboardLayout({ children }) {
           </div>
         </main>
       </div>
+
+      <DesktopViewScaleControl viewportWidth={viewportWidth} />
     </div>
   );
 }
