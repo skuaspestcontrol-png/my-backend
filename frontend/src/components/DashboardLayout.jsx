@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, loadBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
-import DesktopViewScaleControl from './DesktopViewScaleControl';
 import {
   CalendarClock,
   Bell,
@@ -894,7 +893,6 @@ export default function DashboardLayout({ children }) {
                 </div>
               ) : null}
             </div>
-            <DesktopViewScaleControl viewportWidth={viewportWidth} />
             <button
               type="button"
               onClick={() => navigate('/settings')}
