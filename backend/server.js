@@ -1526,59 +1526,66 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   doc.on('end', () => resolve(Buffer.concat(chunks)));
   doc.on('error', reject);
 
-  const companyName = String(settings.companyName || '').trim() || 'Your Company';
-  const addressParts = [
-    String(settings.companyAddress || '').trim(),
-    [String(settings.companyCity || '').trim(), String(settings.companyState || '').trim(), String(settings.companyPincode || '').trim()].filter(Boolean).join(', ')
-  ].filter(Boolean);
-  const contactParts = [String(settings.companyEmail || '').trim(), String(settings.companyMobile || '').trim()].filter(Boolean);
-  const website = String(settings.companyWebsite || '').trim();
-  const gst = String(settings.companyGstNumber || '').trim();
-
+  const companyName = String(settings.gstCompanyName || settings.companyName || '').trim() || 'SKUAS Pest Control Private Limited';
+  const companyAddress = String(settings.gstBillingAddress || settings.companyAddress || '').trim();
+  const companyCityLine = [
+    String(settings.gstCity || settings.companyCity || '').trim(),
+    String(settings.gstState || settings.companyState || '').trim()
+  ].filter(Boolean).join(',');
+  const companyPin = String(settings.gstPincode || settings.companyPincode || '').trim();
+  const companyEmail = String(settings.gstEmail || settings.companyEmail || '').trim();
+  const companyPhone = String(settings.gstPhone || settings.companyMobile || '').trim();
+  const companyWebsite = String(settings.companyWebsite || '').trim();
+  const companyGst = String(settings.companyGstNumber || settings.gstRegistrationNumber || '').trim();
   const logoPath = resolveGstCompanyLogoPath(settings);
-  if (logoPath) {
+  const left = doc.page.margins.left;
+  const right = doc.page.width - doc.page.margins.right;
+  const width = right - left;
+  const headerTopY = 45;
+  const logo = logoPath;
+  const companyDetailLines = [
+    companyAddress,
+    companyCityLine || companyPin ? `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India` : '',
+    `Email: ${companyEmail || '-'}`,
+    `Tel: ${companyPhone || '-'}`,
+    `Web: ${companyWebsite || '-'}`,
+    `GST Details: ${companyGst || '-'}`
+  ].filter(Boolean);
+
+  doc.font('Helvetica-Bold').fontSize(10.2);
+  const companyNameWidth = doc.widthOfString(companyName);
+  const headerX = Math.max(left + 240, right - companyNameWidth);
+  const headerWidth = right - headerX;
+  const detailLineHeight = 9.1;
+  const headerBoxHeight = 11.2 + (companyDetailLines.length * detailLineHeight);
+  const logoWidth = logo ? 100 : 0;
+  const logoHeight = logo ? 70 : 0;
+  const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
+
+  if (logo) {
     try {
-      doc.image(logoPath, 42, 36, { fit: [84, 84], align: 'left' });
+      doc.image(logo, left, logoY, { fit: [logoWidth, logoHeight] });
     } catch (_error) {
       // ignore logo load errors and continue
     }
   }
 
-  doc
-    .font('Helvetica-Bold')
-    .fontSize(20)
-    .fillColor('#0f172a')
-    .text(companyName, 140, 42, { width: 380, align: 'right' });
-
-  doc
-    .font('Helvetica')
-    .fontSize(9)
-    .fillColor('#475569');
-
-  let companyMetaY = 70;
-  addressParts.forEach((line) => {
-    doc.text(line, 140, companyMetaY, { width: 380, align: 'right' });
-    companyMetaY += 13;
+  doc.font('Helvetica-Bold').fontSize(10.2).fillColor('#111827')
+    .text(companyName, headerX, headerTopY, { width, align: 'left', lineBreak: false });
+  doc.font('Helvetica').fontSize(8.1).fillColor('#475569');
+  companyDetailLines.forEach((line) => {
+    doc.text(line, headerX, doc.y + 1, { width: headerWidth, align: 'left', lineGap: 0 });
   });
-  if (contactParts.length > 0) {
-    doc.text(contactParts.join(' | '), 140, companyMetaY, { width: 380, align: 'right' });
-    companyMetaY += 13;
-  }
-  if (website) {
-    doc.text(website, 140, companyMetaY, { width: 380, align: 'right' });
-    companyMetaY += 13;
-  }
-  if (gst) {
-    doc.text(`GSTIN: ${gst}`, 140, companyMetaY, { width: 380, align: 'right' });
-  }
 
-  doc.moveTo(42, 130).lineTo(553, 130).lineWidth(1).strokeColor('#cbd5e1').stroke();
+  const headerBottomY = Math.max(doc.y + 8, 118);
+  doc.moveTo(left, headerBottomY).lineTo(right, headerBottomY).lineWidth(1).strokeColor('#cbd5e1').stroke();
 
+  doc.y = headerBottomY + 18;
   doc
     .font('Helvetica-Bold')
     .fontSize(18)
     .fillColor('#0f172a')
-    .text('Job Completion Card', 42, 145);
+    .text('Job Completion Card', left, doc.y, { width, align: 'center' });
 
   const fields = [
     ['Job Number', String(job.jobNumber || '').trim() || '-'],
