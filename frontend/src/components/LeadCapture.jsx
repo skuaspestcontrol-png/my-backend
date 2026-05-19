@@ -1456,6 +1456,25 @@ export default function LeadCapture() {
     return true;
   };
 
+  const handleSearchAddressChange = (value) => {
+    updateForm('searchAddress', value);
+    if (!applySearchCoordinates(value)) {
+      setSearchError('');
+      fetchLiveSearchSuggestions(value);
+    }
+  };
+
+  const handleSearchAddressPaste = (event) => {
+    const pastedText = event?.clipboardData?.getData('text') || '';
+    const normalized = String(pastedText || '').trim();
+    if (!normalized) return;
+
+    window.setTimeout(() => {
+      const currentValue = searchAddressInputRef.current?.value || normalized;
+      handleSearchAddressChange(currentValue);
+    }, 0);
+  };
+
   const applySearchSuggestion = (place, queryText = '') => {
     const placeName = place.displayName?.text || place.displayName || '';
     const address = place.formattedAddress || '';
@@ -1544,7 +1563,9 @@ export default function LeadCapture() {
     }
   };
 
-  const searchGooglePlace = async () => {
+  const searchGooglePlace = async (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
     if (isFetchingAddress) return;
     const query = String(form.searchAddress || '').trim();
     console.log('SEARCH CLICK:', query);
@@ -2880,14 +2901,8 @@ export default function LeadCapture() {
                         ref={searchAddressInputRef}
                         value={form.searchAddress}
                         style={{ ...s.in, marginBottom: 0, flex: 1, minWidth: 0 }}
-                      onChange={(e) => {
-                          const value = e.target.value;
-                          updateForm('searchAddress', value);
-                          if (!applySearchCoordinates(value)) {
-                            setSearchError('');
-                            fetchLiveSearchSuggestions(value);
-                          }
-                        }}
+                        onChange={(e) => handleSearchAddressChange(e.target.value)}
+                        onPaste={handleSearchAddressPaste}
                         onFocus={() => setShowSearchSuggestions(searchSuggestions.length > 0)}
                         onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 160)}
                         onKeyDown={(e) => {
@@ -2897,7 +2912,7 @@ export default function LeadCapture() {
                         }}
                         placeholder="Search company, shop, office, area, or address"
                       />
-                      <button type="button" onClick={searchGooglePlace} style={s.mapsButton} disabled={isFetchingAddress}>
+                      <button type="button" formNoValidate onClick={searchGooglePlace} style={s.mapsButton} disabled={isFetchingAddress}>
                         <Search size={14} /> {isFetchingAddress ? 'Fetching...' : 'Search Only'}
                       </button>
                     </div>
