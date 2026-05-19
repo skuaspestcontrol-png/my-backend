@@ -1135,7 +1135,7 @@ const sanitizeSettings = (raw = {}) => {
     gstPhone: normalizeOptionalIndianMobileNumber(source.gstPhone ?? source.companyMobile ?? defaultSettings.gstPhone),
     gstAlternatePhone: normalizeOptionalIndianMobileNumber(source.gstAlternatePhone ?? defaultSettings.gstAlternatePhone),
     gstEmail: normalizeSettingsText(source.gstEmail ?? source.companyEmail ?? defaultSettings.gstEmail),
-    gstCompanyLogoUrl: normalizeSettingsText(source.gstCompanyLogoUrl ?? source.dashboardImageUrl ?? defaultSettings.gstCompanyLogoUrl),
+    gstCompanyLogoUrl: normalizeSettingsText(source.gstCompanyLogoUrl ?? defaultSettings.gstCompanyLogoUrl),
     gstDigitalSignatureUrl: normalizeSettingsText(source.gstDigitalSignatureUrl ?? defaultSettings.gstDigitalSignatureUrl),
     gstCompanyStampUrl: normalizeSettingsText(source.gstCompanyStampUrl ?? defaultSettings.gstCompanyStampUrl),
     companyName: normalizeSettingsText(source.companyName ?? source.gstCompanyName ?? defaultSettings.companyName),
@@ -1240,7 +1240,7 @@ const sanitizeSettings = (raw = {}) => {
       source.whatsappBusinessDigestToCustomer ?? defaultSettings.whatsappBusinessDigestToCustomer,
       defaultSettings.whatsappBusinessDigestToCustomer
     ),
-    dashboardImageUrl: normalizeSettingsText(source.dashboardImageUrl ?? source.gstCompanyLogoUrl ?? defaultSettings.dashboardImageUrl),
+    dashboardImageUrl: normalizeSettingsText(source.dashboardImageUrl ?? defaultSettings.dashboardImageUrl),
     brandingAppearance: String(source.brandingAppearance || defaultSettings.brandingAppearance).trim().toLowerCase() === 'dark' ? 'dark' : 'light',
     brandingAccentColor: normalizeSettingsText(source.brandingAccentColor ?? defaultSettings.brandingAccentColor) || defaultSettings.brandingAccentColor,
     invoiceNumberMode: source.invoiceNumberMode === 'manual' ? 'manual' : 'auto',
@@ -1386,13 +1386,6 @@ const mergeSettingsForSave = (current = {}, incoming = {}) => {
     base[key] = normalizeUploadBackedAssetPath(base[key], currentValue);
   });
 
-  // Keep legacy sync behavior between dashboard and GST logo fields.
-  if (!String(base.gstCompanyLogoUrl || '').trim() && String(base.dashboardImageUrl || '').trim()) {
-    base.gstCompanyLogoUrl = base.dashboardImageUrl;
-  }
-  if (!String(base.dashboardImageUrl || '').trim() && String(base.gstCompanyLogoUrl || '').trim()) {
-    base.dashboardImageUrl = base.gstCompanyLogoUrl;
-  }
   return base;
 };
 
@@ -1516,7 +1509,7 @@ const parseJobLogoPath = (dashboardImageUrl = '') => {
 const resolveGstCompanyLogoPath = (settings = {}) => {
   const gstLogo = parseJobLogoPath(settings.gstCompanyLogoUrl || '');
   if (gstLogo) return gstLogo;
-  return parseJobLogoPath(settings.dashboardImageUrl || '');
+  return '';
 };
 
 const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve, reject) => {

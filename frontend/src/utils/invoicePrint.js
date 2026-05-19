@@ -180,8 +180,8 @@ export const buildInvoicePrintHtml = ({
   const servicePeriodText = buildServicePeriodText(safeInvoice);
   const logoUrl = String(
     isNonGstInvoice
-      ? (safeSettings.nonGstCompanyLogoUrl || safeSettings.dashboardImageUrl || '')
-      : (safeSettings.gstCompanyLogoUrl || safeSettings.dashboardImageUrl || '')
+      ? (safeSettings.nonGstCompanyLogoUrl || '')
+      : (safeSettings.gstCompanyLogoUrl || '')
   ).trim();
 
   const itemRows = buildItemRows(safeInvoice);

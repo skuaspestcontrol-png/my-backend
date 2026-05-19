@@ -302,8 +302,6 @@ const drawHeader = (doc, settings = {}, companySettings = {}) => {
   const width = right - left;
   const logo = resolveUploadAsset(
     companySettings.gstCompanyLogoUrl
-    || companySettings.dashboardImageUrl
-    || companySettings.companyLogoUrl
     || settings.logo_url
   );
   const companyName = clean(

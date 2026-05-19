@@ -132,7 +132,6 @@ const sectionGroups = [
       { key: 'documentPrefixes', label: 'Prefixes' },
       { key: 'googleIntegration', label: 'Google Integration' },
       { key: 'termsConditions', label: 'Terms & Conditions' },
-      { key: 'invoiceSettings', label: 'Invoice Settings' },
       { key: 'security', label: 'Change Password' }
     ]
   },
@@ -776,7 +775,8 @@ export default function Settings({ modalMode = false }) {
         const gstPincode = toSixDigitPincode(data.gstPincode || data.companyPincode || '');
         const gstPhone = String(data.gstPhone || data.companyMobile || '').trim();
         const gstEmail = String(data.gstEmail || data.companyEmail || '').trim();
-        const gstCompanyLogoUrl = String(data.gstCompanyLogoUrl || data.dashboardImageUrl || '').trim();
+        const gstCompanyLogoUrl = String(data.gstCompanyLogoUrl || '').trim();
+        const dashboardImageUrl = String(data.dashboardImageUrl || '').trim();
         const nonGstBillingAddress = String(data.nonGstBillingAddress || data.nonGstAddress || '').trim();
         const nonGstCity = String(data.nonGstCity || '').trim();
         const normalizedGstStateCode = normalizeGstStateCode(data.gstStateCode || deriveGstStateCodeFromGstin(data.companyGstNumber || ''));
@@ -809,7 +809,7 @@ export default function Settings({ modalMode = false }) {
           companyMobile: data.companyMobile || gstPhone,
           companyWebsite: data.companyWebsite || '',
           googleReviewLink: data.googleReviewLink || '',
-          dashboardImageUrl: data.dashboardImageUrl || gstCompanyLogoUrl,
+          dashboardImageUrl,
           brandingAppearance: String(data.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
           brandingAccentColor: String(data.brandingAccentColor || '#EF4444').trim() || '#EF4444',
           aboutTagline: data.aboutTagline || '',
@@ -990,7 +990,7 @@ export default function Settings({ modalMode = false }) {
     try {
       setStatus('Uploading profile picture...');
       const imageUrl = await uploadBrandingImage(file);
-      setForm((prev) => ({ ...prev, dashboardImageUrl: imageUrl, gstCompanyLogoUrl: imageUrl }));
+      setForm((prev) => ({ ...prev, dashboardImageUrl: imageUrl }));
       console.log('[Settings] Profile picture uploaded path:', imageUrl);
       setStatus(`Profile picture uploaded: ${imageUrl}`);
     } catch (error) {
@@ -1011,8 +1011,6 @@ export default function Settings({ modalMode = false }) {
       setForm((prev) => ({
         ...prev,
         [targetKey]: imageUrl,
-        ...(targetKey === 'gstCompanyLogoUrl' ? { dashboardImageUrl: imageUrl } : {}),
-        ...(targetKey === 'dashboardImageUrl' ? { gstCompanyLogoUrl: imageUrl, nonGstCompanyLogoUrl: imageUrl } : {})
       }));
       console.log(`[Settings] ${label} uploaded path:`, imageUrl);
       setStatus(`${label} uploaded: ${imageUrl}`);
@@ -1103,8 +1101,8 @@ export default function Settings({ modalMode = false }) {
     const gstPhone = normalizeIndianMobileNumber(form.gstPhone || form.companyMobile || '');
     const gstEmail = String(form.gstEmail || form.companyEmail || '').trim();
     const gstStateCode = normalizeGstStateCode(form.gstStateCode || deriveGstStateCodeFromGstin(form.companyGstNumber));
-    const dashboardImageUrl = String(form.dashboardImageUrl || form.gstCompanyLogoUrl || '').trim();
-    const gstCompanyLogoUrl = String(form.gstCompanyLogoUrl || dashboardImageUrl).trim();
+    const dashboardImageUrl = String(form.dashboardImageUrl || '').trim();
+    const gstCompanyLogoUrl = String(form.gstCompanyLogoUrl || '').trim();
     const nonGstBillingAddress = String(form.nonGstBillingAddress || form.nonGstAddress || '').trim();
     const nonGstPincode = toSixDigitPincode(form.nonGstPincode || '');
     if (!isValidPincode(gstPincode)) {
@@ -1290,7 +1288,9 @@ export default function Settings({ modalMode = false }) {
         profitCostDefaultManpowerCostPerVisit: toMoneyString(savedRaw.profitCostDefaultManpowerCostPerVisit ?? payload.profitCostDefaultManpowerCostPerVisit ?? 0, '0'),
         profitCostDefaultConveyanceCostPerVisit: toMoneyString(savedRaw.profitCostDefaultConveyanceCostPerVisit ?? payload.profitCostDefaultConveyanceCostPerVisit ?? 0, '0'),
         profitCostLowMarginWarningPercent: String(savedRaw.profitCostLowMarginWarningPercent ?? payload.profitCostLowMarginWarningPercent ?? 20),
-        profitCostExcludeGstFromRevenue: savedRaw.profitCostExcludeGstFromRevenue !== false
+        profitCostExcludeGstFromRevenue: savedRaw.profitCostExcludeGstFromRevenue !== false,
+        dashboardImageUrl: String(savedRaw.dashboardImageUrl ?? payload.dashboardImageUrl ?? '').trim(),
+        gstCompanyLogoUrl: String(savedRaw.gstCompanyLogoUrl ?? payload.gstCompanyLogoUrl ?? '').trim()
       };
       setForm(saved);
       setInitialForm(saved);

@@ -180,15 +180,12 @@ const resolveCompany = (settings = {}, invoice = {}) => {
     ? resolveFirstLocalAsset(
       settings.nonGstCompanyLogoUrl,
       settings.nonGstLogoUrl,
-      settings.nonGstBrandingLogoUrl,
-      settings.nonGstDashboardImageUrl
+      settings.nonGstBrandingLogoUrl
     )
     : resolveFirstLocalAsset(
       settings.gstCompanyLogoUrl,
       settings.gstLogoUrl,
-      settings.gstBrandingLogoUrl,
-      settings.companyLogoUrl,
-      settings.dashboardImageUrl
+      settings.gstBrandingLogoUrl
     );
   const address1 = clean((isNonGst ? settings.nonGstBillingAddress : settings.gstBillingAddress) || settings.companyAddress);
   const rawAddress2 = clean((isNonGst ? settings.nonGstAddress : '') || '');

@@ -104,14 +104,6 @@ const resolveCompanyDetails = (settings = {}) => {
     settings?.gstCompanyLogo,
     settings?.gstLogoUrl,
     settings?.gstLogo,
-    settings?.companyLogo,
-    settings?.company_logo,
-    settings?.companyLogoUrl,
-    settings?.logoUrl,
-    settings?.logo,
-    settings?.dashboardImageUrl,
-    settings?.nonGstCompanyLogoUrl,
-    settings?.gstCompanyStampUrl
   ].map((value) => normalizeText(value)).filter(Boolean);
 
   return {
