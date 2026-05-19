@@ -187,17 +187,31 @@ const shell = {
   modalClose: { border: '1px solid #D1D5DB', background: '#fff', color: '#475569', borderRadius: '8px', minWidth: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   modalBody: { padding: '12px 14px', display: 'grid', gap: '10px' },
   summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' },
-  summaryCard: { border: '1px solid var(--color-primary-soft)', background: '#FDF2F8', borderRadius: '10px', padding: '8px 10px', textAlign: 'left' },
-  summaryLabel: { fontSize: '10px', color: '#475569', fontWeight: 800, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '5px' },
-  summaryValue: { marginTop: '2px', fontSize: '18px', fontWeight: 800, color: '#0f172a' },
+  summaryCard: { border: '1px solid rgba(148,163,184,0.18)', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', borderRadius: '12px', padding: '10px 12px', textAlign: 'left', boxShadow: '0 8px 20px rgba(15,23,42,0.05)' },
+  summaryLabel: { fontSize: '10px', color: '#475569', fontWeight: 800, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '5px', letterSpacing: '0.04em' },
+  summaryValue: { marginTop: '4px', fontSize: '18px', fontWeight: 800, color: '#0f172a' },
+  profitSection: { border: '1px solid rgba(148,163,184,0.18)', borderRadius: '14px', padding: '12px', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', display: 'grid', gap: '10px', boxShadow: '0 10px 24px rgba(15,23,42,0.05)' },
+  profitSectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' },
+  profitSectionTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' },
+  profitGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' },
+  profitCard: { border: '1px solid rgba(148,163,184,0.18)', borderRadius: '12px', padding: '10px 12px', background: '#fff' },
+  profitCardProfit: { borderColor: 'rgba(22,163,74,0.22)', background: 'rgba(22,163,74,0.08)' },
+  profitCardLoss: { borderColor: 'rgba(220,38,38,0.22)', background: 'rgba(220,38,38,0.08)' },
+  profitCardAmber: { borderColor: 'rgba(217,119,6,0.22)', background: 'rgba(217,119,6,0.08)' },
+  profitLabel: { margin: 0, fontSize: '10px', color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  profitValue: { marginTop: '4px', fontSize: '18px', fontWeight: 800, color: '#0f172a' },
+  profitBreakdownGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' },
+  profitBreakdownCard: { border: '1px solid rgba(148,163,184,0.16)', borderRadius: '12px', padding: '8px 10px', background: '#fff', boxShadow: '0 6px 16px rgba(15,23,42,0.04)' },
+  profitBreakdownLabel: { margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  profitBreakdownValue: { marginTop: '4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' },
   modalToggleBtn: { border: '1px solid #F9A8D4', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', minHeight: '30px', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content' },
   detailSection: { border: '1px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden' },
-  detailHead: { padding: '8px 10px', background: 'var(--surface-soft, #f8fafc)', borderBottom: '1px solid var(--color-border)', fontSize: '11px', fontWeight: 800, color: 'var(--text)' , textTransform: 'uppercase' },
-  detailTable: { width: '100%', borderCollapse: 'collapse' },
-  detailTh: { fontSize: '10px', fontWeight: 800, color: '#64748b', textAlign: 'left', padding: '7px 10px', borderBottom: '1px solid var(--color-border)', background: 'var(--surface-elevated, #fff)' },
-  detailTd: { fontSize: '12px', color: 'var(--text)', padding: '7px 10px', borderBottom: '1px solid #f1f5f9', background: 'var(--surface-elevated, #fff)' },
+  detailHead: { padding: '8px 10px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', borderBottom: '1px solid var(--color-border)', fontSize: '11px', fontWeight: 800, color: 'var(--text)' , textTransform: 'uppercase' },
+  detailTable: { width: '100%', borderCollapse: 'separate', borderSpacing: 0 },
+  detailTh: { fontSize: '10px', fontWeight: 800, color: '#64748b', textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', textTransform: 'uppercase' },
+  detailTd: { fontSize: '12px', color: 'var(--text)', padding: '8px 10px', borderBottom: '1px solid #f1f5f9', background: '#fff' },
   detailBtn: { border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', borderRadius: '7px', minHeight: '26px', padding: '0 8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' },
-  suggestionBox: { border: '1px dashed #F9A8D4', borderRadius: '10px', background: '#FDF2F8', padding: '8px 10px', fontSize: '12px', color: '#334155', textAlign: 'left' }
+  suggestionBox: { border: '1px dashed rgba(159,23,77,0.26)', borderRadius: '12px', background: 'linear-gradient(180deg, #fff 0%, #fdf2f8 100%)', padding: '8px 10px', fontSize: '12px', color: '#334155', textAlign: 'left' }
 };
 
 const normalizeName = (value) => String(value || '').trim().toLowerCase();
@@ -340,6 +354,9 @@ export default function ContractDashboard() {
     }
   });
   const [customerSummary, setCustomerSummary] = useState({ open: false, row: null, showHistory: false });
+  const [customerProfitSummary, setCustomerProfitSummary] = useState(null);
+  const [customerProfitLoading, setCustomerProfitLoading] = useState(false);
+  const [customerProfitError, setCustomerProfitError] = useState('');
   const [page, setPage] = useState(1);
   const resizeStateRef = useRef(null);
   const customizeButtonRef = useRef(null);
@@ -403,6 +420,24 @@ export default function ContractDashboard() {
       }
     } finally {
       if (!options.silent) setLoading(false);
+    }
+  };
+
+  const loadContractProfitSummary = async (invoiceId) => {
+    if (!invoiceId) return false;
+    try {
+      setCustomerProfitLoading(true);
+      setCustomerProfitError('');
+      const res = await axios.get(`${API_BASE}/api/contracts/${invoiceId}/profit-loss`);
+      setCustomerProfitSummary(res.data || null);
+      return true;
+    } catch (error) {
+      console.error('Failed to load contract profit summary', error);
+      setCustomerProfitSummary(null);
+      setCustomerProfitError(error?.response?.data?.error || 'Could not load profit and cost summary.');
+      return false;
+    } finally {
+      setCustomerProfitLoading(false);
     }
   };
 
@@ -845,6 +880,19 @@ export default function ContractDashboard() {
 
   const openCustomerSummary = (row) => {
     setCustomerSummary({ open: true, row, showHistory: false });
+    setCustomerProfitSummary(null);
+    setCustomerProfitError('');
+    setCustomerProfitLoading(false);
+    if (row?.invoiceId) {
+      loadContractProfitSummary(row.invoiceId);
+    }
+  };
+
+  const closeCustomerSummary = () => {
+    setCustomerSummary({ open: false, row: null, showHistory: false });
+    setCustomerProfitSummary(null);
+    setCustomerProfitError('');
+    setCustomerProfitLoading(false);
   };
 
   const deleteContract = async (row) => {
@@ -1222,7 +1270,7 @@ export default function ContractDashboard() {
       {customerSummary.open && customerSummary.row ? createPortal(
         <div
           style={shell.modalOverlay}
-          onClick={() => setCustomerSummary({ open: false, row: null, showHistory: false })}
+          onClick={closeCustomerSummary}
         >
           <div
             style={shell.modalCard}
@@ -1236,7 +1284,7 @@ export default function ContractDashboard() {
               <button
                 type="button"
                 style={shell.modalClose}
-                onClick={() => setCustomerSummary({ open: false, row: null, showHistory: false })}
+                onClick={closeCustomerSummary}
               >
                 <X size={16} />
               </button>
@@ -1262,9 +1310,57 @@ export default function ContractDashboard() {
                 </div>
                 <div style={shell.summaryCard}>
                   <div style={shell.summaryLabel}><AlertCircle size={12} /> Complaints</div>
-                  <div style={shell.summaryValue}>{customerSummaryData?.complaintsCount || 0}</div>
+                  <div style={shell.summaryValue}>{customerProfitSummary?.totals?.complaintVisits ?? customerSummaryData?.complaintsCount ?? 0}</div>
                 </div>
               </div>
+
+              {customerProfitLoading ? (
+                <p style={shell.historyEmpty}>Loading profit and cost summary...</p>
+              ) : customerProfitError ? (
+                <p style={{ ...shell.historyEmpty, color: '#dc2626', fontWeight: 700 }}>{customerProfitError}</p>
+              ) : customerProfitSummary ? (
+                <div style={shell.profitSection}>
+                  <div style={shell.profitSectionHead}>
+                    <h4 style={shell.profitSectionTitle}>Profit & Cost</h4>
+                    <span style={{ ...shell.summaryLabel, textTransform: 'none' }}>
+                      {customerProfitSummary.profit?.status || 'Profit / Loss'}
+                    </span>
+                  </div>
+                  <div style={shell.profitGrid}>
+                    <div style={{ ...shell.profitCard, ...(customerProfitSummary.profit?.amount >= 0 ? shell.profitCardProfit : shell.profitCardLoss) }}>
+                      <div style={shell.profitLabel}>Profit / Loss</div>
+                      <div style={shell.profitValue}>{formatINR(customerProfitSummary.profit?.amount || 0)}</div>
+                    </div>
+                    <div style={shell.profitCard}>
+                      <div style={shell.profitLabel}>Revenue Excl. GST</div>
+                      <div style={shell.profitValue}>{formatINR(customerProfitSummary.revenue?.base || 0)}</div>
+                    </div>
+                    <div style={shell.profitCard}>
+                      <div style={shell.profitLabel}>Total Cost</div>
+                      <div style={shell.profitValue}>{formatINR(customerProfitSummary.costs?.total || 0)}</div>
+                    </div>
+                    <div style={{ ...shell.profitCard, ...(Number(customerProfitSummary.profit?.marginPercent || 0) < Number(customerProfitSummary.profit?.lowMarginWarningPercent || 0) ? shell.profitCardAmber : {}) }}>
+                      <div style={shell.profitLabel}>Margin %</div>
+                      <div style={shell.profitValue}>{Number(customerProfitSummary.profit?.marginPercent || 0).toFixed(2)}%</div>
+                    </div>
+                  </div>
+                  <div style={shell.profitBreakdownGrid}>
+                    {[
+                      ['Chemical', customerProfitSummary.costs?.breakdown?.chemical || 0],
+                      ['Manpower', customerProfitSummary.costs?.breakdown?.manpower || 0],
+                      ['Conveyance', customerProfitSummary.costs?.breakdown?.conveyance || 0],
+                      ['Materials', customerProfitSummary.costs?.breakdown?.material || 0],
+                      ['Complaint', customerProfitSummary.costs?.breakdown?.complaint || 0],
+                      ['Other', customerProfitSummary.costs?.breakdown?.other || 0]
+                    ].map(([labelText, amount]) => (
+                      <div key={labelText} style={shell.profitBreakdownCard}>
+                        <div style={shell.profitBreakdownLabel}>{labelText}</div>
+                        <div style={shell.profitBreakdownValue}>{formatINR(amount || 0)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               <button
                 type="button"

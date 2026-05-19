@@ -178,6 +178,32 @@ CREATE TABLE IF NOT EXISTS jobs (
   KEY idx_jobs_location (area_name, city, state, pincode)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS job_cost_items (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  external_id VARCHAR(120) NOT NULL,
+  customer_external_id VARCHAR(120) NULL,
+  contract_id VARCHAR(120) NULL,
+  service_visit_id VARCHAR(120) NULL,
+  item_type ENUM('chemical','manpower','conveyance','material','complaint','other') NOT NULL DEFAULT 'other',
+  stock_item_id VARCHAR(120) NULL,
+  description TEXT NULL,
+  quantity DECIMAL(10,2) NOT NULL DEFAULT 0,
+  unit VARCHAR(40) NULL,
+  unit_cost DECIMAL(12,2) NOT NULL DEFAULT 0,
+  total_cost DECIMAL(12,2) NOT NULL DEFAULT 0,
+  source ENUM('auto','manual','stock','salary') NOT NULL DEFAULT 'manual',
+  notes TEXT NULL,
+  payload JSON NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_job_cost_items_external_id (external_id),
+  KEY idx_job_cost_items_customer (customer_external_id),
+  KEY idx_job_cost_items_contract (contract_id),
+  KEY idx_job_cost_items_visit (service_visit_id),
+  KEY idx_job_cost_items_type (item_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS attendance (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   external_id VARCHAR(80) NOT NULL,

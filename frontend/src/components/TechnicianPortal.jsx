@@ -362,6 +362,33 @@ const shell = {
     fontWeight: 800,
     cursor: 'pointer'
   },
+  costAddBtn: {
+    border: '1px solid rgba(159, 23, 77, 0.28)',
+    background: '#fff',
+    color: 'var(--color-primary-dark)',
+    borderRadius: '10px',
+    minHeight: '38px',
+    padding: '0 12px',
+    fontSize: '12px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px'
+  },
+  costModalOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.56)', zIndex: 6500, display: 'grid', placeItems: 'center', padding: '16px' },
+  costModalCard: { width: 'min(100%, 560px)', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', borderRadius: '16px', border: '1px solid rgba(148,163,184,0.2)', boxShadow: '0 24px 60px rgba(15,23,42,0.18)', overflow: 'hidden' },
+  costModalHead: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)' },
+  costModalTitle: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' },
+  costModalBody: { padding: '12px 14px', display: 'grid', gap: '10px' },
+  costModalGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' },
+  costModalField: { display: 'grid', gap: '5px' },
+  costModalLabel: { margin: 0, fontSize: '10px', color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  costModalInput: { width: '100%', minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0 10px', fontSize: '13px', color: '#0f172a', boxSizing: 'border-box', background: '#fff' },
+  costModalTextarea: { width: '100%', minHeight: '72px', border: '1px solid #d1d5db', borderRadius: '10px', padding: '10px', fontSize: '13px', color: '#0f172a', boxSizing: 'border-box', resize: 'vertical', background: '#fff' },
+  costModalHint: { margin: 0, fontSize: '11px', color: '#64748b', lineHeight: 1.5, background: '#fff', border: '1px solid rgba(148,163,184,0.16)', borderRadius: '10px', padding: '8px 10px' },
+  costModalPreview: { border: '1px solid rgba(148,163,184,0.18)', borderRadius: '10px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', padding: '10px 12px', fontSize: '12px', color: '#334155', fontWeight: 700 },
+  costModalFooter: { padding: '12px 14px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: '#fff' },
   fileInput: { width: '100%', minHeight: '42px', border: '1px solid rgba(159, 23, 77, 0.22)', borderRadius: '10px', background: '#fff', padding: '8px', fontSize: '12px' },
   photoWrap: { display: 'grid', gap: '8px' },
   photoPreview: { width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.22)' },
@@ -568,6 +595,18 @@ export default function TechnicianPortal() {
   const [isSavingAssignment, setIsSavingAssignment] = useState(false);
   const [isSavingWizard, setIsSavingWizard] = useState(false);
   const [actionStatus, setActionStatus] = useState('');
+  const [showCostModal, setShowCostModal] = useState(false);
+  const [costModalSaving, setCostModalSaving] = useState(false);
+  const [costModalError, setCostModalError] = useState('');
+  const [costDraft, setCostDraft] = useState({
+    itemType: 'other',
+    description: '',
+    quantity: '1',
+    unit: 'visit',
+    unitCost: '',
+    notes: '',
+    stockItemId: ''
+  });
   const sigCanvas = useRef({});
   const beforePhotoInputRef = useRef(null);
   const afterPhotoInputRef = useRef(null);
@@ -931,6 +970,74 @@ export default function TechnicianPortal() {
 
   const handleReviewRemarksChange = (value) => {
     updateWizardDraft((prev) => ({ ...prev, reviewRemarks: value }));
+  };
+
+  const openAddCostModal = () => {
+    if (!activeJob?._id) return;
+    setCostModalError('');
+    setCostDraft({
+      itemType: 'other',
+      description: '',
+      quantity: '1',
+      unit: 'visit',
+      unitCost: '',
+      notes: '',
+      stockItemId: ''
+    });
+    setShowCostModal(true);
+  };
+
+  const closeAddCostModal = () => {
+    if (costModalSaving) return;
+    setShowCostModal(false);
+    setCostModalError('');
+  };
+
+  const handleCostDraftChange = (field, value) => {
+    setCostDraft((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const submitCostDraft = async () => {
+    if (!activeJob?._id || costModalSaving) return;
+    const quantity = Math.max(0, Number(costDraft.quantity) || 0);
+    const unitCost = Math.max(0, Number(costDraft.unitCost) || 0);
+    const totalCost = Number((quantity * unitCost).toFixed(2));
+    if (!String(costDraft.description || '').trim()) {
+      setCostModalError('Description is required.');
+      return;
+    }
+    try {
+      setCostModalSaving(true);
+      setCostModalError('');
+      await axios.post(`${API_BASE_URL}/api/service-visits/${activeJob._id}/job-cost-items`, {
+        itemType: costDraft.itemType,
+        description: costDraft.description,
+        quantity,
+        unit: costDraft.unit,
+        unitCost,
+        totalCost,
+        source: 'manual',
+        notes: costDraft.notes,
+        stockItemId: costDraft.stockItemId
+      }, { timeout: 30000 });
+      setActionStatus('Cost item saved successfully.');
+      setShowCostModal(false);
+      setCostDraft({
+        itemType: 'other',
+        description: '',
+        quantity: '1',
+        unit: 'visit',
+        unitCost: '',
+        notes: '',
+        stockItemId: ''
+      });
+      await loadPortalData();
+    } catch (error) {
+      console.error('Failed to save job cost item', error);
+      setCostModalError(error?.response?.data?.error || error?.message || 'Unable to save cost item.');
+    } finally {
+      setCostModalSaving(false);
+    }
   };
 
   const handlePhotoSelection = async (kind, event) => {
@@ -1542,9 +1649,14 @@ export default function TechnicianPortal() {
   return (
     <section style={pageStyle}>
       <div style={shell.panel}>
-        <button type="button" style={shell.backBtn} onClick={() => setActiveJob(null)}>
-          <ArrowLeft size={14} /> Back to Jobs
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+          <button type="button" style={shell.backBtn} onClick={() => setActiveJob(null)}>
+            <ArrowLeft size={14} /> Back to Jobs
+          </button>
+          <button type="button" style={shell.costAddBtn} onClick={openAddCostModal}>
+            <Plus size={14} /> Add Cost
+          </button>
+        </div>
 
         <div style={detailsGridStyle}>
           <div style={shell.field}>
@@ -1641,6 +1753,104 @@ export default function TechnicianPortal() {
         <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: actionStatus.toLowerCase().includes('failed') ? '#b91c1c' : '#166534', fontWeight: 700 }}>
           {actionStatus}
         </p>
+      ) : null}
+
+      {showCostModal ? (
+        <div style={shell.costModalOverlay} onClick={closeAddCostModal}>
+          <div style={shell.costModalCard} onClick={(event) => event.stopPropagation()}>
+            <div style={shell.costModalHead}>
+              <h3 style={shell.costModalTitle}>Add Cost</h3>
+              <button type="button" style={shell.backBtn} onClick={closeAddCostModal}>Close</button>
+            </div>
+            <div style={shell.costModalBody}>
+              <div style={shell.costModalGrid}>
+                <div style={shell.costModalField}>
+                  <p style={shell.costModalLabel}>Type</p>
+                  <select
+                    style={shell.costModalInput}
+                    value={costDraft.itemType}
+                    onChange={(event) => handleCostDraftChange('itemType', event.target.value)}
+                  >
+                    <option value="chemical">Chemical</option>
+                    <option value="manpower">Manpower</option>
+                    <option value="conveyance">Conveyance</option>
+                    <option value="material">Material</option>
+                    <option value="complaint">Complaint / Revisit</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div style={shell.costModalField}>
+                  <p style={shell.costModalLabel}>Quantity</p>
+                  <input
+                    style={shell.costModalInput}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={costDraft.quantity}
+                    onChange={(event) => handleCostDraftChange('quantity', event.target.value)}
+                  />
+                </div>
+                <div style={shell.costModalField}>
+                  <p style={shell.costModalLabel}>Unit</p>
+                  <input
+                    style={shell.costModalInput}
+                    value={costDraft.unit}
+                    onChange={(event) => handleCostDraftChange('unit', event.target.value)}
+                  />
+                </div>
+                <div style={shell.costModalField}>
+                  <p style={shell.costModalLabel}>Unit Cost</p>
+                  <input
+                    style={shell.costModalInput}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={costDraft.unitCost}
+                    onChange={(event) => handleCostDraftChange('unitCost', event.target.value)}
+                  />
+                </div>
+              </div>
+              <div style={shell.costModalField}>
+                <p style={shell.costModalLabel}>Description</p>
+                <input
+                  style={shell.costModalInput}
+                  value={costDraft.description}
+                  onChange={(event) => handleCostDraftChange('description', event.target.value)}
+                  placeholder="Example: Gel baiting, chemical purchase, revisit charge"
+                />
+              </div>
+              <div style={shell.costModalField}>
+                <p style={shell.costModalLabel}>Notes</p>
+                <textarea
+                  style={shell.costModalTextarea}
+                  value={costDraft.notes}
+                  onChange={(event) => handleCostDraftChange('notes', event.target.value)}
+                  placeholder="Optional notes"
+                />
+              </div>
+              <div style={shell.costModalField}>
+                <p style={shell.costModalLabel}>Optional stock item id</p>
+                <input
+                  style={shell.costModalInput}
+                  value={costDraft.stockItemId}
+                  onChange={(event) => handleCostDraftChange('stockItemId', event.target.value)}
+                  placeholder="Matches stock item if you want to link it"
+                />
+                <p style={shell.costModalHint}>Manual amounts are allowed. If you have a stock item id, we will keep it linked for reporting.</p>
+              </div>
+              <div style={shell.costModalPreview}>
+                Total cost preview: {`₹${Number(((Number(costDraft.quantity) || 0) * (Number(costDraft.unitCost) || 0)).toFixed(2)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </div>
+              {costModalError ? <p style={{ margin: 0, color: '#b91c1c', fontSize: '12px', fontWeight: 700 }}>{costModalError}</p> : null}
+            </div>
+            <div style={shell.costModalFooter}>
+              <button type="button" style={shell.backBtn} onClick={closeAddCostModal} disabled={costModalSaving}>Cancel</button>
+              <button type="button" style={shell.actionBtn} onClick={submitCostDraft} disabled={costModalSaving}>
+                {costModalSaving ? 'Saving...' : 'Save Cost'}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </section>
   );

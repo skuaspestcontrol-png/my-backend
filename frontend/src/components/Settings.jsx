@@ -257,6 +257,12 @@ const defaultForm = {
   invoiceTemplate: defaultInvoiceTemplate,
   invoiceVisibleColumns: [...defaultInvoiceVisibleColumns],
   invoiceFieldSettings: { ...defaultInvoiceFieldSettings },
+  profitCostDefaultWorkingDaysPerMonth: '26',
+  profitCostDefaultWorkingHoursPerDay: '8',
+  profitCostDefaultManpowerCostPerVisit: '0',
+  profitCostDefaultConveyanceCostPerVisit: '0',
+  profitCostLowMarginWarningPercent: '20',
+  profitCostExcludeGstFromRevenue: true,
   dashboardImageUrl: '',
   brandingAppearance: 'light',
   brandingAccentColor: '#EF4444'
@@ -889,7 +895,13 @@ export default function Settings({ modalMode = false }) {
           whatsappBusinessDigestToCustomer: data.whatsappBusinessDigestToCustomer || 'Off',
           invoiceTemplate: normalizeInvoiceTemplate(data.invoiceTemplate),
           invoiceVisibleColumns: normalizeInvoiceVisibleColumns(data.invoiceVisibleColumns),
-          invoiceFieldSettings: normalizeInvoiceFieldSettings(data.invoiceFieldSettings)
+          invoiceFieldSettings: normalizeInvoiceFieldSettings(data.invoiceFieldSettings),
+          profitCostDefaultWorkingDaysPerMonth: String(data.profitCostDefaultWorkingDaysPerMonth ?? 26),
+          profitCostDefaultWorkingHoursPerDay: String(data.profitCostDefaultWorkingHoursPerDay ?? 8),
+          profitCostDefaultManpowerCostPerVisit: toMoneyString(data.profitCostDefaultManpowerCostPerVisit, '0'),
+          profitCostDefaultConveyanceCostPerVisit: toMoneyString(data.profitCostDefaultConveyanceCostPerVisit, '0'),
+          profitCostLowMarginWarningPercent: String(data.profitCostLowMarginWarningPercent ?? 20),
+          profitCostExcludeGstFromRevenue: data.profitCostExcludeGstFromRevenue !== false
         };
 
         setForm(next);
@@ -1230,7 +1242,13 @@ export default function Settings({ modalMode = false }) {
       whatsappBusinessDigestToCustomer: onOffOptions.includes(form.whatsappBusinessDigestToCustomer) ? form.whatsappBusinessDigestToCustomer : 'Off',
       invoiceTemplate: normalizeInvoiceTemplate(form.invoiceTemplate),
       invoiceVisibleColumns: normalizeInvoiceVisibleColumns(form.invoiceVisibleColumns),
-      invoiceFieldSettings: normalizeInvoiceFieldSettings(form.invoiceFieldSettings)
+      invoiceFieldSettings: normalizeInvoiceFieldSettings(form.invoiceFieldSettings),
+      profitCostDefaultWorkingDaysPerMonth: Math.max(1, Number(form.profitCostDefaultWorkingDaysPerMonth) || 26),
+      profitCostDefaultWorkingHoursPerDay: Math.max(1, Number(form.profitCostDefaultWorkingHoursPerDay) || 8),
+      profitCostDefaultManpowerCostPerVisit: Number(toMoneyString(form.profitCostDefaultManpowerCostPerVisit, '0')),
+      profitCostDefaultConveyanceCostPerVisit: Number(toMoneyString(form.profitCostDefaultConveyanceCostPerVisit, '0')),
+      profitCostLowMarginWarningPercent: Math.max(0, Number(form.profitCostLowMarginWarningPercent) || 20),
+      profitCostExcludeGstFromRevenue: Boolean(form.profitCostExcludeGstFromRevenue)
     };
 
     try {
@@ -1266,7 +1284,13 @@ export default function Settings({ modalMode = false }) {
         nonGstBankCurrentBalance: toMoneyString(savedRaw.nonGstBankCurrentBalance, '0'),
         invoiceTemplate: normalizeInvoiceTemplate(savedRaw.invoiceTemplate),
         invoiceVisibleColumns: normalizeInvoiceVisibleColumns(savedRaw.invoiceVisibleColumns),
-        invoiceFieldSettings: normalizeInvoiceFieldSettings(savedRaw.invoiceFieldSettings)
+        invoiceFieldSettings: normalizeInvoiceFieldSettings(savedRaw.invoiceFieldSettings),
+        profitCostDefaultWorkingDaysPerMonth: String(savedRaw.profitCostDefaultWorkingDaysPerMonth ?? payload.profitCostDefaultWorkingDaysPerMonth ?? 26),
+        profitCostDefaultWorkingHoursPerDay: String(savedRaw.profitCostDefaultWorkingHoursPerDay ?? payload.profitCostDefaultWorkingHoursPerDay ?? 8),
+        profitCostDefaultManpowerCostPerVisit: toMoneyString(savedRaw.profitCostDefaultManpowerCostPerVisit ?? payload.profitCostDefaultManpowerCostPerVisit ?? 0, '0'),
+        profitCostDefaultConveyanceCostPerVisit: toMoneyString(savedRaw.profitCostDefaultConveyanceCostPerVisit ?? payload.profitCostDefaultConveyanceCostPerVisit ?? 0, '0'),
+        profitCostLowMarginWarningPercent: String(savedRaw.profitCostLowMarginWarningPercent ?? payload.profitCostLowMarginWarningPercent ?? 20),
+        profitCostExcludeGstFromRevenue: savedRaw.profitCostExcludeGstFromRevenue !== false
       };
       setForm(saved);
       setInitialForm(saved);
@@ -2024,6 +2048,69 @@ export default function Settings({ modalMode = false }) {
             onChange={(event) => updateField('jobNumberPadding', event.target.value.replace(/\D/g, ''))}
           />
         </div>
+      </div>
+
+      <div style={shell.divider} />
+      <p style={{ ...shell.sectionHeading, marginTop: '2px' }}>Profit & Cost Defaults</p>
+      <p style={shell.hint}>Used by job costing and customer profit summaries. GST is excluded by default.</p>
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Working Days / Month</p>
+          <input
+            style={shell.input}
+            inputMode="numeric"
+            value={form.profitCostDefaultWorkingDaysPerMonth}
+            onChange={(event) => updateField('profitCostDefaultWorkingDaysPerMonth', event.target.value.replace(/\D/g, ''))}
+          />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Working Hours / Day</p>
+          <input
+            style={shell.input}
+            inputMode="numeric"
+            value={form.profitCostDefaultWorkingHoursPerDay}
+            onChange={(event) => updateField('profitCostDefaultWorkingHoursPerDay', event.target.value.replace(/\D/g, ''))}
+          />
+        </div>
+      </div>
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Default Manpower Cost / Visit</p>
+          <input
+            style={shell.input}
+            inputMode="decimal"
+            value={form.profitCostDefaultManpowerCostPerVisit}
+            onChange={(event) => updateField('profitCostDefaultManpowerCostPerVisit', event.target.value)}
+          />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Default Conveyance Cost / Visit</p>
+          <input
+            style={shell.input}
+            inputMode="decimal"
+            value={form.profitCostDefaultConveyanceCostPerVisit}
+            onChange={(event) => updateField('profitCostDefaultConveyanceCostPerVisit', event.target.value)}
+          />
+        </div>
+      </div>
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>Low Margin Warning %</p>
+          <input
+            style={shell.input}
+            inputMode="decimal"
+            value={form.profitCostLowMarginWarningPercent}
+            onChange={(event) => updateField('profitCostLowMarginWarningPercent', event.target.value)}
+          />
+        </div>
+        <label style={{ ...shell.checkItem, alignSelf: 'end', minHeight: '42px' }}>
+          <input
+            type="checkbox"
+            checked={Boolean(form.profitCostExcludeGstFromRevenue)}
+            onChange={(event) => updateField('profitCostExcludeGstFromRevenue', event.target.checked)}
+          />
+          Exclude GST from revenue
+        </label>
       </div>
 
       <div style={shell.divider} />

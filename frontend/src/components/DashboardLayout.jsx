@@ -894,6 +894,7 @@ export default function DashboardLayout({ children }) {
                 </div>
               ) : null}
             </div>
+            <DesktopViewScaleControl viewportWidth={viewportWidth} />
             <button
               type="button"
               onClick={() => navigate('/settings')}
@@ -944,8 +945,6 @@ export default function DashboardLayout({ children }) {
           </div>
         </main>
       </div>
-
-      <DesktopViewScaleControl viewportWidth={viewportWidth} />
     </div>
   );
 }

@@ -1,19 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { Search, ChevronDown } from 'lucide-react';
+import { Minus, Plus, RotateCcw, ZoomIn } from 'lucide-react';
 
 const STORAGE_KEY = 'skuas_desktop_view_scale';
 const DESKTOP_MIN_WIDTH = 1024;
-const SCALE_OPTIONS = [
-  { label: '90%', value: 0.9 },
-  { label: '100%', value: 1 },
-  { label: '110%', value: 1.1 },
-  { label: '125%', value: 1.25 }
-];
+const SCALE_OPTIONS = [0.9, 1, 1.1, 1.25];
+
+const formatScaleLabel = (scale) => `${Math.round(Number(scale || 1) * 100)}%`;
 
 const getSavedScale = () => {
   try {
     const raw = Number(localStorage.getItem(STORAGE_KEY));
-    return SCALE_OPTIONS.some((option) => option.value === raw) ? raw : 1;
+    return SCALE_OPTIONS.includes(raw) ? raw : 1;
   } catch (_error) {
     return 1;
   }
@@ -24,12 +21,20 @@ const applyDesktopZoom = (scale) => {
   document.documentElement.style.zoom = String(next);
 };
 
+const getScaleIndex = (scale) => {
+  const normalized = Number(scale) || 1;
+  const exactIndex = SCALE_OPTIONS.findIndex((value) => value === normalized);
+  if (exactIndex >= 0) return exactIndex;
+  const closestIndex = SCALE_OPTIONS.findIndex((value) => value > normalized);
+  return closestIndex === -1 ? SCALE_OPTIONS.length - 1 : Math.max(0, closestIndex - 1);
+};
+
 export default function DesktopViewScaleControl({ viewportWidth }) {
   const [open, setOpen] = useState(false);
   const [scale, setScale] = useState(() => getSavedScale());
   const rootRef = useRef(null);
   const restoreScaleRef = useRef(scale);
-  const width = Number(viewportWidth || window.innerWidth);
+  const width = Number(viewportWidth || (typeof window !== 'undefined' ? window.innerWidth : 0));
   const isDesktop = width >= DESKTOP_MIN_WIDTH;
 
   useEffect(() => {
@@ -49,7 +54,7 @@ export default function DesktopViewScaleControl({ viewportWidth }) {
     try {
       localStorage.setItem(STORAGE_KEY, String(scale));
     } catch (_error) {
-      // Ignore storage issues for comfort-only setting.
+      // Ignore storage issues for a comfort-only control.
     }
   }, [scale]);
 
@@ -89,96 +94,30 @@ export default function DesktopViewScaleControl({ viewportWidth }) {
 
   if (!isDesktop) return null;
 
-  const currentLabel = `View ${Math.round(scale * 100)}%`;
+  const currentLabel = `View ${formatScaleLabel(scale)}`;
+  const currentIndex = getScaleIndex(scale);
+  const hasLower = currentIndex > 0;
+  const hasHigher = currentIndex < SCALE_OPTIONS.length - 1;
+
+  const adjustScale = (direction) => {
+    const nextIndex = direction === 'down'
+      ? Math.max(0, currentIndex - 1)
+      : Math.min(SCALE_OPTIONS.length - 1, currentIndex + 1);
+    setScale(SCALE_OPTIONS[nextIndex]);
+    setOpen(true);
+  };
 
   return (
     <div
       ref={rootRef}
       className="desktop-scale-control"
       style={{
-        position: 'fixed',
-        right: 22,
-        top: 84,
-        zIndex: 7000,
-        display: 'grid',
-        justifyItems: 'end',
-        gap: 10
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}
     >
-      {open ? (
-        <div
-          className="desktop-scale-control__menu"
-          style={{
-            minWidth: 152,
-            background: '#fff',
-            border: '1px solid rgba(15, 23, 42, 0.1)',
-            borderRadius: 16,
-            boxShadow: '0 18px 40px rgba(15, 23, 42, 0.12)',
-            padding: 8,
-            display: 'grid',
-            gap: 4
-          }}
-        >
-          {SCALE_OPTIONS.map((option) => {
-            const active = option.value === scale;
-            return (
-              <button
-                key={option.label}
-                type="button"
-                className="desktop-scale-control__option"
-                onClick={() => {
-                  setScale(option.value);
-                  setOpen(false);
-                }}
-                style={{
-                  minHeight: 34,
-                  borderRadius: 10,
-                  border: '1px solid transparent',
-                  background: active ? '#111827' : '#fff',
-                  color: active ? '#fff' : '#111827',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0 10px',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: 'none'
-                }}
-              >
-                <span>{option.label}</span>
-                {active ? <span style={{ fontSize: 10, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Active</span> : null}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            className="desktop-scale-control__reset"
-            onClick={() => {
-              setScale(1);
-              setOpen(false);
-            }}
-            style={{
-              minHeight: 34,
-              borderRadius: 10,
-              border: '1px solid rgba(15, 23, 42, 0.08)',
-              background: '#F8FAFC',
-              color: '#334155',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 10px',
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: 'none'
-            }}
-          >
-            Reset
-          </button>
-        </div>
-      ) : null}
-
       <button
         type="button"
         className="desktop-scale-control__trigger"
@@ -186,25 +125,127 @@ export default function DesktopViewScaleControl({ viewportWidth }) {
         title={currentLabel}
         onClick={() => setOpen((prev) => !prev)}
         style={{
-          minHeight: 44,
-          padding: '0 14px',
-          borderRadius: 999,
-          border: '1px solid rgba(15, 23, 42, 0.1)',
+          width: 42,
+          height: 42,
+          borderRadius: '999px',
+          border: '1px solid var(--color-border)',
           background: '#fff',
-          color: '#111827',
+          color: 'var(--color-primary)',
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 10,
+          justifyContent: 'center',
           cursor: 'pointer',
-          boxShadow: '0 10px 24px rgba(15, 23, 42, 0.12)'
+          boxShadow: 'var(--shadow-sm)',
+          position: 'relative'
         }}
       >
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Search size={16} />
-        </span>
-        <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>{currentLabel}</span>
-        <ChevronDown size={14} style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.18s ease' }} />
+        <ZoomIn size={20} />
       </button>
+
+      {open ? (
+        <div
+          className="desktop-scale-control__menu"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 10px)',
+            right: 0,
+            minWidth: 196,
+            background: '#fff',
+            border: '1px solid var(--color-border)',
+            borderRadius: 12,
+            boxShadow: '0 18px 44px rgba(15,23,42,0.18)',
+            padding: 10,
+            display: 'grid',
+            gap: 8,
+            zIndex: 6500
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Zoom
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: 14, fontWeight: 800, color: '#0f172a' }}>{currentLabel}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setScale(1);
+                setOpen(false);
+              }}
+              style={{
+                border: '1px solid rgba(15,23,42,0.08)',
+                background: '#f8fafc',
+                color: '#334155',
+                borderRadius: 10,
+                minHeight: 30,
+                padding: '0 10px',
+                fontSize: 11,
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <RotateCcw size={12} />
+              Reset
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => adjustScale('down')}
+              disabled={!hasLower}
+              style={{
+                minHeight: 34,
+                borderRadius: 10,
+                border: '1px solid var(--color-border)',
+                background: hasLower ? '#fff' : '#f8fafc',
+                color: hasLower ? '#111827' : '#94a3b8',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '0 10px',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: hasLower ? 'pointer' : 'not-allowed'
+              }}
+            >
+              <Minus size={14} />
+              Out
+            </button>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#334155', whiteSpace: 'nowrap' }}>
+              {currentLabel}
+            </div>
+            <button
+              type="button"
+              onClick={() => adjustScale('up')}
+              disabled={!hasHigher}
+              style={{
+                minHeight: 34,
+                borderRadius: 10,
+                border: '1px solid var(--color-border)',
+                background: hasHigher ? '#fff' : '#f8fafc',
+                color: hasHigher ? '#111827' : '#94a3b8',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '0 10px',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: hasHigher ? 'pointer' : 'not-allowed'
+              }}
+            >
+              In
+              <Plus size={14} />
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

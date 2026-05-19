@@ -999,7 +999,13 @@ const defaultSettings = {
   renewalNumberPadding: 3,
   invoiceTemplate: 'classic',
   invoiceVisibleColumns: [...invoiceColumnKeys],
-  invoiceFieldSettings: { ...defaultInvoiceFieldSettings }
+  invoiceFieldSettings: { ...defaultInvoiceFieldSettings },
+  profitCostDefaultWorkingDaysPerMonth: 26,
+  profitCostDefaultWorkingHoursPerDay: 8,
+  profitCostDefaultManpowerCostPerVisit: 0,
+  profitCostDefaultConveyanceCostPerVisit: 0,
+  profitCostLowMarginWarningPercent: 20,
+  profitCostExcludeGstFromRevenue: true
 };
 
 const normalizeSettingsText = (value) => String(value ?? '').trim();
@@ -1247,7 +1253,40 @@ const sanitizeSettings = (raw = {}) => {
     renewalNumberPadding: Math.max(1, Number(source.renewalNumberPadding ?? source.renewalPadding ?? defaultSettings.renewalNumberPadding) || defaultSettings.renewalNumberPadding),
     invoiceTemplate: allowedInvoiceTemplates.has(invoiceTemplate) ? invoiceTemplate : defaultSettings.invoiceTemplate,
     invoiceVisibleColumns: normalizeInvoiceVisibleColumns(source.invoiceVisibleColumns),
-    invoiceFieldSettings: normalizeInvoiceFieldSettings(source.invoiceFieldSettings)
+    invoiceFieldSettings: normalizeInvoiceFieldSettings(source.invoiceFieldSettings),
+    profitCostDefaultWorkingDaysPerMonth: Math.max(
+      1,
+      normalizeSettingsNumber(source.profitCostDefaultWorkingDaysPerMonth ?? defaultSettings.profitCostDefaultWorkingDaysPerMonth, defaultSettings.profitCostDefaultWorkingDaysPerMonth)
+    ),
+    profitCostDefaultWorkingHoursPerDay: Math.max(
+      1,
+      normalizeSettingsNumber(source.profitCostDefaultWorkingHoursPerDay ?? defaultSettings.profitCostDefaultWorkingHoursPerDay, defaultSettings.profitCostDefaultWorkingHoursPerDay)
+    ),
+    profitCostDefaultManpowerCostPerVisit: Number(
+      normalizeSettingsNumber(
+        source.profitCostDefaultManpowerCostPerVisit ?? defaultSettings.profitCostDefaultManpowerCostPerVisit,
+        defaultSettings.profitCostDefaultManpowerCostPerVisit
+      ).toFixed(2)
+    ),
+    profitCostDefaultConveyanceCostPerVisit: Number(
+      normalizeSettingsNumber(
+        source.profitCostDefaultConveyanceCostPerVisit ?? defaultSettings.profitCostDefaultConveyanceCostPerVisit,
+        defaultSettings.profitCostDefaultConveyanceCostPerVisit
+      ).toFixed(2)
+    ),
+    profitCostLowMarginWarningPercent: Number(
+      Math.max(
+        0,
+        normalizeSettingsNumber(
+          source.profitCostLowMarginWarningPercent ?? defaultSettings.profitCostLowMarginWarningPercent,
+          defaultSettings.profitCostLowMarginWarningPercent
+        )
+      ).toFixed(2)
+    ),
+    profitCostExcludeGstFromRevenue: normalizeBoolean(
+      source.profitCostExcludeGstFromRevenue,
+      defaultSettings.profitCostExcludeGstFromRevenue
+    )
   };
 };
 
@@ -2093,8 +2132,730 @@ const ensureContractsTable = async (conn) => {
       UNIQUE KEY uk_contracts_external_id (external_id),
       KEY idx_contracts_number (contract_number),
       KEY idx_contracts_customer_external (customer_external_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
   contractsTableEnsured = true;
+};
+
+const profitCostItemTypes = new Set(['chemical', 'manpower', 'conveyance', 'material', 'complaint', 'other']);
+const profitCostSources = new Set(['auto', 'manual', 'stock', 'salary']);
+let jobCostInfrastructureEnsured = false;
+
+const ensureJobCostInfrastructure = async (conn) => {
+  if (jobCostInfrastructureEnsured) return;
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS job_cost_items (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      external_id VARCHAR(120) NOT NULL,
+      customer_external_id VARCHAR(120) NULL,
+      contract_id VARCHAR(120) NULL,
+      service_visit_id VARCHAR(120) NULL,
+      item_type ENUM('chemical','manpower','conveyance','material','complaint','other') NOT NULL DEFAULT 'other',
+      stock_item_id VARCHAR(120) NULL,
+      description TEXT NULL,
+      quantity DECIMAL(10,2) NOT NULL DEFAULT 0,
+      unit VARCHAR(40) NULL,
+      unit_cost DECIMAL(12,2) NOT NULL DEFAULT 0,
+      total_cost DECIMAL(12,2) NOT NULL DEFAULT 0,
+      source ENUM('auto','manual','stock','salary') NOT NULL DEFAULT 'manual',
+      notes TEXT NULL,
+      payload JSON NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_job_cost_items_external_id (external_id),
+      KEY idx_job_cost_items_customer (customer_external_id),
+      KEY idx_job_cost_items_contract (contract_id),
+      KEY idx_job_cost_items_visit (service_visit_id),
+      KEY idx_job_cost_items_type (item_type)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await ensureColumnsIfMissing(conn, 'job_cost_items', [
+    { name: 'customer_external_id', definition: 'VARCHAR(120) NULL' },
+    { name: 'contract_id', definition: 'VARCHAR(120) NULL' },
+    { name: 'service_visit_id', definition: 'VARCHAR(120) NULL' },
+    { name: 'item_type', definition: "ENUM('chemical','manpower','conveyance','material','complaint','other') NOT NULL DEFAULT 'other'" },
+    { name: 'stock_item_id', definition: 'VARCHAR(120) NULL' },
+    { name: 'description', definition: 'TEXT NULL' },
+    { name: 'quantity', definition: 'DECIMAL(10,2) NOT NULL DEFAULT 0' },
+    { name: 'unit', definition: 'VARCHAR(40) NULL' },
+    { name: 'unit_cost', definition: 'DECIMAL(12,2) NOT NULL DEFAULT 0' },
+    { name: 'total_cost', definition: 'DECIMAL(12,2) NOT NULL DEFAULT 0' },
+    { name: 'source', definition: "ENUM('auto','manual','stock','salary') NOT NULL DEFAULT 'manual'" },
+    { name: 'notes', definition: 'TEXT NULL' },
+    { name: 'payload', definition: 'JSON NULL' }
+  ]);
+  try {
+    await conn.query('CREATE UNIQUE INDEX uk_job_cost_items_external_id ON job_cost_items (external_id)');
+  } catch (error) {
+    if (!/duplicate|already exists/i.test(String(error.message || ''))) throw error;
+  }
+  jobCostInfrastructureEnsured = true;
+};
+
+const normalizeProfitCostType = (value, fallback = 'other') => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (profitCostItemTypes.has(raw)) return raw;
+  const fallbackRaw = String(fallback || '').trim().toLowerCase();
+  return profitCostItemTypes.has(fallbackRaw) ? fallbackRaw : 'other';
+};
+
+const normalizeProfitCostSource = (value, fallback = 'manual') => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (profitCostSources.has(raw)) return raw;
+  const fallbackRaw = String(fallback || '').trim().toLowerCase();
+  return profitCostSources.has(fallbackRaw) ? fallbackRaw : 'manual';
+};
+
+const safeJsonArray = (value, fallback = []) => {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') return fallback;
+  if (typeof value !== 'string') return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const safeJsonObject = (value, fallback = {}) => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value !== 'string') return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const normalizeProfitItem = (input = {}, fallbackExternalId = '') => {
+  const source = input && typeof input === 'object' ? input : {};
+  const nowIso = new Date().toISOString();
+  const quantity = Number.isFinite(Number(source.quantity)) ? Number(source.quantity) : 0;
+  const unitCost = Number.isFinite(Number(source.unitCost)) ? Number(source.unitCost) : 0;
+  const totalCost = Number.isFinite(Number(source.totalCost)) ? Number(source.totalCost) : Number((quantity * unitCost).toFixed(2));
+  const profitExternalId = String(source._id || source.external_id || fallbackExternalId || `JCI-${Date.now()}-${Math.floor(Math.random() * 10000)}`).trim();
+  return {
+    _id: profitExternalId,
+    customerId: String(source.customerId || source.customer_id || '').trim(),
+    contractId: String(source.contractId || source.contract_id || '').trim(),
+    serviceVisitId: String(source.serviceVisitId || source.service_visit_id || '').trim(),
+    itemType: normalizeProfitCostType(source.itemType || source.item_type || 'other'),
+    stockItemId: String(source.stockItemId || source.stock_item_id || '').trim(),
+    description: String(source.description || '').trim(),
+    quantity: Number(quantity.toFixed(2)),
+    unit: String(source.unit || '').trim(),
+    unitCost: Number(unitCost.toFixed(2)),
+    totalCost: Number(totalCost.toFixed(2)),
+    source: normalizeProfitCostSource(source.source || 'manual'),
+    notes: String(source.notes || '').trim(),
+    payload: source.payload && typeof source.payload === 'object' ? source.payload : { ...source, _id: profitExternalId },
+    createdAt: source.createdAt || source.created_at || nowIso,
+    updatedAt: nowIso
+  };
+};
+
+const mapProfitItemRow = (row = {}) => {
+  const payload = safeJsonObject(row.payload, {});
+  const merged = { ...payload, ...row };
+  const quantity = Number(merged.quantity ?? payload.quantity ?? 0) || 0;
+  const unitCost = Number(merged.unit_cost ?? merged.unitCost ?? payload.unitCost ?? 0) || 0;
+  const totalCost = Number(merged.total_cost ?? merged.totalCost ?? payload.totalCost ?? quantity * unitCost) || 0;
+  return normalizeProfitItem({
+    _id: merged.external_id || merged._id || row.id || '',
+    customerId: merged.customer_external_id || merged.customerId || '',
+    contractId: merged.contract_id || merged.contractId || '',
+    serviceVisitId: merged.service_visit_id || merged.serviceVisitId || '',
+    itemType: merged.item_type || merged.itemType || 'other',
+    stockItemId: merged.stock_item_id || merged.stockItemId || '',
+    description: merged.description || payload.description || '',
+    quantity,
+    unit: merged.unit || payload.unit || '',
+    unitCost,
+    totalCost,
+    source: merged.source || payload.source || 'manual',
+    notes: merged.notes || payload.notes || '',
+    payload: payload && Object.keys(payload).length > 0 ? payload : safeJsonObject(merged.payload, {})
+  }, merged.external_id || merged._id || row.id || '');
+};
+
+const loadJobCostItems = async () => {
+  if (!canUseMysql()) return [];
+  try {
+    return await withMysqlConnection(async (conn) => {
+      await ensureJobCostInfrastructure(conn);
+      const [rows] = await conn.query('SELECT * FROM job_cost_items ORDER BY id ASC');
+      return (Array.isArray(rows) ? rows : []).map((row) => mapProfitItemRow(row)).filter((row) => String(row._id || '').trim());
+    });
+  } catch (error) {
+    console.error('Failed to load job cost items:', error.message);
+    return [];
+  }
+};
+
+const loadProfitItemsCatalog = async () => {
+  if (!canUseMysql()) return [];
+  try {
+    return await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT payload FROM items ORDER BY id DESC');
+      return (Array.isArray(rows) ? rows : [])
+        .map((row) => {
+          const payload = safeJsonObject(row?.payload, {});
+          const name = String(payload.name || payload.itemName || '').trim();
+          if (!name) return null;
+          return {
+            _id: String(payload._id || '').trim(),
+            name,
+            unit: String(payload.unit || '').trim(),
+            purchaseRate: Number(payload.purchaseRate ?? payload.purchase_rate ?? payload.rate ?? 0) || 0,
+            rate: Number(payload.rate ?? payload.purchaseRate ?? 0) || 0
+          };
+        })
+        .filter(Boolean);
+    });
+  } catch (error) {
+    console.error('Failed to load stock item catalog for job costing:', error.message);
+    return [];
+  }
+};
+
+const loadProfitEmployees = async () => {
+  if (!canUseMysql()) return [];
+  try {
+    return await withMysqlConnection(async (conn) => {
+      await ensureEmployeeAuthColumns(conn);
+      const [rows] = await conn.query('SELECT id, external_id, emp_code, first_name, last_name, role, role_name, salary, payload FROM employees ORDER BY id DESC');
+      return (Array.isArray(rows) ? rows : [])
+        .map((row) => {
+          const payload = safeJsonObject(row.payload, {});
+          return {
+            _id: String(row.external_id || payload._id || row.id || '').trim(),
+            empCode: String(row.emp_code || payload.empCode || '').trim(),
+            firstName: String(row.first_name || payload.firstName || '').trim(),
+            lastName: String(row.last_name || payload.lastName || '').trim(),
+            role: String(row.role || payload.role || '').trim(),
+            roleName: String(row.role_name || payload.roleName || '').trim(),
+            salary: Number(row.salary ?? payload.salary ?? payload.salaryPerMonth ?? 0) || 0,
+            payload
+          };
+        })
+        .filter((row) => String(row._id || '').trim());
+    });
+  } catch (error) {
+    console.error('Failed to load employees for job costing:', error.message);
+    return [];
+  }
+};
+
+const normalizeProfitKey = (value) => String(value || '').trim().toLowerCase();
+const parseJobChemicals = (job = {}) => safeJsonArray(job.chemicalsUsed || job.chemicalUsed || job.chemicals || []);
+
+const matchStockItemForChemical = (chemicalName, catalog = []) => {
+  const target = normalizeProfitKey(chemicalName);
+  if (!target) return null;
+  return catalog.find((item) => normalizeProfitKey(item.name) === target)
+    || catalog.find((item) => normalizeProfitKey(item.name).includes(target) || target.includes(normalizeProfitKey(item.name)))
+    || null;
+};
+
+const matchEmployeeForJob = (job = {}, employees = []) => {
+  const targetId = normalizeProfitKey(job.technicianId || job.employeeId || job.assignedToId || '');
+  const targetName = normalizeProfitKey(job.technicianName || job.assignedTo || job.employeeName || '');
+  return employees.find((employee) => normalizeProfitKey(employee._id) === targetId)
+    || employees.find((employee) => normalizeProfitKey(employee.empCode) === targetId)
+    || employees.find((employee) => normalizeProfitKey([employee.firstName, employee.lastName].filter(Boolean).join(' ')) === targetName)
+    || null;
+};
+
+const parseDateOrNull = (value) => {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatIsoDate = (value) => {
+  const parsed = parseDateOrNull(value);
+  return parsed ? parsed.toISOString().slice(0, 10) : '';
+};
+
+const getVisitDurationHours = (job = {}) => {
+  const punchIn = parseDateOrNull(job.punchInTime);
+  const punchOut = parseDateOrNull(job.punchOutTime);
+  if (!punchIn || !punchOut) return 0;
+  const hours = (punchOut.getTime() - punchIn.getTime()) / 3600000;
+  return Number.isFinite(hours) && hours > 0 ? hours : 0;
+};
+
+const getInvoiceBaseRevenue = (invoice = {}, settings = defaultSettings) => {
+  const grossTotal = toNumber(invoice.total ?? invoice.amount ?? invoice.totalAmount, 0);
+  const totalTax = toNumber(invoice.totalTax ?? invoice.total_tax ?? invoice.taxAmount ?? 0, 0);
+  const explicitBase = [
+    invoice.subtotal,
+    invoice.subtotalWithoutGst,
+    invoice.subtotal_without_gst,
+    invoice.amountWithoutGst,
+    invoice.baseAmount,
+    invoice.netAmount
+  ]
+    .map((value) => toNumber(value, 0))
+    .find((value) => value > 0);
+
+  if (!normalizeBoolean(settings?.profitCostExcludeGstFromRevenue, defaultSettings.profitCostExcludeGstFromRevenue)) {
+    return Number(grossTotal.toFixed(2));
+  }
+  if (explicitBase > 0) return Number(explicitBase.toFixed(2));
+  if (grossTotal > 0 && totalTax > 0 && grossTotal >= totalTax) return Number(Math.max(grossTotal - totalTax, 0).toFixed(2));
+  if (String(invoice.invoiceType || '').trim().toUpperCase() === 'NON GST') return Number(grossTotal.toFixed(2));
+  return Number(grossTotal.toFixed(2));
+};
+
+const getPaymentBaseRevenue = (payment = {}, settings = defaultSettings) => {
+  const gross = toNumber(payment.amount, 0);
+  if (!normalizeBoolean(settings?.profitCostExcludeGstFromRevenue, defaultSettings.profitCostExcludeGstFromRevenue)) {
+    return Number(gross.toFixed(2));
+  }
+  const explicitBase = toNumber(payment.baseAmount ?? payment.subtotal ?? payment.amountWithoutGst, 0);
+  return Number((explicitBase > 0 ? explicitBase : gross).toFixed(2));
+};
+
+const groupProfitCostItems = (items = []) => items.reduce((acc, item) => {
+  const type = normalizeProfitCostType(item.itemType || item.item_type || 'other');
+  const total = Number(item.totalCost ?? item.total_cost ?? 0) || 0;
+  acc[type] = Number((acc[type] || 0) + total);
+  acc.totalCost = Number((acc.totalCost || 0) + total);
+  return acc;
+}, {
+  chemical: 0,
+  manpower: 0,
+  conveyance: 0,
+  material: 0,
+  complaint: 0,
+  other: 0,
+  totalCost: 0
+});
+
+const buildAutoJobCostItems = async ({ job = {}, settings = defaultSettings, employees = [], catalog = [] }) => {
+  const visitId = String(job._id || '').trim();
+  if (!visitId) return [];
+  const customerId = String(job.customerId || job.customer_external_id || '').trim();
+  const contractId = String(job.contractId || job.invoiceId || job.invoice_external_id || '').trim();
+  const chemicals = parseJobChemicals(job);
+  const autoItems = [];
+
+  chemicals.forEach((chemical, index) => {
+    const chemicalName = String(chemical?.chemicalName || chemical?.name || '').trim();
+    if (!chemicalName) return;
+    const stockItem = matchStockItemForChemical(chemicalName, catalog);
+    const qty = Math.max(0, toNumber(chemical?.quantityUsed ?? chemical?.quantity ?? 1, 1));
+    const unitCost = stockItem ? toNumber(stockItem.purchaseRate ?? stockItem.rate, 0) : toNumber(chemical?.unitCost ?? chemical?.cost ?? 0, 0);
+    const totalCost = Number((qty * unitCost).toFixed(2));
+    if (qty <= 0 || (!stockItem && unitCost <= 0)) return;
+    autoItems.push(normalizeProfitItem({
+      _id: `JCI-${visitId}-CHEM-${index + 1}`,
+      customerId,
+      contractId,
+      serviceVisitId: visitId,
+      itemType: 'chemical',
+      stockItemId: stockItem?._id || '',
+      description: chemicalName,
+      quantity: qty || 1,
+      unit: String(chemical?.unit || stockItem?.unit || 'unit').trim() || 'unit',
+      unitCost,
+      totalCost,
+      source: stockItem ? 'stock' : 'auto',
+      notes: [chemical?.targetPest, chemical?.areaTreated].filter(Boolean).join(' • '),
+      payload: chemical
+    }, `JCI-${visitId}-CHEM-${index + 1}`));
+  });
+
+  const employee = matchEmployeeForJob(job, employees);
+  const hoursSpent = getVisitDurationHours(job);
+  const monthlySalary = toNumber(employee?.salary, 0);
+  const workingDays = Math.max(1, toNumber(settings?.profitCostDefaultWorkingDaysPerMonth, defaultSettings.profitCostDefaultWorkingDaysPerMonth));
+  const workingHours = Math.max(1, toNumber(settings?.profitCostDefaultWorkingHoursPerDay, defaultSettings.profitCostDefaultWorkingHoursPerDay));
+  const manpowerCost = hoursSpent > 0 && monthlySalary > 0
+    ? Number(((monthlySalary / workingDays / workingHours) * hoursSpent).toFixed(2))
+    : Number(toNumber(settings?.profitCostDefaultManpowerCostPerVisit, defaultSettings.profitCostDefaultManpowerCostPerVisit).toFixed(2));
+  if (manpowerCost > 0) {
+    autoItems.push(normalizeProfitItem({
+      _id: `JCI-${visitId}-MANPOWER`,
+      customerId,
+      contractId,
+      serviceVisitId: visitId,
+      itemType: 'manpower',
+      description: employee
+        ? `Manpower - ${[employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee'}`
+        : 'Manpower',
+      quantity: hoursSpent > 0 ? Number(hoursSpent.toFixed(2)) : 1,
+      unit: 'visit',
+      unitCost: manpowerCost,
+      totalCost: manpowerCost,
+      source: employee ? 'salary' : 'auto',
+      notes: employee ? `Salary ${formatINR(employee.salary || 0)}` : 'Default manpower cost',
+      payload: { hoursSpent, monthlySalary: employee?.salary || 0 }
+    }, `JCI-${visitId}-MANPOWER`));
+  }
+
+  const conveyanceCost = Number(toNumber(job.conveyanceCost ?? job.travelCost ?? settings?.profitCostDefaultConveyanceCostPerVisit ?? defaultSettings.profitCostDefaultConveyanceCostPerVisit, defaultSettings.profitCostDefaultConveyanceCostPerVisit).toFixed(2));
+  if (conveyanceCost > 0) {
+    autoItems.push(normalizeProfitItem({
+      _id: `JCI-${visitId}-CONVEYANCE`,
+      customerId,
+      contractId,
+      serviceVisitId: visitId,
+      itemType: 'conveyance',
+      description: 'Conveyance',
+      quantity: 1,
+      unit: 'visit',
+      unitCost: conveyanceCost,
+      totalCost: conveyanceCost,
+      source: 'auto',
+      notes: 'Default conveyance cost',
+      payload: { source: 'default' }
+    }, `JCI-${visitId}-CONVEYANCE`));
+  }
+
+  return autoItems;
+};
+
+const persistJobAutoCostItems = async ({ job = {}, settings = defaultSettings }) => {
+  if (!canUseMysql() || !job?._id) return [];
+  const employees = await loadProfitEmployees();
+  const catalog = await loadProfitItemsCatalog();
+  const autoItems = await buildAutoJobCostItems({ job, settings, employees, catalog });
+  if (autoItems.length === 0) return [];
+
+  await withMysqlConnection(async (conn) => {
+    await ensureJobCostInfrastructure(conn);
+    await conn.query('DELETE FROM job_cost_items WHERE service_visit_id = ? AND source = ?', [String(job._id || '').trim(), 'auto']);
+    for (const item of autoItems) {
+      await conn.query(
+        `INSERT INTO job_cost_items (
+          external_id, customer_external_id, contract_id, service_visit_id, item_type, stock_item_id, description,
+          quantity, unit, unit_cost, total_cost, source, notes, payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          item._id,
+          item.customerId || null,
+          item.contractId || null,
+          item.serviceVisitId || null,
+          item.itemType,
+          item.stockItemId || null,
+          item.description || null,
+          item.quantity,
+          item.unit || null,
+          item.unitCost,
+          item.totalCost,
+          item.source || 'auto',
+          item.notes || null,
+          JSON.stringify(item.payload || {})
+        ]
+      );
+    }
+  });
+
+  return autoItems;
+};
+
+const loadProfitSummarySource = async () => {
+  const [invoices, jobs, payments, customers, items, costItems, employees] = await Promise.all([
+    loadInvoicesForContext(),
+    canUseMysql() ? loadJobsFromMysql() : Promise.resolve(readJsonFile(jobsFile, [])),
+    Promise.resolve(readJsonFile(paymentsFile, [])),
+    canUseMysql()
+      ? withMysqlConnection(async (conn) => {
+          await ensureCustomerPlaceColumns(conn);
+          const [rows] = await conn.query('SELECT id, external_id, payload FROM customers ORDER BY id DESC');
+          return (Array.isArray(rows) ? rows : [])
+            .map((row) => {
+              const raw = row?.payload;
+              const externalId = String(row?.external_id || '').trim();
+              const idText = row?.id != null ? String(row.id).trim() : '';
+              if (!raw) return externalId || idText ? { _id: externalId || idText } : null;
+              const payload = safeJsonObject(raw, {});
+              return { ...payload, _id: String(externalId || idText || payload._id || '').trim() };
+            })
+            .filter(Boolean);
+        })
+      : Promise.resolve(readJsonFile(customersFile, [])),
+    loadProfitItemsCatalog(),
+    loadJobCostItems(),
+    loadProfitEmployees()
+  ]);
+
+  return { invoices, jobs, payments, customers, items, costItems, employees };
+};
+
+const buildProfitSnapshot = async ({
+  customerId = '',
+  contractId = '',
+  serviceVisitId = '',
+  includeAllCustomerContracts = false
+} = {}) => {
+  const settings = await readSettingsFromMysql().catch(() => readSettings());
+  const source = await loadProfitSummarySource();
+  const customerLookupId = String(customerId || '').trim();
+  const contractLookupId = String(contractId || '').trim();
+  const visitLookupId = String(serviceVisitId || '').trim();
+
+  const customer = customerLookupId
+    ? source.customers.find((row) =>
+        String(row?._id || '').trim() === customerLookupId ||
+        String(row?.external_id || '').trim() === customerLookupId
+      ) || null
+    : null;
+
+  const customerKeys = new Set();
+  if (customer) {
+    [
+      customer._id,
+      customer.external_id,
+      customer.customerName,
+      customer.displayName,
+      customer.companyName,
+      customer.contactPersonName
+    ]
+      .map(normalizeProfitKey)
+      .filter(Boolean)
+      .forEach((entry) => customerKeys.add(entry));
+  }
+
+  const invoiceRows = source.invoices.filter((invoice) => {
+    const invoiceId = String(invoice?._id || invoice?.external_id || '').trim();
+    const invoiceNo = normalizeProfitKey(invoice?.invoiceNumber);
+    const invoiceCustomerId = normalizeProfitKey(invoice?.customerId || invoice?.customer_external_id || '');
+    const invoiceCustomerName = normalizeProfitKey(invoice?.customerName);
+    if (contractLookupId && (invoiceId === contractLookupId || invoiceNo === normalizeProfitKey(contractLookupId))) return true;
+    if (!customerLookupId) return !contractLookupId;
+    if (invoiceCustomerId && invoiceCustomerId === normalizeProfitKey(customerLookupId)) return true;
+    return invoiceCustomerName && customerKeys.has(invoiceCustomerName);
+  });
+
+  const relatedPayments = source.payments.filter((payment) => {
+    const paymentInvoiceId = normalizeProfitKey(payment?.invoiceId || payment?.linkedInvoiceId || payment?.linkedInvoiceExternalId || '');
+    const paymentInvoiceNo = normalizeProfitKey(payment?.invoiceNumber || '');
+    const paymentCustomerId = normalizeProfitKey(payment?.customerId || payment?.customerExternalId || '');
+    const paymentCustomerName = normalizeProfitKey(payment?.customerName);
+    if (contractLookupId && (paymentInvoiceId === normalizeProfitKey(contractLookupId) || paymentInvoiceNo === normalizeProfitKey(contractLookupId))) return true;
+    if (!customerLookupId) return false;
+    if (paymentCustomerId && paymentCustomerId === normalizeProfitKey(customerLookupId)) return true;
+    return paymentCustomerName && customerKeys.has(paymentCustomerName);
+  });
+
+  const relevantJobs = source.jobs.filter((job) => {
+    const jobId = String(job?._id || '').trim();
+    const jobCustomerId = normalizeProfitKey(job?.customerId || job?.customer_external_id || '');
+    const jobCustomerName = normalizeProfitKey(job?.customerName);
+    const jobContractId = String(job?.contractId || job?.invoiceId || job?.invoice_external_id || '').trim();
+    const jobContractNo = normalizeProfitKey(job?.contractNumber || job?.invoiceNumber);
+    const completedOrCosted = String(job?.status || '').trim().toLowerCase() === 'completed'
+      || source.costItems.some((entry) => String(entry.serviceVisitId || '').trim() === jobId);
+    if (visitLookupId) return jobId === visitLookupId;
+    if (!completedOrCosted) return false;
+    if (contractLookupId) return jobContractId === contractLookupId || jobContractNo === normalizeProfitKey(contractLookupId);
+    if (!customerLookupId) return false;
+    return (jobCustomerId && jobCustomerId === normalizeProfitKey(customerLookupId)) || (jobCustomerName && customerKeys.has(jobCustomerName));
+  });
+
+  const relatedCostItems = source.costItems.filter((item) => {
+    const itemCustomerId = normalizeProfitKey(item.customerId || item.customer_external_id || '');
+    const itemContractId = String(item.contractId || '').trim();
+    const itemVisitId = String(item.serviceVisitId || '').trim();
+    if (visitLookupId) return itemVisitId === visitLookupId;
+    if (contractLookupId && itemContractId === contractLookupId) return true;
+    if (!customerLookupId) return false;
+    return itemCustomerId === normalizeProfitKey(customerLookupId);
+  });
+
+  const invoiceById = new Map(invoiceRows.map((invoice) => [String(invoice._id || '').trim(), invoice]));
+  const invoiceByNumber = new Map(invoiceRows.map((invoice) => [normalizeProfitKey(invoice.invoiceNumber), invoice]));
+  const visitRows = [];
+  const contractMap = new Map();
+
+  const registerContract = (contractKey, contractInvoice = null) => {
+    if (!contractKey) return null;
+    if (!contractMap.has(contractKey)) {
+      contractMap.set(contractKey, {
+        contractKey,
+        invoice: contractInvoice,
+        jobs: [],
+        costItems: [],
+        revenue: 0,
+        totalCost: 0,
+        costBreakdown: {
+          chemical: 0,
+          manpower: 0,
+          conveyance: 0,
+          material: 0,
+          complaint: 0,
+          other: 0,
+          totalCost: 0
+        }
+      });
+    }
+    if (contractInvoice && !contractMap.get(contractKey).invoice) {
+      contractMap.get(contractKey).invoice = contractInvoice;
+    }
+    return contractMap.get(contractKey);
+  };
+
+  const deriveContractKeyFromJob = (job = {}) => {
+    const direct = String(job.contractId || job.invoiceId || job.invoice_external_id || '').trim();
+    if (direct) return direct;
+    const number = String(job.contractNumber || job.invoiceNumber || '').trim();
+    if (number) {
+      const matched = invoiceByNumber.get(normalizeProfitKey(number));
+      if (matched) return String(matched._id || '').trim();
+      return number;
+    }
+    return '';
+  };
+
+  invoiceRows.forEach((invoice) => {
+    const key = String(invoice._id || invoice.external_id || invoice.invoiceNumber || '').trim();
+    if (!key) return;
+    registerContract(key, invoice);
+  });
+
+  const completedJobs = visitLookupId
+    ? relevantJobs
+    : relevantJobs.filter((job) => String(job?.status || '').trim().toLowerCase() === 'completed' || source.costItems.some((item) => String(item.serviceVisitId || '').trim() === String(job?._id || '').trim()));
+
+  for (const job of completedJobs) {
+    const visitId = String(job._id || '').trim();
+    const contractKey = deriveContractKeyFromJob(job) || contractLookupId;
+    const contractInvoice = invoiceById.get(contractKey) || invoiceByNumber.get(normalizeProfitKey(job.contractNumber || job.invoiceNumber || '')) || null;
+    const contractBucket = registerContract(contractKey || `JOB-${visitId}`, contractInvoice);
+    if (contractBucket) contractBucket.jobs.push(job);
+
+    const storedVisitItems = relatedCostItems.filter((entry) => String(entry.serviceVisitId || '').trim() === visitId);
+    const visitItems = storedVisitItems.length > 0
+      ? storedVisitItems
+      : await buildAutoJobCostItems({ job, settings, employees: source.employees, catalog: source.items });
+    const grouped = groupProfitCostItems(visitItems);
+    const revenueSourceInvoice = contractInvoice || invoiceRows.find((invoice) => String(invoice._id || '').trim() === contractKey) || null;
+    const contractRevenue = revenueSourceInvoice ? getInvoiceBaseRevenue(revenueSourceInvoice, settings) : 0;
+    const regularJobsCount = Math.max(1, completedJobs.filter((entry) => {
+      const entryId = String(entry._id || '').trim();
+      const entryItems = relatedCostItems.filter((item) => String(item.serviceVisitId || '').trim() === entryId);
+      const currentItems = entryItems.length > 0 ? entryItems : [];
+      return !currentItems.some((item) => normalizeProfitCostType(item.itemType || item.item_type || 'other') === 'complaint');
+    }).length);
+    const hasComplaint = visitItems.some((item) => normalizeProfitCostType(item.itemType || item.item_type || 'other') === 'complaint');
+    const allocatedRevenue = hasComplaint || regularJobsCount === 0 ? 0 : Number((contractRevenue / regularJobsCount).toFixed(2));
+    const profit = Number((allocatedRevenue - grouped.totalCost).toFixed(2));
+    const marginPercent = allocatedRevenue > 0 ? Number(((profit / allocatedRevenue) * 100).toFixed(2)) : 0;
+
+    visitRows.push({
+      id: visitId,
+      date: formatIsoDate(job.scheduledDate || job.serviceDate || job.createdAt || job.updatedAt || ''),
+      contractId: contractKey,
+      contract: String(contractInvoice?.invoiceNumber || job.contractNumber || job.invoiceNumber || contractKey || '-'),
+      service: String(job.serviceName || job.service_type || job.serviceInstructions || 'Service Visit').trim(),
+      visitType: hasComplaint ? 'Complaint / Revisit' : 'Service Visit',
+      revenue: allocatedRevenue,
+      chemicalCost: grouped.chemical,
+      manpowerCost: grouped.manpower,
+      conveyanceCost: grouped.conveyance,
+      materialCost: grouped.material,
+      complaintCost: grouped.complaint,
+      otherCost: grouped.other,
+      totalCost: grouped.totalCost,
+      profit,
+      marginPercent,
+      notes: String(job.reviewRemarks || job.remarks || job.serviceInstructions || '').trim(),
+      costItems: visitItems
+    });
+
+    if (contractBucket) {
+      contractBucket.costItems.push(...visitItems);
+      contractBucket.revenue = contractRevenue;
+      contractBucket.totalCost = groupProfitCostItems(contractBucket.costItems).totalCost;
+      contractBucket.costBreakdown = groupProfitCostItems(contractBucket.costItems);
+      contractBucket.jobs = Array.from(new Map(contractBucket.jobs.map((entry) => [String(entry._id || '').trim(), entry])).values());
+    }
+  }
+
+  const contractRows = [];
+  contractMap.forEach((bucket, key) => {
+    const contractInvoice = bucket.invoice || invoiceRows.find((invoice) => String(invoice._id || '').trim() === key) || invoiceRows.find((invoice) => normalizeProfitKey(invoice.invoiceNumber) === normalizeProfitKey(key)) || null;
+    const revenue = contractInvoice ? getInvoiceBaseRevenue(contractInvoice, settings) : bucket.revenue;
+    const costBreakdown = groupProfitCostItems(bucket.costItems);
+    const profit = Number((revenue - costBreakdown.totalCost).toFixed(2));
+    const marginPercent = revenue > 0 ? Number(((profit / revenue) * 100).toFixed(2)) : 0;
+    const completedCount = bucket.jobs.length;
+    const complaintVisits = bucket.jobs.filter((job) => {
+      const visitId = String(job._id || '').trim();
+      const items = bucket.costItems.filter((item) => String(item.serviceVisitId || '').trim() === visitId);
+      return items.some((item) => normalizeProfitCostType(item.itemType || item.item_type || 'other') === 'complaint');
+    }).length;
+    const scheduleCount = Array.isArray(contractInvoice?.serviceSchedules) && contractInvoice.serviceSchedules.length > 0
+      ? contractInvoice.serviceSchedules.length
+      : Math.max(1, completedCount);
+
+    contractRows.push({
+      contractId: key,
+      invoiceId: contractInvoice?._id || key,
+      contractNumber: String(contractInvoice?.invoiceNumber || key || '-'),
+      customerId: String(contractInvoice?.customerId || bucket.jobs[0]?.customerId || customer?._id || '').trim(),
+      customerName: String(contractInvoice?.customerName || customer?.displayName || customer?.companyName || bucket.jobs[0]?.customerName || 'Customer').trim(),
+      frequency: scheduleCount,
+      invoiceValue: revenue,
+      totalCost: costBreakdown.totalCost,
+      profit,
+      marginPercent,
+      totalVisits: completedCount,
+      complaintVisits,
+      costBreakdown,
+      revenue,
+      visitRows: visitRows.filter((row) => row.contractId === key)
+    });
+  });
+
+  const invoiceRevenueFallback = relatedPayments.reduce((sum, payment) => sum + getPaymentBaseRevenue(payment, settings), 0);
+  let totalRevenue = contractRows.reduce((sum, row) => sum + Number(row.revenue || 0), 0);
+  if (totalRevenue <= 0 && invoiceRows.length === 0 && relatedPayments.length > 0) {
+    totalRevenue = invoiceRevenueFallback;
+  }
+  const totalCost = contractRows.reduce((sum, row) => sum + Number(row.totalCost || 0), 0);
+  const totalProfit = Number((totalRevenue - totalCost).toFixed(2));
+  const profitMarginPercent = totalRevenue > 0 ? Number(((totalProfit / totalRevenue) * 100).toFixed(2)) : 0;
+  const totalVisits = visitRows.length;
+  const complaintVisits = visitRows.filter((row) => String(row.visitType || '').toLowerCase().includes('complaint')).length;
+  const costBreakdown = groupProfitCostItems(relatedCostItems.length > 0 ? relatedCostItems : visitRows.flatMap((row) => row.costItems || []));
+  const lowMarginWarningPercent = Number(settings.profitCostLowMarginWarningPercent ?? defaultSettings.profitCostLowMarginWarningPercent) || defaultSettings.profitCostLowMarginWarningPercent;
+
+  return {
+    customer: customer || null,
+    settings,
+    revenue: {
+      base: totalRevenue,
+      source: invoiceRows.length > 0 ? 'invoice' : (relatedPayments.length > 0 ? 'payment' : 'invoice')
+    },
+    costs: {
+      total: totalCost,
+      breakdown: costBreakdown
+    },
+    profit: {
+      amount: totalProfit,
+      marginPercent: profitMarginPercent,
+      status: totalProfit >= 0 ? 'Profit' : 'Loss',
+      lowMarginWarning: profitMarginPercent > 0 && profitMarginPercent < lowMarginWarningPercent,
+      lowMarginWarningPercent
+    },
+    totals: {
+      totalRevenue,
+      totalCost,
+      totalProfit,
+      profitMarginPercent,
+      totalVisits,
+      complaintVisits
+    },
+    contractRows: includeAllCustomerContracts ? contractRows : contractRows.filter((row) => !contractLookupId || row.contractId === contractLookupId || row.invoiceId === contractLookupId),
+    visitRows,
+    costBreakdown,
+    selectedContract: includeAllCustomerContracts ? null : contractRows.find((row) => row.contractId === contractLookupId || row.invoiceId === contractLookupId) || contractRows[0] || null
+  };
 };
 
 const customerPremiseModernColumns = [
@@ -3635,11 +4396,17 @@ app.post('/api/jobs', async (req, res) => {
         status: req.body.status || 'Scheduled',
         createdAt: new Date().toISOString()
       };
+      const markCompleted = String(newJob.status || '').trim().toLowerCase() === 'completed';
 
       await syncJobToMysql(newJob);
+      if (markCompleted) {
+        const settings = await readSettingsFromMysql().catch(() => readSettings());
+        await persistJobAutoCostItems({ job: newJob, settings }).catch((error) => {
+          console.error('Failed to seed auto job cost items on create:', error.message);
+        });
+      }
       await updateSettingsNextJobNumber(jobNumber, settings);
 
-      const markCompleted = String(newJob.status || '').trim().toLowerCase() === 'completed';
       Promise.allSettled([
         syncJobGoogleTaskSafely(newJob, { markCompleted }),
         syncJobGoogleCalendarSafely(newJob)
@@ -3672,6 +4439,7 @@ app.post('/api/jobs', async (req, res) => {
     status: req.body.status || 'Scheduled',
     createdAt: new Date().toISOString()
   };
+  const markCompleted = String(newJob.status || '').trim().toLowerCase() === 'completed';
 
   jobs.push(newJob);
   fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
@@ -3679,12 +4447,17 @@ app.post('/api/jobs', async (req, res) => {
 
   try {
     await syncJobToMysql(newJob);
+    if (markCompleted) {
+      const settings = await readSettingsFromMysql().catch(() => readSettings());
+      await persistJobAutoCostItems({ job: newJob, settings }).catch((error) => {
+        console.error('Failed to seed auto job cost items on create (JSON path):', error.message);
+      });
+    }
   } catch (error) {
     console.error('MySQL job write failed (JSON saved):', error.message);
   }
 
   // Google sync should never block job creation response.
-  const markCompleted = String(newJob.status || '').trim().toLowerCase() === 'completed';
   Promise.allSettled([
     syncJobGoogleTaskSafely(newJob, { markCompleted }),
     syncJobGoogleCalendarSafely(newJob)
@@ -3734,6 +4507,12 @@ app.put('/api/jobs/:id', async (req, res) => {
       const nextStatus = String(req.body?.status || '').trim().toLowerCase();
 
       await syncJobToMysql(updatedJob);
+      if (nextStatus === 'completed') {
+        const settings = await readSettingsFromMysql().catch(() => readSettings());
+        await persistJobAutoCostItems({ job: updatedJob, settings }).catch((error) => {
+          console.error('Failed to seed auto job cost items on update:', error.message);
+        });
+      }
 
       Promise.allSettled([
         syncJobGoogleTaskSafely(updatedJob, { markCompleted: nextStatus === 'completed' }),
@@ -3892,6 +4671,10 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
       };
 
       await syncJobToMysql(updatedJob);
+      const settings = await readSettingsFromMysql().catch(() => readSettings());
+      await persistJobAutoCostItems({ job: updatedJob, settings }).catch((error) => {
+        console.error('Failed to seed auto job cost items on complete:', error.message);
+      });
       Promise.allSettled([
         syncJobGoogleTaskSafely(updatedJob, { markCompleted: String(updatedJob.status || '').trim().toLowerCase() === 'completed' }),
         syncJobGoogleCalendarSafely(updatedJob)
@@ -7123,6 +7906,248 @@ app.get('/api/service-schedules', async (req, res) => {
     });
 
   res.json(schedules);
+});
+
+app.get('/api/customers/:id/profit-loss', async (req, res) => {
+  try {
+    const snapshot = await buildProfitSnapshot({ customerId: req.params.id, includeAllCustomerContracts: true });
+    return res.json(snapshot);
+  } catch (error) {
+    console.error('Failed to load customer profit-loss summary:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch customer profit summary' });
+  }
+});
+
+app.get('/api/contracts/:id/profit-loss', async (req, res) => {
+  try {
+    const snapshot = await buildProfitSnapshot({ contractId: req.params.id });
+    if (!snapshot?.selectedContract && !snapshot?.contractRows?.length) {
+      return res.status(404).json({ error: 'Contract not found' });
+    }
+    return res.json(snapshot);
+  } catch (error) {
+    console.error('Failed to load contract profit-loss summary:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch contract profit summary' });
+  }
+});
+
+app.get('/api/service-visits/:id/job-cost', async (req, res) => {
+  try {
+    const snapshot = await buildProfitSnapshot({ serviceVisitId: req.params.id });
+    const visit = snapshot?.visitRows?.find((row) => String(row.id || '') === String(req.params.id || '')) || null;
+    const items = visit?.costItems || [];
+    if (!visit) return res.status(404).json({ error: 'Service visit not found' });
+    return res.json({
+      visit,
+      items,
+      summary: {
+        totalCost: Number(visit.totalCost || 0),
+        revenue: Number(visit.revenue || 0),
+        profit: Number(visit.profit || 0),
+        marginPercent: Number(visit.marginPercent || 0),
+        breakdown: groupProfitCostItems(items)
+      },
+      contract: snapshot?.selectedContract || null,
+      customer: snapshot?.customer || null,
+      settings: snapshot?.settings || null
+    });
+  } catch (error) {
+    console.error('Failed to load service visit job cost:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch job cost summary' });
+  }
+});
+
+app.post('/api/service-visits/:id/job-cost-items', async (req, res) => {
+  const targetVisitId = String(req.params.id || '').trim();
+  if (!targetVisitId) return res.status(400).json({ error: 'Service visit id is required' });
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for job costing' });
+
+  try {
+    const incomingItems = Array.isArray(req.body?.items)
+      ? req.body.items
+      : [req.body];
+    const job = await loadJobByIdFromMysql(targetVisitId);
+    if (!job) return res.status(404).json({ error: 'Service visit not found' });
+    if (incomingItems.some((item) => !String(item?.description || '').trim())) {
+      return res.status(400).json({ error: 'Job cost item description is required' });
+    }
+
+    await withMysqlConnection(async (conn) => {
+      await ensureJobCostInfrastructure(conn);
+      for (const rawItem of incomingItems) {
+        const normalized = normalizeProfitItem({
+          ...rawItem,
+          customerId: String(rawItem?.customerId || job.customerId || job.customer_external_id || '').trim(),
+          contractId: String(rawItem?.contractId || job.contractId || job.invoiceId || job.invoice_external_id || '').trim(),
+          serviceVisitId: targetVisitId,
+          itemType: normalizeProfitCostType(rawItem?.itemType || rawItem?.item_type || 'other'),
+          stockItemId: String(rawItem?.stockItemId || rawItem?.stock_item_id || '').trim(),
+          description: String(rawItem?.description || '').trim(),
+          quantity: Math.max(0, toNumber(rawItem?.quantity, 0)),
+          unit: String(rawItem?.unit || '').trim(),
+          unitCost: Math.max(0, toNumber(rawItem?.unitCost ?? rawItem?.unit_cost, 0)),
+          totalCost: Math.max(0, toNumber(rawItem?.totalCost ?? rawItem?.total_cost, 0)),
+          source: normalizeProfitCostSource(rawItem?.source || 'manual'),
+          notes: String(rawItem?.notes || '').trim(),
+          payload: rawItem && typeof rawItem === 'object' ? rawItem : {}
+        }, rawItem?._id || rawItem?.external_id || `JCI-${targetVisitId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
+        normalized.totalCost = Number((normalized.totalCost || (normalized.quantity * normalized.unitCost)).toFixed(2));
+        if (normalized.totalCost <= 0 && normalized.unitCost > 0 && normalized.quantity > 0) {
+          normalized.totalCost = Number((normalized.quantity * normalized.unitCost).toFixed(2));
+        }
+        await conn.query(
+          `INSERT INTO job_cost_items (
+            external_id, customer_external_id, contract_id, service_visit_id, item_type, stock_item_id, description,
+            quantity, unit, unit_cost, total_cost, source, notes, payload
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            customer_external_id=VALUES(customer_external_id),
+            contract_id=VALUES(contract_id),
+            service_visit_id=VALUES(service_visit_id),
+            item_type=VALUES(item_type),
+            stock_item_id=VALUES(stock_item_id),
+            description=VALUES(description),
+            quantity=VALUES(quantity),
+            unit=VALUES(unit),
+            unit_cost=VALUES(unit_cost),
+            total_cost=VALUES(total_cost),
+            source=VALUES(source),
+            notes=VALUES(notes),
+            payload=VALUES(payload)`,
+          [
+            normalized._id,
+            normalized.customerId || null,
+            normalized.contractId || null,
+            normalized.serviceVisitId || null,
+            normalized.itemType,
+            normalized.stockItemId || null,
+            normalized.description || null,
+            normalized.quantity,
+            normalized.unit || null,
+            normalized.unitCost,
+            normalized.totalCost,
+            normalized.source,
+            normalized.notes || null,
+            JSON.stringify(normalized.payload || {})
+          ]
+        );
+      }
+    });
+
+    const snapshot = await buildProfitSnapshot({ serviceVisitId: targetVisitId });
+    const visit = snapshot?.visitRows?.find((row) => String(row.id || '') === targetVisitId) || null;
+    return res.status(201).json({
+      visit,
+      items: visit?.costItems || [],
+      summary: visit ? {
+        totalCost: Number(visit.totalCost || 0),
+        revenue: Number(visit.revenue || 0),
+        profit: Number(visit.profit || 0),
+        marginPercent: Number(visit.marginPercent || 0),
+        breakdown: groupProfitCostItems(visit.costItems || [])
+      } : null
+    });
+  } catch (error) {
+    console.error('Failed to save job cost item:', error.message);
+    return res.status(500).json({ error: 'Failed to save job cost item' });
+  }
+});
+
+app.put('/api/job-cost-items/:id', async (req, res) => {
+  const targetId = String(req.params.id || '').trim();
+  if (!targetId) return res.status(400).json({ error: 'Job cost item id is required' });
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for job costing' });
+
+  try {
+    const existing = await withMysqlConnection(async (conn) => {
+      await ensureJobCostInfrastructure(conn);
+      const [rows] = await conn.query('SELECT * FROM job_cost_items WHERE external_id = ? OR id = ? LIMIT 1', [targetId, /^\d+$/.test(targetId) ? Number(targetId) : -1]);
+      return Array.isArray(rows) && rows[0] ? mapProfitItemRow(rows[0]) : null;
+    });
+    if (!existing) return res.status(404).json({ error: 'Job cost item not found' });
+
+    const next = normalizeProfitItem({
+      ...existing,
+      ...req.body,
+      _id: existing._id,
+      customerId: String(req.body?.customerId ?? existing.customerId ?? '').trim(),
+      contractId: String(req.body?.contractId ?? existing.contractId ?? '').trim(),
+      serviceVisitId: String(req.body?.serviceVisitId ?? existing.serviceVisitId ?? '').trim(),
+      itemType: normalizeProfitCostType(req.body?.itemType ?? req.body?.item_type ?? existing.itemType),
+      stockItemId: String(req.body?.stockItemId ?? existing.stockItemId ?? '').trim(),
+      description: String(req.body?.description ?? existing.description ?? '').trim(),
+      quantity: Math.max(0, toNumber(req.body?.quantity ?? existing.quantity, 0)),
+      unit: String(req.body?.unit ?? existing.unit ?? '').trim(),
+      unitCost: Math.max(0, toNumber(req.body?.unitCost ?? req.body?.unit_cost ?? existing.unitCost, 0)),
+      totalCost: Math.max(0, toNumber(req.body?.totalCost ?? req.body?.total_cost ?? existing.totalCost, 0)),
+      source: normalizeProfitCostSource(req.body?.source ?? existing.source),
+      notes: String(req.body?.notes ?? existing.notes ?? '').trim(),
+      payload: req.body && typeof req.body === 'object' ? { ...existing.payload, ...req.body } : existing.payload
+    }, existing._id);
+
+    await withMysqlConnection(async (conn) => {
+      await ensureJobCostInfrastructure(conn);
+      await conn.query(
+        `UPDATE job_cost_items SET
+          customer_external_id = ?,
+          contract_id = ?,
+          service_visit_id = ?,
+          item_type = ?,
+          stock_item_id = ?,
+          description = ?,
+          quantity = ?,
+          unit = ?,
+          unit_cost = ?,
+          total_cost = ?,
+          source = ?,
+          notes = ?,
+          payload = ?,
+          updated_at = CURRENT_TIMESTAMP
+         WHERE external_id = ? OR id = ?`,
+        [
+          next.customerId || null,
+          next.contractId || null,
+          next.serviceVisitId || null,
+          next.itemType,
+          next.stockItemId || null,
+          next.description || null,
+          next.quantity,
+          next.unit || null,
+          next.unitCost,
+          next.totalCost,
+          next.source,
+          next.notes || null,
+          JSON.stringify(next.payload || {}),
+          targetId,
+          /^\d+$/.test(targetId) ? Number(targetId) : -1
+        ]
+      );
+    });
+
+    return res.json(next);
+  } catch (error) {
+    console.error('Failed to update job cost item:', error.message);
+    return res.status(500).json({ error: 'Failed to update job cost item' });
+  }
+});
+
+app.delete('/api/job-cost-items/:id', async (req, res) => {
+  const targetId = String(req.params.id || '').trim();
+  if (!targetId) return res.status(400).json({ error: 'Job cost item id is required' });
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for job costing' });
+
+  try {
+    const deletedRows = await withMysqlConnection(async (conn) => {
+      await ensureJobCostInfrastructure(conn);
+      const [result] = await conn.query('DELETE FROM job_cost_items WHERE external_id = ? OR id = ?', [targetId, /^\d+$/.test(targetId) ? Number(targetId) : -1]);
+      return Number(result?.affectedRows || 0);
+    });
+    if (!deletedRows) return res.status(404).json({ error: 'Job cost item not found' });
+    return res.json({ message: 'Job cost item deleted' });
+  } catch (error) {
+    console.error('Failed to delete job cost item:', error.message);
+    return res.status(500).json({ error: 'Failed to delete job cost item' });
+  }
 });
 
 app.get('/api/payments', (req, res) => {

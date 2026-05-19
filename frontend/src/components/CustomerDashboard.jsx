@@ -321,9 +321,25 @@ const shell = {
   historyStatCard: { border: '1px solid var(--color-border)', borderRadius: '10px', padding: '10px 12px', background: '#fff' },
   historyStatLabel: { margin: 0, fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' },
   historyStatValue: { margin: '6px 0 0 0', fontSize: '24px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' },
+  historyProfitGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' },
+  historyProfitCard: { border: '1px solid rgba(148,163,184,0.18)', borderRadius: '12px', padding: '10px 12px', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', boxShadow: '0 8px 20px rgba(15,23,42,0.05)' },
+  historyProfitCardProfit: { borderColor: 'rgba(22,163,74,0.22)', background: 'rgba(22,163,74,0.08)' },
+  historyProfitCardLoss: { borderColor: 'rgba(220,38,38,0.22)', background: 'rgba(220,38,38,0.08)' },
+  historyProfitCardAmber: { borderColor: 'rgba(217,119,6,0.22)', background: 'rgba(217,119,6,0.08)' },
+  historyProfitLabel: { margin: 0, fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  historyProfitValue: { margin: '6px 0 0 0', fontSize: '20px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' },
+  historyBreakdownGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '8px' },
+  historyBreakdownCard: { border: '1px solid rgba(148,163,184,0.16)', borderRadius: '12px', background: '#fff', padding: '10px 12px', boxShadow: '0 6px 16px rgba(15,23,42,0.04)' },
+  historyBreakdownLabel: { margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  historyBreakdownValue: { margin: '4px 0 0', fontSize: '15px', color: '#0f172a', fontWeight: 800 },
+  historySectionTitleSmall: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' },
+  historyTableCompact: { width: '100%', minWidth: '880px', borderCollapse: 'separate', borderSpacing: 0 },
+  historyHeadCellCompact: { textAlign: 'left', fontSize: '10px', fontWeight: 800, color: '#6b7280', padding: '9px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', background: '#f8fafc' },
+  historyCellCompact: { padding: '9px 10px', fontSize: '12px', color: '#111827', verticalAlign: 'top', borderBottom: '1px solid #eef2f7', background: '#fff' },
+  historyProfitNote: { margin: 0, padding: '10px 12px', borderRadius: '12px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', border: '1px solid rgba(148,163,184,0.18)', fontSize: '12px', color: '#475569', fontWeight: 600, lineHeight: 1.5 },
   historyGrid: { display: 'grid', gridTemplateColumns: '1fr', gap: '12px' },
-  historySection: { border: '1px solid var(--color-border)', borderRadius: '10px', background: '#fff', overflow: 'hidden' },
-  historySectionHead: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc' },
+  historySection: { border: '1px solid rgba(148,163,184,0.18)', borderRadius: '12px', background: '#fff', overflow: 'hidden', boxShadow: '0 10px 24px rgba(15,23,42,0.05)' },
+  historySectionHead: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)' },
   historySectionTitle: { margin: 0, fontSize: '22px', fontWeight: 700, color: '#0f172a' },
   historyTableWrap: { overflowX: 'auto' },
   historyTable: { width: '100%', minWidth: '760px', borderCollapse: 'collapse' },
@@ -378,6 +394,9 @@ export default function CustomerDashboard() {
   const [historyTab, setHistoryTab] = useState('transactions');
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
+  const [historyProfitLoading, setHistoryProfitLoading] = useState(false);
+  const [historyProfitError, setHistoryProfitError] = useState('');
+  const [historyProfitSnapshot, setHistoryProfitSnapshot] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -493,6 +512,24 @@ export default function CustomerDashboard() {
       setInvoices([]);
       setPayments([]);
       return false;
+    }
+  };
+
+  const loadCustomerProfitSnapshot = async (customerId) => {
+    if (!customerId) return false;
+    try {
+      setHistoryProfitLoading(true);
+      setHistoryProfitError('');
+      const res = await axios.get(`${API_BASE_URL}/api/customers/${customerId}/profit-loss`);
+      setHistoryProfitSnapshot(res.data || null);
+      return true;
+    } catch (error) {
+      console.error('Failed to load customer profit summary', error);
+      setHistoryProfitSnapshot(null);
+      setHistoryProfitError(error?.response?.data?.error || 'Could not load profit and cost summary.');
+      return false;
+    } finally {
+      setHistoryProfitLoading(false);
     }
   };
 
@@ -1460,11 +1497,19 @@ export default function CustomerDashboard() {
     setHistoryCustomerId(customer._id);
     setHistoryTab('transactions');
     setHistoryError('');
+    setHistoryProfitError('');
+    setHistoryProfitSnapshot(null);
     setShowHistory(true);
     setHistoryLoading(true);
-    const loaded = await loadTransactions();
-    if (!loaded) {
+    const [loadedTransactions, loadedProfit] = await Promise.all([
+      loadTransactions(),
+      loadCustomerProfitSnapshot(customer._id)
+    ]);
+    if (!loadedTransactions) {
       setHistoryError('Could not load customer history.');
+    }
+    if (!loadedProfit) {
+      setHistoryProfitError('Could not load profit and cost summary.');
     }
     setHistoryLoading(false);
   };
@@ -1472,7 +1517,10 @@ export default function CustomerDashboard() {
   const closeCustomerHistory = () => {
     setShowHistory(false);
     setHistoryError('');
+    setHistoryProfitError('');
+    setHistoryProfitSnapshot(null);
     setHistoryLoading(false);
+    setHistoryProfitLoading(false);
   };
 
   const closeModal = () => {
@@ -2306,10 +2354,148 @@ export default function CustomerDashboard() {
                 >
                   Transactions
                 </button>
+                <button
+                  type="button"
+                  style={historyTab === 'profit-cost' ? { ...shell.historyTabBtn, ...shell.historyTabBtnActive } : shell.historyTabBtn}
+                  onClick={() => setHistoryTab('profit-cost')}
+                >
+                  Profit & Cost
+                </button>
               </div>
 
               {historyLoading ? (
                 <p style={shell.historyEmpty}>Loading customer history...</p>
+              ) : historyTab === 'profit-cost' && historyProfitLoading ? (
+                <p style={shell.historyEmpty}>Loading profit and cost summary...</p>
+              ) : historyTab === 'profit-cost' && historyProfitError ? (
+                <p style={{ ...shell.historyEmpty, color: '#dc2626', fontWeight: 700 }}>{historyProfitError}</p>
+              ) : historyTab === 'profit-cost' ? (
+                historyProfitSnapshot ? (
+                  <div style={{ display: 'grid', gap: '12px' }}>
+                    <div style={shell.historyProfitGrid}>
+                      <div style={{ ...shell.historyProfitCard, ...(historyProfitSnapshot.profit?.amount >= 0 ? shell.historyProfitCardProfit : shell.historyProfitCardLoss) }}>
+                        <p style={shell.historyProfitLabel}>Profit / Loss</p>
+                        <p style={shell.historyProfitValue}>{formatINR(historyProfitSnapshot.profit?.amount || 0)}</p>
+                      </div>
+                      <div style={shell.historyProfitCard}>
+                        <p style={shell.historyProfitLabel}>Revenue Excl. GST</p>
+                        <p style={shell.historyProfitValue}>{formatINR(historyProfitSnapshot.revenue?.base || 0)}</p>
+                      </div>
+                      <div style={shell.historyProfitCard}>
+                        <p style={shell.historyProfitLabel}>Total Service Cost</p>
+                        <p style={shell.historyProfitValue}>{formatINR(historyProfitSnapshot.costs?.total || 0)}</p>
+                      </div>
+                      <div style={{ ...shell.historyProfitCard, ...(Number(historyProfitSnapshot.profit?.marginPercent || 0) < Number(historyProfitSnapshot.profit?.lowMarginWarningPercent || 0) ? shell.historyProfitCardAmber : {}) }}>
+                        <p style={shell.historyProfitLabel}>Profit Margin %</p>
+                        <p style={shell.historyProfitValue}>{Number(historyProfitSnapshot.profit?.marginPercent || 0).toFixed(2)}%</p>
+                      </div>
+                      <div style={shell.historyProfitCard}>
+                        <p style={shell.historyProfitLabel}>Total Visits</p>
+                        <p style={shell.historyProfitValue}>{historyProfitSnapshot.totals?.totalVisits || 0}</p>
+                      </div>
+                      <div style={shell.historyProfitCard}>
+                        <p style={shell.historyProfitLabel}>Complaint Visits</p>
+                        <p style={shell.historyProfitValue}>{historyProfitSnapshot.totals?.complaintVisits || 0}</p>
+                      </div>
+                    </div>
+
+                    <div style={shell.historyBreakdownGrid}>
+                      {[
+                        ['Chemical', historyProfitSnapshot.costs?.breakdown?.chemical || 0],
+                        ['Manpower', historyProfitSnapshot.costs?.breakdown?.manpower || 0],
+                        ['Conveyance', historyProfitSnapshot.costs?.breakdown?.conveyance || 0],
+                        ['Materials', historyProfitSnapshot.costs?.breakdown?.material || 0],
+                        ['Complaint / Revisit', historyProfitSnapshot.costs?.breakdown?.complaint || 0],
+                        ['Other', historyProfitSnapshot.costs?.breakdown?.other || 0]
+                      ].map(([labelText, amount]) => (
+                        <div key={labelText} style={shell.historyBreakdownCard}>
+                          <p style={shell.historyBreakdownLabel}>{labelText}</p>
+                          <p style={shell.historyBreakdownValue}>{formatINR(amount || 0)}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {historyProfitSnapshot.contractRows?.length > 0 ? (
+                      <div style={shell.historySection}>
+                        <div style={shell.historySectionHead}>
+                          <h4 style={shell.historySectionTitleSmall}>Contract-wise Profit</h4>
+                        </div>
+                        <div style={shell.historyTableWrap}>
+                          <table style={shell.historyTableCompact}>
+                            <thead>
+                              <tr>
+                                <th style={shell.historyHeadCellCompact}>Contract</th>
+                                <th style={shell.historyHeadCellCompact}>Revenue</th>
+                                <th style={shell.historyHeadCellCompact}>Cost</th>
+                                <th style={shell.historyHeadCellCompact}>Profit</th>
+                                <th style={shell.historyHeadCellCompact}>Margin</th>
+                                <th style={shell.historyHeadCellCompact}>Visits</th>
+                                <th style={shell.historyHeadCellCompact}>Complaints</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {historyProfitSnapshot.contractRows.map((row, index) => (
+                                <tr key={row.contractId || row.invoiceId || row.contractNumber} style={{ background: index % 2 === 0 ? '#fff' : '#fafcff' }}>
+                                  <td style={shell.historyCellCompact}>{row.contractNumber || '-'}</td>
+                                  <td style={shell.historyCellCompact}>{formatINR(row.revenue || 0)}</td>
+                                  <td style={shell.historyCellCompact}>{formatINR(row.totalCost || 0)}</td>
+                                  <td style={{ ...shell.historyCellCompact, fontWeight: 800, color: row.profit >= 0 ? '#166534' : '#b91c1c' }}>{formatINR(row.profit || 0)}</td>
+                                  <td style={shell.historyCellCompact}>{Number(row.marginPercent || 0).toFixed(2)}%</td>
+                                  <td style={shell.historyCellCompact}>{row.totalVisits || 0}</td>
+                                  <td style={shell.historyCellCompact}>{row.complaintVisits || 0}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {historyProfitSnapshot.visitRows?.length > 0 ? (
+                      <div style={shell.historySection}>
+                        <div style={shell.historySectionHead}>
+                          <h4 style={shell.historySectionTitleSmall}>Visit-wise Cost History</h4>
+                        </div>
+                        <div style={shell.historyTableWrap}>
+                          <table style={shell.historyTableCompact}>
+                            <thead>
+                              <tr>
+                                <th style={shell.historyHeadCellCompact}>Date</th>
+                                <th style={shell.historyHeadCellCompact}>Contract</th>
+                                <th style={shell.historyHeadCellCompact}>Service</th>
+                                <th style={shell.historyHeadCellCompact}>Visit Type</th>
+                                <th style={shell.historyHeadCellCompact}>Revenue</th>
+                                <th style={shell.historyHeadCellCompact}>Total Cost</th>
+                                <th style={shell.historyHeadCellCompact}>Profit</th>
+                                <th style={shell.historyHeadCellCompact}>Margin</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {historyProfitSnapshot.visitRows.slice(0, 20).map((row, index) => (
+                                <tr key={row.id} style={{ background: index % 2 === 0 ? '#fff' : '#fafcff' }}>
+                                  <td style={shell.historyCellCompact}>{formatDisplayDate(row.date)}</td>
+                                  <td style={shell.historyCellCompact}>{row.contract || '-'}</td>
+                                  <td style={shell.historyCellCompact}>{row.service || '-'}</td>
+                                  <td style={shell.historyCellCompact}>{row.visitType || '-'}</td>
+                                  <td style={shell.historyCellCompact}>{formatINR(row.revenue || 0)}</td>
+                                  <td style={shell.historyCellCompact}>{formatINR(row.totalCost || 0)}</td>
+                                  <td style={{ ...shell.historyCellCompact, fontWeight: 800, color: row.profit >= 0 ? '#166534' : '#b91c1c' }}>{formatINR(row.profit || 0)}</td>
+                                  <td style={shell.historyCellCompact}>{Number(row.marginPercent || 0).toFixed(2)}%</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <p style={shell.historyProfitNote}>
+                      GST is excluded from revenue calculations. Cost items can be edited per service visit using the Add Cost action on the job card.
+                    </p>
+                  </div>
+                ) : (
+                  <p style={shell.historyEmpty}>No profit and cost data found for this customer yet.</p>
+                )
               ) : historyError ? (
                 <p style={{ ...shell.historyEmpty, color: '#dc2626', fontWeight: 700 }}>{historyError}</p>
               ) : historyTab === 'overview' ? (
