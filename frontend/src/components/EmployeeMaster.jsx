@@ -585,15 +585,15 @@ export default function EmployeeMaster() {
 
       {showModal ? createPortal(
         <div style={shell.modalOverlay}>
-          <form style={shell.modal} onSubmit={handleSave}>
-            <div style={shell.modalHeader}>
+          <form className="crm-modal-surface" style={shell.modal} onSubmit={handleSave}>
+            <div className="crm-modal-surface-header" style={shell.modalHeader}>
               <span>{editingId ? 'Edit Employee' : 'Add Employee'} - {form.empCode || 'Auto'}</span>
               <button type="button" onClick={closeModal} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </div>
 
-            <div style={shell.modalBody}>
+            <div className="crm-modal-surface-body" style={shell.modalBody}>
               <div style={shell.section}>
                 <h3 style={shell.sectionTitle}>Employee Basics</h3>
                 <div style={grid2Style}>
@@ -895,7 +895,7 @@ export default function EmployeeMaster() {
               </div>
             </div>
 
-            <div style={shell.footer}>
+            <div className="crm-modal-surface-footer" style={shell.footer}>
               <span style={{ ...shell.helper, color: status.toLowerCase().includes('failed') ? '#dc2626' : 'var(--color-primary-dark)' }}>{status || 'Fill employee details and submit.'}</span>
               <div style={shell.footerActions}>
                 <button type="button" style={shell.cancelBtn} onClick={closeModal}>Cancel</button>

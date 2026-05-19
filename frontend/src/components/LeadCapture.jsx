@@ -2810,12 +2810,12 @@ export default function LeadCapture() {
 
       {followupLead ? (
         <div style={s.followupOverlay}>
-          <div style={s.followupModal}>
-            <div style={s.followupHead}>
+          <div className="crm-modal-surface" style={s.followupModal}>
+            <div className="crm-modal-surface-header" style={s.followupHead}>
               <h3 style={s.followupTitle}><PhoneCall size={22} /> Log Follow-up</h3>
               <X size={22} style={{ cursor: 'pointer', color: '#ffffff', flexShrink: 0 }} onClick={closeLogFollowupModal} />
             </div>
-            <div style={s.followupBody}>
+            <div className="crm-modal-surface-body" style={s.followupBody}>
               <div style={s.followupLeadBadge}>
                 {(followupLead.customerName || 'Lead')} ({normalizePhoneNumber(getLeadMobile(followupLead)) || 'No Mobile'})
               </div>
@@ -2870,7 +2870,7 @@ export default function LeadCapture() {
                 </div>
               </div>
             </div>
-            <div style={s.followupActions}>
+            <div className="crm-modal-surface-footer" style={s.followupActions}>
               <button type="button" style={s.followupCancelBtn} onClick={closeLogFollowupModal}>Cancel</button>
               <button type="button" style={s.followupSaveBtn} onClick={saveLogFollowup} disabled={isSavingFollowup}>
                 {isSavingFollowup ? 'Saving...' : 'Save Follow-up'}
@@ -2882,13 +2882,13 @@ export default function LeadCapture() {
 
       {show && (
         <div style={leadOverlayStyle}>
-          <form style={leadModalStyle} onSubmit={save}>
-            <div style={leadModalHeadStyle}>
+          <form className="crm-modal-surface" style={leadModalStyle} onSubmit={save}>
+            <div className="crm-modal-surface-header" style={leadModalHeadStyle}>
               <span>{editingLeadId ? 'Edit Lead Form' : 'Lead Entry Form'}</span>
               <X onClick={resetForm} style={{ cursor: 'pointer' }} />
             </div>
 
-            <div style={leadModalCompactBodyStyle}>
+            <div className="crm-modal-surface-body" style={leadModalCompactBodyStyle}>
               <div style={leadSectionStyle}>
                 <div style={s.sectionTitle}><User size={14} /> Customer Details</div>
                 <div style={leadGridStyle}>
@@ -3192,7 +3192,7 @@ export default function LeadCapture() {
               </div>
             </div>
 
-            <div style={{ padding: '12px 24px', textAlign: 'right', background: '#fff', borderTop: '1px solid var(--color-border)', position: 'sticky', bottom: 0 }}>
+            <div className="crm-modal-surface-footer" style={{ padding: '12px 24px', textAlign: 'right', background: '#fff', borderTop: '1px solid var(--color-border)', position: 'sticky', bottom: 0 }}>
               <button type="button" onClick={resetForm} style={{ marginRight: '10px', minHeight: '40px', padding: '0 16px', border: '1px solid rgba(17,17,17,0.1)', borderRadius: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 700 }}>
                 Cancel
               </button>

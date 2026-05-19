@@ -23,30 +23,27 @@ const initialForm = {
   notes: ''
 };
 
-const tableStyle = { width: '100%', minWidth: 1560, borderCollapse: 'collapse', tableLayout: 'fixed' };
+const tableStyle = { width: '100%', minWidth: 1560, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' };
 const cellStyle = {
-  padding: '8px 10px',
-  borderBottom: '1px solid var(--color-border)',
-  fontSize: 12,
-  lineHeight: 1.1,
+  padding: '10px 12px',
+  fontSize: 13,
+  lineHeight: 1.3,
   verticalAlign: 'middle',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap'
 };
 const headerStyle = {
-  padding: '10px 10px',
-  borderBottom: '1px solid var(--color-border)',
-  fontSize: 11,
+  padding: '12px 12px',
+  fontSize: 13,
   lineHeight: 1.2,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
+  letterSpacing: '0.02em',
   color: '#6B7280',
   verticalAlign: 'middle',
   whiteSpace: 'normal',
   overflow: 'visible',
   textOverflow: 'unset',
-  wordBreak: 'break-word',
+  wordBreak: 'normal',
   overflowWrap: 'anywhere'
 };
 const nameCellStyle = { ...cellStyle, fontWeight: 700, color: '#111827' };
@@ -277,7 +274,7 @@ export default function SalesTargets() {
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : safeRows(targets).length ? (
           <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table style={tableStyle}>
+            <table className="table-clean" style={tableStyle}>
               <colgroup>
                 <col style={{ width: '19%' }} />
                 <col style={{ width: '8%' }} />
@@ -295,65 +292,65 @@ export default function SalesTargets() {
               </colgroup>
               <thead>
                 <tr>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Sales<br />Person</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Type</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Month</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Year</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Revenue<br />Target</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Revenue<br />Achieved</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Revenue<br />Pending</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Revenue<br />%</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Collection<br />Target</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Collection<br />Achieved</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Collection<br />Pending</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Collection<br />%</span></th>
-                  <th style={headerStyle}><span style={headerLabelStyle}>Action</span></th>
+                  <th className="table-header-cell table-text-cell table-sticky-first" style={headerStyle}><span style={headerLabelStyle}>Sales Person</span></th>
+                  <th className="table-header-cell table-status-cell" style={headerStyle}><span style={headerLabelStyle}>Type</span></th>
+                  <th className="table-header-cell table-text-cell" style={headerStyle}><span style={headerLabelStyle}>Month</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Year</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Revenue Target</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Revenue Achieved</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Revenue Pending</span></th>
+                  <th className="table-header-cell table-percent-cell" style={headerStyle}><span style={headerLabelStyle}>Revenue %</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Collection Target</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Collection Achieved</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Collection Pending</span></th>
+                  <th className="table-header-cell table-percent-cell" style={headerStyle}><span style={headerLabelStyle}>Collection %</span></th>
+                  <th className="table-header-cell table-actions-cell" style={headerStyle}><span style={headerLabelStyle}>Action</span></th>
                 </tr>
               </thead>
               <tbody>
                 {targets.map((row) => (
-                  <tr key={row.id} style={{ height: 42 }}>
-                    <td style={nameCellStyle}>{displaySalesPersonName(row)}</td>
-                    <td style={cellStyle}>
+                  <tr key={row.id} style={{ height: 48 }}>
+                    <td className="table-name-cell table-sticky-first" style={{ ...nameCellStyle, background: '#fff' }}>{displaySalesPersonName(row)}</td>
+                    <td className="table-status-cell" style={cellStyle}>
                       <StatusBadge status={row.targetType === 'yearly' ? 'info' : 'active'}>
                         {row.targetType}
                       </StatusBadge>
                     </td>
-                    <td style={cellStyle}>{row.targetType === 'monthly' ? monthOptions.find((month) => month.value === Number(row.targetMonth))?.label || '---' : '---'}</td>
-                    <td style={cellStyle}>{row.targetYear}</td>
-                    <td style={cellStyle}>{money(row.revenueTarget)}</td>
-                    <td style={cellStyle}>
+                    <td className="table-text-cell" style={cellStyle}>{row.targetType === 'monthly' ? monthOptions.find((month) => month.value === Number(row.targetMonth))?.label || '---' : '---'}</td>
+                    <td className="table-number-cell" style={cellStyle}>{row.targetYear}</td>
+                    <td className="table-number-cell" style={cellStyle}>{money(row.revenueTarget)}</td>
+                    <td className="table-number-cell" style={cellStyle}>
                       <span style={{ color: metricColor(row.achievedRevenue, row.revenueTarget), fontWeight: 700 }}>
                         {money(row.achievedRevenue)}
                       </span>
                     </td>
-                    <td style={cellStyle}>
+                    <td className="table-number-cell" style={cellStyle}>
                       <span style={{ color: metricColor(row.achievedRevenue, row.revenueTarget), fontWeight: 700 }}>
                         {money(row.pendingRevenue)}
                       </span>
                     </td>
-                    <td style={cellStyle}>
+                    <td className="table-percent-cell" style={cellStyle}>
                       <span style={{ color: metricColor(row.achievedRevenue, row.revenueTarget), fontWeight: 700 }}>
                         {percent(row.achievementPercent)}
                       </span>
                     </td>
-                    <td style={cellStyle}>{money(row.collectionTarget)}</td>
-                    <td style={cellStyle}>
+                    <td className="table-number-cell" style={cellStyle}>{money(row.collectionTarget)}</td>
+                    <td className="table-number-cell" style={cellStyle}>
                       <span style={{ color: metricColor(row.achievedCollection, row.collectionTarget), fontWeight: 700 }}>
                         {money(row.achievedCollection)}
                       </span>
                     </td>
-                    <td style={cellStyle}>
+                    <td className="table-number-cell" style={cellStyle}>
                       <span style={{ color: metricColor(row.achievedCollection, row.collectionTarget), fontWeight: 700 }}>
                         {money(row.pendingCollection)}
                       </span>
                     </td>
-                    <td style={cellStyle}>
+                    <td className="table-percent-cell" style={cellStyle}>
                       <span style={{ color: metricColor(row.achievedCollection, row.collectionTarget), fontWeight: 700 }}>
                         {percent(row.collectionAchievementPercent)}
                       </span>
                     </td>
-                    <td style={cellStyle}>
+                    <td className="table-actions-cell" style={cellStyle}>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center' }}>
                         <AppButton
                           variant="outline"

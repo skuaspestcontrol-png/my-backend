@@ -30,7 +30,7 @@ const initialForm = {
   isActive: true
 };
 
-const tableStyle = { width: '100%', borderCollapse: 'collapse' };
+const tableStyle = { width: '100%', borderCollapse: 'separate', borderSpacing: 0 };
 const cellStyle = { padding: '8px 10px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'middle' };
 const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
 const iconButtonStyle = { width: 34, minWidth: 34, height: 34, minHeight: 34, padding: 0, justifyContent: 'center' };
@@ -217,31 +217,31 @@ export default function StockItems() {
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : items.length ? (
           <div style={{ overflowX: 'auto' }}>
-            <table style={tableStyle}>
+            <table className="table-clean" style={tableStyle}>
               <thead>
                 <tr>
-                  <th style={headerCellStyle}>Item</th>
-                  <th style={headerCellStyle}>Category</th>
-                  <th style={headerCellStyle}>Unit</th>
-                  <th style={headerCellStyle}>Current Stock</th>
-                  <th style={headerCellStyle}>Minimum</th>
-                  <th style={headerCellStyle}>Status</th>
-                  <th style={headerCellStyle}>Actions</th>
+                  <th className="table-header-cell table-text-cell" style={headerCellStyle}>Item</th>
+                  <th className="table-header-cell table-text-cell" style={headerCellStyle}>Category</th>
+                  <th className="table-header-cell table-text-cell" style={headerCellStyle}>Unit</th>
+                  <th className="table-header-cell table-number-cell" style={headerCellStyle}>Current Stock</th>
+                  <th className="table-header-cell table-number-cell" style={headerCellStyle}>Minimum</th>
+                  <th className="table-header-cell table-status-cell" style={headerCellStyle}>Status</th>
+                  <th className="table-header-cell table-actions-cell" style={headerCellStyle}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((row) => (
-                  <tr key={row.id} style={{ minHeight: 42 }}>
-                    <td style={cellStyle}>
+                  <tr key={row.id} style={{ minHeight: 48 }}>
+                    <td className="table-name-cell" style={cellStyle}>
                       <div style={{ fontWeight: 700, color: '#111827' }}>{row.itemName}</div>
                       <div style={{ color: '#6B7280', fontSize: 12 }}>{row.itemCode || 'No code'}</div>
                     </td>
-                    <td style={cellStyle}>{row.category}</td>
-                    <td style={cellStyle}>{row.unit}</td>
-                    <td style={cellStyle}>{number(row.currentStock)}</td>
-                    <td style={cellStyle}>{number(row.minStockLevel)}</td>
-                    <td style={cellStyle}><span style={badgeStyle(row.status)}>{row.status}</span></td>
-                    <td style={cellStyle}>
+                    <td className="table-text-cell" style={cellStyle}>{row.category}</td>
+                    <td className="table-text-cell" style={cellStyle}>{row.unit}</td>
+                    <td className="table-number-cell" style={cellStyle}>{number(row.currentStock)}</td>
+                    <td className="table-number-cell" style={cellStyle}>{number(row.minStockLevel)}</td>
+                    <td className="table-status-cell" style={cellStyle}><span style={badgeStyle(row.status)}>{row.status}</span></td>
+                    <td className="table-actions-cell" style={cellStyle}>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <AppButton
                           variant="outline"

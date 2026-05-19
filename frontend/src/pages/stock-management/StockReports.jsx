@@ -9,7 +9,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import { apiGet, exportUrl, money, number, reportTypes, safeRows, stockCategories, movementTypes } from './stockApi';
 
-const tableStyle = { width: '100%', borderCollapse: 'collapse' };
+const tableStyle = { width: '100%', borderCollapse: 'separate', borderSpacing: 0 };
 const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
 const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
 const greenColor = '#16A34A';
@@ -123,20 +123,20 @@ export default function StockReports() {
 
     if (filters.reportType === 'current-stock') {
       return (
-        <table style={tableStyle}>
+        <table className="table-clean" style={tableStyle}>
           <thead>
-            <tr>{reportColumns['current-stock'].map((label) => <th key={label} style={headerCellStyle}>{label}</th>)}</tr>
+            <tr>{reportColumns['current-stock'].map((label) => <th key={label} className={['Current Stock', 'Minimum', 'Value'].includes(label) ? 'table-header-cell table-number-cell' : label === 'Status' ? 'table-header-cell table-status-cell' : 'table-header-cell table-text-cell'} style={headerCellStyle}>{label}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td style={cellStyle}>{row.itemName}</td>
-                <td style={cellStyle}>{row.category}</td>
-                <td style={cellStyle}>{row.unit}</td>
-                <td style={cellStyle}>{number(row.currentStock)}</td>
-                <td style={cellStyle}>{number(row.minStockLevel)}</td>
-                <td style={cellStyle}>{money((Number(row.currentStock || 0) * Number(row.purchaseRate || 0)))}</td>
-                <td style={cellStyle}><span style={badgeStyle(row.status)}>{row.status}</span></td>
+                <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.category}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.unit}</td>
+                <td className="table-number-cell" style={cellStyle}>{number(row.currentStock)}</td>
+                <td className="table-number-cell" style={cellStyle}>{number(row.minStockLevel)}</td>
+                <td className="table-number-cell" style={cellStyle}>{money((Number(row.currentStock || 0) * Number(row.purchaseRate || 0)))}</td>
+                <td className="table-status-cell" style={cellStyle}><span style={badgeStyle(row.status)}>{row.status}</span></td>
               </tr>
             ))}
           </tbody>
@@ -146,16 +146,16 @@ export default function StockReports() {
 
     if (filters.reportType === 'technician-stock') {
       return (
-        <table style={tableStyle}>
+        <table className="table-clean" style={tableStyle}>
           <thead>
             <tr>{reportColumns['technician-stock'].map((label) => <th key={label} style={headerCellStyle}>{label}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((row, index) => (
               <tr key={`${row.technicianId}-${row.itemId}-${index}`}>
-                <td style={cellStyle}>{row.technicianName}</td>
-                <td style={cellStyle}>{row.itemName}</td>
-                <td style={cellStyle}>{number(row.currentBalance)} {row.unit}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.technicianName}</td>
+                <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
+                <td className="table-number-cell" style={cellStyle}>{number(row.currentBalance)} {row.unit}</td>
               </tr>
             ))}
           </tbody>
@@ -165,20 +165,20 @@ export default function StockReports() {
 
     if (filters.reportType === 'purchase') {
       return (
-        <table style={tableStyle}>
+        <table className="table-clean" style={tableStyle}>
           <thead>
             <tr>{reportColumns.purchase.map((label) => <th key={label} style={headerCellStyle}>{label}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td style={cellStyle}>{row.purchaseDate}</td>
-                <td style={cellStyle}>{row.itemName}</td>
-                <td style={cellStyle}>{row.vendorName || '---'}</td>
-                <td style={cellStyle}>{number(row.quantity)}</td>
-                <td style={cellStyle}>{money(row.rate)}</td>
-                <td style={cellStyle}>{money(row.totalAmount)}</td>
-                <td style={cellStyle}>{row.batchNumber || '---'}<div style={{ color: '#6B7280', fontSize: 12 }}>{row.expiryDate || 'No expiry'}</div></td>
+                <td className="table-text-cell" style={cellStyle}>{row.purchaseDate}</td>
+                <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.vendorName || '---'}</td>
+                <td className="table-number-cell" style={cellStyle}>{number(row.quantity)}</td>
+                <td className="table-number-cell" style={cellStyle}>{money(row.rate)}</td>
+                <td className="table-number-cell" style={cellStyle}>{money(row.totalAmount)}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.batchNumber || '---'}<div style={{ color: '#6B7280', fontSize: 12 }}>{row.expiryDate || 'No expiry'}</div></td>
               </tr>
             ))}
           </tbody>
@@ -188,20 +188,20 @@ export default function StockReports() {
 
     if (filters.reportType === 'usage') {
       return (
-        <table style={tableStyle}>
+        <table className="table-clean" style={tableStyle}>
           <thead>
             <tr>{reportColumns.usage.map((label) => <th key={label} style={headerCellStyle}>{label}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td style={cellStyle}>{row.movementDate ? String(row.movementDate).slice(0, 10) : row.movementDate}</td>
-                <td style={cellStyle}>{row.technicianName}</td>
-                <td style={cellStyle}>{row.itemName}</td>
-                <td style={cellStyle}>{number(row.outQty)}</td>
-                <td style={cellStyle}>{row.customerName || '---'}</td>
-                <td style={cellStyle}>{row.serviceType || '---'}</td>
-                <td style={cellStyle}>{row.notes || '---'}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.movementDate ? String(row.movementDate).slice(0, 10) : row.movementDate}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.technicianName}</td>
+                <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
+                <td className="table-number-cell" style={cellStyle}>{number(row.outQty)}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.customerName || '---'}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.serviceType || '---'}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.notes || '---'}</td>
               </tr>
             ))}
           </tbody>
@@ -211,18 +211,18 @@ export default function StockReports() {
 
     if (filters.reportType === 'low-stock') {
       return (
-        <table style={tableStyle}>
+        <table className="table-clean" style={tableStyle}>
           <thead>
             <tr>{reportColumns['low-stock'].map((label) => <th key={label} style={headerCellStyle}>{label}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td style={cellStyle}>{row.itemName}</td>
-                <td style={cellStyle}>{row.category}</td>
-                <td style={cellStyle}>{number(row.currentStock)}</td>
-                <td style={cellStyle}>{number(row.minStockLevel)}</td>
-                <td style={cellStyle}><span style={badgeStyle(row.status)}>{row.status}</span></td>
+                <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.category}</td>
+                <td className="table-number-cell" style={cellStyle}>{number(row.currentStock)}</td>
+                <td className="table-number-cell" style={cellStyle}>{number(row.minStockLevel)}</td>
+                <td className="table-status-cell" style={cellStyle}><span style={badgeStyle(row.status)}>{row.status}</span></td>
               </tr>
             ))}
           </tbody>
@@ -232,18 +232,18 @@ export default function StockReports() {
 
     if (filters.reportType === 'expiry') {
       return (
-        <table style={tableStyle}>
+        <table className="table-clean" style={tableStyle}>
           <thead>
             <tr>{reportColumns.expiry.map((label) => <th key={label} style={headerCellStyle}>{label}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td style={cellStyle}>{row.itemName}</td>
-                <td style={cellStyle}>{row.category}</td>
-                <td style={cellStyle}>{row.expiryDate || '---'}</td>
-                <td style={cellStyle}>{number(row.currentStock)}</td>
-                <td style={cellStyle}><span style={badgeStyle('Expiring Soon')}>Expiring Soon</span></td>
+                <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.category}</td>
+                <td className="table-text-cell" style={cellStyle}>{row.expiryDate || '---'}</td>
+                <td className="table-number-cell" style={cellStyle}>{number(row.currentStock)}</td>
+                <td className="table-status-cell" style={cellStyle}><span style={badgeStyle('Expiring Soon')}>Expiring Soon</span></td>
               </tr>
             ))}
           </tbody>
@@ -252,22 +252,22 @@ export default function StockReports() {
     }
 
     return (
-      <table style={tableStyle}>
+      <table className="table-clean" style={tableStyle}>
         <thead>
           <tr>{reportColumns.ledger.map((label) => <th key={label} style={headerCellStyle}>{label}</th>)}</tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.id}>
-              <td style={cellStyle}>{String(row.movementDate || '').slice(0, 10)}</td>
-              <td style={cellStyle}>{row.movementType}</td>
-              <td style={cellStyle}>{row.itemName}</td>
-              <td style={cellStyle}>{number(row.inQty)}</td>
-              <td style={cellStyle}>{number(row.outQty)}</td>
-              <td style={cellStyle}>{number(row.officeBalanceAfter)}</td>
-              <td style={cellStyle}>{row.technicianName || '---'}</td>
-              <td style={cellStyle}>{row.sourceLocation || 'office'}</td>
-              <td style={cellStyle}>{row.notes || '---'}</td>
+              <td className="table-text-cell" style={cellStyle}>{String(row.movementDate || '').slice(0, 10)}</td>
+              <td className="table-text-cell" style={cellStyle}>{row.movementType}</td>
+              <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
+              <td className="table-number-cell" style={cellStyle}>{number(row.inQty)}</td>
+              <td className="table-number-cell" style={cellStyle}>{number(row.outQty)}</td>
+              <td className="table-number-cell" style={cellStyle}>{number(row.officeBalanceAfter)}</td>
+              <td className="table-text-cell" style={cellStyle}>{row.technicianName || '---'}</td>
+              <td className="table-text-cell" style={cellStyle}>{row.sourceLocation || 'office'}</td>
+              <td className="table-text-cell" style={cellStyle}>{row.notes || '---'}</td>
             </tr>
           ))}
         </tbody>

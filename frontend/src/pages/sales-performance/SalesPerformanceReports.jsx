@@ -17,7 +17,7 @@ import AppSelect from '../../components/ui/AppSelect';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
-import { apiGet, currentMonth, currentYear, downloadCsv, monthOptions, money, percent, safeRows } from './salesPerformanceApi';
+import { apiGet, currentMonth, currentYear, downloadCsv, formatCompactIndianCurrency, monthOptions, money, percent, safeRows } from './salesPerformanceApi';
 import './salesPerformance.css';
 
 const chartWrap = { width: '100%', height: 300 };
@@ -31,6 +31,12 @@ const reportTypeOptions = [
   { value: 'team', label: 'Team overall performance' },
   { value: 'sales', label: 'Sales person wise performance' }
 ];
+const currencyTooltipLabel = {
+  monthlyTarget: 'Monthly Target',
+  monthlyAchieved: 'Monthly Achieved',
+  yearlyTarget: 'Yearly Target',
+  yearlyAchieved: 'Yearly Achieved'
+};
 
 export default function SalesPerformanceReports() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
@@ -109,24 +115,22 @@ export default function SalesPerformanceReports() {
     borderCollapse: 'collapse'
   };
   const headCellStyle = {
-    padding: viewportWidth <= 640 ? '8px 10px' : '10px 12px',
-    textAlign: 'left',
+    padding: viewportWidth <= 640 ? '9px 10px' : '12px 14px',
     whiteSpace: 'normal',
     wordBreak: 'keep-all',
     overflowWrap: 'normal',
     verticalAlign: 'middle',
-    height: viewportWidth <= 640 ? 48 : 58,
-    lineHeight: 1.15,
-    fontSize: viewportWidth <= 640 ? 11 : 12
+    height: viewportWidth <= 640 ? 48 : 56,
+    lineHeight: 1.2,
+    fontSize: viewportWidth <= 640 ? 12 : 13
   };
   const bodyCellStyle = {
-    padding: viewportWidth <= 640 ? '8px 10px' : '10px 12px',
-    borderTop: '1px solid var(--color-border)',
+    padding: viewportWidth <= 640 ? '9px 10px' : '12px 14px',
     whiteSpace: 'nowrap',
     wordBreak: 'normal',
     verticalAlign: 'middle',
-    height: viewportWidth <= 640 ? 44 : 48,
-    lineHeight: 1.2,
+    height: viewportWidth <= 640 ? 46 : 50,
+    lineHeight: 1.3,
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   };
@@ -190,6 +194,7 @@ export default function SalesPerformanceReports() {
     fontSize: isMobile ? 11 : 12,
     fontWeight: 600
   };
+  const formatCurrencyTooltip = (value, name) => [formatCompactIndianCurrency(value), currencyTooltipLabel[name] || name];
 
   const exportCsv = () => {
     downloadCsv(rows.map((row) => ({
@@ -313,8 +318,8 @@ export default function SalesPerformanceReports() {
                   <BarChart data={chartData} margin={{ top: 8, right: 8, left: isMobile ? -8 : 0, bottom: isMobile ? 12 : 0 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="employeeName" {...chartAxisProps} />
-                    <YAxis width={isMobile ? 32 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
-                    <Tooltip />
+                    <YAxis width={isMobile ? 40 : 52} tick={{ fontSize: isMobile ? 10 : 12 }} tickFormatter={formatCompactIndianCurrency} />
+                    <Tooltip formatter={formatCurrencyTooltip} />
                     <Bar dataKey="monthlyTarget" fill={targetColor} radius={[8, 8, 0, 0]} />
                     <Bar dataKey="monthlyAchieved" radius={[8, 8, 0, 0]}>
                       {chartData.map((entry) => (
@@ -339,8 +344,8 @@ export default function SalesPerformanceReports() {
                   <BarChart data={chartData} margin={{ top: 8, right: 8, left: isMobile ? -8 : 0, bottom: isMobile ? 12 : 0 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="employeeName" {...chartAxisProps} />
-                    <YAxis width={isMobile ? 32 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
-                    <Tooltip />
+                    <YAxis width={isMobile ? 40 : 52} tick={{ fontSize: isMobile ? 10 : 12 }} tickFormatter={formatCompactIndianCurrency} />
+                    <Tooltip formatter={formatCurrencyTooltip} />
                     <Bar dataKey="yearlyTarget" fill={targetColor} radius={[8, 8, 0, 0]} />
                     <Bar dataKey="yearlyAchieved" radius={[8, 8, 0, 0]}>
                       {chartData.map((entry) => (
@@ -362,7 +367,7 @@ export default function SalesPerformanceReports() {
             {rows.length ? (
               <div className="table-scroll-x sales-report-table-scroll" style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
-                <table style={tableStyle}>
+                <table className="table-clean" style={tableStyle}>
                   <colgroup>
                     <col style={{ width: '18%' }} />
                     <col style={{ width: '7%' }} />
@@ -384,85 +389,85 @@ export default function SalesPerformanceReports() {
                   </colgroup>
                   <thead>
                     <tr>
-                      <th style={headCellStyle}>Sales Person</th>
-                      <th style={headCellStyle}>Monthly Target</th>
-                      <th style={headCellStyle}>Monthly Achieved</th>
-                      <th style={headCellStyle}>Monthly %</th>
-                      <th style={headCellStyle}>Monthly Collection Target</th>
-                      <th style={headCellStyle}>Monthly Collection Achieved</th>
-                      <th style={headCellStyle}>Monthly Collection %</th>
-                      <th style={headCellStyle}>Yearly Target</th>
-                      <th style={headCellStyle}>Yearly Achieved</th>
-                      <th style={headCellStyle}>Yearly %</th>
-                      <th style={headCellStyle}>Yearly Collection Target</th>
-                      <th style={headCellStyle}>Yearly Collection Achieved</th>
-                      <th style={headCellStyle}>Yearly Collection %</th>
-                      <th style={headCellStyle}>Leads</th>
-                      <th style={headCellStyle}>Converted</th>
-                      <th style={headCellStyle}>Revenue</th>
-                      <th style={headCellStyle}>Status</th>
+                      <th className="table-header-cell table-text-cell table-sticky-first" style={headCellStyle}>Sales Person</th>
+                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Target</th>
+                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Achieved</th>
+                      <th className="table-header-cell table-percent-cell" style={headCellStyle}>Monthly %</th>
+                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Collection Target</th>
+                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Collection Achieved</th>
+                      <th className="table-header-cell table-percent-cell" style={headCellStyle}>Monthly Collection %</th>
+                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Yearly Target</th>
+                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Yearly Achieved</th>
+                      <th className="table-header-cell table-percent-cell" style={headCellStyle}>Yearly %</th>
+                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Yearly Collection Target</th>
+                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Yearly Collection Achieved</th>
+                      <th className="table-header-cell table-percent-cell" style={headCellStyle}>Yearly Collection %</th>
+                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Leads</th>
+                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Converted</th>
+                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Revenue</th>
+                      <th className="table-header-cell table-status-cell" style={headCellStyle}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((row) => (
-                      <tr key={`${row.employeeId}-${row.year}-${row.month}`} style={{ height: viewportWidth <= 640 ? 44 : 48 }}>
-                        <td style={bodyCellStyle}>{row.employeeName}</td>
-                        <td style={bodyCellStyle}>{money(row.monthlyTarget)}</td>
-                        <td style={bodyCellStyle}>
+                      <tr key={`${row.employeeId}-${row.year}-${row.month}`} style={{ height: viewportWidth <= 640 ? 46 : 50 }}>
+                        <td className="table-name-cell table-sticky-first" style={{ ...bodyCellStyle, background: '#fff' }}>{row.employeeName}</td>
+                        <td className="table-number-cell" style={bodyCellStyle}>{money(row.monthlyTarget)}</td>
+                        <td className="table-number-cell" style={bodyCellStyle}>
                           <span style={{ color: metricColor(row.monthlyAchieved, row.monthlyTarget), fontWeight: 700 }}>
                             {money(row.monthlyAchieved)}
                           </span>
                         </td>
-                        <td style={bodyCellStyle}>
+                        <td className="table-percent-cell" style={bodyCellStyle}>
                           <span style={{ color: metricColor(row.monthlyAchieved, row.monthlyTarget), fontWeight: 700 }}>
                             {percent(row.monthlyAchievementPercent)}
                           </span>
                         </td>
-                        <td style={bodyCellStyle}>
+                        <td className="table-number-cell" style={bodyCellStyle}>
                           <span style={{ color: metricColor(row.monthlyCollectionAchieved, row.monthlyCollectionTarget), fontWeight: 700 }}>
                             {money(row.monthlyCollectionTarget)}
                           </span>
                         </td>
-                        <td style={bodyCellStyle}>
+                        <td className="table-number-cell" style={bodyCellStyle}>
                           <span style={{ color: metricColor(row.monthlyCollectionAchieved, row.monthlyCollectionTarget), fontWeight: 700 }}>
                             {money(row.monthlyCollectionAchieved)}
                           </span>
                         </td>
-                        <td style={bodyCellStyle}>
+                        <td className="table-percent-cell" style={bodyCellStyle}>
                           <span style={{ color: metricColor(row.monthlyCollectionAchieved, row.monthlyCollectionTarget), fontWeight: 700 }}>
                             {percent(row.monthlyCollectionPercent)}
                           </span>
                         </td>
-                        <td style={bodyCellStyle}>{money(row.yearlyTarget)}</td>
-                        <td style={bodyCellStyle}>
+                        <td className="table-number-cell" style={bodyCellStyle}>{money(row.yearlyTarget)}</td>
+                        <td className="table-number-cell" style={bodyCellStyle}>
                           <span style={{ color: metricColor(row.yearlyAchieved, row.yearlyTarget), fontWeight: 700 }}>
                             {money(row.yearlyAchieved)}
                           </span>
                         </td>
-                        <td style={bodyCellStyle}>
+                        <td className="table-percent-cell" style={bodyCellStyle}>
                           <span style={{ color: metricColor(row.yearlyAchieved, row.yearlyTarget), fontWeight: 700 }}>
                             {percent(row.yearlyAchievementPercent)}
                           </span>
                         </td>
-                        <td style={bodyCellStyle}>
+                        <td className="table-number-cell" style={bodyCellStyle}>
                           <span style={{ color: metricColor(row.yearlyCollectionAchieved, row.yearlyCollectionTarget), fontWeight: 700 }}>
                             {money(row.yearlyCollectionTarget)}
                           </span>
                         </td>
-                        <td style={bodyCellStyle}>
+                        <td className="table-number-cell" style={bodyCellStyle}>
                           <span style={{ color: metricColor(row.yearlyCollectionAchieved, row.yearlyCollectionTarget), fontWeight: 700 }}>
                             {money(row.yearlyCollectionAchieved)}
                           </span>
                         </td>
-                        <td style={bodyCellStyle}>
+                        <td className="table-percent-cell" style={bodyCellStyle}>
                           <span style={{ color: metricColor(row.yearlyCollectionAchieved, row.yearlyCollectionTarget), fontWeight: 700 }}>
                             {percent(row.yearlyCollectionPercent)}
                           </span>
                         </td>
-                        <td style={bodyCellStyle}>{row.leadsAssigned}</td>
-                        <td style={bodyCellStyle}>{row.leadsConverted}</td>
-                        <td style={bodyCellStyle}>{money(row.revenueGenerated)}</td>
-                        <td style={bodyCellStyle}>
+                        <td className="table-number-cell" style={bodyCellStyle}>{row.leadsAssigned}</td>
+                        <td className="table-number-cell" style={bodyCellStyle}>{row.leadsConverted}</td>
+                        <td className="table-number-cell" style={bodyCellStyle}>{money(row.revenueGenerated)}</td>
+                        <td className="table-status-cell" style={bodyCellStyle}>
                           <span style={{ color: statusColor(row.status), fontWeight: 700 }}>
                             {row.status}
                           </span>

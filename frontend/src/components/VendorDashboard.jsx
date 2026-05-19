@@ -326,12 +326,12 @@ export default function VendorDashboard() {
 
       {showModal ? createPortal(
         <div style={modalOverlayStyle} onClick={closeModal}>
-          <form style={modalStyle} onSubmit={saveVendor} onClick={(event) => event.stopPropagation()}>
-            <div style={modalHeaderStyle}>
+          <form className="crm-modal-surface" style={modalStyle} onSubmit={saveVendor} onClick={(event) => event.stopPropagation()}>
+            <div className="crm-modal-surface-header" style={modalHeaderStyle}>
               <h3 style={shell.modalTitle}>{editingId ? 'Edit Vendor' : 'New Vendor'}</h3>
               <button type="button" style={shell.closeBtn} onClick={closeModal}><X size={24} /></button>
             </div>
-            <div style={bodyStyle}>
+            <div className="crm-modal-surface-body" style={bodyStyle}>
               <div style={shell.card}>
                 <p style={shell.sectionTitle}>Vendor Details</p>
                 <div style={gridStyle}>
@@ -401,7 +401,7 @@ export default function VendorDashboard() {
                 </div>
               </div>
             </div>
-            <div style={shell.footer}>
+            <div className="crm-modal-surface-footer" style={shell.footer}>
               {saveError ? <div style={{ marginRight: 'auto', color: '#dc2626', fontSize: '12px', fontWeight: 700 }}>{saveError}</div> : null}
               <button type="button" style={shell.cancelButton} onClick={closeModal}>Cancel</button>
               <button type="submit" style={shell.saveButton} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Vendor'}</button>

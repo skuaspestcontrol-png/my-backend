@@ -319,9 +319,9 @@ export default function VendorBillsDashboard() {
 
       {showModal ? createPortal(
         <div style={modalOverlayStyle} onClick={closeModal}>
-          <form style={modalStyle} onSubmit={saveBill} onClick={(event) => event.stopPropagation()}>
-            <div style={modalHeaderStyle}><h3 style={shell.headerTitle}>{editingId ? 'Edit Vendor Bill' : 'New Vendor Bill'}</h3><button type="button" style={shell.closeBtn} onClick={closeModal}><X size={24} /></button></div>
-            <div style={formBodyStyle}>
+          <form className="crm-modal-surface" style={modalStyle} onSubmit={saveBill} onClick={(event) => event.stopPropagation()}>
+            <div className="crm-modal-surface-header" style={modalHeaderStyle}><h3 style={shell.headerTitle}>{editingId ? 'Edit Vendor Bill' : 'New Vendor Bill'}</h3><button type="button" style={shell.closeBtn} onClick={closeModal}><X size={24} /></button></div>
+            <div className="crm-modal-surface-body" style={formBodyStyle}>
               <div style={row2Style}>
                 <label style={shell.label}>Vendor Name*</label>
                 <select style={shell.input} value={form.vendorId} onChange={(e) => updateForm('vendorId', e.target.value)}>
@@ -440,7 +440,7 @@ export default function VendorBillsDashboard() {
                 <textarea style={shell.textArea} value={form.notes} onChange={(e) => updateForm('notes', e.target.value)} />
               </div>
             </div>
-            <div style={shell.modalFooter}>
+            <div className="crm-modal-surface-footer" style={shell.modalFooter}>
               {saveError ? <div style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 700 }}>{saveError}</div> : null}
               <button type="button" style={shell.cancelButton} onClick={closeModal}>Cancel</button>
               <button type="submit" style={shell.saveButton} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Bill'}</button>

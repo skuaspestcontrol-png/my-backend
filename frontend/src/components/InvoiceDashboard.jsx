@@ -2448,14 +2448,14 @@ export default function InvoiceDashboard() {
 
       {showModal ? createPortal(
         <div style={modalOverlayStyle} onClick={closeInvoiceModal}>
-          <form style={modalStyle} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()}>
-            <div style={modalHeaderStyle}>
+          <form className="crm-modal-surface" style={modalStyle} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()}>
+            <div className="crm-modal-surface-header" style={modalHeaderStyle}>
               <h3 style={shell.modalHeaderTitle}>{editingId ? 'Edit Contract' : 'New Contract'}</h3>
               <button type="button" style={shell.modalCloseButton} onClick={closeInvoiceModal} aria-label="Close">
                 <X size={24} />
               </button>
             </div>
-            <div style={formBodyStyle}>
+            <div className="crm-modal-surface-body" style={formBodyStyle}>
               <div style={customerRowStyle}>
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Name*</label>
                 <select
@@ -3096,7 +3096,7 @@ export default function InvoiceDashboard() {
               </div>
             </div>
 
-            <div style={modalFooterStyle}>
+            <div className="crm-modal-surface-footer" style={modalFooterStyle}>
               {saveError ? (
                 <div style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
                   {saveError}

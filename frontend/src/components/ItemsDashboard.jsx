@@ -919,8 +919,8 @@ export default function ItemsDashboard() {
 
       {showAddModal ? createPortal(
         <div style={shell.modalOverlay}>
-          <form style={modalStyle} onSubmit={handleAddItem}>
-            <div style={modalHeaderStyle}>
+          <form className="crm-modal-surface" style={modalStyle} onSubmit={handleAddItem}>
+            <div className="crm-modal-surface-header" style={modalHeaderStyle}>
               <h3 style={shell.modalHeaderTitle}>{editingItemId ? 'Edit Item' : 'New Item'}</h3>
               <button
                 type="button"
@@ -937,7 +937,7 @@ export default function ItemsDashboard() {
               </button>
             </div>
 
-            <div style={shell.formContent}>
+            <div className="crm-modal-surface-body" style={shell.formContent}>
               <div style={topGridStyle}>
                 <label style={shell.label}>Type</label>
                 <div style={shell.typeRadios}>
@@ -1129,7 +1129,7 @@ export default function ItemsDashboard() {
               </div>
             </div>
 
-            <div style={modalFooterStyle}>
+            <div className="crm-modal-surface-footer" style={modalFooterStyle}>
               {saveError ? (
                 <div style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
                   {saveError}

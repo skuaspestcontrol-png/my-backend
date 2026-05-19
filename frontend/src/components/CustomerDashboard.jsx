@@ -2458,15 +2458,15 @@ export default function CustomerDashboard() {
 
       {showModal ? createPortal(
         <div style={modalOverlayStyle}>
-          <form style={modalStyle} onSubmit={handleSubmit}>
-            <div style={modalHeaderStyle}>
+          <form className="crm-modal-surface" style={modalStyle} onSubmit={handleSubmit}>
+            <div className="crm-modal-surface-header" style={modalHeaderStyle}>
               <h3 style={shell.modalHeaderTitle}>{editingId ? 'Edit Customer' : 'New Customer'}</h3>
               <button type="button" style={shell.modalCloseButton} onClick={closeModal} aria-label="Close">
                 <X size={24} />
               </button>
             </div>
 
-            <div style={modalBodyStyle}>
+            <div className="crm-modal-surface-body" style={modalBodyStyle}>
               <label style={shell.label}>Duplicate Check</label>
               <div style={{ border: '1px solid var(--color-border)', borderRadius: '10px', padding: '10px', background: '#fff' }}>
                 {similarLoading ? (
@@ -2774,7 +2774,7 @@ export default function CustomerDashboard() {
 
             </div>
 
-            <div style={modalFooterStyle}>
+            <div className="crm-modal-surface-footer" style={modalFooterStyle}>
               {saveError ? (
                 <div style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
                   {saveError}
@@ -2814,9 +2814,9 @@ export default function CustomerDashboard() {
 
       {showDuplicateReport ? createPortal(
         <div style={modalOverlayStyle}>
-          <div style={{ ...modalStyle, width: 'min(1180px, 100%)' }}>
-            <div style={modalHeaderStyle}>Duplicate Report & Data Health</div>
-            <div style={duplicateModalBodyStyle}>
+          <div className="crm-modal-surface" style={{ ...modalStyle, width: 'min(1180px, 100%)' }}>
+            <div className="crm-modal-surface-header" style={modalHeaderStyle}>Duplicate Report & Data Health</div>
+            <div className="crm-modal-surface-body" style={duplicateModalBodyStyle}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', gridColumn: '1 / -1' }}>
                 <div style={{ border: '1px solid var(--color-primary-soft)', borderRadius: '10px', padding: '10px', background: '#fff' }}>
                   <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Total Active Customers</p>
@@ -2862,7 +2862,7 @@ export default function CustomerDashboard() {
                 </table>
               </div>
             </div>
-            <div style={modalFooterStyle}>
+            <div className="crm-modal-surface-footer" style={modalFooterStyle}>
               <button type="button" style={shell.cancelButton} onClick={() => setShowDuplicateReport(false)}>Close</button>
               <button type="button" style={shell.cancelButton} onClick={() => exportDuplicateReport('csv')}>Export CSV</button>
               <button type="button" style={shell.saveButton} onClick={() => exportDuplicateReport('pdf')}>Export PDF</button>

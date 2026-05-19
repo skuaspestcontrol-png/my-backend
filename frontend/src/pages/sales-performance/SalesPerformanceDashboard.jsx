@@ -18,13 +18,17 @@ import DashboardStatCard from '../../components/ui/DashboardStatCard';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
-import { apiGet, currentMonth, currentYear, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
+import { apiGet, currentMonth, currentYear, formatCompactIndianCurrency, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
 import './salesPerformance.css';
 
 const chartWrap = { width: '100%', height: 300 };
 const targetColor = '#111827';
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
+const currencyTooltipLabel = {
+  target: 'Target',
+  achieved: 'Achieved'
+};
 
 const summaryCards = [
   { key: 'totalMonthlyTarget', title: 'Total Monthly Target' },
@@ -119,6 +123,7 @@ export default function SalesPerformanceDashboard() {
     return money(data?.summary?.[key] || 0);
   };
   const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
+  const formatCurrencyTooltip = (value, name) => [formatCompactIndianCurrency(value), currencyTooltipLabel[name] || name];
 
   return (
     <div
@@ -212,8 +217,8 @@ export default function SalesPerformanceDashboard() {
                       angle={isMobile ? -15 : 0}
                       textAnchor={isMobile ? 'end' : 'middle'}
                     />
-                    <YAxis width={isMobile ? 28 : 40} tick={{ fontSize: isMobile ? 10 : 12 }} />
-                    <Tooltip />
+                    <YAxis width={isMobile ? 40 : 52} tick={{ fontSize: isMobile ? 10 : 12 }} tickFormatter={formatCompactIndianCurrency} />
+                    <Tooltip formatter={formatCurrencyTooltip} />
                     <Bar dataKey="target" fill={targetColor} radius={[8, 8, 0, 0]} />
                     <Bar dataKey="achieved" radius={[8, 8, 0, 0]}>
                       {safeRows(data?.monthlyTrend).map((entry) => (
@@ -233,9 +238,11 @@ export default function SalesPerformanceDashboard() {
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all months.</div> : null}
                 <div style={matrixInnerStyle}>
                   <table
+                    className="table-clean"
                     style={{
                       width: '100%',
-                      borderCollapse: 'collapse',
+                      borderCollapse: 'separate',
+                      borderSpacing: 0,
                       tableLayout: 'fixed'
                     }}
                   >
@@ -247,9 +254,9 @@ export default function SalesPerformanceDashboard() {
                     </colgroup>
                     <thead>
                       <tr>
-                        <th style={{ padding: isMobile ? '9px 10px' : '10px 12px', textAlign: 'left', whiteSpace: 'nowrap' }}>Year</th>
+                        <th className="table-header-cell table-text-cell table-sticky-first" style={{ padding: isMobile ? '9px 10px' : '12px 14px', whiteSpace: 'nowrap' }}>Year</th>
                         {monthOptions.map((month) => (
-                          <th key={month.value} style={{ padding: isMobile ? '9px 10px' : '10px 12px', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                          <th key={month.value} className="table-header-cell table-number-cell" style={{ padding: isMobile ? '9px 10px' : '12px 14px', whiteSpace: 'nowrap' }}>
                             {month.label}
                           </th>
                         ))}
@@ -258,22 +265,23 @@ export default function SalesPerformanceDashboard() {
                     <tbody>
                       {matrix.map((row) => (
                         <tr key={row.year} style={{ height: isMobile ? 44 : 48 }}>
-                          <td style={{ padding: isMobile ? '9px 10px' : '10px 12px', fontWeight: 700, whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                          <td className="table-name-cell table-sticky-first" style={{ padding: isMobile ? '9px 10px' : '12px 14px', whiteSpace: 'nowrap', verticalAlign: 'middle', background: '#fff' }}>
                             {row.year}
                           </td>
                           {safeRows(row.cells).map((cell) => (
                             <td
                               key={`${row.year}-${cell.month}`}
+                              className="table-number-cell"
                               style={{
-                                padding: isMobile ? '9px 10px' : '10px 12px',
+                                padding: isMobile ? '9px 10px' : '12px 14px',
                                 whiteSpace: 'nowrap',
                                 verticalAlign: 'middle',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis'
                               }}
                             >
-                              <div style={{ fontWeight: 800, lineHeight: 1.1 }}>{percent(cell.achievementPercent)}</div>
-                              <div style={{ color: '#6B7280', fontSize: isMobile ? 11 : 12, lineHeight: 1.2 }}>
+                              <div style={{ fontWeight: 800, lineHeight: 1.1, textAlign: 'right' }}>{percent(cell.achievementPercent)}</div>
+                              <div style={{ color: '#6B7280', fontSize: isMobile ? 11 : 12, lineHeight: 1.2, textAlign: 'right' }}>
                                 {money(cell.achieved)} / {money(cell.target)}
                               </div>
                             </td>
