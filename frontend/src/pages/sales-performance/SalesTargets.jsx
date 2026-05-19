@@ -276,9 +276,9 @@ export default function SalesTargets() {
           <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table className="table-clean sales-targets-table" style={tableStyle}>
               <colgroup>
-                <col style={{ width: '240px' }} />
+                <col style={{ width: '170px' }} />
                 <col style={{ width: '110px' }} />
-                <col style={{ width: '100px' }} />
+                <col style={{ width: '110px' }} />
                 <col style={{ width: '90px' }} />
                 <col style={{ width: '145px' }} />
                 <col style={{ width: '145px' }} />
@@ -294,7 +294,7 @@ export default function SalesTargets() {
                 <tr>
                   <th className="table-header-cell table-text-cell table-sticky-first" style={headerStyle}><span style={headerLabelStyle}>Sales Person</span></th>
                   <th className="table-header-cell table-status-cell" style={headerStyle}><span style={headerLabelStyle}>Type</span></th>
-                  <th className="table-header-cell table-text-cell" style={headerStyle}><span style={headerLabelStyle}>Month</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Month</span></th>
                   <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Year</span></th>
                   <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Revenue Target</span></th>
                   <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Revenue Achieved</span></th>
@@ -316,7 +316,7 @@ export default function SalesTargets() {
                         {row.targetType}
                       </StatusBadge>
                     </td>
-                    <td className="table-text-cell" style={cellStyle}>{row.targetType === 'monthly' ? monthOptions.find((month) => month.value === Number(row.targetMonth))?.label || '---' : '---'}</td>
+                    <td className="table-number-cell" style={cellStyle}>{row.targetType === 'monthly' ? monthOptions.find((month) => month.value === Number(row.targetMonth))?.label || '---' : '---'}</td>
                     <td className="table-number-cell" style={cellStyle}>{row.targetYear}</td>
                     <td className="table-number-cell" style={cellStyle}>{money(row.revenueTarget)}</td>
                     <td className="table-number-cell" style={cellStyle}>

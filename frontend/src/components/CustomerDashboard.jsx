@@ -253,7 +253,7 @@ const shell = {
   toolLabel: { fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
   customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' },
   duplicateFilterButton: { display: 'inline-flex', alignItems: 'center', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '999px', padding: '4px 8px', minHeight: '24px', fontSize: '11px', lineHeight: 1.2, fontWeight: 800, cursor: 'pointer' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', maxWidth: '100%', borderTop: '1px solid rgba(239, 68, 68, 0.12)', backgroundClip: 'padding-box' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', maxWidth: '100%', backgroundClip: 'padding-box' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '3px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', lineHeight: 1.05 },
   headCellResizable: { position: 'relative', paddingRight: '16px' },

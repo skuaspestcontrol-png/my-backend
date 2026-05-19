@@ -92,6 +92,11 @@
   text-align: center !important;
 }
 
+.sales-targets-page .sales-targets-table thead th.table-text-cell,
+.sales-targets-page .sales-targets-table tbody td.table-text-cell {
+  text-align: center !important;
+}
+
 .sales-targets-page .sales-targets-table thead th.table-sticky-first,
 .sales-targets-page .sales-targets-table tbody td.table-sticky-first,
 .sales-targets-page .sales-targets-table thead th.table-name-cell,
@@ -108,6 +113,11 @@
   text-align: center !important;
 }
 
+.sales-team-page .sales-team-performance-table thead th.table-text-cell:not(.table-sticky-first),
+.sales-team-page .sales-team-performance-table tbody td.table-text-cell:not(.table-sticky-first) {
+  text-align: center !important;
+}
+
 .sales-team-page .sales-team-performance-table thead th.table-sticky-first,
 .sales-team-page .sales-team-performance-table tbody td.table-sticky-first,
 .sales-team-page .sales-team-performance-table thead th.table-name-cell,
@@ -121,6 +131,11 @@
 .sales-reports-page .sales-performance-report-table tbody td.table-number-cell,
 .sales-reports-page .sales-performance-report-table tbody td.table-percent-cell,
 .sales-reports-page .sales-performance-report-table tbody td.table-status-cell {
+  text-align: center !important;
+}
+
+.sales-reports-page .sales-performance-report-table thead th.table-text-cell:not(.table-sticky-first),
+.sales-reports-page .sales-performance-report-table tbody td.table-text-cell:not(.table-sticky-first) {
   text-align: center !important;
 }
 

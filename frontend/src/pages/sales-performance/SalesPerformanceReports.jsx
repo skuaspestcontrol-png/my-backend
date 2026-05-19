@@ -363,7 +363,7 @@ export default function SalesPerformanceReports() {
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
                 <table className="table-clean sales-performance-report-table" style={tableStyle}>
                   <colgroup>
-                    <col style={{ width: '260px' }} />
+                    <col style={{ width: '180px' }} />
                     <col style={{ width: '135px' }} />
                     <col style={{ width: '135px' }} />
                     <col style={{ width: '95px' }} />

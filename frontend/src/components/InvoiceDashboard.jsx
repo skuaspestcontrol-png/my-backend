@@ -240,7 +240,7 @@ const shell = {
   summaryValue: { color: '#111827', fontSize: '24px', fontWeight: 800, lineHeight: 1.05 },
   summaryHint: { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1.35 },
   summaryAccent: { color: '#d97706' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderTop: '1px solid rgba(239, 68, 68, 0.12)', backgroundClip: 'padding-box' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', backgroundClip: 'padding-box' },
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '10px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   row: { borderBottom: '1px solid #eef2f7' },

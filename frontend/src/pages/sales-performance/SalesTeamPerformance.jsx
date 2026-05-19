@@ -110,8 +110,8 @@ export default function SalesTeamPerformance() {
     textOverflow: 'ellipsis'
   };
   const teamColWidths = viewportWidth <= 640
-    ? ['220px', '120px', '120px', '90px', '120px', '120px', '90px', '110px', '110px', '130px', '100px']
-    : ['260px', '130px', '130px', '95px', '130px', '130px', '95px', '120px', '120px', '140px', '110px'];
+    ? ['170px', '120px', '120px', '90px', '120px', '120px', '90px', '110px', '110px', '130px', '100px']
+    : ['180px', '130px', '130px', '95px', '130px', '130px', '95px', '120px', '120px', '140px', '110px'];
   const chartAxisProps = getChartAxisProps({ mobile: isMobile });
   const chartHeight = getChartHeight({ mobile: isMobile });
   const currencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
