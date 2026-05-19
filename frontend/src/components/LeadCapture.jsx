@@ -1372,18 +1372,47 @@ export default function LeadCapture() {
     return { areaName, city, state, pincode };
   };
 
+  const validateLatLngRange = (lat, lng) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return 'Invalid coordinates. Please paste a valid latitude and longitude.';
+    if (lat < -90 || lat > 90) return 'Latitude must be between -90 and 90.';
+    if (lng < -180 || lng > 180) return 'Longitude must be between -180 and 180.';
+    return '';
+  };
+
   const parseLatLngFromGoogleUrl = (rawText) => {
     if (!rawText) return null;
-    const text = rawText.trim();
+    const text = String(rawText).trim();
+    if (!text) return null;
 
-    const atMatch = text.match(/@(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)/);
-    if (atMatch) return { lat: atMatch[1], lng: atMatch[3] };
+    const plainMatch = text.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+    if (plainMatch) {
+      const lat = Number(plainMatch[1]);
+      const lng = Number(plainMatch[2]);
+      const validationError = validateLatLngRange(lat, lng);
+      if (validationError) return { error: validationError };
+      return { lat: String(lat), lng: String(lng) };
+    }
+
+    const atMatch = text.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+    if (atMatch) {
+      const lat = Number(atMatch[1]);
+      const lng = Number(atMatch[2]);
+      const validationError = validateLatLngRange(lat, lng);
+      if (validationError) return { error: validationError };
+      return { lat: String(lat), lng: String(lng) };
+    }
 
     try {
       const url = new URL(text);
       const q = url.searchParams.get('q') || url.searchParams.get('query') || '';
-      const coordsMatch = q.match(/(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)/);
-      if (coordsMatch) return { lat: coordsMatch[1], lng: coordsMatch[3] };
+      const coordsMatch = q.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+      if (coordsMatch) {
+        const lat = Number(coordsMatch[1]);
+        const lng = Number(coordsMatch[2]);
+        const validationError = validateLatLngRange(lat, lng);
+        if (validationError) return { error: validationError };
+        return { lat: String(lat), lng: String(lng) };
+      }
     } catch {
       return null;
     }
@@ -1399,6 +1428,33 @@ export default function LeadCapture() {
     entry.billingArea,
     entry.shippingArea
   ].map((field) => normalizeSearchText(field)).filter(Boolean));
+
+  const applySearchCoordinates = (rawText) => {
+    const parsed = parseLatLngFromGoogleUrl(rawText);
+    if (!parsed) return false;
+
+    if (parsed.error) {
+      setSearchError(parsed.error);
+      setShowSearchSuggestions(false);
+      setSearchSuggestions([]);
+      setForm((prev) => ({
+        ...prev,
+        latitude: '',
+        longitude: ''
+      }));
+      return true;
+    }
+
+    setSearchError('');
+    setShowSearchSuggestions(false);
+    setSearchSuggestions([]);
+    setForm((prev) => ({
+      ...prev,
+      latitude: parsed.lat,
+      longitude: parsed.lng
+    }));
+    return true;
+  };
 
   const applySearchSuggestion = (place, queryText = '') => {
     const placeName = place.displayName?.text || place.displayName || '';
@@ -1502,6 +1558,10 @@ export default function LeadCapture() {
     setSearchError('');
 
     try {
+      if (applySearchCoordinates(query)) {
+        return;
+      }
+
       const isGoogleMapsLink = /^https?:\/\/(www\.)?(maps\.app\.goo\.gl|maps\.google\.com|google\.com\/maps)/i.test(query);
       if (isGoogleMapsLink) {
         try {
@@ -2820,11 +2880,13 @@ export default function LeadCapture() {
                         ref={searchAddressInputRef}
                         value={form.searchAddress}
                         style={{ ...s.in, marginBottom: 0, flex: 1, minWidth: 0 }}
-                        onChange={(e) => {
-                          setSearchError('');
+                      onChange={(e) => {
                           const value = e.target.value;
                           updateForm('searchAddress', value);
-                          fetchLiveSearchSuggestions(value);
+                          if (!applySearchCoordinates(value)) {
+                            setSearchError('');
+                            fetchLiveSearchSuggestions(value);
+                          }
                         }}
                         onFocus={() => setShowSearchSuggestions(searchSuggestions.length > 0)}
                         onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 160)}
