@@ -1462,7 +1462,7 @@ export default function Settings({ modalMode = false }) {
       </div>
 
       <div style={shell.divider} />
-      <h4 style={blockTitleStyle}>Branding</h4>
+      <h4 style={brandingSectionTitleStyle}>Branding</h4>
       <p style={{ ...shell.hint, fontSize: '14px' }}>Appearance and accent settings moved here from Branding tab.</p>
       <div style={{ ...shell.profileCard, borderStyle: 'solid' }}>
         <p style={{ ...shell.fieldLabel, margin: 0 }}>Live Preview</p>

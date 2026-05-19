@@ -1471,34 +1471,60 @@ const updateSettingsNextJobNumber = async (usedJobNumber, settings) => {
   }
 };
 
-const parseJobLogoPath = (dashboardImageUrl = '') => {
-  const raw = String(dashboardImageUrl || '').trim();
+const resolveJobPdfLogoPath = (input = '') => {
+  const raw = String(input || '').trim();
   if (!raw) return '';
-  if (raw.startsWith('/')) {
-    const direct = path.resolve(__dirname, `.${raw}`);
-    if (fs.existsSync(direct)) return direct;
-    const uploadIndex = raw.indexOf('/uploads/');
-    if (uploadIndex >= 0) {
-      const uploadRelative = raw.slice(uploadIndex + '/uploads/'.length).replace(/^\/+/, '');
-      const uploadPath = path.join(uploadsDir, uploadRelative);
-      if (fs.existsSync(uploadPath)) return uploadPath;
+  if (/^data:image\//i.test(raw)) return raw;
+
+  const candidateDirs = [
+    uploadsDir,
+    uploadsMirrorDir,
+    path.join(__dirname, '..', 'storage', 'uploads'),
+    path.join(__dirname, 'uploads'),
+    path.join(__dirname, '..', 'uploads'),
+    path.join(__dirname, '..', 'public', 'uploads')
+  ].filter(Boolean);
+
+  const findLocalFile = (name = '') => {
+    const decoded = (() => {
+      try { return decodeURIComponent(String(name || '').trim()); } catch (_error) { return String(name || '').trim(); }
+    })().replace(/\\/g, '/');
+    if (!decoded) return '';
+    const normalized = decoded.replace(/^\/?uploads\/?/, '').replace(/^\/+/, '');
+    if (!normalized || normalized.includes('..')) return '';
+    for (const dir of candidateDirs) {
+      const byRelative = path.join(dir, normalized);
+      if (fs.existsSync(byRelative)) return byRelative;
+      const byBaseName = path.join(dir, path.basename(normalized));
+      if (fs.existsSync(byBaseName)) return byBaseName;
     }
+    return '';
+  };
+
+  if (raw.startsWith('/uploads/')) {
+    const local = findLocalFile(raw.split('/uploads/')[1]);
+    if (local) return local;
+  }
+  if (raw.includes('/uploads/')) {
+    const local = findLocalFile(raw.split('/uploads/').pop());
+    if (local) return local;
+  }
+  if (raw.startsWith('/')) {
+    if (fs.existsSync(raw)) return raw;
+    const local = findLocalFile(raw);
+    if (local) return local;
   }
   if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
-    const cleanRelative = raw.replace(/^\/?uploads\/?/, '').replace(/^\/+/, '');
-    const byRelative = path.join(uploadsDir, cleanRelative);
-    if (fs.existsSync(byRelative)) return byRelative;
-    const byName = path.join(uploadsDir, path.basename(raw));
-    if (fs.existsSync(byName)) return byName;
+    const local = findLocalFile(raw);
+    if (local) return local;
     if (fs.existsSync(raw)) return raw;
   }
   try {
     const url = new URL(raw);
-    const pathname = url.pathname || '';
-    if (pathname.includes('/uploads/')) {
-      const uploadRelative = pathname.slice(pathname.indexOf('/uploads/') + '/uploads/'.length).replace(/^\/+/, '');
-      const local = path.join(uploadsDir, uploadRelative);
-      if (fs.existsSync(local)) return local;
+    const fileName = path.basename(url.pathname || '');
+    if (fileName) {
+      const local = findLocalFile(fileName);
+      if (local) return local;
     }
   } catch (_error) {
     if (fs.existsSync(raw)) return raw;
@@ -1507,8 +1533,16 @@ const parseJobLogoPath = (dashboardImageUrl = '') => {
 };
 
 const resolveGstCompanyLogoPath = (settings = {}) => {
-  const gstLogo = parseJobLogoPath(settings.gstCompanyLogoUrl || '');
-  if (gstLogo) return gstLogo;
+  const candidates = [
+    settings.gstCompanyLogoUrl,
+    settings.gstLogoUrl,
+    settings.gstBrandingLogoUrl,
+    settings.companyLogoUrl
+  ].map((value) => String(value || '').trim()).filter(Boolean);
+  for (const candidate of candidates) {
+    const resolved = resolveJobPdfLogoPath(candidate);
+    if (resolved) return resolved;
+  }
   return '';
 };
 
@@ -1530,6 +1564,7 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   const companyPhone = String(settings.gstPhone || settings.companyMobile || '').trim();
   const companyWebsite = String(settings.companyWebsite || '').trim();
   const companyGst = String(settings.companyGstNumber || settings.gstRegistrationNumber || '').trim();
+  const primaryColor = String(settings.brandingAccentColor || settings.primaryColor || settings.primary_color || '#9F174D').trim() || '#9F174D';
   const logoPath = resolveGstCompanyLogoPath(settings);
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
@@ -1547,12 +1582,12 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
 
   doc.font('Helvetica-Bold').fontSize(10.2);
   const companyNameWidth = doc.widthOfString(companyName);
-  const headerX = Math.max(left + 240, right - companyNameWidth);
+  const headerX = Math.max(left + 182, right - companyNameWidth);
   const headerWidth = right - headerX;
   const detailLineHeight = 9.1;
   const headerBoxHeight = 11.2 + (companyDetailLines.length * detailLineHeight);
-  const logoWidth = logo ? 100 : 0;
-  const logoHeight = logo ? 70 : 0;
+  const logoWidth = logo ? 84 : 0;
+  const logoHeight = logo ? 58 : 0;
   const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
 
   if (logo) {
@@ -1570,14 +1605,12 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
     doc.text(line, headerX, doc.y + 1, { width: headerWidth, align: 'left', lineGap: 0 });
   });
 
-  const headerBottomY = Math.max(doc.y + 8, 118);
-  doc.moveTo(left, headerBottomY).lineTo(right, headerBottomY).lineWidth(1).strokeColor('#cbd5e1').stroke();
-
-  doc.y = headerBottomY + 18;
+  const headerBottomY = Math.max(doc.y + 6, 112);
+  doc.y = headerBottomY + 12;
   doc
     .font('Helvetica-Bold')
-    .fontSize(18)
-    .fillColor('#0f172a')
+    .fontSize(16)
+    .fillColor(primaryColor)
     .text('Job Completion Card', left, doc.y, { width, align: 'center' });
 
   const fields = [
@@ -1598,16 +1631,86 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
     ['Completed At', String(job.completionCardGeneratedAt || '').trim() || '-']
   ];
 
-  let y = 178;
-  fields.forEach(([label, value]) => {
-    if (y > 760) {
+  const fieldTopY = doc.y + 14;
+  const colGap = 14;
+  const colWidth = (width - colGap) / 2;
+  const leftColX = left;
+  const rightColX = left + colWidth + colGap;
+  const rowHeight = 34;
+  const labelHeight = 10;
+  const valueHeight = 14;
+  const fullRowHeight = 52;
+  const renderPair = (y, leftField, rightField) => {
+    const renderBox = (x, label, value) => {
+      doc.roundedRect(x, y, colWidth, rowHeight, 8).lineWidth(0.8).strokeColor('#e2e8f0').stroke();
+      doc.font('Helvetica-Bold').fontSize(8.2).fillColor('#475569').text(label, x + 10, y + 8, { width: colWidth - 20, lineBreak: false });
+      doc.font('Helvetica').fontSize(10.1).fillColor('#0f172a').text(value, x + 10, y + 18, { width: colWidth - 20, lineBreak: false });
+    };
+    if (leftField) renderBox(leftColX, leftField[0], leftField[1]);
+    if (rightField) renderBox(rightColX, rightField[0], rightField[1]);
+  };
+  const renderFullRow = (y, label, value) => {
+    doc.roundedRect(left, y, width, fullRowHeight, 8).lineWidth(0.8).strokeColor('#e2e8f0').stroke();
+    doc.font('Helvetica-Bold').fontSize(8.2).fillColor('#475569').text(label, left + 10, y + 8, { width: width - 20, lineBreak: false });
+    doc.font('Helvetica').fontSize(9.8).fillColor('#0f172a').text(value, left + 10, y + 19, { width: width - 20 });
+  };
+
+  let y = fieldTopY;
+  const pageBottomLimit = doc.page.height - doc.page.margins.bottom - 42;
+  for (let i = 0; i < fields.length; i += 2) {
+    const leftField = fields[i];
+    const rightField = fields[i + 1];
+    const needsFullRow = leftField?.[0] === 'Address' || leftField?.[0] === 'Service' || rightField?.[0] === 'Address' || rightField?.[0] === 'Service';
+    if (needsFullRow) {
+      if (y + fullRowHeight > pageBottomLimit) {
+        doc.addPage();
+        y = 48;
+      }
+      if (leftField?.[0] === 'Address') {
+        renderFullRow(y, leftField[0], leftField[1]);
+        y += fullRowHeight + 8;
+        if (rightField) {
+          if (y + fullRowHeight > pageBottomLimit) {
+            doc.addPage();
+            y = 48;
+          }
+          renderFullRow(y, rightField[0], rightField[1]);
+          y += fullRowHeight + 8;
+        }
+      } else if (leftField?.[0] === 'Service') {
+        renderFullRow(y, leftField[0], leftField[1]);
+        y += fullRowHeight + 8;
+        if (rightField) {
+          if (y + fullRowHeight > pageBottomLimit) {
+            doc.addPage();
+            y = 48;
+          }
+          renderFullRow(y, rightField[0], rightField[1]);
+          y += fullRowHeight + 8;
+        }
+      } else {
+        if (rightField?.[0] === 'Address' || rightField?.[0] === 'Service') {
+          renderFullRow(y, rightField[0], rightField[1]);
+          y += fullRowHeight + 8;
+          if (leftField) {
+            if (y + fullRowHeight > pageBottomLimit) {
+              doc.addPage();
+              y = 48;
+            }
+            renderFullRow(y, leftField[0], leftField[1]);
+            y += fullRowHeight + 8;
+          }
+        }
+      }
+      continue;
+    }
+    if (y + rowHeight > pageBottomLimit) {
       doc.addPage();
       y = 48;
     }
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#334155').text(`${label}:`, 42, y, { width: 150 });
-    doc.font('Helvetica').fontSize(10).fillColor('#0f172a').text(value, 190, y, { width: 363 });
-    y = doc.y + 5;
-  });
+    renderPair(y, leftField, rightField);
+    y += rowHeight + 8;
+  }
 
   doc.end();
 });
