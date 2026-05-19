@@ -28,7 +28,9 @@ export default function MapPicker({
   longitude,
   onLocationChange,
   height = 180,
-  onMapError
+  onMapError,
+  markerTitle = 'Lead location',
+  unavailableMessage = 'Map preview unavailable. You can still save the lead manually.'
 }) {
   const mapNodeRef = useRef(null);
   const mapRef = useRef(null);
@@ -115,7 +117,7 @@ export default function MapPicker({
                 map: mapRef.current,
                 position: center,
                 gmpDraggable: true,
-                title: 'Lead location'
+                title: markerTitle
               });
             } catch {
               markerRef.current = null;
@@ -127,7 +129,7 @@ export default function MapPicker({
               map: mapRef.current,
               position: center,
               draggable: true,
-              title: 'Lead location'
+              title: markerTitle
             });
           }
 
@@ -229,7 +231,7 @@ export default function MapPicker({
             <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: '12px', textAlign: 'center', background: 'linear-gradient(180deg, rgba(248,250,252,0.96), rgba(241,245,249,0.92))', color: '#475569', fontSize: '12px', fontWeight: 700, lineHeight: 1.45 }}>
               {readyState === 'loading'
                 ? 'Loading Google Map preview...'
-                : 'Map preview unavailable. You can still save the lead manually.'}
+                : unavailableMessage}
             </div>
           ) : null}
         </div>

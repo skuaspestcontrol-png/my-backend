@@ -4262,7 +4262,7 @@ app.get('/api/customers', async (req, res) => {
 app.post('/api/customers', async (req, res) => {
   try {
     const body = normalizePhoneFields(req.body, [
-      'mobileNumber', 'workPhone', 'whatsappNumber', 'altNumber', 'billingPhone', 'shippingPhone', 'googlePhone', 'google_phone'
+      'mobileNumber', 'workPhone', 'whatsappNumber', 'altNumber', 'billingPhone', 'shippingPhone', 'billingGooglePhone', 'googlePhone', 'google_phone'
     ]);
     const allowFallback = isCustomersJsonFallbackEnabled();
     const positionValue = body.position === 'Edit type'
@@ -4274,7 +4274,7 @@ app.post('/api/customers', async (req, res) => {
     const altNumberValue = body.altNumber || '';
     const billingPhoneValue = body.billingPhone || '';
     const shippingPhoneValue = body.shippingPhone || '';
-    const googlePhoneValue = body.googlePhone || body.google_phone || '';
+    const googlePhoneValue = body.googlePhone || body.google_phone || body.billingGooglePhone || '';
     const billingStateValue = body.billingState || body.state || body.placeOfSupply || '';
     const hasGstValue = !!body.hasGst || !!body.gstRegistered;
     const displayNameValue =
@@ -4303,22 +4303,34 @@ app.post('/api/customers', async (req, res) => {
       gstRegistered: hasGstValue,
       gstNumber: hasGstValue ? (body.gstNumber || '') : '',
       billingAttention: body.billingAttention || '',
+      billingSearchAddress: body.billingSearchAddress || '',
       billingStreet1: body.billingStreet1 || '',
       billingStreet2: body.billingStreet2 || '',
       billingAddress: body.billingAddress || '',
       billingArea: body.billingArea || body.area || '',
       billingState: billingStateValue,
       billingPincode: body.billingPincode || body.pincode || '',
+      billingLatitude: body.billingLatitude || body.latitude || '',
+      billingLongitude: body.billingLongitude || body.longitude || '',
+      billingGooglePlaceId: body.billingGooglePlaceId || body.googlePlaceId || body.google_place_id || '',
+      billingGooglePlaceName: body.billingGooglePlaceName || body.googlePlaceName || body.google_place_name || '',
+      billingGooglePhone: body.billingGooglePhone || googlePhoneValue,
+      billingGoogleWebsite: body.billingGoogleWebsite || body.googleWebsite || body.google_website || '',
       billingPhoneCode: body.billingPhoneCode || '+91',
       billingPhone: billingPhoneValue,
       shippingSameAsBilling: !!body.shippingSameAsBilling,
       shippingAttention: body.shippingAttention || '',
+      shippingSearchAddress: body.shippingSearchAddress || '',
       shippingStreet1: body.shippingStreet1 || '',
       shippingStreet2: body.shippingStreet2 || '',
       shippingAddress: body.shippingAddress || '',
       shippingArea: body.shippingArea || '',
       shippingState: body.shippingState || '',
       shippingPincode: body.shippingPincode || '',
+      shippingLatitude: body.shippingLatitude || '',
+      shippingLongitude: body.shippingLongitude || '',
+      shippingGooglePlaceId: body.shippingGooglePlaceId || '',
+      shippingGooglePlaceName: body.shippingGooglePlaceName || '',
       shippingPhoneCode: body.shippingPhoneCode || '+91',
       shippingPhone: shippingPhoneValue,
       area: body.area || '',
@@ -4329,12 +4341,12 @@ app.post('/api/customers', async (req, res) => {
       placeOfSupply: billingStateValue,
       receivables: Number(body.receivables || 0),
       unusedCredits: Number(body.unusedCredits || 0),
-      googlePlaceId: body.googlePlaceId || body.google_place_id || '',
-      googlePlaceName: body.googlePlaceName || body.google_place_name || '',
+      googlePlaceId: body.googlePlaceId || body.google_place_id || body.billingGooglePlaceId || '',
+      googlePlaceName: body.googlePlaceName || body.google_place_name || body.billingGooglePlaceName || '',
       googlePhone: googlePhoneValue,
-      googleWebsite: body.googleWebsite || body.google_website || '',
-      latitude: body.latitude || '',
-      longitude: body.longitude || '',
+      googleWebsite: body.googleWebsite || body.google_website || body.billingGoogleWebsite || '',
+      latitude: body.latitude || body.billingLatitude || '',
+      longitude: body.longitude || body.billingLongitude || '',
       createdAt: nowIso
     };
 
@@ -4529,7 +4541,7 @@ app.post('/api/customers/:customerId/premises/:premiseId/set-default', async (re
 app.put('/api/customers/:id', async (req, res) => {
   try {
     const body = normalizePhoneFields(req.body, [
-      'mobileNumber', 'workPhone', 'whatsappNumber', 'altNumber', 'billingPhone', 'shippingPhone', 'googlePhone', 'google_phone'
+      'mobileNumber', 'workPhone', 'whatsappNumber', 'altNumber', 'billingPhone', 'shippingPhone', 'billingGooglePhone', 'googlePhone', 'google_phone'
     ]);
     console.log('[Customers API] update request:', {
       id: req.params.id,
@@ -4617,7 +4629,24 @@ app.put('/api/customers/:id', async (req, res) => {
       altNumber: body.altNumber ?? existingCustomer.altNumber ?? '',
       billingPhone: body.billingPhone ?? existingCustomer.billingPhone ?? '',
       shippingPhone: body.shippingPhone ?? existingCustomer.shippingPhone ?? '',
-      googlePhone: body.googlePhone ?? body.google_phone ?? existingCustomer.googlePhone ?? existingCustomer.google_phone ?? '',
+      billingSearchAddress: body.billingSearchAddress ?? existingCustomer.billingSearchAddress ?? '',
+      billingLatitude: body.billingLatitude ?? body.latitude ?? existingCustomer.billingLatitude ?? existingCustomer.latitude ?? '',
+      billingLongitude: body.billingLongitude ?? body.longitude ?? existingCustomer.billingLongitude ?? existingCustomer.longitude ?? '',
+      billingGooglePlaceId: body.billingGooglePlaceId ?? body.googlePlaceId ?? body.google_place_id ?? existingCustomer.billingGooglePlaceId ?? existingCustomer.googlePlaceId ?? existingCustomer.google_place_id ?? '',
+      billingGooglePlaceName: body.billingGooglePlaceName ?? body.googlePlaceName ?? body.google_place_name ?? existingCustomer.billingGooglePlaceName ?? existingCustomer.googlePlaceName ?? existingCustomer.google_place_name ?? '',
+      billingGooglePhone: body.billingGooglePhone ?? body.googlePhone ?? body.google_phone ?? existingCustomer.billingGooglePhone ?? existingCustomer.googlePhone ?? existingCustomer.google_phone ?? '',
+      billingGoogleWebsite: body.billingGoogleWebsite ?? body.googleWebsite ?? body.google_website ?? existingCustomer.billingGoogleWebsite ?? existingCustomer.googleWebsite ?? existingCustomer.google_website ?? '',
+      shippingSearchAddress: body.shippingSearchAddress ?? existingCustomer.shippingSearchAddress ?? '',
+      shippingLatitude: body.shippingLatitude ?? existingCustomer.shippingLatitude ?? '',
+      shippingLongitude: body.shippingLongitude ?? existingCustomer.shippingLongitude ?? '',
+      shippingGooglePlaceId: body.shippingGooglePlaceId ?? existingCustomer.shippingGooglePlaceId ?? '',
+      shippingGooglePlaceName: body.shippingGooglePlaceName ?? existingCustomer.shippingGooglePlaceName ?? '',
+      googlePlaceId: body.googlePlaceId ?? body.google_place_id ?? body.billingGooglePlaceId ?? existingCustomer.googlePlaceId ?? existingCustomer.google_place_id ?? existingCustomer.billingGooglePlaceId ?? '',
+      googlePlaceName: body.googlePlaceName ?? body.google_place_name ?? body.billingGooglePlaceName ?? existingCustomer.googlePlaceName ?? existingCustomer.google_place_name ?? existingCustomer.billingGooglePlaceName ?? '',
+      googlePhone: body.googlePhone ?? body.google_phone ?? body.billingGooglePhone ?? existingCustomer.googlePhone ?? existingCustomer.google_phone ?? existingCustomer.billingGooglePhone ?? '',
+      googleWebsite: body.googleWebsite ?? body.google_website ?? body.billingGoogleWebsite ?? existingCustomer.googleWebsite ?? existingCustomer.google_website ?? existingCustomer.billingGoogleWebsite ?? '',
+      latitude: body.latitude ?? body.billingLatitude ?? existingCustomer.latitude ?? existingCustomer.billingLatitude ?? '',
+      longitude: body.longitude ?? body.billingLongitude ?? existingCustomer.longitude ?? existingCustomer.billingLongitude ?? '',
       billingArea: body.billingArea ?? body.area ?? existingCustomer.billingArea ?? existingCustomer.area ?? '',
       billingState: body.billingState ?? body.state ?? body.placeOfSupply ?? existingCustomer.billingState ?? existingCustomer.state ?? existingCustomer.placeOfSupply ?? '',
       billingPincode: body.billingPincode ?? body.pincode ?? existingCustomer.billingPincode ?? existingCustomer.pincode ?? '',

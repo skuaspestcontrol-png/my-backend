@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, X } from 'lucide-react';
+import { ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, X } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
+import MapPicker from './MapPicker';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { attachPlacesAutocomplete, loadGooglePlacesScript } from '../utils/googlePlaces';
 import {
@@ -175,6 +176,11 @@ const stateOptions = [
 ];
 const positionOptions = ['Owner', 'Manager', 'Edit type'];
 
+const createAddressSearchState = () => ({
+  billing: { error: '', suggestions: [], showSuggestions: false, fetching: false },
+  shipping: { error: '', suggestions: [], showSuggestions: false, fetching: false }
+});
+
 const emptyForm = {
   segment: 'Residential',
   companyName: '',
@@ -190,22 +196,34 @@ const emptyForm = {
   hasGst: false,
   gstNumber: '',
   billingAttention: '',
+  billingSearchAddress: '',
   billingStreet1: '',
   billingStreet2: '',
   billingAddress: '',
   billingArea: '',
   billingState: 'Delhi',
   billingPincode: '',
+  billingLatitude: '',
+  billingLongitude: '',
+  billingGooglePlaceId: '',
+  billingGooglePlaceName: '',
+  billingGooglePhone: '',
+  billingGoogleWebsite: '',
   billingPhoneCode: '+91',
   billingPhone: '',
   shippingSameAsBilling: false,
   shippingAttention: '',
+  shippingSearchAddress: '',
   shippingStreet1: '',
   shippingStreet2: '',
   shippingAddress: '',
   shippingArea: '',
   shippingState: 'Delhi',
   shippingPincode: '',
+  shippingLatitude: '',
+  shippingLongitude: '',
+  shippingGooglePlaceId: '',
+  shippingGooglePlaceName: '',
   shippingPhoneCode: '+91',
   shippingPhone: '',
   areaSqft: '',
@@ -362,6 +380,7 @@ export default function CustomerDashboard() {
   const [similarCustomers, setSimilarCustomers] = useState([]);
   const [similarLoading, setSimilarLoading] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [addressSearchState, setAddressSearchState] = useState(createAddressSearchState);
   const [visibleColumns, setVisibleColumns] = useState(() => {
     const saved = localStorage.getItem('customers_visible_columns');
     return saved ? JSON.parse(saved) : defaultVisibleColumns;
@@ -380,6 +399,9 @@ export default function CustomerDashboard() {
   const resizeStateRef = useRef(null);
   const companyNameInputRef = useRef(null);
   const billingAreaInputRef = useRef(null);
+  const billingSearchInputRef = useRef(null);
+  const shippingSearchInputRef = useRef(null);
+  const addressSuggestionSeqRef = useRef({ billing: 0, shipping: 0 });
 
   const visibleColumnDefs = useMemo(
     () => allColumns.filter((column) => visibleColumns.includes(column.key)),
@@ -406,7 +428,19 @@ export default function CustomerDashboard() {
       mobileNumber,
       whatsappNumber,
       altNumber,
+      billingSearchAddress: String(next.billingSearchAddress || next.searchAddress || next.billingAddress || next.address || '').trim(),
+      billingLatitude: String(next.billingLatitude || next.latitude || '').trim(),
+      billingLongitude: String(next.billingLongitude || next.longitude || '').trim(),
+      billingGooglePlaceId: String(next.billingGooglePlaceId || next.googlePlaceId || '').trim(),
+      billingGooglePlaceName: String(next.billingGooglePlaceName || next.googlePlaceName || '').trim(),
+      billingGooglePhone: String(next.billingGooglePhone || next.googlePhone || '').trim(),
+      billingGoogleWebsite: String(next.billingGoogleWebsite || next.googleWebsite || '').trim(),
       billingPincode: toSixDigitPincode(next.billingPincode || next.pincode || ''),
+      shippingSearchAddress: String(next.shippingSearchAddress || next.shippingAddress || '').trim(),
+      shippingLatitude: String(next.shippingLatitude || '').trim(),
+      shippingLongitude: String(next.shippingLongitude || '').trim(),
+      shippingGooglePlaceId: String(next.shippingGooglePlaceId || '').trim(),
+      shippingGooglePlaceName: String(next.shippingGooglePlaceName || '').trim(),
       shippingPincode: toSixDigitPincode(next.shippingPincode || ''),
       whatsappSameAsMobile: Boolean(next.whatsappSameAsMobile) || (whatsappNumber && whatsappNumber === mobileNumber),
       hasGst,
@@ -481,6 +515,7 @@ export default function CustomerDashboard() {
 
     setEditingId(null);
     setForm(normalizeIncomingCustomerPrefill(incomingState.prefillCustomerFromLead));
+    setAddressSearchState(createAddressSearchState());
     setSaveError('');
     setShowModal(true);
     navigate(location.pathname, { replace: true, state: null });
@@ -495,6 +530,10 @@ export default function CustomerDashboard() {
   }, [columnWidths]);
 
   useEffect(() => {
+    if (!showModal) setAddressSearchState(createAddressSearchState());
+  }, [showModal]);
+
+  useEffect(() => {
     if (!showModal) return () => {};
     let cleanups = [];
 
@@ -502,21 +541,7 @@ export default function CustomerDashboard() {
       const companyCleanup = await attachPlacesAutocomplete({
         input: companyNameInputRef.current,
         onSelected: (place) => {
-          setForm((prev) => ({
-            ...prev,
-            companyName: place.name || prev.companyName,
-            billingStreet1: place.formatted_address || prev.billingStreet1,
-            billingAddress: place.formatted_address || prev.billingAddress,
-            billingArea: place.areaName || prev.billingArea,
-            billingState: place.state || prev.billingState,
-            billingPincode: place.pincode ? toSixDigitPincode(place.pincode) : prev.billingPincode,
-            googlePlaceId: place.place_id || prev.googlePlaceId,
-            googlePlaceName: place.name || prev.googlePlaceName,
-            googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
-            googleWebsite: place.website || prev.googleWebsite,
-            latitude: place.latitude !== null ? String(place.latitude) : prev.latitude,
-            longitude: place.longitude !== null ? String(place.longitude) : prev.longitude
-          }));
+          applyCustomerAddressSuggestion('billing', place, place.formatted_address || place.name || '', { updateCompanyName: true });
         },
         onError: (error) => alert(error?.message || 'Google Maps API key not configured'),
         onRequireSelection: (message) => alert(message || 'Please select address/company from suggestions')
@@ -525,27 +550,53 @@ export default function CustomerDashboard() {
       const billingCleanup = await attachPlacesAutocomplete({
         input: billingAreaInputRef.current,
         onSelected: (place) => {
-          setForm((prev) => ({
-            ...prev,
-            companyName: prev.companyName || place.name || '',
-            billingStreet1: place.formatted_address || prev.billingStreet1,
-            billingAddress: place.formatted_address || prev.billingAddress,
-            billingArea: place.areaName || prev.billingArea,
-            billingState: place.state || prev.billingState,
-            billingPincode: place.pincode ? toSixDigitPincode(place.pincode) : prev.billingPincode,
-            googlePlaceId: place.place_id || prev.googlePlaceId,
-            googlePlaceName: place.name || prev.googlePlaceName,
-            googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
-            googleWebsite: place.website || prev.googleWebsite,
-            latitude: place.latitude !== null ? String(place.latitude) : prev.latitude,
-            longitude: place.longitude !== null ? String(place.longitude) : prev.longitude
-          }));
+          applyCustomerAddressSuggestion('billing', place, place.formatted_address || place.name || '', { fillCompanyNameIfEmpty: true });
         },
         onError: (error) => alert(error?.message || 'Google Maps API key not configured'),
         onRequireSelection: (message) => alert(message || 'Please select address/company from suggestions')
       });
 
-      cleanups = [companyCleanup, billingCleanup];
+      const billingSearchCleanup = await attachPlacesAutocomplete({
+        input: billingSearchInputRef.current,
+        onSelected: (place) => {
+          const queryText = String(billingSearchInputRef.current?.value || place.formatted_address || place.name || '').trim();
+          applyCustomerAddressSuggestion('billing', place, queryText);
+          setAddressSearchState((prev) => ({
+            ...prev,
+            billing: { ...prev.billing, error: '', suggestions: [], showSuggestions: false }
+          }));
+        },
+        onError: () => setAddressSearchState((prev) => ({
+          ...prev,
+          billing: { ...prev.billing, error: '' }
+        })),
+        onRequireSelection: (message) => setAddressSearchState((prev) => ({
+          ...prev,
+          billing: { ...prev.billing, error: message || 'Please select address/company from suggestions' }
+        }))
+      });
+
+      const shippingSearchCleanup = await attachPlacesAutocomplete({
+        input: shippingSearchInputRef.current,
+        onSelected: (place) => {
+          const queryText = String(shippingSearchInputRef.current?.value || place.formatted_address || place.name || '').trim();
+          applyCustomerAddressSuggestion('shipping', place, queryText);
+          setAddressSearchState((prev) => ({
+            ...prev,
+            shipping: { ...prev.shipping, error: '', suggestions: [], showSuggestions: false }
+          }));
+        },
+        onError: () => setAddressSearchState((prev) => ({
+          ...prev,
+          shipping: { ...prev.shipping, error: '' }
+        })),
+        onRequireSelection: (message) => setAddressSearchState((prev) => ({
+          ...prev,
+          shipping: { ...prev.shipping, error: message || 'Please select address/company from suggestions' }
+        }))
+      });
+
+      cleanups = [companyCleanup, billingCleanup, billingSearchCleanup, shippingSearchCleanup];
     };
 
     initPlaces();
@@ -758,12 +809,17 @@ export default function CustomerDashboard() {
 
   const copyBillingToShipping = (source) => ({
     shippingAttention: source.billingAttention,
+    shippingSearchAddress: source.billingSearchAddress,
     shippingStreet1: source.billingStreet1,
     shippingStreet2: source.billingStreet2,
     shippingAddress: source.billingAddress,
     shippingArea: source.billingArea,
     shippingState: source.billingState,
     shippingPincode: source.billingPincode,
+    shippingLatitude: source.billingLatitude || source.latitude,
+    shippingLongitude: source.billingLongitude || source.longitude,
+    shippingGooglePlaceId: source.billingGooglePlaceId || source.googlePlaceId,
+    shippingGooglePlaceName: source.billingGooglePlaceName || source.googlePlaceName,
     shippingPhoneCode: source.billingPhoneCode,
     shippingPhone: source.billingPhone
   });
@@ -772,6 +828,7 @@ export default function CustomerDashboard() {
     setForm((prev) => {
       const nextValue = key === 'billingPincode' ? toSixDigitPincode(value) : value;
       const next = { ...prev, [key]: nextValue };
+      if (key === 'billingStreet1') next.billingAddress = nextValue;
       if (prev.shippingSameAsBilling) {
         return { ...next, ...copyBillingToShipping(next) };
       }
@@ -779,103 +836,479 @@ export default function CustomerDashboard() {
     });
   };
 
-  const enrichBillingAddressFromLatLng = async (lat, lng) => {
+  const updateShippingField = (key, value) => {
+    setForm((prev) => {
+      const nextValue = key === 'shippingPincode' ? toSixDigitPincode(value) : value;
+      const next = { ...prev, [key]: nextValue };
+      if (key === 'shippingStreet1') next.shippingAddress = nextValue;
+      return next;
+    });
+  };
+
+  const setSectionAddressSearchState = (section, patch) => {
+    const target = section === 'shipping' ? 'shipping' : 'billing';
+    setAddressSearchState((prev) => {
+      const current = prev[target] || {};
+      const nextPatch = typeof patch === 'function' ? patch(current) : patch;
+      return {
+        ...prev,
+        [target]: {
+          ...current,
+          ...(nextPatch || {})
+        }
+      };
+    });
+  };
+
+  const validateLatLngRange = (lat, lng) => {
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) {
+      return 'Invalid coordinates. Please paste a valid latitude and longitude.';
+    }
+    if (Number(lat) < -90 || Number(lat) > 90) return 'Latitude must be between -90 and 90.';
+    if (Number(lng) < -180 || Number(lng) > 180) return 'Longitude must be between -180 and 180.';
+    return '';
+  };
+
+  const validateCoordinatePair = (label, lat, lng) => {
+    const latText = String(lat || '').trim();
+    const lngText = String(lng || '').trim();
+    if (!latText && !lngText) return '';
+    if (!latText || !lngText) return `${label} latitude and longitude must both be provided.`;
+    const rangeError = validateLatLngRange(latText, lngText);
+    return rangeError ? `${label}: ${rangeError}` : '';
+  };
+
+  const parseLatLngFromGoogleUrl = (rawText) => {
+    const parsed = extractGoogleMapsCoordinates(rawText);
+    if (!parsed) return null;
+    const validationError = validateLatLngRange(parsed.latitude, parsed.longitude);
+    if (validationError) return { error: validationError };
+    return {
+      latitude: String(parsed.latitude),
+      longitude: String(parsed.longitude)
+    };
+  };
+
+  const getAddressPart = (components = [], ...types) => {
+    for (const type of types) {
+      const part = components.find((component) => Array.isArray(component?.types) && component.types.includes(type));
+      const value = part?.long_name || part?.longText || part?.short_name || part?.shortText || '';
+      if (value) return String(value).trim();
+    }
+    return '';
+  };
+
+  const extractCustomerAddressFields = (best = {}) => {
+    const components = Array.isArray(best.address_components)
+      ? best.address_components
+      : Array.isArray(best.addressComponents)
+        ? best.addressComponents
+        : [];
+    const formattedAddress = String(best.formatted_address || best.formattedAddress || best.formatted_address || '').trim();
+
+    let areaName = String(best.areaName || best.area || '').trim();
+    let city = String(best.city || '').trim();
+    let state = String(best.state || '').trim();
+    let pincode = String(best.pincode || best.pinCode || best.postalCode || best.postal_code || best.zip || '').trim();
+
+    if (!areaName) {
+      areaName = getAddressPart(
+        components,
+        'sublocality_level_1',
+        'sublocality_level_2',
+        'sublocality',
+        'neighborhood',
+        'premise',
+        'route'
+      );
+    }
+    if (!city) {
+      city = getAddressPart(
+        components,
+        'locality',
+        'postal_town',
+        'administrative_area_level_3',
+        'administrative_area_level_2'
+      );
+    }
+    if (!state) state = getAddressPart(components, 'administrative_area_level_1');
+    if (!pincode) pincode = getAddressPart(components, 'postal_code', 'postal_code_suffix');
+    if (!pincode && formattedAddress) {
+      pincode = String(formattedAddress.match(/\b[1-9][0-9]{5}\b/)?.[0] || '').trim();
+    }
+
+    if ((!city || !state) && formattedAddress) {
+      const parts = formattedAddress.split(',').map((part) => part.trim()).filter(Boolean);
+      if (!city && parts.length >= 3) city = parts[parts.length - 3] || city;
+      if (!state && parts.length >= 2) {
+        const statePart = parts[parts.length - 2] || '';
+        const stateMatch = statePart.match(/^([A-Za-z\s]+?)(?:\s+\d{6})?$/);
+        state = (stateMatch?.[1] || statePart).trim() || state;
+      }
+    }
+
+    return {
+      areaName,
+      city,
+      state,
+      pincode: toSixDigitPincode(pincode)
+    };
+  };
+
+  const getCustomerPlaceLatLng = (place = {}) => {
+    const rawLat = place.latitude ?? (typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat);
+    const rawLng = place.longitude ?? (typeof place.location?.lng === 'function' ? place.location.lng() : place.location?.lng);
+    const lat = Number(rawLat);
+    const lng = Number(rawLng);
+    return {
+      lat: Number.isFinite(lat) ? lat : null,
+      lng: Number.isFinite(lng) ? lng : null
+    };
+  };
+
+  const buildCustomerAddressPatch = (section, data = {}, prev = {}) => {
+    const isShipping = section === 'shipping';
+    const prefix = isShipping ? 'shipping' : 'billing';
+    const searchKey = `${prefix}SearchAddress`;
+    const streetKey = `${prefix}Street1`;
+    const addressKey = `${prefix}Address`;
+    const areaKey = `${prefix}Area`;
+    const stateKey = `${prefix}State`;
+    const pincodeKey = `${prefix}Pincode`;
+    const latitudeKey = `${prefix}Latitude`;
+    const longitudeKey = `${prefix}Longitude`;
+    const placeIdKey = `${prefix}GooglePlaceId`;
+    const placeNameKey = `${prefix}GooglePlaceName`;
+    const address = String(data.address || data.formattedAddress || '').trim();
+    const area = String(data.areaName || data.city || '').trim();
+    const state = String(data.state || '').trim();
+    const pincode = toSixDigitPincode(data.pincode || '');
+    const placeId = String(data.placeId || data.googlePlaceId || '').trim();
+    const placeName = String(data.placeName || data.googlePlaceName || '').trim();
+    const lat = data.latitude !== null && data.latitude !== undefined && data.latitude !== '' ? String(data.latitude).trim() : '';
+    const lng = data.longitude !== null && data.longitude !== undefined && data.longitude !== '' ? String(data.longitude).trim() : '';
+    const searchAddress = data.preserveSearchAddress
+      ? prev[searchKey]
+      : String(data.searchAddress || address || placeName || prev[searchKey] || '').trim();
+
+    const patch = {};
+    if (searchAddress !== undefined) patch[searchKey] = searchAddress;
+    if (address) {
+      patch[streetKey] = address;
+      patch[addressKey] = address;
+    }
+    if (area) patch[areaKey] = area;
+    if (state) patch[stateKey] = state;
+    if (pincode) patch[pincodeKey] = pincode;
+    if (lat && lng) {
+      patch[latitudeKey] = lat;
+      patch[longitudeKey] = lng;
+    }
+    if (placeId) patch[placeIdKey] = placeId;
+    if (placeName) patch[placeNameKey] = placeName;
+
+    if (!isShipping) {
+      if (lat && lng) {
+        patch.latitude = lat;
+        patch.longitude = lng;
+      }
+      if (placeId) patch.googlePlaceId = placeId;
+      if (placeName) patch.googlePlaceName = placeName;
+      if (data.googlePhone) {
+        patch.googlePhone = String(data.googlePhone || '').trim();
+        patch.billingGooglePhone = String(data.googlePhone || '').trim();
+      }
+      if (data.googleWebsite) {
+        patch.googleWebsite = String(data.googleWebsite || '').trim();
+        patch.billingGoogleWebsite = String(data.googleWebsite || '').trim();
+      }
+    }
+
+    return patch;
+  };
+
+  const applyCustomerAddressPatch = (section, data = {}, options = {}) => {
+    setForm((prev) => {
+      const patch = buildCustomerAddressPatch(section, data, prev);
+      if (section !== 'shipping') {
+        if (options.updateCompanyName) patch.companyName = data.placeName || prev.companyName;
+        if (options.fillCompanyNameIfEmpty) patch.companyName = prev.companyName || data.placeName || '';
+      }
+      const next = { ...prev, ...patch };
+      if (section !== 'shipping' && prev.shippingSameAsBilling) {
+        return { ...next, ...copyBillingToShipping(next) };
+      }
+      return next;
+    });
+  };
+
+  const applyCustomerAddressSuggestion = (section, place = {}, queryText = '', options = {}) => {
+    const placeName = place.displayName?.text || place.displayName || place.name || '';
+    const address = place.formattedAddress || place.formatted_address || '';
+    const googlePhone = place.nationalPhoneNumber || place.internationalPhoneNumber || place.formatted_phone_number || place.international_phone_number || '';
+    const googleWebsite = place.websiteURI || place.website || '';
+    const { lat, lng } = getCustomerPlaceLatLng(place);
+    const extracted = extractCustomerAddressFields(place);
+    applyCustomerAddressPatch(section, {
+      searchAddress: address || placeName || queryText,
+      address,
+      areaName: extracted.areaName,
+      city: extracted.city,
+      state: extracted.state,
+      pincode: extracted.pincode,
+      latitude: lat,
+      longitude: lng,
+      placeId: place.id || place.place_id || '',
+      placeName,
+      googlePhone,
+      googleWebsite
+    }, options);
+
+    if (lat !== null && lng !== null) {
+      void enrichCustomerAddressFromLatLng(section, lat, lng);
+    }
+  };
+
+  const enrichCustomerAddressFromLatLng = async (section, lat, lng, { preserveSearchAddress = false } = {}) => {
     try {
       await loadGooglePlacesScript();
     } catch {
       // Continue; geocoder may still already be available.
     }
-    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || !window.google?.maps?.Geocoder) return null;
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return null;
+    if (!window.google?.maps?.Geocoder) {
+      applyCustomerAddressPatch(section, { latitude: lat, longitude: lng, preserveSearchAddress });
+      return null;
+    }
     try {
       const geocoder = new window.google.maps.Geocoder();
       const response = await geocoder.geocode({ location: { lat: Number(lat), lng: Number(lng) } });
       const first = response?.results?.[0];
       if (!first) return null;
 
-      const components = Array.isArray(first.address_components) ? first.address_components : [];
-      const findPart = (...types) => {
-        for (const type of types) {
-          const part = components.find((component) => Array.isArray(component.types) && component.types.includes(type));
-          const value = part?.long_name || part?.longText || part?.short_name || part?.shortText || '';
-          if (value) return String(value).trim();
-        }
-        return '';
-      };
-
       const formattedAddress = String(first.formatted_address || '').trim();
-      const areaName = findPart('sublocality_level_1', 'sublocality_level_2', 'sublocality', 'neighborhood', 'premise', 'route');
-      const city = findPart('locality', 'postal_town', 'administrative_area_level_3', 'administrative_area_level_2');
-      const state = findPart('administrative_area_level_1');
-      const pincode = findPart('postal_code')
-        || String(formattedAddress.match(/\b[1-9][0-9]{5}\b/)?.[0] || '').trim();
-
-      setForm((prev) => {
-        const nextBillingPincode = toSixDigitPincode(pincode || prev.billingPincode || '');
-        const next = {
-          ...prev,
-          billingStreet1: formattedAddress || prev.billingStreet1,
-          billingAddress: formattedAddress || prev.billingAddress,
-          billingArea: areaName || prev.billingArea,
-          billingState: state || prev.billingState,
-          billingPincode: nextBillingPincode,
-          latitude: String(lat),
-          longitude: String(lng)
-        };
-        return prev.shippingSameAsBilling ? { ...next, ...copyBillingToShipping(next) } : next;
+      const extracted = extractCustomerAddressFields({
+        formatted_address: formattedAddress,
+        address_components: first.address_components
+      });
+      applyCustomerAddressPatch(section, {
+        address: formattedAddress,
+        areaName: extracted.areaName,
+        city: extracted.city,
+        state: extracted.state,
+        pincode: extracted.pincode,
+        latitude: lat,
+        longitude: lng,
+        preserveSearchAddress
       });
 
       return {
         formattedAddress,
-        areaName,
-        city,
-        state,
-        pincode
+        ...extracted
       };
     } catch {
       return null;
     }
   };
 
-  const resolveCustomerMapInput = async (rawValue, { sourceField = 'billingArea' } = {}) => {
+  const applyCustomerCoordinates = (section, rawText) => {
+    const parsed = parseLatLngFromGoogleUrl(rawText);
+    if (!parsed) return false;
+
+    if (parsed.error) {
+      setSectionAddressSearchState(section, { error: parsed.error, suggestions: [], showSuggestions: false });
+      setForm((prev) => {
+        const isShipping = section === 'shipping';
+        const patch = isShipping
+          ? { shippingLatitude: '', shippingLongitude: '' }
+          : { billingLatitude: '', billingLongitude: '', latitude: '', longitude: '' };
+        const next = { ...prev, ...patch };
+        return !isShipping && prev.shippingSameAsBilling ? { ...next, ...copyBillingToShipping(next) } : next;
+      });
+      return true;
+    }
+
+    setSectionAddressSearchState(section, { error: '', suggestions: [], showSuggestions: false });
+    applyCustomerAddressPatch(section, {
+      latitude: parsed.latitude,
+      longitude: parsed.longitude,
+      preserveSearchAddress: true
+    });
+    void enrichCustomerAddressFromLatLng(section, parsed.latitude, parsed.longitude, { preserveSearchAddress: true });
+    return true;
+  };
+
+  const resolveCustomerAddressSearchInput = async (section, rawValue, { preserveSearchAddress = true } = {}) => {
     const text = String(rawValue || '').trim();
     if (!text) return false;
 
-    const coords = extractGoogleMapsCoordinates(text);
-    if (coords && Number.isFinite(coords.latitude) && Number.isFinite(coords.longitude)) {
-      const resolved = await enrichBillingAddressFromLatLng(coords.latitude, coords.longitude);
-      if (resolved) return true;
-    }
+    if (applyCustomerCoordinates(section, text)) return true;
 
     if (!isAllowedGoogleMapsUrl(text) && !isGoogleMapsShortLink(text)) return false;
 
     try {
       const resolvedLink = await resolveGoogleMapsUrl(text, { apiBaseUrl: API_BASE_URL });
       if (!resolvedLink?.success || !Number.isFinite(Number(resolvedLink.latitude)) || !Number.isFinite(Number(resolvedLink.longitude))) {
+        setSectionAddressSearchState(section, {
+          error: 'Could not read this Google Maps short link. Please paste full Google Maps URL or coordinates.',
+          suggestions: [],
+          showSuggestions: false
+        });
         return true;
       }
 
-      const resolved = await enrichBillingAddressFromLatLng(resolvedLink.latitude, resolvedLink.longitude);
-      if (!resolved) {
-        setForm((prev) => ({
-          ...prev,
-          latitude: String(resolvedLink.latitude),
-          longitude: String(resolvedLink.longitude)
-        }));
+      const validationError = validateLatLngRange(resolvedLink.latitude, resolvedLink.longitude);
+      if (validationError) {
+        setSectionAddressSearchState(section, { error: validationError, suggestions: [], showSuggestions: false });
         return true;
       }
 
-      if (sourceField === 'companyName') {
-        setForm((prev) => ({
-          ...prev,
-          companyName: resolved.formattedAddress || prev.companyName,
-          contactPersonName: prev.contactPersonName || resolved.formattedAddress || prev.companyName
-        }));
-      }
+      setSectionAddressSearchState(section, { error: '', suggestions: [], showSuggestions: false });
+      applyCustomerAddressPatch(section, {
+        latitude: resolvedLink.latitude,
+        longitude: resolvedLink.longitude,
+        preserveSearchAddress
+      });
+      void enrichCustomerAddressFromLatLng(section, resolvedLink.latitude, resolvedLink.longitude, { preserveSearchAddress });
       return true;
     } catch {
+      setSectionAddressSearchState(section, {
+        error: 'Could not read this Google Maps short link. Please paste full Google Maps URL or coordinates.',
+        suggestions: [],
+        showSuggestions: false
+      });
       return true;
     }
   };
+
+  const handleCustomerSearchAddressChange = (section, value) => {
+    const isShipping = section === 'shipping';
+    const key = isShipping ? 'shippingSearchAddress' : 'billingSearchAddress';
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (!isShipping && prev.shippingSameAsBilling) {
+        return { ...next, ...copyBillingToShipping(next) };
+      }
+      return next;
+    });
+
+    if (!applyCustomerCoordinates(section, value)) {
+      if (isAllowedGoogleMapsUrl(value) || isGoogleMapsShortLink(value)) {
+        setSectionAddressSearchState(section, { error: '', suggestions: [], showSuggestions: false });
+        return;
+      }
+      setSectionAddressSearchState(section, { error: '' });
+      void fetchCustomerLiveSearchSuggestions(section, value);
+    }
+  };
+
+  const handleCustomerSearchAddressPaste = (section, event) => {
+    const pastedText = event?.clipboardData?.getData('text') || '';
+    const normalized = String(pastedText || '').trim();
+    if (!normalized) return;
+
+    window.setTimeout(() => {
+      const inputRef = section === 'shipping' ? shippingSearchInputRef : billingSearchInputRef;
+      const currentValue = inputRef.current?.value || normalized;
+      void resolveCustomerAddressSearchInput(section, currentValue, { preserveSearchAddress: true });
+    }, 0);
+  };
+
+  const fetchCustomerLiveSearchSuggestions = async (section, value) => {
+    const queryText = String(value || '').trim();
+    if (queryText.length < 2) {
+      setSectionAddressSearchState(section, { suggestions: [], showSuggestions: false });
+      return;
+    }
+
+    const seq = addressSuggestionSeqRef.current;
+    seq[section] = (seq[section] || 0) + 1;
+    const reqId = seq[section];
+    try {
+      await loadGooglePlacesScript();
+      const { Place } = await window.google.maps.importLibrary('places');
+      const { places } = await Place.searchByText({
+        textQuery: queryText,
+        fields: ['id', 'displayName', 'formattedAddress', 'location', 'addressComponents', 'nationalPhoneNumber', 'internationalPhoneNumber', 'websiteURI'],
+        maxResultCount: 5
+      });
+      if (addressSuggestionSeqRef.current[section] !== reqId) return;
+      const suggestions = Array.isArray(places) ? places : [];
+      setSectionAddressSearchState(section, {
+        suggestions,
+        showSuggestions: suggestions.length > 0
+      });
+    } catch {
+      if (addressSuggestionSeqRef.current[section] !== reqId) return;
+      setSectionAddressSearchState(section, { suggestions: [], showSuggestions: false });
+    }
+  };
+
+  const searchCustomerGooglePlace = async (section, event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    const isShipping = section === 'shipping';
+    const searchKey = isShipping ? 'shippingSearchAddress' : 'billingSearchAddress';
+    const query = String(form[searchKey] || '').trim();
+
+    if (addressSearchState[section]?.fetching) return;
+    if (!query) {
+      const inputRef = isShipping ? shippingSearchInputRef : billingSearchInputRef;
+      inputRef.current?.focus();
+      setSectionAddressSearchState(section, { error: 'Please enter address or Google Maps link.' });
+      return;
+    }
+
+    setSectionAddressSearchState(section, { fetching: true, error: '' });
+    try {
+      if (await resolveCustomerAddressSearchInput(section, query, { preserveSearchAddress: true })) {
+        return;
+      }
+
+      await loadGooglePlacesScript();
+      const { Place } = await window.google.maps.importLibrary('places');
+      const { places } = await Place.searchByText({
+        textQuery: query,
+        fields: [
+          'id',
+          'displayName',
+          'formattedAddress',
+          'location',
+          'addressComponents',
+          'nationalPhoneNumber',
+          'internationalPhoneNumber',
+          'websiteURI'
+        ],
+        maxResultCount: 10
+      });
+
+      if (!places || places.length === 0) {
+        setSectionAddressSearchState(section, { error: 'No address found. Try full address with city.' });
+        return;
+      }
+
+      applyCustomerAddressSuggestion(section, places[0], query);
+      setSectionAddressSearchState(section, { error: '', suggestions: [], showSuggestions: false });
+    } catch {
+      setSectionAddressSearchState(section, { error: 'Google search failed. Please try full address with city.' });
+    } finally {
+      setSectionAddressSearchState(section, { fetching: false });
+    }
+  };
+
+  const handleCustomerMapLocationChange = (section, lat, lng) => {
+    setSectionAddressSearchState(section, { error: '', suggestions: [], showSuggestions: false });
+    applyCustomerAddressPatch(section, {
+      latitude: lat,
+      longitude: lng,
+      preserveSearchAddress: true
+    });
+    void enrichCustomerAddressFromLatLng(section, lat, lng, { preserveSearchAddress: true });
+  };
+
+  const resolveCustomerMapInput = async (rawValue) => (
+    resolveCustomerAddressSearchInput('billing', rawValue, { preserveSearchAddress: true })
+  );
 
   const fetchSimilarCustomers = async (draft = form) => {
     const name = String(draft.displayName || draft.contactPersonName || draft.companyName || '').trim();
@@ -939,21 +1372,33 @@ export default function CustomerDashboard() {
       hasGst: customer.hasGst ?? customer.gstRegistered ?? false,
       gstNumber: customer.gstNumber || '',
       billingAttention: customer.billingAttention || '',
+      billingSearchAddress: customer.billingSearchAddress || customer.searchAddress || customer.billingAddress || customer.billingStreet1 || '',
       billingStreet1: customer.billingStreet1 || '',
       billingStreet2: customer.billingStreet2 || '',
       billingAddress: customer.billingAddress || '',
       billingArea: customer.billingArea || customer.area || '',
       billingState: customer.billingState || customer.state || customer.placeOfSupply || 'Delhi',
       billingPincode: toSixDigitPincode(customer.billingPincode || customer.pincode || ''),
+      billingLatitude: String(customer.billingLatitude ?? customer.latitude ?? '').trim(),
+      billingLongitude: String(customer.billingLongitude ?? customer.longitude ?? '').trim(),
+      billingGooglePlaceId: customer.billingGooglePlaceId || customer.googlePlaceId || '',
+      billingGooglePlaceName: customer.billingGooglePlaceName || customer.googlePlaceName || '',
+      billingGooglePhone: customer.billingGooglePhone || customer.googlePhone || '',
+      billingGoogleWebsite: customer.billingGoogleWebsite || customer.googleWebsite || '',
       billingPhoneCode: customer.billingPhoneCode || '+91',
       billingPhone: customer.billingPhone || '',
       shippingAttention: customer.shippingAttention || '',
+      shippingSearchAddress: customer.shippingSearchAddress || customer.shippingAddress || customer.shippingStreet1 || '',
       shippingStreet1: customer.shippingStreet1 || '',
       shippingStreet2: customer.shippingStreet2 || '',
       shippingAddress: customer.shippingAddress || '',
       shippingArea: customer.shippingArea || '',
       shippingState: customer.shippingState || 'Delhi',
       shippingPincode: toSixDigitPincode(customer.shippingPincode || ''),
+      shippingLatitude: String(customer.shippingLatitude ?? '').trim(),
+      shippingLongitude: String(customer.shippingLongitude ?? '').trim(),
+      shippingGooglePlaceId: customer.shippingGooglePlaceId || '',
+      shippingGooglePlaceName: customer.shippingGooglePlaceName || '',
       shippingPhoneCode: customer.shippingPhoneCode || '+91',
       shippingPhone: customer.shippingPhone || '',
       shippingSameAsBilling:
@@ -964,7 +1409,13 @@ export default function CustomerDashboard() {
         (customer.shippingState || '') === (customer.billingState || customer.state || customer.placeOfSupply || '') &&
         (customer.shippingPincode || '') === (customer.billingPincode || customer.pincode || '') &&
         !!(customer.billingAddress || customer.shippingAddress),
-      areaSqft: String(customer.areaSqft ?? '')
+      areaSqft: String(customer.areaSqft ?? ''),
+      googlePlaceId: customer.googlePlaceId || customer.billingGooglePlaceId || '',
+      googlePlaceName: customer.googlePlaceName || customer.billingGooglePlaceName || '',
+      googlePhone: customer.googlePhone || customer.billingGooglePhone || '',
+      googleWebsite: customer.googleWebsite || customer.billingGoogleWebsite || '',
+      latitude: String(customer.latitude ?? customer.billingLatitude ?? '').trim(),
+      longitude: String(customer.longitude ?? customer.billingLongitude ?? '').trim()
     };
   };
 
@@ -972,6 +1423,7 @@ export default function CustomerDashboard() {
     setEditingId(null);
     setForm(emptyForm);
     setSimilarCustomers([]);
+    setAddressSearchState(createAddressSearchState());
     setSaveError('');
     setShowModal(true);
   };
@@ -983,6 +1435,7 @@ export default function CustomerDashboard() {
     setEditingId(selected._id);
     setForm(mapCustomerToForm(selected));
     setSimilarCustomers([]);
+    setAddressSearchState(createAddressSearchState());
     setSaveError('');
     setShowModal(true);
     setShowMoreMenu(false);
@@ -1068,6 +1521,16 @@ export default function CustomerDashboard() {
       setSaveError('Shipping Pin Code must be exactly 6 digits.');
       return;
     }
+    const billingLatitude = String(form.billingLatitude || form.latitude || '').trim();
+    const billingLongitude = String(form.billingLongitude || form.longitude || '').trim();
+    const shippingLatitude = String(form.shippingLatitude || '').trim();
+    const shippingLongitude = String(form.shippingLongitude || '').trim();
+    const coordinateError = validateCoordinatePair('Billing', billingLatitude, billingLongitude)
+      || validateCoordinatePair('Shipping', shippingLatitude, shippingLongitude);
+    if (coordinateError) {
+      setSaveError(coordinateError);
+      return;
+    }
 
     const highRiskMatch = !editingId && similarCustomers.some((row) => Number(row.confidence || 0) >= 75);
     let duplicateOverrideReason = '';
@@ -1098,21 +1561,34 @@ export default function CustomerDashboard() {
       gstRegistered: form.hasGst,
       gstNumber: form.hasGst ? gstNumber : '',
       billingAttention: form.billingAttention.trim(),
+      billingSearchAddress: form.billingSearchAddress.trim(),
       billingStreet1: form.billingStreet1.trim(),
       billingStreet2: form.billingStreet2.trim(),
       billingAddress: form.billingAddress.trim() || [form.billingStreet1, form.billingStreet2].filter(Boolean).join(', '),
       billingArea: form.billingArea.trim(),
       billingState: form.billingState,
       billingPincode,
+      billingLatitude,
+      billingLongitude,
+      billingGooglePlaceId: form.billingGooglePlaceId.trim() || form.googlePlaceId.trim(),
+      billingGooglePlaceName: form.billingGooglePlaceName.trim() || form.googlePlaceName.trim(),
+      billingGooglePhone: form.billingGooglePhone.trim() || form.googlePhone.trim(),
+      billingGoogleWebsite: form.billingGoogleWebsite.trim() || form.googleWebsite.trim(),
       billingPhoneCode: form.billingPhoneCode,
       billingPhone: form.billingPhone.trim(),
+      shippingSameAsBilling: form.shippingSameAsBilling,
       shippingAttention: form.shippingAttention.trim(),
+      shippingSearchAddress: form.shippingSearchAddress.trim(),
       shippingStreet1: form.shippingStreet1.trim(),
       shippingStreet2: form.shippingStreet2.trim(),
       shippingAddress: form.shippingAddress.trim() || [form.shippingStreet1, form.shippingStreet2].filter(Boolean).join(', '),
       shippingArea: form.shippingArea.trim(),
       shippingState: form.shippingState,
       shippingPincode,
+      shippingLatitude,
+      shippingLongitude,
+      shippingGooglePlaceId: form.shippingGooglePlaceId.trim(),
+      shippingGooglePlaceName: form.shippingGooglePlaceName.trim(),
       shippingPhoneCode: form.shippingPhoneCode,
       shippingPhone: form.shippingPhone.trim(),
       area: form.billingArea.trim(),
@@ -1122,6 +1598,12 @@ export default function CustomerDashboard() {
       workPhone: mobile,
       placeOfSupply: form.billingState,
       finalPosition,
+      googlePlaceId: form.googlePlaceId.trim() || form.billingGooglePlaceId.trim(),
+      googlePlaceName: form.googlePlaceName.trim() || form.billingGooglePlaceName.trim(),
+      googlePhone: form.googlePhone.trim() || form.billingGooglePhone.trim(),
+      googleWebsite: form.googleWebsite.trim() || form.billingGoogleWebsite.trim(),
+      latitude: billingLatitude,
+      longitude: billingLongitude,
       duplicateOverrideReason
     };
 
@@ -1422,6 +1904,100 @@ export default function CustomerDashboard() {
   const primaryButtonStyle = isTiny ? { ...shell.buttonPrimary, padding: '6px 10px', fontSize: '11px', minHeight: '32px' } : shell.buttonPrimary;
   const customizeButtonStyle = isTiny ? { ...shell.customizeButton, padding: '7px 10px', fontSize: '11px' } : shell.customizeButton;
   const historyTitleTinyStyle = isTiny ? { ...historyTitleStyle, fontSize: '20px' } : historyTitleStyle;
+  const addressSearchRowStyle = {
+    display: 'grid',
+    gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) auto',
+    gap: '8px',
+    alignItems: 'center'
+  };
+  const addressSearchButtonStyle = {
+    ...shell.saveButton,
+    minHeight: '40px',
+    padding: '0 12px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    whiteSpace: 'nowrap'
+  };
+
+  const renderAddressSearchControls = (section) => {
+    const isShipping = section === 'shipping';
+    const searchKey = isShipping ? 'shippingSearchAddress' : 'billingSearchAddress';
+    const inputRef = isShipping ? shippingSearchInputRef : billingSearchInputRef;
+    const state = addressSearchState[section] || {};
+    const latitude = isShipping ? form.shippingLatitude : (form.billingLatitude || form.latitude);
+    const longitude = isShipping ? form.shippingLongitude : (form.billingLongitude || form.longitude);
+
+    return (
+      <>
+        <label style={shell.label}>Search Address</label>
+        <div style={{ minWidth: 0 }}>
+          <div style={addressSearchRowStyle}>
+            <input
+              ref={inputRef}
+              style={shell.input}
+              value={form[searchKey]}
+              onChange={(event) => handleCustomerSearchAddressChange(section, event.target.value)}
+              onPaste={(event) => handleCustomerSearchAddressPaste(section, event)}
+              onFocus={() => setSectionAddressSearchState(section, { showSuggestions: (state.suggestions || []).length > 0 })}
+              onBlur={() => window.setTimeout(() => setSectionAddressSearchState(section, { showSuggestions: false }), 160)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return;
+                void searchCustomerGooglePlace(section, event);
+              }}
+              placeholder="Search address or paste Google Maps link"
+            />
+            <button
+              type="button"
+              formNoValidate
+              style={addressSearchButtonStyle}
+              disabled={state.fetching}
+              onClick={(event) => searchCustomerGooglePlace(section, event)}
+            >
+              <Search size={14} /> {state.fetching ? 'Fetching...' : 'Search Only'}
+            </button>
+          </div>
+          {state.showSuggestions ? (
+            <div style={{ marginTop: '6px', border: '1px solid #e5e7eb', borderRadius: '10px', background: '#fff', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.14)', maxHeight: '220px', overflowY: 'auto' }}>
+              {(state.suggestions || []).map((place) => {
+                const name = place.displayName?.text || place.displayName || place.formattedAddress || '';
+                const address = place.formattedAddress || '';
+                return (
+                  <button
+                    key={String(place.id || `${name}-${address}`)}
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      applyCustomerAddressSuggestion(section, place, form[searchKey]);
+                      setSectionAddressSearchState(section, { error: '', suggestions: [], showSuggestions: false });
+                    }}
+                    style={{ width: '100%', textAlign: 'left', border: 'none', borderBottom: '1px solid #f1f5f9', background: '#fff', cursor: 'pointer', padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}
+                  >
+                    <div style={{ width: '100%', textAlign: 'left', fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{name}</div>
+                    <div style={{ width: '100%', textAlign: 'left', fontSize: '11px', color: '#64748b' }}>{address}</div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          {state.error ? (
+            <div style={{ marginTop: '6px', fontSize: '11px', color: '#b91c1c', fontWeight: 700 }}>
+              {state.error}
+            </div>
+          ) : null}
+          <MapPicker
+            latitude={latitude}
+            longitude={longitude}
+            onLocationChange={(lat, lng) => handleCustomerMapLocationChange(section, lat, lng)}
+            height={156}
+            markerTitle={isShipping ? 'Shipping location' : 'Billing location'}
+            unavailableMessage="Map preview unavailable. You can still save the customer manually."
+          />
+        </div>
+      </>
+    );
+  };
 
   return (
     <section className="crm-page crm-section" style={shell.page}>
@@ -2097,11 +2673,10 @@ export default function CustomerDashboard() {
                     <label style={shell.label}>Attention</label>
                     <input style={shell.input} value={form.billingAttention} onChange={(event) => updateBillingField('billingAttention', event.target.value)} />
 
+                    {renderAddressSearchControls('billing')}
+
                     <label style={shell.label}>Address</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <textarea style={shell.textarea} placeholder="Street 1" value={form.billingStreet1} onChange={(event) => updateBillingField('billingStreet1', event.target.value)} />
-                      <textarea style={shell.textarea} placeholder="Street 2" value={form.billingStreet2} onChange={(event) => updateBillingField('billingStreet2', event.target.value)} />
-                    </div>
+                    <textarea style={shell.textarea} placeholder="Address" value={form.billingStreet1} onChange={(event) => updateBillingField('billingStreet1', event.target.value)} />
 
                     <label style={shell.label}>Area</label>
                     <input
@@ -2149,24 +2724,23 @@ export default function CustomerDashboard() {
                   </div>
                   <div style={addressGridStyle}>
                     <label style={shell.label}>Attention</label>
-                    <input style={shell.input} value={form.shippingAttention} onChange={(event) => setForm((prev) => ({ ...prev, shippingAttention: event.target.value }))} />
+                    <input style={shell.input} value={form.shippingAttention} onChange={(event) => updateShippingField('shippingAttention', event.target.value)} />
+
+                    {renderAddressSearchControls('shipping')}
 
                     <label style={shell.label}>Address</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <textarea style={shell.textarea} placeholder="Street 1" value={form.shippingStreet1} onChange={(event) => setForm((prev) => ({ ...prev, shippingStreet1: event.target.value }))} />
-                      <textarea style={shell.textarea} placeholder="Street 2" value={form.shippingStreet2} onChange={(event) => setForm((prev) => ({ ...prev, shippingStreet2: event.target.value }))} />
-                    </div>
+                    <textarea style={shell.textarea} placeholder="Address" value={form.shippingStreet1} onChange={(event) => updateShippingField('shippingStreet1', event.target.value)} />
 
                     <label style={shell.label}>Area</label>
-                    <input style={shell.input} value={form.shippingArea} onChange={(event) => setForm((prev) => ({ ...prev, shippingArea: event.target.value }))} />
+                    <input style={shell.input} value={form.shippingArea} onChange={(event) => updateShippingField('shippingArea', event.target.value)} />
 
                     <label style={shell.label}>State</label>
-                    <select style={shell.input} value={form.shippingState} onChange={(event) => setForm((prev) => ({ ...prev, shippingState: event.target.value }))}>
+                    <select style={shell.input} value={form.shippingState} onChange={(event) => updateShippingField('shippingState', event.target.value)}>
                       {stateOptions.map((state) => <option key={state} value={state}>{state}</option>)}
                     </select>
 
                     <label style={shell.label}>Pin Code</label>
-                    <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(event) => setForm((prev) => ({ ...prev, shippingPincode: toSixDigitPincode(event.target.value) }))} />
+                    <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(event) => updateShippingField('shippingPincode', event.target.value)} />
 
                   </div>
                 </div>
