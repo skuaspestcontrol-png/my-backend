@@ -39,6 +39,7 @@ const {
   syncGoogleCalendarEventForJob,
   getGoogleClient
 } = require('./lib/googleTasks');
+const { resolveGoogleMapsUrl } = require('./lib/googleMapsResolve');
 
 if (!global.__SKUAS_DOTENV_LOADED__) {
   require('dotenv').config();
@@ -2699,6 +2700,35 @@ app.post('/api/leads', async (req, res) => {
   } catch (error) {
     console.error('Failed to save lead in MySQL:', error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || 'Failed to save lead in MySQL' });
+  }
+});
+
+app.get('/api/maps/resolve', async (req, res) => {
+  const url = String(req.query?.url || '').trim();
+  if (!url) {
+    return res.status(400).json({ success: false, message: 'Could not extract coordinates from link' });
+  }
+
+  try {
+    const result = await resolveGoogleMapsUrl(url, { timeoutMs: 5000, maxRedirects: 6 });
+    if (!result?.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Could not extract coordinates from link'
+      });
+    }
+
+    return res.json({
+      success: true,
+      finalUrl: result.finalUrl,
+      latitude: result.latitude,
+      longitude: result.longitude
+    });
+  } catch (_error) {
+    return res.status(400).json({
+      success: false,
+      message: 'Could not extract coordinates from link'
+    });
   }
 });
 

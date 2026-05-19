@@ -6,7 +6,13 @@ import { ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, X } from 
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { attachPlacesAutocomplete } from '../utils/googlePlaces';
+import { attachPlacesAutocomplete, loadGooglePlacesScript } from '../utils/googlePlaces';
+import {
+  extractGoogleMapsCoordinates,
+  isAllowedGoogleMapsUrl,
+  isGoogleMapsShortLink,
+  resolveGoogleMapsUrl
+} from '../utils/googleMaps';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 
 const normalizeApiBase = (value = '') => {
@@ -771,6 +777,104 @@ export default function CustomerDashboard() {
       }
       return next;
     });
+  };
+
+  const enrichBillingAddressFromLatLng = async (lat, lng) => {
+    try {
+      await loadGooglePlacesScript();
+    } catch {
+      // Continue; geocoder may still already be available.
+    }
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || !window.google?.maps?.Geocoder) return null;
+    try {
+      const geocoder = new window.google.maps.Geocoder();
+      const response = await geocoder.geocode({ location: { lat: Number(lat), lng: Number(lng) } });
+      const first = response?.results?.[0];
+      if (!first) return null;
+
+      const components = Array.isArray(first.address_components) ? first.address_components : [];
+      const findPart = (...types) => {
+        for (const type of types) {
+          const part = components.find((component) => Array.isArray(component.types) && component.types.includes(type));
+          const value = part?.long_name || part?.longText || part?.short_name || part?.shortText || '';
+          if (value) return String(value).trim();
+        }
+        return '';
+      };
+
+      const formattedAddress = String(first.formatted_address || '').trim();
+      const areaName = findPart('sublocality_level_1', 'sublocality_level_2', 'sublocality', 'neighborhood', 'premise', 'route');
+      const city = findPart('locality', 'postal_town', 'administrative_area_level_3', 'administrative_area_level_2');
+      const state = findPart('administrative_area_level_1');
+      const pincode = findPart('postal_code')
+        || String(formattedAddress.match(/\b[1-9][0-9]{5}\b/)?.[0] || '').trim();
+
+      setForm((prev) => {
+        const nextBillingPincode = toSixDigitPincode(pincode || prev.billingPincode || '');
+        const next = {
+          ...prev,
+          billingStreet1: formattedAddress || prev.billingStreet1,
+          billingAddress: formattedAddress || prev.billingAddress,
+          billingArea: areaName || prev.billingArea,
+          billingState: state || prev.billingState,
+          billingPincode: nextBillingPincode,
+          latitude: String(lat),
+          longitude: String(lng)
+        };
+        return prev.shippingSameAsBilling ? { ...next, ...copyBillingToShipping(next) } : next;
+      });
+
+      return {
+        formattedAddress,
+        areaName,
+        city,
+        state,
+        pincode
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const resolveCustomerMapInput = async (rawValue, { sourceField = 'billingArea' } = {}) => {
+    const text = String(rawValue || '').trim();
+    if (!text) return false;
+
+    const coords = extractGoogleMapsCoordinates(text);
+    if (coords && Number.isFinite(coords.latitude) && Number.isFinite(coords.longitude)) {
+      const resolved = await enrichBillingAddressFromLatLng(coords.latitude, coords.longitude);
+      if (resolved) return true;
+    }
+
+    if (!isAllowedGoogleMapsUrl(text) && !isGoogleMapsShortLink(text)) return false;
+
+    try {
+      const resolvedLink = await resolveGoogleMapsUrl(text, { apiBaseUrl: API_BASE_URL });
+      if (!resolvedLink?.success || !Number.isFinite(Number(resolvedLink.latitude)) || !Number.isFinite(Number(resolvedLink.longitude))) {
+        return true;
+      }
+
+      const resolved = await enrichBillingAddressFromLatLng(resolvedLink.latitude, resolvedLink.longitude);
+      if (!resolved) {
+        setForm((prev) => ({
+          ...prev,
+          latitude: String(resolvedLink.latitude),
+          longitude: String(resolvedLink.longitude)
+        }));
+        return true;
+      }
+
+      if (sourceField === 'companyName') {
+        setForm((prev) => ({
+          ...prev,
+          companyName: resolved.formattedAddress || prev.companyName,
+          contactPersonName: prev.contactPersonName || resolved.formattedAddress || prev.companyName
+        }));
+      }
+      return true;
+    } catch {
+      return true;
+    }
   };
 
   const fetchSimilarCustomers = async (draft = form) => {
@@ -1837,6 +1941,14 @@ export default function CustomerDashboard() {
                 ref={companyNameInputRef}
                 style={shell.input}
                 value={form.companyName}
+                onPaste={(event) => {
+                  const pastedText = String(event.clipboardData?.getData('text') || '').trim();
+                  if (!pastedText) return;
+                  if (extractGoogleMapsCoordinates(pastedText) || isAllowedGoogleMapsUrl(pastedText) || isGoogleMapsShortLink(pastedText)) {
+                    event.preventDefault();
+                    void resolveCustomerMapInput(pastedText, { sourceField: 'companyName' });
+                  }
+                }}
                 onChange={(event) =>
                   setForm((prev) => ({
                     ...prev,
@@ -1992,7 +2104,20 @@ export default function CustomerDashboard() {
                     </div>
 
                     <label style={shell.label}>Area</label>
-                    <input ref={billingAreaInputRef} style={shell.input} value={form.billingArea} onChange={(event) => updateBillingField('billingArea', event.target.value)} />
+                    <input
+                      ref={billingAreaInputRef}
+                      style={shell.input}
+                      value={form.billingArea}
+                      onPaste={(event) => {
+                        const pastedText = String(event.clipboardData?.getData('text') || '').trim();
+                        if (!pastedText) return;
+                        if (extractGoogleMapsCoordinates(pastedText) || isAllowedGoogleMapsUrl(pastedText) || isGoogleMapsShortLink(pastedText)) {
+                          event.preventDefault();
+                          void resolveCustomerMapInput(pastedText, { sourceField: 'billingArea' });
+                        }
+                      }}
+                      onChange={(event) => updateBillingField('billingArea', event.target.value)}
+                    />
 
                     <label style={shell.label}>State</label>
                     <select style={shell.input} value={form.billingState} onChange={(event) => updateBillingField('billingState', event.target.value)}>

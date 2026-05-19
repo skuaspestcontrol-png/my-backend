@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Check, MapPin, Pencil, Plus, Star, Trash2, X } from 'lucide-react';
+import { loadGooglePlacesScript } from '../utils/googlePlaces';
+import {
+  extractGoogleMapsCoordinates,
+  isAllowedGoogleMapsUrl,
+  isGoogleMapsShortLink,
+  resolveGoogleMapsUrl
+} from '../utils/googleMaps';
 import { normalizeIndianMobileNumber } from '../utils/phone';
 
 const normalizeApiBase = (value = '') => {
@@ -217,6 +224,102 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
     }
   };
 
+  const reverseGeocodePremise = async (lat, lng) => {
+    try {
+      await loadGooglePlacesScript();
+    } catch {
+      // Geocoder may already be available.
+    }
+
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || !window.google?.maps?.Geocoder) return null;
+
+    try {
+      const geocoder = new window.google.maps.Geocoder();
+      const response = await geocoder.geocode({ location: { lat: Number(lat), lng: Number(lng) } });
+      const first = response?.results?.[0];
+      if (!first) return null;
+
+      const components = Array.isArray(first.address_components) ? first.address_components : [];
+      const getPart = (...types) => {
+        for (const type of types) {
+          const part = components.find((component) => Array.isArray(component.types) && component.types.includes(type));
+          const value = part?.long_name || part?.longText || part?.short_name || part?.shortText || '';
+          if (value) return String(value).trim();
+        }
+        return '';
+      };
+
+      const formattedAddress = String(first.formatted_address || '').trim();
+      const areaName = getPart('sublocality_level_1', 'sublocality_level_2', 'sublocality', 'neighborhood', 'premise', 'route');
+      const city = getPart('locality', 'postal_town', 'administrative_area_level_3', 'administrative_area_level_2');
+      const state = getPart('administrative_area_level_1');
+      const pincode = getPart('postal_code') || String(formattedAddress.match(/\b[1-9][0-9]{5}\b/)?.[0] || '').trim();
+
+      setDraft((prev) => ({
+        ...prev,
+        address: formattedAddress || prev.address,
+        areaName: areaName || prev.areaName,
+        city: city || prev.city,
+        state: state || prev.state,
+        pincode: pincode ? pincode.slice(0, 6) : prev.pincode,
+        latitude: String(lat),
+        longitude: String(lng)
+      }));
+
+      return { formattedAddress, areaName, city, state, pincode };
+    } catch {
+      return null;
+    }
+  };
+
+  const resolvePremiseMapInput = async (rawValue) => {
+    const text = String(rawValue || '').trim();
+    if (!text) return false;
+
+    const coords = extractGoogleMapsCoordinates(text);
+    if (coords && Number.isFinite(coords.latitude) && Number.isFinite(coords.longitude)) {
+      await reverseGeocodePremise(coords.latitude, coords.longitude);
+      setDraft((prev) => ({
+        ...prev,
+        googleMapUrl: text,
+        latitude: String(coords.latitude),
+        longitude: String(coords.longitude)
+      }));
+      return true;
+    }
+
+    if (!isAllowedGoogleMapsUrl(text) && !isGoogleMapsShortLink(text)) return false;
+
+    try {
+      const result = await resolveGoogleMapsUrl(text, { apiBaseUrl: API_BASE_URL });
+      if (!result?.success || !Number.isFinite(Number(result.latitude)) || !Number.isFinite(Number(result.longitude))) {
+        onError?.('Could not read this Google Maps short link. Please paste full Google Maps URL or coordinates.');
+        return true;
+      }
+
+      await reverseGeocodePremise(result.latitude, result.longitude);
+      setDraft((prev) => ({
+        ...prev,
+        googleMapUrl: text,
+        latitude: String(result.latitude),
+        longitude: String(result.longitude)
+      }));
+      return true;
+    } catch {
+      onError?.('Could not read this Google Maps short link. Please paste full Google Maps URL or coordinates.');
+      return true;
+    }
+  };
+
+  const handlePremiseTextPaste = (event) => {
+    const pastedText = String(event.clipboardData?.getData('text') || '').trim();
+    if (!pastedText) return;
+    if (extractGoogleMapsCoordinates(pastedText) || isAllowedGoogleMapsUrl(pastedText) || isGoogleMapsShortLink(pastedText)) {
+      event.preventDefault();
+      void resolvePremiseMapInput(pastedText);
+    }
+  };
+
   return (
     <section style={styles.wrap}>
       <div style={styles.head}>
@@ -273,7 +376,7 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
             <label style={styles.label}>Contact Person<input style={styles.input} value={draft.contactPerson} onChange={(e) => setDraft((p) => ({ ...p, contactPerson: e.target.value }))} /></label>
             <label style={styles.label}>Phone<input style={styles.input} inputMode="numeric" value={draft.phone} onChange={(e) => setDraft((p) => ({ ...p, phone: normalizeIndianMobileNumber(e.target.value) }))} /></label>
             <label style={styles.label}>Email<input style={styles.input} value={draft.email} onChange={(e) => setDraft((p) => ({ ...p, email: e.target.value }))} /></label>
-            <label style={{ ...styles.label, gridColumn: '1 / -1' }}>Full Address<textarea style={styles.textarea} value={draft.address} onChange={(e) => setDraft((p) => ({ ...p, address: e.target.value }))} /></label>
+            <label style={{ ...styles.label, gridColumn: '1 / -1' }}>Full Address<textarea style={styles.textarea} value={draft.address} onPaste={handlePremiseTextPaste} onChange={(e) => setDraft((p) => ({ ...p, address: e.target.value }))} /></label>
             <label style={styles.label}>Area Name<input style={styles.input} value={draft.areaName} onChange={(e) => setDraft((p) => ({ ...p, areaName: e.target.value }))} /></label>
             <label style={styles.label}>City<input style={styles.input} value={draft.city} onChange={(e) => setDraft((p) => ({ ...p, city: e.target.value }))} /></label>
             <label style={styles.label}>State<input style={styles.input} value={draft.state} onChange={(e) => setDraft((p) => ({ ...p, state: e.target.value, placeOfSupply: p.placeOfSupply || e.target.value }))} /></label>
@@ -281,7 +384,14 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
             <label style={styles.label}>Country<input style={styles.input} value={draft.country} onChange={(e) => setDraft((p) => ({ ...p, country: e.target.value }))} /></label>
             <label style={styles.label}>GSTIN<input style={styles.input} value={draft.gstin} onChange={(e) => setDraft((p) => ({ ...p, gstin: e.target.value.toUpperCase() }))} /></label>
             <label style={styles.label}>Place of Supply<input style={styles.input} value={draft.placeOfSupply} onChange={(e) => setDraft((p) => ({ ...p, placeOfSupply: e.target.value }))} /></label>
-            <label style={styles.label}>Google Map URL<input style={styles.input} value={draft.googleMapUrl} onChange={(e) => setDraft((p) => ({ ...p, googleMapUrl: e.target.value }))} /></label>
+            <label style={styles.label}>Google Map URL<input style={styles.input} value={draft.googleMapUrl} onPaste={(event) => {
+              const pastedText = String(event.clipboardData?.getData('text') || '').trim();
+              if (!pastedText) return;
+              if (extractGoogleMapsCoordinates(pastedText) || isAllowedGoogleMapsUrl(pastedText) || isGoogleMapsShortLink(pastedText)) {
+                event.preventDefault();
+                void resolvePremiseMapInput(pastedText);
+              }
+            }} onChange={(e) => setDraft((p) => ({ ...p, googleMapUrl: e.target.value }))} /></label>
             <label style={styles.label}>Latitude<input style={styles.input} value={draft.latitude} onChange={(e) => setDraft((p) => ({ ...p, latitude: e.target.value }))} /></label>
             <label style={styles.label}>Longitude<input style={styles.input} value={draft.longitude} onChange={(e) => setDraft((p) => ({ ...p, longitude: e.target.value }))} /></label>
           </div>

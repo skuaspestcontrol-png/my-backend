@@ -2,10 +2,17 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { loadGooglePlacesScript } from '../utils/googlePlaces';
+import { attachPlacesAutocomplete, loadGooglePlacesScript } from '../utils/googlePlaces';
+import {
+  extractGoogleMapsCoordinates,
+  isAllowedGoogleMapsUrl,
+  isGoogleMapsShortLink,
+  resolveGoogleMapsUrl
+} from '../utils/googleMaps';
 import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import MapPicker from './MapPicker';
 import {
   ArrowDown,
   ArrowUp,
@@ -1380,54 +1387,15 @@ export default function LeadCapture() {
   };
 
   const parseLatLngFromGoogleUrl = (rawText) => {
-    if (!rawText) return null;
-    const text = String(rawText).trim();
-    if (!text) return null;
-
-    const plainMatch = text.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
-    if (plainMatch) {
-      const lat = Number(plainMatch[1]);
-      const lng = Number(plainMatch[2]);
-      const validationError = validateLatLngRange(lat, lng);
-      if (validationError) return { error: validationError };
-      return { lat: String(lat), lng: String(lng) };
-    }
-
-    const atMatch = text.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
-    if (atMatch) {
-      const lat = Number(atMatch[1]);
-      const lng = Number(atMatch[2]);
-      const validationError = validateLatLngRange(lat, lng);
-      if (validationError) return { error: validationError };
-      return { lat: String(lat), lng: String(lng) };
-    }
-
-    try {
-      const url = new URL(text);
-      const q = url.searchParams.get('q') || url.searchParams.get('query') || '';
-      const coordsMatch = q.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
-      if (coordsMatch) {
-        const lat = Number(coordsMatch[1]);
-        const lng = Number(coordsMatch[2]);
-        const validationError = validateLatLngRange(lat, lng);
-        if (validationError) return { error: validationError };
-        return { lat: String(lat), lng: String(lng) };
-      }
-    } catch {
-      return null;
-    }
-
-    return null;
+    const parsed = extractGoogleMapsCoordinates(rawText);
+    if (!parsed) return null;
+    const validationError = validateLatLngRange(parsed.latitude, parsed.longitude);
+    if (validationError) return { error: validationError };
+    return {
+      lat: String(parsed.latitude),
+      lng: String(parsed.longitude)
+    };
   };
-
-  const normalizeSearchText = (value) => String(value || '').trim().toLowerCase();
-
-  const buildAreaSearchFields = (entry = {}) => ([
-    entry.areaName,
-    entry.area,
-    entry.billingArea,
-    entry.shippingArea
-  ].map((field) => normalizeSearchText(field)).filter(Boolean));
 
   const applySearchCoordinates = (rawText) => {
     const parsed = parseLatLngFromGoogleUrl(rawText);
@@ -1453,12 +1421,60 @@ export default function LeadCapture() {
       latitude: parsed.lat,
       longitude: parsed.lng
     }));
+    void enrichAddressFromLatLng(parsed.lat, parsed.lng, { preserveSearchAddress: true });
     return true;
+  };
+
+  const normalizeSearchText = (value) => String(value || '').trim().toLowerCase();
+
+  const buildAreaSearchFields = (entry = {}) => ([
+    entry.areaName,
+    entry.area,
+    entry.billingArea,
+    entry.shippingArea
+  ].map((field) => normalizeSearchText(field)).filter(Boolean));
+
+  const resolveMapSearchInput = async (rawText, { preserveSearchAddress = true } = {}) => {
+    const query = String(rawText || '').trim();
+    if (!query) return false;
+
+    const directCoordinatesHandled = applySearchCoordinates(query);
+    if (directCoordinatesHandled) return true;
+
+    if (!isAllowedGoogleMapsUrl(query) && !isGoogleMapsShortLink(query)) return false;
+
+    try {
+      const result = await resolveGoogleMapsUrl(query, { apiBaseUrl: API_BASE_URL });
+      if (!result?.success || !Number.isFinite(Number(result.latitude)) || !Number.isFinite(Number(result.longitude))) {
+        setSearchError('Could not read this Google Maps short link. Please paste full Google Maps URL or coordinates.');
+        return true;
+      }
+
+      setSearchError('');
+      setShowSearchSuggestions(false);
+      setSearchSuggestions([]);
+      setForm((prev) => ({
+        ...prev,
+        latitude: String(result.latitude),
+        longitude: String(result.longitude)
+      }));
+      void enrichAddressFromLatLng(result.latitude, result.longitude, { preserveSearchAddress });
+      return true;
+    } catch {
+      setSearchError('Could not read this Google Maps short link. Please paste full Google Maps URL or coordinates.');
+      return true;
+    }
   };
 
   const handleSearchAddressChange = (value) => {
     updateForm('searchAddress', value);
     if (!applySearchCoordinates(value)) {
+      if (isAllowedGoogleMapsUrl(value) || isGoogleMapsShortLink(value)) {
+        setSearchError('');
+        setShowSearchSuggestions(false);
+        setSearchSuggestions([]);
+        return;
+      }
       setSearchError('');
       fetchLiveSearchSuggestions(value);
     }
@@ -1471,7 +1487,7 @@ export default function LeadCapture() {
 
     window.setTimeout(() => {
       const currentValue = searchAddressInputRef.current?.value || normalized;
-      handleSearchAddressChange(currentValue);
+      void resolveMapSearchInput(currentValue, { preserveSearchAddress: true });
     }, 0);
   };
 
@@ -1508,7 +1524,7 @@ export default function LeadCapture() {
     });
   };
 
-  const enrichAddressFromLatLng = async (lat, lng) => {
+  const enrichAddressFromLatLng = async (lat, lng, { preserveSearchAddress = false } = {}) => {
     if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || !window.google?.maps?.Geocoder) return;
     try {
       const geocoder = new window.google.maps.Geocoder();
@@ -1523,7 +1539,8 @@ export default function LeadCapture() {
         const nextPincode = extracted.pincode || prev.pincode;
         return {
           ...prev,
-          address: prev.address || first.formatted_address || '',
+          searchAddress: preserveSearchAddress ? prev.searchAddress : (first.formatted_address || prev.searchAddress || ''),
+          address: first.formatted_address || prev.address || '',
           areaName: extracted.areaName || prev.areaName,
           city: extracted.city || prev.city,
           state: extracted.state || prev.state,
@@ -1534,6 +1551,72 @@ export default function LeadCapture() {
       // ignore geocode enrichment failures
     }
   };
+
+  const handleMapLocationChange = (lat, lng) => {
+    setSearchError('');
+    setShowSearchSuggestions(false);
+    setSearchSuggestions([]);
+    setForm((prev) => ({
+      ...prev,
+      latitude: String(lat),
+      longitude: String(lng)
+    }));
+    void enrichAddressFromLatLng(lat, lng, { preserveSearchAddress: true });
+  };
+
+  useEffect(() => {
+    if (!show || !searchAddressInputRef.current) return undefined;
+
+    let cleanup = () => {};
+    let cancelled = false;
+
+    attachPlacesAutocomplete({
+      input: searchAddressInputRef.current,
+      onSelected: (details) => {
+        if (cancelled) return;
+        const lat = Number(details?.latitude);
+        const lng = Number(details?.longitude);
+        const inputValue = String(searchAddressInputRef.current?.value || details?.formatted_address || details?.name || '').trim();
+        if (!inputValue && !Number.isFinite(lat) && !Number.isFinite(lng)) return;
+
+        const selectedPlace = {
+          id: details?.place_id || '',
+          displayName: details?.name || '',
+          formattedAddress: details?.formatted_address || inputValue,
+          location: {
+            lat: () => lat,
+            lng: () => lng
+          },
+          addressComponents: []
+        };
+
+        applySearchSuggestion(selectedPlace, inputValue);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          void enrichAddressFromLatLng(lat, lng);
+        }
+        setShowSearchSuggestions(false);
+        setSearchSuggestions([]);
+        setSearchError('');
+      },
+      onRequireSelection: (message) => {
+        if (!cancelled) setSearchError(message);
+      },
+      onError: () => {
+        if (!cancelled) setSearchError('');
+      }
+    }).then((dispose) => {
+      if (cancelled) {
+        dispose?.();
+        return;
+      }
+      cleanup = dispose;
+    });
+
+    return () => {
+      cancelled = true;
+      cleanup();
+    };
+  }, [show]);
 
   const fetchLiveSearchSuggestions = async (value) => {
     const queryText = String(value || '').trim();
@@ -1568,7 +1651,6 @@ export default function LeadCapture() {
     event?.stopPropagation?.();
     if (isFetchingAddress) return;
     const query = String(form.searchAddress || '').trim();
-    console.log('SEARCH CLICK:', query);
     if (!query) {
       if (searchAddressInputRef.current) searchAddressInputRef.current.focus();
       setSearchError('Please enter company name or address.');
@@ -1579,43 +1661,8 @@ export default function LeadCapture() {
     setSearchError('');
 
     try {
-      if (applySearchCoordinates(query)) {
+      if (await resolveMapSearchInput(query, { preserveSearchAddress: true })) {
         return;
-      }
-
-      const isGoogleMapsLink = /^https?:\/\/(www\.)?(maps\.app\.goo\.gl|maps\.google\.com|google\.com\/maps)/i.test(query);
-      if (isGoogleMapsLink) {
-        try {
-          const response = await axios.post(`${API_BASE_URL}/api/maps/geocode`, { address: query });
-          const result = response?.data?.result;
-          if (result) {
-            const lat = result?.geometry?.location?.lat;
-            const lng = result?.geometry?.location?.lng;
-          const place = {
-            id: result.place_id || '',
-            displayName: result.name || '',
-            formattedAddress: result.formatted_address || query,
-            nationalPhoneNumber: result.formatted_phone_number || result.international_phone_number || '',
-            websiteURI: result.website || '',
-            location: {
-                lat: typeof lat === 'function' ? lat : () => Number(lat || 0),
-                lng: typeof lng === 'function' ? lng : () => Number(lng || 0)
-              },
-              addressComponents: Array.isArray(result.address_components) ? result.address_components : []
-            };
-            applySearchSuggestion(place, query);
-            enrichAddressFromLatLng(
-              typeof lat === 'function' ? lat() : Number(lat || 0),
-              typeof lng === 'function' ? lng() : Number(lng || 0)
-            );
-            setShowSearchSuggestions(false);
-            setSearchSuggestions([]);
-            setSearchError('');
-            return;
-          }
-        } catch (_mapLinkError) {
-          // Continue to Places text search fallback below.
-        }
       }
 
       await loadGooglePlacesScript();
@@ -1639,11 +1686,7 @@ export default function LeadCapture() {
       console.log('Place.searchByText places:', places);
 
       if (!places || places.length === 0) {
-        if (isGoogleMapsLink) {
-          setSearchError('Could not resolve this short map link. Please paste full Google Maps address or search by place name.');
-        } else {
-          setSearchError('No business/address found. Try full name with city.');
-        }
+        setSearchError('No business/address found. Try full name with city.');
         return;
       }
 
@@ -2949,6 +2992,12 @@ export default function LeadCapture() {
                         {searchError}
                       </div>
                     ) : null}
+                    <MapPicker
+                      latitude={form.latitude}
+                      longitude={form.longitude}
+                      onLocationChange={handleMapLocationChange}
+                      height={176}
+                    />
                   </div>
 
                   <div style={leadFieldWideStyle}>
