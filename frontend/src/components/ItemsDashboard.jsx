@@ -74,8 +74,9 @@ const shell = {
     border: '1px solid rgba(239, 68, 68, 0.16)',
     borderRadius: '20px',
     boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)',
-    overflow: 'visible',
-    position: 'relative'
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundClip: 'padding-box'
   },
   topbar: {
     display: 'flex',
@@ -84,7 +85,10 @@ const shell = {
     gap: '12px',
     padding: '16px 18px',
     borderBottom: '1px solid rgba(239, 68, 68, 0.12)',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)'
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)',
+    borderTopLeftRadius: '20px',
+    borderTopRightRadius: '20px',
+    backgroundClip: 'padding-box'
   },
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
   title: { margin: 0, fontSize: '28px', fontWeight: 800, letterSpacing: '-0.03em', color: '#1f2937' },
@@ -121,7 +125,8 @@ const shell = {
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: '12px',
-    background: '#fff'
+    background: '#fff',
+    backgroundClip: 'padding-box'
   },
   toolLabel: {
     fontSize: '12px',
@@ -143,14 +148,14 @@ const shell = {
     fontWeight: 800,
     cursor: 'pointer'
   },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.12)' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderTop: '1px solid rgba(239, 68, 68, 0.12)', backgroundClip: 'padding-box' },
   table: { width: '100%', minWidth: '820px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: {
     textAlign: 'left',
     fontSize: '10px',
     fontWeight: 700,
     color: '#6b7280',
-    padding: '3px 10px',
+    padding: '2px 10px',
     borderBottom: '1px solid var(--color-border)',
     textTransform: 'uppercase',
     position: 'relative',
@@ -159,7 +164,7 @@ const shell = {
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   },
-  headerInner: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' },
+  headerInner: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minHeight: '22px' },
   headerLabelButton: {
     border: 'none',
     background: 'transparent',
@@ -177,8 +182,8 @@ const shell = {
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   nameCell: { color: 'var(--color-primary)', fontWeight: 700 },
-  checkboxWrap: { width: '40px', textAlign: 'center' },
-  checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
+  checkboxWrap: { width: '40px', textAlign: 'center', paddingTop: '2px', paddingBottom: '2px' },
+  checkbox: { width: '15px', height: '15px', accentColor: 'var(--color-primary)' },
   menu: {
     position: 'absolute',
     right: 0,

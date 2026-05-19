@@ -2,7 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { attachPlacesAutocomplete, loadGooglePlacesScript } from '../utils/googlePlaces';
+import {
+  attachPlacesAutocomplete,
+  hasGoogleMapsApiKey,
+  loadGooglePlacesScript
+} from '../utils/googlePlaces';
 import {
   extractGoogleMapsCoordinates,
   isAllowedGoogleMapsUrl,
@@ -1427,6 +1431,17 @@ export default function LeadCapture() {
 
   const normalizeSearchText = (value) => String(value || '').trim().toLowerCase();
 
+  const getSearchUnavailableMessage = (error, { forShortLink = false } = {}) => {
+    const code = String(error?.code || '').trim();
+    if (forShortLink) {
+      return 'Short Google Maps links need resolver API. Please paste full Google Maps URL or coordinates.';
+    }
+    if (code === 'GOOGLE_MAPS_KEY_MISSING' || code === 'GOOGLE_MAPS_AUTH_FAILED' || code === 'GOOGLE_MAPS_SCRIPT_LOAD_FAILED' || code === 'GOOGLE_MAPS_INIT_FAILED') {
+      return 'Google Maps search unavailable. You can still paste full Google Maps URL or coordinates.';
+    }
+    return 'Google search failed. Please try full place name with city.';
+  };
+
   const buildAreaSearchFields = (entry = {}) => ([
     entry.areaName,
     entry.area,
@@ -1446,7 +1461,9 @@ export default function LeadCapture() {
     try {
       const result = await resolveGoogleMapsUrl(query, { apiBaseUrl: API_BASE_URL });
       if (!result?.success || !Number.isFinite(Number(result.latitude)) || !Number.isFinite(Number(result.longitude))) {
-        setSearchError('Could not read this Google Maps short link. Please paste full Google Maps URL or coordinates.');
+        setSearchError(isGoogleMapsShortLink(query)
+          ? 'Short Google Maps links need resolver API. Please paste full Google Maps URL or coordinates.'
+          : 'Could not extract coordinates from this Google Maps URL. Please paste full Google Maps URL or coordinates.');
         return true;
       }
 
@@ -1460,8 +1477,8 @@ export default function LeadCapture() {
       }));
       void enrichAddressFromLatLng(result.latitude, result.longitude, { preserveSearchAddress });
       return true;
-    } catch {
-      setSearchError('Could not read this Google Maps short link. Please paste full Google Maps URL or coordinates.');
+    } catch (error) {
+      setSearchError(getSearchUnavailableMessage(error, { forShortLink: isGoogleMapsShortLink(query) }));
       return true;
     }
   };
@@ -1518,8 +1535,8 @@ export default function LeadCapture() {
         googlePlaceId: place.id || prev.googlePlaceId,
         googlePhone: googlePhone || prev.googlePhone,
         googleWebsite: googleWebsite || prev.googleWebsite,
-        latitude: lat ? String(lat) : prev.latitude,
-        longitude: lng ? String(lng) : prev.longitude
+        latitude: Number.isFinite(Number(lat)) ? String(lat) : prev.latitude,
+        longitude: Number.isFinite(Number(lng)) ? String(lng) : prev.longitude
       };
     });
   };
@@ -1566,6 +1583,7 @@ export default function LeadCapture() {
 
   useEffect(() => {
     if (!show || !searchAddressInputRef.current) return undefined;
+    if (!hasGoogleMapsApiKey()) return undefined;
 
     let cleanup = () => {};
     let cancelled = false;
@@ -1601,8 +1619,8 @@ export default function LeadCapture() {
       onRequireSelection: (message) => {
         if (!cancelled) setSearchError(message);
       },
-      onError: () => {
-        if (!cancelled) setSearchError('');
+      onError: (error) => {
+        if (!cancelled) setSearchError(getSearchUnavailableMessage(error));
       }
     }).then((dispose) => {
       if (cancelled) {
@@ -1619,6 +1637,11 @@ export default function LeadCapture() {
   }, [show]);
 
   const fetchLiveSearchSuggestions = async (value) => {
+    if (!hasGoogleMapsApiKey()) {
+      setSearchSuggestions([]);
+      setShowSearchSuggestions(false);
+      return;
+    }
     const queryText = String(value || '').trim();
     if (queryText.length < 2) {
       setSearchSuggestions([]);
@@ -1665,6 +1688,11 @@ export default function LeadCapture() {
         return;
       }
 
+      if (!hasGoogleMapsApiKey()) {
+        setSearchError('Google Maps search unavailable. You can still paste full Google Maps URL or coordinates.');
+        return;
+      }
+
       await loadGooglePlacesScript();
       const { Place } = await window.google.maps.importLibrary('places');
       const request = {
@@ -1701,7 +1729,7 @@ export default function LeadCapture() {
       setSearchError('');
     } catch (error) {
       console.error('Place.searchByText error:', error);
-      setSearchError('Google search failed. Please try full place name with city.');
+      setSearchError(getSearchUnavailableMessage(error));
     } finally {
       setIsFetchingAddress(false);
     }
@@ -2951,11 +2979,22 @@ export default function LeadCapture() {
                         onKeyDown={(e) => {
                           if (e.key !== 'Enter') return;
                           e.preventDefault();
-                          searchGooglePlace();
+                          e.stopPropagation();
+                          searchGooglePlace(e);
                         }}
                         placeholder="Search company, shop, office, area, or address"
                       />
-                      <button type="button" formNoValidate onClick={searchGooglePlace} style={s.mapsButton} disabled={isFetchingAddress}>
+                      <button
+                        type="button"
+                        formNoValidate
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          searchGooglePlace(e);
+                        }}
+                        style={s.mapsButton}
+                        disabled={isFetchingAddress}
+                      >
                         <Search size={14} /> {isFetchingAddress ? 'Fetching...' : 'Search Only'}
                       </button>
                     </div>
@@ -2997,6 +3036,7 @@ export default function LeadCapture() {
                       longitude={form.longitude}
                       onLocationChange={handleMapLocationChange}
                       height={176}
+                      unavailableMessage="Map preview unavailable. Coordinates will still be saved."
                     />
                   </div>
 

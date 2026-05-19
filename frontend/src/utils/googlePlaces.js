@@ -1,7 +1,14 @@
 const MAPS_SCRIPT_ID = 'google-maps-places-script';
 import { attachMapsAppCheckTokenProvider, initFirebaseAppCheck } from './firebaseAppCheck';
 
+const GOOGLE_MAPS_AUTH_FAILURE_EVENT = 'skuas:google-maps-auth-failure';
 const getApiKey = () => String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
+const hasGoogleMapsApiKey = () => Boolean(getApiKey());
+const createGoogleMapsError = (message, code) => {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+};
 
 const normalizeComponent = (components = [], ...types) => {
   for (const type of types) {
@@ -61,6 +68,17 @@ const placeToDetails = (place = {}) => {
 };
 
 let scriptPromise = null;
+let scriptLoadError = null;
+
+const emitGoogleMapsAuthFailure = (message = 'Google Maps authentication failed') => {
+  scriptLoadError = createGoogleMapsError(message, 'GOOGLE_MAPS_AUTH_FAILED');
+  scriptPromise = null;
+  if (typeof window === 'undefined') return;
+  window.__skuasGoogleMapsAuthFailed = true;
+  window.dispatchEvent(new CustomEvent(GOOGLE_MAPS_AUTH_FAILURE_EVENT, {
+    detail: { message }
+  }));
+};
 
 const waitForPlacesReady = async (timeoutMs = 5000) => {
   const start = Date.now();
@@ -80,7 +98,11 @@ const waitForPlacesReady = async (timeoutMs = 5000) => {
 };
 
 export const loadGooglePlacesScript = async () => {
+  if (scriptLoadError) throw scriptLoadError;
   if (window.google?.maps?.places) {
+    if (window.__skuasGoogleMapsAuthFailed) {
+      throw createGoogleMapsError('Google Maps authentication failed', 'GOOGLE_MAPS_AUTH_FAILED');
+    }
     initFirebaseAppCheck();
     await attachMapsAppCheckTokenProvider();
     return window.google;
@@ -88,15 +110,29 @@ export const loadGooglePlacesScript = async () => {
   if (scriptPromise) return scriptPromise;
 
   const apiKey = getApiKey();
-  if (!apiKey) throw new Error('Google Maps API key not configured');
+  if (!apiKey) {
+    throw createGoogleMapsError('Google Maps API key not configured', 'GOOGLE_MAPS_KEY_MISSING');
+  }
 
   scriptPromise = new Promise((resolve, reject) => {
+    if (typeof window !== 'undefined') {
+      window.__skuasGoogleMapsAuthFailed = false;
+      window.gm_authFailure = () => {
+        emitGoogleMapsAuthFailure('Google Maps authentication failed. Check API key, billing, and allowed domains.');
+        reject(scriptLoadError);
+      };
+    }
+
     const existing = document.getElementById(MAPS_SCRIPT_ID);
     if (existing) {
       const finishExisting = async () => {
+        if (window.__skuasGoogleMapsAuthFailed) {
+          reject(createGoogleMapsError('Google Maps authentication failed', 'GOOGLE_MAPS_AUTH_FAILED'));
+          return;
+        }
         const ok = await waitForPlacesReady();
         if (!ok) {
-          reject(new Error('Google Places API not enabled or failed to initialize'));
+          reject(createGoogleMapsError('Google Places API not enabled or failed to initialize', 'GOOGLE_MAPS_INIT_FAILED'));
           return;
         }
         initFirebaseAppCheck();
@@ -108,7 +144,7 @@ export const loadGooglePlacesScript = async () => {
       } else {
         existing.addEventListener('load', finishExisting);
       }
-      existing.addEventListener('error', () => reject(new Error('Failed to load Google Maps script')));
+      existing.addEventListener('error', () => reject(createGoogleMapsError('Failed to load Google Maps script', 'GOOGLE_MAPS_SCRIPT_LOAD_FAILED')));
       return;
     }
 
@@ -118,9 +154,13 @@ export const loadGooglePlacesScript = async () => {
     script.async = true;
     script.defer = true;
     script.onload = async () => {
+      if (window.__skuasGoogleMapsAuthFailed) {
+        reject(createGoogleMapsError('Google Maps authentication failed', 'GOOGLE_MAPS_AUTH_FAILED'));
+        return;
+      }
       const ok = await waitForPlacesReady();
       if (!ok) {
-        reject(new Error('Google Places API not enabled or failed to initialize'));
+        reject(createGoogleMapsError('Google Places API not enabled or failed to initialize', 'GOOGLE_MAPS_INIT_FAILED'));
         return;
       }
       Promise.resolve()
@@ -130,11 +170,17 @@ export const loadGooglePlacesScript = async () => {
         })
         .finally(() => resolve(window.google));
     };
-    script.onerror = () => reject(new Error('Failed to load Google Maps script'));
+    script.onerror = () => reject(createGoogleMapsError('Failed to load Google Maps script', 'GOOGLE_MAPS_SCRIPT_LOAD_FAILED'));
     document.head.appendChild(script);
   });
 
-  return scriptPromise;
+  try {
+    return await scriptPromise;
+  } catch (error) {
+    scriptLoadError = error;
+    scriptPromise = null;
+    throw error;
+  }
 };
 
 export const attachPlacesAutocomplete = async ({
@@ -241,4 +287,10 @@ export const attachPlacesAutocomplete = async ({
     onError?.(error);
     return () => {};
   }
+};
+
+export {
+  GOOGLE_MAPS_AUTH_FAILURE_EVENT,
+  getApiKey as getGoogleMapsApiKey,
+  hasGoogleMapsApiKey
 };

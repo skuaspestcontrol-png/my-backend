@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, ExternalLink } from 'lucide-react';
-import { loadGooglePlacesScript } from '../utils/googlePlaces';
+import {
+  GOOGLE_MAPS_AUTH_FAILURE_EVENT,
+  hasGoogleMapsApiKey,
+  loadGooglePlacesScript
+} from '../utils/googlePlaces';
 
 const DEFAULT_CENTER = { lat: 20.5937, lng: 78.9629 };
 
@@ -38,7 +42,7 @@ export default function MapPicker({
   const dragListenerRef = useRef(null);
   const onLocationChangeRef = useRef(onLocationChange);
   const onMapErrorRef = useRef(onMapError);
-  const [readyState, setReadyState] = useState('loading');
+  const [readyState, setReadyState] = useState(() => (hasGoogleMapsApiKey() ? 'loading' : 'error'));
 
   const hasCoordinates = useMemo(() => {
     return toNumber(latitude) !== null && toNumber(longitude) !== null;
@@ -47,7 +51,7 @@ export default function MapPicker({
   const mapsLink = useMemo(() => buildGoogleMapsUrl(latitude, longitude), [latitude, longitude]);
   const coordinateText = hasCoordinates
     ? `${Number(latitude).toFixed(6)}, ${Number(longitude).toFixed(6)}`
-    : 'No location selected';
+    : 'not selected';
 
   useEffect(() => {
     onLocationChangeRef.current = onLocationChange;
@@ -58,10 +62,31 @@ export default function MapPicker({
   }, [onMapError]);
 
   useEffect(() => {
+    if (hasGoogleMapsApiKey()) return undefined;
+    setReadyState('error');
+    return undefined;
+  }, []);
+
+  useEffect(() => {
+    const handleAuthFailure = (event) => {
+      const message = event?.detail?.message || 'Google Maps authentication failed.';
+      setReadyState('error');
+      onMapErrorRef.current?.(new Error(message));
+    };
+
+    window.addEventListener(GOOGLE_MAPS_AUTH_FAILURE_EVENT, handleAuthFailure);
+    return () => window.removeEventListener(GOOGLE_MAPS_AUTH_FAILURE_EVENT, handleAuthFailure);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     const initMap = async () => {
       if (!mapNodeRef.current) return;
+      if (!hasGoogleMapsApiKey()) {
+        setReadyState('error');
+        return;
+      }
       try {
         await loadGooglePlacesScript();
         if (!window.google?.maps?.importLibrary) {
@@ -226,7 +251,14 @@ export default function MapPicker({
         </div>
 
         <div style={{ position: 'relative', height, minHeight: height, background: '#e2e8f0' }}>
-          <div ref={mapNodeRef} style={{ width: '100%', height: '100%' }} />
+          <div
+            ref={mapNodeRef}
+            style={{
+              width: '100%',
+              height: '100%',
+              visibility: readyState === 'ready' ? 'visible' : 'hidden'
+            }}
+          />
           {readyState !== 'ready' ? (
             <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: '12px', textAlign: 'center', background: 'linear-gradient(180deg, rgba(248,250,252,0.96), rgba(241,245,249,0.92))', color: '#475569', fontSize: '12px', fontWeight: 700, lineHeight: 1.45 }}>
               {readyState === 'loading'
