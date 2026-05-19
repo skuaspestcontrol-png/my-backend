@@ -349,6 +349,8 @@ const normalizeAdvance = (raw = {}) => {
 const normalizeSalaryStructure = (raw = {}) => {
   const salaryTypeRaw = normalizeRole(raw.salaryType || 'monthly');
   const salaryType = allowedSalaryType.has(salaryTypeRaw) ? salaryTypeRaw : 'monthly';
+  const employeeName = normalizeText(raw.employeeName || raw.employee_name || raw.name || '');
+  const employeeCode = normalizeText(raw.employeeCode || raw.employee_code || raw.empCode || '');
   const allowances = {
     hra: toNumber(raw.allowances?.hra ?? raw.hra, 0),
     conveyance: toNumber(raw.allowances?.conveyance ?? raw.conveyance, 0),
@@ -370,6 +372,8 @@ const normalizeSalaryStructure = (raw = {}) => {
   return {
     _id: normalizeText(raw._id || `SAL-${Date.now()}`),
     employeeId: normalizeText(raw.employeeId),
+    employeeName,
+    employeeCode,
     effectiveDate: normalizeText(raw.effectiveDate || new Date().toISOString().slice(0, 10)),
     salaryType,
     basicSalary: toNumber(raw.basicSalary, 0),
@@ -1013,6 +1017,41 @@ function registerPayrollModule({
     syncPayrollTablesToMysql('payroll_audit');
   };
 
+  const buildPayrollEmployeeLookup = (employees = []) => {
+    const map = new Map();
+    const add = (value, entry) => {
+      const key = normalizeText(value).toLowerCase();
+      if (!key || map.has(key)) return;
+      map.set(key, entry || {});
+    };
+    (Array.isArray(employees) ? employees : []).forEach((entry) => {
+      const fullName = [entry?.firstName, entry?.lastName].filter(Boolean).join(' ').trim();
+      [
+        entry?._id,
+        entry?.id,
+        entry?.external_id,
+        entry?.empCode,
+        entry?.employeeCode,
+        entry?.employeeId,
+        fullName,
+        entry?.name,
+        entry?.displayName
+      ].forEach((value) => add(value, entry));
+    });
+    return map;
+  };
+
+  const findPayrollEmployee = (lookup, ...values) => {
+    if (!lookup || typeof lookup.get !== 'function') return null;
+    for (const value of values.flat()) {
+      const key = normalizeText(value).toLowerCase();
+      if (!key) continue;
+      const employee = lookup.get(key);
+      if (employee) return employee;
+    }
+    return null;
+  };
+
   let payrollHydrationPromise = null;
   const ensurePayrollHydratedOnce = async () => {
     if (!canUseMysql) return;
@@ -1042,18 +1081,12 @@ function registerPayrollModule({
   });
 
   const employeeLookup = () => {
-    const employees = readJsonFile(employeesFile, []);
-    const map = new Map();
-    employees.forEach((entry) => {
-      map.set(normalizeText(entry?._id), entry || {});
-    });
-    return map;
+    return buildPayrollEmployeeLookup(readJsonFile(employeesFile, []));
   };
 
   const readEmployeesForPayroll = async () => {
     const localEmployees = readJsonFile(employeesFile, []);
-    if (Array.isArray(localEmployees) && localEmployees.length > 0) return localEmployees;
-    if (!canUseMysql) return [];
+    if (!canUseMysql) return localEmployees;
     try {
       const mysqlEmployees = await withMysqlConnection(async (conn) => {
         const [rows] = await conn.query(`
@@ -1077,7 +1110,7 @@ function registerPayrollModule({
         `);
         return Array.isArray(rows) ? rows : [];
       });
-      return mysqlEmployees.map((row) => {
+      const normalizedMysql = mysqlEmployees.map((row) => {
         let payload = {};
         const rawPayload = row?.payload;
         if (rawPayload && typeof rawPayload === 'object') payload = rawPayload;
@@ -1085,12 +1118,20 @@ function registerPayrollModule({
           try { payload = JSON.parse(rawPayload); } catch { payload = {}; }
         }
         const salary = Number(row?.salary ?? payload.salary ?? payload.salaryPerMonth ?? 0) || 0;
+        const firstName = normalizeText(row?.first_name || payload?.firstName || '');
+        const lastName = normalizeText(row?.last_name || payload?.lastName || '');
+        const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
         return {
           ...payload,
+          id: normalizeText(row?.id || payload?.id || ''),
           _id: normalizeText(row?.external_id || payload?._id || row?.id || ''),
+          external_id: normalizeText(row?.external_id || payload?.external_id || ''),
           empCode: normalizeText(row?.emp_code || payload?.empCode || ''),
-          firstName: normalizeText(row?.first_name || payload?.firstName || ''),
-          lastName: normalizeText(row?.last_name || payload?.lastName || ''),
+          employeeCode: normalizeText(row?.emp_code || payload?.employeeCode || ''),
+          firstName,
+          lastName,
+          name: normalizeText(payload?.name || fullName || row?.name || ''),
+          displayName: normalizeText(payload?.displayName || fullName || row?.displayName || ''),
           mobile: normalizeText(row?.mobile || payload?.mobile || ''),
           email: normalizeText(row?.email || payload?.email || payload?.emailId || ''),
           role: normalizeText(row?.role || payload?.role || ''),
@@ -1102,20 +1143,65 @@ function registerPayrollModule({
           pincode: normalizeText(row?.pincode || payload?.pincode || '')
         };
       }).filter((entry) => normalizeText(entry?._id));
+      if (normalizedMysql.length > 0) return normalizedMysql;
+      return Array.isArray(localEmployees) ? localEmployees : [];
     } catch (error) {
       console.error('Payroll employee MySQL fallback failed:', error.message);
-      return [];
+      return Array.isArray(localEmployees) ? localEmployees : [];
     }
   };
 
+  const enrichPayrollStructureWithEmployee = (item, lookup) => {
+    const structure = normalizeSalaryStructure(item);
+    const employee = findPayrollEmployee(
+      lookup,
+      structure.employeeId,
+      item?.employeeId,
+      item?.employee_id,
+      item?.employeeCode,
+      item?.employee_code,
+      item?.employeeName,
+      item?.employee_name,
+      item?._id
+    );
+    if (!employee) return structure;
+    const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim();
+    const employeeName = fullName || structure.employeeName || employee.name || employee.displayName || employee.empCode || employee.employeeCode || 'Employee';
+    const employeeCode = normalizeText(structure.employeeCode || employee.empCode || employee.employeeCode || '');
+    return {
+      ...structure,
+      employeeId: normalizeText(structure.employeeId || employee._id || employee.id || ''),
+      employeeName,
+      employeeCode,
+      designation: normalizeText(structure.designation || employee.roleName || employee.role || ''),
+      department: normalizeText(structure.department || employee.role || ''),
+      employeeDetails: {
+        mobile: normalizeText(employee.mobile || ''),
+        email: normalizeText(employee.emailId || employee.email || ''),
+        bankName: normalizeText(employee.bankName || ''),
+        bankNo: normalizeText(employee.bankNo || ''),
+        ifsc: normalizeText(employee.ifsc || ''),
+        city: normalizeText(employee.city || '')
+      }
+    };
+  };
+
   const enrichPayrollItemWithEmployee = (item, lookup) => {
-    const employee = lookup.get(normalizeText(item?.employeeId));
+    const employee = findPayrollEmployee(
+      lookup,
+      item?.employeeId,
+      item?.employeeCode,
+      item?.employeeName,
+      item?.name,
+      item?.displayName
+    );
     if (!employee) return item;
     const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim();
     return {
       ...item,
-      employeeName: fullName || item.employeeName || employee.empCode || 'Employee',
-      employeeCode: normalizeText(employee.empCode || item.employeeCode || ''),
+      employeeId: normalizeText(item.employeeId || employee._id || employee.id || ''),
+      employeeName: fullName || item.employeeName || employee.name || employee.displayName || employee.empCode || 'Employee',
+      employeeCode: normalizeText(employee.empCode || employee.employeeCode || item.employeeCode || ''),
       designation: normalizeText(employee.roleName || item.designation || ''),
       department: normalizeText(employee.role || item.department || ''),
       employeeDetails: {
@@ -1129,9 +1215,9 @@ function registerPayrollModule({
     };
   };
 
-  const enrichPayrollItems = (rows) => {
-    const lookup = employeeLookup();
-    return (Array.isArray(rows) ? rows : []).map((entry) => enrichPayrollItemWithEmployee(entry, lookup));
+  const enrichPayrollItems = (rows, lookup = null) => {
+    const resolvedLookup = lookup || employeeLookup();
+    return (Array.isArray(rows) ? rows : []).map((entry) => enrichPayrollItemWithEmployee(entry, resolvedLookup));
   };
 
   const findItemById = (id) => {
@@ -1206,17 +1292,35 @@ function registerPayrollModule({
     res.json({ message: 'Payroll settings updated', config: nextConfig });
   });
 
-  app.get('/api/payroll/salary-structures', (req, res) => {
-    const employeeId = normalizeText(req.query.employeeId || '');
-    const rows = getStructures().filter((entry) => (employeeId ? entry.employeeId === employeeId : true));
-    rows.sort((a, b) => `${a.employeeId}-${a.effectiveDate}`.localeCompare(`${b.employeeId}-${b.effectiveDate}`));
-    res.json(rows);
+  app.get('/api/payroll/salary-structures', async (req, res) => {
+    try {
+      const employeeId = normalizeText(req.query.employeeId || '');
+      const employees = await readEmployeesForPayroll();
+      const lookup = buildPayrollEmployeeLookup(employees);
+      const rawRows = getStructures();
+      const rows = rawRows.map((entry) => enrichPayrollStructureWithEmployee(entry, lookup));
+      const needsBackfill = rows.some((entry, index) => {
+        const source = rawRows[index] || {};
+        return normalizeText(entry.employeeName) !== normalizeText(source.employeeName)
+          || normalizeText(entry.employeeCode) !== normalizeText(source.employeeCode)
+          || normalizeText(entry.employeeId) !== normalizeText(source.employeeId);
+      });
+      if (needsBackfill) saveStructures(rows);
+      const filtered = rows.filter((entry) => (employeeId ? normalizeText(entry.employeeId) === employeeId : true));
+      filtered.sort((a, b) => `${a.employeeId}-${a.effectiveDate}`.localeCompare(`${b.employeeId}-${b.effectiveDate}`));
+      res.json(filtered);
+    } catch (error) {
+      console.error('Payroll salary-structures GET failed:', error.message);
+      res.status(500).json({ error: 'Failed to load salary structures' });
+    }
   });
 
-  app.post('/api/payroll/salary-structures', (req, res) => {
+  app.post('/api/payroll/salary-structures', async (req, res) => {
     const perms = ensureAccess(req, res, (p) => p.canManageAll, 'Only Admin/HR can manage salary structures');
     if (!perms) return;
-    const payload = normalizeSalaryStructure(req.body || {});
+    const employees = await readEmployeesForPayroll();
+    const lookup = buildPayrollEmployeeLookup(employees);
+    const payload = enrichPayrollStructureWithEmployee(normalizeSalaryStructure(req.body || {}), lookup);
     if (!payload.employeeId) return res.status(400).json({ error: 'employeeId is required' });
     if (!payload.effectiveDate) return res.status(400).json({ error: 'effectiveDate is required' });
     if (payload.salaryType === 'monthly' && payload.basicSalary <= 0) return res.status(400).json({ error: 'basicSalary should be greater than zero' });
@@ -1246,11 +1350,12 @@ function registerPayrollModule({
     res.json(payload);
   });
 
-  app.post('/api/payroll/salary-structures/sync-employees', (req, res) => {
+  app.post('/api/payroll/salary-structures/sync-employees', async (req, res) => {
     const perms = ensureAccess(req, res, (p) => p.canManageAll, 'Only Admin/HR can sync salary structures');
     if (!perms) return;
     const updateExisting = req.body?.updateExisting === true;
-    const employees = readJsonFile(employeesFile, []);
+    const employees = await readEmployeesForPayroll();
+    const lookup = buildPayrollEmployeeLookup(employees);
     const structures = getStructures();
     const byEmployee = new Map();
     structures.forEach((entry) => {
@@ -1269,17 +1374,20 @@ function registerPayrollModule({
       const employeeId = normalizeText(employee?._id);
       if (!employeeId) return;
       const list = byEmployee.get(employeeId) || [];
+      const fullName = [employee?.firstName, employee?.lastName].filter(Boolean).join(' ').trim();
       const fallbackSalary = Math.max(0, toNumber(employee?.salaryPerMonth ?? employee?.salary, 0));
       if (list.length === 0) {
-        structures.push(normalizeSalaryStructure({
+        structures.push(enrichPayrollStructureWithEmployee(normalizeSalaryStructure({
           employeeId,
           effectiveDate: today,
           salaryType: 'monthly',
           basicSalary: fallbackSalary,
+          employeeName: fullName || employee?.name || '',
+          employeeCode: normalizeText(employee?.empCode || employee?.employeeCode || ''),
           allowances: { hra: 0, conveyance: 0, mobile: 0, bonus: 0, incentive: 0, other: 0 },
           deductions: { leave: 0, late: 0, advance: 0, loan: 0, pf: 0, esi: 0, other: 0, latePerMark: 0 },
           notes: 'Auto-created from Employee Master sync'
-        }));
+        }), lookup));
         createdCount += 1;
         return;
       }
@@ -1291,6 +1399,8 @@ function registerPayrollModule({
       structures[index] = {
         ...structures[index],
         basicSalary: fallbackSalary > 0 ? fallbackSalary : structures[index].basicSalary,
+        employeeName: structures[index].employeeName || fullName || employee?.name || '',
+        employeeCode: structures[index].employeeCode || normalizeText(employee?.empCode || employee?.employeeCode || ''),
         updatedAt: new Date().toISOString(),
         notes: normalizeText(structures[index].notes || 'Auto-synced from Employee Master')
       };
@@ -1308,12 +1418,18 @@ function registerPayrollModule({
     res.json({ message: 'Employee Master sync completed', createdCount, updatedCount });
   });
 
-  app.get('/api/payroll/salary-structures/:employeeId/current', (req, res) => {
-    const employeeId = normalizeText(req.params.employeeId);
-    const date = normalizeText(req.query.date || new Date().toISOString().slice(0, 10));
-    const selected = selectCurrentStructure(getStructures(), employeeId, date);
-    if (!selected) return res.status(404).json({ error: 'Salary structure not found' });
-    res.json(selected);
+  app.get('/api/payroll/salary-structures/:employeeId/current', async (req, res) => {
+    try {
+      const employeeId = normalizeText(req.params.employeeId);
+      const date = normalizeText(req.query.date || new Date().toISOString().slice(0, 10));
+      const lookup = buildPayrollEmployeeLookup(await readEmployeesForPayroll());
+      const selected = selectCurrentStructure(getStructures(), employeeId, date);
+      if (!selected) return res.status(404).json({ error: 'Salary structure not found' });
+      res.json(enrichPayrollStructureWithEmployee(selected, lookup));
+    } catch (error) {
+      console.error('PAYROLL current salary structure failed:', error.message);
+      res.status(500).json({ error: 'Could not load salary structure' });
+    }
   });
 
   app.get('/api/payroll/holidays', (req, res) => {
@@ -1657,44 +1773,56 @@ function registerPayrollModule({
     res.json([...runs].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))));
   });
 
-  app.get('/api/payroll/items', (req, res) => {
-    const perms = roleToPermissions(getRoleFromReq(req));
-    const identity = getRequestIdentity(req, perms);
-    if (!ensureOwnIdentity(identity, res)) return;
-    const month = toNumber(req.query.month, 0);
-    const year = toNumber(req.query.year, 0);
-    const employeeId = normalizeText(req.query.employeeId || '');
-    const department = normalizeRole(req.query.department || '');
-    const paymentStatus = normalizeRole(req.query.paymentStatus || '');
-    const payrollStatus = normalizeRole(req.query.payrollStatus || '');
-    const search = normalizeRole(req.query.search || '');
+  app.get('/api/payroll/items', async (req, res) => {
+    try {
+      const perms = roleToPermissions(getRoleFromReq(req));
+      const identity = getRequestIdentity(req, perms);
+      if (!ensureOwnIdentity(identity, res)) return;
+      const month = toNumber(req.query.month, 0);
+      const year = toNumber(req.query.year, 0);
+      const employeeId = normalizeText(req.query.employeeId || '');
+      const department = normalizeRole(req.query.department || '');
+      const paymentStatus = normalizeRole(req.query.paymentStatus || '');
+      const payrollStatus = normalizeRole(req.query.payrollStatus || '');
+      const search = normalizeRole(req.query.search || '');
+      const lookup = buildPayrollEmployeeLookup(await readEmployeesForPayroll());
 
-    const rows = enrichPayrollItems(getItems()).filter((entry) => {
-      if (identity.ownOnly && normalizeText(entry.employeeId) !== identity.employeeId) return false;
-      if (month && toNumber(entry.month, 0) !== month) return false;
-      if (year && toNumber(entry.year, 0) !== year) return false;
-      if (employeeId && normalizeText(entry.employeeId) !== employeeId) return false;
-      if (department && normalizeRole(entry.department) !== department) return false;
-      if (paymentStatus && normalizeRole(entry.paymentStatus) !== paymentStatus) return false;
-      if (payrollStatus && normalizeRole(entry.payrollStatus) !== payrollStatus) return false;
-      if (search) {
-        const searchText = `${entry.employeeName || ''} ${entry.employeeCode || ''}`.toLowerCase();
-        if (!searchText.includes(search)) return false;
-      }
-      return true;
-    });
-    rows.sort((a, b) => `${b.year}-${pad2(b.month)}-${b.employeeName}`.localeCompare(`${a.year}-${pad2(a.month)}-${a.employeeName}`));
-    res.json(rows);
+      const rows = enrichPayrollItems(getItems(), lookup).filter((entry) => {
+        if (identity.ownOnly && normalizeText(entry.employeeId) !== identity.employeeId) return false;
+        if (month && toNumber(entry.month, 0) !== month) return false;
+        if (year && toNumber(entry.year, 0) !== year) return false;
+        if (employeeId && normalizeText(entry.employeeId) !== employeeId) return false;
+        if (department && normalizeRole(entry.department) !== department) return false;
+        if (paymentStatus && normalizeRole(entry.paymentStatus) !== paymentStatus) return false;
+        if (payrollStatus && normalizeRole(entry.payrollStatus) !== payrollStatus) return false;
+        if (search) {
+          const searchText = `${entry.employeeName || ''} ${entry.employeeCode || ''}`.toLowerCase();
+          if (!searchText.includes(search)) return false;
+        }
+        return true;
+      });
+      rows.sort((a, b) => `${b.year}-${pad2(b.month)}-${b.employeeName}`.localeCompare(`${a.year}-${pad2(a.month)}-${a.employeeName}`));
+      res.json(rows);
+    } catch (error) {
+      console.error('PAYROLL items failed:', error.message);
+      res.status(500).json({ error: 'Could not load payroll items' });
+    }
   });
 
-  app.get('/api/payroll/items/:id', (req, res) => {
-    const perms = roleToPermissions(getRoleFromReq(req));
-    const identity = getRequestIdentity(req, perms);
-    if (!ensureOwnIdentity(identity, res)) return;
-    const item = findItemById(req.params.id);
-    if (!item) return res.status(404).json({ error: 'Payroll item not found' });
-    if (!canAccessItem(item, identity)) return res.status(403).json({ error: 'You can only view your own salary slip.' });
-    res.json(item);
+  app.get('/api/payroll/items/:id', async (req, res) => {
+    try {
+      const perms = roleToPermissions(getRoleFromReq(req));
+      const identity = getRequestIdentity(req, perms);
+      if (!ensureOwnIdentity(identity, res)) return;
+      const lookup = buildPayrollEmployeeLookup(await readEmployeesForPayroll());
+      const item = enrichPayrollItemWithEmployee(findItemById(req.params.id) || {}, lookup);
+      if (!item || !item._id) return res.status(404).json({ error: 'Payroll item not found' });
+      if (!canAccessItem(item, identity)) return res.status(403).json({ error: 'You can only view your own salary slip.' });
+      res.json(item);
+    } catch (error) {
+      console.error('PAYROLL item lookup failed:', error.message);
+      res.status(500).json({ error: 'Could not load payroll item' });
+    }
   });
 
   app.put('/api/payroll/items/:id', (req, res) => {
@@ -2246,6 +2374,8 @@ function registerPayrollModule({
       if (existingEmpSet.has(normalizeText(emp._id))) return;
       seeds.push(normalizeSalaryStructure({
         employeeId: emp._id,
+        employeeName: [emp?.firstName, emp?.lastName].filter(Boolean).join(' ').trim() || normalizeText(emp?.name || ''),
+        employeeCode: normalizeText(emp?.empCode || emp?.employeeCode || ''),
         effectiveDate: `${new Date().getFullYear()}-01-01`,
         salaryType: 'monthly',
         basicSalary: toNumber(emp.salaryPerMonth ?? emp.salary, 0),

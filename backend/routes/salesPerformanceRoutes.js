@@ -295,17 +295,84 @@ const normalizeTargetRow = (row = {}, lookup = null) => {
     employee
   };
 };
-const buildTargetPersistData = async (columns, body = {}, employees = []) => {
-  const salesPersonId = text(body.salesPersonId || body.sales_person_id || '');
+const syncSalesTargetEmployeeFields = async (rows = [], lookup = null) => {
+  if (!lookup || !Array.isArray(rows) || rows.length === 0) return;
+  const columns = await getColumns('sales_targets');
+  const hasSalesPersonId = columns.has('sales_person_id');
+  const hasEmployeeId = columns.has('employee_id');
+  const hasEmployeeName = columns.has('employee_name');
+  const hasEmployeeCode = columns.has('employee_code');
+  const hasSalesPersonName = columns.has('sales_person_name');
+  const hasSalesPersonCode = columns.has('sales_person_code');
+  const hasUpdatedAt = columns.has('updated_at');
+  if (!hasSalesPersonId && !hasEmployeeId && !hasEmployeeName && !hasEmployeeCode && !hasSalesPersonName && !hasSalesPersonCode) return;
+
+  for (const row of safeRows(rows)) {
+    const normalized = normalizeTargetRow(row, lookup);
+    const employee = normalized.employee;
+    if (!employee) continue;
+
+    const resolvedId = text(employee.id || employee.dbId || normalized.salesPersonId || '');
+    const resolvedName = text(employee.name || normalized.salesPersonName || '');
+    const resolvedCode = text(employee.employeeCode || normalized.salesPersonCode || '');
+    const updates = [];
+    const params = [];
+
+    const numericId = Number(resolvedId);
+    const safeSalesPersonId = Number.isFinite(numericId) && numericId > 0 && numericId <= 2147483647 ? Math.trunc(numericId) : null;
+
+    if (hasSalesPersonId && safeSalesPersonId && (row.sales_person_id === null || row.sales_person_id === undefined || row.sales_person_id === '' || Number(row.sales_person_id) <= 0)) {
+      updates.push('sales_person_id = ?');
+      params.push(safeSalesPersonId);
+    }
+    if (hasEmployeeId && resolvedId && (!text(row.employee_id))) {
+      updates.push('employee_id = ?');
+      params.push(resolvedId);
+    }
+    if (hasEmployeeName && resolvedName && (!text(row.employee_name))) {
+      updates.push('employee_name = ?');
+      params.push(resolvedName);
+    }
+    if (hasEmployeeCode && resolvedCode && (!text(row.employee_code))) {
+      updates.push('employee_code = ?');
+      params.push(resolvedCode);
+    }
+    if (hasSalesPersonName && resolvedName && (!text(row.sales_person_name))) {
+      updates.push('sales_person_name = ?');
+      params.push(resolvedName);
+    }
+    if (hasSalesPersonCode && resolvedCode && (!text(row.sales_person_code))) {
+      updates.push('sales_person_code = ?');
+      params.push(resolvedCode);
+    }
+    if (!updates.length) continue;
+    if (hasUpdatedAt) updates.push('updated_at = CURRENT_TIMESTAMP');
+    try {
+      await dbQuery(`UPDATE sales_targets SET ${updates.join(', ')} WHERE id = ?`, [...params, row.id]);
+    } catch (_error) {}
+  }
+};
+const buildTargetPersistData = async (columns, body = {}, lookup = null) => {
+  const employee = lookup ? resolveEmployee(lookup, body.salesPersonId || body.sales_person_id || '', body.salesPersonName || body.sales_person_name || body.employeeName || body.employee_name || '') : null;
+  const salesPersonId = text(body.salesPersonId || body.sales_person_id || employee?.id || '');
   const targetType = text(body.targetType || body.target_type || 'monthly').toLowerCase();
   const targetMonth = targetType === 'monthly' ? getSafeTargetMonth(body.targetMonth || body.target_month || body.month) : null;
   const targetYear = Number(body.targetYear || body.target_year || body.year || 0);
   const revenueTarget = num(body.revenueTarget || body.revenue_target || body.amount || 0);
   const collectionTarget = num(body.collectionTarget || body.collection_target || body.leadTarget || body.lead_target || 0);
   const externalId = stableTargetExternalId(salesPersonId, targetType, targetYear, targetMonth);
+  const employeeName = text(employee?.name || body.salesPersonName || body.sales_person_name || body.employeeName || body.employee_name || '');
+  const employeeCode = text(employee?.employeeCode || body.salesPersonCode || body.sales_person_code || body.employeeCode || body.employee_code || '');
+  const numericSalesPersonId = Number(salesPersonId);
+  const safeSalesPersonId = Number.isFinite(numericSalesPersonId) && numericSalesPersonId > 0 && numericSalesPersonId <= 2147483647 ? Math.trunc(numericSalesPersonId) : null;
   const data = {};
   if (hasColumn(columns, 'external_id')) data.external_id = externalId;
-  if (hasColumn(columns, 'sales_person_id')) data.sales_person_id = salesPersonId;
+  if (hasColumn(columns, 'sales_person_id') && safeSalesPersonId !== null) data.sales_person_id = safeSalesPersonId;
+  if (hasColumn(columns, 'employee_id')) data.employee_id = salesPersonId;
+  if (hasColumn(columns, 'employee_name')) data.employee_name = employeeName;
+  if (hasColumn(columns, 'employee_code')) data.employee_code = employeeCode;
+  if (hasColumn(columns, 'sales_person_name')) data.sales_person_name = employeeName;
+  if (hasColumn(columns, 'sales_person_code')) data.sales_person_code = employeeCode;
   if (hasColumn(columns, 'target_type')) data.target_type = targetType;
   if (hasColumn(columns, 'target_month')) data.target_month = targetMonth;
   if (hasColumn(columns, 'target_year')) data.target_year = targetYear;
@@ -314,7 +381,7 @@ const buildTargetPersistData = async (columns, body = {}, employees = []) => {
   if (hasColumn(columns, 'notes')) data.notes = text(body.notes || '');
   if (hasColumn(columns, 'is_active')) data.is_active = 1;
   if (hasColumn(columns, 'created_by')) data.created_by = body.createdBy || body.created_by || null;
-  return { data, externalId, salesPersonId, targetType, targetMonth, targetYear, collectionTarget, revenueTarget };
+  return { data, externalId, salesPersonId, targetType, targetMonth, targetYear, collectionTarget, revenueTarget, employeeName, employeeCode };
 };
 const normalizeSource = (kind, row = {}, lookup = null) => {
   const payload = safeJson(row.payload, {});
@@ -496,22 +563,8 @@ const loadSalesContext = async () => {
     ...safeRows(quotationRows).map((row) => normalizeSource('quotations', row, lookup)),
     ...safeRows(contractRows).map((row) => normalizeSource('contracts', row, lookup))
   ];
-  const normalizedTargets = safeRows(targetRows).map((row) => ({
-    id: row.id,
-    externalId: text(row.external_id || row.target_external_id || ''),
-    salesPersonId: text(row.sales_person_id || row.employee_id || row.employeeId || ''),
-    salesPersonName: text(row.sales_person_name || row.employee_name || row.employeeName || ''),
-    salesPersonCode: text(row.sales_person_code || row.employee_code || row.employeeCode || ''),
-    employeeName: text(row.sales_person_name || row.employee_name || row.employeeName || ''),
-    employeeCode: text(row.sales_person_code || row.employee_code || row.employeeCode || ''),
-    targetType: text(row.target_type || row.period_type || 'monthly').toLowerCase(),
-    targetMonth: row.target_month ?? row.month ?? null,
-    targetYear: row.target_year ?? row.year ?? null,
-    revenueTarget: num(row.revenue_target || row.target_amount || row.amount || 0),
-    collectionTarget: num(row.collection_target ?? row.lead_target ?? 0),
-    notes: text(row.notes || row.remark || ''),
-    isActive: Number(row.is_active ?? 1) !== 0
-  }));
+  const normalizedTargets = safeRows(targetRows).map((row) => normalizeTargetRow(row, lookup));
+  await syncSalesTargetEmployeeFields(safeRows(targetRows), lookup);
   return { employees, records, targets: normalizedTargets, lookup };
 };
 const findTargetRow = (targets, employee, targetType, year, month = null) => {
@@ -727,7 +780,9 @@ router.post('/targets', async (req, res) => {
     const conn = await getConnection();
     try {
       const columns = await getColumns('sales_targets');
-      const persist = await buildTargetPersistData(columns, body, []);
+      const employees = await loadSalesPeople();
+      const lookup = buildEmployeeLookup(employees);
+      const persist = await buildTargetPersistData(columns, body, lookup);
       await conn.beginTransaction();
       const [existingRows] = await conn.query(
         `SELECT id FROM sales_targets
@@ -788,7 +843,9 @@ router.put('/targets/:id', async (req, res) => {
     if (targetType === 'monthly' && !targetMonth) return sendError(res, 400, 'Month is required for monthly targets.');
 
     const columns = await getColumns('sales_targets');
-    const persist = await buildTargetPersistData(columns, body, []);
+    const employees = await loadSalesPeople();
+    const lookup = buildEmployeeLookup(employees);
+    const persist = await buildTargetPersistData(columns, body, lookup);
     const updateData = { ...persist.data, is_active: 1 };
     const updateFields = Object.keys(updateData);
     const updateValues = updateFields.map((field) => updateData[field]);
