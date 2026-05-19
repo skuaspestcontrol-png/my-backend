@@ -440,6 +440,11 @@ button.danger {
     align-items: stretch;
   }
 
+  .crm-page-header-copy {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
   .crm-page-header-action {
     width: 100%;
     justify-content: flex-start;
