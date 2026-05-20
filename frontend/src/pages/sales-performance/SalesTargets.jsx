@@ -131,6 +131,51 @@ export default function SalesTargets() {
     });
     return map;
   }, [employeeOptions]);
+  const yearlySummaryRows = useMemo(() => {
+    const map = new Map();
+    safeRows(targets).forEach((row) => {
+      const salesPersonKey = String(
+        row.salesPersonId
+        || row.sales_person_id
+        || row.employeeId
+        || row.employee_id
+        || row.salesPersonCode
+        || row.employeeCode
+        || row.salesPersonName
+        || row.employeeName
+        || ''
+      ).trim();
+      const year = Number(row.targetYear || 0);
+      if (!salesPersonKey || !year) return;
+      const key = `${salesPersonKey.toLowerCase()}::${year}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          salesPersonName: displaySalesPersonName(row),
+          year,
+          monthlyRevenueTarget: 0,
+          monthlyCollectionTarget: 0,
+          yearlyRevenueTarget: 0,
+          yearlyCollectionTarget: 0,
+          monthlyCount: 0,
+          yearlyCount: 0
+        });
+      }
+      const entry = map.get(key);
+      const targetType = String(row.targetType || 'monthly').toLowerCase();
+      const revenueTarget = Number(row.revenueTarget || 0);
+      const collectionTarget = Number(row.collectionTarget || 0);
+      if (targetType === 'yearly') {
+        entry.yearlyRevenueTarget += revenueTarget;
+        entry.yearlyCollectionTarget += collectionTarget;
+        entry.yearlyCount += 1;
+      } else {
+        entry.monthlyRevenueTarget += revenueTarget;
+        entry.monthlyCollectionTarget += collectionTarget;
+        entry.monthlyCount += 1;
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.year - a.year || a.salesPersonName.localeCompare(b.salesPersonName));
+  }, [targets]);
   const isMobile = viewportWidth <= 768;
   const pageGridStyle = {
     display: 'flex',
@@ -258,6 +303,53 @@ export default function SalesTargets() {
       </AppCard>
 
       {error ? <AppCard><EmptyState title="Sales target error" message={error} /></AppCard> : null}
+
+      <AppCard title="Yearly Target Rollup" style={{ width: '100%', minWidth: 0 }}>
+        {yearlySummaryRows.length ? (
+          <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="table-clean sales-targets-table sales-performance-table" style={tableStyle}>
+              <colgroup>
+                <col style={{ width: '220px' }} />
+                <col style={{ width: '90px' }} />
+                <col style={{ width: '160px' }} />
+                <col style={{ width: '170px' }} />
+                <col style={{ width: '160px' }} />
+                <col style={{ width: '170px' }} />
+                <col style={{ width: '110px' }} />
+                <col style={{ width: '110px' }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headerStyle}><span style={firstHeaderLabelStyle}>Sales Person</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Year</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Monthly Revenue Total</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Monthly Collection Total</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Yearly Revenue Target</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Yearly Collection Target</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Monthly Rows</span></th>
+                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Yearly Rows</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {yearlySummaryRows.map((row) => (
+                  <tr key={`${row.salesPersonName}-${row.year}`} style={{ height: 48 }}>
+                    <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...nameCellStyle, background: '#fff' }}>{row.salesPersonName}</td>
+                    <td className="table-number-cell" style={cellStyle}>{row.year}</td>
+                    <td className="table-number-cell" style={cellStyle}>{money(row.monthlyRevenueTarget)}</td>
+                    <td className="table-number-cell" style={cellStyle}>{money(row.monthlyCollectionTarget)}</td>
+                    <td className="table-number-cell" style={cellStyle}>{money(row.yearlyRevenueTarget)}</td>
+                    <td className="table-number-cell" style={cellStyle}>{money(row.yearlyCollectionTarget)}</td>
+                    <td className="table-number-cell" style={cellStyle}>{row.monthlyCount}</td>
+                    <td className="table-number-cell" style={cellStyle}>{row.yearlyCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState title="No yearly rollup yet" message="Create monthly targets for a sales person to see the annual total here." />
+        )}
+      </AppCard>
 
       <AppCard title={form.id ? 'Edit Target' : 'Add Target'} style={{ width: '100%', minWidth: 0 }}>
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, width: '100%', minWidth: 0 }}>

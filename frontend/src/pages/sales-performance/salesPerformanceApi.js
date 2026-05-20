@@ -24,20 +24,19 @@ export const formatCompactIndianCurrency = (value = 0) => {
   );
 
   if (absolute >= 10000000) {
-    return `${sign}₹${formatValue(absolute / 10000000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}Cr`;
+    return `${sign}₹${formatValue(absolute / 10000000, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}Cr`;
   }
 
   if (absolute >= 100000) {
-    return `${sign}₹${formatValue(absolute / 100000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}L`;
+    return `${sign}₹${formatValue(absolute / 100000, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L`;
   }
 
   if (absolute >= 1000) {
     const scaled = absolute / 1000;
-    const hasDecimal = absolute < 10000 && !Number.isInteger(scaled);
-    return `${sign}₹${formatValue(scaled, { minimumFractionDigits: 0, maximumFractionDigits: hasDecimal ? 1 : 0 })}K`;
+    return `${sign}₹${formatValue(scaled, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}K`;
   }
 
-  return `${sign}₹${formatValue(absolute, { minimumFractionDigits: 0, maximumFractionDigits: 1 })}`;
+  return `${sign}₹${formatValue(absolute, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 export const money = (value = 0) => formatCompactIndianCurrency(value);
 export const percent = (value = 0) => `${Number(value || 0).toFixed(1)}%`;
