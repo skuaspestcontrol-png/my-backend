@@ -1581,6 +1581,7 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {} }) => {
   const logoAsset = resolveGstCompanyLogoPath(settings);
   const logoUrl = String(logoAsset.value || settings.gstCompanyLogoUrl || settings.nonGstCompanyLogoUrl || settings.dashboardImageUrl || settings.logo_url || settings.logoUrl || '').trim();
   const resolvedLogoPath = resolveUploadAsset(logoUrl);
+  console.log('JOB PDF logoAsset:', logoAsset);
   console.log('JOB PDF logoUrl:', logoUrl);
   console.log('JOB PDF resolvedLogoPath:', resolvedLogoPath);
   console.log('JOB PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
