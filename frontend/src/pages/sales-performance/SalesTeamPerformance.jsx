@@ -30,7 +30,7 @@ import {
   SalesChartTooltip,
   salesChartTheme
 } from './SalesChartPrimitives';
-import { apiGet, currentMonth, currentYear, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
+import { apiGet, currentMonth, currentYear, formatCompactIndianCurrency, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
 import './salesPerformance.css';
 
 const targetColor = '#111827';

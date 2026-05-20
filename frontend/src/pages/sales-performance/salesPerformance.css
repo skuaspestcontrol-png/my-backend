@@ -86,9 +86,11 @@
 .sales-targets-page .sales-targets-table thead th.table-number-cell,
 .sales-targets-page .sales-targets-table thead th.table-percent-cell,
 .sales-targets-page .sales-targets-table thead th.table-status-cell,
+.sales-targets-page .sales-targets-table thead th.table-actions-cell,
 .sales-targets-page .sales-targets-table tbody td.table-number-cell,
 .sales-targets-page .sales-targets-table tbody td.table-percent-cell,
-.sales-targets-page .sales-targets-table tbody td.table-status-cell {
+.sales-targets-page .sales-targets-table tbody td.table-status-cell,
+.sales-targets-page .sales-targets-table tbody td.table-actions-cell {
   text-align: center !important;
 }
 
@@ -102,6 +104,32 @@
 .sales-targets-page .sales-targets-table thead th.table-name-cell,
 .sales-targets-page .sales-targets-table tbody td.table-name-cell {
   text-align: left !important;
+}
+
+.sales-targets-page .sales-targets-table .sales-targets-action-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sales-targets-page .sales-targets-table .sales-targets-action-btn {
+  min-width: 38px !important;
+  width: 38px !important;
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 0 !important;
+  border-radius: 12px !important;
+}
+
+.sales-targets-page .sales-targets-table .sales-targets-action-btn span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sales-targets-page .sales-targets-table .sales-targets-action-btn span:empty {
+  display: none;
 }
 
 .sales-team-page .sales-team-performance-table thead th.table-number-cell,

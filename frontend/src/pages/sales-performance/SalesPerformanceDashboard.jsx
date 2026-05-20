@@ -106,7 +106,22 @@ export default function SalesPerformanceDashboard() {
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 700
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', width: '100%' };
+      : { display: 'grid', gap: 10, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', width: '100%' };
+  const compactSummaryCardStyle = isMobile
+    ? { width: '100%', minWidth: 0, borderRadius: 18 }
+    : { width: '100%', minWidth: 0 };
+  const compactSummaryContentStyle = isMobile
+    ? { padding: 12, gap: 6, minHeight: 112 }
+    : { padding: 14, gap: 8 };
+  const compactSummaryTitleStyle = isMobile
+    ? { fontSize: 10, lineHeight: 1.2, letterSpacing: '0.03em' }
+    : undefined;
+  const compactSummaryValueStyle = (key) => {
+    if (!isMobile) return { fontSize: 26 };
+    if (key === 'bestPerformer') return { fontSize: 16, lineHeight: 1.15 };
+    if (String(key).includes('Percent')) return { fontSize: 18, lineHeight: 1.1 };
+    return { fontSize: 20, lineHeight: 1.1 };
+  };
   const scrollHintStyle = {
     marginBottom: 8,
     color: '#6B7280',
@@ -213,10 +228,10 @@ export default function SalesPerformanceDashboard() {
                 key={card.key}
                 title={card.title}
                 value={summaryValue(card.key)}
-                style={{ width: '100%', minWidth: 0 }}
-                contentStyle={isMobile ? { padding: 12, gap: 8 } : { padding: 14, gap: 8 }}
-                titleStyle={isMobile ? { fontSize: 11 } : undefined}
-                valueStyle={isMobile ? { fontSize: 22 } : { fontSize: 26 }}
+                style={compactSummaryCardStyle}
+                contentStyle={compactSummaryContentStyle}
+                titleStyle={compactSummaryTitleStyle}
+                valueStyle={compactSummaryValueStyle(card.key)}
               />
             ))}
           </div>

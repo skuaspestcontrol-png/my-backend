@@ -48,21 +48,24 @@ const headerStyle = {
 };
 const nameCellStyle = { ...cellStyle, fontWeight: 700, color: '#111827' };
 const headerLabelStyle = {
-  display: 'inline-block',
-  lineHeight: 1.1,
+  display: 'block',
+  width: '100%',
+  lineHeight: 1.15,
   whiteSpace: 'normal',
   wordBreak: 'break-word',
   overflowWrap: 'anywhere',
-  textAlign: 'left'
+  textAlign: 'center'
 };
 const actionButtonStyle = {
-  minWidth: 34,
-  width: 34,
-  height: 34,
+  minWidth: 38,
+  width: 38,
+  height: 38,
   padding: 0,
   gap: 0,
-  borderRadius: 10
+  borderRadius: 12,
+  boxShadow: '0 10px 24px rgba(15, 23, 42, 0.08)'
 };
+const firstHeaderLabelStyle = { ...headerLabelStyle, textAlign: 'left' };
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
 const neutralTextColor = '#111827';
@@ -292,7 +295,7 @@ export default function SalesTargets() {
               </colgroup>
               <thead>
                 <tr>
-                  <th className="table-header-cell table-text-cell table-sticky-first" style={headerStyle}><span style={headerLabelStyle}>Sales Person</span></th>
+                  <th className="table-header-cell table-text-cell table-sticky-first" style={headerStyle}><span style={firstHeaderLabelStyle}>Sales Person</span></th>
                   <th className="table-header-cell table-status-cell" style={headerStyle}><span style={headerLabelStyle}>Type</span></th>
                   <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Month</span></th>
                   <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Year</span></th>
@@ -351,7 +354,7 @@ export default function SalesTargets() {
                       </span>
                     </td>
                     <td className="table-actions-cell" style={cellStyle}>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center' }}>
+                      <div className="sales-targets-action-wrap">
                         <AppButton
                           variant="outline"
                           size="sm"
@@ -359,6 +362,7 @@ export default function SalesTargets() {
                           onClick={() => editRow(row)}
                           aria-label="Edit target"
                           title="Edit target"
+                          className="sales-targets-action-btn"
                           style={actionButtonStyle}
                         />
                         <AppButton
@@ -369,6 +373,7 @@ export default function SalesTargets() {
                           loading={saving}
                           aria-label="Delete target"
                           title="Delete target"
+                          className="sales-targets-action-btn"
                           style={actionButtonStyle}
                         />
                       </div>

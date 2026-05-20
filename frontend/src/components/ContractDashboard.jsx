@@ -852,6 +852,9 @@ export default function ContractDashboard() {
     : shell.customizeButton;
   const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
   const clearButtonStyle = isMobile ? { ...shell.clearBtn, width: '100%' } : shell.clearBtn;
+  const mobileDateInputStyle = isMobile
+    ? { ...shell.input, minWidth: 0, maxWidth: '100%', display: 'block', WebkitAppearance: 'none', appearance: 'none' }
+    : shell.input;
   const tableWrapStyle = isMobile
     ? {
       ...shell.tableWrap,
@@ -1082,50 +1085,52 @@ export default function ContractDashboard() {
               </button>
             );
           })}
-          <div style={customizeWrapStyle} data-contract-customize="true">
-            <button
-              ref={customizeButtonRef}
-              type="button"
-              style={customizeButtonStyle}
-              onClick={() => {
-                updateCustomizeMenuPosition();
-                setShowCustomize((prev) => !prev);
-              }}
-            >
-              <SlidersHorizontal size={13} />
-              <span>Customize Fields</span>
-            </button>
-            {showCustomize && customizeMenuPosition ? createPortal((
-              <div
-                data-contract-customize="true"
-                style={{
-                  ...shell.customizeMenu,
-                  top: `${customizeMenuPosition.top}px`,
-                  left: `${customizeMenuPosition.left}px`,
-                  width: `${customizeMenuPosition.width}px`,
-                  maxHeight: `${customizeMenuPosition.maxHeight}px`
+          {!isMobile ? (
+            <div style={customizeWrapStyle} data-contract-customize="true">
+              <button
+                ref={customizeButtonRef}
+                type="button"
+                style={customizeButtonStyle}
+                onClick={() => {
+                  updateCustomizeMenuPosition();
+                  setShowCustomize((prev) => !prev);
                 }}
               >
-                <div style={shell.customizeHeader}>Show/Hide Columns</div>
-                <div style={{ ...shell.customizeBody, maxHeight: `${Math.max(160, customizeMenuPosition.maxHeight - 42)}px` }}>
-                  {customColumns.map((col) => (
-                    <label key={col.key} style={shell.customizeRow}>
-                      <input
-                        type="checkbox"
-                        style={{ width: '14px', height: '14px', accentColor: 'var(--color-primary)', flexShrink: 0 }}
-                        checked={Boolean(visibleColumns[col.key])}
-                        onChange={(event) => {
-                          const checked = event.target.checked;
-                          setVisibleColumns((prev) => ({ ...prev, [col.key]: checked }));
-                        }}
-                      />
-                      <span>{col.label}</span>
-                    </label>
-                  ))}
+                <SlidersHorizontal size={13} />
+                <span>Customize Fields</span>
+              </button>
+              {showCustomize && customizeMenuPosition ? createPortal((
+                <div
+                  data-contract-customize="true"
+                  style={{
+                    ...shell.customizeMenu,
+                    top: `${customizeMenuPosition.top}px`,
+                    left: `${customizeMenuPosition.left}px`,
+                    width: `${customizeMenuPosition.width}px`,
+                    maxHeight: `${customizeMenuPosition.maxHeight}px`
+                  }}
+                >
+                  <div style={shell.customizeHeader}>Show/Hide Columns</div>
+                  <div style={{ ...shell.customizeBody, maxHeight: `${Math.max(160, customizeMenuPosition.maxHeight - 42)}px` }}>
+                    {customColumns.map((col) => (
+                      <label key={col.key} style={shell.customizeRow}>
+                        <input
+                          type="checkbox"
+                          style={{ width: '14px', height: '14px', accentColor: 'var(--color-primary)', flexShrink: 0 }}
+                          checked={Boolean(visibleColumns[col.key])}
+                          onChange={(event) => {
+                            const checked = event.target.checked;
+                            setVisibleColumns((prev) => ({ ...prev, [col.key]: checked }));
+                          }}
+                        />
+                        <span>{col.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ), document.body) : null}
-          </div>
+              ), document.body) : null}
+            </div>
+          ) : null}
         </div>
 
         <div style={shell.filtersBox}>
@@ -1149,11 +1154,11 @@ export default function ContractDashboard() {
             </div>
             <div style={shell.filterField}>
               <label style={shell.filterLabel}>Start Date From</label>
-              <input type="date" style={shell.input} value={filters.from} onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))} />
+              <input type="date" style={mobileDateInputStyle} value={filters.from} onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))} />
             </div>
             <div style={shell.filterField}>
               <label style={shell.filterLabel}>Start Date To</label>
-              <input type="date" style={shell.input} value={filters.to} onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))} />
+              <input type="date" style={mobileDateInputStyle} value={filters.to} onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))} />
             </div>
             <div style={shell.filterField}>
               <label style={shell.filterLabel}>Search</label>

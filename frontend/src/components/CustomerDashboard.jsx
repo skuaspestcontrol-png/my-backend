@@ -350,7 +350,19 @@ const shell = {
   historyMetaLabel: { margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
   historyMetaValue: { margin: '4px 0 0 0', fontSize: '14px', color: '#0f172a', fontWeight: 600 },
   historyEmpty: { margin: 0, padding: '16px 12px', fontSize: '13px', color: '#64748b' },
-  paginationBar: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px', padding: '10px 16px', borderTop: '1px solid var(--color-border)', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' },
+  paginationBar: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '10px 16px',
+    borderTop: '1px solid var(--color-border)',
+    background: '#fff',
+    borderBottomLeftRadius: '20px',
+    borderBottomRightRadius: '20px',
+    backgroundClip: 'padding-box',
+    boxShadow: 'inset 1px 0 0 rgba(239, 68, 68, 0.16), inset -1px 0 0 rgba(239, 68, 68, 0.16), inset 0 -1px 0 rgba(239, 68, 68, 0.16)'
+  },
   paginationText: { fontSize: '12px', color: '#475569', fontWeight: 600 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
   paginationButton: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '8px', width: '34px', minWidth: '34px', minHeight: '32px', padding: 0, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }

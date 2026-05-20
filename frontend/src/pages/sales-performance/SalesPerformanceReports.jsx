@@ -29,7 +29,7 @@ import {
   SalesChartTooltip,
   salesChartTheme
 } from './SalesChartPrimitives';
-import { apiGet, currentMonth, currentYear, downloadCsv, monthOptions, money, percent, safeRows } from './salesPerformanceApi';
+import { apiGet, currentMonth, currentYear, downloadCsv, formatCompactIndianCurrency, monthOptions, money, percent, safeRows } from './salesPerformanceApi';
 import './salesPerformance.css';
 
 const targetColor = '#111827';
@@ -144,6 +144,9 @@ export default function SalesPerformanceReports() {
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   };
+  const firstHeadCellStyle = viewportWidth <= 640
+    ? { ...headCellStyle, textAlign: 'left', whiteSpace: 'nowrap', fontSize: 11, padding: '9px 10px' }
+    : headCellStyle;
 
   const summaryCards = [
     { title: 'Rows', value: summary?.rows || 0 },
@@ -222,6 +225,9 @@ export default function SalesPerformanceReports() {
     padding: isMobile ? '12px 14px 14px' : '16px 18px 18px'
   };
   const mobileButtonStyle = viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined;
+  const mobileDateInputStyle = isMobile
+    ? { minWidth: 0, width: '100%', maxWidth: '100%', display: 'block', WebkitAppearance: 'none', appearance: 'none' }
+    : undefined;
 
   return (
     <div
@@ -260,10 +266,10 @@ export default function SalesPerformanceReports() {
             </AppSelect>
           </div>
           <div style={dateSpanStyle}>
-            <AppInput label="Start Date" type="date" value={filters.startDate} onChange={(e) => setFilters({ ...filters, startDate: e.target.value })} />
+            <AppInput label="Start Date" type="date" style={mobileDateInputStyle} value={filters.startDate} onChange={(e) => setFilters({ ...filters, startDate: e.target.value })} />
           </div>
           <div style={dateSpanStyle}>
-            <AppInput label="End Date" type="date" value={filters.endDate} onChange={(e) => setFilters({ ...filters, endDate: e.target.value })} />
+            <AppInput label="End Date" type="date" style={mobileDateInputStyle} value={filters.endDate} onChange={(e) => setFilters({ ...filters, endDate: e.target.value })} />
           </div>
           <AppSelect label="Month" value={filters.month} onChange={(e) => setFilters({ ...filters, month: Number(e.target.value) })}>
             {monthOptions.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}
@@ -383,7 +389,7 @@ export default function SalesPerformanceReports() {
                   </colgroup>
                   <thead>
                     <tr>
-                      <th className="table-header-cell table-text-cell table-sticky-first" style={headCellStyle}>Sales Person</th>
+                      <th className="table-header-cell table-text-cell table-sticky-first" style={firstHeadCellStyle}>Sales Person</th>
                       <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Target</th>
                       <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Achieved</th>
                       <th className="table-header-cell table-percent-cell" style={headCellStyle}>Monthly %</th>
