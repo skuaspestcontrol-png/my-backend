@@ -19,6 +19,83 @@ const normalizeComponent = (components = [], ...types) => {
   return '';
 };
 
+const normalizeAddressText = (value = '') => String(value || '').trim().replace(/\s*,\s*/g, ', ');
+
+const uniqueParts = (parts = []) => Array.from(new Set(parts.map((part) => normalizeAddressText(part)).filter(Boolean)));
+
+const getGoogleAddressParts = (source = {}) => {
+  const components = Array.isArray(source.address_components)
+    ? source.address_components
+    : Array.isArray(source.addressComponents)
+      ? source.addressComponents
+      : [];
+  const formattedAddress = normalizeAddressText(
+    source.formatted_address
+    || source.formattedAddress
+    || source.name
+    || source.displayName?.text
+    || source.displayName
+    || ''
+  );
+
+  const streetParts = uniqueParts([
+    normalizeComponent(components, 'premise'),
+    normalizeComponent(components, 'subpremise'),
+    normalizeComponent(components, 'street_number'),
+    normalizeComponent(components, 'route')
+  ]);
+
+  const areaParts = uniqueParts([
+    normalizeComponent(components, 'sublocality_level_1'),
+    normalizeComponent(components, 'sublocality_level_2'),
+    normalizeComponent(components, 'sublocality'),
+    normalizeComponent(components, 'neighborhood')
+  ]);
+
+  const city = normalizeComponent(
+    components,
+    'locality',
+    'postal_town',
+    'administrative_area_level_3',
+    'administrative_area_level_2'
+  );
+  const state = normalizeComponent(components, 'administrative_area_level_1');
+  const country = normalizeComponent(components, 'country');
+  let pincode = normalizeComponent(components, 'postal_code');
+  if (!pincode) pincode = normalizeComponent(components, 'postal_code_suffix');
+  if (!pincode && formattedAddress) {
+    const match = formattedAddress.match(/\b[1-9][0-9]{5}\b/);
+    pincode = match ? match[0] : '';
+  }
+
+  let address = streetParts.join(', ');
+  let addressParts = streetParts;
+  if (!address) {
+    const firstLine = formattedAddress.split(',').map((part) => part.trim()).filter(Boolean)[0] || '';
+    address = firstLine;
+    addressParts = firstLine ? [firstLine] : [];
+  }
+  if (!address && areaParts.length) {
+    address = areaParts[0];
+    addressParts = areaParts[0] ? [areaParts[0]] : [];
+  }
+  if (country.toLowerCase() === 'india') {
+    address = String(address || '').replace(/,\s*India\s*$/i, '').replace(/\s+India\s*$/i, '').trim();
+  }
+
+  const usedParts = new Set(addressParts.map((part) => part.toLowerCase()));
+  const areaName = uniqueParts(areaParts.filter((part) => !usedParts.has(part.toLowerCase()))).join(' / ');
+
+  return {
+    address: normalizeAddressText(address),
+    areaName,
+    city,
+    state,
+    pincode,
+    country
+  };
+};
+
 const stripAutoFilledIndiaSuffix = (value = '', components = []) => {
   const formatted = String(value || '').trim();
   if (!formatted) return '';
@@ -31,22 +108,11 @@ const stripAutoFilledIndiaSuffix = (value = '', components = []) => {
     .trim();
 };
 
-const extractPostalCode = (place = {}, components = []) => {
-  let postalCode = normalizeComponent(components, 'postal_code');
-  if (!postalCode) postalCode = normalizeComponent(components, 'postal_code_suffix');
-  if (!postalCode) {
-    const formatted = String(place.formatted_address || place.name || '').trim();
-    const match = formatted.match(/\b[1-9][0-9]{5}\b/);
-    postalCode = match ? match[0] : '';
-  }
-  return postalCode;
-};
-
 const placeToDetails = (place = {}) => {
   const location = place.geometry?.location;
   const lat = typeof location?.lat === 'function' ? location.lat() : Number(location?.lat || 0);
   const lng = typeof location?.lng === 'function' ? location.lng() : Number(location?.lng || 0);
-  const components = Array.isArray(place.address_components) ? place.address_components : [];
+  const parts = getGoogleAddressParts(place);
 
   return {
     place_id: String(place.place_id || '').trim(),
@@ -58,26 +124,15 @@ const placeToDetails = (place = {}) => {
     international_phone_number: String(place.international_phone_number || '').trim(),
     website: String(place.website || '').trim(),
     types: Array.isArray(place.types) ? place.types : [],
-    areaName: normalizeComponent(
-      components,
-      'sublocality_level_1',
-      'sublocality_level_2',
-      'sublocality',
-      'neighborhood',
-      'premise',
-      'route'
-    ),
-    city: normalizeComponent(
-      components,
-      'locality',
-      'postal_town',
-      'administrative_area_level_3',
-      'administrative_area_level_2'
-    ),
-    state: normalizeComponent(components, 'administrative_area_level_1'),
-    pincode: extractPostalCode(place, components)
+    address: parts.address,
+    areaName: parts.areaName,
+    city: parts.city,
+    state: parts.state,
+    pincode: parts.pincode
   };
 };
+
+export const formatGoogleAddressParts = (source = {}) => getGoogleAddressParts(source);
 
 let scriptPromise = null;
 let scriptLoadError = null;

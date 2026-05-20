@@ -10,6 +10,7 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 import {
   attachPlacesAutocomplete,
   loadGooglePlacesScript,
+  formatGoogleAddressParts,
   stripAutoFilledIndiaSuffix
 } from '../utils/googlePlaces';
 import {
@@ -942,79 +943,12 @@ export default function CustomerDashboard() {
     };
   };
 
-  const getAddressPart = (components = [], ...types) => {
-    for (const type of types) {
-      const part = components.find((component) => Array.isArray(component?.types) && component.types.includes(type));
-      const value = part?.long_name || part?.longText || part?.short_name || part?.shortText || '';
-      if (value) return String(value).trim();
-    }
-    return '';
-  };
-
   const extractCustomerAddressFields = (best = {}) => {
-    const components = Array.isArray(best.address_components)
-      ? best.address_components
-      : Array.isArray(best.addressComponents)
-        ? best.addressComponents
-        : [];
-    const formattedAddress = String(best.formatted_address || best.formattedAddress || best.formatted_address || '').trim();
-
-    let areaName = String(best.areaName || best.area || '').trim();
-    let city = String(best.city || '').trim();
-    let state = String(best.state || '').trim();
-    let pincode = String(best.pincode || best.pinCode || best.postalCode || best.postal_code || best.zip || '').trim();
-
-    if (!areaName) {
-      areaName = getAddressPart(
-        components,
-        'sublocality_level_1',
-        'sublocality_level_2',
-        'sublocality',
-        'neighborhood',
-        'premise',
-        'route'
-      );
-    }
-    if (!city) {
-      city = getAddressPart(
-        components,
-        'locality',
-        'postal_town',
-        'administrative_area_level_3',
-        'administrative_area_level_2'
-      );
-    }
-    if (!state) state = getAddressPart(components, 'administrative_area_level_1');
-    if (!pincode) pincode = getAddressPart(components, 'postal_code', 'postal_code_suffix');
-    if (!pincode && formattedAddress) {
-      pincode = String(formattedAddress.match(/\b[1-9][0-9]{5}\b/)?.[0] || '').trim();
-    }
-
-    if ((!city || !state) && formattedAddress) {
-      const parts = formattedAddress.split(',').map((part) => part.trim()).filter(Boolean);
-      if (!city && parts.length >= 3) city = parts[parts.length - 3] || city;
-      if (!state && parts.length >= 2) {
-        const statePart = parts[parts.length - 2] || '';
-        const stateMatch = statePart.match(/^([A-Za-z\s]+?)(?:\s+\d{6})?$/);
-        state = (stateMatch?.[1] || statePart).trim() || state;
-      }
-    }
-
+    const extracted = formatGoogleAddressParts(best);
     return {
-      areaName,
-      city,
-      state,
-      pincode: toSixDigitPincode(pincode)
+      ...extracted,
+      pincode: toSixDigitPincode(extracted.pincode)
     };
-  };
-
-  const sanitizeCustomerGoogleAddress = (address, best = {}) => {
-    const components = Array.isArray(best.address_components)
-      ? best.address_components
-      : Array.isArray(best.addressComponents)
-        ? best.addressComponents
-        : [];
-    return stripAutoFilledIndiaSuffix(address, components);
   };
 
   const getCustomerPlaceLatLng = (place = {}) => {
@@ -1041,10 +975,11 @@ export default function CustomerDashboard() {
     const longitudeKey = `${prefix}Longitude`;
     const placeIdKey = `${prefix}GooglePlaceId`;
     const placeNameKey = `${prefix}GooglePlaceName`;
-    const address = sanitizeCustomerGoogleAddress(data.address || data.formattedAddress || '', data);
-    const area = String(data.areaName || data.city || '').trim();
-    const state = String(data.state || '').trim();
-    const pincode = toSixDigitPincode(data.pincode || '');
+    const extracted = extractCustomerAddressFields(data);
+    const address = extracted.address || stripAutoFilledIndiaSuffix(data.address || data.formattedAddress || '', data);
+    const area = String(extracted.areaName || data.areaName || data.city || '').trim();
+    const state = String(extracted.state || data.state || '').trim();
+    const pincode = toSixDigitPincode(extracted.pincode || data.pincode || '');
     const placeId = String(data.placeId || data.googlePlaceId || '').trim();
     const placeName = String(data.placeName || data.googlePlaceName || '').trim();
     const lat = data.latitude !== null && data.latitude !== undefined && data.latitude !== '' ? String(data.latitude).trim() : '';
@@ -1106,11 +1041,11 @@ export default function CustomerDashboard() {
 
   const applyCustomerAddressSuggestion = (section, place = {}, queryText = '', options = {}) => {
     const placeName = place.displayName?.text || place.displayName || place.name || '';
-    const address = sanitizeCustomerGoogleAddress(place.formattedAddress || place.formatted_address || '', place);
+    const extracted = extractCustomerAddressFields(place);
+    const address = extracted.address || stripAutoFilledIndiaSuffix(place.formattedAddress || place.formatted_address || '', place);
     const googlePhone = place.nationalPhoneNumber || place.internationalPhoneNumber || place.formatted_phone_number || place.international_phone_number || '';
     const googleWebsite = place.websiteURI || place.website || '';
     const { lat, lng } = getCustomerPlaceLatLng(place);
-    const extracted = extractCustomerAddressFields(place);
     applyCustomerAddressPatch(section, {
       searchAddress: address || placeName || queryText,
       address,
@@ -1148,11 +1083,8 @@ export default function CustomerDashboard() {
       const first = response?.results?.[0];
       if (!first) return null;
 
-      const formattedAddress = sanitizeCustomerGoogleAddress(first.formatted_address || '', first);
-      const extracted = extractCustomerAddressFields({
-        formatted_address: formattedAddress,
-        address_components: first.address_components
-      });
+      const extracted = extractCustomerAddressFields(first);
+      const formattedAddress = extracted.address || stripAutoFilledIndiaSuffix(first.formatted_address || '', first);
       applyCustomerAddressPatch(section, {
         address: formattedAddress,
         areaName: extracted.areaName,

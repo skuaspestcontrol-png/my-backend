@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Check, MapPin, Pencil, Plus, Star, Trash2, X } from 'lucide-react';
-import { loadGooglePlacesScript } from '../utils/googlePlaces';
+import { formatGoogleAddressParts, loadGooglePlacesScript } from '../utils/googlePlaces';
 import {
   extractGoogleMapsCoordinates,
   isAllowedGoogleMapsUrl,
@@ -238,22 +238,12 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
       const response = await geocoder.geocode({ location: { lat: Number(lat), lng: Number(lng) } });
       const first = response?.results?.[0];
       if (!first) return null;
-
-      const components = Array.isArray(first.address_components) ? first.address_components : [];
-      const getPart = (...types) => {
-        for (const type of types) {
-          const part = components.find((component) => Array.isArray(component.types) && component.types.includes(type));
-          const value = part?.long_name || part?.longText || part?.short_name || part?.shortText || '';
-          if (value) return String(value).trim();
-        }
-        return '';
-      };
-
-      const formattedAddress = String(first.formatted_address || '').trim();
-      const areaName = getPart('sublocality_level_1', 'sublocality_level_2', 'sublocality', 'neighborhood', 'premise', 'route');
-      const city = getPart('locality', 'postal_town', 'administrative_area_level_3', 'administrative_area_level_2');
-      const state = getPart('administrative_area_level_1');
-      const pincode = getPart('postal_code') || String(formattedAddress.match(/\b[1-9][0-9]{5}\b/)?.[0] || '').trim();
+      const extracted = formatGoogleAddressParts(first);
+      const formattedAddress = extracted.address || String(first.formatted_address || '').trim();
+      const areaName = extracted.areaName;
+      const city = extracted.city;
+      const state = extracted.state;
+      const pincode = extracted.pincode;
 
       setDraft((prev) => ({
         ...prev,
