@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { RefreshCcw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   Bar,
   BarChart,
@@ -321,6 +322,19 @@ export default function SalesPerformanceDashboard() {
           <AppCard title="Recent Target Activity" className="crm-table-card" style={{ width: '100%', minWidth: 0 }}>
             {recentActivity.length ? (
               <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Link
+                    to="/sales-performance/targets"
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#9F174D',
+                      textDecoration: 'none'
+                    }}
+                  >
+                    View all activity
+                  </Link>
+                </div>
                 {recentActivity.map((entry) => (
                   <div
                     key={`${entry.id || entry.targetId || entry.createdAt}-${entry.action}`}
