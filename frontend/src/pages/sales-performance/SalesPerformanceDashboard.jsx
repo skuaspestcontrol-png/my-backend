@@ -18,6 +18,7 @@ import DashboardStatCard from '../../components/ui/DashboardStatCard';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
+import StatusBadge from '../../components/ui/StatusBadge';
 import {
   ChartSurface,
   CompactChartCard,
@@ -53,12 +54,26 @@ const summaryCards = [
   { key: 'bestPerformer', title: 'Best Performer' }
 ];
 
+const formatTargetActivityTime = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
 export default function SalesPerformanceDashboard() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [filters, setFilters] = useState({ year: currentYear, month: currentMonth, employeeId: '' });
   const [data, setData] = useState(null);
   const [matrix, setMatrix] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -77,6 +92,7 @@ export default function SalesPerformanceDashboard() {
       setData(dashboardRes);
       setMatrix(safeRows(matrixRes.matrix));
       setEmployees(safeRows(dashboardRes.employees));
+      setRecentActivity(safeRows(dashboardRes.recentActivity));
     } catch (err) {
       setError(err?.response?.data?.error || err?.message || 'Unable to load sales performance data. Please refresh or check backend API.');
     } finally {
@@ -301,6 +317,41 @@ export default function SalesPerformanceDashboard() {
               ) : <EmptyState title="No team performance yet" message="Add targets and records to compare people here." />}
             </CompactChartCard>
           </div>
+
+          <AppCard title="Recent Target Activity" className="crm-table-card" style={{ width: '100%', minWidth: 0 }}>
+            {recentActivity.length ? (
+              <div style={{ display: 'grid', gap: 10 }}>
+                {recentActivity.map((entry) => (
+                  <div
+                    key={`${entry.id || entry.targetId || entry.createdAt}-${entry.action}`}
+                    style={{
+                      border: '1px solid rgba(159, 23, 77, 0.16)',
+                      borderRadius: 14,
+                      padding: '12px 14px',
+                      background: '#fff',
+                      display: 'grid',
+                      gap: 6
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <strong style={{ color: '#111827' }}>{entry.targetLabel || 'Target'}</strong>
+                      <StatusBadge status={entry.action === 'deleted' ? 'danger' : entry.action === 'updated' ? 'info' : 'success'}>
+                        {entry.action}
+                      </StatusBadge>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#374151', fontWeight: 600 }}>
+                      {entry.salesPersonName || '---'} • {money(entry.revenueTarget || 0)} revenue • {money(entry.collectionTarget || 0)} collection
+                    </div>
+                    <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+                      {entry.actor || 'System'} • {formatTargetActivityTime(entry.createdAt)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No target activity yet" message="Save or update a target to see recent activity here." />
+            )}
+          </AppCard>
 
           <AppCard title="Year-Month Matrix" className="crm-table-card" style={{ width: '100%', minWidth: 0 }}>
             {safeRows(matrix).length ? (
