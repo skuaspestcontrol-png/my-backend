@@ -97,7 +97,10 @@ const getGoogleAddressParts = (source = {}) => {
     normalizeComponent(components, 'sublocality_level_1'),
     normalizeComponent(components, 'sublocality_level_2'),
     normalizeComponent(components, 'sublocality'),
-    normalizeComponent(components, 'neighborhood')
+    normalizeComponent(components, 'neighborhood'),
+    normalizeComponent(components, 'premise'),
+    normalizeComponent(components, 'route'),
+    normalizeComponent(components, 'administrative_area_level_3')
   ]);
   const componentAreaSet = new Set(areaParts.map((part) => normalizeComparableAddressText(part)).filter(Boolean));
 

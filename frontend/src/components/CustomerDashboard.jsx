@@ -957,7 +957,7 @@ export default function CustomerDashboard() {
     const placeNameKey = `${prefix}GooglePlaceName`;
     const extracted = extractCustomerAddressFields(data);
     const address = extracted.address || getGoogleFormattedAddressText(data) || stripAutoFilledIndiaSuffix(data.address || data.formattedAddress || '', data);
-    const area = isShipping ? String(extracted.areaName || data.areaName || data.city || '').trim() : '';
+    const area = String(extracted.areaName || data.areaName || data.city || '').trim();
     const state = String(extracted.state || data.state || '').trim();
     const pincode = toSixDigitPincode(extracted.pincode || data.pincode || '');
     const placeId = String(data.placeId || data.googlePlaceId || '').trim();
