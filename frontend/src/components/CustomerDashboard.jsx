@@ -977,7 +977,7 @@ export default function CustomerDashboard() {
     const lng = data.longitude !== null && data.longitude !== undefined && data.longitude !== '' ? String(data.longitude).trim() : '';
     const searchAddress = data.preserveSearchAddress
       ? prev[searchKey]
-      : String(data.searchAddress || address || placeName || prev[searchKey] || '').trim();
+      : String(data.searchAddress || placeName || prev[searchKey] || '').trim();
 
     const patch = {};
     if (searchAddress !== undefined) patch[searchKey] = searchAddress;
@@ -1038,7 +1038,7 @@ export default function CustomerDashboard() {
     const googleWebsite = place.websiteURI || place.website || '';
     const { lat, lng } = getCustomerPlaceLatLng(place);
     applyCustomerAddressPatch(section, {
-      searchAddress: address || placeName || queryText,
+      searchAddress: String(queryText || placeName || '').trim(),
       address,
       areaName: extracted.areaName,
       city: extracted.city,

@@ -1454,7 +1454,7 @@ export default function LeadCapture() {
       const nextPincode = extracted.pincode || prev.pincode;
       return {
         ...prev,
-        searchAddress: address || placeName || queryText || prev.searchAddress,
+        searchAddress: String(queryText || placeName || prev.searchAddress || '').trim(),
         address: address || prev.address,
         areaName: extracted.areaName || prev.areaName,
         city: extracted.city || prev.city,
