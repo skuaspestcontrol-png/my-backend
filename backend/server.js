@@ -1775,6 +1775,15 @@ const normalizeAttendanceTime = (value) => {
   return attendanceTimePattern.test(raw) ? raw : '';
 };
 
+const normalizeAttendanceMapUrl = (value, latitude, longitude) => {
+  const raw = String(value || '').trim();
+  if (raw) return raw;
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return '';
+  return `https://www.google.com/maps?q=${lat},${lng}`;
+};
+
 const toMinutesFromTime = (value) => {
   const normalized = normalizeAttendanceTime(value);
   if (!normalized) return null;
@@ -1799,6 +1808,10 @@ const sanitizeAttendanceRecord = (raw = {}) => {
   const defaultCheckOut = status === 'present' ? '17:00' : '';
   const checkIn = normalizeAttendanceTime(raw.checkIn || defaultCheckIn);
   const checkOut = normalizeAttendanceTime(raw.checkOut || defaultCheckOut);
+  const punchInLatitude = raw.punchInLatitude ?? raw.punch_in_latitude ?? null;
+  const punchInLongitude = raw.punchInLongitude ?? raw.punch_in_longitude ?? null;
+  const punchOutLatitude = raw.punchOutLatitude ?? raw.punch_out_latitude ?? null;
+  const punchOutLongitude = raw.punchOutLongitude ?? raw.punch_out_longitude ?? null;
   return {
     _id: String(raw._id || `ATT-${Date.now()}`),
     employeeId: String(raw.employeeId || '').trim(),
@@ -1811,6 +1824,20 @@ const sanitizeAttendanceRecord = (raw = {}) => {
     leaveType: String(raw.leaveType || '').trim(),
     leaveReason: String(raw.leaveReason || '').trim(),
     notes: String(raw.notes || '').trim(),
+    source: String(raw.source || '').trim() || '',
+    punchInLatitude: punchInLatitude === null || punchInLatitude === '' ? null : Number(punchInLatitude),
+    punchInLongitude: punchInLongitude === null || punchInLongitude === '' ? null : Number(punchInLongitude),
+    punchInAccuracy: raw.punchInAccuracy ?? raw.punch_in_accuracy ?? null,
+    punchInAddress: String(raw.punchInAddress || raw.punch_in_address || '').trim(),
+    punchInMapUrl: normalizeAttendanceMapUrl(raw.punchInMapUrl || raw.punch_in_map_url, punchInLatitude, punchInLongitude),
+    punchOutLatitude: punchOutLatitude === null || punchOutLatitude === '' ? null : Number(punchOutLatitude),
+    punchOutLongitude: punchOutLongitude === null || punchOutLongitude === '' ? null : Number(punchOutLongitude),
+    punchOutAccuracy: raw.punchOutAccuracy ?? raw.punch_out_accuracy ?? null,
+    punchOutAddress: String(raw.punchOutAddress || raw.punch_out_address || '').trim(),
+    punchOutMapUrl: normalizeAttendanceMapUrl(raw.punchOutMapUrl || raw.punch_out_map_url, punchOutLatitude, punchOutLongitude),
+    editedBy: String(raw.editedBy || raw.edited_by || '').trim(),
+    editedAt: String(raw.editedAt || raw.edited_at || '').trim(),
+    editReason: String(raw.editReason || raw.edit_reason || '').trim(),
     workingHours: computeWorkingHours({ status, checkIn, checkOut }),
     updatedAt: raw.updatedAt || new Date().toISOString()
   };
@@ -4330,6 +4357,99 @@ app.get('/api/attendance', async (req, res) => {
   res.json(filtered);
 });
 
+app.get('/api/attendance/audit', async (req, res) => {
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
+  }
+  const employeeId = String(req.query.employee_id || req.query.employeeId || '').trim();
+  const attendanceDate = String(req.query.date || '').trim();
+  if (!employeeId || !attendanceDate) {
+    return res.status(400).json({ error: 'employee_id and date are required' });
+  }
+  try {
+    const rows = await withMysqlConnection(async (conn) => {
+      await ensureAttendanceAuditTable(conn);
+      const [auditRows] = await conn.query(
+        `SELECT id, attendance_id, employee_id, attendance_date, changed_by, changed_at, old_status, new_status,
+                old_check_in_time, new_check_in_time, old_check_out_time, new_check_out_time, reason, source
+         FROM attendance_audit_logs
+         WHERE employee_id = ? AND attendance_date = ?
+         ORDER BY changed_at DESC, id DESC`,
+        [employeeId, attendanceDate]
+      );
+      return Array.isArray(auditRows) ? auditRows : [];
+    });
+    return res.json(rows.map((entry) => ({
+      id: entry.id,
+      attendanceId: entry.attendance_id,
+      employeeId: entry.employee_id,
+      attendanceDate: entry.attendance_date,
+      changedBy: entry.changed_by || '',
+      changedAt: entry.changed_at || '',
+      oldStatus: entry.old_status || '',
+      newStatus: entry.new_status || '',
+      oldCheckInTime: entry.old_check_in_time || '',
+      newCheckInTime: entry.new_check_in_time || '',
+      oldCheckOutTime: entry.old_check_out_time || '',
+      newCheckOutTime: entry.new_check_out_time || '',
+      reason: entry.reason || '',
+      source: entry.source || ''
+    })));
+  } catch (error) {
+    console.error('Attendance audit read failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to fetch attendance audit logs' });
+  }
+});
+
+app.get('/api/attendance/:id/audit', async (req, res) => {
+  if (!canUseMysql()) {
+    return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
+  }
+  const attendanceKey = String(req.params.id || '').trim();
+  if (!attendanceKey) {
+    return res.status(400).json({ error: 'Attendance id is required' });
+  }
+  try {
+    const rows = await withMysqlConnection(async (conn) => {
+      await ensureAttendanceAuditTable(conn);
+      let attendanceId = /^\d+$/.test(attendanceKey) ? Number(attendanceKey) : null;
+      if (!attendanceId) {
+        const [attendanceRows] = await conn.query('SELECT id FROM attendance WHERE external_id = ? LIMIT 1', [attendanceKey]);
+        attendanceId = Number(attendanceRows?.[0]?.id || 0) || null;
+      }
+      if (!attendanceId) return [];
+      const [auditRows] = await conn.query(
+        `SELECT id, attendance_id, employee_id, attendance_date, changed_by, changed_at, old_status, new_status,
+                old_check_in_time, new_check_in_time, old_check_out_time, new_check_out_time, reason, source
+         FROM attendance_audit_logs
+         WHERE attendance_id = ?
+         ORDER BY changed_at DESC, id DESC`,
+        [attendanceId]
+      );
+      return Array.isArray(auditRows) ? auditRows : [];
+    });
+    return res.json(rows.map((entry) => ({
+      id: entry.id,
+      attendanceId: entry.attendance_id,
+      employeeId: entry.employee_id,
+      attendanceDate: entry.attendance_date,
+      changedBy: entry.changed_by || '',
+      changedAt: entry.changed_at || '',
+      oldStatus: entry.old_status || '',
+      newStatus: entry.new_status || '',
+      oldCheckInTime: entry.old_check_in_time || '',
+      newCheckInTime: entry.new_check_in_time || '',
+      oldCheckOutTime: entry.old_check_out_time || '',
+      newCheckOutTime: entry.new_check_out_time || '',
+      reason: entry.reason || '',
+      source: entry.source || ''
+    })));
+  } catch (error) {
+    console.error('Attendance audit lookup failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to fetch attendance audit logs' });
+  }
+});
+
 app.post('/api/attendance', async (req, res) => {
   if (!canUseMysql()) {
     return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
@@ -4353,25 +4473,78 @@ app.post('/api/attendance', async (req, res) => {
   const employeeCode = employee
     ? String(employee.empCode || '').trim()
     : String(req.body?.employeeCode || '').trim();
-  const stableExternalId = `ATT-${employeeId.replace(/[^a-zA-Z0-9_-]/g, '')}-${date.replace(/[^0-9-]/g, '')}`;
-
-  const nextRecord = sanitizeAttendanceRecord({
-    _id: req.body?._id || stableExternalId,
-    employeeId,
-    employeeCode,
-    employeeName,
-    date,
-    status: req.body?.status,
-    checkIn: req.body?.checkIn,
-    checkOut: req.body?.checkOut,
-    leaveType: req.body?.leaveType,
-    leaveReason: req.body?.leaveReason,
-    notes: req.body?.notes,
-    updatedAt: new Date().toISOString()
-  });
-
   try {
-    await syncAttendanceToMysql(nextRecord);
+    const stableExternalId = `ATT-${employeeId.replace(/[^a-zA-Z0-9_-]/g, '')}-${date.replace(/[^0-9-]/g, '')}`;
+    const actorName = String(req.headers['x-user-name'] || req.headers['x-portal-user'] || req.body?.actor || 'Admin').trim();
+    const previousRecord = await withMysqlConnection(async (conn) => {
+      await ensureAttendanceTable(conn);
+      const [rows] = await conn.query('SELECT payload FROM attendance WHERE external_id = ? OR (employee_external_id = ? AND attendance_date = ?) ORDER BY id DESC LIMIT 1', [req.body?._id || stableExternalId, employeeId, date]);
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (!row?.payload) return null;
+      if (typeof row.payload === 'string') {
+        try { return sanitizeAttendanceRecord(JSON.parse(row.payload)); } catch { return null; }
+      }
+      return sanitizeAttendanceRecord(row.payload);
+    });
+
+    const nextRecord = sanitizeAttendanceRecord({
+      _id: req.body?._id || stableExternalId,
+      employeeId,
+      employeeCode,
+      employeeName,
+      date,
+      status: req.body?.status,
+      checkIn: req.body?.checkIn,
+      checkOut: req.body?.checkOut,
+      leaveType: req.body?.leaveType,
+      leaveReason: req.body?.leaveReason,
+      notes: req.body?.notes,
+      source: req.body?.source || 'manual_admin',
+      punchInLatitude: req.body?.punchInLatitude ?? req.body?.punch_in_latitude ?? previousRecord?.punchInLatitude ?? null,
+      punchInLongitude: req.body?.punchInLongitude ?? req.body?.punch_in_longitude ?? previousRecord?.punchInLongitude ?? null,
+      punchInAccuracy: req.body?.punchInAccuracy ?? req.body?.punch_in_accuracy ?? previousRecord?.punchInAccuracy ?? null,
+      punchInAddress: req.body?.punchInAddress ?? req.body?.punch_in_address ?? previousRecord?.punchInAddress ?? '',
+      punchInMapUrl: req.body?.punchInMapUrl ?? req.body?.punch_in_map_url ?? previousRecord?.punchInMapUrl ?? '',
+      punchOutLatitude: req.body?.punchOutLatitude ?? req.body?.punch_out_latitude ?? previousRecord?.punchOutLatitude ?? null,
+      punchOutLongitude: req.body?.punchOutLongitude ?? req.body?.punch_out_longitude ?? previousRecord?.punchOutLongitude ?? null,
+      punchOutAccuracy: req.body?.punchOutAccuracy ?? req.body?.punch_out_accuracy ?? previousRecord?.punchOutAccuracy ?? null,
+      punchOutAddress: req.body?.punchOutAddress ?? req.body?.punch_out_address ?? previousRecord?.punchOutAddress ?? '',
+      punchOutMapUrl: req.body?.punchOutMapUrl ?? req.body?.punch_out_map_url ?? previousRecord?.punchOutMapUrl ?? '',
+      editedBy: req.body?.source === 'technician_app' ? (previousRecord?.editedBy || '') : actorName,
+      editedAt: req.body?.source === 'technician_app' ? (previousRecord?.editedAt || '') : new Date().toISOString(),
+      editReason: req.body?.source === 'technician_app' ? (previousRecord?.editReason || '') : String(req.body?.editReason || req.body?.edit_reason || '').trim(),
+      updatedAt: new Date().toISOString()
+    });
+
+    let attendanceNumericId = null;
+    attendanceNumericId = await syncAttendanceToMysql(nextRecord);
+    if (req.body?.source !== 'technician_app') {
+      await withMysqlConnection(async (conn) => {
+        await ensureAttendanceAuditTable(conn);
+        await conn.query(
+          `INSERT INTO attendance_audit_logs (
+            attendance_id, employee_id, attendance_date, changed_by, changed_at,
+            old_status, new_status, old_check_in_time, new_check_in_time, old_check_out_time, new_check_out_time,
+            reason, source
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            attendanceNumericId,
+            employeeId,
+            date,
+            actorName || null,
+            new Date().toISOString().slice(0, 19).replace('T', ' '),
+            previousRecord?.status || null,
+            nextRecord.status || null,
+            previousRecord?.checkIn ? `${date} ${previousRecord.checkIn}:00` : null,
+            nextRecord.checkIn ? `${date} ${nextRecord.checkIn}:00` : null,
+            previousRecord?.checkOut ? `${date} ${previousRecord.checkOut}:00` : null,
+            nextRecord.checkOut ? `${date} ${nextRecord.checkOut}:00` : null,
+            String(req.body?.editReason || req.body?.edit_reason || '').trim() || null,
+            nextRecord.source || 'manual_admin'
+          ]
+        );
+      });
+    }
   } catch (error) {
     console.error('MySQL attendance write failed:', error.message);
     return res.status(500).json({ error: error.message || 'Failed to save attendance in MySQL' });
@@ -6531,9 +6704,63 @@ const ensureAttendanceTable = async (conn) => {
     { name: 'check_in', definition: 'TIME NULL' },
     { name: 'check_out', definition: 'TIME NULL' },
     { name: 'working_hours', definition: 'DECIMAL(8,2) NOT NULL DEFAULT 0' },
+    { name: 'source', definition: `VARCHAR(50) NULL DEFAULT 'manual_admin'` },
+    { name: 'punch_in_latitude', definition: 'DECIMAL(10,8) NULL' },
+    { name: 'punch_in_longitude', definition: 'DECIMAL(11,8) NULL' },
+    { name: 'punch_in_accuracy', definition: 'DECIMAL(10,2) NULL' },
+    { name: 'punch_in_address', definition: 'TEXT NULL' },
+    { name: 'punch_in_map_url', definition: 'TEXT NULL' },
+    { name: 'punch_out_latitude', definition: 'DECIMAL(10,8) NULL' },
+    { name: 'punch_out_longitude', definition: 'DECIMAL(11,8) NULL' },
+    { name: 'punch_out_accuracy', definition: 'DECIMAL(10,2) NULL' },
+    { name: 'punch_out_address', definition: 'TEXT NULL' },
+    { name: 'punch_out_map_url', definition: 'TEXT NULL' },
+    { name: 'edited_by', definition: 'VARCHAR(100) NULL' },
+    { name: 'edited_at', definition: 'DATETIME NULL' },
+    { name: 'edit_reason', definition: 'TEXT NULL' },
     { name: 'payload', definition: 'JSON NULL' },
     { name: 'source_created_at', definition: 'DATETIME NULL' },
     { name: 'source_updated_at', definition: 'DATETIME NULL' }
+  ]);
+};
+
+const ensureAttendanceAuditTable = async (conn) => {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS attendance_audit_logs (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      attendance_id BIGINT UNSIGNED NULL,
+      employee_id VARCHAR(50) NULL,
+      attendance_date DATE NULL,
+      changed_by VARCHAR(100) NULL,
+      changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      old_status VARCHAR(30) NULL,
+      new_status VARCHAR(30) NULL,
+      old_check_in_time DATETIME NULL,
+      new_check_in_time DATETIME NULL,
+      old_check_out_time DATETIME NULL,
+      new_check_out_time DATETIME NULL,
+      reason TEXT NULL,
+      source VARCHAR(50) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_attendance_audit_employee_date (employee_id, attendance_date),
+      KEY idx_attendance_audit_attendance (attendance_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await ensureColumnsIfMissing(conn, 'attendance_audit_logs', [
+    { name: 'attendance_id', definition: 'BIGINT UNSIGNED NULL' },
+    { name: 'employee_id', definition: 'VARCHAR(50) NULL' },
+    { name: 'attendance_date', definition: 'DATE NULL' },
+    { name: 'changed_by', definition: 'VARCHAR(100) NULL' },
+    { name: 'changed_at', definition: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
+    { name: 'old_status', definition: 'VARCHAR(30) NULL' },
+    { name: 'new_status', definition: 'VARCHAR(30) NULL' },
+    { name: 'old_check_in_time', definition: 'DATETIME NULL' },
+    { name: 'new_check_in_time', definition: 'DATETIME NULL' },
+    { name: 'old_check_out_time', definition: 'DATETIME NULL' },
+    { name: 'new_check_out_time', definition: 'DATETIME NULL' },
+    { name: 'reason', definition: 'TEXT NULL' },
+    { name: 'source', definition: 'VARCHAR(50) NULL' }
   ]);
 };
 
@@ -6829,13 +7056,17 @@ app.post('/api/google/tasks/sync-job/:jobId', async (req, res) => {
 
 const syncAttendanceToMysql = async (record) => {
   if (!record || !record._id) return;
-  await withMysqlConnection(async (conn) => {
+  return withMysqlConnection(async (conn) => {
     await ensureAttendanceTable(conn);
     await conn.query(
       `INSERT INTO attendance (
         external_id, employee_external_id, employee_code, employee_name, attendance_date, status,
-        check_in, check_out, working_hours, payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        check_in, check_out, working_hours, source,
+        punch_in_latitude, punch_in_longitude, punch_in_accuracy, punch_in_address, punch_in_map_url,
+        punch_out_latitude, punch_out_longitude, punch_out_accuracy, punch_out_address, punch_out_map_url,
+        edited_by, edited_at, edit_reason,
+        payload, source_created_at, source_updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         employee_external_id=VALUES(employee_external_id),
         employee_code=VALUES(employee_code),
@@ -6845,6 +7076,20 @@ const syncAttendanceToMysql = async (record) => {
         check_in=VALUES(check_in),
         check_out=VALUES(check_out),
         working_hours=VALUES(working_hours),
+        source=VALUES(source),
+        punch_in_latitude=VALUES(punch_in_latitude),
+        punch_in_longitude=VALUES(punch_in_longitude),
+        punch_in_accuracy=VALUES(punch_in_accuracy),
+        punch_in_address=VALUES(punch_in_address),
+        punch_in_map_url=VALUES(punch_in_map_url),
+        punch_out_latitude=VALUES(punch_out_latitude),
+        punch_out_longitude=VALUES(punch_out_longitude),
+        punch_out_accuracy=VALUES(punch_out_accuracy),
+        punch_out_address=VALUES(punch_out_address),
+        punch_out_map_url=VALUES(punch_out_map_url),
+        edited_by=VALUES(edited_by),
+        edited_at=VALUES(edited_at),
+        edit_reason=VALUES(edit_reason),
         payload=VALUES(payload),
         source_created_at=VALUES(source_created_at),
         source_updated_at=VALUES(source_updated_at)`,
@@ -6858,11 +7103,27 @@ const syncAttendanceToMysql = async (record) => {
         record.checkIn ? `${record.checkIn}:00` : null,
         record.checkOut ? `${record.checkOut}:00` : null,
         toNumber(record.workingHours, 0),
+        record.source || 'manual_admin',
+        record.punchInLatitude ?? null,
+        record.punchInLongitude ?? null,
+        record.punchInAccuracy ?? null,
+        record.punchInAddress || null,
+        record.punchInMapUrl || null,
+        record.punchOutLatitude ?? null,
+        record.punchOutLongitude ?? null,
+        record.punchOutAccuracy ?? null,
+        record.punchOutAddress || null,
+        record.punchOutMapUrl || null,
+        record.editedBy || null,
+        record.editedAt ? new Date(record.editedAt).toISOString().slice(0, 19).replace('T', ' ') : null,
+        record.editReason || null,
         JSON.stringify(record),
         record.updatedAt ? new Date(record.updatedAt).toISOString().slice(0, 19).replace('T', ' ') : null,
         new Date().toISOString().slice(0, 19).replace('T', ' ')
       ]
     );
+    const [rows] = await conn.query('SELECT id FROM attendance WHERE external_id = ? LIMIT 1', [record._id]);
+    return Number(rows?.[0]?.id || 0) || null;
   });
 };
 

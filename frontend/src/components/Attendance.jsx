@@ -1,10 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock3, Users } from 'lucide-react';
+import { CalendarDays, Clock3, MapPinned, Users } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-const leaveTypes = ['', 'Casual Leave', 'Sick Leave', 'Earned Leave', 'Unpaid Leave'];
+const leaveTypes = [
+  '',
+  'Casual Leave (CL)',
+  'Sick Leave (SL)',
+  'Paid Leave',
+  'Unpaid Leave (LWP)',
+  'Half Day Leave',
+  'Weekly Off',
+  'Public Holiday',
+  'Outdoor Duty',
+  'Absent'
+];
 
 const shell = {
   page: {
@@ -74,7 +85,7 @@ const shell = {
     border: '1px solid rgba(159, 23, 77, 0.2)',
     overflowX: 'auto'
   },
-  table: { width: '100%', minWidth: '900px', borderCollapse: 'collapse', tableLayout: 'auto' },
+  table: { width: '100%', minWidth: '1200px', borderCollapse: 'collapse', tableLayout: 'auto' },
   th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', lineHeight: 1.3 },
   td: { padding: '10px', borderBottom: '1px solid #eef2f7', fontSize: '13px', color: '#0f172a', verticalAlign: 'middle', wordBreak: 'break-word' },
   nameCell: { display: 'grid', gap: '2px' },
@@ -118,6 +129,39 @@ const shell = {
     fontSize: '12px',
     fontWeight: 800
   },
+  mapBtn: {
+    minHeight: '28px',
+    borderRadius: '8px',
+    border: '1px solid rgba(159, 23, 77, 0.24)',
+    background: '#fff',
+    color: 'var(--color-primary-dark)',
+    padding: '0 9px',
+    fontSize: '11px',
+    fontWeight: 800,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    whiteSpace: 'nowrap'
+  },
+  actionBtn: {
+    minHeight: '30px',
+    borderRadius: '8px',
+    border: '1px solid #D1D5DB',
+    background: '#fff',
+    color: '#334155',
+    cursor: 'pointer',
+    fontSize: '11px',
+    fontWeight: 800,
+    padding: '0 10px',
+    whiteSpace: 'nowrap'
+  },
+  modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.42)', display: 'grid', placeItems: 'center', padding: '16px', zIndex: 80 },
+  modal: { width: 'min(720px, 100%)', maxHeight: '80vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.2)', background: '#fff', boxShadow: 'var(--shadow-soft)', padding: '16px', display: 'grid', gap: '12px' },
+  modalTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' },
+  auditCard: { border: '1px solid rgba(159, 23, 77, 0.14)', borderRadius: '12px', padding: '12px', background: '#fff', display: 'grid', gap: '6px' },
+  auditMeta: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 700 },
   footerNote: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 600 }
 };
 
@@ -176,6 +220,7 @@ export default function Attendance() {
   const [records, setRecords] = useState({});
   const [monthRecords, setMonthRecords] = useState([]);
   const [statusMessage, setStatusMessage] = useState('');
+  const [auditModal, setAuditModal] = useState({ open: false, loading: false, employeeName: '', items: [] });
 
   const loadData = async (attendanceDate) => {
     const sunday = isSundayDate(attendanceDate);
@@ -207,7 +252,14 @@ export default function Attendance() {
         checkOut: normalizedCheckOut,
         leaveType: entry.leaveType || '',
         leaveReason: entry.leaveReason || '',
-        notes: entry.notes || ''
+        notes: entry.notes || '',
+        source: entry.source || '',
+        punchInLatitude: entry.punchInLatitude ?? null,
+        punchInLongitude: entry.punchInLongitude ?? null,
+        punchInMapUrl: entry.punchInMapUrl || '',
+        punchOutLatitude: entry.punchOutLatitude ?? null,
+        punchOutLongitude: entry.punchOutLongitude ?? null,
+        punchOutMapUrl: entry.punchOutMapUrl || ''
       };
     });
 
@@ -222,7 +274,8 @@ export default function Attendance() {
         checkOut: '',
         leaveType: '',
         leaveReason: '',
-        notes: ''
+        notes: '',
+        source: ''
       };
     });
 
@@ -266,7 +319,14 @@ export default function Attendance() {
         checkOut: '',
         leaveType: '',
         leaveReason: '',
-        notes: ''
+        notes: '',
+        source: '',
+        punchInLatitude: null,
+        punchInLongitude: null,
+        punchInMapUrl: '',
+        punchOutLatitude: null,
+        punchOutLongitude: null,
+        punchOutMapUrl: ''
       };
       const workingHours = computeHours(record.status, record.checkIn, record.checkOut);
       return {
@@ -370,7 +430,7 @@ export default function Attendance() {
   };
 
   const setStatus = (employeeId, status) => {
-    const current = records[employeeId] || { employeeId, date, status: 'absent', checkIn: '', checkOut: '', leaveType: '', leaveReason: '', notes: '' };
+    const current = records[employeeId] || { employeeId, date, status: 'absent', checkIn: '', checkOut: '', leaveType: '', leaveReason: '', notes: '', source: '' };
     const nextCheckIn = status === 'present'
       ? (current.checkIn || '09:00')
       : '';
@@ -405,6 +465,10 @@ export default function Attendance() {
         leaveType: row.leaveType,
         leaveReason: row.leaveReason,
         notes: row.notes
+      }, {
+        headers: {
+          'x-user-name': localStorage.getItem('portal_user_name') || 'Admin'
+        }
       });
       const saved = res.data || {};
       setRecords((prev) => ({
@@ -419,7 +483,14 @@ export default function Attendance() {
           checkOut: saved.checkOut || '',
           leaveType: saved.leaveType || '',
           leaveReason: saved.leaveReason || '',
-          notes: saved.notes || ''
+          notes: saved.notes || '',
+          source: saved.source || '',
+          punchInLatitude: saved.punchInLatitude ?? null,
+          punchInLongitude: saved.punchInLongitude ?? null,
+          punchInMapUrl: saved.punchInMapUrl || '',
+          punchOutLatitude: saved.punchOutLatitude ?? null,
+          punchOutLongitude: saved.punchOutLongitude ?? null,
+          punchOutMapUrl: saved.punchOutMapUrl || ''
         }
       }));
       if (monthFromDate(date) === month) {
@@ -444,6 +515,24 @@ export default function Attendance() {
     setMonth(nextMonth);
     if (nextMonth && !String(date).startsWith(nextMonth)) {
       setDate(`${nextMonth}-01`);
+    }
+  };
+
+  const openAudit = async ({ employeeId, employee, record }) => {
+    try {
+      setAuditModal({ open: true, loading: true, employeeName: getEmployeeName(employee), items: [] });
+      const params = new URLSearchParams({ employee_id: employeeId, date: record.date || date });
+      const res = await axios.get(`${API_BASE}/api/attendance/audit?${params.toString()}`);
+      setAuditModal({
+        open: true,
+        loading: false,
+        employeeName: getEmployeeName(employee),
+        items: Array.isArray(res.data) ? res.data : []
+      });
+    } catch (error) {
+      console.error('Failed to load attendance audit', error);
+      setAuditModal({ open: true, loading: false, employeeName: getEmployeeName(employee), items: [] });
+      setStatusMessage(error?.response?.data?.error || 'Unable to load attendance audit.');
     }
   };
 
@@ -508,12 +597,15 @@ export default function Attendance() {
       <div style={shell.tableWrap}>
         <table style={shell.table}>
           <colgroup>
-            <col style={{ width: '17%' }} />
-            <col style={{ width: '20%' }} />
             <col style={{ width: '16%' }} />
-            <col style={{ width: '16%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '19%' }} />
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '10%' }} />
           </colgroup>
           <thead>
             <tr>
@@ -523,6 +615,9 @@ export default function Attendance() {
               <th style={shell.th}>Check Out</th>
               <th style={shell.th}>Working Hours</th>
               <th style={shell.th}>Leave Type</th>
+              <th style={shell.th}>Location</th>
+              <th style={shell.th}>Source</th>
+              <th style={shell.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -608,18 +703,73 @@ export default function Attendance() {
                       ))}
                     </select>
                   </td>
+                  <td style={shell.td}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) ? (
+                        <a
+                          href={record.punchInMapUrl || `https://www.google.com/maps?q=${record.punchInLatitude},${record.punchInLongitude}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={shell.mapBtn}
+                        >
+                          <MapPinned size={12} /> In Map
+                        </a>
+                      ) : null}
+                      {record.punchOutMapUrl || (record.punchOutLatitude && record.punchOutLongitude) ? (
+                        <a
+                          href={record.punchOutMapUrl || `https://www.google.com/maps?q=${record.punchOutLatitude},${record.punchOutLongitude}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={shell.mapBtn}
+                        >
+                          <MapPinned size={12} /> Out Map
+                        </a>
+                      ) : null}
+                      {!(record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) || record.punchOutMapUrl || (record.punchOutLatitude && record.punchOutLongitude)) ? '-' : null}
+                    </div>
+                  </td>
+                  <td style={shell.td}>{record.source || '-'}</td>
+                  <td style={shell.td}>
+                    <button type="button" style={shell.actionBtn} onClick={() => openAudit({ employeeId, employee, record })}>View Audit</button>
+                  </td>
                 </tr>
               );
             })}
             {employeeRows.length === 0 ? (
               <tr>
-                <td style={shell.td} colSpan={6}>No employees found. Add employees in Employee Master to begin attendance.</td>
+                <td style={shell.td} colSpan={9}>No employees found. Add employees in Employee Master to begin attendance.</td>
               </tr>
             ) : null}
           </tbody>
         </table>
       </div>
       <p style={shell.footerNote}>{statusMessage || 'Tip: Attendance auto-saves when you change status, leave, or move out of time fields.'}</p>
+
+      {auditModal.open ? (
+        <div style={shell.modalBg}>
+          <div style={shell.modal}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
+              <div>
+                <h3 style={shell.modalTitle}>Attendance Audit</h3>
+                <p style={shell.auditMeta}>{auditModal.employeeName} • {date}</p>
+              </div>
+              <button type="button" style={shell.actionBtn} onClick={() => setAuditModal({ open: false, loading: false, employeeName: '', items: [] })}>Close</button>
+            </div>
+            {auditModal.loading ? <p style={shell.footerNote}>Loading audit history...</p> : null}
+            {!auditModal.loading && auditModal.items.length === 0 ? <p style={shell.footerNote}>No audit history found.</p> : null}
+            {!auditModal.loading && auditModal.items.map((item) => (
+              <div key={item.id} style={shell.auditCard}>
+                <p style={shell.auditMeta}>{item.changedBy || '-'} • {item.changedAt ? String(item.changedAt).replace('T', ' ').slice(0, 16) : '-'}</p>
+                <p style={shell.footerNote}>Status: {item.oldStatus || '-'} → {item.newStatus || '-'}</p>
+                <p style={shell.footerNote}>Check In: {item.oldCheckInTime ? String(item.oldCheckInTime).slice(11, 16) : '-'} → {item.newCheckInTime ? String(item.newCheckInTime).slice(11, 16) : '-'}</p>
+                <p style={shell.footerNote}>Check Out: {item.oldCheckOutTime ? String(item.oldCheckOutTime).slice(11, 16) : '-'} → {item.newCheckOutTime ? String(item.newCheckOutTime).slice(11, 16) : '-'}</p>
+                <p style={shell.footerNote}>Source: {item.source || '-'}</p>
+                {item.reason ? <p style={shell.footerNote}>Reason: {item.reason}</p> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

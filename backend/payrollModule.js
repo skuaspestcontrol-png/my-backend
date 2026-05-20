@@ -393,6 +393,19 @@ const isPaidLeaveType = (leaveType) => {
   return text.includes('paid') || text.includes('casual') || text.includes('sick') || text.includes('earned');
 };
 
+const classifyLeaveType = (leaveType) => {
+  const text = normalizeRole(leaveType);
+  if (!text) return 'unpaid_leave';
+  if (text.includes('outdoor duty')) return 'present';
+  if (text.includes('public holiday')) return 'paid_holiday';
+  if (text.includes('weekly off')) return 'weekly_off';
+  if (text.includes('half day')) return 'half_day';
+  if (text === 'absent') return 'absent';
+  if (text.includes('unpaid') || text.includes('lwp')) return 'unpaid_leave';
+  if (isPaidLeaveType(text)) return 'paid_leave';
+  return 'unpaid_leave';
+};
+
 const selectCurrentStructure = (structures, employeeId, monthEndDate) => {
   const items = structures
     .filter((entry) => normalizeText(entry.employeeId) === normalizeText(employeeId))
@@ -497,7 +510,28 @@ const summarizeAttendanceForPayroll = ({
       return;
     }
     if (status === 'leave') {
-      if (isPaidLeaveType(att.leaveType)) paidLeaveDays += 1;
+      const leaveClass = classifyLeaveType(att.leaveType);
+      if (leaveClass === 'present') {
+        presentDays += 1;
+        return;
+      }
+      if (leaveClass === 'paid_holiday') {
+        paidHolidayDays += 1;
+        return;
+      }
+      if (leaveClass === 'weekly_off') {
+        weeklyOffDays += 1;
+        return;
+      }
+      if (leaveClass === 'half_day') {
+        halfDays += 1;
+        return;
+      }
+      if (leaveClass === 'absent') {
+        unpaidLeaveDays += 1;
+        return;
+      }
+      if (leaveClass === 'paid_leave') paidLeaveDays += 1;
       else unpaidLeaveDays += 1;
       return;
     }
