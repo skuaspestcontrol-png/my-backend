@@ -108,19 +108,19 @@ export default function SalesPerformanceDashboard() {
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
       : { display: 'grid', gap: 10, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', width: '100%' };
   const compactSummaryCardStyle = isMobile
-    ? { width: '100%', minWidth: 0, borderRadius: 18, minHeight: 132 }
+    ? { width: '100%', minWidth: 0, borderRadius: 18, minHeight: 118 }
     : { width: '100%', minWidth: 0 };
   const compactSummaryContentStyle = isMobile
-    ? { padding: 14, gap: 8, minHeight: 132 }
+    ? { padding: 12, gap: 6, minHeight: 118, justifyContent: 'space-between' }
     : { padding: 14, gap: 8 };
   const compactSummaryTitleStyle = isMobile
-    ? { fontSize: 10, lineHeight: 1.2, letterSpacing: '0.03em' }
+    ? { fontSize: 9, lineHeight: 1.15, letterSpacing: '0.02em' }
     : undefined;
   const compactSummaryValueStyle = (key) => {
     if (!isMobile) return { fontSize: 26 };
-    if (key === 'bestPerformer') return { fontSize: 16, lineHeight: 1.15 };
-    if (String(key).includes('Percent')) return { fontSize: 18, lineHeight: 1.1 };
-    return { fontSize: 20, lineHeight: 1.1 };
+    if (key === 'bestPerformer') return { fontSize: 12, lineHeight: 1.2, wordBreak: 'break-word' };
+    if (String(key).includes('Percent')) return { fontSize: 16, lineHeight: 1.05 };
+    return { fontSize: 18, lineHeight: 1.05 };
   };
   const scrollHintStyle = {
     marginBottom: 8,

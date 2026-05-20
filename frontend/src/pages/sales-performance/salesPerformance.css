@@ -216,7 +216,16 @@
   }
 
   .sales-dashboard-page .sales-summary-grid .crm-kpi-card {
-    min-height: 132px;
+    min-height: 118px;
+  }
+
+  .sales-dashboard-page .sales-summary-grid .crm-kpi-card .crm-card-body,
+  .sales-dashboard-page .sales-summary-grid .crm-kpi-card > div {
+    min-height: 118px;
+  }
+
+  .sales-dashboard-page .sales-summary-grid .crm-kpi-card span {
+    max-width: 100%;
   }
 
   .sales-dashboard-page .sales-chart-inner--wide {
