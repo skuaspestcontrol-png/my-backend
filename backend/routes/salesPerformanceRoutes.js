@@ -660,6 +660,30 @@ const applyTargets = (employee, context, year, month, startDate = '', endDate = 
   const yearlyTargetRow = findTargetRow(context.targets, employee, 'yearly', year);
   return attachTargets(summary, monthlyTargetRow, yearlyTargetRow);
 };
+const matchesTargetEmployee = (row = {}, employee = null) => {
+  if (!employee) return false;
+  return [
+    row.salesPersonId,
+    row.salesPersonCode,
+    row.salesPersonName,
+    row.employeeName
+  ].some((value) => employeeHasValue(employee, value));
+};
+const sumTargetValues = (rows = [], key = 'revenueTarget') => safeRows(rows).reduce((sum, row) => sum + num(row[key] || 0), 0);
+const getEmployeeTargetTotals = (context, employee, year, month) => {
+  const targetRows = safeRows(context.targets).filter((row) => row.isActive && matchesTargetEmployee(row, employee));
+  const monthlyRows = targetRows.filter((row) => text(row.targetType) === 'monthly' && Number(row.targetYear) === Number(year) && Number(row.targetMonth) === Number(month));
+  const yearlyRows = targetRows.filter((row) => text(row.targetType) === 'yearly' && Number(row.targetYear) === Number(year));
+  const yearlyMonthlyFallbackRows = targetRows.filter((row) => text(row.targetType) === 'monthly' && Number(row.targetYear) === Number(year));
+  const yearlyRevenueRows = yearlyRows.length ? yearlyRows : yearlyMonthlyFallbackRows;
+  const yearlyCollectionRows = yearlyRows.length ? yearlyRows : yearlyMonthlyFallbackRows;
+  return {
+    monthlyRevenueTarget: sumTargetValues(monthlyRows, 'revenueTarget'),
+    monthlyCollectionTarget: sumTargetValues(monthlyRows, 'collectionTarget'),
+    yearlyRevenueTarget: sumTargetValues(yearlyRevenueRows, 'revenueTarget'),
+    yearlyCollectionTarget: sumTargetValues(yearlyCollectionRows, 'collectionTarget')
+  };
+};
 const buildMonthlyTrend = (context, year) => monthList.map((month) => {
   const monthlyTargetRows = context.targets.filter((row) => row.isActive && text(row.targetType) === 'monthly' && Number(row.targetYear) === Number(year) && Number(row.targetMonth) === Number(month));
   const monthlyRecords = context.records.filter((record) => matchesDate(record.date, year, month));
@@ -741,29 +765,30 @@ const buildTeamRows = (context, filters = {}) => {
   return context.employees
     .filter((employee) => !salesPersonId || employeeHasValue(employee, salesPersonId))
     .map((employee) => {
-        const summary = applyTargets(employee, context, year, month, filters.startDate || '', filters.endDate || '');
-        return {
-          employeeId: employee.id,
-          employeeName: employee.name,
-          monthlyTarget: summary.monthlyRevenueTarget,
-          monthlyAchieved: summary.monthlyRevenueAchieved,
-          monthlyPending: summary.monthlyRevenuePending,
-          monthlyAchievementPercent: summary.monthlyRevenuePercent,
-          yearlyTarget: summary.yearlyRevenueTarget,
-          yearlyAchieved: summary.yearlyRevenueAchieved,
-          yearlyPending: summary.yearlyRevenuePending,
-          yearlyAchievementPercent: summary.yearlyRevenuePercent,
-          monthlyCollectionTarget: summary.monthlyCollectionTarget,
-          monthlyCollectionAchieved: summary.monthlyCollectionAchieved,
-          monthlyCollectionPending: summary.monthlyCollectionPending,
-          monthlyCollectionPercent: summary.monthlyCollectionPercent,
-          yearlyCollectionTarget: summary.yearlyCollectionTarget,
-          yearlyCollectionAchieved: summary.yearlyCollectionAchieved,
-          yearlyCollectionPending: summary.yearlyCollectionPending,
-          yearlyCollectionPercent: summary.yearlyCollectionPercent,
-          leadsAssigned: summary.leadsAssigned,
-          leadsConverted: summary.leadsConverted,
-          revenueGenerated: summary.revenueGenerated,
+      const summary = summarizeRecords(context.records, employee, year, month, filters.startDate || '', filters.endDate || '');
+      const targets = getEmployeeTargetTotals(context, employee, year, month);
+      return {
+        employeeId: employee.id,
+        employeeName: employee.name,
+        monthlyTarget: targets.monthlyRevenueTarget,
+        monthlyAchieved: summary.monthlyRevenueAchieved,
+        monthlyPending: Math.max(targets.monthlyRevenueTarget - summary.monthlyRevenueAchieved, 0),
+        monthlyAchievementPercent: percent(summary.monthlyRevenueAchieved, targets.monthlyRevenueTarget),
+        yearlyTarget: targets.yearlyRevenueTarget,
+        yearlyAchieved: summary.yearlyRevenueAchieved,
+        yearlyPending: Math.max(targets.yearlyRevenueTarget - summary.yearlyRevenueAchieved, 0),
+        yearlyAchievementPercent: percent(summary.yearlyRevenueAchieved, targets.yearlyRevenueTarget),
+        monthlyCollectionTarget: targets.monthlyCollectionTarget,
+        monthlyCollectionAchieved: summary.monthlyCollectionAchieved,
+        monthlyCollectionPending: Math.max(targets.monthlyCollectionTarget - summary.monthlyCollectionAchieved, 0),
+        monthlyCollectionPercent: percent(summary.monthlyCollectionAchieved, targets.monthlyCollectionTarget),
+        yearlyCollectionTarget: targets.yearlyCollectionTarget,
+        yearlyCollectionAchieved: summary.yearlyCollectionAchieved,
+        yearlyCollectionPending: Math.max(targets.yearlyCollectionTarget - summary.yearlyCollectionAchieved, 0),
+        yearlyCollectionPercent: percent(summary.yearlyCollectionAchieved, targets.yearlyCollectionTarget),
+        leadsAssigned: summary.leadsAssigned,
+        leadsConverted: summary.leadsConverted,
+        revenueGenerated: summary.revenueGenerated,
         status: summary.status
       };
     })
@@ -790,19 +815,7 @@ router.get('/dashboard', async (req, res) => {
     const employeeId = text(req.query.employeeId || '');
     const teamRows = buildTeamRows(context, { year, month, salesPersonId: employeeId });
     const monthlyRows = teamRows.map((row) => row);
-    const yearlyRows = context.employees
-      .filter((employee) => !employeeId || employeeHasValue(employee, employeeId))
-      .map((employee) => {
-        const summary = applyTargets(employee, context, year, month);
-        return {
-          employeeId: employee.id,
-          employeeName: employee.name,
-          yearlyTarget: summary.yearlyTarget,
-          yearlyAchieved: summary.yearlyAchieved,
-          yearlyPending: summary.yearlyPending,
-          yearlyAchievementPercent: summary.yearlyAchievementPercent
-        };
-      });
+    const yearlyRows = teamRows;
     const totalMonthlyTarget = teamRows.reduce((sum, row) => sum + num(row.monthlyTarget), 0);
     const totalMonthlyAchieved = teamRows.reduce((sum, row) => sum + num(row.monthlyAchieved), 0);
     const totalYearlyTarget = teamRows.reduce((sum, row) => sum + num(row.yearlyTarget), 0);
@@ -1068,21 +1081,30 @@ router.get('/reports', async (req, res) => {
     const reportType = text(req.query.reportType || 'monthly').toLowerCase();
     const filteredEmployees = context.employees.filter((employee) => !salesPersonId || employeeHasValue(employee, salesPersonId));
     const rows = filteredEmployees.map((employee) => {
-      const summary = applyTargets(employee, context, year, month, req.query.startDate || '', req.query.endDate || '');
+      const summary = summarizeRecords(context.records, employee, year, month, req.query.startDate || '', req.query.endDate || '');
+      const targets = getEmployeeTargetTotals(context, employee, year, month);
       return {
         employeeId: employee.id,
         employeeName: employee.name,
         month,
         year,
         reportType,
-        monthlyTarget: summary.monthlyTarget,
-        monthlyAchieved: summary.monthlyAchieved,
-        monthlyPending: summary.monthlyPending,
-        monthlyAchievementPercent: summary.monthlyAchievementPercent,
-        yearlyTarget: summary.yearlyTarget,
-        yearlyAchieved: summary.yearlyAchieved,
-        yearlyPending: summary.yearlyPending,
-        yearlyAchievementPercent: summary.yearlyAchievementPercent,
+        monthlyTarget: targets.monthlyRevenueTarget,
+        monthlyAchieved: summary.monthlyRevenueAchieved,
+        monthlyPending: Math.max(targets.monthlyRevenueTarget - summary.monthlyRevenueAchieved, 0),
+        monthlyAchievementPercent: percent(summary.monthlyRevenueAchieved, targets.monthlyRevenueTarget),
+        monthlyCollectionTarget: targets.monthlyCollectionTarget,
+        monthlyCollectionAchieved: summary.monthlyCollectionAchieved,
+        monthlyCollectionPending: Math.max(targets.monthlyCollectionTarget - summary.monthlyCollectionAchieved, 0),
+        monthlyCollectionPercent: percent(summary.monthlyCollectionAchieved, targets.monthlyCollectionTarget),
+        yearlyTarget: targets.yearlyRevenueTarget,
+        yearlyAchieved: summary.yearlyRevenueAchieved,
+        yearlyPending: Math.max(targets.yearlyRevenueTarget - summary.yearlyRevenueAchieved, 0),
+        yearlyAchievementPercent: percent(summary.yearlyRevenueAchieved, targets.yearlyRevenueTarget),
+        yearlyCollectionTarget: targets.yearlyCollectionTarget,
+        yearlyCollectionAchieved: summary.yearlyCollectionAchieved,
+        yearlyCollectionPending: Math.max(targets.yearlyCollectionTarget - summary.yearlyCollectionAchieved, 0),
+        yearlyCollectionPercent: percent(summary.yearlyCollectionAchieved, targets.yearlyCollectionTarget),
         leadsAssigned: summary.leadsAssigned,
         leadsConverted: summary.leadsConverted,
         revenueGenerated: summary.revenueGenerated,
