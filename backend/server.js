@@ -1651,7 +1651,19 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   if (logoUrl && !persistentLogoPath) {
     console.error('Job PDF logo file missing from persistent uploads root. Re-upload GST Company Branding logo or copy file to uploads root.');
   }
-  const logoBuffer = resolvedLogoPath ? null : await loadJobPdfLogoBuffer(publicLogoUrl || logoUrl);
+  let logoBuffer = null;
+  if (resolvedLogoPath) {
+    try {
+      logoBuffer = fs.readFileSync(resolvedLogoPath);
+      console.log('JOB PDF logoBufferLoaded:', true);
+    } catch (error) {
+      console.log('JOB PDF logoBufferLoaded:', false);
+      console.error('JOB PDF failed reading logo from resolved path:', error.message);
+    }
+  } else {
+    logoBuffer = await loadJobPdfLogoBuffer(publicLogoUrl || logoUrl);
+    console.log('JOB PDF logoBufferLoaded:', Boolean(logoBuffer));
+  }
 
   return new Promise((resolve, reject) => {
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
@@ -1697,7 +1709,7 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
 
   if (resolvedLogoPath || logoBuffer) {
     try {
-      doc.image(resolvedLogoPath || logoBuffer, left, logoY, {
+      doc.image(logoBuffer || resolvedLogoPath, left, logoY, {
         fit: [120, 70],
         align: 'left',
         valign: 'center'
