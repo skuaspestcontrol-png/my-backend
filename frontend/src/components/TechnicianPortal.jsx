@@ -737,6 +737,16 @@ export default function TechnicianPortal() {
   const completionMediaGridStyle = isMobile ? { ...shell.completionMediaGrid, gridTemplateColumns: '1fr' } : shell.completionMediaGrid;
   const customerTableStyle = isMobile ? { ...shell.customerTable, minWidth: '700px' } : shell.customerTable;
   const jobsTableStyle = isMobile ? { ...shell.jobsTable, minWidth: '620px' } : shell.jobsTable;
+  const jobsTableWrapStyle = isMobile
+    ? {
+      ...shell.jobsTableWrap,
+      overflowX: 'auto',
+      overflowY: 'hidden',
+      WebkitOverflowScrolling: 'touch',
+      overscrollBehaviorX: 'contain',
+      touchAction: 'pan-x'
+    }
+    : shell.jobsTableWrap;
   const detailsGridStyle = isMobile ? { ...shell.detailsGrid, gridTemplateColumns: '1fr' } : shell.detailsGrid;
   const pagerStyle = isMobile ? { ...shell.pager, flexDirection: 'column', alignItems: 'stretch' } : shell.pager;
   const signatureWidth = isMobile ? Math.max(260, Math.min(360, viewportWidth - 56)) : 520;
@@ -1560,7 +1570,7 @@ export default function TechnicianPortal() {
                       {expandedCustomerKey === group.key ? (
                         <tr>
                           <td colSpan={7} style={shell.expandedCell}>
-                            <div style={shell.jobsTableWrap}>
+                            <div style={jobsTableWrapStyle}>
                               <table style={jobsTableStyle}>
                                 <thead>
                                   <tr>
