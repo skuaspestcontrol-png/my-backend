@@ -579,10 +579,10 @@ app.use(
   })
 );
 
-app.get(['/uploads-test', '/api/uploads-test'], requireAdminDebugAccess, (req, res) => {
+app.get(['/uploads-test', '/api/uploads-test'], (req, res) => {
   const requestedFile = String(req.query.file || '1779215215733-skuas-pest-control-2.png').trim();
   const candidateRoots = [
-    String(process.env.UPLOADS_ROOT || process.env.UPLOADS_DIR || process.env.UPLOADS_ROOT_DIR || uploadsRootDir || '/home/u610009593/uploads-skuas-crm').trim(),
+    String(process.env.UPLOADS_ROOT || '/home/u610009593/uploads-skuas-crm').trim(),
     uploadsRootDir,
     '/home/u610009593/uploads-skuas-crm',
     String(process.env.UPLOADS_MIRROR_DIR || '').trim(),
@@ -1612,13 +1612,7 @@ const normalizeJobPdfSettings = (settings = {}, req = null) => ({
 const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   const logoAsset = resolveGstCompanyLogoPath(settings);
   const logoUrl = String(logoAsset.value || settings.gstCompanyLogoUrl || settings.nonGstCompanyLogoUrl || settings.dashboardImageUrl || settings.logo_url || settings.logoUrl || '').trim();
-  const persistentUploadRoot = String(
-    process.env.UPLOADS_ROOT
-    || process.env.UPLOADS_DIR
-    || process.env.UPLOADS_ROOT_DIR
-    || uploadsRootDir
-    || '/home/u610009593/uploads-skuas-crm'
-  ).trim();
+  const persistentUploadRoot = String(process.env.UPLOADS_ROOT || '/home/u610009593/uploads-skuas-crm').trim();
   const resolvedLogoPath = resolveUploadAsset(logoUrl, {
     rootDirs: [
       persistentUploadRoot,

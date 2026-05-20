@@ -232,9 +232,7 @@ const getPdfFont = (doc) => doc._quotationPdfFont || { regular: 'Helvetica', bol
 const getUploadRootCandidates = () => {
   const persistentUploadRoot = String(
     process.env.UPLOADS_ROOT
-    || process.env.UPLOADS_DIR
-    || process.env.UPLOADS_ROOT_DIR
-    || path.join(process.env.HOME || '/home/u610009593', 'uploads-skuas-crm')
+    || '/home/u610009593/uploads-skuas-crm'
   ).trim();
   return [
     persistentUploadRoot,
