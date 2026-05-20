@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, ShieldCheck, UserRoundCheck } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, Pencil, ShieldCheck, Trash2, UserRoundCheck } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -144,6 +144,15 @@ const shell = {
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   },
+  payrollIconButton: {
+    minHeight: '34px',
+    width: '34px',
+    minWidth: '34px',
+    padding: 0,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   tableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', overflowX: 'auto', background: '#fff' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '920px' },
   th: { textAlign: 'left', padding: '6px 7px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', lineHeight: 1.2 },
@@ -285,15 +294,71 @@ export default function PayrollModule() {
     return next;
   }, [employees]);
   const departments = useMemo(() => Array.from(new Set(employees.map((entry) => String(entry.role || '').trim()).filter(Boolean))), [employees]);
+  const getSalaryStructureEmployeeLabel = (entry = {}) => {
+    const matchedEmployee = employeeMap.get(String(entry.employeeId || '').trim());
+    if (matchedEmployee) {
+      return `${getEmployeeDisplayName(matchedEmployee)} (${matchedEmployee.empCode || '-'})`;
+    }
+    const storedName = String(
+      entry.employeeName
+      || entry.employee_name
+      || entry.name
+      || ''
+    ).trim();
+    const storedCode = String(
+      entry.employeeCode
+      || entry.employee_code
+      || entry.empCode
+      || ''
+    ).trim();
+    if (storedName && storedCode) return `${storedName} (${storedCode})`;
+    if (storedName) return storedName;
+    if (storedCode) return storedCode;
+    return String(entry.employeeId || '-');
+  };
   const getLatestSalaryStructure = (employeeId) => {
     const list = salaryStructures.filter((entry) => String(entry.employeeId || '') === String(employeeId || ''));
     if (list.length === 0) return null;
     return [...list].sort((a, b) => String(a.effectiveDate || '').localeCompare(String(b.effectiveDate || ''))).pop();
   };
 
+  const getEmployeeMasterSalary = (employeeId) => {
+    const employee = employeeMap.get(String(employeeId || ''));
+    const currentSalary = Number(employee?.salaryPerMonth ?? employee?.salary ?? 0);
+    return currentSalary > 0 ? currentSalary : null;
+  };
+
+  const latestSalaryStructureIdByEmployee = useMemo(() => {
+    const latestByEmployee = new Map();
+    salaryStructures.forEach((entry) => {
+      const employeeId = String(entry.employeeId || '');
+      if (!employeeId) return;
+      const currentLatest = latestByEmployee.get(employeeId);
+      if (!currentLatest || String(entry.effectiveDate || '') >= String(currentLatest.effectiveDate || '')) {
+        latestByEmployee.set(employeeId, entry);
+      }
+    });
+    const idMap = new Map();
+    latestByEmployee.forEach((entry, employeeId) => {
+      idMap.set(employeeId, String(entry._id || ''));
+    });
+    return idMap;
+  }, [salaryStructures]);
+
+  const getVisibleSalaryStructureAmount = (entry = {}) => {
+    const employeeId = String(entry.employeeId || '');
+    const currentSalary = getEmployeeMasterSalary(employeeId);
+    const latestStructureId = latestSalaryStructureIdByEmployee.get(employeeId);
+    if (currentSalary !== null && latestStructureId && latestStructureId === String(entry._id || '')) {
+      return currentSalary;
+    }
+    return Number(entry.basicSalary || 0);
+  };
+
   const loadEmployeeToSalaryForm = (employeeId) => {
     const employee = employeeMap.get(String(employeeId || ''));
     const latest = getLatestSalaryStructure(employeeId);
+    const employeeMasterSalary = getEmployeeMasterSalary(employeeId);
     if (!employeeId) {
       setSalaryForm(salaryFormDefaults);
       return;
@@ -303,7 +368,7 @@ export default function PayrollModule() {
         employeeId: String(employeeId),
         effectiveDate: latest.effectiveDate || new Date().toISOString().slice(0, 10),
         salaryType: latest.salaryType || 'monthly',
-        basicSalary: String(latest.basicSalary ?? ''),
+        basicSalary: String(employeeMasterSalary ?? latest.basicSalary ?? ''),
         dailyRate: String(latest.dailyRate ?? ''),
         hourlyRate: String(latest.hourlyRate ?? ''),
         hra: String(latest.allowances?.hra ?? ''),
@@ -327,7 +392,7 @@ export default function PayrollModule() {
     setSalaryForm({
       ...salaryFormDefaults,
       employeeId: String(employeeId),
-      basicSalary: String(employee?.salaryPerMonth ?? employee?.salary ?? ''),
+      basicSalary: String(employeeMasterSalary ?? employee?.salaryPerMonth ?? employee?.salary ?? ''),
       notes: 'Loaded from Employee Master'
     });
   };
@@ -802,10 +867,10 @@ export default function PayrollModule() {
           <tbody>
             {salaryStructures.map((entry) => (
               <tr key={entry._id}>
-                <td style={shell.td}>{employeeMap.get(String(entry.employeeId || '')) ? `${getEmployeeDisplayName(employeeMap.get(String(entry.employeeId || '')))} (${employeeMap.get(String(entry.employeeId || '')).empCode || '-'})` : entry.employeeId}</td>
+                <td style={shell.td}>{getSalaryStructureEmployeeLabel(entry)}</td>
                 <td style={shell.td}>{entry.effectiveDate}</td>
                 <td style={shell.td}>{entry.salaryType}</td>
-                <td style={shell.td}>INR {money(entry.basicSalary)}</td>
+                <td style={shell.td}>INR {money(getVisibleSalaryStructureAmount(entry))}</td>
                 <td style={shell.td}>INR {money(Object.values(entry.allowances || {}).reduce((sum, value) => sum + Number(value || 0), 0))}</td>
                 <td style={shell.td}>INR {money(Object.values(entry.deductions || {}).reduce((sum, value) => sum + Number(value || 0), 0))}</td>
               </tr>
@@ -919,9 +984,29 @@ export default function PayrollModule() {
                     {(entry.payrollStatus === 'Paid' || entry.paymentStatus === 'Paid')
                       ? <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => unlockPayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Unlock</button>
                       : null}
-                    {entry.payrollStatus !== 'Paid' ? <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => openAdjust(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Edit</button> : null}
+                    {entry.payrollStatus !== 'Paid' ? (
+                      <button
+                        type="button"
+                        style={{ ...shell.btnLight, ...shell.payrollIconButton }}
+                        onClick={() => openAdjust(entry)}
+                        disabled={busy || (!role.canManage && !role.canGenerate)}
+                        title="Edit payroll"
+                        aria-label="Edit payroll"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    ) : null}
                     {entry.paymentStatus !== 'Paid' ? <button type="button" style={{ ...shell.btn, ...shell.payrollActionButton }} onClick={() => openPayment(entry)} disabled={busy || !role.canMarkPaid}>Mark Paid</button> : null}
-                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => deletePayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Delete</button>
+                    <button
+                      type="button"
+                      style={{ ...shell.btnLight, ...shell.payrollIconButton }}
+                      onClick={() => deletePayrollItem(entry)}
+                      disabled={busy || (!role.canManage && !role.canGenerate)}
+                      title="Delete payroll"
+                      aria-label="Delete payroll"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </td>
               </tr>
