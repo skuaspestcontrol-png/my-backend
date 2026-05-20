@@ -1576,7 +1576,7 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   const companyPhone = String(settings.gstPhone || settings.companyMobile || '').trim();
   const companyWebsite = String(settings.companyWebsite || '').trim();
   const companyGst = String(settings.companyGstNumber || settings.gstRegistrationNumber || '').trim();
-  const maroonColor = '#800000';
+  const maroonColor = '#9F174D';
   const logoAsset = resolveGstCompanyLogoPath(settings);
   const logoPath = logoAsset.path;
   const left = doc.page.margins.left;
