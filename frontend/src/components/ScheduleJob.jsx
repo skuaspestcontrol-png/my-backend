@@ -485,8 +485,10 @@ export default function ScheduleJob() {
       });
 
       await Promise.all(payloads.map((payload) => axios.post(`${API_BASE_URL}/api/jobs`, payload)));
+      const jobsSyncTick = String(Date.now());
+      localStorage.setItem('jobs_sync_tick', jobsSyncTick);
       window.alert(`Assigned ${payloads.length} service job(s) successfully.`);
-      navigate('/operations/assigned-jobs');
+      navigate('/operations/assigned-jobs', { state: { jobsSyncTick } });
     } catch (error) {
       console.error('Assign services failed', error);
       const apiMessage = String(error?.response?.data?.error || '').trim();

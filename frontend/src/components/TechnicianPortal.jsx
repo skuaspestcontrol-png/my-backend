@@ -580,6 +580,7 @@ const shell = {
 export default function TechnicianPortal() {
   const location = useLocation();
   const params = useParams();
+  const lastJobsSyncTickRef = useRef('');
   const [jobs, setJobs] = useState([]);
   const [technicians, setTechnicians] = useState([]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
@@ -668,6 +669,25 @@ export default function TechnicianPortal() {
       window.removeEventListener('storage', onStorage);
     };
   }, [loadPortalData]);
+
+  useEffect(() => {
+    const routeTick = String(location.state?.jobsSyncTick || '').trim();
+    if (routeTick && routeTick !== lastJobsSyncTickRef.current) {
+      lastJobsSyncTickRef.current = routeTick;
+      loadPortalData().catch((error) => {
+        console.error('Assigned jobs refresh after route change failed', error);
+      });
+      return;
+    }
+
+    const storedTick = String(localStorage.getItem('jobs_sync_tick') || '').trim();
+    if (storedTick && storedTick !== lastJobsSyncTickRef.current) {
+      lastJobsSyncTickRef.current = storedTick;
+      loadPortalData().catch((error) => {
+        console.error('Assigned jobs refresh after sync tick failed', error);
+      });
+    }
+  }, [location.key, location.state?.jobsSyncTick, loadPortalData]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
