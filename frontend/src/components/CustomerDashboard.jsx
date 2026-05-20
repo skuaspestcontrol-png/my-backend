@@ -5,7 +5,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, X } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
-import MapPicker from './MapPicker';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import {
   attachPlacesAutocomplete,
@@ -1982,14 +1981,6 @@ export default function CustomerDashboard() {
               {state.error}
             </div>
           ) : null}
-          <MapPicker
-            latitude={latitude}
-            longitude={longitude}
-            onLocationChange={(lat, lng) => handleCustomerMapLocationChange(section, lat, lng)}
-            height={156}
-            markerTitle={isShipping ? 'Shipping location' : 'Billing location'}
-            unavailableMessage="Map preview unavailable. You can still save the customer manually."
-          />
         </div>
       </>
     );

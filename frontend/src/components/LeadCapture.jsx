@@ -18,7 +18,6 @@ import {
 import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import MapPicker from './MapPicker';
 import {
   ArrowDown,
   ArrowUp,
@@ -2963,13 +2962,6 @@ export default function LeadCapture() {
                         {searchError}
                       </div>
                     ) : null}
-                    <MapPicker
-                      latitude={form.latitude}
-                      longitude={form.longitude}
-                      onLocationChange={handleMapLocationChange}
-                      height={176}
-                      unavailableMessage="Map preview unavailable. Coordinates will still be saved."
-                    />
                   </div>
 
                   <div style={leadFieldWideStyle}>
