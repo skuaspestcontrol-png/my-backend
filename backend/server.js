@@ -1599,6 +1599,8 @@ const loadJobPdfLogoBuffer = async (input = '') => {
 const resolveGstCompanyLogoPath = (settings = {}) => {
   const candidates = [
     ['gstCompanyLogoUrl', settings.gstCompanyLogoUrl],
+    ['nonGstCompanyLogoUrl', settings.nonGstCompanyLogoUrl],
+    ['dashboardImageUrl', settings.dashboardImageUrl],
     ['gstLogoUrl', settings.gstLogoUrl],
     ['gstBrandingLogoUrl', settings.gstBrandingLogoUrl],
     ['companyLogoUrl', settings.companyLogoUrl],
