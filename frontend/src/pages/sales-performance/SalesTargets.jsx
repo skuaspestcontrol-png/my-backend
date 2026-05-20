@@ -69,15 +69,28 @@ const firstHeaderLabelStyle = { ...headerLabelStyle, textAlign: 'left' };
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
 const neutralTextColor = '#111827';
+const formatTargetActivityTime = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 
 export default function SalesTargets() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [targets, setTargets] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState({ year: currentYear, targetType: '', salesPersonId: '' });
+  const [filters, setFilters] = useState({ year: '', targetType: '', salesPersonId: '' });
   const [form, setForm] = useState(initialForm);
 
   const load = async (nextFilters = filters) => {
@@ -87,6 +100,7 @@ export default function SalesTargets() {
       const res = await apiGet('/api/sales-performance/targets', nextFilters);
       setTargets(safeRows(res.rows));
       setEmployees(safeRows(res.employees));
+      setRecentActivity(safeRows(res.recentActivity));
     } catch (err) {
       setError(err?.response?.data?.error || err?.message || 'Unable to load sales targets.');
     } finally {
@@ -224,7 +238,8 @@ export default function SalesTargets() {
 
       <AppCard title="Filters" style={{ width: '100%', minWidth: 0 }}>
         <div style={filtersGridStyle}>
-          <AppSelect label="Year" value={filters.year} onChange={(e) => setFilters({ ...filters, year: Number(e.target.value) })}>
+          <AppSelect label="Year" value={filters.year} onChange={(e) => setFilters({ ...filters, year: e.target.value ? Number(e.target.value) : '' })}>
+            <option value="">All Years</option>
             {Array.from({ length: 5 }, (_, index) => currentYear - 2 + index).map((year) => <option key={year} value={year}>{year}</option>)}
           </AppSelect>
           <AppSelect label="Type" value={filters.targetType} onChange={(e) => setFilters({ ...filters, targetType: e.target.value })}>
@@ -272,6 +287,41 @@ export default function SalesTargets() {
         </form>
       </AppCard>
 
+      <AppCard title="Recent Target Activity" style={{ width: '100%', minWidth: 0 }}>
+        {recentActivity.length ? (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {recentActivity.map((entry) => (
+              <div
+                key={`${entry.id || entry.targetId || entry.createdAt}-${entry.action}`}
+                style={{
+                  border: '1px solid rgba(159, 23, 77, 0.16)',
+                  borderRadius: 14,
+                  padding: '12px 14px',
+                  background: '#fff',
+                  display: 'grid',
+                  gap: 6
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <strong style={{ color: '#111827' }}>{entry.targetLabel || 'Target'}</strong>
+                  <StatusBadge status={entry.action === 'deleted' ? 'danger' : entry.action === 'updated' ? 'info' : 'success'}>
+                    {entry.action}
+                  </StatusBadge>
+                </div>
+                <div style={{ fontSize: 13, color: '#374151', fontWeight: 600 }}>
+                  {entry.salesPersonName || '---'} • {money(entry.revenueTarget || 0)} revenue • {money(entry.collectionTarget || 0)} collection
+                </div>
+                <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+                  {entry.actor || 'System'} • {formatTargetActivityTime(entry.createdAt)}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No target activity yet" message="Save or update a target to see the recent audit trail here." />
+        )}
+      </AppCard>
+
       <AppCard title="Target List" style={{ width: '100%', minWidth: 0 }}>
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
@@ -316,7 +366,7 @@ export default function SalesTargets() {
                     <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...nameCellStyle, background: '#fff' }}>{displaySalesPersonName(row)}</td>
                     <td className="table-status-cell" style={cellStyle}>
                       <StatusBadge status={row.targetType === 'yearly' ? 'info' : 'active'}>
-                        {row.targetType}
+                        {row.targetType === 'yearly' ? 'Yearly' : 'Monthly'}
                       </StatusBadge>
                     </td>
                     <td className="table-number-cell" style={cellStyle}>{row.targetType === 'monthly' ? monthOptions.find((month) => month.value === Number(row.targetMonth))?.label || '---' : '---'}</td>

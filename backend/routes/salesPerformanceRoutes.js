@@ -52,6 +52,31 @@ const percent = (achieved, target) => {
   if (total <= 0) return 0;
   return Math.round((num(achieved) / total) * 1000) / 10;
 };
+const monthName = (month) => {
+  const value = Number(month);
+  if (!value) return '';
+  return new Date(2026, Math.max(0, value - 1), 1).toLocaleString('en-IN', { month: 'short' });
+};
+const displayTargetTypeLabel = (targetType) => {
+  const value = text(targetType).toLowerCase();
+  if (value === 'yearly') return 'Yearly';
+  return 'Monthly';
+};
+const displayTargetLabel = (row = {}) => {
+  const type = text(row.targetType || row.target_type || 'monthly').toLowerCase();
+  const year = Number(row.targetYear || row.target_year || 0) || null;
+  const month = Number(row.targetMonth || row.target_month || 0) || null;
+  const typeLabel = displayTargetTypeLabel(type);
+  if (type === 'yearly') {
+    return year ? `${typeLabel} ${year}` : typeLabel;
+  }
+  const monthLabelText = month ? monthName(month) : '';
+  if (monthLabelText && year) return `${typeLabel} ${monthLabelText} ${year}`;
+  if (monthLabelText) return `${typeLabel} ${monthLabelText}`;
+  if (year) return `${typeLabel} ${year}`;
+  return typeLabel;
+};
+const requestActor = (req = {}) => text(req.headers?.['x-user-name'] || req.headers?.['x-portal-user'] || req.body?.actor || 'System');
 const valueOf = (source, keys = []) => {
   for (const key of keys) {
     const raw = source?.[key];
@@ -138,6 +163,26 @@ const ensureSchema = async () => {
     INDEX idx_sales_targets_month_year (target_month, target_year),
     UNIQUE KEY uk_sales_targets_external_id (external_id),
     UNIQUE KEY unique_sales_target (sales_person_id, target_type, target_month, target_year)
+  )`);
+
+  await dbQuery(`CREATE TABLE IF NOT EXISTS sales_target_audit (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    target_id INT NULL,
+    external_id VARCHAR(120) NULL,
+    action VARCHAR(30) NOT NULL,
+    actor VARCHAR(255) NULL,
+    target_type VARCHAR(20) NULL,
+    target_month TINYINT NULL,
+    target_year INT NULL,
+    sales_person_id VARCHAR(80) NULL,
+    sales_person_name VARCHAR(255) NULL,
+    revenue_target DECIMAL(12,2) DEFAULT 0,
+    collection_target DECIMAL(12,2) DEFAULT 0,
+    payload_json LONGTEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sales_target_audit_target (target_id),
+    INDEX idx_sales_target_audit_action (action),
+    INDEX idx_sales_target_audit_created_at (created_at)
   )`);
 
   await ensureColumn('sales_targets', 'external_id', 'external_id VARCHAR(120) NULL');
@@ -288,12 +333,44 @@ const normalizeTargetRow = (row = {}, lookup = null) => {
     targetType,
     targetMonth,
     targetYear,
+    createdAt: text(source.created_at || source.createdAt || ''),
+    updatedAt: text(source.updated_at || source.updatedAt || ''),
+    createdBy: text(source.created_by || source.createdBy || ''),
     revenueTarget,
     collectionTarget,
     notes: text(source.notes || source.remark || ''),
     isActive: Number(source.is_active ?? 1) !== 0,
-    employee
+    employee,
+    targetLabel: displayTargetLabel({
+      targetType,
+      targetMonth,
+      targetYear
+    })
   };
+};
+const writeTargetAudit = async (client = { query: dbQuery }, { action = 'saved', targetId = null, externalId = '', payload = {}, actor = '' }) => {
+  try {
+    await client.query(
+      `INSERT INTO sales_target_audit (
+        target_id, external_id, action, actor, target_type, target_month, target_year,
+        sales_person_id, sales_person_name, revenue_target, collection_target, payload_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        targetId,
+        text(externalId),
+        text(action || 'saved'),
+        text(actor || ''),
+        text(payload.targetType || payload.target_type || ''),
+        payload.targetMonth ?? payload.target_month ?? null,
+        payload.targetYear ?? payload.target_year ?? null,
+        text(payload.salesPersonId || payload.sales_person_id || ''),
+        text(payload.salesPersonName || payload.sales_person_name || ''),
+        num(payload.revenueTarget || payload.revenue_target || 0),
+        num(payload.collectionTarget || payload.collection_target || 0),
+        JSON.stringify(payload || {})
+      ]
+    );
+  } catch (_error) {}
 };
 const syncSalesTargetEmployeeFields = async (rows = [], lookup = null) => {
   if (!lookup || !Array.isArray(rows) || rows.length === 0) return;
@@ -635,8 +712,12 @@ const buildTargetRows = (context, filters = {}) => {
       employeeName: employee?.name || row.salesPersonName || row.employeeName || '---',
       sales_person_name: employee?.name || row.salesPersonName || row.employeeName || '---',
       targetType: targetTypeResolved,
+      targetLabel: row.targetLabel || displayTargetLabel(row),
       targetMonth: row.targetMonth || null,
       targetYear: row.targetYear,
+      createdAt: row.createdAt || '',
+      updatedAt: row.updatedAt || '',
+      createdBy: row.createdBy || '',
       revenueTarget: targetRevenue,
       collectionTarget: targetCollection,
       achievedRevenue,
@@ -756,10 +837,56 @@ router.get('/targets', async (req, res) => {
   try {
     const context = await loadSalesContext();
     const rows = buildTargetRows(context, req.query || {});
-    return res.json({ success: true, rows, employees: context.employees });
+    const auditRows = await queryRows('SELECT * FROM sales_target_audit ORDER BY created_at DESC, id DESC LIMIT 25');
+    const recentActivity = safeRows(auditRows).map((entry) => ({
+      id: entry.id,
+      targetId: entry.target_id,
+      action: entry.action,
+      actor: entry.actor,
+      targetLabel: displayTargetLabel({
+        targetType: entry.target_type,
+        targetMonth: entry.target_month,
+        targetYear: entry.target_year
+      }),
+      salesPersonName: entry.sales_person_name || '---',
+      revenueTarget: num(entry.revenue_target, 0),
+      collectionTarget: num(entry.collection_target, 0),
+      createdAt: entry.created_at || ''
+    }));
+    return res.json({ success: true, rows, employees: context.employees, recentActivity });
   } catch (error) {
     console.error('Sales targets failed:', error.message);
     return sendError(res, 500, 'Unable to load sales targets.');
+  }
+});
+
+router.get('/audit', async (req, res) => {
+  try {
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 25)));
+    const rows = await queryRows(`SELECT * FROM sales_target_audit ORDER BY created_at DESC, id DESC LIMIT ${limit}`);
+    return res.json({
+      success: true,
+      rows: safeRows(rows).map((entry) => ({
+        id: entry.id,
+        targetId: entry.target_id,
+        action: entry.action,
+        actor: entry.actor,
+        targetLabel: displayTargetLabel({
+          targetType: entry.target_type,
+          targetMonth: entry.target_month,
+          targetYear: entry.target_year
+        }),
+        salesPersonId: entry.sales_person_id,
+        salesPersonName: entry.sales_person_name || '---',
+        revenueTarget: num(entry.revenue_target, 0),
+        collectionTarget: num(entry.collection_target, 0),
+        createdAt: entry.created_at || '',
+        payload: safeJson(entry.payload_json, {})
+      }))
+    });
+  } catch (error) {
+    console.error('Sales target audit failed:', error.message);
+    return sendError(res, 500, 'Unable to load sales target audit.');
   }
 });
 
@@ -802,15 +929,29 @@ router.post('/targets', async (req, res) => {
           `UPDATE sales_targets SET ${updateFields.map((field) => `${field} = ?`).join(', ')} WHERE id = ?`,
           [...updateValues, existing.id]
         );
+        await writeTargetAudit(conn, {
+          action: 'updated',
+          targetId: existing.id,
+          externalId: persist.externalId,
+          payload: { ...persist.data, salesPersonId, salesPersonName: persist.employeeName, targetType, targetMonth, targetYear, revenueTarget, collectionTarget },
+          actor: requestActor(req)
+        });
       } else {
         const insertData = persist.data;
         const insertFields = Object.keys(insertData);
         const insertValues = insertFields.map((field) => insertData[field]);
-        await conn.query(
+        const [insertResult] = await conn.query(
           `INSERT INTO sales_targets (${insertFields.join(', ')})
            VALUES (${insertFields.map(() => '?').join(', ')})`,
           insertValues
         );
+        await writeTargetAudit(conn, {
+          action: 'created',
+          targetId: Number(insertResult?.insertId || 0) || null,
+          externalId: persist.externalId,
+          payload: { ...persist.data, salesPersonId, salesPersonName: persist.employeeName, targetType, targetMonth, targetYear, revenueTarget, collectionTarget },
+          actor: requestActor(req)
+        });
       }
       await conn.commit();
       return res.json({ success: true, message: 'Target saved.' });
@@ -854,6 +995,13 @@ router.put('/targets/:id', async (req, res) => {
       [...updateValues, targetId]
     );
     if (!result || Number(result.affectedRows) === 0) return sendError(res, 404, 'Target not found.');
+    await writeTargetAudit(dbQuery, {
+      action: 'updated',
+      targetId,
+      externalId: persist.externalId,
+      payload: { ...persist.data, salesPersonId, salesPersonName: persist.employeeName, targetType, targetMonth, targetYear, revenueTarget, collectionTarget },
+      actor: requestActor(req)
+    });
     return res.json({ success: true, message: 'Target updated.' });
   } catch (error) {
     console.error('Sales target update failed:', error.message);
@@ -863,8 +1011,18 @@ router.put('/targets/:id', async (req, res) => {
 
 router.delete('/targets/:id', async (req, res) => {
   try {
-    const result = await dbQuery('DELETE FROM sales_targets WHERE id = ?', [req.params.id]);
+    const targetId = Number(req.params.id);
+    const [existingRows] = await dbQuery('SELECT * FROM sales_targets WHERE id = ? LIMIT 1', [targetId]);
+    const existing = safeRows(existingRows)[0] || null;
+    const result = await dbQuery('DELETE FROM sales_targets WHERE id = ?', [targetId]);
     if (!result || Number(result.affectedRows) === 0) return sendError(res, 404, 'Target not found.');
+    await writeTargetAudit(dbQuery, {
+      action: 'deleted',
+      targetId,
+      externalId: existing?.external_id || '',
+      payload: existing || {},
+      actor: requestActor(req)
+    });
     return res.json({ success: true, message: 'Target deleted.' });
   } catch (error) {
     console.error('Sales target delete failed:', error.message);
