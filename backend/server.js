@@ -2296,6 +2296,63 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
 
 const buildContractJobCardPdfBuffer = (...args) => buildContractJobCardSummaryPdfBuffer(...args);
 
+const normalizePdfReference = (value) => String(value || '').trim();
+
+const matchesPdfReference = (candidate, reference) => {
+  const left = normalizePdfReference(candidate);
+  const right = normalizePdfReference(reference);
+  if (!left || !right) return false;
+  return left === right || left.toLowerCase() === right.toLowerCase();
+};
+
+const findInvoiceByPdfReference = (invoices = [], reference = '') => {
+  const ref = normalizePdfReference(reference);
+  if (!ref) return null;
+  const lowerRef = ref.toLowerCase();
+  return (Array.isArray(invoices) ? invoices : []).find((entry) => {
+    const candidates = [
+      entry?._id,
+      entry?.invoiceId,
+      entry?.invoiceNumber,
+      entry?.invoiceNo,
+      entry?.invoice_no,
+      entry?.contractId,
+      entry?.contractNumber,
+      entry?.contractNo
+    ];
+    return candidates.some((candidate) => {
+      const value = normalizePdfReference(candidate);
+      return value && (value === ref || value.toLowerCase() === lowerRef);
+    });
+  }) || null;
+};
+
+const findJobByPdfReference = (jobs = [], reference = '') => {
+  const ref = normalizePdfReference(reference);
+  if (!ref) return null;
+  const lowerRef = ref.toLowerCase();
+  return (Array.isArray(jobs) ? jobs : []).find((entry) => {
+    const candidates = [
+      entry?._id,
+      entry?.jobCardNumber,
+      entry?.job_card_number,
+      entry?.jobNumber,
+      entry?.jobNo,
+      entry?.job_number,
+      entry?.contractId,
+      entry?.invoiceId,
+      entry?.contractNumber,
+      entry?.contractNo,
+      entry?.invoiceNumber,
+      entry?.invoiceNo
+    ];
+    return candidates.some((candidate) => {
+      const value = normalizePdfReference(candidate);
+      return value && (value === ref || value.toLowerCase() === lowerRef);
+    });
+  }) || null;
+};
+
 const allowedAttendanceStatus = new Set(['present', 'absent', 'leave', 'half-day', 'weekly-off']);
 const attendanceTimePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -5610,8 +5667,10 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
 const handleServiceVisitJobCardPdf = async (req, res) => {
   try {
     const allJobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
-    const job = (Array.isArray(allJobs) ? allJobs : []).find((entry) => String(entry?._id || '') === String(req.params.id || ''))
-      || (canUseMysql() ? await loadJobByIdFromMysql(req.params.id) : null);
+    const jobRef = normalizePdfReference(req.params.id || req.params.jobId || req.params.jobRef || '');
+    console.log('JOB SUMMARY jobRef:', jobRef);
+    const job = findJobByPdfReference(allJobs, jobRef)
+      || (canUseMysql() ? await loadJobByIdFromMysql(jobRef) : null);
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
     const settings = normalizeJobPdfSettings(await readSettingsFromMysql().catch(() => readSettings()), req);
@@ -5624,8 +5683,11 @@ const handleServiceVisitJobCardPdf = async (req, res) => {
     res.setHeader('Content-Disposition', `${asAttachment ? 'attachment' : 'inline'}; filename="${fileName}"`);
     res.send(pdfBuffer);
   } catch (error) {
-    console.error('Failed to generate service visit job card PDF:', error.message);
-    res.status(500).json({ error: 'Could not generate service visit job card PDF' });
+    console.error('Service visit job card PDF failed:', error);
+    res.status(500).json({
+      error: 'Could not generate service visit job card PDF',
+      details: error?.message || 'Unknown error'
+    });
   }
 };
 
@@ -5634,19 +5696,31 @@ app.get('/api/jobs/:id/pdf', handleServiceVisitJobCardPdf);
 
 const handleContractJobCardSummaryPdf = async (req, res) => {
   try {
+    const contractRef = normalizePdfReference(req.params.id || req.params.invoiceId || req.params.contractRef || '');
+    console.log('JOB SUMMARY contractRef:', contractRef);
     const invoices = await loadInvoicesForContext();
     const jobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
-    const invoice = invoices.find((entry) => String(entry?._id || '') === String(req.params.id || req.params.invoiceId || ''));
-    if (!invoice) return res.status(404).json({ error: 'Contract not found' });
+    const invoice = findInvoiceByPdfReference(invoices, contractRef);
+    console.log('JOB SUMMARY contract found:', Boolean(invoice));
+    if (!invoice) return res.status(404).json({ error: 'Contract not found', contractRef: req.params.id });
 
-    const contractNumber = String(invoice.invoiceNumber || '').trim().toLowerCase();
+    const contractReference = normalizePdfReference(
+      invoice._id
+      || invoice.invoiceId
+      || invoice.invoiceNumber
+      || invoice.invoice_no
+      || invoice.contractId
+      || invoice.contractNumber
+    );
     const relatedJobs = (Array.isArray(jobs) ? jobs : []).filter((entry) => (
-      String(entry?.contractId || '') === String(invoice._id || '')
-      || String(entry?.invoiceId || '') === String(invoice._id || '')
-      || String(entry?.contractNumber || '').trim().toLowerCase() === contractNumber
-      || String(entry?.invoiceNumber || '').trim().toLowerCase() === contractNumber
+      matchesPdfReference(entry?.contractId, contractReference)
+      || matchesPdfReference(entry?.invoiceId, contractReference)
+      || matchesPdfReference(entry?.contractNumber, contractReference)
+      || matchesPdfReference(entry?.invoiceNumber, contractReference)
+      || matchesPdfReference(entry?.contractNo, contractReference)
     ));
-    const settings = readSettings();
+    console.log('JOB SUMMARY visits count:', relatedJobs.length);
+    const settings = normalizeJobPdfSettings(await readSettingsFromMysql().catch(() => readSettings()), req);
     const pdfBuffer = await buildContractJobCardSummaryPdfBuffer({ invoice, jobs: relatedJobs, settings });
     const fileName = `${String(invoice.invoiceNumber || invoice._id || 'contract').replace(/[^\w.-]+/g, '_')}_job_card_summary.pdf`;
 
@@ -5654,8 +5728,11 @@ const handleContractJobCardSummaryPdf = async (req, res) => {
     res.setHeader('Content-Disposition', `inline; filename=\"${fileName}\"`);
     res.send(pdfBuffer);
   } catch (error) {
-    console.error('Failed to generate contract job card summary PDF:', error.message);
-    res.status(500).json({ error: 'Could not generate contract job card summary PDF' });
+    console.error('Contract job card summary PDF failed:', error);
+    res.status(500).json({
+      error: 'Could not generate contract job card summary PDF',
+      details: error?.message || 'Unknown error'
+    });
   }
 };
 
