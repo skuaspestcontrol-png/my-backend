@@ -1577,15 +1577,24 @@ const normalizeJobPdfSettings = (settings = {}, req = null) => ({
   logoUrl: rewriteLocalhostLogoUrl(settings.logoUrl, req)
 });
 
-const buildJobPdfBuffer = async ({ job = {}, settings = {} }) => {
+const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   const logoAsset = resolveGstCompanyLogoPath(settings);
   const logoUrl = String(logoAsset.value || settings.gstCompanyLogoUrl || settings.nonGstCompanyLogoUrl || settings.dashboardImageUrl || settings.logo_url || settings.logoUrl || '').trim();
   const resolvedLogoPath = resolveUploadAsset(logoUrl);
+  const logoFileName = (() => {
+    try {
+      return path.basename(new URL(logoUrl).pathname || '') || path.basename(String(logoUrl || '').split('?')[0]);
+    } catch (_error) {
+      return path.basename(String(logoUrl || '').split('?')[0]);
+    }
+  })();
+  const publicLogoUrl = logoFileName ? `${resolveServerOrigin(req || {})}/uploads/${encodeURIComponent(logoFileName)}` : '';
   console.log('JOB PDF logoAsset:', logoAsset);
   console.log('JOB PDF logoUrl:', logoUrl);
   console.log('JOB PDF resolvedLogoPath:', resolvedLogoPath);
+  console.log('JOB PDF publicLogoUrl:', publicLogoUrl);
   console.log('JOB PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
-  const logoBuffer = resolvedLogoPath ? null : await loadJobPdfLogoBuffer(logoUrl);
+  const logoBuffer = resolvedLogoPath ? null : await loadJobPdfLogoBuffer(publicLogoUrl || logoUrl);
 
   return new Promise((resolve, reject) => {
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
@@ -5030,7 +5039,7 @@ app.get('/api/jobs/:id/pdf', async (req, res) => {
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
     const settings = normalizeJobPdfSettings(readSettings(), req);
-    const pdfBuffer = await buildJobPdfBuffer({ job, settings });
+    const pdfBuffer = await buildJobPdfBuffer({ job, settings, req });
     const asAttachment = String(req.query.download || '').trim() === '1';
     const fileNameBase = String(job.jobNumber || job._id || `JOB_${Date.now()}`).replace(/[^\w.-]+/g, '_');
     const fileName = `${fileNameBase}.pdf`;
