@@ -1563,9 +1563,11 @@ const loadJobPdfLogoBuffer = async (input = '') => {
 
 const resolveGstCompanyLogoPath = (settings = {}) => {
   const candidates = [
+    ['gstCompanyLogo', settings.gstCompanyLogo],
     ['gstCompanyLogoUrl', settings.gstCompanyLogoUrl],
     ['nonGstCompanyLogoUrl', settings.nonGstCompanyLogoUrl],
     ['dashboardImageUrl', settings.dashboardImageUrl],
+    ['logo', settings.logo],
     ['gstLogoUrl', settings.gstLogoUrl],
     ['gstBrandingLogoUrl', settings.gstBrandingLogoUrl],
     ['companyLogoUrl', settings.companyLogoUrl],
@@ -1579,6 +1581,40 @@ const resolveGstCompanyLogoPath = (settings = {}) => {
     if (resolved) return { path: resolved, source, value: candidate };
   }
   return { path: '', source: '', value: '' };
+};
+
+const resolveJobPdfLogoFilesystemPath = (input = '') => {
+  const raw = String(input || '').trim();
+  if (!raw) return '';
+  if (/^data:image\//i.test(raw)) return '';
+
+  const persistentUploadRoot = String(process.env.UPLOADS_ROOT || '/home/u610009593/uploads-skuas-crm').trim();
+  const joinIfExists = (filename = '') => {
+    const cleanName = path.basename(String(filename || '').trim());
+    if (!cleanName) return '';
+    const candidate = path.join(persistentUploadRoot, cleanName);
+    return fs.existsSync(candidate) ? candidate : '';
+  };
+
+  if (raw.startsWith('/uploads/')) {
+    return joinIfExists(raw.split('/uploads/').pop());
+  }
+
+  if (raw.includes('/uploads/')) {
+    return joinIfExists(raw.split('/uploads/').pop());
+  }
+
+  if (raw.startsWith('/')) {
+    return fs.existsSync(raw) ? raw : joinIfExists(raw);
+  }
+
+  if (!/^https?:\/\//i.test(raw)) {
+    const local = joinIfExists(raw);
+    if (local) return local;
+    if (fs.existsSync(raw)) return raw;
+  }
+
+  return '';
 };
 
 const rewriteLocalhostLogoUrl = (value = '', req = null) => {
@@ -1610,27 +1646,25 @@ const normalizeJobPdfSettings = (settings = {}, req = null) => ({
 });
 
 const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
-  const logoAsset = resolveGstCompanyLogoPath(settings);
-  const logoUrl = String(logoAsset.value || settings.gstCompanyLogoUrl || settings.nonGstCompanyLogoUrl || settings.dashboardImageUrl || settings.logo_url || settings.logoUrl || '').trim();
-  const persistentUploadRoot = String(process.env.UPLOADS_ROOT || '/home/u610009593/uploads-skuas-crm').trim();
-  const resolvedLogoPath = resolveUploadAsset(logoUrl, {
-    rootDirs: [
-      persistentUploadRoot,
-      '/home/u610009593/uploads-skuas-crm',
-      uploadsRootDir,
-      String(process.env.UPLOADS_MIRROR_DIR || '').trim(),
-      path.join(__dirname, '..', 'storage', 'uploads'),
-      path.join(__dirname, 'uploads'),
-      path.join(__dirname, '..', 'uploads'),
-      path.join(__dirname, '..', 'public', 'uploads')
-    ],
-    allowRemoteFetch: false
-  });
-  console.log('JOB PDF logoAsset:', logoAsset);
-  console.log('JOB PDF logoUrl:', logoUrl);
-  console.log('JOB PDF resolvedLogoPath:', resolvedLogoPath);
-  console.log('JOB PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
-  if (logoUrl && !resolvedLogoPath) {
+  const gstBrandingLogo = resolveGstCompanyLogoPath(settings);
+  const logoSource = String(
+    gstBrandingLogo.value
+    || settings.gstCompanyLogo
+    || settings.gstCompanyLogoUrl
+    || settings.logo
+    || settings.logoUrl
+    || settings.logo_url
+    || settings.gstLogoUrl
+    || settings.gstBrandingLogoUrl
+    || settings.companyLogoUrl
+    || ''
+  ).trim();
+  const logoFilesystemPath = resolveJobPdfLogoFilesystemPath(logoSource);
+  const logoExists = Boolean(logoFilesystemPath && fs.existsSync(logoFilesystemPath));
+  console.log('JOB PDF GST branding logo:', gstBrandingLogo);
+  console.log('JOB PDF logo filesystem path:', logoFilesystemPath);
+  console.log('JOB PDF logo exists:', logoExists);
+  if (logoSource && !logoExists) {
     console.error('Job PDF logo file missing from persistent uploads root. Re-upload GST Company Branding logo or copy file to uploads root.');
   }
 
@@ -1670,20 +1704,23 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   const companyNameWidth = doc.widthOfString(companyName);
   const headerX = Math.max(left + 240, right - companyNameWidth);
   const headerWidth = right - headerX;
-  const logoWidth = resolvedLogoPath ? 400 : 0;
-  const logoHeight = resolvedLogoPath ? 160 : 0;
+  const logoWidth = logoExists ? 400 : 0;
+  const logoHeight = logoExists ? 160 : 0;
   const logoX = left;
   const logoY = headerTopY;
 
-  if (resolvedLogoPath) {
+  if (logoExists) {
+    console.log('JOB PDF logo rendered:', false);
     console.log('JOB PDF logoRenderBox:', { x: logoX, y: logoY, width: logoWidth, height: logoHeight });
     try {
-      doc.image(resolvedLogoPath, logoX, logoY, {
+      doc.image(logoFilesystemPath, logoX, logoY, {
         fit: [400, 160],
         align: 'left',
         valign: 'center'
       });
+      console.log('JOB PDF logo rendered:', true);
     } catch (_error) {
+      console.log('JOB PDF logo rendered:', false);
       // ignore logo load errors and continue
     }
   }
@@ -5076,7 +5113,7 @@ app.get('/api/jobs/:id/pdf', async (req, res) => {
       : readJsonFile(jobsFile, []).find((entry) => String(entry?._id || '') === String(req.params.id || ''));
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
-    const settings = normalizeJobPdfSettings(readSettings(), req);
+    const settings = normalizeJobPdfSettings(await readSettingsFromMysql().catch(() => readSettings()), req);
     const pdfBuffer = await buildJobPdfBuffer({ job, settings, req });
     const asAttachment = String(req.query.download || '').trim() === '1';
     const fileNameBase = String(job.jobNumber || job._id || `JOB_${Date.now()}`).replace(/[^\w.-]+/g, '_');
