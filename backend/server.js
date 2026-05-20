@@ -1540,6 +1540,57 @@ const resolveJobPdfLogoPath = (input = '') => {
   return '';
 };
 
+const loadJobPdfLogoBuffer = async (input = '') => {
+  const raw = String(input || '').trim();
+  if (!raw) return null;
+  if (/^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(raw)) {
+    try {
+      const base64 = raw.split(',')[1] || '';
+      return base64 ? Buffer.from(base64, 'base64') : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  const localPath = resolveJobPdfLogoPath(raw);
+  if (localPath && fs.existsSync(localPath)) {
+    try {
+      return fs.readFileSync(localPath);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    const tryUrls = [raw];
+    try {
+      const parsed = new URL(raw);
+      parsed.pathname = encodeURI(parsed.pathname);
+      tryUrls.push(parsed.toString());
+    } catch (_error) {}
+    for (const url of tryUrls) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) continue;
+        return Buffer.from(await response.arrayBuffer());
+      } catch (_error) {
+        // Try the next variant.
+      }
+    }
+    return null;
+  }
+
+  if (fs.existsSync(raw)) {
+    try {
+      return fs.readFileSync(raw);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  return null;
+};
+
 const resolveGstCompanyLogoPath = (settings = {}) => {
   const candidates = [
     ['gstCompanyLogoUrl', settings.gstCompanyLogoUrl],
@@ -1553,12 +1604,16 @@ const resolveGstCompanyLogoPath = (settings = {}) => {
     const candidate = String(value || '').trim();
     if (!candidate) continue;
     const resolved = resolveJobPdfLogoPath(candidate);
-    if (resolved) return { path: resolved, source };
+    if (resolved) return { path: resolved, source, value: candidate };
   }
-  return { path: '', source: '' };
+  return { path: '', source: '', value: '' };
 };
 
-const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve, reject) => {
+const buildJobPdfBuffer = async ({ job = {}, settings = {} }) => {
+  const logoAsset = resolveGstCompanyLogoPath(settings);
+  const logoBuffer = await loadJobPdfLogoBuffer(logoAsset.value || logoAsset.path);
+
+  return new Promise((resolve, reject) => {
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));
@@ -1577,13 +1632,10 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   const companyWebsite = String(settings.companyWebsite || '').trim();
   const companyGst = String(settings.companyGstNumber || settings.gstRegistrationNumber || '').trim();
   const maroonColor = '#9F174D';
-  const logoAsset = resolveGstCompanyLogoPath(settings);
-  const logoPath = logoAsset.path;
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
   const width = right - left;
   const headerTopY = 45;
-  const logo = logoPath;
   const companyDetailLines = [
     companyAddress,
     companyCityLine || companyPin ? `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India` : '',
@@ -1599,13 +1651,13 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   const headerWidth = right - headerX;
   const detailLineHeight = 9.1;
   const headerBoxHeight = 11.2 + (companyDetailLines.length * detailLineHeight);
-  const logoWidth = logo ? 400 : 0;
-  const logoHeight = logo ? 160 : 0;
+  const logoWidth = logoBuffer ? 400 : 0;
+  const logoHeight = logoBuffer ? 160 : 0;
   const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
 
-  if (logo) {
+  if (logoBuffer) {
     try {
-      doc.image(logo, left, logoY, { fit: [logoWidth, logoHeight] });
+      doc.image(logoBuffer, left, logoY, { fit: [logoWidth, logoHeight] });
     } catch (_error) {
       // ignore logo load errors and continue
     }
@@ -1726,7 +1778,8 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   }
 
   doc.end();
-});
+  });
+};
 
 const buildContractJobCardPdfBuffer = ({ invoice = {}, jobs = [], settings = {} }) => new Promise((resolve, reject) => {
   try {
