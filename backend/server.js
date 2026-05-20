@@ -1616,9 +1616,42 @@ const resolveGstCompanyLogoPath = (settings = {}) => {
   return { path: '', source: '', value: '' };
 };
 
+const rewriteLocalhostLogoUrl = (value = '', req = null) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+      const origin = resolveServerOrigin(req || {});
+      const originUrl = new URL(origin);
+      url.protocol = originUrl.protocol;
+      url.host = originUrl.host;
+      return url.toString();
+    }
+  } catch (_error) {}
+  return raw;
+};
+
+const normalizeJobPdfSettings = (settings = {}, req = null) => ({
+  ...settings,
+  gstCompanyLogoUrl: rewriteLocalhostLogoUrl(settings.gstCompanyLogoUrl, req),
+  nonGstCompanyLogoUrl: rewriteLocalhostLogoUrl(settings.nonGstCompanyLogoUrl, req),
+  dashboardImageUrl: rewriteLocalhostLogoUrl(settings.dashboardImageUrl, req),
+  gstLogoUrl: rewriteLocalhostLogoUrl(settings.gstLogoUrl, req),
+  gstBrandingLogoUrl: rewriteLocalhostLogoUrl(settings.gstBrandingLogoUrl, req),
+  companyLogoUrl: rewriteLocalhostLogoUrl(settings.companyLogoUrl, req),
+  logo_url: rewriteLocalhostLogoUrl(settings.logo_url, req),
+  logoUrl: rewriteLocalhostLogoUrl(settings.logoUrl, req)
+});
+
 const buildJobPdfBuffer = async ({ job = {}, settings = {} }) => {
   const logoAsset = resolveGstCompanyLogoPath(settings);
-  const logoBuffer = await loadJobPdfLogoBuffer(logoAsset.value || logoAsset.path);
+  const logoUrl = String(logoAsset.value || settings.gstCompanyLogoUrl || settings.nonGstCompanyLogoUrl || settings.dashboardImageUrl || settings.logo_url || settings.logoUrl || '').trim();
+  const resolvedLogoPath = resolveJobPdfLogoPath(logoUrl);
+  console.log('JOB PDF logoUrl:', logoUrl);
+  console.log('JOB PDF resolvedLogoPath:', resolvedLogoPath);
+  console.log('JOB PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
+  const logoBuffer = resolvedLogoPath ? null : await loadJobPdfLogoBuffer(logoUrl);
 
   return new Promise((resolve, reject) => {
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
@@ -1658,13 +1691,17 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {} }) => {
   const headerWidth = right - headerX;
   const detailLineHeight = 9.1;
   const headerBoxHeight = 11.2 + (companyDetailLines.length * detailLineHeight);
-  const logoWidth = logoBuffer ? 400 : 0;
-  const logoHeight = logoBuffer ? 160 : 0;
+  const logoWidth = (resolvedLogoPath || logoBuffer) ? 400 : 0;
+  const logoHeight = (resolvedLogoPath || logoBuffer) ? 160 : 0;
   const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
 
-  if (logoBuffer) {
+  if (resolvedLogoPath || logoBuffer) {
     try {
-      doc.image(logoBuffer, left, logoY, { fit: [logoWidth, logoHeight] });
+      doc.image(resolvedLogoPath || logoBuffer, left, logoY, {
+        fit: [120, 70],
+        align: 'left',
+        valign: 'center'
+      });
     } catch (_error) {
       // ignore logo load errors and continue
     }
@@ -5058,7 +5095,7 @@ app.get('/api/jobs/:id/pdf', async (req, res) => {
       : readJsonFile(jobsFile, []).find((entry) => String(entry?._id || '') === String(req.params.id || ''));
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
-    const settings = readSettings();
+    const settings = normalizeJobPdfSettings(readSettings(), req);
     const pdfBuffer = await buildJobPdfBuffer({ job, settings });
     const asAttachment = String(req.query.download || '').trim() === '1';
     const fileNameBase = String(job.jobNumber || job._id || `JOB_${Date.now()}`).replace(/[^\w.-]+/g, '_');
