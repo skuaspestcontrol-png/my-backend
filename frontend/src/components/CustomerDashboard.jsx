@@ -433,7 +433,6 @@ export default function CustomerDashboard() {
   const moreMenuRef = useRef(null);
   const moreMenuButtonRef = useRef(null);
   const resizeStateRef = useRef(null);
-  const companyNameInputRef = useRef(null);
   const billingAreaInputRef = useRef(null);
   const billingSearchInputRef = useRef(null);
   const shippingSearchInputRef = useRef(null);
@@ -592,15 +591,6 @@ export default function CustomerDashboard() {
     let cleanups = [];
 
     const initPlaces = async () => {
-      const companyCleanup = await attachPlacesAutocomplete({
-        input: companyNameInputRef.current,
-        onSelected: (place) => {
-          applyCustomerAddressSuggestion('billing', place, place.formatted_address || place.name || '', { updateCompanyName: true });
-        },
-        onError: (error) => alert(error?.message || 'Google Maps API key not configured'),
-        onRequireSelection: (message) => alert(message || 'Please select address/company from suggestions')
-      });
-
       const billingCleanup = await attachPlacesAutocomplete({
         input: billingAreaInputRef.current,
         onSelected: (place) => {
@@ -650,7 +640,7 @@ export default function CustomerDashboard() {
         }))
       });
 
-      cleanups = [companyCleanup, billingCleanup, billingSearchCleanup, shippingSearchCleanup];
+      cleanups = [billingCleanup, billingSearchCleanup, shippingSearchCleanup];
     };
 
     initPlaces();
@@ -2657,17 +2647,8 @@ export default function CustomerDashboard() {
 
               <label style={shell.label}>Company Name</label>
               <input
-                ref={companyNameInputRef}
                 style={shell.input}
                 value={form.companyName}
-                onPaste={(event) => {
-                  const pastedText = String(event.clipboardData?.getData('text') || '').trim();
-                  if (!pastedText) return;
-                  if (extractGoogleMapsCoordinates(pastedText) || isAllowedGoogleMapsUrl(pastedText) || isGoogleMapsShortLink(pastedText)) {
-                    event.preventDefault();
-                    void resolveCustomerMapInput(pastedText, { sourceField: 'companyName' });
-                  }
-                }}
                 onChange={(event) =>
                   setForm((prev) => ({
                     ...prev,
