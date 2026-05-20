@@ -206,12 +206,17 @@
   }
 
   .sales-dashboard-page .sales-summary-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
   }
 
   .sales-dashboard-page .sales-summary-grid > * {
     width: 100%;
     min-width: 0;
+  }
+
+  .sales-dashboard-page .sales-summary-grid .crm-kpi-card {
+    min-height: 132px;
   }
 
   .sales-dashboard-page .sales-chart-inner--wide {
