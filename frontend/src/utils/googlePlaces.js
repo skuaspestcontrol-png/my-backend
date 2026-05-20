@@ -23,6 +23,26 @@ const normalizeAddressText = (value = '') => String(value || '').trim().replace(
 
 const uniqueParts = (parts = []) => Array.from(new Set(parts.map((part) => normalizeAddressText(part)).filter(Boolean)));
 
+const normalizeComparableAddressText = (value = '') => normalizeAddressText(value).toLowerCase();
+
+const splitAddressSegments = (value = '') => normalizeAddressText(value)
+  .split(',')
+  .map((part) => normalizeAddressText(part))
+  .filter(Boolean);
+
+const isSameSegment = (segment = '', candidate = '') => {
+  const left = normalizeComparableAddressText(segment);
+  const right = normalizeComparableAddressText(candidate);
+  return Boolean(left) && left === right;
+};
+
+const isPincodeSegment = (segment = '', pincode = '') => {
+  const value = normalizeAddressText(segment);
+  if (!value) return false;
+  if (pincode && value.includes(pincode)) return true;
+  return /\b[1-9][0-9]{5}\b/.test(value);
+};
+
 const getGoogleAddressParts = (source = {}) => {
   const components = Array.isArray(source.address_components)
     ? source.address_components
@@ -51,6 +71,7 @@ const getGoogleAddressParts = (source = {}) => {
     normalizeComponent(components, 'sublocality'),
     normalizeComponent(components, 'neighborhood')
   ]);
+  const componentAreaSet = new Set(areaParts.map((part) => normalizeComparableAddressText(part)).filter(Boolean));
 
   const city = normalizeComponent(
     components,
@@ -68,23 +89,52 @@ const getGoogleAddressParts = (source = {}) => {
     pincode = match ? match[0] : '';
   }
 
-  let address = streetParts.join(', ');
-  let addressParts = streetParts;
-  if (!address) {
-    const firstLine = formattedAddress.split(',').map((part) => part.trim()).filter(Boolean)[0] || '';
-    address = firstLine;
-    addressParts = firstLine ? [firstLine] : [];
+  const formattedSegments = splitAddressSegments(formattedAddress);
+  const placeName = normalizeAddressText(source.name || source.displayName?.text || source.displayName || '');
+  const cleanSegments = formattedSegments.filter(Boolean);
+  if (placeName && cleanSegments.length > 1 && isSameSegment(cleanSegments[0], placeName)) {
+    cleanSegments.shift();
   }
-  if (!address && areaParts.length) {
-    address = areaParts[0];
-    addressParts = areaParts[0] ? [areaParts[0]] : [];
+
+  const matchedSegments = [];
+  let suffixStart = cleanSegments.length;
+  for (let index = cleanSegments.length - 1; index >= 0; index -= 1) {
+    const segment = cleanSegments[index];
+    const normalized = normalizeComparableAddressText(segment);
+    const isSuffix =
+      isPincodeSegment(segment, pincode)
+      || (country && isSameSegment(segment, country))
+      || (city && isSameSegment(segment, city))
+      || (state && isSameSegment(segment, state))
+      || componentAreaSet.has(normalized);
+
+    if (!isSuffix) break;
+    suffixStart = index;
+    matchedSegments.unshift(segment);
+  }
+
+  const addressSegments = cleanSegments.slice(0, suffixStart);
+  let address = addressSegments.join(', ').trim();
+  if (!address) {
+    address = streetParts.join(', ');
+  }
+  if (!address) {
+    address = cleanSegments.join(', ');
   }
   if (country.toLowerCase() === 'india') {
     address = String(address || '').replace(/,\s*India\s*$/i, '').replace(/\s+India\s*$/i, '').trim();
   }
 
-  const usedParts = new Set(addressParts.map((part) => part.toLowerCase()));
-  const areaName = uniqueParts(areaParts.filter((part) => !usedParts.has(part.toLowerCase()))).join(' / ');
+  const suffixAreaParts = uniqueParts(
+    matchedSegments.filter((segment) => {
+      if (isPincodeSegment(segment, pincode)) return false;
+      if (country && isSameSegment(segment, country)) return false;
+      if (city && isSameSegment(segment, city)) return false;
+      if (state && isSameSegment(segment, state)) return false;
+      return true;
+    })
+  );
+  const areaName = uniqueParts([...areaParts, ...suffixAreaParts]).join(' / ');
 
   return {
     address: normalizeAddressText(address),
