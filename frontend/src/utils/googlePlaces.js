@@ -45,6 +45,33 @@ const isPincodeSegment = (segment = '', pincode = '') => {
 
 const isPlusCodeSegment = (segment = '') => /\b[23456789CFGHJMPQRVWX]{4}\+[23456789CFGHJMPQRVWX]{2,3}\b/i.test(normalizeAddressText(segment));
 
+const normalizeStreetAbbreviations = (value = '') => {
+  const text = normalizeAddressText(value);
+  if (!text) return '';
+
+  // Keep this intentionally small and conservative so we only expand very
+  // common street-style abbreviations without changing names or areas.
+  // Example:
+  // Input: SCO 2, 2nd Floor, Ramlila Ground, Anand Vihar, Phase-2, Peer Baba Rd
+  // Output: SCO 2, 2nd Floor, Ramlila Ground, Anand Vihar, Phase-2, Peer Baba Road
+  const replacements = [
+    [/\bRd\b\.?/gi, 'Road'],
+    [/\bSt\b\.?/gi, 'Street'],
+    [/\bAve\b\.?/gi, 'Avenue'],
+    [/\bBlvd\b\.?/gi, 'Boulevard'],
+    [/\bDr\b\.?/gi, 'Drive'],
+    [/\bLn\b\.?/gi, 'Lane'],
+    [/\bPl\b\.?/gi, 'Place'],
+    [/\bCt\b\.?/gi, 'Court'],
+    [/\bHwy\b\.?/gi, 'Highway']
+  ];
+
+  return replacements.reduce(
+    (acc, [pattern, replacement]) => acc.replace(pattern, replacement),
+    text
+  );
+};
+
 const getGoogleAddressParts = (source = {}) => {
   const components = Array.isArray(source.address_components)
     ? source.address_components
@@ -139,6 +166,7 @@ const getGoogleAddressParts = (source = {}) => {
   if (country.toLowerCase() === 'india') {
     address = String(address || '').replace(/,\s*India\s*$/i, '').replace(/\s+India\s*$/i, '').trim();
   }
+  address = normalizeStreetAbbreviations(address);
 
   const suffixAreaParts = uniqueParts(
     matchedSegments.filter((segment) => {
