@@ -131,6 +131,16 @@ export default function SalesTargets() {
     });
     return map;
   }, [employeeOptions]);
+  const displaySalesPersonName = (row) => (
+    row.salesPersonName
+    || row.employeeName
+    || row.sales_person_name
+    || row.employee_name
+    || employeeNameMap.get(String(row.salesPersonId || row.sales_person_id || row.employeeId || row.employee_id || row.salesPersonCode || row.employeeCode || '').trim().toLowerCase())
+    || row.salesPersonId
+    || row.sales_person_id
+    || '---'
+  );
   const yearlySummaryRows = useMemo(() => {
     const map = new Map();
     safeRows(targets).forEach((row) => {
@@ -202,16 +212,6 @@ export default function SalesTargets() {
     if (targetValue <= 0) return neutralTextColor;
     return Number(actual || 0) >= targetValue ? successColor : dangerColor;
   };
-  const displaySalesPersonName = (row) => (
-    row.salesPersonName
-    || row.employeeName
-    || row.sales_person_name
-    || row.employee_name
-    || employeeNameMap.get(String(row.salesPersonId || row.sales_person_id || row.employeeId || row.employee_id || row.salesPersonCode || row.employeeCode || '').trim().toLowerCase())
-    || row.salesPersonId
-    || row.sales_person_id
-    || '---'
-  );
 
   const editRow = (row) => {
     setForm({
