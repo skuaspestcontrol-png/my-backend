@@ -206,7 +206,7 @@ const emptyForm = {
   billingStreet2: '',
   billingAddress: '',
   billingArea: '',
-  billingState: '',
+  billingState: 'Delhi',
   billingPincode: '',
   billingLatitude: '',
   billingLongitude: '',
@@ -223,7 +223,7 @@ const emptyForm = {
   shippingStreet2: '',
   shippingAddress: '',
   shippingArea: '',
-  shippingState: '',
+  shippingState: 'Delhi',
   shippingPincode: '',
   shippingLatitude: '',
   shippingLongitude: '',
@@ -433,7 +433,6 @@ export default function CustomerDashboard() {
   const moreMenuRef = useRef(null);
   const moreMenuButtonRef = useRef(null);
   const resizeStateRef = useRef(null);
-  const billingAreaInputRef = useRef(null);
   const billingSearchInputRef = useRef(null);
   const shippingSearchInputRef = useRef(null);
   const addressSuggestionSeqRef = useRef({ billing: 0, shipping: 0 });
@@ -591,15 +590,6 @@ export default function CustomerDashboard() {
     let cleanups = [];
 
     const initPlaces = async () => {
-      const billingCleanup = await attachPlacesAutocomplete({
-        input: billingAreaInputRef.current,
-        onSelected: (place) => {
-          applyCustomerAddressSuggestion('billing', place, place.formatted_address || place.name || '', { fillCompanyNameIfEmpty: true });
-        },
-        onError: (error) => alert(error?.message || 'Google Maps API key not configured'),
-        onRequireSelection: (message) => alert(message || 'Please select address/company from suggestions')
-      });
-
       const billingSearchCleanup = await attachPlacesAutocomplete({
         input: billingSearchInputRef.current,
         onSelected: (place) => {
@@ -640,7 +630,7 @@ export default function CustomerDashboard() {
         }))
       });
 
-      cleanups = [billingCleanup, billingSearchCleanup, shippingSearchCleanup];
+      cleanups = [billingSearchCleanup, shippingSearchCleanup];
     };
 
     initPlaces();
@@ -1290,10 +1280,6 @@ export default function CustomerDashboard() {
     void enrichCustomerAddressFromLatLng(section, lat, lng, { preserveSearchAddress: true });
   };
 
-  const resolveCustomerMapInput = async (rawValue) => (
-    resolveCustomerAddressSearchInput('billing', rawValue, { preserveSearchAddress: true })
-  );
-
   const fetchSimilarCustomers = async (draft = form) => {
     const name = String(draft.displayName || draft.contactPersonName || draft.companyName || '').trim();
     const mobile = toTenDigitNumber(draft.mobileNumber || draft.workPhone || '');
@@ -1361,7 +1347,7 @@ export default function CustomerDashboard() {
       billingStreet2: customer.billingStreet2 || '',
       billingAddress: customer.billingAddress || '',
       billingArea: customer.billingArea || customer.area || '',
-      billingState: customer.billingState || customer.state || customer.placeOfSupply || '',
+      billingState: customer.billingState || customer.state || customer.placeOfSupply || 'Delhi',
       billingPincode: toSixDigitPincode(customer.billingPincode || customer.pincode || ''),
       billingLatitude: String(customer.billingLatitude ?? customer.latitude ?? '').trim(),
       billingLongitude: String(customer.billingLongitude ?? customer.longitude ?? '').trim(),
@@ -1377,7 +1363,7 @@ export default function CustomerDashboard() {
       shippingStreet2: customer.shippingStreet2 || '',
       shippingAddress: customer.shippingAddress || '',
       shippingArea: customer.shippingArea || '',
-      shippingState: customer.shippingState || customer.state || customer.placeOfSupply || '',
+      shippingState: customer.shippingState || customer.state || customer.placeOfSupply || 'Delhi',
       shippingPincode: toSixDigitPincode(customer.shippingPincode || ''),
       shippingLatitude: String(customer.shippingLatitude ?? '').trim(),
       shippingLongitude: String(customer.shippingLongitude ?? '').trim(),
@@ -2796,17 +2782,8 @@ export default function CustomerDashboard() {
 
                     <label style={shell.label}>Area</label>
                     <input
-                      ref={billingAreaInputRef}
                       style={shell.input}
                       value={form.billingArea}
-                      onPaste={(event) => {
-                        const pastedText = String(event.clipboardData?.getData('text') || '').trim();
-                        if (!pastedText) return;
-                        if (extractGoogleMapsCoordinates(pastedText) || isAllowedGoogleMapsUrl(pastedText) || isGoogleMapsShortLink(pastedText)) {
-                          event.preventDefault();
-                          void resolveCustomerMapInput(pastedText, { sourceField: 'billingArea' });
-                        }
-                      }}
                       onChange={(event) => updateBillingField('billingArea', event.target.value)}
                     />
 
