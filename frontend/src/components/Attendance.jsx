@@ -76,6 +76,22 @@ const shell = {
     display: 'grid',
     gap: '8px'
   },
+  summaryCardPresent: {
+    border: '1px solid rgba(22,163,74,0.28)',
+    background: 'rgba(22,163,74,0.10)'
+  },
+  summaryCardAbsent: {
+    border: '1px solid rgba(220,38,38,0.28)',
+    background: 'rgba(220,38,38,0.10)'
+  },
+  summaryCardLeave: {
+    border: '1px solid rgba(249,115,22,0.28)',
+    background: 'rgba(249,115,22,0.10)'
+  },
+  summaryCardWeeklyOff: {
+    border: '1px solid rgba(234,179,8,0.30)',
+    background: 'rgba(234,179,8,0.14)'
+  },
   sectionTitle: { margin: 0, fontSize: '14px', color: 'var(--color-primary-dark)', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap' },
   summaryLabel: { fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
   summaryValue: { fontSize: '24px', fontWeight: 800, color: '#0f172a', lineHeight: 1 },
@@ -572,19 +588,19 @@ export default function Attendance() {
           <span style={shell.summaryLabel}><Users size={13} style={{ verticalAlign: 'middle', marginRight: '5px' }} />Employees Marked</span>
           <span style={shell.summaryValue}>{monthSummary.uniqueEmployees.size}</span>
         </div>
-        <div style={shell.summaryCard}>
+        <div style={{ ...shell.summaryCard, ...shell.summaryCardPresent }}>
           <span style={shell.summaryLabel}>Present Days</span>
           <span style={shell.summaryValue}>{monthSummary.presentDays}</span>
         </div>
-        <div style={shell.summaryCard}>
+        <div style={{ ...shell.summaryCard, ...shell.summaryCardAbsent }}>
           <span style={shell.summaryLabel}>Absent Days</span>
           <span style={shell.summaryValue}>{monthSummary.absentDays}</span>
         </div>
-        <div style={shell.summaryCard}>
+        <div style={{ ...shell.summaryCard, ...shell.summaryCardWeeklyOff }}>
           <span style={shell.summaryLabel}>Weekly Off</span>
           <span style={shell.summaryValue}>{monthSummary.weeklyOffDays}</span>
         </div>
-        <div style={shell.summaryCard}>
+        <div style={{ ...shell.summaryCard, ...shell.summaryCardLeave }}>
           <span style={shell.summaryLabel}>Leave Days</span>
           <span style={shell.summaryValue}>{monthSummary.leaveDays}</span>
         </div>
@@ -610,14 +626,14 @@ export default function Attendance() {
           <thead>
             <tr>
               <th style={shell.th}>Employee</th>
-              <th style={shell.th}>Status</th>
-              <th style={shell.th}>Check In</th>
-              <th style={shell.th}>Check Out</th>
-              <th style={shell.th}>Working Hours</th>
-              <th style={shell.th}>Leave Type</th>
-              <th style={shell.th}>Location</th>
-              <th style={shell.th}>Source</th>
-              <th style={shell.th}>Actions</th>
+              <th style={{ ...shell.th, textAlign: 'center' }}>Status</th>
+              <th style={{ ...shell.th, textAlign: 'center' }}>Check In</th>
+              <th style={{ ...shell.th, textAlign: 'center' }}>Check Out</th>
+              <th style={{ ...shell.th, textAlign: 'center' }}>Working Hours</th>
+              <th style={{ ...shell.th, textAlign: 'center' }}>Leave Type</th>
+              <th style={{ ...shell.th, textAlign: 'center' }}>Location</th>
+              <th style={{ ...shell.th, textAlign: 'center' }}>Source</th>
+              <th style={{ ...shell.th, textAlign: 'center' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
