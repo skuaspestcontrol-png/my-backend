@@ -1532,7 +1532,12 @@ const resolveJobPdfLogoPath = (input = '') => {
       const local = findLocalFile(fileName);
       if (local) return local;
     }
-    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return '';
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+      const pathnameCandidate = String(url.pathname || '').split('/uploads/').pop();
+      const local = findLocalFile(pathnameCandidate);
+      if (local) return local;
+      return '';
+    }
     return raw;
   } catch (_error) {
     if (fs.existsSync(raw)) return raw;
