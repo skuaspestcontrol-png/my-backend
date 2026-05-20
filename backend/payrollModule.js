@@ -393,16 +393,32 @@ const isPaidLeaveType = (leaveType) => {
   return text.includes('paid') || text.includes('casual') || text.includes('sick') || text.includes('earned');
 };
 
+const normalizeAttendanceLeaveType = (leaveType) => normalizeRole(leaveType);
+
 const classifyLeaveType = (leaveType) => {
-  const text = normalizeRole(leaveType);
+  const text = normalizeAttendanceLeaveType(leaveType);
   if (!text) return 'unpaid_leave';
-  if (text.includes('outdoor duty')) return 'present';
+  const leaveClassMap = [
+    ['present', ['outdoor duty', 'outdoor-duty', 'on duty', 'on-duty', 'field duty', 'field-duty']],
+    ['paid_holiday', ['public holiday', 'paid holiday', 'holiday']],
+    ['weekly_off', ['weekly off', 'weekly-off', 'weekly holiday', 'weekly-holiday']],
+    ['half_day', ['half day', 'half-day', 'half day leave', 'half-day leave']],
+    ['absent', ['absent']],
+    ['unpaid_leave', ['unpaid leave', 'unpaid', 'lwp', 'loss of pay', 'loss-of-pay']],
+    ['paid_leave', ['paid leave', 'casual leave', 'sick leave', 'earned leave', 'compensatory leave', 'comp off', 'comp-off']]
+  ];
+
+  for (const [result, aliases] of leaveClassMap) {
+    if (aliases.some((alias) => text === alias || text.includes(alias))) return result;
+  }
+
+  if (isPaidLeaveType(text)) return 'paid_leave';
   if (text.includes('public holiday')) return 'paid_holiday';
   if (text.includes('weekly off')) return 'weekly_off';
   if (text.includes('half day')) return 'half_day';
+  if (text.includes('outdoor duty')) return 'present';
   if (text === 'absent') return 'absent';
   if (text.includes('unpaid') || text.includes('lwp')) return 'unpaid_leave';
-  if (isPaidLeaveType(text)) return 'paid_leave';
   return 'unpaid_leave';
 };
 

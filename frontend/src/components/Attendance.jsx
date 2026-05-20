@@ -5,16 +5,16 @@ import { CalendarDays, Clock3, MapPinned, Users } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const leaveTypes = [
-  '',
-  'Casual Leave (CL)',
-  'Sick Leave (SL)',
-  'Paid Leave',
-  'Unpaid Leave (LWP)',
-  'Half Day Leave',
-  'Weekly Off',
-  'Public Holiday',
-  'Outdoor Duty',
-  'Absent'
+  { value: '', label: 'None' },
+  { value: 'Casual Leave (CL)', label: 'Casual Leave (CL)' },
+  { value: 'Sick Leave (SL)', label: 'Sick Leave (SL)' },
+  { value: 'Paid Leave', label: 'Paid Leave' },
+  { value: 'Unpaid Leave (LWP)', label: 'Unpaid Leave (LWP)' },
+  { value: 'Half Day Leave', label: 'Half Day Leave' },
+  { value: 'Weekly Off', label: 'Weekly Off' },
+  { value: 'Public Holiday', label: 'Public Holiday' },
+  { value: 'Outdoor Duty', label: 'Outdoor Duty' },
+  { value: 'Absent', label: 'Absent' }
 ];
 
 const shell = {
@@ -715,7 +715,7 @@ export default function Attendance() {
                       }}
                     >
                       {leaveTypes.map((entry) => (
-                        <option key={entry || 'none'} value={entry}>{entry || 'None'}</option>
+                        <option key={entry.value || 'none'} value={entry.value}>{entry.label}</option>
                       ))}
                     </select>
                   </td>

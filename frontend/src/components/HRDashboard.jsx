@@ -98,6 +98,18 @@ const monthOptions = Array.from({ length: 12 }).map((_, index) => ({
   label: new Date(2026, index, 1).toLocaleString('en-IN', { month: 'long' })
 }));
 
+const leaveOptions = [
+  { value: 'Casual Leave (CL)', label: 'Casual Leave (CL)' },
+  { value: 'Sick Leave (SL)', label: 'Sick Leave (SL)' },
+  { value: 'Paid Leave', label: 'Paid Leave' },
+  { value: 'Unpaid Leave (LWP)', label: 'Unpaid Leave (LWP)' },
+  { value: 'Half Day Leave', label: 'Half Day Leave' },
+  { value: 'Weekly Off', label: 'Weekly Off' },
+  { value: 'Public Holiday', label: 'Public Holiday' },
+  { value: 'Outdoor Duty', label: 'Outdoor Duty' },
+  { value: 'Absent', label: 'Absent' }
+];
+
 const roleFlags = () => {
   const roleRaw = String(localStorage.getItem('portal_user_role') || 'Admin').trim().toLowerCase();
   const isAdmin = roleRaw === 'admin' || roleRaw === '';
@@ -353,7 +365,14 @@ export default function HRDashboard() {
                 {employees.map((employee) => <option key={employee._id} value={employee._id}>{[employee.firstName, employee.lastName].filter(Boolean).join(' ') || employee.empCode}</option>)}
               </select>
             </div>
-            <div style={shell.field}><p style={shell.label}>Leave Type</p><select style={shell.input} value={leaveForm.leaveType} onChange={(event) => setLeaveForm((prev) => ({ ...prev, leaveType: event.target.value }))}><option>Paid Leave</option><option>Sick Leave</option><option>Unpaid Leave</option></select></div>
+            <div style={shell.field}>
+              <p style={shell.label}>Leave Type</p>
+              <select style={shell.input} value={leaveForm.leaveType} onChange={(event) => setLeaveForm((prev) => ({ ...prev, leaveType: event.target.value }))}>
+                {leaveOptions.map((entry) => (
+                  <option key={entry.value} value={entry.value}>{entry.label}</option>
+                ))}
+              </select>
+            </div>
             <div style={shell.field}><p style={shell.label}>From</p><input style={shell.input} type="date" value={leaveForm.fromDate} onChange={(event) => setLeaveForm((prev) => ({ ...prev, fromDate: event.target.value }))} /></div>
             <div style={shell.field}><p style={shell.label}>To</p><input style={shell.input} type="date" value={leaveForm.toDate} onChange={(event) => setLeaveForm((prev) => ({ ...prev, toDate: event.target.value }))} /></div>
             <div style={shell.field}><p style={shell.label}>Days</p><input style={shell.input} type="number" min="0.5" step="0.5" value={leaveForm.days} onChange={(event) => setLeaveForm((prev) => ({ ...prev, days: Number(event.target.value) || 1 }))} /></div>
@@ -377,7 +396,7 @@ export default function HRDashboard() {
                 {leaves.slice(0, 12).map((entry) => (
                   <tr key={entry._id}>
                     <td style={shell.td}>{entry.employeeName}</td>
-                    <td style={shell.td}>{entry.leaveType}</td>
+                    <td style={shell.td}>{entry.displayLeaveType || entry.leaveType}</td>
                     <td style={shell.td}>{entry.fromDate} to {entry.toDate}</td>
                     <td style={shell.td}>{entry.days}</td>
                     <td style={shell.td}><span style={shell.badge}>{entry.status}</span></td>

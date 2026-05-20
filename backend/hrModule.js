@@ -101,12 +101,7 @@ const ensureFile = (filePath, defaultValue) => {
 const normalizeLeave = (raw = {}) => {
   const fromDate = normalizeText(raw.fromDate || raw.date || '');
   const toDate = normalizeText(raw.toDate || raw.date || fromDate);
-  const leaveTypeRaw = normalizeLower(raw.leaveType || raw.type || 'paid leave');
-  const leaveType = leaveTypeRaw.includes('sick')
-    ? 'Sick Leave'
-    : leaveTypeRaw.includes('unpaid')
-      ? 'Unpaid Leave'
-      : 'Paid Leave';
+  const leaveType = normalizeText(raw.leaveType || raw.type || 'Paid Leave') || 'Paid Leave';
   const statusRaw = normalizeLower(raw.status || 'pending');
   const status = statusRaw === 'approved'
     ? 'Approved'
@@ -130,6 +125,32 @@ const normalizeLeave = (raw = {}) => {
     createdAt: normalizeText(raw.createdAt || new Date().toISOString()),
     updatedAt: new Date().toISOString()
   };
+};
+
+const classifyLeaveRequestBucket = (leaveType) => {
+  const text = normalizeLower(leaveType);
+  if (!text) return 'paid';
+  if (text.includes('sick')) return 'sick';
+  if (text.includes('casual')) return 'paid';
+  if (text.includes('paid leave')) return 'paid';
+  if (text.includes('unpaid') || text.includes('lwp') || text.includes('absent') || text.includes('half day')) return 'unpaid';
+  if (text.includes('weekly off') || text.includes('public holiday') || text.includes('outdoor duty')) return 'neutral';
+  return 'unpaid';
+};
+
+const displayLeaveTypeLabel = (leaveType) => {
+  const text = normalizeLower(leaveType);
+  if (!text) return 'Paid Leave';
+  if (text.includes('casual leave')) return 'Casual Leave (CL)';
+  if (text.includes('sick leave')) return 'Sick Leave (SL)';
+  if (text.includes('paid leave')) return 'Paid Leave';
+  if (text.includes('unpaid leave') || text.includes('lwp')) return 'Unpaid Leave (LWP)';
+  if (text.includes('half day')) return 'Half Day Leave';
+  if (text.includes('weekly off')) return 'Weekly Off';
+  if (text.includes('public holiday')) return 'Public Holiday';
+  if (text.includes('outdoor duty')) return 'Outdoor Duty';
+  if (text.includes('absent')) return 'Absent';
+  return normalizeText(leaveType || 'Paid Leave');
 };
 
 const normalizeNotification = (raw = {}) => ({
@@ -710,7 +731,7 @@ function registerHrModule({
       lateCountByEmployee.set(employee._id, summary.lateMarks);
     });
 
-    const leaveTypeDistribution = { 'Sick Leave': 0, 'Paid Leave': 0, 'Unpaid Leave': 0 };
+    const leaveTypeDistribution = {};
     leaves.forEach((entry) => {
       const leave = normalizeLeave(entry);
       if (leave.status !== 'Approved') return;
@@ -718,7 +739,8 @@ function registerHrModule({
       const from = toDateOnly(leave.fromDate);
       if (!from) return;
       if (from.getMonth() + 1 !== safeMonth || from.getFullYear() !== safeYear) return;
-      leaveTypeDistribution[leave.leaveType] = (leaveTypeDistribution[leave.leaveType] || 0) + leave.days;
+      const displayLeaveType = displayLeaveTypeLabel(leave.leaveType);
+      leaveTypeDistribution[displayLeaveType] = (leaveTypeDistribution[displayLeaveType] || 0) + leave.days;
     });
 
     const departmentMap = new Map();
@@ -1183,7 +1205,10 @@ function registerHrModule({
     });
 
     filtered.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-    res.json(filtered);
+    res.json(filtered.map((entry) => ({
+      ...entry,
+      displayLeaveType: displayLeaveTypeLabel(entry.leaveType)
+    })));
   });
 
   app.get('/api/hr/leaves/calendar', (req, res) => {
@@ -1213,6 +1238,7 @@ function registerHrModule({
           employeeId: entry.employeeId,
           employeeName: entry.employeeName,
           leaveType: entry.leaveType,
+          displayLeaveType: displayLeaveTypeLabel(entry.leaveType),
           status: entry.status
         });
       });
@@ -1237,9 +1263,9 @@ function registerHrModule({
         return date.getMonth() + 1 === month && date.getFullYear() === year;
       });
 
-      const paidUsed = round2(used.filter((entry) => entry.leaveType === 'Paid Leave').reduce((sum, entry) => sum + toNumber(entry.days, 0), 0));
-      const sickUsed = round2(used.filter((entry) => entry.leaveType === 'Sick Leave').reduce((sum, entry) => sum + toNumber(entry.days, 0), 0));
-      const unpaidUsed = round2(used.filter((entry) => entry.leaveType === 'Unpaid Leave').reduce((sum, entry) => sum + toNumber(entry.days, 0), 0));
+      const paidUsed = round2(used.filter((entry) => classifyLeaveRequestBucket(entry.leaveType) === 'paid').reduce((sum, entry) => sum + toNumber(entry.days, 0), 0));
+      const sickUsed = round2(used.filter((entry) => classifyLeaveRequestBucket(entry.leaveType) === 'sick').reduce((sum, entry) => sum + toNumber(entry.days, 0), 0));
+      const unpaidUsed = round2(used.filter((entry) => classifyLeaveRequestBucket(entry.leaveType) === 'unpaid').reduce((sum, entry) => sum + toNumber(entry.days, 0), 0));
 
       const annualPaid = 12;
       const annualSick = 8;
@@ -1543,9 +1569,10 @@ function registerHrModule({
     const leaveBalance = getLeaves()
       .filter((entry) => normalizeText(entry.employeeId) === employeeId && entry.status === 'Approved')
       .reduce((acc, entry) => {
-        if (entry.leaveType === 'Paid Leave') acc.paidUsed += toNumber(entry.days, 0);
-        if (entry.leaveType === 'Sick Leave') acc.sickUsed += toNumber(entry.days, 0);
-        if (entry.leaveType === 'Unpaid Leave') acc.unpaidUsed += toNumber(entry.days, 0);
+        const bucket = classifyLeaveRequestBucket(entry.leaveType);
+        if (bucket === 'paid') acc.paidUsed += toNumber(entry.days, 0);
+        if (bucket === 'sick') acc.sickUsed += toNumber(entry.days, 0);
+        if (bucket === 'unpaid') acc.unpaidUsed += toNumber(entry.days, 0);
         return acc;
       }, { paidUsed: 0, sickUsed: 0, unpaidUsed: 0 });
 
