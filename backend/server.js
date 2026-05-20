@@ -1626,45 +1626,12 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
     ],
     allowRemoteFetch: false
   });
-  const persistentLogoPath = resolveUploadAsset(logoUrl, {
-    rootDirs: [persistentUploadRoot],
-    allowRemoteFetch: false
-  });
-  const mirrorLogoPath = resolveUploadAsset(logoUrl, {
-    rootDirs: [String(process.env.UPLOADS_MIRROR_DIR || '').trim()],
-    allowRemoteFetch: false
-  });
-  const logoFileName = (() => {
-    try {
-      return path.basename(new URL(logoUrl).pathname || '') || path.basename(String(logoUrl || '').split('?')[0]);
-    } catch (_error) {
-      return path.basename(String(logoUrl || '').split('?')[0]);
-    }
-  })();
-  const publicLogoUrl = logoFileName ? `${resolveServerOrigin(req || {})}/uploads/${encodeURIComponent(logoFileName)}` : '';
   console.log('JOB PDF logoAsset:', logoAsset);
   console.log('JOB PDF logoUrl:', logoUrl);
   console.log('JOB PDF resolvedLogoPath:', resolvedLogoPath);
-  console.log('JOB PDF persistentLogoPath:', persistentLogoPath);
-  console.log('JOB PDF mirrorLogoPath:', mirrorLogoPath);
-  console.log('JOB PDF publicLogoUrl:', publicLogoUrl);
   console.log('JOB PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
-  if (logoUrl && !persistentLogoPath) {
+  if (logoUrl && !resolvedLogoPath) {
     console.error('Job PDF logo file missing from persistent uploads root. Re-upload GST Company Branding logo or copy file to uploads root.');
-  }
-  let logoBuffer = null;
-  const localLogoPath = resolvedLogoPath || mirrorLogoPath;
-  if (localLogoPath) {
-    try {
-      logoBuffer = fs.readFileSync(localLogoPath);
-      console.log('JOB PDF logoBufferLoaded:', true);
-    } catch (error) {
-      console.log('JOB PDF logoBufferLoaded:', false);
-      console.error('JOB PDF failed reading logo from resolved path:', error.message);
-    }
-  } else {
-    logoBuffer = await loadJobPdfLogoBuffer(publicLogoUrl || logoUrl);
-    console.log('JOB PDF logoBufferLoaded:', Boolean(logoBuffer));
   }
 
   return new Promise((resolve, reject) => {
@@ -1703,15 +1670,15 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   const companyNameWidth = doc.widthOfString(companyName);
   const headerX = Math.max(left + 240, right - companyNameWidth);
   const headerWidth = right - headerX;
-  const detailLineHeight = 9.1;
-  const headerBoxHeight = 11.2 + (companyDetailLines.length * detailLineHeight);
-  const logoWidth = (resolvedLogoPath || logoBuffer) ? 400 : 0;
-  const logoHeight = (resolvedLogoPath || logoBuffer) ? 160 : 0;
-  const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
+  const logoWidth = resolvedLogoPath ? 400 : 0;
+  const logoHeight = resolvedLogoPath ? 160 : 0;
+  const logoX = left;
+  const logoY = headerTopY;
 
-  if (resolvedLogoPath || logoBuffer) {
+  if (resolvedLogoPath) {
+    console.log('JOB PDF logoRenderBox:', { x: logoX, y: logoY, width: logoWidth, height: logoHeight });
     try {
-      doc.image(logoBuffer || resolvedLogoPath, left, logoY, {
+      doc.image(resolvedLogoPath, logoX, logoY, {
         fit: [400, 160],
         align: 'left',
         valign: 'center'
