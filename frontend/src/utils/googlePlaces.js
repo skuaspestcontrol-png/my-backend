@@ -45,6 +45,11 @@ const isPincodeSegment = (segment = '', pincode = '') => {
 
 const isPlusCodeSegment = (segment = '') => /\b[23456789CFGHJMPQRVWX]{4}\+[23456789CFGHJMPQRVWX]{2,3}\b/i.test(normalizeAddressText(segment));
 
+const stripTrailingIndiaSuffix = (value = '') => normalizeAddressText(value)
+  .replace(/,\s*India\s*$/i, '')
+  .replace(/\s+India\s*$/i, '')
+  .trim();
+
 const normalizeStreetAbbreviations = (value = '') => {
   const text = normalizeAddressText(value);
   if (!text) return '';
@@ -81,18 +86,12 @@ const getGoogleAddressParts = (source = {}) => {
   const formattedAddress = normalizeAddressText(
     source.formatted_address
     || source.formattedAddress
+    || source.description
     || source.name
     || source.displayName?.text
     || source.displayName
     || ''
   );
-
-  const streetParts = uniqueParts([
-    normalizeComponent(components, 'premise'),
-    normalizeComponent(components, 'subpremise'),
-    normalizeComponent(components, 'street_number'),
-    normalizeComponent(components, 'route')
-  ]);
 
   const areaParts = uniqueParts([
     normalizeComponent(components, 'sublocality_level_1'),
@@ -120,16 +119,12 @@ const getGoogleAddressParts = (source = {}) => {
 
   const formattedSegments = splitAddressSegments(formattedAddress);
   const placeName = normalizeAddressText(source.name || source.displayName?.text || source.displayName || '');
-  // Example:
-  // Input: SCO 2, 2nd Floor, Ramlila Ground, Anand Vihar, Phase-2, Peer Baba Rd, Baltana, Sector 19, Zirakpur, Punjab 140604, India
-  // Output: address=SCO 2, 2nd Floor, Ramlila Ground, Anand Vihar, Phase-2, Peer Baba Road
   const cleanSegments = formattedSegments.filter(Boolean).filter((segment) => !isPlusCodeSegment(segment));
   if (placeName && cleanSegments.length > 1 && isSameSegment(cleanSegments[0], placeName)) {
     cleanSegments.shift();
   }
 
   const matchedSegments = [];
-  let suffixStart = cleanSegments.length;
   for (let index = cleanSegments.length - 1; index >= 0; index -= 1) {
     const segment = cleanSegments[index];
     const normalized = normalizeComparableAddressText(segment);
@@ -141,32 +136,10 @@ const getGoogleAddressParts = (source = {}) => {
       || componentAreaSet.has(normalized);
 
     if (!isSuffix) break;
-    suffixStart = index;
     matchedSegments.unshift(segment);
   }
 
-  const addressSegments = cleanSegments.slice(0, suffixStart);
-  let address = addressSegments.join(', ').trim();
-  if (!address) {
-    address = streetParts.join(', ');
-  }
-  const fallbackAddress = formattedSegments
-    .filter((segment) => !isPlusCodeSegment(segment))
-    .filter((segment) => {
-      if (country && isSameSegment(segment, country)) return false;
-      if (pincode && isPincodeSegment(segment, pincode)) return false;
-      if (state && isSameSegment(segment, state)) return false;
-      return true;
-    })
-    .join(', ')
-    .trim();
-  if (!address || addressSegments.length < 2) {
-    address = address || fallbackAddress;
-  }
-  if (country.toLowerCase() === 'india') {
-    address = String(address || '').replace(/,\s*India\s*$/i, '').replace(/\s+India\s*$/i, '').trim();
-  }
-  address = normalizeStreetAbbreviations(address);
+  const address = stripTrailingIndiaSuffix(formattedAddress || placeName || '');
 
   const suffixAreaParts = uniqueParts(
     matchedSegments.filter((segment) => {
@@ -192,14 +165,21 @@ const getGoogleAddressParts = (source = {}) => {
 const stripAutoFilledIndiaSuffix = (value = '', components = []) => {
   const formatted = String(value || '').trim();
   if (!formatted) return '';
-  const country = normalizeComponent(components, 'country');
-  if (country.toLowerCase() !== 'india') return formatted;
-
-  return formatted
-    .replace(/,\s*India\s*$/i, '')
-    .replace(/\s+India\s*$/i, '')
-    .trim();
+  void components;
+  return stripTrailingIndiaSuffix(formatted);
 };
+
+export const getGoogleFormattedAddressText = (source = {}) => stripTrailingIndiaSuffix(
+  normalizeAddressText(
+    source.formatted_address
+    || source.formattedAddress
+    || source.description
+    || source.name
+    || source.displayName?.text
+    || source.displayName
+    || ''
+  )
+);
 
 const placeToDetails = (place = {}) => {
   const location = place.geometry?.location;
