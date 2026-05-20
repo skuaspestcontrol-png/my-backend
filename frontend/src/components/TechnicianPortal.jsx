@@ -44,18 +44,6 @@ const formatDisplayTime = (value) => {
 
 const createCompletionCardNumber = () => `JC-${Date.now().toString().slice(-8)}`;
 
-const getBrowserPosition = () => new Promise((resolve, reject) => {
-  if (!navigator.geolocation) {
-    reject(new Error('Geolocation is not supported on this device.'));
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(resolve, reject, {
-    enableHighAccuracy: true,
-    timeout: 15000,
-    maximumAge: 0
-  });
-});
-
 const DEFAULT_CHECKLIST_ITEMS = [
   'Customer issue confirmed',
   'Site inspected',
@@ -839,34 +827,7 @@ export default function TechnicianPortal() {
 
     try {
       setIsPunchingIn(true);
-      let attendancePayload = null;
-      try {
-        const position = await getBrowserPosition();
-        const latitude = Number(position?.coords?.latitude || 0);
-        const longitude = Number(position?.coords?.longitude || 0);
-        const accuracy = Number(position?.coords?.accuracy || 0);
-        attendancePayload = {
-          employee_id: String(activeJob.technicianId || localStorage.getItem('portal_user_id') || '').trim(),
-          punch_in_time: new Date().toISOString(),
-          punch_in_latitude: Number.isFinite(latitude) ? latitude : '',
-          punch_in_longitude: Number.isFinite(longitude) ? longitude : '',
-          punch_in_accuracy: Number.isFinite(accuracy) ? accuracy : '',
-          punch_in_map_url: Number.isFinite(latitude) && Number.isFinite(longitude) ? `https://www.google.com/maps?q=${latitude},${longitude}` : '',
-          source: 'technician_app'
-        };
-      } catch (_locationError) {
-        attendancePayload = {
-          employee_id: String(activeJob.technicianId || localStorage.getItem('portal_user_id') || '').trim(),
-          punch_in_time: new Date().toISOString(),
-          source: 'technician_app'
-        };
-      }
-      await Promise.all([
-        axios.put(`${API_BASE_URL}/api/jobs/${activeJob._id}`, { status: 'In Progress', punchInTime: time }, { timeout: 15000 }),
-        attendancePayload?.employee_id
-          ? axios.post(`${API_BASE_URL}/api/attendance/punch-in`, attendancePayload, { timeout: 15000 })
-          : Promise.resolve()
-      ]);
+      await axios.put(`${API_BASE_URL}/api/jobs/${activeJob._id}`, { status: 'In Progress', punchInTime: time }, { timeout: 15000 });
       setJobs((prev) => prev.map((job) => (job._id === activeJob._id ? { ...job, status: 'In Progress', punchInTime: time } : job)));
       setActiveJob((prev) => (prev ? { ...prev, status: 'In Progress', punchInTime: time } : prev));
     } catch (error) {
@@ -899,28 +860,6 @@ export default function TechnicianPortal() {
       setIsCompleting(true);
       await persistWizardDraft(normalizedDraft);
       const completedJobId = activeJob._id;
-      let attendancePayload = null;
-      try {
-        const position = await getBrowserPosition();
-        const latitude = Number(position?.coords?.latitude || 0);
-        const longitude = Number(position?.coords?.longitude || 0);
-        const accuracy = Number(position?.coords?.accuracy || 0);
-        attendancePayload = {
-          employee_id: String(activeJob.technicianId || localStorage.getItem('portal_user_id') || '').trim(),
-          punch_out_time: completedAt,
-          punch_out_latitude: Number.isFinite(latitude) ? latitude : '',
-          punch_out_longitude: Number.isFinite(longitude) ? longitude : '',
-          punch_out_accuracy: Number.isFinite(accuracy) ? accuracy : '',
-          punch_out_map_url: Number.isFinite(latitude) && Number.isFinite(longitude) ? `https://www.google.com/maps?q=${latitude},${longitude}` : '',
-          source: 'technician_app'
-        };
-      } catch (_locationError) {
-        attendancePayload = {
-          employee_id: String(activeJob.technicianId || localStorage.getItem('portal_user_id') || '').trim(),
-          punch_out_time: completedAt,
-          source: 'technician_app'
-        };
-      }
       const completePayload = new FormData();
       Object.entries(statusPayload).forEach(([key, value]) => completePayload.append(key, value || ''));
       completePayload.append('beforePhoto', normalizedDraft.beforePhotos[0] || activeJob.beforePhoto || '');
@@ -932,12 +871,7 @@ export default function TechnicianPortal() {
       completePayload.append('reviewRemarks', normalizedDraft.reviewRemarks || '');
       completePayload.append('remarks', normalizedDraft.reviewRemarks || '');
       completePayload.append('customerSignature', sig || '');
-      await Promise.all([
-        axios.post(`${API_BASE_URL}/api/jobs/${completedJobId}/complete`, completePayload, { timeout: 30000 }),
-        attendancePayload?.employee_id
-          ? axios.post(`${API_BASE_URL}/api/attendance/punch-out`, attendancePayload, { timeout: 15000 })
-          : Promise.resolve()
-      ]);
+      await axios.post(`${API_BASE_URL}/api/jobs/${completedJobId}/complete`, completePayload, { timeout: 30000 });
       setCompletionCard({
         jobId: completedJobId,
         jobNumber: activeJob.jobNumber || '-',
