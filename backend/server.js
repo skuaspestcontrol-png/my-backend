@@ -8,6 +8,7 @@ const nodemailer = require('nodemailer');
 const { execFile } = require('child_process');
 const PDFDocument = require('pdfkit');
 const { generateInvoicePdfBuffer, formatINR, formatDate, amountToWords } = require('./invoicePdf');
+const { resolveUploadAsset } = require('./quotationPdf');
 const { pool, query: dbQuery, getConnection } = require('./lib/db');
 const { runAutoMigrations, getLastMigrationStatus } = require('./lib/autoMigrate');
 const { readCachedSettings, clearSettingsCache } = require('./lib/settings-cache');
@@ -1477,74 +1478,6 @@ const updateSettingsNextJobNumber = async (usedJobNumber, settings) => {
   }
 };
 
-const resolveJobPdfLogoPath = (input = '') => {
-  const raw = String(input || '').trim();
-  if (!raw) return '';
-  if (/^data:image\//i.test(raw)) return raw;
-
-  const candidateDirs = [
-    uploadsDir,
-    uploadsMirrorDir,
-    path.join(__dirname, '..', 'storage', 'uploads'),
-    path.join(__dirname, 'uploads'),
-    path.join(__dirname, '..', 'uploads'),
-    path.join(__dirname, '..', 'public', 'uploads')
-  ].filter(Boolean);
-
-  const findLocalFile = (name = '') => {
-    const decoded = (() => {
-      try { return decodeURIComponent(String(name || '').trim()); } catch (_error) { return String(name || '').trim(); }
-    })().replace(/\\/g, '/');
-    if (!decoded) return '';
-    const normalized = decoded.replace(/^\/?uploads\/?/, '').replace(/^\/+/, '');
-    if (!normalized || normalized.includes('..')) return '';
-    for (const dir of candidateDirs) {
-      const byRelative = path.join(dir, normalized);
-      if (fs.existsSync(byRelative)) return byRelative;
-      const byBaseName = path.join(dir, path.basename(normalized));
-      if (fs.existsSync(byBaseName)) return byBaseName;
-    }
-    return '';
-  };
-
-  if (raw.startsWith('/uploads/')) {
-    const local = findLocalFile(raw.split('/uploads/')[1]);
-    if (local) return local;
-  }
-  if (raw.includes('/uploads/')) {
-    const local = findLocalFile(raw.split('/uploads/').pop());
-    if (local) return local;
-  }
-  if (raw.startsWith('/')) {
-    if (fs.existsSync(raw)) return raw;
-    const local = findLocalFile(raw);
-    if (local) return local;
-  }
-  if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
-    const local = findLocalFile(raw);
-    if (local) return local;
-    if (fs.existsSync(raw)) return raw;
-  }
-  try {
-    const url = new URL(raw);
-    const fileName = path.basename(url.pathname || '');
-    if (fileName) {
-      const local = findLocalFile(fileName);
-      if (local) return local;
-    }
-    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-      const pathnameCandidate = String(url.pathname || '').split('/uploads/').pop();
-      const local = findLocalFile(pathnameCandidate);
-      if (local) return local;
-      return '';
-    }
-    return raw;
-  } catch (_error) {
-    if (fs.existsSync(raw)) return raw;
-  }
-  return '';
-};
-
 const loadJobPdfLogoBuffer = async (input = '') => {
   const raw = String(input || '').trim();
   if (!raw) return null;
@@ -1557,7 +1490,7 @@ const loadJobPdfLogoBuffer = async (input = '') => {
     }
   }
 
-  const localPath = resolveJobPdfLogoPath(raw);
+  const localPath = resolveUploadAsset(raw);
   if (localPath && fs.existsSync(localPath)) {
     try {
       return fs.readFileSync(localPath);
@@ -1610,7 +1543,7 @@ const resolveGstCompanyLogoPath = (settings = {}) => {
   for (const [source, value] of candidates) {
     const candidate = String(value || '').trim();
     if (!candidate) continue;
-    const resolved = resolveJobPdfLogoPath(candidate);
+    const resolved = resolveUploadAsset(candidate);
     if (resolved) return { path: resolved, source, value: candidate };
   }
   return { path: '', source: '', value: '' };
@@ -1647,7 +1580,7 @@ const normalizeJobPdfSettings = (settings = {}, req = null) => ({
 const buildJobPdfBuffer = async ({ job = {}, settings = {} }) => {
   const logoAsset = resolveGstCompanyLogoPath(settings);
   const logoUrl = String(logoAsset.value || settings.gstCompanyLogoUrl || settings.nonGstCompanyLogoUrl || settings.dashboardImageUrl || settings.logo_url || settings.logoUrl || '').trim();
-  const resolvedLogoPath = resolveJobPdfLogoPath(logoUrl);
+  const resolvedLogoPath = resolveUploadAsset(logoUrl);
   console.log('JOB PDF logoUrl:', logoUrl);
   console.log('JOB PDF resolvedLogoPath:', resolvedLogoPath);
   console.log('JOB PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);

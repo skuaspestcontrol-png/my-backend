@@ -658,5 +658,6 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 });
 
 module.exports = {
-  generateQuotationPdfBuffer
+  generateQuotationPdfBuffer,
+  resolveUploadAsset
 };
