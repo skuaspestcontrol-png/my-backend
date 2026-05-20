@@ -318,7 +318,8 @@ const shell = {
   addRowBtn: { border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '7px 11px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
   actionLinkBtn: { border: 'none', background: 'transparent', color: 'var(--color-primary)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
   itemActionsRow: { display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' },
-  outlineBtn: { border: '1px solid var(--color-primary-soft)', background: '#FDF2F8', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
+  newAddressBtn: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' },
+  copyBillingBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
   totalsWrap: { marginTop: '8px', marginLeft: 'auto', width: '340px', border: '1px solid var(--color-border)', borderRadius: '10px', background: '#fafafa' },
   totalRow: { display: 'flex', justifyContent: 'space-between', padding: '10px 12px', fontSize: '12px', color: '#334155', borderBottom: '1px solid var(--color-border)' },
   gstRowsWrap: { margin: '0 8px', padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'grid', gap: '10px' },
@@ -3216,7 +3217,7 @@ export default function InvoiceDashboard() {
                   </div>
                 </div>
               ))}
-              <button type="button" style={shell.outlineBtn} onClick={startNewBillingAddress}>
+              <button type="button" style={shell.newAddressBtn} onClick={startNewBillingAddress}>
                 <PlusCircle size={14} /> New address
               </button>
             </div>
@@ -3270,7 +3271,7 @@ export default function InvoiceDashboard() {
                   ) : null}
                 </div>
               ))}
-              <button type="button" style={shell.outlineBtn} onClick={startNewShippingAddress}>
+              <button type="button" style={shell.newAddressBtn} onClick={startNewShippingAddress}>
                 <PlusCircle size={14} /> New address
               </button>
             </div>
@@ -3288,7 +3289,7 @@ export default function InvoiceDashboard() {
                 {(editingShippingAddressId === 'new' || editingShippingAddressId === 'new-premise') && addressDraftTarget === 'shipping' ? (
                   <button
                     type="button"
-                    style={shell.outlineBtn}
+                    style={shell.copyBillingBtn}
                     onClick={copyBillingIntoNewAddressDraft}
                   >
                     Copy billing address
