@@ -585,6 +585,7 @@ app.get(['/uploads-test', '/api/uploads-test'], requireAdminDebugAccess, (req, r
     String(process.env.UPLOADS_ROOT || process.env.UPLOADS_DIR || process.env.UPLOADS_ROOT_DIR || uploadsRootDir || '/home/u610009593/uploads-skuas-crm').trim(),
     uploadsRootDir,
     '/home/u610009593/uploads-skuas-crm',
+    String(process.env.UPLOADS_MIRROR_DIR || '').trim(),
     path.join(__dirname, '..', 'storage', 'uploads'),
     path.join(__dirname, 'uploads'),
     path.join(__dirname, '..', 'uploads'),
@@ -1623,6 +1624,7 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
       persistentUploadRoot,
       '/home/u610009593/uploads-skuas-crm',
       uploadsRootDir,
+      String(process.env.UPLOADS_MIRROR_DIR || '').trim(),
       path.join(__dirname, '..', 'storage', 'uploads'),
       path.join(__dirname, 'uploads'),
       path.join(__dirname, '..', 'uploads'),
@@ -1632,6 +1634,10 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   });
   const persistentLogoPath = resolveUploadAsset(logoUrl, {
     rootDirs: [persistentUploadRoot],
+    allowRemoteFetch: false
+  });
+  const mirrorLogoPath = resolveUploadAsset(logoUrl, {
+    rootDirs: [String(process.env.UPLOADS_MIRROR_DIR || '').trim()],
     allowRemoteFetch: false
   });
   const logoFileName = (() => {
@@ -1646,15 +1652,17 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   console.log('JOB PDF logoUrl:', logoUrl);
   console.log('JOB PDF resolvedLogoPath:', resolvedLogoPath);
   console.log('JOB PDF persistentLogoPath:', persistentLogoPath);
+  console.log('JOB PDF mirrorLogoPath:', mirrorLogoPath);
   console.log('JOB PDF publicLogoUrl:', publicLogoUrl);
   console.log('JOB PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
   if (logoUrl && !persistentLogoPath) {
     console.error('Job PDF logo file missing from persistent uploads root. Re-upload GST Company Branding logo or copy file to uploads root.');
   }
   let logoBuffer = null;
-  if (resolvedLogoPath) {
+  const localLogoPath = resolvedLogoPath || mirrorLogoPath;
+  if (localLogoPath) {
     try {
-      logoBuffer = fs.readFileSync(resolvedLogoPath);
+      logoBuffer = fs.readFileSync(localLogoPath);
       console.log('JOB PDF logoBufferLoaded:', true);
     } catch (error) {
       console.log('JOB PDF logoBufferLoaded:', false);
@@ -1710,7 +1718,7 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   if (resolvedLogoPath || logoBuffer) {
     try {
       doc.image(logoBuffer || resolvedLogoPath, left, logoY, {
-        fit: [120, 70],
+        fit: [400, 160],
         align: 'left',
         valign: 'center'
       });

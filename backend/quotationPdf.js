@@ -239,6 +239,7 @@ const getUploadRootCandidates = () => {
   return [
     persistentUploadRoot,
     '/home/u610009593/uploads-skuas-crm',
+    String(process.env.UPLOADS_MIRROR_DIR || '').trim(),
     path.join(__dirname, '..', 'storage', 'uploads'),
     path.join(__dirname, 'uploads'),
     path.join(__dirname, '..', 'uploads'),
