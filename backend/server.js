@@ -2218,10 +2218,27 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
         x += col.width;
       });
     };
+    const ordinalLabel = (value) => {
+      const n = Number(value);
+      if (!Number.isFinite(n) || n <= 0) return String(value || '-');
+      const mod100 = n % 100;
+      if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+      const mod10 = n % 10;
+      if (mod10 === 1) return `${n}st`;
+      if (mod10 === 2) return `${n}nd`;
+      if (mod10 === 3) return `${n}rd`;
+      return `${n}th`;
+    };
+    const getServiceVisitLabel = (job, index) => {
+      const visitLabel = ordinalLabel(job.scheduleVisit || index + 1 || '-');
+      const serviceName = String(job.serviceName || job.service_type || job.serviceType || '').trim();
+      if (!serviceName) return visitLabel;
+      return `${visitLabel} ${serviceName}`.trim();
+    };
     const drawTableRow = (rowY, job, index) => {
       const materials = getMaterialsForJob(job).map((row) => row.materialName).filter(Boolean).join(', ') || '-';
       const values = [
-        String(job.scheduleVisit || index + 1 || '-'),
+        getServiceVisitLabel(job, index),
         resolveJobCardNumberForPdf(job, completedJobs),
         formatPdfDate(job.scheduledDate || job.serviceDate || job.createdAt),
         formatPdfTime(job.serviceStartTime || job.service_start_time || job.punchInTime),
