@@ -1,150 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock3, Users } from 'lucide-react';
+import {
+  CalendarDays,
+  Clock3,
+  Download,
+  Eye,
+  Fingerprint,
+  MapPinned,
+  RefreshCcw,
+  Search,
+  UserCheck,
+  UserMinus,
+  Users
+} from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const leaveTypes = ['', 'Casual Leave', 'Sick Leave', 'Earned Leave', 'Unpaid Leave'];
-
-const shell = {
-  page: {
-    padding: 0,
-    background: 'transparent',
-    border: 'none',
-    borderRadius: 0,
-    backdropFilter: 'none',
-    display: 'grid',
-    gap: '14px'
-  },
-  topbar: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '10px',
-    flexWrap: 'wrap'
-  },
-  titleWrap: { display: 'grid', gap: '4px' },
-  title: { margin: 0, fontSize: '30px', letterSpacing: '-0.02em', color: '#0f172a', fontWeight: 800 },
-  subtitle: { margin: 0, fontSize: '13px', color: '#475569', fontWeight: 600 },
-  topbarActions: { display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
-  employeeLink: {
-    minHeight: '42px',
-    borderRadius: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.28)',
-    background: '#fff',
-    color: 'var(--color-primary-dark)',
-    padding: '0 12px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    textDecoration: 'none',
-    fontSize: '12px',
-    fontWeight: 800,
-    letterSpacing: '0.04em',
-    textTransform: 'uppercase'
-  },
-  dateInput: {
-    minHeight: '42px',
-    borderRadius: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.28)',
-    background: '#fff',
-    padding: '0 12px',
-    fontSize: '13px',
-    fontWeight: 700,
-    color: '#0f172a'
-  },
-  summaryGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-    gap: '10px'
-  },
-  summaryCard: {
-    border: '1px solid rgba(159, 23, 77, 0.2)',
-    borderRadius: '14px',
-    padding: '12px',
-    background: '#fff',
-    display: 'grid',
-    gap: '8px'
-  },
-  sectionTitle: { margin: 0, fontSize: '14px', color: 'var(--color-primary-dark)', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap' },
-  summaryLabel: { fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  summaryValue: { fontSize: '24px', fontWeight: 800, color: '#0f172a', lineHeight: 1 },
-  tableWrap: {
-    background: '#fff',
-    borderRadius: '16px',
-    border: '1px solid rgba(159, 23, 77, 0.2)',
-    overflowX: 'auto'
-  },
-  table: { width: '100%', minWidth: '900px', borderCollapse: 'collapse', tableLayout: 'auto' },
-  th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', lineHeight: 1.3 },
-  td: { padding: '10px', borderBottom: '1px solid #eef2f7', fontSize: '13px', color: '#0f172a', verticalAlign: 'middle', wordBreak: 'break-word' },
-  nameCell: { display: 'grid', gap: '2px' },
-  empName: { fontWeight: 700, color: '#0f172a' },
-  empCode: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
-  statusBtns: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px', width: '100%' },
-  statusBtn: {
-    minHeight: '30px',
-    minWidth: 0,
-    borderRadius: '8px',
-    border: '1px solid #D1D5DB',
-    background: '#fff',
-    color: '#334155',
-    cursor: 'pointer',
-    fontSize: '11px',
-    fontWeight: 800,
-    padding: '0 6px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em'
-  },
-  input: {
-    minHeight: '34px',
-    width: '100%',
-    borderRadius: '8px',
-    border: '1px solid #D1D5DB',
-    background: '#fff',
-    padding: '0 10px',
-    fontSize: '12px',
-    color: '#0f172a'
-  },
-  hoursBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: '74px',
-    minHeight: '30px',
-    borderRadius: '999px',
-    border: '1px solid rgba(159, 23, 77, 0.32)',
-    background: 'rgba(159, 23, 77, 0.08)',
-    color: 'var(--color-primary-dark)',
-    fontSize: '12px',
-    fontWeight: 800
-  },
-  footerNote: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 600 }
-};
-
-const getEmployeeName = (employee = {}) => [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee';
-
-const statusTheme = {
-  present: { border: '1px solid rgba(22,163,74,0.44)', background: 'rgba(22,163,74,0.12)', color: '#166534' },
-  absent: { border: '1px solid rgba(220,38,38,0.44)', background: 'rgba(220,38,38,0.1)', color: '#991b1b' },
-  leave: { border: '1px solid rgba(217,119,6,0.46)', background: 'rgba(217,119,6,0.12)', color: '#92400e' },
-  'half-day': { border: '1px solid rgba(217,119,6,0.46)', background: 'rgba(217,119,6,0.12)', color: '#92400e' },
-  'weekly-off': { border: '1px solid rgba(100,116,139,0.5)', background: 'rgba(100,116,139,0.14)', color: '#334155' }
-};
-
-const isValidTime = (value) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(value || '').trim());
-
-const computeHours = (status, checkIn, checkOut) => {
-  if (status === 'absent' || status === 'weekly-off' || status === 'leave') return 0;
-  if (!isValidTime(checkIn) || !isValidTime(checkOut)) return 0;
-  const [inH, inM] = checkIn.split(':').map(Number);
-  const [outH, outM] = checkOut.split(':').map(Number);
-  const inMinutes = (inH * 60) + inM;
-  const outMinutes = (outH * 60) + outM;
-  if (outMinutes <= inMinutes) return 0;
-  const rawHours = (outMinutes - inMinutes) / 60;
-  const finalHours = status === 'half-day' ? Math.min(rawHours, 4) : rawHours;
-  return Number(finalHours.toFixed(2));
-};
 
 const todayDate = () => {
   const now = new Date();
@@ -155,471 +27,670 @@ const todayDate = () => {
 };
 
 const monthFromDate = (value) => String(value || '').slice(0, 7);
+const formatDateTimeInput = (value) => (String(value || '').includes('T') ? String(value).slice(0, 16) : '');
+const timeFromDateTime = (value) => (String(value || '').includes('T') ? String(value).slice(11, 16) : String(value || ''));
+const formatHours = (value) => `${Number(value || 0).toFixed(2)} hrs`;
+const isSundayDate = (value) => new Date(`${value}T00:00:00`).getDay() === 0;
 
-const monthHeading = (value) => {
-  if (!/^\d{4}-\d{2}$/.test(String(value || ''))) return 'Selected Month';
-  const [year, month] = String(value).split('-').map(Number);
-  const date = new Date(year, (month || 1) - 1, 1);
-  return date.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+const getEmployeeName = (employee = {}) => [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee';
+
+const buildMapUrl = (lat, lng) => {
+  if (lat === null || lat === undefined || lng === null || lng === undefined || lat === '' || lng === '') return '';
+  return `https://www.google.com/maps?q=${lat},${lng}`;
 };
 
-const isSundayDate = (value) => {
-  const parsed = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return false;
-  return parsed.getDay() === 0;
+const liveStatusOf = (row = {}, selectedDate = todayDate()) => {
+  const status = String(row.status || '').trim().toLowerCase();
+  if (status === 'leave') return 'Leave';
+  if (status === 'weekly-off') return 'Weekly Off';
+  if (status === 'absent') return 'Absent';
+  if (status === 'half-day') return 'Half Day';
+  if (row.checkOutTime || row.checkOut) return 'Punched Out';
+  if (row.checkInTime || row.checkIn) return 'Punched In';
+  if (status === 'present') return 'Present';
+  return selectedDate === todayDate() ? 'Not Punched' : (isSundayDate(selectedDate) ? 'Weekly Off' : 'Absent');
+};
+
+const statusStyles = {
+  Present: { background: 'rgba(22,163,74,0.12)', color: '#166534', border: '1px solid rgba(22,163,74,0.28)' },
+  'Punched In': { background: 'rgba(37,99,235,0.12)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.24)' },
+  'Punched Out': { background: 'rgba(14,116,144,0.12)', color: '#0f766e', border: '1px solid rgba(14,116,144,0.24)' },
+  'Not Punched': { background: 'rgba(148,163,184,0.14)', color: '#475569', border: '1px solid rgba(148,163,184,0.24)' },
+  Absent: { background: 'rgba(220,38,38,0.1)', color: '#991b1b', border: '1px solid rgba(220,38,38,0.24)' },
+  Leave: { background: 'rgba(217,119,6,0.12)', color: '#92400e', border: '1px solid rgba(217,119,6,0.24)' },
+  'Weekly Off': { background: 'rgba(100,116,139,0.14)', color: '#334155', border: '1px solid rgba(100,116,139,0.24)' },
+  'Half Day': { background: 'rgba(217,119,6,0.12)', color: '#92400e', border: '1px solid rgba(217,119,6,0.24)' }
+};
+
+const shell = {
+  page: { display: 'grid', gap: '16px' },
+  hero: {
+    display: 'grid',
+    gap: '12px',
+    padding: '20px',
+    borderRadius: '20px',
+    border: '1px solid rgba(159, 23, 77, 0.16)',
+    background: 'rgba(255,255,255,0.9)',
+    boxShadow: 'var(--shadow-soft)'
+  },
+  title: { margin: 0, fontSize: '30px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.03em' },
+  subtitle: { margin: 0, fontSize: '13px', color: '#475569', fontWeight: 600 },
+  filterPanel: {
+    display: 'grid',
+    gap: '12px',
+    padding: '18px',
+    borderRadius: '18px',
+    border: '1px solid rgba(159, 23, 77, 0.16)',
+    background: 'rgba(255,255,255,0.92)',
+    boxShadow: 'var(--shadow-soft)'
+  },
+  panelHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
+  panelTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' },
+  actionRow: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
+  button: {
+    minHeight: '40px',
+    borderRadius: '10px',
+    border: '1px solid rgba(159, 23, 77, 0.24)',
+    background: '#fff',
+    color: '#0f172a',
+    padding: '0 14px',
+    fontSize: '12px',
+    fontWeight: 800,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    cursor: 'pointer',
+    textDecoration: 'none'
+  },
+  primaryButton: {
+    minHeight: '40px',
+    borderRadius: '10px',
+    border: '1px solid rgba(159, 23, 77, 0.3)',
+    background: 'var(--color-primary)',
+    color: '#fff',
+    padding: '0 14px',
+    fontSize: '12px',
+    fontWeight: 800,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    cursor: 'pointer'
+  },
+  filterGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' },
+  field: { display: 'grid', gap: '6px' },
+  label: { margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  input: {
+    width: '100%',
+    minHeight: '40px',
+    borderRadius: '10px',
+    border: '1px solid #D1D5DB',
+    background: '#fff',
+    padding: '0 12px',
+    fontSize: '13px',
+    color: '#0f172a'
+  },
+  textarea: {
+    width: '100%',
+    minHeight: '96px',
+    borderRadius: '10px',
+    border: '1px solid #D1D5DB',
+    background: '#fff',
+    padding: '10px 12px',
+    fontSize: '13px',
+    color: '#0f172a',
+    resize: 'vertical'
+  },
+  summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' },
+  summaryCard: {
+    display: 'grid',
+    gap: '8px',
+    borderRadius: '16px',
+    border: '1px solid rgba(159, 23, 77, 0.14)',
+    background: '#fff',
+    padding: '14px',
+    boxShadow: 'var(--shadow-soft)'
+  },
+  summaryLabel: { margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  summaryValue: { margin: 0, fontSize: '26px', color: '#0f172a', fontWeight: 800, letterSpacing: '-0.04em' },
+  summarySub: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 600 },
+  tableCard: {
+    borderRadius: '20px',
+    border: '1px solid rgba(159, 23, 77, 0.16)',
+    background: 'rgba(255,255,255,0.92)',
+    boxShadow: 'var(--shadow-soft)',
+    overflow: 'hidden'
+  },
+  tableHeader: { padding: '18px 20px 12px', borderBottom: '1px solid var(--color-border)' },
+  tableTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' },
+  tableSub: { margin: '6px 0 0 0', fontSize: '13px', color: '#64748b', fontWeight: 600 },
+  tableWrap: { overflowX: 'auto' },
+  table: { width: '100%', minWidth: '1520px', borderCollapse: 'collapse' },
+  th: { padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#f8fafc', borderBottom: '1px solid var(--color-border)', whiteSpace: 'nowrap' },
+  td: { padding: '14px', fontSize: '13px', color: '#0f172a', borderBottom: '1px solid #eef2f7', verticalAlign: 'top' },
+  badge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', padding: '0 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 800, whiteSpace: 'nowrap' },
+  noteText: { margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.5 },
+  smallMeta: { margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 700 },
+  rowActionGroup: { display: 'flex', flexWrap: 'wrap', gap: '6px' },
+  rowActionButton: {
+    minHeight: '30px',
+    borderRadius: '8px',
+    border: '1px solid #D1D5DB',
+    background: '#fff',
+    color: '#0f172a',
+    padding: '0 10px',
+    fontSize: '11px',
+    fontWeight: 800,
+    cursor: 'pointer'
+  },
+  mapButton: {
+    minHeight: '28px',
+    borderRadius: '8px',
+    border: '1px solid rgba(37,99,235,0.18)',
+    background: 'rgba(37,99,235,0.08)',
+    color: '#1d4ed8',
+    padding: '0 10px',
+    fontSize: '11px',
+    fontWeight: 800,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    cursor: 'pointer'
+  },
+  emptyState: { padding: '28px', textAlign: 'center', color: '#64748b', fontSize: '13px', fontWeight: 600 },
+  footerNote: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 600 },
+  modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: '16px', zIndex: 90 },
+  modal: { width: 'min(760px, 100%)', maxHeight: '88vh', overflowY: 'auto', display: 'grid', gap: '12px', padding: '18px', background: '#fff', borderRadius: '18px', border: '1px solid rgba(159, 23, 77, 0.18)', boxShadow: 'var(--shadow-soft)' },
+  modalGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }
+};
+
+const defaultEditorState = {
+  _id: '',
+  employeeId: '',
+  employeeName: '',
+  date: '',
+  status: 'present',
+  checkInTime: '',
+  checkOutTime: '',
+  leaveType: '',
+  notes: '',
+  manualLocationAddress: '',
+  editReason: ''
 };
 
 export default function Attendance() {
   const [date, setDate] = useState(() => todayDate());
   const [month, setMonth] = useState(() => monthFromDate(todayDate()));
   const [employees, setEmployees] = useState([]);
-  const [records, setRecords] = useState({});
-  const [monthRecords, setMonthRecords] = useState([]);
+  const [attendanceRows, setAttendanceRows] = useState([]);
+  const [filters, setFilters] = useState({ department: '', status: '', search: '' });
+  const [busy, setBusy] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+  const [editModal, setEditModal] = useState({ open: false, saving: false, draft: defaultEditorState });
+  const [auditModal, setAuditModal] = useState({ open: false, loading: false, employeeName: '', entries: [] });
 
-  const loadData = async (attendanceDate) => {
-    const sunday = isSundayDate(attendanceDate);
-    const employeesRes = await axios.get(`${API_BASE}/api/employees`);
-    const employeeList = Array.isArray(employeesRes.data) ? employeesRes.data : [];
-
-    let attendanceRows = [];
+  const loadAttendancePage = async ({ nextDate = date, nextMonth = month } = {}) => {
     try {
-      const attendanceRes = await axios.get(`${API_BASE}/api/attendance`, { params: { date: attendanceDate } });
-      attendanceRows = Array.isArray(attendanceRes.data) ? attendanceRes.data : [];
+      setBusy(true);
+      setStatusMessage('');
+      const [employeesRes, attendanceRes] = await Promise.all([
+        axios.get(`${API_BASE}/api/employees`),
+        axios.get(`${API_BASE}/api/attendance`, { params: { date: nextDate } })
+      ]);
+      setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
+      setAttendanceRows(Array.isArray(attendanceRes.data) ? attendanceRes.data : []);
+      setMonth(nextMonth || monthFromDate(nextDate));
     } catch (error) {
-      console.error('Attendance endpoint failed, showing employee list only', error);
-      setStatusMessage('Attendance history is unavailable right now. You can still mark employee attendance.');
-    }
-
-    const recordMap = {};
-    attendanceRows.forEach((entry) => {
-      const key = String(entry.employeeId || '').trim();
-      if (!key) return;
-      const normalizedStatus = entry.status === 'half-day' ? 'leave' : (entry.status || 'absent');
-      const normalizedCheckIn = normalizedStatus === 'present' ? (entry.checkIn || '09:00') : '';
-      const normalizedCheckOut = normalizedStatus === 'present' ? (entry.checkOut || '17:00') : '';
-      recordMap[key] = {
-        _id: entry._id,
-        employeeId: key,
-        date: attendanceDate,
-        status: normalizedStatus,
-        checkIn: normalizedCheckIn,
-        checkOut: normalizedCheckOut,
-        leaveType: entry.leaveType || '',
-        leaveReason: entry.leaveReason || '',
-        notes: entry.notes || ''
-      };
-    });
-
-    employeeList.forEach((entry) => {
-      const key = String(entry._id || '').trim();
-      if (!key || recordMap[key]) return;
-      recordMap[key] = {
-        employeeId: key,
-        date: attendanceDate,
-        status: sunday ? 'weekly-off' : 'absent',
-        checkIn: '',
-        checkOut: '',
-        leaveType: '',
-        leaveReason: '',
-        notes: ''
-      };
-    });
-
-    setEmployees(employeeList);
-    setRecords(recordMap);
-  };
-
-  const loadMonthData = async (attendanceMonth) => {
-    if (!attendanceMonth) return;
-    try {
-      const attendanceRes = await axios.get(`${API_BASE}/api/attendance`);
-      const rows = Array.isArray(attendanceRes.data) ? attendanceRes.data : [];
-      const prefix = `${attendanceMonth}-`;
-      setMonthRecords(rows.filter((entry) => String(entry.date || '').startsWith(prefix)));
-    } catch (error) {
-      console.error('Failed to load monthly attendance data', error);
-      setMonthRecords([]);
-      setStatusMessage('Month-wise summary is temporarily unavailable.');
+      console.error('Failed to load attendance page', error);
+      setStatusMessage(error?.response?.data?.error || 'Unable to load attendance right now.');
+      setEmployees([]);
+      setAttendanceRows([]);
+    } finally {
+      setBusy(false);
     }
   };
 
   useEffect(() => {
-    loadData(date).catch((error) => {
-      console.error('Failed to load attendance', error);
-      setStatusMessage('Failed to load attendance data.');
-    });
+    loadAttendancePage({ nextDate: date, nextMonth: monthFromDate(date) });
   }, [date]);
 
-  useEffect(() => {
-    loadMonthData(month);
-  }, [month]);
-
-  const employeeRows = useMemo(
-    () => employees.map((employee) => {
-      const employeeId = String(employee._id || '').trim();
-      const record = records[employeeId] || {
-        employeeId,
-        date,
-        status: 'absent',
-        checkIn: '',
-        checkOut: '',
-        leaveType: '',
-        leaveReason: '',
-        notes: ''
-      };
-      const workingHours = computeHours(record.status, record.checkIn, record.checkOut);
-      return {
-        employee,
-        employeeId,
-        record,
-        workingHours
-      };
-    }),
-    [employees, records, date]
-  );
-
-  const monthSummary = useMemo(() => {
-    const deduped = new Map();
-    monthRecords.forEach((row) => {
-      const employeeId = String(row.employeeId || '').trim();
-      const recordDate = String(row.date || '').trim();
-      if (!employeeId || !recordDate) return;
-      const key = `${employeeId}__${recordDate}`;
-      const current = deduped.get(key);
-      if (!current) {
-        deduped.set(key, row);
-        return;
-      }
-      const currentTime = new Date(current.updatedAt || current.date || 0).getTime();
-      const nextTime = new Date(row.updatedAt || row.date || 0).getTime();
-      if (nextTime >= currentTime) deduped.set(key, row);
+  const rowLookup = useMemo(() => {
+    const map = new Map();
+    attendanceRows.forEach((row) => {
+      map.set(String(row.employeeId || ''), row);
     });
+    return map;
+  }, [attendanceRows]);
 
-    const dedupedRows = Array.from(deduped.values());
-
-    const byDate = new Map();
-    dedupedRows.forEach((row) => {
-      const key = String(row.date || '').trim();
-      if (!key) return;
-      if (!byDate.has(key)) byDate.set(key, []);
-      byDate.get(key).push(row);
-    });
-
-    const daySummary = {
-      presentDays: 0,
-      absentDays: 0,
-      weeklyOffDays: 0,
-      leaveDays: 0
+  const mergedRows = useMemo(() => employees.map((employee) => {
+    const employeeId = String(employee._id || '').trim();
+    const record = rowLookup.get(employeeId) || {
+      employeeId,
+      employeeCode: employee.empCode || '',
+      employeeName: getEmployeeName(employee),
+      employeeRole: employee.role || employee.roleName || '',
+      date,
+      status: '',
+      checkIn: '',
+      checkOut: '',
+      checkInTime: '',
+      checkOutTime: '',
+      workingHours: 0,
+      leaveType: '',
+      notes: '',
+      source: '',
+      punchInMapUrl: '',
+      punchOutMapUrl: '',
+      punchInLatitude: null,
+      punchInLongitude: null,
+      punchOutLatitude: null,
+      punchOutLongitude: null
     };
-
-    byDate.forEach((rows) => {
-      const statuses = rows.map((row) => String(row.status || '').trim().toLowerCase());
-      const hasPresent = statuses.includes('present');
-      const hasLeave = statuses.includes('leave') || statuses.includes('half-day');
-      const hasAbsent = statuses.includes('absent');
-      const hasWeeklyOff = statuses.includes('weekly-off');
-
-      if (hasPresent) {
-        daySummary.presentDays += 1;
-        return;
-      }
-      if (hasLeave) {
-        daySummary.leaveDays += 1;
-        return;
-      }
-      if (hasAbsent) {
-        daySummary.absentDays += 1;
-        return;
-      }
-      if (hasWeeklyOff) {
-        daySummary.weeklyOffDays += 1;
-      }
-    });
-
-    const totals = dedupedRows.reduce((acc, row) => {
-      const status = String(row.status || '').trim().toLowerCase();
-      const hours = Number(row.workingHours);
-      const computedHours = Number.isFinite(hours) ? hours : computeHours(status, row.checkIn, row.checkOut);
-      acc.totalHours += computedHours;
-      if (status === 'present' && computedHours > 0) {
-        acc.workedDays += 1;
-      }
-      if (row.employeeId) acc.uniqueEmployees.add(String(row.employeeId));
-      return acc;
-    }, {
-      totalHours: 0,
-      workedDays: 0,
-      uniqueEmployees: new Set()
-    });
-
+    const liveStatus = liveStatusOf(record, date);
     return {
-      ...daySummary,
-      ...totals
+      ...record,
+      employeeName: record.employeeName || getEmployeeName(employee),
+      employeeCode: record.employeeCode || employee.empCode || '',
+      employeeRole: record.employeeRole || employee.role || employee.roleName || '',
+      liveStatus,
+      inMapUrl: record.punchInMapUrl || buildMapUrl(record.punchInLatitude, record.punchInLongitude),
+      outMapUrl: record.punchOutMapUrl || buildMapUrl(record.punchOutLatitude, record.punchOutLongitude)
     };
-  }, [monthRecords]);
+  }), [employees, rowLookup, date]);
 
-  const updateRecordField = (employeeId, key, value) => {
-    setRecords((prev) => ({
-      ...prev,
-      [employeeId]: {
-        ...(prev[employeeId] || { employeeId, date, status: 'absent', checkIn: '', checkOut: '', leaveType: '', leaveReason: '', notes: '' }),
-        [key]: value
+  const filteredRows = useMemo(() => mergedRows.filter((row) => {
+    const roleText = String(row.employeeRole || '').trim().toLowerCase();
+    const searchText = `${row.employeeName || ''} ${row.employeeCode || ''}`.toLowerCase();
+    if (filters.department && roleText !== filters.department.toLowerCase()) return false;
+    if (filters.status && row.liveStatus !== filters.status) return false;
+    if (filters.search && !searchText.includes(filters.search.toLowerCase())) return false;
+    return true;
+  }), [mergedRows, filters]);
+
+  const departments = useMemo(() => Array.from(new Set(
+    employees.map((entry) => String(entry.role || entry.roleName || '').trim()).filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b)), [employees]);
+
+  const summary = useMemo(() => filteredRows.reduce((acc, row) => {
+    acc.totalEmployees += 1;
+    acc.totalHours += Number(row.workingHours || 0);
+    if (row.liveStatus === 'Present' || row.liveStatus === 'Punched Out') acc.present += 1;
+    if (row.liveStatus === 'Punched In') acc.punchedIn += 1;
+    if (row.liveStatus === 'Not Punched') acc.notPunched += 1;
+    if (row.liveStatus === 'Absent') acc.absent += 1;
+    if (row.liveStatus === 'Leave') acc.leave += 1;
+    if (row.liveStatus === 'Weekly Off') acc.weeklyOff += 1;
+    return acc;
+  }, {
+    totalEmployees: 0,
+    present: 0,
+    punchedIn: 0,
+    notPunched: 0,
+    absent: 0,
+    leave: 0,
+    weeklyOff: 0,
+    totalHours: 0
+  }), [filteredRows]);
+
+  const averageHours = summary.totalEmployees ? Number((summary.totalHours / summary.totalEmployees).toFixed(2)) : 0;
+
+  const openEditor = (row) => {
+    setEditModal({
+      open: true,
+      saving: false,
+      draft: {
+        _id: row._id || '',
+        employeeId: row.employeeId,
+        employeeName: row.employeeName,
+        date: row.date || date,
+        status: String(row.status || '').trim().toLowerCase() || 'present',
+        checkInTime: formatDateTimeInput(row.checkInTime || (row.checkIn ? `${row.date || date}T${row.checkIn}` : '')),
+        checkOutTime: formatDateTimeInput(row.checkOutTime || (row.checkOut ? `${row.date || date}T${row.checkOut}` : '')),
+        leaveType: row.leaveType || '',
+        notes: row.notes || '',
+        manualLocationAddress: row.manualLocationAddress || '',
+        editReason: ''
       }
-    }));
+    });
   };
 
-  const setStatus = (employeeId, status) => {
-    const current = records[employeeId] || { employeeId, date, status: 'absent', checkIn: '', checkOut: '', leaveType: '', leaveReason: '', notes: '' };
-    const nextCheckIn = status === 'present'
-      ? (current.checkIn || '09:00')
-      : '';
-    const nextCheckOut = status === 'present'
-      ? (current.checkOut || '17:00')
-      : '';
-    const next = {
-      ...current,
-      status,
-      leaveType: status === 'leave' ? current.leaveType : '',
-      leaveReason: status === 'leave' ? current.leaveReason : '',
-      checkIn: nextCheckIn,
-      checkOut: nextCheckOut
-    };
-    setRecords((prev) => ({ ...prev, [employeeId]: next }));
-    saveRecord(employeeId, next);
+  const saveManualAttendance = async (payload) => {
+    const endpoint = payload._id ? `${API_BASE}/api/attendance/${payload._id}` : `${API_BASE}/api/attendance/manual-upsert`;
+    const method = payload._id ? axios.put : axios.post;
+    await method(endpoint, payload, {
+      headers: {
+        'x-user-name': localStorage.getItem('portal_user_name') || 'Admin',
+        'x-user-role': localStorage.getItem('portal_user_role') || 'Admin'
+      }
+    });
   };
 
-  const saveRecord = async (employeeId, payload) => {
-    const row = payload || records[employeeId];
-    if (!row) return;
-
-    setStatusMessage('');
+  const handleQuickStatus = async (row, status) => {
     try {
-      const res = await axios.post(`${API_BASE}/api/attendance`, {
-        _id: row._id,
-        employeeId,
-        date,
-        status: row.status,
-        checkIn: row.checkIn,
-        checkOut: row.checkOut,
-        leaveType: row.leaveType,
-        leaveReason: row.leaveReason,
-        notes: row.notes
-      });
-      const saved = res.data || {};
-      setRecords((prev) => ({
-        ...prev,
-        [employeeId]: {
-          ...(prev[employeeId] || {}),
-          _id: saved._id || row._id,
-          employeeId,
-          date,
-          status: saved.status || row.status,
-          checkIn: saved.checkIn || '',
-          checkOut: saved.checkOut || '',
-          leaveType: saved.leaveType || '',
-          leaveReason: saved.leaveReason || '',
-          notes: saved.notes || ''
-        }
-      }));
-      if (monthFromDate(date) === month) {
-        loadMonthData(month);
-      }
+      setStatusMessage('');
+      const nextPayload = {
+        _id: row._id || '',
+        employeeId: row.employeeId,
+        date: row.date || date,
+        status,
+        checkIn: status === 'present' ? (row.checkIn || '09:00') : '',
+        checkOut: status === 'present' ? (row.checkOut || '18:00') : '',
+        checkInTime: status === 'present' && !row.checkInTime ? `${row.date || date}T09:00` : (row.checkInTime || ''),
+        checkOutTime: status === 'present' && !row.checkOutTime ? `${row.date || date}T18:00` : (row.checkOutTime || ''),
+        leaveType: status === 'leave' ? (row.leaveType || 'Casual Leave') : '',
+        notes: row.notes || '',
+        manualLocationAddress: row.manualLocationAddress || '',
+        editReason: `Quick status update to ${status}`
+      };
+      await saveManualAttendance(nextPayload);
+      await loadAttendancePage({ nextDate: date, nextMonth: month });
+      setStatusMessage('Attendance updated.');
     } catch (error) {
-      console.error('Failed to save attendance', error);
-      const apiMessage = String(error?.response?.data?.error || '').trim();
-      setStatusMessage(apiMessage || 'Some attendance updates could not be saved.');
+      console.error('Quick status update failed', error);
+      setStatusMessage(error?.response?.data?.error || 'Unable to update attendance.');
     }
   };
 
-  const handleDateChange = (nextDate) => {
-    setDate(nextDate);
-    const nextMonth = monthFromDate(nextDate);
-    if (nextMonth && nextMonth !== month) {
-      setMonth(nextMonth);
+  const submitEditor = async () => {
+    try {
+      setEditModal((prev) => ({ ...prev, saving: true }));
+      const draft = editModal.draft;
+      await saveManualAttendance({
+        _id: draft._id || '',
+        employeeId: draft.employeeId,
+        date: draft.date,
+        status: draft.status,
+        checkInTime: draft.checkInTime ? `${draft.checkInTime}:00` : '',
+        checkOutTime: draft.checkOutTime ? `${draft.checkOutTime}:00` : '',
+        checkIn: timeFromDateTime(draft.checkInTime),
+        checkOut: timeFromDateTime(draft.checkOutTime),
+        leaveType: draft.leaveType,
+        notes: draft.notes,
+        manualLocationAddress: draft.manualLocationAddress,
+        editReason: draft.editReason
+      });
+      setEditModal({ open: false, saving: false, draft: defaultEditorState });
+      await loadAttendancePage({ nextDate: date, nextMonth: month });
+      setStatusMessage('Attendance saved successfully.');
+    } catch (error) {
+      console.error('Attendance editor save failed', error);
+      setStatusMessage(error?.response?.data?.error || 'Unable to save manual attendance update.');
+      setEditModal((prev) => ({ ...prev, saving: false }));
     }
   };
 
-  const handleMonthChange = (nextMonth) => {
-    setMonth(nextMonth);
-    if (nextMonth && !String(date).startsWith(nextMonth)) {
-      setDate(`${nextMonth}-01`);
+  const openAudit = async (row) => {
+    if (!row._id) {
+      setStatusMessage('No audit log yet for this employee on the selected date.');
+      return;
     }
+    try {
+      setAuditModal({ open: true, loading: true, employeeName: row.employeeName, entries: [] });
+      const res = await axios.get(`${API_BASE}/api/attendance/${row._id}/audit`);
+      setAuditModal({ open: true, loading: false, employeeName: row.employeeName, entries: Array.isArray(res.data) ? res.data : [] });
+    } catch (error) {
+      console.error('Attendance audit load failed', error);
+      setAuditModal({ open: true, loading: false, employeeName: row.employeeName, entries: [] });
+      setStatusMessage(error?.response?.data?.error || 'Unable to load attendance audit.');
+    }
+  };
+
+  const exportCsv = () => {
+    const headers = ['Employee', 'Role', 'Status', 'Punch In', 'Punch Out', 'Working Hours', 'Location', 'Source', 'Leave Type', 'Notes'];
+    const lines = filteredRows.map((row) => [
+      row.employeeName,
+      row.employeeRole,
+      row.liveStatus,
+      row.checkIn || '',
+      row.checkOut || '',
+      Number(row.workingHours || 0).toFixed(2),
+      [row.inMapUrl ? 'Punch In Map' : '', row.outMapUrl ? 'Punch Out Map' : '', row.manualLocationAddress || ''].filter(Boolean).join(' | '),
+      row.source || '-',
+      row.leaveType || '-',
+      row.notes || '-'
+    ]);
+    const csv = [headers, ...lines]
+      .map((line) => line.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `attendance-${date}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div style={shell.page}>
-      <div style={shell.topbar}>
-        <div style={shell.titleWrap}>
-          <h2 style={shell.title}>Attendance</h2>
-          <p style={shell.subtitle}>Maintain daily attendance, leave records, and working hours in one clean view.</p>
+    <section style={shell.page}>
+      <div style={shell.hero}>
+        <h2 style={shell.title}>Attendance</h2>
+        <p style={shell.subtitle}>Daily attendance, app punch-in/out, live location, and payroll-ready working hours.</p>
+      </div>
+
+      <div style={shell.filterPanel}>
+        <div style={shell.panelHeader}>
+          <h3 style={shell.panelTitle}>Daily Controls</h3>
+          <div style={shell.actionRow}>
+            <Link to="/employees" style={shell.button}><Users size={14} /> Employee Master</Link>
+            <button type="button" style={shell.button} onClick={exportCsv}><Download size={14} /> Export</button>
+            <button type="button" style={shell.primaryButton} onClick={() => loadAttendancePage({ nextDate: date, nextMonth: month })} disabled={busy}>
+              <RefreshCcw size={14} /> {busy ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
         </div>
-        <div style={shell.topbarActions}>
-          <Link to="/employees" style={shell.employeeLink}>Employee Master</Link>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
-            <CalendarDays size={16} />
+
+        <div style={shell.filterGrid}>
+          <div style={shell.field}>
+            <p style={shell.label}>Month</p>
             <input
               type="month"
               value={month}
-              onChange={(event) => handleMonthChange(event.target.value)}
-              style={shell.dateInput}
+              onChange={(event) => {
+                const nextMonth = event.target.value;
+                setMonth(nextMonth);
+                if (nextMonth && !String(date).startsWith(nextMonth)) setDate(`${nextMonth}-01`);
+              }}
+              style={shell.input}
             />
-          </label>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
-            <CalendarDays size={16} />
-            <input
-              type="date"
-              value={date}
-              onChange={(event) => handleDateChange(event.target.value)}
-              style={shell.dateInput}
-            />
-          </label>
+          </div>
+          <div style={shell.field}>
+            <p style={shell.label}>Date</p>
+            <input type="date" value={date} onChange={(event) => setDate(event.target.value)} style={shell.input} />
+          </div>
+          <div style={shell.field}>
+            <p style={shell.label}>Department / Role</p>
+            <select style={shell.input} value={filters.department} onChange={(event) => setFilters((prev) => ({ ...prev, department: event.target.value }))}>
+              <option value="">All</option>
+              {departments.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
+            </select>
+          </div>
+          <div style={shell.field}>
+            <p style={shell.label}>Status</p>
+            <select style={shell.input} value={filters.status} onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}>
+              <option value="">All</option>
+              {Object.keys(statusStyles).map((entry) => <option key={entry} value={entry}>{entry}</option>)}
+            </select>
+          </div>
+          <div style={shell.field}>
+            <p style={shell.label}>Employee Search</p>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', left: '10px', top: '13px', color: '#64748b' }} />
+              <input
+                style={{ ...shell.input, paddingLeft: '32px' }}
+                value={filters.search}
+                onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
+                placeholder="Search employee"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
-      <h3 style={shell.sectionTitle}>Month Wise Summary ({monthHeading(month)})</h3>
       <div style={shell.summaryGrid}>
-        <div style={shell.summaryCard}>
-          <span style={shell.summaryLabel}><Users size={13} style={{ verticalAlign: 'middle', marginRight: '5px' }} />Employees Marked</span>
-          <span style={shell.summaryValue}>{monthSummary.uniqueEmployees.size}</span>
-        </div>
-        <div style={shell.summaryCard}>
-          <span style={shell.summaryLabel}>Present Days</span>
-          <span style={shell.summaryValue}>{monthSummary.presentDays}</span>
-        </div>
-        <div style={shell.summaryCard}>
-          <span style={shell.summaryLabel}>Absent Days</span>
-          <span style={shell.summaryValue}>{monthSummary.absentDays}</span>
-        </div>
-        <div style={shell.summaryCard}>
-          <span style={shell.summaryLabel}>Weekly Off</span>
-          <span style={shell.summaryValue}>{monthSummary.weeklyOffDays}</span>
-        </div>
-        <div style={shell.summaryCard}>
-          <span style={shell.summaryLabel}>Leave Days</span>
-          <span style={shell.summaryValue}>{monthSummary.leaveDays}</span>
-        </div>
-        <div style={shell.summaryCard}>
-          <span style={shell.summaryLabel}><Clock3 size={13} style={{ verticalAlign: 'middle', marginRight: '5px' }} />Average Hours</span>
-          <span style={shell.summaryValue}>{(monthSummary.workedDays ? (monthSummary.totalHours / monthSummary.workedDays) : 0).toFixed(2)}</span>
-        </div>
+        <div style={shell.summaryCard}><p style={shell.summaryLabel}>Total Employees</p><p style={shell.summaryValue}>{summary.totalEmployees}</p><p style={shell.summarySub}>Visible for selected filters</p></div>
+        <div style={shell.summaryCard}><p style={shell.summaryLabel}>Present</p><p style={shell.summaryValue}>{summary.present}</p><p style={shell.summarySub}>Completed attendance day</p></div>
+        <div style={shell.summaryCard}><p style={shell.summaryLabel}>Punched In</p><p style={shell.summaryValue}>{summary.punchedIn}</p><p style={shell.summarySub}>Still on field work</p></div>
+        <div style={shell.summaryCard}><p style={shell.summaryLabel}>Not Punched</p><p style={shell.summaryValue}>{summary.notPunched}</p><p style={shell.summarySub}>No app/manual entry yet</p></div>
+        <div style={shell.summaryCard}><p style={shell.summaryLabel}>Absent</p><p style={shell.summaryValue}>{summary.absent}</p><p style={shell.summarySub}>Marked absent</p></div>
+        <div style={shell.summaryCard}><p style={shell.summaryLabel}>Leave</p><p style={shell.summaryValue}>{summary.leave}</p><p style={shell.summarySub}>Paid or unpaid leave</p></div>
+        <div style={shell.summaryCard}><p style={shell.summaryLabel}>Weekly Off</p><p style={shell.summaryValue}>{summary.weeklyOff}</p><p style={shell.summarySub}>Configured rest day</p></div>
+        <div style={shell.summaryCard}><p style={shell.summaryLabel}>Average Hours</p><p style={shell.summaryValue}>{averageHours}</p><p style={shell.summarySub}>Per visible employee</p></div>
       </div>
 
-      <div style={shell.tableWrap}>
-        <table style={shell.table}>
-          <colgroup>
-            <col style={{ width: '17%' }} />
-            <col style={{ width: '20%' }} />
-            <col style={{ width: '16%' }} />
-            <col style={{ width: '16%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '19%' }} />
-          </colgroup>
-          <thead>
-            <tr>
-              <th style={shell.th}>Employee</th>
-              <th style={shell.th}>Status</th>
-              <th style={shell.th}>Check In</th>
-              <th style={shell.th}>Check Out</th>
-              <th style={shell.th}>Working Hours</th>
-              <th style={shell.th}>Leave Type</th>
-            </tr>
-          </thead>
-          <tbody>
-            {employeeRows.map(({ employee, employeeId, record, workingHours }) => {
-              const status = record.status || 'absent';
-              const leaveDisabled = status !== 'leave';
-              const timeDisabled = status !== 'present';
-              return (
-                <tr key={employeeId}>
+      <div style={shell.tableCard}>
+        <div style={shell.tableHeader}>
+          <h3 style={shell.tableTitle}>Attendance Register</h3>
+          <p style={shell.tableSub}>Technician punches, manual corrections, location links, and payroll-ready hours stay together in one operational view.</p>
+        </div>
+        <div style={shell.tableWrap}>
+          <table style={shell.table}>
+            <thead>
+              <tr>
+                <th style={shell.th}>Employee</th>
+                <th style={shell.th}>Role</th>
+                <th style={shell.th}>Status</th>
+                <th style={shell.th}>Punch In</th>
+                <th style={shell.th}>Punch Out</th>
+                <th style={shell.th}>Working Hours</th>
+                <th style={shell.th}>Location</th>
+                <th style={shell.th}>Source</th>
+                <th style={shell.th}>Leave Type</th>
+                <th style={shell.th}>Notes</th>
+                <th style={shell.th}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((row) => (
+                <tr key={`${row.employeeId}-${row.date}`}>
                   <td style={shell.td}>
-                    <div style={shell.nameCell}>
-                      <span style={shell.empName}>{getEmployeeName(employee)}</span>
-                      <span style={shell.empCode}>{employee.empCode || 'No Code'} • {employee.role || 'Employee'}</span>
+                    <p style={{ margin: 0, fontWeight: 800 }}>{row.employeeName}</p>
+                    <p style={shell.smallMeta}>{row.employeeCode || 'No Code'}</p>
+                  </td>
+                  <td style={shell.td}>{row.employeeRole || '-'}</td>
+                  <td style={shell.td}>
+                    <span style={{ ...shell.badge, ...(statusStyles[row.liveStatus] || statusStyles.Absent) }}>{row.liveStatus}</span>
+                  </td>
+                  <td style={shell.td}>
+                    <p style={{ margin: 0, fontWeight: 700 }}>{row.checkIn || '--:--'}</p>
+                    <p style={shell.smallMeta}>{row.checkInTime ? row.checkInTime.replace('T', ' ').slice(0, 16) : '-'}</p>
+                  </td>
+                  <td style={shell.td}>
+                    <p style={{ margin: 0, fontWeight: 700 }}>{row.checkOut || '--:--'}</p>
+                    <p style={shell.smallMeta}>{row.checkOutTime ? row.checkOutTime.replace('T', ' ').slice(0, 16) : '-'}</p>
+                  </td>
+                  <td style={shell.td}>{formatHours(row.workingHours)}</td>
+                  <td style={shell.td}>
+                    <div style={shell.rowActionGroup}>
+                      {row.inMapUrl ? <button type="button" style={shell.mapButton} onClick={() => window.open(row.inMapUrl, '_blank', 'noopener,noreferrer')}><MapPinned size={13} /> In Map</button> : null}
+                      {row.outMapUrl ? <button type="button" style={shell.mapButton} onClick={() => window.open(row.outMapUrl, '_blank', 'noopener,noreferrer')}><MapPinned size={13} /> Out Map</button> : null}
                     </div>
+                    {row.manualLocationAddress ? <p style={{ ...shell.smallMeta, marginTop: '6px' }}>{row.manualLocationAddress}</p> : null}
                   </td>
+                  <td style={shell.td}>{row.source || '-'}</td>
+                  <td style={shell.td}>{row.leaveType || '-'}</td>
+                  <td style={shell.td}><p style={shell.noteText}>{row.notes || '-'}</p></td>
                   <td style={shell.td}>
-                    <div style={shell.statusBtns}>
-                      <button
-                        type="button"
-                        style={{ ...shell.statusBtn, ...(status === 'present' ? statusTheme.present : {}) }}
-                        onClick={() => setStatus(employeeId, 'present')}
-                      >
-                        P
-                      </button>
-                      <button
-                        type="button"
-                        style={{ ...shell.statusBtn, ...(status === 'absent' ? statusTheme.absent : {}) }}
-                        onClick={() => setStatus(employeeId, 'absent')}
-                      >
-                        A
-                      </button>
-                      <button
-                        type="button"
-                        style={{ ...shell.statusBtn, ...(status === 'leave' || status === 'half-day' ? statusTheme.leave : {}) }}
-                        onClick={() => setStatus(employeeId, 'leave')}
-                      >
-                        L
-                      </button>
-                      <button
-                        type="button"
-                        style={{ ...shell.statusBtn, ...(status === 'weekly-off' ? statusTheme['weekly-off'] : {}) }}
-                        onClick={() => setStatus(employeeId, 'weekly-off')}
-                      >
-                        WO
-                      </button>
+                    <div style={shell.rowActionGroup}>
+                      <button type="button" style={shell.rowActionButton} onClick={() => openEditor(row)}>Edit Time</button>
+                      <button type="button" style={shell.rowActionButton} onClick={() => handleQuickStatus(row, 'present')}>Mark Present</button>
+                      <button type="button" style={shell.rowActionButton} onClick={() => handleQuickStatus(row, 'absent')}>Mark Absent</button>
+                      <button type="button" style={shell.rowActionButton} onClick={() => handleQuickStatus(row, 'leave')}>Mark Leave</button>
+                      <button type="button" style={shell.rowActionButton} onClick={() => openAudit(row)}>View Audit</button>
                     </div>
-                  </td>
-                  <td style={shell.td}>
-                    <input
-                      type="time"
-                      value={record.checkIn || ''}
-                      disabled={timeDisabled}
-                      style={shell.input}
-                      onChange={(event) => updateRecordField(employeeId, 'checkIn', event.target.value)}
-                      onBlur={() => saveRecord(employeeId)}
-                    />
-                  </td>
-                  <td style={shell.td}>
-                    <input
-                      type="time"
-                      value={record.checkOut || ''}
-                      disabled={timeDisabled}
-                      style={shell.input}
-                      onChange={(event) => updateRecordField(employeeId, 'checkOut', event.target.value)}
-                      onBlur={() => saveRecord(employeeId)}
-                    />
-                  </td>
-                  <td style={shell.td}>
-                    <span style={shell.hoursBadge}>{workingHours.toFixed(2)} hrs</span>
-                  </td>
-                  <td style={shell.td}>
-                    <select
-                      value={record.leaveType || ''}
-                      disabled={leaveDisabled}
-                      style={shell.input}
-                      onChange={(event) => {
-                        updateRecordField(employeeId, 'leaveType', event.target.value);
-                        saveRecord(employeeId, { ...record, leaveType: event.target.value });
-                      }}
-                    >
-                      {leaveTypes.map((entry) => (
-                        <option key={entry || 'none'} value={entry}>{entry || 'None'}</option>
-                      ))}
-                    </select>
                   </td>
                 </tr>
-              );
-            })}
-            {employeeRows.length === 0 ? (
-              <tr>
-                <td style={shell.td} colSpan={6}>No employees found. Add employees in Employee Master to begin attendance.</td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+              ))}
+              {filteredRows.length === 0 ? (
+                <tr><td style={shell.emptyState} colSpan={11}>No employees or attendance rows match the current filter.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <p style={shell.footerNote}>{statusMessage || 'Tip: Attendance auto-saves when you change status, leave, or move out of time fields.'}</p>
-    </div>
+
+      <p style={shell.footerNote}>{statusMessage || 'Punch records from the technician app appear here automatically, and admin edits are tracked in audit history.'}</p>
+
+      {editModal.open ? (
+        <div style={shell.modalBg}>
+          <div style={shell.modal}>
+            <div style={shell.panelHeader}>
+              <div>
+                <h3 style={shell.panelTitle}>Edit Attendance</h3>
+                <p style={shell.tableSub}>{editModal.draft.employeeName} • {editModal.draft.date}</p>
+              </div>
+              <button type="button" style={shell.button} onClick={() => setEditModal({ open: false, saving: false, draft: defaultEditorState })}>Close</button>
+            </div>
+            <div style={shell.modalGrid}>
+              <div style={shell.field}>
+                <p style={shell.label}>Status</p>
+                <select style={shell.input} value={editModal.draft.status} onChange={(event) => setEditModal((prev) => ({ ...prev, draft: { ...prev.draft, status: event.target.value } }))}>
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="leave">Leave</option>
+                  <option value="weekly-off">Weekly Off</option>
+                  <option value="half-day">Half Day</option>
+                </select>
+              </div>
+              <div style={shell.field}>
+                <p style={shell.label}>Check In Time</p>
+                <input type="datetime-local" style={shell.input} value={editModal.draft.checkInTime} onChange={(event) => setEditModal((prev) => ({ ...prev, draft: { ...prev.draft, checkInTime: event.target.value } }))} />
+              </div>
+              <div style={shell.field}>
+                <p style={shell.label}>Check Out Time</p>
+                <input type="datetime-local" style={shell.input} value={editModal.draft.checkOutTime} onChange={(event) => setEditModal((prev) => ({ ...prev, draft: { ...prev.draft, checkOutTime: event.target.value } }))} />
+              </div>
+              <div style={shell.field}>
+                <p style={shell.label}>Leave Type</p>
+                <select style={shell.input} value={editModal.draft.leaveType} onChange={(event) => setEditModal((prev) => ({ ...prev, draft: { ...prev.draft, leaveType: event.target.value } }))}>
+                  {leaveTypes.map((entry) => <option key={entry || 'none'} value={entry}>{entry || 'None'}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={shell.field}>
+              <p style={shell.label}>Manual Location / Address</p>
+              <input style={shell.input} value={editModal.draft.manualLocationAddress} onChange={(event) => setEditModal((prev) => ({ ...prev, draft: { ...prev.draft, manualLocationAddress: event.target.value } }))} placeholder="Optional manual location note" />
+            </div>
+            <div style={shell.field}>
+              <p style={shell.label}>Notes</p>
+              <textarea style={shell.textarea} value={editModal.draft.notes} onChange={(event) => setEditModal((prev) => ({ ...prev, draft: { ...prev.draft, notes: event.target.value } }))} />
+            </div>
+            <div style={shell.field}>
+              <p style={shell.label}>Edit Reason</p>
+              <textarea style={{ ...shell.textarea, minHeight: '72px' }} value={editModal.draft.editReason} onChange={(event) => setEditModal((prev) => ({ ...prev, draft: { ...prev.draft, editReason: event.target.value } }))} placeholder="Optional audit note for this admin change" />
+            </div>
+            <div style={shell.actionRow}>
+              <button type="button" style={shell.primaryButton} onClick={submitEditor} disabled={editModal.saving}>{editModal.saving ? 'Saving...' : 'Save Attendance'}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {auditModal.open ? (
+        <div style={shell.modalBg}>
+          <div style={shell.modal}>
+            <div style={shell.panelHeader}>
+              <div>
+                <h3 style={shell.panelTitle}>Attendance Audit</h3>
+                <p style={shell.tableSub}>{auditModal.employeeName}</p>
+              </div>
+              <button type="button" style={shell.button} onClick={() => setAuditModal({ open: false, loading: false, employeeName: '', entries: [] })}>Close</button>
+            </div>
+            {auditModal.loading ? <p style={shell.footerNote}>Loading audit history...</p> : null}
+            {!auditModal.loading && auditModal.entries.length === 0 ? <p style={shell.footerNote}>No audit entries found for this attendance row.</p> : null}
+            {!auditModal.loading && auditModal.entries.map((entry, index) => (
+              <div key={`${entry.changedAt || 'audit'}-${index}`} style={shell.summaryCard}>
+                <p style={shell.summaryLabel}>{entry.source || 'manual_admin'}</p>
+                <p style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{entry.changedBy || 'System'}</p>
+                <p style={shell.smallMeta}>{entry.changedAt ? String(entry.changedAt).replace('T', ' ').slice(0, 16) : '-'}</p>
+                <p style={shell.noteText}>Status: {entry.oldStatus || '-'} → {entry.newStatus || '-'}</p>
+                <p style={shell.noteText}>Check In: {entry.oldCheckInTime ? String(entry.oldCheckInTime).replace('T', ' ').slice(0, 16) : '-'} → {entry.newCheckInTime ? String(entry.newCheckInTime).replace('T', ' ').slice(0, 16) : '-'}</p>
+                <p style={shell.noteText}>Check Out: {entry.oldCheckOutTime ? String(entry.oldCheckOutTime).replace('T', ' ').slice(0, 16) : '-'} → {entry.newCheckOutTime ? String(entry.newCheckOutTime).replace('T', ' ').slice(0, 16) : '-'}</p>
+                {entry.reason ? <p style={shell.noteText}>Reason: {entry.reason}</p> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }

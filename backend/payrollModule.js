@@ -445,11 +445,14 @@ const summarizeAttendanceForPayroll = ({
   let presentDays = 0;
   let paidLeaveDays = 0;
   let unpaidLeaveDays = 0;
+  let absentDays = 0;
   let halfDays = 0;
   let weeklyOffDays = 0;
   let paidHolidayDays = 0;
   let unpaidHolidayDays = 0;
   let lateMarks = 0;
+  let workedHours = 0;
+  let workedMinutes = 0;
 
   const shiftStartMins = toMinutes(workStartTime || defaultPayrollConfig.workStartTime);
 
@@ -480,8 +483,12 @@ const summarizeAttendanceForPayroll = ({
       weeklyOffDays += 1;
       return;
     }
-    if (status === 'present') {
+    if (status === 'present' || status === 'punched-in' || status === 'punched-out') {
       presentDays += 1;
+      const rowHours = toNumber(att?.workingHours ?? att?.working_hours, 0);
+      const rowMinutes = toNumber(att?.workingMinutes, rowHours > 0 ? rowHours * 60 : 0);
+      workedHours += rowHours > 0 ? rowHours : 0;
+      workedMinutes += rowMinutes > 0 ? rowMinutes : 0;
       const inMins = toMinutes(att.checkIn || '');
       if (inMins !== null && shiftStartMins !== null && inMins > (shiftStartMins + lateMarkGraceMinutes)) {
         lateMarks += 1;
@@ -490,6 +497,10 @@ const summarizeAttendanceForPayroll = ({
     }
     if (status === 'half-day') {
       halfDays += 1;
+      const rowHours = toNumber(att?.workingHours ?? att?.working_hours, 0);
+      const rowMinutes = toNumber(att?.workingMinutes, rowHours > 0 ? rowHours * 60 : 0);
+      workedHours += rowHours > 0 ? rowHours : 0;
+      workedMinutes += rowMinutes > 0 ? rowMinutes : 0;
       const inMins = toMinutes(att.checkIn || '');
       if (inMins !== null && shiftStartMins !== null && inMins > (shiftStartMins + lateMarkGraceMinutes)) {
         lateMarks += 1;
@@ -502,6 +513,7 @@ const summarizeAttendanceForPayroll = ({
       return;
     }
     if (status === 'absent') {
+      absentDays += 1;
       unpaidLeaveDays += 1;
       return;
     }
@@ -517,12 +529,15 @@ const summarizeAttendanceForPayroll = ({
     totalWorkingDays,
     presentDays: round2(presentDays),
     paidLeaveDays: round2(paidLeaveDays),
+    absentDays: round2(absentDays),
     unpaidLeaveDays: round2(unpaidLeaveDays),
     halfDays: round2(halfDays),
     weeklyOffDays: round2(weeklyOffDays),
     paidHolidayDays: round2(paidHolidayDays),
     unpaidHolidayDays: round2(unpaidHolidayDays),
-    lateMarks: round2(lateMarks)
+    lateMarks: round2(lateMarks),
+    workedHours: round2(workedHours),
+    workedMinutes: round2(workedMinutes)
   };
 };
 
@@ -582,7 +597,9 @@ const calcPayrollItem = ({
     leaveDeduction = 0;
   }
   if (salaryType === 'hourly') {
-    const paidHours = (attendanceSummary.presentDays * defaultPayrollConfig.standardDailyHours) + (attendanceSummary.halfDays * (defaultPayrollConfig.standardDailyHours / 2));
+    const paidHours = toNumber(attendanceSummary.workedHours, 0) > 0
+      ? toNumber(attendanceSummary.workedHours, 0)
+      : ((attendanceSummary.presentDays * defaultPayrollConfig.standardDailyHours) + (attendanceSummary.halfDays * (defaultPayrollConfig.standardDailyHours / 2)));
     baseEarned = round2((hourlyRate || 0) * paidHours);
     leaveDeduction = 0;
   }
@@ -626,6 +643,47 @@ const calcPayrollItem = ({
   const adjustedNet = manual.enabled
     ? round2(toNumber(manual.overrideNetSalary, defaultNet))
     : round2(defaultNet + toNumber(manual.adjustmentAmount, 0));
+  const calculationBreakdown = {
+    salaryType,
+    monthlySalary: round2(baseSalary),
+    perDaySalary: round2(perDaySalary),
+    hourlyRate: round2(hourlyRate),
+    dailyRate: round2(dailyRate),
+    presentDays: round2(attendanceSummary.presentDays),
+    paidLeaveDays: round2(attendanceSummary.paidLeaveDays),
+    weeklyOffDays: round2(attendanceSummary.weeklyOffDays),
+    paidHolidayDays: round2(attendanceSummary.paidHolidayDays),
+    absentDays: round2(attendanceSummary.absentDays),
+    unpaidLeaveDays: round2(attendanceSummary.unpaidLeaveDays),
+    halfDays: round2(attendanceSummary.halfDays),
+    workedHours: round2(attendanceSummary.workedHours),
+    workedMinutes: round2(attendanceSummary.workedMinutes),
+    allowances: { ...allowances, total: round2(allowanceTotal) },
+    deductions: {
+      leaveDeduction: round2(leaveDeduction),
+      lateComingDeduction: round2(lateDeduction),
+      advanceSalaryDeduction: round2(advanceSalaryDeduction),
+      loanDeduction: round2(fixedDeductions.loan),
+      pf: round2(fixedDeductions.pf),
+      esi: round2(fixedDeductions.esi),
+      otherDeduction: round2(fixedDeductions.other),
+      total: round2(deductionTotal)
+    },
+    advanceBreakdown,
+    grossSalary: round2(grossSalary),
+    computedNetSalary: round2(defaultNet),
+    manualAdjustmentAmount: round2(toNumber(manual.adjustmentAmount, 0)),
+    manualOverrideEnabled: !!manual.enabled,
+    overrideNetSalary: manual.enabled ? round2(toNumber(manual.overrideNetSalary, adjustedNet)) : null,
+    netPayable: round2(adjustedNet),
+    calculationNotes: [
+      'Paid leave, paid holidays, and weekly off are treated as paid days.',
+      'Absent, unpaid leave, and half-day reduce payable salary according to policy.',
+      salaryType === 'hourly'
+        ? `Hourly payroll used ${round2(attendanceSummary.workedHours)} worked hours.`
+        : `Monthly payroll used ${round2(attendanceSummary.totalWorkingDays)} working days for per-day deduction.`
+    ]
+  };
 
   return {
     _id: normalizeText(manual._id || `PAYITEM-${Date.now()}-${employee?._id || 'EMP'}`),
@@ -670,6 +728,7 @@ const calcPayrollItem = ({
     transactionRef: manual.transactionRef || '',
     paymentRemarks: manual.paymentRemarks || '',
     advanceBreakdown,
+    calculationBreakdown,
     salaryInWords: buildMoneyWords(adjustedNet),
     createdAt: manual.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()

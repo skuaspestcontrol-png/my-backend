@@ -130,7 +130,7 @@ const securityHeaders = (_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
   if (isProduction) {
     res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
@@ -1761,18 +1761,62 @@ const buildContractJobCardPdfBuffer = ({ invoice = {}, jobs = [], settings = {} 
   }
 });
 
-const allowedAttendanceStatus = new Set(['present', 'absent', 'leave', 'half-day', 'weekly-off']);
+const allowedAttendanceStatus = new Set(['present', 'absent', 'leave', 'half-day', 'weekly-off', 'punched-in', 'punched-out', 'not-punched']);
 const attendanceTimePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 const normalizeAttendanceStatus = (value) => {
   const raw = String(value || '').trim().toLowerCase();
   if (allowedAttendanceStatus.has(raw)) return raw;
-  return 'absent';
+  return '';
 };
 
 const normalizeAttendanceTime = (value) => {
   const raw = String(value || '').trim();
   return attendanceTimePattern.test(raw) ? raw : '';
+};
+
+const normalizeAttendanceDate = (value) => {
+  const raw = String(value || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+};
+
+const normalizeAttendanceDateTime = (value, fallbackDate = '') => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(raw)) {
+    return raw.length === 16 ? `${raw}:00` : raw;
+  }
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(raw)) {
+    return raw.replace(' ', 'T').length === 16 ? `${raw.replace(' ', 'T')}:00` : raw.replace(' ', 'T');
+  }
+  const timeOnly = normalizeAttendanceTime(raw);
+  if (timeOnly && fallbackDate) return `${fallbackDate}T${timeOnly}:00`;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 19);
+};
+
+const extractTimeFromDateTime = (value) => {
+  const normalized = normalizeAttendanceDateTime(value);
+  if (!normalized) return '';
+  return normalized.slice(11, 16);
+};
+
+const toNullableFixedNumber = (value, digits = 8) => {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return Number(parsed.toFixed(digits));
+};
+
+const buildAttendanceMapUrl = (latitude, longitude) => {
+  const lat = toNullableFixedNumber(latitude, 8);
+  const lng = toNullableFixedNumber(longitude, 8);
+  if (lat === null || lng === null) return '';
+  return `https://www.google.com/maps?q=${lat},${lng}`;
 };
 
 const toMinutesFromTime = (value) => {
@@ -1793,26 +1837,91 @@ const computeWorkingHours = ({ status, checkIn, checkOut }) => {
   return Number(clampedHours.toFixed(2));
 };
 
+const computeWorkingMinutesFromDateTimes = ({ status, checkInTime, checkOutTime, checkIn, checkOut }) => {
+  if (['absent', 'weekly-off', 'leave', 'not-punched'].includes(String(status || '').trim().toLowerCase())) return 0;
+  const inDateTime = normalizeAttendanceDateTime(checkInTime);
+  const outDateTime = normalizeAttendanceDateTime(checkOutTime);
+  if (inDateTime && outDateTime) {
+    const inMs = new Date(inDateTime).getTime();
+    const outMs = new Date(outDateTime).getTime();
+    if (Number.isFinite(inMs) && Number.isFinite(outMs) && outMs > inMs) {
+      const rawMinutes = Math.round((outMs - inMs) / 60000);
+      return String(status || '').trim().toLowerCase() === 'half-day' ? Math.min(rawMinutes, 240) : rawMinutes;
+    }
+  }
+  const hours = computeWorkingHours({ status, checkIn, checkOut });
+  return Math.max(0, Math.round(hours * 60));
+};
+
+const deriveAttendanceStatus = ({ rawStatus, checkInTime, checkOutTime, checkIn, checkOut, attendanceDate }) => {
+  const explicit = normalizeAttendanceStatus(rawStatus);
+  if (['absent', 'leave', 'half-day', 'weekly-off'].includes(explicit)) return explicit;
+  if (explicit === 'present') return 'present';
+  const normalizedDate = normalizeAttendanceDate(attendanceDate);
+  const hasCheckIn = Boolean(normalizeAttendanceDateTime(checkInTime, normalizedDate) || normalizeAttendanceTime(checkIn));
+  const hasCheckOut = Boolean(normalizeAttendanceDateTime(checkOutTime, normalizedDate) || normalizeAttendanceTime(checkOut));
+  if (hasCheckOut) return 'present';
+  if (hasCheckIn) return 'punched-in';
+  if (explicit === 'punched-out') return 'present';
+  if (explicit === 'not-punched') return 'not-punched';
+  return 'absent';
+};
+
 const sanitizeAttendanceRecord = (raw = {}) => {
-  const status = normalizeAttendanceStatus(raw.status);
-  const defaultCheckIn = status === 'present' ? '09:00' : '';
-  const defaultCheckOut = status === 'present' ? '17:00' : '';
-  const checkIn = normalizeAttendanceTime(raw.checkIn || defaultCheckIn);
-  const checkOut = normalizeAttendanceTime(raw.checkOut || defaultCheckOut);
+  const date = normalizeAttendanceDate(raw.date || raw.attendanceDate || raw.attendance_date);
+  const checkInTime = normalizeAttendanceDateTime(raw.checkInTime || raw.check_in_time || raw.punchInTime || raw.punch_in_time, date);
+  const checkOutTime = normalizeAttendanceDateTime(raw.checkOutTime || raw.check_out_time || raw.punchOutTime || raw.punch_out_time, date);
+  const checkIn = normalizeAttendanceTime(raw.checkIn || extractTimeFromDateTime(checkInTime));
+  const checkOut = normalizeAttendanceTime(raw.checkOut || extractTimeFromDateTime(checkOutTime));
+  const status = deriveAttendanceStatus({
+    rawStatus: raw.status,
+    checkInTime,
+    checkOutTime,
+    checkIn,
+    checkOut,
+    attendanceDate: date
+  });
+  const workingMinutes = computeWorkingMinutesFromDateTimes({ status, checkInTime, checkOutTime, checkIn, checkOut });
+  const workingHours = Number((workingMinutes / 60).toFixed(2));
+  const punchInLatitude = toNullableFixedNumber(raw.punchInLatitude ?? raw.punch_in_latitude, 8);
+  const punchInLongitude = toNullableFixedNumber(raw.punchInLongitude ?? raw.punch_in_longitude, 8);
+  const punchOutLatitude = toNullableFixedNumber(raw.punchOutLatitude ?? raw.punch_out_latitude, 8);
+  const punchOutLongitude = toNullableFixedNumber(raw.punchOutLongitude ?? raw.punch_out_longitude, 8);
   return {
     _id: String(raw._id || `ATT-${Date.now()}`),
     employeeId: String(raw.employeeId || '').trim(),
     employeeCode: String(raw.employeeCode || '').trim(),
     employeeName: String(raw.employeeName || '').trim(),
-    date: String(raw.date || '').trim(),
+    employeeRole: String(raw.employeeRole || raw.role || '').trim(),
+    date,
     status,
     checkIn,
     checkOut,
+    checkInTime,
+    checkOutTime,
+    workingMinutes,
+    working_hours: workingHours,
     leaveType: String(raw.leaveType || '').trim(),
     leaveReason: String(raw.leaveReason || '').trim(),
     notes: String(raw.notes || '').trim(),
-    workingHours: computeWorkingHours({ status, checkIn, checkOut }),
-    updatedAt: raw.updatedAt || new Date().toISOString()
+    source: String(raw.source || '').trim() || 'manual_admin',
+    manualLocationAddress: String(raw.manualLocationAddress || raw.manual_location_address || '').trim(),
+    punchInLatitude,
+    punchInLongitude,
+    punchInAccuracy: toNullableFixedNumber(raw.punchInAccuracy ?? raw.punch_in_accuracy, 2),
+    punchInAddress: String(raw.punchInAddress || raw.punch_in_address || '').trim(),
+    punchInMapUrl: String(raw.punchInMapUrl || raw.punch_in_map_url || buildAttendanceMapUrl(punchInLatitude, punchInLongitude)).trim(),
+    punchOutLatitude,
+    punchOutLongitude,
+    punchOutAccuracy: toNullableFixedNumber(raw.punchOutAccuracy ?? raw.punch_out_accuracy, 2),
+    punchOutAddress: String(raw.punchOutAddress || raw.punch_out_address || '').trim(),
+    punchOutMapUrl: String(raw.punchOutMapUrl || raw.punch_out_map_url || buildAttendanceMapUrl(punchOutLatitude, punchOutLongitude)).trim(),
+    editedBy: String(raw.editedBy || raw.edited_by || '').trim(),
+    editedAt: normalizeAttendanceDateTime(raw.editedAt || raw.edited_at),
+    editReason: String(raw.editReason || raw.edit_reason || '').trim(),
+    createdAt: normalizeAttendanceDateTime(raw.createdAt || raw.created_at) || new Date().toISOString(),
+    updatedAt: normalizeAttendanceDateTime(raw.updatedAt || raw.updated_at) || new Date().toISOString(),
+    workingHours
   };
 };
 
@@ -4286,113 +4395,314 @@ app.delete('/api/employees/:id', async (req, res) => {
   }
 });
 
+const persistAttendanceRecord = async ({ before = null, nextRecord, actorName = 'System', source = 'manual_admin', reason = '' }) => {
+  await syncAttendanceToMysql(nextRecord);
+  upsertAttendanceCache(nextRecord);
+  await withMysqlConnection(async (conn) => {
+    await writeAttendanceAuditLog(conn, { before, after: nextRecord, actorName, source, reason });
+  });
+  return buildAttendanceRecordResponse(nextRecord);
+};
+
+const findAttendanceByEmployeeAndDate = async (employeeId, date) => {
+  const rows = await readAttendanceRecordsFromMysql({ employeeId, date });
+  return Array.isArray(rows) ? rows[0] || null : null;
+};
+
 app.get('/api/attendance', async (req, res) => {
   if (!canUseMysql()) {
     return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
   }
-  let records = [];
   try {
-    const mysqlRows = await withMysqlConnection(async (conn) => {
-      await ensureAttendanceTable(conn);
-      const [rows] = await conn.query('SELECT payload FROM attendance ORDER BY id DESC');
-      return Array.isArray(rows) ? rows : [];
+    const date = normalizeAttendanceDate(req.query.date || '');
+    const employeeId = String(req.query.employeeId || '').trim();
+    const month = Number(req.query.month || 0);
+    const year = Number(req.query.year || 0);
+    const statusFilter = normalizeAttendanceStatus(req.query.status || '');
+    const departmentFilter = String(req.query.department || req.query.role || '').trim().toLowerCase();
+    const search = String(req.query.search || '').trim().toLowerCase();
+    const rows = await readAttendanceRecordsFromMysql({ date, employeeId, month, year });
+    const responseRows = await Promise.all(rows.map((entry) => buildAttendanceRecordResponse(entry)));
+    const filtered = responseRows.filter((entry) => {
+      const roleText = String(entry.employeeRole || '').trim().toLowerCase();
+      const searchText = `${entry.employeeName || ''} ${entry.employeeCode || ''}`.toLowerCase();
+      if (statusFilter && normalizeAttendanceStatus(entry.status) !== statusFilter) return false;
+      if (departmentFilter && roleText !== departmentFilter) return false;
+      if (search && !searchText.includes(search)) return false;
+      return true;
     });
-    if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
-      records = mysqlRows
-        .map((row) => {
-          const raw = row?.payload;
-          if (!raw) return null;
-          if (typeof raw === 'string') {
-            try { return JSON.parse(raw); } catch { return null; }
-          }
-          return raw;
-        })
-        .filter(Boolean)
-        .map((entry) => sanitizeAttendanceRecord(entry))
-        .filter((entry) => entry.employeeId && entry.date);
-    }
+    filtered.sort((a, b) => {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return String(a.employeeName || '').localeCompare(String(b.employeeName || ''));
+    });
+    return res.json(filtered);
   } catch (error) {
     console.error('MySQL attendance read failed:', error.message);
     return res.status(500).json({ error: error.message || 'Failed to fetch attendance from MySQL' });
   }
+});
 
-  const dateFilter = String(req.query.date || '').trim();
-  const employeeFilter = String(req.query.employeeId || '').trim();
-  const filtered = records.filter((entry) => {
-    if (dateFilter && entry.date !== dateFilter) return false;
-    if (employeeFilter && entry.employeeId !== employeeFilter) return false;
-    return true;
-  });
-  filtered.sort((a, b) => {
-    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
-    return a.employeeName.localeCompare(b.employeeName);
-  });
-  res.json(filtered);
+app.get('/api/attendance/month-summary', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
+  try {
+    const month = Number(req.query.month || 0);
+    const year = Number(req.query.year || 0);
+    if (!month || !year) return res.status(400).json({ error: 'month and year are required' });
+    const rows = await readAttendanceRecordsFromMysql({ month, year });
+    const totalEmployees = new Set();
+    const stats = rows.reduce((acc, row) => {
+      totalEmployees.add(String(row.employeeId || ''));
+      const liveStatus = buildAttendanceLiveStatus(row);
+      const workingHours = Number(row.workingHours || 0);
+      acc.totalHours += workingHours;
+      if (liveStatus === 'Present') acc.present += 1;
+      if (liveStatus === 'Punched In') acc.punchedIn += 1;
+      if (liveStatus === 'Punched Out') acc.punchedOut += 1;
+      if (liveStatus === 'Absent') acc.absent += 1;
+      if (liveStatus === 'Leave') acc.leave += 1;
+      if (liveStatus === 'Weekly Off') acc.weeklyOff += 1;
+      if (liveStatus === 'Not Punched') acc.notPunched += 1;
+      return acc;
+    }, {
+      present: 0,
+      punchedIn: 0,
+      punchedOut: 0,
+      absent: 0,
+      leave: 0,
+      weeklyOff: 0,
+      notPunched: 0,
+      totalHours: 0
+    });
+    return res.json({
+      month,
+      year,
+      totalEmployees: totalEmployees.size,
+      ...stats,
+      averageHours: rows.length ? Number((stats.totalHours / rows.length).toFixed(2)) : 0
+    });
+  } catch (error) {
+    console.error('Attendance month-summary failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to fetch attendance month summary' });
+  }
+});
+
+app.get('/api/attendance/:id/audit', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
+  try {
+    const attendanceId = String(req.params.id || '').trim();
+    const logs = await withMysqlConnection(async (conn) => {
+      await ensureAttendanceAuditTable(conn);
+      const [rows] = await conn.query(
+        `SELECT attendance_id, employee_id, attendance_date, changed_by, changed_at, old_status, new_status,
+                old_check_in_time, new_check_in_time, old_check_out_time, new_check_out_time, reason, source, payload
+         FROM attendance_audit_logs
+         WHERE attendance_id = ?
+         ORDER BY changed_at DESC, id DESC`,
+        [attendanceId]
+      );
+      return Array.isArray(rows) ? rows : [];
+    });
+    const formatted = logs.map((row) => {
+      let payload = {};
+      try { payload = typeof row.payload === 'string' ? JSON.parse(row.payload) : (row.payload || {}); } catch { payload = {}; }
+      return {
+        attendanceId: row.attendance_id,
+        employeeId: row.employee_id,
+        attendanceDate: row.attendance_date,
+        changedBy: row.changed_by,
+        changedAt: row.changed_at,
+        oldStatus: row.old_status,
+        newStatus: row.new_status,
+        oldCheckInTime: row.old_check_in_time,
+        newCheckInTime: row.new_check_in_time,
+        oldCheckOutTime: row.old_check_out_time,
+        newCheckOutTime: row.new_check_out_time,
+        reason: row.reason || '',
+        source: row.source || '',
+        before: payload.before || null,
+        after: payload.after || null
+      };
+    });
+    return res.json(formatted);
+  } catch (error) {
+    console.error('Attendance audit lookup failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to fetch attendance audit log' });
+  }
+});
+
+app.put('/api/attendance/:id', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
+  try {
+    const attendanceId = String(req.params.id || '').trim();
+    const current = await findAttendanceRecordById(attendanceId);
+    if (!current) return res.status(404).json({ error: 'Attendance row not found' });
+    const employee = await fetchEmployeeByAnyId(current.employeeId);
+    const nextRecord = mergeAttendanceRecord({
+      existing: current,
+      incoming: { ...req.body, employeeId: current.employeeId, date: current.date, _id: current._id },
+      employee,
+      source: 'manual_admin',
+      actorName: String(req.headers['x-user-name'] || req.body?.actor || 'Admin').trim(),
+      preserveLocation: true
+    });
+    const saved = await persistAttendanceRecord({
+      before: current,
+      nextRecord,
+      actorName: String(req.headers['x-user-name'] || req.body?.actor || 'Admin').trim(),
+      source: 'manual_admin',
+      reason: String(req.body?.editReason || req.body?.edit_reason || '').trim()
+    });
+    return res.json(saved);
+  } catch (error) {
+    console.error('Attendance update failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to update attendance' });
+  }
+});
+
+app.post('/api/attendance/manual-upsert', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
+  try {
+    const employeeId = String(req.body?.employeeId || req.body?.employee_id || '').trim();
+    const date = normalizeAttendanceDate(req.body?.date || req.body?.attendanceDate || new Date().toISOString().slice(0, 10));
+    if (!employeeId || !date) return res.status(400).json({ error: 'employeeId and date are required' });
+    const employee = await fetchEmployeeByAnyId(employeeId);
+    const current = await findAttendanceByEmployeeAndDate(employeeId, date);
+    const nextRecord = mergeAttendanceRecord({
+      existing: current,
+      incoming: { ...req.body, employeeId, date, _id: current?._id || req.body?._id || `ATT-${employeeId.replace(/[^a-zA-Z0-9_-]/g, '')}-${date}` },
+      employee,
+      source: 'manual_admin',
+      actorName: String(req.headers['x-user-name'] || req.body?.actor || 'Admin').trim(),
+      preserveLocation: true
+    });
+    const saved = await persistAttendanceRecord({
+      before: current,
+      nextRecord,
+      actorName: String(req.headers['x-user-name'] || req.body?.actor || 'Admin').trim(),
+      source: 'manual_admin',
+      reason: String(req.body?.editReason || req.body?.edit_reason || '').trim()
+    });
+    return res.json(saved);
+  } catch (error) {
+    console.error('Attendance manual upsert failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to save attendance' });
+  }
+});
+
+app.post('/api/attendance/punch-in', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
+  try {
+    const employeeId = String(req.body?.employeeId || req.body?.employee_id || '').trim();
+    const punchInTime = normalizeAttendanceDateTime(req.body?.punchInTime || req.body?.punch_in_time || new Date().toISOString());
+    const date = normalizeAttendanceDate(req.body?.date || punchInTime);
+    if (!employeeId || !punchInTime || !date) return res.status(400).json({ error: 'employee_id and punch_in_time are required' });
+    const employee = await fetchEmployeeByAnyId(employeeId);
+    const current = await findAttendanceByEmployeeAndDate(employeeId, date);
+    const nextRecord = mergeAttendanceRecord({
+      existing: current,
+      incoming: {
+        employeeId,
+        date,
+        checkInTime: punchInTime,
+        checkIn: extractTimeFromDateTime(punchInTime),
+        punchInLatitude: req.body?.punch_in_latitude,
+        punchInLongitude: req.body?.punch_in_longitude,
+        punchInAccuracy: req.body?.punch_in_accuracy,
+        punchInAddress: req.body?.punch_in_address,
+        punchInMapUrl: req.body?.punch_in_map_url,
+        source: req.body?.source || 'technician_app',
+        status: 'punched-in'
+      },
+      employee,
+      source: 'technician_app',
+      actorName: String(employee?.empCode || employeeId).trim(),
+      preserveLocation: true
+    });
+    const saved = await persistAttendanceRecord({
+      before: current,
+      nextRecord,
+      actorName: String(employee?.empCode || employeeId).trim(),
+      source: 'technician_app',
+      reason: 'Technician punched in'
+    });
+    return res.json(saved);
+  } catch (error) {
+    console.error('Attendance punch-in failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to save punch in' });
+  }
+});
+
+app.post('/api/attendance/punch-out', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
+  try {
+    const employeeId = String(req.body?.employeeId || req.body?.employee_id || '').trim();
+    const punchOutTime = normalizeAttendanceDateTime(req.body?.punchOutTime || req.body?.punch_out_time || new Date().toISOString());
+    const date = normalizeAttendanceDate(req.body?.date || punchOutTime);
+    if (!employeeId || !punchOutTime || !date) return res.status(400).json({ error: 'employee_id and punch_out_time are required' });
+    const employee = await fetchEmployeeByAnyId(employeeId);
+    const current = await findAttendanceByEmployeeAndDate(employeeId, date);
+    const nextRecord = mergeAttendanceRecord({
+      existing: current,
+      incoming: {
+        employeeId,
+        date,
+        checkOutTime: punchOutTime,
+        checkOut: extractTimeFromDateTime(punchOutTime),
+        punchOutLatitude: req.body?.punch_out_latitude,
+        punchOutLongitude: req.body?.punch_out_longitude,
+        punchOutAccuracy: req.body?.punch_out_accuracy,
+        punchOutAddress: req.body?.punch_out_address,
+        punchOutMapUrl: req.body?.punch_out_map_url,
+        source: req.body?.source || 'technician_app',
+        status: 'present'
+      },
+      employee,
+      source: 'technician_app',
+      actorName: String(employee?.empCode || employeeId).trim(),
+      preserveLocation: true
+    });
+    const saved = await persistAttendanceRecord({
+      before: current,
+      nextRecord,
+      actorName: String(employee?.empCode || employeeId).trim(),
+      source: 'technician_app',
+      reason: 'Technician punched out'
+    });
+    return res.json(saved);
+  } catch (error) {
+    console.error('Attendance punch-out failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to save punch out' });
+  }
 });
 
 app.post('/api/attendance', async (req, res) => {
-  if (!canUseMysql()) {
-    return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
-  }
-  const employeeId = String(req.body?.employeeId || '').trim();
-  const date = String(req.body?.date || '').trim();
-  if (!employeeId || !date) {
-    return res.status(400).json({ error: 'employeeId and date are required' });
-  }
-
-  let employee = null;
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for attendance module' });
   try {
-    employee = await fetchEmployeeByAnyId(employeeId);
+    const employeeId = String(req.body?.employeeId || req.body?.employee_id || '').trim();
+    const date = normalizeAttendanceDate(req.body?.date || req.body?.attendanceDate || new Date().toISOString().slice(0, 10));
+    if (!employeeId || !date) return res.status(400).json({ error: 'employeeId and date are required' });
+    const employee = await fetchEmployeeByAnyId(employeeId);
+    const current = await findAttendanceByEmployeeAndDate(employeeId, date);
+    const nextRecord = mergeAttendanceRecord({
+      existing: current,
+      incoming: { ...req.body, employeeId, date, _id: current?._id || req.body?._id || `ATT-${employeeId.replace(/[^a-zA-Z0-9_-]/g, '')}-${date}` },
+      employee,
+      source: 'manual_admin',
+      actorName: String(req.headers['x-user-name'] || req.body?.actor || 'Admin').trim(),
+      preserveLocation: true
+    });
+    const saved = await persistAttendanceRecord({
+      before: current,
+      nextRecord,
+      actorName: String(req.headers['x-user-name'] || req.body?.actor || 'Admin').trim(),
+      source: 'manual_admin',
+      reason: String(req.body?.editReason || req.body?.edit_reason || '').trim()
+    });
+    return res.json(saved);
   } catch (error) {
-    console.error('Employee lookup failed during attendance save:', error.message);
+    console.error('Attendance save failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to save attendance' });
   }
-
-  const employeeName = employee
-    ? ([employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee')
-    : String(req.body?.employeeName || req.body?.name || 'Employee').trim();
-  const employeeCode = employee
-    ? String(employee.empCode || '').trim()
-    : String(req.body?.employeeCode || '').trim();
-  const stableExternalId = `ATT-${employeeId.replace(/[^a-zA-Z0-9_-]/g, '')}-${date.replace(/[^0-9-]/g, '')}`;
-
-  const nextRecord = sanitizeAttendanceRecord({
-    _id: req.body?._id || stableExternalId,
-    employeeId,
-    employeeCode,
-    employeeName,
-    date,
-    status: req.body?.status,
-    checkIn: req.body?.checkIn,
-    checkOut: req.body?.checkOut,
-    leaveType: req.body?.leaveType,
-    leaveReason: req.body?.leaveReason,
-    notes: req.body?.notes,
-    updatedAt: new Date().toISOString()
-  });
-
-  try {
-    await syncAttendanceToMysql(nextRecord);
-  } catch (error) {
-    console.error('MySQL attendance write failed:', error.message);
-    return res.status(500).json({ error: error.message || 'Failed to save attendance in MySQL' });
-  }
-
-  // Keep JSON in sync as fallback cache, but MySQL is source of truth.
-  const records = readJsonFile(attendanceFile, []);
-  const recordIndex = records.findIndex((entry) => String(entry.employeeId) === employeeId && String(entry.date) === date);
-  if (recordIndex === -1) {
-    records.push(nextRecord);
-  } else {
-    const existingRecord = sanitizeAttendanceRecord(records[recordIndex]);
-    records[recordIndex] = {
-      ...existingRecord,
-      ...nextRecord,
-      _id: existingRecord._id || nextRecord._id
-    };
-  }
-  fs.writeFileSync(attendanceFile, JSON.stringify(records, null, 2));
-
-  res.json(nextRecord);
 });
 
 app.get('/api/jobs', async (req, res) => {
@@ -6533,8 +6843,250 @@ const ensureAttendanceTable = async (conn) => {
     { name: 'working_hours', definition: 'DECIMAL(8,2) NOT NULL DEFAULT 0' },
     { name: 'payload', definition: 'JSON NULL' },
     { name: 'source_created_at', definition: 'DATETIME NULL' },
-    { name: 'source_updated_at', definition: 'DATETIME NULL' }
+    { name: 'source_updated_at', definition: 'DATETIME NULL' },
+    { name: 'working_minutes', definition: 'INT NOT NULL DEFAULT 0' },
+    { name: 'leave_type', definition: 'VARCHAR(50) NULL' },
+    { name: 'notes', definition: 'TEXT NULL' },
+    { name: 'source', definition: "VARCHAR(50) NOT NULL DEFAULT 'manual_admin'" },
+    { name: 'punch_in_latitude', definition: 'DECIMAL(10,8) NULL' },
+    { name: 'punch_in_longitude', definition: 'DECIMAL(11,8) NULL' },
+    { name: 'punch_in_accuracy', definition: 'DECIMAL(10,2) NULL' },
+    { name: 'punch_in_address', definition: 'TEXT NULL' },
+    { name: 'punch_in_map_url', definition: 'TEXT NULL' },
+    { name: 'punch_out_latitude', definition: 'DECIMAL(10,8) NULL' },
+    { name: 'punch_out_longitude', definition: 'DECIMAL(11,8) NULL' },
+    { name: 'punch_out_accuracy', definition: 'DECIMAL(10,2) NULL' },
+    { name: 'punch_out_address', definition: 'TEXT NULL' },
+    { name: 'punch_out_map_url', definition: 'TEXT NULL' },
+    { name: 'manual_location_address', definition: 'TEXT NULL' },
+    { name: 'edited_by', definition: 'VARCHAR(100) NULL' },
+    { name: 'edited_at', definition: 'DATETIME NULL' },
+    { name: 'edit_reason', definition: 'TEXT NULL' },
+    { name: 'check_in_time', definition: 'DATETIME NULL' },
+    { name: 'check_out_time', definition: 'DATETIME NULL' }
   ]);
+  const ensureIndex = async (indexName, sql) => {
+    const [rows] = await conn.query(
+      `SELECT COUNT(*) AS count
+       FROM INFORMATION_SCHEMA.STATISTICS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'attendance' AND INDEX_NAME = ?`,
+      [indexName]
+    );
+    if (Number(rows?.[0]?.count || 0) === 0) {
+      await conn.query(sql);
+    }
+  };
+  await ensureIndex('idx_attendance_status', 'CREATE INDEX idx_attendance_status ON attendance (status)');
+  await ensureIndex('idx_attendance_date', 'CREATE INDEX idx_attendance_date ON attendance (attendance_date)');
+  const [duplicateRows] = await conn.query(`
+    SELECT employee_external_id, attendance_date, COUNT(*) AS total
+    FROM attendance
+    WHERE employee_external_id IS NOT NULL AND employee_external_id <> '' AND attendance_date IS NOT NULL
+    GROUP BY employee_external_id, attendance_date
+    HAVING COUNT(*) > 1
+    LIMIT 1
+  `);
+  if (!Array.isArray(duplicateRows) || duplicateRows.length === 0) {
+    await ensureIndex(
+      'uk_attendance_employee_date',
+      'CREATE UNIQUE INDEX uk_attendance_employee_date ON attendance (employee_external_id, attendance_date)'
+    );
+  }
+};
+
+const ensureAttendanceAuditTable = async (conn) => {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS attendance_audit_logs (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      attendance_id VARCHAR(120) NULL,
+      employee_id VARCHAR(120) NULL,
+      attendance_date DATE NULL,
+      changed_by VARCHAR(120) NULL,
+      changed_at DATETIME NULL,
+      old_status VARCHAR(30) NULL,
+      new_status VARCHAR(30) NULL,
+      old_check_in_time DATETIME NULL,
+      new_check_in_time DATETIME NULL,
+      old_check_out_time DATETIME NULL,
+      new_check_out_time DATETIME NULL,
+      reason TEXT NULL,
+      source VARCHAR(50) NULL,
+      payload JSON NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_attendance_audit_attendance (attendance_id),
+      KEY idx_attendance_audit_employee_date (employee_id, attendance_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await ensureColumnsIfMissing(conn, 'attendance_audit_logs', [
+    { name: 'attendance_id', definition: 'VARCHAR(120) NULL' },
+    { name: 'employee_id', definition: 'VARCHAR(120) NULL' },
+    { name: 'attendance_date', definition: 'DATE NULL' },
+    { name: 'changed_by', definition: 'VARCHAR(120) NULL' },
+    { name: 'changed_at', definition: 'DATETIME NULL' },
+    { name: 'old_status', definition: 'VARCHAR(30) NULL' },
+    { name: 'new_status', definition: 'VARCHAR(30) NULL' },
+    { name: 'old_check_in_time', definition: 'DATETIME NULL' },
+    { name: 'new_check_in_time', definition: 'DATETIME NULL' },
+    { name: 'old_check_out_time', definition: 'DATETIME NULL' },
+    { name: 'new_check_out_time', definition: 'DATETIME NULL' },
+    { name: 'reason', definition: 'TEXT NULL' },
+    { name: 'source', definition: 'VARCHAR(50) NULL' },
+    { name: 'payload', definition: 'JSON NULL' }
+  ]);
+};
+
+const parseAttendancePayloadRow = (row = {}) => {
+  const raw = row?.payload;
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw); } catch { return null; }
+  }
+  return raw;
+};
+
+const readAttendanceRecordsFromMysql = async ({ date = '', employeeId = '', month = 0, year = 0 } = {}) => withMysqlConnection(async (conn) => {
+  await ensureAttendanceTable(conn);
+  const where = [];
+  const params = [];
+  if (date) {
+    where.push('attendance_date = ?');
+    params.push(date);
+  }
+  if (employeeId) {
+    where.push('employee_external_id = ?');
+    params.push(employeeId);
+  }
+  if (month && year) {
+    where.push('MONTH(attendance_date) = ? AND YEAR(attendance_date) = ?');
+    params.push(month, year);
+  }
+  const sql = `SELECT payload FROM attendance ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY attendance_date DESC, id DESC`;
+  const [rows] = await conn.query(sql, params);
+  return (Array.isArray(rows) ? rows : [])
+    .map(parseAttendancePayloadRow)
+    .filter(Boolean)
+    .map((entry) => sanitizeAttendanceRecord(entry))
+    .filter((entry) => entry.employeeId && entry.date);
+});
+
+const findAttendanceRecordById = async (attendanceId) => {
+  const safeId = String(attendanceId || '').trim();
+  if (!safeId) return null;
+  const records = await readAttendanceRecordsFromMysql();
+  return records.find((entry) => String(entry._id || '') === safeId) || null;
+};
+
+const upsertAttendanceCache = (record) => {
+  const records = readJsonFile(attendanceFile, []);
+  const nextRecord = sanitizeAttendanceRecord(record);
+  const recordIndex = records.findIndex((entry) => String(entry.employeeId) === nextRecord.employeeId && String(entry.date) === nextRecord.date);
+  if (recordIndex === -1) {
+    records.push(nextRecord);
+  } else {
+    const existingRecord = sanitizeAttendanceRecord(records[recordIndex]);
+    records[recordIndex] = {
+      ...existingRecord,
+      ...nextRecord,
+      _id: existingRecord._id || nextRecord._id
+    };
+  }
+  fs.writeFileSync(attendanceFile, JSON.stringify(records, null, 2));
+};
+
+const buildAttendanceLiveStatus = (record = {}) => {
+  const status = normalizeAttendanceStatus(record.status) || 'absent';
+  if (status === 'leave') return 'Leave';
+  if (status === 'weekly-off') return 'Weekly Off';
+  if (status === 'absent') return 'Absent';
+  if (status === 'half-day') return 'Half Day';
+  if (record.checkOutTime || record.checkOut) return 'Punched Out';
+  if (record.checkInTime || record.checkIn) return 'Punched In';
+  if (status === 'present') return 'Present';
+  return 'Not Punched';
+};
+
+const buildAttendanceRecordResponse = async (record) => {
+  const employee = await fetchEmployeeByAnyId(record.employeeId).catch(() => null);
+  return {
+    ...record,
+    employeeRole: String(record.employeeRole || employee?.role || employee?.roleName || '').trim(),
+    liveStatus: buildAttendanceLiveStatus(record)
+  };
+};
+
+const mergeAttendanceRecord = ({ existing = null, incoming = {}, employee = null, source = 'manual_admin', actorName = '', preserveLocation = true }) => {
+  const fallbackDate = normalizeAttendanceDate(incoming.date || existing?.date || new Date().toISOString().slice(0, 10));
+  const base = existing ? sanitizeAttendanceRecord(existing) : sanitizeAttendanceRecord({
+    _id: `ATT-${String(incoming.employeeId || existing?.employeeId || '').replace(/[^a-zA-Z0-9_-]/g, '')}-${fallbackDate}`,
+    employeeId: incoming.employeeId || existing?.employeeId || '',
+    date: fallbackDate
+  });
+  const merged = sanitizeAttendanceRecord({
+    ...base,
+    ...incoming,
+    _id: base._id,
+    employeeId: String(incoming.employeeId || base.employeeId || '').trim(),
+    employeeCode: String(employee?.empCode || incoming.employeeCode || base.employeeCode || '').trim(),
+    employeeName: ([employee?.firstName, employee?.lastName].filter(Boolean).join(' ').trim() || employee?.empCode || incoming.employeeName || base.employeeName || 'Employee'),
+    employeeRole: String(employee?.role || employee?.roleName || incoming.employeeRole || base.employeeRole || '').trim(),
+    date: fallbackDate,
+    checkInTime: incoming.checkInTime ?? incoming.check_in_time ?? incoming.punchInTime ?? incoming.punch_in_time ?? base.checkInTime,
+    checkOutTime: incoming.checkOutTime ?? incoming.check_out_time ?? incoming.punchOutTime ?? incoming.punch_out_time ?? base.checkOutTime,
+    checkIn: incoming.checkIn ?? base.checkIn,
+    checkOut: incoming.checkOut ?? base.checkOut,
+    source: source || incoming.source || base.source || 'manual_admin',
+    punchInLatitude: incoming.punchInLatitude ?? incoming.punch_in_latitude ?? (preserveLocation ? base.punchInLatitude : null),
+    punchInLongitude: incoming.punchInLongitude ?? incoming.punch_in_longitude ?? (preserveLocation ? base.punchInLongitude : null),
+    punchInAccuracy: incoming.punchInAccuracy ?? incoming.punch_in_accuracy ?? (preserveLocation ? base.punchInAccuracy : null),
+    punchInAddress: incoming.punchInAddress ?? incoming.punch_in_address ?? (preserveLocation ? base.punchInAddress : ''),
+    punchInMapUrl: incoming.punchInMapUrl ?? incoming.punch_in_map_url ?? (preserveLocation ? base.punchInMapUrl : ''),
+    punchOutLatitude: incoming.punchOutLatitude ?? incoming.punch_out_latitude ?? (preserveLocation ? base.punchOutLatitude : null),
+    punchOutLongitude: incoming.punchOutLongitude ?? incoming.punch_out_longitude ?? (preserveLocation ? base.punchOutLongitude : null),
+    punchOutAccuracy: incoming.punchOutAccuracy ?? incoming.punch_out_accuracy ?? (preserveLocation ? base.punchOutAccuracy : null),
+    punchOutAddress: incoming.punchOutAddress ?? incoming.punch_out_address ?? (preserveLocation ? base.punchOutAddress : ''),
+    punchOutMapUrl: incoming.punchOutMapUrl ?? incoming.punch_out_map_url ?? (preserveLocation ? base.punchOutMapUrl : ''),
+    manualLocationAddress: incoming.manualLocationAddress ?? incoming.manual_location_address ?? base.manualLocationAddress,
+    leaveType: incoming.leaveType ?? base.leaveType,
+    leaveReason: incoming.leaveReason ?? base.leaveReason,
+    notes: incoming.notes ?? base.notes,
+    editedBy: actorName || incoming.editedBy || incoming.edited_by || base.editedBy,
+    editedAt: source === 'manual_admin' ? new Date().toISOString() : (base.editedAt || ''),
+    editReason: incoming.editReason ?? incoming.edit_reason ?? base.editReason,
+    createdAt: base.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+  return merged;
+};
+
+const writeAttendanceAuditLog = async (conn, { before = null, after, actorName = 'System', source = 'manual_admin', reason = '' }) => {
+  if (!after?._id) return;
+  await ensureAttendanceAuditTable(conn);
+  const previous = before ? sanitizeAttendanceRecord(before) : null;
+  await conn.query(
+    `INSERT INTO attendance_audit_logs (
+      attendance_id, employee_id, attendance_date, changed_by, changed_at,
+      old_status, new_status, old_check_in_time, new_check_in_time, old_check_out_time, new_check_out_time,
+      reason, source, payload
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      after._id,
+      after.employeeId || null,
+      after.date || null,
+      actorName || 'System',
+      toMysqlDateTime(new Date().toISOString()),
+      previous?.status || null,
+      after.status || null,
+      toMysqlDateTime(previous?.checkInTime || ''),
+      toMysqlDateTime(after.checkInTime || ''),
+      toMysqlDateTime(previous?.checkOutTime || ''),
+      toMysqlDateTime(after.checkOutTime || ''),
+      reason || null,
+      source || null,
+      JSON.stringify({ before: previous, after })
+    ]
+  );
 };
 
 const syncJobGoogleTaskSafely = async (job, options = {}) => {
@@ -6834,8 +7386,13 @@ const syncAttendanceToMysql = async (record) => {
     await conn.query(
       `INSERT INTO attendance (
         external_id, employee_external_id, employee_code, employee_name, attendance_date, status,
-        check_in, check_out, working_hours, payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        check_in, check_out, check_in_time, check_out_time, working_minutes, working_hours,
+        leave_type, notes, source,
+        punch_in_latitude, punch_in_longitude, punch_in_accuracy, punch_in_address, punch_in_map_url,
+        punch_out_latitude, punch_out_longitude, punch_out_accuracy, punch_out_address, punch_out_map_url,
+        manual_location_address, edited_by, edited_at, edit_reason,
+        payload, source_created_at, source_updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         employee_external_id=VALUES(employee_external_id),
         employee_code=VALUES(employee_code),
@@ -6844,7 +7401,27 @@ const syncAttendanceToMysql = async (record) => {
         status=VALUES(status),
         check_in=VALUES(check_in),
         check_out=VALUES(check_out),
+        check_in_time=VALUES(check_in_time),
+        check_out_time=VALUES(check_out_time),
+        working_minutes=VALUES(working_minutes),
         working_hours=VALUES(working_hours),
+        leave_type=VALUES(leave_type),
+        notes=VALUES(notes),
+        source=VALUES(source),
+        punch_in_latitude=VALUES(punch_in_latitude),
+        punch_in_longitude=VALUES(punch_in_longitude),
+        punch_in_accuracy=VALUES(punch_in_accuracy),
+        punch_in_address=VALUES(punch_in_address),
+        punch_in_map_url=VALUES(punch_in_map_url),
+        punch_out_latitude=VALUES(punch_out_latitude),
+        punch_out_longitude=VALUES(punch_out_longitude),
+        punch_out_accuracy=VALUES(punch_out_accuracy),
+        punch_out_address=VALUES(punch_out_address),
+        punch_out_map_url=VALUES(punch_out_map_url),
+        manual_location_address=VALUES(manual_location_address),
+        edited_by=VALUES(edited_by),
+        edited_at=VALUES(edited_at),
+        edit_reason=VALUES(edit_reason),
         payload=VALUES(payload),
         source_created_at=VALUES(source_created_at),
         source_updated_at=VALUES(source_updated_at)`,
@@ -6857,10 +7434,30 @@ const syncAttendanceToMysql = async (record) => {
         record.status || null,
         record.checkIn ? `${record.checkIn}:00` : null,
         record.checkOut ? `${record.checkOut}:00` : null,
+        toMysqlDateTime(record.checkInTime || ''),
+        toMysqlDateTime(record.checkOutTime || ''),
+        toNumber(record.workingMinutes, 0),
         toNumber(record.workingHours, 0),
+        record.leaveType || null,
+        record.notes || null,
+        record.source || 'manual_admin',
+        record.punchInLatitude ?? null,
+        record.punchInLongitude ?? null,
+        record.punchInAccuracy ?? null,
+        record.punchInAddress || null,
+        record.punchInMapUrl || null,
+        record.punchOutLatitude ?? null,
+        record.punchOutLongitude ?? null,
+        record.punchOutAccuracy ?? null,
+        record.punchOutAddress || null,
+        record.punchOutMapUrl || null,
+        record.manualLocationAddress || null,
+        record.editedBy || null,
+        toMysqlDateTime(record.editedAt || ''),
+        record.editReason || null,
         JSON.stringify(record),
-        record.updatedAt ? new Date(record.updatedAt).toISOString().slice(0, 19).replace('T', ' ') : null,
-        new Date().toISOString().slice(0, 19).replace('T', ' ')
+        toMysqlDateTime(record.createdAt || record.updatedAt || ''),
+        toMysqlDateTime(record.updatedAt || new Date().toISOString())
       ]
     );
   });

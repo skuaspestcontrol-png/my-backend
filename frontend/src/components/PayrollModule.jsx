@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, Pencil, ShieldCheck, Trash2, UserRoundCheck } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Download, Eye, FileText, Filter, HandCoins, Landmark, Pencil, ShieldCheck, Trash2, UserRoundCheck } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -214,6 +214,7 @@ export default function PayrollModule() {
   const [paymentModal, setPaymentModal] = useState({ open: false, item: null, paymentMode: 'Bank transfer', paymentDate: new Date().toISOString().slice(0, 10), transactionRef: '', remarks: '' });
   const [adjustModal, setAdjustModal] = useState({ open: false, item: null, manualAdjustmentAmount: '', manualAdjustmentReason: '', manualOverrideEnabled: false, overrideNetSalary: '', payrollStatus: 'Generated' });
   const [slipViewer, setSlipViewer] = useState({ open: false, url: '', title: '', item: null });
+  const [calcModal, setCalcModal] = useState({ open: false, item: null });
   const [page, setPage] = useState(1);
 
   const pageSize = 10;
@@ -728,6 +729,10 @@ export default function PayrollModule() {
     });
   };
 
+  const openCalculation = (item) => {
+    setCalcModal({ open: true, item });
+  };
+
   const shareSlip = async (channel) => {
     try {
       if (!slipViewer.item) return;
@@ -981,6 +986,7 @@ export default function PayrollModule() {
                 <td style={shell.td}>
                   <div style={shell.payrollActionGroup}>
                     <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => openSlipViewer(entry)}>Salary Slip</button>
+                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => openCalculation(entry)}><Eye size={14} /> View Calculation</button>
                     {(entry.payrollStatus === 'Paid' || entry.paymentStatus === 'Paid')
                       ? <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => unlockPayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Unlock</button>
                       : null}
@@ -1229,6 +1235,60 @@ export default function PayrollModule() {
             <div style={shell.actionRow}>
               <button type="button" style={shell.btn} onClick={saveAdjustment} disabled={busy}>Save Adjustment</button>
               <button type="button" style={shell.btnLight} onClick={() => setAdjustModal((prev) => ({ ...prev, open: false, item: null }))}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {calcModal.open ? (
+        <div style={shell.modalBg}>
+          <div style={{ ...shell.modal, width: 'min(860px, 100%)' }}>
+            <h3 style={shell.panelTitle}><Eye size={16} /> Payroll Calculation</h3>
+            <p style={shell.sub}>{calcModal.item?.employeeName} - {monthOptions.find((entry) => Number(entry.value) === Number(calcModal.item?.month))?.label || calcModal.item?.month} {calcModal.item?.year}</p>
+            <div style={shell.grid}>
+              <div style={shell.card}>
+                <p style={shell.cardLabel}>Salary Inputs</p>
+                <p style={shell.sub}>Monthly Salary: INR {money(calcModal.item?.calculationBreakdown?.monthlySalary ?? calcModal.item?.basicSalary)}</p>
+                <p style={shell.sub}>Per Day Salary: INR {money(calcModal.item?.calculationBreakdown?.perDaySalary ?? calcModal.item?.perDaySalary)}</p>
+                <p style={shell.sub}>Hourly Rate: INR {money(calcModal.item?.calculationBreakdown?.hourlyRate)}</p>
+                <p style={shell.sub}>Salary Type: {calcModal.item?.calculationBreakdown?.salaryType || calcModal.item?.salaryType || '-'}</p>
+              </div>
+              <div style={shell.card}>
+                <p style={shell.cardLabel}>Attendance</p>
+                <p style={shell.sub}>Present: {calcModal.item?.calculationBreakdown?.presentDays ?? calcModal.item?.attendanceSummary?.presentDays ?? 0}</p>
+                <p style={shell.sub}>Paid Leave: {calcModal.item?.calculationBreakdown?.paidLeaveDays ?? calcModal.item?.attendanceSummary?.paidLeaveDays ?? 0}</p>
+                <p style={shell.sub}>Weekly Off: {calcModal.item?.calculationBreakdown?.weeklyOffDays ?? calcModal.item?.attendanceSummary?.weeklyOffDays ?? 0}</p>
+                <p style={shell.sub}>Absent: {calcModal.item?.calculationBreakdown?.absentDays ?? calcModal.item?.attendanceSummary?.absentDays ?? 0}</p>
+                <p style={shell.sub}>Unpaid Leave: {calcModal.item?.calculationBreakdown?.unpaidLeaveDays ?? calcModal.item?.attendanceSummary?.unpaidLeaveDays ?? 0}</p>
+                <p style={shell.sub}>Half Day: {calcModal.item?.calculationBreakdown?.halfDays ?? calcModal.item?.attendanceSummary?.halfDays ?? 0}</p>
+                <p style={shell.sub}>Worked Hours: {calcModal.item?.calculationBreakdown?.workedHours ?? calcModal.item?.attendanceSummary?.workedHours ?? 0}</p>
+              </div>
+              <div style={shell.card}>
+                <p style={shell.cardLabel}>Allowances</p>
+                <p style={shell.sub}>Total Allowances: INR {money(calcModal.item?.calculationBreakdown?.allowances?.total ?? calcModal.item?.allowances?.total)}</p>
+                <p style={shell.sub}>HRA: INR {money(calcModal.item?.allowances?.hra)}</p>
+                <p style={shell.sub}>Conveyance: INR {money(calcModal.item?.allowances?.conveyance)}</p>
+                <p style={shell.sub}>Mobile: INR {money(calcModal.item?.allowances?.mobile)}</p>
+                <p style={shell.sub}>Bonus/Incentive: INR {money((calcModal.item?.allowances?.bonus || 0) + (calcModal.item?.allowances?.incentive || 0))}</p>
+              </div>
+              <div style={shell.card}>
+                <p style={shell.cardLabel}>Deductions</p>
+                <p style={shell.sub}>Leave Deduction: INR {money(calcModal.item?.deductions?.leaveDeduction)}</p>
+                <p style={shell.sub}>Late Deduction: INR {money(calcModal.item?.deductions?.lateComingDeduction)}</p>
+                <p style={shell.sub}>Advance Adjustment: INR {money(calcModal.item?.deductions?.advanceSalaryDeduction)}</p>
+                <p style={shell.sub}>PF + ESI + Other: INR {money((calcModal.item?.deductions?.pf || 0) + (calcModal.item?.deductions?.esi || 0) + (calcModal.item?.deductions?.otherDeduction || 0))}</p>
+                <p style={shell.sub}>Total Deductions: INR {money(calcModal.item?.deductions?.total)}</p>
+              </div>
+            </div>
+            <div style={shell.card}>
+              <p style={shell.cardLabel}>Net Payable</p>
+              <p style={shell.cardValue}>INR {money(calcModal.item?.netSalary)}</p>
+              {(calcModal.item?.calculationBreakdown?.calculationNotes || []).map((note, index) => (
+                <p key={index} style={shell.sub}>{note}</p>
+              ))}
+            </div>
+            <div style={shell.actionRow}>
+              <button type="button" style={shell.btnLight} onClick={() => setCalcModal({ open: false, item: null })}>Close</button>
             </div>
           </div>
         </div>
