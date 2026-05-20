@@ -11,7 +11,7 @@ import {
   attachPlacesAutocomplete,
   loadGooglePlacesScript,
   formatGoogleAddressParts,
-  getGoogleFormattedAddressText,
+  getGoogleAddressFieldText,
   stripAutoFilledIndiaSuffix
 } from '../utils/googlePlaces';
 import {
@@ -967,7 +967,7 @@ export default function CustomerDashboard() {
     const placeIdKey = `${prefix}GooglePlaceId`;
     const placeNameKey = `${prefix}GooglePlaceName`;
     const extracted = extractCustomerAddressFields(data);
-    const address = extracted.address || getGoogleFormattedAddressText(data) || stripAutoFilledIndiaSuffix(data.address || data.formattedAddress || '', data);
+    const address = getGoogleAddressFieldText(data) || extracted.address || stripAutoFilledIndiaSuffix(data.address || data.formattedAddress || '', data);
     const area = String(extracted.areaName || data.areaName || data.city || '').trim();
     const state = String(extracted.state || data.state || '').trim();
     const pincode = toSixDigitPincode(extracted.pincode || data.pincode || '');
@@ -1033,7 +1033,7 @@ export default function CustomerDashboard() {
   const applyCustomerAddressSuggestion = (section, place = {}, queryText = '', options = {}) => {
     const placeName = place.displayName?.text || place.displayName || place.name || '';
     const extracted = extractCustomerAddressFields(place);
-    const address = extracted.address || getGoogleFormattedAddressText(place);
+    const address = getGoogleAddressFieldText(place) || extracted.address;
     const googlePhone = place.nationalPhoneNumber || place.internationalPhoneNumber || place.formatted_phone_number || place.international_phone_number || '';
     const googleWebsite = place.websiteURI || place.website || '';
     const { lat, lng } = getCustomerPlaceLatLng(place);
@@ -1075,7 +1075,7 @@ export default function CustomerDashboard() {
       if (!first) return null;
 
       const extracted = extractCustomerAddressFields(first);
-      const formattedAddress = extracted.address || getGoogleFormattedAddressText(first);
+      const formattedAddress = getGoogleAddressFieldText(first) || extracted.address;
       applyCustomerAddressPatch(section, {
         address: formattedAddress,
         areaName: extracted.areaName,
