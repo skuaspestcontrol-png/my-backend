@@ -43,6 +43,8 @@ const isPincodeSegment = (segment = '', pincode = '') => {
   return /\b[1-9][0-9]{5}\b/.test(value);
 };
 
+const isPlusCodeSegment = (segment = '') => /\b[23456789CFGHJMPQRVWX]{4}\+[23456789CFGHJMPQRVWX]{2,3}\b/i.test(normalizeAddressText(segment));
+
 const getGoogleAddressParts = (source = {}) => {
   const components = Array.isArray(source.address_components)
     ? source.address_components
@@ -91,7 +93,10 @@ const getGoogleAddressParts = (source = {}) => {
 
   const formattedSegments = splitAddressSegments(formattedAddress);
   const placeName = normalizeAddressText(source.name || source.displayName?.text || source.displayName || '');
-  const cleanSegments = formattedSegments.filter(Boolean);
+  // Example:
+  // Input: SCO 2, 2nd Floor, Ramlila Ground, Anand Vihar, Phase-2, Peer Baba Rd, Baltana, Sector 19, Zirakpur, Punjab 140604, India
+  // Output: address=SCO 2, 2nd Floor, Ramlila Ground, Anand Vihar, Phase-2, Peer Baba Road
+  const cleanSegments = formattedSegments.filter(Boolean).filter((segment) => !isPlusCodeSegment(segment));
   if (placeName && cleanSegments.length > 1 && isSameSegment(cleanSegments[0], placeName)) {
     cleanSegments.shift();
   }
@@ -118,8 +123,18 @@ const getGoogleAddressParts = (source = {}) => {
   if (!address) {
     address = streetParts.join(', ');
   }
-  if (!address) {
-    address = cleanSegments.join(', ');
+  const fallbackAddress = formattedSegments
+    .filter((segment) => !isPlusCodeSegment(segment))
+    .filter((segment) => {
+      if (country && isSameSegment(segment, country)) return false;
+      if (pincode && isPincodeSegment(segment, pincode)) return false;
+      if (state && isSameSegment(segment, state)) return false;
+      return true;
+    })
+    .join(', ')
+    .trim();
+  if (!address || addressSegments.length < 2) {
+    address = address || fallbackAddress;
   }
   if (country.toLowerCase() === 'india') {
     address = String(address || '').replace(/,\s*India\s*$/i, '').replace(/\s+India\s*$/i, '').trim();
