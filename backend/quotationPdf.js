@@ -229,23 +229,31 @@ const registerQuotationFonts = (doc) => {
 
 const getPdfFont = (doc) => doc._quotationPdfFont || { regular: 'Helvetica', bold: 'Helvetica-Bold' };
 
-const resolveUploadAsset = (input = '') => {
-  const raw = clean(input);
-  if (!raw) return '';
-  if (raw.startsWith('data:image/')) return raw;
-  const primaryUploadsDir = String(
-    process.env.UPLOADS_DIR
+const getUploadRootCandidates = () => {
+  const persistentUploadRoot = String(
+    process.env.UPLOADS_ROOT
+    || process.env.UPLOADS_DIR
     || process.env.UPLOADS_ROOT_DIR
     || path.join(process.env.HOME || '/home/u610009593', 'uploads-skuas-crm')
   ).trim();
-  const dirs = [
-    primaryUploadsDir,
+  return [
+    persistentUploadRoot,
     '/home/u610009593/uploads-skuas-crm',
     path.join(__dirname, '..', 'storage', 'uploads'),
     path.join(__dirname, 'uploads'),
     path.join(__dirname, '..', 'uploads'),
     path.join(__dirname, '..', 'public', 'uploads')
   ].filter(Boolean);
+};
+
+const resolveUploadAsset = (input = '', options = {}) => {
+  const raw = clean(input);
+  if (!raw) return '';
+  if (raw.startsWith('data:image/')) return raw;
+  const dirs = Array.isArray(options.rootDirs) && options.rootDirs.length
+    ? [...new Set(options.rootDirs.map((dir) => String(dir || '').trim()).filter(Boolean))]
+    : getUploadRootCandidates();
+  const allowRemoteFetch = options.allowRemoteFetch !== false;
   const findFile = (name = '') => {
     const safeName = decodeURIComponent(String(name || '').trim());
     if (!safeName) return '';
@@ -270,12 +278,14 @@ const resolveUploadAsset = (input = '') => {
     if (local) return local;
     if (fs.existsSync(raw)) return raw;
   }
-  try {
-    const url = new URL(raw);
-    const fileName = path.basename(url.pathname || '');
-    return fileName ? findFile(fileName) : '';
-  } catch (_error) {
-    if (fs.existsSync(raw)) return raw;
+  if (allowRemoteFetch) {
+    try {
+      const url = new URL(raw);
+      const fileName = path.basename(url.pathname || '');
+      return fileName ? findFile(fileName) : '';
+    } catch (_error) {
+      if (fs.existsSync(raw)) return raw;
+    }
   }
   return '';
 };

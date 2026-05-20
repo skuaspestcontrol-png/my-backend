@@ -579,14 +579,45 @@ app.use(
   })
 );
 
-app.get('/uploads-test', requireAdminDebugAccess, (req, res) => {
-  const fs = require('fs');
-  res.json({
+app.get(['/uploads-test', '/api/uploads-test'], requireAdminDebugAccess, (req, res) => {
+  const requestedFile = String(req.query.file || '1779215215733-skuas-pest-control-2.png').trim();
+  const candidateRoots = [
+    String(process.env.UPLOADS_ROOT || process.env.UPLOADS_DIR || process.env.UPLOADS_ROOT_DIR || uploadsRootDir || '/home/u610009593/uploads-skuas-crm').trim(),
     uploadsRootDir,
-    exists: fs.existsSync(uploadsRootDir),
-    files: fs.existsSync(uploadsRootDir)
-      ? fs.readdirSync(uploadsRootDir).slice(0, 20)
-      : []
+    '/home/u610009593/uploads-skuas-crm',
+    path.join(__dirname, '..', 'storage', 'uploads'),
+    path.join(__dirname, 'uploads'),
+    path.join(__dirname, '..', 'uploads'),
+    path.join(__dirname, '..', 'public', 'uploads')
+  ].filter(Boolean);
+  const safeName = path.basename(decodeURIComponent(requestedFile));
+  const candidates = [];
+  candidateRoots.forEach((root) => {
+    const normalizedRelative = requestedFile.replace(/^\/+/, '').replace(/^uploads\//, '');
+    const direct = path.join(root, normalizedRelative);
+    const byBaseName = path.join(root, safeName);
+    candidates.push(direct);
+    if (byBaseName !== direct) candidates.push(byBaseName);
+  });
+  const resolvedPath = candidates.find((candidate) => {
+    try {
+      return fs.existsSync(candidate);
+    } catch (_error) {
+      return false;
+    }
+  }) || '';
+
+  res.json({
+    requestedFile,
+    uploadsRootDir,
+    candidateRoots,
+    resolvedPath,
+    exists: Boolean(resolvedPath),
+    rootExists: candidateRoots.map((root) => ({
+      root,
+      exists: fs.existsSync(root)
+    })),
+    candidates: candidates.slice(0, 20)
   });
 });
 
@@ -1580,7 +1611,29 @@ const normalizeJobPdfSettings = (settings = {}, req = null) => ({
 const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   const logoAsset = resolveGstCompanyLogoPath(settings);
   const logoUrl = String(logoAsset.value || settings.gstCompanyLogoUrl || settings.nonGstCompanyLogoUrl || settings.dashboardImageUrl || settings.logo_url || settings.logoUrl || '').trim();
-  const resolvedLogoPath = resolveUploadAsset(logoUrl);
+  const persistentUploadRoot = String(
+    process.env.UPLOADS_ROOT
+    || process.env.UPLOADS_DIR
+    || process.env.UPLOADS_ROOT_DIR
+    || uploadsRootDir
+    || '/home/u610009593/uploads-skuas-crm'
+  ).trim();
+  const resolvedLogoPath = resolveUploadAsset(logoUrl, {
+    rootDirs: [
+      persistentUploadRoot,
+      '/home/u610009593/uploads-skuas-crm',
+      uploadsRootDir,
+      path.join(__dirname, '..', 'storage', 'uploads'),
+      path.join(__dirname, 'uploads'),
+      path.join(__dirname, '..', 'uploads'),
+      path.join(__dirname, '..', 'public', 'uploads')
+    ],
+    allowRemoteFetch: false
+  });
+  const persistentLogoPath = resolveUploadAsset(logoUrl, {
+    rootDirs: [persistentUploadRoot],
+    allowRemoteFetch: false
+  });
   const logoFileName = (() => {
     try {
       return path.basename(new URL(logoUrl).pathname || '') || path.basename(String(logoUrl || '').split('?')[0]);
@@ -1592,8 +1645,12 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   console.log('JOB PDF logoAsset:', logoAsset);
   console.log('JOB PDF logoUrl:', logoUrl);
   console.log('JOB PDF resolvedLogoPath:', resolvedLogoPath);
+  console.log('JOB PDF persistentLogoPath:', persistentLogoPath);
   console.log('JOB PDF publicLogoUrl:', publicLogoUrl);
   console.log('JOB PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
+  if (logoUrl && !persistentLogoPath) {
+    console.error('Job PDF logo file missing from persistent uploads root. Re-upload GST Company Branding logo or copy file to uploads root.');
+  }
   const logoBuffer = resolvedLogoPath ? null : await loadJobPdfLogoBuffer(publicLogoUrl || logoUrl);
 
   return new Promise((resolve, reject) => {
