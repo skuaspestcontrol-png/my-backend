@@ -2153,53 +2153,45 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
       return y + 15;
     };
 
-    const renderCard = (y, label, value, width) => {
-      doc.roundedRect(header.left, y, width, 44, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
-      doc.font('Helvetica-Bold').fontSize(8.3).fillColor('#9F174D').text(label, header.left + 10, y + 7, { width: width - 20 });
-      doc.font('Helvetica').fontSize(9.5).fillColor('#0F172A').text(pdfValue(value), header.left + 10, y + 20, { width: width - 20 });
-      return y + 52;
+    const renderOverviewRow = (rowY, label, value) => {
+      const labelWidth = 185;
+      const valueWidth = header.width - labelWidth;
+      const rowPaddingY = 6;
+      const rowHeight = Math.max(
+        22,
+        doc.heightOfString(String(label || ''), { width: labelWidth - 16 }) + (rowPaddingY * 2),
+        doc.heightOfString(pdfValue(value), { width: valueWidth - 16 }) + (rowPaddingY * 2)
+      );
+      doc.rect(header.left, rowY, header.width, rowHeight).lineWidth(0.55).strokeColor('#D9DEE8').stroke();
+      doc.font('Helvetica-Bold').fontSize(8.6).fillColor('#475569').text(label, header.left + 8, rowY + rowPaddingY, {
+        width: labelWidth - 16,
+        align: 'left'
+      });
+      doc.font('Helvetica').fontSize(9.2).fillColor('#0F172A').text(pdfValue(value), header.left + labelWidth + 8, rowY + rowPaddingY, {
+        width: valueWidth - 16,
+        align: 'left'
+      });
+      return rowHeight;
     };
 
     let y = header.bodyTop;
     y = renderSectionTitle(y, 'Contract Overview');
-    const topCards = [
+    const overviewRows = [
       ['Contract Number', invoice.invoiceNumber || invoice.contractNumber || '-'],
       ['Customer Name', invoice.customerName || completedJobs[0]?.customerName || '-'],
-      ['Address', address, 'full'],
-      ['Mobile Number', mobileNumber],
-      ['Service Name / Services', uniqueServiceNames],
+      ['Address', address],
+      ['Service Name', uniqueServiceNames],
       ['Contract Start Date', formatPdfDate(contractWindow.contractStartDate || invoice.contractStartDate || invoice.servicePeriodStart)],
       ['Contract End Date', formatPdfDate(contractWindow.contractEndDate || invoice.contractEndDate || invoice.servicePeriodEnd)],
       ['Frequency', pdfValue(invoice.frequency || invoice.serviceFrequency || (scheduledServices.length > 1 ? `${scheduledServices.length} Visits` : '-'))],
-      ['Total Services Scheduled', pdfValue(totalScheduled)],
-      ['Total Services Completed', pdfValue(totalCompleted)],
+      ['Total Services', pdfValue(totalScheduled)],
+      ['Completed Services', pdfValue(totalCompleted)],
       ['Pending Services', pdfValue(pendingServices)]
     ];
-    for (let i = 0; i < topCards.length; i += 2) {
-      const leftCard = topCards[i];
-      const rightCard = topCards[i + 1];
-      if (leftCard?.[2] === 'full') {
-        y = renderCard(y, leftCard[0], leftCard[1], header.width);
-        continue;
-      }
-      if (rightCard?.[2] === 'full') {
-        y = renderCard(y, leftCard[0], leftCard[1], (header.width - 12) / 2);
-        y = renderCard(y, rightCard[0], rightCard[1], header.width);
-        continue;
-      }
-      const gap = 12;
-      const cardWidth = (header.width - gap) / 2;
-      doc.roundedRect(header.left, y, cardWidth, 44, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
-      doc.font('Helvetica-Bold').fontSize(8.3).fillColor('#9F174D').text(leftCard[0], header.left + 10, y + 7, { width: cardWidth - 20 });
-      doc.font('Helvetica').fontSize(9.5).fillColor('#0F172A').text(pdfValue(leftCard[1]), header.left + 10, y + 20, { width: cardWidth - 20 });
-      if (rightCard) {
-        const rightX = header.left + cardWidth + gap;
-        doc.roundedRect(rightX, y, cardWidth, 44, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
-        doc.font('Helvetica-Bold').fontSize(8.3).fillColor('#9F174D').text(rightCard[0], rightX + 10, y + 7, { width: cardWidth - 20 });
-        doc.font('Helvetica').fontSize(9.5).fillColor('#0F172A').text(pdfValue(rightCard[1]), rightX + 10, y + 20, { width: cardWidth - 20 });
-      }
-      y += 52;
-    }
+    overviewRows.forEach(([label, value], index) => {
+      const rowHeight = renderOverviewRow(y, label, value);
+      y += rowHeight;
+    });
 
     y += 6;
     y = renderSectionTitle(y, 'Service History');
@@ -2207,22 +2199,22 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     const tableW = header.width;
     const cols = [
       { key: 'visitNo', label: 'Visit No.', width: 28 },
-      { key: 'jobNumber', label: 'Job Number', width: 64 },
-      { key: 'serviceDate', label: 'Service Date', width: 42 },
-      { key: 'timeIn', label: 'Time In', width: 34 },
-      { key: 'timeOut', label: 'Time Out', width: 34 },
-      { key: 'technicianName', label: 'Technician Name', width: 56 },
-      { key: 'materialUsed', label: 'Material Used', width: 60 },
-      { key: 'infestationLevel', label: 'Infestation Level', width: 36 },
-      { key: 'remarks', label: 'Remarks / Observation', width: 100 },
-      { key: 'signatureStatus', label: 'Customer Signature', width: tableW - (28 + 64 + 42 + 34 + 34 + 56 + 60 + 36 + 100) }
+      { key: 'jobNumber', label: 'Job No.', width: 54 },
+      { key: 'serviceDate', label: 'Date', width: 42 },
+      { key: 'timeIn', label: 'Time In', width: 38 },
+      { key: 'timeOut', label: 'Time Out', width: 38 },
+      { key: 'technicianName', label: 'Technician', width: 52 },
+      { key: 'infestationLevel', label: 'Infestation', width: 42 },
+      { key: 'materialUsed', label: 'Material Used', width: 74 },
+      { key: 'remarks', label: 'Remarks', width: 96 },
+      { key: 'signatureStatus', label: 'Signature', width: tableW - (28 + 54 + 42 + 38 + 38 + 52 + 42 + 74 + 96) }
     ];
     const drawTableHeader = (rowY) => {
       let x = tableX;
-      doc.font('Helvetica-Bold').fontSize(7.4).fillColor('#9F174D');
+      doc.font('Helvetica-Bold').fontSize(7.3).fillColor('#6B7280');
       cols.forEach((col) => {
-        doc.roundedRect(x, rowY, col.width, 20, 4).lineWidth(0.6).strokeColor('#E2E8F0').stroke();
-        doc.text(col.label, x + 3, rowY + 5, { width: col.width - 6, align: 'left' });
+        doc.rect(x, rowY, col.width, 18).lineWidth(0.55).strokeColor('#D9DEE8').stroke();
+        doc.text(col.label, x + 3, rowY + 4, { width: col.width - 6, align: 'left' });
         x += col.width;
       });
     };
@@ -2232,8 +2224,8 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
         String(job.scheduleVisit || index + 1 || '-'),
         resolveJobCardNumberForPdf(job, completedJobs),
         formatPdfDate(job.scheduledDate || job.serviceDate || job.createdAt),
-        formatPdfDateTime(job.serviceStartTime || job.service_start_time || job.punchInTime),
-        formatPdfDateTime(job.serviceEndTime || job.service_end_time || job.punchOutTime),
+        formatPdfTime(job.serviceStartTime || job.service_start_time || job.punchInTime),
+        formatPdfTime(job.serviceEndTime || job.service_end_time || job.punchOutTime),
         pdfValue(job.technicianName || job.assignedTo || '-'),
         materials,
         pdfValue(job.infestationLevel || job.infestation_level || '-'),
@@ -2243,10 +2235,10 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
       const heights = values.map((value, idx) => doc.heightOfString(pdfValue(value), { width: cols[idx].width - 6 }));
       const rowHeight = Math.max(24, Math.max(...heights) + 10);
       let x = tableX;
-      doc.font('Helvetica').fontSize(7.6).fillColor('#0F172A');
+      doc.font('Helvetica').fontSize(7.5).fillColor('#0F172A');
       values.forEach((value, idx) => {
         const col = cols[idx];
-        doc.roundedRect(x, rowY, col.width, rowHeight, 4).lineWidth(0.6).strokeColor('#E2E8F0').stroke();
+        doc.rect(x, rowY, col.width, rowHeight).lineWidth(0.55).strokeColor('#D9DEE8').stroke();
         doc.text(pdfValue(value), x + 3, rowY + 5, { width: col.width - 6, align: 'left' });
         x += col.width;
       });
@@ -2254,7 +2246,8 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     };
     const pageBottom = doc.page.height - doc.page.margins.bottom - 40;
     if (completedJobs.length === 0) {
-      doc.font('Helvetica').fontSize(9.8).fillColor('#64748B').text('No completed service visits found for this contract.', header.left, y + 4, { width: header.width });
+      doc.rect(header.left, y, header.width, 24).lineWidth(0.55).strokeColor('#D9DEE8').stroke();
+      doc.font('Helvetica').fontSize(9.6).fillColor('#64748B').text('No completed service visits found for this contract.', header.left + 8, y + 7, { width: header.width - 16 });
     } else {
       drawTableHeader(y);
       y += 22;
