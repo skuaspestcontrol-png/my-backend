@@ -207,7 +207,7 @@ const emptyForm = {
   billingStreet2: '',
   billingAddress: '',
   billingArea: '',
-  billingState: 'Delhi',
+  billingState: '',
   billingPincode: '',
   billingLatitude: '',
   billingLongitude: '',
@@ -224,7 +224,7 @@ const emptyForm = {
   shippingStreet2: '',
   shippingAddress: '',
   shippingArea: '',
-  shippingState: 'Delhi',
+  shippingState: '',
   shippingPincode: '',
   shippingLatitude: '',
   shippingLongitude: '',
@@ -968,7 +968,7 @@ export default function CustomerDashboard() {
     const placeNameKey = `${prefix}GooglePlaceName`;
     const extracted = extractCustomerAddressFields(data);
     const address = getGoogleAddressFieldText(data) || extracted.address || stripAutoFilledIndiaSuffix(data.address || data.formattedAddress || '', data);
-    const area = String(extracted.areaName || data.areaName || data.city || '').trim();
+    const area = isShipping ? String(extracted.areaName || data.areaName || data.city || '').trim() : '';
     const state = String(extracted.state || data.state || '').trim();
     const pincode = toSixDigitPincode(extracted.pincode || data.pincode || '');
     const placeId = String(data.placeId || data.googlePlaceId || '').trim();
@@ -1362,7 +1362,7 @@ export default function CustomerDashboard() {
       billingStreet2: customer.billingStreet2 || '',
       billingAddress: customer.billingAddress || '',
       billingArea: customer.billingArea || customer.area || '',
-      billingState: customer.billingState || customer.state || customer.placeOfSupply || 'Delhi',
+      billingState: customer.billingState || customer.state || customer.placeOfSupply || '',
       billingPincode: toSixDigitPincode(customer.billingPincode || customer.pincode || ''),
       billingLatitude: String(customer.billingLatitude ?? customer.latitude ?? '').trim(),
       billingLongitude: String(customer.billingLongitude ?? customer.longitude ?? '').trim(),
@@ -1378,7 +1378,7 @@ export default function CustomerDashboard() {
       shippingStreet2: customer.shippingStreet2 || '',
       shippingAddress: customer.shippingAddress || '',
       shippingArea: customer.shippingArea || '',
-      shippingState: customer.shippingState || 'Delhi',
+      shippingState: customer.shippingState || customer.state || customer.placeOfSupply || '',
       shippingPincode: toSixDigitPincode(customer.shippingPincode || ''),
       shippingLatitude: String(customer.shippingLatitude ?? '').trim(),
       shippingLongitude: String(customer.shippingLongitude ?? '').trim(),
@@ -2788,6 +2788,8 @@ export default function CustomerDashboard() {
                 />
               </div>
 
+              {renderAddressSearchControls('billing')}
+
               <label style={shell.label}>Billing Address</label>
               <div style={addressSplitStyle}>
                 <div style={shell.addressCard}>
@@ -2874,8 +2876,6 @@ export default function CustomerDashboard() {
                 value={form.areaSqft}
                 onChange={(event) => setForm((prev) => ({ ...prev, areaSqft: event.target.value }))}
               />
-
-              {renderAddressSearchControls('shipping')}
 
               <CustomerPremisesPanel
                 customerId={editingId}
