@@ -149,7 +149,6 @@ export default function SalesPerformanceReports() {
     : headCellStyle;
 
   const summaryCards = [
-    { title: 'Rows', value: summary?.rows || 0 },
     { title: 'Monthly Target', value: money(summary?.totalMonthlyTarget || 0) },
     { title: 'Monthly Achieved', value: money(summary?.totalMonthlyAchieved || 0) },
     { title: 'Yearly Target', value: money(summary?.totalYearlyTarget || 0) },
