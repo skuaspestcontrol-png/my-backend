@@ -7,7 +7,7 @@ import {
   hasGoogleMapsApiKey,
   loadGooglePlacesScript,
   formatGoogleAddressParts,
-  getGoogleAddressFieldText
+  getGoogleFormattedAddressText
 } from '../utils/googlePlaces';
 import {
   extractGoogleMapsCoordinates,
@@ -1445,7 +1445,7 @@ export default function LeadCapture() {
       pincode: String(place.pincode || '').trim(),
       ...extractAddressFields(place)
     };
-    const address = getGoogleAddressFieldText(place) || extracted.address;
+    const address = extracted.address || getGoogleFormattedAddressText(place);
     const googlePhone = place.nationalPhoneNumber || place.internationalPhoneNumber || '';
     const googleWebsite = place.websiteURI || '';
     const lat = typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat;
@@ -1478,7 +1478,7 @@ export default function LeadCapture() {
       const first = response?.results?.[0];
       if (!first) return;
       const extracted = extractAddressFields(first);
-      const formattedAddress = getGoogleAddressFieldText(first) || extracted.address;
+      const formattedAddress = extracted.address || getGoogleFormattedAddressText(first);
       setForm((prev) => {
         const nextPincode = extracted.pincode || prev.pincode;
         return {

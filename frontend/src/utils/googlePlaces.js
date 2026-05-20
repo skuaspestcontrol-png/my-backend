@@ -50,12 +50,6 @@ const stripTrailingIndiaSuffix = (value = '') => normalizeAddressText(value)
   .replace(/\s+India\s*$/i, '')
   .trim();
 
-const splitAreaNameParts = (value = '') => String(value || '')
-  .split('/')
-  .flatMap((part) => part.split(','))
-  .map((part) => normalizeAddressText(part))
-  .filter(Boolean);
-
 const normalizeStreetAbbreviations = (value = '') => {
   const text = normalizeAddressText(value);
   if (!text) return '';
@@ -186,43 +180,6 @@ export const getGoogleFormattedAddressText = (source = {}) => stripTrailingIndia
     || ''
   )
 );
-
-export const getGoogleAddressFieldText = (source = {}) => {
-  const formattedAddress = normalizeAddressText(
-    source.formatted_address
-    || source.formattedAddress
-    || source.description
-    || source.name
-    || source.displayName?.text
-    || source.displayName
-    || ''
-  );
-  if (!formattedAddress) return '';
-
-  const parts = getGoogleAddressParts(source);
-  const areaParts = splitAreaNameParts(parts.areaName);
-  const segments = splitAddressSegments(formattedAddress).filter(Boolean).filter((segment) => !isPlusCodeSegment(segment));
-
-  let end = segments.length;
-  while (end > 0) {
-    const segment = segments[end - 1];
-    const normalized = normalizeComparableAddressText(segment);
-    const matchesArea = areaParts.some((part) => isSameSegment(segment, part) || normalized.includes(normalizeComparableAddressText(part)));
-    const matchesCity = parts.city && isSameSegment(segment, parts.city);
-    const matchesState = parts.state && isSameSegment(segment, parts.state);
-    const matchesCountry = parts.country && isSameSegment(segment, parts.country);
-    const matchesPincode = isPincodeSegment(segment, parts.pincode);
-
-    if (!(matchesArea || matchesCity || matchesState || matchesCountry || matchesPincode)) break;
-    end -= 1;
-  }
-
-  const cleaned = stripTrailingIndiaSuffix(segments.slice(0, end).join(', ').trim());
-  const fallback = stripTrailingIndiaSuffix(formattedAddress);
-
-  if (!cleaned || cleaned.length < 10) return fallback;
-  return cleaned;
-};
 
 const placeToDetails = (place = {}) => {
   const location = place.geometry?.location;
