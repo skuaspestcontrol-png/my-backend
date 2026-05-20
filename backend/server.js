@@ -1136,6 +1136,8 @@ const sanitizeSettings = (raw = {}) => {
     gstAlternatePhone: normalizeOptionalIndianMobileNumber(source.gstAlternatePhone ?? defaultSettings.gstAlternatePhone),
     gstEmail: normalizeSettingsText(source.gstEmail ?? source.companyEmail ?? defaultSettings.gstEmail),
     gstCompanyLogoUrl: normalizeSettingsText(source.gstCompanyLogoUrl ?? defaultSettings.gstCompanyLogoUrl),
+    logo_url: normalizeSettingsText(source.logo_url ?? defaultSettings.logo_url ?? ''),
+    logoUrl: normalizeSettingsText(source.logoUrl ?? defaultSettings.logoUrl ?? ''),
     gstDigitalSignatureUrl: normalizeSettingsText(source.gstDigitalSignatureUrl ?? defaultSettings.gstDigitalSignatureUrl),
     gstCompanyStampUrl: normalizeSettingsText(source.gstCompanyStampUrl ?? defaultSettings.gstCompanyStampUrl),
     companyName: normalizeSettingsText(source.companyName ?? source.gstCompanyName ?? defaultSettings.companyName),
@@ -1353,6 +1355,8 @@ const mergeSettingsForSave = (current = {}, incoming = {}) => {
   };
   const preserveIfBlank = [
     'gstCompanyLogoUrl',
+    'logo_url',
+    'logoUrl',
     'dashboardImageUrl',
     'nonGstCompanyLogoUrl',
     'nonGstDigitalSignatureUrl',
@@ -1369,6 +1373,8 @@ const mergeSettingsForSave = (current = {}, incoming = {}) => {
   });
   const logoLikeKeys = [
     'gstCompanyLogoUrl',
+    'logo_url',
+    'logoUrl',
     'dashboardImageUrl',
     'nonGstCompanyLogoUrl',
     'gstDigitalSignatureUrl',
@@ -1526,6 +1532,8 @@ const resolveJobPdfLogoPath = (input = '') => {
       const local = findLocalFile(fileName);
       if (local) return local;
     }
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return '';
+    return raw;
   } catch (_error) {
     if (fs.existsSync(raw)) return raw;
   }
@@ -1534,16 +1542,20 @@ const resolveJobPdfLogoPath = (input = '') => {
 
 const resolveGstCompanyLogoPath = (settings = {}) => {
   const candidates = [
-    settings.gstCompanyLogoUrl,
-    settings.gstLogoUrl,
-    settings.gstBrandingLogoUrl,
-    settings.companyLogoUrl
-  ].map((value) => String(value || '').trim()).filter(Boolean);
-  for (const candidate of candidates) {
+    ['gstCompanyLogoUrl', settings.gstCompanyLogoUrl],
+    ['gstLogoUrl', settings.gstLogoUrl],
+    ['gstBrandingLogoUrl', settings.gstBrandingLogoUrl],
+    ['companyLogoUrl', settings.companyLogoUrl],
+    ['logo_url', settings.logo_url],
+    ['logoUrl', settings.logoUrl]
+  ];
+  for (const [source, value] of candidates) {
+    const candidate = String(value || '').trim();
+    if (!candidate) continue;
     const resolved = resolveJobPdfLogoPath(candidate);
-    if (resolved) return resolved;
+    if (resolved) return { path: resolved, source };
   }
-  return '';
+  return { path: '', source: '' };
 };
 
 const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve, reject) => {
@@ -1564,8 +1576,9 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   const companyPhone = String(settings.gstPhone || settings.companyMobile || '').trim();
   const companyWebsite = String(settings.companyWebsite || '').trim();
   const companyGst = String(settings.companyGstNumber || settings.gstRegistrationNumber || '').trim();
-  const primaryColor = String(settings.brandingAccentColor || settings.primaryColor || settings.primary_color || '#9F174D').trim() || '#9F174D';
-  const logoPath = resolveGstCompanyLogoPath(settings);
+  const maroonColor = '#800000';
+  const logoAsset = resolveGstCompanyLogoPath(settings);
+  const logoPath = logoAsset.path;
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
   const width = right - left;
@@ -1582,12 +1595,12 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
 
   doc.font('Helvetica-Bold').fontSize(10.2);
   const companyNameWidth = doc.widthOfString(companyName);
-  const headerX = Math.max(left + 182, right - companyNameWidth);
+  const headerX = Math.max(left + 240, right - companyNameWidth);
   const headerWidth = right - headerX;
   const detailLineHeight = 9.1;
   const headerBoxHeight = 11.2 + (companyDetailLines.length * detailLineHeight);
-  const logoWidth = logo ? 84 : 0;
-  const logoHeight = logo ? 58 : 0;
+  const logoWidth = logo ? 400 : 0;
+  const logoHeight = logo ? 160 : 0;
   const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
 
   if (logo) {
@@ -1610,7 +1623,7 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   doc
     .font('Helvetica-Bold')
     .fontSize(16)
-    .fillColor(primaryColor)
+    .fillColor(maroonColor)
     .text('Job Completion Card', left, doc.y, { width, align: 'center' });
 
   const fields = [
@@ -1643,7 +1656,7 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   const renderPair = (y, leftField, rightField) => {
     const renderBox = (x, label, value) => {
       doc.roundedRect(x, y, colWidth, rowHeight, 8).lineWidth(0.8).strokeColor('#e2e8f0').stroke();
-      doc.font('Helvetica-Bold').fontSize(8.2).fillColor('#475569').text(label, x + 10, y + 8, { width: colWidth - 20, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(8.2).fillColor(maroonColor).text(label, x + 10, y + 8, { width: colWidth - 20, lineBreak: false });
       doc.font('Helvetica').fontSize(10.1).fillColor('#0f172a').text(value, x + 10, y + 18, { width: colWidth - 20, lineBreak: false });
     };
     if (leftField) renderBox(leftColX, leftField[0], leftField[1]);
@@ -1651,7 +1664,7 @@ const buildJobPdfBuffer = ({ job = {}, settings = {} }) => new Promise((resolve,
   };
   const renderFullRow = (y, label, value) => {
     doc.roundedRect(left, y, width, fullRowHeight, 8).lineWidth(0.8).strokeColor('#e2e8f0').stroke();
-    doc.font('Helvetica-Bold').fontSize(8.2).fillColor('#475569').text(label, left + 10, y + 8, { width: width - 20, lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(8.2).fillColor(maroonColor).text(label, left + 10, y + 8, { width: width - 20, lineBreak: false });
     doc.font('Helvetica').fontSize(9.8).fillColor('#0f172a').text(value, left + 10, y + 19, { width: width - 20 });
   };
 
@@ -9287,7 +9300,8 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const pageLeft = doc.page.margins.left;
     const pageRight = doc.page.width - doc.page.margins.right;
     const contentWidth = pageRight - pageLeft;
-    const logoPath = resolveGstCompanyLogoPath(settings);
+    const logoAsset = resolveGstCompanyLogoPath(settings);
+    const logoPath = logoAsset.path;
     const logoWidth = logoPath ? 400 : 0;
     const logoHeight = logoPath ? 160 : 0;
     const headerTopY = 45;
