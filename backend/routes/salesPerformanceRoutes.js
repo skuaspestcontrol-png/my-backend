@@ -661,9 +661,13 @@ const applyTargets = (employee, context, year, month, startDate = '', endDate = 
   return attachTargets(summary, monthlyTargetRow, yearlyTargetRow);
 };
 const buildMonthlyTrend = (context, year) => monthList.map((month) => {
-  const rows = context.employees.map((employee) => applyTargets(employee, context, year, month));
-  const target = rows.reduce((sum, row) => sum + num(row.monthlyTarget), 0);
-  const achieved = rows.reduce((sum, row) => sum + num(row.monthlyAchieved), 0);
+  const monthlyTargetRows = context.targets.filter((row) => row.isActive && text(row.targetType) === 'monthly' && Number(row.targetYear) === Number(year) && Number(row.targetMonth) === Number(month));
+  const monthlyRecords = context.records.filter((record) => matchesDate(record.date, year, month));
+  const monthlyInvoices = monthlyRecords.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
+  const monthlyQuotations = monthlyRecords.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
+  const monthlyPayments = monthlyRecords.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
+  const target = monthlyTargetRows.reduce((sum, row) => sum + num(row.revenueTarget), 0);
+  const achieved = monthlyInvoices || monthlyQuotations || monthlyPayments;
   return { month, label: monthLabel(month), target, achieved, achievementPercent: percent(achieved, target) };
 });
 const buildYearMatrix = (context, years = []) => years.map((year) => ({
