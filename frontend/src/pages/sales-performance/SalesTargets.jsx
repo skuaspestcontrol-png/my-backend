@@ -277,9 +277,9 @@ export default function SalesTargets() {
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : safeRows(targets).length ? (
           <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table className="table-clean sales-targets-table" style={tableStyle}>
+            <table className="table-clean sales-targets-table sales-performance-table" style={tableStyle}>
               <colgroup>
-                <col style={{ width: '170px' }} />
+                <col style={{ width: '190px' }} />
                 <col style={{ width: '110px' }} />
                 <col style={{ width: '110px' }} />
                 <col style={{ width: '90px' }} />
@@ -295,7 +295,7 @@ export default function SalesTargets() {
               </colgroup>
               <thead>
                 <tr>
-                  <th className="table-header-cell table-text-cell table-sticky-first" style={headerStyle}><span style={firstHeaderLabelStyle}>Sales Person</span></th>
+                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headerStyle}><span style={firstHeaderLabelStyle}>Sales Person</span></th>
                   <th className="table-header-cell table-status-cell" style={headerStyle}><span style={headerLabelStyle}>Type</span></th>
                   <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Month</span></th>
                   <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Year</span></th>
@@ -313,7 +313,7 @@ export default function SalesTargets() {
               <tbody>
                 {targets.map((row) => (
                   <tr key={row.id} style={{ height: 48 }}>
-                    <td className="table-name-cell table-sticky-first" style={{ ...nameCellStyle, background: '#fff' }}>{displaySalesPersonName(row)}</td>
+                    <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...nameCellStyle, background: '#fff' }}>{displaySalesPersonName(row)}</td>
                     <td className="table-status-cell" style={cellStyle}>
                       <StatusBadge status={row.targetType === 'yearly' ? 'info' : 'active'}>
                         {row.targetType}

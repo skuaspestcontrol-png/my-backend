@@ -69,6 +69,26 @@
   overflow-y: visible;
 }
 
+.sales-performance-page .sales-performance-table .sticky-sales-person {
+  position: sticky !important;
+  left: 0 !important;
+  min-width: 190px !important;
+  width: 190px !important;
+  white-space: nowrap !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.25) !important;
+  box-shadow: 8px 0 12px rgba(15, 23, 42, 0.06) !important;
+}
+
+.sales-performance-page .sales-performance-table thead .sticky-sales-person {
+  z-index: 4 !important;
+  background: #f8fafc !important;
+}
+
+.sales-performance-page .sales-performance-table tbody .sticky-sales-person {
+  z-index: 3 !important;
+  background: #fff !important;
+}
+
 .sales-dashboard-page .sales-matrix-scroll table {
   min-width: 1180px;
 }

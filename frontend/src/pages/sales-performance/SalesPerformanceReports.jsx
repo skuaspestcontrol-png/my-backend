@@ -367,9 +367,9 @@ export default function SalesPerformanceReports() {
             {rows.length ? (
               <div className="table-scroll-x sales-report-table-scroll" style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
-                <table className="table-clean sales-performance-report-table" style={tableStyle}>
+                <table className="table-clean sales-performance-report-table sales-performance-table" style={tableStyle}>
                   <colgroup>
-                    <col style={{ width: '180px' }} />
+                    <col style={{ width: '190px' }} />
                     <col style={{ width: '135px' }} />
                     <col style={{ width: '135px' }} />
                     <col style={{ width: '95px' }} />
@@ -389,7 +389,7 @@ export default function SalesPerformanceReports() {
                   </colgroup>
                   <thead>
                     <tr>
-                      <th className="table-header-cell table-text-cell table-sticky-first" style={firstHeadCellStyle}>Sales Person</th>
+                      <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={firstHeadCellStyle}>Sales Person</th>
                       <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Target</th>
                       <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Achieved</th>
                       <th className="table-header-cell table-percent-cell" style={headCellStyle}>Monthly %</th>
@@ -411,7 +411,7 @@ export default function SalesPerformanceReports() {
                   <tbody>
                     {rows.map((row) => (
                       <tr key={`${row.employeeId}-${row.year}-${row.month}`} style={{ height: viewportWidth <= 640 ? 46 : 50 }}>
-                        <td className="table-name-cell table-sticky-first" style={{ ...bodyCellStyle, background: '#fff' }}>{row.employeeName}</td>
+                        <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...bodyCellStyle, background: '#fff' }}>{row.employeeName}</td>
                         <td className="table-number-cell" style={bodyCellStyle}>{money(row.monthlyTarget)}</td>
                         <td className="table-number-cell" style={bodyCellStyle}>
                           <span style={{ color: metricColor(row.monthlyAchieved, row.monthlyTarget), fontWeight: 700 }}>
