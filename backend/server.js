@@ -1483,6 +1483,84 @@ const createNextJobNumber = (jobs, settings) => {
   return `${prefix}${String(next).padStart(padding, '0')}`;
 };
 
+const extractJobCardSequence = (jobCardNumber, year) => {
+  const raw = String(jobCardNumber || '').trim();
+  if (!raw) return null;
+  const yearPart = String(year || '').trim();
+  const match = raw.match(/^JOB-(\d{4})\/(\d+)$/i);
+  if (match) {
+    if (yearPart && match[1] !== yearPart) return null;
+    const seq = Number(match[2]);
+    return Number.isFinite(seq) ? seq : null;
+  }
+  if (yearPart && !raw.startsWith(`JOB-${yearPart}/`)) return null;
+  const suffix = raw.split('/').pop() || '';
+  const parsed = Number(String(suffix).match(/(\d+)$/)?.[1] || 0);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
+const createNextJobCardNumber = (jobs, serviceDate) => {
+  const resolvedDate = parseDateOnly(serviceDate) || new Date();
+  const year = String(resolvedDate.getFullYear());
+  const configuredStart = 1000001;
+  const max = (Array.isArray(jobs) ? jobs : []).reduce((acc, job) => {
+    const seq = extractJobCardSequence(job?.jobCardNumber || job?.job_card_number || job?.jobNumber || job?.job_number, year);
+    if (!Number.isFinite(seq)) return acc;
+    return Math.max(acc, seq);
+  }, 0);
+  const next = Math.max(configuredStart, max + 1);
+  return `JOB-${year}/${String(next).padStart(9, '0')}`;
+};
+
+const resolveJobCardNumberForPdf = (job = {}, jobs = []) => {
+  const existing = String(job.jobCardNumber || job.job_card_number || '').trim();
+  if (existing) return existing;
+  const jobNumber = String(job.jobNumber || job.job_number || '').trim();
+  if (/^JOB-\d{4}\/\d+$/i.test(jobNumber)) return jobNumber;
+  return createNextJobCardNumber(jobs, job.scheduledDate || job.serviceDate || job.createdAt || new Date());
+};
+
+const formatPdfDateTime = (value) => {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    const raw = String(value || '').trim();
+    return raw || '-';
+  }
+  return parsed.toLocaleString('en-IN');
+};
+
+const pdfValue = (value) => {
+  const text = String(value ?? '').trim();
+  return text || '-';
+};
+
+const joinPdfAddress = (...parts) => {
+  const text = parts.flatMap((part) => String(part || '').split(',')).map((part) => String(part || '').trim()).filter(Boolean).join(', ');
+  return text || '-';
+};
+
+const normalizePdfChemicalRows = (rows = []) => (Array.isArray(rows) ? rows : []).map((row) => ({
+  materialName: String(row?.material_name || row?.materialName || row?.chemicalName || row?.name || row?.itemName || '').trim(),
+  quantityUsed: String(row?.quantity_used ?? row?.quantityUsed ?? row?.quantity ?? '').trim(),
+  unit: String(row?.unit || row?.measurementUnit || '').trim(),
+  dilutionRatio: String(row?.dilution_ratio ?? row?.dilutionRatio ?? row?.ratio ?? '').trim(),
+  areaTreated: String(row?.area_treated ?? row?.areaTreated ?? row?.area ?? '').trim()
+})).filter((row) => row.materialName || row.quantityUsed || row.unit || row.dilutionRatio || row.areaTreated);
+
+const normalizePdfChemicalRowsFromJob = (job = {}) => normalizePdfChemicalRows(parseJobChemicals(job));
+
+const resolveJobServiceNameList = (job = {}) => {
+  const raw = [
+    job.serviceName,
+    job.service_type,
+    job.serviceType,
+    job.serviceInstructions,
+    job.service_name
+  ].map((value) => String(value || '').trim()).filter(Boolean);
+  return Array.from(new Set(raw)).join(', ') || '-';
+};
+
 const createJobId = () => {
   const stamp = Date.now().toString(36);
   const randomPart = Math.random().toString(36).slice(2, 10);
@@ -1507,6 +1585,92 @@ const updateSettingsNextJobNumber = async (usedJobNumber, settings) => {
     }
   } catch (error) {
     console.error('Failed to update next job number settings:', error.message);
+  }
+};
+
+const ensureServiceMaterialUsageTable = async (conn) => {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS service_material_usage (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      service_visit_id VARCHAR(80) NOT NULL,
+      material_name VARCHAR(255) NULL,
+      quantity_used DECIMAL(12,2) NULL,
+      unit VARCHAR(50) NULL,
+      dilution_ratio VARCHAR(100) NULL,
+      area_treated TEXT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_service_material_usage_visit (service_visit_id),
+      KEY idx_service_material_usage_material (material_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await ensureColumnsIfMissing(conn, 'service_material_usage', [
+    { name: 'service_visit_id', definition: 'VARCHAR(80) NOT NULL' },
+    { name: 'material_name', definition: 'VARCHAR(255) NULL' },
+    { name: 'quantity_used', definition: 'DECIMAL(12,2) NULL' },
+    { name: 'unit', definition: 'VARCHAR(50) NULL' },
+    { name: 'dilution_ratio', definition: 'VARCHAR(100) NULL' },
+    { name: 'area_treated', definition: 'TEXT NULL' }
+  ]);
+};
+
+const syncServiceMaterialUsageToMysql = async (job = {}) => {
+  const visitId = String(job?._id || '').trim();
+  if (!visitId || !canUseMysql()) return;
+  const rows = normalizePdfChemicalRowsFromJob(job);
+  await withMysqlConnection(async (conn) => {
+    await ensureServiceMaterialUsageTable(conn);
+    await conn.query('DELETE FROM service_material_usage WHERE service_visit_id = ?', [visitId]);
+    for (const row of rows) {
+      await conn.query(
+        `INSERT INTO service_material_usage (
+          service_visit_id, material_name, quantity_used, unit, dilution_ratio, area_treated
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          visitId,
+          row.materialName || null,
+          row.quantityUsed ? Number(row.quantityUsed) : null,
+          row.unit || null,
+          row.dilutionRatio || null,
+          row.areaTreated || null
+        ]
+      );
+    }
+  });
+};
+
+const loadServiceMaterialUsageMap = async (visitIds = []) => {
+  const ids = Array.from(new Set((Array.isArray(visitIds) ? visitIds : []).map((value) => String(value || '').trim()).filter(Boolean)));
+  const emptyMap = new Map(ids.map((id) => [id, []]));
+  if (!canUseMysql() || ids.length === 0) return emptyMap;
+  try {
+    return await withMysqlConnection(async (conn) => {
+      await ensureServiceMaterialUsageTable(conn);
+      const placeholders = ids.map(() => '?').join(', ');
+      const [rows] = await conn.query(
+        `SELECT service_visit_id, material_name, quantity_used, unit, dilution_ratio, area_treated
+         FROM service_material_usage
+         WHERE service_visit_id IN (${placeholders})
+         ORDER BY id ASC`,
+        ids
+      );
+      const grouped = new Map(ids.map((id) => [id, []]));
+      (Array.isArray(rows) ? rows : []).forEach((row) => {
+        const visitId = String(row.service_visit_id || '').trim();
+        if (!grouped.has(visitId)) grouped.set(visitId, []);
+        grouped.get(visitId).push({
+          materialName: String(row.material_name || '').trim(),
+          quantityUsed: row.quantity_used === null || row.quantity_used === undefined ? '' : String(row.quantity_used),
+          unit: String(row.unit || '').trim(),
+          dilutionRatio: String(row.dilution_ratio || '').trim(),
+          areaTreated: String(row.area_treated || '').trim()
+        });
+      });
+      return grouped;
+    });
+  } catch (error) {
+    console.error('Failed to load service material usage from MySQL, using job payload:', error.message);
+    return emptyMap;
   }
 };
 
@@ -1645,7 +1809,11 @@ const normalizeJobPdfSettings = (settings = {}, req = null) => ({
   logoUrl: rewriteLocalhostLogoUrl(settings.logoUrl, req)
 });
 
-const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
+const renderJobCardHeader = (doc, settings = {}, title = 'JOB CARD', options = {}) => {
+  const {
+    prefix = 'JOB PDF',
+    logLogo = true
+  } = options;
   const gstBrandingLogo = resolveGstCompanyLogoPath(settings);
   const logoSource = String(
     gstBrandingLogo.value
@@ -1661,19 +1829,14 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   ).trim();
   const logoFilesystemPath = resolveJobPdfLogoFilesystemPath(logoSource);
   const logoExists = Boolean(logoFilesystemPath && fs.existsSync(logoFilesystemPath));
-  console.log('JOB PDF GST branding logo:', gstBrandingLogo);
-  console.log('JOB PDF logo filesystem path:', logoFilesystemPath);
-  console.log('JOB PDF logo exists:', logoExists);
-  if (logoSource && !logoExists) {
-    console.error('Job PDF logo file missing from persistent uploads root. Re-upload GST Company Branding logo or copy file to uploads root.');
+  if (logLogo) {
+    console.log(`${prefix} GST branding logo:`, gstBrandingLogo);
+    console.log(`${prefix} logo filesystem path:`, logoFilesystemPath);
+    console.log(`${prefix} logo exists:`, logoExists);
+    if (logoSource && !logoExists) {
+      console.error('Job PDF logo file missing from persistent uploads root. Re-upload GST Company Branding logo or copy file to uploads root.');
+    }
   }
-
-  return new Promise((resolve, reject) => {
-  const doc = new PDFDocument({ size: 'A4', margin: 42 });
-  const chunks = [];
-  doc.on('data', (chunk) => chunks.push(chunk));
-  doc.on('end', () => resolve(Buffer.concat(chunks)));
-  doc.on('error', reject);
 
   const companyName = String(settings.gstCompanyName || settings.companyName || '').trim() || 'SKUAS Pest Control Private Limited';
   const companyAddress = String(settings.gstBillingAddress || settings.companyAddress || '').trim();
@@ -1712,18 +1875,19 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
 
   if (logoExists) {
-    console.log('JOB PDF logo rendered:', false);
-    console.log('JOB PDF logoRenderBox:', { x: logoX, y: logoY, width: logoWidth, height: logoHeight });
+    if (logLogo) {
+      console.log(`${prefix} logo rendered:`, false);
+      console.log(`${prefix} logoRenderBox:`, { x: logoX, y: logoY, width: logoWidth, height: logoHeight });
+    }
     try {
       doc.image(logoFilesystemPath, logoX, logoY, {
         fit: [400, 160],
         align: 'left',
         valign: 'center'
       });
-      console.log('JOB PDF logo rendered:', true);
+      if (logLogo) console.log(`${prefix} logo rendered:`, true);
     } catch (_error) {
-      console.log('JOB PDF logo rendered:', false);
-      // ignore logo load errors and continue
+      if (logLogo) console.log(`${prefix} logo rendered:`, false);
     }
   }
 
@@ -1735,160 +1899,402 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null }) => {
   });
 
   doc.y = 145;
-  doc
-    .font('Helvetica-Bold')
-    .fontSize(16)
-    .fillColor(maroonColor)
-    .text('Job Completion Card', left, doc.y, { width, align: 'center' });
+  doc.font('Helvetica-Bold').fontSize(16).fillColor(maroonColor).text(title, left, doc.y, { width, align: 'center' });
 
-  const fields = [
-    ['Job Number', String(job.jobNumber || '').trim() || '-'],
-    ['Completion Card', String(job.completionCardNumber || '').trim() || '-'],
-    ['Job Status', String(job.status || '').trim() || '-'],
-    ['Customer', String(job.customerName || '').trim() || '-'],
-    ['Mobile', String(job.mobileNumber || '').trim() || '-'],
-    ['Address', [job.address, job.areaName, job.city, job.state, job.pincode].map((v) => String(v || '').trim()).filter(Boolean).join(', ') || '-'],
-    ['Service', String(job.serviceName || job.serviceInstructions || '').trim() || '-'],
-    ['Visit', String(job.scheduleVisit || '').trim() || '-'],
-    ['Scheduled Date', String(job.scheduledDate || '').trim() || '-'],
-    ['Scheduled Time', String(job.scheduledTime || '').trim() || '-'],
-    ['Technician', String(job.technicianName || '').trim() || '-'],
-    ['Technician Mobile', String(job.technicianMobile || '').trim() || '-'],
-    ['Punch In', String(job.punchInTime || '').trim() || '-'],
-    ['Punch Out', String(job.punchOutTime || '').trim() || '-'],
-    ['Completed At', String(job.completionCardGeneratedAt || '').trim() || '-']
-  ];
+  return { left, right, width, maroonColor, bodyTop: 175, headerTopY, headerX, headerWidth, logoExists, logoFilesystemPath };
+};
 
-  const fieldTopY = doc.y + 14;
-  const colGap = 14;
-  const colWidth = (width - colGap) / 2;
-  const leftColX = left;
-  const rightColX = left + colWidth + colGap;
-  const rowHeight = 34;
-  const labelHeight = 10;
-  const valueHeight = 14;
-  const fullRowHeight = 52;
-  const renderPair = (y, leftField, rightField) => {
-    const renderBox = (x, label, value) => {
-      doc.roundedRect(x, y, colWidth, rowHeight, 8).lineWidth(0.8).strokeColor('#e2e8f0').stroke();
-      doc.font('Helvetica-Bold').fontSize(8.2).fillColor(maroonColor).text(label, x + 10, y + 8, { width: colWidth - 20, lineBreak: false });
-      doc.font('Helvetica').fontSize(10.1).fillColor('#0f172a').text(value, x + 10, y + 18, { width: colWidth - 20, lineBreak: false });
+const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs = [] }) => {
+  return new Promise(async (resolve, reject) => {
+  const doc = new PDFDocument({ size: 'A4', margin: 42 });
+  const chunks = [];
+  doc.on('data', (chunk) => chunks.push(chunk));
+  doc.on('end', () => resolve(Buffer.concat(chunks)));
+  doc.on('error', reject);
+  try {
+  const header = renderJobCardHeader(doc, settings, 'SERVICE JOB CARD', { prefix: 'JOB PDF', logLogo: true });
+  const jobCardNumber = resolveJobCardNumberForPdf(job, allJobs);
+  const serviceStart = pdfValue(formatPdfDateTime(job.serviceStartTime || job.service_start_time || job.punchInTime));
+  const serviceEnd = pdfValue(formatPdfDateTime(job.serviceEndTime || job.service_end_time || job.punchOutTime));
+  const technicianName = pdfValue(job.technicianName || job.assignedTo || job.employeeName);
+  const serviceName = pdfValue(job.serviceName || job.service_type || job.serviceType || job.serviceInstructions);
+  const materialRowsMap = await loadServiceMaterialUsageMap([job._id]);
+  const materialRows = normalizePdfChemicalRows(materialRowsMap.get(String(job._id || '').trim()) || []);
+  const resolvedMaterialRows = materialRows.length > 0 ? materialRows : normalizePdfChemicalRowsFromJob(job);
+  const rodentService = /rodent/i.test(String(serviceName || ''));
+  const signatureBuffer = await loadJobPdfLogoBuffer(job.customerSignature || job.customer_signature || job.customer_signature_url || '');
+  const technicianSignatureBuffer = await loadJobPdfLogoBuffer(job.technicianSignature || job.technician_signature || '');
+
+  const sections = [];
+  const pushField = (label, value, widthHint = 'half') => sections.push({ label, value: pdfValue(value), widthHint });
+
+  pushField('Job Number', jobCardNumber);
+  pushField('Service Date', formatPdfDate(job.scheduledDate || job.serviceDate || job.createdAt));
+  pushField('Service Start Time', serviceStart);
+  pushField('Service End Time', serviceEnd);
+  pushField('Customer Name', job.customerName);
+  pushField('Address', joinPdfAddress(job.shippingAddress, job.serviceAddress, job.premiseAddress, job.address, job.areaName, job.city, job.state, job.pincode), 'full');
+  pushField('Mobile Number', job.mobileNumber || job.mobile || job.phone);
+  pushField('Service Name', serviceName);
+  pushField('Contract Number', job.contractNumber || job.invoiceNumber || job.contractId || job.invoiceId);
+  pushField('Contract Start Date', formatPdfDate(job.contractStartDate || job.serviceStartDate));
+  pushField('Contract End Date', formatPdfDate(job.contractEndDate || job.serviceEndDate));
+  pushField('Technician Name', technicianName);
+  pushField('Pest Infestation Level', job.infestationLevel || job.infestation_level || '-');
+
+  const renderSectionTitle = (y, text) => {
+    doc.font('Helvetica-Bold').fontSize(11).fillColor('#9F174D').text(text, header.left, y, { width: header.width, align: 'left' });
+    return y + 15;
+  };
+
+  const renderCardPair = (y, items) => {
+    const gap = 12;
+    const cardWidth = (header.width - gap) / 2;
+    const renderCard = (x, item, height = 44) => {
+      if (!item) return;
+      doc.roundedRect(x, y, item.widthHint === 'full' ? header.width : cardWidth, height, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
+      doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text(item.label, x + 10, y + 7, { width: (item.widthHint === 'full' ? header.width : cardWidth) - 20 });
+      doc.font('Helvetica').fontSize(9.8).fillColor('#0F172A').text(item.value, x + 10, y + 20, { width: (item.widthHint === 'full' ? header.width : cardWidth) - 20 });
     };
-    if (leftField) renderBox(leftColX, leftField[0], leftField[1]);
-    if (rightField) renderBox(rightColX, rightField[0], rightField[1]);
-  };
-  const renderFullRow = (y, label, value) => {
-    doc.roundedRect(left, y, width, fullRowHeight, 8).lineWidth(0.8).strokeColor('#e2e8f0').stroke();
-    doc.font('Helvetica-Bold').fontSize(8.2).fillColor(maroonColor).text(label, left + 10, y + 8, { width: width - 20, lineBreak: false });
-    doc.font('Helvetica').fontSize(9.8).fillColor('#0f172a').text(value, left + 10, y + 19, { width: width - 20 });
+    const leftItem = items[0];
+    const rightItem = items[1];
+    if (leftItem?.widthHint === 'full') {
+      renderCard(header.left, leftItem, 48);
+      return y + 56;
+    }
+    renderCard(header.left, leftItem);
+    renderCard(header.left + ((header.width - gap) / 2) + gap, rightItem);
+    return y + 52;
   };
 
-  let y = fieldTopY;
-  const pageBottomLimit = doc.page.height - doc.page.margins.bottom - 42;
-  for (let i = 0; i < fields.length; i += 2) {
-    const leftField = fields[i];
-    const rightField = fields[i + 1];
-    const needsFullRow = leftField?.[0] === 'Address' || leftField?.[0] === 'Service' || rightField?.[0] === 'Address' || rightField?.[0] === 'Service';
-    if (needsFullRow) {
-      if (y + fullRowHeight > pageBottomLimit) {
-        doc.addPage();
-        y = 48;
-      }
-      if (leftField?.[0] === 'Address') {
-        renderFullRow(y, leftField[0], leftField[1]);
-        y += fullRowHeight + 8;
-        if (rightField) {
-          if (y + fullRowHeight > pageBottomLimit) {
-            doc.addPage();
-            y = 48;
-          }
-          renderFullRow(y, rightField[0], rightField[1]);
-          y += fullRowHeight + 8;
-        }
-      } else if (leftField?.[0] === 'Service') {
-        renderFullRow(y, leftField[0], leftField[1]);
-        y += fullRowHeight + 8;
-        if (rightField) {
-          if (y + fullRowHeight > pageBottomLimit) {
-            doc.addPage();
-            y = 48;
-          }
-          renderFullRow(y, rightField[0], rightField[1]);
-          y += fullRowHeight + 8;
-        }
-      } else {
-        if (rightField?.[0] === 'Address' || rightField?.[0] === 'Service') {
-          renderFullRow(y, rightField[0], rightField[1]);
-          y += fullRowHeight + 8;
-          if (leftField) {
-            if (y + fullRowHeight > pageBottomLimit) {
-              doc.addPage();
-              y = 48;
-            }
-            renderFullRow(y, leftField[0], leftField[1]);
-            y += fullRowHeight + 8;
-          }
-        }
-      }
+  const renderFullCard = (y, item, height = 56) => {
+    doc.roundedRect(header.left, y, header.width, height, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
+    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text(item.label, header.left + 10, y + 7, { width: header.width - 20 });
+    doc.font('Helvetica').fontSize(9.6).fillColor('#0F172A').text(item.value, header.left + 10, y + 20, { width: header.width - 20 });
+    return y + height + 8;
+  };
+
+  let y = header.bodyTop;
+  y = renderSectionTitle(y, 'Visit Details');
+  for (let i = 0; i < sections.length; i += 2) {
+    const leftItem = sections[i];
+    const rightItem = sections[i + 1];
+    if (!leftItem) break;
+    if (leftItem.widthHint === 'full') {
+      y = renderFullCard(y, leftItem, 56);
       continue;
     }
-    if (y + rowHeight > pageBottomLimit) {
-      doc.addPage();
-      y = 48;
+    if (rightItem?.widthHint === 'full') {
+      y = renderFullCard(y, leftItem, 48);
+      y = renderFullCard(y, rightItem, 56);
+      continue;
     }
-    renderPair(y, leftField, rightField);
-    y += rowHeight + 8;
+    y = renderCardPair(y, [leftItem, rightItem]);
   }
 
+  if (job.customerObservation || job.customer_observation || job.technicianRemarks || job.reviewRemarks || job.remarks) {
+    y += 4;
+    y = renderSectionTitle(y, 'Observations & Remarks');
+    const obsCards = [
+      ['Customer Complaint / Observation', job.customerObservation || job.customer_observation || '-'],
+      ['Technician Remarks', job.technicianRemarks || job.reviewRemarks || job.remarks || '-']
+    ];
+    y = renderCardPair(y, obsCards.map(([label, value]) => ({ label, value })));
+  }
+
+  if (rodentService) {
+    y += 4;
+    y = renderSectionTitle(y, 'Rodent Control');
+    const rodentCards = [
+      ['Rat Count', pdfValue(job.ratCount ?? job.rat_count ?? '-')],
+      ['Rodent Box Count', pdfValue(job.rodentBoxCount ?? job.rodent_box_count ?? '-')],
+      ['Rodent Box Location', pdfValue(job.rodentBoxLocation || job.rodent_box_location || '-')],
+      ['Bait Used', pdfValue(job.baitUsed || job.bait_used || '-')],
+      ['Observation', pdfValue(job.observation || job.rodentObservation || '-')],
+      ['Recommendation', pdfValue(job.recommendation || job.technicianRecommendation || '-')],
+    ];
+    for (let i = 0; i < rodentCards.length; i += 2) {
+      y = renderCardPair(y, rodentCards.slice(i, i + 2).map(([label, value]) => ({ label, value })));
+    }
+  }
+
+  if (resolvedMaterialRows.length > 0) {
+    y += 4;
+    y = renderSectionTitle(y, 'Material / Chemical Used');
+    const tableX = header.left;
+    const tableW = header.width;
+    const cols = [
+      { label: 'Material / Chemical Name', width: 170 },
+      { label: 'Quantity Used', width: 68 },
+      { label: 'Unit', width: 46 },
+      { label: 'Dilution Ratio', width: 88 },
+      { label: 'Area Treated', width: tableW - 372 }
+    ];
+    const drawMaterialHeader = (rowY) => {
+      let cursor = tableX;
+      doc.font('Helvetica-Bold').fontSize(7.8).fillColor('#9F174D');
+      cols.forEach((col) => {
+        doc.roundedRect(cursor, rowY, col.width, 20, 4).lineWidth(0.6).strokeColor('#E2E8F0').stroke();
+        doc.text(col.label, cursor + 4, rowY + 5, { width: col.width - 8, align: 'left' });
+        cursor += col.width;
+      });
+    };
+    const drawMaterialRow = (rowY, row) => {
+      const values = [
+        row.materialName,
+        row.quantityUsed,
+        row.unit,
+        row.dilutionRatio,
+        row.areaTreated
+      ];
+      const heights = values.map((value, index) => doc.heightOfString(pdfValue(value), { width: cols[index].width - 8, align: 'left' }));
+      const rowHeight = Math.max(24, Math.max(...heights) + 10);
+      let cursor = tableX;
+      doc.font('Helvetica').fontSize(8.1).fillColor('#0F172A');
+      values.forEach((value, index) => {
+        const col = cols[index];
+        doc.roundedRect(cursor, rowY, col.width, rowHeight, 4).lineWidth(0.6).strokeColor('#E2E8F0').stroke();
+        doc.text(pdfValue(value), cursor + 4, rowY + 5, { width: col.width - 8, align: 'left' });
+        cursor += col.width;
+      });
+      return rowHeight;
+    };
+    drawMaterialHeader(y);
+    y += 22;
+    resolvedMaterialRows.forEach((row) => {
+      const rowHeight = drawMaterialRow(y, row);
+      y += rowHeight;
+    });
+  }
+
+  y += 8;
+  y = renderSectionTitle(y, 'Signatures');
+  const sigBoxHeight = 92;
+  const sigGap = 12;
+  const sigBoxWidth = (header.width - sigGap) / 2;
+  const renderSignatureBox = (x, label, buffer) => {
+    doc.roundedRect(x, y, sigBoxWidth, sigBoxHeight, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#9F174D').text(label, x + 10, y + 8, { width: sigBoxWidth - 20 });
+    if (buffer) {
+      try {
+        doc.image(buffer, x + 10, y + 24, { fit: [sigBoxWidth - 20, 48], align: 'center', valign: 'center' });
+      } catch (_error) {
+        doc.font('Helvetica').fontSize(8.8).fillColor('#64748B').text('-', x + 10, y + 40, { width: sigBoxWidth - 20, align: 'center' });
+      }
+    } else {
+      doc.font('Helvetica').fontSize(8.8).fillColor('#64748B').text('-', x + 10, y + 40, { width: sigBoxWidth - 20, align: 'center' });
+    }
+  };
+  renderSignatureBox(header.left, 'Customer Signature', signatureBuffer);
+  renderSignatureBox(header.left + sigBoxWidth + sigGap, 'Technician Signature', technicianSignatureBuffer);
+
+  y += sigBoxHeight + 14;
+  doc.font('Helvetica').fontSize(8.4).fillColor('#64748B').text(`Generated by SKUAS CRM`, header.left, y, { width: header.width, align: 'left' });
+  doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, header.left, doc.y + 2, { width: header.width, align: 'left' });
+
   doc.end();
+  } catch (error) {
+    reject(error);
+  }
   });
 };
 
-const buildContractJobCardPdfBuffer = ({ invoice = {}, jobs = [], settings = {} }) => new Promise((resolve, reject) => {
+const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], settings = {} }) => {
+  const doc = new PDFDocument({ size: 'A4', margin: 42 });
+  const chunks = [];
+  return new Promise(async (resolve, reject) => {
   try {
-    const doc = new PDFDocument({ size: 'A4', margin: 36 });
-    const chunks = [];
     doc.on('data', (chunk) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
+    const header = renderJobCardHeader(doc, settings, 'CONTRACT SERVICE HISTORY / JOB CARD SUMMARY', { prefix: 'CONTRACT JOB PDF', logLogo: false });
+    const completedJobs = (Array.isArray(jobs) ? jobs : []).filter((job) => String(job?.status || '').trim().toLowerCase() === 'completed');
+    const contractWindow = deriveInvoiceContractWindow(invoice);
+    const uniqueServiceNames = Array.from(new Set(completedJobs.map((job) => String(job.serviceName || job.service_type || job.serviceType || '').trim()).filter(Boolean))).join(', ') || contractWindow.serviceType || '-';
+    const scheduledServices = buildServiceScheduleEntries(invoice);
+    const totalScheduled = scheduledServices.length > 0 ? scheduledServices.length : (Array.isArray(invoice?.items) ? invoice.items.reduce((sum, line) => sum + Math.max(0, Number(line?.totalServices || 0)), 0) : 0);
+    const totalCompleted = completedJobs.length;
+    const pendingServices = Math.max(totalScheduled - totalCompleted, 0);
+    const mobileNumber = String(invoice.mobileNumber || invoice.mobile || invoice.whatsappNumber || '').trim() || (completedJobs[0] ? String(completedJobs[0].mobileNumber || completedJobs[0].mobile || completedJobs[0].phone || '').trim() : '');
+    const address = joinPdfAddress(invoice.shippingAddress, invoice.serviceAddress, invoice.billingAddress, completedJobs[0]?.address, completedJobs[0]?.premiseAddress, completedJobs[0]?.areaName, completedJobs[0]?.city, completedJobs[0]?.state, completedJobs[0]?.pincode);
+    const serviceMaterialMap = await loadServiceMaterialUsageMap(completedJobs.map((job) => job._id));
+    const getMaterialsForJob = (job) => {
+      const fromTable = serviceMaterialMap.get(String(job._id || '').trim()) || [];
+      const tableRows = normalizePdfChemicalRows(fromTable);
+      return tableRows.length > 0 ? tableRows : normalizePdfChemicalRowsFromJob(job);
+    };
+    const signatureBufferForJob = async (job) => loadJobPdfLogoBuffer(job.customerSignature || job.customer_signature || job.customer_signature_url || '');
+    const technicianSignatureBufferForJob = async (job) => loadJobPdfLogoBuffer(job.technicianSignature || job.technician_signature || '');
 
-    doc.fontSize(18).fillColor('#111827').text(String(settings.companyName || 'Service Team').trim() || 'Service Team', { align: 'left' });
-    doc.moveDown(0.2);
-    doc.fontSize(11).fillColor('#334155').text('Contract Job Card');
-    doc.moveDown(0.6);
-    doc.fontSize(10).fillColor('#1f2937').text(`Contract #: ${invoice.invoiceNumber || '-'}`);
-    doc.text(`Customer: ${invoice.customerName || '-'}`);
-    doc.text(`Generated On: ${new Date().toLocaleString('en-IN')}`);
-    doc.moveDown(0.6);
+    const renderSectionTitle = (y, text) => {
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#9F174D').text(text, header.left, y, { width: header.width, align: 'left' });
+      return y + 15;
+    };
 
-    doc.fontSize(10).fillColor('#111827').text('Service Records', { underline: true });
-    doc.moveDown(0.4);
+    const renderCard = (y, label, value, width) => {
+      doc.roundedRect(header.left, y, width, 44, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
+      doc.font('Helvetica-Bold').fontSize(8.3).fillColor('#9F174D').text(label, header.left + 10, y + 7, { width: width - 20 });
+      doc.font('Helvetica').fontSize(9.5).fillColor('#0F172A').text(pdfValue(value), header.left + 10, y + 20, { width: width - 20 });
+      return y + 52;
+    };
 
-    if (jobs.length === 0) {
-      doc.fontSize(10).fillColor('#64748b').text('No service records found for this contract.');
-      doc.end();
-      return;
+    let y = header.bodyTop;
+    y = renderSectionTitle(y, 'Contract Overview');
+    const topCards = [
+      ['Contract Number', invoice.invoiceNumber || invoice.contractNumber || '-'],
+      ['Customer Name', invoice.customerName || completedJobs[0]?.customerName || '-'],
+      ['Address', address, 'full'],
+      ['Mobile Number', mobileNumber],
+      ['Service Name / Services', uniqueServiceNames],
+      ['Contract Start Date', formatPdfDate(contractWindow.contractStartDate || invoice.contractStartDate || invoice.servicePeriodStart)],
+      ['Contract End Date', formatPdfDate(contractWindow.contractEndDate || invoice.contractEndDate || invoice.servicePeriodEnd)],
+      ['Frequency', pdfValue(invoice.frequency || invoice.serviceFrequency || (scheduledServices.length > 1 ? `${scheduledServices.length} Visits` : '-'))],
+      ['Total Services Scheduled', pdfValue(totalScheduled)],
+      ['Total Services Completed', pdfValue(totalCompleted)],
+      ['Pending Services', pdfValue(pendingServices)]
+    ];
+    for (let i = 0; i < topCards.length; i += 2) {
+      const leftCard = topCards[i];
+      const rightCard = topCards[i + 1];
+      if (leftCard?.[2] === 'full') {
+        y = renderCard(y, leftCard[0], leftCard[1], header.width);
+        continue;
+      }
+      if (rightCard?.[2] === 'full') {
+        y = renderCard(y, leftCard[0], leftCard[1], (header.width - 12) / 2);
+        y = renderCard(y, rightCard[0], rightCard[1], header.width);
+        continue;
+      }
+      const gap = 12;
+      const cardWidth = (header.width - gap) / 2;
+      doc.roundedRect(header.left, y, cardWidth, 44, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
+      doc.font('Helvetica-Bold').fontSize(8.3).fillColor('#9F174D').text(leftCard[0], header.left + 10, y + 7, { width: cardWidth - 20 });
+      doc.font('Helvetica').fontSize(9.5).fillColor('#0F172A').text(pdfValue(leftCard[1]), header.left + 10, y + 20, { width: cardWidth - 20 });
+      if (rightCard) {
+        const rightX = header.left + cardWidth + gap;
+        doc.roundedRect(rightX, y, cardWidth, 44, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
+        doc.font('Helvetica-Bold').fontSize(8.3).fillColor('#9F174D').text(rightCard[0], rightX + 10, y + 7, { width: cardWidth - 20 });
+        doc.font('Helvetica').fontSize(9.5).fillColor('#0F172A').text(pdfValue(rightCard[1]), rightX + 10, y + 20, { width: cardWidth - 20 });
+      }
+      y += 52;
     }
 
-    jobs.forEach((job, index) => {
-      if (doc.y > 740) doc.addPage();
-      const row = [
-        `${index + 1}. ${job.serviceName || '-'}`,
-        `Visit: ${job.scheduleVisit || '-'}`,
-        `Date: ${formatDate(job.scheduledDate)}`,
-        `Time: ${job.scheduledTime || '-'}`,
-        `Technician: ${job.technicianName || '-'}`,
-        `Status: ${job.status || '-'}`
+    y += 6;
+    y = renderSectionTitle(y, 'Service History');
+    const tableX = header.left;
+    const tableW = header.width;
+    const cols = [
+      { key: 'visitNo', label: 'Visit No.', width: 28 },
+      { key: 'jobNumber', label: 'Job Number', width: 64 },
+      { key: 'serviceDate', label: 'Service Date', width: 42 },
+      { key: 'timeIn', label: 'Time In', width: 34 },
+      { key: 'timeOut', label: 'Time Out', width: 34 },
+      { key: 'technicianName', label: 'Technician Name', width: 56 },
+      { key: 'materialUsed', label: 'Material Used', width: 60 },
+      { key: 'infestationLevel', label: 'Infestation Level', width: 36 },
+      { key: 'remarks', label: 'Remarks / Observation', width: 100 },
+      { key: 'signatureStatus', label: 'Customer Signature', width: tableW - (28 + 64 + 42 + 34 + 34 + 56 + 60 + 36 + 100) }
+    ];
+    const drawTableHeader = (rowY) => {
+      let x = tableX;
+      doc.font('Helvetica-Bold').fontSize(7.4).fillColor('#9F174D');
+      cols.forEach((col) => {
+        doc.roundedRect(x, rowY, col.width, 20, 4).lineWidth(0.6).strokeColor('#E2E8F0').stroke();
+        doc.text(col.label, x + 3, rowY + 5, { width: col.width - 6, align: 'left' });
+        x += col.width;
+      });
+    };
+    const drawTableRow = (rowY, job, index) => {
+      const materials = getMaterialsForJob(job).map((row) => row.materialName).filter(Boolean).join(', ') || '-';
+      const values = [
+        String(job.scheduleVisit || index + 1 || '-'),
+        resolveJobCardNumberForPdf(job, completedJobs),
+        formatPdfDate(job.scheduledDate || job.serviceDate || job.createdAt),
+        formatPdfDateTime(job.serviceStartTime || job.service_start_time || job.punchInTime),
+        formatPdfDateTime(job.serviceEndTime || job.service_end_time || job.punchOutTime),
+        pdfValue(job.technicianName || job.assignedTo || '-'),
+        materials,
+        pdfValue(job.infestationLevel || job.infestation_level || '-'),
+        pdfValue(job.customerObservation || job.customer_observation || job.technicianRemarks || job.reviewRemarks || job.remarks || '-'),
+        job.customerSignature || job.customer_signature || job.customer_signature_url ? 'Signed' : '-'
       ];
-      doc.fontSize(10).fillColor('#1f2937').text(row.join(' | '), { width: 520 });
-      doc.moveDown(0.35);
-    });
+      const heights = values.map((value, idx) => doc.heightOfString(pdfValue(value), { width: cols[idx].width - 6 }));
+      const rowHeight = Math.max(24, Math.max(...heights) + 10);
+      let x = tableX;
+      doc.font('Helvetica').fontSize(7.6).fillColor('#0F172A');
+      values.forEach((value, idx) => {
+        const col = cols[idx];
+        doc.roundedRect(x, rowY, col.width, rowHeight, 4).lineWidth(0.6).strokeColor('#E2E8F0').stroke();
+        doc.text(pdfValue(value), x + 3, rowY + 5, { width: col.width - 6, align: 'left' });
+        x += col.width;
+      });
+      return rowHeight;
+    };
+    const pageBottom = doc.page.height - doc.page.margins.bottom - 40;
+    if (completedJobs.length === 0) {
+      doc.font('Helvetica').fontSize(9.8).fillColor('#64748B').text('No completed service visits found for this contract.', header.left, y + 4, { width: header.width });
+    } else {
+      drawTableHeader(y);
+      y += 22;
+      completedJobs.forEach((job, index) => {
+        const rowHeight = Math.max(24, doc.heightOfString(String(job.customerObservation || job.customer_observation || job.technicianRemarks || job.reviewRemarks || job.remarks || '-'), { width: 98 }) + 10);
+        if (y + rowHeight > pageBottom) {
+          doc.addPage();
+          y = 48;
+          drawTableHeader(y);
+          y += 22;
+        }
+        const actualHeight = drawTableRow(y, job, index);
+        y += actualHeight;
+      });
+    }
+
+    const hasProofRows = completedJobs.some((job) => (
+      Boolean(job.customerSignature || job.customer_signature || job.customer_signature_url)
+      || Boolean(job.technicianSignature || job.technician_signature)
+    ));
+
+    if (hasProofRows) {
+      y += 8;
+      y = renderSectionTitle(y, 'Signature Proof');
+      for (let index = 0; index < completedJobs.length; index += 1) {
+        const job = completedJobs[index];
+        const customerSig = await signatureBufferForJob(job);
+        const technicianSig = await technicianSignatureBufferForJob(job);
+        const proofHeight = 96;
+        if (y + proofHeight > pageBottom) {
+          doc.addPage();
+          y = 48;
+        }
+        doc.roundedRect(header.left, y, header.width, proofHeight, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
+        doc.font('Helvetica-Bold').fontSize(8.7).fillColor('#9F174D').text(`Visit Date: ${formatPdfDate(job.scheduledDate || job.serviceDate || job.createdAt)}`, header.left + 10, y + 8, { width: header.width - 20 });
+        const thumbWidth = (header.width - 30) / 2;
+        const renderThumb = (x, label, buffer) => {
+          doc.font('Helvetica-Bold').fontSize(8).fillColor('#334155').text(label, x, y + 24, { width: thumbWidth });
+          if (buffer) {
+            try {
+              doc.image(buffer, x, y + 38, { fit: [thumbWidth, 40], align: 'left', valign: 'center' });
+            } catch (_error) {
+              doc.font('Helvetica').fontSize(8).fillColor('#64748B').text('-', x, y + 52, { width: thumbWidth });
+            }
+          } else {
+            doc.font('Helvetica').fontSize(8).fillColor('#64748B').text('-', x, y + 52, { width: thumbWidth });
+          }
+        };
+        renderThumb(header.left + 10, 'Customer Signature', customerSig);
+        renderThumb(header.left + thumbWidth + 20, 'Technician Signature', technicianSig);
+        y += proofHeight + 10;
+      }
+    }
 
     doc.end();
   } catch (error) {
     reject(error);
   }
-});
+  });
+};
+
+const buildContractJobCardPdfBuffer = (...args) => buildContractJobCardSummaryPdfBuffer(...args);
 
 const allowedAttendanceStatus = new Set(['present', 'absent', 'leave', 'half-day', 'weekly-off']);
 const attendanceTimePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -3303,6 +3709,21 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
     { name: 'payload', definition: 'JSON NULL' }
   ]);
   await ensureColumnsIfMissing(conn, 'jobs', premiseSnapshotColumns);
+  await ensureColumnsIfMissing(conn, 'jobs', [
+    { name: 'job_card_number', definition: 'VARCHAR(50) NULL' },
+    { name: 'service_start_time', definition: 'DATETIME NULL' },
+    { name: 'service_end_time', definition: 'DATETIME NULL' },
+    { name: 'technician_remarks', definition: 'TEXT NULL' },
+    { name: 'customer_observation', definition: 'TEXT NULL' },
+    { name: 'infestation_level', definition: 'VARCHAR(30) NULL' },
+    { name: 'customer_signature', definition: 'LONGTEXT NULL' },
+    { name: 'technician_signature', definition: 'LONGTEXT NULL' },
+    { name: 'rat_count', definition: 'INT NULL' },
+    { name: 'rodent_box_count', definition: 'INT NULL' },
+    { name: 'rodent_box_location', definition: 'TEXT NULL' },
+    { name: 'bait_used', definition: 'VARCHAR(255) NULL' },
+    { name: 'recommendation', definition: 'TEXT NULL' }
+  ]);
   await ensureColumnsIfMissing(conn, 'invoices', premiseSnapshotColumns);
   await ensureColumnsIfMissing(conn, 'quotations', premiseSnapshotColumns);
   await ensureContractsTable(conn);
@@ -4903,15 +5324,39 @@ app.put('/api/jobs/:id', async (req, res) => {
         return res.status(404).json({ error: 'Job not found' });
       }
 
+      const nextStatus = String(req.body?.status || '').trim().toLowerCase();
+      const serviceStartTime = String(req.body?.serviceStartTime || mysqlJob.serviceStartTime || '').trim() || (nextStatus === 'in progress' ? toMysqlDateTime(new Date()) : String(mysqlJob.serviceStartTime || ''));
+      const serviceEndTime = String(req.body?.serviceEndTime || mysqlJob.serviceEndTime || '').trim() || (nextStatus === 'completed' ? toMysqlDateTime(new Date()) : String(mysqlJob.serviceEndTime || ''));
       const updatedJob = {
         ...mysqlJob,
         ...req.body,
+        chemicalsUsed: safeJsonArray(req.body?.chemicalsUsed ?? mysqlJob.chemicalsUsed ?? []),
+        checklistItems: safeJsonArray(req.body?.checklistItems ?? mysqlJob.checklistItems ?? []),
+        reviewRemarks: String(req.body?.reviewRemarks ?? req.body?.remarks ?? mysqlJob.reviewRemarks ?? '').trim(),
+        technicianRemarks: String(req.body?.technicianRemarks ?? req.body?.reviewRemarks ?? req.body?.remarks ?? mysqlJob.technicianRemarks ?? '').trim(),
+        customerObservation: String(req.body?.customerObservation ?? mysqlJob.customerObservation ?? '').trim(),
+        infestationLevel: String(req.body?.infestationLevel ?? mysqlJob.infestationLevel ?? '').trim(),
+        serviceStartTime,
+        serviceEndTime,
+        jobCardNumber: String(req.body?.jobCardNumber || mysqlJob.jobCardNumber || mysqlJob.job_card_number || '').trim(),
+        customerSignature: req.body?.customerSignature ?? mysqlJob.customerSignature ?? '',
+        technicianSignature: req.body?.technicianSignature ?? mysqlJob.technicianSignature ?? '',
+        ratCount: req.body?.ratCount ?? mysqlJob.ratCount ?? null,
+        rodentBoxCount: req.body?.rodentBoxCount ?? mysqlJob.rodentBoxCount ?? null,
+        rodentBoxLocation: String(req.body?.rodentBoxLocation ?? mysqlJob.rodentBoxLocation ?? '').trim(),
+        baitUsed: String(req.body?.baitUsed ?? mysqlJob.baitUsed ?? '').trim(),
+        recommendation: String(req.body?.recommendation ?? req.body?.technicianRecommendation ?? mysqlJob.recommendation ?? '').trim(),
         _id: mysqlJob._id
       };
-
-      const nextStatus = String(req.body?.status || '').trim().toLowerCase();
+      if (nextStatus === 'completed' && !String(updatedJob.jobCardNumber || '').trim()) {
+        const allJobsForCard = await loadJobsFromMysql();
+        updatedJob.jobCardNumber = createNextJobCardNumber(allJobsForCard.concat([updatedJob]), updatedJob.scheduledDate || updatedJob.serviceDate || updatedJob.createdAt || new Date());
+      }
 
       await syncJobToMysql(updatedJob);
+      await syncServiceMaterialUsageToMysql(updatedJob).catch((error) => {
+        console.error('Failed to sync service material usage on update:', error.message);
+      });
       if (nextStatus === 'completed') {
         const settings = await readSettingsFromMysql().catch(() => readSettings());
         await persistJobAutoCostItems({ job: updatedJob, settings }).catch((error) => {
@@ -4949,8 +5394,27 @@ app.put('/api/jobs/:id', async (req, res) => {
   const updatedJob = {
     ...jobs[jobIndex],
     ...req.body,
+    chemicalsUsed: safeJsonArray(req.body?.chemicalsUsed ?? jobs[jobIndex].chemicalsUsed ?? []),
+    checklistItems: safeJsonArray(req.body?.checklistItems ?? jobs[jobIndex].checklistItems ?? []),
+    reviewRemarks: String(req.body?.reviewRemarks ?? req.body?.remarks ?? jobs[jobIndex].reviewRemarks ?? '').trim(),
+    technicianRemarks: String(req.body?.technicianRemarks ?? req.body?.reviewRemarks ?? req.body?.remarks ?? jobs[jobIndex].technicianRemarks ?? '').trim(),
+    customerObservation: String(req.body?.customerObservation ?? jobs[jobIndex].customerObservation ?? '').trim(),
+    infestationLevel: String(req.body?.infestationLevel ?? jobs[jobIndex].infestationLevel ?? '').trim(),
+    serviceStartTime: String(req.body?.serviceStartTime || jobs[jobIndex].serviceStartTime || '').trim() || (nextStatus === 'in progress' ? toMysqlDateTime(new Date()) : String(jobs[jobIndex].serviceStartTime || '')),
+    serviceEndTime: String(req.body?.serviceEndTime || jobs[jobIndex].serviceEndTime || '').trim() || (nextStatus === 'completed' ? toMysqlDateTime(new Date()) : String(jobs[jobIndex].serviceEndTime || '')),
+    jobCardNumber: String(req.body?.jobCardNumber || jobs[jobIndex].jobCardNumber || jobs[jobIndex].job_card_number || '').trim(),
+    customerSignature: req.body?.customerSignature ?? jobs[jobIndex].customerSignature ?? '',
+    technicianSignature: req.body?.technicianSignature ?? jobs[jobIndex].technicianSignature ?? '',
+    ratCount: req.body?.ratCount ?? jobs[jobIndex].ratCount ?? null,
+    rodentBoxCount: req.body?.rodentBoxCount ?? jobs[jobIndex].rodentBoxCount ?? null,
+    rodentBoxLocation: String(req.body?.rodentBoxLocation ?? jobs[jobIndex].rodentBoxLocation ?? '').trim(),
+    baitUsed: String(req.body?.baitUsed ?? jobs[jobIndex].baitUsed ?? '').trim(),
+    recommendation: String(req.body?.recommendation ?? req.body?.technicianRecommendation ?? jobs[jobIndex].recommendation ?? '').trim(),
     _id: jobs[jobIndex]._id
   };
+  if (nextStatus === 'completed' && !String(updatedJob.jobCardNumber || '').trim()) {
+    updatedJob.jobCardNumber = createNextJobCardNumber(jobs.concat([updatedJob]), updatedJob.scheduledDate || updatedJob.serviceDate || updatedJob.createdAt || new Date());
+  }
 
   jobs[jobIndex] = updatedJob;
 
@@ -4991,6 +5455,9 @@ app.put('/api/jobs/:id', async (req, res) => {
 
   try {
     await syncJobToMysql(updatedJob);
+    await syncServiceMaterialUsageToMysql(updatedJob).catch((error) => {
+      console.error('Failed to sync service material usage on update:', error.message);
+    });
     if (nextStatus === 'completed') {
       const scheduleKey = String(updatedJob.scheduleKey || '').trim();
       const technicianId = String(updatedJob.technicianId || '').trim();
@@ -5039,16 +5506,33 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
     const uploadedAfterUrl = uploadedAfterFile ? `${resolveServerOrigin(req)}/uploads/${uploadedAfterFile.filename}` : '';
     const providedBeforeUrl = String(req.body?.beforePhoto || '').trim();
     const providedAfterUrl = String(req.body?.afterPhoto || '').trim();
+    const serviceDateForCard = String(req.body?.serviceDate || req.body?.scheduledDate || req.body?.completionCardGeneratedAt || new Date()).trim();
+    const allJobsForCard = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
 
     const nextFields = {
       status: String(req.body?.status || 'Completed').trim() || 'Completed',
       punchInTime: String(req.body?.punchInTime || '').trim(),
       punchOutTime: String(req.body?.punchOutTime || '').trim(),
+      serviceStartTime: String(req.body?.serviceStartTime || '').trim() || toMysqlDateTime(new Date()),
+      serviceEndTime: String(req.body?.serviceEndTime || '').trim() || toMysqlDateTime(new Date()),
       completionCardNumber: String(req.body?.completionCardNumber || '').trim(),
       completionCardGeneratedAt: String(req.body?.completionCardGeneratedAt || '').trim(),
       beforePhoto: uploadedBeforeUrl || providedBeforeUrl || '',
       afterPhoto: uploadedAfterUrl || providedAfterUrl || '',
-      customerSignature: signature
+      customerSignature: signature,
+      technicianSignature: String(req.body?.technicianSignature || '').trim(),
+      jobCardNumber: String(req.body?.jobCardNumber || '').trim(),
+      technicianRemarks: String(req.body?.technicianRemarks || req.body?.reviewRemarks || req.body?.remarks || '').trim(),
+      customerObservation: String(req.body?.customerObservation || '').trim(),
+      infestationLevel: String(req.body?.infestationLevel || '').trim(),
+      ratCount: req.body?.ratCount ?? null,
+      rodentBoxCount: req.body?.rodentBoxCount ?? null,
+      rodentBoxLocation: String(req.body?.rodentBoxLocation || '').trim(),
+      baitUsed: String(req.body?.baitUsed || '').trim(),
+      recommendation: String(req.body?.recommendation || req.body?.technicianRecommendation || '').trim(),
+      chemicalsUsed: safeJsonArray(req.body?.chemicalsUsed || []),
+      checklistItems: safeJsonArray(req.body?.checklistItems || []),
+      reviewRemarks: String(req.body?.reviewRemarks || req.body?.remarks || '').trim()
     };
 
     if (canUseMysql()) {
@@ -5074,8 +5558,16 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
         ...nextFields,
         _id: mysqlJob._id
       };
+      if (!String(updatedJob.jobCardNumber || '').trim()) {
+        updatedJob.jobCardNumber = createNextJobCardNumber(allJobsForCard.concat([updatedJob]), serviceDateForCard || updatedJob.scheduledDate || updatedJob.serviceDate || updatedJob.createdAt || new Date());
+      }
+      if (!String(updatedJob.serviceStartTime || '').trim()) updatedJob.serviceStartTime = toMysqlDateTime(new Date());
+      if (!String(updatedJob.serviceEndTime || '').trim()) updatedJob.serviceEndTime = toMysqlDateTime(new Date());
 
       await syncJobToMysql(updatedJob);
+      await syncServiceMaterialUsageToMysql(updatedJob).catch((error) => {
+        console.error('Failed to sync service material usage on complete:', error.message);
+      });
       const settings = await readSettingsFromMysql().catch(() => readSettings());
       await persistJobAutoCostItems({ job: updatedJob, settings }).catch((error) => {
         console.error('Failed to seed auto job cost items on complete:', error.message);
@@ -5097,8 +5589,16 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
     if (jobIndex === -1) return res.status(404).json({ error: 'Job not found' });
 
     const updatedJob = { ...jobs[jobIndex], ...nextFields, _id: jobs[jobIndex]._id };
+    if (!String(updatedJob.jobCardNumber || '').trim()) {
+      updatedJob.jobCardNumber = createNextJobCardNumber(allJobsForCard.concat([updatedJob]), serviceDateForCard || updatedJob.scheduledDate || updatedJob.serviceDate || updatedJob.createdAt || new Date());
+    }
+    if (!String(updatedJob.serviceStartTime || '').trim()) updatedJob.serviceStartTime = toMysqlDateTime(new Date());
+    if (!String(updatedJob.serviceEndTime || '').trim()) updatedJob.serviceEndTime = toMysqlDateTime(new Date());
     jobs[jobIndex] = updatedJob;
     fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
+    await syncServiceMaterialUsageToMysql(updatedJob).catch((error) => {
+      console.error('Failed to sync service material usage on complete:', error.message);
+    });
     notifyTechnicianPush(updatedJob, 'job_completed');
     return res.json(updatedJob);
   } catch (error) {
@@ -5107,52 +5607,60 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
   }
 });
 
-app.get('/api/jobs/:id/pdf', async (req, res) => {
+const handleServiceVisitJobCardPdf = async (req, res) => {
   try {
-    const job = canUseMysql()
-      ? await loadJobByIdFromMysql(req.params.id)
-      : readJsonFile(jobsFile, []).find((entry) => String(entry?._id || '') === String(req.params.id || ''));
+    const allJobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
+    const job = (Array.isArray(allJobs) ? allJobs : []).find((entry) => String(entry?._id || '') === String(req.params.id || ''))
+      || (canUseMysql() ? await loadJobByIdFromMysql(req.params.id) : null);
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
     const settings = normalizeJobPdfSettings(await readSettingsFromMysql().catch(() => readSettings()), req);
-    const pdfBuffer = await buildJobPdfBuffer({ job, settings, req });
+    const pdfBuffer = await buildJobPdfBuffer({ job, settings, req, allJobs });
     const asAttachment = String(req.query.download || '').trim() === '1';
-    const fileNameBase = String(job.jobNumber || job._id || `JOB_${Date.now()}`).replace(/[^\w.-]+/g, '_');
+    const fileNameBase = String(job.jobCardNumber || job.job_card_number || job.jobNumber || job._id || `JOB_${Date.now()}`).replace(/[^\w.-]+/g, '_');
     const fileName = `${fileNameBase}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `${asAttachment ? 'attachment' : 'inline'}; filename="${fileName}"`);
     res.send(pdfBuffer);
   } catch (error) {
-    console.error('Failed to generate job PDF:', error.message);
-    res.status(500).json({ error: 'Could not generate job PDF' });
+    console.error('Failed to generate service visit job card PDF:', error.message);
+    res.status(500).json({ error: 'Could not generate service visit job card PDF' });
   }
-});
+};
 
-app.get('/api/contracts/:invoiceId/job-card-pdf', async (req, res) => {
+app.get('/api/service-visits/:id/job-card-pdf', handleServiceVisitJobCardPdf);
+app.get('/api/jobs/:id/pdf', handleServiceVisitJobCardPdf);
+
+const handleContractJobCardSummaryPdf = async (req, res) => {
   try {
-    const invoices = readJsonFile(invoicesFile, []);
-    const jobs = readJsonFile(jobsFile, []);
-    const invoice = invoices.find((entry) => String(entry?._id || '') === String(req.params.invoiceId || ''));
+    const invoices = await loadInvoicesForContext();
+    const jobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
+    const invoice = invoices.find((entry) => String(entry?._id || '') === String(req.params.id || req.params.invoiceId || ''));
     if (!invoice) return res.status(404).json({ error: 'Contract not found' });
 
     const contractNumber = String(invoice.invoiceNumber || '').trim().toLowerCase();
-    const relatedJobs = jobs.filter((entry) => (
+    const relatedJobs = (Array.isArray(jobs) ? jobs : []).filter((entry) => (
       String(entry?.contractId || '') === String(invoice._id || '')
+      || String(entry?.invoiceId || '') === String(invoice._id || '')
       || String(entry?.contractNumber || '').trim().toLowerCase() === contractNumber
+      || String(entry?.invoiceNumber || '').trim().toLowerCase() === contractNumber
     ));
     const settings = readSettings();
-    const pdfBuffer = await buildContractJobCardPdfBuffer({ invoice, jobs: relatedJobs, settings });
-    const fileName = `${String(invoice.invoiceNumber || invoice._id || 'contract').replace(/[^\w.-]+/g, '_')}_job_card.pdf`;
+    const pdfBuffer = await buildContractJobCardSummaryPdfBuffer({ invoice, jobs: relatedJobs, settings });
+    const fileName = `${String(invoice.invoiceNumber || invoice._id || 'contract').replace(/[^\w.-]+/g, '_')}_job_card_summary.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename=\"${fileName}\"`);
     res.send(pdfBuffer);
   } catch (error) {
-    console.error('Failed to generate contract job card PDF:', error.message);
-    res.status(500).json({ error: 'Could not generate contract job card PDF' });
+    console.error('Failed to generate contract job card summary PDF:', error.message);
+    res.status(500).json({ error: 'Could not generate contract job card summary PDF' });
   }
-});
+};
+
+app.get('/api/contracts/:id/job-card-summary-pdf', handleContractJobCardSummaryPdf);
+app.get('/api/contracts/:invoiceId/job-card-pdf', handleContractJobCardSummaryPdf);
 
 app.get('/api/complaints', (req, res) => {
   res.json(readJsonFile(complaintsFile, []));
@@ -6753,6 +7261,7 @@ const syncJobToMysql = async (job) => {
       invoice_id: job.invoiceId || job.contractId || null,
       customer_name: job.customerName || null,
       job_number: job.jobNumber || null,
+      job_card_number: job.jobCardNumber || job.job_card_number || job.jobNumber || null,
       assigned_to: job.technicianName || null,
       technician_name: job.technicianName || null,
       service_name: job.serviceName || null,
@@ -6767,10 +7276,22 @@ const syncJobToMysql = async (job) => {
       service_date: serviceDate,
       scheduled_time: serviceTime,
       service_time: serviceTime,
+      service_start_time: toMysqlDateTimeOrNull(job.serviceStartTime || job.service_start_time || job.punchInTime),
+      service_end_time: toMysqlDateTimeOrNull(job.serviceEndTime || job.service_end_time || job.punchOutTime),
       status: job.status || null,
+      technician_remarks: job.technicianRemarks || job.reviewRemarks || job.remarks || null,
+      customer_observation: job.customerObservation || job.customer_observation || null,
+      infestation_level: job.infestationLevel || job.infestation_level || null,
       before_photo_url: job.beforePhoto || null,
       after_photo_url: job.afterPhoto || null,
+      customer_signature: job.customerSignature || job.customer_signature || null,
       customer_signature_url: job.customerSignature || null,
+      technician_signature: job.technicianSignature || job.technician_signature || null,
+      rat_count: Number.isFinite(Number(job.ratCount || job.rat_count)) ? Number(job.ratCount || job.rat_count) : null,
+      rodent_box_count: Number.isFinite(Number(job.rodentBoxCount || job.rodent_box_count)) ? Number(job.rodentBoxCount || job.rodent_box_count) : null,
+      rodent_box_location: job.rodentBoxLocation || job.rodent_box_location || null,
+      bait_used: job.baitUsed || job.bait_used || null,
+      recommendation: job.recommendation || job.technicianRecommendation || null,
       google_task_id: job.google_task_id || null,
       google_calendar_event_id: job.google_calendar_event_id || null,
       google_sync_status: job.google_sync_status || null,

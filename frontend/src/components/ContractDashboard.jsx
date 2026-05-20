@@ -315,7 +315,7 @@ const openInvoicePdf = (invoiceId) => {
 
 const openContractJobCardPdf = (invoiceId) => {
   if (!invoiceId) return;
-  window.open(`${API_BASE}/api/contracts/${invoiceId}/job-card-pdf`, '_blank', 'noopener,noreferrer');
+  window.open(`${API_BASE}/api/contracts/${invoiceId}/job-card-summary-pdf`, '_blank', 'noopener,noreferrer');
 };
 
 export default function ContractDashboard() {

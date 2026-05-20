@@ -149,6 +149,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   invoice_external_id VARCHAR(80) NULL,
   customer_name VARCHAR(255) NULL,
   job_number VARCHAR(120) NULL,
+  job_card_number VARCHAR(50) NULL,
   status VARCHAR(120) NULL,
   service_name VARCHAR(255) NULL,
   service_type VARCHAR(120) NULL,
@@ -158,9 +159,21 @@ CREATE TABLE IF NOT EXISTS jobs (
   pincode VARCHAR(20) NULL,
   scheduled_date DATE NULL,
   scheduled_time VARCHAR(40) NULL,
+  service_start_time DATETIME NULL,
+  service_end_time DATETIME NULL,
+  technician_remarks TEXT NULL,
+  customer_observation TEXT NULL,
+  infestation_level VARCHAR(30) NULL,
   before_photo_url TEXT NULL,
   after_photo_url TEXT NULL,
+  customer_signature LONGTEXT NULL,
   customer_signature_url LONGTEXT NULL,
+  technician_signature LONGTEXT NULL,
+  rat_count INT NULL,
+  rodent_box_count INT NULL,
+  rodent_box_location TEXT NULL,
+  bait_used VARCHAR(255) NULL,
+  recommendation TEXT NULL,
   google_task_id VARCHAR(255) NULL,
   google_calendar_event_id VARCHAR(255) NULL,
   google_sync_status VARCHAR(50) NULL,
@@ -176,6 +189,20 @@ CREATE TABLE IF NOT EXISTS jobs (
   KEY idx_jobs_customer_external (customer_external_id),
   KEY idx_jobs_invoice_external (invoice_external_id),
   KEY idx_jobs_location (area_name, city, state, pincode)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS service_material_usage (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  service_visit_id VARCHAR(80) NOT NULL,
+  material_name VARCHAR(255) NULL,
+  quantity_used DECIMAL(12,2) NULL,
+  unit VARCHAR(50) NULL,
+  dilution_ratio VARCHAR(100) NULL,
+  area_treated TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_service_material_usage_visit (service_visit_id),
+  KEY idx_service_material_usage_material (material_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS attendance (

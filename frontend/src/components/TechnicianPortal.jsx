@@ -843,13 +843,14 @@ export default function TechnicianPortal() {
     if (!activeJob || isPunchingIn || isCompleting) return;
     setActionStatus('');
     const time = new Date().toLocaleString();
+    const serviceStartTime = new Date().toISOString();
     setPunchInTime(time);
 
     try {
       setIsPunchingIn(true);
-      await axios.put(`${API_BASE_URL}/api/jobs/${activeJob._id}`, { status: 'In Progress', punchInTime: time }, { timeout: 15000 });
-      setJobs((prev) => prev.map((job) => (job._id === activeJob._id ? { ...job, status: 'In Progress', punchInTime: time } : job)));
-      setActiveJob((prev) => (prev ? { ...prev, status: 'In Progress', punchInTime: time } : prev));
+      await axios.put(`${API_BASE_URL}/api/jobs/${activeJob._id}`, { status: 'In Progress', punchInTime: time, serviceStartTime }, { timeout: 15000 });
+      setJobs((prev) => prev.map((job) => (job._id === activeJob._id ? { ...job, status: 'In Progress', punchInTime: time, serviceStartTime } : job)));
+      setActiveJob((prev) => (prev ? { ...prev, status: 'In Progress', punchInTime: time, serviceStartTime } : prev));
     } catch (error) {
       console.error('Punch in failed', error);
       window.alert(error?.response?.data?.error || error?.message || 'Unable to punch in. Please retry.');
@@ -873,6 +874,8 @@ export default function TechnicianPortal() {
       status: 'Completed',
       punchInTime: resolvedPunchInTime,
       punchOutTime: new Date(completedAt).toLocaleString(),
+      serviceStartTime: activeJob.serviceStartTime || activeJob.service_start_time || new Date().toISOString(),
+      serviceEndTime: completedAt,
       completionCardNumber,
       completionCardGeneratedAt: completedAt
     };
@@ -1536,7 +1539,7 @@ export default function TechnicianPortal() {
               <button
                 type="button"
                 style={shell.completionDownloadBtn}
-                onClick={() => window.open(`${API_BASE_URL}/api/jobs/${completionCard.jobId}/pdf`, '_blank')}
+                onClick={() => window.open(`${API_BASE_URL}/api/service-visits/${completionCard.jobId}/job-card-pdf`, '_blank')}
               >
                 View Job PDF
               </button>
@@ -1618,7 +1621,7 @@ export default function TechnicianPortal() {
                                           <button
                                             type="button"
                                             style={shell.pdfBtn}
-                                            onClick={() => window.open(`${API_BASE_URL}/api/jobs/${job._id}/pdf`, '_blank')}
+                                            onClick={() => window.open(`${API_BASE_URL}/api/service-visits/${job._id}/job-card-pdf`, '_blank')}
                                             disabled={isSavingAssignment}
                                           >
                                             PDF
