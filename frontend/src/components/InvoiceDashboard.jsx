@@ -248,6 +248,11 @@ const shell = {
   cell: { padding: '10px 10px', fontSize: '8px', fontWeight: 400, color: '#111827', verticalAlign: 'top', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   invoiceCell: { color: 'var(--color-primary)', fontWeight: 400, textDecoration: 'underline dotted rgba(159,23,77,0.4)' },
   checkboxWrap: { width: '38px', textAlign: 'center' },
+  resizableHeadCell: { position: 'relative', paddingRight: '18px' },
+  headCellContent: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '12px', height: '100%', cursor: 'col-resize', touchAction: 'none', userSelect: 'none' },
+  resizeHandleLine: { position: 'absolute', top: '18%', bottom: '18%', right: '5px', width: '1px', borderRadius: '999px', background: 'rgba(148, 163, 184, 0.72)' },
+  resizeHandleActive: { background: 'rgba(159, 23, 77, 0.08)' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
   statusBadge: { fontWeight: 700 },
   menu: { position: 'absolute', right: 16, top: '56px', background: '#fff', border: '1px solid rgba(239, 68, 68, 0.14)', borderRadius: '12px', minWidth: '200px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 30, overflow: 'hidden' },
@@ -633,6 +638,45 @@ const getEmployeeDisplayName = (employee = {}) => {
 const normalizeInvoiceType = (value) => (String(value || '').trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST');
 const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
 
+const invoiceColumnWidthStorageKey = 'invoice_column_widths';
+const invoiceDefaultColumnWidths = {
+  date: 130,
+  invoiceNumber: 160,
+  customerName: null,
+  dueDate: 130,
+  amount: 130,
+  balanceDue: 140,
+  status: 110,
+  action: 90
+};
+const invoiceColumnResizeBounds = {
+  date: { min: 110, max: 220 },
+  invoiceNumber: { min: 120, max: 260 },
+  customerName: { min: 220, max: 640 },
+  dueDate: { min: 110, max: 220 },
+  amount: { min: 100, max: 180 },
+  balanceDue: { min: 110, max: 200 },
+  status: { min: 90, max: 160 },
+  action: { min: 80, max: 140 }
+};
+
+const normalizeInvoiceColumnWidths = (raw = {}) => {
+  const next = {};
+  Object.entries(invoiceDefaultColumnWidths).forEach(([key, fallback]) => {
+    const bounds = invoiceColumnResizeBounds[key] || { min: 80, max: 640 };
+    if (key === 'customerName') {
+      const rawValue = Number(raw[key]);
+      next[key] = Number.isFinite(rawValue) && rawValue >= bounds.min ? Math.min(Math.max(Math.round(rawValue), bounds.min), bounds.max) : fallback;
+      return;
+    }
+    const rawValue = Number(raw[key]);
+    next[key] = Number.isFinite(rawValue) && rawValue >= bounds.min ? Math.min(Math.max(Math.round(rawValue), bounds.min), bounds.max) : fallback;
+  });
+  return next;
+};
+
+const getInvoiceColumnResizeBounds = (columnKey) => invoiceColumnResizeBounds[columnKey] || { min: 80, max: 640 };
+
 const emptyAddressDraft = {
   label: 'Additional Address',
   company: '',
@@ -677,6 +721,16 @@ export default function InvoiceDashboard() {
   const [invoicesHydrated, setInvoicesHydrated] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
+  const [invoiceColumnWidths, setInvoiceColumnWidths] = useState(() => {
+    const saved = localStorage.getItem(invoiceColumnWidthStorageKey);
+    if (!saved) return normalizeInvoiceColumnWidths();
+    try {
+      return normalizeInvoiceColumnWidths(JSON.parse(saved));
+    } catch {
+      return normalizeInvoiceColumnWidths();
+    }
+  });
+  const [resizingInvoiceColumn, setResizingInvoiceColumn] = useState('');
   const [visibleColumns, setVisibleColumns] = useState(() => {
     const saved = localStorage.getItem('invoice_visible_columns');
     if (!saved) return [...defaultInvoiceVisibleColumns];
@@ -691,12 +745,114 @@ export default function InvoiceDashboard() {
   const customizeButtonRef = useRef(null);
   const menuRef = useRef(null);
   const menuButtonRef = useRef(null);
+  const invoiceResizeStateRef = useRef(null);
 
   const visibleColumnDefs = useMemo(
     () => columns.filter((column) => visibleColumns.includes(column.key)),
     [visibleColumns]
   );
   const isCompactInvoiceViewport = viewportWidth > 900 && viewportWidth <= 1199;
+  const getInvoiceColumnWidth = (columnKey) => {
+    if (columnKey === 'checkbox') return shell.checkboxWrap.width;
+    const stored = invoiceColumnWidths[columnKey];
+    if (columnKey === 'customerName') {
+      return Number.isFinite(Number(stored)) && Number(stored) >= 0 ? Number(stored) || null : invoiceDefaultColumnWidths.customerName;
+    }
+    if (Number.isFinite(Number(stored)) && Number(stored) > 0) return Math.round(Number(stored));
+    return invoiceDefaultColumnWidths[columnKey] ?? null;
+  };
+  const getColumnAlign = (columnKey) => {
+    if (columnKey === 'checkbox') return 'center';
+    if (columnKey === 'date' || columnKey === 'dueDate' || columnKey === 'amount' || columnKey === 'balanceDue' || columnKey === 'status' || columnKey === 'action') return 'center';
+    return 'left';
+  };
+  const getColumnStyle = (columnKey) => {
+    const width = getInvoiceColumnWidth(columnKey);
+    const align = getColumnAlign(columnKey);
+    if (columnKey === 'customerName') {
+      if (Number.isFinite(width) && width > 0) {
+        return {
+          width: `${width}px`,
+          minWidth: `${width}px`,
+          maxWidth: `${width}px`,
+          textAlign: align
+        };
+      }
+      return {
+        minWidth: `${invoiceColumnResizeBounds.customerName.min}px`,
+        textAlign: align
+      };
+    }
+    if (Number.isFinite(width) && width > 0) {
+      return {
+        width: `${width}px`,
+        minWidth: `${width}px`,
+        maxWidth: `${width}px`,
+        textAlign: align,
+        fontVariantNumeric: columnKey === 'date' || columnKey === 'dueDate' || columnKey === 'amount' || columnKey === 'balanceDue' ? 'tabular-nums' : undefined
+      };
+    }
+    return {
+      textAlign: align
+    };
+  };
+
+  useEffect(() => {
+    localStorage.setItem(invoiceColumnWidthStorageKey, JSON.stringify(normalizeInvoiceColumnWidths(invoiceColumnWidths)));
+  }, [invoiceColumnWidths]);
+
+  useEffect(() => {
+    const handleResizeMove = (event) => {
+      const session = invoiceResizeStateRef.current;
+      if (!session) return;
+      event.preventDefault();
+      const bounds = getInvoiceColumnResizeBounds(session.columnKey);
+      const nextWidth = Math.min(bounds.max, Math.max(bounds.min, Math.round(session.startWidth + (event.clientX - session.startX))));
+      setInvoiceColumnWidths((prev) => ({
+        ...prev,
+        [session.columnKey]: nextWidth
+      }));
+    };
+    const handleResizeEnd = () => {
+      if (!invoiceResizeStateRef.current) return;
+      invoiceResizeStateRef.current = null;
+      setResizingInvoiceColumn('');
+    };
+    window.addEventListener('pointermove', handleResizeMove);
+    window.addEventListener('pointerup', handleResizeEnd);
+    window.addEventListener('pointercancel', handleResizeEnd);
+    return () => {
+      window.removeEventListener('pointermove', handleResizeMove);
+      window.removeEventListener('pointerup', handleResizeEnd);
+      window.removeEventListener('pointercancel', handleResizeEnd);
+    };
+  }, []);
+
+  const startInvoiceColumnResize = (columnKey, event) => {
+    if (isMobile) return;
+    const target = event.currentTarget?.closest('th');
+    const fallbackWidth = getInvoiceColumnWidth(columnKey);
+    const measuredWidth = target?.getBoundingClientRect?.().width;
+    const startWidth = Number.isFinite(measuredWidth) && measuredWidth > 0
+      ? measuredWidth
+      : Number.isFinite(fallbackWidth) && fallbackWidth > 0
+        ? fallbackWidth
+        : invoiceColumnResizeBounds[columnKey]?.min || 120;
+    invoiceResizeStateRef.current = {
+      columnKey,
+      startX: event.clientX,
+      startWidth
+    };
+    setResizingInvoiceColumn(columnKey);
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const resetInvoiceColumnWidths = () => {
+    const reset = normalizeInvoiceColumnWidths();
+    setInvoiceColumnWidths(reset);
+    localStorage.removeItem(invoiceColumnWidthStorageKey);
+    setShowCustomize(false);
+  };
 
   const customerOptions = useMemo(
     () => customers.map((customer) => ({ id: customer._id, name: customer.displayName || customer.name || '' })),
@@ -1029,50 +1185,6 @@ export default function InvoiceDashboard() {
       }
       return normalizeInvoiceVisibleColumns([...next, columnKey]);
     });
-  };
-
-  const getColumnStyle = (columnKey) => {
-    if (columnKey === 'date' || columnKey === 'dueDate') {
-      return {
-        width: isCompactInvoiceViewport ? '110px' : '118px',
-        minWidth: isCompactInvoiceViewport ? '110px' : '118px',
-        maxWidth: isCompactInvoiceViewport ? '110px' : '118px',
-        textAlign: 'center',
-        fontVariantNumeric: 'tabular-nums'
-      };
-    }
-    if (columnKey === 'invoiceNumber') {
-      return {
-        width: isCompactInvoiceViewport ? '136px' : '150px',
-        minWidth: isCompactInvoiceViewport ? '136px' : '150px',
-        maxWidth: isCompactInvoiceViewport ? '136px' : '150px'
-      };
-    }
-    if (columnKey === 'amount' || columnKey === 'balanceDue') {
-      return {
-        width: isCompactInvoiceViewport ? '104px' : '112px',
-        minWidth: isCompactInvoiceViewport ? '104px' : '112px',
-        maxWidth: isCompactInvoiceViewport ? '104px' : '112px',
-        textAlign: 'right',
-        fontVariantNumeric: 'tabular-nums'
-      };
-    }
-    if (columnKey === 'status') {
-      return {
-        width: isCompactInvoiceViewport ? '84px' : '92px',
-        minWidth: isCompactInvoiceViewport ? '84px' : '92px',
-        maxWidth: isCompactInvoiceViewport ? '84px' : '92px',
-        textAlign: 'center'
-      };
-    }
-    if (columnKey === 'customerName') {
-      return {
-        width: isCompactInvoiceViewport ? '220px' : '260px',
-        minWidth: isCompactInvoiceViewport ? '220px' : '260px',
-        maxWidth: isCompactInvoiceViewport ? '220px' : '260px'
-      };
-    }
-    return {};
   };
 
   const openNewForm = () => {
@@ -2132,25 +2244,25 @@ export default function InvoiceDashboard() {
     appearance: 'none'
   };
   const invoiceMobileColumnWidths = ['38px', ...visibleColumnDefs.map((column) => {
-    const style = getColumnStyle(column.key);
-    const width = parseInt(style.minWidth || style.width, 10);
-    return `${Number.isFinite(width) ? width : 150}px`;
+    const width = getInvoiceColumnWidth(column.key);
+    const fallback = column.key === 'customerName' ? invoiceColumnResizeBounds.customerName.min : 150;
+    const resolved = Number.isFinite(width) && width > 0 ? width : fallback;
+    return `${resolved}px`;
   }), '84px'];
   const invoiceTableMinWidth = 38 + visibleColumnDefs.reduce((sum, column) => {
-      const style = getColumnStyle(column.key);
-      const width = parseInt(style.minWidth || style.width, 10);
-      return sum + (Number.isFinite(width) ? width : 150);
+      const width = getInvoiceColumnWidth(column.key);
+      const fallback = column.key === 'customerName' ? invoiceColumnResizeBounds.customerName.min : 150;
+      return sum + (Number.isFinite(width) && width > 0 ? width : fallback);
     }, 0) + 84;
-  const tableStyle = isMobile
-    ? {
-      ...shell.table,
-      minWidth: invoiceTableMinWidth,
-      tableLayout: 'fixed',
-      '--invoice-table-min-width': `${invoiceTableMinWidth}px`,
-      '--mobile-table-columns': invoiceMobileColumnWidths.join(' '),
-      '--mobile-table-min-width': `${invoiceTableMinWidth}px`
-    }
-    : { ...shell.table, '--invoice-table-min-width': `${invoiceTableMinWidth}px` };
+  const tableStyle = {
+    ...shell.table,
+    width: '100%',
+    minWidth: `${invoiceTableMinWidth}px`,
+    tableLayout: 'fixed',
+    '--invoice-table-min-width': `${invoiceTableMinWidth}px`,
+    '--mobile-table-columns': invoiceMobileColumnWidths.join(' '),
+    '--mobile-table-min-width': `${invoiceTableMinWidth}px`
+  };
   const rowActionButtonStyle = isCompactInvoiceViewport
     ? { ...shell.rowActionButton, width: '28px', height: '28px' }
     : shell.rowActionButton;
@@ -2268,6 +2380,9 @@ export default function InvoiceDashboard() {
                     {column.label}
                   </label>
                 ))}
+                <button type="button" style={shell.menuButton} onClick={resetInvoiceColumnWidths}>
+                  Reset Column Widths
+                </button>
               </div>
             </div>
           ) : null}
@@ -2276,25 +2391,75 @@ export default function InvoiceDashboard() {
       </div>
 
       <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell crm-table-shell--clipped">
-        <table style={tableStyle} className="crm-compact-table crm-stack-mobile invoice-register-table">
+        <table style={tableStyle} className="crm-compact-table invoice-register-table">
           <colgroup>
             <col style={shell.checkboxWrap} />
             {visibleColumnDefs.map((column) => (
               <col key={column.key} style={getColumnStyle(column.key)} />
             ))}
-            <col style={{ width: '84px' }} />
+            <col style={getColumnStyle('action')} />
           </colgroup>
           <thead>
             <tr>
-              <th style={{ ...shell.headCell, ...shell.checkboxWrap }}>
+              <th style={{ ...shell.headCell, ...shell.checkboxWrap, textAlign: 'center' }}>
                 <input type="checkbox" style={shell.checkbox} checked={isAllSelected} onChange={toggleSelectAll} />
               </th>
               {visibleColumnDefs.map((column) => (
-                <th key={column.key} style={{ ...shell.headCell, ...getColumnStyle(column.key) }}>
-                  {column.label}
+                <th
+                  key={column.key}
+                  style={{
+                    ...shell.headCell,
+                    ...getColumnStyle(column.key),
+                    ...(isMobile ? {} : shell.resizableHeadCell)
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: getColumnAlign(column.key) === 'center' ? 'center' : 'flex-start', width: '100%', paddingRight: isMobile ? 0 : '4px' }}>
+                    {column.label}
+                  </span>
+                  {!isMobile ? (
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      aria-label={`Resize ${column.label} column`}
+                      title={`Resize ${column.label}`}
+                      style={{
+                        ...shell.resizeHandle,
+                        ...(resizingInvoiceColumn === column.key ? shell.resizeHandleActive : {})
+                      }}
+                      onPointerDown={(event) => startInvoiceColumnResize(column.key, event)}
+                    >
+                      <span style={shell.resizeHandleLine} />
+                    </span>
+                  ) : null}
                 </th>
               ))}
-              <th style={{ ...shell.headCell, width: '84px', textAlign: 'center' }}>Action</th>
+              <th
+                style={{
+                  ...shell.headCell,
+                  ...getColumnStyle('action'),
+                  ...(isMobile ? {} : shell.resizableHeadCell),
+                  textAlign: 'center'
+                }}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', paddingRight: isMobile ? 0 : '4px' }}>
+                  Action
+                </span>
+                {!isMobile ? (
+                  <span
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label="Resize Action column"
+                    title="Resize Action"
+                    style={{
+                      ...shell.resizeHandle,
+                      ...(resizingInvoiceColumn === 'action' ? shell.resizeHandleActive : {})
+                    }}
+                    onPointerDown={(event) => startInvoiceColumnResize('action', event)}
+                  >
+                    <span style={shell.resizeHandleLine} />
+                  </span>
+                ) : null}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -2343,7 +2508,7 @@ export default function InvoiceDashboard() {
                     </td>
                   );
                 })}
-                <td style={{ ...shell.cell, width: '84px', textAlign: 'center', overflow: 'visible' }} data-label="Action">
+                <td style={{ ...shell.cell, ...getColumnStyle('action'), textAlign: 'center', overflow: 'visible' }} data-label="Action">
                   <div style={shell.rowActionWrap}>
                     <button
                       type="button"

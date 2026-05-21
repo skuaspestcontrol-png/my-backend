@@ -1584,8 +1584,11 @@ textarea:focus {
 }
 
 .crm-compact-table.invoice-register-table {
-  width: max-content !important;
+  display: table;
+  width: 100% !important;
   min-width: var(--invoice-table-min-width, 934px) !important;
+  max-width: 100%;
+  table-layout: fixed !important;
 }
 
 .crm-compact-table.invoice-register-table thead th,
