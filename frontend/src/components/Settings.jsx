@@ -131,6 +131,7 @@ const sectionGroups = [
       { key: 'bankAccounts', label: 'Bank Account' },
       { key: 'documentPrefixes', label: 'Prefixes' },
       { key: 'googleIntegration', label: 'Google Integration' },
+      { key: 'dataHealth', label: 'Data Health' },
       { key: 'termsConditions', label: 'Terms & Conditions' },
       { key: 'security', label: 'Change Password' }
     ]
@@ -723,6 +724,9 @@ export default function Settings({ modalMode = false }) {
   const nonGstBankQrInputRef = useRef(null);
   const customAccentInputRef = useRef(null);
   const [securityForm, setSecurityForm] = useState(defaultSecurityForm);
+  const [attendanceSourceHealth, setAttendanceSourceHealth] = useState(null);
+  const [attendanceSourceHealthLoading, setAttendanceSourceHealthLoading] = useState(false);
+  const [attendanceSourceHealthError, setAttendanceSourceHealthError] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [isTouchDevice, setIsTouchDevice] = useState(() => (
     typeof window !== 'undefined'
@@ -743,6 +747,12 @@ export default function Settings({ modalMode = false }) {
   useEffect(() => {
     const panel = panelBodyRef.current;
     if (panel) panel.scrollTop = 0;
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (activeSection === 'dataHealth') {
+      loadAttendanceSourceHealth();
+    }
   }, [activeSection]);
 
   useEffect(() => {
@@ -943,6 +953,26 @@ export default function Settings({ modalMode = false }) {
 
   const updateSecurityField = (key, value) => {
     setSecurityForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const loadAttendanceSourceHealth = async () => {
+    setAttendanceSourceHealthLoading(true);
+    setAttendanceSourceHealthError('');
+    try {
+      const headers = {
+        'x-role': localStorage.getItem('portal_user_role') || 'Admin',
+        'x-portal-role': localStorage.getItem('portal_user_role') || 'Admin',
+        'x-user-name': localStorage.getItem('portal_user_name') || 'Admin'
+      };
+      const res = await axios.get(`${API_BASE_URL}/api/admin/attendance-source-health-summary`, { headers });
+      setAttendanceSourceHealth(res.data || null);
+    } catch (error) {
+      console.error('Attendance source health load failed', error);
+      setAttendanceSourceHealth(null);
+      setAttendanceSourceHealthError(error?.response?.data?.error || error?.message || 'Unable to load attendance source health.');
+    } finally {
+      setAttendanceSourceHealthLoading(false);
+    }
   };
 
   const handleGstinChange = (value) => {
@@ -2376,6 +2406,60 @@ export default function Settings({ modalMode = false }) {
     </>
   );
 
+  const renderDataHealth = () => {
+    const attendance = attendanceSourceHealth?.health?.attendance || {};
+    const audit = attendanceSourceHealth?.health?.audit || {};
+    const summary = attendanceSourceHealth?.summary || {};
+    const totalLegacyRows = Number(summary.legacyRows || 0);
+    const totalRows = Number(summary.totalRows || 0);
+
+    return (
+      <div style={shell.bankCard}>
+        <div style={{ ...shell.bankHeaderRow, alignItems: 'flex-start' }}>
+          <div>
+            <p style={sectionLeadTitleStyle}>Attendance Source Health</p>
+            <p style={sectionLeadSubTitleStyle}>Quick check for legacy attendance and audit source labels.</p>
+          </div>
+          <button
+            type="button"
+            style={{ ...shell.topButton, ...shell.topButtonPrimary, minWidth: '150px' }}
+            onClick={loadAttendanceSourceHealth}
+            disabled={attendanceSourceHealthLoading}
+          >
+            {attendanceSourceHealthLoading ? 'Checking...' : 'Refresh Counts'}
+          </button>
+        </div>
+
+        <div style={shell.twoCol}>
+          <div style={shell.bankCard}>
+            <h4 style={shell.bankCardTitle}>Attendance Table</h4>
+            <p style={shell.hint}>Total rows: {Number(attendance.totalRows || 0)}</p>
+            <p style={shell.hint}>Legacy rows: {Number(attendance.legacyRows || 0)}</p>
+            <p style={shell.hint}>Admin rows: {Number(attendance.adminRows || 0)}</p>
+            <p style={shell.hint}>Self rows: {Number(attendance.selfRows || 0)}</p>
+          </div>
+          <div style={shell.bankCard}>
+            <h4 style={shell.bankCardTitle}>Audit Log Table</h4>
+            <p style={shell.hint}>Total rows: {Number(audit.totalRows || 0)}</p>
+            <p style={shell.hint}>Legacy rows: {Number(audit.legacyRows || 0)}</p>
+            <p style={shell.hint}>Admin rows: {Number(audit.adminRows || 0)}</p>
+            <p style={shell.hint}>Self rows: {Number(audit.selfRows || 0)}</p>
+          </div>
+        </div>
+
+        <div style={shell.bankCard}>
+          <h4 style={shell.bankCardTitle}>Combined Summary</h4>
+          <p style={shell.hint}>Total rows checked: {totalRows}</p>
+          <p style={shell.hint}>Legacy rows remaining: {totalLegacyRows}</p>
+          <p style={shell.hint}>Status: {attendanceSourceHealth ? (totalLegacyRows === 0 ? 'Clean' : 'Needs cleanup') : 'Not loaded yet'}</p>
+          {attendanceSourceHealthError ? (
+            <p style={{ ...shell.hint, color: '#dc2626' }}>{attendanceSourceHealthError}</p>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
   const renderBankAccounts = () => {
     const rows = [
       {
@@ -2646,6 +2730,7 @@ export default function Settings({ modalMode = false }) {
     if (activeSection === 'emailTemplates') return <EmailTemplates />;
     if (activeSection === 'emailLogs') return <EmailLogs />;
     if (activeSection === 'googleIntegration') return <GoogleIntegrationSettings />;
+    if (activeSection === 'dataHealth') return renderDataHealth();
     if (activeSection === 'termsConditions') return renderTermsConditions();
     if (activeSection === 'invoiceSettings') return renderInvoiceSettings();
     return renderSecurity();

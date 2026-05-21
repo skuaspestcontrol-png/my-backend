@@ -338,6 +338,11 @@ const readAdminMigrationToken = (req) => String(
   || ''
 ).trim();
 
+const isAdminRoleRequest = (req) => {
+  const role = String(req.headers['x-role'] || req.headers['x-portal-role'] || '').trim().toLowerCase();
+  return role === 'admin';
+};
+
 const countLegacyAttendanceSources = async (conn, tableName) => {
   const legacySourceExpr = tableName === 'attendance_audit_logs'
     ? `LOWER(TRIM(COALESCE(source, ''))) IN ('', 'manual_admin', 'manual admin', 'technician_app', 'sales_app')`
@@ -409,6 +414,48 @@ app.get('/api/admin/attendance-source-health', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch attendance source health'
+    });
+  }
+});
+
+app.get('/api/admin/attendance-source-health-summary', async (req, res) => {
+  if (!isAdminRoleRequest(req)) {
+    return res.status(403).json({
+      success: false,
+      error: 'Admin role required'
+    });
+  }
+  if (!canUseMysql()) {
+    return res.status(500).json({
+      success: false,
+      error: 'MySQL is not configured'
+    });
+  }
+
+  try {
+    const health = await withMysqlConnection(async (conn) => {
+      await ensureAttendanceTable(conn);
+      await ensureAttendanceAuditTable(conn);
+      const attendance = await countLegacyAttendanceSources(conn, 'attendance');
+      const audit = await countLegacyAttendanceSources(conn, 'attendance_audit_logs');
+      return { attendance, audit };
+    });
+
+    return res.json({
+      success: true,
+      health,
+      summary: {
+        attendanceLegacyRows: health.attendance.legacyRows,
+        auditLegacyRows: health.audit.legacyRows,
+        legacyRows: health.attendance.legacyRows + health.audit.legacyRows,
+        totalRows: health.attendance.totalRows + health.audit.totalRows
+      }
+    });
+  } catch (error) {
+    console.error('Attendance source summary lookup failed:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch attendance source summary'
     });
   }
 });
