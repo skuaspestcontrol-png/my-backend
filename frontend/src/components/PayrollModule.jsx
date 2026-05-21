@@ -202,6 +202,25 @@ const shell = {
     textAlign: 'center',
     overflow: 'hidden',
     textOverflow: 'ellipsis'
+  },
+  slipCardList: { display: 'grid', gap: '10px' },
+  slipCard: { border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff', padding: '12px', display: 'grid', gap: '10px' },
+  slipCardHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' },
+  slipCardTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' },
+  slipCardSub: { margin: '2px 0 0 0', fontSize: '11px', fontWeight: 700, color: '#64748b' },
+  slipMetricGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
+  slipMetric: { border: '1px solid #eef2f7', borderRadius: '10px', padding: '8px 10px', background: '#f8fafc' },
+  slipMetricLabel: { margin: 0, fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  slipMetricValue: { margin: '3px 0 0 0', fontSize: '12px', fontWeight: 800, color: '#0f172a' },
+  slipActionWrap: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px' },
+  slipActionButton: {
+    minHeight: '30px',
+    padding: '0 8px',
+    width: '100%',
+    justifyContent: 'center',
+    textAlign: 'center',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
   }
 };
 
@@ -920,6 +939,27 @@ export default function PayrollModule() {
     );
   };
 
+  const renderSlipActions = (entry, compact = false) => {
+    const actionButtonStyle = compact
+      ? { ...shell.btnLight, ...shell.slipActionButton }
+      : { ...shell.btnLight, ...shell.payrollActionButton };
+    const wrapStyle = compact ? shell.slipActionWrap : shell.payrollActionGroup;
+    return (
+      <div style={wrapStyle}>
+        <button type="button" style={actionButtonStyle} onClick={() => openSlipViewer(entry)}>View</button>
+        <button
+          type="button"
+          style={actionButtonStyle}
+          onClick={() => window.open(`${API_BASE}/api/payroll/items/${entry._id}/slip/pdf?role=${encodeURIComponent(localStorage.getItem('portal_user_role') || 'Admin')}&userId=${encodeURIComponent(localStorage.getItem('portal_user_id') || '')}&userName=${encodeURIComponent(localStorage.getItem('portal_user_name') || 'System')}&download=1`, '_blank')}
+        >
+          Download
+        </button>
+        <button type="button" style={actionButtonStyle} onClick={() => sendSlipForItem(entry, 'email')} disabled={busy}>Email</button>
+        <button type="button" style={actionButtonStyle} onClick={() => sendSlipForItem(entry, 'whatsapp')} disabled={busy}>WhatsApp</button>
+      </div>
+    );
+  };
+
   const renderDashboard = () => (
     <>
       <div style={shell.grid}>
@@ -1338,51 +1378,82 @@ export default function PayrollModule() {
         <button type="button" style={shell.btnLight} onClick={() => exportReport('advance', 'excel')}>Download Advance CSV</button>
         <button type="button" style={shell.btnLight} onClick={() => exportReport('monthly', 'pdf')}>Download Slips PDF</button>
       </div>
-      <div style={shell.tableWrap}>
-        <table style={shell.payrollTable}>
-          <colgroup>
-            <col style={{ width: '180px' }} />
-            <col style={{ width: '120px' }} />
-            <col style={{ width: '120px' }} />
-            <col style={{ width: '120px' }} />
-            <col style={{ width: '120px' }} />
-            <col style={{ width: '260px' }} />
-          </colgroup>
-          <thead>
-            <tr>
-              <th style={shell.th}>Employee</th>
-              <th style={shell.th}>Month</th>
-              <th style={shell.th}>Net Salary</th>
-              <th style={shell.th}>Payment</th>
-              <th style={shell.th}>Slip</th>
-              <th style={shell.th}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagedPayrollItems.map((entry) => (
-              <tr key={entry._id}>
-                <td style={shell.td}>
-                  <div>{entry.employeeName}</div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode}</div>
-                </td>
-                <td style={shell.td}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
-                <td style={shell.td}>INR {money(entry.netSalary)}</td>
-                <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
-                <td style={shell.td}>{entry.slipPath ? 'Ready' : 'Generate'}</td>
-                <td style={shell.td}>
-                  <div style={shell.payrollActionGroup}>
-                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => openSlipViewer(entry)}>View</button>
-                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => window.open(`${API_BASE}/api/payroll/items/${entry._id}/slip/pdf?role=${encodeURIComponent(localStorage.getItem('portal_user_role') || 'Admin')}&userId=${encodeURIComponent(localStorage.getItem('portal_user_id') || '')}&userName=${encodeURIComponent(localStorage.getItem('portal_user_name') || 'System')}&download=1`, '_blank')}>Download</button>
-                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => sendSlipForItem(entry, 'email')} disabled={busy}>Email</button>
-                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => sendSlipForItem(entry, 'whatsapp')} disabled={busy}>WhatsApp</button>
-                  </div>
-                </td>
+      {screenWidth < 960 ? (
+        <div style={shell.slipCardList}>
+          {pagedPayrollItems.map((entry) => (
+            <div key={entry._id} style={shell.slipCard}>
+              <div style={shell.slipCardHeader}>
+                <div style={shell.employeeMeta}>
+                  <p style={shell.slipCardTitle}>{entry.employeeName}</p>
+                  <p style={shell.slipCardSub}>{entry.employeeCode} • {monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</p>
+                </div>
+                <span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span>
+              </div>
+              <div style={shell.slipMetricGrid}>
+                <div style={shell.slipMetric}>
+                  <p style={shell.slipMetricLabel}>Net Salary</p>
+                  <p style={shell.slipMetricValue}>INR {money(entry.netSalary)}</p>
+                </div>
+                <div style={shell.slipMetric}>
+                  <p style={shell.slipMetricLabel}>Slip</p>
+                  <p style={shell.slipMetricValue}>{entry.slipPath ? 'Ready' : 'Generate'}</p>
+                </div>
+              </div>
+              <div style={shell.slipMetricGrid}>
+                <div style={shell.slipMetric}>
+                  <p style={shell.slipMetricLabel}>Payment</p>
+                  <p style={shell.slipMetricValue}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></p>
+                </div>
+                <div style={shell.slipMetric}>
+                  <p style={shell.slipMetricLabel}>Gross</p>
+                  <p style={shell.slipMetricValue}>INR {money(entry.grossSalary)}</p>
+                </div>
+              </div>
+              {renderSlipActions(entry, true)}
+            </div>
+          ))}
+          {pagedPayrollItems.length === 0 ? <div style={{ ...shell.slipCard, textAlign: 'center', color: '#64748b' }}>No salary slips for selected filter.</div> : null}
+        </div>
+      ) : (
+        <div style={shell.tableWrap}>
+          <table style={shell.payrollTable}>
+            <colgroup>
+              <col style={{ width: '180px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '260px' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th style={shell.th}>Employee</th>
+                <th style={shell.th}>Month</th>
+                <th style={shell.th}>Net Salary</th>
+                <th style={shell.th}>Payment</th>
+                <th style={shell.th}>Slip</th>
+                <th style={shell.th}>Actions</th>
               </tr>
-            ))}
-            {pagedPayrollItems.length === 0 ? <tr><td colSpan={6} style={{ ...shell.td, textAlign: 'center', color: '#64748b' }}>No salary slips for selected filter.</td></tr> : null}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {pagedPayrollItems.map((entry) => (
+                <tr key={entry._id}>
+                  <td style={shell.td}>
+                    <div style={{ fontWeight: 800, color: '#0f172a' }}>{entry.employeeName}</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode}</div>
+                  </td>
+                  <td style={shell.td}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
+                  <td style={shell.td}>INR {money(entry.netSalary)}</td>
+                  <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
+                  <td style={shell.td}>{entry.slipPath ? 'Ready' : 'Generate'}</td>
+                  <td style={shell.td}>{renderSlipActions(entry, false)}</td>
+                </tr>
+              ))}
+              {pagedPayrollItems.length === 0 ? <tr><td colSpan={6} style={{ ...shell.td, textAlign: 'center', color: '#64748b' }}>No salary slips for selected filter.</td></tr> : null}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 
