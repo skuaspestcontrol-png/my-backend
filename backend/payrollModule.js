@@ -187,68 +187,28 @@ const tryResolveLocalUploadPath = (rawUrl) => {
   }) || '';
 };
 
-const loadCompanyLogoBuffer = async (logoUrl) => {
-  const text = normalizeText(logoUrl);
-  if (!text) return null;
-  let resolvedLogoPath = '';
-  if (text.startsWith('/uploads/')) {
-    const relativeUploadPath = normalizeText(text.replace(/^\/uploads\//, ''));
-    resolvedLogoPath = path.join(uploadsRootDir, relativeUploadPath);
-    try {
-      if (fs.existsSync(resolvedLogoPath)) {
-        return fs.readFileSync(resolvedLogoPath);
-      }
-    } catch (_e) {}
-  }
-  if (/^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(text)) {
-    try {
-      const base64 = text.split(',')[1] || '';
-      return base64 ? Buffer.from(base64, 'base64') : null;
-    } catch (_e) {
-      return null;
-    }
-  }
-  const localPath = tryResolveLocalUploadPath(text);
-  if (localPath) {
-    try {
-      return fs.readFileSync(localPath);
-    } catch (_e) {}
-  }
-  if (/^https?:\/\//i.test(text)) {
-    try {
-      const tryUrls = [text];
-      try {
-        const parsed = new URL(text);
-        parsed.pathname = encodeURI(parsed.pathname);
-        tryUrls.push(parsed.toString());
-      } catch (_e) {}
-      for (const url of tryUrls) {
-        try {
-          const response = await fetch(url);
-          if (!response.ok) continue;
-          return Buffer.from(await response.arrayBuffer());
-        } catch (_e) {
-          // Try next variant
-        }
-      }
-      return null;
-    } catch (_e) {
-      return null;
-    }
-  }
-  return null;
-};
+const resolveUploadPath = (logoUrl) => {
+  if (!logoUrl) return null;
 
-const loadFirstAvailableLogoBuffer = async (logoCandidates = []) => {
-  const tried = new Set();
-  for (const raw of Array.isArray(logoCandidates) ? logoCandidates : []) {
-    const candidate = normalizeText(raw);
-    if (!candidate || tried.has(candidate)) continue;
-    tried.add(candidate);
-    const buffer = await loadCompanyLogoBuffer(candidate);
-    if (buffer) return buffer;
+  const fs = require('fs');
+  const path = require('path');
+
+  const uploadsRoot = process.env.UPLOADS_ROOT || '/home/u610009593/uploads-skuas-crm';
+
+  let cleaned = String(logoUrl).trim();
+
+  cleaned = cleaned.replace(/^https?:\/\/[^/]+\/uploads\//, '/uploads/');
+
+  if (cleaned.startsWith('/uploads/')) {
+    cleaned = cleaned.replace(/^\/uploads\//, '');
   }
-  return null;
+
+  if (cleaned.startsWith('uploads/')) {
+    cleaned = cleaned.replace(/^uploads\//, '');
+  }
+
+  const candidate = path.join(uploadsRoot, cleaned);
+  return fs.existsSync(candidate) ? candidate : null;
 };
 
 const monthDateRange = (month, year) => {
@@ -814,17 +774,24 @@ const calcPayrollItem = ({
   };
 };
 
-const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resolve, reject) => {
-  const logoUrl = normalizeText(company?.logoUrl || (Array.isArray(company?.logoCandidates) ? company.logoCandidates[0] : ''));
-  const resolvedLogoPath = tryResolveLocalUploadPath(logoUrl);
-  const logoBuffer = await loadFirstAvailableLogoBuffer(
-    (Array.isArray(company?.logoCandidates) && company.logoCandidates.length > 0)
-      ? company.logoCandidates
-      : [logoUrl]
+const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(async (resolve, reject) => {
+  console.log('SALARY PDF branding object:', branding || {});
+  const logoUrl = normalizeText(
+    branding?.gstCompanyLogo
+    || branding?.companyLogo
+    || branding?.logoUrl
+    || branding?.logo
+    || branding?.gstCompanyLogoUrl
+    || branding?.companyLogoUrl
+    || branding?.gstLogoUrl
+    || branding?.gstLogo
+    || company?.logoUrl
+    || (Array.isArray(company?.logoCandidates) ? company.logoCandidates[0] : '')
   );
-  console.log('SALARY PDF logoUrl:', logoUrl || '');
-  console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath || '');
-  console.log('SALARY PDF logoExists:', Boolean(logoBuffer || (resolvedLogoPath && fs.existsSync(resolvedLogoPath))));
+  const resolvedLogoPath = resolveUploadPath(logoUrl);
+  console.log('SALARY PDF logoUrl:', logoUrl);
+  console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath);
+  console.log('SALARY PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));
@@ -845,8 +812,8 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
   const pageLeft = 55;
   const pageRight = doc.page.width - 55;
   const contentWidth = pageRight - pageLeft;
-  const logoWidth = logoBuffer ? 400 : 0;
-  const logoHeight = logoBuffer ? 160 : 0;
+  const logoWidth = 400;
+  const logoHeight = 160;
   const headerTopY = 45;
   const companyName = normalizeText(company.companyName || defaultCompany.companyName);
   const companyCityLine = [company.city, company.state].map(normalizeText).filter(Boolean).join(',');
@@ -865,9 +832,10 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
   const detailLineHeight = 8.1 + 1;
   const headerBoxHeight = 10.2 + 1 + (companyDetailLines.length * detailLineHeight);
   const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
-  if (logoBuffer) {
+  if (resolvedLogoPath) {
     try {
-      doc.image(logoBuffer, pageLeft, logoY, { fit: [logoWidth, logoHeight] });
+      doc.image(resolvedLogoPath, pageLeft, logoY, { fit: [logoWidth, logoHeight] });
+      console.log('SALARY PDF logo rendered');
     } catch (error) {
       console.error('SALARY PDF logo image failed:', error.message);
     }
@@ -973,13 +941,11 @@ const getPayrollSlipFileInfo = (item = {}) => {
   return { fileName, relativePath, absolutePath };
 };
 
-const ensureSalarySlipStored = async ({ item, company, withMysqlConnection: mysqlConn }) => {
+const ensureSalarySlipStored = async ({ item, company, branding, withMysqlConnection: mysqlConn }) => {
   const { absolutePath, relativePath } = getPayrollSlipFileInfo(item);
   fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-  if (!fs.existsSync(absolutePath)) {
-    const buffer = await buildSalarySlipPdfBuffer({ item, company });
-    fs.writeFileSync(absolutePath, buffer);
-  }
+  const buffer = await buildSalarySlipPdfBuffer({ item, company, branding });
+  fs.writeFileSync(absolutePath, buffer);
   if (typeof mysqlConn === 'function') {
     await mysqlConn(async (conn) => {
       await conn.query(
@@ -2630,6 +2596,7 @@ function registerPayrollModule({
 
   app.get('/api/payroll/items/:id/slip/pdf', async (req, res) => {
     try {
+      console.log('ACTIVE SALARY PDF ROUTE HIT');
       const perms = roleToPermissions(getRoleFromReq(req));
       const identity = getRequestIdentity(req, perms);
       if (!ensureOwnIdentity(identity, res)) return;
@@ -2637,8 +2604,9 @@ function registerPayrollModule({
       if (!item) return res.status(404).json({ error: 'Payroll item not found' });
       if (!canAccessItem(item, identity)) return res.status(403).json({ error: 'You can only view your own salary slip.' });
       const settings = readSettings ? (readSettings() || {}) : {};
+      console.log('SALARY PDF branding object:', settings || {});
       const company = resolveCompanyDetails(settings);
-      const { absolutePath, relativePath } = await ensureSalarySlipStored({ item, company, withMysqlConnection });
+      const { absolutePath, relativePath } = await ensureSalarySlipStored({ item, company, branding: settings, withMysqlConnection });
       const buffer = fs.readFileSync(absolutePath);
       const safeName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       res.setHeader('Content-Type', 'application/pdf');
@@ -2675,7 +2643,7 @@ function registerPayrollModule({
       }
 
       const company = resolveCompanyDetails(settings);
-      const { absolutePath } = await ensureSalarySlipStored({ item, company, withMysqlConnection });
+      const { absolutePath } = await ensureSalarySlipStored({ item, company, branding: settings, withMysqlConnection });
       const fileName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       const subject = normalizeText(req.body?.subject || `Salary Slip ${pad2(item.month)}/${item.year} - ${item.employeeName}`);
       const message = normalizeText(req.body?.message || `Dear ${item.employeeName},\nPlease find attached your salary slip for ${pad2(item.month)}/${item.year}.\n\n${company.companyName}`);
@@ -2740,7 +2708,7 @@ function registerPayrollModule({
       }
 
       const company = resolveCompanyDetails(settings);
-      const { absolutePath } = await ensureSalarySlipStored({ item, company, withMysqlConnection });
+      const { absolutePath } = await ensureSalarySlipStored({ item, company, branding: settings, withMysqlConnection });
       const fileName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       const graphBase = `https://graph.facebook.com/${waConfig.apiVersion}`;
       const shareOrigin = serverOrigin || 'https://crm.skuaspestcontrol.com';
