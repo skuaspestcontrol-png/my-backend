@@ -3,7 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, FileText, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
 import {
   defaultInvoiceVisibleColumns,
   invoiceColumns as columns,
@@ -255,7 +255,6 @@ const shell = {
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center' },
   rowActionButton: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   rowActionMenu: { position: 'fixed', minWidth: '168px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 3500, overflow: 'hidden' },
-  rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '8px 10px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '250px', zIndex: 30 },
   popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
@@ -660,8 +659,6 @@ export default function InvoiceDashboard() {
   const [page, setPage] = useState(1);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
-  const [rowActionInvoiceId, setRowActionInvoiceId] = useState('');
-  const [rowActionMenuPos, setRowActionMenuPos] = useState({ top: 0, left: 0 });
   const [showBillingAddressPicker, setShowBillingAddressPicker] = useState(false);
   const [showShippingAddressPicker, setShowShippingAddressPicker] = useState(false);
   const [editingShippingAddressId, setEditingShippingAddressId] = useState('');
@@ -975,20 +972,12 @@ export default function InvoiceDashboard() {
       ) {
         setShowMoreMenu(false);
       }
-
-      const clickedInsideRowAction = target && typeof target.closest === 'function'
-        ? target.closest('[data-invoice-row-action="true"], [data-invoice-row-action-menu="true"]')
-        : null;
-      if (rowActionInvoiceId && !clickedInsideRowAction) {
-        setRowActionInvoiceId('');
-      }
     };
 
     const onEsc = (event) => {
       if (event.key === 'Escape') {
         setShowCustomize(false);
         setShowMoreMenu(false);
-        setRowActionInvoiceId('');
       }
     };
 
@@ -998,7 +987,7 @@ export default function InvoiceDashboard() {
       document.removeEventListener('mousedown', onDocClick);
       document.removeEventListener('keydown', onEsc);
     };
-  }, [rowActionInvoiceId, showCustomize, showMoreMenu]);
+  }, [showCustomize, showMoreMenu]);
 
   const totalPages = Math.max(1, Math.ceil(invoices.length / INVOICE_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -2350,29 +2339,14 @@ export default function InvoiceDashboard() {
                   );
                 })}
                 <td style={{ ...shell.cell, width: '80px', textAlign: 'center', overflow: 'visible' }} data-label="Action">
-                  <div style={shell.rowActionWrap} data-invoice-row-action="true">
+                  <div style={shell.rowActionWrap}>
                     <button
                       type="button"
                       style={shell.rowActionButton}
-                      onClick={(event) => {
-                        if (rowActionInvoiceId === invoice._id) {
-                          setRowActionInvoiceId('');
-                          return;
-                        }
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        const menuWidth = 176;
-                        const menuHeight = 112;
-                        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-                        const shouldOpenUp = isMobile || viewportHeight - rect.bottom < menuHeight + 12;
-                        setRowActionMenuPos({
-                          top: shouldOpenUp ? Math.max(10, rect.top - menuHeight - 8) : Math.max(10, rect.bottom + 8),
-                          left: Math.max(10, rect.right - menuWidth)
-                        });
-                        setRowActionInvoiceId(invoice._id);
-                      }}
-                      title="Invoice actions"
+                      onClick={() => openInvoicePdfPreview(invoice)}
+                      title="Preview Invoice"
                     >
-                      <MoreHorizontal size={18} />
+                      <FileText size={16} />
                     </button>
                   </div>
                 </td>
@@ -2387,59 +2361,6 @@ export default function InvoiceDashboard() {
           <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', height: '34px', padding: 0 }} disabled={safePage >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
         </div>
       </div>
-
-      {rowActionInvoiceId
-        ? createPortal(
-          <div
-            data-invoice-row-action-menu="true"
-            style={{
-              ...shell.rowActionMenu,
-              top: `${rowActionMenuPos.top}px`,
-              left: `${rowActionMenuPos.left}px`
-            }}
-          >
-            {(() => {
-              const targetInvoice = invoices.find((entry) => entry._id === rowActionInvoiceId);
-              if (!targetInvoice) return null;
-              return (
-                <>
-                  <button
-                    type="button"
-                    style={shell.rowActionMenuBtn}
-                    onClick={() => {
-                      runInvoiceAction(targetInvoice, 'preview');
-                      setRowActionInvoiceId('');
-                    }}
-                  >
-                    Preview Invoice
-                  </button>
-                  <button
-                    type="button"
-                    style={shell.rowActionMenuBtn}
-                    onClick={() => {
-                      runInvoiceAction(targetInvoice, 'whatsapp');
-                      setRowActionInvoiceId('');
-                    }}
-                  >
-                    WhatsApp Invoice
-                  </button>
-                  <button
-                    type="button"
-                    style={shell.rowActionMenuBtn}
-                    onClick={() => {
-                      runInvoiceAction(targetInvoice, 'email');
-                      setRowActionInvoiceId('');
-                    }}
-                  >
-                    Email Invoice
-                  </button>
-                </>
-              );
-            })()}
-          </div>,
-          document.body
-        )
-        : null}
 
       {showModal ? createPortal(
         <div style={modalOverlayStyle} onClick={closeInvoiceModal}>
