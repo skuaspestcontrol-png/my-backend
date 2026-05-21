@@ -221,7 +221,14 @@ const shell = {
     textAlign: 'center',
     overflow: 'hidden',
     textOverflow: 'ellipsis'
-  }
+  },
+  dashboardCardList: { display: 'grid', gap: '10px' },
+  dashboardCardRow: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
+  dashboardCard: { border: '1px solid rgba(159, 23, 77, 0.2)', borderRadius: '12px', padding: '11px', background: '#fff' },
+  dashboardCardLabel: { margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  dashboardCardValue: { margin: '6px 0 0 0', fontSize: '17px', color: '#0f172a', fontWeight: 800, lineHeight: 1.2 },
+  dashboardChartStack: { display: 'grid', gap: '10px' },
+  dashboardChartCard: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '12px', background: '#fff', padding: '12px' }
 };
 
 const salaryFormDefaults = {
@@ -961,48 +968,93 @@ export default function PayrollModule() {
   };
 
   const renderDashboard = () => (
-    <>
-      <div style={shell.grid}>
-        <div style={shell.card}><p style={shell.cardLabel}>Total Employees</p><p style={shell.cardValue}>{dashboard?.cards?.totalEmployees || 0}</p></div>
-        <div style={shell.card}><p style={shell.cardLabel}>This Month Payroll</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.thisMonthPayroll)}</p></div>
-        <div style={shell.card}><p style={shell.cardLabel}>Paid Salaries</p><p style={shell.cardValue}>{dashboard?.cards?.paidSalaries || 0}</p></div>
-        <div style={shell.card}><p style={shell.cardLabel}>Pending Salaries</p><p style={shell.cardValue}>{dashboard?.cards?.pendingSalaries || 0}</p></div>
-        <div style={shell.card}><p style={shell.cardLabel}>Advance Salary</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.advanceSalary)}</p></div>
-        <div style={shell.card}><p style={shell.cardLabel}>Total Expense</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.totalExpense)}</p></div>
-      </div>
-      <div style={shell.row}>
-        <div style={shell.card}>
-          <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Monthly Salary Expense</p>
-          <div style={shell.chartRow}>
-            {(dashboard?.monthWiseChart || []).map((entry) => {
-              const max = Math.max(...(dashboard?.monthWiseChart || [{ total: 1 }]).map((item) => Number(item.total || 0)), 1);
-              const width = `${Math.max(4, (Number(entry.total || 0) / max) * 100)}%`;
-              return (
-                <div key={entry.key}>
-                  <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
-                  <div style={shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
-                </div>
-              );
-            })}
+    screenWidth < 960 ? (
+      <div style={shell.dashboardCardList}>
+        <div style={{ ...shell.dashboardCardRow, gridTemplateColumns: screenWidth < 560 ? '1fr' : 'repeat(2, minmax(0, 1fr))' }}>
+          <div style={shell.dashboardCard}><p style={shell.dashboardCardLabel}>Total Employees</p><p style={shell.dashboardCardValue}>{dashboard?.cards?.totalEmployees || 0}</p></div>
+          <div style={shell.dashboardCard}><p style={shell.dashboardCardLabel}>This Month Payroll</p><p style={shell.dashboardCardValue}>INR {money(dashboard?.cards?.thisMonthPayroll)}</p></div>
+          <div style={shell.dashboardCard}><p style={shell.dashboardCardLabel}>Paid Salaries</p><p style={shell.dashboardCardValue}>{dashboard?.cards?.paidSalaries || 0}</p></div>
+          <div style={shell.dashboardCard}><p style={shell.dashboardCardLabel}>Pending Salaries</p><p style={shell.dashboardCardValue}>{dashboard?.cards?.pendingSalaries || 0}</p></div>
+          <div style={shell.dashboardCard}><p style={shell.dashboardCardLabel}>Advance Salary</p><p style={shell.dashboardCardValue}>INR {money(dashboard?.cards?.advanceSalary)}</p></div>
+          <div style={shell.dashboardCard}><p style={shell.dashboardCardLabel}>Total Expense</p><p style={shell.dashboardCardValue}>INR {money(dashboard?.cards?.totalExpense)}</p></div>
+        </div>
+        <div style={shell.dashboardChartStack}>
+          <div style={shell.dashboardChartCard}>
+            <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Monthly Salary Expense</p>
+            <div style={shell.chartRow}>
+              {(dashboard?.monthWiseChart || []).map((entry) => {
+                const max = Math.max(...(dashboard?.monthWiseChart || [{ total: 1 }]).map((item) => Number(item.total || 0)), 1);
+                const width = `${Math.max(4, (Number(entry.total || 0) / max) * 100)}%`;
+                return (
+                  <div key={entry.key}>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
+                    <div style={shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div style={shell.dashboardChartCard}>
+            <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Paid vs Pending</p>
+            <div style={shell.chartRow}>
+              {(dashboard?.paidVsPendingChart || []).map((entry) => {
+                const max = Math.max(...(dashboard?.paidVsPendingChart || [{ total: 1 }]).map((item) => Number(item.total || 0)), 1);
+                const width = `${Math.max(4, (Number(entry.total || 0) / max) * 100)}%`;
+                return (
+                  <div key={entry.key}>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
+                    <div style={shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-        <div style={shell.card}>
-          <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Paid vs Pending</p>
-          <div style={shell.chartRow}>
-            {(dashboard?.paidVsPendingChart || []).map((entry) => {
-              const max = Math.max(...(dashboard?.paidVsPendingChart || [{ total: 1 }]).map((item) => Number(item.total || 0)), 1);
-              const width = `${Math.max(4, (Number(entry.total || 0) / max) * 100)}%`;
-              return (
-                <div key={entry.key}>
-                  <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
-                  <div style={shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
-                </div>
-              );
-            })}
+      </div>
+    ) : (
+      <>
+        <div style={shell.grid}>
+          <div style={shell.card}><p style={shell.cardLabel}>Total Employees</p><p style={shell.cardValue}>{dashboard?.cards?.totalEmployees || 0}</p></div>
+          <div style={shell.card}><p style={shell.cardLabel}>This Month Payroll</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.thisMonthPayroll)}</p></div>
+          <div style={shell.card}><p style={shell.cardLabel}>Paid Salaries</p><p style={shell.cardValue}>{dashboard?.cards?.paidSalaries || 0}</p></div>
+          <div style={shell.card}><p style={shell.cardLabel}>Pending Salaries</p><p style={shell.cardValue}>{dashboard?.cards?.pendingSalaries || 0}</p></div>
+          <div style={shell.card}><p style={shell.cardLabel}>Advance Salary</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.advanceSalary)}</p></div>
+          <div style={shell.card}><p style={shell.cardLabel}>Total Expense</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.totalExpense)}</p></div>
+        </div>
+        <div style={shell.row}>
+          <div style={shell.card}>
+            <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Monthly Salary Expense</p>
+            <div style={shell.chartRow}>
+              {(dashboard?.monthWiseChart || []).map((entry) => {
+                const max = Math.max(...(dashboard?.monthWiseChart || [{ total: 1 }]).map((item) => Number(item.total || 0)), 1);
+                const width = `${Math.max(4, (Number(entry.total || 0) / max) * 100)}%`;
+                return (
+                  <div key={entry.key}>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
+                    <div style={shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div style={shell.card}>
+            <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Paid vs Pending</p>
+            <div style={shell.chartRow}>
+              {(dashboard?.paidVsPendingChart || []).map((entry) => {
+                const max = Math.max(...(dashboard?.paidVsPendingChart || [{ total: 1 }]).map((item) => Number(item.total || 0)), 1);
+                const width = `${Math.max(4, (Number(entry.total || 0) / max) * 100)}%`;
+                return (
+                  <div key={entry.key}>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
+                    <div style={shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
-    </>
+      </>
+    )
   );
 
   const renderSalarySetup = () => (
