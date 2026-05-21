@@ -161,7 +161,29 @@ const shell = {
   modal: { width: 'min(620px, 100%)', background: '#fff', borderRadius: '14px', border: '1px solid rgba(159, 23, 77, 0.2)', padding: '14px', display: 'grid', gap: '10px' },
   chartRow: { display: 'grid', gap: '7px' },
   chartBarWrap: { height: '10px', borderRadius: '999px', background: 'var(--color-border)', overflow: 'hidden' },
-  chartBar: { height: '100%', background: 'var(--color-primary)' }
+  chartBar: { height: '100%', background: 'var(--color-primary)' },
+  compactGrid: { display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(240px, 0.85fr)', gap: '10px', alignItems: 'start' },
+  miniStack: { display: 'grid', gap: '8px' },
+  miniCard: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '12px', background: '#fff', padding: '10px' },
+  miniCardLabel: { margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  miniCardValue: { margin: '4px 0 0 0', fontSize: '16px', color: '#0f172a', fontWeight: 800 },
+  employeeChecklist: { display: 'grid', gap: '8px', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' },
+  employeeRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '8px 10px', background: '#fff' },
+  employeeMeta: { display: 'grid', gap: '2px', minWidth: 0 },
+  employeeName: { margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  employeeSub: { margin: 0, fontSize: '10px', fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  pillButton: {
+    border: '1px solid #D1D5DB',
+    background: '#fff',
+    color: '#0f172a',
+    borderRadius: '8px',
+    minHeight: '30px',
+    padding: '0 10px',
+    fontSize: '10px',
+    fontWeight: 700,
+    whiteSpace: 'nowrap',
+    cursor: 'pointer'
+  }
 };
 
 const salaryFormDefaults = {
@@ -946,39 +968,72 @@ export default function PayrollModule() {
   const renderGenerate = () => (
     <div style={shell.panel}>
       <h3 style={shell.panelTitle}><UserRoundCheck size={16} /> Salary Processing</h3>
-      <p style={shell.sub}>Generate payroll for all employees or selected employee list. Duplicate paid records are blocked; draft/hold can be regenerated.</p>
-      <div style={shell.row}>
-        <div style={shell.field}>
-          <p style={shell.label}>Select Employees (Optional)</p>
-          <select
-            multiple
-            size={8}
-            style={{ ...shell.input, minHeight: '160px' }}
-            value={selectedGenerateEmployees}
-            onChange={(event) => {
-              const values = Array.from(event.target.selectedOptions).map((option) => option.value);
-              setSelectedGenerateEmployees(values);
-            }}
-          >
-            {employees.map((entry) => (
-              <option key={entry._id} value={entry._id}>
-                {[entry.firstName, entry.lastName].filter(Boolean).join(' ').trim() || entry.empCode} ({entry.empCode || '-'}) - {entry.role || '-'}
-              </option>
-            ))}
-          </select>
+      <p style={shell.sub}>Generate payroll for all staff or only selected employees. Keep the month focused, fast, and ready for approval.</p>
+      <div style={shell.compactGrid}>
+        <div style={shell.miniStack}>
+          <div style={shell.miniCard}>
+            <p style={shell.miniCardLabel}>Payroll Scope</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '8px', marginTop: '8px' }}>
+              <div style={shell.card}>
+                <p style={shell.cardLabel}>Month</p>
+                <p style={shell.miniCardValue}>{monthOptions.find((entry) => entry.value === Number(month))?.label}</p>
+              </div>
+              <div style={shell.card}>
+                <p style={shell.cardLabel}>Year</p>
+                <p style={shell.miniCardValue}>{year}</p>
+              </div>
+              <div style={shell.card}>
+                <p style={shell.cardLabel}>Scope</p>
+                <p style={shell.miniCardValue}>{selectedGenerateEmployees.length > 0 ? selectedGenerateEmployees.length : 'All'}</p>
+              </div>
+              <div style={shell.card}>
+                <p style={shell.cardLabel}>Weekly Off</p>
+                <p style={shell.miniCardValue}>{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][Number(meta?.config?.weeklyOffDay || 0)]}</p>
+              </div>
+            </div>
+          </div>
+          <div style={shell.miniCard}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <p style={shell.miniCardLabel}>Selected Employees</p>
+              <button type="button" style={shell.pillButton} onClick={() => setSelectedGenerateEmployees([])} disabled={selectedGenerateEmployees.length === 0 || busy}>Clear</button>
+            </div>
+            <select
+              multiple
+              size={6}
+              style={{ ...shell.input, minHeight: '180px', marginTop: '8px' }}
+              value={selectedGenerateEmployees}
+              onChange={(event) => {
+                const values = Array.from(event.target.selectedOptions).map((option) => option.value);
+                setSelectedGenerateEmployees(values);
+              }}
+            >
+              {employees.map((entry) => (
+                <option key={entry._id} value={entry._id}>
+                  {[entry.firstName, entry.lastName].filter(Boolean).join(' ').trim() || entry.empCode} ({entry.empCode || '-'}) - {entry.role || '-'}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div style={shell.card}>
-          <p style={shell.cardLabel}>Generation Summary</p>
-          <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#334155', lineHeight: 1.7 }}>
-            Month/Year: <strong>{monthOptions.find((entry) => entry.value === Number(month))?.label} {year}</strong><br />
-            Scope: <strong>{selectedGenerateEmployees.length > 0 ? `${selectedGenerateEmployees.length} employees selected` : 'All employees'}</strong><br />
-            Weekly Off Day: <strong>{['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number(meta?.config?.weeklyOffDay || 0)]}</strong><br />
-            Late Grace: <strong>{meta?.config?.lateMarkGraceMinutes || 15} min</strong>
-          </p>
-          <div style={{ ...shell.actionRow, marginTop: '10px' }}>
+        <div style={shell.miniStack}>
+          <div style={shell.miniCard}>
+            <p style={shell.miniCardLabel}>Quick Summary</p>
+            <div style={{ marginTop: '8px', display: 'grid', gap: '6px', fontSize: '12px', color: '#334155', lineHeight: 1.45 }}>
+              <div>Processing: <strong>{selectedGenerateEmployees.length > 0 ? 'Selected employees only' : 'All employees'}</strong></div>
+              <div>Late Grace: <strong>{meta?.config?.lateMarkGraceMinutes || 15} min</strong></div>
+              <div>Shift Start: <strong>{meta?.config?.workStartTime || '09:00'}</strong></div>
+              <div>Mode: <strong>{role.canGenerate ? 'Ready to generate' : 'Read only'}</strong></div>
+            </div>
+          </div>
+          <div style={shell.miniCard}>
+            <p style={shell.miniCardLabel}>Selected Count</p>
+            <p style={shell.miniCardValue}>{selectedGenerateEmployees.length}</p>
+            <p style={{ ...shell.sub, marginTop: '8px' }}>Use selected mode for targeted salary runs. Leave blank to process everyone.</p>
+          </div>
+          <div style={{ ...shell.actionRow, gap: '6px' }}>
             <button type="button" style={shell.btn} onClick={() => generatePayroll(false)} disabled={!role.canGenerate || busy}>Generate Payroll</button>
-            <button type="button" style={shell.btnLight} onClick={() => generatePayroll(true)} disabled={!role.canGenerate || busy}>Regenerate (Before Payment)</button>
-            <button type="button" style={shell.btnLight} onClick={seedData} disabled={!role.canManage || busy}>Seed Sample Data</button>
+            <button type="button" style={shell.btnLight} onClick={() => generatePayroll(true)} disabled={!role.canGenerate || busy}>Regenerate</button>
+            <button type="button" style={shell.btnLight} onClick={seedData} disabled={!role.canManage || busy}>Seed Sample</button>
           </div>
         </div>
       </div>
