@@ -770,6 +770,7 @@ export default function TechnicianPortal() {
     return customerWiseJobs.slice(start, start + customersPerPage);
   }, [customerPage, customerWiseJobs]);
   const isMobile = viewportWidth <= 900;
+  const isTiny = viewportWidth <= 380;
   const pageStyle = isMobile ? { ...shell.page, maxWidth: '100%', padding: '12px 10px' } : shell.page;
   const titleStyle = isMobile ? { ...shell.title, fontSize: '24px' } : shell.title;
   const completionGridStyle = isMobile ? { ...shell.completionGrid, gridTemplateColumns: '1fr' } : shell.completionGrid;
@@ -802,6 +803,12 @@ export default function TechnicianPortal() {
   const detailsGridStyle = isMobile ? { ...shell.detailsGrid, gridTemplateColumns: '1fr' } : shell.detailsGrid;
   const pagerStyle = isMobile ? { ...shell.pager, flexDirection: 'column', alignItems: 'stretch' } : shell.pager;
   const signatureWidth = isMobile ? Math.max(260, Math.min(360, viewportWidth - 56)) : 520;
+  const mobileJobActionsStyle = isTiny
+    ? { ...shell.mobileJobActions, gridTemplateColumns: '1fr', gap: '6px' }
+    : shell.mobileJobActions;
+  const tinyActionButtonStyle = isTiny
+    ? { minWidth: '0', width: '100%', paddingLeft: '8px', paddingRight: '8px', fontSize: '10px' }
+    : null;
   const routeJobId = useMemo(() => {
     try {
       return new URLSearchParams(location.search).get('jobId') || String(params?.jobId || '').trim() || '';
@@ -1664,17 +1671,17 @@ export default function TechnicianPortal() {
                                     <span style={shell.mobileAssignedValue}>Ready</span>
                                   </div>
                                 </div>
-                                <div style={shell.mobileJobActions}>
-                                  <button type="button" style={shell.startSmallBtn} onClick={() => openJob(job)} disabled={isSavingAssignment}>
+                                <div style={mobileJobActionsStyle}>
+                                  <button type="button" style={tinyActionButtonStyle ? { ...shell.startSmallBtn, ...tinyActionButtonStyle } : shell.startSmallBtn} onClick={() => openJob(job)} disabled={isSavingAssignment}>
                                     {String(job.status || '').trim().toLowerCase() === 'in progress' ? 'Complete Job' : 'Start'}
                                   </button>
-                                  <button type="button" style={shell.pdfBtn} onClick={() => openJobPdfPreview(job)} disabled={isSavingAssignment}>
+                                  <button type="button" style={tinyActionButtonStyle ? { ...shell.pdfBtn, ...tinyActionButtonStyle } : shell.pdfBtn} onClick={() => openJobPdfPreview(job)} disabled={isSavingAssignment}>
                                     PDF
                                   </button>
-                                  <button type="button" style={shell.editBtn} onClick={() => handleReassignJob(job)} disabled={isSavingAssignment}>
+                                  <button type="button" style={tinyActionButtonStyle ? { ...shell.editBtn, ...tinyActionButtonStyle } : shell.editBtn} onClick={() => handleReassignJob(job)} disabled={isSavingAssignment}>
                                     Edit
                                   </button>
-                                  <button type="button" style={shell.removeBtn} onClick={() => handleRemoveAssignment(job)} disabled={isSavingAssignment}>
+                                  <button type="button" style={tinyActionButtonStyle ? { ...shell.removeBtn, ...tinyActionButtonStyle } : shell.removeBtn} onClick={() => handleRemoveAssignment(job)} disabled={isSavingAssignment}>
                                     Delete
                                   </button>
                                 </div>
