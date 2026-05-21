@@ -696,6 +696,7 @@ export default function InvoiceDashboard() {
     () => columns.filter((column) => visibleColumns.includes(column.key)),
     [visibleColumns]
   );
+  const isCompactInvoiceViewport = viewportWidth > 900 && viewportWidth <= 1199;
 
   const customerOptions = useMemo(
     () => customers.map((customer) => ({ id: customer._id, name: customer.displayName || customer.name || '' })),
@@ -1033,42 +1034,42 @@ export default function InvoiceDashboard() {
   const getColumnStyle = (columnKey) => {
     if (columnKey === 'date' || columnKey === 'dueDate') {
       return {
-        width: '118px',
-        minWidth: '118px',
-        maxWidth: '118px',
+        width: isCompactInvoiceViewport ? '110px' : '118px',
+        minWidth: isCompactInvoiceViewport ? '110px' : '118px',
+        maxWidth: isCompactInvoiceViewport ? '110px' : '118px',
         textAlign: 'center',
         fontVariantNumeric: 'tabular-nums'
       };
     }
     if (columnKey === 'invoiceNumber') {
       return {
-        width: '150px',
-        minWidth: '150px',
-        maxWidth: '150px'
+        width: isCompactInvoiceViewport ? '136px' : '150px',
+        minWidth: isCompactInvoiceViewport ? '136px' : '150px',
+        maxWidth: isCompactInvoiceViewport ? '136px' : '150px'
       };
     }
     if (columnKey === 'amount' || columnKey === 'balanceDue') {
       return {
-        width: '112px',
-        minWidth: '112px',
-        maxWidth: '112px',
+        width: isCompactInvoiceViewport ? '104px' : '112px',
+        minWidth: isCompactInvoiceViewport ? '104px' : '112px',
+        maxWidth: isCompactInvoiceViewport ? '104px' : '112px',
         textAlign: 'right',
         fontVariantNumeric: 'tabular-nums'
       };
     }
     if (columnKey === 'status') {
       return {
-        width: '92px',
-        minWidth: '92px',
-        maxWidth: '92px',
+        width: isCompactInvoiceViewport ? '84px' : '92px',
+        minWidth: isCompactInvoiceViewport ? '84px' : '92px',
+        maxWidth: isCompactInvoiceViewport ? '84px' : '92px',
         textAlign: 'center'
       };
     }
     if (columnKey === 'customerName') {
       return {
-        width: '260px',
-        minWidth: '260px',
-        maxWidth: '260px'
+        width: isCompactInvoiceViewport ? '220px' : '260px',
+        minWidth: isCompactInvoiceViewport ? '220px' : '260px',
+        maxWidth: isCompactInvoiceViewport ? '220px' : '260px'
       };
     }
     return {};
@@ -2150,6 +2151,9 @@ export default function InvoiceDashboard() {
       '--mobile-table-min-width': `${invoiceTableMinWidth}px`
     }
     : { ...shell.table, '--invoice-table-min-width': `${invoiceTableMinWidth}px` };
+  const rowActionButtonStyle = isCompactInvoiceViewport
+    ? { ...shell.rowActionButton, width: '28px', height: '28px' }
+    : shell.rowActionButton;
   const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : shell.itemTable;
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
@@ -2343,7 +2347,7 @@ export default function InvoiceDashboard() {
                   <div style={shell.rowActionWrap}>
                     <button
                       type="button"
-                      style={shell.rowActionButton}
+                      style={rowActionButtonStyle}
                       onClick={() => openInvoicePdfPreview(invoice)}
                       title="Preview Invoice"
                     >

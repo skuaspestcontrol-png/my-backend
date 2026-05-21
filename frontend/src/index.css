@@ -1635,6 +1635,26 @@ textarea:focus {
     padding: 9px 10px !important;
     font-size: 12px !important;
   }
+
+  .crm-compact-table.invoice-register-table thead th {
+    padding: 8px 9px !important;
+    font-size: 11px !important;
+  }
+
+  .crm-compact-table.invoice-register-table tbody td {
+    padding: 7px 9px !important;
+    font-size: 12px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+  }
+
+  .crm-compact-table.invoice-register-table .crm-icon-action-btn,
+  .crm-compact-table.invoice-register-table .rowActionButton {
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+  }
 }
 
 @media (max-width: 768px) {
