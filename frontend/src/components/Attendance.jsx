@@ -204,20 +204,21 @@ const shell = {
     fontWeight: 800
   },
   mapBtn: {
-    minHeight: '28px',
-    borderRadius: '8px',
+    minHeight: '24px',
+    borderRadius: '7px',
     border: '1px solid rgba(159, 23, 77, 0.24)',
     background: '#fff',
     color: 'var(--color-primary-dark)',
-    padding: '0 9px',
-    fontSize: '11px',
+    padding: '0 7px',
+    fontSize: '10px',
     fontWeight: 800,
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '5px',
+    gap: '4px',
     cursor: 'pointer',
     textDecoration: 'none',
-    whiteSpace: 'nowrap'
+    whiteSpace: 'nowrap',
+    flexShrink: 0
   },
   actionBtn: {
     minHeight: '30px',
@@ -799,7 +800,7 @@ export default function Attendance() {
                     </select>
                   </td>
                   <td style={shell.td}>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
                       {record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) ? (
                         <a
                           href={record.punchInMapUrl || `https://www.google.com/maps?q=${record.punchInLatitude},${record.punchInLongitude}`}
