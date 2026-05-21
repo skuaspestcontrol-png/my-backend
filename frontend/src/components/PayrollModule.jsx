@@ -229,6 +229,24 @@ const shell = {
   dashboardCardValue: { margin: '6px 0 0 0', fontSize: '17px', color: '#0f172a', fontWeight: 800, lineHeight: 1.2 },
   dashboardChartStack: { display: 'grid', gap: '10px' },
   dashboardChartCard: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '12px', background: '#fff', padding: '12px' }
+  ,
+  filterPanel: { display: 'grid', gap: '10px' },
+  filterGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '10px', alignItems: 'end' },
+  filterActions: { display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' },
+  filterCard: { display: 'grid', gap: '5px' },
+  filterBadge: {
+    minHeight: '34px',
+    borderRadius: '8px',
+    border: '1px solid #D1D5DB',
+    padding: '7px 9px',
+    display: 'flex',
+    alignItems: 'center',
+    background: '#fff',
+    color: '#0f172a',
+    fontSize: '12px',
+    fontWeight: 700
+  },
+  filterButton: { minHeight: '34px', padding: '0 12px', fontSize: '11px' }
 };
 
 const salaryFormDefaults = {
@@ -1519,17 +1537,28 @@ export default function PayrollModule() {
       </div>
 
       <div style={shell.panel}>
-        <div style={shell.row}>
-          <div style={shell.field}><p style={shell.label}>Month</p><select style={shell.input} value={month} onChange={(event) => setMonth(Number(event.target.value))}>{monthOptions.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></div>
-          <div style={shell.field}><p style={shell.label}>Year</p><input type="number" style={shell.input} value={year} onChange={(event) => setYear(Number(event.target.value || defaultYear))} /></div>
-          <div style={shell.field}><p style={shell.label}>Role Access</p><div style={{ ...shell.input, display: 'flex', alignItems: 'center', fontWeight: 700, color: '#0f172a' }}>{role.canManage ? 'Admin/HR (Full Control)' : role.canMarkPaid ? 'Accountant (Payment Control)' : 'Employee/Technician (Own Salary Slip View)'}</div></div>
-          <div style={{ ...shell.field, justifyContent: 'end' }}>
-            <p style={shell.label}>Actions</p>
-            <div style={shell.actionRow}>
-              <button type="button" style={shell.btn} onClick={reloadAll} disabled={busy}>{busy ? 'Refreshing...' : 'Refresh'}</button>
+        {screenWidth < 720 ? (
+          <div style={shell.filterPanel}>
+            <div style={shell.filterGrid}>
+              <div style={shell.filterCard}><p style={shell.label}>Month</p><select style={shell.input} value={month} onChange={(event) => setMonth(Number(event.target.value))}>{monthOptions.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></div>
+              <div style={shell.filterCard}><p style={shell.label}>Year</p><input type="number" style={shell.input} value={year} onChange={(event) => setYear(Number(event.target.value || defaultYear))} /></div>
+              <div style={shell.filterCard}><p style={shell.label}>Role Access</p><div style={shell.filterBadge}>{role.canManage ? 'Admin/HR (Full Control)' : role.canMarkPaid ? 'Accountant (Payment Control)' : 'Employee/Technician (Own Salary Slip View)'}</div></div>
+              <div style={shell.filterCard}><p style={shell.label}>Actions</p><button type="button" style={{ ...shell.btn, ...shell.filterButton, width: '100%' }} onClick={reloadAll} disabled={busy}>{busy ? 'Refreshing...' : 'Refresh'}</button></div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div style={shell.row}>
+            <div style={shell.field}><p style={shell.label}>Month</p><select style={shell.input} value={month} onChange={(event) => setMonth(Number(event.target.value))}>{monthOptions.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></div>
+            <div style={shell.field}><p style={shell.label}>Year</p><input type="number" style={shell.input} value={year} onChange={(event) => setYear(Number(event.target.value || defaultYear))} /></div>
+            <div style={shell.field}><p style={shell.label}>Role Access</p><div style={{ ...shell.input, display: 'flex', alignItems: 'center', fontWeight: 700, color: '#0f172a' }}>{role.canManage ? 'Admin/HR (Full Control)' : role.canMarkPaid ? 'Accountant (Payment Control)' : 'Employee/Technician (Own Salary Slip View)'}</div></div>
+            <div style={{ ...shell.field, justifyContent: 'end' }}>
+              <p style={shell.label}>Actions</p>
+              <div style={shell.actionRow}>
+                <button type="button" style={shell.btn} onClick={reloadAll} disabled={busy}>{busy ? 'Refreshing...' : 'Refresh'}</button>
+              </div>
+            </div>
+          </div>
+        )}
         <div style={shell.tabStrip}>
           {tabKeys.map((entry) => (
             <button
