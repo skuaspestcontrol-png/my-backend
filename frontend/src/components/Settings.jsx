@@ -2412,6 +2412,22 @@ export default function Settings({ modalMode = false }) {
     const summary = attendanceSourceHealth?.summary || {};
     const totalLegacyRows = Number(summary.legacyRows || 0);
     const totalRows = Number(summary.totalRows || 0);
+    const canCopyHealth = Boolean(attendanceSourceHealth);
+    const copyHealthJson = async () => {
+      if (!attendanceSourceHealth) return;
+      try {
+        const payload = {
+          generatedAt: new Date().toISOString(),
+          ...attendanceSourceHealth
+        };
+        const json = `${JSON.stringify(payload, null, 2)}\n`;
+        await navigator.clipboard.writeText(json);
+        setStatus('Attendance source health copied to clipboard.');
+      } catch (error) {
+        console.error('Attendance source health copy failed', error);
+        setStatus('Unable to copy attendance source health right now.');
+      }
+    };
 
     return (
       <div style={shell.bankCard}>
@@ -2420,14 +2436,24 @@ export default function Settings({ modalMode = false }) {
             <p style={sectionLeadTitleStyle}>Attendance Source Health</p>
             <p style={sectionLeadSubTitleStyle}>Quick check for legacy attendance and audit source labels.</p>
           </div>
-          <button
-            type="button"
-            style={{ ...shell.topButton, ...shell.topButtonPrimary, minWidth: '150px' }}
-            onClick={loadAttendanceSourceHealth}
-            disabled={attendanceSourceHealthLoading}
-          >
-            {attendanceSourceHealthLoading ? 'Checking...' : 'Refresh Counts'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              style={{ ...shell.topButton, minWidth: '150px' }}
+              onClick={copyHealthJson}
+              disabled={!canCopyHealth}
+            >
+              Copy JSON
+            </button>
+            <button
+              type="button"
+              style={{ ...shell.topButton, ...shell.topButtonPrimary, minWidth: '150px' }}
+              onClick={loadAttendanceSourceHealth}
+              disabled={attendanceSourceHealthLoading}
+            >
+              {attendanceSourceHealthLoading ? 'Checking...' : 'Refresh Counts'}
+            </button>
+          </div>
         </div>
 
         <div style={shell.twoCol}>
