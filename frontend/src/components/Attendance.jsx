@@ -826,7 +826,7 @@ export default function Attendance() {
                       {!(record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) || record.punchOutMapUrl || (record.punchOutLatitude && record.punchOutLongitude)) ? '-' : null}
                     </div>
                   </td>
-                  <td style={shell.td}>{formatAttendanceSourceLabel(record.source)}</td>
+                  <td style={{ ...shell.td, textAlign: 'center' }}>{formatAttendanceSourceLabel(record.source)}</td>
                   <td style={shell.td}>
                     <button type="button" style={shell.actionBtn} onClick={() => openAudit({ employeeId, employee, record })}>View Audit</button>
                   </td>
