@@ -252,6 +252,13 @@ const shell = {
     fontWeight: 700
   },
   filterButton: { minHeight: '34px', padding: '0 12px', fontSize: '11px' }
+  ,
+  setupSection: { display: 'grid', gap: '8px' },
+  setupSectionTitle: { margin: '2px 0 0 0', fontSize: '12px', fontWeight: 800, color: '#0f172a' },
+  setupHint: { margin: 0, fontSize: '11px', color: '#64748b', lineHeight: 1.45 },
+  setupActionRow: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
+  setupButton: { minHeight: '32px', padding: '0 10px', fontSize: '11px' },
+  setupTableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', overflowX: 'auto', background: '#fff', marginTop: '2px' }
 };
 
 const salaryFormDefaults = {
@@ -1103,7 +1110,11 @@ export default function PayrollModule() {
     <>
       <div style={shell.panel}>
         <h3 style={shell.panelTitle}><Landmark size={16} /> Employee Salary Setup</h3>
-        <div style={shell.row}>
+        <div style={shell.setupSection}>
+          <p style={shell.setupSectionTitle}>Core Salary</p>
+          <p style={shell.setupHint}>Keep the employee rate and effective date short, then fill the profile below only if needed.</p>
+        </div>
+        <div style={screenWidth < 720 ? { ...shell.row, gridTemplateColumns: '1fr' } : shell.row}>
           <div style={shell.field}><p style={shell.label}>Employee</p><select style={shell.input} value={salaryForm.employeeId} onChange={(event) => loadEmployeeToSalaryForm(event.target.value)}><option value="">Select employee</option>{employees.map((entry) => <option key={entry._id} value={entry._id}>{[entry.firstName, entry.lastName].filter(Boolean).join(' ') || entry.empCode} ({entry.empCode})</option>)}</select></div>
           <div style={shell.field}><p style={shell.label}>Effective Date</p><input type="date" style={shell.input} value={salaryForm.effectiveDate} onChange={(event) => setSalaryForm((prev) => ({ ...prev, effectiveDate: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Salary Type</p><select style={shell.input} value={salaryForm.salaryType} onChange={(event) => setSalaryForm((prev) => ({ ...prev, salaryType: event.target.value }))}><option value="monthly">Monthly</option><option value="daily">Daily</option><option value="hourly">Hourly</option></select></div>
@@ -1112,8 +1123,11 @@ export default function PayrollModule() {
           <div style={shell.field}><p style={shell.label}>Hourly Rate</p><input type="number" style={shell.input} value={salaryForm.hourlyRate} onChange={(event) => setSalaryForm((prev) => ({ ...prev, hourlyRate: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Overtime Rate</p><input type="number" style={shell.input} value={salaryForm.overtimeRate} onChange={(event) => setSalaryForm((prev) => ({ ...prev, overtimeRate: event.target.value }))} /></div>
         </div>
-        <p style={{ ...shell.sub, fontWeight: 700 }}>Payroll Profile</p>
-        <div style={shell.row}>
+        <div style={shell.setupSection}>
+          <p style={shell.setupSectionTitle}>Payroll Profile</p>
+          <p style={shell.setupHint}>Bank and identity fields are optional. Add them when the employee is ready for salary slip generation.</p>
+        </div>
+        <div style={screenWidth < 720 ? { ...shell.row, gridTemplateColumns: '1fr' } : shell.row}>
           <div style={shell.field}><p style={shell.label}>Bank Name</p><input style={shell.input} value={salaryForm.bankName} onChange={(event) => setSalaryForm((prev) => ({ ...prev, bankName: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Account Number</p><input style={shell.input} value={salaryForm.accountNumber} onChange={(event) => setSalaryForm((prev) => ({ ...prev, accountNumber: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>IFSC</p><input style={shell.input} value={salaryForm.ifsc} onChange={(event) => setSalaryForm((prev) => ({ ...prev, ifsc: event.target.value }))} /></div>
@@ -1122,8 +1136,10 @@ export default function PayrollModule() {
           <div style={shell.field}><p style={shell.label}>Aadhaar</p><input style={shell.input} value={salaryForm.aadhaar} onChange={(event) => setSalaryForm((prev) => ({ ...prev, aadhaar: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Joining Date</p><input type="date" style={shell.input} value={salaryForm.joiningDate} onChange={(event) => setSalaryForm((prev) => ({ ...prev, joiningDate: event.target.value }))} /></div>
         </div>
-        <p style={{ ...shell.sub, fontWeight: 700 }}>Allowances</p>
-        <div style={shell.row}>
+        <div style={shell.setupSection}>
+          <p style={shell.setupSectionTitle}>Allowances</p>
+        </div>
+        <div style={screenWidth < 720 ? { ...shell.row, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.row}>
           <div style={shell.field}><p style={shell.label}>HRA</p><input type="number" style={shell.input} value={salaryForm.hra} onChange={(event) => setSalaryForm((prev) => ({ ...prev, hra: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Conveyance</p><input type="number" style={shell.input} value={salaryForm.conveyance} onChange={(event) => setSalaryForm((prev) => ({ ...prev, conveyance: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Mobile</p><input type="number" style={shell.input} value={salaryForm.mobile} onChange={(event) => setSalaryForm((prev) => ({ ...prev, mobile: event.target.value }))} /></div>
@@ -1131,8 +1147,10 @@ export default function PayrollModule() {
           <div style={shell.field}><p style={shell.label}>Incentive</p><input type="number" style={shell.input} value={salaryForm.incentive} onChange={(event) => setSalaryForm((prev) => ({ ...prev, incentive: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Other Allowance</p><input type="number" style={shell.input} value={salaryForm.otherAllowance} onChange={(event) => setSalaryForm((prev) => ({ ...prev, otherAllowance: event.target.value }))} /></div>
         </div>
-        <p style={{ ...shell.sub, fontWeight: 700 }}>Deductions</p>
-        <div style={shell.row}>
+        <div style={shell.setupSection}>
+          <p style={shell.setupSectionTitle}>Deductions</p>
+        </div>
+        <div style={screenWidth < 720 ? { ...shell.row, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.row}>
           <div style={shell.field}><p style={shell.label}>Leave Deduction</p><input type="number" style={shell.input} value={salaryForm.leaveDeduction} onChange={(event) => setSalaryForm((prev) => ({ ...prev, leaveDeduction: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Late Deduction</p><input type="number" style={shell.input} value={salaryForm.lateDeduction} onChange={(event) => setSalaryForm((prev) => ({ ...prev, lateDeduction: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Late Per Mark</p><input type="number" style={shell.input} value={salaryForm.latePerMark} onChange={(event) => setSalaryForm((prev) => ({ ...prev, latePerMark: event.target.value }))} /></div>
@@ -1143,14 +1161,14 @@ export default function PayrollModule() {
           <div style={shell.field}><p style={shell.label}>Other Deduction</p><input type="number" style={shell.input} value={salaryForm.otherDeduction} onChange={(event) => setSalaryForm((prev) => ({ ...prev, otherDeduction: event.target.value }))} /></div>
         </div>
         <div style={shell.field}><p style={shell.label}>Notes</p><textarea style={{ ...shell.input, minHeight: '72px' }} value={salaryForm.notes} onChange={(event) => setSalaryForm((prev) => ({ ...prev, notes: event.target.value }))} /></div>
-        <div style={shell.actionRow}>
-          <button type="button" style={shell.btn} onClick={saveSalaryStructure} disabled={!role.canManage || busy}>Save Salary Structure</button>
-          <button type="button" style={shell.btnLight} onClick={() => syncEmployeeMasterSalary(false)} disabled={!role.canManage || busy}>Sync Employee Master</button>
-          <button type="button" style={shell.btnLight} onClick={() => syncEmployeeMasterSalary(true)} disabled={!role.canManage || busy}>Sync + Update Existing</button>
-          <button type="button" style={shell.btnLight} onClick={() => setSalaryForm(salaryFormDefaults)}>Reset</button>
+        <div style={shell.setupActionRow}>
+          <button type="button" style={{ ...shell.btn, ...shell.setupButton }} onClick={saveSalaryStructure} disabled={!role.canManage || busy}>Save Salary Structure</button>
+          <button type="button" style={{ ...shell.btnLight, ...shell.setupButton }} onClick={() => syncEmployeeMasterSalary(false)} disabled={!role.canManage || busy}>Sync Employee Master</button>
+          <button type="button" style={{ ...shell.btnLight, ...shell.setupButton }} onClick={() => syncEmployeeMasterSalary(true)} disabled={!role.canManage || busy}>Sync + Update Existing</button>
+          <button type="button" style={{ ...shell.btnLight, ...shell.setupButton }} onClick={() => setSalaryForm(salaryFormDefaults)}>Reset</button>
         </div>
       </div>
-      <div style={shell.tableWrap}>
+      <div style={shell.setupTableWrap}>
         <table style={shell.table}>
           <thead><tr><th style={shell.th}>Employee</th><th style={shell.th}>Effective Date</th><th style={shell.th}>Type</th><th style={shell.th}>Basic</th><th style={shell.th}>Allowances</th><th style={shell.th}>Deductions</th></tr></thead>
           <tbody>
