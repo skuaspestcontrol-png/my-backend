@@ -70,6 +70,7 @@ const shell = {
   title: { margin: 0, color: '#ffffff', fontSize: '26px', fontWeight: 800, letterSpacing: '-0.02em' },
   subtitle: { margin: '6px 0 0 0', color: 'rgba(255,255,255,0.92)', fontWeight: 600, fontSize: '13px' },
   tabStrip: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
+  tabStripMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
   tab: {
     border: '1px solid rgba(159, 23, 77, 0.24)',
     background: '#fff',
@@ -80,6 +81,12 @@ const shell = {
     fontSize: '12px',
     fontWeight: 700,
     cursor: 'pointer'
+  },
+  tabMobile: {
+    width: '100%',
+    minHeight: '32px',
+    padding: '0 10px',
+    fontSize: '11px'
   },
   panel: {
     border: '1px solid rgba(159, 23, 77, 0.18)',
@@ -1601,12 +1608,16 @@ export default function PayrollModule() {
             </div>
           </div>
         )}
-        <div style={shell.tabStrip}>
+        <div style={screenWidth < 540 ? shell.tabStripMobile : shell.tabStrip}>
           {tabKeys.map((entry) => (
             <button
               key={entry.key}
               type="button"
-              style={{ ...shell.tab, ...(activeTab === entry.key ? { background: 'var(--color-primary)', color: '#fff', border: '1px solid rgba(159, 23, 77, 0.38)' } : null) }}
+              style={{
+                ...shell.tab,
+                ...(screenWidth < 540 ? shell.tabMobile : null),
+                ...(activeTab === entry.key ? { background: 'var(--color-primary)', color: '#fff', border: '1px solid rgba(159, 23, 77, 0.38)' } : null)
+              }}
               onClick={() => setActiveTab(entry.key)}
             >
               {entry.label}
