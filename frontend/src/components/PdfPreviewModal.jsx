@@ -25,59 +25,60 @@ const shell = {
     flexDirection: 'column'
   },
   header: {
-    padding: '14px 18px',
+    padding: '12px 16px',
     borderBottom: '1px solid var(--color-border)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: '10px',
+    gap: '8px',
     flexWrap: 'wrap'
   },
   title: {
     margin: 0,
-    fontSize: '19px',
-    fontWeight: 800,
+    fontSize: '18px',
+    fontWeight: 700,
     color: '#0f172a',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '8px'
+    gap: '6px',
+    lineHeight: 1.15
   },
   closeButton: {
     border: '1px solid #D1D5DB',
     background: '#fff',
     color: '#475569',
     borderRadius: '8px',
-    minWidth: '30px',
-    height: '30px',
+    minWidth: '28px',
+    height: '28px',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer'
   },
   body: {
-    padding: '12px 14px 14px',
+    padding: '10px 12px 12px',
     display: 'grid',
-    gap: '8px',
+    gap: '6px',
     overflowY: 'auto'
   },
   actions: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: '8px'
+    gap: '6px'
   },
   actionButton: {
-    minHeight: '38px',
-    borderRadius: '10px',
+    minHeight: '34px',
+    borderRadius: '9px',
     border: '1px solid #d1d5db',
     background: '#fff',
     color: '#334155',
-    padding: '0 12px',
-    fontWeight: 700,
-    fontSize: '13px',
+    padding: '0 10px',
+    fontWeight: 600,
+    fontSize: '12px',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '8px',
+    gap: '6px',
     cursor: 'pointer'
   },
   actionButtonDisabled: {
@@ -93,7 +94,7 @@ const shell = {
   },
   frame: {
     width: '100%',
-    height: '70vh',
+    height: '68vh',
     border: 'none',
     background: '#fff'
   },
@@ -278,8 +279,8 @@ export default function PdfPreviewModal({
   const actionButtonStyle = (active = true) => ({
     ...shell.actionButton,
     ...(active ? {} : shell.actionButtonDisabled),
-    width: screenWidth < 640 ? 'calc(50% - 4px)' : 'auto',
-    flex: screenWidth < 640 ? '1 1 calc(50% - 4px)' : '0 0 auto'
+    width: screenWidth < 640 ? 'calc(50% - 3px)' : 'auto',
+    flex: screenWidth < 640 ? '1 1 calc(50% - 3px)' : '0 0 auto'
   });
 
   return createPortal(
@@ -299,9 +300,9 @@ export default function PdfPreviewModal({
         </div>
         <div style={shell.body}>
           {error ? <div style={shell.status}>{error}</div> : null}
-          <div style={{ ...shell.actions, flexDirection: screenWidth < 640 ? 'row' : 'row' }}>
+          <div style={{ ...shell.actions, flexDirection: 'row' }}>
             <button type="button" style={actionButtonStyle(Boolean(sourceUrl))} onClick={handleDownload} disabled={!sourceUrl}>
-              <Download size={16} /> Download PDF
+              <Download size={15} /> Download PDF
             </button>
             <button type="button" style={actionButtonStyle(Boolean(sourceUrl))} onClick={handleOpenNewTab} disabled={!sourceUrl}>
               Open in New Tab
@@ -329,7 +330,7 @@ export default function PdfPreviewModal({
 
           <div style={{
             ...shell.frameShell,
-            height: screenWidth < 640 ? '62vh' : '70vh'
+            height: screenWidth < 640 ? '60vh' : '68vh'
           }}>
             {loading ? (
               <div style={{ ...shell.status, margin: '12px' }}>Loading PDF preview...</div>
