@@ -349,7 +349,6 @@ export default function HRDashboard() {
         <InsightList title="Employees with Highest Leaves" rows={summary?.quickInsights?.highestLeaves || []} />
         <InsightList title="Frequent Late Marks" rows={summary?.quickInsights?.frequentLateMarks || []} />
         <InsightList title="Top Performing Technicians" rows={summary?.quickInsights?.topPerformers || []} />
-        <InsightList title="Employees Pending Salary" rows={summary?.quickInsights?.pendingSalary || []} valuePrefix="₹" />
         <InsightList title="Upcoming Birthdays" rows={summary?.quickInsights?.upcomingBirthdays || []} />
       </section>
 
