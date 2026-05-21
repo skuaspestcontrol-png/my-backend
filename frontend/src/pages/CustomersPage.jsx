@@ -17,7 +17,7 @@ const columns = [
   { key: 'city', label: 'City' },
   { key: 'plan', label: 'Plan' },
   { key: 'due', label: 'Due Amount' },
-  { key: 'status', label: 'Status', render: (value) => <StatusBadge status={value}>{String(value).toUpperCase()}</StatusBadge> }
+  { key: 'status', label: 'Status', align: 'status', render: (value) => <StatusBadge status={value}>{String(value).toUpperCase()}</StatusBadge> }
 ];
 
 export default function CustomersPage() {
@@ -86,6 +86,21 @@ export default function CustomersPage() {
       <AppTable
         columns={columns}
         rows={rows}
+        storageKey="skuas-table-widths-customers-page"
+        defaultColumnWidths={{
+          name: 260,
+          city: 160,
+          plan: 140,
+          due: 140,
+          status: 120
+        }}
+        columnBounds={{
+          name: { min: 220, max: 520 },
+          city: { min: 120, max: 240 },
+          plan: { min: 110, max: 220 },
+          due: { min: 110, max: 180 },
+          status: { min: 100, max: 160 }
+        }}
         renderRowActions={(row) => (
           <ActionMenu
             items={[

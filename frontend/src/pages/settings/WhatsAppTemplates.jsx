@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import useColumnResize from '../../components/table/useColumnResize';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -18,6 +19,40 @@ export default function WhatsAppTemplates() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState('');
   const [status, setStatus] = useState('');
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns
+  } = useColumnResize({
+    storageKey: 'whatsapp_templates_table_widths',
+    columns: ['name', 'type', 'sendTo', 'officialName', 'attachment', 'status', 'actions'],
+    defaultColumnWidths: {
+      name: 180,
+      type: 170,
+      sendTo: 130,
+      officialName: 220,
+      attachment: 150,
+      status: 110,
+      actions: 120
+    },
+    columnBounds: {
+      name: { min: 150, max: 260 },
+      type: { min: 140, max: 240 },
+      sendTo: { min: 110, max: 160 },
+      officialName: { min: 180, max: 320 },
+      attachment: { min: 120, max: 220 },
+      status: { min: 90, max: 140 },
+      actions: { min: 100, max: 160 }
+    },
+    minWidth: 90,
+    enabled: true
+  });
+  const tableKeys = ['name', 'type', 'sendTo', 'officialName', 'attachment', 'status', 'actions'];
+  const tableMinWidth = tableKeys.reduce((sum, key) => sum + (getColumnWidth(key) || 90), 0);
+  const tableStyle = { width: '100%', borderCollapse: 'collapse', minWidth: `${Math.max(980, tableMinWidth)}px`, tableLayout: 'fixed' };
+  const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
+  const headStyle = (key, align = 'left') => ({ textAlign: align, padding: '10px', fontSize: '12px', position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px` });
+  const cellStyle = (key, align = 'left') => ({ padding: '10px', borderTop: '1px solid #f1f5f9', position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px`, textAlign: align });
 
   const load = async () => {
     try {
@@ -60,6 +95,9 @@ export default function WhatsAppTemplates() {
   return (
     <section style={{ display: 'grid', gap: '12px' }}>
       <h2 style={{ margin: 0, fontSize: '26px', fontWeight: 800, color: '#111827' }}>WhatsApp Templates</h2>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button" onClick={resetColumns} style={{ minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px' }}>Reset Columns</button>
+      </div>
 
       <form onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '16px', padding: '14px', display: 'grid', gap: '10px' }}>
         <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: '1fr 1fr' }}>
@@ -82,17 +120,21 @@ export default function WhatsAppTemplates() {
       </form>
 
       <div style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '16px', overflow: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '980px' }}>
-          <thead><tr><th style={{ textAlign: 'left', padding: '10px', fontSize: '12px' }}>Name</th><th style={{ textAlign: 'left', padding: '10px', fontSize: '12px' }}>Type</th><th style={{ textAlign: 'left', padding: '10px', fontSize: '12px' }}>Send To</th><th style={{ textAlign: 'left', padding: '10px', fontSize: '12px' }}>Attachment</th><th style={{ textAlign: 'left', padding: '10px', fontSize: '12px' }}>Status</th><th style={{ textAlign: 'left', padding: '10px', fontSize: '12px' }}>Actions</th></tr></thead>
+        <table style={tableStyle}>
+          <colgroup>
+            {tableKeys.map((key) => <col key={key} style={{ width: `${getColumnWidth(key)}px` }} />)}
+          </colgroup>
+          <thead><tr><th style={headStyle('name')}>Name<span style={resizeHandleStyle} onPointerDown={(event) => startResize('name', event)} /></th><th style={headStyle('type')}>Type<span style={resizeHandleStyle} onPointerDown={(event) => startResize('type', event)} /></th><th style={headStyle('sendTo', 'center')}>Send To<span style={resizeHandleStyle} onPointerDown={(event) => startResize('sendTo', event)} /></th><th style={headStyle('officialName')}>Official Name<span style={resizeHandleStyle} onPointerDown={(event) => startResize('officialName', event)} /></th><th style={headStyle('attachment')}>Attachment<span style={resizeHandleStyle} onPointerDown={(event) => startResize('attachment', event)} /></th><th style={headStyle('status', 'center')}>Status<span style={resizeHandleStyle} onPointerDown={(event) => startResize('status', event)} /></th><th style={headStyle('actions', 'center')}>Actions<span style={resizeHandleStyle} onPointerDown={(event) => startResize('actions', event)} /></th></tr></thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td style={{ padding: '10px', borderTop: '1px solid #f1f5f9' }}>{row.templateName}</td>
-                <td style={{ padding: '10px', borderTop: '1px solid #f1f5f9' }}>{row.templateType}</td>
-                <td style={{ padding: '10px', borderTop: '1px solid #f1f5f9' }}>{row.sendToType}</td>
-                <td style={{ padding: '10px', borderTop: '1px solid #f1f5f9' }}>{row.attachmentOption}</td>
-                <td style={{ padding: '10px', borderTop: '1px solid #f1f5f9' }}>{row.isActive ? 'Active' : 'Inactive'}</td>
-                <td style={{ padding: '10px', borderTop: '1px solid #f1f5f9' }}>
+                <td style={cellStyle('name')}>{row.templateName}</td>
+                <td style={cellStyle('type')}>{row.templateType}</td>
+                <td style={cellStyle('sendTo', 'center')}>{row.sendToType}</td>
+                <td style={cellStyle('officialName')}>{row.officialTemplateName || '-'}</td>
+                <td style={cellStyle('attachment')}>{row.attachmentOption}</td>
+                <td style={cellStyle('status', 'center')}>{row.isActive ? 'Active' : 'Inactive'}</td>
+                <td style={cellStyle('actions', 'center')}>
                   <button type="button" onClick={() => { setEditingId(row.id); setForm({ ...emptyForm, ...row }); }} style={{ marginRight: '8px' }}>Edit</button>
                   <button type="button" onClick={() => remove(row.id)}>Delete</button>
                 </td>

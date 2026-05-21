@@ -8,6 +8,7 @@ import AppTextarea from '../../components/ui/AppTextarea';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
+import useColumnResize from '../../components/table/useColumnResize';
 import { apiDelete, apiGet, apiPost, apiPut, number, safeRows, stockCategories, stockUnits } from './stockApi';
 
 const vendorLabel = (row) => String(row.name || row.vendor_name || row.company_name || row.displayName || `Vendor ${row.id || row._id || ''}`).trim();
@@ -33,6 +34,7 @@ const initialForm = {
 const tableStyle = { width: '100%', borderCollapse: 'separate', borderSpacing: 0 };
 const cellStyle = { padding: '8px 10px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'middle' };
 const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
 const iconButtonStyle = { width: 34, minWidth: 34, height: 34, minHeight: 34, padding: 0, justifyContent: 'center' };
 const greenColor = '#16A34A';
 const redColor = '#DC2626';
@@ -49,6 +51,34 @@ const badgeStyle = (status) => {
     fg = redColor;
   }
   return { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 10px', fontSize: 12, fontWeight: 700, background: bg, color: fg };
+};
+
+const stockItemColumns = [
+  { key: 'item', label: 'Item' },
+  { key: 'category', label: 'Category' },
+  { key: 'unit', label: 'Unit' },
+  { key: 'currentStock', label: 'Current Stock' },
+  { key: 'minimum', label: 'Minimum' },
+  { key: 'status', label: 'Status' },
+  { key: 'actions', label: 'Actions' }
+];
+const stockItemWidths = {
+  item: 220,
+  category: 140,
+  unit: 110,
+  currentStock: 130,
+  minimum: 120,
+  status: 120,
+  actions: 130
+};
+const stockItemBounds = {
+  item: { min: 180, max: 320 },
+  category: { min: 120, max: 200 },
+  unit: { min: 90, max: 150 },
+  currentStock: { min: 100, max: 170 },
+  minimum: { min: 100, max: 170 },
+  status: { min: 100, max: 160 },
+  actions: { min: 120, max: 180 }
 };
 
 export default function StockItems() {
@@ -88,6 +118,35 @@ export default function StockItems() {
   }, []);
 
   const vendorOptions = useMemo(() => safeRows(vendors), [vendors]);
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns
+  } = useColumnResize({
+    storageKey: 'stock_items_table_widths',
+    columns: stockItemColumns.map((column) => column.key),
+    defaultColumnWidths: stockItemWidths,
+    columnBounds: stockItemBounds,
+    minWidth: 100,
+    enabled: true
+  });
+  const tableMinWidth = stockItemColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || stockItemWidths[column.key] || 100), 0);
+  const listTableStyle = { ...tableStyle, minWidth: `${Math.max(880, tableMinWidth)}px`, tableLayout: 'fixed' };
+  const headStyle = (key, align = 'left') => ({
+    ...headerCellStyle,
+    position: 'relative',
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const bodyStyle = (key, align = 'left') => ({
+    ...cellStyle,
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
   const formGridStyle = viewportWidth <= 480
     ? { display: 'grid', gap: 12, gridTemplateColumns: '1fr' }
     : viewportWidth <= 768
@@ -213,35 +272,43 @@ export default function StockItems() {
       </AppCard>
 
       <AppCard title="Stock Items List" className="crm-table-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 8 }}>
+          <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
+        </div>
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : items.length ? (
           <div style={{ overflowX: 'auto' }}>
-            <table className="table-clean" style={tableStyle}>
+            <table className="table-clean" style={listTableStyle}>
+              <colgroup>
+                {stockItemColumns.map((column) => (
+                  <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
-                  <th className="table-header-cell table-text-cell" style={headerCellStyle}>Item</th>
-                  <th className="table-header-cell table-text-cell" style={headerCellStyle}>Category</th>
-                  <th className="table-header-cell table-text-cell" style={headerCellStyle}>Unit</th>
-                  <th className="table-header-cell table-number-cell" style={headerCellStyle}>Current Stock</th>
-                  <th className="table-header-cell table-number-cell" style={headerCellStyle}>Minimum</th>
-                  <th className="table-header-cell table-status-cell" style={headerCellStyle}>Status</th>
-                  <th className="table-header-cell table-actions-cell" style={headerCellStyle}>Actions</th>
+                  <th className="table-header-cell table-text-cell" style={headStyle('item')}>Item<span style={resizeHandleStyle} onPointerDown={(event) => startResize('item', event)} /></th>
+                  <th className="table-header-cell table-text-cell" style={headStyle('category', 'center')}>Category<span style={resizeHandleStyle} onPointerDown={(event) => startResize('category', event)} /></th>
+                  <th className="table-header-cell table-text-cell" style={headStyle('unit', 'center')}>Unit<span style={resizeHandleStyle} onPointerDown={(event) => startResize('unit', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={headStyle('currentStock', 'center')}>Current Stock<span style={resizeHandleStyle} onPointerDown={(event) => startResize('currentStock', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={headStyle('minimum', 'center')}>Minimum<span style={resizeHandleStyle} onPointerDown={(event) => startResize('minimum', event)} /></th>
+                  <th className="table-header-cell table-status-cell" style={headStyle('status', 'center')}>Status<span style={resizeHandleStyle} onPointerDown={(event) => startResize('status', event)} /></th>
+                  <th className="table-header-cell table-actions-cell" style={headStyle('actions', 'center')}>Actions<span style={resizeHandleStyle} onPointerDown={(event) => startResize('actions', event)} /></th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((row) => (
                   <tr key={row.id} style={{ minHeight: 48 }}>
-                    <td className="table-name-cell" style={cellStyle}>
+                    <td className="table-name-cell" style={bodyStyle('item')}>
                       <div style={{ fontWeight: 700, color: '#111827' }}>{row.itemName}</div>
                       <div style={{ color: '#6B7280', fontSize: 12 }}>{row.itemCode || 'No code'}</div>
                     </td>
-                    <td className="table-text-cell" style={cellStyle}>{row.category}</td>
-                    <td className="table-text-cell" style={cellStyle}>{row.unit}</td>
-                    <td className="table-number-cell" style={cellStyle}>{number(row.currentStock)}</td>
-                    <td className="table-number-cell" style={cellStyle}>{number(row.minStockLevel)}</td>
-                    <td className="table-status-cell" style={cellStyle}><span style={badgeStyle(row.status)}>{row.status}</span></td>
-                    <td className="table-actions-cell" style={cellStyle}>
+                    <td className="table-text-cell" style={bodyStyle('category', 'center')}>{row.category}</td>
+                    <td className="table-text-cell" style={bodyStyle('unit', 'center')}>{row.unit}</td>
+                    <td className="table-number-cell" style={bodyStyle('currentStock', 'center')}>{number(row.currentStock)}</td>
+                    <td className="table-number-cell" style={bodyStyle('minimum', 'center')}>{number(row.minStockLevel)}</td>
+                    <td className="table-status-cell" style={bodyStyle('status', 'center')}><span style={badgeStyle(row.status)}>{row.status}</span></td>
+                    <td className="table-actions-cell" style={bodyStyle('actions', 'center')}>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <AppButton
                           variant="outline"

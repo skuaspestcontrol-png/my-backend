@@ -17,6 +17,7 @@ import AppSelect from '../../components/ui/AppSelect';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
+import useColumnResize from '../../components/table/useColumnResize';
 import {
   ChartSurface,
   CompactChartCard,
@@ -83,12 +84,6 @@ export default function SalesTeamPerformance() {
       : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(1, minmax(0, 1fr))' };
   const chartGridStyle = getChartGridStyle(viewportWidth);
   const tableWrapStyle = { width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' };
-  const tableStyle = {
-    width: '100%',
-    minWidth: viewportWidth <= 640 ? '930px' : '1360px',
-    tableLayout: 'fixed',
-    borderCollapse: 'collapse'
-  };
   const headCellStyle = {
     padding: viewportWidth <= 640 ? '9px 10px' : '12px 14px',
     whiteSpace: 'normal',
@@ -109,9 +104,80 @@ export default function SalesTeamPerformance() {
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   };
-  const teamColWidths = viewportWidth <= 640
-    ? ['170px', '120px', '120px', '90px', '120px', '120px', '90px', '110px', '110px', '130px', '100px']
-    : ['180px', '130px', '130px', '95px', '130px', '130px', '95px', '120px', '120px', '140px', '110px'];
+  const teamColumns = [
+    { key: 'salesPerson', label: 'Sales Person' },
+    { key: 'monthlyTarget', label: 'Monthly Target' },
+    { key: 'monthlyAchieved', label: 'Monthly Achieved' },
+    { key: 'monthlyPercent', label: 'Monthly %' },
+    { key: 'yearlyTarget', label: 'Yearly Target' },
+    { key: 'yearlyAchieved', label: 'Yearly Achieved' },
+    { key: 'yearlyPercent', label: 'Yearly %' },
+    { key: 'leadsAssigned', label: 'Leads Assigned' },
+    { key: 'leadsConverted', label: 'Leads Converted' },
+    { key: 'revenueGenerated', label: 'Revenue Generated' },
+    { key: 'status', label: 'Status' }
+  ];
+  const teamWidths = {
+    salesPerson: 180,
+    monthlyTarget: 130,
+    monthlyAchieved: 130,
+    monthlyPercent: 95,
+    yearlyTarget: 130,
+    yearlyAchieved: 130,
+    yearlyPercent: 95,
+    leadsAssigned: 120,
+    leadsConverted: 120,
+    revenueGenerated: 140,
+    status: 110
+  };
+  const teamBounds = {
+    salesPerson: { min: 160, max: 260 },
+    monthlyTarget: { min: 110, max: 170 },
+    monthlyAchieved: { min: 110, max: 170 },
+    monthlyPercent: { min: 80, max: 130 },
+    yearlyTarget: { min: 110, max: 170 },
+    yearlyAchieved: { min: 110, max: 170 },
+    yearlyPercent: { min: 80, max: 130 },
+    leadsAssigned: { min: 100, max: 160 },
+    leadsConverted: { min: 100, max: 160 },
+    revenueGenerated: { min: 120, max: 180 },
+    status: { min: 90, max: 140 }
+  };
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns
+  } = useColumnResize({
+    storageKey: 'sales_team_performance_table_widths',
+    columns: teamColumns.map((column) => column.key),
+    defaultColumnWidths: teamWidths,
+    columnBounds: teamBounds,
+    minWidth: 80,
+    enabled: true
+  });
+  const tableMinWidth = teamColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || teamWidths[column.key] || 80), 0);
+  const tableStyle = {
+    width: '100%',
+    minWidth: viewportWidth <= 640 ? `${Math.max(930, tableMinWidth)}px` : `${Math.max(1360, tableMinWidth)}px`,
+    tableLayout: 'fixed',
+    borderCollapse: 'collapse'
+  };
+  const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
+  const headCell = (key, align = 'left') => ({
+    ...headCellStyle,
+    position: 'relative',
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const bodyCell = (key, align = 'left') => ({
+    ...bodyCellStyle,
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
   const chartAxisProps = getChartAxisProps({ mobile: isMobile });
   const chartHeight = getChartHeight({ mobile: isMobile });
   const currencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
@@ -156,7 +222,12 @@ export default function SalesTeamPerformance() {
         subtitle="Compare sales team members by monthly and yearly achievement."
         titleStyle={isMobile ? { fontSize: 24, lineHeight: 1.1 } : undefined}
         subtitleStyle={isMobile ? { fontSize: 13, lineHeight: 1.3 } : undefined}
-        action={viewportWidth <= 640 ? null : <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>Refresh</AppButton>}
+        action={viewportWidth <= 640 ? null : (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>Refresh</AppButton>
+            <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
+          </div>
+        )}
       />
 
       <AppCard title="Filters" className="crm-filter-card" style={{ width: '100%', minWidth: 0 }}>
@@ -245,55 +316,55 @@ export default function SalesTeamPerformance() {
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
                 <table className="table-clean sales-team-performance-table sales-performance-table" style={tableStyle}>
                   <colgroup>
-                    {teamColWidths.map((width, index) => (
-                      <col key={index} style={{ width }} />
+                    {teamColumns.map((column) => (
+                      <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
                     ))}
                   </colgroup>
                   <thead>
                     <tr>
-                      <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headCellStyle}>Sales Person</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Target</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Achieved</th>
-                      <th className="table-header-cell table-percent-cell" style={headCellStyle}>Monthly %</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Yearly Target</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Yearly Achieved</th>
-                      <th className="table-header-cell table-percent-cell" style={headCellStyle}>Yearly %</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Leads Assigned</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Leads Converted</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Revenue Generated</th>
-                      <th className="table-header-cell table-status-cell" style={headCellStyle}>Status</th>
+                      <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headCell('salesPerson')}>Sales Person<span style={resizeHandleStyle} onPointerDown={(event) => startResize('salesPerson', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyTarget', 'center')}>Monthly Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyTarget', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyAchieved', 'center')}>Monthly Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyAchieved', event)} /></th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyPercent', 'center')}>Monthly %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyPercent', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyTarget', 'center')}>Yearly Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyTarget', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyAchieved', 'center')}>Yearly Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyAchieved', event)} /></th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyPercent', 'center')}>Yearly %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyPercent', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('leadsAssigned', 'center')}>Leads Assigned<span style={resizeHandleStyle} onPointerDown={(event) => startResize('leadsAssigned', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('leadsConverted', 'center')}>Leads Converted<span style={resizeHandleStyle} onPointerDown={(event) => startResize('leadsConverted', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('revenueGenerated', 'center')}>Revenue Generated<span style={resizeHandleStyle} onPointerDown={(event) => startResize('revenueGenerated', event)} /></th>
+                      <th className="table-header-cell table-status-cell" style={headCell('status', 'center')}>Status<span style={resizeHandleStyle} onPointerDown={(event) => startResize('status', event)} /></th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((row) => (
                       <tr key={row.employeeId} style={{ height: viewportWidth <= 640 ? 46 : 50 }}>
-                        <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...bodyCellStyle, background: '#fff' }}>{row.employeeName}</td>
-                        <td className="table-number-cell" style={bodyCellStyle}>{money(row.monthlyTarget)}</td>
-                        <td className="table-number-cell" style={bodyCellStyle}>
+                        <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...bodyCell('salesPerson'), background: '#fff' }}>{row.employeeName}</td>
+                        <td className="table-number-cell" style={bodyCell('monthlyTarget', 'center')}>{money(row.monthlyTarget)}</td>
+                        <td className="table-number-cell" style={bodyCell('monthlyAchieved', 'center')}>
                           <span style={{ color: metricColor(row.monthlyAchieved, row.monthlyTarget), fontWeight: 700 }}>
                             {money(row.monthlyAchieved)}
                           </span>
                         </td>
-                        <td className="table-percent-cell" style={bodyCellStyle}>
+                        <td className="table-percent-cell" style={bodyCell('monthlyPercent', 'center')}>
                           <span style={{ color: metricColor(row.monthlyAchieved, row.monthlyTarget), fontWeight: 700 }}>
                             {percent(row.monthlyAchievementPercent)}
                           </span>
                         </td>
-                        <td className="table-number-cell" style={bodyCellStyle}>{money(row.yearlyTarget)}</td>
-                        <td className="table-number-cell" style={bodyCellStyle}>
+                        <td className="table-number-cell" style={bodyCell('yearlyTarget', 'center')}>{money(row.yearlyTarget)}</td>
+                        <td className="table-number-cell" style={bodyCell('yearlyAchieved', 'center')}>
                           <span style={{ color: metricColor(row.yearlyAchieved, row.yearlyTarget), fontWeight: 700 }}>
                             {money(row.yearlyAchieved)}
                           </span>
                         </td>
-                        <td className="table-percent-cell" style={bodyCellStyle}>
+                        <td className="table-percent-cell" style={bodyCell('yearlyPercent', 'center')}>
                           <span style={{ color: metricColor(row.yearlyAchieved, row.yearlyTarget), fontWeight: 700 }}>
                             {percent(row.yearlyAchievementPercent)}
                           </span>
                         </td>
-                        <td className="table-number-cell" style={bodyCellStyle}>{number(row.leadsAssigned)}</td>
-                        <td className="table-number-cell" style={bodyCellStyle}>{number(row.leadsConverted)}</td>
-                        <td className="table-number-cell" style={bodyCellStyle}>{money(row.revenueGenerated)}</td>
-                        <td className="table-status-cell" style={bodyCellStyle}>
+                        <td className="table-number-cell" style={bodyCell('leadsAssigned', 'center')}>{number(row.leadsAssigned)}</td>
+                        <td className="table-number-cell" style={bodyCell('leadsConverted', 'center')}>{number(row.leadsConverted)}</td>
+                        <td className="table-number-cell" style={bodyCell('revenueGenerated', 'center')}>{money(row.revenueGenerated)}</td>
+                        <td className="table-status-cell" style={bodyCell('status', 'center')}>
                           <span style={{ color: statusColor(row.status), fontWeight: 700 }}>
                             {row.status}
                           </span>

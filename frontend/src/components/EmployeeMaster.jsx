@@ -3,6 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Edit, Eye, EyeOff, Plus, Trash2, UploadCloud, UserCheck, X } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import useColumnResize from './table/useColumnResize';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -80,6 +81,7 @@ const shell = {
   table: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#475569', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
   td: { padding: '11px 10px', borderBottom: '1px solid #eef2f7', fontSize: '13px', color: '#0f172a', verticalAlign: 'top' },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   rowActionBtn: {
     width: '34px',
     height: '34px',
@@ -163,6 +165,37 @@ const shell = {
   footerActions: { display: 'flex', alignItems: 'center', gap: '8px' },
   cancelBtn: { minHeight: '40px', borderRadius: '10px', border: '1px solid #D1D5DB', background: '#fff', color: '#334155', cursor: 'pointer', fontSize: '13px', fontWeight: 700, padding: '0 14px' },
   saveBtn: { minHeight: '40px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.32)', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 800, padding: '0 16px' }
+};
+
+const employeeColumns = [
+  { key: 'code', label: 'Employee Code' },
+  { key: 'name', label: 'Name' },
+  { key: 'role', label: 'Role' },
+  { key: 'mobile', label: 'Mobile' },
+  { key: 'email', label: 'Email' },
+  { key: 'salary', label: 'Salary/Month' },
+  { key: 'portal', label: 'Portal Access' },
+  { key: 'actions', label: 'Actions' }
+];
+const employeeDefaultWidths = {
+  code: 140,
+  name: 180,
+  role: 140,
+  mobile: 130,
+  email: 220,
+  salary: 130,
+  portal: 130,
+  actions: 130
+};
+const employeeColumnBounds = {
+  code: { min: 120, max: 180 },
+  name: { min: 160, max: 240 },
+  role: { min: 120, max: 180 },
+  mobile: { min: 110, max: 160 },
+  email: { min: 180, max: 320 },
+  salary: { min: 110, max: 180 },
+  portal: { min: 110, max: 180 },
+  actions: { min: 120, max: 180 }
 };
 
 const toAnnual = (value) => {
@@ -266,6 +299,18 @@ export default function EmployeeMaster() {
   const [showPortalPassword, setShowPortalPassword] = useState(false);
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns
+  } = useColumnResize({
+    storageKey: 'employee_master_table_widths',
+    columns: employeeColumns.map((column) => column.key),
+    defaultColumnWidths: employeeDefaultWidths,
+    columnBounds: employeeColumnBounds,
+    minWidth: 100,
+    enabled: true
+  });
 
   const annualSalary = useMemo(() => toAnnual(form.salaryPerMonth), [form.salaryPerMonth]);
   const isCompactModal = viewportWidth <= 980;
@@ -277,6 +322,23 @@ export default function EmployeeMaster() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
+  const tableMinWidth = employeeColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || employeeDefaultWidths[column.key] || 100), 0);
+  const tableStyle = { ...shell.table, minWidth: `${Math.max(980, tableMinWidth)}px` };
+  const headCellStyle = (key, align = 'left') => ({
+    ...shell.th,
+    position: 'relative',
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const bodyCellStyle = (key, align = 'left') => ({
+    ...shell.td,
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
 
   const loadData = async () => {
     const [employeeRes, settingsRes] = await Promise.all([
@@ -536,23 +598,31 @@ export default function EmployeeMaster() {
     <section style={shell.page}>
       <div style={shell.topbar}>
         <h2 style={shell.title}>Employee Master</h2>
-        <button type="button" style={shell.addBtn} onClick={openAddEmployee}>
-          <Plus size={16} /> Add Employee
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <button type="button" style={shell.btnLight} onClick={resetColumns}>Reset Columns</button>
+          <button type="button" style={shell.addBtn} onClick={openAddEmployee}>
+            <Plus size={16} /> Add Employee
+          </button>
+        </div>
       </div>
 
       <div style={shell.tableWrap}>
-        <table style={shell.table}>
+        <table style={tableStyle}>
+          <colgroup>
+            {employeeColumns.map((column) => (
+              <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
-              <th style={shell.th}>Employee Code</th>
-              <th style={shell.th}>Name</th>
-              <th style={shell.th}>Role</th>
-              <th style={shell.th}>Mobile</th>
-              <th style={shell.th}>Email</th>
-              <th style={shell.th}>Salary/Month</th>
-              <th style={shell.th}>Portal Access</th>
-              <th style={shell.th}>Actions</th>
+              <th style={headCellStyle('code')}>Employee Code<span style={shell.resizeHandle} onPointerDown={(event) => startResize('code', event)} /></th>
+              <th style={headCellStyle('name')}>Name<span style={shell.resizeHandle} onPointerDown={(event) => startResize('name', event)} /></th>
+              <th style={headCellStyle('role', 'center')}>Role<span style={shell.resizeHandle} onPointerDown={(event) => startResize('role', event)} /></th>
+              <th style={headCellStyle('mobile', 'center')}>Mobile<span style={shell.resizeHandle} onPointerDown={(event) => startResize('mobile', event)} /></th>
+              <th style={headCellStyle('email')}>Email<span style={shell.resizeHandle} onPointerDown={(event) => startResize('email', event)} /></th>
+              <th style={headCellStyle('salary', 'center')}>Salary/Month<span style={shell.resizeHandle} onPointerDown={(event) => startResize('salary', event)} /></th>
+              <th style={headCellStyle('portal', 'center')}>Portal Access<span style={shell.resizeHandle} onPointerDown={(event) => startResize('portal', event)} /></th>
+              <th style={headCellStyle('actions', 'center')}>Actions<span style={shell.resizeHandle} onPointerDown={(event) => startResize('actions', event)} /></th>
             </tr>
           </thead>
           <tbody>
@@ -563,14 +633,14 @@ export default function EmployeeMaster() {
             ) : (
               employees.map((employee) => (
                 <tr key={employee._id || employee.empCode}>
-                  <td style={{ ...shell.td, color: 'var(--color-primary-dark)', fontWeight: 800 }}>{employee.empCode || '-'}</td>
-                  <td style={shell.td}>{employeeDisplayName(employee)}</td>
-                  <td style={shell.td}>{employee.role || '-'}</td>
-                  <td style={shell.td}>{employee.mobile || '-'}</td>
-                  <td style={shell.td}>{employee.email || employee.emailId || '-'}</td>
-                  <td style={shell.td}>{formatCurrency(employee.salaryPerMonth || employee.salary || 0)}</td>
-                  <td style={shell.td}>{employee.webPortalAccessEnabled || employee.portalAccess === 'Yes' || employee.portalAccess === true ? 'Enabled' : 'Disabled'}</td>
-                  <td style={shell.td}>
+                  <td style={{ ...bodyCellStyle('code'), color: 'var(--color-primary-dark)', fontWeight: 800 }}>{employee.empCode || '-'}</td>
+                  <td style={bodyCellStyle('name')}>{employeeDisplayName(employee)}</td>
+                  <td style={bodyCellStyle('role', 'center')}>{employee.role || '-'}</td>
+                  <td style={bodyCellStyle('mobile', 'center')}>{employee.mobile || '-'}</td>
+                  <td style={bodyCellStyle('email')}>{employee.email || employee.emailId || '-'}</td>
+                  <td style={bodyCellStyle('salary', 'center')}>{formatCurrency(employee.salaryPerMonth || employee.salary || 0)}</td>
+                  <td style={bodyCellStyle('portal', 'center')}>{employee.webPortalAccessEnabled || employee.portalAccess === 'Yes' || employee.portalAccess === true ? 'Enabled' : 'Disabled'}</td>
+                  <td style={bodyCellStyle('actions', 'center')}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <button type="button" onClick={() => openEditEmployee(employee)} style={{ ...shell.rowActionBtn, color: 'var(--color-primary-dark)' }}><Edit size={19} strokeWidth={2.25} /></button>
                       <button type="button" onClick={() => deleteEmployee(employee._id)} style={{ ...shell.rowActionBtn, color: '#dc2626' }}><Trash2 size={19} strokeWidth={2.25} /></button>

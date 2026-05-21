@@ -3,9 +3,40 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const quotationColumns = [
+  { key: 'srNo', label: 'Sr No' },
+  { key: 'quotationNumber', label: 'Quotation #' },
+  { key: 'date', label: 'Date' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'salesPerson', label: 'Sales Person' },
+  { key: 'status', label: 'Status' },
+  { key: 'grandTotal', label: 'Grand Total' },
+  { key: 'action', label: 'Action' }
+];
+const quotationDefaultWidths = {
+  srNo: 72,
+  quotationNumber: 170,
+  date: 110,
+  customer: 190,
+  salesPerson: 150,
+  status: 110,
+  grandTotal: 130,
+  action: 122
+};
+const quotationColumnBounds = {
+  srNo: { min: 64, max: 90 },
+  quotationNumber: { min: 140, max: 240 },
+  date: { min: 96, max: 140 },
+  customer: { min: 160, max: 280 },
+  salesPerson: { min: 130, max: 220 },
+  status: { min: 90, max: 150 },
+  grandTotal: { min: 110, max: 180 },
+  action: { min: 110, max: 150 }
+};
 
 const shell = {
   page: { display: 'grid', gap: 14 },
@@ -135,6 +166,7 @@ const shell = {
     letterSpacing: '0.03em',
     whiteSpace: 'nowrap'
   },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   td: {
     padding: '11px 12px',
     fontSize: 13,
@@ -283,6 +315,18 @@ function QuotationDashboardInner() {
   const pagedRows = rows.slice((safePage - 1) * perPage, safePage * perPage);
   const isMobile = viewportWidth <= 900;
   const isTiny = viewportWidth <= 420;
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns: resetQuotationColumns
+  } = useColumnResize({
+    storageKey: 'quotations_column_widths',
+    columns: quotationColumns.map((column) => column.key),
+    defaultColumnWidths: quotationDefaultWidths,
+    columnBounds: quotationColumnBounds,
+    minWidth: 72,
+    enabled: true
+  });
 
   const headerStyle = isMobile
     ? { ...shell.header, flexDirection: 'column', alignItems: 'stretch', gap: 12 }
@@ -318,13 +362,14 @@ function QuotationDashboardInner() {
   const rowActionWrapStyle = isMobile
     ? { display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-start' }
     : { display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-end' };
-  const quotationMobileColumns = '64px 170px 110px 155px 145px 105px 125px 122px';
+  const quotationMobileColumns = quotationColumns.map((column) => `${getColumnWidth(column.key)}px`).join(' ');
+  const quotationTableMinWidth = quotationColumns.reduce((sum, column) => sum + getColumnWidth(column.key), 0);
   const tableStyle = {
     ...shell.table,
-    minWidth: isMobile ? 996 : '100%',
+    minWidth: `${Math.max(isMobile ? 996 : 900, quotationTableMinWidth)}px`,
     tableLayout: 'fixed',
     '--mobile-table-columns': quotationMobileColumns,
-    '--mobile-table-min-width': '996px'
+    '--mobile-table-min-width': `${Math.max(996, quotationTableMinWidth)}px`
   };
   const actionColumnStyle = isMobile
     ? {}
@@ -375,30 +420,68 @@ function QuotationDashboardInner() {
       <div style={shell.panel}>
         <div style={shell.panelHeader}>
           <p style={shell.panelTitle}>Recent Quotations</p>
-                  <span style={shell.badge}>{rows.length} records</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+            <span style={shell.badge}>{rows.length} records</span>
+            <button
+              type="button"
+              onClick={resetQuotationColumns}
+              style={{
+                minHeight: 28,
+                borderRadius: 8,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-primary-light)',
+                color: 'var(--color-primary-dark)',
+                padding: '0 10px',
+                fontSize: 11,
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              Reset Columns
+            </button>
+          </div>
         </div>
         <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
           <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
             <colgroup>
-              <col style={{ width: isMobile ? '64px' : '7%' }} />
-              <col style={{ width: isMobile ? '170px' : '16%' }} />
-              <col style={{ width: isMobile ? '110px' : '11%' }} />
-              <col style={{ width: isMobile ? '155px' : '17%' }} />
-              <col style={{ width: isMobile ? '145px' : '15%' }} />
-              <col style={{ width: isMobile ? '105px' : '10%' }} />
-              <col style={{ width: isMobile ? '125px' : '12%' }} />
-              <col style={{ width: isMobile ? '122px' : '122px' }} />
+              {quotationColumns.map((column) => (
+                <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
+              ))}
             </colgroup>
             <thead>
               <tr>
-                <th style={shell.th}>Sr No</th>
-                <th style={shell.th}>Quotation #</th>
-                <th style={shell.th}>Date</th>
-                <th style={shell.th}>Customer</th>
-                <th style={shell.th}>Sales Person</th>
-                <th style={shell.th}>Status</th>
-                <th style={shell.th}>Grand Total</th>
-                <th style={{ ...shell.th, ...actionColumnStyle }}>Action</th>
+                <th style={{ ...shell.th, width: `${getColumnWidth('srNo')}px`, minWidth: `${getColumnWidth('srNo')}px` }}>
+                  Sr No
+                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('srNo', event)} />
+                </th>
+                <th style={{ ...shell.th, width: `${getColumnWidth('quotationNumber')}px`, minWidth: `${getColumnWidth('quotationNumber')}px` }}>
+                  Quotation #
+                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('quotationNumber', event)} />
+                </th>
+                <th style={{ ...shell.th, width: `${getColumnWidth('date')}px`, minWidth: `${getColumnWidth('date')}px` }}>
+                  Date
+                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('date', event)} />
+                </th>
+                <th style={{ ...shell.th, width: `${getColumnWidth('customer')}px`, minWidth: `${getColumnWidth('customer')}px` }}>
+                  Customer
+                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('customer', event)} />
+                </th>
+                <th style={{ ...shell.th, width: `${getColumnWidth('salesPerson')}px`, minWidth: `${getColumnWidth('salesPerson')}px` }}>
+                  Sales Person
+                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('salesPerson', event)} />
+                </th>
+                <th style={{ ...shell.th, width: `${getColumnWidth('status')}px`, minWidth: `${getColumnWidth('status')}px` }}>
+                  Status
+                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('status', event)} />
+                </th>
+                <th style={{ ...shell.th, width: `${getColumnWidth('grandTotal')}px`, minWidth: `${getColumnWidth('grandTotal')}px` }}>
+                  Grand Total
+                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('grandTotal', event)} />
+                </th>
+                <th style={{ ...shell.th, ...actionColumnStyle, width: `${getColumnWidth('action')}px`, minWidth: `${getColumnWidth('action')}px` }}>
+                  Action
+                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('action', event)} />
+                </th>
               </tr>
             </thead>
             <tbody>

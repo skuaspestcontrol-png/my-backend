@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import useColumnResize from './table/useColumnResize';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, X } from 'lucide-react';
@@ -141,6 +142,34 @@ const mobileCustomerColumnWidths = {
   areaSqft: 130
 };
 const mobileCustomerDefaultColumnWidth = 150;
+const customerColumnResizeBounds = {
+  name: { min: 160, max: 300 },
+  segment: { min: 110, max: 180 },
+  companyName: { min: 160, max: 300 },
+  contactPersonName: { min: 150, max: 280 },
+  position: { min: 110, max: 180 },
+  mobileNumber: { min: 140, max: 200 },
+  whatsappNumber: { min: 150, max: 220 },
+  altNumber: { min: 130, max: 180 },
+  emailId: { min: 180, max: 320 },
+  hasGst: { min: 110, max: 160 },
+  gstNumber: { min: 150, max: 220 },
+  billingAttention: { min: 150, max: 260 },
+  billingStreet1: { min: 160, max: 300 },
+  billingStreet2: { min: 160, max: 300 },
+  billingAddress: { min: 180, max: 340 },
+  billingArea: { min: 140, max: 240 },
+  billingState: { min: 120, max: 200 },
+  billingPincode: { min: 120, max: 180 },
+  shippingAttention: { min: 150, max: 260 },
+  shippingStreet1: { min: 160, max: 300 },
+  shippingStreet2: { min: 160, max: 300 },
+  shippingAddress: { min: 180, max: 340 },
+  shippingArea: { min: 140, max: 240 },
+  shippingState: { min: 120, max: 200 },
+  shippingPincode: { min: 120, max: 180 },
+  areaSqft: { min: 100, max: 160 }
+};
 const stateOptions = [
   'Andhra Pradesh',
   'Arunachal Pradesh',
@@ -421,10 +450,6 @@ export default function CustomerDashboard() {
     const saved = localStorage.getItem('customers_visible_columns');
     return saved ? JSON.parse(saved) : defaultVisibleColumns;
   });
-  const [columnWidths, setColumnWidths] = useState(() => {
-    const saved = localStorage.getItem('customers_column_widths');
-    return saved ? JSON.parse(saved) : {};
-  });
   const [nameSortDirection, setNameSortDirection] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -432,10 +457,21 @@ export default function CustomerDashboard() {
   const customizeButtonRef = useRef(null);
   const moreMenuRef = useRef(null);
   const moreMenuButtonRef = useRef(null);
-  const resizeStateRef = useRef(null);
   const billingSearchInputRef = useRef(null);
   const shippingSearchInputRef = useRef(null);
   const addressSuggestionSeqRef = useRef({ billing: 0, shipping: 0 });
+  const {
+    getColumnWidth,
+    startResize: startColumnResize,
+    resetColumns: resetCustomerColumns
+  } = useColumnResize({
+    storageKey: 'customers_column_widths',
+    columns: allColumns.map((column) => column.key),
+    defaultColumnWidths: mobileCustomerColumnWidths,
+    columnBounds: customerColumnResizeBounds,
+    minWidth: mobileCustomerDefaultColumnWidth,
+    enabled: viewportWidth > 768
+  });
 
   const visibleColumnDefs = useMemo(
     () => allColumns.filter((column) => visibleColumns.includes(column.key)),
@@ -576,10 +612,6 @@ export default function CustomerDashboard() {
   useEffect(() => {
     localStorage.setItem('customers_visible_columns', JSON.stringify(visibleColumns));
   }, [visibleColumns]);
-
-  useEffect(() => {
-    localStorage.setItem('customers_column_widths', JSON.stringify(columnWidths));
-  }, [columnWidths]);
 
   useEffect(() => {
     if (!showModal) setAddressSearchState(createAddressSearchState());
@@ -808,37 +840,13 @@ export default function CustomerDashboard() {
   };
 
   const getColumnStyle = (columnKey) => {
-    const savedWidth = Number(columnWidths[columnKey]) || 0;
-    const mobileWidth = mobileCustomerColumnWidths[columnKey] || mobileCustomerDefaultColumnWidth;
-    const width = isMobile ? Math.max(savedWidth, mobileWidth) : savedWidth;
+    if (isMobile) {
+      const mobileWidth = mobileCustomerColumnWidths[columnKey] || mobileCustomerDefaultColumnWidth;
+      return { width: `${mobileWidth}px`, minWidth: `${mobileWidth}px`, maxWidth: `${mobileWidth}px` };
+    }
+    const width = getColumnWidth(columnKey);
     if (!width) return {};
     return { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` };
-  };
-
-  const startColumnResize = (event, columnKey) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const th = event.currentTarget.closest('th');
-    const startWidth = columnWidths[columnKey] || th?.offsetWidth || 160;
-    resizeStateRef.current = { columnKey, startX: event.clientX, startWidth };
-
-    const onMouseMove = (moveEvent) => {
-      if (!resizeStateRef.current) return;
-      const delta = moveEvent.clientX - resizeStateRef.current.startX;
-      const nextWidth = Math.max(110, resizeStateRef.current.startWidth + delta);
-      setColumnWidths((prev) => ({ ...prev, [columnKey]: nextWidth }));
-    };
-
-    const onMouseUp = () => {
-      resizeStateRef.current = null;
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
   };
 
   const copyBillingToShipping = (source) => ({
@@ -1838,7 +1846,7 @@ export default function CustomerDashboard() {
   const topActionsStyle = isMobile ? { ...shell.topActions, width: '100%', justifyContent: 'space-between' } : shell.topActions;
   const toolbarStyle = isMobile ? { ...shell.toolbar, flexDirection: 'column', alignItems: 'stretch', padding: isTiny ? '8px 12px' : shell.toolbar.padding } : shell.toolbar;
   const mobileTableMinWidth = 56 + visibleColumnDefs.reduce((sum, column) => (
-    sum + Math.max(Number(columnWidths[column.key]) || 0, mobileCustomerColumnWidths[column.key] || mobileCustomerDefaultColumnWidth)
+    sum + Math.max(Number(getColumnWidth(column.key)) || 0, mobileCustomerColumnWidths[column.key] || mobileCustomerDefaultColumnWidth)
   ), 0) + 150;
   const tableStyle = isMobile
     ? { ...shell.table, minWidth: `${mobileTableMinWidth}px`, tableLayout: 'auto' }
@@ -2081,12 +2089,22 @@ export default function CustomerDashboard() {
             >
               Customize Fields
             </button>
-            {showCustomize ? (
-              <div ref={customizePanelRef} style={shell.popover}>
-                <div style={shell.popoverHeader}>Show/Hide Columns</div>
-                <div style={shell.popoverBody}>
-                  {allColumns.map((column) => (
-                    <label key={column.key} style={shell.popoverItem}>
+              {showCustomize ? (
+                <div ref={customizePanelRef} style={shell.popover}>
+                  <div style={shell.popoverHeader}>Show/Hide Columns</div>
+                  <div style={shell.popoverBody}>
+                    <button
+                      type="button"
+                      style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
+                      onClick={() => {
+                        setVisibleColumns(defaultVisibleColumns);
+                        resetCustomerColumns();
+                      }}
+                    >
+                      Reset Default Columns
+                    </button>
+                    {allColumns.map((column) => (
+                      <label key={column.key} style={shell.popoverItem}>
                       <input
                         type="checkbox"
                         checked={visibleColumns.includes(column.key)}

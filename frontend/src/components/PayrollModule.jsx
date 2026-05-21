@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, Pencil, ShieldCheck, Trash2, UserRoundCheck } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -58,6 +59,65 @@ const statusBadgeStyle = (statusRaw) => {
   if (status === 'hold') return { background: 'rgba(234,179,8,0.15)', color: '#92400e', border: '1px solid rgba(217,119,6,0.32)' };
   if (status === 'generated') return { background: 'rgba(159, 23, 77, 0.16)', color: 'var(--color-primary-dark)', border: '1px solid rgba(159, 23, 77, 0.32)' };
   return { background: 'rgba(100,116,139,0.14)', color: '#334155', border: '1px solid rgba(100,116,139,0.22)' };
+};
+
+const payrollHistoryColumns = [
+  { key: 'employee', label: 'Employee' },
+  { key: 'month', label: 'Month' },
+  { key: 'attendance', label: 'Attendance' },
+  { key: 'gross', label: 'Gross' },
+  { key: 'deductions', label: 'Deductions' },
+  { key: 'net', label: 'Net' },
+  { key: 'payroll', label: 'Payroll' },
+  { key: 'payment', label: 'Payment' },
+  { key: 'action', label: 'Action' }
+];
+const payrollHistoryDefaultWidths = {
+  employee: 180,
+  month: 120,
+  attendance: 150,
+  gross: 120,
+  deductions: 120,
+  net: 120,
+  payroll: 120,
+  payment: 120,
+  action: 240
+};
+const payrollHistoryColumnBounds = {
+  employee: { min: 150, max: 260 },
+  month: { min: 100, max: 160 },
+  attendance: { min: 130, max: 220 },
+  gross: { min: 100, max: 150 },
+  deductions: { min: 100, max: 150 },
+  net: { min: 100, max: 150 },
+  payroll: { min: 100, max: 150 },
+  payment: { min: 100, max: 150 },
+  action: { min: 220, max: 320 }
+};
+
+const payrollSlipColumns = [
+  { key: 'employee', label: 'Employee' },
+  { key: 'month', label: 'Month' },
+  { key: 'net', label: 'Net Salary' },
+  { key: 'payment', label: 'Payment' },
+  { key: 'slip', label: 'Slip' },
+  { key: 'actions', label: 'Actions' }
+];
+const payrollSlipDefaultWidths = {
+  employee: 180,
+  month: 120,
+  net: 130,
+  payment: 120,
+  slip: 120,
+  actions: 260
+};
+const payrollSlipColumnBounds = {
+  employee: { min: 150, max: 260 },
+  month: { min: 100, max: 160 },
+  net: { min: 110, max: 160 },
+  payment: { min: 100, max: 150 },
+  slip: { min: 100, max: 150 },
+  actions: { min: 220, max: 320 }
 };
 
 const shell = {
@@ -133,6 +193,7 @@ const shell = {
     whiteSpace: 'nowrap',
     cursor: 'pointer'
   },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   payrollTable: { width: '100%', borderCollapse: 'collapse', minWidth: '1280px', tableLayout: 'fixed' },
   payrollActionCell: { width: '260px', minWidth: '260px' },
   payrollActionGroup: {
@@ -334,6 +395,178 @@ export default function PayrollModule() {
   const [screenWidth, setScreenWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
 
   const pageSize = 10;
+  const canResizeDesktopTables = screenWidth >= 960;
+  const {
+    getColumnWidth: getHistoryColumnWidth,
+    startResize: startHistoryResize,
+    resetColumns: resetHistoryColumns
+  } = useColumnResize({
+    storageKey: 'payroll_history_column_widths',
+    columns: payrollHistoryColumns.map((column) => column.key),
+    defaultColumnWidths: payrollHistoryDefaultWidths,
+    columnBounds: payrollHistoryColumnBounds,
+    minWidth: 96,
+    enabled: canResizeDesktopTables
+  });
+  const {
+    getColumnWidth: getSlipColumnWidth,
+    startResize: startSlipResize,
+    resetColumns: resetSlipColumns
+  } = useColumnResize({
+    storageKey: 'payroll_slip_column_widths',
+    columns: payrollSlipColumns.map((column) => column.key),
+    defaultColumnWidths: payrollSlipDefaultWidths,
+    columnBounds: payrollSlipColumnBounds,
+    minWidth: 96,
+    enabled: canResizeDesktopTables
+  });
+  const historyTableMinWidth = payrollHistoryColumns.reduce((sum, column) => sum + (getHistoryColumnWidth(column.key) || payrollHistoryDefaultWidths[column.key] || 96), 0);
+  const slipTableMinWidth = payrollSlipColumns.reduce((sum, column) => sum + (getSlipColumnWidth(column.key) || payrollSlipDefaultWidths[column.key] || 96), 0);
+  const historyTableStyle = { ...shell.payrollTable, minWidth: `${Math.max(1280, historyTableMinWidth)}px` };
+  const slipTableStyle = { ...shell.payrollTable, minWidth: `${Math.max(960, slipTableMinWidth)}px` };
+  const historyHeadCellStyle = (key, align = 'left') => ({
+    ...shell.th,
+    position: 'relative',
+    width: `${getHistoryColumnWidth(key)}px`,
+    minWidth: `${getHistoryColumnWidth(key)}px`,
+    maxWidth: `${getHistoryColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const historyBodyCellStyle = (key, align = 'left') => ({
+    ...shell.td,
+    width: `${getHistoryColumnWidth(key)}px`,
+    minWidth: `${getHistoryColumnWidth(key)}px`,
+    maxWidth: `${getHistoryColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const slipHeadCellStyle = (key, align = 'left') => ({
+    ...shell.th,
+    position: 'relative',
+    width: `${getSlipColumnWidth(key)}px`,
+    minWidth: `${getSlipColumnWidth(key)}px`,
+    maxWidth: `${getSlipColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const slipBodyCellStyle = (key, align = 'left') => ({
+    ...shell.td,
+    width: `${getSlipColumnWidth(key)}px`,
+    minWidth: `${getSlipColumnWidth(key)}px`,
+    maxWidth: `${getSlipColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const payrollSetupColumns = [
+    { key: 'employee', width: 220 },
+    { key: 'effectiveDate', width: 140 },
+    { key: 'type', width: 120 },
+    { key: 'basic', width: 120 },
+    { key: 'allowances', width: 140 },
+    { key: 'deductions', width: 140 }
+  ];
+  const payrollAdvanceColumns = [
+    { key: 'employee', width: 220 },
+    { key: 'issuedDate', width: 130 },
+    { key: 'amount', width: 120 },
+    { key: 'recovered', width: 120 },
+    { key: 'balance', width: 120 },
+    { key: 'monthlyDeduction', width: 140 },
+    { key: 'status', width: 120 },
+    { key: 'action', width: 110 }
+  ];
+  const payrollHolidayColumns = [
+    { key: 'date', width: 120 },
+    { key: 'holiday', width: 220 },
+    { key: 'type', width: 120 },
+    { key: 'notes', width: 220 },
+    { key: 'action', width: 110 }
+  ];
+  const {
+    getColumnWidth: getSetupColumnWidth,
+    startResize: startSetupResize,
+    resetColumns: resetSetupColumns
+  } = useColumnResize({
+    storageKey: 'payroll_setup_column_widths',
+    columns: payrollSetupColumns.map((column) => column.key),
+    defaultColumnWidths: payrollSetupColumns.reduce((acc, column) => ({ ...acc, [column.key]: column.width }), {}),
+    columnBounds: {
+      employee: { min: 180, max: 320 },
+      effectiveDate: { min: 120, max: 160 },
+      type: { min: 100, max: 150 },
+      basic: { min: 100, max: 160 },
+      allowances: { min: 120, max: 200 },
+      deductions: { min: 120, max: 200 }
+    },
+    minWidth: 96,
+    enabled: canResizeDesktopTables
+  });
+  const {
+    getColumnWidth: getAdvanceColumnWidth,
+    startResize: startAdvanceResize,
+    resetColumns: resetAdvanceColumns
+  } = useColumnResize({
+    storageKey: 'payroll_advance_column_widths',
+    columns: payrollAdvanceColumns.map((column) => column.key),
+    defaultColumnWidths: payrollAdvanceColumns.reduce((acc, column) => ({ ...acc, [column.key]: column.width }), {}),
+    columnBounds: {
+      employee: { min: 180, max: 320 },
+      issuedDate: { min: 110, max: 160 },
+      amount: { min: 100, max: 160 },
+      recovered: { min: 100, max: 160 },
+      balance: { min: 100, max: 160 },
+      monthlyDeduction: { min: 120, max: 200 },
+      status: { min: 100, max: 150 },
+      action: { min: 100, max: 140 }
+    },
+    minWidth: 96,
+    enabled: canResizeDesktopTables
+  });
+  const {
+    getColumnWidth: getHolidayColumnWidth,
+    startResize: startHolidayResize,
+    resetColumns: resetHolidayColumns
+  } = useColumnResize({
+    storageKey: 'payroll_holiday_column_widths',
+    columns: payrollHolidayColumns.map((column) => column.key),
+    defaultColumnWidths: payrollHolidayColumns.reduce((acc, column) => ({ ...acc, [column.key]: column.width }), {}),
+    columnBounds: {
+      date: { min: 100, max: 160 },
+      holiday: { min: 180, max: 320 },
+      type: { min: 100, max: 150 },
+      notes: { min: 160, max: 280 },
+      action: { min: 100, max: 140 }
+    },
+    minWidth: 96,
+    enabled: canResizeDesktopTables
+  });
+  const setupTableMinWidth = payrollSetupColumns.reduce((sum, column) => sum + (getSetupColumnWidth(column.key) || column.width), 0);
+  const advanceTableMinWidth = payrollAdvanceColumns.reduce((sum, column) => sum + (getAdvanceColumnWidth(column.key) || column.width), 0);
+  const holidayTableMinWidth = payrollHolidayColumns.reduce((sum, column) => sum + (getHolidayColumnWidth(column.key) || column.width), 0);
+  const setupTableStyle = { ...shell.table, minWidth: `${Math.max(920, setupTableMinWidth)}px`, tableLayout: 'fixed' };
+  const advanceTableStyle = { ...shell.table, minWidth: `${Math.max(980, advanceTableMinWidth)}px`, tableLayout: 'fixed' };
+  const holidayTableStyle = { ...shell.table, minWidth: `${Math.max(760, holidayTableMinWidth)}px`, tableLayout: 'fixed' };
+  const setupHeadCellStyle = (key, align = 'left') => {
+    const width = getSetupColumnWidth(key);
+    return { ...shell.th, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const setupBodyCellStyle = (key, align = 'left') => {
+    const width = getSetupColumnWidth(key);
+    return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const advanceHeadCellStyle = (key, align = 'left') => {
+    const width = getAdvanceColumnWidth(key);
+    return { ...shell.th, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const advanceBodyCellStyle = (key, align = 'left') => {
+    const width = getAdvanceColumnWidth(key);
+    return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const holidayHeadCellStyle = (key, align = 'left') => {
+    const width = getHolidayColumnWidth(key);
+    return { ...shell.th, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const holidayBodyCellStyle = (key, align = 'left') => {
+    const width = getHolidayColumnWidth(key);
+    return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
   const headers = useMemo(() => ({
     'x-role': localStorage.getItem('portal_user_role') || 'Admin',
     'x-user-name': localStorage.getItem('portal_user_name') || 'System',
@@ -1182,17 +1415,30 @@ export default function PayrollModule() {
         </div>
       </div>
       <div style={shell.setupTableWrap}>
-        <table style={shell.table}>
-          <thead><tr><th style={shell.th}>Employee</th><th style={shell.th}>Effective Date</th><th style={shell.th}>Type</th><th style={shell.th}>Basic</th><th style={shell.th}>Allowances</th><th style={shell.th}>Deductions</th></tr></thead>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+          <button type="button" style={shell.btnLight} onClick={resetSetupColumns}>Reset Columns</button>
+        </div>
+        <table style={setupTableStyle}>
+          <colgroup>{payrollSetupColumns.map((column) => <col key={column.key} style={{ width: `${getSetupColumnWidth(column.key)}px` }} />)}</colgroup>
+          <thead>
+            <tr>
+              <th style={setupHeadCellStyle('employee')}>Employee{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('employee', event)} /> : null}</th>
+              <th style={setupHeadCellStyle('effectiveDate', 'center')}>Effective Date{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('effectiveDate', event)} /> : null}</th>
+              <th style={setupHeadCellStyle('type', 'center')}>Type{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('type', event)} /> : null}</th>
+              <th style={setupHeadCellStyle('basic', 'center')}>Basic{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('basic', event)} /> : null}</th>
+              <th style={setupHeadCellStyle('allowances', 'center')}>Allowances{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('allowances', event)} /> : null}</th>
+              <th style={setupHeadCellStyle('deductions', 'center')}>Deductions{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('deductions', event)} /> : null}</th>
+            </tr>
+          </thead>
           <tbody>
             {salaryStructures.map((entry) => (
               <tr key={entry._id}>
-                <td style={shell.td}>{getSalaryStructureEmployeeLabel(entry)}</td>
-                <td style={shell.td}>{entry.effectiveDate}</td>
-                <td style={shell.td}>{entry.salaryType}</td>
-                <td style={shell.td}>INR {money(getVisibleSalaryStructureAmount(entry))}</td>
-                <td style={shell.td}>INR {money(Object.values(entry.allowances || {}).reduce((sum, value) => sum + Number(value || 0), 0))}</td>
-                <td style={shell.td}>INR {money(Object.values(entry.deductions || {}).reduce((sum, value) => sum + Number(value || 0), 0))}</td>
+                <td style={setupBodyCellStyle('employee')}>{getSalaryStructureEmployeeLabel(entry)}</td>
+                <td style={setupBodyCellStyle('effectiveDate', 'center')}>{entry.effectiveDate}</td>
+                <td style={setupBodyCellStyle('type', 'center')}>{entry.salaryType}</td>
+                <td style={setupBodyCellStyle('basic', 'center')}>INR {money(getVisibleSalaryStructureAmount(entry))}</td>
+                <td style={setupBodyCellStyle('allowances', 'center')}>INR {money(Object.values(entry.allowances || {}).reduce((sum, value) => sum + Number(value || 0), 0))}</td>
+                <td style={setupBodyCellStyle('deductions', 'center')}>INR {money(Object.values(entry.deductions || {}).reduce((sum, value) => sum + Number(value || 0), 0))}</td>
               </tr>
             ))}
           </tbody>
@@ -1336,49 +1582,46 @@ export default function PayrollModule() {
         </div>
       ) : (
         <div style={shell.tableWrap}>
-          <table style={shell.payrollTable}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+            <button type="button" style={shell.btnLight} onClick={resetHistoryColumns}>Reset Columns</button>
+          </div>
+          <table style={historyTableStyle}>
             <colgroup>
-              <col style={{ width: '180px' }} />
-              <col style={{ width: '120px' }} />
-              <col style={{ width: '150px' }} />
-              <col style={{ width: '132px' }} />
-              <col style={{ width: '132px' }} />
-              <col style={{ width: '132px' }} />
-              <col style={{ width: '132px' }} />
-              <col style={{ width: '120px' }} />
-              <col style={{ width: '240px' }} />
+              {payrollHistoryColumns.map((column) => (
+                <col key={column.key} style={{ width: `${getHistoryColumnWidth(column.key)}px` }} />
+              ))}
             </colgroup>
             <thead>
               <tr>
-                <th style={shell.th}>Employee</th>
-                <th style={shell.th}>Month</th>
-                <th style={shell.th}>Attendance</th>
-                <th style={shell.th}>Gross</th>
-                <th style={shell.th}>Deductions</th>
-                <th style={shell.th}>Net</th>
-                <th style={shell.th}>Payroll</th>
-                <th style={shell.th}>Payment</th>
-                <th style={shell.th}>Action</th>
+                <th style={historyHeadCellStyle('employee')}>Employee{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('employee', event)} /> : null}</th>
+                <th style={historyHeadCellStyle('month', 'center')}>Month{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('month', event)} /> : null}</th>
+                <th style={historyHeadCellStyle('attendance', 'center')}>Attendance{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('attendance', event)} /> : null}</th>
+                <th style={historyHeadCellStyle('gross', 'center')}>Gross{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('gross', event)} /> : null}</th>
+                <th style={historyHeadCellStyle('deductions', 'center')}>Deductions{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('deductions', event)} /> : null}</th>
+                <th style={historyHeadCellStyle('net', 'center')}>Net{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('net', event)} /> : null}</th>
+                <th style={historyHeadCellStyle('payroll', 'center')}>Payroll{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('payroll', event)} /> : null}</th>
+                <th style={historyHeadCellStyle('payment', 'center')}>Payment{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('payment', event)} /> : null}</th>
+                <th style={historyHeadCellStyle('action', 'center')}>Action{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('action', event)} /> : null}</th>
               </tr>
             </thead>
             <tbody>
               {pagedPayrollItems.map((entry) => (
                 <tr key={entry._id}>
-                  <td style={shell.td}>
+                  <td style={historyBodyCellStyle('employee')}>
                     <div style={{ fontWeight: 800, color: '#0f172a' }}>{entry.employeeName}</div>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode} • {entry.department || '-'}</div>
                   </td>
-                  <td style={shell.td}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
-                  <td style={shell.td}>
+                  <td style={historyBodyCellStyle('month', 'center')}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
+                  <td style={historyBodyCellStyle('attendance', 'center')}>
                     <div style={{ fontWeight: 800, color: '#0f172a' }}>WD {entry?.attendanceSummary?.totalWorkingDays || 0}</div>
                     <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>P {entry?.attendanceSummary?.presentDays || 0} • PL {entry?.attendanceSummary?.paidLeaveDays || 0} • UL {entry?.attendanceSummary?.unpaidLeaveDays || 0}</div>
                   </td>
-                  <td style={shell.td}>INR {money(entry.grossSalary)}</td>
-                  <td style={shell.td}>INR {money(entry?.deductions?.total)}</td>
-                  <td style={shell.td}><strong>INR {money(entry.netSalary)}</strong></td>
-                  <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span></td>
-                  <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
-                  <td style={shell.td}>{renderPayrollHistoryActions(entry, false)}</td>
+                  <td style={historyBodyCellStyle('gross', 'center')}>INR {money(entry.grossSalary)}</td>
+                  <td style={historyBodyCellStyle('deductions', 'center')}>INR {money(entry?.deductions?.total)}</td>
+                  <td style={historyBodyCellStyle('net', 'center')}><strong>INR {money(entry.netSalary)}</strong></td>
+                  <td style={historyBodyCellStyle('payroll', 'center')}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span></td>
+                  <td style={historyBodyCellStyle('payment', 'center')}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
+                  <td style={historyBodyCellStyle('action', 'center')}>{renderPayrollHistoryActions(entry, false)}</td>
                 </tr>
               ))}
               {pagedPayrollItems.length === 0 ? (
@@ -1412,19 +1655,34 @@ export default function PayrollModule() {
         <div style={shell.actionRow}><button type="button" style={shell.btn} onClick={saveAdvance} disabled={busy || !role.canManage}>Save Advance</button></div>
       </div>
       <div style={shell.tableWrap}>
-        <table style={shell.table}>
-          <thead><tr><th style={shell.th}>Employee</th><th style={shell.th}>Issued Date</th><th style={shell.th}>Amount</th><th style={shell.th}>Recovered</th><th style={shell.th}>Balance</th><th style={shell.th}>Monthly Deduction</th><th style={shell.th}>Status</th><th style={shell.th}>Action</th></tr></thead>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+          <button type="button" style={shell.btnLight} onClick={resetAdvanceColumns}>Reset Columns</button>
+        </div>
+        <table style={advanceTableStyle}>
+          <colgroup>{payrollAdvanceColumns.map((column) => <col key={column.key} style={{ width: `${getAdvanceColumnWidth(column.key)}px` }} />)}</colgroup>
+          <thead>
+            <tr>
+              <th style={advanceHeadCellStyle('employee')}>Employee{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('employee', event)} /> : null}</th>
+              <th style={advanceHeadCellStyle('issuedDate', 'center')}>Issued Date{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('issuedDate', event)} /> : null}</th>
+              <th style={advanceHeadCellStyle('amount', 'center')}>Amount{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('amount', event)} /> : null}</th>
+              <th style={advanceHeadCellStyle('recovered', 'center')}>Recovered{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('recovered', event)} /> : null}</th>
+              <th style={advanceHeadCellStyle('balance', 'center')}>Balance{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('balance', event)} /> : null}</th>
+              <th style={advanceHeadCellStyle('monthlyDeduction', 'center')}>Monthly Deduction{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('monthlyDeduction', event)} /> : null}</th>
+              <th style={advanceHeadCellStyle('status', 'center')}>Status{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('status', event)} /> : null}</th>
+              <th style={advanceHeadCellStyle('action', 'center')}>Action{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('action', event)} /> : null}</th>
+            </tr>
+          </thead>
           <tbody>
             {advances.map((entry) => (
               <tr key={entry._id}>
-                <td style={shell.td}>{employeeMap.get(String(entry.employeeId || '')) ? getEmployeeDisplayName(employeeMap.get(String(entry.employeeId || ''))) : entry.employeeId}</td>
-                <td style={shell.td}>{entry.issuedDate}</td>
-                <td style={shell.td}>INR {money(entry.amount)}</td>
-                <td style={shell.td}>INR {money(entry.recoveredAmount)}</td>
-                <td style={shell.td}><strong>INR {money(entry.balanceAmount)}</strong></td>
-                <td style={shell.td}>INR {money(entry.monthlyDeduction)}</td>
-                <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.status) }}>{entry.status}</span></td>
-                <td style={shell.td}>
+                <td style={advanceBodyCellStyle('employee')}>{employeeMap.get(String(entry.employeeId || '')) ? getEmployeeDisplayName(employeeMap.get(String(entry.employeeId || ''))) : entry.employeeId}</td>
+                <td style={advanceBodyCellStyle('issuedDate', 'center')}>{entry.issuedDate}</td>
+                <td style={advanceBodyCellStyle('amount', 'center')}>INR {money(entry.amount)}</td>
+                <td style={advanceBodyCellStyle('recovered', 'center')}>INR {money(entry.recoveredAmount)}</td>
+                <td style={advanceBodyCellStyle('balance', 'center')}><strong>INR {money(entry.balanceAmount)}</strong></td>
+                <td style={advanceBodyCellStyle('monthlyDeduction', 'center')}>INR {money(entry.monthlyDeduction)}</td>
+                <td style={advanceBodyCellStyle('status', 'center')}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.status) }}>{entry.status}</span></td>
+                <td style={advanceBodyCellStyle('action', 'center')}>
                   <button type="button" style={shell.btnLight} onClick={() => removeAdvance(entry._id)} disabled={!role.canManage || busy}>Delete</button>
                 </td>
               </tr>
@@ -1467,16 +1725,28 @@ export default function PayrollModule() {
         </div>
       </div>
       <div style={shell.tableWrap}>
-        <table style={shell.table}>
-          <thead><tr><th style={shell.th}>Date</th><th style={shell.th}>Holiday</th><th style={shell.th}>Type</th><th style={shell.th}>Notes</th><th style={shell.th}>Action</th></tr></thead>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+          <button type="button" style={shell.btnLight} onClick={resetHolidayColumns}>Reset Columns</button>
+        </div>
+        <table style={holidayTableStyle}>
+          <colgroup>{payrollHolidayColumns.map((column) => <col key={column.key} style={{ width: `${getHolidayColumnWidth(column.key)}px` }} />)}</colgroup>
+          <thead>
+            <tr>
+              <th style={holidayHeadCellStyle('date', 'center')}>Date{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHolidayResize('date', event)} /> : null}</th>
+              <th style={holidayHeadCellStyle('holiday')}>Holiday{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHolidayResize('holiday', event)} /> : null}</th>
+              <th style={holidayHeadCellStyle('type', 'center')}>Type{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHolidayResize('type', event)} /> : null}</th>
+              <th style={holidayHeadCellStyle('notes')}>Notes{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHolidayResize('notes', event)} /> : null}</th>
+              <th style={holidayHeadCellStyle('action', 'center')}>Action{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHolidayResize('action', event)} /> : null}</th>
+            </tr>
+          </thead>
           <tbody>
             {holidays.map((entry) => (
               <tr key={entry._id}>
-                <td style={shell.td}>{entry.date}</td>
-                <td style={shell.td}>{entry.title}</td>
-                <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.type) }}>{entry.type}</span></td>
-                <td style={shell.td}>{entry.notes || '-'}</td>
-                <td style={shell.td}><button type="button" style={shell.btnLight} onClick={() => removeHoliday(entry._id)} disabled={!role.canManage || busy}>Delete</button></td>
+                <td style={holidayBodyCellStyle('date', 'center')}>{entry.date}</td>
+                <td style={holidayBodyCellStyle('holiday')}>{entry.title}</td>
+                <td style={holidayBodyCellStyle('type', 'center')}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.type) }}>{entry.type}</span></td>
+                <td style={holidayBodyCellStyle('notes')}>{entry.notes || '-'}</td>
+                <td style={holidayBodyCellStyle('action', 'center')}><button type="button" style={shell.btnLight} onClick={() => removeHoliday(entry._id)} disabled={!role.canManage || busy}>Delete</button></td>
               </tr>
             ))}
             {holidays.length === 0 ? <tr><td colSpan={5} style={{ ...shell.td, textAlign: 'center', color: '#64748b' }}>No holidays for selected month.</td></tr> : null}
@@ -1541,37 +1811,37 @@ export default function PayrollModule() {
         </div>
       ) : (
         <div style={shell.tableWrap}>
-          <table style={shell.payrollTable}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+            <button type="button" style={shell.btnLight} onClick={resetSlipColumns}>Reset Columns</button>
+          </div>
+          <table style={slipTableStyle}>
             <colgroup>
-              <col style={{ width: '180px' }} />
-              <col style={{ width: '120px' }} />
-              <col style={{ width: '120px' }} />
-              <col style={{ width: '120px' }} />
-              <col style={{ width: '120px' }} />
-              <col style={{ width: '260px' }} />
+              {payrollSlipColumns.map((column) => (
+                <col key={column.key} style={{ width: `${getSlipColumnWidth(column.key)}px` }} />
+              ))}
             </colgroup>
             <thead>
               <tr>
-                <th style={shell.th}>Employee</th>
-                <th style={shell.th}>Month</th>
-                <th style={shell.th}>Net Salary</th>
-                <th style={shell.th}>Payment</th>
-                <th style={shell.th}>Slip</th>
-                <th style={shell.th}>Actions</th>
+                <th style={slipHeadCellStyle('employee')}>Employee{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('employee', event)} /> : null}</th>
+                <th style={slipHeadCellStyle('month', 'center')}>Month{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('month', event)} /> : null}</th>
+                <th style={slipHeadCellStyle('net', 'center')}>Net Salary{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('net', event)} /> : null}</th>
+                <th style={slipHeadCellStyle('payment', 'center')}>Payment{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('payment', event)} /> : null}</th>
+                <th style={slipHeadCellStyle('slip', 'center')}>Slip{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('slip', event)} /> : null}</th>
+                <th style={slipHeadCellStyle('actions', 'center')}>Actions{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('actions', event)} /> : null}</th>
               </tr>
             </thead>
             <tbody>
               {pagedPayrollItems.map((entry) => (
                 <tr key={entry._id}>
-                  <td style={shell.td}>
+                  <td style={slipBodyCellStyle('employee')}>
                     <div style={{ fontWeight: 800, color: '#0f172a' }}>{entry.employeeName}</div>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode}</div>
                   </td>
-                  <td style={shell.td}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
-                  <td style={shell.td}>INR {money(entry.netSalary)}</td>
-                  <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
-                  <td style={shell.td}>{entry.slipPath ? 'Ready' : 'Generate'}</td>
-                  <td style={shell.td}>{renderSlipActions(entry, false)}</td>
+                  <td style={slipBodyCellStyle('month', 'center')}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
+                  <td style={slipBodyCellStyle('net', 'center')}>INR {money(entry.netSalary)}</td>
+                  <td style={slipBodyCellStyle('payment', 'center')}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
+                  <td style={slipBodyCellStyle('slip', 'center')}>{entry.slipPath ? 'Ready' : 'Generate'}</td>
+                  <td style={slipBodyCellStyle('actions', 'center')}>{renderSlipActions(entry, false)}</td>
                 </tr>
               ))}
               {pagedPayrollItems.length === 0 ? <tr><td colSpan={6} style={{ ...shell.td, textAlign: 'center', color: '#64748b' }}>No salary slips for selected filter.</td></tr> : null}

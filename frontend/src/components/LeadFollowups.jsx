@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import useColumnResize from './table/useColumnResize';
 import {
   AlertTriangle,
   ArrowDown,
@@ -139,17 +140,26 @@ export default function LeadFollowups() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [page, setPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: 'nextFollowup', direction: 'asc' });
-  const resizeStateRef = useRef(null);
-  const [columnWidths, setColumnWidths] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(FOLLOWUP_COLUMN_WIDTHS_KEY) || '{}');
-      if (!saved || typeof saved !== 'object') return defaultColumnWidths;
-      const next = { ...defaultColumnWidths, ...saved };
-      if (!saved.lead || Number(saved.lead) >= 120) next.lead = defaultColumnWidths.lead;
-      return next;
-    } catch (_error) {
-      return defaultColumnWidths;
-    }
+  const {
+    getColumnWidth,
+    startResize: startColumnResize,
+    resetColumns: resetFollowupColumns
+  } = useColumnResize({
+    storageKey: FOLLOWUP_COLUMN_WIDTHS_KEY,
+    columns: followupColumns.map((column) => column.key),
+    defaultColumnWidths,
+    columnBounds: {
+      lead: { min: 64, max: 120 },
+      customer: { min: 140, max: 280 },
+      status: { min: 90, max: 150 },
+      urgency: { min: 90, max: 150 },
+      assignedTo: { min: 120, max: 240 },
+      lastFollowup: { min: 120, max: 200 },
+      nextFollowup: { min: 120, max: 200 },
+      actions: { min: 100, max: 150 }
+    },
+    minWidth: 80,
+    enabled: viewportWidth > 768
   });
 
   const loadLeads = async (options = {}) => {
@@ -176,14 +186,6 @@ export default function LeadFollowups() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(FOLLOWUP_COLUMN_WIDTHS_KEY, JSON.stringify(columnWidths));
-    } catch (_error) {
-      // Ignore localStorage failures.
-    }
-  }, [columnWidths]);
 
   const today = useMemo(() => {
     const next = new Date();
@@ -295,40 +297,6 @@ export default function LeadFollowups() {
   const tabBadgeStyle = isMobile
     ? { ...shell.badge, minWidth: '18px', height: '18px', padding: '0 6px', fontSize: '10px', flexShrink: 0 }
     : shell.badge;
-  const getColumnMinWidth = (columnKey) => {
-    if (columnKey === 'lead') return 64;
-    if (columnKey === 'actions') return 96;
-    return 80;
-  };
-  const getColumnWidth = (columnKey) => Math.max(getColumnMinWidth(columnKey), Number(columnWidths[columnKey] || defaultColumnWidths[columnKey] || 120));
-  const startColumnResize = (event, columnKey) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const th = event.currentTarget.closest('th');
-    const startWidth = getColumnWidth(columnKey) || th?.offsetWidth || defaultColumnWidths[columnKey] || 120;
-    resizeStateRef.current = { columnKey, startX: event.clientX, startWidth };
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-
-    const onMouseMove = (moveEvent) => {
-      if (!resizeStateRef.current) return;
-      const delta = moveEvent.clientX - resizeStateRef.current.startX;
-      const minWidth = getColumnMinWidth(columnKey);
-      const nextWidth = Math.max(minWidth, resizeStateRef.current.startWidth + delta);
-      setColumnWidths((prev) => ({ ...prev, [columnKey]: nextWidth }));
-    };
-
-    const onMouseUp = () => {
-      resizeStateRef.current = null;
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-  };
   const updateSort = (columnKey) => {
     setSortConfig((current) => ({
       key: columnKey,
@@ -482,6 +450,24 @@ export default function LeadFollowups() {
         <div style={shell.tableTitle}>
           Follow-ups
           <span style={shell.badge}>{tabRows.length}</span>
+          <button
+            type="button"
+            style={{
+              marginLeft: 'auto',
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-primary-light)',
+              color: 'var(--color-primary-dark)',
+              borderRadius: '8px',
+              minHeight: '28px',
+              padding: '0 10px',
+              fontSize: '11px',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+            onClick={resetFollowupColumns}
+          >
+            Reset Columns
+          </button>
         </div>
         <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
           <table style={tableStyle} className="crm-compact-table crm-stack-mobile lead-followups-table">

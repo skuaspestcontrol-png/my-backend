@@ -22,6 +22,7 @@ import EmailTemplates from '../pages/settings/EmailTemplates';
 import EmailLogs from '../pages/email/EmailLogs';
 import GoogleIntegrationSettings from '../pages/settings/GoogleIntegrationSettings';
 import { PHONE_VALIDATION_ERROR, isValidIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
+import { useColumnResize } from './table/useColumnResize';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -109,6 +110,30 @@ const gstStateCodeMap = gstStateCodeEntries.reduce((acc, entry) => {
   acc[entry.code] = entry.label;
   return acc;
 }, {});
+
+const bankColumns = ['primary', 'type', 'bankName', 'accountNumber', 'ifsc', 'upiId', 'openingBalance', 'currentBalance', 'actions'];
+const bankColumnWidths = {
+  primary: 86,
+  type: 100,
+  bankName: 180,
+  accountNumber: 170,
+  ifsc: 140,
+  upiId: 170,
+  openingBalance: 140,
+  currentBalance: 140,
+  actions: 210
+};
+const bankColumnBounds = {
+  primary: { min: 72, max: 110 },
+  type: { min: 80, max: 130 },
+  bankName: { min: 140, max: 260 },
+  accountNumber: { min: 140, max: 240 },
+  ifsc: { min: 120, max: 180 },
+  upiId: { min: 140, max: 260 },
+  openingBalance: { min: 120, max: 180 },
+  currentBalance: { min: 120, max: 180 },
+  actions: { min: 180, max: 260 }
+};
 
 const defaultSecurityForm = {
   currentPassword: '',
@@ -553,6 +578,7 @@ const shell = {
   bankTable: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
   bankTh: { textAlign: 'left', padding: '10px 10px', borderBottom: '1px solid var(--border)', fontSize: '12px', color: '#475569', fontWeight: 800, whiteSpace: 'nowrap' },
   bankTd: { padding: '10px 10px', borderBottom: '1px solid var(--color-border)', fontSize: '13px', color: '#0f172a', verticalAlign: 'top' },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   smallActionBtn: {
     minHeight: '32px',
     borderRadius: '8px',
@@ -2640,34 +2666,38 @@ export default function Settings({ modalMode = false }) {
         </div>
 
         <div style={shell.divider} />
-        <p style={sectionLeadTitleStyle}>Saved Bank Accounts</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <p style={sectionLeadTitleStyle}>Saved Bank Accounts</p>
+          <button type="button" style={{ minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }} onClick={resetColumns}>Reset Columns</button>
+        </div>
         <div style={shell.bankTableWrap}>
-          <table style={shell.bankTable}>
+          <table style={bankTableStyle}>
+            <colgroup>{bankColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || bankColumnWidths[key] || 80}px` }} />)}</colgroup>
             <thead>
               <tr>
-                <th style={shell.bankTh}>Primary</th>
-                <th style={shell.bankTh}>Type</th>
-                <th style={shell.bankTh}>Bank Name</th>
-                <th style={shell.bankTh}>Account Number</th>
-                <th style={shell.bankTh}>IFSC</th>
-                <th style={shell.bankTh}>UPI ID</th>
-                <th style={shell.bankTh}>Opening Balance</th>
-                <th style={shell.bankTh}>Current Balance</th>
-                <th style={shell.bankTh}>Actions</th>
+                <th style={bankHeadStyle('primary', 'center')}>Primary<span style={shell.resizeHandle} onPointerDown={(event) => startResize('primary', event)} /></th>
+                <th style={bankHeadStyle('type', 'center')}>Type<span style={shell.resizeHandle} onPointerDown={(event) => startResize('type', event)} /></th>
+                <th style={bankHeadStyle('bankName')}>Bank Name<span style={shell.resizeHandle} onPointerDown={(event) => startResize('bankName', event)} /></th>
+                <th style={bankHeadStyle('accountNumber')}>Account Number<span style={shell.resizeHandle} onPointerDown={(event) => startResize('accountNumber', event)} /></th>
+                <th style={bankHeadStyle('ifsc')}>IFSC<span style={shell.resizeHandle} onPointerDown={(event) => startResize('ifsc', event)} /></th>
+                <th style={bankHeadStyle('upiId')}>UPI ID<span style={shell.resizeHandle} onPointerDown={(event) => startResize('upiId', event)} /></th>
+                <th style={bankHeadStyle('openingBalance', 'center')}>Opening Balance<span style={shell.resizeHandle} onPointerDown={(event) => startResize('openingBalance', event)} /></th>
+                <th style={bankHeadStyle('currentBalance', 'center')}>Current Balance<span style={shell.resizeHandle} onPointerDown={(event) => startResize('currentBalance', event)} /></th>
+                <th style={bankHeadStyle('actions', 'center')}>Actions<span style={shell.resizeHandle} onPointerDown={(event) => startResize('actions', event)} /></th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.key}>
-                  <td style={shell.bankTd}><input type="radio" checked={row.primary} readOnly /></td>
-                  <td style={shell.bankTd}>{row.type}</td>
-                  <td style={shell.bankTd}>{row.bankName || '-'}</td>
-                  <td style={shell.bankTd}>{row.accountNumber ? maskAccountNumber(row.accountNumber) : '-'}</td>
-                  <td style={shell.bankTd}>{row.ifsc || '-'}</td>
-                  <td style={shell.bankTd}>{row.upiId || '-'}</td>
-                  <td style={shell.bankTd}>{Number(row.opening || 0).toFixed(2)}</td>
-                  <td style={shell.bankTd}>{Number(row.current || 0).toFixed(2)}</td>
-                  <td style={shell.bankTd}>
+                  <td style={bankCellStyle('primary', 'center')}><input type="radio" checked={row.primary} readOnly /></td>
+                  <td style={bankCellStyle('type', 'center')}>{row.type}</td>
+                  <td style={bankCellStyle('bankName')}>{row.bankName || '-'}</td>
+                  <td style={bankCellStyle('accountNumber')}>{row.accountNumber ? maskAccountNumber(row.accountNumber) : '-'}</td>
+                  <td style={bankCellStyle('ifsc')}>{row.ifsc || '-'}</td>
+                  <td style={bankCellStyle('upiId')}>{row.upiId || '-'}</td>
+                  <td style={bankCellStyle('openingBalance', 'center')}>{Number(row.opening || 0).toFixed(2)}</td>
+                  <td style={bankCellStyle('currentBalance', 'center')}>{Number(row.current || 0).toFixed(2)}</td>
+                  <td style={bankCellStyle('actions', 'center')}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <button type="button" style={shell.smallActionBtn} onClick={() => setActiveSection('bankAccounts')}>View</button>
                       <button type="button" style={{ ...shell.smallActionBtn, color: '#7c3aed', borderColor: 'rgba(124,58,237,0.36)' }} onClick={() => setActiveSection('bankAccounts')}>Edit</button>
@@ -2833,6 +2863,28 @@ export default function Settings({ modalMode = false }) {
     ? { ...shell.hint, fontSize: '13px', fontWeight: 700, color: '#475569' }
     : { ...shell.hint, fontSize: '18px', fontWeight: 700, color: '#475569' };
   const brandingSectionTitleStyle = { margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text)', lineHeight: 1.2 };
+  const {
+    getColumnWidth,
+    resetColumns,
+    startResize
+  } = useColumnResize({
+    storageKey: 'skuas-table-widths-settings-bank',
+    columns: bankColumns,
+    defaultColumnWidths: bankColumnWidths,
+    columnBounds: bankColumnBounds,
+    minWidth: 80,
+    enabled: true
+  });
+  const bankTableMinWidth = bankColumns.reduce((sum, key) => sum + (getColumnWidth(key) || bankColumnWidths[key] || 80), 0);
+  const bankTableStyle = { ...shell.bankTable, minWidth: `${Math.max(980, bankTableMinWidth)}px`, tableLayout: 'fixed' };
+  const bankHeadStyle = (key, align = 'left') => {
+    const width = getColumnWidth(key) || bankColumnWidths[key] || 80;
+    return { ...shell.bankTh, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const bankCellStyle = (key, align = 'left') => {
+    const width = getColumnWidth(key) || bankColumnWidths[key] || 80;
+    return { ...shell.bankTd, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
 
   return (
     <section style={pageStyle}>

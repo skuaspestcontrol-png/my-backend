@@ -3,6 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Plus, Trash2, X } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { useColumnResize } from './table/useColumnResize';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -30,6 +31,44 @@ const emptyForm = {
   notes: ''
 };
 
+const billColumns = ['date', 'billNumber', 'vendorName', 'dueDate', 'amount', 'balanceDue', 'status', 'action'];
+const billColumnWidths = {
+  date: 120,
+  billNumber: 160,
+  vendorName: 240,
+  dueDate: 120,
+  amount: 130,
+  balanceDue: 140,
+  status: 120,
+  action: 120
+};
+const billColumnBounds = {
+  date: { min: 100, max: 180 },
+  billNumber: { min: 120, max: 240 },
+  vendorName: { min: 180, max: 360 },
+  dueDate: { min: 100, max: 180 },
+  amount: { min: 100, max: 180 },
+  balanceDue: { min: 100, max: 180 },
+  status: { min: 100, max: 160 },
+  action: { min: 100, max: 160 }
+};
+
+const itemColumns = ['itemName', 'quantity', 'rate', 'tax', 'amount'];
+const itemColumnWidths = {
+  itemName: 300,
+  quantity: 110,
+  rate: 110,
+  tax: 110,
+  amount: 160
+};
+const itemColumnBounds = {
+  itemName: { min: 220, max: 420 },
+  quantity: { min: 90, max: 140 },
+  rate: { min: 90, max: 140 },
+  tax: { min: 90, max: 140 },
+  amount: { min: 120, max: 220 }
+};
+
 const shell = {
   page: { background: 'transparent', border: 'none', borderRadius: 0, boxShadow: 'none', overflow: 'visible', position: 'relative' },
   topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)', background: '#fff' },
@@ -45,6 +84,7 @@ const shell = {
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', minWidth: '900px' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
   td: { padding: '12px 10px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7' },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1180px)', borderRadius: '24px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', height: '92vh', display: 'flex', flexDirection: 'column' },
   modalHeader: { padding: '16px 20px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '28px', fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
@@ -263,12 +303,47 @@ export default function VendorBillsDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
+  const {
+    getColumnWidth,
+    resetColumns,
+    startResize
+  } = useColumnResize({
+    storageKey: 'skuas-table-widths-vendor-bills',
+    columns: billColumns,
+    defaultColumnWidths: billColumnWidths,
+    columnBounds: billColumnBounds,
+    minWidth: 100,
+    enabled: true
+  });
+  const billTableMinWidth = billColumns.reduce((sum, key) => sum + (getColumnWidth(key) || billColumnWidths[key] || 100), 0);
+  const billTableStyle = { ...shell.table, minWidth: `${Math.max(900, billTableMinWidth)}px`, tableLayout: 'fixed' };
+  const billHeadStyle = (key, align = 'left') => {
+    const width = getColumnWidth(key) || billColumnWidths[key] || 100;
+    return { ...shell.th, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const billCellStyle = (key, align = 'left') => {
+    const width = getColumnWidth(key) || billColumnWidths[key] || 100;
+    return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const itemTableMinWidth = itemColumns.reduce((sum, key) => sum + (getColumnWidth(key) || itemColumnWidths[key] || 100), 0);
+  const desktopItemTableStyle = { ...shell.itemTable, minWidth: `${Math.max(760, itemTableMinWidth)}px`, tableLayout: 'fixed' };
+  const itemHeadStyle = (key, align = 'left') => {
+    const width = getColumnWidth(key) || itemColumnWidths[key] || 100;
+    return { ...shell.itemTh, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const itemCellStyle = (key, align = 'left') => {
+    const width = getColumnWidth(key) || itemColumnWidths[key] || 100;
+    return { ...shell.itemTd, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
 
   return (
     <section style={shell.page}>
       <div style={shell.topbar}>
         <h1 style={shell.title}>Vendor Bills</h1>
-        <button type="button" style={shell.buttonPrimary} onClick={openNew}><Plus size={16} />New Bill</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button type="button" style={{ minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }} onClick={resetColumns}>Reset Columns</button>
+          <button type="button" style={shell.buttonPrimary} onClick={openNew}><Plus size={16} />New Bill</button>
+        </div>
       </div>
 
       <div style={shell.summaryWrap}>
@@ -283,30 +358,31 @@ export default function VendorBillsDashboard() {
       </div>
 
       <div style={shell.tableWrap}>
-        <table style={shell.table}>
+        <table style={billTableStyle}>
+          <colgroup>{billColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || billColumnWidths[key] || 100}px` }} />)}</colgroup>
           <thead>
             <tr>
-              <th style={shell.th}>Date</th>
-              <th style={shell.th}>Bill Number</th>
-              <th style={shell.th}>Vendor Name</th>
-              <th style={shell.th}>Due Date</th>
-              <th style={shell.th}>Amount</th>
-              <th style={shell.th}>Balance Due</th>
-              <th style={shell.th}>Status</th>
-              <th style={shell.th}>Action</th>
+              <th style={billHeadStyle('date')}>Date<span style={shell.resizeHandle} onPointerDown={(event) => startResize('date', event)} /></th>
+              <th style={billHeadStyle('billNumber')}>Bill Number<span style={shell.resizeHandle} onPointerDown={(event) => startResize('billNumber', event)} /></th>
+              <th style={billHeadStyle('vendorName')}>Vendor Name<span style={shell.resizeHandle} onPointerDown={(event) => startResize('vendorName', event)} /></th>
+              <th style={billHeadStyle('dueDate')}>Due Date<span style={shell.resizeHandle} onPointerDown={(event) => startResize('dueDate', event)} /></th>
+              <th style={billHeadStyle('amount', 'center')}>Amount<span style={shell.resizeHandle} onPointerDown={(event) => startResize('amount', event)} /></th>
+              <th style={billHeadStyle('balanceDue', 'center')}>Balance Due<span style={shell.resizeHandle} onPointerDown={(event) => startResize('balanceDue', event)} /></th>
+              <th style={billHeadStyle('status', 'center')}>Status<span style={shell.resizeHandle} onPointerDown={(event) => startResize('status', event)} /></th>
+              <th style={billHeadStyle('action', 'center')}>Action<span style={shell.resizeHandle} onPointerDown={(event) => startResize('action', event)} /></th>
             </tr>
           </thead>
           <tbody>
             {bills.map((bill) => (
               <tr key={bill._id}>
-                <td style={shell.td}>{formatDateDisplay(bill.date)}</td>
-                <td style={shell.td}>{bill.billNumber || '-'}</td>
-                <td style={shell.td}>{bill.vendorName || '-'}</td>
-                <td style={shell.td}>{formatDateDisplay(bill.dueDate)}</td>
-                <td style={shell.td}>{formatINR(bill.total || bill.amount || 0)}</td>
-                <td style={shell.td}>{formatINR(bill.balanceDue || 0)}</td>
-                <td style={shell.td}>{String(bill.status || 'OPEN').toUpperCase()}</td>
-                <td style={shell.td}>
+                <td style={billCellStyle('date')}>{formatDateDisplay(bill.date)}</td>
+                <td style={billCellStyle('billNumber')}>{bill.billNumber || '-'}</td>
+                <td style={billCellStyle('vendorName')}>{bill.vendorName || '-'}</td>
+                <td style={billCellStyle('dueDate')}>{formatDateDisplay(bill.dueDate)}</td>
+                <td style={billCellStyle('amount', 'center')}>{formatINR(bill.total || bill.amount || 0)}</td>
+                <td style={billCellStyle('balanceDue', 'center')}>{formatINR(bill.balanceDue || 0)}</td>
+                <td style={billCellStyle('status', 'center')}>{String(bill.status || 'OPEN').toUpperCase()}</td>
+                <td style={billCellStyle('action', 'center')}>
                   <button type="button" style={shell.iconButton} onClick={() => openEdit(bill)}><Plus size={14} /></button>
                   <button type="button" style={shell.iconButton} onClick={() => deleteBill(bill._id)}><Trash2 size={14} /></button>
                 </td>
@@ -347,7 +423,8 @@ export default function VendorBillsDashboard() {
               <div style={shell.itemSection}>
                 <div style={shell.itemHead}>Item Table</div>
                 <div style={itemTableWrapStyle}>
-                  <table style={itemTableStyle}>
+                  <table style={isMobile ? itemTableStyle : desktopItemTableStyle}>
+                    {!isMobile ? <colgroup>{itemColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || itemColumnWidths[key] || 100}px` }} />)}</colgroup> : null}
                     <thead>
                       {isMobile ? (
                         <tr>
@@ -355,11 +432,11 @@ export default function VendorBillsDashboard() {
                         </tr>
                       ) : (
                         <tr>
-                          <th style={shell.itemTh}>Item Details</th>
-                          <th style={shell.itemTh}>Quantity</th>
-                          <th style={shell.itemTh}>Rate</th>
-                          <th style={shell.itemTh}>Tax</th>
-                          <th style={shell.itemTh}>Amount</th>
+                          <th style={itemHeadStyle('itemName')}>Item Details<span style={shell.resizeHandle} onPointerDown={(event) => startResize('itemName', event)} /></th>
+                          <th style={itemHeadStyle('quantity', 'center')}>Quantity<span style={shell.resizeHandle} onPointerDown={(event) => startResize('quantity', event)} /></th>
+                          <th style={itemHeadStyle('rate', 'center')}>Rate<span style={shell.resizeHandle} onPointerDown={(event) => startResize('rate', event)} /></th>
+                          <th style={itemHeadStyle('tax', 'center')}>Tax<span style={shell.resizeHandle} onPointerDown={(event) => startResize('tax', event)} /></th>
+                          <th style={itemHeadStyle('amount', 'center')}>Amount<span style={shell.resizeHandle} onPointerDown={(event) => startResize('amount', event)} /></th>
                         </tr>
                       )}
                     </thead>
@@ -368,7 +445,7 @@ export default function VendorBillsDashboard() {
                         const amount = toNum(line.quantity) * toNum(line.rate);
                         return (
                           <tr key={`line-${index}`}>
-                            <td style={shell.itemTd}>
+                            <td style={isMobile ? shell.itemTd : itemCellStyle('itemName')}>
                               <div style={{ display: 'grid', gap: '8px' }}>
                                 <input style={shell.input} value={line.itemName} placeholder="Type item name" onChange={(e) => updateLine(index, { itemName: e.target.value })} />
                                 <textarea style={shell.textArea} value={line.description} placeholder="Description" onChange={(e) => updateLine(index, { description: e.target.value })} />
@@ -393,10 +470,10 @@ export default function VendorBillsDashboard() {
                             </td>
                             {!isMobile ? (
                               <>
-                                <td style={shell.itemTd}><input style={shell.input} type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => updateLine(index, { quantity: e.target.value })} /></td>
-                                <td style={shell.itemTd}><input style={shell.input} type="number" min="0" step="0.01" value={line.rate} onChange={(e) => updateLine(index, { rate: e.target.value })} /></td>
-                                <td style={shell.itemTd}><select style={shell.input} value={line.taxRate} onChange={(e) => updateLine(index, { taxRate: e.target.value })} disabled={form.invoiceType === 'NON GST'}>{(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => <option key={tax} value={String(tax)}>{tax}%</option>)}</select></td>
-                                <td style={{ ...shell.itemTd, fontWeight: 700 }}>
+                                <td style={itemCellStyle('quantity', 'center')}><input style={shell.input} type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => updateLine(index, { quantity: e.target.value })} /></td>
+                                <td style={itemCellStyle('rate', 'center')}><input style={shell.input} type="number" min="0" step="0.01" value={line.rate} onChange={(e) => updateLine(index, { rate: e.target.value })} /></td>
+                                <td style={itemCellStyle('tax', 'center')}><select style={shell.input} value={line.taxRate} onChange={(e) => updateLine(index, { taxRate: e.target.value })} disabled={form.invoiceType === 'NON GST'}>{(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => <option key={tax} value={String(tax)}>{tax}%</option>)}</select></td>
+                                <td style={{ ...itemCellStyle('amount', 'center'), fontWeight: 700 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <span>{formatINR(amount)}</span>
                                     <button type="button" style={shell.iconButton} onClick={() => removeLine(index)}><Trash2 size={14} /></button>

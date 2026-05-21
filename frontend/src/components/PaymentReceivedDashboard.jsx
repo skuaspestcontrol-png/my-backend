@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { ChevronLeft, ChevronRight, IndianRupee, WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { useColumnResize } from './table/useColumnResize';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const PAYMENT_PAGE_SIZE = 20;
@@ -42,7 +43,10 @@ const shell = {
     borderRadius: '18px',
     overflow: 'hidden'
   },
-  tableHead: { margin: 0, padding: '14px 16px', borderBottom: '1px solid var(--color-border)', fontSize: '16px', fontWeight: 800, color: '#111827' },
+  tableHeadBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)' },
+  tableHead: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#111827' },
+  tableHeadButton: { minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '720px' },
   th: {
     textAlign: 'left',
@@ -95,6 +99,24 @@ const formatDate = (value) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
+};
+
+const paymentColumns = ['date', 'invoice', 'customer', 'mode', 'amount', 'action'];
+const paymentColumnWidths = {
+  date: 120,
+  invoice: 160,
+  customer: 240,
+  mode: 140,
+  amount: 130,
+  action: 110
+};
+const paymentColumnBounds = {
+  date: { min: 100, max: 180 },
+  invoice: { min: 120, max: 240 },
+  customer: { min: 180, max: 360 },
+  mode: { min: 100, max: 180 },
+  amount: { min: 100, max: 180 },
+  action: { min: 100, max: 150 }
 };
 
 const normalizePayments = (paymentsRaw, invoicesRaw) => {
@@ -224,6 +246,28 @@ export default function PaymentReceivedDashboard() {
   const isTiny = viewportWidth < 390;
   const statsStyle = isMobile ? { ...shell.statsGrid, gridTemplateColumns: isTiny ? '1fr' : 'repeat(2, minmax(0, 1fr))' } : shell.statsGrid;
   const statStyle = isMobile ? { ...shell.stat, minHeight: '104px' } : shell.stat;
+  const {
+    getColumnWidth,
+    resetColumns,
+    startResize
+  } = useColumnResize({
+    storageKey: 'skuas-table-widths-payment-received',
+    columns: paymentColumns,
+    defaultColumnWidths: paymentColumnWidths,
+    columnBounds: paymentColumnBounds,
+    minWidth: 100,
+    enabled: true
+  });
+  const tableMinWidth = paymentColumns.reduce((sum, key) => sum + (getColumnWidth(key) || paymentColumnWidths[key] || 100), 0);
+  const tableStyle = { ...shell.table, minWidth: `${Math.max(720, tableMinWidth)}px`, tableLayout: 'fixed' };
+  const headStyle = (key, align = 'left') => {
+    const width = getColumnWidth(key) || paymentColumnWidths[key] || 100;
+    return { ...shell.th, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const cellStyle = (key, align = 'left') => {
+    const width = getColumnWidth(key) || paymentColumnWidths[key] || 100;
+    return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
 
   return (
     <section style={shell.page}>
@@ -248,17 +292,21 @@ export default function PaymentReceivedDashboard() {
       </div>
 
       <div style={shell.tablePanel}>
-        <h3 style={shell.tableHead}>Recent Payments</h3>
+        <div style={shell.tableHeadBar}>
+          <h3 style={shell.tableHead}>Recent Payments</h3>
+          <button type="button" style={shell.tableHeadButton} onClick={resetColumns}>Reset Columns</button>
+        </div>
         <div className="responsive-table">
-          <table style={shell.table}>
+          <table style={tableStyle}>
+            <colgroup>{paymentColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || paymentColumnWidths[key] || 100}px` }} />)}</colgroup>
             <thead>
               <tr>
-                <th style={shell.th}>Date</th>
-                <th style={shell.th}>Invoice</th>
-                <th style={shell.th}>Customer</th>
-                <th style={shell.th}>Mode</th>
-                <th style={shell.th}>Amount</th>
-                <th style={shell.th}>Action</th>
+                <th style={headStyle('date')}>Date<span style={shell.resizeHandle} onPointerDown={(event) => startResize('date', event)} /></th>
+                <th style={headStyle('invoice')}>Invoice<span style={shell.resizeHandle} onPointerDown={(event) => startResize('invoice', event)} /></th>
+                <th style={headStyle('customer')}>Customer<span style={shell.resizeHandle} onPointerDown={(event) => startResize('customer', event)} /></th>
+                <th style={headStyle('mode', 'center')}>Mode<span style={shell.resizeHandle} onPointerDown={(event) => startResize('mode', event)} /></th>
+                <th style={headStyle('amount', 'center')}>Amount<span style={shell.resizeHandle} onPointerDown={(event) => startResize('amount', event)} /></th>
+                <th style={headStyle('action', 'center')}>Action<span style={shell.resizeHandle} onPointerDown={(event) => startResize('action', event)} /></th>
               </tr>
             </thead>
             <tbody>
@@ -269,12 +317,12 @@ export default function PaymentReceivedDashboard() {
               ) : (
                 pagedRows.map((row) => (
                   <tr key={row.id}>
-                    <td style={shell.td}>{formatDate(row.date)}</td>
-                    <td style={shell.td}>{row.invoiceNo}</td>
-                    <td style={shell.td}>{row.customerName}</td>
-                    <td style={shell.td}>{row.mode}</td>
-                    <td style={{ ...shell.td, fontWeight: 800, color: '#111827' }}>{formatINR(row.amount)}</td>
-                    <td style={shell.td}>
+                    <td style={cellStyle('date')}>{formatDate(row.date)}</td>
+                    <td style={cellStyle('invoice')}>{row.invoiceNo}</td>
+                    <td style={cellStyle('customer')}>{row.customerName}</td>
+                    <td style={cellStyle('mode', 'center')}>{row.mode}</td>
+                    <td style={{ ...cellStyle('amount', 'center'), fontWeight: 800, color: '#111827' }}>{formatINR(row.amount)}</td>
+                    <td style={cellStyle('action', 'center')}>
                       <button type="button" style={shell.actionButton} onClick={() => deletePayment(row.id)}>
                         Delete
                       </button>

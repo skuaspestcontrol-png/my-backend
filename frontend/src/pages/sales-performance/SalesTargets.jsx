@@ -9,6 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import StatusBadge from '../../components/ui/StatusBadge';
+import useColumnResize from '../../components/table/useColumnResize';
 import { apiDelete, apiGet, apiPost, apiPut, currentMonth, currentYear, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
 import './salesPerformance.css';
 
@@ -82,6 +83,83 @@ const formatTargetActivityTime = (value) => {
   });
 };
 
+const yearlyColumns = [
+  { key: 'salesPerson' },
+  { key: 'year' },
+  { key: 'monthlyRevenue' },
+  { key: 'monthlyCollection' },
+  { key: 'yearlyRevenue' },
+  { key: 'yearlyCollection' },
+  { key: 'monthlyRows' },
+  { key: 'yearlyRows' }
+];
+const yearlyWidths = {
+  salesPerson: 220,
+  year: 90,
+  monthlyRevenue: 160,
+  monthlyCollection: 170,
+  yearlyRevenue: 160,
+  yearlyCollection: 170,
+  monthlyRows: 110,
+  yearlyRows: 110
+};
+const yearlyBounds = {
+  salesPerson: { min: 180, max: 280 },
+  year: { min: 80, max: 120 },
+  monthlyRevenue: { min: 140, max: 220 },
+  monthlyCollection: { min: 150, max: 230 },
+  yearlyRevenue: { min: 140, max: 220 },
+  yearlyCollection: { min: 150, max: 230 },
+  monthlyRows: { min: 90, max: 140 },
+  yearlyRows: { min: 90, max: 140 }
+};
+
+const targetColumns = [
+  { key: 'salesPerson' },
+  { key: 'type' },
+  { key: 'month' },
+  { key: 'year' },
+  { key: 'revenueTarget' },
+  { key: 'revenueAchieved' },
+  { key: 'revenuePending' },
+  { key: 'revenuePercent' },
+  { key: 'collectionTarget' },
+  { key: 'collectionAchieved' },
+  { key: 'collectionPending' },
+  { key: 'collectionPercent' },
+  { key: 'action' }
+];
+const targetWidths = {
+  salesPerson: 190,
+  type: 110,
+  month: 110,
+  year: 90,
+  revenueTarget: 145,
+  revenueAchieved: 145,
+  revenuePending: 145,
+  revenuePercent: 100,
+  collectionTarget: 145,
+  collectionAchieved: 145,
+  collectionPending: 145,
+  collectionPercent: 100,
+  action: 96
+};
+const targetBounds = {
+  salesPerson: { min: 170, max: 260 },
+  type: { min: 90, max: 140 },
+  month: { min: 90, max: 140 },
+  year: { min: 80, max: 120 },
+  revenueTarget: { min: 120, max: 200 },
+  revenueAchieved: { min: 120, max: 200 },
+  revenuePending: { min: 120, max: 200 },
+  revenuePercent: { min: 80, max: 130 },
+  collectionTarget: { min: 120, max: 200 },
+  collectionAchieved: { min: 120, max: 200 },
+  collectionPending: { min: 120, max: 200 },
+  collectionPercent: { min: 80, max: 130 },
+  action: { min: 90, max: 130 }
+};
+
 export default function SalesTargets() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [targets, setTargets] = useState([]);
@@ -92,6 +170,39 @@ export default function SalesTargets() {
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ year: '', targetType: '', salesPersonId: '' });
   const [form, setForm] = useState(initialForm);
+  const {
+    getColumnWidth: getYearlyWidth,
+    startResize: startYearlyResize,
+    resetColumns: resetYearlyColumns
+  } = useColumnResize({
+    storageKey: 'sales_targets_yearly_table_widths',
+    columns: yearlyColumns,
+    defaultColumnWidths: yearlyWidths,
+    columnBounds: yearlyBounds,
+    minWidth: 80,
+    enabled: true
+  });
+  const {
+    getColumnWidth: getTargetWidth,
+    startResize: startTargetResize,
+    resetColumns: resetTargetColumns
+  } = useColumnResize({
+    storageKey: 'sales_targets_target_table_widths',
+    columns: targetColumns,
+    defaultColumnWidths: targetWidths,
+    columnBounds: targetBounds,
+    minWidth: 80,
+    enabled: true
+  });
+  const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
+  const yearlyMinWidth = yearlyColumns.reduce((sum, column) => sum + (getYearlyWidth(column.key) || yearlyWidths[column.key] || 80), 0);
+  const targetMinWidth = targetColumns.reduce((sum, column) => sum + (getTargetWidth(column.key) || targetWidths[column.key] || 80), 0);
+  const yearlyTableStyle = { ...tableStyle, minWidth: Math.max(1660, yearlyMinWidth), tableLayout: 'fixed' };
+  const targetTableStyle = { ...tableStyle, minWidth: Math.max(1660, targetMinWidth), tableLayout: 'fixed' };
+  const yearlyHead = (key, align = 'left') => ({ ...headerStyle, position: 'relative', width: `${getYearlyWidth(key)}px`, minWidth: `${getYearlyWidth(key)}px`, maxWidth: `${getYearlyWidth(key)}px`, textAlign: align });
+  const yearlyBody = (key, align = 'left') => ({ ...nameCellStyle, width: `${getYearlyWidth(key)}px`, minWidth: `${getYearlyWidth(key)}px`, maxWidth: `${getYearlyWidth(key)}px`, textAlign: align });
+  const targetHead = (key, align = 'left') => ({ ...headerStyle, position: 'relative', width: `${getTargetWidth(key)}px`, minWidth: `${getTargetWidth(key)}px`, maxWidth: `${getTargetWidth(key)}px`, textAlign: align });
+  const targetBody = (key, align = 'left') => ({ ...cellStyle, width: `${getTargetWidth(key)}px`, minWidth: `${getTargetWidth(key)}px`, maxWidth: `${getTargetWidth(key)}px`, textAlign: align });
 
   const load = async (nextFilters = filters) => {
     setLoading(true);
@@ -305,42 +416,38 @@ export default function SalesTargets() {
       {error ? <AppCard><EmptyState title="Sales target error" message={error} /></AppCard> : null}
 
       <AppCard title="Yearly Target Rollup" style={{ width: '100%', minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <AppButton variant="outline" onClick={resetYearlyColumns}>Reset Columns</AppButton>
+        </div>
         {yearlySummaryRows.length ? (
           <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table className="table-clean sales-targets-table sales-performance-table" style={tableStyle}>
+            <table className="table-clean sales-targets-table sales-performance-table" style={yearlyTableStyle}>
               <colgroup>
-                <col style={{ width: '220px' }} />
-                <col style={{ width: '90px' }} />
-                <col style={{ width: '160px' }} />
-                <col style={{ width: '170px' }} />
-                <col style={{ width: '160px' }} />
-                <col style={{ width: '170px' }} />
-                <col style={{ width: '110px' }} />
-                <col style={{ width: '110px' }} />
+                {yearlyColumns.map((column) => <col key={column.key} style={{ width: `${getYearlyWidth(column.key)}px` }} />)}
               </colgroup>
               <thead>
                 <tr>
-                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headerStyle}><span style={firstHeaderLabelStyle}>Sales Person</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Year</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Monthly Revenue Total</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Monthly Collection Total</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Yearly Revenue Target</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Yearly Collection Target</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Monthly Rows</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Yearly Rows</span></th>
+                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={yearlyHead('salesPerson')}><span style={firstHeaderLabelStyle}>Sales Person</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('salesPerson', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('year', 'center')}><span style={headerLabelStyle}>Year</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('year', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyRevenue', 'center')}><span style={headerLabelStyle}>Monthly Revenue Total</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('monthlyRevenue', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyCollection', 'center')}><span style={headerLabelStyle}>Monthly Collection Total</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('monthlyCollection', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyRevenue', 'center')}><span style={headerLabelStyle}>Yearly Revenue Target</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('yearlyRevenue', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyCollection', 'center')}><span style={headerLabelStyle}>Yearly Collection Target</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('yearlyCollection', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyRows', 'center')}><span style={headerLabelStyle}>Monthly Rows</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('monthlyRows', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyRows', 'center')}><span style={headerLabelStyle}>Yearly Rows</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('yearlyRows', event)} /></th>
                 </tr>
               </thead>
               <tbody>
                 {yearlySummaryRows.map((row) => (
                   <tr key={`${row.salesPersonName}-${row.year}`} style={{ height: 48 }}>
-                    <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...nameCellStyle, background: '#fff' }}>{row.salesPersonName}</td>
-                    <td className="table-number-cell" style={cellStyle}>{row.year}</td>
-                    <td className="table-number-cell" style={cellStyle}>{money(row.monthlyRevenueTarget)}</td>
-                    <td className="table-number-cell" style={cellStyle}>{money(row.monthlyCollectionTarget)}</td>
-                    <td className="table-number-cell" style={cellStyle}>{money(row.yearlyRevenueTarget)}</td>
-                    <td className="table-number-cell" style={cellStyle}>{money(row.yearlyCollectionTarget)}</td>
-                    <td className="table-number-cell" style={cellStyle}>{row.monthlyCount}</td>
-                    <td className="table-number-cell" style={cellStyle}>{row.yearlyCount}</td>
+                    <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...yearlyBody('salesPerson'), background: '#fff' }}>{row.salesPersonName}</td>
+                    <td className="table-number-cell" style={yearlyBody('year', 'center')}>{row.year}</td>
+                    <td className="table-number-cell" style={yearlyBody('monthlyRevenue', 'center')}>{money(row.monthlyRevenueTarget)}</td>
+                    <td className="table-number-cell" style={yearlyBody('monthlyCollection', 'center')}>{money(row.monthlyCollectionTarget)}</td>
+                    <td className="table-number-cell" style={yearlyBody('yearlyRevenue', 'center')}>{money(row.yearlyRevenueTarget)}</td>
+                    <td className="table-number-cell" style={yearlyBody('yearlyCollection', 'center')}>{money(row.yearlyCollectionTarget)}</td>
+                    <td className="table-number-cell" style={yearlyBody('monthlyRows', 'center')}>{row.monthlyCount}</td>
+                    <td className="table-number-cell" style={yearlyBody('yearlyRows', 'center')}>{row.yearlyCount}</td>
                   </tr>
                 ))}
               </tbody>
@@ -415,87 +522,78 @@ export default function SalesTargets() {
       </AppCard>
 
       <AppCard title="Target List" style={{ width: '100%', minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <AppButton variant="outline" onClick={resetTargetColumns}>Reset Columns</AppButton>
+        </div>
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : safeRows(targets).length ? (
           <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table className="table-clean sales-targets-table sales-performance-table" style={tableStyle}>
+            <table className="table-clean sales-targets-table sales-performance-table" style={targetTableStyle}>
               <colgroup>
-                <col style={{ width: '190px' }} />
-                <col style={{ width: '110px' }} />
-                <col style={{ width: '110px' }} />
-                <col style={{ width: '90px' }} />
-                <col style={{ width: '145px' }} />
-                <col style={{ width: '145px' }} />
-                <col style={{ width: '145px' }} />
-                <col style={{ width: '100px' }} />
-                <col style={{ width: '145px' }} />
-                <col style={{ width: '145px' }} />
-                <col style={{ width: '145px' }} />
-                <col style={{ width: '110px' }} />
-                <col style={{ width: '96px' }} />
+                {targetColumns.map((column) => <col key={column.key} style={{ width: `${getTargetWidth(column.key)}px` }} />)}
               </colgroup>
               <thead>
                 <tr>
-                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headerStyle}><span style={firstHeaderLabelStyle}>Sales Person</span></th>
-                  <th className="table-header-cell table-status-cell" style={headerStyle}><span style={headerLabelStyle}>Type</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Month</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Year</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Revenue Target</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Revenue Achieved</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Revenue Pending</span></th>
-                  <th className="table-header-cell table-percent-cell" style={headerStyle}><span style={headerLabelStyle}>Revenue %</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Collection Target</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Collection Achieved</span></th>
-                  <th className="table-header-cell table-number-cell" style={headerStyle}><span style={headerLabelStyle}>Collection Pending</span></th>
-                  <th className="table-header-cell table-percent-cell" style={headerStyle}><span style={headerLabelStyle}>Collection %</span></th>
-                  <th className="table-header-cell table-actions-cell" style={headerStyle}><span style={headerLabelStyle}>Action</span></th>
+                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={targetHead('salesPerson')}><span style={firstHeaderLabelStyle}>Sales Person</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('salesPerson', event)} /></th>
+                  <th className="table-header-cell table-status-cell" style={targetHead('type', 'center')}><span style={headerLabelStyle}>Type</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('type', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('month', 'center')}><span style={headerLabelStyle}>Month</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('month', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('year', 'center')}><span style={headerLabelStyle}>Year</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('year', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('revenueTarget', 'center')}><span style={headerLabelStyle}>Revenue Target</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('revenueTarget', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('revenueAchieved', 'center')}><span style={headerLabelStyle}>Revenue Achieved</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('revenueAchieved', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('revenuePending', 'center')}><span style={headerLabelStyle}>Revenue Pending</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('revenuePending', event)} /></th>
+                  <th className="table-header-cell table-percent-cell" style={targetHead('revenuePercent', 'center')}><span style={headerLabelStyle}>Revenue %</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('revenuePercent', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('collectionTarget', 'center')}><span style={headerLabelStyle}>Collection Target</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('collectionTarget', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('collectionAchieved', 'center')}><span style={headerLabelStyle}>Collection Achieved</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('collectionAchieved', event)} /></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('collectionPending', 'center')}><span style={headerLabelStyle}>Collection Pending</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('collectionPending', event)} /></th>
+                  <th className="table-header-cell table-percent-cell" style={targetHead('collectionPercent', 'center')}><span style={headerLabelStyle}>Collection %</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('collectionPercent', event)} /></th>
+                  <th className="table-header-cell table-actions-cell" style={targetHead('action', 'center')}><span style={headerLabelStyle}>Action</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('action', event)} /></th>
                 </tr>
               </thead>
               <tbody>
                 {targets.map((row) => (
                   <tr key={row.id} style={{ height: 48 }}>
-                    <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...nameCellStyle, background: '#fff' }}>{displaySalesPersonName(row)}</td>
-                    <td className="table-status-cell" style={cellStyle}>
+                    <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...targetBody('salesPerson'), background: '#fff' }}>{displaySalesPersonName(row)}</td>
+                    <td className="table-status-cell" style={targetBody('type', 'center')}>
                       <StatusBadge status={row.targetType === 'yearly' ? 'info' : 'active'}>
                         {row.targetType === 'yearly' ? 'Yearly' : 'Monthly'}
                       </StatusBadge>
                     </td>
-                    <td className="table-number-cell" style={cellStyle}>{row.targetType === 'monthly' ? monthOptions.find((month) => month.value === Number(row.targetMonth))?.label || '---' : '---'}</td>
-                    <td className="table-number-cell" style={cellStyle}>{row.targetYear}</td>
-                    <td className="table-number-cell" style={cellStyle}>{money(row.revenueTarget)}</td>
-                    <td className="table-number-cell" style={cellStyle}>
+                    <td className="table-number-cell" style={targetBody('month', 'center')}>{row.targetType === 'monthly' ? monthOptions.find((month) => month.value === Number(row.targetMonth))?.label || '---' : '---'}</td>
+                    <td className="table-number-cell" style={targetBody('year', 'center')}>{row.targetYear}</td>
+                    <td className="table-number-cell" style={targetBody('revenueTarget', 'center')}>{money(row.revenueTarget)}</td>
+                    <td className="table-number-cell" style={targetBody('revenueAchieved', 'center')}>
                       <span style={{ color: metricColor(row.achievedRevenue, row.revenueTarget), fontWeight: 700 }}>
                         {money(row.achievedRevenue)}
                       </span>
                     </td>
-                    <td className="table-number-cell" style={cellStyle}>
+                    <td className="table-number-cell" style={targetBody('revenuePending', 'center')}>
                       <span style={{ color: metricColor(row.achievedRevenue, row.revenueTarget), fontWeight: 700 }}>
                         {money(row.pendingRevenue)}
                       </span>
                     </td>
-                    <td className="table-percent-cell" style={cellStyle}>
+                    <td className="table-percent-cell" style={targetBody('revenuePercent', 'center')}>
                       <span style={{ color: metricColor(row.achievedRevenue, row.revenueTarget), fontWeight: 700 }}>
                         {percent(row.achievementPercent)}
                       </span>
                     </td>
-                    <td className="table-number-cell" style={cellStyle}>{money(row.collectionTarget)}</td>
-                    <td className="table-number-cell" style={cellStyle}>
+                    <td className="table-number-cell" style={targetBody('collectionTarget', 'center')}>{money(row.collectionTarget)}</td>
+                    <td className="table-number-cell" style={targetBody('collectionAchieved', 'center')}>
                       <span style={{ color: metricColor(row.achievedCollection, row.collectionTarget), fontWeight: 700 }}>
                         {money(row.achievedCollection)}
                       </span>
                     </td>
-                    <td className="table-number-cell" style={cellStyle}>
+                    <td className="table-number-cell" style={targetBody('collectionPending', 'center')}>
                       <span style={{ color: metricColor(row.achievedCollection, row.collectionTarget), fontWeight: 700 }}>
                         {money(row.pendingCollection)}
                       </span>
                     </td>
-                    <td className="table-percent-cell" style={cellStyle}>
+                    <td className="table-percent-cell" style={targetBody('collectionPercent', 'center')}>
                       <span style={{ color: metricColor(row.achievedCollection, row.collectionTarget), fontWeight: 700 }}>
                         {percent(row.collectionAchievementPercent)}
                       </span>
                     </td>
-                    <td className="table-actions-cell" style={cellStyle}>
+                    <td className="table-actions-cell" style={targetBody('action', 'center')}>
                       <div className="sales-targets-action-wrap">
                         <AppButton
                           variant="outline"

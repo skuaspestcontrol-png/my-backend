@@ -8,6 +8,7 @@ import AppTextarea from '../../components/ui/AppTextarea';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
+import useColumnResize from '../../components/table/useColumnResize';
 import { apiGet, apiPost, number, safeRows } from './stockApi';
 
 const today = new Date().toISOString().slice(0, 10);
@@ -25,6 +26,23 @@ const tabStyle = (active) => ({
 const tableStyle = { width: '100%', borderCollapse: 'collapse' };
 const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
 const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
+
+const balanceColumns = [
+  { key: 'technician', label: 'Technician' },
+  { key: 'item', label: 'Item' },
+  { key: 'balance', label: 'Balance' }
+];
+const balanceWidths = {
+  technician: 200,
+  item: 180,
+  balance: 120
+};
+const balanceBounds = {
+  technician: { min: 160, max: 280 },
+  item: { min: 150, max: 240 },
+  balance: { min: 100, max: 150 }
+};
 
 const issueInitial = {
   technicianId: '',
@@ -138,6 +156,35 @@ export default function StockIssueUsage() {
       : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' };
   const submitRowStyle = viewportWidth <= 480 ? { display: 'grid', gap: 8, width: '100%' } : { display: 'flex', justifyContent: 'flex-end' };
   const submitButtonStyle = viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined;
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns
+  } = useColumnResize({
+    storageKey: 'stock_issue_usage_balance_widths',
+    columns: balanceColumns.map((column) => column.key),
+    defaultColumnWidths: balanceWidths,
+    columnBounds: balanceBounds,
+    minWidth: 90,
+    enabled: true
+  });
+  const balanceTableMinWidth = balanceColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || balanceWidths[column.key] || 90), 0);
+  const balanceTableStyle = { ...tableStyle, minWidth: `${Math.max(500, balanceTableMinWidth)}px`, tableLayout: 'fixed' };
+  const headStyle = (key, align = 'left') => ({
+    ...headerCellStyle,
+    position: 'relative',
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const bodyStyle = (key, align = 'left') => ({
+    ...cellStyle,
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
 
   const submitIssue = async (event) => {
     event.preventDefault();
@@ -319,22 +366,30 @@ export default function StockIssueUsage() {
       </AppCard>
 
       <AppCard title="Technician Stock Balances" className="crm-table-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 8 }}>
+          <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
+        </div>
         {balances.length ? (
           <div style={{ overflowX: 'auto' }}>
-            <table style={tableStyle}>
+            <table style={balanceTableStyle}>
+              <colgroup>
+                {balanceColumns.map((column) => (
+                  <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={headerCellStyle}>Technician</th>
-                  <th style={headerCellStyle}>Item</th>
-                  <th style={headerCellStyle}>Balance</th>
+                  <th style={headStyle('technician')}>Technician<span style={resizeHandleStyle} onPointerDown={(event) => startResize('technician', event)} /></th>
+                  <th style={headStyle('item')}>Item<span style={resizeHandleStyle} onPointerDown={(event) => startResize('item', event)} /></th>
+                  <th style={headStyle('balance', 'center')}>Balance<span style={resizeHandleStyle} onPointerDown={(event) => startResize('balance', event)} /></th>
                 </tr>
               </thead>
               <tbody>
                 {balances.map((row, index) => (
                   <tr key={`${row.technicianId}-${row.itemId}-${index}`}>
-                    <td style={cellStyle}>{row.technicianName}</td>
-                    <td style={cellStyle}>{row.itemName}</td>
-                    <td style={cellStyle}>{number(row.currentBalance)} {row.unit}</td>
+                    <td style={bodyStyle('technician')}>{row.technicianName}</td>
+                    <td style={bodyStyle('item')}>{row.itemName}</td>
+                    <td style={bodyStyle('balance', 'center')}>{number(row.currentBalance)} {row.unit}</td>
                   </tr>
                 ))}
               </tbody>

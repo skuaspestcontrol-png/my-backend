@@ -17,6 +17,7 @@ import AppSelect from '../../components/ui/AppSelect';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
+import useColumnResize from '../../components/table/useColumnResize';
 import {
   ChartSurface,
   CompactChartCard,
@@ -47,6 +48,63 @@ const currencyTooltipLabel = {
   monthlyAchieved: 'Monthly Achieved',
   yearlyTarget: 'Yearly Target',
   yearlyAchieved: 'Yearly Achieved'
+};
+const reportTableColumns = [
+  { key: 'salesPerson' },
+  { key: 'monthlyTarget' },
+  { key: 'monthlyAchieved' },
+  { key: 'monthlyPercent' },
+  { key: 'monthlyCollectionTarget' },
+  { key: 'monthlyCollectionAchieved' },
+  { key: 'monthlyCollectionPercent' },
+  { key: 'yearlyTarget' },
+  { key: 'yearlyAchieved' },
+  { key: 'yearlyPercent' },
+  { key: 'yearlyCollectionTarget' },
+  { key: 'yearlyCollectionAchieved' },
+  { key: 'yearlyCollectionPercent' },
+  { key: 'leads' },
+  { key: 'converted' },
+  { key: 'revenue' },
+  { key: 'status' }
+];
+const reportTableWidths = {
+  salesPerson: 190,
+  monthlyTarget: 135,
+  monthlyAchieved: 135,
+  monthlyPercent: 95,
+  monthlyCollectionTarget: 165,
+  monthlyCollectionAchieved: 165,
+  monthlyCollectionPercent: 105,
+  yearlyTarget: 135,
+  yearlyAchieved: 135,
+  yearlyPercent: 95,
+  yearlyCollectionTarget: 165,
+  yearlyCollectionAchieved: 165,
+  yearlyCollectionPercent: 105,
+  leads: 90,
+  converted: 105,
+  revenue: 130,
+  status: 100
+};
+const reportTableBounds = {
+  salesPerson: { min: 170, max: 260 },
+  monthlyTarget: { min: 110, max: 180 },
+  monthlyAchieved: { min: 110, max: 180 },
+  monthlyPercent: { min: 80, max: 130 },
+  monthlyCollectionTarget: { min: 150, max: 220 },
+  monthlyCollectionAchieved: { min: 150, max: 220 },
+  monthlyCollectionPercent: { min: 90, max: 140 },
+  yearlyTarget: { min: 110, max: 180 },
+  yearlyAchieved: { min: 110, max: 180 },
+  yearlyPercent: { min: 80, max: 130 },
+  yearlyCollectionTarget: { min: 150, max: 220 },
+  yearlyCollectionAchieved: { min: 150, max: 220 },
+  yearlyCollectionPercent: { min: 90, max: 140 },
+  leads: { min: 80, max: 130 },
+  converted: { min: 90, max: 150 },
+  revenue: { min: 110, max: 180 },
+  status: { min: 90, max: 140 }
 };
 
 export default function SalesPerformanceReports() {
@@ -227,6 +285,41 @@ export default function SalesPerformanceReports() {
   const mobileDateInputStyle = isMobile
     ? { minWidth: 0, width: '100%', maxWidth: '100%', display: 'block', WebkitAppearance: 'none', appearance: 'none' }
     : undefined;
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns
+  } = useColumnResize({
+    storageKey: 'sales_performance_reports_table_widths',
+    columns: reportTableColumns,
+    defaultColumnWidths: reportTableWidths,
+    columnBounds: reportTableBounds,
+    minWidth: 80,
+    enabled: true
+  });
+  const reportTableMinWidth = reportTableColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || reportTableWidths[column.key] || 80), 0);
+  const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
+  const reportTableStyle = {
+    width: '100%',
+    minWidth: `${Math.max(isMobile ? 1850 : 2080, reportTableMinWidth)}px`,
+    tableLayout: 'fixed',
+    borderCollapse: 'collapse'
+  };
+  const headCell = (key, align = 'left') => ({
+    ...headCellStyle,
+    position: 'relative',
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const bodyCell = (key, align = 'left') => ({
+    ...bodyCellStyle,
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
 
   return (
     <div
@@ -256,6 +349,9 @@ export default function SalesPerformanceReports() {
           )
         )}
       />
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
+      </div>
 
       <AppCard title="Filters" className="crm-filter-card" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
         <div style={filtersGridStyle}>
@@ -366,45 +462,31 @@ export default function SalesPerformanceReports() {
             {rows.length ? (
               <div className="table-scroll-x sales-report-table-scroll" style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
                 {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
-                <table className="table-clean sales-performance-report-table sales-performance-table" style={tableStyle}>
+                <table className="table-clean sales-performance-report-table sales-performance-table" style={reportTableStyle}>
                   <colgroup>
-                    <col style={{ width: '190px' }} />
-                    <col style={{ width: '135px' }} />
-                    <col style={{ width: '135px' }} />
-                    <col style={{ width: '95px' }} />
-                    <col style={{ width: '165px' }} />
-                    <col style={{ width: '165px' }} />
-                    <col style={{ width: '105px' }} />
-                    <col style={{ width: '135px' }} />
-                    <col style={{ width: '135px' }} />
-                    <col style={{ width: '95px' }} />
-                    <col style={{ width: '165px' }} />
-                    <col style={{ width: '165px' }} />
-                    <col style={{ width: '105px' }} />
-                    <col style={{ width: '90px' }} />
-                    <col style={{ width: '105px' }} />
-                    <col style={{ width: '130px' }} />
-                    <col style={{ width: '100px' }} />
+                    {reportTableColumns.map((column) => (
+                      <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
+                    ))}
                   </colgroup>
                   <thead>
                     <tr>
-                      <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={firstHeadCellStyle}>Sales Person</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Target</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Achieved</th>
-                      <th className="table-header-cell table-percent-cell" style={headCellStyle}>Monthly %</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Collection Target</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Monthly Collection Achieved</th>
-                      <th className="table-header-cell table-percent-cell" style={headCellStyle}>Monthly Collection %</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Yearly Target</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Yearly Achieved</th>
-                      <th className="table-header-cell table-percent-cell" style={headCellStyle}>Yearly %</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Yearly Collection Target</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Yearly Collection Achieved</th>
-                      <th className="table-header-cell table-percent-cell" style={headCellStyle}>Yearly Collection %</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Leads</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Converted</th>
-                      <th className="table-header-cell table-number-cell" style={headCellStyle}>Revenue</th>
-                      <th className="table-header-cell table-status-cell" style={headCellStyle}>Status</th>
+                      <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headCell('salesPerson')}>Sales Person<span style={resizeHandleStyle} onPointerDown={(event) => startResize('salesPerson', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyTarget', 'center')}>Monthly Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyTarget', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyAchieved', 'center')}>Monthly Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyAchieved', event)} /></th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyPercent', 'center')}>Monthly %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyPercent', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyCollectionTarget', 'center')}>Monthly Collection Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyCollectionTarget', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyCollectionAchieved', 'center')}>Monthly Collection Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyCollectionAchieved', event)} /></th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyCollectionPercent', 'center')}>Monthly Collection %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyCollectionPercent', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyTarget', 'center')}>Yearly Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyTarget', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyAchieved', 'center')}>Yearly Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyAchieved', event)} /></th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyPercent', 'center')}>Yearly %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyPercent', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyCollectionTarget', 'center')}>Yearly Collection Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyCollectionTarget', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyCollectionAchieved', 'center')}>Yearly Collection Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyCollectionAchieved', event)} /></th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyCollectionPercent', 'center')}>Yearly Collection %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyCollectionPercent', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('leads', 'center')}>Leads<span style={resizeHandleStyle} onPointerDown={(event) => startResize('leads', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('converted', 'center')}>Converted<span style={resizeHandleStyle} onPointerDown={(event) => startResize('converted', event)} /></th>
+                      <th className="table-header-cell table-number-cell" style={headCell('revenue', 'center')}>Revenue<span style={resizeHandleStyle} onPointerDown={(event) => startResize('revenue', event)} /></th>
+                      <th className="table-header-cell table-status-cell" style={headCell('status', 'center')}>Status<span style={resizeHandleStyle} onPointerDown={(event) => startResize('status', event)} /></th>
                     </tr>
                   </thead>
                   <tbody>

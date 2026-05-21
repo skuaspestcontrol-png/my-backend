@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { ArrowRight, CheckCircle2, Download, FileSpreadsheet, GitMerge, MapPinned, SearchCheck, UploadCloud, X } from 'lucide-react';
+import { useColumnResize } from './table/useColumnResize';
 
 const normalizeApiBase = (value = '') => {
   const raw = String(value || '').trim();
@@ -52,6 +53,32 @@ const exportScopes = [
   ['service_wise', 'Service Wise']
 ];
 
+const previewColumns = ['col1', 'col2', 'col3', 'col4', 'col5', 'col6', 'col7', 'col8'];
+const previewDefaultWidths = {
+  col1: 180,
+  col2: 180,
+  col3: 180,
+  col4: 180,
+  col5: 180,
+  col6: 180,
+  col7: 180,
+  col8: 180
+};
+const importColumns = ['row', 'imported', 'existing', 'preview', 'action'];
+const importDefaultWidths = {
+  row: 90,
+  imported: 280,
+  existing: 220,
+  preview: 240,
+  action: 160
+};
+const logColumns = ['row', 'result', 'message'];
+const logDefaultWidths = {
+  row: 90,
+  result: 160,
+  message: 360
+};
+
 const shell = {
   overlay: { position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(15,23,42,0.54)', backdropFilter: 'blur(6px)', display: 'grid', placeItems: 'center', padding: '12px' },
   modal: { width: 'min(1180px, 100%)', height: 'min(92vh, 860px)', background: '#fff', borderRadius: '16px', overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto auto 1fr auto', boxShadow: '0 24px 60px rgba(15,23,42,0.24)' },
@@ -79,6 +106,7 @@ const shell = {
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '880px' },
   th: { textAlign: 'left', padding: '9px', fontSize: '10px', color: '#64748b', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase', fontWeight: 900 },
   td: { padding: '9px', fontSize: '12px', color: '#334155', borderBottom: '1px solid #eef2f7', verticalAlign: 'top', fontWeight: 650 },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   footer: { borderTop: '1px solid #e5e7eb', padding: '10px 12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' },
   actions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   compare: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' },
@@ -111,6 +139,67 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
   const selectedRow = useMemo(() => rows.find((row) => row._id === selectedRowId) || rows.find((row) => row.matchedCustomerId) || rows[0] || null, [rows, selectedRowId]);
   const canContinue = step === 1 ? !!batch : step === 2 ? !!batch : step === 3 ? rows.length > 0 : true;
   const visibleImportRows = rows;
+  const previewTableColumns = headers.slice(0, 8).map((header, index) => ({ key: `col${index + 1}`, label: header }));
+  const {
+    getColumnWidth: getPreviewColumnWidth,
+    startResize: startPreviewResize,
+    resetColumns: resetPreviewColumns
+  } = useColumnResize({
+    storageKey: 'skuas-table-widths-import-preview',
+    columns: previewColumns,
+    defaultColumnWidths: previewDefaultWidths,
+    minWidth: 120,
+    enabled: true
+  });
+  const {
+    getColumnWidth: getImportColumnWidth,
+    startResize: startImportResize,
+    resetColumns: resetImportColumns
+  } = useColumnResize({
+    storageKey: 'skuas-table-widths-import-rows',
+    columns: importColumns,
+    defaultColumnWidths: importDefaultWidths,
+    minWidth: 90,
+    enabled: true
+  });
+  const {
+    getColumnWidth: getLogColumnWidth,
+    startResize: startLogResize,
+    resetColumns: resetLogColumns
+  } = useColumnResize({
+    storageKey: 'skuas-table-widths-import-logs',
+    columns: logColumns,
+    defaultColumnWidths: logDefaultWidths,
+    minWidth: 90,
+    enabled: true
+  });
+  const previewTableStyle = { ...shell.table, minWidth: `${Math.max(880, previewColumns.reduce((sum, key) => sum + (getPreviewColumnWidth(key) || previewDefaultWidths[key] || 120), 0))}px`, tableLayout: 'fixed' };
+  const importTableStyle = { ...shell.table, minWidth: `${Math.max(880, importColumns.reduce((sum, key) => sum + (getImportColumnWidth(key) || importDefaultWidths[key] || 90), 0))}px`, tableLayout: 'fixed' };
+  const logTableStyle = { ...shell.table, minWidth: `${Math.max(520, logColumns.reduce((sum, key) => sum + (getLogColumnWidth(key) || logDefaultWidths[key] || 90), 0))}px`, tableLayout: 'fixed' };
+  const previewHeadStyle = (key, align = 'left') => {
+    const width = getPreviewColumnWidth(key) || previewDefaultWidths[key] || 120;
+    return { ...shell.th, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const previewCellStyle = (key, align = 'left') => {
+    const width = getPreviewColumnWidth(key) || previewDefaultWidths[key] || 120;
+    return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const importHeadStyle = (key, align = 'left') => {
+    const width = getImportColumnWidth(key) || importDefaultWidths[key] || 90;
+    return { ...shell.th, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const importCellStyle = (key, align = 'left') => {
+    const width = getImportColumnWidth(key) || importDefaultWidths[key] || 90;
+    return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const logHeadStyle = (key, align = 'left') => {
+    const width = getLogColumnWidth(key) || logDefaultWidths[key] || 90;
+    return { ...shell.th, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const logCellStyle = (key, align = 'left') => {
+    const width = getLogColumnWidth(key) || logDefaultWidths[key] || 90;
+    return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
 
   if (!open) return null;
 
@@ -357,11 +446,24 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
               <p style={shell.note}>High priority: mobile, WhatsApp, email, GST. Secondary: customer/company name and address similarity.</p>
               {rowPreview.length ? (
                 <div style={shell.tableWrap}>
-                  <table style={shell.table}>
-                    <thead><tr>{headers.slice(0, 8).map((header) => <th key={header} style={shell.th}>{header}</th>)}</tr></thead>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+                    <button type="button" style={shell.lightBtn} onClick={resetPreviewColumns}>Reset Columns</button>
+                  </div>
+                  <table style={previewTableStyle}>
+                    <colgroup>{previewTableColumns.map((column) => <col key={column.key} style={{ width: `${getPreviewColumnWidth(column.key) || previewDefaultWidths[column.key] || 120}px` }} />)}</colgroup>
+                    <thead>
+                      <tr>
+                        {previewTableColumns.map((column, index) => (
+                          <th key={column.key} style={previewHeadStyle(column.key)}>
+                            {column.label}
+                            <span style={shell.resizeHandle} onPointerDown={(event) => startPreviewResize(column.key, event)} />
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
                     <tbody>
                       {rowPreview.map((row, idx) => (
-                        <tr key={idx}>{headers.slice(0, 8).map((header) => <td key={header} style={shell.td}>{row[header] || '-'}</td>)}</tr>
+                        <tr key={idx}>{previewTableColumns.map((column) => <td key={column.key} style={previewCellStyle(column.key)}>{row[column.label] || row[column.key] || '-'}</td>)}</tr>
                       ))}
                     </tbody>
                   </table>
@@ -412,18 +514,28 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                 </div>
                 <p style={shell.note}>Showing all {visibleImportRows.length} analyzed import rows.</p>
                 <div style={shell.tableWrap}>
-                  <table style={shell.table}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+                    <button type="button" style={shell.lightBtn} onClick={resetImportColumns}>Reset Columns</button>
+                  </div>
+                  <table style={importTableStyle}>
+                    <colgroup>{importColumns.map((key) => <col key={key} style={{ width: `${getImportColumnWidth(key) || importDefaultWidths[key] || 90}px` }} />)}</colgroup>
                     <thead>
-                      <tr><th style={shell.th}>Row</th><th style={shell.th}>Imported</th><th style={shell.th}>Existing Match</th><th style={shell.th}>Preview</th><th style={shell.th}>Action</th></tr>
+                      <tr>
+                        <th style={importHeadStyle('row', 'center')}>Row<span style={shell.resizeHandle} onPointerDown={(event) => startImportResize('row', event)} /></th>
+                        <th style={importHeadStyle('imported')}>Imported<span style={shell.resizeHandle} onPointerDown={(event) => startImportResize('imported', event)} /></th>
+                        <th style={importHeadStyle('existing')}>Existing Match<span style={shell.resizeHandle} onPointerDown={(event) => startImportResize('existing', event)} /></th>
+                        <th style={importHeadStyle('preview')}>Preview<span style={shell.resizeHandle} onPointerDown={(event) => startImportResize('preview', event)} /></th>
+                        <th style={importHeadStyle('action', 'center')}>Action<span style={shell.resizeHandle} onPointerDown={(event) => startImportResize('action', event)} /></th>
+                      </tr>
                     </thead>
                     <tbody>
                       {visibleImportRows.map((row) => (
                         <tr key={row._id} onClick={() => setSelectedRowId(row._id)} style={{ background: selectedRowId === row._id ? 'rgba(252,231,243,0.5)' : '#fff', cursor: 'pointer' }}>
-                          <td style={shell.td}>#{row.rowNumber}</td>
-                          <td style={shell.td}>{row.clean?.customerName || '-'}<br /><span style={{ color: '#64748b' }}>{row.clean?.mobileNumber || '-'} | {row.clean?.email || '-'}</span></td>
-                          <td style={shell.td}>{row.matchedCustomerName || 'New customer'}<br /><span style={{ color: '#64748b' }}>{row.confidence || 0}% match</span></td>
-                          <td style={shell.td}>{row.previewActionLabel || 'New Customer → Create Customer'}</td>
-                          <td style={shell.td}>{row.selectedAction || row.suggestedAction || '-'}</td>
+                          <td style={importCellStyle('row', 'center')}>#{row.rowNumber}</td>
+                          <td style={importCellStyle('imported')}>{row.clean?.customerName || '-'}<br /><span style={{ color: '#64748b' }}>{row.clean?.mobileNumber || '-'} | {row.clean?.email || '-'}</span></td>
+                          <td style={importCellStyle('existing')}>{row.matchedCustomerName || 'New customer'}<br /><span style={{ color: '#64748b' }}>{row.confidence || 0}% match</span></td>
+                          <td style={importCellStyle('preview')}>{row.previewActionLabel || 'New Customer → Create Customer'}</td>
+                          <td style={importCellStyle('action', 'center')}>{row.selectedAction || row.suggestedAction || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -464,9 +576,19 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                 <h3 style={shell.h3}>Import Logs</h3>
                 <p style={shell.note}>Showing all {visibleImportRows.length} finalized import rows.</p>
                 <div style={shell.tableWrap}>
-                  <table style={shell.table}>
-                    <thead><tr><th style={shell.th}>Row</th><th style={shell.th}>Result</th><th style={shell.th}>Message</th></tr></thead>
-                    <tbody>{visibleImportRows.map((row) => <tr key={row._id}><td style={shell.td}>#{row.rowNumber}</td><td style={shell.td}>{row.finalResult || '-'}</td><td style={shell.td}>{row.finalMessage || '-'}</td></tr>)}</tbody>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+                    <button type="button" style={shell.lightBtn} onClick={resetLogColumns}>Reset Columns</button>
+                  </div>
+                  <table style={logTableStyle}>
+                    <colgroup>{logColumns.map((key) => <col key={key} style={{ width: `${getLogColumnWidth(key) || logDefaultWidths[key] || 90}px` }} />)}</colgroup>
+                    <thead>
+                      <tr>
+                        <th style={logHeadStyle('row', 'center')}>Row<span style={shell.resizeHandle} onPointerDown={(event) => startLogResize('row', event)} /></th>
+                        <th style={logHeadStyle('result')}>Result<span style={shell.resizeHandle} onPointerDown={(event) => startLogResize('result', event)} /></th>
+                        <th style={logHeadStyle('message')}>Message<span style={shell.resizeHandle} onPointerDown={(event) => startLogResize('message', event)} /></th>
+                      </tr>
+                    </thead>
+                    <tbody>{visibleImportRows.map((row) => <tr key={row._id}><td style={logCellStyle('row', 'center')}>#{row.rowNumber}</td><td style={logCellStyle('result')}>{row.finalResult || '-'}</td><td style={logCellStyle('message')}>{row.finalMessage || '-'}</td></tr>)}</tbody>
                   </table>
                 </div>
               </div>

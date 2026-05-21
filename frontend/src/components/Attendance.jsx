@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Clock3, MapPinned, Users } from 'lucide-react';
+import useColumnResize from './table/useColumnResize';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const leaveTypes = [
@@ -73,6 +74,29 @@ const resolveStatusForLeaveType = (leaveType, fallbackStatus = 'absent') => {
     default:
       return fallbackStatus;
   }
+};
+
+const attendanceColumnWidths = {
+  employee: 220,
+  status: 120,
+  checkIn: 110,
+  checkOut: 110,
+  workingHours: 120,
+  leaveType: 150,
+  location: 140,
+  source: 100,
+  actions: 120
+};
+const attendanceColumnBounds = {
+  employee: { min: 180, max: 320 },
+  status: { min: 100, max: 160 },
+  checkIn: { min: 96, max: 140 },
+  checkOut: { min: 96, max: 140 },
+  workingHours: { min: 100, max: 150 },
+  leaveType: { min: 130, max: 220 },
+  location: { min: 120, max: 220 },
+  source: { min: 90, max: 140 },
+  actions: { min: 100, max: 150 }
 };
 
 const shell = {
@@ -296,6 +320,18 @@ export default function Attendance() {
   const [monthRecords, setMonthRecords] = useState([]);
   const [statusMessage, setStatusMessage] = useState('');
   const [auditModal, setAuditModal] = useState({ open: false, loading: false, employeeName: '', items: [] });
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns: resetAttendanceColumns
+  } = useColumnResize({
+    storageKey: 'attendance_column_widths',
+    columns: ['employee', 'status', 'checkIn', 'checkOut', 'workingHours', 'leaveType', 'location', 'source', 'actions'],
+    defaultColumnWidths: attendanceColumnWidths,
+    columnBounds: attendanceColumnBounds,
+    minWidth: 90,
+    enabled: true
+  });
 
   const loadData = async (attendanceDate) => {
     const sunday = isSundayDate(attendanceDate);
@@ -662,6 +698,23 @@ export default function Attendance() {
               style={shell.dateInput}
             />
           </label>
+          <button
+            type="button"
+            onClick={resetAttendanceColumns}
+            style={{
+              minHeight: '42px',
+              borderRadius: '10px',
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-primary-light)',
+              color: 'var(--color-primary-dark)',
+              padding: '0 12px',
+              fontSize: '12px',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            Reset Columns
+          </button>
         </div>
       </div>
 
@@ -694,29 +747,61 @@ export default function Attendance() {
       </div>
 
       <div style={shell.tableWrap}>
-        <table style={shell.table}>
+        <table
+          style={{
+            ...shell.table,
+            minWidth: `${getColumnWidth('employee') + getColumnWidth('status') + getColumnWidth('checkIn') + getColumnWidth('checkOut') + getColumnWidth('workingHours') + getColumnWidth('leaveType') + getColumnWidth('location') + getColumnWidth('source') + getColumnWidth('actions')}px`
+          }}
+        >
           <colgroup>
-            <col style={{ width: '16%' }} />
-            <col style={{ width: '18%' }} />
-            <col style={{ width: '10%' }} />
-            <col style={{ width: '10%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '10%' }} />
-            <col style={{ width: '9%' }} />
-            <col style={{ width: '10%' }} />
+            <col style={{ width: `${getColumnWidth('employee')}px` }} />
+            <col style={{ width: `${getColumnWidth('status')}px` }} />
+            <col style={{ width: `${getColumnWidth('checkIn')}px` }} />
+            <col style={{ width: `${getColumnWidth('checkOut')}px` }} />
+            <col style={{ width: `${getColumnWidth('workingHours')}px` }} />
+            <col style={{ width: `${getColumnWidth('leaveType')}px` }} />
+            <col style={{ width: `${getColumnWidth('location')}px` }} />
+            <col style={{ width: `${getColumnWidth('source')}px` }} />
+            <col style={{ width: `${getColumnWidth('actions')}px` }} />
           </colgroup>
           <thead>
             <tr>
-              <th style={shell.th}>Employee</th>
-              <th style={{ ...shell.th, textAlign: 'center' }}>Status</th>
-              <th style={{ ...shell.th, textAlign: 'center' }}>Check In</th>
-              <th style={{ ...shell.th, textAlign: 'center' }}>Check Out</th>
-              <th style={{ ...shell.th, textAlign: 'center' }}>Working Hours</th>
-              <th style={{ ...shell.th, textAlign: 'center' }}>Leave Type</th>
-              <th style={{ ...shell.th, textAlign: 'center' }}>Location</th>
-              <th style={{ ...shell.th, textAlign: 'center' }}>Source</th>
-              <th style={{ ...shell.th, textAlign: 'center' }}>Actions</th>
+              <th style={{ ...shell.th, width: `${getColumnWidth('employee')}px`, minWidth: `${getColumnWidth('employee')}px` }}>
+                Employee
+                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('employee', event)} />
+              </th>
+              <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('status')}px`, minWidth: `${getColumnWidth('status')}px` }}>
+                Status
+                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('status', event)} />
+              </th>
+              <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('checkIn')}px`, minWidth: `${getColumnWidth('checkIn')}px` }}>
+                Check In
+                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('checkIn', event)} />
+              </th>
+              <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('checkOut')}px`, minWidth: `${getColumnWidth('checkOut')}px` }}>
+                Check Out
+                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('checkOut', event)} />
+              </th>
+              <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('workingHours')}px`, minWidth: `${getColumnWidth('workingHours')}px` }}>
+                Working Hours
+                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('workingHours', event)} />
+              </th>
+              <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('leaveType')}px`, minWidth: `${getColumnWidth('leaveType')}px` }}>
+                Leave Type
+                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('leaveType', event)} />
+              </th>
+              <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('location')}px`, minWidth: `${getColumnWidth('location')}px` }}>
+                Location
+                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('location', event)} />
+              </th>
+              <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('source')}px`, minWidth: `${getColumnWidth('source')}px` }}>
+                Source
+                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('source', event)} />
+              </th>
+              <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('actions')}px`, minWidth: `${getColumnWidth('actions')}px` }}>
+                Actions
+                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('actions', event)} />
+              </th>
             </tr>
           </thead>
           <tbody>

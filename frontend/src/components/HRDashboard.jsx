@@ -7,6 +7,7 @@ import {
   Users,
   Wallet
 } from 'lucide-react';
+import useColumnResize from './table/useColumnResize';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const now = new Date();
@@ -78,6 +79,7 @@ const shell = {
     background: '#fff'
   },
   badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', border: '1px solid rgba(159, 23, 77, 0.25)', padding: '3px 8px', fontSize: '11px', fontWeight: 700 },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   kanbanBoard: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(220px, 1fr))', gap: '10px', overflowX: 'auto', paddingBottom: '4px' },
   kanbanCol: { minHeight: '240px', borderRadius: '13px', border: '1px solid rgba(159, 23, 77, 0.2)', background: 'rgba(248,250,252,0.92)', padding: '8px', display: 'grid', gap: '8px', alignContent: 'start' },
   kanbanHead: { margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
@@ -119,6 +121,63 @@ const roleFlags = () => {
   const canManage = isAdmin || isHr;
   const canViewTeam = isAdmin || isHr || isManager || isAccount;
   return { roleRaw, canManage, canViewTeam };
+};
+
+const hrLeaveColumns = [
+  { key: 'employee', label: 'Employee' },
+  { key: 'type', label: 'Type' },
+  { key: 'period', label: 'From/To' },
+  { key: 'days', label: 'Days' },
+  { key: 'status', label: 'Status' },
+  { key: 'action', label: 'Action' }
+];
+const hrLeaveWidths = {
+  employee: 180,
+  type: 140,
+  period: 180,
+  days: 90,
+  status: 110,
+  action: 170
+};
+const hrLeaveBounds = {
+  employee: { min: 150, max: 260 },
+  type: { min: 120, max: 180 },
+  period: { min: 150, max: 240 },
+  days: { min: 80, max: 120 },
+  status: { min: 90, max: 140 },
+  action: { min: 140, max: 220 }
+};
+
+const hrBalanceColumns = [
+  { key: 'employee', label: 'Employee' },
+  { key: 'paid', label: 'Paid Leave Balance' },
+  { key: 'sick', label: 'Sick Leave Balance' },
+  { key: 'unpaid', label: 'Unpaid Used' }
+];
+const hrBalanceWidths = {
+  employee: 180,
+  paid: 150,
+  sick: 150,
+  unpaid: 120
+};
+const hrBalanceBounds = {
+  employee: { min: 150, max: 260 },
+  paid: { min: 130, max: 220 },
+  sick: { min: 130, max: 220 },
+  unpaid: { min: 100, max: 160 }
+};
+
+const hrPayrollColumns = [
+  { key: 'employee', label: 'Pending Employee' },
+  { key: 'amount', label: 'Amount' }
+];
+const hrPayrollWidths = {
+  employee: 240,
+  amount: 120
+};
+const hrPayrollBounds = {
+  employee: { min: 180, max: 320 },
+  amount: { min: 100, max: 180 }
 };
 
 const money = (value) => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
@@ -301,10 +360,67 @@ export default function HRDashboard() {
   const isMobile = viewportWidth <= 900;
   const isTablet = viewportWidth > 900 && viewportWidth <= 1200;
   const chartGridStyle = isMobile ? { ...shell.chartGrid, gridTemplateColumns: '1fr' } : shell.chartGrid;
-  const tableStyle = isMobile ? { ...shell.table, minWidth: '920px' } : shell.table;
   const leaveFormGridStyle = isMobile
     ? { ...shell.filters, gridTemplateColumns: '1fr' }
     : { ...shell.filters, gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' };
+  const canResizeTables = !isMobile;
+  const {
+    getColumnWidth: getLeaveColumnWidth,
+    startResize: startLeaveResize,
+    resetColumns: resetLeaveColumns
+  } = useColumnResize({
+    storageKey: 'hr_dashboard_leave_table_widths',
+    columns: hrLeaveColumns.map((column) => column.key),
+    defaultColumnWidths: hrLeaveWidths,
+    columnBounds: hrLeaveBounds,
+    minWidth: 80,
+    enabled: canResizeTables
+  });
+  const {
+    getColumnWidth: getBalanceColumnWidth,
+    startResize: startBalanceResize,
+    resetColumns: resetBalanceColumns
+  } = useColumnResize({
+    storageKey: 'hr_dashboard_balance_table_widths',
+    columns: hrBalanceColumns.map((column) => column.key),
+    defaultColumnWidths: hrBalanceWidths,
+    columnBounds: hrBalanceBounds,
+    minWidth: 80,
+    enabled: canResizeTables
+  });
+  const {
+    getColumnWidth: getPayrollColumnWidth,
+    startResize: startPayrollResize,
+    resetColumns: resetPayrollColumns
+  } = useColumnResize({
+    storageKey: 'hr_dashboard_payroll_table_widths',
+    columns: hrPayrollColumns.map((column) => column.key),
+    defaultColumnWidths: hrPayrollWidths,
+    columnBounds: hrPayrollBounds,
+    minWidth: 80,
+    enabled: canResizeTables
+  });
+  const leaveTableMinWidth = hrLeaveColumns.reduce((sum, column) => sum + (getLeaveColumnWidth(column.key) || hrLeaveWidths[column.key] || 80), 0);
+  const balanceTableMinWidth = hrBalanceColumns.reduce((sum, column) => sum + (getBalanceColumnWidth(column.key) || hrBalanceWidths[column.key] || 80), 0);
+  const payrollTableMinWidth = hrPayrollColumns.reduce((sum, column) => sum + (getPayrollColumnWidth(column.key) || hrPayrollWidths[column.key] || 80), 0);
+  const leaveTableStyle = { ...shell.table, minWidth: `${Math.max(920, leaveTableMinWidth)}px` };
+  const balanceTableStyle = { ...shell.table, minWidth: `${Math.max(920, balanceTableMinWidth)}px` };
+  const payrollTableStyle = { ...shell.table, minWidth: `${Math.max(920, payrollTableMinWidth)}px` };
+  const headStyle = (getWidth, key, align = 'left') => ({
+    ...shell.th,
+    position: 'relative',
+    width: `${getWidth(key)}px`,
+    minWidth: `${getWidth(key)}px`,
+    maxWidth: `${getWidth(key)}px`,
+    textAlign: align
+  });
+  const bodyStyle = (getWidth, key, align = 'left') => ({
+    ...shell.td,
+    width: `${getWidth(key)}px`,
+    minWidth: `${getWidth(key)}px`,
+    maxWidth: `${getWidth(key)}px`,
+    textAlign: align
+  });
 
   return (
     <div style={shell.page}>
@@ -380,26 +496,34 @@ export default function HRDashboard() {
           </div>
 
           <div style={shell.tableWrap}>
-            <table style={tableStyle}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+              <button type="button" style={shell.btnLight} onClick={resetLeaveColumns}>Reset Columns</button>
+            </div>
+            <table style={leaveTableStyle}>
+              <colgroup>
+                {hrLeaveColumns.map((column) => (
+                  <col key={column.key} style={{ width: `${getLeaveColumnWidth(column.key)}px` }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={shell.th}>Employee</th>
-                  <th style={shell.th}>Type</th>
-                  <th style={shell.th}>From/To</th>
-                  <th style={shell.th}>Days</th>
-                  <th style={shell.th}>Status</th>
-                  <th style={shell.th}>Action</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'employee')}>Employee{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('employee', event)} /> : null}</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'type', 'center')}>Type{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('type', event)} /> : null}</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'period', 'center')}>From/To{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('period', event)} /> : null}</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'days', 'center')}>Days{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('days', event)} /> : null}</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'status', 'center')}>Status{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('status', event)} /> : null}</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'action', 'center')}>Action{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('action', event)} /> : null}</th>
                 </tr>
               </thead>
               <tbody>
                 {leaves.slice(0, 12).map((entry) => (
                   <tr key={entry._id}>
-                    <td style={shell.td}>{entry.employeeName}</td>
-                    <td style={shell.td}>{entry.displayLeaveType || entry.leaveType}</td>
-                    <td style={shell.td}>{entry.fromDate} to {entry.toDate}</td>
-                    <td style={shell.td}>{entry.days}</td>
-                    <td style={shell.td}><span style={shell.badge}>{entry.status}</span></td>
-                    <td style={shell.td}>
+                    <td style={bodyStyle(getLeaveColumnWidth, 'employee')}>{entry.employeeName}</td>
+                    <td style={bodyStyle(getLeaveColumnWidth, 'type', 'center')}>{entry.displayLeaveType || entry.leaveType}</td>
+                    <td style={bodyStyle(getLeaveColumnWidth, 'period', 'center')}>{entry.fromDate} to {entry.toDate}</td>
+                    <td style={bodyStyle(getLeaveColumnWidth, 'days', 'center')}>{entry.days}</td>
+                    <td style={bodyStyle(getLeaveColumnWidth, 'status', 'center')}><span style={shell.badge}>{entry.status}</span></td>
+                    <td style={bodyStyle(getLeaveColumnWidth, 'action', 'center')}>
                       {role.canManage && entry.status === 'Pending' ? (
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button type="button" style={shell.btnLight} onClick={() => decideLeave(entry._id, 'approved')}>Approve</button>
@@ -414,22 +538,30 @@ export default function HRDashboard() {
           </div>
 
           <div style={shell.tableWrap}>
-            <table style={shell.table}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+              <button type="button" style={shell.btnLight} onClick={resetBalanceColumns}>Reset Columns</button>
+            </div>
+            <table style={balanceTableStyle}>
+              <colgroup>
+                {hrBalanceColumns.map((column) => (
+                  <col key={column.key} style={{ width: `${getBalanceColumnWidth(column.key)}px` }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={shell.th}>Employee</th>
-                  <th style={shell.th}>Paid Leave Balance</th>
-                  <th style={shell.th}>Sick Leave Balance</th>
-                  <th style={shell.th}>Unpaid Used</th>
+                  <th style={headStyle(getBalanceColumnWidth, 'employee')}>Employee{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startBalanceResize('employee', event)} /> : null}</th>
+                  <th style={headStyle(getBalanceColumnWidth, 'paid', 'center')}>Paid Leave Balance{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startBalanceResize('paid', event)} /> : null}</th>
+                  <th style={headStyle(getBalanceColumnWidth, 'sick', 'center')}>Sick Leave Balance{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startBalanceResize('sick', event)} /> : null}</th>
+                  <th style={headStyle(getBalanceColumnWidth, 'unpaid', 'center')}>Unpaid Used{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startBalanceResize('unpaid', event)} /> : null}</th>
                 </tr>
               </thead>
               <tbody>
                 {leaveBalances.slice(0, 10).map((entry) => (
                   <tr key={entry.employeeId}>
-                    <td style={shell.td}>{entry.employeeName}</td>
-                    <td style={shell.td}>{entry.paidLeave?.balance ?? 0}</td>
-                    <td style={shell.td}>{entry.sickLeave?.balance ?? 0}</td>
-                    <td style={shell.td}>{entry.unpaidLeave?.used ?? 0}</td>
+                    <td style={bodyStyle(getBalanceColumnWidth, 'employee')}>{entry.employeeName}</td>
+                    <td style={bodyStyle(getBalanceColumnWidth, 'paid', 'center')}>{entry.paidLeave?.balance ?? 0}</td>
+                    <td style={bodyStyle(getBalanceColumnWidth, 'sick', 'center')}>{entry.sickLeave?.balance ?? 0}</td>
+                    <td style={bodyStyle(getBalanceColumnWidth, 'unpaid', 'center')}>{entry.unpaidLeave?.used ?? 0}</td>
                   </tr>
                 ))}
               </tbody>
@@ -453,18 +585,26 @@ export default function HRDashboard() {
             <button type="button" style={shell.btn} onClick={generatePayrollQuick} disabled={!role.canManage}>Generate Payroll</button>
           </div>
           <div style={shell.tableWrap}>
-            <table style={tableStyle}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+              <button type="button" style={shell.btnLight} onClick={resetPayrollColumns}>Reset Columns</button>
+            </div>
+            <table style={payrollTableStyle}>
+              <colgroup>
+                {hrPayrollColumns.map((column) => (
+                  <col key={column.key} style={{ width: `${getPayrollColumnWidth(column.key)}px` }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={shell.th}>Pending Employee</th>
-                  <th style={shell.th}>Amount</th>
+                  <th style={headStyle(getPayrollColumnWidth, 'employee')}>Pending Employee{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startPayrollResize('employee', event)} /> : null}</th>
+                  <th style={headStyle(getPayrollColumnWidth, 'amount', 'center')}>Amount{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startPayrollResize('amount', event)} /> : null}</th>
                 </tr>
               </thead>
               <tbody>
                 {(payrollQuick?.employeesWithPendingSalary || []).slice(0, 12).map((entry) => (
                   <tr key={`${entry.employeeId}-${entry.employeeName}`}>
-                    <td style={shell.td}>{entry.employeeName}</td>
-                    <td style={shell.td}>₹{money(entry.amount)}</td>
+                    <td style={bodyStyle(getPayrollColumnWidth, 'employee')}>{entry.employeeName}</td>
+                    <td style={bodyStyle(getPayrollColumnWidth, 'amount', 'center')}>₹{money(entry.amount)}</td>
                   </tr>
                 ))}
               </tbody>

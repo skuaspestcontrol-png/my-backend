@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Trash2, X, Pencil } from 'lucide-react';
 import { attachPlacesAutocomplete } from '../utils/googlePlaces';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import useColumnResize from './table/useColumnResize';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -46,6 +47,7 @@ const shell = {
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '900px' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
   td: { padding: '12px 10px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7' },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '8px' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1100px)', borderRadius: '24px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
@@ -69,6 +71,19 @@ const shell = {
   footer: { padding: '12px 18px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#fff' },
   cancelButton: { border: '1px solid #d1d5db', background: '#fff', color: '#2563eb', borderRadius: '18px', padding: '10px 18px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' },
   saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '18px', padding: '10px 20px', fontSize: '16px', fontWeight: 800, cursor: 'pointer' }
+};
+
+const vendorColumns = ['company', 'contact', 'email', 'mobile', 'gst', 'billing', 'shipping', 'actions'];
+const vendorWidths = { company: 180, contact: 160, email: 180, mobile: 130, gst: 140, billing: 220, shipping: 220, actions: 120 };
+const vendorBounds = {
+  company: { min: 150, max: 260 },
+  contact: { min: 140, max: 220 },
+  email: { min: 150, max: 260 },
+  mobile: { min: 110, max: 160 },
+  gst: { min: 120, max: 180 },
+  billing: { min: 180, max: 320 },
+  shipping: { min: 180, max: 320 },
+  actions: { min: 100, max: 160 }
 };
 
 const toTenDigitNumber = normalizeIndianMobileNumber;
@@ -277,41 +292,61 @@ export default function VendorDashboard() {
   const addressSplitStyle = isMobile ? { ...shell.addressSplit, gridTemplateColumns: '1fr' } : shell.addressSplit;
   const addressGridStyle = isMobile ? { ...shell.addressGrid, gridTemplateColumns: '1fr' } : shell.addressGrid;
   const addressTitleStyle = isMobile ? { ...shell.addressTitle, fontSize: '20px' } : { ...shell.addressTitle, fontSize: '44px' };
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns
+  } = useColumnResize({
+    storageKey: 'vendor_dashboard_table_widths',
+    columns: vendorColumns,
+    defaultColumnWidths: vendorWidths,
+    columnBounds: vendorBounds,
+    minWidth: 100,
+    enabled: true
+  });
+  const tableMinWidth = vendorColumns.reduce((sum, key) => sum + (getColumnWidth(key) || vendorWidths[key] || 100), 0);
+  const tableStyle = { ...shell.table, minWidth: `${Math.max(900, tableMinWidth)}px`, tableLayout: 'fixed' };
+  const headStyle = (key, align = 'left') => ({ ...shell.th, position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px`, textAlign: align });
+  const cellStyle = (key, align = 'left') => ({ ...shell.td, width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px`, textAlign: align });
 
   return (
     <section style={shell.page}>
       <div style={shell.topbar}>
         <h1 style={shell.title}>Vendors Dashboard</h1>
-        <button type="button" style={shell.buttonPrimary} onClick={openNew}>
-          + New Vendor
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" onClick={resetColumns} style={{ minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px' }}>Reset Columns</button>
+          <button type="button" style={shell.buttonPrimary} onClick={openNew}>
+            + New Vendor
+          </button>
+        </div>
       </div>
 
       <div style={shell.tableWrap}>
-        <table style={shell.table}>
+        <table style={tableStyle}>
+          <colgroup>{vendorColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key)}px` }} />)}</colgroup>
           <thead>
             <tr>
-              <th style={shell.th}>Company Name</th>
-              <th style={shell.th}>Contact Person</th>
-              <th style={shell.th}>Email</th>
-              <th style={shell.th}>Mobile</th>
-              <th style={shell.th}>GST Number</th>
-              <th style={shell.th}>Billing Address</th>
-              <th style={shell.th}>Shipping Address</th>
-              <th style={shell.th}>Actions</th>
+              <th style={headStyle('company')}>Company Name<span style={shell.resizeHandle} onPointerDown={(event) => startResize('company', event)} /></th>
+              <th style={headStyle('contact')}>Contact Person<span style={shell.resizeHandle} onPointerDown={(event) => startResize('contact', event)} /></th>
+              <th style={headStyle('email')}>Email<span style={shell.resizeHandle} onPointerDown={(event) => startResize('email', event)} /></th>
+              <th style={headStyle('mobile', 'center')}>Mobile<span style={shell.resizeHandle} onPointerDown={(event) => startResize('mobile', event)} /></th>
+              <th style={headStyle('gst')}>GST Number<span style={shell.resizeHandle} onPointerDown={(event) => startResize('gst', event)} /></th>
+              <th style={headStyle('billing')}>Billing Address<span style={shell.resizeHandle} onPointerDown={(event) => startResize('billing', event)} /></th>
+              <th style={headStyle('shipping')}>Shipping Address<span style={shell.resizeHandle} onPointerDown={(event) => startResize('shipping', event)} /></th>
+              <th style={headStyle('actions', 'center')}>Actions<span style={shell.resizeHandle} onPointerDown={(event) => startResize('actions', event)} /></th>
             </tr>
           </thead>
           <tbody>
             {vendors.map((vendor) => (
               <tr key={vendor._id}>
-                <td style={shell.td}>{vendor.companyName || '-'}</td>
-                <td style={shell.td}>{vendor.contactPersonName || '-'}</td>
-                <td style={shell.td}>{vendor.emailId || '-'}</td>
-                <td style={shell.td}>{vendor.mobileNumber || '-'}</td>
-                <td style={shell.td}>{vendor.gstNumber || '-'}</td>
-                <td style={shell.td}>{vendor.billingAddress || '-'}</td>
-                <td style={shell.td}>{vendor.shippingAddress || '-'}</td>
-                <td style={shell.td}>
+                <td style={cellStyle('company')}>{vendor.companyName || '-'}</td>
+                <td style={cellStyle('contact')}>{vendor.contactPersonName || '-'}</td>
+                <td style={cellStyle('email')}>{vendor.emailId || '-'}</td>
+                <td style={cellStyle('mobile', 'center')}>{vendor.mobileNumber || '-'}</td>
+                <td style={cellStyle('gst')}>{vendor.gstNumber || '-'}</td>
+                <td style={cellStyle('billing')}>{vendor.billingAddress || '-'}</td>
+                <td style={cellStyle('shipping')}>{vendor.shippingAddress || '-'}</td>
+                <td style={cellStyle('actions', 'center')}>
                   <button type="button" style={shell.iconBtn} onClick={() => openEdit(vendor)}><Pencil size={14} /></button>
                   <button type="button" style={shell.iconBtn} onClick={() => deleteVendor(vendor._id)}><Trash2 size={14} /></button>
                 </td>

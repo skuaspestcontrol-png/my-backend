@@ -8,6 +8,7 @@ import AppTextarea from '../../components/ui/AppTextarea';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
+import useColumnResize from '../../components/table/useColumnResize';
 import { apiGet, apiPost, money, number, safeRows, toNumber } from './stockApi';
 
 const vendorLabel = (row) => String(row.name || row.vendor_name || row.company_name || row.displayName || `Vendor ${row.id || row._id || ''}`).trim();
@@ -31,6 +32,35 @@ const initialForm = {
 const tableStyle = { width: '100%', borderCollapse: 'collapse' };
 const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
 const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
+
+const purchaseColumns = [
+  { key: 'date', label: 'Date' },
+  { key: 'item', label: 'Item' },
+  { key: 'vendor', label: 'Vendor' },
+  { key: 'qty', label: 'Qty' },
+  { key: 'rate', label: 'Rate' },
+  { key: 'total', label: 'Total' },
+  { key: 'batchExpiry', label: 'Batch / Expiry' }
+];
+const purchaseWidths = {
+  date: 110,
+  item: 220,
+  vendor: 180,
+  qty: 90,
+  rate: 100,
+  total: 110,
+  batchExpiry: 170
+};
+const purchaseBounds = {
+  date: { min: 95, max: 140 },
+  item: { min: 180, max: 300 },
+  vendor: { min: 150, max: 260 },
+  qty: { min: 80, max: 120 },
+  rate: { min: 90, max: 140 },
+  total: { min: 90, max: 150 },
+  batchExpiry: { min: 150, max: 240 }
+};
 
 export default function StockPurchase() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
@@ -90,6 +120,35 @@ export default function StockPurchase() {
     ? { display: 'grid', gap: 8, width: '100%' }
     : { display: 'flex', justifyContent: 'flex-end' };
   const actionButtonStyle = viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined;
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns
+  } = useColumnResize({
+    storageKey: 'stock_purchase_table_widths',
+    columns: purchaseColumns.map((column) => column.key),
+    defaultColumnWidths: purchaseWidths,
+    columnBounds: purchaseBounds,
+    minWidth: 90,
+    enabled: true
+  });
+  const tableMinWidth = purchaseColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || purchaseWidths[column.key] || 90), 0);
+  const purchaseTableStyle = { ...tableStyle, minWidth: `${Math.max(900, tableMinWidth)}px`, tableLayout: 'fixed' };
+  const headStyle = (key, align = 'left') => ({
+    ...headerCellStyle,
+    position: 'relative',
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const bodyStyle = (key, align = 'left') => ({
+    ...cellStyle,
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
 
   const resetForm = () => setForm(initialForm);
 
@@ -159,35 +218,43 @@ export default function StockPurchase() {
       </AppCard>
 
       <AppCard title="Recent Purchases" className="crm-table-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 8 }}>
+          <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
+        </div>
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : purchases.length ? (
           <div style={{ overflowX: 'auto' }}>
-            <table style={tableStyle}>
+            <table style={purchaseTableStyle}>
+              <colgroup>
+                {purchaseColumns.map((column) => (
+                  <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={headerCellStyle}>Date</th>
-                  <th style={headerCellStyle}>Item</th>
-                  <th style={headerCellStyle}>Vendor</th>
-                  <th style={headerCellStyle}>Qty</th>
-                  <th style={headerCellStyle}>Rate</th>
-                  <th style={headerCellStyle}>Total</th>
-                  <th style={headerCellStyle}>Batch / Expiry</th>
+                  <th style={headStyle('date', 'center')}>Date<span style={resizeHandleStyle} onPointerDown={(event) => startResize('date', event)} /></th>
+                  <th style={headStyle('item')}>Item<span style={resizeHandleStyle} onPointerDown={(event) => startResize('item', event)} /></th>
+                  <th style={headStyle('vendor')}>Vendor<span style={resizeHandleStyle} onPointerDown={(event) => startResize('vendor', event)} /></th>
+                  <th style={headStyle('qty', 'center')}>Qty<span style={resizeHandleStyle} onPointerDown={(event) => startResize('qty', event)} /></th>
+                  <th style={headStyle('rate', 'center')}>Rate<span style={resizeHandleStyle} onPointerDown={(event) => startResize('rate', event)} /></th>
+                  <th style={headStyle('total', 'center')}>Total<span style={resizeHandleStyle} onPointerDown={(event) => startResize('total', event)} /></th>
+                  <th style={headStyle('batchExpiry')}>Batch / Expiry<span style={resizeHandleStyle} onPointerDown={(event) => startResize('batchExpiry', event)} /></th>
                 </tr>
               </thead>
               <tbody>
                 {purchases.map((row) => (
                   <tr key={row.id}>
-                    <td style={cellStyle}>{row.purchaseDate}</td>
-                    <td style={cellStyle}>
+                    <td style={bodyStyle('date', 'center')}>{row.purchaseDate}</td>
+                    <td style={bodyStyle('item')}>
                       <div style={{ fontWeight: 700 }}>{row.itemName}</div>
                       <div style={{ color: '#6B7280', fontSize: 12 }}>{row.category}</div>
                     </td>
-                    <td style={cellStyle}>{row.vendorName || '---'}</td>
-                    <td style={cellStyle}>{number(row.quantity)}</td>
-                    <td style={cellStyle}>{money(row.rate)}</td>
-                    <td style={cellStyle}>{money(row.totalAmount)}</td>
-                    <td style={cellStyle}>
+                    <td style={bodyStyle('vendor')}>{row.vendorName || '---'}</td>
+                    <td style={bodyStyle('qty', 'center')}>{number(row.quantity)}</td>
+                    <td style={bodyStyle('rate', 'center')}>{money(row.rate)}</td>
+                    <td style={bodyStyle('total', 'center')}>{money(row.totalAmount)}</td>
+                    <td style={bodyStyle('batchExpiry')}>
                       <div>{row.batchNumber || '---'}</div>
                       <div style={{ color: '#6B7280', fontSize: 12 }}>{row.expiryDate || 'No expiry'}</div>
                     </td>

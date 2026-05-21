@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import useColumnResize from './table/useColumnResize';
 import {
   AlertCircle,
   BadgeIndianRupee,
@@ -76,6 +77,19 @@ const mobileColumnWidths = {
   paid: 96,
   due: 96,
   actions: 96
+};
+const contractColumnResizeBounds = {
+  rowNumber: { min: 42, max: 64 },
+  contractNo: { min: 100, max: 190 },
+  customer: { min: 180, max: 340 },
+  property: { min: 140, max: 260 },
+  duration: { min: 110, max: 180 },
+  services: { min: 160, max: 320 },
+  status: { min: 100, max: 160 },
+  total: { min: 100, max: 170 },
+  paid: { min: 100, max: 170 },
+  due: { min: 100, max: 170 },
+  actions: { min: 110, max: 170 }
 };
 
 const shell = {
@@ -339,22 +353,25 @@ export default function ContractDashboard() {
     paid: true,
     due: true
   });
-  const [columnWidths, setColumnWidths] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('contracts_column_widths') || '{}');
-      return saved && typeof saved === 'object' ? saved : {};
-    } catch {
-      return {};
-    }
-  });
   const [customerSummary, setCustomerSummary] = useState({ open: false, row: null, showHistory: false });
   const [customerProfitSummary, setCustomerProfitSummary] = useState(null);
   const [customerProfitLoading, setCustomerProfitLoading] = useState(false);
   const [customerProfitError, setCustomerProfitError] = useState('');
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
   const [page, setPage] = useState(1);
-  const resizeStateRef = useRef(null);
   const customizeButtonRef = useRef(null);
+  const {
+    getColumnWidth: getResizableColumnWidth,
+    startResize: startColumnResize,
+    resetColumns: resetContractColumns
+  } = useColumnResize({
+    storageKey: 'contracts_column_widths',
+    columns: ['rowNumber', 'contractNo', 'customer', 'property', 'duration', 'services', 'status', 'total', 'paid', 'due', 'actions'],
+    defaultColumnWidths,
+    columnBounds: contractColumnResizeBounds,
+    minWidth: 80,
+    enabled: viewportWidth > 768
+  });
 
   const updateCustomizeMenuPosition = () => {
     const rect = customizeButtonRef.current?.getBoundingClientRect();
@@ -480,10 +497,6 @@ export default function ContractDashboard() {
   }, []);
 
   useAutoRefresh(() => loadContractsData({ silent: true }), { enabled: !customerSummary.open });
-
-  useEffect(() => {
-    localStorage.setItem('contracts_column_widths', JSON.stringify(columnWidths));
-  }, [columnWidths]);
 
   useEffect(() => {
     const onDocClick = (event) => {
@@ -772,39 +785,11 @@ export default function ContractDashboard() {
   ];
   const isMobile = viewportWidth <= 768;
   const getColumnWidth = (columnKey) => {
-    const storedWidth = Number(columnWidths[columnKey] || 0);
-    const desktopWidth = defaultColumnWidths[columnKey] || 120;
-    const mobileWidth = mobileColumnWidths[columnKey] || desktopWidth;
-    const width = isMobile ? Math.max(storedWidth || 0, mobileWidth) : Math.max(storedWidth || 0, desktopWidth);
+    const desktopWidth = getResizableColumnWidth(columnKey) || defaultColumnWidths[columnKey] || 120;
+    const width = isMobile
+      ? Math.max(Number(mobileColumnWidths[columnKey] || 0), Number(defaultColumnWidths[columnKey] || 0))
+      : Number(desktopWidth) || Number(defaultColumnWidths[columnKey] || 0);
     return Math.max(columnKey === 'rowNumber' ? 42 : 80, width);
-  };
-  const startColumnResize = (event, columnKey) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const th = event.currentTarget.closest('th');
-    const startWidth = getColumnWidth(columnKey) || th?.offsetWidth || 120;
-    resizeStateRef.current = { columnKey, startX: event.clientX, startWidth };
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-
-    const onMouseMove = (moveEvent) => {
-      if (!resizeStateRef.current) return;
-      const delta = moveEvent.clientX - resizeStateRef.current.startX;
-      const minWidth = columnKey === 'rowNumber' ? 42 : 80;
-      const nextWidth = Math.max(minWidth, resizeStateRef.current.startWidth + delta);
-      setColumnWidths((prev) => ({ ...prev, [columnKey]: nextWidth }));
-    };
-
-    const onMouseUp = () => {
-      resizeStateRef.current = null;
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
   };
   const renderResizableHeader = (columnKey, label, extraStyle = {}) => (
     <th style={{ ...shell.th, width: `${getColumnWidth(columnKey)}px`, minWidth: `${getColumnWidth(columnKey)}px`, ...extraStyle }}>
@@ -1118,6 +1103,26 @@ export default function ContractDashboard() {
                 >
                   <div style={shell.customizeHeader}>Show/Hide Columns</div>
                   <div style={{ ...shell.customizeBody, maxHeight: `${Math.max(160, customizeMenuPosition.maxHeight - 42)}px` }}>
+                    <button
+                      type="button"
+                      style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
+                      onClick={() => {
+                        setVisibleColumns({
+                          contractNo: true,
+                          customer: true,
+                          property: true,
+                          duration: true,
+                          services: true,
+                          status: true,
+                          total: true,
+                          paid: true,
+                          due: true
+                        });
+                        resetContractColumns();
+                      }}
+                    >
+                      Reset Default Columns
+                    </button>
                     {customColumns.map((col) => (
                       <label key={col.key} style={shell.customizeRow}>
                         <input

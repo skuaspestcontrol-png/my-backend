@@ -20,6 +20,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import StatusBadge from '../../components/ui/StatusBadge';
+import useColumnResize from '../../components/table/useColumnResize';
 import {
   ChartSurface,
   CompactChartCard,
@@ -54,6 +55,37 @@ const summaryCards = [
   { key: 'yearlyPending', title: 'Yearly Pending' },
   { key: 'bestPerformer', title: 'Best Performer' }
 ];
+const matrixColumns = ['year', ...monthOptions.map((month) => `month-${month.value}`)];
+const matrixWidths = {
+  year: 72,
+  'month-1': 92,
+  'month-2': 92,
+  'month-3': 92,
+  'month-4': 92,
+  'month-5': 92,
+  'month-6': 92,
+  'month-7': 92,
+  'month-8': 92,
+  'month-9': 92,
+  'month-10': 92,
+  'month-11': 92,
+  'month-12': 92
+};
+const matrixBounds = {
+  year: { min: 64, max: 100 },
+  'month-1': { min: 80, max: 130 },
+  'month-2': { min: 80, max: 130 },
+  'month-3': { min: 80, max: 130 },
+  'month-4': { min: 80, max: 130 },
+  'month-5': { min: 80, max: 130 },
+  'month-6': { min: 80, max: 130 },
+  'month-7': { min: 80, max: 130 },
+  'month-8': { min: 80, max: 130 },
+  'month-9': { min: 80, max: 130 },
+  'month-10': { min: 80, max: 130 },
+  'month-11': { min: 80, max: 130 },
+  'month-12': { min: 80, max: 130 }
+};
 
 const formatTargetActivityTime = (value) => {
   if (!value) return '';
@@ -113,6 +145,18 @@ export default function SalesPerformanceDashboard() {
 
   const salesPeople = useMemo(() => safeRows(employees), [employees]);
   const isMobile = viewportWidth <= 640;
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns
+  } = useColumnResize({
+    storageKey: 'sales_performance_dashboard_matrix_widths',
+    columns: matrixColumns,
+    defaultColumnWidths: matrixWidths,
+    columnBounds: matrixBounds,
+    minWidth: 64,
+    enabled: true
+  });
   const filtersGridStyle = viewportWidth >= 1100
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 768
@@ -158,6 +202,33 @@ export default function SalesPerformanceDashboard() {
     width: isMobile ? '1180px' : '100%',
     minWidth: isMobile ? '1180px' : '100%'
   };
+  const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
+  const matrixTableMinWidth = matrixColumns.reduce((sum, key) => sum + (getColumnWidth(key) || matrixWidths[key] || 80), 0);
+  const matrixTableStyle = {
+    width: '100%',
+    minWidth: `${Math.max(isMobile ? 1180 : 960, matrixTableMinWidth)}px`,
+    borderCollapse: 'separate',
+    borderSpacing: 0,
+    tableLayout: 'fixed'
+  };
+  const headCellStyle = (key, align = 'left') => ({
+    padding: isMobile ? '9px 10px' : '12px 14px',
+    whiteSpace: 'nowrap',
+    position: 'relative',
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const bodyCellStyle = (key) => ({
+    padding: isMobile ? '9px 10px' : '12px 14px',
+    whiteSpace: 'nowrap',
+    verticalAlign: 'middle',
+    position: 'relative',
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`
+  });
   const chartGridStyle = getChartGridStyle(viewportWidth);
   const chartHeight = getChartHeight({ mobile: isMobile });
   const axisProps = getChartAxisProps({ mobile: isMobile });
@@ -203,6 +274,9 @@ export default function SalesPerformanceDashboard() {
           )
         )}
       />
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
+      </div>
 
       <AppCard title="Filters" className="crm-filter-card" style={{ width: '100%', minWidth: 0 }}>
         <div className="sales-filters-grid" style={filtersGridStyle}>
@@ -374,25 +448,20 @@ export default function SalesPerformanceDashboard() {
                 <div style={matrixInnerStyle}>
                   <table
                     className="table-clean sales-matrix-table"
-                    style={{
-                      width: '100%',
-                      borderCollapse: 'separate',
-                      borderSpacing: 0,
-                      tableLayout: 'fixed'
-                    }}
+                    style={matrixTableStyle}
                   >
                     <colgroup>
-                      <col style={{ width: isMobile ? '72px' : '10%' }} />
+                      <col style={{ width: `${getColumnWidth('year')}px` }} />
                       {monthOptions.map((month) => (
-                        <col key={month.value} style={{ width: isMobile ? '92px' : '7.5%' }} />
+                        <col key={month.value} style={{ width: `${getColumnWidth(`month-${month.value}`)}px` }} />
                       ))}
                     </colgroup>
                     <thead>
                       <tr>
-                        <th className="table-header-cell table-text-cell table-sticky-first" style={{ padding: isMobile ? '9px 10px' : '12px 14px', whiteSpace: 'nowrap' }}>Year</th>
+                        <th className="table-header-cell table-text-cell table-sticky-first" style={headCellStyle('year')}>Year<span style={resizeHandleStyle} onPointerDown={(event) => startResize('year', event)} /></th>
                         {monthOptions.map((month) => (
-                          <th key={month.value} className="table-header-cell table-number-cell" style={{ padding: isMobile ? '9px 10px' : '12px 14px', whiteSpace: 'nowrap' }}>
-                            {month.label}
+                          <th key={month.value} className="table-header-cell table-number-cell" style={headCellStyle(`month-${month.value}`, 'center')}>
+                            {month.label}<span style={resizeHandleStyle} onPointerDown={(event) => startResize(`month-${month.value}`, event)} />
                           </th>
                         ))}
                       </tr>
@@ -400,7 +469,7 @@ export default function SalesPerformanceDashboard() {
                     <tbody>
                       {matrix.map((row) => (
                         <tr key={row.year} style={{ height: isMobile ? 44 : 48 }}>
-                          <td className="table-name-cell table-sticky-first" style={{ padding: isMobile ? '9px 10px' : '12px 14px', whiteSpace: 'nowrap', verticalAlign: 'middle', background: '#fff' }}>
+                          <td className="table-name-cell table-sticky-first" style={{ ...bodyCellStyle('year'), background: '#fff' }}>
                             {row.year}
                           </td>
                           {safeRows(row.cells).map((cell) => (
@@ -408,9 +477,7 @@ export default function SalesPerformanceDashboard() {
                               key={`${row.year}-${cell.month}`}
                               className="table-number-cell"
                               style={{
-                                padding: isMobile ? '9px 10px' : '12px 14px',
-                                whiteSpace: 'nowrap',
-                                verticalAlign: 'middle',
+                                ...bodyCellStyle(`month-${cell.month}`),
                                 textAlign: 'center',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis'

@@ -15,6 +15,7 @@ import {
   isGoogleMapsShortLink,
   resolveGoogleMapsUrl
 } from '../utils/googleMaps';
+import useColumnResize from './table/useColumnResize';
 import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 import useAutoRefresh from '../hooks/useAutoRefresh';
@@ -450,6 +451,28 @@ const desktopLeadColumnWidths = {
   referenceCustomerDate: 128,
   remarks: 150
 };
+const leadColumnResizeBounds = {
+  date: { min: 72, max: 130 },
+  customerName: { min: 120, max: 260 },
+  mobile: { min: 88, max: 150 },
+  whatsappNumber: { min: 96, max: 170 },
+  emailId: { min: 120, max: 240 },
+  address: { min: 150, max: 320 },
+  areaName: { min: 100, max: 180 },
+  city: { min: 80, max: 140 },
+  state: { min: 72, max: 140 },
+  pincode: { min: 72, max: 120 },
+  pestIssue: { min: 120, max: 220 },
+  leadSource: { min: 88, max: 160 },
+  propertyType: { min: 90, max: 150 },
+  status: { min: 90, max: 150 },
+  quotationValue: { min: 88, max: 150 },
+  followupDate: { min: 92, max: 150 },
+  assignedTo: { min: 110, max: 200 },
+  referenceCustomerName: { min: 130, max: 260 },
+  referenceCustomerDate: { min: 120, max: 180 },
+  remarks: { min: 150, max: 320 }
+};
 
 const mapLeadToCustomerPrefill = (lead) => {
   const customerName = String(lead.customerName || '').trim();
@@ -557,20 +580,17 @@ export default function LeadCapture() {
       return defaultVisibleLeadColumns;
     }
   });
-  const [columnWidths, setColumnWidths] = useState(() => {
-    let saved = null;
-    try {
-      saved = localStorage.getItem('leads_column_widths');
-    } catch {
-      return desktopLeadColumnWidths;
-    }
-    if (!saved) return desktopLeadColumnWidths;
-    try {
-      const parsed = JSON.parse(saved);
-      return parsed && typeof parsed === 'object' ? { ...desktopLeadColumnWidths, ...parsed } : desktopLeadColumnWidths;
-    } catch {
-      return desktopLeadColumnWidths;
-    }
+  const {
+    getColumnStyle: getResizableColumnStyle,
+    resetColumns: resetLeadColumns,
+    startResize: startColumnResize
+  } = useColumnResize({
+    storageKey: 'leads_column_widths',
+    columns: leadColumns.map((column) => column.key),
+    defaultColumnWidths: desktopLeadColumnWidths,
+    columnBounds: leadColumnResizeBounds,
+    minWidth: 72,
+    enabled: !isMobile
   });
 
   const customizePanelRef = useRef(null);
@@ -578,7 +598,6 @@ export default function LeadCapture() {
   const moreMenuRef = useRef(null);
   const moreMenuButtonRef = useRef(null);
   const importFileRef = useRef(null);
-  const resizeStateRef = useRef(null);
   const searchAddressInputRef = useRef(null);
   const suggestionSeqRef = useRef(0);
 
@@ -883,14 +902,6 @@ export default function LeadCapture() {
       // Ignore storage failures (private mode / blocked storage)
     }
   }, [visibleColumns]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('leads_column_widths', JSON.stringify(columnWidths));
-    } catch {
-      // Ignore storage failures (private mode / blocked storage)
-    }
-  }, [columnWidths]);
 
   useEffect(() => {
     setSelectedLeadIds((prev) => prev.filter((id) => leads.some((lead) => lead._id === id)));
@@ -1755,38 +1766,7 @@ export default function LeadCapture() {
 
   const getColumnStyle = (columnKey) => {
     if (isMobile) return getMobileColumnStyle(columnKey);
-    const width = Number(columnWidths[columnKey] || desktopLeadColumnWidths[columnKey]);
-    if (!Number.isFinite(width) || width <= 0) return {};
-    const clampedWidth = Math.max(64, Math.min(170, width));
-    return { width: `${clampedWidth}px`, minWidth: `${clampedWidth}px`, maxWidth: `${clampedWidth}px` };
-  };
-
-  const startColumnResize = (event, columnKey) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const th = event.currentTarget.closest('th');
-    const startWidth = Number(columnWidths[columnKey]) || th?.offsetWidth || 130;
-    resizeStateRef.current = { columnKey, startX: event.clientX, startWidth };
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-
-    const onMouseMove = (moveEvent) => {
-      if (!resizeStateRef.current) return;
-      const delta = moveEvent.clientX - resizeStateRef.current.startX;
-      const nextWidth = Math.max(72, Math.min(160, resizeStateRef.current.startWidth + delta));
-      setColumnWidths((prev) => ({ ...prev, [columnKey]: nextWidth }));
-    };
-
-    const onMouseUp = () => {
-      resizeStateRef.current = null;
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    return getResizableColumnStyle(columnKey);
   };
 
   const getLeadColumnValue = (lead, key) => {
@@ -2377,6 +2357,16 @@ export default function LeadCapture() {
                 <div ref={customizePanelRef} style={s.popover}>
                   <div style={s.popoverHeader}>Show/Hide Columns</div>
                   <div style={s.popoverBody}>
+                    <button
+                      type="button"
+                      style={{ ...s.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
+                      onClick={() => {
+                        setVisibleColumns(defaultVisibleLeadColumns);
+                        resetLeadColumns();
+                      }}
+                    >
+                      Reset Default Columns
+                    </button>
                     {leadColumns.map((column) => (
                       <label key={column.key} style={s.popoverItem}>
                         <input

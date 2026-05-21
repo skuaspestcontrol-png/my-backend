@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { CalendarDays, MapPin, Wrench, X } from 'lucide-react';
+import { useColumnResize } from './table/useColumnResize';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -65,6 +66,7 @@ const shell = {
   table: { width: '100%', borderCollapse: 'collapse' },
   th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#64748b', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc' },
   td: { fontSize: '12px', color: '#1f2937', padding: '8px 10px', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle' },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   muted: { color: '#94a3b8' },
   techRow: { display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr)', gap: '8px', alignItems: 'end' },
   selectedWrap: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
@@ -108,6 +110,26 @@ const isContractActive = (invoice) => {
   today.setHours(0, 0, 0, 0);
   end.setHours(0, 0, 0, 0);
   return end >= today;
+};
+
+const scheduleColumns = ['select', 'service', 'visit', 'date', 'window', 'site', 'status'];
+const scheduleColumnWidths = {
+  select: 56,
+  service: 240,
+  visit: 130,
+  date: 120,
+  window: 130,
+  site: 260,
+  status: 140
+};
+const scheduleColumnBounds = {
+  select: { min: 48, max: 72 },
+  service: { min: 180, max: 360 },
+  visit: { min: 100, max: 180 },
+  date: { min: 100, max: 180 },
+  window: { min: 100, max: 180 },
+  site: { min: 180, max: 360 },
+  status: { min: 100, max: 180 }
 };
 
 export default function ScheduleJob() {
@@ -404,11 +426,33 @@ export default function ScheduleJob() {
     [selectedScheduleKeys, serviceRows]
   );
   const isMobile = viewportWidth <= 900;
+  const {
+    getColumnWidth,
+    resetColumns,
+    startResize
+  } = useColumnResize({
+    storageKey: 'skuas-table-widths-schedule-job',
+    columns: scheduleColumns,
+    defaultColumnWidths: scheduleColumnWidths,
+    columnBounds: scheduleColumnBounds,
+    minWidth: 80,
+    enabled: true
+  });
+  const scheduleTableMinWidth = scheduleColumns.reduce((sum, key) => sum + (getColumnWidth(key) || scheduleColumnWidths[key] || 80), 0);
   const pageStyle = isMobile ? { ...shell.page, padding: '0', gap: '10px' } : shell.page;
   const titleStyle = isMobile ? { ...shell.title, fontSize: '24px' } : shell.title;
   const fieldGrid2Style = isMobile ? { ...shell.fieldGrid2, gridTemplateColumns: '1fr' } : shell.fieldGrid2;
   const fieldGrid4Style = isMobile ? { ...shell.fieldGrid4, gridTemplateColumns: '1fr' } : shell.fieldGrid4;
   const tableWrapStyle = { ...shell.tableWrap, overflowX: 'auto', maxWidth: '100%' };
+  const tableStyle = { ...shell.table, minWidth: `${Math.max(720, scheduleTableMinWidth)}px`, tableLayout: 'fixed' };
+  const headStyle = (key, align = 'left') => {
+    const width = getColumnWidth(key) || scheduleColumnWidths[key] || 80;
+    return { ...shell.th, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
+  const cellStyle = (key, align = 'left') => {
+    const width = getColumnWidth(key) || scheduleColumnWidths[key] || 80;
+    return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+  };
   const techRowStyle = isMobile ? { ...shell.techRow, gridTemplateColumns: '1fr' } : shell.techRow;
 
   const assignNow = async () => {
@@ -616,6 +660,7 @@ export default function ScheduleJob() {
               <span style={shell.tinyPill}>{`${selectedScheduleKeys.length} selected`}</span>
             </div>
             <div style={shell.chipRow}>
+              <button type="button" style={{ minHeight: '28px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '11px', cursor: 'pointer' }} onClick={resetColumns}>Reset Columns</button>
               <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>Filter:</span>
               {statusFilters.map((entry) => (
                 <button
@@ -631,10 +676,11 @@ export default function ScheduleJob() {
           </div>
 
           <div style={tableWrapStyle}>
-            <table style={shell.table}>
+            <table style={tableStyle}>
+              <colgroup>{scheduleColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || scheduleColumnWidths[key] || 80}px` }} />)}</colgroup>
               <thead>
                 <tr>
-                  <th style={{ ...shell.th, width: '48px' }}>
+                  <th style={{ ...shell.th, width: `${getColumnWidth('select') || scheduleColumnWidths.select}px` }}>
                     <input
                       type="checkbox"
                       checked={allFilteredSelected}
@@ -645,12 +691,12 @@ export default function ScheduleJob() {
                       aria-label="Select all services"
                     />
                   </th>
-                  <th style={shell.th}>Service</th>
-                  <th style={shell.th}>Visit</th>
-                  <th style={shell.th}>Date</th>
-                  <th style={shell.th}>Window</th>
-                  <th style={shell.th}>Site</th>
-                  <th style={shell.th}>Status</th>
+                  <th style={headStyle('service')}>Service<span style={shell.resizeHandle} onPointerDown={(event) => startResize('service', event)} /></th>
+                  <th style={headStyle('visit', 'center')}>Visit<span style={shell.resizeHandle} onPointerDown={(event) => startResize('visit', event)} /></th>
+                  <th style={headStyle('date', 'center')}>Date<span style={shell.resizeHandle} onPointerDown={(event) => startResize('date', event)} /></th>
+                  <th style={headStyle('window', 'center')}>Window<span style={shell.resizeHandle} onPointerDown={(event) => startResize('window', event)} /></th>
+                  <th style={headStyle('site')}>Site<span style={shell.resizeHandle} onPointerDown={(event) => startResize('site', event)} /></th>
+                  <th style={headStyle('status', 'center')}>Status<span style={shell.resizeHandle} onPointerDown={(event) => startResize('status', event)} /></th>
                 </tr>
               </thead>
               <tbody>
@@ -662,15 +708,15 @@ export default function ScheduleJob() {
                   </tr>
                 ) : filteredServiceRows.map((row) => (
                   <tr key={row.key}>
-                    <td style={shell.td}>
+                    <td style={cellStyle('select', 'center')}>
                       <input type="checkbox" checked={selectedScheduleKeys.includes(row.key)} onChange={() => toggleSchedule(row.key)} />
                     </td>
-                    <td style={shell.td}>{row.service}</td>
-                    <td style={shell.td}>{row.visit}</td>
-                    <td style={shell.td}>{formatDate(row.date)}</td>
-                    <td style={shell.td}>{row.window || '-'}</td>
-                    <td style={shell.td}>{row.site || '-'}</td>
-                    <td style={shell.td}>{row.status}</td>
+                    <td style={cellStyle('service')}>{row.service}</td>
+                    <td style={cellStyle('visit', 'center')}>{row.visit}</td>
+                    <td style={cellStyle('date', 'center')}>{formatDate(row.date)}</td>
+                    <td style={cellStyle('window', 'center')}>{row.window || '-'}</td>
+                    <td style={cellStyle('site')}>{row.site || '-'}</td>
+                    <td style={cellStyle('status', 'center')}>{row.status}</td>
                   </tr>
                 ))}
               </tbody>

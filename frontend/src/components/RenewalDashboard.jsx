@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
 import {
   CalendarClock,
@@ -26,6 +27,51 @@ const ranges = [
   { value: 'year', label: 'Year Wise' }
 ];
 const tabs = ['Renewal Dashboard', 'Renewal Letters', 'Renewal List', 'Month Wise View', 'Year Wise View', 'Sales Person Wise View'];
+const renewalColumns = [
+  { key: 'customer', label: 'Customer' },
+  { key: 'mobile', label: 'Mobile' },
+  { key: 'area', label: 'Area' },
+  { key: 'svc', label: 'Svc' },
+  { key: 'start', label: 'Start' },
+  { key: 'end', label: 'End' },
+  { key: 'due', label: 'Due' },
+  { key: 'previousAmount', label: 'Prev Amt' },
+  { key: 'proposedAmount', label: 'Proposed' },
+  { key: 'salesPerson', label: 'Sales' },
+  { key: 'status', label: 'Status' },
+  { key: 'followup', label: 'Follow-up' },
+  { key: 'actions', label: 'Actions' }
+];
+const renewalDefaultWidths = {
+  customer: 180,
+  mobile: 120,
+  area: 130,
+  svc: 90,
+  start: 110,
+  end: 110,
+  due: 110,
+  previousAmount: 110,
+  proposedAmount: 120,
+  salesPerson: 120,
+  status: 100,
+  followup: 150,
+  actions: 218
+};
+const renewalColumnBounds = {
+  customer: { min: 150, max: 260 },
+  mobile: { min: 100, max: 160 },
+  area: { min: 110, max: 200 },
+  svc: { min: 80, max: 120 },
+  start: { min: 90, max: 140 },
+  end: { min: 90, max: 140 },
+  due: { min: 90, max: 140 },
+  previousAmount: { min: 100, max: 160 },
+  proposedAmount: { min: 100, max: 170 },
+  salesPerson: { min: 110, max: 180 },
+  status: { min: 90, max: 150 },
+  followup: { min: 130, max: 220 },
+  actions: { min: 180, max: 260 }
+};
 
 const shell = {
   page: { display: 'grid', gap: 12, fontFamily: 'Inter, system-ui, sans-serif' },
@@ -58,6 +104,7 @@ const shell = {
   rowActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, flexWrap: 'nowrap' },
   iconBtn: { width: 30, height: 30, minWidth: 30, minHeight: 30, padding: 0, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   status: { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 8px', fontSize: 11, fontWeight: 850 },
+  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   chartGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 },
   miniRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 70px 90px', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 12 },
   modalOverlay: { position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 14 },
@@ -276,6 +323,46 @@ export default function RenewalDashboard() {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
 
+  const canResizeColumns = !isMobile;
+  const {
+    getColumnWidth,
+    startResize,
+    resetColumns: resetRenewalColumns
+  } = useColumnResize({
+    storageKey: 'renewal_column_widths',
+    columns: renewalColumns.map((column) => column.key),
+    defaultColumnWidths: renewalDefaultWidths,
+    columnBounds: renewalColumnBounds,
+    minWidth: 80,
+    enabled: canResizeColumns
+  });
+
+  const renewalTableMinWidth = renewalColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || renewalDefaultWidths[column.key] || 80), 0);
+  const renewalTableStyle = {
+    ...shell.table,
+    minWidth: `${Math.max(1080, renewalTableMinWidth)}px`,
+    width: '100%'
+  };
+  const renewalHeadCellStyle = (key, align = 'left') => ({
+    ...shell.th,
+    position: 'relative',
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const renewalBodyCellStyle = (key, align = 'left') => ({
+    ...shell.td,
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align
+  });
+  const renewalActionCellStyle = {
+    ...renewalBodyCellStyle('actions', 'center'),
+    overflow: 'visible'
+  };
+
   const updateFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
   const openModal = (type, row) => {
     setModal({ type, row });
@@ -389,29 +476,64 @@ export default function RenewalDashboard() {
     }
     return (
       <div style={shell.tableWrap}>
-        <table className="crm-compact-table" style={shell.table}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
+          <button
+            type="button"
+            style={{
+              minHeight: 28,
+              borderRadius: 8,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-primary-light)',
+              color: 'var(--color-primary-dark)',
+              padding: '0 10px',
+              fontSize: 11,
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+            onClick={resetRenewalColumns}
+          >
+            Reset Columns
+          </button>
+        </div>
+        <table className="crm-compact-table" style={renewalTableStyle}>
           <colgroup>
-            <col style={{ width: '13%' }} /><col style={{ width: '8%' }} /><col style={{ width: '10%' }} /><col style={{ width: '5%' }} />
-            <col style={{ width: '7%' }} /><col style={{ width: '7%' }} /><col style={{ width: '7%' }} /><col style={{ width: '8%' }} />
-            <col style={{ width: '8%' }} /><col style={{ width: '8%' }} /><col style={{ width: '7%' }} /><col style={{ width: '9%' }} /><col style={{ width: 218 }} />
+            {renewalColumns.map((column) => (
+              <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
+            ))}
           </colgroup>
-          <thead><tr>{['Customer', 'Mobile', 'Area', 'Svc', 'Start', 'End', 'Due', 'Prev Amt', 'Proposed', 'Sales', 'Status', 'Follow-up', 'Actions'].map((h) => <th key={h} title={h} style={{ ...shell.th, textAlign: h === 'Actions' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+          <thead>
+            <tr>
+              <th style={renewalHeadCellStyle('customer')}>Customer{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('customer', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('mobile', 'center')}>Mobile{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('mobile', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('area')}>Area{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('area', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('svc', 'center')}>Svc{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('svc', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('start', 'center')}>Start{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('start', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('end', 'center')}>End{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('end', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('due', 'center')}>Due{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('due', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('previousAmount', 'center')}>Prev Amt{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('previousAmount', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('proposedAmount', 'center')}>Proposed{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('proposedAmount', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('salesPerson')}>Sales{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('salesPerson', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('status', 'center')}>Status{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('status', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('followup', 'center')}>Follow-up{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('followup', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('actions', 'center')}>Actions{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('actions', event)} /> : null}</th>
+            </tr>
+          </thead>
           <tbody>
             {pagedRows.map((row) => (
               <tr key={row.renewalId}>
-                <td style={shell.td} title={`${row.customerName} • ${displayRenewalId(row)}`}><strong>{row.customerName}</strong></td>
-                <td style={shell.td}>{row.mobile || '-'}</td>
-                <td style={shell.td} title={`${row.address || ''} ${row.areaName || ''}`}>{row.areaName || row.address || '-'}</td>
-                <td style={shell.td} title={row.serviceType}>{serviceShort(row.serviceType)}</td>
-                <td style={shell.td}>{formatDate(row.previousContractStart)}</td>
-                <td style={shell.td}>{formatDate(row.previousContractEnd)}</td>
-                <td style={shell.td}>{formatDate(row.renewalDueDate)}</td>
-                <td style={shell.td}>{formatINR(row.previousAmount)}</td>
-                <td style={shell.td}>{formatINR(row.proposedAmount)}</td>
-                <td style={shell.td} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
-                <td style={shell.td}><span style={statusStyle(row.status)}>{row.status}</span></td>
-                <td style={shell.td} title={row.lastFollowupNote}>{formatDate(row.followupDate)} {row.lastFollowupNote ? `- ${row.lastFollowupNote}` : ''}</td>
-                <td style={{ ...shell.td, overflow: 'visible' }}>
+                <td style={renewalBodyCellStyle('customer')} title={`${row.customerName} • ${displayRenewalId(row)}`}><strong>{row.customerName}</strong></td>
+                <td style={renewalBodyCellStyle('mobile', 'center')}>{row.mobile || '-'}</td>
+                <td style={renewalBodyCellStyle('area')} title={`${row.address || ''} ${row.areaName || ''}`}>{row.areaName || row.address || '-'}</td>
+                <td style={renewalBodyCellStyle('svc', 'center')} title={row.serviceType}>{serviceShort(row.serviceType)}</td>
+                <td style={renewalBodyCellStyle('start', 'center')}>{formatDate(row.previousContractStart)}</td>
+                <td style={renewalBodyCellStyle('end', 'center')}>{formatDate(row.previousContractEnd)}</td>
+                <td style={renewalBodyCellStyle('due', 'center')}>{formatDate(row.renewalDueDate)}</td>
+                <td style={renewalBodyCellStyle('previousAmount', 'center')}>{formatINR(row.previousAmount)}</td>
+                <td style={renewalBodyCellStyle('proposedAmount', 'center')}>{formatINR(row.proposedAmount)}</td>
+                <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
+                <td style={renewalBodyCellStyle('status', 'center')}><span style={statusStyle(row.status)}>{row.status}</span></td>
+                <td style={renewalBodyCellStyle('followup', 'center')} title={row.lastFollowupNote}>{formatDate(row.followupDate)} {row.lastFollowupNote ? `- ${row.lastFollowupNote}` : ''}</td>
+                <td style={renewalActionCellStyle}>
                   <div style={shell.rowActions}>
                     <button className="crm-icon-action-btn" style={shell.iconBtn} title="View" onClick={() => openModal('view', row)}><FileText size={15} /></button>
                     <button className="crm-icon-action-btn" style={shell.iconBtn} title="Assign Sales Person" onClick={() => openModal('assign', row)}><UserCheck size={15} /></button>

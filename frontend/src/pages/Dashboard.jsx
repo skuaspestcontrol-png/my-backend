@@ -20,7 +20,7 @@ const todayColumns = [
   { key: 'customer', label: 'Customer' },
   { key: 'service', label: 'Service' },
   { key: 'time', label: 'Time' },
-  { key: 'status', label: 'Status', render: (value) => <StatusBadge status={value === 'Completed' ? 'active' : 'pending'}>{value}</StatusBadge> }
+  { key: 'status', label: 'Status', align: 'status', render: (value) => <StatusBadge status={value === 'Completed' ? 'active' : 'pending'}>{value}</StatusBadge> }
 ];
 
 const todayRows = [
@@ -44,7 +44,23 @@ export default function DashboardPage() {
         <AppCard title="Renewal Overview" className="crm-chart-card"><div style={{ height: 180, border: '1px dashed #E5E7EB', borderRadius: 12, display: 'grid', placeItems: 'center', color: '#6B7280' }}>Chart Placeholder</div></AppCard>
       </section>
 
-      <AppTable columns={todayColumns} rows={todayRows} />
+      <AppTable
+        columns={todayColumns}
+        rows={todayRows}
+        storageKey="skuas-table-widths-dashboard-today"
+        defaultColumnWidths={{
+          customer: 260,
+          service: 240,
+          time: 120,
+          status: 130
+        }}
+        columnBounds={{
+          customer: { min: 200, max: 420 },
+          service: { min: 180, max: 360 },
+          time: { min: 100, max: 180 },
+          status: { min: 110, max: 180 }
+        }}
+      />
 
       <AppCard title="Renewal Reminder" className="crm-card">
         <p style={{ margin: 0, color: '#6B7280' }}>11 contracts are due in the next 30 days. Prioritize follow-ups for high-value accounts.</p>

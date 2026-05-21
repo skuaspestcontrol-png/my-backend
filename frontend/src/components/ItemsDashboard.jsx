@@ -3,6 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, SlidersHorizontal, Search, X } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import useColumnResize from './table/useColumnResize';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ITEMS_PER_PAGE = 20;
@@ -41,6 +42,16 @@ const defaultColumnWidths = {
   purchaseRate: 140,
   unit: 90,
   itemType: 100
+};
+const itemColumnResizeBounds = {
+  name: { min: 180, max: 360 },
+  description: { min: 260, max: 560 },
+  hsnSac: { min: 110, max: 180 },
+  rate: { min: 100, max: 160 },
+  purchaseDescription: { min: 180, max: 420 },
+  purchaseRate: { min: 110, max: 180 },
+  unit: { min: 80, max: 120 },
+  itemType: { min: 90, max: 140 }
 };
 const defaultVisibleColumns = ['name', 'description', 'hsnSac'];
 
@@ -421,27 +432,23 @@ export default function ItemsDashboard() {
       return defaultVisibleColumns;
     }
   });
-  const [columnWidths, setColumnWidths] = useState(() => {
-    const saved = localStorage.getItem('items_column_widths');
-    if (!saved) return { ...defaultColumnWidths };
-    try {
-      const parsed = JSON.parse(saved);
-      const next = { ...defaultColumnWidths };
-      Object.keys(defaultColumnWidths).forEach((key) => {
-        const n = Number(parsed?.[key]);
-        if (Number.isFinite(n) && n >= 90) next[key] = n;
-      });
-      return next;
-    } catch {
-      return { ...defaultColumnWidths };
-    }
-  });
   const [form, setForm] = useState(emptyForm);
   const customizePanelRef = useRef(null);
   const customizeButtonRef = useRef(null);
   const moreMenuRef = useRef(null);
   const moreMenuButtonRef = useRef(null);
-  const resizeRef = useRef(null);
+  const {
+    getColumnStyle,
+    startResize,
+    resetColumns: resetItemColumns
+  } = useColumnResize({
+    storageKey: 'items_column_widths',
+    columns,
+    defaultColumnWidths,
+    columnBounds: itemColumnResizeBounds,
+    minWidth: 90,
+    enabled: !showAddModal
+  });
 
   const visibleColumnDefs = useMemo(
     () => columns.filter((column) => visibleColumns.includes(column.key)),
@@ -476,10 +483,6 @@ export default function ItemsDashboard() {
   useEffect(() => {
     localStorage.setItem(VISIBLE_COLUMNS_STORAGE_KEY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
-
-  useEffect(() => {
-    localStorage.setItem('items_column_widths', JSON.stringify(columnWidths));
-  }, [columnWidths]);
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(Math.max(1, page), totalPages));
@@ -557,33 +560,6 @@ export default function ItemsDashboard() {
       return [...prev, columnKey];
     });
   };
-
-  const startResize = (columnKey, event) => {
-    event.preventDefault();
-    resizeRef.current = {
-      columnKey,
-      startX: event.clientX,
-      startWidth: Number(columnWidths[columnKey] || defaultColumnWidths[columnKey] || 120)
-    };
-  };
-
-  useEffect(() => {
-    const onMove = (event) => {
-      const current = resizeRef.current;
-      if (!current) return;
-      const nextWidth = Math.max(90, current.startWidth + (event.clientX - current.startX));
-      setColumnWidths((prev) => ({ ...prev, [current.columnKey]: nextWidth }));
-    };
-    const onUp = () => {
-      resizeRef.current = null;
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-  }, []);
 
   const updateForm = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -803,7 +779,10 @@ export default function ItemsDashboard() {
                 <button
                   type="button"
                   style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
-                  onClick={() => setVisibleColumns(defaultVisibleColumns)}
+                  onClick={() => {
+                    setVisibleColumns(defaultVisibleColumns);
+                    resetItemColumns();
+                  }}
                 >
                   Reset Default Columns
                 </button>
@@ -831,7 +810,7 @@ export default function ItemsDashboard() {
                 <input type="checkbox" style={shell.checkbox} checked={isAllSelected} onChange={toggleSelectAll} />
               </th>
               {visibleColumnDefs.map((column) => (
-                <th key={column.key} style={{ ...shell.headCell, width: `${columnWidths[column.key] || defaultColumnWidths[column.key] || 140}px` }}>
+                <th key={column.key} style={{ ...shell.headCell, ...getColumnStyle(column.key) }}>
                   <div style={shell.headerInner}>
                     {column.key === 'name' ? (
                       <button
@@ -875,10 +854,10 @@ export default function ItemsDashboard() {
                         ? {
                             ...shell.cell,
                             ...shell.nameCell,
-                            width: `${columnWidths[column.key] || defaultColumnWidths[column.key] || 140}px`,
+                            ...getColumnStyle(column.key),
                             cursor: 'pointer'
                           }
-                        : { ...shell.cell, width: `${columnWidths[column.key] || defaultColumnWidths[column.key] || 140}px` }
+                        : { ...shell.cell, ...getColumnStyle(column.key) }
                     }
                     onClick={column.key === 'name' ? () => item._id && setSelectedIds([item._id]) : undefined}
                     onDoubleClick={column.key === 'name' ? () => openEditItem(item) : undefined}

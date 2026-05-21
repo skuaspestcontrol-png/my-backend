@@ -173,7 +173,8 @@ body {
   position: sticky !important;
   top: 0 !important;
   z-index: 2 !important;
-  padding: 12px 14px !important;
+  min-height: 40px;
+  padding: 10px 12px !important;
   background: #f8fafc !important;
   color: #4b5563 !important;
   font-size: 13px !important;
@@ -189,8 +190,8 @@ body {
 .crm-table-card table tbody td,
 .crm-table-shell table tbody td,
 .table-scroll-x table tbody td {
-  min-height: 48px !important;
-  padding: 12px 14px !important;
+  min-height: 42px !important;
+  padding: 10px 12px !important;
   color: #334155 !important;
   font-size: 13px !important;
   font-weight: 500 !important;
@@ -216,6 +217,61 @@ body {
 .table-header-cell > span {
   display: inline-block;
   line-height: 1.15;
+}
+
+.table-resize-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 0;
+}
+
+.table-reset-columns-button {
+  border: 1px solid rgba(159, 23, 77, 0.22);
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  border-radius: 8px;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.table-reset-columns-button:hover {
+  border-color: rgba(159, 23, 77, 0.34);
+}
+
+.table-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  background: transparent;
+}
+
+.table-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 18%;
+  bottom: 18%;
+  right: 5px;
+  width: 1px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.72);
+  opacity: 0.45;
+}
+
+.table-resize-handle:hover::before {
+  opacity: 0.95;
+  background: rgba(159, 23, 77, 0.55);
 }
 
 .table-text-cell,
