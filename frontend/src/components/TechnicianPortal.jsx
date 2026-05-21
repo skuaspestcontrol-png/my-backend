@@ -757,8 +757,21 @@ export default function TechnicianPortal() {
   const titleStyle = isMobile ? { ...shell.title, fontSize: '24px' } : shell.title;
   const completionGridStyle = isMobile ? { ...shell.completionGrid, gridTemplateColumns: '1fr' } : shell.completionGrid;
   const completionMediaGridStyle = isMobile ? { ...shell.completionMediaGrid, gridTemplateColumns: '1fr' } : shell.completionMediaGrid;
-  const customerTableStyle = isMobile ? { ...shell.customerTable, minWidth: '700px' } : shell.customerTable;
-  const jobsTableStyle = isMobile ? { ...shell.jobsTable, minWidth: '620px' } : shell.jobsTable;
+  const customerTableStyle = isMobile ? { ...shell.customerTable, width: '100%', minWidth: '0', tableLayout: 'fixed' } : shell.customerTable;
+  const jobsTableStyle = isMobile ? { ...shell.jobsTable, width: '100%', minWidth: '0', tableLayout: 'fixed' } : shell.jobsTable;
+  const customerTableWrapStyle = isMobile
+    ? {
+      ...shell.customerTableWrap,
+      width: '100%',
+      maxWidth: '100%',
+      minWidth: 0,
+      boxSizing: 'border-box',
+      overflowX: 'hidden',
+      WebkitOverflowScrolling: 'touch',
+      overscrollBehaviorX: 'contain',
+      touchAction: 'pan-x'
+    }
+    : shell.customerTableWrap;
   const jobsTableWrapStyle = isMobile
     ? {
       ...shell.jobsTableWrap,
@@ -1568,8 +1581,8 @@ export default function TechnicianPortal() {
           {jobs.length === 0 ? (
             <p style={shell.emptyText}>No active assigned jobs right now.</p>
           ) : (
-            <div style={shell.customerTableWrap}>
-              <table style={customerTableStyle}>
+            <div style={customerTableWrapStyle}>
+              <table style={customerTableStyle} className="technician-assigned-jobs-table">
                 <thead>
                   <tr>
                     <th style={shell.customerTh}>Customer</th>
@@ -1609,7 +1622,7 @@ export default function TechnicianPortal() {
                         <tr>
                           <td colSpan={7} style={shell.expandedCell}>
                             <div style={jobsTableWrapStyle}>
-                              <table style={jobsTableStyle}>
+                              <table style={jobsTableStyle} className="technician-job-details-table">
                                 <thead>
                                   <tr>
                                     <th style={shell.jobsTh}>Visit</th>

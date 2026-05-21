@@ -1770,6 +1770,42 @@ textarea:focus {
     line-height: 1.12 !important;
   }
 
+  .technician-assigned-jobs-table,
+  .technician-job-details-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+  }
+
+  .technician-assigned-jobs-table th,
+  .technician-assigned-jobs-table td,
+  .technician-job-details-table th,
+  .technician-job-details-table td {
+    padding: 7px 8px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    vertical-align: middle !important;
+  }
+
+  .technician-assigned-jobs-table .crm-table-primary {
+    font-size: 12px !important;
+  }
+
+  .technician-assigned-jobs-table .crm-cell-wrap,
+  .technician-job-details-table .crm-cell-wrap {
+    white-space: nowrap !important;
+  }
+
+  .technician-assigned-jobs-table button,
+  .technician-job-details-table button {
+    min-height: 28px !important;
+    height: 28px !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+  }
+
   .crm-compact-table.lead-followups-table tbody td.lead-followups-customer-cell {
     flex-direction: column !important;
     align-items: flex-start !important;
