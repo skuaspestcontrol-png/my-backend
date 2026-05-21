@@ -2387,6 +2387,25 @@ const findJobByPdfReference = (jobs = [], reference = '') => {
 
 const allowedAttendanceStatus = new Set(['present', 'absent', 'leave', 'half-day', 'weekly-off']);
 const attendanceTimePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const attendanceLeaveTypeAliases = new Map([
+  ['cl', 'Casual Leave (CL)'],
+  ['sl', 'Sick Leave (SL)'],
+  ['lwp', 'Unpaid Leave (LWP)'],
+  ['casual leave', 'Casual Leave (CL)'],
+  ['casual leave (cl)', 'Casual Leave (CL)'],
+  ['sick leave', 'Sick Leave (SL)'],
+  ['sick leave (sl)', 'Sick Leave (SL)'],
+  ['paid leave', 'Paid Leave'],
+  ['earned leave', 'Paid Leave'],
+  ['unpaid leave', 'Unpaid Leave (LWP)'],
+  ['unpaid leave (lwp)', 'Unpaid Leave (LWP)'],
+  ['half day leave', 'Half Day Leave'],
+  ['half day', 'Half Day Leave'],
+  ['weekly off', 'Weekly Off'],
+  ['public holiday', 'Public Holiday'],
+  ['outdoor duty', 'Outdoor Duty'],
+  ['absent', 'Absent']
+]);
 
 const normalizeAttendanceStatus = (value) => {
   const raw = String(value || '').trim().toLowerCase();
@@ -2397,6 +2416,12 @@ const normalizeAttendanceStatus = (value) => {
 const normalizeAttendanceTime = (value) => {
   const raw = String(value || '').trim();
   return attendanceTimePattern.test(raw) ? raw : '';
+};
+
+const normalizeAttendanceLeaveType = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  return attendanceLeaveTypeAliases.get(raw.toLowerCase()) || raw;
 };
 
 const normalizeAttendanceMapUrl = (value, latitude, longitude) => {
@@ -2445,7 +2470,7 @@ const sanitizeAttendanceRecord = (raw = {}) => {
     status,
     checkIn,
     checkOut,
-    leaveType: String(raw.leaveType || '').trim(),
+    leaveType: normalizeAttendanceLeaveType(raw.leaveType || raw.leave_type),
     leaveReason: String(raw.leaveReason || '').trim(),
     notes: String(raw.notes || '').trim(),
     source: String(raw.source || '').trim() || '',
@@ -4960,18 +4985,23 @@ app.get('/api/attendance', async (req, res) => {
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
       await ensureAttendanceTable(conn);
-      const [rows] = await conn.query('SELECT payload FROM attendance ORDER BY id DESC');
+      const [rows] = await conn.query('SELECT payload, leave_type FROM attendance ORDER BY id DESC');
       return Array.isArray(rows) ? rows : [];
     });
     if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
       records = mysqlRows
         .map((row) => {
           const raw = row?.payload;
+          const leaveType = normalizeAttendanceLeaveType(row?.leave_type);
           if (!raw) return null;
           if (typeof raw === 'string') {
-            try { return JSON.parse(raw); } catch { return null; }
+            try {
+              const parsed = JSON.parse(raw);
+              if (parsed && !parsed.leaveType && leaveType) parsed.leaveType = leaveType;
+              return parsed;
+            } catch { return null; }
           }
-          return raw;
+          return leaveType && !raw.leaveType ? { ...raw, leaveType } : raw;
         })
         .filter(Boolean)
         .map((entry) => sanitizeAttendanceRecord(entry))
@@ -7442,6 +7472,7 @@ const ensureAttendanceTable = async (conn) => {
       employee_name VARCHAR(255) NULL,
       attendance_date DATE NULL,
       status VARCHAR(80) NULL,
+      leave_type VARCHAR(120) NULL,
       check_in TIME NULL,
       check_out TIME NULL,
       working_hours DECIMAL(8,2) NOT NULL DEFAULT 0,
@@ -7462,6 +7493,7 @@ const ensureAttendanceTable = async (conn) => {
     { name: 'attendance_date', definition: 'DATE NULL' },
     { name: 'check_in', definition: 'TIME NULL' },
     { name: 'check_out', definition: 'TIME NULL' },
+    { name: 'leave_type', definition: 'VARCHAR(120) NULL' },
     { name: 'working_hours', definition: 'DECIMAL(8,2) NOT NULL DEFAULT 0' },
     { name: 'source', definition: `VARCHAR(50) NULL DEFAULT 'manual_admin'` },
     { name: 'punch_in_latitude', definition: 'DECIMAL(10,8) NULL' },
@@ -7820,18 +7852,19 @@ const syncAttendanceToMysql = async (record) => {
     await conn.query(
       `INSERT INTO attendance (
         external_id, employee_external_id, employee_code, employee_name, attendance_date, status,
-        check_in, check_out, working_hours, source,
+        leave_type, check_in, check_out, working_hours, source,
         punch_in_latitude, punch_in_longitude, punch_in_accuracy, punch_in_address, punch_in_map_url,
         punch_out_latitude, punch_out_longitude, punch_out_accuracy, punch_out_address, punch_out_map_url,
         edited_by, edited_at, edit_reason,
         payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         employee_external_id=VALUES(employee_external_id),
         employee_code=VALUES(employee_code),
         employee_name=VALUES(employee_name),
         attendance_date=VALUES(attendance_date),
         status=VALUES(status),
+        leave_type=VALUES(leave_type),
         check_in=VALUES(check_in),
         check_out=VALUES(check_out),
         working_hours=VALUES(working_hours),
@@ -7859,6 +7892,7 @@ const syncAttendanceToMysql = async (record) => {
         record.employeeName || null,
         record.date || null,
         record.status || null,
+        record.leaveType || null,
         record.checkIn ? `${record.checkIn}:00` : null,
         record.checkOut ? `${record.checkOut}:00` : null,
         toNumber(record.workingHours, 0),

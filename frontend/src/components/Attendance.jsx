@@ -17,6 +17,33 @@ const leaveTypes = [
   { value: 'Absent', label: 'Absent' }
 ];
 
+const leaveTypeAliases = new Map([
+  ['cl', 'Casual Leave (CL)'],
+  ['sl', 'Sick Leave (SL)'],
+  ['lwp', 'Unpaid Leave (LWP)'],
+  ['casual leave', 'Casual Leave (CL)'],
+  ['casual leave (cl)', 'Casual Leave (CL)'],
+  ['sick leave', 'Sick Leave (SL)'],
+  ['sick leave (sl)', 'Sick Leave (SL)'],
+  ['paid leave', 'Paid Leave'],
+  ['earned leave', 'Paid Leave'],
+  ['unpaid leave', 'Unpaid Leave (LWP)'],
+  ['unpaid leave (lwp)', 'Unpaid Leave (LWP)'],
+  ['half day leave', 'Half Day Leave'],
+  ['half day', 'Half Day Leave'],
+  ['weekly off', 'Weekly Off'],
+  ['public holiday', 'Public Holiday'],
+  ['outdoor duty', 'Outdoor Duty'],
+  ['absent', 'Absent']
+]);
+
+const normalizeLeaveType = (value) => {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const canonical = leaveTypeAliases.get(text.toLowerCase());
+  return canonical || text;
+};
+
 const shell = {
   page: {
     padding: 0,
@@ -266,7 +293,7 @@ export default function Attendance() {
         status: normalizedStatus,
         checkIn: normalizedCheckIn,
         checkOut: normalizedCheckOut,
-        leaveType: entry.leaveType || '',
+        leaveType: normalizeLeaveType(entry.leaveType),
         leaveReason: entry.leaveReason || '',
         notes: entry.notes || '',
         source: entry.source || '',
@@ -456,7 +483,7 @@ export default function Attendance() {
     const next = {
       ...current,
       status,
-      leaveType: status === 'leave' ? current.leaveType : '',
+      leaveType: status === 'leave' ? normalizeLeaveType(current.leaveType) : '',
       leaveReason: status === 'leave' ? current.leaveReason : '',
       checkIn: nextCheckIn,
       checkOut: nextCheckOut
@@ -478,7 +505,7 @@ export default function Attendance() {
         status: row.status,
         checkIn: row.checkIn,
         checkOut: row.checkOut,
-        leaveType: row.leaveType,
+        leaveType: normalizeLeaveType(row.leaveType),
         leaveReason: row.leaveReason,
         notes: row.notes
       }, {
@@ -497,7 +524,7 @@ export default function Attendance() {
           status: saved.status || row.status,
           checkIn: saved.checkIn || '',
           checkOut: saved.checkOut || '',
-          leaveType: saved.leaveType || '',
+          leaveType: normalizeLeaveType(saved.leaveType),
           leaveReason: saved.leaveReason || '',
           notes: saved.notes || '',
           source: saved.source || '',
@@ -710,8 +737,9 @@ export default function Attendance() {
                       disabled={leaveDisabled}
                       style={shell.input}
                       onChange={(event) => {
-                        updateRecordField(employeeId, 'leaveType', event.target.value);
-                        saveRecord(employeeId, { ...record, leaveType: event.target.value });
+                        const nextLeaveType = normalizeLeaveType(event.target.value);
+                        updateRecordField(employeeId, 'leaveType', nextLeaveType);
+                        saveRecord(employeeId, { ...record, leaveType: nextLeaveType });
                       }}
                     >
                       {leaveTypes.map((entry) => (
