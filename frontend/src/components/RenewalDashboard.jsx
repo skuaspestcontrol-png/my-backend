@@ -476,25 +476,6 @@ export default function RenewalDashboard() {
     }
     return (
       <div style={shell.tableWrap}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-          <button
-            type="button"
-            style={{
-              minHeight: 28,
-              borderRadius: 8,
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-primary-light)',
-              color: 'var(--color-primary-dark)',
-              padding: '0 10px',
-              fontSize: 11,
-              fontWeight: 800,
-              cursor: 'pointer'
-            }}
-            onClick={resetRenewalColumns}
-          >
-            Reset Columns
-          </button>
-        </div>
         <table className="crm-compact-table" style={renewalTableStyle}>
           <colgroup>
             {renewalColumns.map((column) => (
