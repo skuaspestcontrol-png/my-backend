@@ -240,7 +240,12 @@ const shell = {
   dashboardCardLabel: { margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
   dashboardCardValue: { margin: '6px 0 0 0', fontSize: '17px', color: '#0f172a', fontWeight: 800, lineHeight: 1.2 },
   dashboardChartStack: { display: 'grid', gap: '10px' },
-  dashboardChartCard: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '12px', background: '#fff', padding: '12px' }
+  dashboardChartCard: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '12px', background: '#fff', padding: '12px' },
+  dashboardChartCardMobile: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '12px', background: '#fff', padding: '10px' },
+  dashboardChartLabel: { margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 },
+  dashboardChartLabelMobile: { margin: 0, fontSize: '10px', color: '#334155', fontWeight: 700 },
+  chartBarWrapMobile: { height: '8px', borderRadius: '999px', background: 'var(--color-border)', overflow: 'hidden' },
+  dashboardChartStackCompact: { display: 'grid', gap: '8px' }
   ,
   filterPanel: { display: 'grid', gap: '10px' },
   filterGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '10px', alignItems: 'end' },
@@ -1035,31 +1040,31 @@ export default function PayrollModule() {
           <div style={shell.dashboardCard}><p style={shell.dashboardCardLabel}>Total Expense</p><p style={shell.dashboardCardValue}>INR {money(dashboard?.cards?.totalExpense)}</p></div>
         </div>
         <div style={shell.dashboardChartStack}>
-          <div style={shell.dashboardChartCard}>
+          <div style={shell.dashboardChartCardMobile}>
             <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Monthly Salary Expense</p>
-            <div style={shell.chartRow}>
+            <div style={screenWidth < 420 ? shell.dashboardChartStackCompact : shell.chartRow}>
               {(dashboard?.monthWiseChart || []).map((entry) => {
                 const max = Math.max(...(dashboard?.monthWiseChart || [{ total: 1 }]).map((item) => Number(item.total || 0)), 1);
                 const width = `${Math.max(4, (Number(entry.total || 0) / max) * 100)}%`;
                 return (
                   <div key={entry.key}>
-                    <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
-                    <div style={shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
+                    <p style={screenWidth < 420 ? shell.dashboardChartLabelMobile : shell.dashboardChartLabel}>{entry.key} - INR {money(entry.total)}</p>
+                    <div style={screenWidth < 420 ? shell.chartBarWrapMobile : shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
                   </div>
                 );
               })}
             </div>
           </div>
-          <div style={shell.dashboardChartCard}>
+          <div style={shell.dashboardChartCardMobile}>
             <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Paid vs Pending</p>
-            <div style={shell.chartRow}>
+            <div style={screenWidth < 420 ? shell.dashboardChartStackCompact : shell.chartRow}>
               {(dashboard?.paidVsPendingChart || []).map((entry) => {
                 const max = Math.max(...(dashboard?.paidVsPendingChart || [{ total: 1 }]).map((item) => Number(item.total || 0)), 1);
                 const width = `${Math.max(4, (Number(entry.total || 0) / max) * 100)}%`;
                 return (
                   <div key={entry.key}>
-                    <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
-                    <div style={shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
+                    <p style={screenWidth < 420 ? shell.dashboardChartLabelMobile : shell.dashboardChartLabel}>{entry.key} - INR {money(entry.total)}</p>
+                    <div style={screenWidth < 420 ? shell.chartBarWrapMobile : shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
                   </div>
                 );
               })}
