@@ -2424,6 +2424,34 @@ const normalizeAttendanceLeaveType = (value) => {
   return attendanceLeaveTypeAliases.get(raw.toLowerCase()) || raw;
 };
 
+const normalizeAttendanceSource = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const lower = raw.toLowerCase();
+  if (lower === 'manual_admin' || lower === 'manual admin') return 'admin';
+  if (lower === 'technician_app' || lower === 'sales_app' || lower === 'self') return 'self';
+  return raw;
+};
+
+const resolveAttendanceSource = ({ source, actorName, portalRole, employeeName }) => {
+  const normalizedSource = normalizeAttendanceSource(source);
+  if (normalizedSource) {
+    if (normalizedSource === 'admin') return 'admin';
+    if (normalizedSource === 'self') return String(actorName || employeeName || 'self').trim() || 'self';
+    return normalizedSource;
+  }
+
+  const actor = String(actorName || '').trim();
+  const role = String(portalRole || '').trim().toLowerCase();
+  if (!actor || actor.toLowerCase() === 'admin' || role === 'admin' || role.includes('admin')) {
+    return 'admin';
+  }
+  if (role.includes('technician') || role.includes('sales')) {
+    return actor || String(employeeName || 'self').trim() || 'self';
+  }
+  return actor || 'admin';
+};
+
 const normalizeAttendanceMapUrl = (value, latitude, longitude) => {
   const raw = String(value || '').trim();
   if (raw) return raw;
@@ -2473,7 +2501,7 @@ const sanitizeAttendanceRecord = (raw = {}) => {
     leaveType: normalizeAttendanceLeaveType(raw.leaveType || raw.leave_type),
     leaveReason: String(raw.leaveReason || '').trim(),
     notes: String(raw.notes || '').trim(),
-    source: String(raw.source || '').trim() || '',
+    source: normalizeAttendanceSource(raw.source || raw.source_label || raw.source_type || raw.sourceType || ''),
     punchInLatitude: punchInLatitude === null || punchInLatitude === '' ? null : Number(punchInLatitude),
     punchInLongitude: punchInLongitude === null || punchInLongitude === '' ? null : Number(punchInLongitude),
     punchInAccuracy: raw.punchInAccuracy ?? raw.punch_in_accuracy ?? null,
@@ -5145,6 +5173,14 @@ app.post('/api/attendance', async (req, res) => {
   try {
     const stableExternalId = `ATT-${employeeId.replace(/[^a-zA-Z0-9_-]/g, '')}-${date.replace(/[^0-9-]/g, '')}`;
     const actorName = String(req.headers['x-user-name'] || req.headers['x-portal-user'] || req.body?.actor || 'Admin').trim();
+    const portalRole = String(req.headers['x-portal-role'] || req.headers['x-role'] || '').trim();
+    const source = resolveAttendanceSource({
+      source: req.body?.source,
+      actorName,
+      portalRole,
+      employeeName
+    });
+    const isSelfServiceSource = source !== 'admin';
     const previousRecord = await withMysqlConnection(async (conn) => {
       await ensureAttendanceTable(conn);
       const [rows] = await conn.query('SELECT payload FROM attendance WHERE external_id = ? OR (employee_external_id = ? AND attendance_date = ?) ORDER BY id DESC LIMIT 1', [req.body?._id || stableExternalId, employeeId, date]);
@@ -5168,7 +5204,7 @@ app.post('/api/attendance', async (req, res) => {
       leaveType: req.body?.leaveType,
       leaveReason: req.body?.leaveReason,
       notes: req.body?.notes,
-      source: req.body?.source || 'manual_admin',
+      source,
       punchInLatitude: req.body?.punchInLatitude ?? req.body?.punch_in_latitude ?? previousRecord?.punchInLatitude ?? null,
       punchInLongitude: req.body?.punchInLongitude ?? req.body?.punch_in_longitude ?? previousRecord?.punchInLongitude ?? null,
       punchInAccuracy: req.body?.punchInAccuracy ?? req.body?.punch_in_accuracy ?? previousRecord?.punchInAccuracy ?? null,
@@ -5179,15 +5215,15 @@ app.post('/api/attendance', async (req, res) => {
       punchOutAccuracy: req.body?.punchOutAccuracy ?? req.body?.punch_out_accuracy ?? previousRecord?.punchOutAccuracy ?? null,
       punchOutAddress: req.body?.punchOutAddress ?? req.body?.punch_out_address ?? previousRecord?.punchOutAddress ?? '',
       punchOutMapUrl: req.body?.punchOutMapUrl ?? req.body?.punch_out_map_url ?? previousRecord?.punchOutMapUrl ?? '',
-      editedBy: req.body?.source === 'technician_app' ? (previousRecord?.editedBy || '') : actorName,
-      editedAt: req.body?.source === 'technician_app' ? (previousRecord?.editedAt || '') : new Date().toISOString(),
-      editReason: req.body?.source === 'technician_app' ? (previousRecord?.editReason || '') : String(req.body?.editReason || req.body?.edit_reason || '').trim(),
+      editedBy: isSelfServiceSource ? (previousRecord?.editedBy || '') : actorName,
+      editedAt: isSelfServiceSource ? (previousRecord?.editedAt || '') : new Date().toISOString(),
+      editReason: isSelfServiceSource ? (previousRecord?.editReason || '') : String(req.body?.editReason || req.body?.edit_reason || '').trim(),
       updatedAt: new Date().toISOString()
     });
 
     let attendanceNumericId = null;
     attendanceNumericId = await syncAttendanceToMysql(nextRecord);
-    if (req.body?.source !== 'technician_app') {
+    if (!isSelfServiceSource) {
       await withMysqlConnection(async (conn) => {
         await ensureAttendanceAuditTable(conn);
         await conn.query(
@@ -5209,7 +5245,7 @@ app.post('/api/attendance', async (req, res) => {
             previousRecord?.checkOut ? `${date} ${previousRecord.checkOut}:00` : null,
             nextRecord.checkOut ? `${date} ${nextRecord.checkOut}:00` : null,
             String(req.body?.editReason || req.body?.edit_reason || '').trim() || null,
-            nextRecord.source || 'manual_admin'
+            nextRecord.source || 'admin'
           ]
         );
       });
@@ -7495,7 +7531,7 @@ const ensureAttendanceTable = async (conn) => {
     { name: 'check_out', definition: 'TIME NULL' },
     { name: 'leave_type', definition: 'VARCHAR(120) NULL' },
     { name: 'working_hours', definition: 'DECIMAL(8,2) NOT NULL DEFAULT 0' },
-    { name: 'source', definition: `VARCHAR(50) NULL DEFAULT 'manual_admin'` },
+    { name: 'source', definition: `VARCHAR(50) NULL DEFAULT 'admin'` },
     { name: 'punch_in_latitude', definition: 'DECIMAL(10,8) NULL' },
     { name: 'punch_in_longitude', definition: 'DECIMAL(11,8) NULL' },
     { name: 'punch_in_accuracy', definition: 'DECIMAL(10,2) NULL' },

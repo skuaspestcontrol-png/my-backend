@@ -44,6 +44,15 @@ const normalizeLeaveType = (value) => {
   return canonical || text;
 };
 
+const formatAttendanceSourceLabel = (value) => {
+  const text = String(value || '').trim();
+  if (!text) return '-';
+  const normalized = text.toLowerCase();
+  if (normalized === 'manual_admin' || normalized === 'manual admin') return 'admin';
+  if (normalized === 'technician_app' || normalized === 'sales_app') return 'self';
+  return text;
+};
+
 const resolveStatusForLeaveType = (leaveType, fallbackStatus = 'absent') => {
   const normalized = normalizeLeaveType(leaveType);
   switch (normalized) {
@@ -554,7 +563,9 @@ export default function Attendance() {
         notes: row.notes
       }, {
         headers: {
-          'x-user-name': localStorage.getItem('portal_user_name') || 'Admin'
+          'x-role': localStorage.getItem('portal_user_role') || 'Admin',
+          'x-user-name': localStorage.getItem('portal_user_name') || 'Admin',
+          'x-user-id': localStorage.getItem('portal_user_id') || ''
         }
       });
       const saved = res.data || {};
@@ -796,7 +807,7 @@ export default function Attendance() {
                           rel="noreferrer"
                           style={shell.mapBtn}
                         >
-                          <MapPinned size={12} /> In Map
+                          <MapPinned size={12} /> In
                         </a>
                       ) : null}
                       {record.punchOutMapUrl || (record.punchOutLatitude && record.punchOutLongitude) ? (
@@ -806,13 +817,13 @@ export default function Attendance() {
                           rel="noreferrer"
                           style={shell.mapBtn}
                         >
-                          <MapPinned size={12} /> Out Map
+                          <MapPinned size={12} /> Out
                         </a>
                       ) : null}
                       {!(record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) || record.punchOutMapUrl || (record.punchOutLatitude && record.punchOutLongitude)) ? '-' : null}
                     </div>
                   </td>
-                  <td style={shell.td}>{record.source || '-'}</td>
+                  <td style={shell.td}>{formatAttendanceSourceLabel(record.source)}</td>
                   <td style={shell.td}>
                     <button type="button" style={shell.actionBtn} onClick={() => openAudit({ employeeId, employee, record })}>View Audit</button>
                   </td>
