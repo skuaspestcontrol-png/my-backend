@@ -371,11 +371,65 @@ const normalizeSalaryStructure = (raw = {}) => {
     basicSalary: toNumber(raw.basicSalary, 0),
     dailyRate: toNumber(raw.dailyRate, 0),
     hourlyRate: toNumber(raw.hourlyRate, 0),
+    overtimeRate: toNumber(raw.overtimeRate ?? raw.otRate, 0),
+    bankName: normalizeText(raw.bankName || ''),
+    accountNumber: normalizeText(raw.accountNumber || ''),
+    ifsc: normalizeText(raw.ifsc || ''),
+    upiId: normalizeText(raw.upiId || ''),
+    pan: normalizeText(raw.pan || ''),
+    aadhaar: normalizeText(raw.aadhaar || ''),
+    joiningDate: normalizeText(raw.joiningDate || raw.dateOfJoining || ''),
     allowances,
     deductions,
     notes: normalizeText(raw.notes || ''),
     createdAt: raw.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
+  };
+};
+
+const normalizePayrollRecord = (raw = {}) => {
+  const month = Math.min(12, Math.max(1, toNumber(raw.month, 0)));
+  const year = Math.max(2000, toNumber(raw.year, new Date().getFullYear()));
+  const payrollKey = normalizeText(raw.payrollKey || raw.payroll_key || raw._id || `${year}-${pad2(month)}-${raw.employeeId || 'EMP'}`);
+  return {
+    _id: normalizeText(raw._id || payrollKey),
+    payrollKey,
+    employeeId: normalizeText(raw.employeeId || raw.employee_id || ''),
+    employeeCode: normalizeText(raw.employeeCode || raw.employee_code || ''),
+    employeeName: normalizeText(raw.employeeName || raw.employee_name || ''),
+    designation: normalizeText(raw.designation || ''),
+    department: normalizeText(raw.department || ''),
+    month,
+    year,
+    presentDays: round2(toNumber(raw.presentDays ?? raw.present_days, 0)),
+    absentDays: round2(toNumber(raw.absentDays ?? raw.absent_days, 0)),
+    leaveDays: round2(toNumber(raw.leaveDays ?? raw.leave_days, 0)),
+    overtimeHours: round2(toNumber(raw.overtimeHours ?? raw.overtime_hours, 0)),
+    grossSalary: round2(toNumber(raw.grossSalary ?? raw.gross_salary, 0)),
+    totalAllowances: round2(toNumber(raw.totalAllowances ?? raw.total_allowances, 0)),
+    totalDeductions: round2(toNumber(raw.totalDeductions ?? raw.total_deductions, 0)),
+    netSalary: round2(toNumber(raw.netSalary ?? raw.net_salary, 0)),
+    paymentStatus: normalizeText(raw.paymentStatus || raw.payment_status || 'Pending'),
+    paymentDate: normalizeText(raw.paymentDate || raw.payment_date || ''),
+    paymentMode: normalizeText(raw.paymentMode || raw.payment_method || ''),
+    remarks: normalizeText(raw.remarks || ''),
+    payrollStatus: normalizeText(raw.payrollStatus || raw.payroll_status || 'Generated'),
+    isLocked: !!raw.isLocked || !!raw.is_locked,
+    manualAdjustmentAmount: round2(toNumber(raw.manualAdjustmentAmount ?? raw.manual_adjustment_amount, 0)),
+    manualAdjustmentReason: normalizeText(raw.manualAdjustmentReason || raw.manual_adjustment_reason || ''),
+    manualOverrideEnabled: !!raw.manualOverrideEnabled || !!raw.manual_override_enabled,
+    overrideNetSalary: raw.overrideNetSalary ?? raw.override_net_salary ?? null,
+    basicSalary: round2(toNumber(raw.basicSalary ?? raw.basic_salary, 0)),
+    salaryType: normalizeText(raw.salaryType || raw.salary_type || 'monthly'),
+    perDaySalary: round2(toNumber(raw.perDaySalary ?? raw.per_day_salary, 0)),
+    attendanceSummary: raw.attendanceSummary || raw.attendance_summary || {},
+    allowances: raw.allowances || {},
+    deductions: raw.deductions || {},
+    advanceBreakdown: raw.advanceBreakdown || raw.advance_breakdown || [],
+    salaryInWords: normalizeText(raw.salaryInWords || raw.salary_in_words || ''),
+    slipPath: normalizeText(raw.slipPath || raw.slip_path || ''),
+    createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
+    updatedAt: raw.updatedAt || raw.updated_at || new Date().toISOString()
   };
 };
 
@@ -503,6 +557,7 @@ const summarizeAttendanceForPayroll = ({
   let paidHolidayDays = 0;
   let unpaidHolidayDays = 0;
   let lateMarks = 0;
+  let overtimeHours = 0;
 
   const shiftStartMins = toMinutes(workStartTime || defaultPayrollConfig.workStartTime);
 
@@ -539,6 +594,8 @@ const summarizeAttendanceForPayroll = ({
       if (inMins !== null && shiftStartMins !== null && inMins > (shiftStartMins + lateMarkGraceMinutes)) {
         lateMarks += 1;
       }
+      const rawHours = toNumber(att.workingHours ?? att.hoursWorked ?? 0, 0);
+      overtimeHours += Math.max(0, round2(rawHours - defaultPayrollConfig.standardDailyHours));
       return;
     }
     if (status === 'half-day') {
@@ -547,6 +604,8 @@ const summarizeAttendanceForPayroll = ({
       if (inMins !== null && shiftStartMins !== null && inMins > (shiftStartMins + lateMarkGraceMinutes)) {
         lateMarks += 1;
       }
+      const rawHours = toNumber(att.workingHours ?? att.hoursWorked ?? 0, 0);
+      overtimeHours += Math.max(0, round2(rawHours - (defaultPayrollConfig.standardDailyHours / 2)));
       return;
     }
     if (status === 'leave') {
@@ -596,7 +655,8 @@ const summarizeAttendanceForPayroll = ({
     weeklyOffDays: round2(weeklyOffDays),
     paidHolidayDays: round2(paidHolidayDays),
     unpaidHolidayDays: round2(unpaidHolidayDays),
-    lateMarks: round2(lateMarks)
+    lateMarks: round2(lateMarks),
+    overtimeHours: round2(overtimeHours)
   };
 };
 
@@ -641,6 +701,9 @@ const calcPayrollItem = ({
     latePerMark: toNumber(structure?.deductions?.latePerMark, 0)
   };
   const allowanceTotal = Object.values(allowances).reduce((sum, value) => sum + toNumber(value, 0), 0);
+  const overtimeHours = toNumber(attendanceSummary.overtimeHours, 0);
+  const overtimeRate = Math.max(0, toNumber(structure?.overtimeRate, 0));
+  const overtimeEarning = round2(overtimeHours * overtimeRate);
 
   let baseEarned = baseSalary;
   const perDaySalary = attendanceSummary.totalWorkingDays > 0
@@ -695,7 +758,7 @@ const calcPayrollItem = ({
     + fixedDeductions.other
   );
 
-  const grossSalary = round2(baseEarned + allowanceTotal);
+  const grossSalary = round2(baseEarned + allowanceTotal + overtimeEarning);
   const defaultNet = round2(grossSalary - deductionTotal);
   const adjustedNet = manual.enabled
     ? round2(toNumber(manual.overrideNetSalary, defaultNet))
@@ -715,6 +778,9 @@ const calcPayrollItem = ({
     salaryStructureId: normalizeText(structure?._id),
     basicSalary: round2(baseSalary),
     perDaySalary,
+    overtimeHours,
+    overtimeRate,
+    overtimeEarning,
     attendanceSummary,
     allowances: { ...allowances, total: round2(allowanceTotal) },
     deductions: {
@@ -899,6 +965,40 @@ const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resol
   doc.end();
 });
 
+const getPayrollSlipFileInfo = (item = {}) => {
+  const year = Number(item.year || new Date().getFullYear());
+  const month = pad2(Number(item.month || 1));
+  const employeeCode = normalizeText(item.employeeCode || item.employeeId || 'EMP').replace(/[^\w.-]+/g, '_');
+  const fileName = `${employeeCode}_${year}_${month}.pdf`;
+  const relativePath = `/uploads/payroll/salary-slips/${year}/${month}/${fileName}`;
+  const absolutePath = path.join(uploadsRootDir, 'payroll', 'salary-slips', String(year), String(month), fileName);
+  return { fileName, relativePath, absolutePath };
+};
+
+const ensureSalarySlipStored = async ({ item, company, withMysqlConnection: mysqlConn }) => {
+  const { absolutePath, relativePath } = getPayrollSlipFileInfo(item);
+  fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+  if (!fs.existsSync(absolutePath)) {
+    const buffer = await buildSalarySlipPdfBuffer({ item, company });
+    fs.writeFileSync(absolutePath, buffer);
+  }
+  if (typeof mysqlConn === 'function') {
+    await mysqlConn(async (conn) => {
+      await conn.query(
+        `INSERT INTO salary_slips (payroll_record_id, pdf_path, generated_at, payload)
+         VALUES (?, ?, NOW(), ?)
+         ON DUPLICATE KEY UPDATE pdf_path=VALUES(pdf_path), generated_at=VALUES(generated_at), payload=VALUES(payload)`,
+        [String(item._id || item.payrollKey || '').trim(), relativePath, JSON.stringify({ payrollRecordId: item._id || item.payrollKey || '', pdfPath: relativePath })]
+      );
+      await conn.query(
+        `UPDATE payroll_records SET slip_path = ?, updated_at = NOW() WHERE payroll_key = ?`,
+        [relativePath, String(item.payrollKey || item._id || '').trim()]
+      );
+    });
+  }
+  return { absolutePath, relativePath };
+};
+
 const toCsv = (rows) => {
   const escape = (value) => {
     const text = String(value ?? '');
@@ -931,156 +1031,597 @@ function registerPayrollModule({
   } = files;
 
   const canUseMysql = typeof withMysqlConnection === 'function';
-  const PAYROLL_SNAPSHOT_TABLE = 'payroll_storage_snapshots';
-  const payrollSnapshotCache = new Map();
-  const safeWriteJsonFile = (targetFile, payload, label) => {
+  const PAYROLL_TABLES = {
+    settings: 'payroll_settings',
+    records: 'payroll_records',
+    components: 'salary_components',
+    advances: 'salary_advances',
+    slips: 'salary_slips',
+    runs: 'payroll_runs',
+    payments: 'payroll_salary_payments',
+    audit: 'payroll_audit'
+  };
+
+  const parseJsonValue = (value, fallback = null) => {
+    if (value === null || value === undefined || value === '') return fallback;
+    if (typeof value === 'object') return value;
     try {
-      fs.mkdirSync(path.dirname(targetFile), { recursive: true });
-      fs.writeFileSync(targetFile, JSON.stringify(payload, null, 2));
-      return true;
-    } catch (error) {
-      console.error(`Payroll file write failed (${label || path.basename(targetFile)}):`, error.message);
-      return false;
+      return JSON.parse(String(value));
+    } catch (_error) {
+      return fallback;
     }
   };
 
-  const ensurePayrollSnapshotTable = async (conn) => {
+  const jsonColumn = (value) => JSON.stringify(value ?? null);
+
+  const ensurePayrollTables = async (conn) => {
     if (!canUseMysql) return;
     if (conn) {
       await conn.query(`
-        CREATE TABLE IF NOT EXISTS ${PAYROLL_SNAPSHOT_TABLE} (
+        CREATE TABLE IF NOT EXISTS ${PAYROLL_TABLES.settings} (
           id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-          snapshot_key VARCHAR(120) NOT NULL,
-          payload LONGTEXT NOT NULL,
+          setting_key VARCHAR(120) NOT NULL,
+          setting_value JSON NULL,
+          payload JSON NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           PRIMARY KEY (id),
-          UNIQUE KEY uk_payroll_snapshot_key (snapshot_key)
+          UNIQUE KEY uk_payroll_settings_key (setting_key)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS ${PAYROLL_TABLES.records} (
+          id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+          payroll_key VARCHAR(180) NOT NULL,
+          employee_id VARCHAR(120) NOT NULL,
+          employee_code VARCHAR(120) NULL,
+          employee_name VARCHAR(255) NULL,
+          designation VARCHAR(255) NULL,
+          department VARCHAR(255) NULL,
+          month INT NOT NULL,
+          year INT NOT NULL,
+          present_days DECIMAL(10,2) NOT NULL DEFAULT 0,
+          absent_days DECIMAL(10,2) NOT NULL DEFAULT 0,
+          leave_days DECIMAL(10,2) NOT NULL DEFAULT 0,
+          overtime_hours DECIMAL(10,2) NOT NULL DEFAULT 0,
+          gross_salary DECIMAL(18,2) NOT NULL DEFAULT 0,
+          total_allowances DECIMAL(18,2) NOT NULL DEFAULT 0,
+          total_deductions DECIMAL(18,2) NOT NULL DEFAULT 0,
+          net_salary DECIMAL(18,2) NOT NULL DEFAULT 0,
+          payment_status VARCHAR(80) NULL,
+          payment_date DATE NULL,
+          payment_method VARCHAR(80) NULL,
+          remarks TEXT NULL,
+          payroll_status VARCHAR(80) NULL,
+          is_locked TINYINT(1) NOT NULL DEFAULT 0,
+          manual_adjustment_amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+          manual_adjustment_reason TEXT NULL,
+          manual_override_enabled TINYINT(1) NOT NULL DEFAULT 0,
+          override_net_salary DECIMAL(18,2) NULL,
+          basic_salary DECIMAL(18,2) NOT NULL DEFAULT 0,
+          salary_type VARCHAR(80) NULL,
+          per_day_salary DECIMAL(18,2) NOT NULL DEFAULT 0,
+          attendance_summary JSON NULL,
+          allowances JSON NULL,
+          deductions JSON NULL,
+          advance_breakdown JSON NULL,
+          salary_in_words TEXT NULL,
+          slip_path TEXT NULL,
+          payload JSON NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uk_payroll_records_key (payroll_key),
+          KEY idx_payroll_records_employee (employee_id),
+          KEY idx_payroll_records_month_year (month, year),
+          KEY idx_payroll_records_status (payment_status, payroll_status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS ${PAYROLL_TABLES.components} (
+          id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+          employee_id VARCHAR(120) NOT NULL,
+          structure_key VARCHAR(180) NOT NULL,
+          component_name VARCHAR(120) NOT NULL,
+          component_type VARCHAR(80) NOT NULL,
+          amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+          recurring TINYINT(1) NOT NULL DEFAULT 1,
+          effective_date DATE NULL,
+          payload JSON NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uk_salary_components_row (structure_key, component_name, component_type),
+          KEY idx_salary_components_employee (employee_id),
+          KEY idx_salary_components_effective_date (effective_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS ${PAYROLL_TABLES.advances} (
+          id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+          advance_key VARCHAR(180) NOT NULL,
+          employee_id VARCHAR(120) NOT NULL,
+          amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+          reason TEXT NULL,
+          advance_date DATE NULL,
+          recovery_month VARCHAR(20) NULL,
+          status VARCHAR(80) NULL,
+          monthly_deduction DECIMAL(18,2) NOT NULL DEFAULT 0,
+          deduction_mode VARCHAR(80) NULL,
+          recovered_amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+          balance_amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+          auto_deduct TINYINT(1) NOT NULL DEFAULT 1,
+          payload JSON NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uk_salary_advances_key (advance_key),
+          KEY idx_salary_advances_employee (employee_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS ${PAYROLL_TABLES.slips} (
+          id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+          payroll_record_id VARCHAR(120) NOT NULL,
+          pdf_path TEXT NOT NULL,
+          generated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          payload JSON NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uk_salary_slips_record (payroll_record_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
       return;
     }
     await withMysqlConnection(async (innerConn) => {
-      await ensurePayrollSnapshotTable(innerConn);
+      await ensurePayrollTables(innerConn);
     });
   };
 
-  const saveSnapshotToMysql = (snapshotKey, value) => {
+  const runPayrollQuery = async (sql, params = []) => withMysqlConnection(async (conn) => {
+    await ensurePayrollTables(conn);
+    return conn.query(sql, params);
+  });
+
+  const readPayrollSettings = async () => {
+    if (!canUseMysql) return { config: defaultPayrollConfig, runs: [] };
+    const [rows] = await runPayrollQuery(`SELECT setting_key, setting_value, payload FROM ${PAYROLL_TABLES.settings} ORDER BY id ASC`);
+    const map = new Map((Array.isArray(rows) ? rows : []).map((row) => [normalizeText(row.setting_key), parseJsonValue(row.setting_value || row.payload, {}) || {}]));
+    const config = { ...defaultPayrollConfig, ...(map.get('config') || {}) };
+    const runs = Array.isArray(map.get('runs')) ? map.get('runs') : [];
+    return { config, runs };
+  };
+
+  const savePayrollSettings = async ({ config, runs }) => {
     if (!canUseMysql) return;
-    const payload = JSON.stringify(value ?? null);
-    payrollSnapshotCache.set(snapshotKey, value);
-    withMysqlConnection(async (conn) => {
-      await ensurePayrollSnapshotTable(conn);
-      await conn.query(
-        `INSERT INTO ${PAYROLL_SNAPSHOT_TABLE} (snapshot_key, payload)
-         VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE payload=VALUES(payload)`,
-        [String(snapshotKey || '').trim(), payload]
+    const settings = [
+      { setting_key: 'config', setting_value: config, payload: config },
+      { setting_key: 'runs', setting_value: runs, payload: runs }
+    ];
+    await runPayrollQuery(`DELETE FROM ${PAYROLL_TABLES.settings}`);
+    for (const row of settings) {
+      await runPayrollQuery(
+        `INSERT INTO ${PAYROLL_TABLES.settings} (setting_key, setting_value, payload)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value), payload=VALUES(payload)`,
+        [row.setting_key, jsonColumn(row.setting_value), jsonColumn(row.payload)]
       );
-    }).catch((error) => {
-      console.error(`Payroll MySQL snapshot save failed for ${snapshotKey}:`, error.message);
-    });
-  };
-
-  const syncPayrollTablesToMysql = (reason) => {
-    if (!canUseMysql) return;
-    withMysqlConnection(async (conn) => {
-      await syncPayrollJsonFilesToMysql(conn);
-    }).catch((error) => {
-      console.error(`Payroll MySQL table sync failed (${reason || 'save'}):`, error.message);
-    });
-  };
-
-  const readSnapshotFromMysql = async (snapshotKey) => {
-    if (!canUseMysql) return null;
-    const cached = payrollSnapshotCache.get(snapshotKey);
-    if (cached !== undefined) return cached;
-    return withMysqlConnection(async (conn) => {
-      await ensurePayrollSnapshotTable(conn);
-      const [rows] = await conn.query(`SELECT payload FROM ${PAYROLL_SNAPSHOT_TABLE} WHERE snapshot_key = ? LIMIT 1`, [String(snapshotKey || '').trim()]);
-      const row = Array.isArray(rows) ? rows[0] : null;
-      if (!row?.payload) return null;
-      try {
-        const parsed = JSON.parse(String(row.payload));
-        payrollSnapshotCache.set(snapshotKey, parsed);
-        return parsed;
-      } catch (_error) {
-        return null;
-      }
-    });
-  };
-
-  const hydratePayrollFileFromMysql = async (snapshotKey, targetFile, fallbackValue) => {
-    if (!canUseMysql) return;
-    try {
-      const snapshot = await readSnapshotFromMysql(snapshotKey);
-      if (snapshot === null || snapshot === undefined) return;
-      const localCurrent = readJsonFile(targetFile, fallbackValue);
-      const snapshotIsEmptyArray = Array.isArray(snapshot) && snapshot.length === 0;
-      const localIsNonEmptyArray = Array.isArray(localCurrent) && localCurrent.length > 0;
-      if (snapshotIsEmptyArray && localIsNonEmptyArray) {
-        // Self-heal: never wipe non-empty local payroll data with an empty DB snapshot.
-        saveSnapshotToMysql(snapshotKey, localCurrent);
-        return;
-      }
-      fs.writeFileSync(targetFile, JSON.stringify(snapshot, null, 2));
-    } catch (error) {
-      console.error(`Payroll hydrate failed for ${snapshotKey}:`, error.message);
-      try {
-        fs.writeFileSync(targetFile, JSON.stringify(fallbackValue, null, 2));
-      } catch (_ignore) {}
     }
   };
 
-  const getPayrollConfig = () => {
-    const current = readJsonFile(payrollRunsFile, { config: defaultPayrollConfig, runs: [] });
-    if (Array.isArray(current)) return { config: defaultPayrollConfig, runs: [] };
-    return {
-      config: { ...defaultPayrollConfig, ...(current.config || {}) },
-      runs: Array.isArray(current.runs) ? current.runs : []
-    };
+  const readPayrollRows = async (table, orderBy = 'id ASC') => {
+    if (!canUseMysql) return [];
+    const [rows] = await runPayrollQuery(`SELECT * FROM ${table} ORDER BY ${orderBy}`);
+    return Array.isArray(rows) ? rows : [];
   };
 
-  const savePayrollConfigAndRuns = ({ config, runs }) => {
-    const payload = { config, runs };
-    safeWriteJsonFile(payrollRunsFile, payload, 'payroll_runs');
-    saveSnapshotToMysql('payroll_runs', payload);
-    syncPayrollTablesToMysql('payroll_runs');
+  const savePayrollRows = async (table, rows, buildRow) => {
+    if (!canUseMysql) return;
+    const nextRows = Array.isArray(rows) ? rows : [];
+    await runPayrollQuery(`DELETE FROM ${table}`);
+    for (const row of nextRows) {
+      const payload = buildRow(row);
+      const columns = Object.keys(payload);
+      const placeholders = columns.map(() => '?').join(', ');
+      const values = columns.map((column) => {
+        const value = payload[column];
+        return value && typeof value === 'object' && !(value instanceof Date) ? jsonColumn(value) : value;
+      });
+      await runPayrollQuery(
+        `INSERT INTO ${table} (${columns.map((column) => `\`${column}\``).join(', ')})
+         VALUES (${placeholders})`,
+        values
+      );
+    }
   };
 
-  const getItems = () => readJsonFile(payrollItemsFile, []);
+  const payrollCache = {
+    config: { ...defaultPayrollConfig },
+    runs: [],
+    items: [],
+    structures: [],
+    holidays: [],
+    advances: [],
+    payments: [],
+    audit: []
+  };
+  let payrollCacheLoaded = false;
+  let payrollCachePromise = null;
+
+  const loadPayrollCache = async () => {
+    if (!canUseMysql || payrollCacheLoaded) return payrollCache;
+    if (!payrollCachePromise) {
+      payrollCachePromise = withMysqlConnection(async (conn) => {
+        await ensurePayrollTables(conn);
+
+        const [settingsRows] = await conn.query(`SELECT setting_key, setting_value, payload FROM ${PAYROLL_TABLES.settings} ORDER BY id ASC`);
+        const settingsMap = new Map((Array.isArray(settingsRows) ? settingsRows : []).map((row) => [normalizeText(row.setting_key), parseJsonValue(row.setting_value || row.payload, {}) || {}]));
+        payrollCache.config = { ...defaultPayrollConfig, ...(settingsMap.get('config') || {}) };
+        payrollCache.runs = Array.isArray(settingsMap.get('runs')) ? settingsMap.get('runs') : [];
+
+        const [recordRows] = await conn.query(`SELECT * FROM ${PAYROLL_TABLES.records} ORDER BY year DESC, month DESC, employee_name ASC`);
+        payrollCache.items = (Array.isArray(recordRows) ? recordRows : []).map((row) => normalizePayrollRecord({
+          ...parseJsonValue(row.payload, {}),
+          _id: row.payroll_key || '',
+          payrollKey: row.payroll_key || '',
+          employeeId: row.employee_id || '',
+          employeeCode: row.employee_code || '',
+          employeeName: row.employee_name || '',
+          designation: row.designation || '',
+          department: row.department || '',
+          month: row.month ?? 0,
+          year: row.year ?? 0,
+          presentDays: row.present_days ?? 0,
+          absentDays: row.absent_days ?? 0,
+          leaveDays: row.leave_days ?? 0,
+          overtimeHours: row.overtime_hours ?? 0,
+          grossSalary: row.gross_salary ?? 0,
+          totalAllowances: row.total_allowances ?? 0,
+          totalDeductions: row.total_deductions ?? 0,
+          netSalary: row.net_salary ?? 0,
+          paymentStatus: row.payment_status || 'Pending',
+          paymentDate: row.payment_date || '',
+          paymentMode: row.payment_method || '',
+          remarks: row.remarks || '',
+          payrollStatus: row.payroll_status || 'Generated',
+          isLocked: !!row.is_locked,
+          manualAdjustmentAmount: row.manual_adjustment_amount ?? 0,
+          manualAdjustmentReason: row.manual_adjustment_reason || '',
+          manualOverrideEnabled: !!row.manual_override_enabled,
+          overrideNetSalary: row.override_net_salary ?? null,
+          basicSalary: row.basic_salary ?? 0,
+          salaryType: row.salary_type || 'monthly',
+          perDaySalary: row.per_day_salary ?? 0,
+          attendanceSummary: parseJsonValue(row.attendance_summary, {}) || {},
+          allowances: parseJsonValue(row.allowances, {}) || {},
+          deductions: parseJsonValue(row.deductions, {}) || {},
+          advanceBreakdown: parseJsonValue(row.advance_breakdown, []) || [],
+          salaryInWords: row.salary_in_words || '',
+          slipPath: row.slip_path || ''
+        }));
+
+        const [componentRows] = await conn.query(`SELECT * FROM ${PAYROLL_TABLES.components} ORDER BY effective_date DESC, employee_id ASC, id ASC`);
+        const groupedStructures = new Map();
+        (Array.isArray(componentRows) ? componentRows : []).forEach((row) => {
+          const payload = parseJsonValue(row.payload, {}) || {};
+          const structureKey = normalizeText(row.structure_key || payload.structureKey || `${row.employee_id || payload.employeeId || 'EMP'}-${row.effective_date || payload.effectiveDate || '0000-00-00'}`);
+          const list = groupedStructures.get(structureKey) || [];
+          list.push({
+            ...payload,
+            _id: row.id ? String(row.id) : payload._id,
+            structureKey,
+            employeeId: row.employee_id || payload.employeeId || '',
+            componentName: row.component_name || payload.componentName || '',
+            componentType: row.component_type || payload.componentType || '',
+            amount: Number(row.amount ?? payload.amount ?? 0),
+            recurring: !!row.recurring,
+            effectiveDate: row.effective_date || payload.effectiveDate || ''
+          });
+          groupedStructures.set(structureKey, list);
+        });
+        payrollCache.structures = Array.from(groupedStructures.values()).map((items) => {
+          const first = items[0] || {};
+          const allowances = {};
+          const deductions = { latePerMark: 0 };
+          items.forEach((item) => {
+            const type = normalizeRole(item.componentType);
+            const name = normalizeRole(item.componentName);
+            if (type === 'allowance') allowances[name] = Number(item.amount || 0);
+            else if (type === 'deduction') deductions[name] = Number(item.amount || 0);
+            else if (name === 'basic salary') first.basicSalary = Number(item.amount || first.basicSalary || 0);
+            else if (name === 'daily rate') first.dailyRate = Number(item.amount || first.dailyRate || 0);
+            else if (name === 'hourly rate') first.hourlyRate = Number(item.amount || first.hourlyRate || 0);
+          });
+          return normalizeSalaryStructure({
+            ...first,
+            structureKey: first.structureKey,
+            allowances,
+            deductions
+          });
+        });
+
+        const [holidayRows] = await conn.query(`SELECT setting_value, payload FROM ${PAYROLL_TABLES.settings} WHERE setting_key = 'holiday' ORDER BY id ASC`);
+        payrollCache.holidays = (Array.isArray(holidayRows) ? holidayRows : [])
+          .map((row) => normalizeHoliday(parseJsonValue(row.setting_value || row.payload, {}) || {}))
+          .filter((entry) => entry.date);
+
+        const [advanceRows] = await conn.query(`SELECT * FROM ${PAYROLL_TABLES.advances} ORDER BY advance_date DESC, id DESC`);
+        payrollCache.advances = (Array.isArray(advanceRows) ? advanceRows : []).map((row) => normalizeAdvance({
+          ...parseJsonValue(row.payload, {}) || {},
+          _id: row.advance_key || '',
+          employeeId: row.employee_id || '',
+          amount: row.amount ?? 0,
+          reason: row.reason || '',
+          issuedDate: row.advance_date || '',
+          recoveryMonth: row.recovery_month || '',
+          status: row.status || '',
+          monthlyDeduction: row.monthly_deduction ?? 0,
+          deductionMode: row.deduction_mode || 'partial',
+          recoveredAmount: row.recovered_amount ?? 0,
+          balanceAmount: row.balance_amount ?? 0,
+          autoDeduct: !!row.auto_deduct
+        })).filter((entry) => entry.employeeId);
+
+        const [paymentRows] = await conn.query(`SELECT * FROM ${PAYROLL_TABLES.payments} ORDER BY payment_date DESC, id DESC`);
+        payrollCache.payments = Array.isArray(paymentRows) ? paymentRows.map((row) => parseJsonValue(row.payload, {
+          _id: row.id ? String(row.id) : '',
+          payrollItemId: row.payroll_item_id || '',
+          employeeId: row.employee_id || '',
+          employeeCode: row.employee_code || '',
+          employeeName: row.employee_name || '',
+          month: row.month ?? 0,
+          year: row.year ?? 0,
+          amount: row.amount ?? 0,
+          paymentMode: row.payment_mode || '',
+          paymentDate: row.payment_date || '',
+          transactionRef: row.transaction_ref || '',
+          remarks: row.remarks || ''
+        })) : [];
+
+        const [auditRows] = await conn.query(`SELECT * FROM ${PAYROLL_TABLES.audit} ORDER BY id DESC`);
+        payrollCache.audit = Array.isArray(auditRows) ? auditRows.map((row) => parseJsonValue(row.payload, {
+          _id: row.id ? String(row.id) : '',
+          actor: row.actor || 'System',
+          action: row.action || 'unknown',
+          payload: {
+            entityType: row.entity_type || '',
+            entityId: row.entity_id || '',
+            message: row.message || ''
+          },
+          createdAt: row.created_at || ''
+        })) : [];
+      }).catch((error) => {
+        console.error('Payroll cache load failed:', error.message);
+      }).finally(() => {
+        payrollCachePromise = null;
+      });
+    }
+    await payrollCachePromise;
+    payrollCacheLoaded = true;
+    return payrollCache;
+  };
+
+  const getPayrollConfig = () => payrollCache;
+  const savePayrollConfigAndRuns = async ({ config, runs }) => {
+    payrollCache.config = { ...defaultPayrollConfig, ...(config || {}) };
+    payrollCache.runs = Array.isArray(runs) ? runs : [];
+    if (!canUseMysql) return;
+    withMysqlConnection(async (conn) => {
+      await ensurePayrollTables(conn);
+      await conn.query(`DELETE FROM ${PAYROLL_TABLES.settings} WHERE setting_key IN ('config', 'runs')`);
+      await conn.query(
+        `INSERT INTO ${PAYROLL_TABLES.settings} (setting_key, setting_value, payload)
+         VALUES (?, ?, ?), (?, ?, ?)`,
+        ['config', jsonColumn(payrollCache.config), jsonColumn(payrollCache.config), 'runs', jsonColumn(payrollCache.runs), jsonColumn(payrollCache.runs)]
+      );
+    }).catch((error) => {
+      console.error('Payroll config save failed:', error.message);
+    });
+  };
+
+  const getItems = () => payrollCache.items;
   const saveItems = (rows) => {
-    safeWriteJsonFile(payrollItemsFile, rows, 'payroll_items');
-    saveSnapshotToMysql('payroll_items', rows);
-    syncPayrollTablesToMysql('payroll_items');
+    payrollCache.items = (Array.isArray(rows) ? rows : []).map((entry) => normalizePayrollRecord(entry));
+    if (!canUseMysql) return;
+    withMysqlConnection(async (conn) => {
+      await ensurePayrollTables(conn);
+      await conn.query(`DELETE FROM ${PAYROLL_TABLES.records}`);
+      for (const row of payrollCache.items) {
+        await conn.query(
+          `INSERT INTO ${PAYROLL_TABLES.records}
+           (payroll_key, employee_id, employee_code, employee_name, designation, department, month, year, present_days, absent_days, leave_days, overtime_hours, gross_salary, total_allowances, total_deductions, net_salary, payment_status, payment_date, payment_method, remarks, payroll_status, is_locked, manual_adjustment_amount, manual_adjustment_reason, manual_override_enabled, override_net_salary, basic_salary, salary_type, per_day_salary, attendance_summary, allowances, deductions, advance_breakdown, salary_in_words, slip_path, payload)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            row.payrollKey,
+            row.employeeId,
+            row.employeeCode || '',
+            row.employeeName || '',
+            row.designation || '',
+            row.department || '',
+            Number(row.month || 0),
+            Number(row.year || 0),
+            Number(row.presentDays || 0),
+            Number(row.absentDays || 0),
+            Number(row.leaveDays || 0),
+            Number(row.overtimeHours || 0),
+            Number(row.grossSalary || 0),
+            Number(row.totalAllowances || 0),
+            Number(row.totalDeductions || 0),
+            Number(row.netSalary || 0),
+            row.paymentStatus || 'Pending',
+            row.paymentDate || null,
+            row.paymentMode || '',
+            row.remarks || '',
+            row.payrollStatus || 'Generated',
+            row.isLocked ? 1 : 0,
+            Number(row.manualAdjustmentAmount || 0),
+            row.manualAdjustmentReason || '',
+            row.manualOverrideEnabled ? 1 : 0,
+            row.overrideNetSalary ?? null,
+            Number(row.basicSalary || 0),
+            row.salaryType || 'monthly',
+            Number(row.perDaySalary || 0),
+            jsonColumn(row.attendanceSummary || {}),
+            jsonColumn(row.allowances || {}),
+            jsonColumn(row.deductions || {}),
+            jsonColumn(row.advanceBreakdown || []),
+            row.salaryInWords || '',
+            row.slipPath || '',
+            jsonColumn(row)
+          ]
+        );
+      }
+    }).catch((error) => {
+      console.error('Payroll records save failed:', error.message);
+    });
   };
-  const getStructures = () => readJsonFile(salaryStructuresFile, []).map((entry) => normalizeSalaryStructure(entry));
+
+  const getStructures = () => payrollCache.structures;
   const saveStructures = (rows) => {
-    fs.writeFileSync(salaryStructuresFile, JSON.stringify(rows, null, 2));
-    saveSnapshotToMysql('payroll_salary_structures', rows);
-    syncPayrollTablesToMysql('payroll_salary_structures');
+    payrollCache.structures = (Array.isArray(rows) ? rows : []).map((entry) => normalizeSalaryStructure(entry));
+    if (!canUseMysql) return;
+    withMysqlConnection(async (conn) => {
+      await ensurePayrollTables(conn);
+      await conn.query(`DELETE FROM ${PAYROLL_TABLES.components}`);
+      for (const structure of payrollCache.structures) {
+        const structureKey = structure.structureKey || `${structure.employeeId}-${structure.effectiveDate}`;
+        const baseRows = [
+          ['Basic Salary', 'base', Number(structure.basicSalary || 0)],
+          ['Daily Rate', 'base', Number(structure.dailyRate || 0)],
+          ['Hourly Rate', 'base', Number(structure.hourlyRate || 0)]
+        ];
+        const allowanceRows = Object.entries(structure.allowances || {}).filter(([name]) => name !== 'total').map(([name, amount]) => [name, 'allowance', Number(amount || 0)]);
+        const deductionRows = Object.entries(structure.deductions || {}).filter(([name]) => name !== 'latePerMark').map(([name, amount]) => [name, 'deduction', Number(amount || 0)]);
+        const rowsToInsert = [...baseRows, ...allowanceRows, ...deductionRows];
+        for (const [componentName, componentType, amount] of rowsToInsert) {
+          await conn.query(
+            `INSERT INTO ${PAYROLL_TABLES.components}
+             (employee_id, structure_key, component_name, component_type, amount, recurring, effective_date, payload)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              structure.employeeId,
+              structureKey,
+              componentName,
+              componentType,
+              amount,
+              1,
+              structure.effectiveDate || null,
+              jsonColumn({ ...structure, structureKey })
+            ]
+          );
+        }
+      }
+    }).catch((error) => {
+      console.error('Payroll structures save failed:', error.message);
+    });
   };
-  const getHolidays = () => readJsonFile(holidaysFile, []).map((entry) => normalizeHoliday(entry)).filter((entry) => entry.date);
+
+  const getHolidays = () => payrollCache.holidays;
   const saveHolidays = (rows) => {
-    safeWriteJsonFile(holidaysFile, rows, 'payroll_holidays');
-    saveSnapshotToMysql('payroll_holidays', rows);
-    syncPayrollTablesToMysql('payroll_holidays');
+    payrollCache.holidays = (Array.isArray(rows) ? rows : []).map((entry) => normalizeHoliday(entry)).filter((entry) => entry.date);
+    if (!canUseMysql) return;
+    withMysqlConnection(async (conn) => {
+      await ensurePayrollTables(conn);
+      await conn.query(`DELETE FROM ${PAYROLL_TABLES.settings} WHERE setting_key = 'holiday'`);
+      for (const row of payrollCache.holidays) {
+        await conn.query(
+          `INSERT INTO ${PAYROLL_TABLES.settings} (setting_key, setting_value, payload) VALUES ('holiday', ?, ?)`,
+          [jsonColumn(row), jsonColumn(row)]
+        );
+      }
+    }).catch((error) => {
+      console.error('Payroll holidays save failed:', error.message);
+    });
   };
-  const getAdvances = () => readJsonFile(advancesFile, []).map((entry) => normalizeAdvance(entry)).filter((entry) => entry.employeeId);
+
+  const getAdvances = () => payrollCache.advances;
   const saveAdvances = (rows) => {
-    safeWriteJsonFile(advancesFile, rows, 'payroll_advances');
-    saveSnapshotToMysql('payroll_advances', rows);
-    syncPayrollTablesToMysql('payroll_advances');
+    payrollCache.advances = (Array.isArray(rows) ? rows : []).map((entry) => normalizeAdvance(entry)).filter((entry) => entry.employeeId);
+    if (!canUseMysql) return;
+    withMysqlConnection(async (conn) => {
+      await ensurePayrollTables(conn);
+      await conn.query(`DELETE FROM ${PAYROLL_TABLES.advances}`);
+      for (const row of payrollCache.advances) {
+        await conn.query(
+          `INSERT INTO ${PAYROLL_TABLES.advances}
+           (advance_key, employee_id, amount, reason, advance_date, recovery_month, status, monthly_deduction, deduction_mode, recovered_amount, balance_amount, auto_deduct, payload)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            row._id,
+            row.employeeId,
+            Number(row.amount || 0),
+            row.reason || '',
+            row.issuedDate || null,
+            row.recoveryMonth || null,
+            row.status || 'Open',
+            Number(row.monthlyDeduction || 0),
+            row.deductionMode || 'partial',
+            Number(row.recoveredAmount || 0),
+            Number(row.balanceAmount || 0),
+            row.autoDeduct ? 1 : 0,
+            jsonColumn(row)
+          ]
+        );
+      }
+    }).catch((error) => {
+      console.error('Payroll advances save failed:', error.message);
+    });
   };
-  const getPayments = () => readJsonFile(salaryPaymentsFile, []);
+
+  const getPayments = () => payrollCache.payments;
   const savePayments = (rows) => {
-    safeWriteJsonFile(salaryPaymentsFile, rows, 'payroll_salary_payments');
-    saveSnapshotToMysql('payroll_salary_payments', rows);
-    syncPayrollTablesToMysql('payroll_salary_payments');
+    payrollCache.payments = Array.isArray(rows) ? rows : [];
+    if (!canUseMysql) return;
+    withMysqlConnection(async (conn) => {
+      await ensurePayrollTables(conn);
+      await conn.query(`DELETE FROM ${PAYROLL_TABLES.payments}`);
+      for (const row of payrollCache.payments) {
+        await conn.query(
+          `INSERT INTO ${PAYROLL_TABLES.payments}
+           (payroll_item_id, employee_id, employee_code, employee_name, payment_date, payment_mode, transaction_ref, amount, payload)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            row.payrollItemId || '',
+            row.employeeId || '',
+            row.employeeCode || '',
+            row.employeeName || '',
+            row.paymentDate || null,
+            row.paymentMode || '',
+            row.transactionRef || '',
+            Number(row.amount || 0),
+            jsonColumn(row)
+          ]
+        );
+      }
+    }).catch((error) => {
+      console.error('Payroll payments save failed:', error.message);
+    });
   };
+
   const saveAuditRows = (rows) => {
-    safeWriteJsonFile(payrollAuditFile, rows, 'payroll_audit');
-    saveSnapshotToMysql('payroll_audit', rows);
-    syncPayrollTablesToMysql('payroll_audit');
+    payrollCache.audit = Array.isArray(rows) ? rows : [];
+    if (!canUseMysql) return;
+    withMysqlConnection(async (conn) => {
+      await ensurePayrollTables(conn);
+      await conn.query(`DELETE FROM ${PAYROLL_TABLES.audit}`);
+      for (const row of payrollCache.audit) {
+        await conn.query(
+          `INSERT INTO ${PAYROLL_TABLES.audit} (actor, action, entity_type, entity_id, message, payload)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            row.actor || 'System',
+            row.action || 'unknown',
+            row.entityType || '',
+            row.entityId || '',
+            row.message || '',
+            jsonColumn(row.payload || row)
+          ]
+        );
+      }
+    }).catch((error) => {
+      console.error('Payroll audit save failed:', error.message);
+    });
   };
 
   const buildPayrollEmployeeLookup = (employees = []) => {
@@ -1118,33 +1659,61 @@ function registerPayrollModule({
     return null;
   };
 
-  let payrollHydrationPromise = null;
-  const ensurePayrollHydratedOnce = async () => {
-    if (!canUseMysql) return;
-    if (!payrollHydrationPromise) {
-      payrollHydrationPromise = Promise.all([
-        hydratePayrollFileFromMysql('payroll_runs', payrollRunsFile, { config: defaultPayrollConfig, runs: [] }),
-        hydratePayrollFileFromMysql('payroll_items', payrollItemsFile, []),
-        hydratePayrollFileFromMysql('payroll_salary_structures', salaryStructuresFile, []),
-        hydratePayrollFileFromMysql('payroll_holidays', holidaysFile, []),
-        hydratePayrollFileFromMysql('payroll_advances', advancesFile, []),
-        hydratePayrollFileFromMysql('payroll_salary_payments', salaryPaymentsFile, []),
-        hydratePayrollFileFromMysql('payroll_audit', payrollAuditFile, [])
-      ]).catch((error) => {
-        console.error('Payroll MySQL hydration failed:', error.message);
-      });
-    }
-    await payrollHydrationPromise;
-  };
-
   app.use('/api/payroll', async (_req, _res, next) => {
     try {
-      await ensurePayrollHydratedOnce();
+      await loadPayrollCache();
     } catch (_error) {
-      // Non-blocking: payroll APIs will still serve JSON fallback.
+      // Non-blocking: payroll APIs will still serve cached data if loading fails.
     }
     next();
   });
+
+  const writeAudit = ({ actor, action, payload, entityType = '', entityId = '', message = '' }) => {
+    const row = {
+      _id: `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      actor: normalizeText(actor || 'System'),
+      action: normalizeText(action || 'unknown'),
+      entityType: normalizeText(entityType || ''),
+      entityId: normalizeText(entityId || ''),
+      message: normalizeText(message || ''),
+      payload: payload || {},
+      createdAt: new Date().toISOString()
+    };
+    payrollCache.audit = [row, ...payrollCache.audit];
+    if (!canUseMysql) return;
+    withMysqlConnection(async (conn) => {
+      await ensurePayrollTables(conn);
+      await conn.query(
+        `INSERT INTO ${PAYROLL_TABLES.audit} (actor, action, entity_type, entity_id, message, payload)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [row.actor, row.action, row.entityType, row.entityId, row.message, jsonColumn(row)]
+      );
+    }).catch((error) => {
+      console.error('Payroll audit write failed:', error.message);
+    });
+  };
+
+  const readAttendanceForPayroll = async () => {
+    if (!canUseMysql) return readJsonFile(attendanceFile, []);
+    try {
+      return withMysqlConnection(async (conn) => {
+        const [rows] = await conn.query('SELECT payload, leave_type FROM attendance ORDER BY id DESC');
+        return (Array.isArray(rows) ? rows : [])
+          .map((row) => {
+            const payload = parseJsonValue(row.payload, {});
+            if (!payload) return null;
+            const leaveType = normalizeAttendanceLeaveType(row.leave_type);
+            const record = typeof payload === 'object' ? { ...payload } : {};
+            if (leaveType && !record.leaveType) record.leaveType = leaveType;
+            return record;
+          })
+          .filter((entry) => entry && entry.employeeId && entry.date);
+      });
+    } catch (error) {
+      console.error('Payroll attendance read failed:', error.message);
+      return readJsonFile(attendanceFile, []);
+    }
+  };
 
   const employeeLookup = () => {
     return buildPayrollEmployeeLookup(readJsonFile(employeesFile, []));
@@ -1620,14 +2189,14 @@ function registerPayrollModule({
     deleteAdvanceById(req, res, req.body?.id);
   });
 
-  app.post('/api/payroll/calculate', (req, res) => {
+  app.post('/api/payroll/calculate', async (req, res) => {
     const employeeId = normalizeText(req.body?.employeeId);
     const month = toNumber(req.body?.month, 0);
     const year = toNumber(req.body?.year, 0);
     if (!employeeId || !month || !year) return res.status(400).json({ error: 'employeeId, month, year are required' });
 
     const employees = readJsonFile(employeesFile, []);
-    const attendance = readJsonFile(attendanceFile, []);
+    const attendance = await readAttendanceForPayroll();
     const employee = employees.find((entry) => normalizeText(entry._id) === employeeId);
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
@@ -1685,7 +2254,7 @@ function registerPayrollModule({
       if (!Array.isArray(employees) || employees.length === 0) {
         return res.status(400).json({ error: 'No employees found for payroll generation' });
       }
-      const attendance = readJsonFile(attendanceFile, []);
+      const attendance = await readAttendanceForPayroll();
       const structures = getStructures();
       const holidays = getHolidays();
       const advances = getAdvances();
@@ -1967,7 +2536,7 @@ function registerPayrollModule({
     const nextPayments = payments.filter((entry) => normalizeText(entry.payrollItemId) !== itemId);
     if (nextPayments.length !== payments.length) savePayments(nextPayments);
 
-    const auditRows = readJsonFile(payrollAuditFile, []);
+    const auditRows = payrollCache.audit || [];
     const nextAuditRows = auditRows.filter((entry) => {
       const payload = entry && typeof entry === 'object' ? entry.payload : null;
       const payloadPayrollItemId = normalizeText(payload?.payrollItemId || payload?.id || '');
@@ -2080,10 +2649,12 @@ function registerPayrollModule({
       if (!canAccessItem(item, identity)) return res.status(403).json({ error: 'You can only view your own salary slip.' });
       const settings = readSettings ? (readSettings() || {}) : {};
       const company = resolveCompanyDetails(settings);
-      const buffer = await buildSalarySlipPdfBuffer({ item, company });
+      const { absolutePath, relativePath } = await ensureSalarySlipStored({ item, company, withMysqlConnection });
+      const buffer = fs.readFileSync(absolutePath);
       const safeName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `${String(req.query.download || '') === '1' ? 'attachment' : 'inline'}; filename="${safeName}"`);
+      res.setHeader('X-Payroll-Slip-Path', relativePath);
       res.send(buffer);
     } catch (error) {
       console.error('Failed to generate salary slip PDF:', error.message);
@@ -2115,7 +2686,7 @@ function registerPayrollModule({
       }
 
       const company = resolveCompanyDetails(settings);
-      const pdfBuffer = await buildSalarySlipPdfBuffer({ item, company });
+      const { absolutePath } = await ensureSalarySlipStored({ item, company, withMysqlConnection });
       const fileName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       const subject = normalizeText(req.body?.subject || `Salary Slip ${pad2(item.month)}/${item.year} - ${item.employeeName}`);
       const message = normalizeText(req.body?.message || `Dear ${item.employeeName},\nPlease find attached your salary slip for ${pad2(item.month)}/${item.year}.\n\n${company.companyName}`);
@@ -2138,7 +2709,7 @@ function registerPayrollModule({
         attachments: [
           {
             filename: fileName,
-            content: pdfBuffer,
+            path: absolutePath,
             contentType: 'application/pdf'
           }
         ]
@@ -2180,7 +2751,7 @@ function registerPayrollModule({
       }
 
       const company = resolveCompanyDetails(settings);
-      const pdfBuffer = await buildSalarySlipPdfBuffer({ item, company });
+      const { absolutePath } = await ensureSalarySlipStored({ item, company, withMysqlConnection });
       const fileName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       const graphBase = `https://graph.facebook.com/${waConfig.apiVersion}`;
       const shareLink = `${serverOrigin || 'http://localhost:5000'}/api/payroll/items/${item._id}/slip/pdf?download=1&role=Employee&userId=${encodeURIComponent(item.employeeId || '')}&userName=${encodeURIComponent(item.employeeName || '')}`;
@@ -2189,7 +2760,7 @@ function registerPayrollModule({
       const mediaForm = new FormData();
       mediaForm.append('messaging_product', 'whatsapp');
       mediaForm.append('type', 'application/pdf');
-      mediaForm.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }), fileName);
+      mediaForm.append('file', new Blob([fs.readFileSync(absolutePath)], { type: 'application/pdf' }), fileName);
 
       const uploadResponse = await fetch(`${graphBase}/${waConfig.phoneNumberId}/media`, {
         method: 'POST',
@@ -2261,6 +2832,10 @@ function registerPayrollModule({
     const paidRows = rows.filter((entry) => normalizeRole(entry.paymentStatus) === 'paid');
     const pendingRows = rows.filter((entry) => normalizeRole(entry.paymentStatus) !== 'paid');
     const holdRows = rows.filter((entry) => normalizeRole(entry.payrollStatus) === 'hold');
+    const employeesList = Array.isArray(readJsonFile(employeesFile, [])) ? readJsonFile(employeesFile, []) : [];
+    const employeeCount = identity.ownOnly
+      ? new Set(rows.map((entry) => normalizeText(entry.employeeId)).filter(Boolean)).size
+      : employeesList.length;
     const totalAllowances = sum(rows, (item) => item.allowances?.total || 0);
     const totalDeductions = sum(rows, (item) => item.deductions?.total || 0);
     const totalMonthlyPayroll = sum(rows, (item) => item.netSalary || 0);
@@ -2268,6 +2843,7 @@ function registerPayrollModule({
     const pendingAmount = sum(pendingRows, (item) => item.netSalary || 0);
     const advances = getAdvances().filter((entry) => (identity.ownOnly ? normalizeText(entry.employeeId) === identity.employeeId : true));
     const advanceBalance = sum(advances, (item) => item.balanceAmount || 0);
+    const totalExpense = round2(totalMonthlyPayroll + advanceBalance);
 
     const allItems = enrichPayrollItems(getItems()).filter((entry) => (identity.ownOnly ? normalizeText(entry.employeeId) === identity.employeeId : true));
     const monthlyMap = new Map();
@@ -2280,27 +2856,24 @@ function registerPayrollModule({
       .sort((a, b) => a.key.localeCompare(b.key))
       .slice(-12);
 
-    const deptMap = new Map();
-    rows.forEach((entry) => {
-      const key = normalizeText(entry.department || 'Unassigned') || 'Unassigned';
-      deptMap.set(key, round2((deptMap.get(key) || 0) + toNumber(entry.netSalary, 0)));
-    });
-    const departmentWiseExpense = Array.from(deptMap.entries()).map(([department, total]) => ({ department, total }));
+    const paidVsPendingChart = [
+      { key: 'Paid', total: paidAmount },
+      { key: 'Pending', total: pendingAmount }
+    ];
 
     res.json({
       month,
       year,
       cards: {
-        totalMonthlyPayroll,
-        paidSalaryAmount: paidAmount,
-        pendingSalaryAmount: pendingAmount,
-        employeesOnHold: holdRows.length,
-        totalDeductions,
-        totalAllowances,
-        advanceSalaryBalance: advanceBalance
+        totalEmployees: employeeCount,
+        thisMonthPayroll: totalMonthlyPayroll,
+        paidSalaries: paidRows.length,
+        pendingSalaries: pendingRows.length,
+        advanceSalary: advanceBalance,
+        totalExpense
       },
       monthWiseChart,
-      departmentWiseExpense
+      paidVsPendingChart
     });
   });
 
@@ -2511,7 +3084,7 @@ function registerPayrollModule({
   app.get('/api/payroll/audit', (req, res) => {
     const perms = ensureAccess(req, res, (p) => p.canManageAll, 'Only Admin/HR can view payroll audit');
     if (!perms) return;
-    const rows = readJsonFile(payrollAuditFile, []);
+    const rows = Array.isArray(payrollCache.audit) ? payrollCache.audit : [];
     rows.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
     res.json(rows.slice(0, 500));
   });

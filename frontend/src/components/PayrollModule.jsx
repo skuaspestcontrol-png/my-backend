@@ -18,13 +18,11 @@ const roleFlags = () => {
 };
 
 const tabKeys = [
-  { key: 'dashboard', label: 'Payroll Dashboard' },
-  { key: 'setup', label: 'Salary Structure Setup' },
-  { key: 'generate', label: 'Generate Payroll' },
-  { key: 'list', label: 'Payroll List' },
-  { key: 'advance', label: 'Advance Salary Management' },
-  { key: 'holiday', label: 'Holiday Management' },
-  { key: 'reports', label: 'Payroll Reports' }
+  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'generate', label: 'Salary Processing' },
+  { key: 'list', label: 'Salary History' },
+  { key: 'slips', label: 'Salary Slips' },
+  { key: 'setup', label: 'Settings' }
 ];
 
 const monthOptions = Array.from({ length: 12 }).map((_, index) => ({
@@ -173,12 +171,20 @@ const salaryFormDefaults = {
   basicSalary: '',
   dailyRate: '',
   hourlyRate: '',
+  overtimeRate: '',
   hra: '',
   conveyance: '',
   mobile: '',
   bonus: '',
   incentive: '',
   otherAllowance: '',
+  bankName: '',
+  accountNumber: '',
+  ifsc: '',
+  upiId: '',
+  pan: '',
+  aadhaar: '',
+  joiningDate: '',
   leaveDeduction: '',
   lateDeduction: '',
   latePerMark: '',
@@ -371,12 +377,20 @@ export default function PayrollModule() {
         basicSalary: String(employeeMasterSalary ?? latest.basicSalary ?? ''),
         dailyRate: String(latest.dailyRate ?? ''),
         hourlyRate: String(latest.hourlyRate ?? ''),
+        overtimeRate: String(latest.overtimeRate ?? ''),
         hra: String(latest.allowances?.hra ?? ''),
         conveyance: String(latest.allowances?.conveyance ?? ''),
         mobile: String(latest.allowances?.mobile ?? ''),
         bonus: String(latest.allowances?.bonus ?? ''),
         incentive: String(latest.allowances?.incentive ?? ''),
         otherAllowance: String(latest.allowances?.other ?? ''),
+        bankName: String(latest.bankName ?? ''),
+        accountNumber: String(latest.accountNumber ?? ''),
+        ifsc: String(latest.ifsc ?? ''),
+        upiId: String(latest.upiId ?? ''),
+        pan: String(latest.pan ?? ''),
+        aadhaar: String(latest.aadhaar ?? ''),
+        joiningDate: String(latest.joiningDate ?? ''),
         leaveDeduction: String(latest.deductions?.leave ?? ''),
         lateDeduction: String(latest.deductions?.late ?? ''),
         latePerMark: String(latest.deductions?.latePerMark ?? ''),
@@ -434,6 +448,14 @@ export default function PayrollModule() {
         basicSalary: Number(salaryForm.basicSalary || 0),
         dailyRate: Number(salaryForm.dailyRate || 0),
         hourlyRate: Number(salaryForm.hourlyRate || 0),
+        overtimeRate: Number(salaryForm.overtimeRate || 0),
+        bankName: salaryForm.bankName,
+        accountNumber: salaryForm.accountNumber,
+        ifsc: salaryForm.ifsc,
+        upiId: salaryForm.upiId,
+        pan: salaryForm.pan,
+        aadhaar: salaryForm.aadhaar,
+        joiningDate: salaryForm.joiningDate,
         allowances: {
           hra: Number(salaryForm.hra || 0),
           conveyance: Number(salaryForm.conveyance || 0),
@@ -755,6 +777,36 @@ export default function PayrollModule() {
     }
   };
 
+  const sendSlipForItem = async (item, channel) => {
+    const employee = employeeMap.get(String(item?.employeeId || ''));
+    const userRole = encodeURIComponent(localStorage.getItem('portal_user_role') || 'Admin');
+    const userId = encodeURIComponent(localStorage.getItem('portal_user_id') || '');
+    const userName = encodeURIComponent(localStorage.getItem('portal_user_name') || 'System');
+    if (channel === 'email') {
+      const toDefault = String(employee?.emailId || employee?.email || '').trim();
+      const to = window.prompt('Recipient email', toDefault);
+      if (!to) return;
+      setBusy(true);
+      try {
+        const res = await axios.post(`${API_BASE}/api/payroll/items/${item._id}/share-email`, { to }, { headers });
+        setStatus(res?.data?.message || 'Salary slip email queued.');
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    const phoneDefault = String(employee?.mobile || '').trim();
+    const phoneNumber = window.prompt('Recipient WhatsApp number', phoneDefault);
+    if (!phoneNumber) return;
+    setBusy(true);
+    try {
+      const res = await axios.post(`${API_BASE}/api/payroll/items/${item._id}/share-whatsapp`, { phoneNumber }, { headers });
+      setStatus(res?.data?.message || 'Salary slip sent on WhatsApp.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const seedData = async () => {
     try {
       if (!role.canManage) return window.alert('Only Admin/HR can seed sample data.');
@@ -778,17 +830,16 @@ export default function PayrollModule() {
   const renderDashboard = () => (
     <>
       <div style={shell.grid}>
-        <div style={shell.card}><p style={shell.cardLabel}>Total Monthly Payroll</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.totalMonthlyPayroll)}</p></div>
-        <div style={shell.card}><p style={shell.cardLabel}>Paid Salary Amount</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.paidSalaryAmount)}</p></div>
-        <div style={shell.card}><p style={shell.cardLabel}>Pending Salary Amount</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.pendingSalaryAmount)}</p></div>
-        <div style={shell.card}><p style={shell.cardLabel}>Employees On Hold</p><p style={shell.cardValue}>{dashboard?.cards?.employeesOnHold || 0}</p></div>
-        <div style={shell.card}><p style={shell.cardLabel}>Total Deductions</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.totalDeductions)}</p></div>
-        <div style={shell.card}><p style={shell.cardLabel}>Total Allowances</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.totalAllowances)}</p></div>
-        <div style={shell.card}><p style={shell.cardLabel}>Advance Salary Balance</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.advanceSalaryBalance)}</p></div>
+        <div style={shell.card}><p style={shell.cardLabel}>Total Employees</p><p style={shell.cardValue}>{dashboard?.cards?.totalEmployees || 0}</p></div>
+        <div style={shell.card}><p style={shell.cardLabel}>This Month Payroll</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.thisMonthPayroll)}</p></div>
+        <div style={shell.card}><p style={shell.cardLabel}>Paid Salaries</p><p style={shell.cardValue}>{dashboard?.cards?.paidSalaries || 0}</p></div>
+        <div style={shell.card}><p style={shell.cardLabel}>Pending Salaries</p><p style={shell.cardValue}>{dashboard?.cards?.pendingSalaries || 0}</p></div>
+        <div style={shell.card}><p style={shell.cardLabel}>Advance Salary</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.advanceSalary)}</p></div>
+        <div style={shell.card}><p style={shell.cardLabel}>Total Expense</p><p style={shell.cardValue}>INR {money(dashboard?.cards?.totalExpense)}</p></div>
       </div>
       <div style={shell.row}>
         <div style={shell.card}>
-          <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Month-wise Payroll Chart</p>
+          <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Monthly Salary Expense</p>
           <div style={shell.chartRow}>
             {(dashboard?.monthWiseChart || []).map((entry) => {
               const max = Math.max(...(dashboard?.monthWiseChart || [{ total: 1 }]).map((item) => Number(item.total || 0)), 1);
@@ -803,14 +854,14 @@ export default function PayrollModule() {
           </div>
         </div>
         <div style={shell.card}>
-          <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Department-wise Salary Expense</p>
+          <p style={{ ...shell.cardLabel, marginBottom: '8px' }}>Paid vs Pending</p>
           <div style={shell.chartRow}>
-            {(dashboard?.departmentWiseExpense || []).map((entry) => {
-              const max = Math.max(...(dashboard?.departmentWiseExpense || [{ total: 1 }]).map((item) => Number(item.total || 0)), 1);
+            {(dashboard?.paidVsPendingChart || []).map((entry) => {
+              const max = Math.max(...(dashboard?.paidVsPendingChart || [{ total: 1 }]).map((item) => Number(item.total || 0)), 1);
               const width = `${Math.max(4, (Number(entry.total || 0) / max) * 100)}%`;
               return (
-                <div key={entry.department}>
-                  <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.department} - INR {money(entry.total)}</p>
+                <div key={entry.key}>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
                   <div style={shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
                 </div>
               );
@@ -832,6 +883,17 @@ export default function PayrollModule() {
           <div style={shell.field}><p style={shell.label}>Basic Salary</p><input type="number" style={shell.input} value={salaryForm.basicSalary} onChange={(event) => setSalaryForm((prev) => ({ ...prev, basicSalary: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Daily Rate</p><input type="number" style={shell.input} value={salaryForm.dailyRate} onChange={(event) => setSalaryForm((prev) => ({ ...prev, dailyRate: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Hourly Rate</p><input type="number" style={shell.input} value={salaryForm.hourlyRate} onChange={(event) => setSalaryForm((prev) => ({ ...prev, hourlyRate: event.target.value }))} /></div>
+          <div style={shell.field}><p style={shell.label}>Overtime Rate</p><input type="number" style={shell.input} value={salaryForm.overtimeRate} onChange={(event) => setSalaryForm((prev) => ({ ...prev, overtimeRate: event.target.value }))} /></div>
+        </div>
+        <p style={{ ...shell.sub, fontWeight: 700 }}>Payroll Profile</p>
+        <div style={shell.row}>
+          <div style={shell.field}><p style={shell.label}>Bank Name</p><input style={shell.input} value={salaryForm.bankName} onChange={(event) => setSalaryForm((prev) => ({ ...prev, bankName: event.target.value }))} /></div>
+          <div style={shell.field}><p style={shell.label}>Account Number</p><input style={shell.input} value={salaryForm.accountNumber} onChange={(event) => setSalaryForm((prev) => ({ ...prev, accountNumber: event.target.value }))} /></div>
+          <div style={shell.field}><p style={shell.label}>IFSC</p><input style={shell.input} value={salaryForm.ifsc} onChange={(event) => setSalaryForm((prev) => ({ ...prev, ifsc: event.target.value }))} /></div>
+          <div style={shell.field}><p style={shell.label}>UPI ID</p><input style={shell.input} value={salaryForm.upiId} onChange={(event) => setSalaryForm((prev) => ({ ...prev, upiId: event.target.value }))} /></div>
+          <div style={shell.field}><p style={shell.label}>PAN</p><input style={shell.input} value={salaryForm.pan} onChange={(event) => setSalaryForm((prev) => ({ ...prev, pan: event.target.value }))} /></div>
+          <div style={shell.field}><p style={shell.label}>Aadhaar</p><input style={shell.input} value={salaryForm.aadhaar} onChange={(event) => setSalaryForm((prev) => ({ ...prev, aadhaar: event.target.value }))} /></div>
+          <div style={shell.field}><p style={shell.label}>Joining Date</p><input type="date" style={shell.input} value={salaryForm.joiningDate} onChange={(event) => setSalaryForm((prev) => ({ ...prev, joiningDate: event.target.value }))} /></div>
         </div>
         <p style={{ ...shell.sub, fontWeight: 700 }}>Allowances</p>
         <div style={shell.row}>
@@ -883,7 +945,7 @@ export default function PayrollModule() {
 
   const renderGenerate = () => (
     <div style={shell.panel}>
-      <h3 style={shell.panelTitle}><UserRoundCheck size={16} /> Payroll Run</h3>
+      <h3 style={shell.panelTitle}><UserRoundCheck size={16} /> Salary Processing</h3>
       <p style={shell.sub}>Generate payroll for all employees or selected employee list. Duplicate paid records are blocked; draft/hold can be regenerated.</p>
       <div style={shell.row}>
         <div style={shell.field}>
@@ -926,7 +988,7 @@ export default function PayrollModule() {
   const renderPayrollList = () => (
     <>
       <div style={shell.panel}>
-        <h3 style={shell.panelTitle}><Filter size={16} /> Filters & Search</h3>
+        <h3 style={shell.panelTitle}><Filter size={16} /> Salary History</h3>
         <div style={shell.row}>
           <div style={shell.field}><p style={shell.label}>Employee</p><select style={shell.input} value={filters.employeeId} onChange={(event) => setFilters((prev) => ({ ...prev, employeeId: event.target.value }))}><option value="">All</option>{employees.map((entry) => <option key={entry._id} value={entry._id}>{[entry.firstName, entry.lastName].filter(Boolean).join(' ') || entry.empCode}</option>)}</select></div>
           <div style={shell.field}><p style={shell.label}>Department</p><select style={shell.input} value={filters.department} onChange={(event) => setFilters((prev) => ({ ...prev, department: event.target.value }))}><option value="">All</option>{departments.map((entry) => <option key={entry} value={entry}>{entry}</option>)}</select></div>
@@ -1115,22 +1177,67 @@ export default function PayrollModule() {
     </>
   );
 
-  const renderReports = () => (
+  const renderSlips = () => (
     <div style={shell.panel}>
-      <h3 style={shell.panelTitle}><FileText size={16} /> Reports</h3>
-      <p style={shell.sub}>Export reports in Excel/CSV and view report payload in browser tab. Use month/year filters above for scoped report output.</p>
+      <h3 style={shell.panelTitle}><FileText size={16} /> Salary Slips</h3>
+      <p style={shell.sub}>Open, download, email, or WhatsApp salary slips for the selected month/year. Use the filters above for the current salary cycle.</p>
       <div style={shell.actionRow}>
-        <button type="button" style={shell.btnLight} onClick={() => exportReport('monthly', 'json')}>Monthly Payroll Report</button>
-        <button type="button" style={shell.btnLight} onClick={() => exportReport('employee-wise', 'json')}>Employee-wise Salary Report</button>
-        <button type="button" style={shell.btnLight} onClick={() => exportReport('deduction', 'json')}>Deduction Report</button>
-        <button type="button" style={shell.btnLight} onClick={() => exportReport('advance', 'json')}>Advance Salary Report</button>
+        <button type="button" style={shell.btnLight} onClick={() => exportReport('monthly', 'json')}>Monthly Summary</button>
+        <button type="button" style={shell.btnLight} onClick={() => exportReport('employee-wise', 'json')}>Employee-wise</button>
+        <button type="button" style={shell.btnLight} onClick={() => exportReport('deduction', 'json')}>Deduction Summary</button>
+        <button type="button" style={shell.btnLight} onClick={() => exportReport('advance', 'json')}>Advance Recovery</button>
       </div>
       <div style={shell.actionRow}>
-        <button type="button" style={shell.btn} onClick={() => exportReport('monthly', 'excel')}><Download size={14} /> Export Monthly (Excel)</button>
-        <button type="button" style={shell.btnLight} onClick={() => exportReport('monthly', 'excel')}>Download Monthly CSV</button>
+        <button type="button" style={shell.btn} onClick={() => exportReport('monthly', 'excel')}><Download size={14} /> Export Slips (Excel)</button>
+        <button type="button" style={shell.btnLight} onClick={() => exportReport('monthly', 'excel')}>Download CSV</button>
         <button type="button" style={shell.btnLight} onClick={() => exportReport('deduction', 'excel')}>Download Deduction CSV</button>
         <button type="button" style={shell.btnLight} onClick={() => exportReport('advance', 'excel')}>Download Advance CSV</button>
-        <button type="button" style={shell.btnLight} onClick={() => exportReport('monthly', 'pdf')}>Download Monthly PDF</button>
+        <button type="button" style={shell.btnLight} onClick={() => exportReport('monthly', 'pdf')}>Download Slips PDF</button>
+      </div>
+      <div style={shell.tableWrap}>
+        <table style={shell.payrollTable}>
+          <colgroup>
+            <col style={{ width: '180px' }} />
+            <col style={{ width: '120px' }} />
+            <col style={{ width: '120px' }} />
+            <col style={{ width: '120px' }} />
+            <col style={{ width: '120px' }} />
+            <col style={{ width: '260px' }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th style={shell.th}>Employee</th>
+              <th style={shell.th}>Month</th>
+              <th style={shell.th}>Net Salary</th>
+              <th style={shell.th}>Payment</th>
+              <th style={shell.th}>Slip</th>
+              <th style={shell.th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedPayrollItems.map((entry) => (
+              <tr key={entry._id}>
+                <td style={shell.td}>
+                  <div>{entry.employeeName}</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode}</div>
+                </td>
+                <td style={shell.td}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
+                <td style={shell.td}>INR {money(entry.netSalary)}</td>
+                <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
+                <td style={shell.td}>{entry.slipPath ? 'Ready' : 'Generate'}</td>
+                <td style={shell.td}>
+                  <div style={shell.payrollActionGroup}>
+                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => openSlipViewer(entry)}>View</button>
+                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => window.open(`${API_BASE}/api/payroll/items/${entry._id}/slip/pdf?role=${encodeURIComponent(localStorage.getItem('portal_user_role') || 'Admin')}&userId=${encodeURIComponent(localStorage.getItem('portal_user_id') || '')}&userName=${encodeURIComponent(localStorage.getItem('portal_user_name') || 'System')}&download=1`, '_blank')}>Download</button>
+                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => sendSlipForItem(entry, 'email')} disabled={busy}>Email</button>
+                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => sendSlipForItem(entry, 'whatsapp')} disabled={busy}>WhatsApp</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {pagedPayrollItems.length === 0 ? <tr><td colSpan={6} style={{ ...shell.td, textAlign: 'center', color: '#64748b' }}>No salary slips for selected filter.</td></tr> : null}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -1138,9 +1245,9 @@ export default function PayrollModule() {
   return (
     <section style={shell.page}>
       <div style={shell.hero}>
-        <h2 style={shell.title}>Payroll Module</h2>
+        <h2 style={shell.title}>Payroll</h2>
         <p style={shell.subtitle}>
-          Professional payroll operations with salary setup, attendance-based calculation, payroll run, payment lock, Salary Slip PDF, advances, holidays, and reports.
+          Compact salary processing, history, slips, and employee payroll settings in one clean view.
         </p>
       </div>
 
@@ -1173,24 +1280,26 @@ export default function PayrollModule() {
       <div style={shell.panel}>
         <h3 style={shell.panelTitle}>
           {activeTab === 'dashboard' ? <CircleDollarSign size={16} /> : null}
-          {activeTab === 'setup' ? <Landmark size={16} /> : null}
           {activeTab === 'generate' ? <ShieldCheck size={16} /> : null}
           {activeTab === 'list' ? <Filter size={16} /> : null}
-          {activeTab === 'advance' ? <HandCoins size={16} /> : null}
-          {activeTab === 'holiday' ? <CalendarDays size={16} /> : null}
-          {activeTab === 'reports' ? <FileText size={16} /> : null}
+          {activeTab === 'setup' ? <Landmark size={16} /> : null}
+          {activeTab === 'slips' ? <FileText size={16} /> : null}
           {tabKeys.find((entry) => entry.key === activeTab)?.label}
         </h3>
         <p style={shell.sub}>
           Business rules enforced: paid leave/holiday not deducted, unpaid leave deducted, half-day deducts half day, and no duplicate paid payroll generation.
         </p>
         {activeTab === 'dashboard' ? renderDashboard() : null}
-        {activeTab === 'setup' ? renderSalarySetup() : null}
         {activeTab === 'generate' ? renderGenerate() : null}
         {activeTab === 'list' ? renderPayrollList() : null}
-        {activeTab === 'advance' ? renderAdvance() : null}
-        {activeTab === 'holiday' ? renderHoliday() : null}
-        {activeTab === 'reports' ? renderReports() : null}
+        {activeTab === 'setup' ? (
+          <>
+            {renderSalarySetup()}
+            {renderAdvance()}
+            {renderHoliday()}
+          </>
+        ) : null}
+        {activeTab === 'slips' ? renderSlips() : null}
       </div>
 
       {status ? <p style={{ ...shell.footer, whiteSpace: 'pre-line' }}>{status}</p> : null}

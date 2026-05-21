@@ -706,6 +706,136 @@ const tableDefinitions = [
     ], ['KEY idx_payroll_audit_action (action)'])
   },
   {
+    name: 'payroll_settings',
+    createSql: `
+      CREATE TABLE IF NOT EXISTS payroll_settings (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        setting_key VARCHAR(120) NOT NULL,
+        setting_value JSON NULL,
+        payload JSON NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uk_payroll_settings_key (setting_key)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `
+  },
+  {
+    name: 'payroll_records',
+    createSql: `
+      CREATE TABLE IF NOT EXISTS payroll_records (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        payroll_key VARCHAR(180) NOT NULL,
+        employee_id VARCHAR(120) NOT NULL,
+        employee_code VARCHAR(120) NULL,
+        employee_name VARCHAR(255) NULL,
+        designation VARCHAR(255) NULL,
+        department VARCHAR(255) NULL,
+        month INT NOT NULL,
+        year INT NOT NULL,
+        present_days DECIMAL(10,2) NOT NULL DEFAULT 0,
+        absent_days DECIMAL(10,2) NOT NULL DEFAULT 0,
+        leave_days DECIMAL(10,2) NOT NULL DEFAULT 0,
+        overtime_hours DECIMAL(10,2) NOT NULL DEFAULT 0,
+        gross_salary DECIMAL(18,2) NOT NULL DEFAULT 0,
+        total_allowances DECIMAL(18,2) NOT NULL DEFAULT 0,
+        total_deductions DECIMAL(18,2) NOT NULL DEFAULT 0,
+        net_salary DECIMAL(18,2) NOT NULL DEFAULT 0,
+        payment_status VARCHAR(80) NULL,
+        payment_date DATE NULL,
+        payment_method VARCHAR(80) NULL,
+        remarks TEXT NULL,
+        payroll_status VARCHAR(80) NULL,
+        is_locked TINYINT(1) NOT NULL DEFAULT 0,
+        manual_adjustment_amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        manual_adjustment_reason TEXT NULL,
+        manual_override_enabled TINYINT(1) NOT NULL DEFAULT 0,
+        override_net_salary DECIMAL(18,2) NULL,
+        basic_salary DECIMAL(18,2) NOT NULL DEFAULT 0,
+        salary_type VARCHAR(80) NULL,
+        per_day_salary DECIMAL(18,2) NOT NULL DEFAULT 0,
+        attendance_summary JSON NULL,
+        allowances JSON NULL,
+        deductions JSON NULL,
+        advance_breakdown JSON NULL,
+        salary_in_words TEXT NULL,
+        slip_path TEXT NULL,
+        payload JSON NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uk_payroll_records_key (payroll_key),
+        KEY idx_payroll_records_employee (employee_id),
+        KEY idx_payroll_records_month_year (month, year),
+        KEY idx_payroll_records_status (payment_status, payroll_status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `
+  },
+  {
+    name: 'salary_components',
+    createSql: `
+      CREATE TABLE IF NOT EXISTS salary_components (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        employee_id VARCHAR(120) NOT NULL,
+        structure_key VARCHAR(180) NOT NULL,
+        component_name VARCHAR(120) NOT NULL,
+        component_type VARCHAR(80) NOT NULL,
+        amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        recurring TINYINT(1) NOT NULL DEFAULT 1,
+        effective_date DATE NULL,
+        payload JSON NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uk_salary_components_row (structure_key, component_name, component_type),
+        KEY idx_salary_components_employee (employee_id),
+        KEY idx_salary_components_effective_date (effective_date)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `
+  },
+  {
+    name: 'salary_advances',
+    createSql: `
+      CREATE TABLE IF NOT EXISTS salary_advances (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        advance_key VARCHAR(180) NOT NULL,
+        employee_id VARCHAR(120) NOT NULL,
+        amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        reason TEXT NULL,
+        advance_date DATE NULL,
+        recovery_month VARCHAR(20) NULL,
+        status VARCHAR(80) NULL,
+        monthly_deduction DECIMAL(18,2) NOT NULL DEFAULT 0,
+        deduction_mode VARCHAR(80) NULL,
+        recovered_amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        balance_amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        auto_deduct TINYINT(1) NOT NULL DEFAULT 1,
+        payload JSON NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uk_salary_advances_key (advance_key),
+        KEY idx_salary_advances_employee (employee_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `
+  },
+  {
+    name: 'salary_slips',
+    createSql: `
+      CREATE TABLE IF NOT EXISTS salary_slips (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        payroll_record_id VARCHAR(120) NOT NULL,
+        pdf_path TEXT NOT NULL,
+        generated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        payload JSON NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uk_salary_slips_record (payroll_record_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `
+  },
+  {
     name: 'hr_leaves',
     createSql: createBaseTableSql('hr_leaves', [
       'employee_id VARCHAR(120) NULL',
