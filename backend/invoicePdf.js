@@ -559,24 +559,14 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     doc.font('Helvetica-Bold').fontSize(18).fillColor(company.primaryColor).text('TAX INVOICE', rightX, y + 8, { width: rightW, align: 'right' });
 
     const meta = [
-      ['Invoice #', clean(invoice.invoiceNumber) || '-'],
-      ['Invoice Date', formatDate(invoice.date)],
-      ['Sales Person', clean(invoice.salesperson) || '-']
+      `Invoice # : ${clean(invoice.invoiceNumber) || '-'}`,
+      `Invoice Date : ${formatDate(invoice.date)}`,
+      `Sales Person : ${clean(invoice.salesperson) || '-'}`
     ];
-    let my = y + 34;
-    const metaLabelW = 90;
-    const metaColonW = 8;
-    const metaValueW = 128;
-    const metaBlockW = metaLabelW + metaColonW + metaValueW;
-    const metaBlockX = right - metaBlockW;
-    const metaLabelX = metaBlockX;
-    const metaColonX = metaLabelX + metaLabelW;
-    const metaValueX = metaColonX + metaColonW;
-    meta.forEach(([k, v]) => {
-      doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#6b7280').text(k, metaLabelX, my, { width: metaLabelW, align: 'left' });
-      doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#6b7280').text(':', metaColonX, my, { width: metaColonW, align: 'center' });
-      doc.font('Helvetica').fontSize(10).fillColor(COLORS.text).text(`${v}`, metaValueX, my, { width: metaValueW, align: 'left' });
-      my += 12;
+    let my = y + 56;
+    meta.forEach((line) => {
+      doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(line, rightX, my, { width: rightW, align: 'right' });
+      my += 11;
     });
 
     y += headerH + 8;
