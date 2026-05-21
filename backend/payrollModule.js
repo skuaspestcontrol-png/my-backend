@@ -31,7 +31,8 @@ const defaultCompany = {
   address: ''
 };
 const uploadsRootDir = normalizeText(
-  process.env.UPLOADS_DIR
+  process.env.UPLOADS_ROOT
+  || process.env.UPLOADS_DIR
   || process.env.UPLOADS_ROOT_DIR
   || '/home/u610009593/uploads-skuas-crm'
 );
@@ -814,12 +815,16 @@ const calcPayrollItem = ({
 };
 
 const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resolve, reject) => {
-  const resolvedLogoPath = tryResolveLocalUploadPath(company?.logoUrl || '');
+  const logoUrl = normalizeText(company?.logoUrl || (Array.isArray(company?.logoCandidates) ? company.logoCandidates[0] : ''));
+  const resolvedLogoPath = tryResolveLocalUploadPath(logoUrl);
   const logoBuffer = await loadFirstAvailableLogoBuffer(
     (Array.isArray(company?.logoCandidates) && company.logoCandidates.length > 0)
       ? company.logoCandidates
-      : [company?.logoUrl || '']
+      : [logoUrl]
   );
+  console.log('SALARY PDF logoUrl:', logoUrl || '');
+  console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath || '');
+  console.log('SALARY PDF logoExists:', Boolean(logoBuffer || (resolvedLogoPath && fs.existsSync(resolvedLogoPath))));
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));
