@@ -159,6 +159,11 @@ const shell = {
   footer: { margin: 0, fontSize: '12px', color: '#475569', fontWeight: 700 },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', zIndex: 90, padding: '16px' },
   modal: { width: 'min(620px, 100%)', background: '#fff', borderRadius: '14px', border: '1px solid rgba(159, 23, 77, 0.2)', padding: '14px', display: 'grid', gap: '10px' },
+  modalStack: { display: 'grid', gap: '10px' },
+  modalActions: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
+  modalActionButton: { minHeight: '32px', padding: '0 10px', fontSize: '11px' },
+  modalFrame: { width: '100%', height: '72vh', border: '1px solid #D1D5DB', borderRadius: '10px', background: '#fff' },
+  modalCard: { width: 'min(980px, 100%)', background: '#fff', borderRadius: '14px', border: '1px solid rgba(159, 23, 77, 0.2)', padding: '14px', display: 'grid', gap: '10px' },
   chartRow: { display: 'grid', gap: '7px' },
   chartBarWrap: { height: '10px', borderRadius: '999px', background: 'var(--color-border)', overflow: 'hidden' },
   chartBar: { height: '100%', background: 'var(--color-primary)' },
@@ -985,6 +990,25 @@ export default function PayrollModule() {
     );
   };
 
+  const getModalStyle = (large = false) => {
+    if (screenWidth < 640) {
+      return {
+        width: '100%',
+        maxWidth: '100%',
+        borderRadius: '12px',
+        padding: '12px'
+      };
+    }
+    return large
+      ? shell.modalCard
+      : shell.modal;
+  };
+
+  const getModalActionStyle = () => ({
+    ...shell.modalActions,
+    flexDirection: screenWidth < 640 ? 'column' : 'row'
+  });
+
   const renderDashboard = () => (
     screenWidth < 960 ? (
       <div style={shell.dashboardCardList}>
@@ -1602,18 +1626,18 @@ export default function PayrollModule() {
 
       {paymentModal.open ? (
         <div style={shell.modalBg}>
-          <div style={shell.modal}>
+          <div style={getModalStyle()}>
             <h3 style={shell.panelTitle}><CircleDollarSign size={16} /> Mark Salary as Paid</h3>
             <p style={shell.sub}>{paymentModal.item?.employeeName} - Net INR {money(paymentModal.item?.netSalary)}</p>
-            <div style={shell.row}>
+            <div style={{ ...shell.row, gridTemplateColumns: screenWidth < 640 ? '1fr' : 'repeat(3, minmax(0, 1fr))' }}>
               <div style={shell.field}><p style={shell.label}>Payment Mode</p><select style={shell.input} value={paymentModal.paymentMode} onChange={(event) => setPaymentModal((prev) => ({ ...prev, paymentMode: event.target.value }))}><option>Cash</option><option>Bank transfer</option><option>UPI</option><option>Cheque</option></select></div>
               <div style={shell.field}><p style={shell.label}>Payment Date</p><input type="date" style={shell.input} value={paymentModal.paymentDate} onChange={(event) => setPaymentModal((prev) => ({ ...prev, paymentDate: event.target.value }))} /></div>
               <div style={shell.field}><p style={shell.label}>Transaction / Ref No.</p><input style={shell.input} value={paymentModal.transactionRef} onChange={(event) => setPaymentModal((prev) => ({ ...prev, transactionRef: event.target.value }))} /></div>
             </div>
             <div style={shell.field}><p style={shell.label}>Remarks</p><textarea style={{ ...shell.input, minHeight: '70px' }} value={paymentModal.remarks} onChange={(event) => setPaymentModal((prev) => ({ ...prev, remarks: event.target.value }))} /></div>
-            <div style={shell.actionRow}>
-              <button type="button" style={shell.btn} onClick={markPaid} disabled={busy}>Confirm Payment</button>
-              <button type="button" style={shell.btnLight} onClick={() => setPaymentModal((prev) => ({ ...prev, open: false, item: null }))}>Cancel</button>
+            <div style={getModalActionStyle()}>
+              <button type="button" style={{ ...shell.btn, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={markPaid} disabled={busy}>Confirm Payment</button>
+              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => setPaymentModal((prev) => ({ ...prev, open: false, item: null }))}>Cancel</button>
             </div>
           </div>
         </div>
@@ -1621,19 +1645,19 @@ export default function PayrollModule() {
 
       {adjustModal.open ? (
         <div style={shell.modalBg}>
-          <div style={shell.modal}>
+          <div style={getModalStyle()}>
             <h3 style={shell.panelTitle}><ShieldCheck size={16} /> Manual Salary Override</h3>
             <p style={shell.sub}>Admin/HR can adjust salary with reason for audit log.</p>
-            <div style={shell.row}>
+            <div style={{ ...shell.row, gridTemplateColumns: screenWidth < 640 ? '1fr' : 'repeat(4, minmax(0, 1fr))' }}>
               <div style={shell.field}><p style={shell.label}>Payroll Status</p><select style={shell.input} value={adjustModal.payrollStatus} onChange={(event) => setAdjustModal((prev) => ({ ...prev, payrollStatus: event.target.value }))}><option value="Draft">Draft</option><option value="Generated">Generated</option><option value="Hold">Hold</option></select></div>
               <div style={shell.field}><p style={shell.label}>Manual Adjustment Amount (+/-)</p><input type="number" style={shell.input} value={adjustModal.manualAdjustmentAmount} onChange={(event) => setAdjustModal((prev) => ({ ...prev, manualAdjustmentAmount: event.target.value }))} /></div>
               <div style={shell.field}><p style={shell.label}>Override Net Salary</p><input type="number" style={shell.input} value={adjustModal.overrideNetSalary} onChange={(event) => setAdjustModal((prev) => ({ ...prev, overrideNetSalary: event.target.value }))} /></div>
               <div style={shell.field}><p style={shell.label}>Override Mode</p><select style={shell.input} value={adjustModal.manualOverrideEnabled ? 'yes' : 'no'} onChange={(event) => setAdjustModal((prev) => ({ ...prev, manualOverrideEnabled: event.target.value === 'yes' }))}><option value="no">Adjustment Mode</option><option value="yes">Absolute Override Net</option></select></div>
             </div>
             <div style={shell.field}><p style={shell.label}>Reason</p><textarea style={{ ...shell.input, minHeight: '72px' }} value={adjustModal.manualAdjustmentReason} onChange={(event) => setAdjustModal((prev) => ({ ...prev, manualAdjustmentReason: event.target.value }))} /></div>
-            <div style={shell.actionRow}>
-              <button type="button" style={shell.btn} onClick={saveAdjustment} disabled={busy}>Save Adjustment</button>
-              <button type="button" style={shell.btnLight} onClick={() => setAdjustModal((prev) => ({ ...prev, open: false, item: null }))}>Cancel</button>
+            <div style={getModalActionStyle()}>
+              <button type="button" style={{ ...shell.btn, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={saveAdjustment} disabled={busy}>Save Adjustment</button>
+              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => setAdjustModal((prev) => ({ ...prev, open: false, item: null }))}>Cancel</button>
             </div>
           </div>
         </div>
@@ -1641,16 +1665,16 @@ export default function PayrollModule() {
 
       {slipViewer.open ? (
         <div style={shell.modalBg}>
-          <div style={{ ...shell.modal, width: 'min(980px, 100%)' }}>
+          <div style={getModalStyle(true)}>
             <h3 style={shell.panelTitle}><FileText size={16} /> Salary Slip - {slipViewer.title}</h3>
-            <div style={shell.actionRow}>
-              <button type="button" style={shell.btnLight} onClick={() => window.open(`${slipViewer.url}&download=1`, '_blank')}><Download size={14} /> Download PDF</button>
-              <button type="button" style={shell.btnLight} onClick={() => window.open(slipViewer.url, '_blank')}>Open in New Tab</button>
-              <button type="button" style={shell.btnLight} onClick={() => shareSlip('email')}>Share Email</button>
-              <button type="button" style={shell.btnLight} onClick={() => shareSlip('whatsapp')}>Share WhatsApp</button>
-              <button type="button" style={shell.btnLight} onClick={() => setSlipViewer({ open: false, url: '', title: '', item: null })}>Close</button>
+            <div style={{ ...shell.modalActions, flexDirection: screenWidth < 640 ? 'column' : 'row' }}>
+              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => window.open(`${slipViewer.url}&download=1`, '_blank')}><Download size={14} /> Download PDF</button>
+              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => window.open(slipViewer.url, '_blank')}>Open in New Tab</button>
+              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => shareSlip('email')}>Share Email</button>
+              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => shareSlip('whatsapp')}>Share WhatsApp</button>
+              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => setSlipViewer({ open: false, url: '', title: '', item: null })}>Close</button>
             </div>
-            <iframe title="Salary Slip" src={slipViewer.url} style={{ width: '100%', height: '72vh', border: '1px solid #D1D5DB', borderRadius: '10px', background: '#fff' }} />
+            <iframe title="Salary Slip" src={slipViewer.url} style={{ ...shell.modalFrame, height: screenWidth < 640 ? '58vh' : '72vh' }} />
           </div>
         </div>
       ) : null}
