@@ -590,7 +590,7 @@ export default function LeadCapture() {
     defaultColumnWidths: desktopLeadColumnWidths,
     columnBounds: leadColumnResizeBounds,
     minWidth: 72,
-    enabled: !isMobile
+    enabled: viewportWidth > 900
   });
 
   const customizePanelRef = useRef(null);
