@@ -182,36 +182,8 @@ app.get("/api/db-test", requireAdminDebugAccess, async (req, res) => {
     });
   }
 });
-// ✅ TEST ROUTES
 app.get("/api", (req, res) => {
   res.send("SKUAS CRM API is working ✅");
-});
-
-app.get("/api/test", (req, res) => {
-  res.json({
-    success: true,
-    message: "Backend working perfectly 🚀",
-  });
-});
-
-app.post('/api/integrations/push/test', async (req, res) => {
-  try {
-    const demoJob = {
-      id: req.body?.jobId || 'demo',
-      customerName: req.body?.customerName || 'Test Customer',
-      serviceName: req.body?.serviceName || 'General Pest Control',
-      scheduledDate: req.body?.scheduledDate || new Date().toISOString().slice(0, 10),
-      technicianName: req.body?.technicianName || '',
-      technicianMobile: req.body?.technicianMobile || '',
-      employeeCode: req.body?.employeeCode || '',
-      technicianId: req.body?.technicianId || '',
-      status: 'Assigned',
-    };
-    await notifyTechnicianPush(demoJob, 'job_assigned');
-    return res.json({ success: true, message: 'Push test triggered' });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
-  }
 });
 
 app.get('/api/health', (req, res) => {
