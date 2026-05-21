@@ -800,7 +800,7 @@ export default function Attendance() {
                     </select>
                   </td>
                   <td style={shell.td}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flexWrap: 'nowrap', whiteSpace: 'nowrap', width: '100%' }}>
                       {record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) ? (
                         <a
                           href={record.punchInMapUrl || `https://www.google.com/maps?q=${record.punchInLatitude},${record.punchInLongitude}`}
