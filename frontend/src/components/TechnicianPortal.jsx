@@ -15,6 +15,7 @@ import {
   Upload,
   UserCog
 } from 'lucide-react';
+import PdfPreviewModal from './PdfPreviewModal';
 import { useLocation, useParams } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -587,6 +588,7 @@ export default function TechnicianPortal() {
   const [customerPage, setCustomerPage] = useState(1);
   const [expandedCustomerKey, setExpandedCustomerKey] = useState('');
   const [completionCard, setCompletionCard] = useState(null);
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
   const [activeJob, setActiveJob] = useState(null);
   const [wizardStep, setWizardStep] = useState('photos');
   const [jobWizard, setJobWizard] = useState(() => buildWizardDraft({}));
@@ -837,6 +839,19 @@ export default function TechnicianPortal() {
     if (sigCanvas.current && typeof sigCanvas.current.clear === 'function') {
       sigCanvas.current.clear();
     }
+  };
+
+  const openJobPdfPreview = (job) => {
+    if (!job?._id) return;
+    const jobNumber = String(job.jobNumber || job.job_no || job.jobNo || job.scheduleVisit || job.visit || job._id || 'Job').trim();
+    const pdfUrl = `${API_BASE_URL}/api/service-visits/${job._id}/job-card-pdf`;
+    setPdfPreview({
+      open: true,
+      title: `Job Card - ${jobNumber}`,
+      pdfUrl,
+      downloadFileName: `${jobNumber.replace(/[^\w.-]+/g, '_')}.pdf`,
+      publicShareUrl: pdfUrl
+    });
   };
 
   const handlePunchIn = async () => {
@@ -1539,7 +1554,7 @@ export default function TechnicianPortal() {
               <button
                 type="button"
                 style={shell.completionDownloadBtn}
-                onClick={() => window.open(`${API_BASE_URL}/api/service-visits/${completionCard.jobId}/job-card-pdf`, '_blank')}
+                onClick={() => openJobPdfPreview({ ...completionCard, _id: completionCard.jobId })}
               >
                 View Job PDF
               </button>
@@ -1621,7 +1636,7 @@ export default function TechnicianPortal() {
                                           <button
                                             type="button"
                                             style={shell.pdfBtn}
-                                            onClick={() => window.open(`${API_BASE_URL}/api/service-visits/${job._id}/job-card-pdf`, '_blank')}
+                                            onClick={() => openJobPdfPreview(job)}
                                             disabled={isSavingAssignment}
                                           >
                                             PDF
@@ -1885,6 +1900,15 @@ export default function TechnicianPortal() {
           </div>
         </div>
       ) : null}
+
+      <PdfPreviewModal
+        open={pdfPreview.open}
+        title={pdfPreview.title}
+        pdfUrl={pdfPreview.pdfUrl}
+        downloadFileName={pdfPreview.downloadFileName}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        publicShareUrl={pdfPreview.publicShareUrl}
+      />
     </section>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import PdfPreviewModal from './PdfPreviewModal';
 import {
   CalendarClock,
   ChevronLeft,
@@ -132,6 +133,7 @@ export default function RenewalDashboard() {
   const [message, setMessage] = useState('');
   const [modal, setModal] = useState({ type: '', row: null });
   const [form, setForm] = useState({});
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 760);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
@@ -206,6 +208,20 @@ export default function RenewalDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openRenewalPdfPreview = (row) => {
+    const titleName = String(row?.customerName || row?.customer_name || 'Customer').trim();
+    const pdfUrl = String(row?.renewalLetterUrl ? `${API_BASE}${row.renewalLetterUrl}` : row?.pdf_url ? `${API_BASE}${row.pdf_url}` : '').trim();
+    if (!pdfUrl) return;
+    const fileLabel = String(row?.renewalDisplayId || row?.renewal_display_id || row?.renewalId || row?.renewal_id || titleName || 'renewal-letter').trim();
+    setPdfPreview({
+      open: true,
+      title: `Renewal Letter - ${titleName}`,
+      pdfUrl,
+      downloadFileName: `${fileLabel.replace(/[^\w.-]+/g, '_')}.pdf`,
+      publicShareUrl: pdfUrl
+    });
   };
 
   useEffect(() => {
@@ -470,7 +486,7 @@ export default function RenewalDashboard() {
                 <span>Due Date: {formatDate(row.renewalDueDate)}</span>
                 <span>Proposed Amount: {formatINR(row.proposedAmount)}</span>
                 <span>Sales Person: {row.assignedSalesPersonName || '-'}</span>
-                {row.renewalLetterUrl ? <a href={`${API_BASE}${row.renewalLetterUrl}`} target="_blank" rel="noreferrer">Open renewal letter</a> : null}
+                {row.renewalLetterUrl ? <a href={`${API_BASE}${row.renewalLetterUrl}`} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(row); }} rel="noreferrer">Open renewal letter</a> : null}
                 <button style={shell.ghostBtn} onClick={() => openModal('edit', row)}>Edit Renewal</button>
                 {row.status === 'Done' && !row.convertedContractId ? <button style={shell.primaryBtn} onClick={() => openModal('convert', row)}>Convert to New Contract</button> : null}
               </div>
@@ -576,12 +592,20 @@ export default function RenewalDashboard() {
               <div key={letter.id || letter.pdf_url} style={shell.miniRow}>
                 <strong>{letter.customer_name || '-'}</strong>
                 <span>{formatDate(letter.generated_at)}</span>
-                <a href={`${API_BASE}${letter.pdf_url}`} target="_blank" rel="noreferrer">Open PDF</a>
+                <a href={`${API_BASE}${letter.pdf_url}`} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(letter); }} rel="noreferrer">Open PDF</a>
               </div>
             ))}
           </div>
         ) : null}
       </section>
+      <PdfPreviewModal
+        open={pdfPreview.open}
+        title={pdfPreview.title}
+        pdfUrl={pdfPreview.pdfUrl}
+        downloadFileName={pdfPreview.downloadFileName}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        publicShareUrl={pdfPreview.publicShareUrl}
+      />
       {renderModal()}
     </div>
   );

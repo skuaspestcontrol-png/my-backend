@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, Pencil, ShieldCheck, Trash2, UserRoundCheck } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import PdfPreviewModal from './PdfPreviewModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -1697,21 +1698,16 @@ export default function PayrollModule() {
         </div>
       ) : null}
 
-      {slipViewer.open ? (
-        <div style={shell.modalBg}>
-          <div style={getModalStyle(true)}>
-            <h3 style={shell.panelTitle}><FileText size={16} /> Salary Slip - {slipViewer.title}</h3>
-            <div style={{ ...shell.modalActions, flexDirection: screenWidth < 640 ? 'column' : 'row' }}>
-              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => window.open(`${slipViewer.url}&download=1`, '_blank')}><Download size={14} /> Download PDF</button>
-              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => window.open(slipViewer.url, '_blank')}>Open in New Tab</button>
-              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => shareSlip('email')}>Share Email</button>
-              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => shareSlip('whatsapp')}>Share WhatsApp</button>
-              <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => setSlipViewer({ open: false, url: '', title: '', item: null })}>Close</button>
-            </div>
-            <iframe title="Salary Slip" src={slipViewer.url} style={{ ...shell.modalFrame, height: screenWidth < 640 ? '58vh' : '72vh' }} />
-          </div>
-        </div>
-      ) : null}
+      <PdfPreviewModal
+        open={slipViewer.open}
+        title={`Salary Slip - ${slipViewer.title}`}
+        pdfUrl={slipViewer.url}
+        downloadFileName={`${String(slipViewer.title || 'salary-slip').replace(/[^\w.-]+/g, '_')}.pdf`}
+        onClose={() => setSlipViewer({ open: false, url: '', title: '', item: null })}
+        onShareEmail={() => shareSlip('email')}
+        onShareWhatsApp={() => shareSlip('whatsapp')}
+        publicShareUrl={slipViewer.url}
+      />
     </section>
   );
 }

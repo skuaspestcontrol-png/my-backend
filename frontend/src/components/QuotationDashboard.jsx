@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import PdfPreviewModal from './PdfPreviewModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -212,6 +213,7 @@ function QuotationDashboardInner() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
   const perPage = 20;
 
   useEffect(() => {
@@ -247,6 +249,19 @@ function QuotationDashboardInner() {
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Could not delete quotation');
     }
+  };
+
+  const openQuotationPdfPreview = (row) => {
+    if (!row?.id) return;
+    const quotationNumber = String(row.quotation_number || row.quotationNumber || row.quotationNo || row.quotation_no || row.id || 'Quotation').trim();
+    const pdfUrl = `${API_BASE_URL}/api/quotations/${row.id}/pdf`;
+    setPdfPreview({
+      open: true,
+      title: `Quotation - ${quotationNumber}`,
+      pdfUrl,
+      downloadFileName: `${quotationNumber.replace(/[^\w.-]+/g, '_')}.pdf`,
+      publicShareUrl: pdfUrl
+    });
   };
 
   useEffect(() => {
@@ -427,7 +442,7 @@ function QuotationDashboardInner() {
                           type="button"
                           className="crm-icon-action-btn"
                           style={shell.rowIconBtn}
-                          onClick={() => window.open(`${API_BASE_URL}/api/quotations/${row.id}/pdf`, '_blank')}
+                          onClick={() => openQuotationPdfPreview(row)}
                           aria-label="View PDF"
                           title="View PDF"
                         >
@@ -450,6 +465,15 @@ function QuotationDashboardInner() {
           </div>
         ) : null}
       </div>
+
+      <PdfPreviewModal
+        open={pdfPreview.open}
+        title={pdfPreview.title}
+        pdfUrl={pdfPreview.pdfUrl}
+        downloadFileName={pdfPreview.downloadFileName}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        publicShareUrl={pdfPreview.publicShareUrl}
+      />
 
       {status ? <p style={{ margin: 0, color: '#dc2626', fontWeight: 700, fontSize: 13 }}>{status}</p> : null}
     </section>

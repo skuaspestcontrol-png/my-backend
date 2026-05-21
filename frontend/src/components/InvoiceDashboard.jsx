@@ -10,6 +10,7 @@ import {
   normalizeInvoiceVisibleColumns
 } from '../utils/invoicePreferences';
 import { normalizeIndianMobileNumber } from '../utils/phone';
+import PdfPreviewModal from './PdfPreviewModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const INVOICE_PAGE_SIZE = 20;
@@ -678,6 +679,7 @@ export default function InvoiceDashboard() {
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const [invoicesHydrated, setInvoicesHydrated] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
   const [visibleColumns, setVisibleColumns] = useState(() => {
     const saved = localStorage.getItem('invoice_visible_columns');
     if (!saved) return [...defaultInvoiceVisibleColumns];
@@ -1236,25 +1238,17 @@ export default function InvoiceDashboard() {
       String(customer.displayName || customer.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
     ) || null;
 
-  const triggerInvoicePdfDownload = (invoice) => {
-    const href = `${API_BASE_URL}/api/invoices/${invoice._id}/pdf`;
-    const link = document.createElement('a');
-    link.href = href;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const previewInvoicePdf = (invoice) => {
+  const openInvoicePdfPreview = (invoice) => {
     if (!invoice?._id) return;
-    window.open(`${API_BASE_URL}/api/invoices/${invoice._id}/pdf`, '_blank', 'noopener,noreferrer');
-  };
-
-  const printInvoicePdf = (invoice) => {
-    if (!invoice?._id) return;
-    window.open(`${API_BASE_URL}/api/invoices/${invoice._id}/pdf`, '_blank', 'noopener,noreferrer');
+    const invoiceNumber = String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || 'Invoice').trim();
+    const pdfUrl = `${API_BASE_URL}/api/invoices/${invoice._id}/pdf`;
+    setPdfPreview({
+      open: true,
+      title: `Invoice - ${invoiceNumber}`,
+      pdfUrl,
+      downloadFileName: `${invoiceNumber.replace(/[^\w.-]+/g, '_')}.pdf`,
+      publicShareUrl: pdfUrl
+    });
   };
 
   const buildShareText = (invoice, customer) => {
@@ -1286,17 +1280,17 @@ export default function InvoiceDashboard() {
     const shareText = buildShareText(invoice, customer);
 
     if (action === 'download') {
-      triggerInvoicePdfDownload(invoice);
+      openInvoicePdfPreview(invoice);
       return;
     }
 
     if (action === 'preview') {
-      previewInvoicePdf(invoice);
+      openInvoicePdfPreview(invoice);
       return;
     }
 
     if (action === 'print') {
-      printInvoicePdf(invoice);
+      openInvoicePdfPreview(invoice);
       return;
     }
 
@@ -3411,6 +3405,23 @@ export default function InvoiceDashboard() {
           </div>
         </div>
       ) : null}
+
+      <PdfPreviewModal
+        open={pdfPreview.open}
+        title={pdfPreview.title}
+        pdfUrl={pdfPreview.pdfUrl}
+        downloadFileName={pdfPreview.downloadFileName}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        onShareEmail={async () => {
+          const invoice = invoices.find((entry) => `${API_BASE_URL}/api/invoices/${entry._id}/pdf` === pdfPreview.pdfUrl);
+          if (invoice) await runInvoiceAction(invoice, 'email');
+        }}
+        onShareWhatsApp={async () => {
+          const invoice = invoices.find((entry) => `${API_BASE_URL}/api/invoices/${entry._id}/pdf` === pdfPreview.pdfUrl);
+          if (invoice) await runInvoiceAction(invoice, 'whatsapp');
+        }}
+        publicShareUrl={pdfPreview.publicShareUrl}
+      />
     </section>
   );
 }
