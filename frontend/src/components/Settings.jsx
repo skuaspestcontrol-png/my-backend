@@ -2428,6 +2428,17 @@ export default function Settings({ modalMode = false }) {
         setStatus('Unable to copy attendance source health right now.');
       }
     };
+    const copyLegacySummary = async () => {
+      if (!attendanceSourceHealth) return;
+      try {
+        const summaryText = `Legacy rows remaining: ${totalLegacyRows} (attendance: ${Number(attendance.legacyRows || 0)}, audit: ${Number(audit.legacyRows || 0)}) out of ${totalRows} total rows`;
+        await navigator.clipboard.writeText(summaryText);
+        setStatus('Legacy rows summary copied to clipboard.');
+      } catch (error) {
+        console.error('Legacy rows summary copy failed', error);
+        setStatus('Unable to copy legacy rows summary right now.');
+      }
+    };
 
     return (
       <div style={shell.bankCard}>
@@ -2444,6 +2455,14 @@ export default function Settings({ modalMode = false }) {
               disabled={!canCopyHealth}
             >
               Copy JSON
+            </button>
+            <button
+              type="button"
+              style={{ ...shell.topButton, minWidth: '180px' }}
+              onClick={copyLegacySummary}
+              disabled={!canCopyHealth}
+            >
+              Copy Summary
             </button>
             <button
               type="button"
