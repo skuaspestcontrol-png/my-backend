@@ -44,6 +44,28 @@ const normalizeLeaveType = (value) => {
   return canonical || text;
 };
 
+const resolveStatusForLeaveType = (leaveType, fallbackStatus = 'absent') => {
+  const normalized = normalizeLeaveType(leaveType);
+  switch (normalized) {
+    case 'Outdoor Duty':
+      return 'present';
+    case 'Weekly Off':
+      return 'weekly-off';
+    case 'Half Day Leave':
+      return 'half-day';
+    case 'Absent':
+      return 'absent';
+    case 'Public Holiday':
+    case 'Paid Leave':
+    case 'Casual Leave (CL)':
+    case 'Sick Leave (SL)':
+    case 'Unpaid Leave (LWP)':
+      return 'leave';
+    default:
+      return fallbackStatus;
+  }
+};
+
 const shell = {
   page: {
     padding: 0,
@@ -492,6 +514,28 @@ export default function Attendance() {
     saveRecord(employeeId, next);
   };
 
+  const setLeaveType = (employeeId, leaveType) => {
+    const current = records[employeeId] || { employeeId, date, status: 'absent', checkIn: '', checkOut: '', leaveType: '', leaveReason: '', notes: '', source: '' };
+    const nextLeaveType = normalizeLeaveType(leaveType);
+    const nextStatus = resolveStatusForLeaveType(nextLeaveType, current.status || 'absent');
+    const nextCheckIn = nextStatus === 'present'
+      ? (current.checkIn || '09:00')
+      : '';
+    const nextCheckOut = nextStatus === 'present'
+      ? (current.checkOut || '17:00')
+      : '';
+    const next = {
+      ...current,
+      status: nextStatus,
+      leaveType: nextLeaveType,
+      checkIn: nextCheckIn,
+      checkOut: nextCheckOut,
+      leaveReason: nextStatus === 'leave' ? current.leaveReason : ''
+    };
+    setRecords((prev) => ({ ...prev, [employeeId]: next }));
+    saveRecord(employeeId, next);
+  };
+
   const saveRecord = async (employeeId, payload) => {
     const row = payload || records[employeeId];
     if (!row) return;
@@ -666,7 +710,6 @@ export default function Attendance() {
           <tbody>
             {employeeRows.map(({ employee, employeeId, record, workingHours }) => {
               const status = record.status || 'absent';
-              const leaveDisabled = status !== 'leave';
               const timeDisabled = status !== 'present';
               return (
                 <tr key={employeeId}>
@@ -734,12 +777,9 @@ export default function Attendance() {
                   <td style={shell.td}>
                     <select
                       value={record.leaveType || ''}
-                      disabled={leaveDisabled}
                       style={shell.input}
                       onChange={(event) => {
-                        const nextLeaveType = normalizeLeaveType(event.target.value);
-                        updateRecordField(employeeId, 'leaveType', nextLeaveType);
-                        saveRecord(employeeId, { ...record, leaveType: nextLeaveType });
+                        setLeaveType(employeeId, event.target.value);
                       }}
                     >
                       {leaveTypes.map((entry) => (
