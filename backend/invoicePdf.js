@@ -559,13 +559,15 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     doc.font('Helvetica-Bold').fontSize(18).fillColor(company.primaryColor).text('TAX INVOICE', rightX, y + 8, { width: rightW, align: 'right' });
 
     const meta = [
-      `Invoice # : ${clean(invoice.invoiceNumber) || '-'}`,
-      `Invoice Date : ${formatDate(invoice.date)}`,
-      `Sales Person : ${clean(invoice.salesperson) || '-'}`
+      ['Invoice #', clean(invoice.invoiceNumber) || '-'],
+      ['Invoice Date', formatDate(invoice.date)],
+      ['Sales Person', clean(invoice.salesperson) || '-']
     ];
+    const metaLabelW = 92;
     let my = y + 56;
-    meta.forEach((line) => {
-      doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(line, rightX, my, { width: rightW, align: 'right' });
+    meta.forEach(([label, value]) => {
+      doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(`${label} :`, rightX, my, { width: metaLabelW, align: 'left' });
+      doc.text(value, rightX + metaLabelW, my, { width: rightW - metaLabelW, align: 'right' });
       my += 11;
     });
 
