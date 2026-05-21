@@ -183,6 +183,25 @@ const shell = {
     fontWeight: 700,
     whiteSpace: 'nowrap',
     cursor: 'pointer'
+  },
+  historyCardList: { display: 'grid', gap: '10px' },
+  historyCard: { border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff', padding: '12px', display: 'grid', gap: '10px' },
+  historyHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' },
+  historyTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' },
+  historySub: { margin: '2px 0 0 0', fontSize: '11px', fontWeight: 700, color: '#64748b' },
+  historyMetaGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
+  historyMetric: { border: '1px solid #eef2f7', borderRadius: '10px', padding: '8px 10px', background: '#f8fafc' },
+  historyMetricLabel: { margin: 0, fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  historyMetricValue: { margin: '3px 0 0 0', fontSize: '12px', fontWeight: 800, color: '#0f172a' },
+  historyActionWrap: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px' },
+  historyActionButton: {
+    minHeight: '30px',
+    padding: '0 8px',
+    width: '100%',
+    justifyContent: 'center',
+    textAlign: 'center',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
   }
 };
 
@@ -243,6 +262,7 @@ export default function PayrollModule() {
   const [adjustModal, setAdjustModal] = useState({ open: false, item: null, manualAdjustmentAmount: '', manualAdjustmentReason: '', manualOverrideEnabled: false, overrideNetSalary: '', payrollStatus: 'Generated' });
   const [slipViewer, setSlipViewer] = useState({ open: false, url: '', title: '', item: null });
   const [page, setPage] = useState(1);
+  const [screenWidth, setScreenWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
 
   const pageSize = 10;
   const headers = useMemo(() => ({
@@ -302,6 +322,13 @@ export default function PayrollModule() {
     reloadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year]);
+
+  useEffect(() => {
+    const handleResize = () => setScreenWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useAutoRefresh(() => reloadAll(), { enabled: !paymentModal.open && !adjustModal.open && !slipViewer.open });
 
@@ -849,6 +876,50 @@ export default function PayrollModule() {
     window.open(url, '_blank');
   };
 
+  const renderPayrollHistoryActions = (entry, compact = false) => {
+    const actionButtonStyle = compact
+      ? { ...shell.btnLight, ...shell.historyActionButton }
+      : { ...shell.btnLight, ...shell.payrollActionButton };
+    const editButtonStyle = compact
+      ? { ...shell.btnLight, ...shell.historyActionButton, minWidth: 0 }
+      : { ...shell.btnLight, ...shell.payrollIconButton };
+    const paidButtonStyle = compact
+      ? { ...shell.btn, ...shell.historyActionButton }
+      : { ...shell.btn, ...shell.payrollActionButton };
+    const actionWrapStyle = compact ? shell.historyActionWrap : shell.payrollActionGroup;
+    return (
+      <div style={actionWrapStyle}>
+        <button type="button" style={actionButtonStyle} onClick={() => openSlipViewer(entry)}>Slip</button>
+        {(entry.payrollStatus === 'Paid' || entry.paymentStatus === 'Paid')
+          ? <button type="button" style={actionButtonStyle} onClick={() => unlockPayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Unlock</button>
+          : null}
+        {entry.payrollStatus !== 'Paid' ? (
+          <button
+            type="button"
+            style={editButtonStyle}
+            onClick={() => openAdjust(entry)}
+            disabled={busy || (!role.canManage && !role.canGenerate)}
+            title="Edit payroll"
+            aria-label="Edit payroll"
+          >
+            <Pencil size={15} />
+          </button>
+        ) : null}
+        {entry.paymentStatus !== 'Paid' ? <button type="button" style={paidButtonStyle} onClick={() => openPayment(entry)} disabled={busy || !role.canMarkPaid}>Paid</button> : null}
+        <button
+          type="button"
+          style={editButtonStyle}
+          onClick={() => deletePayrollItem(entry)}
+          disabled={busy || (!role.canManage && !role.canGenerate)}
+          title="Delete payroll"
+          aria-label="Delete payroll"
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
+    );
+  };
+
   const renderDashboard = () => (
     <>
       <div style={shell.grid}>
@@ -1052,88 +1123,106 @@ export default function PayrollModule() {
           <div style={shell.field}><p style={shell.label}>Search Name / ID</p><input style={shell.input} value={filters.search} onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))} placeholder="Search employee" /></div>
         </div>
       </div>
-      <div style={shell.tableWrap}>
-        <table style={shell.payrollTable}>
-          <colgroup>
-            <col style={{ width: '170px' }} />
-            <col style={{ width: '130px' }} />
-            <col style={{ width: '170px' }} />
-            <col style={{ width: '145px' }} />
-            <col style={{ width: '150px' }} />
-            <col style={{ width: '155px' }} />
-            <col style={{ width: '150px' }} />
-            <col style={{ width: '130px' }} />
-            <col style={shell.payrollActionCell} />
-          </colgroup>
-          <thead>
-            <tr>
-              <th style={shell.th}>Employee</th>
-              <th style={shell.th}>Month</th>
-              <th style={shell.th}>Attendance</th>
-              <th style={shell.th}>Gross</th>
-              <th style={shell.th}>Deductions</th>
-              <th style={shell.th}>Net</th>
-              <th style={shell.th}>Payroll Status</th>
-              <th style={shell.th}>Payment</th>
-              <th style={shell.th}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagedPayrollItems.map((entry) => (
-              <tr key={entry._id}>
-                <td style={shell.td}>
-                  <div>{entry.employeeName}</div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode} • {entry.department || '-'}</div>
-                </td>
-                <td style={shell.td}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
-                <td style={shell.td}>
-                  WD {entry?.attendanceSummary?.totalWorkingDays || 0}<br />
-                  P {entry?.attendanceSummary?.presentDays || 0} • PL {entry?.attendanceSummary?.paidLeaveDays || 0} • UL {entry?.attendanceSummary?.unpaidLeaveDays || 0}
-                </td>
-                <td style={shell.td}>INR {money(entry.grossSalary)}</td>
-                <td style={shell.td}>INR {money(entry?.deductions?.total)}</td>
-                <td style={shell.td}><strong>INR {money(entry.netSalary)}</strong></td>
-                <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span></td>
-                <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
-                <td style={shell.td}>
-                  <div style={shell.payrollActionGroup}>
-                    <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => openSlipViewer(entry)}>Salary Slip</button>
-                    {(entry.payrollStatus === 'Paid' || entry.paymentStatus === 'Paid')
-                      ? <button type="button" style={{ ...shell.btnLight, ...shell.payrollActionButton }} onClick={() => unlockPayrollItem(entry)} disabled={busy || (!role.canManage && !role.canGenerate)}>Unlock</button>
-                      : null}
-                    {entry.payrollStatus !== 'Paid' ? (
-                      <button
-                        type="button"
-                        style={{ ...shell.btnLight, ...shell.payrollIconButton }}
-                        onClick={() => openAdjust(entry)}
-                        disabled={busy || (!role.canManage && !role.canGenerate)}
-                        title="Edit payroll"
-                        aria-label="Edit payroll"
-                      >
-                        <Pencil size={15} />
-                      </button>
-                    ) : null}
-                    {entry.paymentStatus !== 'Paid' ? <button type="button" style={{ ...shell.btn, ...shell.payrollActionButton }} onClick={() => openPayment(entry)} disabled={busy || !role.canMarkPaid}>Mark Paid</button> : null}
-                    <button
-                      type="button"
-                      style={{ ...shell.btnLight, ...shell.payrollIconButton }}
-                      onClick={() => deletePayrollItem(entry)}
-                      disabled={busy || (!role.canManage && !role.canGenerate)}
-                      title="Delete payroll"
-                      aria-label="Delete payroll"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </td>
+      {screenWidth < 960 ? (
+        <div style={shell.historyCardList}>
+          {pagedPayrollItems.map((entry) => (
+            <div key={entry._id} style={shell.historyCard}>
+              <div style={shell.historyHeader}>
+                <div style={shell.employeeMeta}>
+                  <p style={shell.historyTitle}>{entry.employeeName}</p>
+                  <p style={shell.historySub}>{entry.employeeCode} • {entry.department || '-'} • {monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</p>
+                </div>
+                <span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span>
+              </div>
+              <div style={shell.historyMetaGrid}>
+                <div style={shell.historyMetric}>
+                  <p style={shell.historyMetricLabel}>Net Salary</p>
+                  <p style={shell.historyMetricValue}>INR {money(entry.netSalary)}</p>
+                </div>
+                <div style={shell.historyMetric}>
+                  <p style={shell.historyMetricLabel}>Payment</p>
+                  <p style={shell.historyMetricValue}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></p>
+                </div>
+                <div style={shell.historyMetric}>
+                  <p style={shell.historyMetricLabel}>Gross</p>
+                  <p style={shell.historyMetricValue}>INR {money(entry.grossSalary)}</p>
+                </div>
+                <div style={shell.historyMetric}>
+                  <p style={shell.historyMetricLabel}>Deductions</p>
+                  <p style={shell.historyMetricValue}>INR {money(entry?.deductions?.total)}</p>
+                </div>
+              </div>
+              <div style={shell.historyMetaGrid}>
+                <div style={shell.historyMetric}>
+                  <p style={shell.historyMetricLabel}>Attendance</p>
+                  <p style={shell.historyMetricValue}>
+                    P {entry?.attendanceSummary?.presentDays || 0} • PL {entry?.attendanceSummary?.paidLeaveDays || 0} • UL {entry?.attendanceSummary?.unpaidLeaveDays || 0}
+                  </p>
+                </div>
+                <div style={shell.historyMetric}>
+                  <p style={shell.historyMetricLabel}>Working Days</p>
+                  <p style={shell.historyMetricValue}>{entry?.attendanceSummary?.totalWorkingDays || 0}</p>
+                </div>
+              </div>
+              {renderPayrollHistoryActions(entry, true)}
+            </div>
+          ))}
+          {pagedPayrollItems.length === 0 ? <div style={{ ...shell.historyCard, textAlign: 'center', color: '#64748b' }}>No payroll rows found for selected filter.</div> : null}
+        </div>
+      ) : (
+        <div style={shell.tableWrap}>
+          <table style={shell.payrollTable}>
+            <colgroup>
+              <col style={{ width: '180px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '132px' }} />
+              <col style={{ width: '132px' }} />
+              <col style={{ width: '132px' }} />
+              <col style={{ width: '132px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '240px' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th style={shell.th}>Employee</th>
+                <th style={shell.th}>Month</th>
+                <th style={shell.th}>Attendance</th>
+                <th style={shell.th}>Gross</th>
+                <th style={shell.th}>Deductions</th>
+                <th style={shell.th}>Net</th>
+                <th style={shell.th}>Payroll</th>
+                <th style={shell.th}>Payment</th>
+                <th style={shell.th}>Action</th>
               </tr>
-            ))}
-            {pagedPayrollItems.length === 0 ? (
-              <tr><td colSpan={9} style={{ ...shell.td, textAlign: 'center', color: '#64748b' }}>No payroll rows found for selected filter.</td></tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {pagedPayrollItems.map((entry) => (
+                <tr key={entry._id}>
+                  <td style={shell.td}>
+                    <div style={{ fontWeight: 800, color: '#0f172a' }}>{entry.employeeName}</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode} • {entry.department || '-'}</div>
+                  </td>
+                  <td style={shell.td}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
+                  <td style={shell.td}>
+                    <div style={{ fontWeight: 800, color: '#0f172a' }}>WD {entry?.attendanceSummary?.totalWorkingDays || 0}</div>
+                    <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>P {entry?.attendanceSummary?.presentDays || 0} • PL {entry?.attendanceSummary?.paidLeaveDays || 0} • UL {entry?.attendanceSummary?.unpaidLeaveDays || 0}</div>
+                  </td>
+                  <td style={shell.td}>INR {money(entry.grossSalary)}</td>
+                  <td style={shell.td}>INR {money(entry?.deductions?.total)}</td>
+                  <td style={shell.td}><strong>INR {money(entry.netSalary)}</strong></td>
+                  <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.payrollStatus) }}>{entry.payrollStatus}</span></td>
+                  <td style={shell.td}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.paymentStatus) }}>{entry.paymentStatus}</span></td>
+                  <td style={shell.td}>{renderPayrollHistoryActions(entry, false)}</td>
+                </tr>
+              ))}
+              {pagedPayrollItems.length === 0 ? (
+                <tr><td colSpan={9} style={{ ...shell.td, textAlign: 'center', color: '#64748b' }}>No payroll rows found for selected filter.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      )}
       <div style={{ ...shell.actionRow, justifyContent: 'flex-end' }}>
         <div style={shell.actionRow}>
           <button type="button" style={{ ...shell.btnLight, width: 34, minWidth: 34, padding: 0, justifyContent: 'center' }} disabled={page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
