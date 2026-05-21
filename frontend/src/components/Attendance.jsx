@@ -784,7 +784,9 @@ export default function Attendance() {
                     />
                   </td>
                   <td style={shell.td}>
-                    <span style={shell.hoursBadge}>{workingHours.toFixed(2)} hrs</span>
+                    <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                      <span style={shell.hoursBadge}>{workingHours.toFixed(2)} hrs</span>
+                    </div>
                   </td>
                   <td style={shell.td}>
                     <select
