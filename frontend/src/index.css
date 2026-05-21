@@ -1583,6 +1583,28 @@ textarea:focus {
   white-space: nowrap;
 }
 
+.crm-compact-table.invoice-register-table {
+  width: max-content !important;
+  min-width: var(--invoice-table-min-width, 934px) !important;
+}
+
+.crm-compact-table.invoice-register-table thead th,
+.crm-compact-table.invoice-register-table tbody td {
+  vertical-align: middle !important;
+}
+
+.crm-compact-table.invoice-register-table tbody td {
+  height: 42px !important;
+  min-height: 42px !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+
+.crm-compact-table.invoice-register-table tbody td[data-label="Action"],
+.crm-compact-table.invoice-register-table tbody td[data-label="Select"] {
+  text-align: center !important;
+}
+
 .crm-compact-table.lead-followups-table .lead-followups-customer-stack {
   display: flex;
   align-items: baseline;

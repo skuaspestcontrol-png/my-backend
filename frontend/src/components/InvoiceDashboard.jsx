@@ -247,13 +247,13 @@ const shell = {
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '10px 10px', fontSize: '8px', fontWeight: 400, color: '#111827', verticalAlign: 'top', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   invoiceCell: { color: 'var(--color-primary)', fontWeight: 400, textDecoration: 'underline dotted rgba(159,23,77,0.4)' },
-  checkboxWrap: { width: '34px', textAlign: 'center' },
+  checkboxWrap: { width: '38px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
   statusBadge: { fontWeight: 700 },
   menu: { position: 'absolute', right: 16, top: '56px', background: '#fff', border: '1px solid rgba(239, 68, 68, 0.14)', borderRadius: '12px', minWidth: '200px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 30, overflow: 'hidden' },
   menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center' },
-  rowActionButton: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  rowActionButton: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '30px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   rowActionMenu: { position: 'fixed', minWidth: '168px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 3500, overflow: 'hidden' },
   popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '250px', zIndex: 30 },
   popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
@@ -1042,33 +1042,33 @@ export default function InvoiceDashboard() {
     }
     if (columnKey === 'invoiceNumber') {
       return {
-        width: '140px',
-        minWidth: '140px',
-        maxWidth: '140px'
+        width: '150px',
+        minWidth: '150px',
+        maxWidth: '150px'
       };
     }
     if (columnKey === 'amount' || columnKey === 'balanceDue') {
       return {
-        width: '118px',
-        minWidth: '118px',
-        maxWidth: '118px',
+        width: '112px',
+        minWidth: '112px',
+        maxWidth: '112px',
         textAlign: 'right',
         fontVariantNumeric: 'tabular-nums'
       };
     }
     if (columnKey === 'status') {
       return {
-        width: '96px',
-        minWidth: '96px',
-        maxWidth: '96px',
+        width: '92px',
+        minWidth: '92px',
+        maxWidth: '92px',
         textAlign: 'center'
       };
     }
     if (columnKey === 'customerName') {
       return {
-        width: '230px',
-        minWidth: '230px',
-        maxWidth: '230px'
+        width: '260px',
+        minWidth: '260px',
+        maxWidth: '260px'
       };
     }
     return {};
@@ -2130,25 +2130,26 @@ export default function InvoiceDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
-  const invoiceMobileColumnWidths = ['34px', ...visibleColumnDefs.map((column) => {
+  const invoiceMobileColumnWidths = ['38px', ...visibleColumnDefs.map((column) => {
     const style = getColumnStyle(column.key);
     const width = parseInt(style.minWidth || style.width, 10);
     return `${Number.isFinite(width) ? width : 150}px`;
-  }), '80px'];
-  const invoiceTableMinWidth = 34 + visibleColumnDefs.reduce((sum, column) => {
+  }), '84px'];
+  const invoiceTableMinWidth = 38 + visibleColumnDefs.reduce((sum, column) => {
       const style = getColumnStyle(column.key);
       const width = parseInt(style.minWidth || style.width, 10);
       return sum + (Number.isFinite(width) ? width : 150);
-    }, 0) + 80;
+    }, 0) + 84;
   const tableStyle = isMobile
     ? {
       ...shell.table,
       minWidth: invoiceTableMinWidth,
       tableLayout: 'fixed',
+      '--invoice-table-min-width': `${invoiceTableMinWidth}px`,
       '--mobile-table-columns': invoiceMobileColumnWidths.join(' '),
       '--mobile-table-min-width': `${invoiceTableMinWidth}px`
     }
-    : { ...shell.table, width: `${invoiceTableMinWidth}px`, minWidth: `${invoiceTableMinWidth}px` };
+    : { ...shell.table, '--invoice-table-min-width': `${invoiceTableMinWidth}px` };
   const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : shell.itemTable;
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
@@ -2271,13 +2272,13 @@ export default function InvoiceDashboard() {
       </div>
 
       <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell crm-table-shell--clipped">
-        <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
+        <table style={tableStyle} className="crm-compact-table crm-stack-mobile invoice-register-table">
           <colgroup>
             <col style={shell.checkboxWrap} />
             {visibleColumnDefs.map((column) => (
               <col key={column.key} style={getColumnStyle(column.key)} />
             ))}
-            <col style={{ width: '80px' }} />
+            <col style={{ width: '84px' }} />
           </colgroup>
           <thead>
             <tr>
@@ -2289,7 +2290,7 @@ export default function InvoiceDashboard() {
                   {column.label}
                 </th>
               ))}
-              <th style={{ ...shell.headCell, width: '80px', textAlign: 'center' }}>Action</th>
+              <th style={{ ...shell.headCell, width: '84px', textAlign: 'center' }}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -2338,7 +2339,7 @@ export default function InvoiceDashboard() {
                     </td>
                   );
                 })}
-                <td style={{ ...shell.cell, width: '80px', textAlign: 'center', overflow: 'visible' }} data-label="Action">
+                <td style={{ ...shell.cell, width: '84px', textAlign: 'center', overflow: 'visible' }} data-label="Action">
                   <div style={shell.rowActionWrap}>
                     <button
                       type="button"
