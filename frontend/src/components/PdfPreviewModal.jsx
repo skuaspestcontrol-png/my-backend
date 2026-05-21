@@ -142,7 +142,7 @@ export default function PdfPreviewModal({
   const resolvedShareUrl = useMemo(() => String(publicShareUrl || sourceUrl || '').trim(), [publicShareUrl, sourceUrl]);
   const canShareEmail = typeof onShareEmail === 'function';
   const hasWhatsAppAction = typeof onShareWhatsApp === 'function' || Boolean(resolvedShareUrl);
-  const iframeSrc = previewUrl || sourceUrl;
+  const iframeSrc = previewUrl;
 
   useEffect(() => {
     const onResize = () => setScreenWidth(window.innerWidth);
@@ -174,6 +174,10 @@ export default function PdfPreviewModal({
         setError('');
         const response = await fetch(sourceUrl, { credentials: 'include' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+        if (!contentType.includes('application/pdf')) {
+          throw new Error(`Unexpected content type: ${contentType || 'unknown'}`);
+        }
         const blob = await response.blob();
         if (!blob || blob.size === 0) throw new Error('Empty PDF');
         objectUrl = URL.createObjectURL(blob);
@@ -212,6 +216,10 @@ export default function PdfPreviewModal({
       setLoading(true);
       const response = await fetch(sourceUrl, { credentials: 'include' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+      if (!contentType.includes('application/pdf')) {
+        throw new Error(`Unexpected content type: ${contentType || 'unknown'}`);
+      }
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       downloadBlob(blobUrl, downloadFileName || title || 'document.pdf');
@@ -224,9 +232,24 @@ export default function PdfPreviewModal({
   };
 
   const handleOpenNewTab = () => {
-    const url = previewUrl || sourceUrl;
-    if (!url) return;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const openBlobTab = async () => {
+      if (previewUrl) {
+        window.open(previewUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (!sourceUrl) return;
+      const response = await fetch(sourceUrl, { credentials: 'include' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+      if (!contentType.includes('application/pdf')) {
+        throw new Error(`Unexpected content type: ${contentType || 'unknown'}`);
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    };
+    openBlobTab().catch(() => setError('Could not load PDF preview. Please try Download PDF.'));
   };
 
   const handleShareEmail = async () => {

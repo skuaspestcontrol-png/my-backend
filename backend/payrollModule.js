@@ -2641,7 +2641,7 @@ function registerPayrollModule({
       res.setHeader('X-Payroll-Slip-Path', relativePath);
       res.send(buffer);
     } catch (error) {
-      console.error('Failed to generate salary slip PDF:', error.message);
+      console.error('Salary slip PDF failed:', error);
       res.status(500).json({ error: 'Could not generate salary slip PDF' });
     }
   });
@@ -2738,7 +2738,8 @@ function registerPayrollModule({
       const { absolutePath } = await ensureSalarySlipStored({ item, company, withMysqlConnection });
       const fileName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       const graphBase = `https://graph.facebook.com/${waConfig.apiVersion}`;
-      const shareLink = `${serverOrigin || 'http://localhost:5000'}/api/payroll/items/${item._id}/slip/pdf?download=1&role=Employee&userId=${encodeURIComponent(item.employeeId || '')}&userName=${encodeURIComponent(item.employeeName || '')}`;
+      const shareOrigin = serverOrigin || 'https://crm.skuaspestcontrol.com';
+      const shareLink = `${shareOrigin}/api/payroll/items/${item._id}/slip/pdf?download=1&role=Employee&userId=${encodeURIComponent(item.employeeId || '')}&userName=${encodeURIComponent(item.employeeName || '')}`;
       const caption = String(req.body?.message || `Salary slip for ${pad2(item.month)}/${item.year}\n${company.companyName}\n${shareLink}`).trim().slice(0, 1024);
 
       const mediaForm = new FormData();
