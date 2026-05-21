@@ -1640,9 +1640,7 @@ export default function LeadCapture() {
         ],
         maxResultCount: 10
       };
-      console.log('Place.searchByText request:', request);
       const { places } = await Place.searchByText(request);
-      console.log('Place.searchByText places:', places);
 
       if (!places || places.length === 0) {
         setSearchError('No business/address found. Try full name with city.');

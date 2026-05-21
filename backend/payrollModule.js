@@ -193,9 +193,6 @@ const loadCompanyLogoBuffer = async (logoUrl) => {
   if (text.startsWith('/uploads/')) {
     const relativeUploadPath = normalizeText(text.replace(/^\/uploads\//, ''));
     resolvedLogoPath = path.join(uploadsRootDir, relativeUploadPath);
-    console.log('SALARY PDF logoUrl:', text);
-    console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath);
-    console.log('SALARY PDF logoExists:', fs.existsSync(resolvedLogoPath));
     try {
       if (fs.existsSync(resolvedLogoPath)) {
         return fs.readFileSync(resolvedLogoPath);
@@ -818,10 +815,6 @@ const calcPayrollItem = ({
 
 const buildSalarySlipPdfBuffer = ({ item, company }) => new Promise(async (resolve, reject) => {
   const resolvedLogoPath = tryResolveLocalUploadPath(company?.logoUrl || '');
-  console.log('SALARY PDF logoUrl:', company?.logoUrl);
-  console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath);
-  console.log('SALARY PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
-
   const logoBuffer = await loadFirstAvailableLogoBuffer(
     (Array.isArray(company?.logoCandidates) && company.logoCandidates.length > 0)
       ? company.logoCandidates
@@ -2236,7 +2229,6 @@ function registerPayrollModule({
     try {
       const perms = ensureAccess(req, res, (p) => p.canGenerate, 'Only Admin/HR can generate payroll');
       if (!perms) return;
-      console.log('PAYROLL GENERATE BODY:', req.body);
       const month = toNumber(req.body?.month, 0);
       const year = toNumber(req.body?.year, 0);
       if (!month || !year) return res.status(400).json({ error: 'month and year are required' });
@@ -2246,11 +2238,9 @@ function registerPayrollModule({
       const selectedEmployeeIds = Array.isArray(req.body?.employeeIds)
         ? req.body.employeeIds.map((entry) => normalizeText(entry)).filter(Boolean)
         : [];
-      console.log('PAYROLL GENERATE selectedEmployeeIds:', selectedEmployeeIds);
       const forceRegenerate = req.body?.forceRegenerate === true;
 
       const employees = await readEmployeesForPayroll();
-      console.log('PAYROLL GENERATE employeesCount:', Array.isArray(employees) ? employees.length : 0);
       if (!Array.isArray(employees) || employees.length === 0) {
         return res.status(400).json({ error: 'No employees found for payroll generation' });
       }
@@ -2269,8 +2259,6 @@ function registerPayrollModule({
           || selectedSet.has(normalizeText(entry.employeeCode))
         )
         : employees;
-      console.log('PAYROLL GENERATE scopeCount:', scope.length);
-
       const generated = [];
       const skipped = [];
 
@@ -2327,10 +2315,6 @@ function registerPayrollModule({
       });
 
       saveItems(items);
-      console.log('PAYROLL GENERATE generatedCount:', generated.length);
-      console.log('PAYROLL GENERATE skippedCount:', skipped.length);
-      console.log('PAYROLL GENERATE skipped:', skipped);
-
       const run = {
         _id: `PRUN-${Date.now()}`,
         month,

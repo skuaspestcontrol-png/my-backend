@@ -1763,17 +1763,6 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
                 : error.message || 'Customer import upload failed'
             });
           }
-          console.log('[Customer Import Upload] multer accepted:', {
-            file: req.file ? {
-              originalname: req.file.originalname,
-              filename: req.file.filename,
-              mimetype: req.file.mimetype,
-              size: req.file.size,
-              path: req.file.path,
-              destination: req.file.destination
-            } : null,
-            bodyKeys: Object.keys(req.body || {})
-          });
           return next();
         });
       }
@@ -1782,18 +1771,6 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
   app.post('/api/customers/import/upload', importUploadMiddleware, async (req, res) => {
     try {
       const uploadedFile = req.file || null;
-      console.log('[Customer Import Upload] request received:', {
-        hasFile: Boolean(uploadedFile),
-        file: uploadedFile ? {
-          originalname: uploadedFile.originalname,
-          filename: uploadedFile.filename,
-          mimetype: uploadedFile.mimetype,
-          size: uploadedFile.size,
-          path: uploadedFile.path,
-          destination: uploadedFile.destination
-        } : null,
-        bodyKeys: Object.keys(req.body || {})
-      });
       const fileName = normalizeText(req.body?.fileName || uploadedFile?.originalname || 'customers-import.csv');
       let content = String(req.body?.content || '');
       let contentEncoding = req.body?.contentEncoding || '';

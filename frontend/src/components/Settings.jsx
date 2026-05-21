@@ -1021,7 +1021,6 @@ export default function Settings({ modalMode = false }) {
       setStatus('Uploading profile picture...');
       const imageUrl = await uploadBrandingImage(file);
       setForm((prev) => ({ ...prev, dashboardImageUrl: imageUrl }));
-      console.log('[Settings] Profile picture uploaded path:', imageUrl);
       setStatus(`Profile picture uploaded: ${imageUrl}`);
     } catch (error) {
       console.error('Logo upload failed', error);
@@ -1042,7 +1041,6 @@ export default function Settings({ modalMode = false }) {
         ...prev,
         [targetKey]: imageUrl,
       }));
-      console.log(`[Settings] ${label} uploaded path:`, imageUrl);
       setStatus(`${label} uploaded: ${imageUrl}`);
     } catch (error) {
       console.error(`${label} upload failed`, error);
@@ -1059,7 +1057,6 @@ export default function Settings({ modalMode = false }) {
       setStatus(`Uploading ${label} QR...`);
       const imageUrl = await uploadBrandingImage(file);
       setForm((prev) => ({ ...prev, [key]: imageUrl }));
-      console.log(`[Settings] ${label} QR uploaded path:`, imageUrl);
       setStatus(`${label} QR uploaded: ${imageUrl}`);
     } catch (error) {
       console.error(`${label} QR upload failed`, error);
