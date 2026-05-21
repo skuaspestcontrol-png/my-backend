@@ -214,6 +214,7 @@ CREATE TABLE IF NOT EXISTS attendance (
   attendance_date DATE NULL,
   status VARCHAR(80) NULL,
   leave_type VARCHAR(120) NULL,
+  source VARCHAR(50) NULL DEFAULT 'admin',
   check_in TIME NULL,
   check_out TIME NULL,
   working_hours DECIMAL(8,2) NULL,
