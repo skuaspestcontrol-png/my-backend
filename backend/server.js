@@ -338,11 +338,79 @@ const readAdminMigrationToken = (req) => String(
   || ''
 ).trim();
 
+const countLegacyAttendanceSources = async (conn, tableName) => {
+  const legacySourceExpr = tableName === 'attendance_audit_logs'
+    ? `LOWER(TRIM(COALESCE(source, ''))) IN ('', 'manual_admin', 'manual admin', 'technician_app', 'sales_app')`
+    : `LOWER(TRIM(COALESCE(source, ''))) IN ('', 'manual_admin', 'manual admin')`;
+  const [rows] = await conn.query(`
+    SELECT
+      COUNT(*) AS total_rows,
+      COALESCE(SUM(CASE WHEN ${legacySourceExpr} THEN 1 ELSE 0 END), 0) AS legacy_rows,
+      COALESCE(SUM(CASE WHEN LOWER(TRIM(COALESCE(source, ''))) = 'admin' THEN 1 ELSE 0 END), 0) AS admin_rows,
+      COALESCE(SUM(CASE WHEN LOWER(TRIM(COALESCE(source, ''))) = 'self' THEN 1 ELSE 0 END), 0) AS self_rows
+    FROM ${tableName}
+  `);
+  const row = Array.isArray(rows) ? rows[0] : {};
+  return {
+    totalRows: Number(row?.total_rows || 0),
+    legacyRows: Number(row?.legacy_rows || 0),
+    adminRows: Number(row?.admin_rows || 0),
+    selfRows: Number(row?.self_rows || 0)
+  };
+};
+
 app.get('/api/admin/migration-status', (req, res) => {
   res.json({
     success: true,
     status: getLastMigrationStatus()
   });
+});
+
+app.get('/api/admin/attendance-source-health', async (req, res) => {
+  const expectedToken = String(process.env.ADMIN_MIGRATION_TOKEN || '').trim();
+  if (!expectedToken) {
+    return res.status(500).json({
+      success: false,
+      error: 'ADMIN_MIGRATION_TOKEN is not configured'
+    });
+  }
+  if (readAdminMigrationToken(req) !== expectedToken) {
+    return res.status(403).json({
+      success: false,
+      error: 'Invalid migration token'
+    });
+  }
+  if (!canUseMysql()) {
+    return res.status(500).json({
+      success: false,
+      error: 'MySQL is not configured'
+    });
+  }
+
+  try {
+    const health = await withMysqlConnection(async (conn) => {
+      await ensureAttendanceTable(conn);
+      await ensureAttendanceAuditTable(conn);
+      const attendance = await countLegacyAttendanceSources(conn, 'attendance');
+      const audit = await countLegacyAttendanceSources(conn, 'attendance_audit_logs');
+      return { attendance, audit };
+    });
+
+    return res.json({
+      success: true,
+      health,
+      summary: {
+        legacyRows: health.attendance.legacyRows + health.audit.legacyRows,
+        totalRows: health.attendance.totalRows + health.audit.totalRows
+      }
+    });
+  } catch (error) {
+    console.error('Attendance source health lookup failed:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch attendance source health'
+    });
+  }
 });
 
 app.post('/api/admin/run-migrations', async (req, res) => {
