@@ -556,8 +556,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ay = doc.y;
     });
 
-    const rightW = 180;
-    const rightX = right - rightW - 6;
+    const rightW = 145;
+    const rightX = right - rightW - 2;
     doc.font('Helvetica-Bold').fontSize(18).fillColor(company.primaryColor).text('TAX INVOICE', rightX, y + 8, { width: rightW, align: 'right' });
 
     const meta = [
