@@ -556,8 +556,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ay = doc.y;
     });
 
-    const rightW = 252;
-    const rightX = right - rightW;
+    const rightW = 180;
+    const rightX = right - rightW - 6;
     doc.font('Helvetica-Bold').fontSize(18).fillColor(company.primaryColor).text('TAX INVOICE', rightX, y + 8, { width: rightW, align: 'right' });
 
     const meta = [
@@ -565,8 +565,9 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ['Invoice Date', formatDate(invoice.date)],
       ['Sales Person', clean(invoice.salesperson) || '-']
     ];
-    const metaLabelW = 98;
-    const metaColonW = 10;
+    doc.font('Helvetica').fontSize(9.8);
+    const metaLabelW = Math.max(...meta.map(([label]) => doc.widthOfString(label))) + 4;
+    const metaColonW = 6;
     const metaValueW = rightW - metaLabelW - metaColonW;
     const metaRowH = 11;
     let my = y + 56;
