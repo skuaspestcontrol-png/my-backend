@@ -302,10 +302,12 @@ const invoiceItems = (invoice = {}) => {
     const taxableAmount = toNumber(item.amount, qty * rate);
     const taxRate = toNumber(item.taxRate, 0);
     const taxAmount = (taxableAmount * taxRate) / 100;
+    const rawServiceName = clean(item.serviceName || item.itemName || item.name) || `Service ${index + 1}`;
     return {
       srNo: index + 1,
-      description: clean(item.itemName || item.name) || `Service ${index + 1}`,
-      details: clean(item.frequency || item.description),
+      serviceName: rawServiceName.split('-')[0].trim() || rawServiceName,
+      description: clean(item.frequency || item.description),
+      details: clean(item.description || item.frequency),
       contractStartDate: clean(item.contractStartDate || item.serviceStartDate || item.startDate || invoiceStart),
       contractEndDate: clean(item.contractEndDate || item.serviceEndDate || item.renewalDate || item.endDate || invoiceEnd),
       hsn: clean(item.sac || item.hsnSac || item.hsn),
@@ -563,18 +565,26 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ['Invoice Date', formatDate(invoice.date)],
       ['Sales Person', clean(invoice.salesperson) || '-']
     ];
-    const metaLabelW = 110;
+    const metaLabelW = 98;
+    const metaColonW = 10;
+    const metaValueW = rightW - metaLabelW - metaColonW;
     const metaRowH = 11;
     let my = y + 56;
     meta.forEach(([label, value]) => {
-      doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(`${label} :`, rightX, my, {
+      doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(label, rightX, my, {
         width: metaLabelW,
         height: metaRowH,
         align: 'left',
         lineBreak: false
       });
-      doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(value, rightX + metaLabelW, my, {
-        width: rightW - metaLabelW,
+      doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(':', rightX + metaLabelW, my, {
+        width: metaColonW,
+        height: metaRowH,
+        align: 'center',
+        lineBreak: false
+      });
+      doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(value, rightX + metaLabelW + metaColonW, my, {
+        width: metaValueW,
         height: metaRowH,
         align: 'right',
         lineBreak: false
@@ -617,7 +627,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const scale = contentW / totalPct;
     const cols = [
       { k: 'srNo', l: 'Sr No', w: colPct.sr * scale, a: 'center' },
-      { k: 'desc', l: 'Frequency', w: colPct.item * scale, a: 'left' },
+      { k: 'desc', l: 'Service Name', w: colPct.item * scale, a: 'left' },
       { k: 'hsn', l: 'HSN/SAC', w: colPct.hsn * scale, a: 'center' },
       { k: 'qty', l: 'Qty', w: colPct.qty * scale, a: 'right' },
       { k: 'rate', l: 'Rate', w: colPct.rate * scale, a: 'right' },
@@ -658,8 +668,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       cols.forEach((c) => {
         if (c.k === 'desc') {
           drawCenteredRichCell(doc, [
-            { text: row.description, bold: true },
-            { text: row.details, bold: false },
+            { text: row.serviceName || row.description, bold: true },
+            { text: row.description || row.details, bold: false },
             { text: contractLine, bold: false }
           ], cx, y, c.w, rh, { size: 8, border: COLORS.border, color: '#000000', lineGap: 1 });
         } else {
