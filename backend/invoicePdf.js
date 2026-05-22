@@ -574,7 +574,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(label, rightX, my, {
         width: metaLabelW,
         height: metaRowH,
-        align: 'left',
+        align: 'right',
         lineBreak: false
       });
       doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(':', rightX + metaLabelW, my, {
