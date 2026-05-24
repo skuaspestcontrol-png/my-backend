@@ -147,8 +147,7 @@ export default function SalesPerformanceDashboard() {
   const isMobile = viewportWidth <= 640;
   const {
     getColumnWidth,
-    startResize,
-    resetColumns
+    startResize
   } = useColumnResize({
     storageKey: 'sales_performance_dashboard_matrix_widths',
     columns: matrixColumns,
@@ -253,7 +252,7 @@ export default function SalesPerformanceDashboard() {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: isMobile ? 12 : 16,
+        gap: isMobile ? 10 : 12,
         width: '100%',
         minWidth: 0,
         overflowX: 'hidden',
@@ -274,9 +273,6 @@ export default function SalesPerformanceDashboard() {
           )
         )}
       />
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
-      </div>
 
       <AppCard title="Filters" className="crm-filter-card" style={{ width: '100%', minWidth: 0 }}>
         <div className="sales-filters-grid" style={filtersGridStyle}>
