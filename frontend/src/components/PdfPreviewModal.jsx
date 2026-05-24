@@ -19,14 +19,16 @@ const shell = {
     overflow: 'hidden',
     background: '#fff',
     borderRadius: '14px',
-    border: '1px solid rgba(159, 23, 77, 0.2)',
+    border: '1px solid var(--color-primary)',
     boxShadow: '0 22px 54px rgba(15,23,42,0.2)',
     display: 'flex',
     flexDirection: 'column'
   },
   header: {
     padding: '10px 14px',
-    borderBottom: '1px solid var(--color-border)',
+    borderBottom: '1px solid var(--color-primary-dark)',
+    background: 'var(--color-primary)',
+    color: '#fff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -37,16 +39,16 @@ const shell = {
     margin: 0,
     fontSize: '17px',
     fontWeight: 600,
-    color: '#0f172a',
+    color: '#fff',
     display: 'inline-flex',
     alignItems: 'center',
     gap: '5px',
     lineHeight: 1.15
   },
   closeButton: {
-    border: '1px solid #D1D5DB',
-    background: '#fff',
-    color: '#475569',
+    border: '1px solid rgba(255,255,255,0.75)',
+    background: 'rgba(255,255,255,0.18)',
+    color: '#fff',
     borderRadius: '8px',
     minWidth: '26px',
     height: '26px',
@@ -86,7 +88,7 @@ const shell = {
     cursor: 'not-allowed'
   },
   frameShell: {
-    border: '1px solid #D1D5DB',
+    border: '1px solid var(--color-primary)',
     borderRadius: '10px',
     background: '#fff',
     overflow: 'hidden',
