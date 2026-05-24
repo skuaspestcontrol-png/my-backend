@@ -12,7 +12,7 @@ const variants = {
 export default function AppButton({
   children,
   variant = 'primary',
-  size = 'md',
+  size = 'lg',
   fullWidth = false,
   iconLeft,
   iconRight,

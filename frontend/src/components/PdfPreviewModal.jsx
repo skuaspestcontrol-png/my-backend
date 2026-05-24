@@ -25,7 +25,8 @@ const shell = {
     flexDirection: 'column'
   },
   header: {
-    padding: '10px 14px',
+    minHeight: '64px',
+    padding: '12px 14px',
     borderBottom: '1px solid var(--color-primary-dark)',
     background: 'var(--color-primary)',
     color: '#fff',
