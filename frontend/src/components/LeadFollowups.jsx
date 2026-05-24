@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
+import { theme } from '../styles/theme';
 import {
   AlertTriangle,
   ArrowDown,
@@ -60,11 +61,11 @@ const shell = {
   filters: { background: 'var(--color-white)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '14px 16px', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(136px, 1fr)) 150px 48px', gap: '12px', alignItems: 'end' },
   label: { display: 'block', marginBottom: '6px', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 800 },
   input: { width: '100%', height: '42px', border: '1px solid var(--color-border)', borderRadius: '10px', background: 'var(--color-white)', color: 'var(--color-text)', padding: '0 12px', fontSize: '13px', fontWeight: 700, outline: 'none', boxSizing: 'border-box' },
-  applyBtn: { height: '42px', minWidth: '150px', border: 'none', borderRadius: '10px', background: 'var(--color-primary)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' },
+  applyBtn: { height: '42px', minWidth: '150px', border: 'none', borderRadius: '999px', background: 'var(--color-primary)', color: theme.colors.onPrimary, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer', boxShadow: theme.shadow.sm },
   clearBtn: { height: '42px', minWidth: '48px', border: '1px solid var(--color-primary-soft)', borderRadius: '10px', background: 'var(--color-white)', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   tabs: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
   tab: { border: '1px solid transparent', borderRadius: '999px', background: 'var(--color-white)', color: 'var(--color-muted)', height: '38px', padding: '0 14px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' },
-  badge: { minWidth: '20px', height: '20px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 7px', background: 'var(--color-primary)', color: '#fff', fontSize: '11px', fontWeight: 800 },
+  badge: { minWidth: '20px', height: '20px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 7px', background: 'var(--color-primary)', color: theme.colors.onPrimary, fontSize: '11px', fontWeight: 800 },
   tableCard: { background: 'var(--color-white)', border: '1px solid var(--color-border)', borderRadius: '12px', overflow: 'hidden' },
   tableTitle: { padding: '12px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '15px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' },
   tableWrap: { overflowX: 'auto' },
@@ -336,10 +337,10 @@ export default function LeadFollowups() {
   };
 
   const stats = [
-    { label: 'Overdue', value: counts.overdue, icon: AlertTriangle, color: '#dc2626', bg: '#fee2e2' },
+    { label: 'Overdue', value: counts.overdue, icon: AlertTriangle, color: theme.colors.danger, bg: 'color-mix(in srgb, var(--color-danger) 12%, var(--color-surface))' },
     { label: 'Today', value: counts.today, icon: CalendarDays, color: 'var(--color-primary)', bg: 'var(--color-primary-light)' },
     { label: 'This Week', value: counts.week, icon: CalendarClock, color: 'var(--color-primary)', bg: 'var(--color-primary-light)' },
-    { label: 'Done This Week', value: counts.doneWeek, icon: CheckCheck, color: '#15803d', bg: '#dcfce7' }
+    { label: 'Done This Week', value: counts.doneWeek, icon: CheckCheck, color: theme.colors.success, bg: 'color-mix(in srgb, var(--color-success) 12%, var(--color-surface))' }
   ];
 
   const tabs = [
@@ -429,7 +430,7 @@ export default function LeadFollowups() {
               type="button"
               style={{
                 ...tabStyle,
-                color: active ? '#fff' : 'var(--color-muted)',
+                color: active ? theme.colors.onPrimary : theme.colors.muted,
                 background: active ? 'var(--color-primary)' : 'var(--color-white)',
                 borderColor: active ? 'var(--color-primary)' : 'var(--color-border)',
                 boxShadow: active ? 'var(--shadow-sm)' : 'none'
@@ -440,7 +441,7 @@ export default function LeadFollowups() {
               <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {isMobile ? tab.mobileLabel || tab.label : tab.label}
               </span>
-              {tab.count > 0 || ['overdue', 'today'].includes(tab.key) ? <span style={{ ...tabBadgeStyle, background: active ? 'rgba(255,255,255,0.22)' : 'var(--color-primary)', color: active ? '#fff' : '#fff' }}>{tab.count}</span> : null}
+              {tab.count > 0 || ['overdue', 'today'].includes(tab.key) ? <span style={{ ...tabBadgeStyle, background: active ? 'color-mix(in srgb, var(--color-on-primary) 22%, transparent)' : 'var(--color-primary)', color: theme.colors.onPrimary }}>{tab.count}</span> : null}
             </button>
           );
         })}

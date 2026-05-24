@@ -3,6 +3,7 @@ import axios from 'axios';
 import { ChevronLeft, ChevronRight, IndianRupee, WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useColumnResize } from './table/useColumnResize';
+import { theme } from '../styles/theme';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const PAYMENT_PAGE_SIZE = 20;
@@ -19,55 +20,58 @@ const shell = {
   hero: {
     display: 'grid',
     gap: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.2)',
-    background: 'var(--color-primary)',
+    border: `1px solid ${theme.colors.border}`,
+    background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 84%, black 16%) 0%, var(--color-primary) 72%, color-mix(in srgb, var(--color-primary-light) 30%, var(--color-primary) 70%) 100%)',
     borderRadius: '20px',
-    padding: '18px'
+    padding: '18px',
+    boxShadow: 'var(--shadow-md)'
   },
-  title: { margin: 0, fontSize: '30px', fontWeight: 800, letterSpacing: '-0.03em', color: '#ffffff' },
-  sub: { margin: 0, color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 600 },
+  title: { margin: 0, fontSize: '30px', fontWeight: 800, letterSpacing: '-0.03em', color: theme.colors.onPrimary },
+  sub: { margin: 0, color: 'color-mix(in srgb, var(--color-on-primary) 88%, transparent)', fontSize: '14px', fontWeight: 600 },
   statsGrid: { display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' },
   stat: {
-    border: '1px solid rgba(159, 23, 77, 0.18)',
-    background: '#fff',
-    borderRadius: '12px',
-    padding: '12px 14px',
+    border: `1px solid ${theme.colors.border}`,
+    background: theme.colors.surface,
+    borderRadius: '16px',
+    padding: '14px 16px',
     minHeight: '96px',
-    boxShadow: 'var(--shadow-sm)'
+    boxShadow: theme.shadow.sm
   },
-  statLabel: { margin: 0, color: '#64748b', fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', lineHeight: 1.25 },
-  statValue: { margin: '12px 0 0 0', color: '#111827', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05 },
+  statLabel: { margin: 0, color: theme.colors.muted, fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', lineHeight: 1.25 },
+  statValue: { margin: '12px 0 0 0', color: theme.colors.text, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05 },
   tablePanel: {
-    border: '1px solid var(--color-border)',
-    background: '#fff',
+    border: `1px solid ${theme.colors.border}`,
+    background: theme.colors.surface,
     borderRadius: '18px',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    boxShadow: theme.shadow.sm
   },
   tableHeadBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)' },
-  tableHead: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#111827' },
-  tableHeadButton: { minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' },
+  tableHead: { margin: 0, fontSize: '16px', fontWeight: 800, color: theme.colors.text },
+  tableHeadButton: { minHeight: '32px', borderRadius: '999px', border: `1px solid ${theme.colors.border}`, background: theme.colors.surface, padding: '0 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer', color: theme.colors.text, boxShadow: theme.shadow.sm },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '720px' },
   th: {
     textAlign: 'left',
     padding: '10px 12px',
-    background: 'var(--color-primary-light)',
-    color: 'var(--color-primary-dark)',
+    background: 'color-mix(in srgb, var(--color-primary-light) 26%, var(--color-surface))',
+    color: theme.colors.muted,
     fontSize: '11px',
     textTransform: 'uppercase',
-    letterSpacing: '0.06em'
+    letterSpacing: '0.06em',
+    fontWeight: 800
   },
-  td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#334155', fontSize: '13px', verticalAlign: 'top' },
-  pagination: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap', background: '#fff' },
-  paginationInfo: { color: '#64748b', fontSize: '12px', fontWeight: 700 },
+  td: { padding: '10px 12px', borderBottom: `1px solid ${theme.colors.borderSoft}`, color: theme.colors.text, fontSize: '13px', verticalAlign: 'top', background: theme.colors.surface },
+  pagination: { padding: '10px 16px', borderTop: `1px solid ${theme.colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap', background: theme.colors.surface },
+  paginationInfo: { color: theme.colors.muted, fontSize: '12px', fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  paginationBtn: { width: '34px', minWidth: '34px', minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: 'var(--color-primary)', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
+  paginationBtn: { width: '34px', minWidth: '34px', minHeight: '32px', border: `1px solid ${theme.colors.border}`, borderRadius: '999px', background: theme.colors.surface, color: 'var(--color-primary)', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: theme.shadow.sm },
   paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }
   , actionButton: {
-    border: '1px solid #fecaca',
-    background: '#fff1f2',
-    color: '#b91c1c',
-    borderRadius: '8px',
+    border: '1px solid color-mix(in srgb, var(--color-danger) 30%, var(--color-border))',
+    background: 'color-mix(in srgb, var(--color-danger) 10%, var(--color-surface))',
+    color: theme.colors.danger,
+    borderRadius: '999px',
     minHeight: '32px',
     height: '32px',
     minWidth: '74px',
@@ -321,7 +325,7 @@ export default function PaymentReceivedDashboard() {
                     <td style={cellStyle('invoice')}>{row.invoiceNo}</td>
                     <td style={cellStyle('customer')}>{row.customerName}</td>
                     <td style={cellStyle('mode', 'center')}>{row.mode}</td>
-                    <td style={{ ...cellStyle('amount', 'center'), fontWeight: 800, color: '#111827' }}>{formatINR(row.amount)}</td>
+                    <td style={{ ...cellStyle('amount', 'center'), fontWeight: 800, color: theme.colors.text }}>{formatINR(row.amount)}</td>
                     <td style={cellStyle('action', 'center')}>
                       <button type="button" style={shell.actionButton} onClick={() => deletePayment(row.id)}>
                         Delete

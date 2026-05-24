@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Clock3, MapPinned, Users } from 'lucide-react';
 import useColumnResize from './table/useColumnResize';
+import { theme } from '../styles/theme';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const leaveTypes = [
@@ -117,14 +118,14 @@ const shell = {
     flexWrap: 'wrap'
   },
   titleWrap: { display: 'grid', gap: '4px' },
-  title: { margin: 0, fontSize: '30px', letterSpacing: '-0.02em', color: '#0f172a', fontWeight: 800 },
-  subtitle: { margin: 0, fontSize: '13px', color: '#475569', fontWeight: 600 },
+  title: { margin: 0, fontSize: '30px', letterSpacing: '-0.02em', color: theme.colors.text, fontWeight: 800 },
+  subtitle: { margin: 0, fontSize: '13px', color: theme.colors.muted, fontWeight: 600 },
   topbarActions: { display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   employeeLink: {
     minHeight: '42px',
     borderRadius: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.28)',
-    background: '#fff',
+    border: `1px solid ${theme.colors.border}`,
+    background: theme.colors.surface,
     color: 'var(--color-primary-dark)',
     padding: '0 12px',
     display: 'inline-flex',
@@ -138,12 +139,12 @@ const shell = {
   dateInput: {
     minHeight: '42px',
     borderRadius: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.28)',
-    background: '#fff',
+    border: `1px solid ${theme.colors.border}`,
+    background: theme.colors.surface,
     padding: '0 12px',
     fontSize: '13px',
     fontWeight: 700,
-    color: '#0f172a'
+    color: theme.colors.text
   },
   summaryGrid: {
     display: 'grid',
@@ -151,52 +152,53 @@ const shell = {
     gap: '10px'
   },
   summaryCard: {
-    border: '1px solid rgba(159, 23, 77, 0.2)',
+    border: `1px solid ${theme.colors.border}`,
     borderRadius: '14px',
     padding: '12px',
-    background: '#fff',
+    background: theme.colors.surface,
     display: 'grid',
     gap: '8px'
   },
   summaryCardPresent: {
-    border: '1px solid rgba(22,163,74,0.28)',
-    background: 'rgba(22,163,74,0.10)'
+    border: '1px solid color-mix(in srgb, var(--color-success) 24%, var(--color-border))',
+    background: 'color-mix(in srgb, var(--color-success) 10%, var(--color-surface))'
   },
   summaryCardAbsent: {
-    border: '1px solid rgba(220,38,38,0.28)',
-    background: 'rgba(220,38,38,0.10)'
+    border: '1px solid color-mix(in srgb, var(--color-danger) 24%, var(--color-border))',
+    background: 'color-mix(in srgb, var(--color-danger) 10%, var(--color-surface))'
   },
   summaryCardLeave: {
-    border: '1px solid rgba(249,115,22,0.28)',
-    background: 'rgba(249,115,22,0.10)'
+    border: '1px solid color-mix(in srgb, var(--color-warning) 24%, var(--color-border))',
+    background: 'color-mix(in srgb, var(--color-warning) 10%, var(--color-surface))'
   },
   summaryCardWeeklyOff: {
-    border: '1px solid rgba(234,179,8,0.30)',
-    background: 'rgba(234,179,8,0.14)'
+    border: '1px solid color-mix(in srgb, var(--color-muted) 24%, var(--color-border))',
+    background: 'color-mix(in srgb, var(--color-muted) 10%, var(--color-surface))'
   },
   sectionTitle: { margin: 0, fontSize: '14px', color: 'var(--color-primary-dark)', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap' },
-  summaryLabel: { fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  summaryValue: { fontSize: '24px', fontWeight: 800, color: '#0f172a', lineHeight: 1 },
+  summaryLabel: { fontSize: '11px', fontWeight: 800, color: theme.colors.muted, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  summaryValue: { fontSize: '24px', fontWeight: 800, color: theme.colors.text, lineHeight: 1 },
   tableWrap: {
-    background: '#fff',
-    borderRadius: '16px',
-    border: '1px solid rgba(159, 23, 77, 0.2)',
-    overflowX: 'auto'
+    background: theme.colors.surface,
+    borderRadius: '18px',
+    border: `1px solid ${theme.colors.border}`,
+    overflowX: 'auto',
+    boxShadow: theme.shadow.sm
   },
-  table: { width: '100%', minWidth: '1200px', borderCollapse: 'collapse', tableLayout: 'auto' },
-  th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', lineHeight: 1.3 },
-  td: { padding: '10px', borderBottom: '1px solid #eef2f7', fontSize: '13px', color: '#0f172a', verticalAlign: 'middle', wordBreak: 'break-word' },
+  table: { width: '100%', minWidth: '1200px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'auto' },
+  th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: theme.colors.muted, padding: '12px 10px', borderBottom: `1px solid ${theme.colors.border}`, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', lineHeight: 1.3, background: 'color-mix(in srgb, var(--color-surface-soft) 92%, var(--color-surface))' },
+  td: { padding: '10px', borderBottom: `1px solid ${theme.colors.borderSoft}`, fontSize: '13px', color: theme.colors.text, verticalAlign: 'middle', wordBreak: 'break-word', background: theme.colors.surface },
   nameCell: { display: 'grid', gap: '2px' },
-  empName: { fontWeight: 700, color: '#0f172a' },
-  empCode: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
+  empName: { fontWeight: 700, color: theme.colors.text },
+  empCode: { fontSize: '11px', color: theme.colors.muted, fontWeight: 700 },
   statusBtns: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px', width: '100%' },
   statusBtn: {
     minHeight: '30px',
     minWidth: 0,
     borderRadius: '8px',
-    border: '1px solid #D1D5DB',
-    background: '#fff',
-    color: '#334155',
+    border: `1px solid ${theme.colors.border}`,
+    background: theme.colors.surface,
+    color: theme.colors.text,
     cursor: 'pointer',
     fontSize: '11px',
     fontWeight: 800,
@@ -208,11 +210,11 @@ const shell = {
     minHeight: '34px',
     width: '100%',
     borderRadius: '8px',
-    border: '1px solid #D1D5DB',
-    background: '#fff',
+    border: `1px solid ${theme.colors.border}`,
+    background: theme.colors.surface,
     padding: '0 10px',
     fontSize: '12px',
-    color: '#0f172a'
+    color: theme.colors.text
   },
   hoursBadge: {
     display: 'inline-flex',
@@ -221,8 +223,8 @@ const shell = {
     minWidth: '74px',
     minHeight: '30px',
     borderRadius: '999px',
-    border: '1px solid rgba(159, 23, 77, 0.32)',
-    background: 'rgba(159, 23, 77, 0.08)',
+    border: '1px solid color-mix(in srgb, var(--color-primary) 32%, var(--color-border))',
+    background: 'color-mix(in srgb, var(--color-primary-light) 18%, var(--color-surface))',
     color: 'var(--color-primary-dark)',
     fontSize: '12px',
     fontWeight: 800
@@ -230,8 +232,8 @@ const shell = {
   mapBtn: {
     minHeight: '24px',
     borderRadius: '7px',
-    border: '1px solid rgba(159, 23, 77, 0.24)',
-    background: '#fff',
+    border: '1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border))',
+    background: theme.colors.surface,
     color: 'var(--color-primary-dark)',
     padding: '0 7px',
     fontSize: '10px',
@@ -247,31 +249,31 @@ const shell = {
   actionBtn: {
     minHeight: '30px',
     borderRadius: '8px',
-    border: '1px solid #D1D5DB',
-    background: '#fff',
-    color: '#334155',
+    border: `1px solid ${theme.colors.border}`,
+    background: theme.colors.surface,
+    color: theme.colors.text,
     cursor: 'pointer',
     fontSize: '11px',
     fontWeight: 800,
     padding: '0 10px',
     whiteSpace: 'nowrap'
   },
-  modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.42)', display: 'grid', placeItems: 'center', padding: '16px', zIndex: 80 },
-  modal: { width: 'min(720px, 100%)', maxHeight: '80vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.2)', background: '#fff', boxShadow: 'var(--shadow-soft)', padding: '16px', display: 'grid', gap: '12px' },
-  modalTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' },
-  auditCard: { border: '1px solid rgba(159, 23, 77, 0.14)', borderRadius: '12px', padding: '12px', background: '#fff', display: 'grid', gap: '6px' },
-  auditMeta: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 700 },
-  footerNote: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 600 }
+  modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.42)', display: 'grid', placeItems: 'center', padding: '16px', zIndex: 80, backdropFilter: 'blur(8px)' },
+  modal: { width: 'min(720px, 100%)', maxHeight: '80vh', overflowY: 'auto', borderRadius: '18px', border: `1px solid ${theme.colors.border}`, background: theme.colors.surface, boxShadow: theme.shadow.md, padding: '16px', display: 'grid', gap: '12px' },
+  modalTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: theme.colors.text },
+  auditCard: { border: `1px solid ${theme.colors.border}`, borderRadius: '14px', padding: '12px', background: theme.colors.surface, display: 'grid', gap: '6px' },
+  auditMeta: { margin: 0, fontSize: '12px', color: theme.colors.muted, fontWeight: 700 },
+  footerNote: { margin: 0, fontSize: '12px', color: theme.colors.muted, fontWeight: 600 }
 };
 
 const getEmployeeName = (employee = {}) => [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee';
 
 const statusTheme = {
-  present: { border: '1px solid rgba(22,163,74,0.44)', background: 'rgba(22,163,74,0.12)', color: '#166534' },
-  absent: { border: '1px solid rgba(220,38,38,0.44)', background: 'rgba(220,38,38,0.1)', color: '#991b1b' },
-  leave: { border: '1px solid rgba(217,119,6,0.46)', background: 'rgba(217,119,6,0.12)', color: '#92400e' },
-  'half-day': { border: '1px solid rgba(217,119,6,0.46)', background: 'rgba(217,119,6,0.12)', color: '#92400e' },
-  'weekly-off': { border: '1px solid rgba(100,116,139,0.5)', background: 'rgba(100,116,139,0.14)', color: '#334155' }
+  present: { border: '1px solid color-mix(in srgb, var(--color-success) 44%, var(--color-border))', background: 'color-mix(in srgb, var(--color-success) 12%, var(--color-surface))', color: 'var(--color-success)' },
+  absent: { border: '1px solid color-mix(in srgb, var(--color-danger) 44%, var(--color-border))', background: 'color-mix(in srgb, var(--color-danger) 10%, var(--color-surface))', color: 'var(--color-danger)' },
+  leave: { border: '1px solid color-mix(in srgb, var(--color-warning) 46%, var(--color-border))', background: 'color-mix(in srgb, var(--color-warning) 12%, var(--color-surface))', color: theme.colors.warning },
+  'half-day': { border: '1px solid color-mix(in srgb, var(--color-warning) 46%, var(--color-border))', background: 'color-mix(in srgb, var(--color-warning) 12%, var(--color-surface))', color: theme.colors.warning },
+  'weekly-off': { border: '1px solid color-mix(in srgb, var(--color-muted) 50%, var(--color-border))', background: 'color-mix(in srgb, var(--color-muted) 14%, var(--color-surface))', color: theme.colors.muted }
 };
 
 const isValidTime = (value) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(value || '').trim());
@@ -680,7 +682,7 @@ export default function Attendance() {
         </div>
         <div style={shell.topbarActions}>
           <Link to="/employees" style={shell.employeeLink}>Employee Master</Link>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: theme.colors.text, fontSize: '13px' }}>
             <CalendarDays size={16} />
             <input
               type="month"
@@ -689,7 +691,7 @@ export default function Attendance() {
               style={shell.dateInput}
             />
           </label>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: theme.colors.text, fontSize: '13px' }}>
             <CalendarDays size={16} />
             <input
               type="date"

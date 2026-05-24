@@ -170,8 +170,8 @@ export default function Login() {
   };
 
   return (
-    <div style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #eef4ff 0%, #f7f9fd 52%, #ecf2fb 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '8px' : '24px' }}>
-      <div style={{ width: '100%', maxWidth: '900px', borderRadius: isNarrow ? '14px' : '16px', border: '1px solid #dde3ed', background: '#f5f5f7', boxShadow: '0 14px 34px rgba(15, 23, 42, 0.1)', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100dvh', width: '100%', background: 'radial-gradient(circle at top left, color-mix(in srgb, var(--color-primary) 16%, transparent) 0%, transparent 34%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--color-primary-dark) 12%, transparent) 0%, transparent 28%), linear-gradient(145deg, var(--color-bg) 0%, var(--color-bg-alt) 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '8px' : '24px' }}>
+      <div style={{ width: '100%', maxWidth: '900px', borderRadius: isNarrow ? '14px' : '16px', border: '1px solid var(--color-panel-border)', background: 'var(--color-surface)', boxShadow: 'var(--color-panel-glow)', overflow: 'hidden' }}>
         <section style={{ display: 'grid', gridTemplateColumns: viewportWidth < 900 ? '1fr' : '1fr 1fr', minHeight: viewportWidth < 900 ? 'auto' : '420px' }}>
           <div style={{ display: 'grid', placeItems: 'center', padding: isNarrow ? '8px 14px 0' : '18px 18px 8px' }}>
             {hasValidLogo ? (
@@ -193,12 +193,12 @@ export default function Login() {
                 style={{
                   width: isNarrow ? '72px' : '92px',
                   height: isNarrow ? '72px' : '92px',
-                  backgroundColor: 'var(--color-primary)',
+                  background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
                   borderRadius: '18px',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  color: '#fff',
+                  color: 'var(--color-on-primary)',
                   fontWeight: 800,
                   fontSize: isNarrow ? '20px' : '26px'
                 }}
@@ -216,34 +216,34 @@ export default function Login() {
             <div style={{ width: '100%', padding: 0 }}>
             <form onSubmit={handleLogin} style={{ display: 'grid', gap: '14px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', color: '#475569', fontSize: '13px', fontWeight: 700 }}>Login Mobile Number / Username</label>
+              <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 700 }}>Login Mobile Number / Username</label>
               <input
                 type="text"
                 name="username"
                 onChange={handleChange}
                 value={credentials.username}
-                style={{ width: '100%', padding: '12px 13px', borderRadius: '8px', boxSizing: 'border-box', background: '#e9edf5', border: '1px solid #c7d0df' }}
+                style={{ width: '100%', padding: '12px 13px', borderRadius: '8px', boxSizing: 'border-box', background: 'var(--color-surface)', border: '1px solid var(--color-panel-border)' }}
                 required
               />
-              <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#64748b', fontWeight: 600 }}>For employees, use your 10-digit mobile number.</p>
+              <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--color-muted)', fontWeight: 600 }}>For employees, use your 10-digit mobile number.</p>
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', color: '#475569', fontSize: '13px', fontWeight: 700 }}>Password</label>
+              <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 700 }}>Password</label>
               <div style={{ position: 'relative' }}>
               <input
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 onChange={handleChange}
                 value={credentials.password}
-                style={{ width: '100%', padding: '12px 42px 12px 13px', borderRadius: '8px', boxSizing: 'border-box', background: '#e9edf5', border: '1px solid #c7d0df' }}
+                style={{ width: '100%', padding: '12px 42px 12px 13px', borderRadius: '8px', boxSizing: 'border-box', background: 'var(--color-surface)', border: '1px solid var(--color-panel-border)' }}
                 required
               />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: '#64748b', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: 'var(--color-muted)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -251,7 +251,7 @@ export default function Login() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#334155', fontSize: '13px', fontWeight: 600 }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--color-text)', fontSize: '13px', fontWeight: 600 }}>
                 <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
                 Remember me
               </label>
@@ -274,7 +274,7 @@ export default function Login() {
                 marginTop: '6px',
                 minHeight: '48px',
                 background: 'var(--color-primary)',
-                color: '#fff',
+                color: 'var(--color-on-primary)',
                 border: '1px solid var(--color-primary)',
                 borderRadius: '7px',
                 cursor: 'pointer',
@@ -291,10 +291,10 @@ export default function Login() {
         </section>
       </div>
       {forgotOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: '14px' }}>
-          <div style={{ width: '100%', maxWidth: '430px', background: '#fff', borderRadius: '14px', border: '1px solid #D9DEE8', padding: '16px', boxShadow: 'var(--shadow-lg)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--color-overlay)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: '14px' }}>
+          <div style={{ width: '100%', maxWidth: '430px', background: 'var(--color-surface)', borderRadius: '14px', border: '1px solid var(--color-panel-border)', padding: '16px', boxShadow: 'var(--color-panel-glow)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0, color: '#1E293B' }}>Reset Password</h3>
+              <h3 style={{ margin: 0, color: 'var(--color-text)' }}>Reset Password</h3>
               <button
                 type="button"
                 onClick={() => setForgotOpen(false)}
@@ -305,46 +305,46 @@ export default function Login() {
             </div>
             {forgotStep === 'request' ? (
               <div style={{ display: 'grid', gap: '10px' }}>
-                <p style={{ margin: 0, color: '#475569', fontWeight: 700, fontSize: '14px' }}>
+                <p style={{ margin: 0, color: 'var(--color-muted)', fontWeight: 700, fontSize: '14px' }}>
                   Reset OTP will be sent to the registered master email.
                 </p>
                 <button
                   type="button"
                   onClick={requestResetOtp}
                   disabled={forgotLoading}
-                  style={{ minHeight: '44px', background: 'var(--color-primary)', color: '#fff', border: '1px solid var(--color-primary)', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                  style={{ minHeight: '44px', background: 'var(--color-primary)', color: 'var(--color-on-primary)', border: '1px solid var(--color-primary)', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
                 >
                   {forgotLoading ? 'Sending OTP...' : 'Send OTP'}
                 </button>
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '10px' }}>
-                <label style={{ color: '#475569', fontWeight: 700 }}>OTP</label>
+                <label style={{ color: 'var(--color-muted)', fontWeight: 700 }}>OTP</label>
                 <input
                   type="text"
                   value={forgotOtp}
                   onChange={(e) => setForgotOtp(e.target.value)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: '#E9EEF9', border: '1px solid #CBD5E1' }}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: 'var(--color-surface)', border: '1px solid var(--color-panel-border)' }}
                 />
-                <label style={{ color: '#475569', fontWeight: 700 }}>New Password</label>
+                <label style={{ color: 'var(--color-muted)', fontWeight: 700 }}>New Password</label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: '#E9EEF9', border: '1px solid #CBD5E1' }}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: 'var(--color-surface)', border: '1px solid var(--color-panel-border)' }}
                 />
-                <label style={{ color: '#475569', fontWeight: 700 }}>Confirm Password</label>
+                <label style={{ color: 'var(--color-muted)', fontWeight: 700 }}>Confirm Password</label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: '#E9EEF9', border: '1px solid #CBD5E1' }}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: 'var(--color-surface)', border: '1px solid var(--color-panel-border)' }}
                 />
                 <button
                   type="button"
                   onClick={submitResetPassword}
                   disabled={forgotLoading}
-                  style={{ minHeight: '44px', background: 'var(--color-primary)', color: '#fff', border: '1px solid var(--color-primary)', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                  style={{ minHeight: '44px', background: 'var(--color-primary)', color: 'var(--color-on-primary)', border: '1px solid var(--color-primary)', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
                 >
                   {forgotLoading ? 'Resetting...' : 'Reset Password'}
                 </button>

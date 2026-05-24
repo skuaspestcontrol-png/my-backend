@@ -20,6 +20,7 @@ import {
   BarChart3,
   Target,
   Settings,
+  Sparkles,
   ShoppingCart,
   Smartphone,
   Truck,
@@ -283,20 +284,20 @@ export default function DashboardLayout({ children }) {
     alignItems: 'center',
     justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
     gap: isSidebarCollapsed ? 0 : '12px',
-    width: isSidebarCollapsed ? '46px' : 'calc(100% - 24px)',
-    minHeight: '42px',
-    padding: isSidebarCollapsed ? '9px 0' : '9px 14px',
-    margin: isSidebarCollapsed ? '4px auto' : '2px 12px',
-    borderRadius: '12px',
-    color: active ? 'var(--color-white)' : 'var(--color-text)',
-    backgroundColor: active ? 'var(--color-primary)' : 'transparent',
+    width: isSidebarCollapsed ? '50px' : 'calc(100% - 24px)',
+    minHeight: '46px',
+    padding: isSidebarCollapsed ? '11px 0' : '11px 14px',
+    margin: isSidebarCollapsed ? '4px auto' : '3px 12px',
+    borderRadius: '16px',
+    color: active ? 'var(--color-on-primary)' : 'var(--color-text)',
+    background: active ? 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)' : 'transparent',
     textDecoration: 'none',
     fontSize: '13px',
     fontWeight: active ? 800 : 600,
     letterSpacing: '0.01em',
-    transition: 'all 0.18s ease',
-    border: 'none',
-    boxShadow: active ? 'var(--shadow-md)' : 'none'
+    transition: 'transform 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease',
+    border: '1px solid transparent',
+    boxShadow: active ? '0 16px 30px rgba(15, 23, 42, 0.14)' : 'none'
   });
 
   const linkStyle = (path) => baseLinkStyle(isActive(path));
@@ -304,28 +305,30 @@ export default function DashboardLayout({ children }) {
   const subLinkStyle = (path, activeOverride) => {
     const active = typeof activeOverride === 'boolean' ? activeOverride : isActive(path);
     return ({
-    ...baseLinkStyle(active),
-    fontSize: '12px',
-    minHeight: '36px',
-    padding: isSidebarCollapsed ? '7px 0' : '7px 14px 7px 38px',
-    width: isSidebarCollapsed ? '46px' : 'calc(100% - 24px)',
-    color: active ? 'var(--color-white)' : 'var(--color-muted)'
-  });
+      ...baseLinkStyle(active),
+      fontSize: '12px',
+      minHeight: '40px',
+      padding: isSidebarCollapsed ? '8px 0' : '8px 14px 8px 40px',
+      width: isSidebarCollapsed ? '50px' : 'calc(100% - 24px)',
+      color: active ? 'var(--color-on-primary)' : 'var(--color-muted)',
+      background: active ? 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)' : 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
+      boxShadow: active ? '0 16px 28px rgba(15, 23, 42, 0.12)' : 'none'
+    });
   };
 
   const subLinkActiveStyle = (path) => ({
     ...subLinkStyle(path),
-    color: isActive(path) ? 'var(--color-white)' : 'var(--color-muted)'
+    color: isActive(path) ? 'var(--color-on-primary)' : 'var(--color-muted)'
   });
 
   const groupToggleStyle = (open) => ({
     ...baseLinkStyle(false),
-    border: 'none',
+    border: '1px solid var(--color-panel-border)',
     justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
     cursor: 'pointer',
-    background: open ? 'var(--color-primary-light)' : 'var(--color-white)',
+    background: open ? 'color-mix(in srgb, var(--color-primary-light) 88%, var(--color-surface))' : 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
     color: 'var(--color-text)',
-    boxShadow: 'none'
+    boxShadow: open ? '0 10px 24px rgba(15, 23, 42, 0.06)' : 'none'
   });
 
   const sidebarGroupLabelStyle = {
@@ -379,6 +382,9 @@ export default function DashboardLayout({ children }) {
   }, [handleLogout]);
 
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS MASTER').trim() || 'SKUAS MASTER';
+  const themeAppearance = String(settings.brandingAppearance || 'light').trim().toLowerCase() === 'dark' ? 'dark' : 'light';
+  const themeModeLabel = themeAppearance === 'dark' ? 'Dark mode' : 'Light mode';
+  const themeModeSubLabel = themeAppearance === 'dark' ? 'Night workspace' : 'Bright workspace';
   const portalUserRole = String(localStorage.getItem('portal_user_role') || 'Admin').trim() || 'Admin';
   const unreadNotificationCount = leadNotifications.filter((item) => !readNotificationIds.includes(item.id)).length;
   const toggleNotificationRead = (id) => {
@@ -498,7 +504,7 @@ export default function DashboardLayout({ children }) {
                   alignItems: 'center',
                   fontWeight: 800,
                   fontSize: isSidebarCollapsed ? '15px' : isDrawerMode ? '20px' : '24px',
-                  color: '#fff',
+                  color: 'var(--color-on-primary)',
                   letterSpacing: '0.08em',
                   boxShadow: 'var(--shadow-md)',
                   flexShrink: 0
@@ -687,6 +693,26 @@ export default function DashboardLayout({ children }) {
             >
               <span style={{ fontWeight: 400, flexShrink: 0 }}>{portalUserRole}</span>
               <span style={{ fontWeight: 800 }}>{companyName}</span>
+              <span
+                title={themeModeSubLabel}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  borderRadius: '999px',
+                  background: 'color-mix(in srgb, var(--color-primary-light) 84%, var(--color-surface))',
+                  color: 'var(--color-primary-dark)',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  flexShrink: 0
+                }}
+              >
+                <Sparkles size={11} />
+                {themeModeLabel}
+              </span>
             </span>
             <div style={{ position: 'relative', display: 'inline-flex' }} data-topbar-notifications="true">
               <button
@@ -694,7 +720,7 @@ export default function DashboardLayout({ children }) {
                 onClick={() => setNotificationsOpen((prev) => !prev)}
                 style={{
                   border: '1px solid var(--color-border)',
-                  background: '#fff',
+                  background: 'var(--color-surface)',
                   color: 'var(--color-primary)',
                   width: isMobile ? '38px' : '42px',
                   height: isMobile ? '38px' : '42px',
@@ -721,13 +747,13 @@ export default function DashboardLayout({ children }) {
                       padding: '0 5px',
                       borderRadius: '999px',
                       background: '#dc2626',
-                      color: '#fff',
+                      color: 'var(--color-on-primary)',
                       fontSize: '10px',
                       fontWeight: 800,
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: '2px solid #fff'
+                      border: '2px solid var(--color-surface)'
                     }}
                   >
                     {unreadNotificationCount}
@@ -745,7 +771,7 @@ export default function DashboardLayout({ children }) {
                     maxWidth: isMobile ? 'calc(100vw - 24px)' : 'none',
                     maxHeight: isMobile ? `calc(100dvh - ${topbarHeight} - 24px)` : '420px',
                     overflowY: 'auto',
-                    background: '#fff',
+                    background: 'var(--color-surface)',
                     border: '1px solid var(--color-border)',
                     borderRadius: '12px',
                     boxShadow: '0 18px 44px rgba(15,23,42,0.18)',
@@ -792,7 +818,7 @@ export default function DashboardLayout({ children }) {
                                     style={{
                                       border: '1px solid var(--color-border)',
                                       borderRadius: '10px',
-                                      background: isRead ? '#fff' : 'var(--color-primary-light)',
+                                      background: isRead ? 'var(--color-surface)' : 'var(--color-primary-light)',
                                       padding: '9px 10px',
                                       textAlign: 'left',
                                       cursor: 'pointer',
@@ -829,7 +855,7 @@ export default function DashboardLayout({ children }) {
                                     style={{
                                       border: '1px solid var(--color-border)',
                                       borderRadius: '10px',
-                                      background: isRead ? '#fff' : 'var(--color-primary-light)',
+                                      background: isRead ? 'var(--color-surface)' : 'var(--color-primary-light)',
                                       padding: '9px 10px',
                                       textAlign: 'left',
                                       cursor: 'pointer',
@@ -866,7 +892,7 @@ export default function DashboardLayout({ children }) {
                                     style={{
                                       border: '1px solid var(--color-border)',
                                       borderRadius: '10px',
-                                      background: isRead ? '#fff' : 'var(--color-primary-light)',
+                                      background: isRead ? 'var(--color-surface)' : 'var(--color-primary-light)',
                                       padding: '9px 10px',
                                       textAlign: 'left',
                                       cursor: 'pointer',
@@ -898,7 +924,7 @@ export default function DashboardLayout({ children }) {
               onClick={() => navigate('/settings')}
               style={{
                 border: '1px solid var(--color-border)',
-                background: '#fff',
+                background: 'var(--color-surface)',
                 color: 'var(--color-primary)',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
@@ -917,7 +943,7 @@ export default function DashboardLayout({ children }) {
             <button
               onClick={handleLogout}
               style={{
-                color: '#fff',
+                color: 'var(--color-on-primary)',
                 background: 'var(--color-primary)',
                 fontSize: '12px',
                 fontWeight: 700,

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { baseControl, focusRingStyle } from './_helpers';
+import { theme } from '../../styles/theme';
 
 export default function AppSelect({ label, helper, error, children, style, className, ...props }) {
   const [focus, setFocus] = useState(false);
@@ -11,11 +12,11 @@ export default function AppSelect({ label, helper, error, children, style, class
         className={['crm-select', className].filter(Boolean).join(' ')}
         onFocus={(e) => { setFocus(true); props.onFocus?.(e); }}
         onBlur={(e) => { setFocus(false); props.onBlur?.(e); }}
-        style={{ ...baseControl, ...(focus ? focusRingStyle : {}), ...(error ? { borderColor: '#DC2626' } : {}), ...style }}
+        style={{ ...baseControl, ...(focus ? focusRingStyle : {}), ...(error ? { borderColor: theme.colors.danger } : {}), ...style }}
       >
         {children}
       </select>
-      {error ? <span style={{ color: '#DC2626', fontSize: 12 }}>{error}</span> : helper ? <span style={{ color: '#6B7280', fontSize: 12 }}>{helper}</span> : null}
+      {error ? <span style={{ color: theme.colors.danger, fontSize: 12 }}>{error}</span> : helper ? <span style={{ color: theme.colors.muted, fontSize: 12 }}>{helper}</span> : null}
     </label>
   );
 }
