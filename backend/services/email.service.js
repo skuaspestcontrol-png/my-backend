@@ -16,15 +16,7 @@ const toBool = (value) => {
   return ['1', 'true', 'yes', 'on'].includes(raw);
 };
 
-const normalizeTextValue = (value) => {
-  const raw = String(value ?? '').trim();
-  if (!raw) return '';
-  const lower = raw.toLowerCase();
-  if (lower === 'undefined' || lower === 'null') return '';
-  return raw;
-};
-
-const firstDefined = (...values) => values.find((value) => normalizeTextValue(value) !== '');
+const firstDefined = (...values) => values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');
 
 const resolveActiveFlag = (settings = {}) => {
   if (settings.emailApiActive !== undefined) return toBool(settings.emailApiActive);
@@ -34,15 +26,15 @@ const resolveActiveFlag = (settings = {}) => {
 };
 
 const buildEmailConfig = (settings = {}) => ({
-  provider: normalizeTextValue(firstDefined(settings.emailProvider, settings.mailProvider, 'SMTP')) || 'SMTP',
-  smtpHost: normalizeTextValue(firstDefined(settings.smtpHost, settings.smtp_host, settings.emailSmtpHost, '')),
+  provider: String(firstDefined(settings.emailProvider, settings.mailProvider, 'SMTP')).trim(),
+  smtpHost: String(firstDefined(settings.smtpHost, settings.smtp_host, settings.emailSmtpHost, '')).trim(),
   smtpPort: Number(firstDefined(settings.smtpPort, settings.smtp_port, settings.emailSmtpPort, 587) || 587),
   smtpSecure: toBool(firstDefined(settings.smtpSecure, settings.smtp_secure, settings.emailSmtpSecure, false)),
-  smtpUsername: normalizeTextValue(firstDefined(settings.smtpUser, settings.smtp_username, settings.smtpUsername, settings.emailSmtpUsername, '')),
-  smtpPassword: normalizeTextValue(firstDefined(settings.smtpPass, settings.smtp_password, settings.smtpPassword, settings.emailSmtpPassword, '')),
-  fromEmail: normalizeTextValue(firstDefined(settings.smtpFromEmail, settings.fromEmail, settings.from_email, settings.emailFromEmail, '')),
-  fromName: normalizeTextValue(firstDefined(settings.smtpSenderName, settings.fromName, settings.from_name, settings.emailFromName, '')),
-  replyToEmail: normalizeTextValue(firstDefined(settings.replyToEmail, settings.reply_to_email, settings.emailReplyToEmail, '')),
+  smtpUsername: String(firstDefined(settings.smtpUser, settings.smtp_username, settings.smtpUsername, settings.emailSmtpUsername, '')).trim(),
+  smtpPassword: String(firstDefined(settings.smtpPass, settings.smtp_password, settings.smtpPassword, settings.emailSmtpPassword, '')).trim(),
+  fromEmail: String(firstDefined(settings.smtpFromEmail, settings.fromEmail, settings.from_email, settings.emailFromEmail, '')).trim(),
+  fromName: String(firstDefined(settings.smtpSenderName, settings.fromName, settings.from_name, settings.emailFromName, '')).trim(),
+  replyToEmail: String(firstDefined(settings.replyToEmail, settings.reply_to_email, settings.emailReplyToEmail, '')).trim(),
   active: resolveActiveFlag(settings)
 });
 
