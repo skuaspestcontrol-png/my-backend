@@ -2657,7 +2657,7 @@ const sanitizeAttendanceRecord = (raw = {}) => {
 app.get('/api/settings', async (req, res) => {
   try {
     const settings = await readSettingsFromMysql();
-    return res.json(settings);
+    return res.json(normalizeJobPdfSettings(settings, req));
   } catch (error) {
     console.error('Failed to fetch settings from MySQL:', error.message);
     return res.status(500).json({ error: 'Failed to fetch settings' });
@@ -2668,7 +2668,7 @@ app.post('/api/settings', async (req, res) => {
   try {
     const current = await readSettingsFromMysql();
     const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
-    return res.json({ message: 'Saved', settings: next });
+    return res.json({ message: 'Saved', settings: normalizeJobPdfSettings(next, req) });
   } catch (error) {
     console.error('Failed to save settings to MySQL:', error.message);
     return res.status(500).json({ error: 'Failed to save settings' });
@@ -2679,7 +2679,7 @@ app.post('/api/settings/save', async (req, res) => {
   try {
     const current = await readSettingsFromMysql();
     const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
-    return res.json({ message: 'Saved', settings: next });
+    return res.json({ message: 'Saved', settings: normalizeJobPdfSettings(next, req) });
   } catch (error) {
     console.error('Failed to save settings to MySQL:', error.message);
     return res.status(500).json({ error: 'Failed to save settings' });
@@ -11124,7 +11124,9 @@ app.use('/api', createEmailRouter({
   settingsFile,
   readJsonFile,
   withMysqlConnection,
+  loadFullSettings: loadCurrentSettingsForNumbering,
   loadEmailSettings: loadRuntimeEmailSettings,
+  saveRuntimeSettings: saveSettingsToMysql,
   resolveServerOrigin
 }));
 

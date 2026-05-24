@@ -47,6 +47,8 @@ function createEmailController(deps) {
     readJsonFile,
     withMysqlConnection,
     loadEmailSettings,
+    loadFullSettings,
+    saveRuntimeSettings,
     resolveServerOrigin
   } = deps;
 
@@ -206,7 +208,9 @@ function createEmailController(deps) {
 
   const saveEmailSettings = async (req, res) => {
     const body = req.body || {};
-    const current = await loadRuntimeSettings();
+    const current = typeof loadFullSettings === 'function'
+      ? await loadFullSettings()
+      : readSettings();
     const cleanText = (value) => {
       const raw = String(value ?? '').trim();
       if (!raw) return '';
@@ -234,23 +238,48 @@ function createEmailController(deps) {
       smtpTestTargetEmail: cleanText(body.testEmailAddress),
       smtpActive: isActive ? 'Yes' : 'No'
     };
-    saveSettings(next);
-    if (withMysqlConnection) {
+    let saved = next;
+    if (typeof saveRuntimeSettings === 'function') {
       try {
-        await withMysqlConnection(async (conn) => {
-          await conn.query(APP_SETTINGS_TABLE_SQL);
-          await conn.query(
-            `INSERT INTO app_settings (setting_key, setting_value)
-             VALUES (?, ?)
-             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-            [APP_SETTINGS_KEY_MAIN, JSON.stringify(next)]
-          );
-        });
+        saved = await saveRuntimeSettings(next);
       } catch (error) {
-        console.error('Could not save email settings to MySQL, JSON fallback preserved:', error.message);
+        console.error('Could not save email settings through shared settings writer, falling back:', error.message);
+        saveSettings(next);
+        if (withMysqlConnection) {
+          try {
+            await withMysqlConnection(async (conn) => {
+              await conn.query(APP_SETTINGS_TABLE_SQL);
+              await conn.query(
+                `INSERT INTO app_settings (setting_key, setting_value)
+                 VALUES (?, ?)
+                 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+                [APP_SETTINGS_KEY_MAIN, JSON.stringify(next)]
+              );
+            });
+          } catch (dbError) {
+            console.error('Could not save email settings to MySQL, JSON fallback preserved:', dbError.message);
+          }
+        }
+      }
+    } else {
+      saveSettings(next);
+      if (withMysqlConnection) {
+        try {
+          await withMysqlConnection(async (conn) => {
+            await conn.query(APP_SETTINGS_TABLE_SQL);
+            await conn.query(
+              `INSERT INTO app_settings (setting_key, setting_value)
+               VALUES (?, ?)
+               ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+              [APP_SETTINGS_KEY_MAIN, JSON.stringify(next)]
+            );
+          });
+        } catch (error) {
+          console.error('Could not save email settings to MySQL, JSON fallback preserved:', error.message);
+        }
       }
     }
-    res.json({ success: true, settings: next });
+    res.json({ success: true, settings: saved });
   };
 
   const sendTestEmail = async (req, res) => {
