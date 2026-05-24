@@ -35,29 +35,20 @@ export default function ResizableTable({
   showResetColumns = true
 }) {
   const {
-    getColumnStyle,
-    resetColumns,
-    startResize
+    getColumnStyle
   } = useColumnResize({
     storageKey,
     columns,
     defaultColumnWidths,
     columnBounds,
     minWidth,
-    enabled: Boolean(storageKey)
+    enabled: false
   });
 
   const totalColSpan = columns.length + (renderRowActions ? 1 : 0);
 
   return (
     <AppCard className={className} style={{ overflow: 'hidden', ...cardStyle }}>
-      {storageKey && showResetColumns ? (
-        <div className="table-resize-toolbar">
-          <button type="button" className="table-reset-columns-button" onClick={resetColumns}>
-            Reset Columns
-          </button>
-        </div>
-      ) : null}
       <div className="crm-scroll-table" style={{ overflowX: 'auto' }}>
         <table
           className={tableClassName}
@@ -85,14 +76,6 @@ export default function ResizableTable({
                   }}
                 >
                   <span>{column.label}</span>
-                  {storageKey && column.resizable !== false ? (
-                    <span
-                      aria-hidden="true"
-                      title="Drag to resize"
-                      className="table-resize-handle"
-                      onPointerDown={(event) => startResize(column.key, event)}
-                    />
-                  ) : null}
                 </th>
               ))}
               {renderRowActions ? <th className="table-header-cell table-actions-cell"><span>Actions</span></th> : null}

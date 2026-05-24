@@ -106,7 +106,6 @@ const shell = {
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '880px' },
   th: { textAlign: 'left', padding: '9px', fontSize: '10px', color: '#64748b', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase', fontWeight: 900 },
   td: { padding: '9px', fontSize: '12px', color: '#334155', borderBottom: '1px solid #eef2f7', verticalAlign: 'top', fontWeight: 650 },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   footer: { borderTop: '1px solid #e5e7eb', padding: '10px 12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' },
   actions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   compare: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' },
@@ -456,7 +455,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                         {previewTableColumns.map((column, index) => (
                           <th key={column.key} style={previewHeadStyle(column.key)}>
                             {column.label}
-                            <span style={shell.resizeHandle} onPointerDown={(event) => startPreviewResize(column.key, event)} />
+                            
                           </th>
                         ))}
                       </tr>
@@ -521,11 +520,11 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                     <colgroup>{importColumns.map((key) => <col key={key} style={{ width: `${getImportColumnWidth(key) || importDefaultWidths[key] || 90}px` }} />)}</colgroup>
                     <thead>
                       <tr>
-                        <th style={importHeadStyle('row', 'center')}>Row<span style={shell.resizeHandle} onPointerDown={(event) => startImportResize('row', event)} /></th>
-                        <th style={importHeadStyle('imported')}>Imported<span style={shell.resizeHandle} onPointerDown={(event) => startImportResize('imported', event)} /></th>
-                        <th style={importHeadStyle('existing')}>Existing Match<span style={shell.resizeHandle} onPointerDown={(event) => startImportResize('existing', event)} /></th>
-                        <th style={importHeadStyle('preview')}>Preview<span style={shell.resizeHandle} onPointerDown={(event) => startImportResize('preview', event)} /></th>
-                        <th style={importHeadStyle('action', 'center')}>Action<span style={shell.resizeHandle} onPointerDown={(event) => startImportResize('action', event)} /></th>
+                        <th style={importHeadStyle('row', 'center')}>Row</th>
+                        <th style={importHeadStyle('imported')}>Imported</th>
+                        <th style={importHeadStyle('existing')}>Existing Match</th>
+                        <th style={importHeadStyle('preview')}>Preview</th>
+                        <th style={importHeadStyle('action', 'center')}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -583,9 +582,9 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                     <colgroup>{logColumns.map((key) => <col key={key} style={{ width: `${getLogColumnWidth(key) || logDefaultWidths[key] || 90}px` }} />)}</colgroup>
                     <thead>
                       <tr>
-                        <th style={logHeadStyle('row', 'center')}>Row<span style={shell.resizeHandle} onPointerDown={(event) => startLogResize('row', event)} /></th>
-                        <th style={logHeadStyle('result')}>Result<span style={shell.resizeHandle} onPointerDown={(event) => startLogResize('result', event)} /></th>
-                        <th style={logHeadStyle('message')}>Message<span style={shell.resizeHandle} onPointerDown={(event) => startLogResize('message', event)} /></th>
+                        <th style={logHeadStyle('row', 'center')}>Row</th>
+                        <th style={logHeadStyle('result')}>Result</th>
+                        <th style={logHeadStyle('message')}>Message</th>
                       </tr>
                     </thead>
                     <tbody>{visibleImportRows.map((row) => <tr key={row._id}><td style={logCellStyle('row', 'center')}>#{row.rowNumber}</td><td style={logCellStyle('result')}>{row.finalResult || '-'}</td><td style={logCellStyle('message')}>{row.finalMessage || '-'}</td></tr>)}</tbody>

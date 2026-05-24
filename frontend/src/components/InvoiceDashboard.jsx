@@ -250,9 +250,6 @@ const shell = {
   checkboxWrap: { width: '38px', textAlign: 'center' },
   resizableHeadCell: { position: 'relative', paddingRight: '18px' },
   headCellContent: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '12px', height: '100%', cursor: 'col-resize', touchAction: 'none', userSelect: 'none' },
-  resizeHandleLine: { position: 'absolute', top: '18%', bottom: '18%', right: '5px', width: '1px', borderRadius: '999px', background: 'rgba(148, 163, 184, 0.72)' },
-  resizeHandleActive: { background: 'rgba(159, 23, 77, 0.08)' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
   statusBadge: { fontWeight: 700 },
   menu: { position: 'absolute', right: 16, top: '56px', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', minWidth: '200px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 30, overflow: 'hidden' },
@@ -2414,24 +2411,7 @@ export default function InvoiceDashboard() {
                     ...(isMobile ? {} : shell.resizableHeadCell)
                   }}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: getColumnAlign(column.key) === 'center' ? 'center' : 'flex-start', width: '100%', paddingRight: isMobile ? 0 : '4px' }}>
-                    {column.label}
-                  </span>
-                  {!isMobile ? (
-                    <span
-                      role="separator"
-                      aria-orientation="vertical"
-                      aria-label={`Resize ${column.label} column`}
-                      title={`Resize ${column.label}`}
-                      style={{
-                        ...shell.resizeHandle,
-                        ...(resizingInvoiceColumn === column.key ? shell.resizeHandleActive : {})
-                      }}
-                      onPointerDown={(event) => startInvoiceColumnResize(column.key, event)}
-                    >
-                      <span style={shell.resizeHandleLine} />
-                    </span>
-                  ) : null}
+                  <span>{column.label}</span>
                 </th>
               ))}
               <th
@@ -2442,24 +2422,7 @@ export default function InvoiceDashboard() {
                   textAlign: 'center'
                 }}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', paddingRight: isMobile ? 0 : '4px' }}>
-                  Action
-                </span>
-                {!isMobile ? (
-                  <span
-                    role="separator"
-                    aria-orientation="vertical"
-                    aria-label="Resize Action column"
-                    title="Resize Action"
-                    style={{
-                      ...shell.resizeHandle,
-                      ...(resizingInvoiceColumn === 'action' ? shell.resizeHandleActive : {})
-                    }}
-                    onPointerDown={(event) => startInvoiceColumnResize('action', event)}
-                  >
-                    <span style={shell.resizeHandleLine} />
-                  </span>
-                ) : null}
+                Action
               </th>
             </tr>
           </thead>

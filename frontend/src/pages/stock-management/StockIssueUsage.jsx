@@ -26,7 +26,6 @@ const tabStyle = (active) => ({
 const tableStyle = { width: '100%', borderCollapse: 'collapse' };
 const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
 const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
-const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
 
 const balanceColumns = [
   { key: 'technician', label: 'Technician' },
@@ -379,9 +378,9 @@ export default function StockIssueUsage() {
               </colgroup>
               <thead>
                 <tr>
-                  <th style={headStyle('technician')}>Technician<span style={resizeHandleStyle} onPointerDown={(event) => startResize('technician', event)} /></th>
-                  <th style={headStyle('item')}>Item<span style={resizeHandleStyle} onPointerDown={(event) => startResize('item', event)} /></th>
-                  <th style={headStyle('balance', 'center')}>Balance<span style={resizeHandleStyle} onPointerDown={(event) => startResize('balance', event)} /></th>
+                  <th style={headStyle('technician')}>Technician</th>
+                  <th style={headStyle('item')}>Item</th>
+                  <th style={headStyle('balance', 'center')}>Balance</th>
                 </tr>
               </thead>
               <tbody>

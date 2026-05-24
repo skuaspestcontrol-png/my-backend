@@ -578,7 +578,6 @@ const shell = {
   bankTable: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
   bankTh: { textAlign: 'left', padding: '10px 10px', borderBottom: '1px solid var(--border)', fontSize: '12px', color: '#475569', fontWeight: 800, whiteSpace: 'nowrap' },
   bankTd: { padding: '10px 10px', borderBottom: '1px solid var(--color-border)', fontSize: '13px', color: '#0f172a', verticalAlign: 'top' },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   smallActionBtn: {
     minHeight: '32px',
     borderRadius: '8px',
@@ -2666,15 +2665,15 @@ export default function Settings({ modalMode = false }) {
             <colgroup>{bankColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || bankColumnWidths[key] || 80}px` }} />)}</colgroup>
             <thead>
               <tr>
-                <th style={bankHeadStyle('primary', 'center')}>Primary<span style={shell.resizeHandle} onPointerDown={(event) => startResize('primary', event)} /></th>
-                <th style={bankHeadStyle('type', 'center')}>Type<span style={shell.resizeHandle} onPointerDown={(event) => startResize('type', event)} /></th>
-                <th style={bankHeadStyle('bankName')}>Bank Name<span style={shell.resizeHandle} onPointerDown={(event) => startResize('bankName', event)} /></th>
-                <th style={bankHeadStyle('accountNumber')}>Account Number<span style={shell.resizeHandle} onPointerDown={(event) => startResize('accountNumber', event)} /></th>
-                <th style={bankHeadStyle('ifsc')}>IFSC<span style={shell.resizeHandle} onPointerDown={(event) => startResize('ifsc', event)} /></th>
-                <th style={bankHeadStyle('upiId')}>UPI ID<span style={shell.resizeHandle} onPointerDown={(event) => startResize('upiId', event)} /></th>
-                <th style={bankHeadStyle('openingBalance', 'center')}>Opening Balance<span style={shell.resizeHandle} onPointerDown={(event) => startResize('openingBalance', event)} /></th>
-                <th style={bankHeadStyle('currentBalance', 'center')}>Current Balance<span style={shell.resizeHandle} onPointerDown={(event) => startResize('currentBalance', event)} /></th>
-                <th style={bankHeadStyle('actions', 'center')}>Actions<span style={shell.resizeHandle} onPointerDown={(event) => startResize('actions', event)} /></th>
+                <th style={bankHeadStyle('primary', 'center')}>Primary</th>
+                <th style={bankHeadStyle('type', 'center')}>Type</th>
+                <th style={bankHeadStyle('bankName')}>Bank Name</th>
+                <th style={bankHeadStyle('accountNumber')}>Account Number</th>
+                <th style={bankHeadStyle('ifsc')}>IFSC</th>
+                <th style={bankHeadStyle('upiId')}>UPI ID</th>
+                <th style={bankHeadStyle('openingBalance', 'center')}>Opening Balance</th>
+                <th style={bankHeadStyle('currentBalance', 'center')}>Current Balance</th>
+                <th style={bankHeadStyle('actions', 'center')}>Actions</th>
               </tr>
             </thead>
             <tbody>

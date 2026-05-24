@@ -50,7 +50,6 @@ export default function EmailTemplates() {
   const tableKeys = ['name', 'type', 'sendTo', 'subject', 'attachment', 'status', 'actions'];
   const tableMinWidth = tableKeys.reduce((sum, key) => sum + (getColumnWidth(key) || 90), 0);
   const tableStyle = { width: '100%', borderCollapse: 'collapse', minWidth: `${Math.max(980, tableMinWidth)}px`, tableLayout: 'fixed' };
-  const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
   const headStyle = (key, align = 'left') => ({ textAlign: align, padding: '8px', fontSize: '11px', position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px` });
   const cellStyle = (key, align = 'left') => ({
     padding: key === 'actions' ? '6px 8px' : '8px',
@@ -140,7 +139,7 @@ export default function EmailTemplates() {
           <colgroup>
             {tableKeys.map((key) => <col key={key} style={{ width: `${getColumnWidth(key)}px` }} />)}
           </colgroup>
-          <thead><tr><th style={headStyle('name')}>Name<span style={resizeHandleStyle} onPointerDown={(event) => startResize('name', event)} /></th><th style={headStyle('type')}>Type<span style={resizeHandleStyle} onPointerDown={(event) => startResize('type', event)} /></th><th style={headStyle('sendTo', 'center')}>Send To<span style={resizeHandleStyle} onPointerDown={(event) => startResize('sendTo', event)} /></th><th style={headStyle('subject')}>Subject<span style={resizeHandleStyle} onPointerDown={(event) => startResize('subject', event)} /></th><th style={headStyle('attachment')}>Attachment<span style={resizeHandleStyle} onPointerDown={(event) => startResize('attachment', event)} /></th><th style={headStyle('status', 'center')}>Status<span style={resizeHandleStyle} onPointerDown={(event) => startResize('status', event)} /></th><th style={headStyle('actions', 'center')}>Actions<span style={resizeHandleStyle} onPointerDown={(event) => startResize('actions', event)} /></th></tr></thead>
+          <thead><tr><th style={headStyle('name')}>Name</th><th style={headStyle('type')}>Type</th><th style={headStyle('sendTo', 'center')}>Send To</th><th style={headStyle('subject')}>Subject</th><th style={headStyle('attachment')}>Attachment</th><th style={headStyle('status', 'center')}>Status</th><th style={headStyle('actions', 'center')}>Actions</th></tr></thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>

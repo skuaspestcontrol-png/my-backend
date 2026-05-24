@@ -47,7 +47,6 @@ const shell = {
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '900px' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
   td: { padding: '12px 10px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7' },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '8px' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1100px)', borderRadius: '24px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
@@ -326,14 +325,14 @@ export default function VendorDashboard() {
           <colgroup>{vendorColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key)}px` }} />)}</colgroup>
           <thead>
             <tr>
-              <th style={headStyle('company')}>Company Name<span style={shell.resizeHandle} onPointerDown={(event) => startResize('company', event)} /></th>
-              <th style={headStyle('contact')}>Contact Person<span style={shell.resizeHandle} onPointerDown={(event) => startResize('contact', event)} /></th>
-              <th style={headStyle('email')}>Email<span style={shell.resizeHandle} onPointerDown={(event) => startResize('email', event)} /></th>
-              <th style={headStyle('mobile', 'center')}>Mobile<span style={shell.resizeHandle} onPointerDown={(event) => startResize('mobile', event)} /></th>
-              <th style={headStyle('gst')}>GST Number<span style={shell.resizeHandle} onPointerDown={(event) => startResize('gst', event)} /></th>
-              <th style={headStyle('billing')}>Billing Address<span style={shell.resizeHandle} onPointerDown={(event) => startResize('billing', event)} /></th>
-              <th style={headStyle('shipping')}>Shipping Address<span style={shell.resizeHandle} onPointerDown={(event) => startResize('shipping', event)} /></th>
-              <th style={headStyle('actions', 'center')}>Actions<span style={shell.resizeHandle} onPointerDown={(event) => startResize('actions', event)} /></th>
+              <th style={headStyle('company')}>Company Name</th>
+              <th style={headStyle('contact')}>Contact Person</th>
+              <th style={headStyle('email')}>Email</th>
+              <th style={headStyle('mobile', 'center')}>Mobile</th>
+              <th style={headStyle('gst')}>GST Number</th>
+              <th style={headStyle('billing')}>Billing Address</th>
+              <th style={headStyle('shipping')}>Shipping Address</th>
+              <th style={headStyle('actions', 'center')}>Actions</th>
             </tr>
           </thead>
           <tbody>

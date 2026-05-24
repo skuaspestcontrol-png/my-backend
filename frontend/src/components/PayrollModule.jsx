@@ -193,7 +193,6 @@ const shell = {
     whiteSpace: 'nowrap',
     cursor: 'pointer'
   },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   payrollTable: { width: '100%', borderCollapse: 'collapse', minWidth: '1280px', tableLayout: 'fixed' },
   payrollActionCell: { width: '260px', minWidth: '260px' },
   payrollActionGroup: {
@@ -406,7 +405,6 @@ export default function PayrollModule() {
     defaultColumnWidths: payrollHistoryDefaultWidths,
     columnBounds: payrollHistoryColumnBounds,
     minWidth: 96,
-    enabled: canResizeDesktopTables
   });
   const {
     getColumnWidth: getSlipColumnWidth,
@@ -418,7 +416,6 @@ export default function PayrollModule() {
     defaultColumnWidths: payrollSlipDefaultWidths,
     columnBounds: payrollSlipColumnBounds,
     minWidth: 96,
-    enabled: canResizeDesktopTables
   });
   const historyTableMinWidth = payrollHistoryColumns.reduce((sum, column) => sum + (getHistoryColumnWidth(column.key) || payrollHistoryDefaultWidths[column.key] || 96), 0);
   const slipTableMinWidth = payrollSlipColumns.reduce((sum, column) => sum + (getSlipColumnWidth(column.key) || payrollSlipDefaultWidths[column.key] || 96), 0);
@@ -496,7 +493,6 @@ export default function PayrollModule() {
       deductions: { min: 120, max: 200 }
     },
     minWidth: 96,
-    enabled: canResizeDesktopTables
   });
   const {
     getColumnWidth: getAdvanceColumnWidth,
@@ -517,7 +513,6 @@ export default function PayrollModule() {
       action: { min: 100, max: 140 }
     },
     minWidth: 96,
-    enabled: canResizeDesktopTables
   });
   const {
     getColumnWidth: getHolidayColumnWidth,
@@ -535,7 +530,6 @@ export default function PayrollModule() {
       action: { min: 100, max: 140 }
     },
     minWidth: 96,
-    enabled: canResizeDesktopTables
   });
   const setupTableMinWidth = payrollSetupColumns.reduce((sum, column) => sum + (getSetupColumnWidth(column.key) || column.width), 0);
   const advanceTableMinWidth = payrollAdvanceColumns.reduce((sum, column) => sum + (getAdvanceColumnWidth(column.key) || column.width), 0);
@@ -1422,12 +1416,12 @@ export default function PayrollModule() {
           <colgroup>{payrollSetupColumns.map((column) => <col key={column.key} style={{ width: `${getSetupColumnWidth(column.key)}px` }} />)}</colgroup>
           <thead>
             <tr>
-              <th style={setupHeadCellStyle('employee')}>Employee{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('employee', event)} /> : null}</th>
-              <th style={setupHeadCellStyle('effectiveDate', 'center')}>Effective Date{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('effectiveDate', event)} /> : null}</th>
-              <th style={setupHeadCellStyle('type', 'center')}>Type{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('type', event)} /> : null}</th>
-              <th style={setupHeadCellStyle('basic', 'center')}>Basic{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('basic', event)} /> : null}</th>
-              <th style={setupHeadCellStyle('allowances', 'center')}>Allowances{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('allowances', event)} /> : null}</th>
-              <th style={setupHeadCellStyle('deductions', 'center')}>Deductions{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSetupResize('deductions', event)} /> : null}</th>
+              <th style={setupHeadCellStyle('employee')}>Employee</th>
+              <th style={setupHeadCellStyle('effectiveDate', 'center')}>Effective Date</th>
+              <th style={setupHeadCellStyle('type', 'center')}>Type</th>
+              <th style={setupHeadCellStyle('basic', 'center')}>Basic</th>
+              <th style={setupHeadCellStyle('allowances', 'center')}>Allowances</th>
+              <th style={setupHeadCellStyle('deductions', 'center')}>Deductions</th>
             </tr>
           </thead>
           <tbody>
@@ -1593,15 +1587,15 @@ export default function PayrollModule() {
             </colgroup>
             <thead>
               <tr>
-                <th style={historyHeadCellStyle('employee')}>Employee{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('employee', event)} /> : null}</th>
-                <th style={historyHeadCellStyle('month', 'center')}>Month{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('month', event)} /> : null}</th>
-                <th style={historyHeadCellStyle('attendance', 'center')}>Attendance{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('attendance', event)} /> : null}</th>
-                <th style={historyHeadCellStyle('gross', 'center')}>Gross{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('gross', event)} /> : null}</th>
-                <th style={historyHeadCellStyle('deductions', 'center')}>Deductions{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('deductions', event)} /> : null}</th>
-                <th style={historyHeadCellStyle('net', 'center')}>Net{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('net', event)} /> : null}</th>
-                <th style={historyHeadCellStyle('payroll', 'center')}>Payroll{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('payroll', event)} /> : null}</th>
-                <th style={historyHeadCellStyle('payment', 'center')}>Payment{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('payment', event)} /> : null}</th>
-                <th style={historyHeadCellStyle('action', 'center')}>Action{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHistoryResize('action', event)} /> : null}</th>
+                <th style={historyHeadCellStyle('employee')}>Employee</th>
+                <th style={historyHeadCellStyle('month', 'center')}>Month</th>
+                <th style={historyHeadCellStyle('attendance', 'center')}>Attendance</th>
+                <th style={historyHeadCellStyle('gross', 'center')}>Gross</th>
+                <th style={historyHeadCellStyle('deductions', 'center')}>Deductions</th>
+                <th style={historyHeadCellStyle('net', 'center')}>Net</th>
+                <th style={historyHeadCellStyle('payroll', 'center')}>Payroll</th>
+                <th style={historyHeadCellStyle('payment', 'center')}>Payment</th>
+                <th style={historyHeadCellStyle('action', 'center')}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -1662,14 +1656,14 @@ export default function PayrollModule() {
           <colgroup>{payrollAdvanceColumns.map((column) => <col key={column.key} style={{ width: `${getAdvanceColumnWidth(column.key)}px` }} />)}</colgroup>
           <thead>
             <tr>
-              <th style={advanceHeadCellStyle('employee')}>Employee{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('employee', event)} /> : null}</th>
-              <th style={advanceHeadCellStyle('issuedDate', 'center')}>Issued Date{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('issuedDate', event)} /> : null}</th>
-              <th style={advanceHeadCellStyle('amount', 'center')}>Amount{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('amount', event)} /> : null}</th>
-              <th style={advanceHeadCellStyle('recovered', 'center')}>Recovered{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('recovered', event)} /> : null}</th>
-              <th style={advanceHeadCellStyle('balance', 'center')}>Balance{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('balance', event)} /> : null}</th>
-              <th style={advanceHeadCellStyle('monthlyDeduction', 'center')}>Monthly Deduction{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('monthlyDeduction', event)} /> : null}</th>
-              <th style={advanceHeadCellStyle('status', 'center')}>Status{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('status', event)} /> : null}</th>
-              <th style={advanceHeadCellStyle('action', 'center')}>Action{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startAdvanceResize('action', event)} /> : null}</th>
+              <th style={advanceHeadCellStyle('employee')}>Employee</th>
+              <th style={advanceHeadCellStyle('issuedDate', 'center')}>Issued Date</th>
+              <th style={advanceHeadCellStyle('amount', 'center')}>Amount</th>
+              <th style={advanceHeadCellStyle('recovered', 'center')}>Recovered</th>
+              <th style={advanceHeadCellStyle('balance', 'center')}>Balance</th>
+              <th style={advanceHeadCellStyle('monthlyDeduction', 'center')}>Monthly Deduction</th>
+              <th style={advanceHeadCellStyle('status', 'center')}>Status</th>
+              <th style={advanceHeadCellStyle('action', 'center')}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -1732,11 +1726,11 @@ export default function PayrollModule() {
           <colgroup>{payrollHolidayColumns.map((column) => <col key={column.key} style={{ width: `${getHolidayColumnWidth(column.key)}px` }} />)}</colgroup>
           <thead>
             <tr>
-              <th style={holidayHeadCellStyle('date', 'center')}>Date{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHolidayResize('date', event)} /> : null}</th>
-              <th style={holidayHeadCellStyle('holiday')}>Holiday{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHolidayResize('holiday', event)} /> : null}</th>
-              <th style={holidayHeadCellStyle('type', 'center')}>Type{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHolidayResize('type', event)} /> : null}</th>
-              <th style={holidayHeadCellStyle('notes')}>Notes{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHolidayResize('notes', event)} /> : null}</th>
-              <th style={holidayHeadCellStyle('action', 'center')}>Action{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startHolidayResize('action', event)} /> : null}</th>
+              <th style={holidayHeadCellStyle('date', 'center')}>Date</th>
+              <th style={holidayHeadCellStyle('holiday')}>Holiday</th>
+              <th style={holidayHeadCellStyle('type', 'center')}>Type</th>
+              <th style={holidayHeadCellStyle('notes')}>Notes</th>
+              <th style={holidayHeadCellStyle('action', 'center')}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -1822,12 +1816,12 @@ export default function PayrollModule() {
             </colgroup>
             <thead>
               <tr>
-                <th style={slipHeadCellStyle('employee')}>Employee{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('employee', event)} /> : null}</th>
-                <th style={slipHeadCellStyle('month', 'center')}>Month{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('month', event)} /> : null}</th>
-                <th style={slipHeadCellStyle('net', 'center')}>Net Salary{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('net', event)} /> : null}</th>
-                <th style={slipHeadCellStyle('payment', 'center')}>Payment{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('payment', event)} /> : null}</th>
-                <th style={slipHeadCellStyle('slip', 'center')}>Slip{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('slip', event)} /> : null}</th>
-                <th style={slipHeadCellStyle('actions', 'center')}>Actions{canResizeDesktopTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startSlipResize('actions', event)} /> : null}</th>
+                <th style={slipHeadCellStyle('employee')}>Employee</th>
+                <th style={slipHeadCellStyle('month', 'center')}>Month</th>
+                <th style={slipHeadCellStyle('net', 'center')}>Net Salary</th>
+                <th style={slipHeadCellStyle('payment', 'center')}>Payment</th>
+                <th style={slipHeadCellStyle('slip', 'center')}>Slip</th>
+                <th style={slipHeadCellStyle('actions', 'center')}>Actions</th>
               </tr>
             </thead>
             <tbody>

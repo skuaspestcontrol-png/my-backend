@@ -199,7 +199,6 @@ const shell = {
     textTransform: 'inherit',
     cursor: 'pointer'
   },
-  resizeHandle: { width: '8px', cursor: 'col-resize', alignSelf: 'stretch', marginRight: '-10px', marginLeft: '8px' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   nameCell: { color: 'var(--color-primary)', fontWeight: 700 },
@@ -846,11 +845,6 @@ export default function ItemsDashboard() {
                     ) : (
                       <span>{column.label}</span>
                     )}
-                    <span
-                      style={shell.resizeHandle}
-                      onMouseDown={(event) => startResize(column.key, event)}
-                      role="presentation"
-                    />
                   </div>
                 </th>
               ))}

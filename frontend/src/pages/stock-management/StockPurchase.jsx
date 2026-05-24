@@ -32,7 +32,6 @@ const initialForm = {
 const tableStyle = { width: '100%', borderCollapse: 'collapse' };
 const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
 const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
-const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
 
 const purchaseColumns = [
   { key: 'date', label: 'Date' },
@@ -233,13 +232,13 @@ export default function StockPurchase() {
               </colgroup>
               <thead>
                 <tr>
-                  <th style={headStyle('date', 'center')}>Date<span style={resizeHandleStyle} onPointerDown={(event) => startResize('date', event)} /></th>
-                  <th style={headStyle('item')}>Item<span style={resizeHandleStyle} onPointerDown={(event) => startResize('item', event)} /></th>
-                  <th style={headStyle('vendor')}>Vendor<span style={resizeHandleStyle} onPointerDown={(event) => startResize('vendor', event)} /></th>
-                  <th style={headStyle('qty', 'center')}>Qty<span style={resizeHandleStyle} onPointerDown={(event) => startResize('qty', event)} /></th>
-                  <th style={headStyle('rate', 'center')}>Rate<span style={resizeHandleStyle} onPointerDown={(event) => startResize('rate', event)} /></th>
-                  <th style={headStyle('total', 'center')}>Total<span style={resizeHandleStyle} onPointerDown={(event) => startResize('total', event)} /></th>
-                  <th style={headStyle('batchExpiry')}>Batch / Expiry<span style={resizeHandleStyle} onPointerDown={(event) => startResize('batchExpiry', event)} /></th>
+                  <th style={headStyle('date', 'center')}>Date</th>
+                  <th style={headStyle('item')}>Item</th>
+                  <th style={headStyle('vendor')}>Vendor</th>
+                  <th style={headStyle('qty', 'center')}>Qty</th>
+                  <th style={headStyle('rate', 'center')}>Rate</th>
+                  <th style={headStyle('total', 'center')}>Total</th>
+                  <th style={headStyle('batchExpiry')}>Batch / Expiry</th>
                 </tr>
               </thead>
               <tbody>

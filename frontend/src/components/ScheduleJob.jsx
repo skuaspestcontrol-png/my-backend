@@ -66,7 +66,6 @@ const shell = {
   table: { width: '100%', borderCollapse: 'collapse' },
   th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#64748b', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc' },
   td: { fontSize: '12px', color: '#1f2937', padding: '8px 10px', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle' },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   muted: { color: '#94a3b8' },
   techRow: { display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr)', gap: '8px', alignItems: 'end' },
   selectedWrap: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
@@ -691,12 +690,12 @@ export default function ScheduleJob() {
                       aria-label="Select all services"
                     />
                   </th>
-                  <th style={headStyle('service')}>Service<span style={shell.resizeHandle} onPointerDown={(event) => startResize('service', event)} /></th>
-                  <th style={headStyle('visit', 'center')}>Visit<span style={shell.resizeHandle} onPointerDown={(event) => startResize('visit', event)} /></th>
-                  <th style={headStyle('date', 'center')}>Date<span style={shell.resizeHandle} onPointerDown={(event) => startResize('date', event)} /></th>
-                  <th style={headStyle('window', 'center')}>Window<span style={shell.resizeHandle} onPointerDown={(event) => startResize('window', event)} /></th>
-                  <th style={headStyle('site')}>Site<span style={shell.resizeHandle} onPointerDown={(event) => startResize('site', event)} /></th>
-                  <th style={headStyle('status', 'center')}>Status<span style={shell.resizeHandle} onPointerDown={(event) => startResize('status', event)} /></th>
+                  <th style={headStyle('service')}>Service</th>
+                  <th style={headStyle('visit', 'center')}>Visit</th>
+                  <th style={headStyle('date', 'center')}>Date</th>
+                  <th style={headStyle('window', 'center')}>Window</th>
+                  <th style={headStyle('site')}>Site</th>
+                  <th style={headStyle('status', 'center')}>Status</th>
                 </tr>
               </thead>
               <tbody>

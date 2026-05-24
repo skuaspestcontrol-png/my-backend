@@ -768,39 +768,39 @@ export default function Attendance() {
             <tr>
               <th style={{ ...shell.th, width: `${getColumnWidth('employee')}px`, minWidth: `${getColumnWidth('employee')}px` }}>
                 Employee
-                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('employee', event)} />
+                
               </th>
               <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('status')}px`, minWidth: `${getColumnWidth('status')}px` }}>
                 Status
-                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('status', event)} />
+                
               </th>
               <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('checkIn')}px`, minWidth: `${getColumnWidth('checkIn')}px` }}>
                 Check In
-                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('checkIn', event)} />
+                
               </th>
               <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('checkOut')}px`, minWidth: `${getColumnWidth('checkOut')}px` }}>
                 Check Out
-                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('checkOut', event)} />
+                
               </th>
               <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('workingHours')}px`, minWidth: `${getColumnWidth('workingHours')}px` }}>
                 Working Hours
-                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('workingHours', event)} />
+                
               </th>
               <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('leaveType')}px`, minWidth: `${getColumnWidth('leaveType')}px` }}>
                 Leave Type
-                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('leaveType', event)} />
+                
               </th>
               <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('location')}px`, minWidth: `${getColumnWidth('location')}px` }}>
                 Location
-                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('location', event)} />
+                
               </th>
               <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('source')}px`, minWidth: `${getColumnWidth('source')}px` }}>
                 Source
-                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('source', event)} />
+                
               </th>
               <th style={{ ...shell.th, textAlign: 'center', width: `${getColumnWidth('actions')}px`, minWidth: `${getColumnWidth('actions')}px` }}>
                 Actions
-                <span style={shell.resizeHandle} onMouseDown={(event) => startResize('actions', event)} />
+                
               </th>
             </tr>
           </thead>

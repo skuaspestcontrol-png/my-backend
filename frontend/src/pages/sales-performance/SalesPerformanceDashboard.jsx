@@ -201,7 +201,6 @@ export default function SalesPerformanceDashboard() {
     width: isMobile ? '1180px' : '100%',
     minWidth: isMobile ? '1180px' : '100%'
   };
-  const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
   const matrixTableMinWidth = matrixColumns.reduce((sum, key) => sum + (getColumnWidth(key) || matrixWidths[key] || 80), 0);
   const matrixTableStyle = {
     width: '100%',
@@ -454,10 +453,10 @@ export default function SalesPerformanceDashboard() {
                     </colgroup>
                     <thead>
                       <tr>
-                        <th className="table-header-cell table-text-cell table-sticky-first" style={headCellStyle('year')}>Year<span style={resizeHandleStyle} onPointerDown={(event) => startResize('year', event)} /></th>
+                        <th className="table-header-cell table-text-cell table-sticky-first" style={headCellStyle('year')}>Year</th>
                         {monthOptions.map((month) => (
                           <th key={month.value} className="table-header-cell table-number-cell" style={headCellStyle(`month-${month.value}`, 'center')}>
-                            {month.label}<span style={resizeHandleStyle} onPointerDown={(event) => startResize(`month-${month.value}`, event)} />
+                            {month.label}
                           </th>
                         ))}
                       </tr>

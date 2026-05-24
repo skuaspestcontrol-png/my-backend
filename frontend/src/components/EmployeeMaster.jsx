@@ -81,7 +81,6 @@ const shell = {
   table: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#475569', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
   td: { padding: '11px 10px', borderBottom: '1px solid #eef2f7', fontSize: '13px', color: '#0f172a', verticalAlign: 'top' },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   rowActionBtn: {
     width: '34px',
     height: '34px',
@@ -615,14 +614,14 @@ export default function EmployeeMaster() {
           </colgroup>
           <thead>
             <tr>
-              <th style={headCellStyle('code')}>Employee Code<span style={shell.resizeHandle} onPointerDown={(event) => startResize('code', event)} /></th>
-              <th style={headCellStyle('name')}>Name<span style={shell.resizeHandle} onPointerDown={(event) => startResize('name', event)} /></th>
-              <th style={headCellStyle('role', 'center')}>Role<span style={shell.resizeHandle} onPointerDown={(event) => startResize('role', event)} /></th>
-              <th style={headCellStyle('mobile', 'center')}>Mobile<span style={shell.resizeHandle} onPointerDown={(event) => startResize('mobile', event)} /></th>
-              <th style={headCellStyle('email')}>Email<span style={shell.resizeHandle} onPointerDown={(event) => startResize('email', event)} /></th>
-              <th style={headCellStyle('salary', 'center')}>Salary/Month<span style={shell.resizeHandle} onPointerDown={(event) => startResize('salary', event)} /></th>
-              <th style={headCellStyle('portal', 'center')}>Portal Access<span style={shell.resizeHandle} onPointerDown={(event) => startResize('portal', event)} /></th>
-              <th style={headCellStyle('actions', 'center')}>Actions<span style={shell.resizeHandle} onPointerDown={(event) => startResize('actions', event)} /></th>
+              <th style={headCellStyle('code')}>Employee Code</th>
+              <th style={headCellStyle('name')}>Name</th>
+              <th style={headCellStyle('role', 'center')}>Role</th>
+              <th style={headCellStyle('mobile', 'center')}>Mobile</th>
+              <th style={headCellStyle('email')}>Email</th>
+              <th style={headCellStyle('salary', 'center')}>Salary/Month</th>
+              <th style={headCellStyle('portal', 'center')}>Portal Access</th>
+              <th style={headCellStyle('actions', 'center')}>Actions</th>
             </tr>
           </thead>
           <tbody>

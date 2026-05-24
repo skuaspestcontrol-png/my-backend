@@ -166,7 +166,6 @@ const shell = {
     letterSpacing: '0.03em',
     whiteSpace: 'nowrap'
   },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   td: {
     padding: '11px 12px',
     fontSize: 13,
@@ -452,35 +451,35 @@ function QuotationDashboardInner() {
               <tr>
                 <th style={{ ...shell.th, width: `${getColumnWidth('srNo')}px`, minWidth: `${getColumnWidth('srNo')}px` }}>
                   Sr No
-                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('srNo', event)} />
+                  
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('quotationNumber')}px`, minWidth: `${getColumnWidth('quotationNumber')}px` }}>
                   Quotation #
-                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('quotationNumber', event)} />
+                  
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('date')}px`, minWidth: `${getColumnWidth('date')}px` }}>
                   Date
-                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('date', event)} />
+                  
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('customer')}px`, minWidth: `${getColumnWidth('customer')}px` }}>
                   Customer
-                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('customer', event)} />
+                  
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('salesPerson')}px`, minWidth: `${getColumnWidth('salesPerson')}px` }}>
                   Sales Person
-                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('salesPerson', event)} />
+                  
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('status')}px`, minWidth: `${getColumnWidth('status')}px` }}>
                   Status
-                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('status', event)} />
+                  
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('grandTotal')}px`, minWidth: `${getColumnWidth('grandTotal')}px` }}>
                   Grand Total
-                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('grandTotal', event)} />
+                  
                 </th>
                 <th style={{ ...shell.th, ...actionColumnStyle, width: `${getColumnWidth('action')}px`, minWidth: `${getColumnWidth('action')}px` }}>
                   Action
-                  <span style={shell.resizeHandle} onMouseDown={(event) => startResize('action', event)} />
+                  
                 </th>
               </tr>
             </thead>

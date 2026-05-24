@@ -74,7 +74,6 @@ const shell = {
   sortBtn: { width: '100%', minWidth: 0, border: 'none', background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', font: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit', cursor: 'pointer' },
   sortLabel: { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   sortIcon: { flexShrink: 0, opacity: 0.72 },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   td: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '13px', fontWeight: 650 },
   leadTd: { paddingLeft: '8px', paddingRight: '8px' },
   empty: { minHeight: '96px', display: 'grid', placeItems: 'center', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 700 },
@@ -317,11 +316,6 @@ export default function LeadFollowups() {
           <span style={shell.sortLabel}>{column.label}</span>
           {renderSortIcon(column.key)}
         </button>
-        <span
-          aria-hidden="true"
-          style={shell.resizeHandle}
-          onMouseDown={(event) => startColumnResize(event, column.key)}
-        />
       </th>
     );
   };

@@ -289,7 +289,6 @@ const shell = {
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   headSortButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', background: 'transparent', padding: 0, color: '#6b7280', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer' },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 500, color: '#334155', verticalAlign: 'middle', lineHeight: 1.25 },
   cellClamp: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
@@ -2136,15 +2135,8 @@ export default function CustomerDashboard() {
                       <ArrowUpDown size={12} />
                     </button>
                   ) : (
-                    <span style={shell.headLabelWrap}>{column.label}</span>
+                    <span>{column.label}</span>
                   )}
-                  <span
-                    role="separator"
-                    aria-orientation="vertical"
-                    title="Drag to resize"
-                    style={shell.resizeHandle}
-                    onMouseDown={(event) => startColumnResize(event, column.key)}
-                  />
                 </th>
               ))}
               <th style={{ ...shell.headCell, width: '150px', minWidth: '150px' }}>Actions</th>

@@ -259,7 +259,6 @@ const s = {
   headLabelWithSort: { display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, maxWidth: '100%' },
   dateSortButton: { width: '18px', height: '18px', border: '1px solid rgba(107,114,128,0.28)', borderRadius: '6px', background: '#fff', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer', flexShrink: 0 },
   headActionCell: { background: 'var(--color-primary-light)' },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 6px', fontSize: '10px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.15 },
   actionCell: { background: '#ffffff' },
@@ -2418,13 +2417,6 @@ export default function LeadCapture() {
                     ) : (
                       <span style={s.headLabelWrap}>{column.label}</span>
                     )}
-                    <span
-                      role="separator"
-                      aria-orientation="vertical"
-                      title="Drag to resize"
-                      style={s.resizeHandle}
-                      onMouseDown={(event) => startColumnResize(event, column.key)}
-                    />
                   </th>
                 ))}
                 <th style={{ ...s.headCell, ...s.headActionCell, ...actionColumnStyle, textAlign: 'center' }}>Action</th>

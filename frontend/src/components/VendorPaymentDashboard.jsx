@@ -44,7 +44,6 @@ const shell = {
   tableHeadBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)' },
   tableHead: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#111827' },
   tableHeadButton: { minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '720px' },
   th: {
     textAlign: 'left',
@@ -293,13 +292,13 @@ export default function VendorPaymentDashboard() {
             <colgroup>{paymentColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || paymentColumnWidths[key] || 100}px` }} />)}</colgroup>
             <thead>
               <tr>
-                <th style={headStyle('date')}>Date<span style={shell.resizeHandle} onPointerDown={(event) => startResize('date', event)} /></th>
-                <th style={headStyle('billNo')}>Bill No<span style={shell.resizeHandle} onPointerDown={(event) => startResize('billNo', event)} /></th>
-                <th style={headStyle('vendorName')}>Vendor<span style={shell.resizeHandle} onPointerDown={(event) => startResize('vendorName', event)} /></th>
-                <th style={headStyle('mode', 'center')}>Mode<span style={shell.resizeHandle} onPointerDown={(event) => startResize('mode', event)} /></th>
-                <th style={headStyle('amount', 'center')}>Amount Paid<span style={shell.resizeHandle} onPointerDown={(event) => startResize('amount', event)} /></th>
-                <th style={headStyle('status', 'center')}>Bill Status<span style={shell.resizeHandle} onPointerDown={(event) => startResize('status', event)} /></th>
-                <th style={headStyle('action', 'center')}>Action<span style={shell.resizeHandle} onPointerDown={(event) => startResize('action', event)} /></th>
+                <th style={headStyle('date')}>Date</th>
+                <th style={headStyle('billNo')}>Bill No</th>
+                <th style={headStyle('vendorName')}>Vendor</th>
+                <th style={headStyle('mode', 'center')}>Mode</th>
+                <th style={headStyle('amount', 'center')}>Amount Paid</th>
+                <th style={headStyle('status', 'center')}>Bill Status</th>
+                <th style={headStyle('action', 'center')}>Action</th>
               </tr>
             </thead>
             <tbody>

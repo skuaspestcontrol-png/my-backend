@@ -43,7 +43,6 @@ const headerCellStyle = {
   fontWeight: 800,
   background: 'color-mix(in srgb, var(--color-surface-soft) 92%, var(--color-surface))'
 };
-const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
 const iconButtonStyle = { width: 34, minWidth: 34, height: 34, minHeight: 34, padding: 0, justifyContent: 'center', borderRadius: '999px' };
 const badgeStyle = (status) => {
   const value = String(status || '').toLowerCase();
@@ -331,13 +330,13 @@ export default function StockItems() {
               </colgroup>
               <thead>
                 <tr>
-                  <th className="table-header-cell table-text-cell" style={headStyle('item')}>Item<span style={resizeHandleStyle} onPointerDown={(event) => startResize('item', event)} /></th>
-                  <th className="table-header-cell table-text-cell" style={headStyle('category', 'center')}>Category<span style={resizeHandleStyle} onPointerDown={(event) => startResize('category', event)} /></th>
-                  <th className="table-header-cell table-text-cell" style={headStyle('unit', 'center')}>Unit<span style={resizeHandleStyle} onPointerDown={(event) => startResize('unit', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={headStyle('currentStock', 'center')}>Current Stock<span style={resizeHandleStyle} onPointerDown={(event) => startResize('currentStock', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={headStyle('minimum', 'center')}>Minimum<span style={resizeHandleStyle} onPointerDown={(event) => startResize('minimum', event)} /></th>
-                  <th className="table-header-cell table-status-cell" style={headStyle('status', 'center')}>Status<span style={resizeHandleStyle} onPointerDown={(event) => startResize('status', event)} /></th>
-                  <th className="table-header-cell table-actions-cell" style={headStyle('actions', 'center')}>Actions<span style={resizeHandleStyle} onPointerDown={(event) => startResize('actions', event)} /></th>
+                  <th className="table-header-cell table-text-cell" style={headStyle('item')}>Item</th>
+                  <th className="table-header-cell table-text-cell" style={headStyle('category', 'center')}>Category</th>
+                  <th className="table-header-cell table-text-cell" style={headStyle('unit', 'center')}>Unit</th>
+                  <th className="table-header-cell table-number-cell" style={headStyle('currentStock', 'center')}>Current Stock</th>
+                  <th className="table-header-cell table-number-cell" style={headStyle('minimum', 'center')}>Minimum</th>
+                  <th className="table-header-cell table-status-cell" style={headStyle('status', 'center')}>Status</th>
+                  <th className="table-header-cell table-actions-cell" style={headStyle('actions', 'center')}>Actions</th>
                 </tr>
               </thead>
               <tbody>

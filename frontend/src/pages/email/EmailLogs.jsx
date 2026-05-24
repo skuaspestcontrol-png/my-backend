@@ -53,7 +53,6 @@ export default function EmailLogs() {
   });
   const tableMinWidth = ['dateTime', 'sentBy', 'recipient', 'email', 'type', 'module', 'subject', 'body', 'attachment', 'status', 'response', 'action'].reduce((sum, key) => sum + (getColumnWidth(key) || 90), 0);
   const tableStyle = { width: '100%', borderCollapse: 'collapse', minWidth: `${Math.max(1380, tableMinWidth)}px`, tableLayout: 'fixed' };
-  const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
   const headStyle = (key, align = 'left') => ({ textAlign: align, padding: '8px', fontSize: '11px', position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px` });
   const cellStyle = (key, align = 'left') => ({ padding: '8px', borderTop: '1px solid #f1f5f9', fontSize: '12px', position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px`, textAlign: align });
 
@@ -109,18 +108,18 @@ export default function EmailLogs() {
           </colgroup>
           <thead>
             <tr>
-              <th style={headStyle('dateTime')}>Date/Time<span style={resizeHandleStyle} onPointerDown={(event) => startResize('dateTime', event)} /></th>
-              <th style={headStyle('sentBy')}>Sent By<span style={resizeHandleStyle} onPointerDown={(event) => startResize('sentBy', event)} /></th>
-              <th style={headStyle('recipient')}>Recipient<span style={resizeHandleStyle} onPointerDown={(event) => startResize('recipient', event)} /></th>
-              <th style={headStyle('email')}>Email<span style={resizeHandleStyle} onPointerDown={(event) => startResize('email', event)} /></th>
-              <th style={headStyle('type')}>Type<span style={resizeHandleStyle} onPointerDown={(event) => startResize('type', event)} /></th>
-              <th style={headStyle('module')}>Module<span style={resizeHandleStyle} onPointerDown={(event) => startResize('module', event)} /></th>
-              <th style={headStyle('subject')}>Subject<span style={resizeHandleStyle} onPointerDown={(event) => startResize('subject', event)} /></th>
-              <th style={headStyle('body')}>Body<span style={resizeHandleStyle} onPointerDown={(event) => startResize('body', event)} /></th>
-              <th style={headStyle('attachment')}>Attachment<span style={resizeHandleStyle} onPointerDown={(event) => startResize('attachment', event)} /></th>
-              <th style={headStyle('status', 'center')}>Status<span style={resizeHandleStyle} onPointerDown={(event) => startResize('status', event)} /></th>
-              <th style={headStyle('response')}>Provider Response<span style={resizeHandleStyle} onPointerDown={(event) => startResize('response', event)} /></th>
-              <th style={headStyle('action', 'center')}>Action<span style={resizeHandleStyle} onPointerDown={(event) => startResize('action', event)} /></th>
+              <th style={headStyle('dateTime')}>Date/Time</th>
+              <th style={headStyle('sentBy')}>Sent By</th>
+              <th style={headStyle('recipient')}>Recipient</th>
+              <th style={headStyle('email')}>Email</th>
+              <th style={headStyle('type')}>Type</th>
+              <th style={headStyle('module')}>Module</th>
+              <th style={headStyle('subject')}>Subject</th>
+              <th style={headStyle('body')}>Body</th>
+              <th style={headStyle('attachment')}>Attachment</th>
+              <th style={headStyle('status', 'center')}>Status</th>
+              <th style={headStyle('response')}>Provider Response</th>
+              <th style={headStyle('action', 'center')}>Action</th>
             </tr>
           </thead>
           <tbody>

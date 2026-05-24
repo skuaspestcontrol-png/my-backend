@@ -84,7 +84,6 @@ const shell = {
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', minWidth: '900px' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
   td: { padding: '12px 10px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7' },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1180px)', borderRadius: '24px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', height: '92vh', display: 'flex', flexDirection: 'column' },
   modalHeader: { padding: '16px 20px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '28px', fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
@@ -362,14 +361,14 @@ export default function VendorBillsDashboard() {
           <colgroup>{billColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || billColumnWidths[key] || 100}px` }} />)}</colgroup>
           <thead>
             <tr>
-              <th style={billHeadStyle('date')}>Date<span style={shell.resizeHandle} onPointerDown={(event) => startResize('date', event)} /></th>
-              <th style={billHeadStyle('billNumber')}>Bill Number<span style={shell.resizeHandle} onPointerDown={(event) => startResize('billNumber', event)} /></th>
-              <th style={billHeadStyle('vendorName')}>Vendor Name<span style={shell.resizeHandle} onPointerDown={(event) => startResize('vendorName', event)} /></th>
-              <th style={billHeadStyle('dueDate')}>Due Date<span style={shell.resizeHandle} onPointerDown={(event) => startResize('dueDate', event)} /></th>
-              <th style={billHeadStyle('amount', 'center')}>Amount<span style={shell.resizeHandle} onPointerDown={(event) => startResize('amount', event)} /></th>
-              <th style={billHeadStyle('balanceDue', 'center')}>Balance Due<span style={shell.resizeHandle} onPointerDown={(event) => startResize('balanceDue', event)} /></th>
-              <th style={billHeadStyle('status', 'center')}>Status<span style={shell.resizeHandle} onPointerDown={(event) => startResize('status', event)} /></th>
-              <th style={billHeadStyle('action', 'center')}>Action<span style={shell.resizeHandle} onPointerDown={(event) => startResize('action', event)} /></th>
+              <th style={billHeadStyle('date')}>Date</th>
+              <th style={billHeadStyle('billNumber')}>Bill Number</th>
+              <th style={billHeadStyle('vendorName')}>Vendor Name</th>
+              <th style={billHeadStyle('dueDate')}>Due Date</th>
+              <th style={billHeadStyle('amount', 'center')}>Amount</th>
+              <th style={billHeadStyle('balanceDue', 'center')}>Balance Due</th>
+              <th style={billHeadStyle('status', 'center')}>Status</th>
+              <th style={billHeadStyle('action', 'center')}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -432,11 +431,11 @@ export default function VendorBillsDashboard() {
                         </tr>
                       ) : (
                         <tr>
-                          <th style={itemHeadStyle('itemName')}>Item Details<span style={shell.resizeHandle} onPointerDown={(event) => startResize('itemName', event)} /></th>
-                          <th style={itemHeadStyle('quantity', 'center')}>Quantity<span style={shell.resizeHandle} onPointerDown={(event) => startResize('quantity', event)} /></th>
-                          <th style={itemHeadStyle('rate', 'center')}>Rate<span style={shell.resizeHandle} onPointerDown={(event) => startResize('rate', event)} /></th>
-                          <th style={itemHeadStyle('tax', 'center')}>Tax<span style={shell.resizeHandle} onPointerDown={(event) => startResize('tax', event)} /></th>
-                          <th style={itemHeadStyle('amount', 'center')}>Amount<span style={shell.resizeHandle} onPointerDown={(event) => startResize('amount', event)} /></th>
+                          <th style={itemHeadStyle('itemName')}>Item Details</th>
+                          <th style={itemHeadStyle('quantity', 'center')}>Quantity</th>
+                          <th style={itemHeadStyle('rate', 'center')}>Rate</th>
+                          <th style={itemHeadStyle('tax', 'center')}>Tax</th>
+                          <th style={itemHeadStyle('amount', 'center')}>Amount</th>
                         </tr>
                       )}
                     </thead>

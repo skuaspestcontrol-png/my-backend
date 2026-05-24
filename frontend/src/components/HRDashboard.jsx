@@ -79,7 +79,6 @@ const shell = {
     background: '#fff'
   },
   badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', border: '1px solid rgba(159, 23, 77, 0.25)', padding: '3px 8px', fontSize: '11px', fontWeight: 700 },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   kanbanBoard: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(220px, 1fr))', gap: '10px', overflowX: 'auto', paddingBottom: '4px' },
   kanbanCol: { minHeight: '240px', borderRadius: '13px', border: '1px solid rgba(159, 23, 77, 0.2)', background: 'rgba(248,250,252,0.92)', padding: '8px', display: 'grid', gap: '8px', alignContent: 'start' },
   kanbanHead: { margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
@@ -363,7 +362,6 @@ export default function HRDashboard() {
   const leaveFormGridStyle = isMobile
     ? { ...shell.filters, gridTemplateColumns: '1fr' }
     : { ...shell.filters, gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' };
-  const canResizeTables = !isMobile;
   const {
     getColumnWidth: getLeaveColumnWidth,
     startResize: startLeaveResize,
@@ -374,7 +372,6 @@ export default function HRDashboard() {
     defaultColumnWidths: hrLeaveWidths,
     columnBounds: hrLeaveBounds,
     minWidth: 80,
-    enabled: canResizeTables
   });
   const {
     getColumnWidth: getBalanceColumnWidth,
@@ -386,7 +383,6 @@ export default function HRDashboard() {
     defaultColumnWidths: hrBalanceWidths,
     columnBounds: hrBalanceBounds,
     minWidth: 80,
-    enabled: canResizeTables
   });
   const {
     getColumnWidth: getPayrollColumnWidth,
@@ -398,7 +394,6 @@ export default function HRDashboard() {
     defaultColumnWidths: hrPayrollWidths,
     columnBounds: hrPayrollBounds,
     minWidth: 80,
-    enabled: canResizeTables
   });
   const leaveTableMinWidth = hrLeaveColumns.reduce((sum, column) => sum + (getLeaveColumnWidth(column.key) || hrLeaveWidths[column.key] || 80), 0);
   const balanceTableMinWidth = hrBalanceColumns.reduce((sum, column) => sum + (getBalanceColumnWidth(column.key) || hrBalanceWidths[column.key] || 80), 0);
@@ -507,12 +502,12 @@ export default function HRDashboard() {
               </colgroup>
               <thead>
                 <tr>
-                  <th style={headStyle(getLeaveColumnWidth, 'employee')}>Employee{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('employee', event)} /> : null}</th>
-                  <th style={headStyle(getLeaveColumnWidth, 'type', 'center')}>Type{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('type', event)} /> : null}</th>
-                  <th style={headStyle(getLeaveColumnWidth, 'period', 'center')}>From/To{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('period', event)} /> : null}</th>
-                  <th style={headStyle(getLeaveColumnWidth, 'days', 'center')}>Days{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('days', event)} /> : null}</th>
-                  <th style={headStyle(getLeaveColumnWidth, 'status', 'center')}>Status{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('status', event)} /> : null}</th>
-                  <th style={headStyle(getLeaveColumnWidth, 'action', 'center')}>Action{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startLeaveResize('action', event)} /> : null}</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'employee')}>Employee</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'type', 'center')}>Type</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'period', 'center')}>From/To</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'days', 'center')}>Days</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'status', 'center')}>Status</th>
+                  <th style={headStyle(getLeaveColumnWidth, 'action', 'center')}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -549,10 +544,10 @@ export default function HRDashboard() {
               </colgroup>
               <thead>
                 <tr>
-                  <th style={headStyle(getBalanceColumnWidth, 'employee')}>Employee{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startBalanceResize('employee', event)} /> : null}</th>
-                  <th style={headStyle(getBalanceColumnWidth, 'paid', 'center')}>Paid Leave Balance{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startBalanceResize('paid', event)} /> : null}</th>
-                  <th style={headStyle(getBalanceColumnWidth, 'sick', 'center')}>Sick Leave Balance{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startBalanceResize('sick', event)} /> : null}</th>
-                  <th style={headStyle(getBalanceColumnWidth, 'unpaid', 'center')}>Unpaid Used{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startBalanceResize('unpaid', event)} /> : null}</th>
+                  <th style={headStyle(getBalanceColumnWidth, 'employee')}>Employee</th>
+                  <th style={headStyle(getBalanceColumnWidth, 'paid', 'center')}>Paid Leave Balance</th>
+                  <th style={headStyle(getBalanceColumnWidth, 'sick', 'center')}>Sick Leave Balance</th>
+                  <th style={headStyle(getBalanceColumnWidth, 'unpaid', 'center')}>Unpaid Used</th>
                 </tr>
               </thead>
               <tbody>
@@ -596,8 +591,8 @@ export default function HRDashboard() {
               </colgroup>
               <thead>
                 <tr>
-                  <th style={headStyle(getPayrollColumnWidth, 'employee')}>Pending Employee{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startPayrollResize('employee', event)} /> : null}</th>
-                  <th style={headStyle(getPayrollColumnWidth, 'amount', 'center')}>Amount{canResizeTables ? <span style={shell.resizeHandle} onPointerDown={(event) => startPayrollResize('amount', event)} /> : null}</th>
+                  <th style={headStyle(getPayrollColumnWidth, 'employee')}>Pending Employee</th>
+                  <th style={headStyle(getPayrollColumnWidth, 'amount', 'center')}>Amount</th>
                 </tr>
               </thead>
               <tbody>

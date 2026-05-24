@@ -194,7 +194,6 @@ export default function SalesTargets() {
     minWidth: 80,
     enabled: true
   });
-  const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
   const yearlyMinWidth = yearlyColumns.reduce((sum, column) => sum + (getYearlyWidth(column.key) || yearlyWidths[column.key] || 80), 0);
   const targetMinWidth = targetColumns.reduce((sum, column) => sum + (getTargetWidth(column.key) || targetWidths[column.key] || 80), 0);
   const yearlyTableStyle = { ...tableStyle, minWidth: Math.max(1660, yearlyMinWidth), tableLayout: 'fixed' };
@@ -427,14 +426,14 @@ export default function SalesTargets() {
               </colgroup>
               <thead>
                 <tr>
-                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={yearlyHead('salesPerson')}><span style={firstHeaderLabelStyle}>Sales Person</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('salesPerson', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('year', 'center')}><span style={headerLabelStyle}>Year</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('year', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyRevenue', 'center')}><span style={headerLabelStyle}>Monthly Revenue Total</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('monthlyRevenue', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyCollection', 'center')}><span style={headerLabelStyle}>Monthly Collection Total</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('monthlyCollection', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyRevenue', 'center')}><span style={headerLabelStyle}>Yearly Revenue Target</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('yearlyRevenue', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyCollection', 'center')}><span style={headerLabelStyle}>Yearly Collection Target</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('yearlyCollection', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyRows', 'center')}><span style={headerLabelStyle}>Monthly Rows</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('monthlyRows', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyRows', 'center')}><span style={headerLabelStyle}>Yearly Rows</span><span style={resizeHandleStyle} onPointerDown={(event) => startYearlyResize('yearlyRows', event)} /></th>
+                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={yearlyHead('salesPerson')}></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('year', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyRevenue', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyCollection', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyRevenue', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyCollection', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyRows', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyRows', 'center')}></th>
                 </tr>
               </thead>
               <tbody>
@@ -535,19 +534,19 @@ export default function SalesTargets() {
               </colgroup>
               <thead>
                 <tr>
-                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={targetHead('salesPerson')}><span style={firstHeaderLabelStyle}>Sales Person</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('salesPerson', event)} /></th>
-                  <th className="table-header-cell table-status-cell" style={targetHead('type', 'center')}><span style={headerLabelStyle}>Type</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('type', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('month', 'center')}><span style={headerLabelStyle}>Month</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('month', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('year', 'center')}><span style={headerLabelStyle}>Year</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('year', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('revenueTarget', 'center')}><span style={headerLabelStyle}>Revenue Target</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('revenueTarget', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('revenueAchieved', 'center')}><span style={headerLabelStyle}>Revenue Achieved</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('revenueAchieved', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('revenuePending', 'center')}><span style={headerLabelStyle}>Revenue Pending</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('revenuePending', event)} /></th>
-                  <th className="table-header-cell table-percent-cell" style={targetHead('revenuePercent', 'center')}><span style={headerLabelStyle}>Revenue %</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('revenuePercent', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('collectionTarget', 'center')}><span style={headerLabelStyle}>Collection Target</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('collectionTarget', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('collectionAchieved', 'center')}><span style={headerLabelStyle}>Collection Achieved</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('collectionAchieved', event)} /></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('collectionPending', 'center')}><span style={headerLabelStyle}>Collection Pending</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('collectionPending', event)} /></th>
-                  <th className="table-header-cell table-percent-cell" style={targetHead('collectionPercent', 'center')}><span style={headerLabelStyle}>Collection %</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('collectionPercent', event)} /></th>
-                  <th className="table-header-cell table-actions-cell" style={targetHead('action', 'center')}><span style={headerLabelStyle}>Action</span><span style={resizeHandleStyle} onPointerDown={(event) => startTargetResize('action', event)} /></th>
+                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={targetHead('salesPerson')}></th>
+                  <th className="table-header-cell table-status-cell" style={targetHead('type', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('month', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('year', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('revenueTarget', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('revenueAchieved', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('revenuePending', 'center')}></th>
+                  <th className="table-header-cell table-percent-cell" style={targetHead('revenuePercent', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('collectionTarget', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('collectionAchieved', 'center')}></th>
+                  <th className="table-header-cell table-number-cell" style={targetHead('collectionPending', 'center')}></th>
+                  <th className="table-header-cell table-percent-cell" style={targetHead('collectionPercent', 'center')}></th>
+                  <th className="table-header-cell table-actions-cell" style={targetHead('action', 'center')}></th>
                 </tr>
               </thead>
               <tbody>

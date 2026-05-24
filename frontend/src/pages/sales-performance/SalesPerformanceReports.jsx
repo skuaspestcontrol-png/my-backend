@@ -298,7 +298,6 @@ export default function SalesPerformanceReports() {
     enabled: true
   });
   const reportTableMinWidth = reportTableColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || reportTableWidths[column.key] || 80), 0);
-  const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
   const reportTableStyle = {
     width: '100%',
     minWidth: `${Math.max(isMobile ? 1850 : 2080, reportTableMinWidth)}px`,
@@ -470,23 +469,23 @@ export default function SalesPerformanceReports() {
                   </colgroup>
                   <thead>
                     <tr>
-                      <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headCell('salesPerson')}>Sales Person<span style={resizeHandleStyle} onPointerDown={(event) => startResize('salesPerson', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('monthlyTarget', 'center')}>Monthly Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyTarget', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('monthlyAchieved', 'center')}>Monthly Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyAchieved', event)} /></th>
-                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyPercent', 'center')}>Monthly %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyPercent', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('monthlyCollectionTarget', 'center')}>Monthly Collection Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyCollectionTarget', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('monthlyCollectionAchieved', 'center')}>Monthly Collection Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyCollectionAchieved', event)} /></th>
-                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyCollectionPercent', 'center')}>Monthly Collection %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyCollectionPercent', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('yearlyTarget', 'center')}>Yearly Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyTarget', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('yearlyAchieved', 'center')}>Yearly Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyAchieved', event)} /></th>
-                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyPercent', 'center')}>Yearly %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyPercent', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('yearlyCollectionTarget', 'center')}>Yearly Collection Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyCollectionTarget', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('yearlyCollectionAchieved', 'center')}>Yearly Collection Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyCollectionAchieved', event)} /></th>
-                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyCollectionPercent', 'center')}>Yearly Collection %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyCollectionPercent', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('leads', 'center')}>Leads<span style={resizeHandleStyle} onPointerDown={(event) => startResize('leads', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('converted', 'center')}>Converted<span style={resizeHandleStyle} onPointerDown={(event) => startResize('converted', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('revenue', 'center')}>Revenue<span style={resizeHandleStyle} onPointerDown={(event) => startResize('revenue', event)} /></th>
-                      <th className="table-header-cell table-status-cell" style={headCell('status', 'center')}>Status<span style={resizeHandleStyle} onPointerDown={(event) => startResize('status', event)} /></th>
+                      <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headCell('salesPerson')}>Sales Person</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyTarget', 'center')}>Monthly Target</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyAchieved', 'center')}>Monthly Achieved</th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyPercent', 'center')}>Monthly %</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyCollectionTarget', 'center')}>Monthly Collection Target</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyCollectionAchieved', 'center')}>Monthly Collection Achieved</th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyCollectionPercent', 'center')}>Monthly Collection %</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyTarget', 'center')}>Yearly Target</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyAchieved', 'center')}>Yearly Achieved</th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyPercent', 'center')}>Yearly %</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyCollectionTarget', 'center')}>Yearly Collection Target</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyCollectionAchieved', 'center')}>Yearly Collection Achieved</th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyCollectionPercent', 'center')}>Yearly Collection %</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('leads', 'center')}>Leads</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('converted', 'center')}>Converted</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('revenue', 'center')}>Revenue</th>
+                      <th className="table-header-cell table-status-cell" style={headCell('status', 'center')}>Status</th>
                     </tr>
                   </thead>
                   <tbody>

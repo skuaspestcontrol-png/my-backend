@@ -162,7 +162,6 @@ export default function SalesTeamPerformance() {
     tableLayout: 'fixed',
     borderCollapse: 'collapse'
   };
-  const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
   const headCell = (key, align = 'left') => ({
     ...headCellStyle,
     position: 'relative',
@@ -322,17 +321,17 @@ export default function SalesTeamPerformance() {
                   </colgroup>
                   <thead>
                     <tr>
-                      <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headCell('salesPerson')}>Sales Person<span style={resizeHandleStyle} onPointerDown={(event) => startResize('salesPerson', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('monthlyTarget', 'center')}>Monthly Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyTarget', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('monthlyAchieved', 'center')}>Monthly Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyAchieved', event)} /></th>
-                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyPercent', 'center')}>Monthly %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('monthlyPercent', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('yearlyTarget', 'center')}>Yearly Target<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyTarget', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('yearlyAchieved', 'center')}>Yearly Achieved<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyAchieved', event)} /></th>
-                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyPercent', 'center')}>Yearly %<span style={resizeHandleStyle} onPointerDown={(event) => startResize('yearlyPercent', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('leadsAssigned', 'center')}>Leads Assigned<span style={resizeHandleStyle} onPointerDown={(event) => startResize('leadsAssigned', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('leadsConverted', 'center')}>Leads Converted<span style={resizeHandleStyle} onPointerDown={(event) => startResize('leadsConverted', event)} /></th>
-                      <th className="table-header-cell table-number-cell" style={headCell('revenueGenerated', 'center')}>Revenue Generated<span style={resizeHandleStyle} onPointerDown={(event) => startResize('revenueGenerated', event)} /></th>
-                      <th className="table-header-cell table-status-cell" style={headCell('status', 'center')}>Status<span style={resizeHandleStyle} onPointerDown={(event) => startResize('status', event)} /></th>
+                      <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headCell('salesPerson')}>Sales Person</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyTarget', 'center')}>Monthly Target</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyAchieved', 'center')}>Monthly Achieved</th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyPercent', 'center')}>Monthly %</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyTarget', 'center')}>Yearly Target</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyAchieved', 'center')}>Yearly Achieved</th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyPercent', 'center')}>Yearly %</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('leadsAssigned', 'center')}>Leads Assigned</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('leadsConverted', 'center')}>Leads Converted</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('revenueGenerated', 'center')}>Revenue Generated</th>
+                      <th className="table-header-cell table-status-cell" style={headCell('status', 'center')}>Status</th>
                     </tr>
                   </thead>
                   <tbody>

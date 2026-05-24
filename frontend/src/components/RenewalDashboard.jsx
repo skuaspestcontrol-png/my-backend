@@ -104,7 +104,6 @@ const shell = {
   rowActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, flexWrap: 'nowrap' },
   iconBtn: { width: 30, height: 30, minWidth: 30, minHeight: 30, padding: 0, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   status: { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 8px', fontSize: 11, fontWeight: 850 },
-  resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
   chartGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 },
   miniRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 70px 90px', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 12 },
   modalOverlay: { position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 14 },
@@ -325,8 +324,6 @@ export default function RenewalDashboard() {
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
-
-  const canResizeColumns = !isMobile;
   const {
     getColumnWidth,
     startResize,
@@ -337,7 +334,6 @@ export default function RenewalDashboard() {
     defaultColumnWidths: renewalDefaultWidths,
     columnBounds: renewalColumnBounds,
     minWidth: 80,
-    enabled: canResizeColumns
   });
 
   const renewalTableMinWidth = renewalColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || renewalDefaultWidths[column.key] || 80), 0);
@@ -489,19 +485,19 @@ export default function RenewalDashboard() {
           </colgroup>
           <thead>
             <tr>
-              <th style={renewalHeadCellStyle('customer')}>Customer{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('customer', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('mobile', 'center')}>Mobile{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('mobile', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('area')}>Area{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('area', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('svc', 'center')}>Svc{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('svc', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('start', 'center')}>Start{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('start', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('end', 'center')}>End{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('end', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('due', 'center')}>Due{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('due', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('previousAmount', 'center')}>Prev Amt{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('previousAmount', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('proposedAmount', 'center')}>Proposed{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('proposedAmount', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('salesPerson')}>Sales{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('salesPerson', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('status', 'center')}>Status{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('status', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('followup', 'center')}>Follow-up{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('followup', event)} /> : null}</th>
-              <th style={renewalHeadCellStyle('actions', 'center')}>Actions{canResizeColumns ? <span style={shell.resizeHandle} onPointerDown={(event) => startResize('actions', event)} /> : null}</th>
+              <th style={renewalHeadCellStyle('customer')}>Customer</th>
+              <th style={renewalHeadCellStyle('mobile', 'center')}>Mobile</th>
+              <th style={renewalHeadCellStyle('area')}>Area</th>
+              <th style={renewalHeadCellStyle('svc', 'center')}>Svc</th>
+              <th style={renewalHeadCellStyle('start', 'center')}>Start</th>
+              <th style={renewalHeadCellStyle('end', 'center')}>End</th>
+              <th style={renewalHeadCellStyle('due', 'center')}>Due</th>
+              <th style={renewalHeadCellStyle('previousAmount', 'center')}>Prev Amt</th>
+              <th style={renewalHeadCellStyle('proposedAmount', 'center')}>Proposed</th>
+              <th style={renewalHeadCellStyle('salesPerson')}>Sales</th>
+              <th style={renewalHeadCellStyle('status', 'center')}>Status</th>
+              <th style={renewalHeadCellStyle('followup', 'center')}>Follow-up</th>
+              <th style={renewalHeadCellStyle('actions', 'center')}>Actions</th>
             </tr>
           </thead>
           <tbody>
