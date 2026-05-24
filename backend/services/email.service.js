@@ -16,6 +16,8 @@ const toBool = (value) => {
   return ['1', 'true', 'yes', 'on'].includes(raw);
 };
 
+const firstDefined = (...values) => values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');
+
 const resolveActiveFlag = (settings = {}) => {
   if (settings.emailApiActive !== undefined) return toBool(settings.emailApiActive);
   if (settings.active !== undefined) return toBool(settings.active);
@@ -24,17 +26,28 @@ const resolveActiveFlag = (settings = {}) => {
 };
 
 const buildEmailConfig = (settings = {}) => ({
-  provider: String(settings.emailProvider || 'SMTP').trim(),
-  smtpHost: String(settings.smtpHost || settings.emailSmtpHost || '').trim(),
-  smtpPort: Number(settings.smtpPort || settings.emailSmtpPort || 587),
-  smtpSecure: toBool(settings.smtpSecure ?? settings.emailSmtpSecure),
-  smtpUsername: String(settings.smtpUser || settings.smtpUsername || settings.emailSmtpUsername || '').trim(),
-  smtpPassword: String(settings.smtpPass || settings.smtpPassword || settings.emailSmtpPassword || '').trim(),
-  fromEmail: String(settings.smtpFromEmail || settings.fromEmail || settings.emailFromEmail || '').trim(),
-  fromName: String(settings.smtpSenderName || settings.fromName || settings.emailFromName || '').trim(),
-  replyToEmail: String(settings.replyToEmail || settings.emailReplyToEmail || '').trim(),
+  provider: String(firstDefined(settings.emailProvider, settings.mailProvider, 'SMTP')).trim(),
+  smtpHost: String(firstDefined(settings.smtpHost, settings.smtp_host, settings.emailSmtpHost, '')).trim(),
+  smtpPort: Number(firstDefined(settings.smtpPort, settings.smtp_port, settings.emailSmtpPort, 587) || 587),
+  smtpSecure: toBool(firstDefined(settings.smtpSecure, settings.smtp_secure, settings.emailSmtpSecure, false)),
+  smtpUsername: String(firstDefined(settings.smtpUser, settings.smtp_username, settings.smtpUsername, settings.emailSmtpUsername, '')).trim(),
+  smtpPassword: String(firstDefined(settings.smtpPass, settings.smtp_password, settings.smtpPassword, settings.emailSmtpPassword, '')).trim(),
+  fromEmail: String(firstDefined(settings.smtpFromEmail, settings.fromEmail, settings.from_email, settings.emailFromEmail, '')).trim(),
+  fromName: String(firstDefined(settings.smtpSenderName, settings.fromName, settings.from_name, settings.emailFromName, '')).trim(),
+  replyToEmail: String(firstDefined(settings.replyToEmail, settings.reply_to_email, settings.emailReplyToEmail, '')).trim(),
   active: resolveActiveFlag(settings)
 });
+
+const normalizeEmailSettings = (settings = {}) => buildEmailConfig(settings || {});
+
+const getEmailSettings = async ({ settings, loadSettings } = {}) => {
+  const rawSettings = settings && typeof settings === 'object'
+    ? settings
+    : typeof loadSettings === 'function'
+      ? await loadSettings()
+      : {};
+  return normalizeEmailSettings(rawSettings || {});
+};
 
 const createTransporter = (config) => {
   return nodemailer.createTransport({
@@ -48,8 +61,18 @@ const createTransporter = (config) => {
   });
 };
 
-const sendEmailMessage = async ({ settings, to, subject, htmlBody, textBody, attachmentUrl, attachmentName }) => {
-  const config = buildEmailConfig(settings);
+const sendEmailMessage = async ({
+  settings,
+  loadSettings,
+  to,
+  subject,
+  htmlBody,
+  textBody,
+  attachmentUrl,
+  attachmentName,
+  attachments = []
+}) => {
+  const config = await getEmailSettings({ settings, loadSettings });
   const toCheck = validateEmailAddress(to);
   if (!toCheck.ok) throw new Error(toCheck.error);
   if (!config.active) throw new Error('Email API is inactive. Enable Email API / SMTP Active in Settings.');
@@ -58,6 +81,13 @@ const sendEmailMessage = async ({ settings, to, subject, htmlBody, textBody, att
   }
 
   const transporter = createTransporter(config);
+  const resolvedAttachments = Array.isArray(attachments) ? attachments.filter(Boolean) : [];
+  if (attachmentUrl) {
+    resolvedAttachments.push({
+      filename: attachmentName || 'attachment.pdf',
+      path: attachmentUrl
+    });
+  }
   const message = {
     from: config.fromName ? `${config.fromName} <${config.fromEmail}>` : config.fromEmail,
     to: toCheck.email,
@@ -65,15 +95,8 @@ const sendEmailMessage = async ({ settings, to, subject, htmlBody, textBody, att
     html: String(htmlBody || ''),
     text: String(textBody || '').trim() || String(htmlBody || '').replace(/<[^>]+>/g, ' '),
     replyTo: config.replyToEmail || undefined,
-    attachments: []
+    attachments: resolvedAttachments
   };
-
-  if (attachmentUrl) {
-    message.attachments.push({
-      filename: attachmentName || 'attachment.pdf',
-      path: attachmentUrl
-    });
-  }
 
   const info = await transporter.sendMail(message);
   return {
@@ -93,5 +116,8 @@ module.exports = {
   normalizeEmail,
   validateEmailAddress,
   buildEmailConfig,
+  normalizeEmailSettings,
+  getEmailSettings,
+  createTransporter,
   sendEmailMessage
 };

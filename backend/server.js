@@ -4,7 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
-const nodemailer = require('nodemailer');
 const { execFile } = require('child_process');
 const PDFDocument = require('pdfkit');
 const { generateInvoicePdfBuffer, formatINR, formatDate, amountToWords } = require('./invoicePdf');
@@ -12,6 +11,7 @@ const { resolveUploadAsset } = require('./quotationPdf');
 const { pool, query: dbQuery, getConnection } = require('./lib/db');
 const { runAutoMigrations, getLastMigrationStatus } = require('./lib/autoMigrate');
 const { readCachedSettings, clearSettingsCache } = require('./lib/settings-cache');
+const { sendEmailMessage, normalizeEmailSettings } = require('./services/email.service');
 const { registerPayrollModule } = require('./payrollModule');
 const { registerHrModule } = require('./hrModule');
 const { registerCustomerDedupModule } = require('./customerDedupModule');
@@ -7019,6 +7019,32 @@ const loadCurrentSettingsForNumbering = async () => {
   return readSettings();
 };
 
+const loadRuntimeEmailSettings = async () => {
+  if (canUseMysql()) {
+    try {
+      return await withMysqlConnection(async (conn) => {
+        await ensureAppSettingsTable(conn);
+        const [rows] = await conn.query(
+          'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
+          [APP_SETTINGS_KEY_MAIN]
+        );
+        const row = Array.isArray(rows) ? rows[0] : null;
+        if (!row) return {};
+        const raw = row.setting_value;
+        if (!raw) return {};
+        if (typeof raw === 'string') {
+          try { return normalizeEmailSettings(JSON.parse(raw)); } catch { return {}; }
+        }
+        if (typeof raw === 'object') return normalizeEmailSettings(raw);
+        return {};
+      });
+    } catch (error) {
+      console.error('Failed to load runtime email settings from MySQL, using JSON fallback:', error.message);
+    }
+  }
+  return normalizeEmailSettings(readSettings());
+};
+
 const updateSettingsNextInvoiceNumber = async (usedInvoiceNumber, settings) => {
   const seq = extractInvoiceSequence(usedInvoiceNumber, settings.invoicePrefix);
   if (!Number.isFinite(seq)) return;
@@ -7118,47 +7144,13 @@ const normalizeWhatsappPhone = (raw) => {
   return '';
 };
 
-const resolveEmailConfig = (settings = {}) => ({
-  host: settings.smtpHost || process.env.SMTP_HOST || '',
-  port: Math.max(1, Number(settings.smtpPort || process.env.SMTP_PORT || 587) || 587),
-  secure: normalizeSmtpEncryption(
-    settings.smtpEncryption,
-    normalizeBoolean(settings.smtpSecure, normalizeBoolean(process.env.SMTP_SECURE, false)) ? 'SSL' : 'TLS'
-  ) === 'SSL',
-  active: normalizeBoolean(
-    settings.emailApiActive ?? settings.active,
-    normalizeYesNo(settings.smtpActive, 'Yes') === 'Yes'
-  ) ? 'Yes' : 'No',
-  fromName: settings.smtpSenderName || settings.companyName || '',
-  user: settings.smtpUser || process.env.SMTP_USER || '',
-  pass: settings.smtpPass || process.env.SMTP_PASS || '',
-  fromEmail: settings.smtpFromEmail || process.env.SMTP_FROM_EMAIL || settings.companyEmail || ''
-});
-
 const sendPasswordResetOtpEmail = async ({ settings, recipient, otp }) => {
-  const mailConfig = resolveEmailConfig(settings);
-  if (mailConfig.active === 'No') {
-    throw new Error('Email sender is disabled in settings.');
-  }
-  if (!mailConfig.host || !mailConfig.user || !mailConfig.pass || !mailConfig.fromEmail) {
-    throw new Error('SMTP settings are incomplete.');
-  }
-
-  const transporter = nodemailer.createTransport({
-    host: mailConfig.host,
-    port: mailConfig.port,
-    secure: mailConfig.secure,
-    auth: { user: mailConfig.user, pass: mailConfig.pass }
-  });
-
-  await transporter.sendMail({
-    from: mailConfig.fromName
-      ? `"${String(mailConfig.fromName).replace(/"/g, '\\"')}" <${mailConfig.fromEmail}>`
-      : mailConfig.fromEmail,
+  await sendEmailMessage({
+    loadSettings: loadRuntimeEmailSettings,
     to: recipient,
     subject: 'SKUAS CRM Password Reset OTP',
-    text: `Your SKUAS CRM password reset OTP is ${otp}. It will expire in 10 minutes.`,
-    html: `<p>Your SKUAS CRM password reset OTP is <b>${otp}</b>.</p><p>This OTP will expire in 10 minutes.</p>`
+    textBody: `Your SKUAS CRM password reset OTP is ${otp}. It will expire in 10 minutes.`,
+    htmlBody: `<p>Your SKUAS CRM password reset OTP is <b>${otp}</b>.</p><p>This OTP will expire in 10 minutes.</p>`
   });
 };
 
@@ -8124,45 +8116,18 @@ app.post('/api/invoices/:id/send-email', async (req, res) => {
     ).trim();
 
     if (!recipient) return res.status(400).json({ error: 'Recipient email is required' });
-
-    const mailConfig = resolveEmailConfig(context.settings);
-    if (mailConfig.active === 'No') {
-      return res.status(400).json({
-        error: 'Email sender is disabled in settings. Enable it before sending invoice emails.'
-      });
-    }
-    if (!mailConfig.host || !mailConfig.user || !mailConfig.pass || !mailConfig.fromEmail) {
-      return res.status(400).json({
-        error: 'SMTP settings are incomplete. Configure host, user, pass and from email in Settings.'
-      });
-    }
-
     const pdfBuffer = await generateInvoicePdfBuffer(context);
     const fileName = buildInvoicePdfFileName(context.invoice);
     const defaultSubject = `Invoice ${context.invoice.invoiceNumber || ''}`.trim();
     const subject = String(req.body?.subject || defaultSubject || 'Invoice').trim();
     const message = String(req.body?.message || buildDefaultShareMessage(context.invoice, context.settings)).trim();
 
-    const transporter = nodemailer.createTransport({
-      host: mailConfig.host,
-      port: mailConfig.port,
-      secure: mailConfig.secure,
-      auth: {
-        user: mailConfig.user,
-        pass: mailConfig.pass
-      }
-    });
-
-    const info = await transporter.sendMail({
-      from: mailConfig.fromName
-        ? `"${String(mailConfig.fromName).replace(/"/g, '\\"')}" <${mailConfig.fromEmail}>`
-        : mailConfig.fromEmail,
+    const sent = await sendEmailMessage({
+      loadSettings: loadRuntimeEmailSettings,
       to: recipient,
-      cc: String(req.body?.cc || '').trim() || undefined,
-      bcc: String(req.body?.bcc || '').trim() || undefined,
       subject,
-      text: message,
-      html: `<p>${message.replace(/\n/g, '<br/>')}</p>`,
+      htmlBody: `<p>${message.replace(/\n/g, '<br/>')}</p>`,
+      textBody: message,
       attachments: [
         {
           filename: fileName,
@@ -8175,11 +8140,11 @@ app.post('/api/invoices/:id/send-email', async (req, res) => {
     res.json({
       message: 'Invoice email sent successfully',
       to: recipient,
-      messageId: info.messageId || ''
+      messageId: sent?.response?.messageId || ''
     });
   } catch (error) {
     console.error('Failed to send invoice email:', error.message);
-    res.status(500).json({ error: 'Could not send invoice email' });
+    res.status(500).json({ error: error.message || 'Could not send invoice email' });
   }
 });
 
@@ -10812,26 +10777,13 @@ app.post('/api/renewals/:id/send-reminder', async (req, res) => {
 
   try {
     if (channel === 'email') {
-      const mailConfig = resolveEmailConfig(settings);
-      if (mailConfig.active === 'Yes' && mailConfig.host && mailConfig.user && mailConfig.pass && mailConfig.fromEmail) {
-        const transporter = nodemailer.createTransport({
-          host: mailConfig.host,
-          port: mailConfig.port,
-          secure: mailConfig.secure,
-          auth: { user: mailConfig.user, pass: mailConfig.pass }
-        });
-        await transporter.sendMail({
-          from: mailConfig.fromName
-            ? `"${String(mailConfig.fromName).replace(/"/g, '\\"')}" <${mailConfig.fromEmail}>`
-            : mailConfig.fromEmail,
-          to: recipient,
-          subject: String(req.body.subject || `Renewal Reminder - ${record.invoiceNumber || 'Contract'}`),
-          text: defaultMessage
-        });
-        deliveryStatus = 'sent';
-      } else {
-        deliveryStatus = 'queued';
-      }
+      const sent = await sendEmailMessage({
+        loadSettings: loadRuntimeEmailSettings,
+        to: recipient,
+        subject: String(req.body.subject || `Renewal Reminder - ${record.invoiceNumber || 'Contract'}`),
+        textBody: defaultMessage
+      });
+      deliveryStatus = sent?.success ? 'sent' : 'queued';
     } else if (channel === 'whatsapp') {
       const waConfig = resolveWhatsappConfig(settings);
       if (waConfig.phoneNumberId && waConfig.accessToken) {
@@ -11107,6 +11059,7 @@ registerPayrollModule({
     payrollAuditFile
   },
   readSettings,
+  loadEmailSettings: loadRuntimeEmailSettings,
   serverOrigin: SERVER_ORIGIN,
   withMysqlConnection
 });
@@ -11171,6 +11124,7 @@ app.use('/api', createEmailRouter({
   settingsFile,
   readJsonFile,
   withMysqlConnection,
+  loadEmailSettings: loadRuntimeEmailSettings,
   resolveServerOrigin
 }));
 

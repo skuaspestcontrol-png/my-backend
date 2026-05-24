@@ -6,7 +6,7 @@ const {
   getEmailTemplateTypeFromModule,
   replaceTemplateVariables
 } = require('../services/emailTemplate.service');
-const { sendEmailMessage, validateEmailAddress } = require('../services/email.service');
+const { sendEmailMessage, validateEmailAddress, normalizeEmailSettings } = require('../services/email.service');
 
 const nowIso = () => new Date().toISOString();
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
@@ -27,12 +27,26 @@ const resolveEmailActive = (settings = {}) => {
   return false;
 };
 
+const APP_SETTINGS_KEY_MAIN = 'main';
+const APP_SETTINGS_TABLE_SQL = `
+CREATE TABLE IF NOT EXISTS app_settings (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  setting_key VARCHAR(120) NOT NULL,
+  setting_value JSON NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_app_settings_key (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;
+
 function createEmailController(deps) {
   const {
     dataDir,
     settingsFile,
     readJsonFile,
     withMysqlConnection,
+    loadEmailSettings,
     resolveServerOrigin
   } = deps;
 
@@ -46,6 +60,13 @@ function createEmailController(deps) {
     return raw && typeof raw === 'object' ? raw : {};
   };
   const saveSettings = (next) => writeJsonFile(settingsFile, next);
+  const loadRuntimeSettings = async () => {
+    if (typeof loadEmailSettings === 'function') {
+      const runtime = await loadEmailSettings();
+      return normalizeEmailSettings(runtime && typeof runtime === 'object' ? runtime : {});
+    }
+    return normalizeEmailSettings(readSettings());
+  };
 
   const getTemplates = () => {
     const list = ensureDefaultEmailTemplates(readJsonFile(templatesFile, []));
@@ -150,23 +171,40 @@ function createEmailController(deps) {
   };
 
   const getEmailSettings = (req, res) => {
-    const settings = readSettings();
-    res.json({
-      mailProvider: settings.emailProvider || 'SMTP',
-      smtpHost: settings.smtpHost || '',
-      smtpPort: Number(settings.smtpPort || 587),
-      smtpSecure: Boolean(settings.smtpSecure),
-      smtpUsername: settings.smtpUser || '',
-      smtpPassword: settings.smtpPass || '',
-      fromEmail: settings.smtpFromEmail || '',
-      fromName: settings.smtpSenderName || '',
-      replyToEmail: settings.replyToEmail || '',
-      active: resolveEmailActive(settings),
-      testEmailAddress: settings.smtpTestTargetEmail || ''
-    });
+    loadRuntimeSettings()
+      .then((settings) => res.json({
+        mailProvider: settings.emailProvider || 'SMTP',
+        smtpHost: settings.smtpHost || '',
+        smtpPort: Number(settings.smtpPort || 587),
+        smtpSecure: Boolean(settings.smtpSecure),
+        smtpUsername: settings.smtpUser || '',
+        smtpPassword: settings.smtpPass || '',
+        fromEmail: settings.smtpFromEmail || '',
+        fromName: settings.smtpSenderName || '',
+        replyToEmail: settings.replyToEmail || '',
+        active: resolveEmailActive(settings),
+        testEmailAddress: settings.smtpTestTargetEmail || ''
+      }))
+      .catch((error) => {
+        console.error('Could not load email settings', error);
+        const settings = readSettings();
+        res.json({
+          mailProvider: settings.emailProvider || 'SMTP',
+          smtpHost: settings.smtpHost || '',
+          smtpPort: Number(settings.smtpPort || 587),
+          smtpSecure: Boolean(settings.smtpSecure),
+          smtpUsername: settings.smtpUser || '',
+          smtpPassword: settings.smtpPass || '',
+          fromEmail: settings.smtpFromEmail || '',
+          fromName: settings.smtpSenderName || '',
+          replyToEmail: settings.replyToEmail || '',
+          active: resolveEmailActive(settings),
+          testEmailAddress: settings.smtpTestTargetEmail || ''
+        });
+      });
   };
 
-  const saveEmailSettings = (req, res) => {
+  const saveEmailSettings = async (req, res) => {
     const body = req.body || {};
     const current = readSettings();
     const isActive = resolveEmailActive({
@@ -191,18 +229,33 @@ function createEmailController(deps) {
       smtpActive: isActive ? 'Yes' : 'No'
     };
     saveSettings(next);
+    if (withMysqlConnection) {
+      try {
+        await withMysqlConnection(async (conn) => {
+          await conn.query(APP_SETTINGS_TABLE_SQL);
+          await conn.query(
+            `INSERT INTO app_settings (setting_key, setting_value)
+             VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+            [APP_SETTINGS_KEY_MAIN, JSON.stringify(next)]
+          );
+        });
+      } catch (error) {
+        console.error('Could not save email settings to MySQL, JSON fallback preserved:', error.message);
+      }
+    }
     res.json({ success: true, settings: next });
   };
 
   const sendTestEmail = async (req, res) => {
     try {
-      const settings = readSettings();
+      const settings = await loadRuntimeSettings();
       const to = String(req.body?.testEmailAddress || settings.smtpTestTargetEmail || '').trim();
       const check = validateEmailAddress(to);
       if (!check.ok) return res.status(400).json({ error: check.error });
       const subject = String(req.body?.subject || 'CRM Email API test message').trim();
       const htmlBody = String(req.body?.body || '<p>This is a test email from CRM Email API settings.</p>');
-      const sent = await sendEmailMessage({ settings, to: check.email, subject, htmlBody });
+      const sent = await sendEmailMessage({ loadSettings: loadRuntimeSettings, to: check.email, subject, htmlBody });
       await saveLog({
         sentByUser: String(req.body?.sentByUser || 'Admin').trim() || 'Admin',
         recipientName: 'Test Recipient',
@@ -288,7 +341,7 @@ function createEmailController(deps) {
   };
 
   const send = async (req, res) => {
-    const settings = readSettings();
+    const settings = await loadRuntimeSettings();
     const body = req.body || {};
     const moduleType = String(body.moduleType || '').trim().toLowerCase();
     const templateType = String(body.templateType || '').trim().toLowerCase();
@@ -318,7 +371,7 @@ function createEmailController(deps) {
 
     try {
       const sent = await sendEmailMessage({
-        settings,
+        loadSettings: loadRuntimeSettings,
         to: recipientEmail,
         subject,
         htmlBody: emailBody,

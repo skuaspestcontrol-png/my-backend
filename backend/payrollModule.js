@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
-const nodemailer = require('nodemailer');
 const { syncPayrollJsonFilesToMysql } = require('./lib/autoMigrate');
 const { normalizeIndianMobileNumber } = require('./lib/phone');
+const { sendEmailMessage, normalizeEmailSettings } = require('./services/email.service');
 
 const round2 = (value) => Number((Number(value) || 0).toFixed(2));
 const toNumber = (value, fallback = 0) => {
@@ -83,20 +83,6 @@ const normalizeWhatsappPhone = (raw) => {
   if (/^\d{10}$/.test(digits)) return `91${digits}`;
   return '';
 };
-const resolveEmailConfig = (settings = {}) => ({
-  host: settings.smtpHost || process.env.SMTP_HOST || '',
-  port: Math.max(1, Number(settings.smtpPort || process.env.SMTP_PORT || 587) || 587),
-  secure: String(settings.smtpEncryption || '').toUpperCase() === 'SSL' || String(settings.smtpSecure || '').toLowerCase() === 'true',
-  active: typeof settings.emailApiActive === 'boolean'
-    ? (settings.emailApiActive ? 'Yes' : 'No')
-    : typeof settings.active === 'boolean'
-      ? (settings.active ? 'Yes' : 'No')
-      : String(settings.smtpActive || 'Yes'),
-  fromName: settings.smtpSenderName || settings.companyName || '',
-  user: settings.smtpUser || process.env.SMTP_USER || '',
-  pass: settings.smtpPass || process.env.SMTP_PASS || '',
-  fromEmail: settings.smtpFromEmail || process.env.SMTP_FROM_EMAIL || settings.companyEmail || ''
-});
 const resolveWhatsappConfig = (settings = {}) => ({
   apiVersion: settings.whatsappApiVersion || process.env.WHATSAPP_API_VERSION || 'v23.0',
   phoneNumberId: settings.whatsappInstanceId || settings.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '',
@@ -983,6 +969,7 @@ function registerPayrollModule({
   readJsonFile,
   files,
   readSettings,
+  loadEmailSettings,
   serverOrigin,
   withMysqlConnection
 }) {
@@ -999,6 +986,13 @@ function registerPayrollModule({
   } = files;
 
   const canUseMysql = typeof withMysqlConnection === 'function';
+  const loadRuntimeEmailSettings = async () => {
+    if (typeof loadEmailSettings === 'function') {
+      const runtime = await loadEmailSettings();
+      return normalizeEmailSettings(runtime && typeof runtime === 'object' ? runtime : {});
+    }
+    return normalizeEmailSettings(readSettings ? (readSettings() || {}) : {});
+  };
   const PAYROLL_TABLES = {
     settings: 'payroll_settings',
     records: 'payroll_records',
@@ -2637,36 +2631,18 @@ function registerPayrollModule({
       const recipient = normalizeText(req.body?.to || employee?.emailId || employee?.email || '');
       if (!recipient) return res.status(400).json({ error: 'Recipient email is required' });
 
-      const settings = readSettings ? (readSettings() || {}) : {};
-      const mailConfig = resolveEmailConfig(settings);
-      if (String(mailConfig.active || 'Yes').toLowerCase() !== 'yes') {
-        return res.status(400).json({ error: 'Email sender is disabled in settings. Enable it first.' });
-      }
-      if (!mailConfig.host || !mailConfig.user || !mailConfig.pass || !mailConfig.fromEmail) {
-        return res.status(400).json({ error: 'SMTP settings are incomplete. Configure host, user, pass and from email in Settings.' });
-      }
-
+      const settings = await loadRuntimeEmailSettings();
       const company = resolveCompanyDetails(settings);
       const { absolutePath } = await ensureSalarySlipStored({ item, company, branding: settings, withMysqlConnection });
       const fileName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       const subject = normalizeText(req.body?.subject || `Salary Slip ${pad2(item.month)}/${item.year} - ${item.employeeName}`);
       const message = normalizeText(req.body?.message || `Dear ${item.employeeName},\nPlease find attached your salary slip for ${pad2(item.month)}/${item.year}.\n\n${company.companyName}`);
-
-      const transporter = nodemailer.createTransport({
-        host: mailConfig.host,
-        port: mailConfig.port,
-        secure: mailConfig.secure,
-        auth: { user: mailConfig.user, pass: mailConfig.pass }
-      });
-
-      await transporter.sendMail({
-        from: mailConfig.fromName
-          ? `"${String(mailConfig.fromName).replace(/"/g, '\\"')}" <${mailConfig.fromEmail}>`
-          : mailConfig.fromEmail,
+      await sendEmailMessage({
+        settings,
         to: recipient,
         subject,
-        text: message,
-        html: `<p>${message.replace(/\n/g, '<br/>')}</p>`,
+        textBody: message,
+        htmlBody: `<p>${message.replace(/\n/g, '<br/>')}</p>`,
         attachments: [
           {
             filename: fileName,
@@ -2687,7 +2663,7 @@ function registerPayrollModule({
       res.json({ message: 'Salary slip email sent successfully', to: recipient });
     } catch (error) {
       console.error('Failed to share salary slip via email:', error.message);
-      res.status(500).json({ error: 'Could not send salary slip email' });
+      res.status(500).json({ error: error.message || 'Could not send salary slip email' });
     }
   });
 
