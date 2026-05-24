@@ -82,7 +82,7 @@ const emptyForm = {
 const shell = {
   page: {
     background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,251,0.94) 100%)',
-    border: '1px solid rgba(239, 68, 68, 0.16)',
+    border: '1px solid var(--color-border)',
     borderRadius: '20px',
     boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)',
     overflow: 'hidden',
@@ -95,7 +95,7 @@ const shell = {
     alignItems: 'center',
     gap: '12px',
     padding: '16px 18px',
-    borderBottom: '1px solid rgba(239, 68, 68, 0.12)',
+    borderBottom: '1px solid var(--brand-border-color)',
     background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)',
     borderTopLeftRadius: '20px',
     borderTopRightRadius: '20px',
@@ -166,7 +166,7 @@ const shell = {
     overflowX: 'auto',
     overflowY: 'hidden',
     background: '#fff',
-    border: '1px solid rgba(239, 68, 68, 0.12)',
+    border: '1px solid var(--color-border)',
     borderRadius: '16px',
     backgroundClip: 'padding-box'
   },
@@ -267,7 +267,7 @@ const shell = {
     background: '#fff',
     width: 'min(100%, 760px)',
     borderRadius: '24px',
-    border: '1px solid rgba(159, 23, 77, 0.24)',
+    border: '1px solid var(--color-border)',
     boxShadow: 'var(--shadow)',
     height: 'min(92vh, calc(100dvh - 24px))',
     maxHeight: 'min(92vh, calc(100dvh - 24px))',
@@ -279,7 +279,7 @@ const shell = {
   modalHeader: {
     flexShrink: 0,
     padding: '16px 20px',
-    borderBottom: '1px solid rgba(159, 23, 77, 0.16)',
+    borderBottom: '1px solid var(--brand-border-color)',
     fontSize: '18px',
     fontWeight: 800,
     color: '#fff',
@@ -325,7 +325,7 @@ const shell = {
   label: { fontSize: '12px', color: '#111827' },
   requiredLabel: { color: '#dc2626' },
   input: {
-    border: '1px solid #D1D5DB',
+    border: '1px solid var(--color-border)',
     borderRadius: '8px',
     padding: '6px 8px',
     fontSize: '12px',
@@ -333,7 +333,7 @@ const shell = {
     width: '100%'
   },
   textArea: {
-    border: '1px solid #D1D5DB',
+    border: '1px solid var(--color-border)',
     borderRadius: '8px',
     padding: '6px 8px',
     fontSize: '12px',
@@ -344,7 +344,7 @@ const shell = {
   },
   amountRow: { display: 'grid', gridTemplateColumns: '60px 1fr', gap: '0' },
   currencyTag: {
-    border: '1px solid #D1D5DB',
+    border: '1px solid var(--color-border)',
     borderRight: 'none',
     borderRadius: '8px 0 0 8px',
     padding: '8px 10px',
@@ -410,7 +410,7 @@ const shell = {
     backgroundClip: 'padding-box'
   },
   pageButton: {
-    border: '1px solid #d1d5db',
+    border: '1px solid var(--color-border)',
     background: '#fff',
     color: '#334155',
     borderRadius: '8px',

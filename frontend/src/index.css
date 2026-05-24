@@ -462,7 +462,7 @@ button {
   gap: 12px;
   color: var(--color-white);
   background: var(--color-primary);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid var(--brand-border-color);
   border-top-left-radius: inherit;
   border-top-right-radius: inherit;
 }
@@ -490,7 +490,7 @@ button {
   z-index: 2;
   min-height: 58px;
   padding: 12px 24px;
-  border-top: 1px solid rgba(148, 163, 184, 0.22);
+  border-top: 1px solid var(--brand-border-color);
   background: var(--color-white);
   display: flex;
   align-items: center;
@@ -508,7 +508,7 @@ button {
 }
 
 .crm-modal-surface-header {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-bottom: 1px solid var(--brand-border-color) !important;
   border-top-left-radius: inherit;
   border-top-right-radius: inherit;
 }
@@ -518,7 +518,7 @@ button {
 }
 
 .crm-modal-surface-footer {
-  border-top: 1px solid rgba(148, 163, 184, 0.22) !important;
+  border-top: 1px solid var(--brand-border-color) !important;
   background: #fff !important;
   display: flex !important;
   align-items: center !important;

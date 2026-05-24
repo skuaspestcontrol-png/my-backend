@@ -5,7 +5,7 @@ export default function Modal({ open, title, onClose, children, footer }) {
       <div className="crm-modal crm-modal-normal" onClick={(e) => e.stopPropagation()}>
         <header className="crm-modal-header">
           <h3 className="crm-modal-title">{title}</h3>
-          <button type="button" className="crm-btn" onClick={onClose} style={{ border: '1px solid rgba(255,255,255,0.35)', background: 'transparent', color: '#fff' }}>Close</button>
+          <button type="button" className="crm-btn" onClick={onClose} style={{ border: '1px solid var(--brand-border-color)', background: 'transparent', color: '#fff' }}>Close</button>
         </header>
         <div className="crm-modal-body">{children}</div>
         {footer ? <footer className="crm-modal-footer">{footer}</footer> : null}

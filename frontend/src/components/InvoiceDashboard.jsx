@@ -222,8 +222,8 @@ const extractInvoiceSeq = (invoiceNumber, prefix) => {
 };
 
 const shell = {
-  page: { background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,251,0.94) 100%)', border: '1px solid rgba(239, 68, 68, 0.16)', borderRadius: '20px', boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)', overflow: 'visible', position: 'relative', backgroundClip: 'padding-box' },
-  topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '16px 18px', borderBottom: '1px solid rgba(239, 68, 68, 0.12)', background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', backgroundClip: 'padding-box' },
+  page: { background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,251,0.94) 100%)', border: '1px solid var(--color-border)', borderRadius: '20px', boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)', overflow: 'visible', position: 'relative', backgroundClip: 'padding-box' },
+  topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '16px 18px', borderBottom: '1px solid var(--brand-border-color)', background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', backgroundClip: 'padding-box' },
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   topActions: { display: 'flex', alignItems: 'center', gap: '8px' },
@@ -236,7 +236,7 @@ const shell = {
   summaryCard: { display: 'grid', gap: '12px' },
   summaryTitle: { margin: 0, fontSize: '13px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' },
   summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '12px' },
-  summaryMetric: { border: '1px solid rgba(239, 68, 68, 0.14)', borderRadius: '16px', padding: '12px 14px', background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,250,252,0.96) 100%)', minHeight: '96px', boxShadow: '0 10px 28px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.72)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '8px' },
+  summaryMetric: { border: '1px solid var(--color-border)', borderRadius: '16px', padding: '12px 14px', background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,250,252,0.96) 100%)', minHeight: '96px', boxShadow: '0 10px 28px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.72)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '8px' },
   summaryLabel: { color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.25 },
   summaryValue: { color: '#111827', fontSize: '24px', fontWeight: 800, lineHeight: 1.05 },
   summaryHint: { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1.35 },
@@ -255,12 +255,12 @@ const shell = {
   resizeHandleActive: { background: 'rgba(159, 23, 77, 0.08)' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
   statusBadge: { fontWeight: 700 },
-  menu: { position: 'absolute', right: 16, top: '56px', background: '#fff', border: '1px solid rgba(239, 68, 68, 0.14)', borderRadius: '12px', minWidth: '200px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 30, overflow: 'hidden' },
+  menu: { position: 'absolute', right: 16, top: '56px', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', minWidth: '200px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 30, overflow: 'hidden' },
   menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center' },
   rowActionButton: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '30px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   rowActionMenu: { position: 'fixed', minWidth: '168px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 3500, overflow: 'hidden' },
-  popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '250px', zIndex: 30 },
+  popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '250px', zIndex: 30 },
   popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
@@ -2526,7 +2526,7 @@ export default function InvoiceDashboard() {
           </tbody>
         </table>
       </div>
-      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px', backgroundClip: 'padding-box', boxShadow: 'inset 1px 0 0 rgba(239, 68, 68, 0.16), inset -1px 0 0 rgba(239, 68, 68, 0.16), inset 0 -1px 0 rgba(239, 68, 68, 0.16)' }}>
+      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px', backgroundClip: 'padding-box', boxShadow: 'inset 1px 0 0 var(--brand-border-color), inset -1px 0 0 var(--brand-border-color), inset 0 -1px 0 var(--brand-border-color)' }}>
         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
           <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', height: '34px', padding: 0 }} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
           <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', height: '34px', padding: 0 }} disabled={safePage >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
