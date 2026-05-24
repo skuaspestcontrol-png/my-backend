@@ -9,6 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import useColumnResize from '../../components/table/useColumnResize';
+import { theme } from '../../styles/theme';
 import { apiDelete, apiGet, apiPost, apiPut, number, safeRows, stockCategories, stockUnits } from './stockApi';
 
 const vendorLabel = (row) => String(row.name || row.vendor_name || row.company_name || row.displayName || `Vendor ${row.id || row._id || ''}`).trim();
@@ -32,25 +33,30 @@ const initialForm = {
 };
 
 const tableStyle = { width: '100%', borderCollapse: 'separate', borderSpacing: 0 };
-const cellStyle = { padding: '8px 10px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'middle' };
-const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const cellStyle = { padding: '10px 12px', borderBottom: `1px solid ${theme.colors.borderSoft}`, fontSize: 13, verticalAlign: 'middle', color: theme.colors.text, background: theme.colors.surface };
+const headerCellStyle = {
+  ...cellStyle,
+  fontSize: 12,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: theme.colors.muted,
+  fontWeight: 800,
+  background: 'color-mix(in srgb, var(--color-surface-soft) 92%, var(--color-surface))'
+};
 const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
-const iconButtonStyle = { width: 34, minWidth: 34, height: 34, minHeight: 34, padding: 0, justifyContent: 'center' };
-const greenColor = '#16A34A';
-const redColor = '#DC2626';
-const blackColor = '#111827';
+const iconButtonStyle = { width: 34, minWidth: 34, height: 34, minHeight: 34, padding: 0, justifyContent: 'center', borderRadius: '999px' };
 const badgeStyle = (status) => {
   const value = String(status || '').toLowerCase();
-  let bg = '#F3F4F6';
-  let fg = blackColor;
+  let bg = 'color-mix(in srgb, var(--color-surface-soft) 90%, var(--color-surface))';
+  let fg = theme.colors.text;
   if (value === 'in stock') {
-    bg = '#DCFCE7';
-    fg = greenColor;
+    bg = 'color-mix(in srgb, var(--color-success) 14%, var(--color-surface))';
+    fg = 'var(--color-success)';
   } else if (value === 'low stock' || value === 'out of stock' || value === 'expired' || value === 'expiring soon') {
-    bg = '#FEE2E2';
-    fg = redColor;
+    bg = 'color-mix(in srgb, var(--color-danger) 12%, var(--color-surface))';
+    fg = 'var(--color-danger)';
   }
-  return { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 10px', fontSize: 12, fontWeight: 700, background: bg, color: fg };
+  return { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 10px', fontSize: 12, fontWeight: 800, background: bg, color: fg, border: `1px solid ${theme.colors.border}` };
 };
 
 const stockItemColumns = [
@@ -132,6 +138,7 @@ export default function StockItems() {
   });
   const tableMinWidth = stockItemColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || stockItemWidths[column.key] || 100), 0);
   const listTableStyle = { ...tableStyle, minWidth: `${Math.max(880, tableMinWidth)}px`, tableLayout: 'fixed' };
+  const isMobileForm = viewportWidth <= 768;
   const headStyle = (key, align = 'left') => ({
     ...headerCellStyle,
     position: 'relative',
@@ -156,6 +163,43 @@ export default function StockItems() {
     ? { display: 'grid', gap: 8, width: '100%' }
     : { display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' };
   const actionButtonStyle = viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined;
+  const formCardStyle = isMobileForm
+    ? {
+        display: 'flex',
+        flexDirection: 'column',
+        maxHeight: 'calc(100dvh - 160px)',
+        overflow: 'hidden',
+        borderRadius: '20px'
+      }
+    : undefined;
+  const formBodyStyle = isMobileForm
+    ? {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        minHeight: 0,
+        overflow: 'hidden'
+      }
+    : undefined;
+  const formScrollStyle = isMobileForm
+    ? {
+        overflowY: 'auto',
+        minHeight: 0,
+        WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: 'contain',
+        paddingRight: 4
+      }
+    : undefined;
+  const panelStyle = {
+    border: `1px solid ${theme.colors.border}`,
+    background: theme.colors.surface,
+    boxShadow: theme.shadow.sm
+  };
+  const toolbarButtonStyle = {
+    minHeight: 38,
+    borderRadius: 999,
+    boxShadow: theme.shadow.sm
+  };
 
   const resetForm = () => setForm(initialForm);
 
@@ -236,8 +280,8 @@ export default function StockItems() {
 
       {error ? <AppCard><EmptyState title="Stock items error" message={error} /></AppCard> : null}
 
-      <AppCard title={form.id ? 'Edit Item' : 'Add Item'} className="crm-filter-card">
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0 }}>
+      <AppCard title={form.id ? 'Edit Item' : 'Add Item'} className="crm-filter-card" style={{ ...panelStyle, ...formCardStyle }} bodyStyle={formBodyStyle}>
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0, ...formScrollStyle }}>
           <div style={formGridStyle}>
             <AppInput label="Item Name" value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} required />
             <AppInput label="Item Code" value={form.itemCode} onChange={(e) => setForm({ ...form, itemCode: e.target.value })} />
@@ -271,9 +315,9 @@ export default function StockItems() {
         </form>
       </AppCard>
 
-      <AppCard title="Stock Items List" className="crm-table-card">
+      <AppCard title="Stock Items List" className="crm-table-card" style={panelStyle}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 8 }}>
-          <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
+          <AppButton variant="outline" onClick={resetColumns} style={toolbarButtonStyle}>Reset Columns</AppButton>
         </div>
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
@@ -300,8 +344,8 @@ export default function StockItems() {
                 {items.map((row) => (
                   <tr key={row.id} style={{ minHeight: 48 }}>
                     <td className="table-name-cell" style={bodyStyle('item')}>
-                      <div style={{ fontWeight: 700, color: '#111827' }}>{row.itemName}</div>
-                      <div style={{ color: '#6B7280', fontSize: 12 }}>{row.itemCode || 'No code'}</div>
+                      <div style={{ fontWeight: 800, color: theme.colors.text, letterSpacing: '-0.01em' }}>{row.itemName}</div>
+                      <div style={{ color: theme.colors.muted, fontSize: 12, fontWeight: 600 }}>{row.itemCode || 'No code'}</div>
                     </td>
                     <td className="table-text-cell" style={bodyStyle('category', 'center')}>{row.category}</td>
                     <td className="table-text-cell" style={bodyStyle('unit', 'center')}>{row.unit}</td>

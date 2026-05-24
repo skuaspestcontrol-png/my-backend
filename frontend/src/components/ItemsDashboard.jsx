@@ -260,7 +260,8 @@ const shell = {
     zIndex: 3000,
     padding: 'clamp(12px, 3vh, 24px)',
     overflowY: 'auto',
-    backdropFilter: 'blur(12px)'
+    backdropFilter: 'blur(12px)',
+    WebkitOverflowScrolling: 'touch'
   },
   modal: {
     background: '#fff',
@@ -268,11 +269,15 @@ const shell = {
     borderRadius: '24px',
     border: '1px solid rgba(159, 23, 77, 0.24)',
     boxShadow: 'var(--shadow)',
-    maxHeight: '92vh',
-    overflowY: 'auto',
-    overflowX: 'hidden'
+    height: 'min(92vh, calc(100dvh - 24px))',
+    maxHeight: 'min(92vh, calc(100dvh - 24px))',
+    overflow: 'hidden',
+    overflowX: 'hidden',
+    display: 'flex',
+    flexDirection: 'column'
   },
   modalHeader: {
+    flexShrink: 0,
     padding: '16px 20px',
     borderBottom: '1px solid rgba(159, 23, 77, 0.16)',
     fontSize: '18px',
@@ -297,7 +302,19 @@ const shell = {
     justifyContent: 'center',
     cursor: 'pointer'
   },
-  formContent: { padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: '10px', overflowX: 'hidden', background: '#fff' },
+  formContent: {
+    padding: '10px 12px 12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    flex: '1 1 auto',
+    overflowX: 'hidden',
+    overflowY: 'auto',
+    minHeight: 0,
+    background: '#fff',
+    WebkitOverflowScrolling: 'touch',
+    overscrollBehavior: 'contain'
+  },
   topGrid: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'center' },
   typeRadios: { display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#111827' },
   sectionSplit: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '12px' },
@@ -352,6 +369,7 @@ const shell = {
     alignItems: 'center'
   },
   modalFooter: {
+    flexShrink: 0,
     padding: '10px 12px',
     borderTop: '1px solid var(--color-border)',
     display: 'flex',
