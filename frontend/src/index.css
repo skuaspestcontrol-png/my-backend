@@ -494,8 +494,9 @@ button {
   background: var(--color-white);
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .crm-modal-surface {
@@ -519,6 +520,12 @@ button {
 .crm-modal-surface-footer {
   border-top: 1px solid rgba(148, 163, 184, 0.22) !important;
   background: #fff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 14px !important;
+  flex-wrap: wrap !important;
+  padding: 12px 24px !important;
 }
 
 .crm-form-grid {
@@ -583,6 +590,27 @@ button {
   border-radius: 12px;
   font-size: 14px;
   line-height: 1.2;
+}
+
+.crm-modal-footer .crm-btn,
+.crm-modal-footer button,
+.crm-modal-surface-footer .crm-btn,
+.crm-modal-surface-footer button {
+  min-height: 46px;
+  min-width: 180px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.1;
+  box-shadow: none;
+}
+
+.crm-modal-footer .crm-btn:hover,
+.crm-modal-footer button:hover,
+.crm-modal-surface-footer .crm-btn:hover,
+.crm-modal-surface-footer button:hover {
+  transform: translateY(-1px);
 }
 
 .crm-check-row,
@@ -659,7 +687,6 @@ button {
 
   .crm-modal-footer {
     padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-    flex-wrap: wrap;
   }
 }
 
@@ -682,12 +709,13 @@ button {
   }
 
   .crm-modal-footer {
-    justify-content: stretch;
+    justify-content: center;
   }
 
   .crm-modal-footer .crm-btn,
   .crm-modal-footer button {
-    flex: 1 1 140px;
+    flex: 1 1 160px;
+    min-width: 0;
   }
 }
 
