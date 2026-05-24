@@ -596,9 +596,10 @@ button {
 .crm-modal-footer button,
 .crm-modal-surface-footer .crm-btn,
 .crm-modal-surface-footer button {
-  min-height: 46px;
-  min-width: 180px;
-  padding: 0 22px;
+  min-height: 48px;
+  min-width: max-content;
+  width: auto;
+  padding: 0 24px;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 700;
@@ -714,8 +715,7 @@ button {
 
   .crm-modal-footer .crm-btn,
   .crm-modal-footer button {
-    flex: 1 1 160px;
-    min-width: 0;
+    flex: 0 1 auto;
   }
 }
 

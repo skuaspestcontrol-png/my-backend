@@ -69,19 +69,21 @@ const shell = {
     gap: '5px'
   },
   actionButton: {
-    minHeight: '44px',
+    minHeight: '48px',
     borderRadius: '999px',
     border: '1px solid #d1d5db',
     background: '#fff',
     color: '#374151',
-    padding: '0 18px',
+    padding: '0 24px',
     fontWeight: 700,
     fontSize: '13px',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '6px',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    width: 'auto',
+    minWidth: 'max-content'
   },
   actionButtonDisabled: {
     opacity: 0.55,
