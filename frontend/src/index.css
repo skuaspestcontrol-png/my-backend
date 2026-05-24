@@ -49,6 +49,33 @@
   --icon-size-inline: 15px;
 }
 
+:root[data-theme='dark'],
+body[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+[data-theme='dark'] {
+  --color-bg: #09090B;
+  --color-white: #111214;
+  --color-text: #F5F5F5;
+  --color-muted: #A1A1AA;
+  --color-primary-light: #18181B;
+  --color-primary-soft: #27272A;
+  --color-border: rgba(255, 255, 255, 0.10);
+  --brand-border-color: rgba(255, 255, 255, 0.10);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.38);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.40);
+  --shadow-lg: 0 16px 38px rgba(0, 0, 0, 0.48);
+  --bg: #09090B;
+  --bg-soft: #111214;
+  --panel: #111214;
+  --panel-strong: #17181B;
+  --panel-dark: #0A0A0B;
+  --border: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --sky-soft: rgba(255, 255, 255, 0.06);
+}
+
 html,
 body,
 #root {
@@ -149,6 +176,20 @@ body {
   background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(254,254,255,1) 100%);
 }
 
+[data-theme='dark'] .crm-card,
+[data-theme='dark'] .crm-kpi-card,
+[data-theme='dark'] .crm-chart-card,
+[data-theme='dark'] .crm-filter-card,
+[data-theme='dark'] .crm-table-card {
+  background: linear-gradient(180deg, rgba(17, 18, 20, 0.98) 0%, rgba(10, 10, 11, 0.98) 100%);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34);
+}
+
+[data-theme='dark'] .crm-kpi-card {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 .crm-scroll-table {
   width: 100%;
   max-width: 100%;
@@ -199,6 +240,34 @@ body {
   vertical-align: middle !important;
   border-bottom: 1px solid rgba(241, 245, 249, 0.95) !important;
   background: #fff !important;
+}
+
+[data-theme='dark'] .table-clean thead th,
+[data-theme='dark'] .crm-table-card table thead th,
+[data-theme='dark'] .crm-table-shell table thead th,
+[data-theme='dark'] .table-scroll-x table thead th,
+[data-theme='dark'] table thead th {
+  background: #111214 !important;
+  color: #E5E7EB !important;
+  border-bottom-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+[data-theme='dark'] .table-clean tbody td,
+[data-theme='dark'] .crm-table-card table tbody td,
+[data-theme='dark'] .crm-table-shell table tbody td,
+[data-theme='dark'] .table-scroll-x table tbody td,
+[data-theme='dark'] table td {
+  background: #111214 !important;
+  color: #E5E7EB !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme='dark'] .table-clean tbody tr:hover td,
+[data-theme='dark'] .crm-table-card table tbody tr:hover td,
+[data-theme='dark'] .crm-table-shell table tbody tr:hover td,
+[data-theme='dark'] .table-scroll-x table tbody tr:hover td,
+[data-theme='dark'] table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.04) !important;
 }
 
 .table-clean tbody tr:last-child td,
@@ -377,6 +446,10 @@ button {
   background: rgba(15, 23, 42, 0.42);
 }
 
+[data-theme='dark'] .crm-modal-overlay {
+  background: rgba(0, 0, 0, 0.72);
+}
+
 .crm-modal {
   width: min(100%, 860px);
   max-height: 92vh;
@@ -388,6 +461,12 @@ button {
   display: flex;
   flex-direction: column;
   background-clip: padding-box;
+}
+
+[data-theme='dark'] .crm-modal {
+  background: #111214;
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
 }
 
 .crm-modal-large {
@@ -412,6 +491,11 @@ button {
   border-top-right-radius: inherit;
 }
 
+[data-theme='dark'] .crm-modal-header {
+  background: #0A0A0B;
+  color: #F5F5F5;
+}
+
 .crm-modal-title {
   margin: 0;
   font-size: 24px;
@@ -429,6 +513,11 @@ button {
   background: var(--color-white);
 }
 
+[data-theme='dark'] .crm-modal-body {
+  background: #111214;
+  color: #F5F5F5;
+}
+
 .crm-modal-footer {
   position: sticky;
   bottom: 0;
@@ -444,6 +533,10 @@ button {
   flex-wrap: wrap;
 }
 
+[data-theme='dark'] .crm-modal-footer {
+  background: #111214;
+}
+
 .crm-modal-surface {
   border: 1px solid rgba(17, 24, 39, 0.35) !important;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28) !important;
@@ -452,14 +545,30 @@ button {
   background-clip: padding-box;
 }
 
+[data-theme='dark'] .crm-modal-surface {
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55) !important;
+  background: #111214 !important;
+}
+
 .crm-modal-surface-header {
   border-bottom: 1px solid var(--brand-border-color) !important;
   border-top-left-radius: inherit;
   border-top-right-radius: inherit;
 }
 
+[data-theme='dark'] .crm-modal-surface-header {
+  background: #0A0A0B !important;
+  color: #F5F5F5 !important;
+}
+
 .crm-modal-surface-body {
   background: #fff !important;
+}
+
+[data-theme='dark'] .crm-modal-surface-body {
+  background: #111214 !important;
+  color: #F5F5F5 !important;
 }
 
 .crm-modal-surface-footer {
@@ -471,6 +580,10 @@ button {
   gap: 14px !important;
   flex-wrap: wrap !important;
   padding: 12px 24px !important;
+}
+
+[data-theme='dark'] .crm-modal-surface-footer {
+  background: #111214 !important;
 }
 
 .crm-form-grid {
@@ -700,6 +813,10 @@ table {
   overflow: hidden;
 }
 
+[data-theme='dark'] .app-layout {
+  background: #09090B;
+}
+
 .sidebar {
   width: 280px;
   flex: 0 0 280px;
@@ -709,6 +826,11 @@ table {
   overflow-y: auto;
   overflow-x: hidden;
   z-index: 60;
+}
+
+[data-theme='dark'] .sidebar {
+  background: #111214;
+  border-right-color: rgba(255, 255, 255, 0.10);
 }
 
 .main-wrapper {
@@ -730,6 +852,14 @@ table {
   background: var(--color-white);
   border-bottom: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
+}
+
+[data-theme='dark'] .topbar,
+[data-theme='dark'] .header,
+[data-theme='dark'] .navbar {
+  background: #111214;
+  border-bottom-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .main-content {
@@ -757,6 +887,10 @@ table {
   display: none;
   border: 0;
   padding: 0;
+}
+
+[data-theme='dark'] .sidebar-overlay {
+  background: rgba(0, 0, 0, 0.60);
 }
 
 .sidebar-overlay.show {
@@ -1259,10 +1393,23 @@ textarea {
   opacity: 1;
 }
 
+[data-theme='dark'] input,
+[data-theme='dark'] select,
+[data-theme='dark'] textarea {
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text);
+  background: var(--color-white);
+}
+
 input::placeholder,
 textarea::placeholder {
   color: #6b7280 !important;
   opacity: 1;
+}
+
+[data-theme='dark'] input::placeholder,
+[data-theme='dark'] textarea::placeholder {
+  color: #71717A !important;
 }
 
 input:disabled,
@@ -1273,6 +1420,15 @@ textarea[readonly] {
   color: #111827 !important;
   -webkit-text-fill-color: #111827;
   opacity: 1;
+}
+
+[data-theme='dark'] input:disabled,
+[data-theme='dark'] select:disabled,
+[data-theme='dark'] textarea:disabled,
+[data-theme='dark'] input[readonly],
+[data-theme='dark'] textarea[readonly] {
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text);
 }
 
 input:focus,
@@ -1286,6 +1442,29 @@ textarea:focus {
 .sidebar {
   background: var(--color-white);
   border-right: 1px solid var(--color-border);
+}
+
+[data-theme='dark'] .sidebar .active,
+[data-theme='dark'] .sidebar a.active,
+[data-theme='dark'] .menu-item.active,
+[data-theme='dark'] .nav-link.active {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--color-white) !important;
+  border-radius: var(--radius-md);
+}
+
+[data-theme='dark'] .sidebar a:hover,
+[data-theme='dark'] .menu-item:hover,
+[data-theme='dark'] .nav-link:hover,
+[data-theme='dark'] .sidebar-nav-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--color-text) !important;
+  border-radius: var(--radius-md);
+}
+
+[data-theme='dark'] .sidebar-nav-item.active {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--color-white) !important;
 }
 
 .sidebar .active,
@@ -1386,9 +1565,20 @@ textarea:focus {
   color: var(--color-white);
 }
 
+[data-theme='dark'] .mobile-header,
+[data-theme='dark'] .mobile-topbar {
+  background: #111214;
+  color: var(--color-white);
+}
+
 .mobile-bottom-nav {
   background: var(--color-white);
   border-top: 1px solid var(--color-border);
+}
+
+[data-theme='dark'] .mobile-bottom-nav {
+  background: #111214;
+  border-top-color: rgba(255, 255, 255, 0.10);
 }
 
 .mobile-bottom-nav .active {
