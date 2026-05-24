@@ -1,14 +1,20 @@
-const DEFAULT_ACCENT = '#EF4444';
+export const accentPalette = {
+  '#3B82F6': { primary: '#3B82F6', dark: '#1D4ED8', deep: '#1E3A8A', light: '#EFF6FF', soft: '#DBEAFE' },
+  '#22C55E': { primary: '#22C55E', dark: '#15803D', deep: '#166534', light: '#F0FDF4', soft: '#DCFCE7' },
+  '#EF4444': { primary: '#EF4444', dark: '#B91C1C', deep: '#991B1B', light: '#FEF2F2', soft: '#FEE2E2' },
+  '#F59E0B': { primary: '#F59E0B', dark: '#B45309', deep: '#92400E', light: '#FFFBEB', soft: '#FEF3C7' },
+  '#EF4444': { primary: '#EF4444', dark: '#DC2626', deep: '#B91C1C', light: '#FEF2F2', soft: '#FEE2E2' }
+};
 
 const normalizeHex = (value) => {
   const raw = String(value || '').trim().toUpperCase();
-  if (!raw) return DEFAULT_ACCENT;
+  if (!raw) return '#EF4444';
   if (/^#[0-9A-F]{6}$/.test(raw)) return raw;
   if (/^#[0-9A-F]{3}$/.test(raw)) {
     const [r, g, b] = raw.slice(1).split('');
     return `#${r}${r}${g}${g}${b}${b}`;
   }
-  return DEFAULT_ACCENT;
+  return '#EF4444';
 };
 
 const hexToRgb = (hex) => {
@@ -17,14 +23,15 @@ const hexToRgb = (hex) => {
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 };
 
+const brandBorderFromAccent = (hex, alpha = 0.24) => {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const rgbToHex = ({ r, g, b }) => {
   const toHex = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 };
-
-const rgbToString = ({ r, g, b }) => `${Math.round(r)} ${Math.round(g)} ${Math.round(b)}`;
-
-const rgbaFromRgb = (rgb, alpha) => `rgba(${Math.round(rgb.r)}, ${Math.round(rgb.g)}, ${Math.round(rgb.b)}, ${alpha})`;
 
 const mixRgb = (a, b, ratio) => ({
   r: a.r + (b.r - a.r) * ratio,
@@ -35,7 +42,7 @@ const mixRgb = (a, b, ratio) => ({
 const derivePaletteFromAccent = (accent) => {
   const primaryHex = normalizeHex(accent);
   const primary = hexToRgb(primaryHex);
-  const black = { r: 17, g: 24, b: 39 };
+  const black = { r: 0, g: 0, b: 0 };
   const white = { r: 255, g: 255, b: 255 };
 
   return {
@@ -43,76 +50,44 @@ const derivePaletteFromAccent = (accent) => {
     dark: rgbToHex(mixRgb(primary, black, 0.18)),
     deep: rgbToHex(mixRgb(primary, black, 0.32)),
     light: rgbToHex(mixRgb(primary, white, 0.9)),
-    soft: rgbToHex(mixRgb(primary, white, 0.82)),
-    rgb: rgbToString(primary)
+    soft: rgbToHex(mixRgb(primary, white, 0.82))
   };
-};
-
-const applyPalette = (root, palette, appearance) => {
-  const isDark = appearance === 'dark';
-  const surface = isDark ? '#111827' : '#FFFFFF';
-  const surfaceElevated = isDark ? '#0F172A' : '#FFFFFF';
-  const surfaceSoft = isDark ? '#1E293B' : '#F8FAFC';
-  const surfaceMuted = isDark ? '#0B1220' : '#F1F5F9';
-  const appBg = isDark ? '#020617' : '#F8FAFC';
-  const appBgAlt = isDark ? '#0F172A' : '#EEF2FF';
-  const text = isDark ? '#E5E7EB' : '#111827';
-  const muted = isDark ? '#94A3B8' : '#6B7280';
-  const border = isDark ? `rgba(148, 163, 184, 0.18)` : rgbaFromRgb(hexToRgb(palette.primary), 0.22);
-  const borderSoft = isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(148, 163, 184, 0.16)';
-  const sidebarBg = isDark ? 'rgba(15, 23, 42, 0.84)' : 'rgba(255, 255, 255, 0.88)';
-  const sidebarBorder = isDark ? 'rgba(148, 163, 184, 0.16)' : 'rgba(226, 232, 240, 0.92)';
-  const topbarBg = isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.84)';
-  const panelBg = isDark ? 'rgba(15, 23, 42, 0.82)' : 'rgba(255, 255, 255, 0.92)';
-  const panelBorder = isDark ? 'rgba(148, 163, 184, 0.14)' : 'rgba(226, 232, 240, 0.84)';
-  const panelGlow = isDark
-    ? `0 22px 60px rgba(2, 6, 23, 0.38), 0 0 0 1px rgb(${palette.rgb} / 0.18)`
-    : `0 22px 60px rgba(15, 23, 42, 0.12), 0 0 0 1px rgb(${palette.rgb} / 0.1)`;
-
-  root.dataset.brandingAppearance = appearance;
-  root.style.setProperty('--color-primary', palette.primary);
-  root.style.setProperty('--color-primary-dark', palette.dark);
-  root.style.setProperty('--color-primary-deep', palette.deep);
-  root.style.setProperty('--color-primary-light', palette.light);
-  root.style.setProperty('--color-primary-soft', palette.soft);
-  root.style.setProperty('--color-primary-rgb', palette.rgb);
-  root.style.setProperty('--brand-border-color', border);
-  root.style.setProperty('--color-bg', appBg);
-  root.style.setProperty('--color-bg-alt', appBgAlt);
-  root.style.setProperty('--color-text', text);
-  root.style.setProperty('--color-muted', muted);
-  root.style.setProperty('--color-border', border);
-  root.style.setProperty('--color-border-soft', borderSoft);
-  root.style.setProperty('--color-surface', surface);
-  root.style.setProperty('--color-surface-elevated', surfaceElevated);
-  root.style.setProperty('--color-surface-soft', surfaceSoft);
-  root.style.setProperty('--color-surface-muted', surfaceMuted);
-  root.style.setProperty('--color-panel', surfaceElevated);
-  root.style.setProperty('--color-panel-border', panelBorder);
-  root.style.setProperty('--color-panel-glow', panelGlow);
-  root.style.setProperty('--color-sidebar-bg', sidebarBg);
-  root.style.setProperty('--color-sidebar-border', sidebarBorder);
-  root.style.setProperty('--color-topbar-bg', topbarBg);
-  root.style.setProperty('--color-overlay', isDark ? 'rgba(2, 6, 23, 0.6)' : 'rgba(15, 23, 42, 0.45)');
-  root.style.setProperty('--color-on-primary', '#FFFFFF');
-  root.style.setProperty('--color-white', surface);
-  root.style.setProperty('--color-card-shadow', panelGlow);
 };
 
 export const applyBrandingTheme = (settings = {}) => {
   const root = document.documentElement;
-  const accent = normalizeHex(settings.brandingAccentColor || DEFAULT_ACCENT);
-  const palette = derivePaletteFromAccent(accent);
-  const appearance = String(settings.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light';
+  const accent = normalizeHex(settings.brandingAccentColor || '#EF4444');
+  const palette = accentPalette[accent] || derivePaletteFromAccent(accent);
+  const neutralLight = '#F3F4F6';
+  const neutralSoft = '#E5E7EB';
+  root.style.setProperty('--color-primary', palette.primary);
+  root.style.setProperty('--color-primary-dark', palette.dark);
+  root.style.setProperty('--color-primary-deep', palette.deep);
+  root.style.setProperty('--color-primary-light', neutralLight);
+  root.style.setProperty('--color-primary-soft', neutralSoft);
+  root.style.setProperty('--brand-border-color', brandBorderFromAccent(palette.primary));
 
-  applyPalette(root, palette, appearance);
+  const appearance = String(settings.brandingAppearance || 'light').toLowerCase();
+  if (appearance === 'dark') {
+    root.style.setProperty('--color-bg', '#0F172A');
+    root.style.setProperty('--color-text', '#E5E7EB');
+    root.style.setProperty('--color-muted', '#94A3B8');
+    root.style.setProperty('--color-border', 'var(--brand-border-color)');
+    root.style.setProperty('--color-white', '#111827');
+  } else {
+    root.style.setProperty('--color-bg', '#F8FAFC');
+    root.style.setProperty('--color-text', '#111827');
+    root.style.setProperty('--color-muted', '#6B7280');
+    root.style.setProperty('--color-border', 'var(--brand-border-color)');
+    root.style.setProperty('--color-white', '#FFFFFF');
+  }
 };
 
 export const BRANDING_STORAGE_KEY = 'skuas_branding_settings';
 
 export const pickBrandingSettings = (settings = {}) => ({
   brandingAppearance: String(settings.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
-  brandingAccentColor: normalizeHex(settings.brandingAccentColor || DEFAULT_ACCENT),
+  brandingAccentColor: normalizeHex(settings.brandingAccentColor || '#EF4444'),
   companyName: String(settings.companyName || '').trim(),
   dashboardImageUrl: String(settings.dashboardImageUrl || '').trim()
 });
@@ -135,5 +110,3 @@ export const loadBrandingSettings = () => {
     return null;
   }
 };
-
-export { normalizeHex };

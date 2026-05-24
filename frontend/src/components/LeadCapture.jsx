@@ -19,7 +19,6 @@ import useColumnResize from './table/useColumnResize';
 import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { theme } from '../styles/theme';
 import {
   ArrowDown,
   ArrowUp,
@@ -185,23 +184,23 @@ const emptyForm = {
 };
 
 const s = {
-  ov: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto', backdropFilter: 'blur(12px)' },
-  cn: { background: theme.colors.surface, width: '96%', maxWidth: '1040px', borderRadius: '20px', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: theme.shadow.md, border: `1px solid ${theme.colors.border}` },
-  hd: { minHeight: '64px', background: 'linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 86%, black 14%) 100%)', padding: '16px 22px', color: theme.colors.onPrimary, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, letterSpacing: 0 },
-  body: { padding: '20px 24px', overflowY: 'auto', background: theme.colors.bg },
-  section: { background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '16px', padding: '14px', marginBottom: '14px', boxShadow: theme.shadow.sm },
-  sectionTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, color: theme.colors.text, marginBottom: '12px' },
+  ov: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto', backdropFilter: 'blur(12px)' },
+  cn: { background: 'rgba(255,255,255,0.96)', width: '96%', maxWidth: '1040px', borderRadius: '16px', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow)', border: '1px solid rgba(159, 23, 77, 0.24)' },
+  hd: { minHeight: '64px', background: 'var(--color-primary)', padding: '16px 22px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, letterSpacing: 0 },
+  body: { padding: '20px 24px', overflowY: 'auto', background: '#fff' },
+  section: { background: '#fff', border: '1px solid rgba(159, 23, 77, 0.14)', borderRadius: '12px', padding: '14px', marginBottom: '14px', boxShadow: 'var(--shadow-soft)' },
+  sectionTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' },
   gd: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px 18px' },
   fieldWide: { gridColumn: 'span 2' },
   fieldHalf: { gridColumn: 'span 2' },
-  in: { width: '100%', minHeight: '40px', padding: '0 12px', borderRadius: '12px', fontSize: '14px', boxSizing: 'border-box', background: theme.colors.surface, outline: 'none', border: `1px solid ${theme.colors.border}`, color: theme.colors.text },
-  ta: { width: '100%', padding: '10px 12px', borderRadius: '12px', fontSize: '14px', boxSizing: 'border-box', background: theme.colors.surface, minHeight: '80px', resize: 'vertical', outline: 'none', border: `1px solid ${theme.colors.border}`, color: theme.colors.text },
+  in: { width: '100%', minHeight: '40px', padding: '0 12px', borderRadius: '11px', fontSize: '14px', boxSizing: 'border-box', background: 'rgba(255,255,255,0.96)', outline: 'none' },
+  ta: { width: '100%', padding: '10px 12px', borderRadius: '11px', fontSize: '14px', boxSizing: 'border-box', background: 'rgba(255,255,255,0.96)', minHeight: '80px', resize: 'vertical', outline: 'none' },
   lb: { display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-muted)', letterSpacing: '0.02em', textTransform: 'uppercase' },
-  actionBox: { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', border: `1px solid ${theme.colors.border}`, transition: 'all 0.2s', background: theme.colors.surface },
+  actionBox: { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', border: '1px solid rgba(17,17,17,0.08)', transition: 'all 0.2s', background: 'rgba(255,255,255,0.78)' },
   smallButton: {
-    border: `1px solid ${theme.colors.border}`,
-    background: theme.colors.surface,
-    color: theme.colors.text,
+    border: '1px solid rgba(17,17,17,0.14)',
+    background: 'rgba(255,255,255,0.95)',
+    color: '#111111',
     borderRadius: '10px',
     padding: '6px 10px',
     fontSize: '11px',
@@ -211,66 +210,66 @@ const s = {
     cursor: 'pointer'
   },
   inlineLabelRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '6px' },
-  smallToggle: { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: theme.colors.muted },
+  smallToggle: { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#334155' },
   mapsRow: { display: 'flex', gap: '8px' },
-  mapsButton: { minWidth: '136px', minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: theme.colors.onPrimary, borderRadius: '999px', cursor: 'pointer', fontWeight: 800, padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.02em', fontSize: '14px', boxShadow: theme.shadow.sm },
-  referenceHint: { marginTop: '6px', fontSize: '11px', color: theme.colors.muted },
-  referenceBadge: { marginTop: '8px', padding: '8px 10px', borderRadius: '14px', border: `1px solid ${theme.colors.border}`, background: 'color-mix(in srgb, var(--color-primary-light) 18%, var(--color-surface))', fontSize: '12px', color: theme.colors.text, lineHeight: 1.5 },
-  analyticsWrap: { background: 'color-mix(in srgb, var(--color-surface) 94%, var(--color-primary-light) 6%)', borderRadius: '18px', border: `1px solid ${theme.colors.border}`, padding: '12px', marginBottom: '10px', boxShadow: theme.shadow.sm, backdropFilter: 'blur(12px)', display: 'grid', gap: '10px' },
+  mapsButton: { minWidth: '136px', minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', cursor: 'pointer', fontWeight: 800, padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.02em', fontSize: '14px' },
+  referenceHint: { marginTop: '6px', fontSize: '11px', color: '#64748b' },
+  referenceBadge: { marginTop: '8px', padding: '8px 10px', borderRadius: '10px', border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.55)', fontSize: '12px', color: '#1e293b', lineHeight: 1.5 },
+  analyticsWrap: { background: 'rgba(255,255,255,0.82)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.14)', padding: '12px', marginBottom: '10px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)', display: 'grid', gap: '10px' },
   analyticsHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' },
   analyticsTitleWrap: { display: 'grid', gap: '2px' },
-  analyticsTitle: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: theme.colors.text },
-  analyticsSub: { margin: 0, color: theme.colors.muted, fontSize: '12px', fontWeight: 600 },
+  analyticsTitle: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111111' },
+  analyticsSub: { margin: 0, color: '#64748b', fontSize: '12px', fontWeight: 600 },
   metricsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' },
-  metricCard: { border: `1px solid ${theme.colors.border}`, borderRadius: '14px', background: theme.colors.surface, padding: '8px 10px', display: 'grid', gap: '4px', boxShadow: theme.shadow.sm },
-  metricLabel: { margin: 0, color: theme.colors.muted, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 },
-  metricValue: { margin: 0, color: theme.colors.text, fontSize: '24px', lineHeight: 1, fontWeight: 800, letterSpacing: '-0.02em' },
-  metricSub: { margin: 0, color: theme.colors.muted, fontSize: '10px', fontWeight: 700 },
-  filtersPanel: { border: `1px solid ${theme.colors.border}`, borderRadius: '14px', background: theme.colors.surface, padding: '10px', display: 'grid', gap: '8px', overflowX: 'auto', boxShadow: theme.shadow.sm },
+  metricCard: { border: '1px solid rgba(17,17,17,0.08)', borderRadius: '10px', background: '#fff', padding: '8px 10px', display: 'grid', gap: '4px' },
+  metricLabel: { margin: 0, color: '#64748b', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 },
+  metricValue: { margin: 0, color: '#111111', fontSize: '24px', lineHeight: 1, fontWeight: 800, letterSpacing: '-0.02em' },
+  metricSub: { margin: 0, color: '#7c8797', fontSize: '10px', fontWeight: 700 },
+  filtersPanel: { border: '1px solid rgba(17,17,17,0.08)', borderRadius: '10px', background: 'rgba(255,255,255,0.95)', padding: '10px', display: 'grid', gap: '8px', overflowX: 'auto' },
   filtersGrid: { display: 'grid', gridTemplateColumns: 'repeat(6, minmax(120px, 1fr)) minmax(100px, auto)', gap: '8px', alignItems: 'end', minWidth: '920px' },
   filterField: { display: 'grid', gap: '4px', minWidth: 0 },
-  filterLabel: { fontSize: '10px', color: theme.colors.muted, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
-  filterSelect: { width: '100%', minWidth: 0, minHeight: '34px', border: `1px solid ${theme.colors.border}`, background: theme.colors.surface, borderRadius: '999px', padding: '6px 10px', fontSize: '12px', fontWeight: 700, color: theme.colors.text, outline: 'none', boxSizing: 'border-box' },
+  filterLabel: { fontSize: '10px', color: '#4b5563', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  filterSelect: { width: '100%', minWidth: 0, minHeight: '34px', border: '1px solid #d1d5db', background: '#fff', borderRadius: '8px', padding: '6px 8px', fontSize: '12px', fontWeight: 700, color: '#334155', outline: 'none', boxSizing: 'border-box' },
   filterActions: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' },
-  applyButton: { border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: theme.colors.onPrimary, borderRadius: '999px', padding: '0 14px', minHeight: '34px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' },
-  clearButton: { border: `1px solid ${theme.colors.border}`, background: theme.colors.surface, color: theme.colors.text, borderRadius: '999px', minWidth: '34px', minHeight: '34px', fontSize: '16px', lineHeight: 1, cursor: 'pointer' },
-  registerCard: { background: theme.colors.surface, borderRadius: '18px', border: `1px solid ${theme.colors.border}`, overflow: 'visible', boxShadow: theme.shadow.sm, backdropFilter: 'none', backgroundClip: 'padding-box' },
-  registerHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 12px', borderBottom: `1px solid ${theme.colors.border}`, background: theme.colors.surface, borderTopLeftRadius: '18px', borderTopRightRadius: '18px', backgroundClip: 'padding-box' },
+  applyButton: { border: '1px solid rgba(159, 23, 77, 0.34)', background: 'var(--color-primary)', color: '#fff', borderRadius: '8px', padding: '0 12px', minHeight: '34px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' },
+  clearButton: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', minWidth: '34px', minHeight: '34px', fontSize: '16px', lineHeight: 1, cursor: 'pointer' },
+  registerCard: { background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', overflow: 'visible', boxShadow: 'var(--shadow-sm)', backdropFilter: 'none', backgroundClip: 'padding-box' },
+  registerHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 12px', borderBottom: '1px solid var(--color-border)', background: '#fff', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', backgroundClip: 'padding-box' },
   registerTitleWrap: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 8px', borderRadius: '8px', background: 'var(--color-primary-light)', border: '1px solid var(--color-primary-soft)' },
-  registerTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: theme.colors.text },
+  registerTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   registerActions: { display: 'flex', alignItems: 'center', gap: '8px' },
-  buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '999px', padding: '7px 12px', background: 'var(--color-primary)', color: theme.colors.onPrimary, cursor: 'pointer', fontWeight: 700, fontSize: '12px', boxShadow: theme.shadow.sm },
-  buttonGhost: { border: `1px solid ${theme.colors.border}`, background: theme.colors.surface, color: theme.colors.text, borderRadius: '999px', width: '46px', height: '46px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: theme.shadow.sm },
-  menu: { position: 'absolute', right: 0, top: '44px', background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '14px', minWidth: '170px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 35, overflow: 'hidden' },
-  menuButton: { width: '100%', textAlign: 'left', border: 'none', background: theme.colors.surface, cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: theme.colors.text, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
-  registerToolbar: { padding: '8px 12px', borderBottom: `1px solid ${theme.colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: theme.colors.surface },
+  buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '8px', padding: '7px 10px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px' },
+  buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '10px', width: '46px', height: '46px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  menu: { position: 'absolute', right: 0, top: '44px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '10px', minWidth: '170px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 35, overflow: 'hidden' },
+  menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
+  registerToolbar: { padding: '8px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: '#fff' },
   toolbarLeft: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flexWrap: 'nowrap', whiteSpace: 'nowrap' },
-  toolLabel: { fontSize: '11px', color: theme.colors.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  toolbarMeta: { fontSize: '11px', color: theme.colors.muted, fontWeight: 700, whiteSpace: 'nowrap' },
-  customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${theme.colors.border}`, background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '999px', width: '32px', height: '32px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', boxShadow: theme.shadow.sm },
-  popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '14px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '260px', zIndex: 45 },
-  popoverHeader: { padding: '10px 12px', borderBottom: `1px solid ${theme.colors.border}`, fontWeight: 800, fontSize: '12px', color: theme.colors.text },
+  toolLabel: { fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  toolbarMeta: { fontSize: '11px', color: '#64748b', fontWeight: 700, whiteSpace: 'nowrap' },
+  customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '9px', width: '32px', height: '32px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)' },
+  popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '260px', zIndex: 45 },
+  popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' },
-  popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: theme.colors.text },
-  tableWrap: { overflowX: 'hidden', overflowY: 'hidden', background: theme.colors.surface, position: 'relative', borderTop: `1px solid ${theme.colors.border}`, backgroundClip: 'padding-box' },
+  popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
+  tableWrap: { overflowX: 'hidden', overflowY: 'hidden', background: '#fff', position: 'relative', borderTop: '1px solid var(--color-border)', backgroundClip: 'padding-box' },
   table: { width: '100%', minWidth: 0, borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left', tableLayout: 'fixed' },
-  headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 800, color: theme.colors.muted, padding: '5px 6px', borderBottom: `1px solid ${theme.colors.border}`, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'color-mix(in srgb, var(--color-surface-soft) 92%, var(--color-surface))' },
+  headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '5px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   headLabelWithSort: { display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, maxWidth: '100%' },
-  dateSortButton: { width: '18px', height: '18px', border: `1px solid ${theme.colors.border}`, borderRadius: '999px', background: theme.colors.surface, color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer', flexShrink: 0 },
+  dateSortButton: { width: '18px', height: '18px', border: '1px solid rgba(107,114,128,0.28)', borderRadius: '6px', background: '#fff', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer', flexShrink: 0 },
   headActionCell: { background: 'var(--color-primary-light)' },
   resizeHandle: { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' },
-  row: { borderBottom: `1px solid ${theme.colors.borderSoft}` },
-  cell: { padding: '7px 6px', fontSize: '10px', fontWeight: 400, color: theme.colors.text, verticalAlign: 'middle', lineHeight: 1.15 },
-  actionCell: { background: theme.colors.surface },
+  row: { borderBottom: '1px solid #eef2f7' },
+  cell: { padding: '7px 6px', fontSize: '10px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.15 },
+  actionCell: { background: '#ffffff' },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
-  statusBadge: { background: 'color-mix(in srgb, var(--color-primary-light) 20%, var(--color-surface))', color: 'var(--color-primary-dark)', padding: '4px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: 700, display: 'inline-block', whiteSpace: 'nowrap' },
+  statusBadge: { background: 'rgba(159, 23, 77, 0.14)', color: 'var(--color-primary-dark)', padding: '4px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: 500, display: 'inline-block', whiteSpace: 'nowrap' },
   statusBadgeButton: {
-    border: `1px solid ${theme.colors.border}`,
-    background: theme.colors.surface,
-    color: theme.colors.text,
+    border: '1px solid #d1d5db',
+    background: '#ffffff',
+    color: '#334155',
     padding: '0 10px',
     borderRadius: '7px',
     width: '92px',
@@ -292,9 +291,9 @@ const s = {
     height: '32px',
     minHeight: '32px',
     borderRadius: '8px',
-    border: `1px solid ${theme.colors.border}`,
-    background: theme.colors.surface,
-    color: theme.colors.text,
+    border: '1px solid rgba(159, 23, 77, 0.3)',
+    background: '#fff',
+    color: '#0f172a',
     fontSize: '10px',
     fontWeight: 400,
     padding: '0 8px',
@@ -303,40 +302,40 @@ const s = {
     boxSizing: 'border-box'
   },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center', width: '100%' },
-  rowActionButton: { border: `1px solid ${theme.colors.border}`, background: theme.colors.surface, color: theme.colors.text, borderRadius: '999px', minWidth: '78px', minHeight: '28px', padding: '0 7px 0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, lineHeight: 1 },
-  rowActionIconBox: { width: '16px', height: '16px', borderRadius: '999px', border: `1px solid ${theme.colors.border}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'color-mix(in srgb, var(--color-surface-soft) 90%, var(--color-surface))', flexShrink: 0 },
-  rowActionMenu: { position: 'fixed', width: '170px', background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '14px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 1200, overflow: 'hidden' },
-  rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: theme.colors.surface, color: theme.colors.text, cursor: 'pointer', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
-  rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: 'color-mix(in srgb, var(--color-surface-soft) 90%, var(--color-surface))', color: theme.colors.muted, cursor: 'not-allowed', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px' },
-  pagination: { padding: '10px 12px', borderTop: `1px solid ${theme.colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap', background: theme.colors.surface, borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' },
-  paginationInfo: { color: theme.colors.muted, fontSize: '12px', fontWeight: 700 },
+  rowActionButton: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#1f2937', borderRadius: '8px', minWidth: '78px', minHeight: '28px', padding: '0 7px 0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, lineHeight: 1 },
+  rowActionIconBox: { width: '16px', height: '16px', borderRadius: '5px', border: '1px solid #d1d5db', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', flexShrink: 0 },
+  rowActionMenu: { position: 'fixed', width: '170px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 1200, overflow: 'hidden' },
+  rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
+  rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px' },
+  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' },
+  paginationInfo: { color: '#64748b', fontSize: '12px', fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  paginationButton: { width: '34px', minWidth: '34px', minHeight: '32px', border: `1px solid ${theme.colors.border}`, borderRadius: '999px', background: theme.colors.surface, color: theme.colors.text, padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: theme.shadow.sm },
+  paginationButton: { width: '34px', minWidth: '34px', minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: '#334155', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   paginationButtonDisabled: { opacity: 0.48, cursor: 'not-allowed' },
-  viewDrawerOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.28)', zIndex: 2300, backdropFilter: 'blur(8px)' },
-  viewDrawer: { position: 'fixed', top: 0, right: 0, width: 'min(460px, 96vw)', height: '100vh', background: theme.colors.surface, zIndex: 2400, boxShadow: '-16px 0 36px rgba(15,23,42,0.18)', display: 'flex', flexDirection: 'column', borderLeft: `1px solid ${theme.colors.border}` },
-  viewDrawerHead: { padding: '14px 16px', borderBottom: `1px solid ${theme.colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--color-primary-light) 18%, var(--color-surface))' },
-  viewDrawerTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: theme.colors.text },
+  viewDrawerOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.28)', zIndex: 2300 },
+  viewDrawer: { position: 'fixed', top: 0, right: 0, width: 'min(460px, 96vw)', height: '100vh', background: '#fff', zIndex: 2400, boxShadow: '-16px 0 36px rgba(15,23,42,0.18)', display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--color-border)' },
+  viewDrawerHead: { padding: '14px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-primary-light)' },
+  viewDrawerTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' },
   viewDrawerBody: { padding: '14px 16px', overflowY: 'auto', display: 'grid', gap: '12px' },
-  viewCard: { border: `1px solid ${theme.colors.border}`, borderRadius: '16px', background: theme.colors.surface, padding: '12px', display: 'grid', gap: '8px', boxShadow: theme.shadow.sm },
-  viewCardTitle: { margin: 0, fontSize: '11px', fontWeight: 800, color: theme.colors.muted, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  viewCard: { border: '1px solid var(--color-border)', borderRadius: '12px', background: '#fff', padding: '12px', display: 'grid', gap: '8px' },
+  viewCardTitle: { margin: 0, fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' },
   viewGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px' },
   viewItem: { display: 'grid', gap: '2px' },
-  viewItemLabel: { fontSize: '10px', color: theme.colors.muted, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
-  viewItemValue: { fontSize: '13px', color: theme.colors.text, fontWeight: 600, lineHeight: 1.35, wordBreak: 'break-word' },
+  viewItemLabel: { fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  viewItemValue: { fontSize: '13px', color: '#111827', fontWeight: 600, lineHeight: 1.35, wordBreak: 'break-word' },
   followupOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 2600, display: 'grid', placeItems: 'center', padding: '16px' },
-  followupModal: { width: 'min(640px, 96vw)', background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '20px', boxShadow: '0 24px 54px rgba(15,23,42,0.25)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
-  followupHead: { padding: '14px 16px', borderBottom: `1px solid ${theme.colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-primary)' },
-  followupTitle: { margin: 0, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.01em', color: theme.colors.onPrimary, display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  followupBody: { padding: '14px 16px', display: 'grid', gap: '12px', background: theme.colors.surface, overflowY: 'auto' },
-  followupLeadBadge: { border: `1px solid ${theme.colors.border}`, borderRadius: '14px', background: 'color-mix(in srgb, var(--color-surface-soft) 90%, var(--color-surface))', padding: '10px 12px', color: theme.colors.text, fontSize: '14px', fontWeight: 700, lineHeight: 1.35, wordBreak: 'break-word' },
+  followupModal: { width: 'min(640px, 96vw)', background: 'rgba(255,255,255,0.98)', border: '1px solid rgba(159, 23, 77, 0.26)', borderRadius: '16px', boxShadow: '0 24px 54px rgba(15,23,42,0.25)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
+  followupHead: { padding: '14px 16px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-primary)' },
+  followupTitle: { margin: 0, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.01em', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  followupBody: { padding: '14px 16px', display: 'grid', gap: '12px', background: '#ffffff', overflowY: 'auto' },
+  followupLeadBadge: { border: '1px solid #D1D5DB', borderRadius: '10px', background: '#F3F4F6', padding: '10px 12px', color: '#334155', fontSize: '14px', fontWeight: 700, lineHeight: 1.35, wordBreak: 'break-word' },
   followupGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', alignItems: 'start' },
   followupField: { minWidth: 0, display: 'grid', gap: '6px' },
   followupInput: { width: '100%', minWidth: 0, boxSizing: 'border-box', minHeight: '40px' },
   followupTextarea: { width: '100%', minWidth: 0, boxSizing: 'border-box', minHeight: '86px' },
-  followupActions: { padding: '12px 16px', borderTop: `1px solid ${theme.colors.border}`, display: 'flex', justifyContent: 'flex-end', gap: '10px', background: 'color-mix(in srgb, var(--color-primary-light) 16%, var(--color-surface))' },
-  followupCancelBtn: { minHeight: '42px', padding: '0 20px', borderRadius: '999px', border: `1px solid ${theme.colors.border}`, background: theme.colors.surface, color: theme.colors.text, fontWeight: 700, cursor: 'pointer' },
-  followupSaveBtn: { minHeight: '42px', padding: '0 20px', borderRadius: '999px', border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: theme.colors.onPrimary, fontWeight: 800, cursor: 'pointer' }
+  followupActions: { padding: '12px 16px', borderTop: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: 'var(--color-primary-light)' },
+  followupCancelBtn: { minHeight: '42px', padding: '0 20px', borderRadius: '10px', border: '1px solid #D1D5DB', background: '#fff', color: '#334155', fontWeight: 700, cursor: 'pointer' },
+  followupSaveBtn: { minHeight: '42px', padding: '0 20px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.35)', background: 'var(--color-primary)', color: '#fff', fontWeight: 800, cursor: 'pointer' }
 };
 
 const formatEmployeeName = (employee) => {
@@ -374,12 +373,12 @@ const isLeadConverted = (lead) => normalizeLeadStatus(getLeadStatus(lead)) === '
 const getLeadStatusBadgeStyle = (statusValue) => {
   const normalized = normalizeLeadStatus(statusValue);
   if (normalized === 'booked' || normalized === 'converted') {
-    return { background: 'color-mix(in srgb, var(--color-success) 16%, var(--color-surface))', color: 'var(--color-success)', borderColor: 'var(--color-success)' };
+    return { background: '#14532d', color: '#ffffff', borderColor: '#14532d' };
   }
   if (normalized === 'decline' || normalized === 'cancalled' || normalized === 'cancelled' || normalized === 'not interested' || normalized === 'not intersted') {
-    return { background: 'color-mix(in srgb, var(--color-danger) 16%, var(--color-surface))', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' };
+    return { background: '#b91c1c', color: '#ffffff', borderColor: '#b91c1c' };
   }
-  return { background: theme.colors.surface, color: theme.colors.text, borderColor: theme.colors.border };
+  return { background: '#ffffff', color: '#334155', borderColor: '#d1d5db' };
 };
 const getLeadAssignedTo = (lead) => {
   const raw = String(lead.assignedTo || '').trim();
@@ -2434,7 +2433,7 @@ export default function LeadCapture() {
             <tbody>
               {paginatedLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={visibleColumnDefs.length + 2} style={{ ...s.cell, textAlign: 'center', color: theme.colors.muted, padding: '24px' }}>
+                  <td colSpan={visibleColumnDefs.length + 2} style={{ ...s.cell, textAlign: 'center', color: '#64748b', padding: '24px' }}>
                     No active leads found.
                   </td>
                 </tr>
@@ -2588,7 +2587,7 @@ export default function LeadCapture() {
                               </button>
                               <button
                                 type="button"
-                                style={{ ...s.rowActionMenuBtn, color: theme.colors.danger }}
+                                style={{ ...s.rowActionMenuBtn, color: '#dc2626' }}
                                 onClick={() => {
                                   deleteLead(lead._id);
                                   closeRowActionMenu();
@@ -2640,7 +2639,7 @@ export default function LeadCapture() {
           <aside style={s.viewDrawer} data-lead-view-drawer="true">
             <div style={s.viewDrawerHead}>
               <h3 style={s.viewDrawerTitle}>View Lead</h3>
-              <X size={20} style={{ cursor: 'pointer', color: theme.colors.muted }} onClick={closeViewLeadPanel} />
+              <X size={20} style={{ cursor: 'pointer', color: '#64748b' }} onClick={closeViewLeadPanel} />
             </div>
             <div style={s.viewDrawerBody}>
               <div style={s.viewCard}>
@@ -2724,7 +2723,7 @@ export default function LeadCapture() {
           <div className="crm-modal-surface" style={s.followupModal}>
             <div className="crm-modal-surface-header" style={s.followupHead}>
               <h3 style={s.followupTitle}><PhoneCall size={22} /> Log Follow-up</h3>
-              <X size={22} style={{ cursor: 'pointer', color: theme.colors.onPrimary, flexShrink: 0 }} onClick={closeLogFollowupModal} />
+              <X size={22} style={{ cursor: 'pointer', color: '#ffffff', flexShrink: 0 }} onClick={closeLogFollowupModal} />
             </div>
             <div className="crm-modal-surface-body" style={s.followupBody}>
               <div style={s.followupLeadBadge}>
@@ -2756,7 +2755,7 @@ export default function LeadCapture() {
                       style={{ ...s.in, ...s.followupInput, paddingRight: '38px' }}
                       onChange={(event) => setFollowupForm((prev) => ({ ...prev, nextFollowupDate: event.target.value }))}
                     />
-                    <CalendarDays size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: theme.colors.muted, pointerEvents: 'none' }} />
+                    <CalendarDays size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', pointerEvents: 'none' }} />
                   </div>
                 </div>
                 <div style={s.followupField}>
@@ -2921,7 +2920,7 @@ export default function LeadCapture() {
                       </button>
                     </div>
                     {showSearchSuggestions ? (
-                      <div style={{ marginTop: '6px', border: `1px solid ${theme.colors.border}`, borderRadius: '14px', background: theme.colors.surface, boxShadow: '0 10px 24px rgba(15, 23, 42, 0.14)', maxHeight: '220px', overflowY: 'auto' }}>
+                      <div style={{ marginTop: '6px', border: '1px solid #e5e7eb', borderRadius: '10px', background: '#fff', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.14)', maxHeight: '220px', overflowY: 'auto' }}>
                         {searchSuggestions.map((place) => {
                           const name = place.displayName?.text || place.displayName || place.formattedAddress || '';
                           const address = place.formattedAddress || '';
@@ -2939,17 +2938,17 @@ export default function LeadCapture() {
                                 setSearchSuggestions([]);
                                 setSearchError('');
                               }}
-                              style={{ width: '100%', textAlign: 'left', border: 'none', borderBottom: `1px solid ${theme.colors.borderSoft}`, background: theme.colors.surface, cursor: 'pointer', padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}
+                              style={{ width: '100%', textAlign: 'left', border: 'none', borderBottom: '1px solid #f1f5f9', background: '#fff', cursor: 'pointer', padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}
                             >
-                              <div style={{ width: '100%', textAlign: 'left', fontSize: '13px', fontWeight: 700, color: theme.colors.text }}>{name}</div>
-                              <div style={{ width: '100%', textAlign: 'left', fontSize: '11px', color: theme.colors.muted }}>{address}</div>
+                              <div style={{ width: '100%', textAlign: 'left', fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{name}</div>
+                              <div style={{ width: '100%', textAlign: 'left', fontSize: '11px', color: '#64748b' }}>{address}</div>
                             </button>
                           );
                         })}
                       </div>
                     ) : null}
                     {searchError ? (
-                      <div style={{ marginTop: '6px', fontSize: '11px', color: theme.colors.danger, fontWeight: 700 }}>
+                      <div style={{ marginTop: '6px', fontSize: '11px', color: '#b91c1c', fontWeight: 700 }}>
                         {searchError}
                       </div>
                     ) : null}
@@ -3096,11 +3095,11 @@ export default function LeadCapture() {
               </div>
             </div>
 
-            <div className="crm-modal-surface-footer" style={{ padding: '12px 24px', textAlign: 'right', background: theme.colors.surface, borderTop: `1px solid ${theme.colors.border}`, position: 'sticky', bottom: 0 }}>
-              <button type="button" onClick={resetForm} style={{ marginRight: '10px', minHeight: '40px', padding: '0 16px', border: `1px solid ${theme.colors.border}`, borderRadius: '999px', cursor: 'pointer', background: theme.colors.surface, fontSize: '14px', fontWeight: 700, color: theme.colors.text }}>
+            <div className="crm-modal-surface-footer" style={{ padding: '12px 24px', textAlign: 'right', background: '#fff', borderTop: '1px solid var(--color-border)', position: 'sticky', bottom: 0 }}>
+              <button type="button" onClick={resetForm} style={{ marginRight: '10px', minHeight: '40px', padding: '0 16px', border: '1px solid rgba(17,17,17,0.1)', borderRadius: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 700 }}>
                 Cancel
               </button>
-              <button type="submit" style={{ minHeight: '40px', background: 'var(--color-primary)', color: theme.colors.onPrimary, border: 'none', padding: '0 16px', borderRadius: '999px', cursor: 'pointer', fontSize: '14px', fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+              <button type="submit" style={{ minHeight: '40px', background: 'var(--color-primary)', color: '#fff', border: 'none', padding: '0 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                 {editingLeadId ? 'Update' : 'Submit'}
               </button>
             </div>

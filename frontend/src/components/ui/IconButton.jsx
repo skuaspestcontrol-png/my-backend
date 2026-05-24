@@ -11,12 +11,11 @@ export default function IconButton({ children, size = 'md', label, ...props }) {
         height: px,
         borderRadius: 12,
         border: `1px solid ${theme.colors.border}`,
-        background: theme.colors.surface,
+        background: '#fff',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         color: theme.colors.text,
-        boxShadow: theme.shadow.sm,
         cursor: 'pointer'
       }}
       {...props}

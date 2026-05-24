@@ -327,7 +327,7 @@ const shell = {
     borderRadius: '12px',
     border: '1px solid rgba(159, 23, 77, 0.42)',
     background: 'var(--color-primary)',
-    color: 'var(--color-on-primary)',
+    color: '#fff',
     fontWeight: 800,
     fontSize: '16px',
     padding: '0 16px',
@@ -347,7 +347,7 @@ const shell = {
     padding: '8px 14px'
   },
   panel: {
-    background: 'var(--color-surface)',
+    background: '#ffffff',
     borderRadius: '24px',
     border: '1px solid var(--border)',
     overflow: 'hidden',
@@ -374,7 +374,7 @@ const shell = {
     minHeight: '42px',
     borderRadius: '10px',
     border: '1px solid rgba(17, 17, 17, 0.2)',
-    background: 'var(--color-surface)',
+    background: '#fff',
     color: 'var(--text)',
     fontSize: '12px',
     fontWeight: 800,
@@ -413,7 +413,7 @@ const shell = {
     outline: 'none'
   },
   tabButtonActive: {
-    color: 'var(--color-on-primary)',
+    color: 'var(--color-white)',
     borderColor: 'transparent',
     background: 'var(--color-primary)',
     boxShadow: 'var(--shadow-md)',
@@ -469,7 +469,7 @@ const shell = {
     minHeight: '44px',
     borderRadius: '12px',
     border: '1px solid rgba(15, 23, 42, 0.12)',
-    background: 'var(--color-surface)',
+    background: '#fff',
     padding: '9px 12px',
     fontSize: '14px',
     color: 'var(--text)'
@@ -479,7 +479,7 @@ const shell = {
     minHeight: '66px',
     borderRadius: '12px',
     border: '1px solid rgba(15, 23, 42, 0.12)',
-    background: 'var(--color-surface)',
+    background: '#fff',
     padding: '9px 12px',
     fontSize: '14px',
     color: 'var(--text)',
@@ -502,7 +502,7 @@ const shell = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'var(--color-surface)',
+    background: '#fff',
     overflow: 'hidden',
     color: '#6b7280',
     fontSize: '12px',
@@ -513,14 +513,14 @@ const shell = {
     minHeight: '40px',
     borderRadius: '10px',
     border: '1px solid rgba(15, 23, 42, 0.14)',
-    background: 'var(--color-surface)',
+    background: '#fff',
     color: 'var(--color-primary-dark)',
     fontSize: '12px',
     fontWeight: 800,
     padding: '0 14px',
     cursor: 'pointer'
   },
-  tinyButtonGhost: { border: '1px solid rgba(17, 17, 17, 0.2)', background: 'var(--color-surface)', color: 'var(--text)' },
+  tinyButtonGhost: { border: '1px solid rgba(17, 17, 17, 0.2)', background: '#fff', color: 'var(--text)' },
   hint: { margin: 0, color: '#6b7280', fontSize: '11px', fontWeight: 700 },
   divider: { borderTop: '1px solid var(--border)', margin: '2px 0' },
   inlineActionRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto', alignItems: 'end', gap: '10px' },
@@ -542,7 +542,7 @@ const shell = {
     gap: '8px',
     border: '1px solid var(--border)',
     borderRadius: '12px',
-    background: 'var(--color-surface)',
+    background: '#fff',
     minHeight: '45px',
     padding: '0 12px',
     color: '#374151',
@@ -554,7 +554,7 @@ const shell = {
   bankCard: {
     borderRadius: '14px',
     border: '1px solid var(--border)',
-    background: 'var(--color-surface)',
+    background: '#fff',
     padding: '14px',
     display: 'grid',
     gap: '12px'
@@ -574,7 +574,7 @@ const shell = {
     fontSize: '12px',
     fontWeight: 700
   },
-  bankTableWrap: { border: '1px solid var(--border)', borderRadius: '14px', background: 'var(--color-surface)', overflowX: 'auto' },
+  bankTableWrap: { border: '1px solid var(--border)', borderRadius: '14px', background: '#fff', overflowX: 'auto' },
   bankTable: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
   bankTh: { textAlign: 'left', padding: '10px 10px', borderBottom: '1px solid var(--border)', fontSize: '12px', color: '#475569', fontWeight: 800, whiteSpace: 'nowrap' },
   bankTd: { padding: '10px 10px', borderBottom: '1px solid var(--color-border)', fontSize: '13px', color: '#0f172a', verticalAlign: 'top' },
@@ -583,7 +583,7 @@ const shell = {
     minHeight: '32px',
     borderRadius: '8px',
     border: '1px solid rgba(159, 23, 77, 0.36)',
-    background: 'var(--color-surface)',
+    background: '#fff',
     color: 'var(--color-primary-dark)',
     fontSize: '12px',
     fontWeight: 800,
@@ -1526,7 +1526,7 @@ export default function Settings({ modalMode = false }) {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '0 12px',
-              color: 'var(--color-on-primary)',
+              color: '#fff',
               fontSize: '11px',
               fontWeight: 800,
               letterSpacing: '0.08em',
@@ -1575,7 +1575,7 @@ export default function Settings({ modalMode = false }) {
           onClick={() => updateField('brandingAppearance', 'dark')}
           style={{
             border: form.brandingAppearance === 'dark' ? '2px solid #1f2937' : '1px solid #d1d5db',
-            background: 'var(--color-surface)',
+            background: '#fff',
             borderRadius: '12px',
             width: '100%',
             minHeight: isCompactLayout ? '74px' : '96px',
@@ -1593,7 +1593,7 @@ export default function Settings({ modalMode = false }) {
           onClick={() => updateField('brandingAppearance', 'light')}
           style={{
             border: form.brandingAppearance === 'light' ? '2px solid var(--color-primary)' : '1px solid #d1d5db',
-            background: 'var(--color-surface)',
+            background: '#fff',
             borderRadius: '12px',
             width: '100%',
             minHeight: isCompactLayout ? '74px' : '96px',
@@ -1646,7 +1646,7 @@ export default function Settings({ modalMode = false }) {
             padding: isCompactLayout ? '0 12px' : '0 14px',
             border: brandingAccentOptions.includes(form.brandingAccentColor) ? '1px solid #d1d5db' : '2px solid #1f2937',
             background: 'linear-gradient(135deg, #38bdf8 0%, #8b5cf6 45%, #ec4899 100%)',
-            color: 'var(--color-on-primary)',
+            color: '#fff',
             fontWeight: 800,
             fontSize: isCompactLayout ? '12px' : '13px',
             display: 'inline-flex',
@@ -2659,7 +2659,7 @@ export default function Settings({ modalMode = false }) {
         <div style={shell.divider} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <p style={sectionLeadTitleStyle}>Saved Bank Accounts</p>
-          <button type="button" style={{ minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: 'var(--color-surface)', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }} onClick={resetColumns}>Reset Columns</button>
+          <button type="button" style={{ minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }} onClick={resetColumns}>Reset Columns</button>
         </div>
         <div style={shell.bankTableWrap}>
           <table style={bankTableStyle}>
@@ -2832,7 +2832,7 @@ export default function Settings({ modalMode = false }) {
       overflow: 'visible',
       borderRight: 'none',
       borderBottom: '1px solid var(--border)',
-      background: 'var(--color-surface)'
+      background: '#fff'
     }
     : shell.tabsRow;
   const tabButtonStyle = isCompactLayout
@@ -2961,7 +2961,7 @@ export default function Settings({ modalMode = false }) {
               justifyContent: 'space-between',
               gap: '10px',
               flexWrap: 'wrap',
-              background: 'var(--color-surface)'
+              background: '#fff'
             }}
           >
             <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, ...statusTone }}>
