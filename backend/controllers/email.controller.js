@@ -206,7 +206,13 @@ function createEmailController(deps) {
 
   const saveEmailSettings = async (req, res) => {
     const body = req.body || {};
-    const current = readSettings();
+    const current = await loadRuntimeSettings();
+    const cleanText = (value) => {
+      const raw = String(value ?? '').trim();
+      if (!raw) return '';
+      const lower = raw.toLowerCase();
+      return lower === 'undefined' || lower === 'null' ? '' : raw;
+    };
     const isActive = resolveEmailActive({
       emailApiActive: body.active,
       active: body.active,
@@ -214,18 +220,18 @@ function createEmailController(deps) {
     });
     const next = {
       ...current,
-      emailProvider: String(body.mailProvider || 'SMTP').trim(),
-      smtpHost: String(body.smtpHost || '').trim(),
+      emailProvider: cleanText(body.mailProvider) || 'SMTP',
+      smtpHost: cleanText(body.smtpHost),
       smtpPort: Number(body.smtpPort || 587),
       smtpSecure: Boolean(body.smtpSecure),
-      smtpUser: String(body.smtpUsername || '').trim(),
-      smtpPass: String(body.smtpPassword || '').trim(),
-      smtpFromEmail: String(body.fromEmail || '').trim(),
-      smtpSenderName: String(body.fromName || '').trim(),
-      replyToEmail: String(body.replyToEmail || '').trim(),
+      smtpUser: cleanText(body.smtpUsername),
+      smtpPass: cleanText(body.smtpPassword),
+      smtpFromEmail: cleanText(body.fromEmail),
+      smtpSenderName: cleanText(body.fromName),
+      replyToEmail: cleanText(body.replyToEmail),
       emailApiActive: isActive,
       active: isActive,
-      smtpTestTargetEmail: String(body.testEmailAddress || '').trim(),
+      smtpTestTargetEmail: cleanText(body.testEmailAddress),
       smtpActive: isActive ? 'Yes' : 'No'
     };
     saveSettings(next);

@@ -17,6 +17,13 @@ const empty = {
   testEmailAddress: ''
 };
 
+const cleanText = (value) => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  const lower = raw.toLowerCase();
+  return lower === 'undefined' || lower === 'null' ? '' : raw;
+};
+
 export default function EmailSettings() {
   const [form, setForm] = useState(empty);
   const [status, setStatus] = useState('');
@@ -25,6 +32,14 @@ export default function EmailSettings() {
   const normalizeLoadedForm = (data = {}) => ({
     ...empty,
     ...data,
+    mailProvider: cleanText(data.mailProvider || data.emailProvider || empty.mailProvider) || 'SMTP',
+    smtpHost: cleanText(data.smtpHost),
+    smtpUsername: cleanText(data.smtpUsername || data.smtpUser),
+    smtpPassword: cleanText(data.smtpPassword || data.smtpPass),
+    fromEmail: cleanText(data.fromEmail || data.smtpFromEmail),
+    fromName: cleanText(data.fromName || data.smtpSenderName),
+    replyToEmail: cleanText(data.replyToEmail),
+    testEmailAddress: cleanText(data.testEmailAddress || data.smtpTestTargetEmail),
     active: Boolean(
       data.active ?? data.emailApiActive ?? String(data.smtpActive || '').trim().toLowerCase() === 'yes'
     )
@@ -46,7 +61,8 @@ export default function EmailSettings() {
     try {
       setBusy(true);
       setStatus('Saving...');
-      await axios.post(`${API_BASE_URL}/api/settings/email`, form);
+      const res = await axios.post(`${API_BASE_URL}/api/settings/email`, form);
+      setForm(normalizeLoadedForm(res.data?.settings || form));
       setStatus('Email settings saved.');
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Save failed.');
