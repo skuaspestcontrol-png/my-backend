@@ -52,7 +52,29 @@ export default function WhatsAppTemplates() {
   const tableStyle = { width: '100%', borderCollapse: 'collapse', minWidth: `${Math.max(980, tableMinWidth)}px`, tableLayout: 'fixed' };
   const resizeHandleStyle = { position: 'absolute', top: 0, right: 0, width: '10px', height: '100%', cursor: 'col-resize', userSelect: 'none', touchAction: 'none' };
   const headStyle = (key, align = 'left') => ({ textAlign: align, padding: '10px', fontSize: '12px', position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px` });
-  const cellStyle = (key, align = 'left') => ({ padding: '10px', borderTop: '1px solid #f1f5f9', position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px`, textAlign: align });
+  const cellStyle = (key, align = 'left') => ({
+    padding: key === 'actions' ? '8px 8px' : '10px',
+    borderTop: '1px solid #f1f5f9',
+    position: 'relative',
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`,
+    textAlign: align,
+    verticalAlign: 'middle'
+  });
+  const actionButtonStyle = {
+    minHeight: '28px',
+    padding: '0 8px',
+    borderRadius: '8px',
+    border: '1px solid #d1d5db',
+    background: '#fff',
+    color: '#334155',
+    fontSize: '11px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    lineHeight: 1
+  };
 
   const load = async () => {
     try {
@@ -134,9 +156,11 @@ export default function WhatsAppTemplates() {
                 <td style={cellStyle('officialName')}>{row.officialTemplateName || '-'}</td>
                 <td style={cellStyle('attachment')}>{row.attachmentOption}</td>
                 <td style={cellStyle('status', 'center')}>{row.isActive ? 'Active' : 'Inactive'}</td>
-                <td style={cellStyle('actions', 'center')}>
-                  <button type="button" onClick={() => { setEditingId(row.id); setForm({ ...emptyForm, ...row }); }} style={{ marginRight: '8px' }}>Edit</button>
-                  <button type="button" onClick={() => remove(row.id)}>Delete</button>
+                <td style={{ ...cellStyle('actions', 'center'), whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'nowrap' }}>
+                    <button type="button" onClick={() => { setEditingId(row.id); setForm({ ...emptyForm, ...row }); }} style={actionButtonStyle}>Edit</button>
+                    <button type="button" onClick={() => remove(row.id)} style={actionButtonStyle}>Delete</button>
+                  </div>
                 </td>
               </tr>
             ))}
