@@ -1053,7 +1053,6 @@ export default function InvoiceDashboard() {
         companyEmail: settingsData.companyEmail || settingsData.gstEmail || '',
         companyMobile: settingsData.companyMobile || settingsData.gstPhone || '',
         companyWebsite: settingsData.companyWebsite || '',
-        googleReviewLink: settingsData.googleReviewLink || '',
         dashboardImageUrl: settingsData.gstCompanyLogoUrl || settingsData.dashboardImageUrl || '',
         gstTermsAndConditions: settingsData.gstTermsAndConditions || settingsData.termsAndConditionsDefault || '',
         nonGstTermsAndConditions: settingsData.nonGstTermsAndConditions || '',
@@ -1365,7 +1364,6 @@ export default function InvoiceDashboard() {
       `Balance Due: ${formatINR(invoice.balanceDue || 0)}`
     ];
     if (companySettings.companyWebsite) lines.push(`Website: ${companySettings.companyWebsite}`);
-    if (companySettings.googleReviewLink) lines.push(`Google Review: ${companySettings.googleReviewLink}`);
     lines.push('Please find attached invoice PDF.');
     return lines.join('\\n');
   };

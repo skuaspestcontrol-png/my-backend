@@ -25,8 +25,7 @@ export const invoiceFieldOptions = [
   { key: 'showCustomerNotes', label: 'Customer Notes' },
   { key: 'showTermsAndConditions', label: 'Terms & Conditions' },
   { key: 'showCompanyGst', label: 'Company GST Number' },
-  { key: 'showCompanyWebsite', label: 'Website' },
-  { key: 'showGoogleReviewLink', label: 'Google Review Link' }
+  { key: 'showCompanyWebsite', label: 'Website' }
 ];
 
 export const defaultInvoiceFieldSettings = {
@@ -36,8 +35,7 @@ export const defaultInvoiceFieldSettings = {
   showCustomerNotes: true,
   showTermsAndConditions: true,
   showCompanyGst: true,
-  showCompanyWebsite: true,
-  showGoogleReviewLink: true
+  showCompanyWebsite: true
 };
 
 export const defaultCompanyProfileSettings = {
@@ -50,7 +48,6 @@ export const defaultCompanyProfileSettings = {
   companyEmail: '',
   companyMobile: '',
   companyWebsite: '',
-  googleReviewLink: '',
   dashboardImageUrl: ''
 };
 

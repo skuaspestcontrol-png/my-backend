@@ -1005,8 +1005,7 @@ const defaultInvoiceFieldSettings = {
   showCustomerNotes: true,
   showTermsAndConditions: true,
   showCompanyGst: true,
-  showCompanyWebsite: true,
-  showGoogleReviewLink: true
+  showCompanyWebsite: true
 };
 const allowedInvoiceTemplates = new Set(['classic', 'clean', 'executive']);
 const allowedOnOff = new Set(['On', 'Off']);
@@ -1037,7 +1036,6 @@ const defaultSettings = {
   companyEmail: '',
   companyMobile: '',
   companyWebsite: '',
-  googleReviewLink: '',
   aboutTagline: '',
   companyServices: '',
   nonGstCompanyName: '',
@@ -1225,6 +1223,11 @@ const normalizeUploadBackedAssetPath = (value, fallback = '') => {
 
 const sanitizeSettings = (raw = {}) => {
   const source = raw && typeof raw === 'object' ? raw : {};
+  const {
+    googleReviewLink: _googleReviewLink,
+    showGoogleReviewLink: _showGoogleReviewLink,
+    ...sourceWithoutRemovedFields
+  } = source;
   const invoiceTemplate = String(source.invoiceTemplate || '').trim();
   const smtpEncryption = normalizeSmtpEncryption(
     source.smtpEncryption,
@@ -1242,7 +1245,7 @@ const sanitizeSettings = (raw = {}) => {
   );
   return {
     ...defaultSettings,
-    ...source,
+    ...sourceWithoutRemovedFields,
     gstCompanyName: normalizeSettingsText(source.gstCompanyName ?? source.companyName ?? defaultSettings.gstCompanyName),
     gstPanNumber: normalizeSettingsText(source.gstPanNumber ?? defaultSettings.gstPanNumber).toUpperCase(),
     gstLicenseNumber: normalizeSettingsText(source.gstLicenseNumber ?? defaultSettings.gstLicenseNumber),
@@ -1269,7 +1272,6 @@ const sanitizeSettings = (raw = {}) => {
     companyEmail: normalizeSettingsText(source.companyEmail ?? source.gstEmail ?? defaultSettings.companyEmail),
     companyMobile: normalizeOptionalIndianMobileNumber(source.companyMobile ?? source.gstPhone ?? defaultSettings.companyMobile),
     companyWebsite: normalizeSettingsText(source.companyWebsite ?? defaultSettings.companyWebsite),
-    googleReviewLink: normalizeSettingsText(source.googleReviewLink ?? defaultSettings.googleReviewLink),
     aboutTagline: normalizeSettingsText(source.aboutTagline ?? defaultSettings.aboutTagline),
     companyServices: normalizeSettingsText(source.companyServices ?? defaultSettings.companyServices),
     nonGstCompanyName: normalizeSettingsText(source.nonGstCompanyName ?? defaultSettings.nonGstCompanyName),
@@ -1466,6 +1468,51 @@ const saveSettingsToMysql = async (payload = {}) => {
   });
   clearSettingsCache();
   return sanitized;
+};
+
+const deprecatedSettingsKeys = ['googleReviewLink', 'showGoogleReviewLink'];
+
+const cleanupDeprecatedSettingsStorage = async () => {
+  try {
+    if (canUseMysql()) {
+      const rawSettings = await withMysqlConnection(async (conn) => {
+        await ensureAppSettingsTable(conn);
+        const [rows] = await conn.query(
+          'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
+          [APP_SETTINGS_KEY_MAIN]
+        );
+        const row = Array.isArray(rows) ? rows[0] : null;
+        if (!row) return null;
+        const raw = row.setting_value;
+        if (!raw) return {};
+        if (typeof raw === 'string') {
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return {};
+          }
+        }
+        if (typeof raw === 'object') return raw;
+        return {};
+      });
+
+      if (!rawSettings || typeof rawSettings !== 'object') return;
+      if (!deprecatedSettingsKeys.some((key) => Object.prototype.hasOwnProperty.call(rawSettings, key))) return;
+
+      await saveSettingsToMysql(sanitizeSettings(rawSettings));
+      console.log('Deprecated settings removed from MySQL storage.');
+      return;
+    }
+
+    const rawSettings = readJsonFile(settingsFile, {});
+    if (!rawSettings || typeof rawSettings !== 'object') return;
+    if (!deprecatedSettingsKeys.some((key) => Object.prototype.hasOwnProperty.call(rawSettings, key))) return;
+
+    fs.writeFileSync(settingsFile, JSON.stringify(sanitizeSettings(rawSettings), null, 2));
+    console.log('Deprecated settings removed from JSON storage.');
+  } catch (error) {
+    console.error('Failed to clean up deprecated settings:', error.message);
+  }
 };
 
 const mergeSettingsForSave = (current = {}, incoming = {}) => {
@@ -7127,7 +7174,6 @@ const buildDefaultShareMessage = (invoice, settings) => {
     `Balance Due: ${formatINR(invoice.balanceDue || 0)}`
   ];
   if (settings.companyWebsite) lines.push(`Website: ${settings.companyWebsite}`);
-  if (settings.googleReviewLink) lines.push(`Google Review: ${settings.googleReviewLink}`);
   return lines.join('\n');
 };
 
@@ -11314,11 +11360,17 @@ const startServer = async () => {
   if (canUseMysql()) {
     try {
       await runAutoMigrations(pool);
+      await cleanupDeprecatedSettingsStorage();
     } catch (error) {
       console.error('AUTO MIGRATION STARTUP ERROR:', error && error.stack ? error.stack : error);
     }
   } else {
     console.warn('AUTO MIGRATION SKIPPED: MySQL is not configured.');
+    try {
+      await cleanupDeprecatedSettingsStorage();
+    } catch (error) {
+      console.error('SETTINGS CLEANUP STARTUP ERROR:', error && error.stack ? error.stack : error);
+    }
   }
 
   listenOnce();

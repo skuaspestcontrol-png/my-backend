@@ -23,7 +23,6 @@
   "companyEmail": "skuaspestcontrol@gmail.com",
   "companyMobile": "9316666656",
   "companyWebsite": "www.skuaspestcontrol.com",
-  "googleReviewLink": "https://g.page/r/CdoCRtXVyU0rEBM/review",
   "aboutTagline": "Professional In Pest Control",
   "companyServices": "Termite Control | Cockroach Control | General Pest Control | Commerical Pest Control",
   "nonGstCompanyName": "Skuas Pest Control Private Limited",
@@ -115,7 +114,6 @@
     "showCustomerNotes": true,
     "showTermsAndConditions": true,
     "showCompanyGst": true,
-    "showCompanyWebsite": true,
-    "showGoogleReviewLink": true
+    "showCompanyWebsite": true
   }
 }

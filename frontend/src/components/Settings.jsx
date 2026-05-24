@@ -459,45 +459,45 @@ const shell = {
     fontWeight: 700,
     lineHeight: 1.5
   },
-  twoCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px 18px' },
-  threeCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px 18px' },
-  fourCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px 18px' },
-  field: { display: 'grid', gap: '8px' },
-  fieldLabel: { margin: 0, fontSize: '12px', color: '#4b5563', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
+  twoCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px 14px' },
+  threeCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px 14px' },
+  fourCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px 14px' },
+  field: { display: 'grid', gap: '6px' },
+  fieldLabel: { margin: 0, fontSize: '11px', color: '#4b5563', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
   input: {
     width: '100%',
-    minHeight: '49px',
-    borderRadius: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.24)',
+    minHeight: '44px',
+    borderRadius: '12px',
+    border: '1px solid rgba(15, 23, 42, 0.12)',
     background: '#fff',
-    padding: '10px 14px',
-    fontSize: '13px',
+    padding: '9px 12px',
+    fontSize: '14px',
     color: 'var(--text)'
   },
   textArea: {
     width: '100%',
-    minHeight: '72px',
-    borderRadius: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.24)',
+    minHeight: '66px',
+    borderRadius: '12px',
+    border: '1px solid rgba(15, 23, 42, 0.12)',
     background: '#fff',
-    padding: '10px 14px',
-    fontSize: '13px',
+    padding: '9px 12px',
+    fontSize: '14px',
     color: 'var(--text)',
     resize: 'vertical'
   },
   profileCard: {
-    borderRadius: '14px',
-    border: '1px dashed rgba(17, 17, 17, 0.2)',
-    background: 'rgba(255, 255, 255, 0.86)',
-    padding: '16px',
+    borderRadius: '16px',
+    border: '1px dashed rgba(15, 23, 42, 0.16)',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.92) 100%)',
+    padding: '14px',
     display: 'grid',
-    gap: '12px'
+    gap: '10px'
   },
-  profileRow: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' },
+  profileRow: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' },
   profilePreview: {
-    width: '98px',
-    height: '98px',
-    borderRadius: '14px',
+    width: '88px',
+    height: '88px',
+    borderRadius: '12px',
     border: '1px solid var(--border)',
     display: 'flex',
     alignItems: 'center',
@@ -510,18 +510,18 @@ const shell = {
   },
   profileImg: { width: '100%', height: '100%', objectFit: 'contain' },
   tinyButton: {
-    minHeight: '44px',
+    minHeight: '40px',
     borderRadius: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.36)',
-    background: 'rgba(252, 231, 243, 0.26)',
+    border: '1px solid rgba(15, 23, 42, 0.14)',
+    background: '#fff',
     color: 'var(--color-primary-dark)',
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: 800,
-    padding: '0 16px',
+    padding: '0 14px',
     cursor: 'pointer'
   },
   tinyButtonGhost: { border: '1px solid rgba(17, 17, 17, 0.2)', background: '#fff', color: 'var(--text)' },
-  hint: { margin: 0, color: '#6b7280', fontSize: '12px', fontWeight: 700 },
+  hint: { margin: 0, color: '#6b7280', fontSize: '11px', fontWeight: 700 },
   divider: { borderTop: '1px solid var(--border)', margin: '2px 0' },
   inlineActionRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto', alignItems: 'end', gap: '10px' },
   testButton: {
@@ -844,7 +844,6 @@ export default function Settings({ modalMode = false }) {
           companyEmail: data.companyEmail || gstEmail,
           companyMobile: data.companyMobile || gstPhone,
           companyWebsite: data.companyWebsite || '',
-          googleReviewLink: data.googleReviewLink || '',
           dashboardImageUrl,
           brandingAppearance: String(data.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
           brandingAccentColor: String(data.brandingAccentColor || '#EF4444').trim() || '#EF4444',
@@ -1205,7 +1204,6 @@ export default function Settings({ modalMode = false }) {
       companyEmail: gstEmail,
       companyMobile: gstPhone,
       companyWebsite: String(form.companyWebsite || '').trim(),
-      googleReviewLink: String(form.googleReviewLink || '').trim(),
       dashboardImageUrl,
       brandingAppearance: form.brandingAppearance === 'dark' ? 'dark' : 'light',
       brandingAccentColor: String(form.brandingAccentColor || '#EF4444').trim() || '#EF4444',
@@ -1464,7 +1462,7 @@ export default function Settings({ modalMode = false }) {
         </div>
       </div>
 
-      <div style={shell.twoCol}>
+      <div style={shell.threeCol}>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Phone</p>
           <input
@@ -1477,13 +1475,6 @@ export default function Settings({ modalMode = false }) {
             inputMode="numeric"
           />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Google Review Link</p>
-          <input style={shell.input} value={form.googleReviewLink} onChange={(event) => updateField('googleReviewLink', event.target.value)} />
-        </div>
-      </div>
-
-      <div style={shell.twoCol}>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Company Name</p>
           <input
