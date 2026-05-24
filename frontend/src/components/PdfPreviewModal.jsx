@@ -69,12 +69,12 @@ const shell = {
     gap: '5px'
   },
   actionButton: {
-    minHeight: '48px',
+    minHeight: '32px',
     borderRadius: '999px',
     border: '1px solid #d1d5db',
     background: '#fff',
     color: '#374151',
-    padding: '0 24px',
+    padding: '0 18px',
     fontWeight: 700,
     fontSize: '13px',
     display: 'inline-flex',
