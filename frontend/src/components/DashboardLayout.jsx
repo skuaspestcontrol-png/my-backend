@@ -1,13 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import {
-  applyBrandingTheme,
-  loadBrandingSettings,
-  loadPortalThemePreference,
-  saveBrandingSettings,
-  savePortalThemePreference
-} from '../utils/brandingTheme';
+import { applyBrandingTheme, loadBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
 import {
   CalendarClock,
   Bell,
@@ -22,7 +16,6 @@ import {
   LayoutDashboard,
   Menu,
   MessageSquare,
-  MoonStar,
   Package,
   BarChart3,
   Target,
@@ -31,7 +24,6 @@ import {
   Smartphone,
   Truck,
   TrendingUp,
-  SunMedium,
   UserCheck,
   Users
 } from 'lucide-react';
@@ -155,12 +147,6 @@ export default function DashboardLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [settings, setSettings] = useState(() => loadBrandingSettings() || {});
-  const [themeMode, setThemeMode] = useState(() => {
-    const portalPreference = loadPortalThemePreference();
-    if (portalPreference) return portalPreference;
-    const savedSettings = loadBrandingSettings();
-    return String(savedSettings?.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light';
-  });
   const [leadsMenuOpen, setLeadsMenuOpen] = useState(false);
   const [salesMenuOpen, setSalesMenuOpen] = useState(false);
   const [salesPerformanceMenuOpen, setSalesPerformanceMenuOpen] = useState(false);
@@ -181,13 +167,9 @@ export default function DashboardLayout({ children }) {
     const fetchSettings = async () => {
       try {
         const res = await axios.get(`${API_BASE_URL}/api/settings`);
-        const nextSettings = res.data || {};
-        setSettings(nextSettings);
-        saveBrandingSettings(nextSettings);
-        if (!loadPortalThemePreference()) {
-          const apiTheme = String(nextSettings.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light';
-          setThemeMode(apiTheme);
-        }
+        setSettings(res.data);
+        applyBrandingTheme(res.data || {});
+        saveBrandingSettings(res.data || {});
       } catch (error) {
         console.error(error);
       }
@@ -197,10 +179,8 @@ export default function DashboardLayout({ children }) {
   }, []);
 
   useEffect(() => {
-    const nextTheme = themeMode === 'dark' ? 'dark' : 'light';
-    applyBrandingTheme({ ...(settings || {}), brandingAppearance: nextTheme });
-    savePortalThemePreference(nextTheme);
-  }, [settings, themeMode]);
+    applyBrandingTheme(settings || {});
+  }, [settings]);
 
   useEffect(() => {
     const isLeadsRoute = location.pathname === '/leads' || location.pathname.startsWith('/leads/');
@@ -420,13 +400,6 @@ export default function DashboardLayout({ children }) {
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase())
     .join('');
-  const isDarkTheme = themeMode === 'dark';
-  const togglePortalTheme = () => {
-    const nextTheme = isDarkTheme ? 'light' : 'dark';
-    setThemeMode(nextTheme);
-    savePortalThemePreference(nextTheme);
-    applyBrandingTheme({ ...(settings || {}), brandingAppearance: nextTheme });
-  };
 
   return (
     <div className="app-layout">
@@ -721,7 +694,7 @@ export default function DashboardLayout({ children }) {
                 onClick={() => setNotificationsOpen((prev) => !prev)}
                 style={{
                   border: '1px solid var(--color-border)',
-                  background: 'var(--color-white)',
+                  background: '#fff',
                   color: 'var(--color-primary)',
                   width: isMobile ? '38px' : '42px',
                   height: isMobile ? '38px' : '42px',
@@ -754,35 +727,12 @@ export default function DashboardLayout({ children }) {
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: '2px solid var(--color-white)'
+                      border: '2px solid #fff'
                     }}
                   >
                     {unreadNotificationCount}
                   </span>
                 ) : null}
-              </button>
-              <button
-                type="button"
-                onClick={togglePortalTheme}
-                style={{
-                  marginLeft: '8px',
-                  border: '1px solid var(--color-border)',
-                  background: 'var(--color-white)',
-                  color: 'var(--color-text)',
-                  width: isMobile ? '38px' : '42px',
-                  height: isMobile ? '38px' : '42px',
-                  borderRadius: '999px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: 'var(--shadow-sm)',
-                  flexShrink: 0
-                }}
-                aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
-                title={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {isDarkTheme ? <SunMedium size={isMobile ? 18 : 20} /> : <MoonStar size={isMobile ? 18 : 20} />}
               </button>
               {notificationsOpen ? (
                 <div
@@ -795,7 +745,7 @@ export default function DashboardLayout({ children }) {
                     maxWidth: isMobile ? 'calc(100vw - 24px)' : 'none',
                     maxHeight: isMobile ? `calc(100dvh - ${topbarHeight} - 24px)` : '420px',
                     overflowY: 'auto',
-                    background: 'var(--color-white)',
+                    background: '#fff',
                     border: '1px solid var(--color-border)',
                     borderRadius: '12px',
                     boxShadow: '0 18px 44px rgba(15,23,42,0.18)',
@@ -842,7 +792,7 @@ export default function DashboardLayout({ children }) {
                                     style={{
                                       border: '1px solid var(--color-border)',
                                       borderRadius: '10px',
-                                      background: isRead ? 'var(--color-white)' : 'var(--color-primary-light)',
+                                      background: isRead ? '#fff' : 'var(--color-primary-light)',
                                       padding: '9px 10px',
                                       textAlign: 'left',
                                       cursor: 'pointer',
@@ -879,7 +829,7 @@ export default function DashboardLayout({ children }) {
                                     style={{
                                       border: '1px solid var(--color-border)',
                                       borderRadius: '10px',
-                                      background: isRead ? 'var(--color-white)' : 'var(--color-primary-light)',
+                                      background: isRead ? '#fff' : 'var(--color-primary-light)',
                                       padding: '9px 10px',
                                       textAlign: 'left',
                                       cursor: 'pointer',
@@ -916,7 +866,7 @@ export default function DashboardLayout({ children }) {
                                     style={{
                                       border: '1px solid var(--color-border)',
                                       borderRadius: '10px',
-                                      background: isRead ? 'var(--color-white)' : 'var(--color-primary-light)',
+                                      background: isRead ? '#fff' : 'var(--color-primary-light)',
                                       padding: '9px 10px',
                                       textAlign: 'left',
                                       cursor: 'pointer',
@@ -948,7 +898,7 @@ export default function DashboardLayout({ children }) {
               onClick={() => navigate('/settings')}
               style={{
                 border: '1px solid var(--color-border)',
-                background: 'var(--color-white)',
+                background: '#fff',
                 color: 'var(--color-primary)',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
