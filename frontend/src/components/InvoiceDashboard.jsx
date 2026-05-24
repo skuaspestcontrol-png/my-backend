@@ -229,7 +229,7 @@ const shell = {
   topActions: { display: 'flex', alignItems: 'center', gap: '8px' },
   toolbar: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: '#fff' },
   toolLabel: { fontSize: '12px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' },
-  customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', padding: '8px 12px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
+  customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', width: '32px', height: '32px', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)', transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease' },
   buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', padding: '9px 14px', background: '#6b7280', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px' },
   buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '12px', width: '48px', height: '48px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   summaryWrap: { padding: '16px 18px', background: 'rgba(255,255,255,0.94)' },
@@ -2230,7 +2230,8 @@ export default function InvoiceDashboard() {
   const miniPrefsGridStyle = isMobile ? { ...shell.miniPrefsGrid, gridTemplateColumns: '1fr', paddingLeft: 0 } : shell.miniPrefsGrid;
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const tinyGhostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
-  const tinyCustomizeBtnStyle = isTiny ? { ...shell.customizeButton, padding: '7px 10px', fontSize: '11px' } : shell.customizeButton;
+  const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton } : shell.customizeButton;
+  const tinyCustomizeBtnStyle = isTiny ? { ...shell.customizeButton } : shell.customizeButton;
   const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '60px', fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
   const dateInputStyle = {
     ...shell.input,
@@ -2293,11 +2294,11 @@ export default function InvoiceDashboard() {
           <button
             ref={menuButtonRef}
             type="button"
-            style={tinyGhostButtonStyle}
+            style={toolbarIconButtonStyle}
             aria-label="More options"
             onClick={() => setShowMoreMenu((prev) => !prev)}
           >
-            <MoreHorizontal size={24} />
+            <MoreHorizontal size={14} />
           </button>
         </div>
       </div>
@@ -2360,9 +2361,11 @@ export default function InvoiceDashboard() {
             ref={customizeButtonRef}
             type="button"
             style={tinyCustomizeBtnStyle}
+            aria-label="Customize fields"
+            title="Customize fields"
             onClick={() => setShowCustomize((prev) => !prev)}
           >
-            Customize Fields
+            <Settings size={14} />
           </button>
           {showCustomize ? (
             <div ref={customizePanelRef} style={shell.popover}>

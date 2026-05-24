@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, SlidersHorizontal, Search, X } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 
@@ -149,15 +149,18 @@ const shell = {
   customizeButton: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '8px',
-    border: '1px solid #c7d2fe',
+    justifyContent: 'center',
+    border: '1px solid var(--color-primary-soft)',
     background: 'var(--color-primary-light)',
     color: 'var(--color-primary-dark)',
     borderRadius: '10px',
-    padding: '8px 12px',
+    width: '32px',
+    height: '32px',
+    padding: 0,
     fontSize: '12px',
     fontWeight: 800,
-    cursor: 'pointer'
+    cursor: 'pointer',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)'
   },
   tableWrap: {
     overflowX: 'auto',
@@ -715,8 +718,7 @@ export default function ItemsDashboard() {
   const modalFooterStyle = isMobile ? { ...shell.modalFooter, flexWrap: 'wrap' } : shell.modalFooter;
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const buttonPrimaryStyle = isTiny ? { ...shell.buttonPrimary, padding: '8px 12px', fontSize: '13px' } : shell.buttonPrimary;
-  const buttonGhostStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
-  const customizeButtonStyle = isTiny ? { ...shell.customizeButton, padding: '7px 10px', fontSize: '11px' } : shell.customizeButton;
+  const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton, width: '32px', height: '32px' } : shell.customizeButton;
   const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
 
   return (
@@ -735,11 +737,11 @@ export default function ItemsDashboard() {
             <button
               ref={moreMenuButtonRef}
               type="button"
-              style={buttonGhostStyle}
+              style={toolbarIconButtonStyle}
               aria-label="More options"
               onClick={() => setShowMoreMenu((prev) => !prev)}
             >
-              <MoreHorizontal size={24} />
+              <MoreHorizontal size={14} />
             </button>
             {showMoreMenu ? (
               <div ref={moreMenuRef} style={shell.menu}>
@@ -766,11 +768,12 @@ export default function ItemsDashboard() {
           <button
             ref={customizeButtonRef}
             type="button"
-            style={customizeButtonStyle}
+            style={toolbarIconButtonStyle}
+            aria-label="Customize fields"
+            title="Customize fields"
             onClick={() => setShowCustomize((prev) => !prev)}
           >
-            <SlidersHorizontal size={15} />
-            Customize Fields
+            <Settings size={14} />
           </button>
           {showCustomize ? (
             <div ref={customizePanelRef} style={shell.popover}>

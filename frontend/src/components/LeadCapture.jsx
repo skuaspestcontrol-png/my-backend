@@ -32,6 +32,7 @@ import {
   PhoneCall,
   Plus,
   Search,
+  Settings,
   User,
   X
 } from 'lucide-react';
@@ -245,7 +246,7 @@ const s = {
   toolbarLeft: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flexWrap: 'nowrap', whiteSpace: 'nowrap' },
   toolLabel: { fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
   toolbarMeta: { fontSize: '11px', color: '#64748b', fontWeight: 700, whiteSpace: 'nowrap' },
-  customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' },
+  customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '9px', width: '32px', height: '32px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)' },
   popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--color-primary-soft)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '260px', zIndex: 45 },
   popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' },
@@ -2098,8 +2099,7 @@ export default function LeadCapture() {
   const analyticsTitleStyle = isTiny ? { ...s.analyticsTitle, fontSize: '20px' } : s.analyticsTitle;
   const registerTitleStyle = isTiny ? { ...s.registerTitle, fontSize: '16px' } : s.registerTitle;
   const buttonPrimaryStyle = isTiny ? { ...s.buttonPrimary, fontSize: '11px', padding: '7px 9px' } : s.buttonPrimary;
-  const buttonGhostStyle = isTiny ? { ...s.buttonGhost, width: '42px', height: '42px' } : s.buttonGhost;
-  const customizeButtonStyle = isTiny ? { ...s.customizeButton, padding: '6px 8px', fontSize: '10px' } : s.customizeButton;
+  const toolbarIconButtonStyle = isTiny ? { ...s.customizeButton, width: '32px', height: '32px' } : s.customizeButton;
   const leadModalCompactBodyStyle = isTiny ? { ...leadModalBodyStyle, padding: '10px' } : leadModalBodyStyle;
   const leadTableMinWidth = isMobile
     ? `${40 + visibleColumnDefs.reduce((sum, column) => sum + (mobileLeadColumnWidths[column.key] || 128), 0) + 92}px`
@@ -2306,11 +2306,11 @@ export default function LeadCapture() {
               <button
                 ref={moreMenuButtonRef}
                 type="button"
-                style={buttonGhostStyle}
+                style={toolbarIconButtonStyle}
                 aria-label="More options"
                 onClick={() => setShowMoreMenu((prev) => !prev)}
               >
-                <MoreHorizontal size={24} />
+                <MoreHorizontal size={14} />
               </button>
               {showMoreMenu ? (
                 <div ref={moreMenuRef} style={s.menu}>
@@ -2348,10 +2348,12 @@ export default function LeadCapture() {
               <button
                 ref={customizeButtonRef}
                 type="button"
-                style={customizeButtonStyle}
+                style={toolbarIconButtonStyle}
+                aria-label="Customize fields"
+                title="Customize fields"
                 onClick={() => setShowCustomize((prev) => !prev)}
               >
-                Customize Fields
+                <Settings size={14} />
               </button>
               {showCustomize ? (
                 <div ref={customizePanelRef} style={s.popover}>

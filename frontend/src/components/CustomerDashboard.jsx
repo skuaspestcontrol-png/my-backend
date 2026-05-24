@@ -3,7 +3,7 @@ import axios from 'axios';
 import useColumnResize from './table/useColumnResize';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, X } from 'lucide-react';
+import { ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import useAutoRefresh from '../hooks/useAutoRefresh';
@@ -281,7 +281,7 @@ const shell = {
   buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '9px', width: '34px', height: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   toolbar: { padding: '10px 14px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.96)' },
   toolLabel: { fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  customizeButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' },
+  customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '9px', width: '32px', height: '32px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)' },
   duplicateFilterButton: { display: 'inline-flex', alignItems: 'center', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '999px', padding: '4px 8px', minHeight: '24px', fontSize: '11px', lineHeight: 1.2, fontWeight: 800, cursor: 'pointer' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', maxWidth: '100%', backgroundClip: 'padding-box' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
@@ -1889,9 +1889,8 @@ export default function CustomerDashboard() {
     : shell.modalFooter;
   const duplicateModalBodyStyle = isTablet || isMobile ? { ...modalBodyStyle, display: 'grid', gap: '10px' } : { ...shell.modalBody, display: 'grid', gap: '10px' };
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
-  const ghostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '32px', height: '32px' } : shell.buttonGhost;
   const primaryButtonStyle = isTiny ? { ...shell.buttonPrimary, padding: '6px 10px', fontSize: '11px', minHeight: '32px' } : shell.buttonPrimary;
-  const customizeButtonStyle = isTiny ? { ...shell.customizeButton, padding: '7px 10px', fontSize: '11px' } : shell.customizeButton;
+  const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton, width: '32px', height: '32px' } : shell.customizeButton;
   const historyTitleTinyStyle = isTiny ? { ...historyTitleStyle, fontSize: '20px' } : historyTitleStyle;
   const addressSearchRowStyle = {
     display: 'grid',
@@ -1995,11 +1994,11 @@ export default function CustomerDashboard() {
             <button
               ref={moreMenuButtonRef}
               type="button"
-              style={ghostButtonStyle}
+              style={toolbarIconButtonStyle}
               aria-label="More options"
               onClick={() => setShowMoreMenu((prev) => !prev)}
             >
-              <MoreHorizontal size={24} />
+              <MoreHorizontal size={14} />
             </button>
             {showMoreMenu ? (
               <div ref={moreMenuRef} style={shell.menu}>
@@ -2084,10 +2083,12 @@ export default function CustomerDashboard() {
             <button
               ref={customizeButtonRef}
               type="button"
-              style={customizeButtonStyle}
+              style={toolbarIconButtonStyle}
+              aria-label="Customize fields"
+              title="Customize fields"
               onClick={() => setShowCustomize((prev) => !prev)}
             >
-              Customize Fields
+              <Settings size={14} />
             </button>
               {showCustomize ? (
                 <div ref={customizePanelRef} style={shell.popover}>

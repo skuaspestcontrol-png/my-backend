@@ -113,6 +113,9 @@ const shell = {
   modalBody: { padding: 18, display: 'grid', gap: 12, overflowY: 'auto' },
   mobileCard: { border: '1px solid #e5e7eb', borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: '#fff' },
   mobileMeta: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, color: '#475569' },
+  mobileCustomerStack: { display: 'grid', gap: 2, alignItems: 'start', minWidth: 0 },
+  mobileCustomerName: { margin: 0, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' },
+  mobileCustomerMobile: { fontSize: 12, color: '#64748b', fontWeight: 700, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap', background: '#fff' },
   paginationInfo: { color: '#64748b', fontSize: 12, fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: 8 },
@@ -453,13 +456,15 @@ export default function RenewalDashboard() {
           {pagedRows.map((row) => (
             <div key={row.renewalId} style={shell.mobileCard}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <strong style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.customerName}</strong>
+                <div style={shell.mobileCustomerStack}>
+                  <strong style={shell.mobileCustomerName}>{row.customerName}</strong>
+                  <span style={shell.mobileCustomerMobile}>{row.mobile || '-'}</span>
+                </div>
                 <span style={statusStyle(row.status)}>{row.status}</span>
               </div>
               <div style={shell.mobileMeta}>
-                <span>{row.mobile || '-'}</span>
                 <span>{formatDate(row.renewalDueDate)}</span>
-                <span title={row.serviceType}>{serviceShort(row.serviceType)}</span>
+                <span style={{ textAlign: 'center', justifySelf: 'center', width: '100%' }} title={row.serviceType}>{serviceShort(row.serviceType)}</span>
                 <span>{formatINR(row.proposedAmount)}</span>
               </div>
               <div style={{ ...shell.rowActions, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
