@@ -7125,7 +7125,10 @@ const resolveEmailConfig = (settings = {}) => ({
     settings.smtpEncryption,
     normalizeBoolean(settings.smtpSecure, normalizeBoolean(process.env.SMTP_SECURE, false)) ? 'SSL' : 'TLS'
   ) === 'SSL',
-  active: normalizeYesNo(settings.smtpActive, 'Yes'),
+  active: normalizeBoolean(
+    settings.emailApiActive ?? settings.active,
+    normalizeYesNo(settings.smtpActive, 'Yes') === 'Yes'
+  ) ? 'Yes' : 'No',
   fromName: settings.smtpSenderName || settings.companyName || '',
   user: settings.smtpUser || process.env.SMTP_USER || '',
   pass: settings.smtpPass || process.env.SMTP_PASS || '',

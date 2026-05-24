@@ -22,10 +22,18 @@ export default function EmailSettings() {
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const normalizeLoadedForm = (data = {}) => ({
+    ...empty,
+    ...data,
+    active: Boolean(
+      data.active ?? data.emailApiActive ?? String(data.smtpActive || '').trim().toLowerCase() === 'yes'
+    )
+  });
+
   const load = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/settings/email`);
-      setForm({ ...empty, ...(res.data || {}) });
+      setForm(normalizeLoadedForm(res.data || {}));
     } catch (error) {
       setStatus('Could not load email settings.');
     }

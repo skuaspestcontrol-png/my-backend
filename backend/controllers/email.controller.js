@@ -14,6 +14,19 @@ const parseJsonSafe = (raw, fallback) => {
   try { return JSON.parse(raw); } catch (error) { return fallback; }
 };
 
+const toBoolLike = (value) => {
+  if (typeof value === 'boolean') return value;
+  const raw = String(value ?? '').trim().toLowerCase();
+  return ['1', 'true', 'yes', 'on', 'enabled'].includes(raw);
+};
+
+const resolveEmailActive = (settings = {}) => {
+  if (settings.emailApiActive !== undefined) return toBoolLike(settings.emailApiActive);
+  if (settings.active !== undefined) return toBoolLike(settings.active);
+  if (settings.smtpActive !== undefined) return toBoolLike(settings.smtpActive);
+  return false;
+};
+
 function createEmailController(deps) {
   const {
     dataDir,
@@ -148,7 +161,7 @@ function createEmailController(deps) {
       fromEmail: settings.smtpFromEmail || '',
       fromName: settings.smtpSenderName || '',
       replyToEmail: settings.replyToEmail || '',
-      active: Boolean(settings.emailApiActive),
+      active: resolveEmailActive(settings),
       testEmailAddress: settings.smtpTestTargetEmail || ''
     });
   };
@@ -156,6 +169,11 @@ function createEmailController(deps) {
   const saveEmailSettings = (req, res) => {
     const body = req.body || {};
     const current = readSettings();
+    const isActive = resolveEmailActive({
+      emailApiActive: body.active,
+      active: body.active,
+      smtpActive: body.smtpActive
+    });
     const next = {
       ...current,
       emailProvider: String(body.mailProvider || 'SMTP').trim(),
@@ -167,9 +185,10 @@ function createEmailController(deps) {
       smtpFromEmail: String(body.fromEmail || '').trim(),
       smtpSenderName: String(body.fromName || '').trim(),
       replyToEmail: String(body.replyToEmail || '').trim(),
-      emailApiActive: Boolean(body.active),
+      emailApiActive: isActive,
+      active: isActive,
       smtpTestTargetEmail: String(body.testEmailAddress || '').trim(),
-      smtpActive: Boolean(body.active) ? 'Yes' : 'No'
+      smtpActive: isActive ? 'Yes' : 'No'
     };
     saveSettings(next);
     res.json({ success: true, settings: next });

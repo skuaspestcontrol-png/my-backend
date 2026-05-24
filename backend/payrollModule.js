@@ -87,7 +87,11 @@ const resolveEmailConfig = (settings = {}) => ({
   host: settings.smtpHost || process.env.SMTP_HOST || '',
   port: Math.max(1, Number(settings.smtpPort || process.env.SMTP_PORT || 587) || 587),
   secure: String(settings.smtpEncryption || '').toUpperCase() === 'SSL' || String(settings.smtpSecure || '').toLowerCase() === 'true',
-  active: String(settings.smtpActive || 'Yes'),
+  active: typeof settings.emailApiActive === 'boolean'
+    ? (settings.emailApiActive ? 'Yes' : 'No')
+    : typeof settings.active === 'boolean'
+      ? (settings.active ? 'Yes' : 'No')
+      : String(settings.smtpActive || 'Yes'),
   fromName: settings.smtpSenderName || settings.companyName || '',
   user: settings.smtpUser || process.env.SMTP_USER || '',
   pass: settings.smtpPass || process.env.SMTP_PASS || '',

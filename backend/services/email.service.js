@@ -16,6 +16,13 @@ const toBool = (value) => {
   return ['1', 'true', 'yes', 'on'].includes(raw);
 };
 
+const resolveActiveFlag = (settings = {}) => {
+  if (settings.emailApiActive !== undefined) return toBool(settings.emailApiActive);
+  if (settings.active !== undefined) return toBool(settings.active);
+  if (settings.smtpActive !== undefined) return toBool(settings.smtpActive);
+  return false;
+};
+
 const buildEmailConfig = (settings = {}) => ({
   provider: String(settings.emailProvider || 'SMTP').trim(),
   smtpHost: String(settings.smtpHost || settings.emailSmtpHost || '').trim(),
@@ -26,7 +33,7 @@ const buildEmailConfig = (settings = {}) => ({
   fromEmail: String(settings.smtpFromEmail || settings.fromEmail || settings.emailFromEmail || '').trim(),
   fromName: String(settings.smtpSenderName || settings.fromName || settings.emailFromName || '').trim(),
   replyToEmail: String(settings.replyToEmail || settings.emailReplyToEmail || '').trim(),
-  active: toBool(settings.emailApiActive)
+  active: resolveActiveFlag(settings)
 });
 
 const createTransporter = (config) => {
@@ -45,7 +52,7 @@ const sendEmailMessage = async ({ settings, to, subject, htmlBody, textBody, att
   const config = buildEmailConfig(settings);
   const toCheck = validateEmailAddress(to);
   if (!toCheck.ok) throw new Error(toCheck.error);
-  if (!config.active) throw new Error('Email API is inactive.');
+  if (!config.active) throw new Error('Email API is inactive. Enable Email API / SMTP Active in Settings.');
   if (!config.smtpHost || !config.smtpUsername || !config.smtpPassword || !config.fromEmail) {
     throw new Error('Email SMTP credentials are incomplete.');
   }
