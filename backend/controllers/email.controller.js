@@ -69,6 +69,31 @@ function createEmailController(deps) {
     return normalizeEmailSettings(readSettings());
   };
 
+  const loadCurrentFullSettings = async () => {
+    if (withMysqlConnection) {
+      try {
+        return await withMysqlConnection(async (conn) => {
+          await conn.query(APP_SETTINGS_TABLE_SQL);
+          const [rows] = await conn.query(
+            'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
+            [APP_SETTINGS_KEY_MAIN]
+          );
+          const row = Array.isArray(rows) ? rows[0] : null;
+          if (!row?.setting_value) return {};
+          const raw = row.setting_value;
+          if (typeof raw === 'string') {
+            try { return parseJsonSafe(raw, {}); } catch (_error) { return {}; }
+          }
+          if (typeof raw === 'object') return raw;
+          return {};
+        });
+      } catch (error) {
+        console.error('Could not load full settings for email save, falling back to JSON:', error.message);
+      }
+    }
+    return readSettings();
+  };
+
   const getTemplates = () => {
     const list = ensureDefaultEmailTemplates(readJsonFile(templatesFile, []));
     writeJsonFile(templatesFile, list);
@@ -209,7 +234,7 @@ function createEmailController(deps) {
 
   const saveEmailSettings = async (req, res) => {
     const body = req.body || {};
-    const current = await loadRuntimeSettings();
+    const current = await loadCurrentFullSettings();
     const isActive = resolveEmailActive({
       emailApiActive: body.active,
       active: body.active,

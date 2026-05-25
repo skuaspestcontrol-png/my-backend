@@ -1144,13 +1144,20 @@ export default function Settings({ modalMode = false }) {
       }
     }
 
-    const gstCompanyName = String(form.gstCompanyName || form.companyName || '').trim();
-    const gstBillingAddress = String(form.gstBillingAddress || form.companyAddress || '').trim();
-    const gstCity = String(form.gstCity || form.companyCity || '').trim();
-    const gstState = String(form.gstState || form.companyState || '').trim();
-    const gstPincode = toSixDigitPincode(form.gstPincode || form.companyPincode || '');
-    const gstPhone = normalizeIndianMobileNumber(form.gstPhone || form.companyMobile || '');
-    const gstEmail = String(form.gstEmail || form.companyEmail || '').trim();
+    const companyName = String(form.companyName || form.gstCompanyName || '').trim();
+    const companyAddress = String(form.companyAddress || form.gstBillingAddress || '').trim();
+    const companyCity = String(form.companyCity || form.gstCity || '').trim();
+    const companyState = String(form.companyState || form.gstState || '').trim();
+    const companyPincode = toSixDigitPincode(form.companyPincode || form.gstPincode || '');
+    const companyMobile = normalizeIndianMobileNumber(form.companyMobile || form.gstPhone || '');
+    const companyEmail = String(form.companyEmail || form.gstEmail || '').trim();
+    const gstCompanyName = String(form.gstCompanyName || companyName || '').trim();
+    const gstBillingAddress = String(form.gstBillingAddress || companyAddress || '').trim();
+    const gstCity = String(form.gstCity || companyCity || '').trim();
+    const gstState = String(form.gstState || companyState || '').trim();
+    const gstPincode = toSixDigitPincode(form.gstPincode || companyPincode || '');
+    const gstPhone = normalizeIndianMobileNumber(form.gstPhone || companyMobile || '');
+    const gstEmail = String(form.gstEmail || companyEmail || '').trim();
     const gstStateCode = normalizeGstStateCode(form.gstStateCode || deriveGstStateCodeFromGstin(form.companyGstNumber));
     const dashboardImageUrl = String(form.dashboardImageUrl || '').trim();
     const gstCompanyLogoUrl = String(form.gstCompanyLogoUrl || '').trim();
@@ -1194,14 +1201,14 @@ export default function Settings({ modalMode = false }) {
       gstCompanyLogoUrl,
       gstDigitalSignatureUrl: String(form.gstDigitalSignatureUrl || '').trim(),
       gstCompanyStampUrl: String(form.gstCompanyStampUrl || '').trim(),
-      companyName: gstCompanyName,
-      companyAddress: gstBillingAddress,
-      companyCity: gstCity,
-      companyState: gstState,
-      companyPincode: gstPincode,
+      companyName,
+      companyAddress,
+      companyCity,
+      companyState,
+      companyPincode,
       companyGstNumber: String(form.companyGstNumber || '').trim().toUpperCase(),
-      companyEmail: gstEmail,
-      companyMobile: gstPhone,
+      companyEmail,
+      companyMobile,
       companyWebsite: String(form.companyWebsite || '').trim(),
       dashboardImageUrl,
       brandingAppearance: form.brandingAppearance === 'dark' ? 'dark' : 'light',
