@@ -1,4 +1,14 @@
 const nodemailer = require('nodemailer');
+const {
+  decryptSecret,
+  isEncryptedSecret
+} = require('../lib/secretCrypto');
+
+const EMAIL_SECRET_KEY = process.env.SMTP_ENCRYPTION_KEY
+  || process.env.GOOGLE_TOKEN_ENCRYPTION_KEY
+  || process.env.APP_API_KEY
+  || process.env.SKUAS_API_KEY
+  || '';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -31,7 +41,12 @@ const buildEmailConfig = (settings = {}) => ({
   smtpPort: Number(firstDefined(settings.smtpPort, settings.smtp_port, settings.emailSmtpPort, 587) || 587),
   smtpSecure: toBool(firstDefined(settings.smtpSecure, settings.smtp_secure, settings.emailSmtpSecure, false)),
   smtpUsername: String(firstDefined(settings.smtpUser, settings.smtp_username, settings.smtpUsername, settings.emailSmtpUsername, '')).trim(),
-  smtpPassword: String(firstDefined(settings.smtpPass, settings.smtp_password, settings.smtpPassword, settings.emailSmtpPassword, '')).trim(),
+  smtpPassword: (() => {
+    const raw = String(firstDefined(settings.smtpPass, settings.smtp_password, settings.smtpPassword, settings.emailSmtpPassword, '') || '').trim();
+    if (!raw) return '';
+    if (!isEncryptedSecret(raw)) return raw;
+    return decryptSecret(raw, EMAIL_SECRET_KEY);
+  })(),
   fromEmail: String(firstDefined(settings.smtpFromEmail, settings.fromEmail, settings.from_email, settings.emailFromEmail, '')).trim(),
   fromName: String(firstDefined(settings.smtpSenderName, settings.fromName, settings.from_name, settings.emailFromName, '')).trim(),
   replyToEmail: String(firstDefined(settings.replyToEmail, settings.reply_to_email, settings.emailReplyToEmail, '')).trim(),

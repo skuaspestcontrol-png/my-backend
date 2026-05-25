@@ -25,6 +25,7 @@ export default function EmailSettings() {
   const normalizeLoadedForm = (data = {}) => ({
     ...empty,
     ...data,
+    smtpPassword: '',
     active: Boolean(
       data.active ?? data.emailApiActive ?? String(data.smtpActive || '').trim().toLowerCase() === 'yes'
     )
@@ -46,7 +47,8 @@ export default function EmailSettings() {
     try {
       setBusy(true);
       setStatus('Saving...');
-      await axios.post(`${API_BASE_URL}/api/settings/email`, form);
+      const res = await axios.post(`${API_BASE_URL}/api/settings/email`, form);
+      setForm(normalizeLoadedForm(res.data?.settings || form));
       setStatus('Email settings saved.');
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Save failed.');
@@ -81,7 +83,7 @@ export default function EmailSettings() {
           <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>SMTP Port<input value={form.smtpPort} onChange={(e) => setForm((p) => ({ ...p, smtpPort: Number(e.target.value || 0) }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, marginTop: '22px' }}><input type="checkbox" checked={form.smtpSecure} onChange={(e) => setForm((p) => ({ ...p, smtpSecure: e.target.checked }))} /> SMTP Secure</label>
           <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>SMTP Username<input value={form.smtpUsername} onChange={(e) => setForm((p) => ({ ...p, smtpUsername: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
-          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>SMTP Password<input type="password" value={form.smtpPassword} onChange={(e) => setForm((p) => ({ ...p, smtpPassword: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
+          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>SMTP Password<input type="password" value={form.smtpPassword} placeholder="Leave blank to keep existing password" onChange={(e) => setForm((p) => ({ ...p, smtpPassword: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
           <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>From Email<input value={form.fromEmail} onChange={(e) => setForm((p) => ({ ...p, fromEmail: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
           <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>From Name<input value={form.fromName} onChange={(e) => setForm((p) => ({ ...p, fromName: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
           <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>Reply-To Email<input value={form.replyToEmail} onChange={(e) => setForm((p) => ({ ...p, replyToEmail: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>

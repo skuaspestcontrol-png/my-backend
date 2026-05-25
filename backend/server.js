@@ -12,6 +12,7 @@ const { pool, query: dbQuery, getConnection } = require('./lib/db');
 const { runAutoMigrations, getLastMigrationStatus } = require('./lib/autoMigrate');
 const { readCachedSettings, clearSettingsCache } = require('./lib/settings-cache');
 const { sendEmailMessage, normalizeEmailSettings } = require('./services/email.service');
+const { encryptSecret } = require('./lib/secretCrypto');
 const { registerPayrollModule } = require('./payrollModule');
 const { registerHrModule } = require('./hrModule');
 const { registerCustomerDedupModule } = require('./customerDedupModule');
@@ -82,6 +83,11 @@ app.set('trust proxy', 1);
 
 const SKUAS_API_URL = String(process.env.SKUAS_API_URL || 'https://api.skuaspestcontrol.com').replace(/\/+$/, '');
 const SKUAS_API_KEY = String(process.env.SKUAS_API_KEY || process.env.APP_API_KEY || '').trim();
+const EMAIL_SECRET_KEY = process.env.SMTP_ENCRYPTION_KEY
+  || process.env.GOOGLE_TOKEN_ENCRYPTION_KEY
+  || process.env.APP_API_KEY
+  || process.env.SKUAS_API_KEY
+  || '';
 const allowedCorsOrigins = new Set([
   "https://crm.skuaspestcontrol.com",
   "https://api.skuaspestcontrol.com",
@@ -1457,6 +1463,11 @@ const readSettingsFromMysql = async () => {
 
 const saveSettingsToMysql = async (payload = {}) => {
   const sanitized = sanitizeSettings(payload);
+  if (String(sanitized.smtpPass || '').trim()) {
+    sanitized.smtpPass = encryptSecret(sanitized.smtpPass, EMAIL_SECRET_KEY);
+  } else {
+    sanitized.smtpPass = '';
+  }
   await withMysqlConnection(async (conn) => {
     await ensureAppSettingsTable(conn);
     await conn.query(
@@ -1967,6 +1978,16 @@ const normalizeJobPdfSettings = (settings = {}, req = null) => ({
   logo_url: rewriteLocalhostLogoUrl(settings.logo_url, req),
   logoUrl: rewriteLocalhostLogoUrl(settings.logoUrl, req)
 });
+
+const maskClientSettings = (settings = {}) => {
+  const smtpPasswordSet = Boolean(String(settings.smtpPass || '').trim());
+  return {
+    ...settings,
+    smtpPass: '',
+    smtpPassword: '',
+    smtpPasswordSet
+  };
+};
 
 const renderJobCardHeader = (doc, settings = {}, title = 'JOB CARD', options = {}) => {
   const {
@@ -2660,7 +2681,7 @@ const sanitizeAttendanceRecord = (raw = {}) => {
 app.get('/api/settings', async (req, res) => {
   try {
     const settings = await readSettingsFromMysql();
-    return res.json(normalizeJobPdfSettings(settings, req));
+    return res.json(maskClientSettings(normalizeJobPdfSettings(settings, req)));
   } catch (error) {
     console.error('Failed to fetch settings from MySQL:', error.message);
     return res.status(500).json({ error: 'Failed to fetch settings' });
@@ -2671,7 +2692,7 @@ app.post('/api/settings', async (req, res) => {
   try {
     const current = await readSettingsFromMysql();
     const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
-    return res.json({ message: 'Saved', settings: normalizeJobPdfSettings(next, req) });
+    return res.json({ message: 'Saved', settings: maskClientSettings(normalizeJobPdfSettings(next, req)) });
   } catch (error) {
     console.error('Failed to save settings to MySQL:', error.message);
     return res.status(500).json({ error: 'Failed to save settings' });
@@ -2682,7 +2703,7 @@ app.post('/api/settings/save', async (req, res) => {
   try {
     const current = await readSettingsFromMysql();
     const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
-    return res.json({ message: 'Saved', settings: normalizeJobPdfSettings(next, req) });
+    return res.json({ message: 'Saved', settings: maskClientSettings(normalizeJobPdfSettings(next, req)) });
   } catch (error) {
     console.error('Failed to save settings to MySQL:', error.message);
     return res.status(500).json({ error: 'Failed to save settings' });

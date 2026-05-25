@@ -179,7 +179,8 @@ function createEmailController(deps) {
         smtpPort: Number(settings.smtpPort || 587),
         smtpSecure: Boolean(settings.smtpSecure),
         smtpUsername: settings.smtpUser || '',
-        smtpPassword: settings.smtpPass || '',
+        smtpPassword: '',
+        smtpPasswordSet: Boolean(String(settings.smtpPass || '').trim()),
         fromEmail: settings.smtpFromEmail || '',
         fromName: settings.smtpSenderName || '',
         replyToEmail: settings.replyToEmail || '',
@@ -195,7 +196,8 @@ function createEmailController(deps) {
           smtpPort: Number(settings.smtpPort || 587),
           smtpSecure: Boolean(settings.smtpSecure),
           smtpUsername: settings.smtpUser || '',
-          smtpPassword: settings.smtpPass || '',
+          smtpPassword: '',
+          smtpPasswordSet: Boolean(String(settings.smtpPass || '').trim()),
           fromEmail: settings.smtpFromEmail || '',
           fromName: settings.smtpSenderName || '',
           replyToEmail: settings.replyToEmail || '',
@@ -213,6 +215,7 @@ function createEmailController(deps) {
       active: body.active,
       smtpActive: body.smtpActive
     });
+    const smtpPass = String(body.smtpPassword || '').trim() || String(current.smtpPass || current.smtpPassword || '').trim();
     const next = {
       ...current,
       emailProvider: String(body.mailProvider || 'SMTP').trim(),
@@ -220,7 +223,7 @@ function createEmailController(deps) {
       smtpPort: Number(body.smtpPort || 587),
       smtpSecure: Boolean(body.smtpSecure),
       smtpUser: String(body.smtpUsername || '').trim(),
-      smtpPass: String(body.smtpPassword || '').trim(),
+      smtpPass,
       smtpFromEmail: String(body.fromEmail || '').trim(),
       smtpSenderName: String(body.fromName || '').trim(),
       replyToEmail: String(body.replyToEmail || '').trim(),

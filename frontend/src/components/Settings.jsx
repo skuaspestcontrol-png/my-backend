@@ -908,7 +908,7 @@ export default function Settings({ modalMode = false }) {
           smtpSenderName: data.smtpSenderName || '',
           smtpFromEmail: data.smtpFromEmail || '',
           smtpUser: data.smtpUser || '',
-          smtpPass: data.smtpPass || '',
+          smtpPass: '',
           smtpHost: data.smtpHost || '',
           smtpPort: String(data.smtpPort ?? 587),
           smtpEncryption: data.smtpEncryption || (data.smtpSecure ? 'SSL' : 'TLS'),
@@ -2290,7 +2290,7 @@ export default function Settings({ modalMode = false }) {
       <div style={shell.fourCol}>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>SMTP App Password</p>
-          <input type="password" style={shell.input} value={form.smtpPass} onChange={(event) => updateField('smtpPass', event.target.value)} placeholder="Enter new app password to update" />
+          <input type="password" style={shell.input} value={form.smtpPass} onChange={(event) => updateField('smtpPass', event.target.value)} placeholder="Leave blank to keep existing password" />
           <p style={shell.hint}>Leave blank to keep existing password.</p>
         </div>
         <div style={shell.field}>
