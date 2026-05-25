@@ -1171,14 +1171,8 @@ export default function Settings({ modalMode = false }) {
       setStatus('Non-GST company pincode must be exactly 6 digits.');
       return;
     }
-    const phoneValues = [
-      gstPhone,
-      form.gstAlternatePhone,
-      form.nonGstPhone,
-      form.nonGstAlternatePhone,
-      form.whatsappPhoneNumber
-    ];
-    if (phoneValues.some((value) => String(value || '').trim() && !isValidIndianMobileNumber(value))) {
+    const primaryPhone = String(companyMobile || gstPhone || '').trim();
+    if (primaryPhone && !isValidIndianMobileNumber(primaryPhone)) {
       setStatus(PHONE_VALIDATION_ERROR);
       return;
     }
