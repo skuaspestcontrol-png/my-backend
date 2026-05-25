@@ -857,7 +857,7 @@ export default function Settings({ modalMode = false }) {
           gstCompanyLogoUrl,
           gstDigitalSignatureUrl: data.gstDigitalSignatureUrl || '',
           gstCompanyStampUrl: data.gstCompanyStampUrl || '',
-          companyName: String(data.companyName || gstCompanyName || '').trim(),
+          companyName: String(data.companyName || '').trim(),
           companyAddress: String(data.companyAddress || gstBillingAddress || '').trim(),
           companyCity: String(data.companyCity || gstCity || '').trim(),
           companyState: String(data.companyState || gstState || '').trim(),
@@ -1167,7 +1167,7 @@ export default function Settings({ modalMode = false }) {
       }
     }
 
-    const companyName = String(form.companyName || form.gstCompanyName || '').trim();
+    const companyName = String(form.companyName || '').trim();
     const companyAddress = String(form.companyAddress || form.gstBillingAddress || '').trim();
     const companyCity = String(form.companyCity || form.gstCity || '').trim();
     const companyState = String(form.companyState || form.gstState || '').trim();
@@ -1511,7 +1511,7 @@ export default function Settings({ modalMode = false }) {
             value={form.companyName}
             onChange={(event) => {
               const value = event.target.value;
-              setForm((prev) => ({ ...prev, companyName: value, gstCompanyName: prev.gstCompanyName || value }));
+              setForm((prev) => ({ ...prev, companyName: value }));
             }}
           />
         </div>
@@ -1728,7 +1728,7 @@ export default function Settings({ modalMode = false }) {
             value={form.gstCompanyName}
             onChange={(event) => {
               const value = event.target.value;
-              setForm((prev) => ({ ...prev, gstCompanyName: value, companyName: value }));
+              setForm((prev) => ({ ...prev, gstCompanyName: value }));
             }}
           />
         </div>
@@ -1740,7 +1740,6 @@ export default function Settings({ modalMode = false }) {
             name="companyGstNumber"
             value={form.companyGstNumber}
             onChange={(event) => handleGstinChange(event.target.value)}
-            placeholder="07ABMCS7628G1ZW"
           />
         </div>
       </div>
@@ -1754,7 +1753,6 @@ export default function Settings({ modalMode = false }) {
             name="gstPanNumber"
             value={form.gstPanNumber}
             onChange={(event) => updateField('gstPanNumber', event.target.value.toUpperCase())}
-            placeholder="ABMCS7628G"
           />
         </div>
         <div style={shell.field}>
