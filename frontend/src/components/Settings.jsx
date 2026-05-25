@@ -1238,13 +1238,13 @@ export default function Settings({ modalMode = false }) {
       nonGstBankQrUrl: String(form.nonGstBankQrUrl || '').trim(),
       nonGstBankPrimary: Boolean(form.nonGstBankPrimary),
       adminUsername: String(form.adminUsername || 'admin').trim() || 'admin',
-      adminPassword: nextAdminPassword,
+      ...(hasPasswordAttempt ? { adminPassword: nextAdminPassword } : {}),
       gstTermsAndConditions: String(form.gstTermsAndConditions || '').trim(),
       nonGstTermsAndConditions: String(form.nonGstTermsAndConditions || '').trim(),
       renewalLetterTermsAndConditions: String(form.renewalLetterTermsAndConditions || '').trim(),
       customerNotesDefault: String(form.customerNotesDefault || '').trim(),
       termsAndConditionsDefault: String(form.gstTermsAndConditions || form.termsAndConditionsDefault || '').trim(),
-      settingsAccessPin: String(form.settingsAccessPin || '').trim(),
+      settingsAccessPin: String(form.settingsAccessPin || initialForm.settingsAccessPin || '').trim(),
       invoiceNumberMode: form.invoiceNumberMode === 'manual' ? 'manual' : 'auto',
       invoicePrefix: String(form.invoicePrefix || '').trim() || 'SPC-',
       invoiceNextNumber: Math.max(1, Number(form.invoiceNextNumber) || 1),
@@ -1268,7 +1268,7 @@ export default function Settings({ modalMode = false }) {
       smtpSenderName: String(form.smtpSenderName || '').trim(),
       smtpFromEmail: String(form.smtpFromEmail || '').trim(),
       smtpUser: String(form.smtpUser || '').trim(),
-      smtpPass: String(form.smtpPass || '').trim(),
+      smtpPass: String(form.smtpPass || initialForm.smtpPass || '').trim(),
       smtpHost: String(form.smtpHost || '').trim(),
       smtpPort: Math.max(1, Number(form.smtpPort) || 587),
       smtpEncryption: ['TLS', 'SSL', 'NONE'].includes(encryption) ? encryption : 'TLS',
@@ -2775,6 +2775,18 @@ export default function Settings({ modalMode = false }) {
               ? 'Passwords match.'
               : 'Passwords do not match.'}
         </p>
+      </div>
+
+      <div style={shell.field}>
+        <p style={shell.fieldLabel}>Settings Access PIN</p>
+        <input
+          type="password"
+          style={shell.input}
+          value={form.settingsAccessPin}
+          onChange={(event) => updateField('settingsAccessPin', event.target.value)}
+          placeholder="Enter or update settings access PIN"
+        />
+        <p style={shell.hint}>Leave it unchanged to keep the existing PIN.</p>
       </div>
     </>
   );
