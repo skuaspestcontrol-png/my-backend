@@ -14,6 +14,17 @@ const empty = {
   providerType: 'custom'
 };
 
+const normalizeLoadedForm = (data = {}) => ({
+  ...empty,
+  apiBaseUrl: String(data.apiBaseUrl || '').trim(),
+  phoneNumber: '',
+  instanceId: '',
+  accessToken: '',
+  active: Boolean(data.active),
+  testNumber: '',
+  providerType: String(data.providerType || 'custom').trim() || 'custom'
+});
+
 export default function WhatsAppSettings() {
   const [form, setForm] = useState(empty);
   const [status, setStatus] = useState('');
@@ -22,7 +33,7 @@ export default function WhatsAppSettings() {
   const load = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/settings/whatsapp`);
-      setForm({ ...empty, ...(res.data || {}) });
+      setForm(normalizeLoadedForm(res.data || {}));
     } catch (error) {
       setStatus('Could not load WhatsApp settings.');
     }
@@ -39,7 +50,8 @@ export default function WhatsAppSettings() {
     try {
       setBusy(true);
       setStatus('Saving...');
-      await axios.post(`${API_BASE_URL}/api/settings/whatsapp`, form);
+      const res = await axios.post(`${API_BASE_URL}/api/settings/whatsapp`, form);
+      setForm(normalizeLoadedForm(res.data?.settings || form));
       setStatus('WhatsApp settings saved.');
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Save failed.');
@@ -69,12 +81,12 @@ export default function WhatsAppSettings() {
       <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>WhatsApp API Settings</h2>
       <form onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '12px', padding: '12px', display: 'grid', gap: '10px' }}>
         <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
-          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>API Base URL<input value={form.apiBaseUrl} onChange={(e) => setForm((p) => ({ ...p, apiBaseUrl: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
-          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Phone Number<input value={form.phoneNumber} inputMode="numeric" onChange={(e) => setForm((p) => ({ ...p, phoneNumber: normalizeIndianMobileNumber(e.target.value) }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
-          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Instance ID<input value={form.instanceId} onChange={(e) => setForm((p) => ({ ...p, instanceId: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
-          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Access Token<input value={form.accessToken} onChange={(e) => setForm((p) => ({ ...p, accessToken: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
+          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>API Base URL<input value={form.apiBaseUrl} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, apiBaseUrl: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
+          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Phone Number<input value={form.phoneNumber} autoComplete="off" inputMode="numeric" onChange={(e) => setForm((p) => ({ ...p, phoneNumber: normalizeIndianMobileNumber(e.target.value) }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
+          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Instance ID<input value={form.instanceId} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, instanceId: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
+          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Access Token<input value={form.accessToken} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, accessToken: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Provider Type<select value={form.providerType} onChange={(e) => setForm((p) => ({ ...p, providerType: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }}><option value="custom">Custom</option><option value="meta">Meta Graph</option></select></label>
-          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Test Number<input value={form.testNumber} onChange={(e) => setForm((p) => ({ ...p, testNumber: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
+          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Test Number<input value={form.testNumber} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, testNumber: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
         </div>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '12px' }}><input type="checkbox" checked={form.active} onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))} /> Active</label>
 

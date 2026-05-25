@@ -203,14 +203,14 @@ function createEmailController(deps) {
         smtpHost: settings.smtpHost || '',
         smtpPort: Number(settings.smtpPort || 587),
         smtpSecure: Boolean(settings.smtpSecure),
-        smtpUsername: settings.smtpUser || '',
+        smtpUsername: '',
         smtpPassword: '',
         smtpPasswordSet: Boolean(String(settings.smtpPass || '').trim()),
-        fromEmail: settings.smtpFromEmail || '',
-        fromName: settings.smtpSenderName || '',
-        replyToEmail: settings.replyToEmail || '',
+        fromEmail: '',
+        fromName: '',
+        replyToEmail: '',
         active: resolveEmailActive(settings),
-        testEmailAddress: settings.smtpTestTargetEmail || ''
+        testEmailAddress: ''
       }))
       .catch((error) => {
         console.error('Could not load email settings', error);
@@ -220,14 +220,14 @@ function createEmailController(deps) {
           smtpHost: settings.smtpHost || '',
           smtpPort: Number(settings.smtpPort || 587),
           smtpSecure: Boolean(settings.smtpSecure),
-          smtpUsername: settings.smtpUser || '',
+          smtpUsername: '',
           smtpPassword: '',
           smtpPasswordSet: Boolean(String(settings.smtpPass || '').trim()),
-          fromEmail: settings.smtpFromEmail || '',
-          fromName: settings.smtpSenderName || '',
-          replyToEmail: settings.replyToEmail || '',
+          fromEmail: '',
+          fromName: '',
+          replyToEmail: '',
           active: resolveEmailActive(settings),
-          testEmailAddress: settings.smtpTestTargetEmail || ''
+          testEmailAddress: ''
         });
       });
   };
@@ -243,18 +243,18 @@ function createEmailController(deps) {
     const smtpPass = String(body.smtpPassword || '').trim() || String(current.smtpPass || current.smtpPassword || '').trim();
     const next = {
       ...current,
-      emailProvider: String(body.mailProvider || 'SMTP').trim(),
-      smtpHost: String(body.smtpHost || '').trim(),
-      smtpPort: Number(body.smtpPort || 587),
-      smtpSecure: Boolean(body.smtpSecure),
-      smtpUser: String(body.smtpUsername || '').trim(),
+      emailProvider: String(body.mailProvider || current.emailProvider || 'SMTP').trim(),
+      smtpHost: String(body.smtpHost ?? current.smtpHost ?? '').trim(),
+      smtpPort: Number(body.smtpPort || current.smtpPort || 587),
+      smtpSecure: body.smtpSecure === undefined ? Boolean(current.smtpSecure) : Boolean(body.smtpSecure),
+      smtpUser: String(body.smtpUsername || current.smtpUser || '').trim(),
       smtpPass,
-      smtpFromEmail: String(body.fromEmail || '').trim(),
-      smtpSenderName: String(body.fromName || '').trim(),
-      replyToEmail: String(body.replyToEmail || '').trim(),
+      smtpFromEmail: String(body.fromEmail || current.smtpFromEmail || '').trim(),
+      smtpSenderName: String(body.fromName || current.smtpSenderName || '').trim(),
+      replyToEmail: String(body.replyToEmail || current.replyToEmail || '').trim(),
       emailApiActive: isActive,
       active: isActive,
-      smtpTestTargetEmail: String(body.testEmailAddress || '').trim(),
+      smtpTestTargetEmail: String(body.testEmailAddress || current.smtpTestTargetEmail || '').trim(),
       smtpActive: isActive ? 'Yes' : 'No'
     };
     let saved = next;

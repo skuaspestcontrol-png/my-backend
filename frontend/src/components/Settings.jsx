@@ -141,6 +141,26 @@ const defaultSecurityForm = {
   confirmPassword: ''
 };
 
+const normalizeGstinDisplay = (value) => {
+  const normalized = String(value || '').toUpperCase().replace(/\s/g, '');
+  return /^[0-9A-Z]{15}$/.test(normalized) ? normalized : '';
+};
+
+const normalizePanDisplay = (value) => {
+  const normalized = String(value || '').toUpperCase().replace(/\s/g, '');
+  return /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(normalized) ? normalized : '';
+};
+
+const normalizeEmailDisplay = (value) => {
+  const normalized = String(value || '').trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : '';
+};
+
+const normalizePhoneDisplay = (value) => {
+  const normalized = normalizeIndianMobileNumber(value || '');
+  return isValidIndianMobileNumber(normalized) ? normalized : '';
+};
+
 const onOffOptions = ['On', 'Off'];
 const smtpEncryptionOptions = ['TLS', 'SSL', 'None'];
 const smtpActiveOptions = ['Yes', 'No'];
@@ -803,24 +823,27 @@ export default function Settings({ modalMode = false }) {
         const data = res.data || {};
         const quotationPrefix = quotationPrefixRes.data || {};
 
-        const gstCompanyName = String(data.gstCompanyName || data.companyName || '').trim();
-        const gstBillingAddress = String(data.gstBillingAddress || data.companyAddress || '').trim();
-        const gstCity = String(data.gstCity || data.companyCity || '').trim();
-        const gstState = String(data.gstState || data.companyState || '').trim();
-        const gstPincode = toSixDigitPincode(data.gstPincode || data.companyPincode || '');
-        const gstPhone = String(data.gstPhone || data.companyMobile || '').trim();
-        const gstEmail = String(data.gstEmail || data.companyEmail || '').trim();
+        const gstCompanyName = String(data.gstCompanyName || '').trim();
+        const gstBillingAddress = String(data.gstBillingAddress || '').trim();
+        const gstCity = String(data.gstCity || '').trim();
+        const gstState = String(data.gstState || '').trim();
+        const gstPincode = toSixDigitPincode(data.gstPincode || '');
+        const gstPhone = normalizePhoneDisplay(data.gstPhone);
+        const gstEmail = normalizeEmailDisplay(data.gstEmail);
         const gstCompanyLogoUrl = String(data.gstCompanyLogoUrl || '').trim();
         const dashboardImageUrl = String(data.dashboardImageUrl || '').trim();
         const nonGstBillingAddress = String(data.nonGstBillingAddress || data.nonGstAddress || '').trim();
         const nonGstCity = String(data.nonGstCity || '').trim();
         const normalizedGstStateCode = normalizeGstStateCode(data.gstStateCode || deriveGstStateCodeFromGstin(data.companyGstNumber || ''));
+        const companyMobile = normalizePhoneDisplay(data.companyMobile || data.gstPhone || '');
+        const companyEmail = normalizeEmailDisplay(data.companyEmail || data.gstEmail || '');
+        const companyGstNumber = normalizeGstinDisplay(data.companyGstNumber || '');
 
         const next = {
           ...defaultForm,
           ...data,
           gstCompanyName,
-          gstPanNumber: data.gstPanNumber || '',
+          gstPanNumber: normalizePanDisplay(data.gstPanNumber),
           gstLicenseNumber: data.gstLicenseNumber || '',
           gstRegistrationNumber: data.gstRegistrationNumber || '',
           gstBillingAddress,
@@ -834,14 +857,14 @@ export default function Settings({ modalMode = false }) {
           gstCompanyLogoUrl,
           gstDigitalSignatureUrl: data.gstDigitalSignatureUrl || '',
           gstCompanyStampUrl: data.gstCompanyStampUrl || '',
-          companyName: data.companyName || gstCompanyName,
-          companyAddress: data.companyAddress || gstBillingAddress,
-          companyCity: data.companyCity || gstCity,
-          companyState: data.companyState || gstState,
-          companyPincode: toSixDigitPincode(data.companyPincode || gstPincode),
-          companyGstNumber: String(data.companyGstNumber || '').toUpperCase(),
-          companyEmail: data.companyEmail || gstEmail,
-          companyMobile: data.companyMobile || gstPhone,
+          companyName: String(data.companyName || gstCompanyName || '').trim(),
+          companyAddress: String(data.companyAddress || gstBillingAddress || '').trim(),
+          companyCity: String(data.companyCity || gstCity || '').trim(),
+          companyState: String(data.companyState || gstState || '').trim(),
+          companyPincode: toSixDigitPincode(data.companyPincode || gstPincode || ''),
+          companyGstNumber,
+          companyEmail,
+          companyMobile,
           companyWebsite: data.companyWebsite || '',
           dashboardImageUrl,
           brandingAppearance: String(data.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
@@ -1150,14 +1173,14 @@ export default function Settings({ modalMode = false }) {
     const companyState = String(form.companyState || form.gstState || '').trim();
     const companyPincode = toSixDigitPincode(form.companyPincode || form.gstPincode || '');
     const companyMobile = normalizeIndianMobileNumber(form.companyMobile || form.gstPhone || '');
-    const companyEmail = String(form.companyEmail || form.gstEmail || '').trim();
-    const gstCompanyName = String(form.gstCompanyName || companyName || '').trim();
-    const gstBillingAddress = String(form.gstBillingAddress || companyAddress || '').trim();
-    const gstCity = String(form.gstCity || companyCity || '').trim();
-    const gstState = String(form.gstState || companyState || '').trim();
-    const gstPincode = toSixDigitPincode(form.gstPincode || companyPincode || '');
-    const gstPhone = normalizeIndianMobileNumber(form.gstPhone || companyMobile || '');
-    const gstEmail = String(form.gstEmail || companyEmail || '').trim();
+    const companyEmail = normalizeEmailDisplay(form.companyEmail || form.gstEmail || '');
+    const gstCompanyName = String(form.gstCompanyName || '').trim();
+    const gstBillingAddress = String(form.gstBillingAddress || '').trim();
+    const gstCity = String(form.gstCity || '').trim();
+    const gstState = String(form.gstState || '').trim();
+    const gstPincode = toSixDigitPincode(form.gstPincode || '');
+    const gstPhone = normalizePhoneDisplay(form.gstPhone);
+    const gstEmail = normalizeEmailDisplay(form.gstEmail);
     const gstStateCode = normalizeGstStateCode(form.gstStateCode || deriveGstStateCodeFromGstin(form.companyGstNumber));
     const dashboardImageUrl = String(form.dashboardImageUrl || '').trim();
     const gstCompanyLogoUrl = String(form.gstCompanyLogoUrl || '').trim();
@@ -1181,7 +1204,7 @@ export default function Settings({ modalMode = false }) {
 
     const payload = {
       gstCompanyName,
-      gstPanNumber: String(form.gstPanNumber || '').trim().toUpperCase(),
+      gstPanNumber: normalizePanDisplay(form.gstPanNumber),
       gstLicenseNumber: String(form.gstLicenseNumber || '').trim(),
       gstRegistrationNumber: String(form.gstRegistrationNumber || '').trim(),
       gstBillingAddress,
@@ -1200,7 +1223,7 @@ export default function Settings({ modalMode = false }) {
       companyCity,
       companyState,
       companyPincode,
-      companyGstNumber: String(form.companyGstNumber || '').trim().toUpperCase(),
+      companyGstNumber: normalizeGstinDisplay(form.companyGstNumber),
       companyEmail,
       companyMobile,
       companyWebsite: String(form.companyWebsite || '').trim(),
@@ -1314,10 +1337,14 @@ export default function Settings({ modalMode = false }) {
         padding_digits: payload.quotationNumberPadding,
         format_template: payload.quotationFormatTemplate
       });
-      const savedRaw = res.data?.settings ? { ...payload, ...res.data.settings } : payload;
+      const savedRaw = res.data?.settings ? { ...res.data.settings, ...payload } : payload;
       const saved = {
         ...savedRaw,
         gstStateCode: normalizeGstStateCode(savedRaw.gstStateCode || deriveGstStateCodeFromGstin(savedRaw.companyGstNumber)),
+        gstPanNumber: normalizePanDisplay(payload.gstPanNumber),
+        gstPhone: normalizePhoneDisplay(payload.gstPhone),
+        gstEmail: normalizeEmailDisplay(payload.gstEmail),
+        companyGstNumber: normalizeGstinDisplay(payload.companyGstNumber),
         invoiceNextNumber: String(savedRaw.invoiceNextNumber ?? payload.invoiceNextNumber),
         invoiceNumberPadding: String(savedRaw.invoiceNumberPadding ?? payload.invoiceNumberPadding),
         quotationNextNumber: String(payload.quotationNextNumber),
@@ -1467,10 +1494,12 @@ export default function Settings({ modalMode = false }) {
           <p style={shell.fieldLabel}>Phone</p>
           <input
             style={shell.input}
+            autoComplete="off"
+            name="companyMobile"
             value={form.companyMobile}
             onChange={(event) => {
               const value = normalizeIndianMobileNumber(event.target.value);
-              setForm((prev) => ({ ...prev, companyMobile: value, gstPhone: prev.gstPhone || value }));
+              setForm((prev) => ({ ...prev, companyMobile: value }));
             }}
             inputMode="numeric"
           />
@@ -1491,10 +1520,12 @@ export default function Settings({ modalMode = false }) {
           <input
             style={shell.input}
             type="email"
+            autoComplete="off"
+            name="companyEmail"
             value={form.companyEmail}
             onChange={(event) => {
               const value = event.target.value;
-              setForm((prev) => ({ ...prev, companyEmail: value, gstEmail: prev.gstEmail || value }));
+              setForm((prev) => ({ ...prev, companyEmail: value }));
             }}
           />
         </div>
@@ -1692,6 +1723,8 @@ export default function Settings({ modalMode = false }) {
           <p style={shell.fieldLabel}>GST Company Name</p>
           <input
             style={shell.input}
+            autoComplete="off"
+            name="gstCompanyName"
             value={form.gstCompanyName}
             onChange={(event) => {
               const value = event.target.value;
@@ -1703,6 +1736,8 @@ export default function Settings({ modalMode = false }) {
           <p style={shell.fieldLabel}>GSTIN</p>
           <input
             style={shell.input}
+            autoComplete="off"
+            name="companyGstNumber"
             value={form.companyGstNumber}
             onChange={(event) => handleGstinChange(event.target.value)}
             placeholder="07ABMCS7628G1ZW"
@@ -1715,6 +1750,8 @@ export default function Settings({ modalMode = false }) {
           <p style={shell.fieldLabel}>PAN</p>
           <input
             style={shell.input}
+            autoComplete="off"
+            name="gstPanNumber"
             value={form.gstPanNumber}
             onChange={(event) => updateField('gstPanNumber', event.target.value.toUpperCase())}
             placeholder="ABMCS7628G"
@@ -1810,10 +1847,12 @@ export default function Settings({ modalMode = false }) {
           <p style={shell.fieldLabel}>Phone</p>
           <input
             style={shell.input}
+            autoComplete="off"
+            name="gstPhone"
             value={form.gstPhone}
             onChange={(event) => {
               const value = normalizeIndianMobileNumber(event.target.value);
-              setForm((prev) => ({ ...prev, gstPhone: value, companyMobile: value }));
+              setForm((prev) => ({ ...prev, gstPhone: value }));
             }}
             inputMode="numeric"
           />
@@ -1827,10 +1866,12 @@ export default function Settings({ modalMode = false }) {
           <input
             style={shell.input}
             type="email"
+            autoComplete="off"
+            name="gstEmail"
             value={form.gstEmail}
             onChange={(event) => {
               const value = event.target.value;
-              setForm((prev) => ({ ...prev, gstEmail: value, companyEmail: value }));
+              setForm((prev) => ({ ...prev, gstEmail: value }));
             }}
           />
         </div>

@@ -25,7 +25,12 @@ export default function EmailSettings() {
   const normalizeLoadedForm = (data = {}) => ({
     ...empty,
     ...data,
+    smtpUsername: '',
     smtpPassword: '',
+    fromEmail: '',
+    fromName: '',
+    replyToEmail: '',
+    testEmailAddress: '',
     active: Boolean(
       data.active ?? data.emailApiActive ?? String(data.smtpActive || '').trim().toLowerCase() === 'yes'
     )
@@ -82,13 +87,13 @@ export default function EmailSettings() {
           <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>SMTP Host<input value={form.smtpHost} onChange={(e) => setForm((p) => ({ ...p, smtpHost: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
           <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>SMTP Port<input value={form.smtpPort} onChange={(e) => setForm((p) => ({ ...p, smtpPort: Number(e.target.value || 0) }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, marginTop: '22px' }}><input type="checkbox" checked={form.smtpSecure} onChange={(e) => setForm((p) => ({ ...p, smtpSecure: e.target.checked }))} /> SMTP Secure</label>
-          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>SMTP Username<input value={form.smtpUsername} onChange={(e) => setForm((p) => ({ ...p, smtpUsername: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
-          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>SMTP Password<input type="password" value={form.smtpPassword} placeholder="Leave blank to keep existing password" onChange={(e) => setForm((p) => ({ ...p, smtpPassword: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
-          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>From Email<input value={form.fromEmail} onChange={(e) => setForm((p) => ({ ...p, fromEmail: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
-          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>From Name<input value={form.fromName} onChange={(e) => setForm((p) => ({ ...p, fromName: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
-          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>Reply-To Email<input value={form.replyToEmail} onChange={(e) => setForm((p) => ({ ...p, replyToEmail: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
+          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>SMTP Username<input value={form.smtpUsername} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, smtpUsername: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
+          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>SMTP Password<input type="password" value={form.smtpPassword} autoComplete="off" placeholder="Leave blank to keep existing password" onChange={(e) => setForm((p) => ({ ...p, smtpPassword: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
+          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>From Email<input value={form.fromEmail} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, fromEmail: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
+          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>From Name<input value={form.fromName} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, fromName: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
+          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>Reply-To Email<input value={form.replyToEmail} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, replyToEmail: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, marginTop: '22px' }}><input type="checkbox" checked={form.active} onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))} /> Active</label>
-          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>Test Email Address<input value={form.testEmailAddress} onChange={(e) => setForm((p) => ({ ...p, testEmailAddress: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
+          <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>Test Email Address<input value={form.testEmailAddress} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, testEmailAddress: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button type="submit" disabled={busy} style={{ minHeight: '34px', borderRadius: '8px', border: 'none', background: '#1d4ed8', color: '#fff', padding: '0 12px', fontWeight: 800, fontSize: '12px' }}>Save</button>

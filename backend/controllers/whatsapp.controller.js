@@ -153,11 +153,11 @@ function createWhatsAppController(deps) {
     const settings = readSettings();
     res.json({
       apiBaseUrl: settings.whatsappApiBaseUrl || '',
-      phoneNumber: settings.whatsappPhoneNumber || '',
-      instanceId: settings.whatsappInstanceId || settings.whatsappPhoneNumberId || '',
-      accessToken: settings.whatsappAccessToken || '',
+      phoneNumber: '',
+      instanceId: '',
+      accessToken: '',
       active: Boolean(settings.whatsappApiActive),
-      testNumber: settings.whatsappTestNumber || '',
+      testNumber: '',
       providerType: settings.whatsappProviderType || 'custom'
     });
   };
@@ -167,14 +167,14 @@ function createWhatsAppController(deps) {
     const current = readSettings();
     const next = {
       ...current,
-      whatsappApiBaseUrl: String(body.apiBaseUrl || '').trim(),
-      whatsappPhoneNumber: String(body.phoneNumber || '').trim(),
-      whatsappInstanceId: String(body.instanceId || '').trim(),
-      whatsappPhoneNumberId: String(body.instanceId || '').trim(),
-      whatsappAccessToken: String(body.accessToken || '').trim(),
-      whatsappApiActive: Boolean(body.active),
-      whatsappTestNumber: String(body.testNumber || '').trim(),
-      whatsappProviderType: String(body.providerType || 'custom').trim().toLowerCase()
+      whatsappApiBaseUrl: String(body.apiBaseUrl ?? current.whatsappApiBaseUrl ?? '').trim(),
+      whatsappPhoneNumber: String(body.phoneNumber || current.whatsappPhoneNumber || '').trim(),
+      whatsappInstanceId: String(body.instanceId || current.whatsappInstanceId || current.whatsappPhoneNumberId || '').trim(),
+      whatsappPhoneNumberId: String(body.instanceId || current.whatsappInstanceId || current.whatsappPhoneNumberId || '').trim(),
+      whatsappAccessToken: String(body.accessToken || current.whatsappAccessToken || '').trim(),
+      whatsappApiActive: body.active === undefined ? Boolean(current.whatsappApiActive) : Boolean(body.active),
+      whatsappTestNumber: String(body.testNumber || current.whatsappTestNumber || '').trim(),
+      whatsappProviderType: String(body.providerType || current.whatsappProviderType || 'custom').trim().toLowerCase()
     };
     saveSettings(next);
     res.json({ success: true, settings: next });
