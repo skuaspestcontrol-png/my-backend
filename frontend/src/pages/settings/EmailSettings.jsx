@@ -25,12 +25,7 @@ export default function EmailSettings() {
   const normalizeLoadedForm = (data = {}) => ({
     ...empty,
     ...data,
-    smtpUsername: '',
     smtpPassword: '',
-    fromEmail: '',
-    fromName: '',
-    replyToEmail: '',
-    testEmailAddress: '',
     active: Boolean(
       data.active ?? data.emailApiActive ?? String(data.smtpActive || '').trim().toLowerCase() === 'yes'
     )

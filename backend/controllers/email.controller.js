@@ -203,14 +203,14 @@ function createEmailController(deps) {
         smtpHost: settings.smtpHost || '',
         smtpPort: Number(settings.smtpPort || 587),
         smtpSecure: Boolean(settings.smtpSecure),
-        smtpUsername: '',
+        smtpUsername: settings.smtpUser || '',
         smtpPassword: '',
         smtpPasswordSet: Boolean(String(settings.smtpPass || '').trim()),
-        fromEmail: '',
-        fromName: '',
-        replyToEmail: '',
+        fromEmail: settings.smtpFromEmail || '',
+        fromName: settings.smtpSenderName || '',
+        replyToEmail: settings.replyToEmail || '',
         active: resolveEmailActive(settings),
-        testEmailAddress: ''
+        testEmailAddress: settings.smtpTestTargetEmail || ''
       }))
       .catch((error) => {
         console.error('Could not load email settings', error);
@@ -220,14 +220,14 @@ function createEmailController(deps) {
           smtpHost: settings.smtpHost || '',
           smtpPort: Number(settings.smtpPort || 587),
           smtpSecure: Boolean(settings.smtpSecure),
-          smtpUsername: '',
+          smtpUsername: settings.smtpUser || '',
           smtpPassword: '',
           smtpPasswordSet: Boolean(String(settings.smtpPass || '').trim()),
-          fromEmail: '',
-          fromName: '',
-          replyToEmail: '',
+          fromEmail: settings.smtpFromEmail || '',
+          fromName: settings.smtpSenderName || '',
+          replyToEmail: settings.replyToEmail || '',
           active: resolveEmailActive(settings),
-          testEmailAddress: ''
+          testEmailAddress: settings.smtpTestTargetEmail || ''
         });
       });
   };
