@@ -256,7 +256,8 @@ export default function Dashboard() {
     };
   }, [leads, analytics.totalReceivables]);
 
-  const companyName = settings.companyName || 'SKUAS MASTER ERP';
+  const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim();
+  const aboutTagline = String(settings.aboutTagline || 'Professional in Pest Control').trim();
   const isMobile = viewportWidth < 768;
   const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
   const isLaptop = viewportWidth >= 992 && viewportWidth <= 1199;
@@ -340,7 +341,7 @@ export default function Dashboard() {
         <div>
           <h1 style={{ ...shell.title, color: '#ffffff' }}>{companyName}</h1>
           <p style={taglineStyle}>
-            Professional in Pest Control
+            {aboutTagline}
           </p>
         </div>
 

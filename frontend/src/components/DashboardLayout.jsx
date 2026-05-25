@@ -378,7 +378,7 @@ export default function DashboardLayout({ children }) {
     };
   }, [handleLogout]);
 
-  const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS MASTER').trim() || 'SKUAS MASTER';
+  const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim() || 'SKUAS Pest Control Private Limited';
   const portalUserRole = String(localStorage.getItem('portal_user_role') || 'Admin').trim() || 'Admin';
   const unreadNotificationCount = leadNotifications.filter((item) => !readNotificationIds.includes(item.id)).length;
   const toggleNotificationRead = (id) => {
