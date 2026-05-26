@@ -144,6 +144,7 @@ const shell = {
   amountGreen: { color: '#16a34a', fontWeight: 800 },
   amountRed: { color: '#dc2626', fontWeight: 800 },
   actionBtn: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#1f2937', borderRadius: '8px', minWidth: '78px', minHeight: '28px', padding: '0 7px 0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, lineHeight: 1 },
+  actionIconBox: { width: '16px', height: '16px', borderRadius: '5px', border: '1px solid #d1d5db', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', flexShrink: 0 },
   actionMenu: { position: 'fixed', width: '170px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 5000, overflow: 'hidden' },
   actionMenuItem: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   actionMenuDanger: { color: '#dc2626' },
@@ -1061,7 +1062,10 @@ export default function ContractDashboard() {
                         setActionMenu((prev) => (prev?.rowId === row.id ? null : { rowId: row.id, row, top, left }));
                       }}
                     >
-                      Action
+                      <span>Action</span>
+                      <span style={shell.actionIconBox}>
+                        <ChevronDown size={11} />
+                      </span>
                     </button>
                   </div>
                 </td>
