@@ -201,7 +201,11 @@ const resolveCompany = (settings = {}, invoice = {}) => {
     state: clean((isNonGst ? settings.nonGstState : settings.gstState) || settings.companyState),
     pincode: clean((isNonGst ? settings.nonGstPincode : settings.gstPincode) || settings.companyPincode),
     phone: clean((isNonGst ? settings.nonGstPhone : settings.gstPhone) || settings.companyMobile),
-    alternatePhone: clean((isNonGst ? settings.nonGstAlternatePhone : settings.gstAlternatePhone)),
+    alternatePhone: clean(
+      isNonGst
+        ? settings.nonGstAlternatePhone
+        : (settings.gstAlternatePhone || settings.nonGstPhone || settings.nonGstAlternatePhone)
+    ),
     email: clean((isNonGst ? settings.nonGstEmail : settings.gstEmail) || settings.companyEmail),
     website: clean(settings.companyWebsite),
     gstin: isNonGst
