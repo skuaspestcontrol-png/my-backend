@@ -1,9 +1,17 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const { query: dbQuery, getConnection } = require('../lib/db');
 const { generateQuotationPdfBuffer } = require('../quotationPdf');
 const { normalizeOptionalIndianMobileNumber } = require('../lib/phone');
+const { sendEmailMessage, normalizeEmailSettings } = require('../services/email.service');
+const {
+  ensureDefaultEmailTemplates,
+  replaceTemplateVariables
+} = require('../services/emailTemplate.service');
 
 const router = express.Router();
+const emailTemplatesFile = path.join(__dirname, '..', 'data', 'email_templates.json');
 
 const LEGACY_QUOTATION_DEFAULTS = {
   opening_paragraph: 'Thank you for the kind courtesy extended to us. We are pleased to submit our offer for your pest control requirement.',
@@ -20,6 +28,61 @@ const toNumber = (v, d = 0) => {
 };
 
 const clean = (v) => String(v ?? '').trim();
+
+const readJsonFile = (filePath, fallback) => {
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    if (!String(raw || '').trim()) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const formatDate = (value) => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toLocaleDateString('en-GB');
+};
+
+const formatINR = (value) => {
+  const amount = Number(value);
+  const safe = Number.isFinite(amount) ? amount : 0;
+  return `₹ ${safe.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+const loadQuotationEmailSettings = async () => normalizeEmailSettings(await loadMainAppSettings());
+
+const getQuotationEmailTemplate = (preferredType = 'quotation_send') => {
+  const templates = ensureDefaultEmailTemplates(readJsonFile(emailTemplatesFile, []));
+  const requestedType = String(preferredType || '').trim().toLowerCase();
+  return (
+    (requestedType
+      ? templates.find((entry) => entry.isActive && String(entry.templateType || '').trim().toLowerCase() === requestedType)
+        || templates.find((entry) => String(entry.templateType || '').trim().toLowerCase() === requestedType)
+      : null)
+    || templates.find((entry) => entry.isActive && String(entry.templateType || '').trim().toLowerCase() === 'quotation_send')
+    || templates.find((entry) => String(entry.templateType || '').trim().toLowerCase() === 'quotation_send')
+    || null
+  );
+};
+
+const buildDefaultQuotationShareMessage = (quotation = {}) => {
+  const customerName = clean(quotation.customer_name) || 'Customer';
+  const quotationNo = clean(quotation.quotation_number || quotation.quotationNumber || '');
+  const companyName = clean(quotation.company_name || 'Service Team');
+  return [
+    `Dear ${customerName},`,
+    '',
+    `Please find quotation ${quotationNo || 'details'} attached for your review.`,
+    '',
+    'Regards,',
+    companyName
+  ].join('<br/>');
+};
 
 const parseJsonObject = (value) => {
   if (!value) return {};
@@ -700,6 +763,81 @@ router.get('/quotations/:id/pdf', async (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename=${clean(quotation.quotation_number || `quotation-${id}`)}.pdf`);
   res.send(pdf);
+});
+
+router.post('/quotations/:id/send-email', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
+
+    const [quotation] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [id]);
+    if (!quotation) return res.status(404).json({ error: 'Quotation not found' });
+
+    const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC, id ASC', [id]);
+    const [templateSettings] = await dbQuery('SELECT * FROM quotation_template_settings ORDER BY id ASC LIMIT 1');
+    const [commonParagraphs] = await dbQuery('SELECT * FROM quotation_common_paragraphs ORDER BY id ASC LIMIT 1');
+    const companySettings = await loadMainAppSettings();
+    const recipient = String(req.body?.to || quotation.email || quotation.customer_email || '').trim();
+
+    if (!recipient) return res.status(400).json({ error: 'Recipient email is required' });
+
+    const template = getQuotationEmailTemplate(req.body?.templateType || 'quotation_send');
+    const pdfBuffer = await generateQuotationPdfBuffer({
+      quotation,
+      items,
+      templateSettings: templateSettings || {},
+      commonParagraphs: commonParagraphs || {},
+      companySettings
+    });
+
+    const contextData = {
+      customer_name: clean(quotation.customer_name) || 'Customer',
+      customer_email: recipient,
+      customer_phone: clean(quotation.phone || quotation.whatsapp || quotation.mobile || ''),
+      quotation_no: clean(quotation.quotation_number || quotation.quotationNumber || quotation.id || ''),
+      quotation_amount: formatINR(quotation.grand_total || 0),
+      quotation_date: formatDate(quotation.quotation_date),
+      company_name: clean(companySettings.companyName || templateSettings?.company_name || 'Service Team'),
+      service_type: clean(items?.[0]?.service_title || items?.[0]?.service_name || ''),
+      address: clean(quotation.address || quotation.premise_address || quotation.premise_city || '')
+    };
+
+    const defaultSubject = `Quotation ${quotation.quotation_number || ''}`.trim();
+    const subjectTemplate = String(req.body?.subject || template?.emailSubject || defaultSubject || 'Quotation').trim();
+    const messageTemplate = String(req.body?.message || template?.emailBody || buildDefaultQuotationShareMessage(quotation)).trim();
+    const subject = replaceTemplateVariables(subjectTemplate, contextData);
+    const message = replaceTemplateVariables(messageTemplate, contextData);
+    const textBody = message
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>\s*<p>/gi, '\n\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    const sent = await sendEmailMessage({
+      loadSettings: loadQuotationEmailSettings,
+      to: recipient,
+      subject,
+      htmlBody: message,
+      textBody,
+      attachments: [
+        {
+          filename: `${clean(quotation.quotation_number || `quotation-${id}`)}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ]
+    });
+
+    res.json({
+      message: 'Quotation email sent successfully',
+      to: recipient,
+      messageId: sent?.response?.messageId || ''
+    });
+  } catch (error) {
+    console.error('Failed to send quotation email:', error.message);
+    res.status(500).json({ error: error.message || 'Could not send quotation email' });
+  }
 });
 
 module.exports = { quotationRouter: router };

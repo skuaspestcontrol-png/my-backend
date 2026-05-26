@@ -244,7 +244,7 @@ function QuotationDashboardInner() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', quotationId: null });
   const perPage = 20;
 
   useEffect(() => {
@@ -291,8 +291,28 @@ function QuotationDashboardInner() {
       title: `Quotation - ${quotationNumber}`,
       pdfUrl,
       downloadFileName: `${quotationNumber.replace(/[^\w.-]+/g, '_')}.pdf`,
-      publicShareUrl: pdfUrl
+      publicShareUrl: pdfUrl,
+      quotationId: row.id
     });
+  };
+
+  const handleShareQuotationEmail = async () => {
+    const quotationId = pdfPreview.quotationId;
+    if (!quotationId) return;
+    const currentRow = rows.find((row) => String(row.id) === String(quotationId)) || null;
+    const recipient = window.prompt('Enter recipient email', String(currentRow?.email || '').trim());
+    if (!recipient) return;
+    try {
+      setStatus('');
+      const response = await axios.post(`${API_BASE_URL}/api/quotations/${quotationId}/send-email`, {
+        to: recipient,
+        templateType: 'quotation_send'
+      });
+      setStatus(response?.data?.message || 'Quotation email sent successfully');
+    } catch (error) {
+      setStatus(error?.response?.data?.error || 'Could not send quotation email');
+      throw error;
+    }
   };
 
   useEffect(() => {
@@ -536,7 +556,8 @@ function QuotationDashboardInner() {
         title={pdfPreview.title}
         pdfUrl={pdfPreview.pdfUrl}
         downloadFileName={pdfPreview.downloadFileName}
-        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', quotationId: null })}
+        onShareEmail={handleShareQuotationEmail}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
 
