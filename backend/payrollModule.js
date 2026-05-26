@@ -95,6 +95,7 @@ const resolveCompanyDetails = (settings = {}) => {
     settings?.gstCompanyLogo,
     settings?.gstLogoUrl,
     settings?.gstLogo,
+    settings?.gstBrandingLogoUrl,
   ].map((value) => normalizeText(value)).filter(Boolean);
 
   return {
@@ -113,6 +114,7 @@ const resolveCompanyDetails = (settings = {}) => {
     ),
     alternatePhone: normalizeText(
       settings?.gstAlternatePhone
+      || settings?.companyAlternatePhone
       || settings?.nonGstAlternatePhone
       || settings?.alternatePhone
       || defaultCompany.alternatePhone
@@ -806,6 +808,7 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     || branding?.companyLogoUrl
     || branding?.gstLogoUrl
     || branding?.gstLogo
+    || branding?.gstBrandingLogoUrl
     || company?.logoUrl
     || (Array.isArray(company?.logoCandidates) ? company.logoCandidates[0] : '')
   );
@@ -842,7 +845,9 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     normalizeText(company.address || ''),
     `${companyCityLine}${company.pincode ? ` - ${company.pincode}` : ''}, India`,
     company.email ? `Email: ${company.email}` : '',
-    company.phone ? `Mobile: ${company.alternatePhone ? `${company.phone} | ${company.alternatePhone}` : company.phone}` : (company.alternatePhone ? `Mobile: ${company.alternatePhone}` : ''),
+    company.phone || company.alternatePhone
+      ? `Mobile: ${company.phone && company.alternatePhone ? `${company.phone} | ${company.alternatePhone}` : (company.phone || company.alternatePhone)}`
+      : '',
     company.website ? `Web: ${company.website}` : '',
     company.gstin ? `GST Details: ${company.gstin}` : ''
   ].filter(Boolean);
