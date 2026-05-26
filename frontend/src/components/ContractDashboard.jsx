@@ -951,7 +951,7 @@ export default function ContractDashboard() {
             ) : null}
             {visibleColumns.property ? renderResizableHeader('property', 'Property') : null}
             {visibleColumns.duration ? renderResizableHeader('duration', 'Duration') : null}
-            {visibleColumns.services ? renderResizableHeader('services', 'Services', { textAlign: 'center' }) : null}
+            {visibleColumns.services ? renderResizableHeader('services', 'Services', { textAlign: 'center', paddingLeft: '0', paddingRight: '0' }) : null}
             {visibleColumns.status ? renderResizableHeader('status', 'Status') : null}
             {visibleColumns.total ? renderResizableHeader('total', 'Total (₹)') : null}
             {visibleColumns.paid ? renderResizableHeader('paid', 'Paid (₹)') : null}
