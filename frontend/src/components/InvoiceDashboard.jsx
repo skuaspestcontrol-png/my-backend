@@ -760,7 +760,7 @@ export default function InvoiceDashboard() {
   };
   const getColumnAlign = (columnKey) => {
     if (columnKey === 'checkbox') return 'center';
-    if (columnKey === 'date' || columnKey === 'dueDate' || columnKey === 'amount' || columnKey === 'balanceDue' || columnKey === 'status' || columnKey === 'action') return 'center';
+    if (columnKey === 'status' || columnKey === 'action') return 'center';
     return 'left';
   };
   const getColumnStyle = (columnKey) => {
