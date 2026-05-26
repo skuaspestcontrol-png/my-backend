@@ -788,7 +788,10 @@ export default function ContractDashboard() {
     const width = isMobile
       ? Math.max(Number(mobileColumnWidths[columnKey] || 0), Number(defaultColumnWidths[columnKey] || 0))
       : Number(desktopWidth) || Number(defaultColumnWidths[columnKey] || 0);
-    return Math.max(columnKey === 'rowNumber' ? 42 : 80, width);
+    const baseWidth = Math.max(columnKey === 'rowNumber' ? 42 : 80, width);
+    if (!isMobile && columnKey === 'services') return Math.min(baseWidth, 92);
+    if (!isMobile && columnKey === 'status') return Math.min(baseWidth, 96);
+    return baseWidth;
   };
   const renderResizableHeader = (columnKey, label, extraStyle = {}) => (
     <th style={{ ...shell.th, width: `${getColumnWidth(columnKey)}px`, minWidth: `${getColumnWidth(columnKey)}px`, ...extraStyle }}>
@@ -810,6 +813,7 @@ export default function ContractDashboard() {
     `${getColumnWidth('actions')}px`
   ].filter(Boolean);
   const contractTableMinWidth = contractColumnList.reduce((sum, width) => sum + Number.parseInt(width, 10), 0);
+  const contractColumnPercent = (columnKey) => `${((getColumnWidth(columnKey) / contractTableMinWidth) * 100).toFixed(4)}%`;
   const compactMobile = viewportWidth <= 430;
   const quickWrapStyle = isMobile
     ? {
@@ -850,14 +854,22 @@ export default function ContractDashboard() {
       overscrollBehaviorX: 'auto',
       touchAction: 'auto'
     }
-    : shell.tableWrap;
-  const tableStyle = {
-    ...shell.table,
-    width: `${contractTableMinWidth}px`,
-    minWidth: `${contractTableMinWidth}px`,
-    '--mobile-table-columns': contractColumnList.join(' '),
-    '--mobile-table-min-width': `${contractTableMinWidth}px`
-  };
+    : { ...shell.tableWrap, overflowX: 'hidden', touchAction: 'auto' };
+  const tableStyle = isMobile
+    ? {
+      ...shell.table,
+      width: `${contractTableMinWidth}px`,
+      minWidth: `${contractTableMinWidth}px`,
+      '--mobile-table-columns': contractColumnList.join(' '),
+      '--mobile-table-min-width': `${contractTableMinWidth}px`
+    }
+    : {
+      ...shell.table,
+      width: '100%',
+      minWidth: '100%',
+      '--mobile-table-columns': contractColumnList.join(' '),
+      '--mobile-table-min-width': '100%'
+    };
   const mobileStackCellStyle = isMobile
     ? { flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }
     : {};
@@ -928,17 +940,17 @@ export default function ContractDashboard() {
     return (
       <table style={tableStyle} className="crm-compact-table">
         <colgroup>
-          <col style={{ width: `${getColumnWidth('rowNumber')}px` }} />
-          {visibleColumns.contractNo ? <col style={{ width: `${getColumnWidth('contractNo')}px` }} /> : null}
-          {visibleColumns.customer ? <col style={{ width: `${getColumnWidth('customer')}px` }} /> : null}
-          {visibleColumns.property ? <col style={{ width: `${getColumnWidth('property')}px` }} /> : null}
-          {visibleColumns.duration ? <col style={{ width: `${getColumnWidth('duration')}px` }} /> : null}
-          {visibleColumns.services ? <col style={{ width: `${getColumnWidth('services')}px` }} /> : null}
-          {visibleColumns.status ? <col style={{ width: `${getColumnWidth('status')}px` }} /> : null}
-          {visibleColumns.total ? <col style={{ width: `${getColumnWidth('total')}px` }} /> : null}
-          {visibleColumns.paid ? <col style={{ width: `${getColumnWidth('paid')}px` }} /> : null}
-          {visibleColumns.due ? <col style={{ width: `${getColumnWidth('due')}px` }} /> : null}
-          <col style={{ width: `${getColumnWidth('actions')}px` }} />
+          <col style={{ width: isMobile ? `${getColumnWidth('rowNumber')}px` : contractColumnPercent('rowNumber') }} />
+          {visibleColumns.contractNo ? <col style={{ width: isMobile ? `${getColumnWidth('contractNo')}px` : contractColumnPercent('contractNo') }} /> : null}
+          {visibleColumns.customer ? <col style={{ width: isMobile ? `${getColumnWidth('customer')}px` : contractColumnPercent('customer') }} /> : null}
+          {visibleColumns.property ? <col style={{ width: isMobile ? `${getColumnWidth('property')}px` : contractColumnPercent('property') }} /> : null}
+          {visibleColumns.duration ? <col style={{ width: isMobile ? `${getColumnWidth('duration')}px` : contractColumnPercent('duration') }} /> : null}
+          {visibleColumns.services ? <col style={{ width: isMobile ? `${getColumnWidth('services')}px` : contractColumnPercent('services') }} /> : null}
+          {visibleColumns.status ? <col style={{ width: isMobile ? `${getColumnWidth('status')}px` : contractColumnPercent('status') }} /> : null}
+          {visibleColumns.total ? <col style={{ width: isMobile ? `${getColumnWidth('total')}px` : contractColumnPercent('total') }} /> : null}
+          {visibleColumns.paid ? <col style={{ width: isMobile ? `${getColumnWidth('paid')}px` : contractColumnPercent('paid') }} /> : null}
+          {visibleColumns.due ? <col style={{ width: isMobile ? `${getColumnWidth('due')}px` : contractColumnPercent('due') }} /> : null}
+          <col style={{ width: isMobile ? `${getColumnWidth('actions')}px` : contractColumnPercent('actions') }} />
         </colgroup>
         <thead>
           <tr>
