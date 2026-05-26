@@ -2408,8 +2408,7 @@ export default function InvoiceDashboard() {
                   style={{
                     ...shell.headCell,
                     ...getColumnStyle(column.key),
-                    ...(isMobile ? {} : shell.resizableHeadCell),
-                    ...(column.key === 'status' || column.key === 'action' ? { textAlign: 'center', paddingLeft: '0', paddingRight: '0' } : {})
+                    ...(isMobile ? {} : shell.resizableHeadCell)
                   }}
                 >
                   <span style={{ display: 'block', width: '100%', textAlign: 'inherit' }}>{column.label}</span>
@@ -2444,8 +2443,8 @@ export default function InvoiceDashboard() {
                   if (column.key === 'amount' || column.key === 'balanceDue') value = formatINR(value);
                   if (column.key === 'status') {
                     return (
-                      <td key={`${invoice._id}-${column.key}`} style={{ ...shell.cell, ...shell.statusBadge, ...getColumnStyle(column.key), color: getStatusColor(String(invoice.status || '').toUpperCase()), textAlign: 'center', paddingLeft: 0, paddingRight: 0 }} data-label={column.label}>
-                        <span style={{ display: 'block', width: '100%', textAlign: 'center' }}>{String(invoice.status || '').toUpperCase()}</span>
+                      <td key={`${invoice._id}-${column.key}`} style={{ ...shell.cell, ...shell.statusBadge, ...getColumnStyle(column.key), color: getStatusColor(String(invoice.status || '').toUpperCase()) }} data-label={column.label}>
+                        {String(invoice.status || '').toUpperCase()}
                       </td>
                     );
                   }
@@ -2473,8 +2472,8 @@ export default function InvoiceDashboard() {
                     </td>
                   );
                 })}
-                <td style={{ ...shell.cell, ...getColumnStyle('action'), textAlign: 'center', overflow: 'visible', paddingLeft: 0, paddingRight: 0 }} data-label="Action">
-                  <div style={{ ...shell.rowActionWrap, width: '100%' }}>
+                <td style={{ ...shell.cell, ...getColumnStyle('action'), overflow: 'visible' }} data-label="Action">
+                  <div style={shell.rowActionWrap}>
                     <button
                       type="button"
                       style={rowActionButtonStyle}
