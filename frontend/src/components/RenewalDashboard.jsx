@@ -101,7 +101,7 @@ const shell = {
   table: { width: '100%', minWidth: 1080, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   th: { textAlign: 'left', padding: '8px 7px', fontSize: 10, color: '#64748b', fontWeight: 850, textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', background: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: 0 },
   td: { padding: '7px', fontSize: 11.5, color: '#1f2937', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.25 },
-  rowActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, flexWrap: 'nowrap' },
+  rowActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 5, flexWrap: 'nowrap' },
   iconBtn: { width: 30, height: 30, minWidth: 30, minHeight: 30, padding: 0, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   status: { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 8px', fontSize: 11, fontWeight: 850 },
   chartGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 },
@@ -358,7 +358,7 @@ export default function RenewalDashboard() {
     textAlign: align
   });
   const renewalActionCellStyle = {
-    ...renewalBodyCellStyle('actions', 'center'),
+    ...renewalBodyCellStyle('actions', 'left'),
     overflow: 'visible'
   };
 
