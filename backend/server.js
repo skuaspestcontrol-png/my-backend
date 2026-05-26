@@ -7233,10 +7233,15 @@ const buildDefaultShareMessage = (invoice, settings) => {
   return lines.join('\n');
 };
 
-const getInvoiceEmailTemplate = () => {
+const getInvoiceEmailTemplate = (preferredType = 'invoice_send') => {
   const templates = ensureDefaultEmailTemplates(readJsonFile(emailTemplatesFile, []));
+  const requestedType = String(preferredType || '').trim().toLowerCase();
   return (
-    templates.find((entry) => entry.isActive && String(entry.templateType || '').trim().toLowerCase() === 'invoice_send')
+    (requestedType
+      ? templates.find((entry) => entry.isActive && String(entry.templateType || '').trim().toLowerCase() === requestedType)
+        || templates.find((entry) => String(entry.templateType || '').trim().toLowerCase() === requestedType)
+      : null)
+    || templates.find((entry) => entry.isActive && String(entry.templateType || '').trim().toLowerCase() === 'invoice_send')
     || templates.find((entry) => String(entry.templateType || '').trim().toLowerCase() === 'invoice_send')
     || templates.find((entry) => entry.isActive && String(entry.templateType || '').trim().toLowerCase() === 'custom_email')
     || templates[0]
@@ -8190,7 +8195,7 @@ app.post('/api/invoices/:id/send-email', async (req, res) => {
     if (!recipient) return res.status(400).json({ error: 'Recipient email is required' });
     const pdfBuffer = await generateInvoicePdfBuffer(context);
     const fileName = buildInvoicePdfFileName(context.invoice);
-    const template = getInvoiceEmailTemplate();
+    const template = getInvoiceEmailTemplate(req.body?.templateType || 'invoice_send');
     const contextData = {
       customer_name: String(context.customer?.displayName || context.customer?.name || context.invoice?.customerName || 'Customer').trim(),
       customer_email: recipient,

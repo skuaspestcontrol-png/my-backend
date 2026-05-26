@@ -717,7 +717,7 @@ export default function InvoiceDashboard() {
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const [invoicesHydrated, setInvoicesHydrated] = useState(false);
   const [form, setForm] = useState(emptyForm);
-  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' });
   const [invoiceColumnWidths, setInvoiceColumnWidths] = useState(() => {
     const saved = localStorage.getItem(invoiceColumnWidthStorageKey);
     if (!saved) return normalizeInvoiceColumnWidths();
@@ -1346,7 +1346,8 @@ export default function InvoiceDashboard() {
       title: `Invoice - ${invoiceNumber}`,
       pdfUrl,
       downloadFileName: `${invoiceNumber.replace(/[^\w.-]+/g, '_')}.pdf`,
-      publicShareUrl: pdfUrl
+      publicShareUrl: pdfUrl,
+      invoiceId: invoice._id
     });
   };
 
@@ -3464,13 +3465,13 @@ export default function InvoiceDashboard() {
         title={pdfPreview.title}
         pdfUrl={pdfPreview.pdfUrl}
         downloadFileName={pdfPreview.downloadFileName}
-        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' })}
         onShareEmail={async () => {
-          const invoice = invoices.find((entry) => `${API_BASE_URL}/api/invoices/${entry._id}/pdf` === pdfPreview.pdfUrl);
+          const invoice = invoices.find((entry) => String(entry._id) === String(pdfPreview.invoiceId));
           if (invoice) await runInvoiceAction(invoice, 'email');
         }}
         onShareWhatsApp={async () => {
-          const invoice = invoices.find((entry) => `${API_BASE_URL}/api/invoices/${entry._id}/pdf` === pdfPreview.pdfUrl);
+          const invoice = invoices.find((entry) => String(entry._id) === String(pdfPreview.invoiceId));
           if (invoice) await runInvoiceAction(invoice, 'whatsapp');
         }}
         publicShareUrl={pdfPreview.publicShareUrl}

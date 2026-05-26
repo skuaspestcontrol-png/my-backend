@@ -379,7 +379,7 @@ export default function ContractDashboard() {
   const [customerProfitSummary, setCustomerProfitSummary] = useState(null);
   const [customerProfitLoading, setCustomerProfitLoading] = useState(false);
   const [customerProfitError, setCustomerProfitError] = useState('');
-  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' });
   const [page, setPage] = useState(1);
   const customizeButtonRef = useRef(null);
   const {
@@ -753,14 +753,15 @@ export default function ContractDashboard() {
     };
   }, [customerSummary?.row, invoices, payments]);
 
-  const openPdfPreview = (title, pdfUrl, fileName) => {
+  const openPdfPreview = (title, pdfUrl, fileName, invoiceId = '') => {
     if (!pdfUrl) return;
     setPdfPreview({
       open: true,
       title,
       pdfUrl,
       downloadFileName: `${String(fileName || title || 'document').replace(/[^\w.-]+/g, '_')}.pdf`,
-      publicShareUrl: pdfUrl
+      publicShareUrl: pdfUrl,
+      invoiceId: String(invoiceId || '').trim()
     });
   };
 
@@ -1294,7 +1295,8 @@ export default function ContractDashboard() {
               openPdfPreview(
                 `Invoice - ${String(actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId || 'Invoice').trim()}`,
                 openInvoicePdf(actionMenu.row.invoiceId),
-                actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId
+                actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId,
+                actionMenu.row.invoiceId
               );
               setActionMenu(null);
             }}
@@ -1458,7 +1460,8 @@ export default function ContractDashboard() {
                                 onClick={() => openPdfPreview(
                                   `Invoice - ${String(invoice?.invoiceNumber || invoice?._id || 'Invoice').trim()}`,
                                   openInvoicePdf(invoice?._id),
-                                  invoice?.invoiceNumber || invoice?._id
+                                  invoice?.invoiceNumber || invoice?._id,
+                                  invoice?._id
                                 )}
                               >
                                 PDF
@@ -1522,9 +1525,9 @@ export default function ContractDashboard() {
         title={pdfPreview.title}
         pdfUrl={pdfPreview.pdfUrl}
         downloadFileName={pdfPreview.downloadFileName}
-        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' })}
         onShareEmail={async () => {
-          const invoice = invoices.find((entry) => `${API_BASE}/api/invoices/${entry._id}/pdf` === pdfPreview.pdfUrl);
+          const invoice = invoices.find((entry) => String(entry._id) === String(pdfPreview.invoiceId));
           if (invoice) await sendInvoiceEmail(invoice);
         }}
         publicShareUrl={pdfPreview.publicShareUrl}
