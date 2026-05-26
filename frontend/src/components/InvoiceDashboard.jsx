@@ -2411,7 +2411,7 @@ export default function InvoiceDashboard() {
                     ...(isMobile ? {} : shell.resizableHeadCell)
                   }}
                 >
-                  <span>{column.label}</span>
+                  <span style={{ display: 'block', width: '100%', textAlign: 'inherit' }}>{column.label}</span>
                 </th>
               ))}
               <th
