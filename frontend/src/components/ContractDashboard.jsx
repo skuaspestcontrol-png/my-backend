@@ -997,8 +997,10 @@ export default function ContractDashboard() {
                   <div style={{ fontSize: '11px', fontWeight: 700 }}>{formatDate(row.startDate)}</div>
                   <div style={{ ...shell.subText }}>{`to ${formatDate(row.endDate)}`}</div>
                 </td> : null}
-                {visibleColumns.services ? <td style={{ ...shell.td, textAlign: 'center', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
-                  <span style={{ ...shell.shownPill, display: 'block', width: '100%', minWidth: 0, textAlign: 'center', background: '#eef2f7', color: '#334155', borderColor: 'var(--color-border)' }}>{row.services}</span>
+                {visibleColumns.services ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                    <span style={{ ...shell.shownPill, display: 'inline-flex', minWidth: '48px', justifyContent: 'center', textAlign: 'center', background: '#eef2f7', color: '#334155', borderColor: 'var(--color-border)' }}>{row.services}</span>
+                  </div>
                 </td> : null}
                 {visibleColumns.status ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <span style={{ ...shell.statusPill, ...statusTone }}>{row.status.toUpperCase()}</span>
