@@ -1411,13 +1411,10 @@ export default function InvoiceDashboard() {
     if (action === 'email') {
       const recipient = window.prompt('Enter recipient email', customerEmail || '');
       if (!recipient) return;
-      const subject = `Invoice ${invoiceNumber}`;
-      const message = `Hello,\n\n${shareText}\n\nRegards,\n${companySettings.companyName || 'Accounts Team'}`;
       try {
         const response = await axios.post(`${API_BASE_URL}/api/invoices/${invoice._id}/send-email`, {
           to: recipient,
-          subject,
-          message
+          templateType: 'invoice_send'
         });
         window.alert(response.data?.message || 'Invoice email sent successfully.');
       } catch (error) {

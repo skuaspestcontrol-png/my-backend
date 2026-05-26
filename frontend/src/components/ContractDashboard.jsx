@@ -320,10 +320,33 @@ const openInvoicePdf = (invoiceId) => {
   return `${API_BASE}/api/invoices/${invoiceId}/pdf`;
 };
 
-const openContractJobCardPdf = (invoiceId) => {
-  if (!invoiceId) return '';
-  return `${API_BASE}/api/contracts/${invoiceId}/job-card-summary-pdf`;
-};
+  const openContractJobCardPdf = (invoiceId) => {
+    if (!invoiceId) return '';
+    return `${API_BASE}/api/contracts/${invoiceId}/job-card-summary-pdf`;
+  };
+
+  const findCustomerForInvoice = (invoice) =>
+    customers.find((customer) =>
+      (invoice.customerId && String(customer._id) === String(invoice.customerId)) ||
+      String(customer.displayName || customer.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
+    ) || null;
+
+  const sendInvoiceEmail = async (invoice) => {
+    const customer = findCustomerForInvoice(invoice);
+    const invoiceNumber = String(invoice.invoiceNumber || '').trim() || 'Invoice';
+    const recipient = window.prompt('Enter recipient email', String(customer?.emailId || customer?.email || '').trim());
+    if (!recipient) return;
+    try {
+      const response = await axios.post(`${API_BASE}/api/invoices/${invoice._id}/send-email`, {
+        to: recipient,
+        templateType: 'invoice_send'
+      });
+      window.alert(response.data?.message || 'Invoice email sent successfully.');
+    } catch (error) {
+      console.error('Failed to send invoice email', error);
+      window.alert(error?.response?.data?.error || `Could not send ${invoiceNumber} email.`);
+    }
+  };
 
 export default function ContractDashboard() {
   const navigate = useNavigate();
@@ -1500,7 +1523,10 @@ export default function ContractDashboard() {
         pdfUrl={pdfPreview.pdfUrl}
         downloadFileName={pdfPreview.downloadFileName}
         onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
-        onShareEmail={() => navigate('/settings/email/templates')}
+        onShareEmail={async () => {
+          const invoice = invoices.find((entry) => `${API_BASE}/api/invoices/${entry._id}/pdf` === pdfPreview.pdfUrl);
+          if (invoice) await sendInvoiceEmail(invoice);
+        }}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
     </div>

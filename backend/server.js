@@ -12,6 +12,10 @@ const { pool, query: dbQuery, getConnection } = require('./lib/db');
 const { runAutoMigrations, getLastMigrationStatus } = require('./lib/autoMigrate');
 const { readCachedSettings, clearSettingsCache } = require('./lib/settings-cache');
 const { sendEmailMessage, normalizeEmailSettings } = require('./services/email.service');
+const {
+  ensureDefaultEmailTemplates,
+  replaceTemplateVariables
+} = require('./services/emailTemplate.service');
 const { encryptSecret } = require('./lib/secretCrypto');
 const { registerPayrollModule } = require('./payrollModule');
 const { registerHrModule } = require('./hrModule');
@@ -938,6 +942,7 @@ const vendorsFile = path.join(dataDir, 'vendors.json');
 const invoicesFile = path.join(dataDir, 'invoices.json');
 const vendorBillsFile = path.join(dataDir, 'vendor_bills.json');
 const paymentsFile = path.join(dataDir, 'payments.json');
+const emailTemplatesFile = path.join(dataDir, 'email_templates.json');
 const attendanceFile = path.join(dataDir, 'attendance.json');
 const renewalsFile = path.join(dataDir, 'renewals.json');
 const complaintsFile = path.join(dataDir, 'complaints.json');
@@ -7228,6 +7233,17 @@ const buildDefaultShareMessage = (invoice, settings) => {
   return lines.join('\n');
 };
 
+const getInvoiceEmailTemplate = () => {
+  const templates = ensureDefaultEmailTemplates(readJsonFile(emailTemplatesFile, []));
+  return (
+    templates.find((entry) => entry.isActive && String(entry.templateType || '').trim().toLowerCase() === 'invoice_send')
+    || templates.find((entry) => String(entry.templateType || '').trim().toLowerCase() === 'invoice_send')
+    || templates.find((entry) => entry.isActive && String(entry.templateType || '').trim().toLowerCase() === 'custom_email')
+    || templates[0]
+    || null
+  );
+};
+
 const renewalStatusOptions = new Set(['Upcoming', 'Contacted', 'Follow-up', 'Confirmed', 'Renewed', 'Lost']);
 const renewalPaymentStatusOptions = new Set(['Pending', 'Paid', 'Partial']);
 const renewalReminderChannels = new Set(['whatsapp', 'email', 'sms']);
@@ -8174,16 +8190,30 @@ app.post('/api/invoices/:id/send-email', async (req, res) => {
     if (!recipient) return res.status(400).json({ error: 'Recipient email is required' });
     const pdfBuffer = await generateInvoicePdfBuffer(context);
     const fileName = buildInvoicePdfFileName(context.invoice);
+    const template = getInvoiceEmailTemplate();
+    const contextData = {
+      customer_name: String(context.customer?.displayName || context.customer?.name || context.invoice?.customerName || 'Customer').trim(),
+      customer_email: recipient,
+      customer_phone: String(context.customer?.whatsappNumber || context.customer?.mobileNumber || context.customer?.workPhone || '').trim(),
+      invoice_no: String(context.invoice.invoiceNumber || context.invoice.invoice_no || context.invoice._id || '').trim(),
+      invoice_amount: formatINR(context.invoice.total || context.invoice.amount || 0),
+      due_date: formatDate(context.invoice.dueDate || ''),
+      company_name: String(context.settings.companyName || 'Service Team').trim(),
+      service_type: String(context.invoice.subject || context.invoice.serviceType || '').trim(),
+      address: String(context.customer?.billingAddress || context.customer?.shippingAddress || context.invoice.billingAddressText || '').trim()
+    };
     const defaultSubject = `Invoice ${context.invoice.invoiceNumber || ''}`.trim();
-    const subject = String(req.body?.subject || defaultSubject || 'Invoice').trim();
-    const message = String(req.body?.message || buildDefaultShareMessage(context.invoice, context.settings)).trim();
+    const subjectTemplate = String(req.body?.subject || template?.emailSubject || defaultSubject || 'Invoice').trim();
+    const messageTemplate = String(req.body?.message || template?.emailBody || buildDefaultShareMessage(context.invoice, context.settings)).trim();
+    const subject = replaceTemplateVariables(subjectTemplate, contextData);
+    const message = replaceTemplateVariables(messageTemplate, contextData);
 
     const sent = await sendEmailMessage({
       loadSettings: loadRuntimeEmailSettings,
       to: recipient,
       subject,
-      htmlBody: `<p>${message.replace(/\n/g, '<br/>')}</p>`,
-      textBody: message,
+      htmlBody: message,
+      textBody: message.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>\s*<p>/gi, '\n\n').replace(/<[^>]+>/g, ' ').replace(/\n{3,}/g, '\n\n').trim(),
       attachments: [
         {
           filename: fileName,
