@@ -1222,7 +1222,7 @@ export default function LeadCapture() {
   };
 
   const openQuotationForLead = (lead) => {
-    navigate('/create-quote', { state: { lead: mapLeadForWorkflow(lead) } });
+    navigate('/quotations/new', { state: { lead: mapLeadForWorkflow(lead) } });
   };
 
   const sendWelcomeMessageToLead = (lead) => {

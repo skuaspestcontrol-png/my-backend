@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { normalizeIndianMobileNumber } from '../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -94,9 +94,11 @@ const getItemField = (item = {}, ...keys) => {
 const money = (v) => `₹ ${num(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function CreateQuote() {
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('id') || '';
   const isEditMode = Boolean(editId);
+  const leadPrefill = location.state?.lead || null;
   const [active, setActive] = useState(0);
   const [leadRows, setLeadRows] = useState([]);
   const [customerRows, setCustomerRows] = useState([]);
@@ -158,6 +160,37 @@ export default function CreateQuote() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    if (!leadPrefill || isEditMode) return;
+    const customerName = String(leadPrefill.customerName || '').trim();
+    const companyName = String(leadPrefill.companyName || leadPrefill.customerName || '').trim();
+    const address = String(leadPrefill.address || '').trim();
+    const mobileNumber = normalizeIndianMobileNumber(leadPrefill.mobileNumber || leadPrefill.mobile || '');
+    const whatsappNumber = normalizeIndianMobileNumber(leadPrefill.whatsappNumber || mobileNumber || '');
+    const emailId = String(leadPrefill.emailId || leadPrefill.email || '').trim();
+    const gstin = String(leadPrefill.gstin || '').trim();
+    const leadId = String(leadPrefill._id || leadPrefill.id || '').trim();
+    const assignedTo = String(leadPrefill.assignedTo || '').trim();
+    setForm((prev) => ({
+      ...prev,
+      source_type: 'Lead',
+      lead_id: leadId,
+      customer_id: '',
+      customer_name: customerName || prev.customer_name,
+      company_name: companyName || prev.company_name,
+      address: address || prev.address,
+      premise_city: String(leadPrefill.city || '').trim() || prev.premise_city,
+      premise_state: String(leadPrefill.state || '').trim() || prev.premise_state,
+      premise_pincode: String(leadPrefill.pincode || leadPrefill.pinCode || leadPrefill.postalCode || leadPrefill.postal_code || leadPrefill.zip || '').trim() || prev.premise_pincode,
+      phone: mobileNumber || prev.phone,
+      whatsapp: whatsappNumber || prev.whatsapp,
+      email: emailId || prev.email,
+      gstin: gstin || prev.gstin,
+      prepared_by: assignedTo && assignedTo !== 'Unassigned' ? assignedTo : prev.prepared_by,
+      sales_person: assignedTo && assignedTo !== 'Unassigned' ? assignedTo : prev.sales_person
+    }));
+  }, [leadPrefill, isEditMode]);
 
   useEffect(() => {
     let mounted = true;
