@@ -582,7 +582,31 @@ export default function ItemsDashboard() {
   };
 
   const updateForm = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      if (key !== 'itemType') {
+        return { ...prev, [key]: value };
+      }
+
+      if (value === 'goods') {
+        return {
+          ...prev,
+          itemType: value,
+          aboutPest: '',
+          pestsCovered: '',
+          serviceDescription: '',
+          frequency: '',
+          whatWeDo: '',
+          salesDescription: ''
+        };
+      }
+
+      return {
+        ...prev,
+        itemType: value,
+        purchaseInfoDescription: '',
+        preferredVendor: 'No vendor'
+      };
+    });
   };
 
   const openNewItemForm = () => {
