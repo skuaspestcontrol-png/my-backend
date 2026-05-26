@@ -1021,11 +1021,9 @@ const defaultSettings = {
   gstCompanyName: '',
   gstPanNumber: '',
   gstLicenseNumber: '',
-  gstRegistrationNumber: '',
   gstBillingAddress: '',
   gstCity: '',
   gstState: '',
-  gstStateCode: '',
   gstPincode: '',
   gstPhone: '',
   gstAlternatePhone: '',
@@ -1255,11 +1253,9 @@ const sanitizeSettings = (raw = {}) => {
     gstCompanyName: normalizeSettingsText(source.gstCompanyName ?? source.companyName ?? defaultSettings.gstCompanyName),
     gstPanNumber: normalizeSettingsText(source.gstPanNumber ?? defaultSettings.gstPanNumber).toUpperCase(),
     gstLicenseNumber: normalizeSettingsText(source.gstLicenseNumber ?? defaultSettings.gstLicenseNumber),
-    gstRegistrationNumber: normalizeSettingsText(source.gstRegistrationNumber ?? defaultSettings.gstRegistrationNumber),
     gstBillingAddress: normalizeSettingsText(source.gstBillingAddress ?? source.companyAddress ?? defaultSettings.gstBillingAddress),
     gstCity: normalizeSettingsText(source.gstCity ?? source.companyCity ?? defaultSettings.gstCity),
     gstState: normalizeSettingsText(source.gstState ?? source.companyState ?? defaultSettings.gstState),
-    gstStateCode: normalizeSettingsText(source.gstStateCode ?? defaultSettings.gstStateCode),
     gstPincode: normalizeSettingsText(source.gstPincode ?? source.companyPincode ?? defaultSettings.gstPincode),
     gstPhone: normalizeOptionalIndianMobileNumber(source.gstPhone ?? source.companyMobile ?? defaultSettings.gstPhone),
     gstAlternatePhone: normalizeOptionalIndianMobileNumber(source.gstAlternatePhone ?? defaultSettings.gstAlternatePhone),
@@ -2057,7 +2053,7 @@ const renderJobCardHeader = (doc, settings = {}, title = 'JOB CARD', options = {
   const companyEmail = String(settings.gstEmail || settings.companyEmail || '').trim();
   const companyPhone = String(settings.gstPhone || settings.companyMobile || '').trim();
   const companyWebsite = String(settings.companyWebsite || '').trim();
-  const companyGst = String(settings.companyGstNumber || settings.gstRegistrationNumber || '').trim();
+  const companyGst = String(settings.companyGstNumber || '').trim();
   const maroonColor = '#9F174D';
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
@@ -10265,7 +10261,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const companyEmail = String(settings?.gstEmail || settings?.companyEmail || 'skuaspestcontrol@gmail.com').trim();
     const companyPhone = String(settings?.gstPhone || settings?.companyMobile || '9316666656').trim();
     const companyWebsite = String(settings?.companyWebsite || 'www.skuaspestcontrol.com').trim();
-    const companyGst = String(settings?.companyGstNumber || settings?.gstRegistrationNumber || '07ABMCS7628G1ZW').trim();
+    const companyGst = String(settings?.companyGstNumber || '07ABMCS7628G1ZW').trim();
     const primaryColor = String(settings?.brandingAccentColor || '#9F174D').trim() || '#9F174D';
     const pageLeft = doc.page.margins.left;
     const pageRight = doc.page.width - doc.page.margins.right;

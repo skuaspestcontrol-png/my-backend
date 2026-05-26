@@ -65,52 +65,6 @@ const stateOptions = [
   'Puducherry'
 ];
 
-const gstStateCodeEntries = [
-  { code: '01', label: 'Jammu and Kashmir' },
-  { code: '02', label: 'Himachal Pradesh' },
-  { code: '03', label: 'Punjab' },
-  { code: '04', label: 'Chandigarh' },
-  { code: '05', label: 'Uttarakhand' },
-  { code: '06', label: 'Haryana' },
-  { code: '07', label: 'Delhi' },
-  { code: '08', label: 'Rajasthan' },
-  { code: '09', label: 'Uttar Pradesh' },
-  { code: '10', label: 'Bihar' },
-  { code: '11', label: 'Sikkim' },
-  { code: '12', label: 'Arunachal Pradesh' },
-  { code: '13', label: 'Nagaland' },
-  { code: '14', label: 'Manipur' },
-  { code: '15', label: 'Mizoram' },
-  { code: '16', label: 'Tripura' },
-  { code: '17', label: 'Meghalaya' },
-  { code: '18', label: 'Assam' },
-  { code: '19', label: 'West Bengal' },
-  { code: '20', label: 'Jharkhand' },
-  { code: '21', label: 'Odisha' },
-  { code: '22', label: 'Chhattisgarh' },
-  { code: '23', label: 'Madhya Pradesh' },
-  { code: '24', label: 'Gujarat' },
-  { code: '25', label: 'Dadra and Nagar Haveli and Daman and Diu' },
-  { code: '26', label: 'Dadra and Nagar Haveli and Daman and Diu' },
-  { code: '27', label: 'Maharashtra' },
-  { code: '28', label: 'Andhra Pradesh' },
-  { code: '29', label: 'Karnataka' },
-  { code: '30', label: 'Goa' },
-  { code: '31', label: 'Lakshadweep' },
-  { code: '32', label: 'Kerala' },
-  { code: '33', label: 'Tamil Nadu' },
-  { code: '34', label: 'Puducherry' },
-  { code: '35', label: 'Andaman and Nicobar Islands' },
-  { code: '36', label: 'Telangana' },
-  { code: '37', label: 'Andhra Pradesh' },
-  { code: '38', label: 'Ladakh' }
-];
-
-const gstStateCodeMap = gstStateCodeEntries.reduce((acc, entry) => {
-  acc[entry.code] = entry.label;
-  return acc;
-}, {});
-
 const bankColumns = ['primary', 'type', 'bankName', 'accountNumber', 'ifsc', 'upiId', 'openingBalance', 'currentBalance', 'actions'];
 const bankColumnWidths = {
   primary: 86,
@@ -206,11 +160,9 @@ const defaultForm = {
   gstCompanyName: '',
   gstPanNumber: '',
   gstLicenseNumber: '',
-  gstRegistrationNumber: '',
   gstBillingAddress: '',
   gstCity: '',
   gstState: '',
-  gstStateCode: '',
   gstPincode: '',
   gstPhone: '',
   gstAlternatePhone: '',
@@ -641,24 +593,6 @@ const isFilled = (value) => String(value || '').trim().length > 0;
 const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
 const isValidPincode = (value) => !value || /^\d{6}$/.test(value);
 
-const normalizeGstStateCode = (value) => {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  const match = raw.match(/^(\d{2})/);
-  if (!match) return '';
-  const code = match[1];
-  const label = gstStateCodeMap[code];
-  return label ? `${code} - ${label}` : code;
-};
-
-const deriveGstStateCodeFromGstin = (gstin) => {
-  const match = String(gstin || '').trim().toUpperCase().match(/^(\d{2})/);
-  if (!match) return '';
-  const code = match[1];
-  const label = gstStateCodeMap[code];
-  return label ? `${code} - ${label}` : '';
-};
-
 const isStrongPassword = (value) => {
   const password = String(value || '');
   return password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
@@ -834,7 +768,6 @@ export default function Settings({ modalMode = false }) {
         const dashboardImageUrl = String(data.dashboardImageUrl || '').trim();
         const nonGstBillingAddress = String(data.nonGstBillingAddress || data.nonGstAddress || '').trim();
         const nonGstCity = String(data.nonGstCity || '').trim();
-        const normalizedGstStateCode = normalizeGstStateCode(data.gstStateCode || deriveGstStateCodeFromGstin(data.companyGstNumber || ''));
         const companyMobile = normalizePhoneDisplay(data.companyMobile || data.gstPhone || '');
         const companyEmail = normalizeEmailDisplay(data.companyEmail || data.gstEmail || '');
         const companyGstNumber = normalizeGstinDisplay(data.companyGstNumber || '');
@@ -845,11 +778,9 @@ export default function Settings({ modalMode = false }) {
           gstCompanyName,
           gstPanNumber: normalizePanDisplay(data.gstPanNumber),
           gstLicenseNumber: data.gstLicenseNumber || '',
-          gstRegistrationNumber: data.gstRegistrationNumber || '',
           gstBillingAddress,
           gstCity,
           gstState,
-          gstStateCode: normalizedGstStateCode,
           gstPincode,
           gstPhone,
           gstAlternatePhone: data.gstAlternatePhone || '',
@@ -1024,11 +955,9 @@ export default function Settings({ modalMode = false }) {
 
   const handleGstinChange = (value) => {
     const normalizedGstin = String(value || '').toUpperCase().replace(/\s/g, '');
-    const derivedCode = deriveGstStateCodeFromGstin(normalizedGstin);
     setForm((prev) => ({
       ...prev,
-      companyGstNumber: normalizedGstin,
-      gstStateCode: derivedCode || prev.gstStateCode
+      companyGstNumber: normalizedGstin
     }));
   };
 
@@ -1181,7 +1110,6 @@ export default function Settings({ modalMode = false }) {
     const gstPincode = toSixDigitPincode(form.gstPincode || '');
     const gstPhone = normalizePhoneDisplay(form.gstPhone);
     const gstEmail = normalizeEmailDisplay(form.gstEmail);
-    const gstStateCode = normalizeGstStateCode(form.gstStateCode || deriveGstStateCodeFromGstin(form.companyGstNumber));
     const dashboardImageUrl = String(form.dashboardImageUrl || '').trim();
     const gstCompanyLogoUrl = String(form.gstCompanyLogoUrl || '').trim();
     const nonGstBillingAddress = String(form.nonGstBillingAddress || form.nonGstAddress || '').trim();
@@ -1206,11 +1134,9 @@ export default function Settings({ modalMode = false }) {
       gstCompanyName,
       gstPanNumber: normalizePanDisplay(form.gstPanNumber),
       gstLicenseNumber: String(form.gstLicenseNumber || '').trim(),
-      gstRegistrationNumber: String(form.gstRegistrationNumber || '').trim(),
       gstBillingAddress,
       gstCity,
       gstState,
-      gstStateCode,
       gstPincode,
       gstPhone,
       gstAlternatePhone: normalizeIndianMobileNumber(form.gstAlternatePhone || ''),
@@ -1340,7 +1266,6 @@ export default function Settings({ modalMode = false }) {
       const savedRaw = res.data?.settings ? { ...res.data.settings, ...payload } : payload;
       const saved = {
         ...savedRaw,
-        gstStateCode: normalizeGstStateCode(savedRaw.gstStateCode || deriveGstStateCodeFromGstin(savedRaw.companyGstNumber)),
         gstPanNumber: normalizePanDisplay(payload.gstPanNumber),
         gstPhone: normalizePhoneDisplay(payload.gstPhone),
         gstEmail: normalizeEmailDisplay(payload.gstEmail),
@@ -1763,10 +1688,6 @@ export default function Settings({ modalMode = false }) {
 
       <div style={shell.twoCol}>
         <div style={shell.field}>
-          <p style={shell.fieldLabel}>Registration No</p>
-          <input style={shell.input} value={form.gstRegistrationNumber} onChange={(event) => updateField('gstRegistrationNumber', event.target.value)} />
-        </div>
-        <div style={shell.field}>
           <p style={shell.fieldLabel}>Billing Address</p>
           <input
             style={shell.input}
@@ -1806,23 +1727,6 @@ export default function Settings({ modalMode = false }) {
               <option key={entry} value={entry}>{entry}</option>
             ))}
           </select>
-        </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>GST State Code</p>
-          <select
-            style={shell.input}
-            value={normalizeGstStateCode(form.gstStateCode)}
-            onChange={(event) => updateField('gstStateCode', normalizeGstStateCode(event.target.value))}
-          >
-            <option value="">Select GST Code</option>
-            {gstStateCodeEntries.map((entry) => {
-              const optionValue = `${entry.code} - ${entry.label}`;
-              return (
-                <option key={optionValue} value={optionValue}>{optionValue}</option>
-              );
-            })}
-          </select>
-          <p style={shell.hint}>Auto-filled from GSTIN</p>
         </div>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Pincode</p>
