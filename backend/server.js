@@ -1131,6 +1131,12 @@ const defaultSettings = {
 };
 
 const normalizeSettingsText = (value) => String(value ?? '').trim();
+const formatCompanyPhoneLine = (phone = '', alternatePhone = '') => {
+  const primary = String(phone ?? '').trim();
+  const alternate = String(alternatePhone ?? '').trim();
+  if (primary && alternate) return `${primary} | ${alternate}`;
+  return primary || alternate || '';
+};
 const normalizeSettingsNumber = (value, fallback) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -2052,6 +2058,7 @@ const renderJobCardHeader = (doc, settings = {}, title = 'JOB CARD', options = {
   const companyPin = String(settings.gstPincode || settings.companyPincode || '').trim();
   const companyEmail = String(settings.gstEmail || settings.companyEmail || '').trim();
   const companyPhone = String(settings.gstPhone || settings.companyMobile || '').trim();
+  const companyAlternatePhone = String(settings.gstAlternatePhone || settings.nonGstAlternatePhone || '').trim();
   const companyWebsite = String(settings.companyWebsite || '').trim();
   const companyGst = String(settings.companyGstNumber || '').trim();
   const maroonColor = '#9F174D';
@@ -2063,7 +2070,7 @@ const renderJobCardHeader = (doc, settings = {}, title = 'JOB CARD', options = {
     companyAddress,
     companyCityLine || companyPin ? `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India` : '',
     `Email: ${companyEmail || '-'}`,
-    `Tel: ${companyPhone || '-'}`,
+    `Tel: ${formatCompanyPhoneLine(companyPhone, companyAlternatePhone) || '-'}`,
     `Web: ${companyWebsite || '-'}`,
     `GST Details: ${companyGst || '-'}`
   ].filter(Boolean);
@@ -10260,6 +10267,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const companyPin = String(settings?.gstPincode || settings?.companyPincode || '110025').trim();
     const companyEmail = String(settings?.gstEmail || settings?.companyEmail || 'skuaspestcontrol@gmail.com').trim();
     const companyPhone = String(settings?.gstPhone || settings?.companyMobile || '9316666656').trim();
+    const companyAlternatePhone = String(settings?.gstAlternatePhone || settings?.nonGstAlternatePhone || '9316315315').trim();
     const companyWebsite = String(settings?.companyWebsite || 'www.skuaspestcontrol.com').trim();
     const companyGst = String(settings?.companyGstNumber || '07ABMCS7628G1ZW').trim();
     const primaryColor = String(settings?.brandingAccentColor || '#9F174D').trim() || '#9F174D';
@@ -10275,7 +10283,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       companyAddress,
       `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India`,
       `Email: ${companyEmail || '-'}`,
-      `Tel: ${companyPhone || '-'}`,
+      `Tel: ${formatCompanyPhoneLine(companyPhone, companyAlternatePhone) || '-'}`,
       `Web: ${companyWebsite || '-'}`,
       `GST Details: ${companyGst || '-'}`
     ].filter(Boolean);

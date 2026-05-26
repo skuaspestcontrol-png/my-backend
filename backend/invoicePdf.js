@@ -201,6 +201,7 @@ const resolveCompany = (settings = {}, invoice = {}) => {
     state: clean((isNonGst ? settings.nonGstState : settings.gstState) || settings.companyState),
     pincode: clean((isNonGst ? settings.nonGstPincode : settings.gstPincode) || settings.companyPincode),
     phone: clean((isNonGst ? settings.nonGstPhone : settings.gstPhone) || settings.companyMobile),
+    alternatePhone: clean((isNonGst ? settings.nonGstAlternatePhone : settings.gstAlternatePhone)),
     email: clean((isNonGst ? settings.nonGstEmail : settings.gstEmail) || settings.companyEmail),
     website: clean(settings.companyWebsite),
     gstin: isNonGst
@@ -221,6 +222,13 @@ const resolveCompany = (settings = {}, invoice = {}) => {
     bankUpi: isNonGst ? '' : clean(settings.gstBankUpiId),
     terms: isNonGst ? clean(settings.nonGstTermsAndConditions) : clean(settings.gstTermsAndConditions)
   };
+};
+
+const formatCompanyPhoneLine = (phone = '', alternatePhone = '') => {
+  const primary = clean(phone);
+  const alternate = clean(alternatePhone);
+  if (primary && alternate) return `${primary} | ${alternate}`;
+  return primary || alternate || '';
 };
 
 const splitAddressText = (value = '') => clean(value).split(/\r?\n|,/).map(clean).filter(Boolean);
@@ -544,7 +552,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       company.address1,
       company.address2,
       [company.city, company.state, company.pincode].filter(Boolean).join(', '),
-      company.phone ? `Mobile: ${company.phone}` : '',
+      formatCompanyPhoneLine(company.phone, company.alternatePhone) ? `Mobile: ${formatCompanyPhoneLine(company.phone, company.alternatePhone)}` : '',
       `E Mail Id: ${company.email || 'info@skuaspestcontrol.com'}`,
       `Visit Us: ${company.website || '-'}`,
       !company.isNonGst ? (company.gstin ? `GST Details: ${company.gstin}` : 'GST Details: ') : ''
