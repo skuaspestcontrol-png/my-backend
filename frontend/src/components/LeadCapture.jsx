@@ -2630,6 +2630,7 @@ export default function LeadCapture() {
                               </button>
                               <button
                                 type="button"
+                                className="crm-action-menu-item"
                                 style={{ ...s.rowActionMenuBtn, color: '#dc2626' }}
                                 onClick={() => {
                                   deleteLead(lead._id);
