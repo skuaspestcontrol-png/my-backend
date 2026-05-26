@@ -445,9 +445,6 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
               <p style={shell.note}>High priority: mobile, WhatsApp, email, GST. Secondary: customer/company name and address similarity.</p>
               {rowPreview.length ? (
                 <div style={shell.tableWrap}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-                    <button type="button" style={shell.lightBtn} onClick={resetPreviewColumns}>Reset Columns</button>
-                  </div>
                   <table style={previewTableStyle}>
                     <colgroup>{previewTableColumns.map((column) => <col key={column.key} style={{ width: `${getPreviewColumnWidth(column.key) || previewDefaultWidths[column.key] || 120}px` }} />)}</colgroup>
                     <thead>
@@ -513,9 +510,6 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                 </div>
                 <p style={shell.note}>Showing all {visibleImportRows.length} analyzed import rows.</p>
                 <div style={shell.tableWrap}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-                    <button type="button" style={shell.lightBtn} onClick={resetImportColumns}>Reset Columns</button>
-                  </div>
                   <table style={importTableStyle}>
                     <colgroup>{importColumns.map((key) => <col key={key} style={{ width: `${getImportColumnWidth(key) || importDefaultWidths[key] || 90}px` }} />)}</colgroup>
                     <thead>
@@ -575,9 +569,6 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                 <h3 style={shell.h3}>Import Logs</h3>
                 <p style={shell.note}>Showing all {visibleImportRows.length} finalized import rows.</p>
                 <div style={shell.tableWrap}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-                    <button type="button" style={shell.lightBtn} onClick={resetLogColumns}>Reset Columns</button>
-                  </div>
                   <table style={logTableStyle}>
                     <colgroup>{logColumns.map((key) => <col key={key} style={{ width: `${getLogColumnWidth(key) || logDefaultWidths[key] || 90}px` }} />)}</colgroup>
                     <thead>

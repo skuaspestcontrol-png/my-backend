@@ -224,7 +224,6 @@ export default function SalesTeamPerformance() {
         action={viewportWidth <= 640 ? null : (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>Refresh</AppButton>
-            <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
           </div>
         )}
       />

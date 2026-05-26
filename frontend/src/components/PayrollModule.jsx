@@ -1409,9 +1409,6 @@ export default function PayrollModule() {
         </div>
       </div>
       <div style={shell.setupTableWrap}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-          <button type="button" style={shell.btnLight} onClick={resetSetupColumns}>Reset Columns</button>
-        </div>
         <table style={setupTableStyle}>
           <colgroup>{payrollSetupColumns.map((column) => <col key={column.key} style={{ width: `${getSetupColumnWidth(column.key)}px` }} />)}</colgroup>
           <thead>
@@ -1576,9 +1573,6 @@ export default function PayrollModule() {
         </div>
       ) : (
         <div style={shell.tableWrap}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-            <button type="button" style={shell.btnLight} onClick={resetHistoryColumns}>Reset Columns</button>
-          </div>
           <table style={historyTableStyle}>
             <colgroup>
               {payrollHistoryColumns.map((column) => (
@@ -1649,9 +1643,6 @@ export default function PayrollModule() {
         <div style={shell.actionRow}><button type="button" style={shell.btn} onClick={saveAdvance} disabled={busy || !role.canManage}>Save Advance</button></div>
       </div>
       <div style={shell.tableWrap}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-          <button type="button" style={shell.btnLight} onClick={resetAdvanceColumns}>Reset Columns</button>
-        </div>
         <table style={advanceTableStyle}>
           <colgroup>{payrollAdvanceColumns.map((column) => <col key={column.key} style={{ width: `${getAdvanceColumnWidth(column.key)}px` }} />)}</colgroup>
           <thead>
@@ -1719,9 +1710,6 @@ export default function PayrollModule() {
         </div>
       </div>
       <div style={shell.tableWrap}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-          <button type="button" style={shell.btnLight} onClick={resetHolidayColumns}>Reset Columns</button>
-        </div>
         <table style={holidayTableStyle}>
           <colgroup>{payrollHolidayColumns.map((column) => <col key={column.key} style={{ width: `${getHolidayColumnWidth(column.key)}px` }} />)}</colgroup>
           <thead>
@@ -1805,9 +1793,6 @@ export default function PayrollModule() {
         </div>
       ) : (
         <div style={shell.tableWrap}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-            <button type="button" style={shell.btnLight} onClick={resetSlipColumns}>Reset Columns</button>
-          </div>
           <table style={slipTableStyle}>
             <colgroup>
               {payrollSlipColumns.map((column) => (

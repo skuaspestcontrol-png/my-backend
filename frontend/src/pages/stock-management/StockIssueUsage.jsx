@@ -365,9 +365,6 @@ export default function StockIssueUsage() {
       </AppCard>
 
       <AppCard title="Technician Stock Balances" className="crm-table-card">
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 8 }}>
-          <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
-        </div>
         {balances.length ? (
           <div style={{ overflowX: 'auto' }}>
             <table style={balanceTableStyle}>

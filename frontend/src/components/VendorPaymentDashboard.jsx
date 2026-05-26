@@ -283,10 +283,9 @@ export default function VendorPaymentDashboard() {
       </div>
 
       <div style={shell.tablePanel}>
-        <div style={shell.tableHeadBar}>
-          <h3 style={shell.tableHead}>Recent Vendor Payments (Expense Tracking)</h3>
-          <button type="button" style={shell.tableHeadButton} onClick={resetColumns}>Reset Columns</button>
-        </div>
+      <div style={shell.tableHeadBar}>
+        <h3 style={shell.tableHead}>Recent Vendor Payments (Expense Tracking)</h3>
+      </div>
         <div className="responsive-table">
           <table style={tableStyle}>
             <colgroup>{paymentColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || paymentColumnWidths[key] || 100}px` }} />)}</colgroup>

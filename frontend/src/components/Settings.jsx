@@ -2602,7 +2602,6 @@ export default function Settings({ modalMode = false }) {
         <div style={shell.divider} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <p style={sectionLeadTitleStyle}>Saved Bank Accounts</p>
-          <button type="button" style={{ minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }} onClick={resetColumns}>Reset Columns</button>
         </div>
         <div style={shell.bankTableWrap}>
           <table style={bankTableStyle}>

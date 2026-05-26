@@ -598,7 +598,6 @@ export default function EmployeeMaster() {
       <div style={shell.topbar}>
         <h2 style={shell.title}>Employee Master</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <button type="button" style={shell.btnLight} onClick={resetColumns}>Reset Columns</button>
           <button type="button" style={shell.addBtn} onClick={openAddEmployee}>
             <Plus size={16} /> Add Employee
           </button>

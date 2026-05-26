@@ -713,23 +713,6 @@ export default function Attendance() {
               style={shell.dateInput}
             />
           </label>
-          <button
-            type="button"
-            onClick={resetAttendanceColumns}
-            style={{
-              minHeight: '42px',
-              borderRadius: '10px',
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-primary-light)',
-              color: 'var(--color-primary-dark)',
-              padding: '0 12px',
-              fontSize: '12px',
-              fontWeight: 800,
-              cursor: 'pointer'
-            }}
-          >
-            Reset Columns
-          </button>
         </div>
       </div>
 

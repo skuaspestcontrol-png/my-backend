@@ -313,7 +313,6 @@ export default function VendorDashboard() {
       <div style={shell.topbar}>
         <h1 style={shell.title}>Vendors Dashboard</h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" onClick={resetColumns} style={{ minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px' }}>Reset Columns</button>
           <button type="button" style={shell.buttonPrimary} onClick={openNew}>
             + New Vendor
           </button>

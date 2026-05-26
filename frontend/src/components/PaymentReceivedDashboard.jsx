@@ -293,7 +293,6 @@ export default function PaymentReceivedDashboard() {
       <div style={shell.tablePanel}>
         <div style={shell.tableHeadBar}>
           <h3 style={shell.tableHead}>Recent Payments</h3>
-          <button type="button" style={shell.tableHeadButton} onClick={resetColumns}>Reset Columns</button>
         </div>
         <div className="responsive-table">
           <table style={tableStyle}>

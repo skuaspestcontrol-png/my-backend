@@ -348,9 +348,6 @@ export default function SalesPerformanceReports() {
           )
         )}
       />
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
-      </div>
 
       <AppCard title="Filters" className="crm-filter-card" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
         <div style={filtersGridStyle}>

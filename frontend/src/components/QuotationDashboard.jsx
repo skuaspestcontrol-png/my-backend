@@ -421,23 +421,6 @@ function QuotationDashboardInner() {
           <p style={shell.panelTitle}>Recent Quotations</p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
             <span style={shell.badge}>{rows.length} records</span>
-            <button
-              type="button"
-              onClick={resetQuotationColumns}
-              style={{
-                minHeight: 28,
-                borderRadius: 8,
-                border: '1px solid var(--color-border)',
-                background: 'var(--color-primary-light)',
-                color: 'var(--color-primary-dark)',
-                padding: '0 10px',
-                fontSize: 11,
-                fontWeight: 800,
-                cursor: 'pointer'
-              }}
-            >
-              Reset Columns
-            </button>
           </div>
         </div>
         <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">

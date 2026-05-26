@@ -340,7 +340,6 @@ export default function VendorBillsDashboard() {
       <div style={shell.topbar}>
         <h1 style={shell.title}>Vendor Bills</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <button type="button" style={{ minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }} onClick={resetColumns}>Reset Columns</button>
           <button type="button" style={shell.buttonPrimary} onClick={openNew}><Plus size={16} />New Bill</button>
         </div>
       </div>

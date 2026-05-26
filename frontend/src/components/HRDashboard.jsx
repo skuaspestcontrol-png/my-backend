@@ -491,9 +491,6 @@ export default function HRDashboard() {
           </div>
 
           <div style={shell.tableWrap}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-              <button type="button" style={shell.btnLight} onClick={resetLeaveColumns}>Reset Columns</button>
-            </div>
             <table style={leaveTableStyle}>
               <colgroup>
                 {hrLeaveColumns.map((column) => (
@@ -533,9 +530,6 @@ export default function HRDashboard() {
           </div>
 
           <div style={shell.tableWrap}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-              <button type="button" style={shell.btnLight} onClick={resetBalanceColumns}>Reset Columns</button>
-            </div>
             <table style={balanceTableStyle}>
               <colgroup>
                 {hrBalanceColumns.map((column) => (
@@ -580,9 +574,6 @@ export default function HRDashboard() {
             <button type="button" style={shell.btn} onClick={generatePayrollQuick} disabled={!role.canManage}>Generate Payroll</button>
           </div>
           <div style={shell.tableWrap}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 8px' }}>
-              <button type="button" style={shell.btnLight} onClick={resetPayrollColumns}>Reset Columns</button>
-            </div>
             <table style={payrollTableStyle}>
               <colgroup>
                 {hrPayrollColumns.map((column) => (

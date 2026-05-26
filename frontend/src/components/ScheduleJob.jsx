@@ -659,7 +659,6 @@ export default function ScheduleJob() {
               <span style={shell.tinyPill}>{`${selectedScheduleKeys.length} selected`}</span>
             </div>
             <div style={shell.chipRow}>
-              <button type="button" style={{ minHeight: '28px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '11px', cursor: 'pointer' }} onClick={resetColumns}>Reset Columns</button>
               <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>Filter:</span>
               {statusFilters.map((entry) => (
                 <button

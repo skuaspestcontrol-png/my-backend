@@ -440,29 +440,11 @@ export default function LeadFollowups() {
         })}
       </div>
 
-      <div style={shell.tableCard}>
-        <div style={shell.tableTitle}>
-          Follow-ups
-          <span style={shell.badge}>{tabRows.length}</span>
-          <button
-            type="button"
-            style={{
-              marginLeft: 'auto',
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-primary-light)',
-              color: 'var(--color-primary-dark)',
-              borderRadius: '8px',
-              minHeight: '28px',
-              padding: '0 10px',
-              fontSize: '11px',
-              fontWeight: 800,
-              cursor: 'pointer'
-            }}
-            onClick={resetFollowupColumns}
-          >
-            Reset Columns
-          </button>
-        </div>
+        <div style={shell.tableCard}>
+          <div style={shell.tableTitle}>
+            Follow-ups
+            <span style={shell.badge}>{tabRows.length}</span>
+          </div>
         <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
           <table style={tableStyle} className="crm-compact-table crm-stack-mobile lead-followups-table">
             <colgroup>

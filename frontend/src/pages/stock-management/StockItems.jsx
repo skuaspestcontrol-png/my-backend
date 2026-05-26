@@ -315,9 +315,6 @@ export default function StockItems() {
       </AppCard>
 
       <AppCard title="Stock Items List" className="crm-table-card" style={panelStyle}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 8 }}>
-          <AppButton variant="outline" onClick={resetColumns} style={toolbarButtonStyle}>Reset Columns</AppButton>
-        </div>
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : items.length ? (

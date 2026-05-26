@@ -415,9 +415,6 @@ export default function SalesTargets() {
       {error ? <AppCard><EmptyState title="Sales target error" message={error} /></AppCard> : null}
 
       <AppCard title="Yearly Target Rollup" style={{ width: '100%', minWidth: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <AppButton variant="outline" onClick={resetYearlyColumns}>Reset Columns</AppButton>
-        </div>
         {yearlySummaryRows.length ? (
           <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table className="table-clean sales-targets-table sales-performance-table" style={yearlyTableStyle}>
@@ -522,9 +519,6 @@ export default function SalesTargets() {
       </AppCard>
 
       <AppCard title="Target List" style={{ width: '100%', minWidth: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <AppButton variant="outline" onClick={resetTargetColumns}>Reset Columns</AppButton>
-        </div>
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : safeRows(targets).length ? (

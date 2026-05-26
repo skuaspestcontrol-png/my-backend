@@ -114,9 +114,6 @@ export default function EmailTemplates() {
   return (
     <section style={{ display: 'grid', gap: '10px' }}>
       <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111827' }}>Email Templates</h4>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button" onClick={resetColumns} style={{ minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px' }}>Reset Columns</button>
-      </div>
 
       <form onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '14px', padding: '12px', display: 'grid', gap: '8px' }}>
         <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>

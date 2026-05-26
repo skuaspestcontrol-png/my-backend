@@ -217,9 +217,6 @@ export default function StockPurchase() {
       </AppCard>
 
       <AppCard title="Recent Purchases" className="crm-table-card">
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 8 }}>
-          <AppButton variant="outline" onClick={resetColumns}>Reset Columns</AppButton>
-        </div>
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : purchases.length ? (
