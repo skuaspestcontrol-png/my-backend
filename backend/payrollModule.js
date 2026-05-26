@@ -111,6 +111,12 @@ const resolveCompanyDetails = (settings = {}) => {
       || settings?.mobile
       || defaultCompany.phone
     ),
+    alternatePhone: normalizeText(
+      settings?.gstAlternatePhone
+      || settings?.nonGstAlternatePhone
+      || settings?.alternatePhone
+      || defaultCompany.alternatePhone
+    ),
     website: normalizeText(
       settings?.companyWebsite
       || settings?.website
@@ -811,7 +817,7 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     normalizeText(company.address || ''),
     `${companyCityLine}${company.pincode ? ` - ${company.pincode}` : ''}, India`,
     company.email ? `Email: ${company.email}` : '',
-    company.phone ? `Tel: ${company.phone}` : '',
+    company.phone ? `Mobile: ${company.alternatePhone ? `${company.phone} | ${company.alternatePhone}` : company.phone}` : (company.alternatePhone ? `Mobile: ${company.alternatePhone}` : ''),
     company.website ? `Web: ${company.website}` : '',
     company.gstin ? `GST Details: ${company.gstin}` : ''
   ].filter(Boolean);

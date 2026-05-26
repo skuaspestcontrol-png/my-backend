@@ -331,13 +331,14 @@ const drawHeader = (doc, settings = {}, companySettings = {}) => {
   const companyPin = clean(companySettings.gstPincode || companySettings.companyPincode);
   const companyEmail = clean(companySettings.gstEmail || companySettings.companyEmail || settings.email);
   const companyPhone = clean(companySettings.gstPhone || companySettings.companyMobile || settings.phone);
+  const companyAlternatePhone = clean(companySettings.gstAlternatePhone || companySettings.nonGstAlternatePhone);
   const companyWebsite = clean(companySettings.companyWebsite || settings.website);
   const companyGst = clean(companySettings.companyGstNumber || companySettings.gstRegistrationNumber || settings.gstin);
   const companyDetailLines = [
     companyAddress,
     companyCityLine || companyPin ? `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India` : '',
     `Email: ${companyEmail || '-'}`,
-    `Tel: ${companyPhone || '-'}`,
+    `Mobile: ${companyPhone ? `${companyPhone}${companyAlternatePhone ? ` | ${companyAlternatePhone}` : ''}` : (companyAlternatePhone || '-')}`,
     `Web: ${companyWebsite || '-'}`,
     String(settings.show_gstin || '1') !== '0' ? `GST Details: ${companyGst || '-'}` : ''
   ].filter(Boolean);

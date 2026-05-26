@@ -10283,7 +10283,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       companyAddress,
       `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India`,
       `Email: ${companyEmail || '-'}`,
-      `Tel: ${formatCompanyPhoneLine(companyPhone, companyAlternatePhone) || '-'}`,
+      `Mobile: ${formatCompanyPhoneLine(companyPhone, companyAlternatePhone) || '-'}`,
       `Web: ${companyWebsite || '-'}`,
       `GST Details: ${companyGst || '-'}`
     ].filter(Boolean);
