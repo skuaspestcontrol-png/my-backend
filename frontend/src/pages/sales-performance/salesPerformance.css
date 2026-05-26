@@ -103,6 +103,27 @@
   text-align: left !important;
 }
 
+.sales-dashboard-page .sales-matrix-table .table-sticky-first {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 3 !important;
+  background: #fff !important;
+}
+
+.sales-dashboard-page .sales-matrix-table thead .table-sticky-first {
+  z-index: 4 !important;
+  background: #f8fafc !important;
+  box-shadow: 8px 0 12px rgba(15, 23, 42, 0.06) !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.25) !important;
+}
+
+.sales-dashboard-page .sales-matrix-table tbody .table-sticky-first {
+  z-index: 2 !important;
+  background: #fff !important;
+  box-shadow: 8px 0 12px rgba(15, 23, 42, 0.04) !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.18) !important;
+}
+
 .sales-targets-page .sales-targets-table thead th.table-number-cell,
 .sales-targets-page .sales-targets-table thead th.table-percent-cell,
 .sales-targets-page .sales-targets-table thead th.table-status-cell,
