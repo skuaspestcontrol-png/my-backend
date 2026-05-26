@@ -185,26 +185,51 @@ const tryResolveLocalUploadPath = (rawUrl) => {
 
 const resolveUploadPath = (logoUrl) => {
   if (!logoUrl) return null;
-
   const fs = require('fs');
   const path = require('path');
 
-  const uploadsRoot = process.env.UPLOADS_ROOT || '/home/u610009593/uploads-skuas-crm';
+  const persistentUploadRoot = String(process.env.UPLOADS_ROOT || '/home/u610009593/uploads-skuas-crm').trim();
+  const searchDirs = [
+    persistentUploadRoot,
+    path.join(__dirname, '..', 'storage', 'uploads'),
+    path.join(process.cwd(), 'uploads'),
+    path.join(__dirname, 'public', 'uploads'),
+    path.join(__dirname, '..', 'public', 'uploads')
+  ].filter(Boolean);
 
-  let cleaned = String(logoUrl).trim();
+  const raw = String(logoUrl).trim();
+  const basename = path.basename(raw.split('?')[0] || '');
+  const candidates = [];
 
-  cleaned = cleaned.replace(/^https?:\/\/[^/]+\/uploads\//, '/uploads/');
+  if (/^data:image\//i.test(raw)) return null;
 
-  if (cleaned.startsWith('/uploads/')) {
-    cleaned = cleaned.replace(/^\/uploads\//, '');
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const parsed = new URL(raw);
+      const pathname = String(parsed.pathname || '').trim();
+      if (pathname) candidates.push(pathname);
+      if (basename) candidates.push(basename);
+    } catch (_error) {
+      if (basename) candidates.push(basename);
+    }
+  } else {
+    candidates.push(raw);
+    if (basename && basename !== raw) candidates.push(basename);
   }
 
-  if (cleaned.startsWith('uploads/')) {
-    cleaned = cleaned.replace(/^uploads\//, '');
+  for (const candidateRaw of candidates) {
+    let cleaned = String(candidateRaw || '').trim();
+    if (!cleaned) continue;
+    cleaned = cleaned.replace(/^https?:\/\/[^/]+\/uploads\//, '/uploads/');
+    if (cleaned.startsWith('/uploads/')) cleaned = cleaned.replace(/^\/uploads\//, '');
+    if (cleaned.startsWith('uploads/')) cleaned = cleaned.replace(/^uploads\//, '');
+    for (const dir of searchDirs) {
+      const candidate = path.join(dir, cleaned);
+      if (fs.existsSync(candidate)) return candidate;
+    }
   }
 
-  const candidate = path.join(uploadsRoot, cleaned);
-  return fs.existsSync(candidate) ? candidate : null;
+  return null;
 };
 
 const monthDateRange = (month, year) => {
