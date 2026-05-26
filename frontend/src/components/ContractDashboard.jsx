@@ -1500,6 +1500,7 @@ export default function ContractDashboard() {
         pdfUrl={pdfPreview.pdfUrl}
         downloadFileName={pdfPreview.downloadFileName}
         onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        onShareEmail={() => navigate('/settings/email/templates')}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
     </div>
