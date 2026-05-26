@@ -844,11 +844,11 @@ export default function ContractDashboard() {
   const tableWrapStyle = isMobile
     ? {
       ...shell.tableWrap,
-      overflowX: 'auto',
+      overflowX: 'hidden',
       overflowY: 'hidden',
       WebkitOverflowScrolling: 'touch',
-      overscrollBehaviorX: 'contain',
-      touchAction: 'pan-x'
+      overscrollBehaviorX: 'auto',
+      touchAction: 'auto'
     }
     : shell.tableWrap;
   const tableStyle = {
@@ -971,23 +971,25 @@ export default function ContractDashboard() {
                   <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
                 </td> : null}
                 {visibleColumns.customer ? <td style={{ ...shell.td, ...mobileStackCellStyle, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
-                  {row.status === 'Active' ? (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        openCustomerSummary(row);
-                      }}
-                      style={{ ...shell.customerLinkBtn, color: '#111827' }}
-                    >
-                      {row.customer}
-                    </button>
-                  ) : (
-                    <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'visible', textOverflow: 'clip', whiteSpace: 'normal', lineHeight: 1.25, wordBreak: 'break-word' }}>{row.customer}</div>
-                  )}
-                  {String(row.customer || '').trim().length <= 24 ? (
-                    <div style={{ ...shell.subText }}>{row.mobile || '-'}</div>
-                  ) : null}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px', width: '100%' }}>
+                    {row.status === 'Active' ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openCustomerSummary(row);
+                        }}
+                        style={{ ...shell.customerLinkBtn, color: '#111827' }}
+                      >
+                        {row.customer}
+                      </button>
+                    ) : (
+                      <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'visible', textOverflow: 'clip', whiteSpace: 'normal', lineHeight: 1.25, wordBreak: 'break-word', width: '100%' }}>{row.customer}</div>
+                    )}
+                    {String(row.customer || '').trim().length <= 24 ? (
+                      <div style={{ ...shell.subText, width: '100%', textAlign: 'left' }}>{row.mobile || '-'}</div>
+                    ) : null}
+                  </div>
                 </td> : null}
                 {visibleColumns.property ? <td style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.property || '-'}</div>
@@ -998,7 +1000,7 @@ export default function ContractDashboard() {
                   <div style={{ ...shell.subText }}>{`to ${formatDate(row.endDate)}`}</div>
                 </td> : null}
                 {visibleColumns.services ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
                     <span style={{ ...shell.shownPill, display: 'inline-flex', minWidth: '48px', justifyContent: 'center', textAlign: 'center', background: '#eef2f7', color: '#334155', borderColor: 'var(--color-border)' }}>{row.services}</span>
                   </div>
                 </td> : null}
