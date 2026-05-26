@@ -84,14 +84,14 @@ const formatTargetActivityTime = (value) => {
 };
 
 const yearlyColumns = [
-  { key: 'salesPerson' },
-  { key: 'year' },
-  { key: 'monthlyRevenue' },
-  { key: 'monthlyCollection' },
-  { key: 'yearlyRevenue' },
-  { key: 'yearlyCollection' },
-  { key: 'monthlyRows' },
-  { key: 'yearlyRows' }
+  { key: 'salesPerson', label: 'Sales Person' },
+  { key: 'year', label: 'Year' },
+  { key: 'monthlyRevenue', label: 'Monthly Revenue' },
+  { key: 'monthlyCollection', label: 'Monthly Collection' },
+  { key: 'yearlyRevenue', label: 'Yearly Revenue' },
+  { key: 'yearlyCollection', label: 'Yearly Collection' },
+  { key: 'monthlyRows', label: 'Monthly Rows' },
+  { key: 'yearlyRows', label: 'Yearly Rows' }
 ];
 const yearlyWidths = {
   salesPerson: 220,
@@ -115,19 +115,19 @@ const yearlyBounds = {
 };
 
 const targetColumns = [
-  { key: 'salesPerson' },
-  { key: 'type' },
-  { key: 'month' },
-  { key: 'year' },
-  { key: 'revenueTarget' },
-  { key: 'revenueAchieved' },
-  { key: 'revenuePending' },
-  { key: 'revenuePercent' },
-  { key: 'collectionTarget' },
-  { key: 'collectionAchieved' },
-  { key: 'collectionPending' },
-  { key: 'collectionPercent' },
-  { key: 'action' }
+  { key: 'salesPerson', label: 'Sales Person' },
+  { key: 'type', label: 'Type' },
+  { key: 'month', label: 'Month' },
+  { key: 'year', label: 'Year' },
+  { key: 'revenueTarget', label: 'Revenue Target' },
+  { key: 'revenueAchieved', label: 'Revenue Achieved' },
+  { key: 'revenuePending', label: 'Revenue Pending' },
+  { key: 'revenuePercent', label: 'Revenue %' },
+  { key: 'collectionTarget', label: 'Collection Target' },
+  { key: 'collectionAchieved', label: 'Collection Achieved' },
+  { key: 'collectionPending', label: 'Collection Pending' },
+  { key: 'collectionPercent', label: 'Collection %' },
+  { key: 'action', label: 'Actions' }
 ];
 const targetWidths = {
   salesPerson: 190,
@@ -426,14 +426,15 @@ export default function SalesTargets() {
               </colgroup>
               <thead>
                 <tr>
-                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={yearlyHead('salesPerson')}></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('year', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyRevenue', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyCollection', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyRevenue', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyCollection', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('monthlyRows', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={yearlyHead('yearlyRows', 'center')}></th>
+                  {yearlyColumns.map((column) => (
+                    <th
+                      key={column.key}
+                      className={`table-header-cell ${column.key === 'salesPerson' ? 'table-text-cell table-sticky-first sticky-sales-person' : 'table-number-cell'}`}
+                      style={yearlyHead(column.key, column.key === 'salesPerson' ? 'left' : 'center')}
+                    >
+                      <span style={column.key === 'salesPerson' ? firstHeaderLabelStyle : headerLabelStyle}>{column.label}</span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -534,19 +535,24 @@ export default function SalesTargets() {
               </colgroup>
               <thead>
                 <tr>
-                  <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={targetHead('salesPerson')}></th>
-                  <th className="table-header-cell table-status-cell" style={targetHead('type', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('month', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('year', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('revenueTarget', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('revenueAchieved', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('revenuePending', 'center')}></th>
-                  <th className="table-header-cell table-percent-cell" style={targetHead('revenuePercent', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('collectionTarget', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('collectionAchieved', 'center')}></th>
-                  <th className="table-header-cell table-number-cell" style={targetHead('collectionPending', 'center')}></th>
-                  <th className="table-header-cell table-percent-cell" style={targetHead('collectionPercent', 'center')}></th>
-                  <th className="table-header-cell table-actions-cell" style={targetHead('action', 'center')}></th>
+                  {targetColumns.map((column) => {
+                    const className =
+                      column.key === 'salesPerson'
+                        ? 'table-header-cell table-text-cell table-sticky-first sticky-sales-person'
+                        : column.key === 'type'
+                          ? 'table-header-cell table-status-cell'
+                          : column.key === 'revenuePercent' || column.key === 'collectionPercent'
+                            ? 'table-header-cell table-percent-cell'
+                            : column.key === 'action'
+                              ? 'table-header-cell table-actions-cell'
+                              : 'table-header-cell table-number-cell';
+                    const align = column.key === 'salesPerson' ? 'left' : column.key === 'action' ? 'center' : 'center';
+                    return (
+                      <th key={column.key} className={className} style={targetHead(column.key, align)}>
+                        <span style={column.key === 'salesPerson' ? firstHeaderLabelStyle : headerLabelStyle}>{column.label}</span>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
