@@ -175,6 +175,8 @@ const shell = {
     width: '100%',
     textAlign: 'left',
     display: 'block',
+    WebkitAppearance: 'none',
+    appearance: 'none',
     fontSize: '11px',
     fontWeight: 700,
     cursor: 'pointer',
