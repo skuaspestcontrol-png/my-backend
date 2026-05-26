@@ -404,7 +404,7 @@ const getCustomerMobile = (customer) => normalizePhoneNumber(customer.mobileNumb
 const getCustomerName = (customer) => customer.displayName || customer.name || customer.companyName || customer.contactPersonName || '';
 const ROW_ACTION_MENU_APPROX_WIDTH = 170;
 const ROW_ACTION_MENU_APPROX_HEIGHT = 190;
-const ROW_ACTION_MENU_GAP = 8;
+const ROW_ACTION_MENU_GAP = 4;
 const FOLLOWUP_TYPES = ['Phone Call', 'WhatsApp', 'Site Visit', 'Email', 'Meeting'];
 const FOLLOWUP_OUTCOMES = ['Callback Required', 'Interested', 'Not Interested', 'Converted', 'No Response'];
 const mobileLeadColumnWidths = {
