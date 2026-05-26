@@ -1055,11 +1055,23 @@ export default function ContractDashboard() {
                       style={shell.actionBtn}
                       onClick={(event) => {
                         event.stopPropagation();
-                        const menuWidth = 184;
-                        const menuHeight = 166;
+                        const menuWidth = 170;
+                        const menuHeight = 190;
+                        const menuGap = 4;
                         const rect = event.currentTarget.getBoundingClientRect();
-                        const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
-                        const top = rect.top >= menuHeight ? rect.top - menuHeight + 8 : rect.bottom;
+                        const viewportPadding = menuGap;
+                        const left = Math.max(
+                          viewportPadding,
+                          Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - viewportPadding)
+                        );
+                        const belowTop = rect.bottom + menuGap;
+                        const aboveTop = rect.top - menuHeight - menuGap;
+                        const maxTop = window.innerHeight - menuHeight - viewportPadding;
+                        const hasRoomBelow = belowTop + menuHeight <= window.innerHeight - viewportPadding;
+                        const top = Math.max(
+                          viewportPadding,
+                          Math.min(maxTop, hasRoomBelow ? belowTop : aboveTop)
+                        );
                         setActionMenu((prev) => (prev?.rowId === row.id ? null : { rowId: row.id, row, top, left }));
                       }}
                     >
