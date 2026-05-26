@@ -143,9 +143,9 @@ const shell = {
   typePill: { borderRadius: '8px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, background: 'rgba(34,197,94,0.2)', color: '#15803d' },
   amountGreen: { color: '#16a34a', fontWeight: 800 },
   amountRed: { color: '#dc2626', fontWeight: 800 },
-  actionBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#374151', borderRadius: '8px', minHeight: '24px', padding: '0 7px', fontSize: '9px', fontWeight: 700, cursor: 'pointer' },
-  actionMenu: { position: 'fixed', width: '184px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 5000, overflow: 'hidden', padding: '4px' },
-  actionMenuItem: { width: '100%', border: 'none', borderRadius: '6px', background: '#fff', textAlign: 'left', padding: '9px 10px', fontSize: '11px', fontWeight: 700, color: '#1f2937', cursor: 'pointer', lineHeight: 1.35, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' },
+  actionBtn: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#1f2937', borderRadius: '8px', minWidth: '78px', minHeight: '28px', padding: '0 7px 0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, lineHeight: 1 },
+  actionMenu: { position: 'fixed', width: '170px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 5000, overflow: 'hidden' },
+  actionMenuItem: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   actionMenuDanger: { color: '#dc2626' },
   footer: { padding: '8px 12px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', flexWrap: 'wrap', borderTop: '1px solid var(--color-border)', borderBottomLeftRadius: '14px', borderBottomRightRadius: '14px', background: '#fff', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   footText: { fontSize: '12px', color: '#475569', fontWeight: 700 },
@@ -1061,7 +1061,7 @@ export default function ContractDashboard() {
                         setActionMenu((prev) => (prev?.rowId === row.id ? null : { rowId: row.id, row, top, left }));
                       }}
                     >
-                      Actions
+                      Action
                     </button>
                   </div>
                 </td>
