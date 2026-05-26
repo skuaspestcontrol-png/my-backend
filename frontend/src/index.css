@@ -219,6 +219,46 @@ body {
   line-height: 1.15;
 }
 
+.crm-action-chip {
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.crm-action-chip:hover:not(:disabled),
+.crm-action-chip:focus-visible:not(:disabled) {
+  border-color: rgba(148, 163, 184, 0.9) !important;
+  background: rgba(248, 250, 252, 1) !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+  transform: translateY(-1px);
+}
+
+.crm-action-chip:focus-visible {
+  outline: none;
+}
+
+.crm-action-chip .crm-action-chip-icon {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.crm-action-chip:hover:not(:disabled) .crm-action-chip-icon,
+.crm-action-chip:focus-visible:not(:disabled) .crm-action-chip-icon {
+  background: #fff !important;
+  border-color: rgba(148, 163, 184, 0.9) !important;
+}
+
+.crm-action-menu-panel {
+  overflow: hidden;
+}
+
+.crm-action-menu-item {
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.crm-action-menu-item:hover:not(:disabled),
+.crm-action-menu-item:focus-visible:not(:disabled) {
+  background: rgba(239, 68, 68, 0.08) !important;
+  color: #111827 !important;
+}
+
 .table-text-cell,
 .table-name-cell {
   text-align: left !important;

@@ -301,11 +301,11 @@ const s = {
     boxSizing: 'border-box'
   },
   rowActionWrap: { position: 'relative', display: 'inline-flex', justifyContent: 'center', width: '100%' },
-  rowActionButton: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#1f2937', borderRadius: '8px', minWidth: '78px', minHeight: '28px', padding: '0 7px 0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, lineHeight: 1 },
+  rowActionButton: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#1f2937', borderRadius: '10px', minWidth: '86px', minHeight: '32px', padding: '0 8px 0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 700, lineHeight: 1, transition: 'background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease' },
   rowActionIconBox: { width: '16px', height: '16px', borderRadius: '5px', border: '1px solid #d1d5db', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', flexShrink: 0 },
   rowActionMenu: { position: 'fixed', width: '170px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 1200, overflow: 'hidden' },
-  rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
-  rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px' },
+  rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '6px 10px', fontSize: '11px', fontWeight: 600, lineHeight: 1.1, minHeight: '30px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
+  rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '6px 10px', fontSize: '11px', fontWeight: 600, lineHeight: 1.1, minHeight: '30px' },
   pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' },
   paginationInfo: { color: '#64748b', fontSize: '12px', fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
@@ -2530,18 +2530,20 @@ export default function LeadCapture() {
                       <div style={s.rowActionWrap} data-lead-row-action="true">
                         <button
                           type="button"
+                          className="crm-action-chip"
                           style={rowActionButtonStyle}
                           onClick={(event) => openRowActionMenu(event, lead._id)}
                           title="Manage lead"
                         >
                           <span>Action</span>
-                          <span style={rowActionIconBoxStyle}>
+                          <span className="crm-action-chip-icon" style={rowActionIconBoxStyle}>
                             <ChevronDown size={11} />
                           </span>
                         </button>
                         {rowActionLeadId === lead._id && rowActionMenuPosition
                           ? createPortal(
                             <div
+                              className="crm-action-menu-panel"
                               style={{
                                 ...s.rowActionMenu,
                                 left: `${rowActionMenuPosition.left}px`,
@@ -2551,6 +2553,7 @@ export default function LeadCapture() {
                             >
                               <button
                                 type="button"
+                                className="crm-action-menu-item"
                                 style={s.rowActionMenuBtn}
                                 onClick={() => {
                                   openViewLeadPanel(lead);
@@ -2561,6 +2564,7 @@ export default function LeadCapture() {
                               </button>
                               <button
                                 type="button"
+                                className="crm-action-menu-item"
                                 style={s.rowActionMenuBtn}
                                 onClick={() => {
                                   openEditLeadModal(lead);
@@ -2571,6 +2575,7 @@ export default function LeadCapture() {
                               </button>
                               <button
                                 type="button"
+                                className="crm-action-menu-item"
                                 style={s.rowActionMenuBtn}
                                 onClick={() => {
                                   openLogFollowupModal(lead);
@@ -2581,6 +2586,7 @@ export default function LeadCapture() {
                               </button>
                               <button
                                 type="button"
+                                className="crm-action-menu-item"
                                 style={s.rowActionMenuBtn}
                                 onClick={() => {
                                   openQuotationForLead(lead);
@@ -2591,6 +2597,7 @@ export default function LeadCapture() {
                               </button>
                               <button
                                 type="button"
+                                className="crm-action-menu-item"
                                 style={s.rowActionMenuBtn}
                                 onClick={() => {
                                   sendWelcomeMessageToLead(lead);

@@ -143,7 +143,7 @@ const shell = {
   typePill: { borderRadius: '8px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, background: 'rgba(34,197,94,0.2)', color: '#15803d' },
   amountGreen: { color: '#16a34a', fontWeight: 800 },
   amountRed: { color: '#dc2626', fontWeight: 800 },
-  actionBtn: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#1f2937', borderRadius: '8px', minWidth: '78px', minHeight: '28px', padding: '0 7px 0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, lineHeight: 1 },
+  actionBtn: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#1f2937', borderRadius: '10px', minWidth: '86px', minHeight: '32px', padding: '0 8px 0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 700, lineHeight: 1, transition: 'background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease' },
   actionIconBox: { width: '16px', height: '16px', borderRadius: '5px', border: '1px solid #d1d5db', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', flexShrink: 0 },
   actionMenu: { position: 'fixed', width: '170px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 5000, overflow: 'hidden' },
   actionMenuItem: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '4px 8px', fontSize: '10px', fontWeight: 600, lineHeight: 1.1, minHeight: '26px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
@@ -1051,6 +1051,7 @@ export default function ContractDashboard() {
                   <div style={{ position: 'relative', display: 'inline-flex' }} data-contract-row-action="true">
                     <button
                       type="button"
+                      className="crm-action-chip"
                       style={shell.actionBtn}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -1063,7 +1064,7 @@ export default function ContractDashboard() {
                       }}
                     >
                       <span>Action</span>
-                      <span style={shell.actionIconBox}>
+                      <span className="crm-action-chip-icon" style={shell.actionIconBox}>
                         <ChevronDown size={11} />
                       </span>
                     </button>
@@ -1265,6 +1266,7 @@ export default function ContractDashboard() {
 
       {actionMenu ? createPortal(
         <div
+          className="crm-action-menu-panel"
           data-contract-action-menu="true"
           style={{
             ...shell.actionMenu,
@@ -1274,6 +1276,7 @@ export default function ContractDashboard() {
         >
           <button
             type="button"
+            className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
               navigate('/sales/invoices', { state: { openInvoiceNumber: actionMenu.row.contractNo, fromContract: true } });
@@ -1284,6 +1287,7 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
+            className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
               navigate('/sales/invoices', { state: { openInvoiceNumber: actionMenu.row.contractNo, fromContract: true, editContract: true } });
@@ -1294,6 +1298,7 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
+            className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
               openPdfPreview(
@@ -1309,6 +1314,7 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
+            className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
               openPdfPreview(
