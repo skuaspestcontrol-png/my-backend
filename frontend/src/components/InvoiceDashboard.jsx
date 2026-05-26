@@ -254,7 +254,7 @@ const shell = {
   statusBadge: { fontWeight: 700 },
   menu: { position: 'absolute', right: 16, top: '56px', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', minWidth: '200px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 30, overflow: 'hidden' },
   menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
-  rowActionWrap: { position: 'relative', display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center' },
+  rowActionWrap: { position: 'relative', display: 'block', width: '100%', textAlign: 'left' },
   rowActionButton: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '30px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   rowActionMenu: { position: 'fixed', minWidth: '168px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 3500, overflow: 'hidden' },
   popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '250px', zIndex: 30 },
@@ -2473,11 +2473,11 @@ export default function InvoiceDashboard() {
                     </td>
                   );
                 })}
-                <td style={{ ...shell.cell, ...getColumnStyle('action'), textAlign: 'center', overflow: 'visible' }} data-label="Action">
+                <td style={{ ...shell.cell, ...getColumnStyle('action'), textAlign: 'left', overflow: 'visible' }} data-label="Action">
                   <div style={shell.rowActionWrap}>
                     <button
                       type="button"
-                      style={rowActionButtonStyle}
+                      style={{ ...rowActionButtonStyle, margin: 0 }}
                       onClick={() => openInvoicePdfPreview(invoice)}
                       title="Preview Invoice"
                     >
