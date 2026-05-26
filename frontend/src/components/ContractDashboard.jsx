@@ -983,7 +983,7 @@ export default function ContractDashboard() {
                   <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
                 </td> : null}
                 {visibleColumns.customer ? <td style={{ ...shell.td, ...mobileStackCellStyle, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px', width: '100%' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', gap: '2px', width: '100%' }}>
                     {row.status === 'Active' ? (
                       <button
                         type="button"
@@ -991,15 +991,15 @@ export default function ContractDashboard() {
                           event.stopPropagation();
                           openCustomerSummary(row);
                         }}
-                        style={{ ...shell.customerLinkBtn, color: '#111827' }}
+                        style={{ ...shell.customerLinkBtn, color: '#111827', textAlign: 'left', alignSelf: 'flex-start' }}
                       >
                         {row.customer}
                       </button>
                     ) : (
-                      <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'visible', textOverflow: 'clip', whiteSpace: 'normal', lineHeight: 1.25, wordBreak: 'break-word', width: '100%' }}>{row.customer}</div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'visible', textOverflow: 'clip', whiteSpace: 'normal', lineHeight: 1.25, wordBreak: 'break-word', width: '100%', textAlign: 'left' }}>{row.customer}</div>
                     )}
                     {String(row.customer || '').trim().length <= 24 ? (
-                      <div style={{ ...shell.subText, width: '100%', textAlign: 'left' }}>{row.mobile || '-'}</div>
+                      <div style={{ ...shell.subText, width: '100%', textAlign: 'left', alignSelf: 'flex-start' }}>{row.mobile || '-'}</div>
                     ) : null}
                   </div>
                 </td> : null}
