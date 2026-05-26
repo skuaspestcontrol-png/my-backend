@@ -10258,16 +10258,16 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       pdfFont.bold = 'Helvetica-Bold';
     }
 
-    const companyName = String(settings?.gstCompanyName || settings?.companyName || 'Skuas Pest Control Private Limited').trim();
-    const companyAddress = String(settings?.gstBillingAddress || settings?.companyAddress || '22 Ground Floor,Sarai Jullena,Okhla Road').trim();
+    const companyName = String(settings?.gstCompanyName || 'Skuas Pest Control Private Limited').trim();
+    const companyAddress = String(settings?.gstBillingAddress || '22 Ground Floor,Sarai Jullena,Okhla Road').trim();
     const companyCityLine = [
-      String(settings?.gstCity || settings?.companyCity || 'New Delhi').trim(),
-      String(settings?.gstState || settings?.companyState || 'Delhi').trim()
+      String(settings?.gstCity || 'New Delhi').trim(),
+      String(settings?.gstState || 'Delhi').trim()
     ].filter(Boolean).join(',');
-    const companyPin = String(settings?.gstPincode || settings?.companyPincode || '110025').trim();
-    const companyEmail = String(settings?.gstEmail || settings?.companyEmail || 'skuaspestcontrol@gmail.com').trim();
-    const companyPhone = String(settings?.gstPhone || settings?.companyMobile || '9316666656').trim();
-    const companyAlternatePhone = String(settings?.gstAlternatePhone || settings?.nonGstAlternatePhone || '9316315315').trim();
+    const companyPin = String(settings?.gstPincode || '110025').trim();
+    const companyEmail = String(settings?.gstEmail || 'skuaspestcontrol@gmail.com').trim();
+    const companyPhone = String(settings?.gstPhone || '9316666656').trim();
+    const companyAlternatePhone = String(settings?.gstAlternatePhone || '9316315315').trim();
     const companyWebsite = String(settings?.companyWebsite || 'www.skuaspestcontrol.com').trim();
     const companyGst = String(settings?.companyGstNumber || '07ABMCS7628G1ZW').trim();
     const primaryColor = String(settings?.brandingAccentColor || '#9F174D').trim() || '#9F174D';
