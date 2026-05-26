@@ -1056,7 +1056,7 @@ export default function ContractDashboard() {
                       onClick={(event) => {
                         event.stopPropagation();
                         const menuWidth = 184;
-                        const menuHeight = 190;
+                        const menuHeight = 166;
                         const rect = event.currentTarget.getBoundingClientRect();
                         const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
                         const top = rect.top >= menuHeight ? rect.top - menuHeight : rect.bottom;
