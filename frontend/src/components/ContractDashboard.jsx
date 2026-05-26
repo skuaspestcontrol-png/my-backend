@@ -1059,7 +1059,7 @@ export default function ContractDashboard() {
                         const menuHeight = 166;
                         const rect = event.currentTarget.getBoundingClientRect();
                         const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
-                        const top = rect.top >= menuHeight ? rect.top - menuHeight : rect.bottom;
+                        const top = rect.top >= menuHeight ? rect.top - menuHeight + 8 : rect.bottom;
                         setActionMenu((prev) => (prev?.rowId === row.id ? null : { rowId: row.id, row, top, left }));
                       }}
                     >
