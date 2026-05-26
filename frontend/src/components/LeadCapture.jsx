@@ -2608,6 +2608,7 @@ export default function LeadCapture() {
                               </button>
                               <button
                                 type="button"
+                                className="crm-action-menu-item"
                                 style={s.rowActionMenuBtn}
                                 onClick={() => {
                                   sendWelcomeEmailToLead(lead);
@@ -2618,6 +2619,7 @@ export default function LeadCapture() {
                               </button>
                               <button
                                 type="button"
+                                className="crm-action-menu-item"
                                 style={s.rowActionMenuBtn}
                                 onClick={() => {
                                   convertToContract(lead);
