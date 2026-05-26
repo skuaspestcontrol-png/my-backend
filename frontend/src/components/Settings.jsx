@@ -431,29 +431,29 @@ const shell = {
     fontWeight: 700,
     lineHeight: 1.5
   },
-  twoCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px 14px' },
-  threeCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px 14px' },
-  fourCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px 14px' },
-  field: { display: 'grid', gap: '6px' },
-  fieldLabel: { margin: 0, fontSize: '11px', color: '#4b5563', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  twoCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px 12px' },
+  threeCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '10px 12px' },
+  fourCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px 12px' },
+  field: { display: 'grid', gap: '5px' },
+  fieldLabel: { margin: 0, fontSize: '10px', color: '#4b5563', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
   input: {
     width: '100%',
-    minHeight: '44px',
-    borderRadius: '12px',
+    minHeight: '40px',
+    borderRadius: '10px',
     border: '1px solid rgba(15, 23, 42, 0.12)',
     background: '#fff',
-    padding: '9px 12px',
-    fontSize: '14px',
+    padding: '8px 11px',
+    fontSize: '13px',
     color: 'var(--text)'
   },
   textArea: {
     width: '100%',
-    minHeight: '66px',
-    borderRadius: '12px',
+    minHeight: '58px',
+    borderRadius: '10px',
     border: '1px solid rgba(15, 23, 42, 0.12)',
     background: '#fff',
-    padding: '9px 12px',
-    fontSize: '14px',
+    padding: '8px 11px',
+    fontSize: '13px',
     color: 'var(--text)',
     resize: 'vertical'
   },
@@ -461,15 +461,15 @@ const shell = {
     borderRadius: '16px',
     border: '1px dashed rgba(15, 23, 42, 0.16)',
     background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.92) 100%)',
-    padding: '14px',
+    padding: '12px',
     display: 'grid',
-    gap: '10px'
+    gap: '8px'
   },
-  profileRow: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' },
+  profileRow: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
   profilePreview: {
-    width: '88px',
-    height: '88px',
-    borderRadius: '12px',
+    width: '80px',
+    height: '80px',
+    borderRadius: '10px',
     border: '1px solid var(--border)',
     display: 'flex',
     alignItems: 'center',
@@ -482,14 +482,14 @@ const shell = {
   },
   profileImg: { width: '100%', height: '100%', objectFit: 'contain' },
   tinyButton: {
-    minHeight: '40px',
-    borderRadius: '10px',
+    minHeight: '36px',
+    borderRadius: '9px',
     border: '1px solid rgba(15, 23, 42, 0.14)',
     background: '#fff',
     color: 'var(--color-primary-dark)',
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: 800,
-    padding: '0 14px',
+    padding: '0 12px',
     cursor: 'pointer'
   },
   tinyButtonGhost: { border: '1px solid rgba(17, 17, 17, 0.2)', background: '#fff', color: 'var(--text)' },
@@ -1364,7 +1364,7 @@ export default function Settings({ modalMode = false }) {
 
   const renderBusinessIdentity = () => (
     <>
-      <div style={shell.twoCol}>
+      <div style={{ ...shell.twoCol, alignItems: 'start' }}>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Profile Picture</p>
           <div style={shell.profileCard}>
