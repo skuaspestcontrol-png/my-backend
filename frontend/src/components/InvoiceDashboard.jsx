@@ -760,7 +760,8 @@ export default function InvoiceDashboard() {
   };
   const getColumnAlign = (columnKey) => {
     if (columnKey === 'checkbox') return 'center';
-    if (columnKey === 'status' || columnKey === 'action') return 'left';
+    if (columnKey === 'status') return 'left';
+    if (columnKey === 'action') return 'center';
     return 'left';
   };
   const getColumnStyle = (columnKey) => {
@@ -2472,8 +2473,8 @@ export default function InvoiceDashboard() {
                     </td>
                   );
                 })}
-                <td style={{ ...shell.cell, ...getColumnStyle('action'), overflow: 'visible' }} data-label="Action">
-                  <div style={shell.rowActionWrap}>
+                <td style={{ ...shell.cell, ...getColumnStyle('action'), textAlign: 'center', overflow: 'visible' }} data-label="Action">
+                  <div style={{ ...shell.rowActionWrap, width: '100%' }}>
                     <button
                       type="button"
                       style={rowActionButtonStyle}
