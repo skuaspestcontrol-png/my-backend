@@ -191,7 +191,8 @@ const shell = {
   empCode: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
   statusBtns: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px', width: '100%' },
   statusBtn: {
-    minHeight: '30px',
+    minHeight: '26px',
+    height: '26px',
     minWidth: 0,
     borderRadius: '8px',
     border: '1px solid #D1D5DB',
@@ -201,6 +202,7 @@ const shell = {
     fontSize: '11px',
     fontWeight: 800,
     padding: '0 6px',
+    lineHeight: 1,
     textTransform: 'uppercase',
     letterSpacing: '0.04em'
   },
@@ -213,6 +215,19 @@ const shell = {
     padding: '0 10px',
     fontSize: '12px',
     color: '#0f172a'
+  },
+  timeInput: {
+    minHeight: '28px',
+    height: '28px',
+    width: '100%',
+    borderRadius: '8px',
+    border: '1px solid #D1D5DB',
+    background: '#fff',
+    padding: '0 8px',
+    fontSize: '12px',
+    color: '#0f172a',
+    lineHeight: 1,
+    boxSizing: 'border-box'
   },
   hoursBadge: {
     display: 'inline-flex',
@@ -853,7 +868,7 @@ export default function Attendance() {
                       type="time"
                       value={record.checkIn || ''}
                       disabled={timeDisabled}
-                      style={shell.input}
+                      style={shell.timeInput}
                       onChange={(event) => updateRecordField(employeeId, 'checkIn', event.target.value)}
                       onBlur={() => saveRecord(employeeId)}
                     />
@@ -863,7 +878,7 @@ export default function Attendance() {
                       type="time"
                       value={record.checkOut || ''}
                       disabled={timeDisabled}
-                      style={shell.input}
+                      style={shell.timeInput}
                       onChange={(event) => updateRecordField(employeeId, 'checkOut', event.target.value)}
                       onBlur={() => saveRecord(employeeId)}
                     />
