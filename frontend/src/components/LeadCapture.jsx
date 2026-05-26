@@ -1238,6 +1238,38 @@ export default function LeadCapture() {
     window.open(`https://wa.me/91${whatsappNumber}?text=${encoded}`, '_blank', 'noopener,noreferrer');
   };
 
+  const sendWelcomeEmailToLead = async (lead) => {
+    const recipientEmail = String(lead?.emailId || lead?.email || '').trim();
+    if (!recipientEmail) {
+      window.alert('Lead email address is required to share welcome email.');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/email/send`, {
+        moduleType: 'lead',
+        moduleName: 'Lead Master',
+        templateType: 'lead_welcome',
+        recipientEmail,
+        recipientName: lead.customerName || 'Customer',
+        recipientType: 'Customer',
+        sentByUser: localStorage.getItem('portal_user_name') || 'User',
+        contextData: {
+          customer_name: lead.customerName || 'Customer',
+          customer_email: recipientEmail,
+          customer_phone: getLeadMobile(lead) || '',
+          service_type: lead.pestIssue || '',
+          address: lead.address || '',
+          company_name: 'SKUAS Pest Control'
+        }
+      });
+      window.alert(response.data?.success ? 'Welcome email sent successfully.' : 'Welcome email queued.');
+    } catch (error) {
+      console.error('Failed to send lead welcome email', error);
+      window.alert(error?.response?.data?.error || 'Could not send welcome email.');
+    }
+  };
+
   const convertToContract = async (lead) => {
     if (lead?._id) {
       try {
@@ -2566,6 +2598,16 @@ export default function LeadCapture() {
                                 }}
                               >
                                 Send Welcome Message
+                              </button>
+                              <button
+                                type="button"
+                                style={s.rowActionMenuBtn}
+                                onClick={() => {
+                                  sendWelcomeEmailToLead(lead);
+                                  closeRowActionMenu();
+                                }}
+                              >
+                                Share Email
                               </button>
                               <button
                                 type="button"
