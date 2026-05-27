@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { applyBrandingTheme, saveBrandingSettings } from '../utils/brandingTheme';
+import { applyBrandingTheme, loadBrandingSettings, pickBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -17,7 +17,7 @@ export default function Login() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
-  const [settings, setSettings] = useState({});
+  const [settings, setSettings] = useState(() => loadBrandingSettings() || {});
   const [logoBroken, setLogoBroken] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
@@ -33,16 +33,55 @@ export default function Login() {
           axios.get(`${API_BASE_URL}/api/settings`),
           axios.get(`${API_BASE_URL}/api/employees`)
         ]);
-        setSettings(settingsRes.data || {});
+        const cached = loadBrandingSettings() || {};
+        const nextSettings = {
+          ...cached,
+          ...settingsRes.data,
+          ...pickBrandingSettings({ ...cached, ...settingsRes.data }),
+          dashboardImageUrl: String(settingsRes.data?.dashboardImageUrl || cached.dashboardImageUrl || '').trim(),
+          companyName: String(settingsRes.data?.companyName || cached.companyName || '').trim(),
+          brandingAppearance: String(settingsRes.data?.brandingAppearance || cached.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
+          brandingAccentColor: String(settingsRes.data?.brandingAccentColor || cached.brandingAccentColor || '#EF4444').trim() || '#EF4444'
+        };
+        setSettings(nextSettings);
         setLogoBroken(false);
-        applyBrandingTheme(settingsRes.data || {});
-        saveBrandingSettings(settingsRes.data || {});
+        applyBrandingTheme(nextSettings || {});
+        saveBrandingSettings(nextSettings || {});
         setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
       } catch (error) {
         console.error('Could not load settings', error);
       }
     };
     fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    const syncBranding = () => {
+      const cached = loadBrandingSettings();
+      if (!cached) return;
+      setSettings((prev) => ({
+        ...prev,
+        ...cached,
+        dashboardImageUrl: String(cached.dashboardImageUrl || prev.dashboardImageUrl || '').trim(),
+        companyName: String(cached.companyName || prev.companyName || '').trim(),
+        brandingAppearance: String(cached.brandingAppearance || prev.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
+        brandingAccentColor: String(cached.brandingAccentColor || prev.brandingAccentColor || '#EF4444').trim() || '#EF4444'
+      }));
+      setLogoBroken(false);
+    };
+
+    window.addEventListener('branding-sync', syncBranding);
+    window.addEventListener('storage', syncBranding);
+    window.addEventListener('focus', syncBranding);
+    window.addEventListener('pageshow', syncBranding);
+    syncBranding();
+
+    return () => {
+      window.removeEventListener('branding-sync', syncBranding);
+      window.removeEventListener('storage', syncBranding);
+      window.removeEventListener('focus', syncBranding);
+      window.removeEventListener('pageshow', syncBranding);
+    };
   }, []);
 
   useEffect(() => {
