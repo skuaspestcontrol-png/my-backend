@@ -589,7 +589,7 @@ export default function SalesTargets() {
                         <AppButton
                           variant="outline"
                           size="sm"
-                          iconLeft={<Edit3 size={14} />}
+                          iconLeft={<Edit3 size={12} />}
                           onClick={() => editRow(row)}
                           aria-label="Edit target"
                           title="Edit target"
@@ -599,7 +599,7 @@ export default function SalesTargets() {
                         <AppButton
                           variant="danger"
                           size="sm"
-                          iconLeft={<Trash2 size={14} />}
+                          iconLeft={<Trash2 size={12} />}
                           onClick={() => handleDelete(row.id)}
                           loading={saving}
                           aria-label="Delete target"
