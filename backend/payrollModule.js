@@ -3,6 +3,7 @@ const path = require('path');
 const PDFDocument = require('pdfkit');
 const { syncPayrollJsonFilesToMysql } = require('./lib/autoMigrate');
 const { normalizeIndianMobileNumber } = require('./lib/phone');
+const { resolveUploadAsset } = require('./quotationPdf');
 const { sendEmailMessage, normalizeEmailSettings } = require('./services/email.service');
 
 const round2 = (value) => Number((Number(value) || 0).toFixed(2));
@@ -823,7 +824,7 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     || company?.logoUrl
     || (Array.isArray(company?.logoCandidates) ? company.logoCandidates[0] : '')
   );
-  const resolvedLogoPath = tryResolveLocalUploadPath(logoUrl) || resolveUploadPath(logoUrl);
+  const resolvedLogoPath = resolveUploadAsset(logoUrl) || tryResolveLocalUploadPath(logoUrl) || resolveUploadPath(logoUrl);
   console.log('SALARY PDF logoUrl:', logoUrl);
   console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath);
   console.log('SALARY PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
