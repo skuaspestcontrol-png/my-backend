@@ -456,7 +456,7 @@ export default function Dashboard() {
             <h2 style={shell.panelTitle}>Lead Sources</h2>
             <span style={{ color: '#0f172a', fontWeight: 800, background: '#f1f5f9', borderRadius: '8px', padding: '4px 8px', fontSize: '13px' }}>{leadPipeline.sourceTotal} total</span>
           </div>
-          <div style={shell.donutWrap}>
+          <div style={{ ...shell.donutWrap, alignItems: 'flex-start' }}>
             <div
               style={{
                 ...shell.donut,
@@ -473,7 +473,7 @@ export default function Dashboard() {
                 <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800 }}>{leadPipeline.sourceTotal}</div>
               </div>
             </div>
-            <div style={{ display: 'grid', gap: '10px' }}>
+            <div style={{ display: 'grid', gap: '10px', alignContent: 'flex-start' }}>
               {leadPipeline.sourceSeries.length === 0 ? (
                 <div style={{ color: '#64748b', fontWeight: 700 }}>No lead source data available.</div>
               ) : leadPipeline.sourceSeries.map((entry, idx) => (
