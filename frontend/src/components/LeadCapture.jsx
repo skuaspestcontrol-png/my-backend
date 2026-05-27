@@ -2169,8 +2169,8 @@ export default function LeadCapture() {
     ? { width: '92px', minWidth: '92px', maxWidth: '92px' }
     : { width: '84px', minWidth: '84px', maxWidth: '84px' };
   const rowActionButtonStyle = isMobile
-    ? { ...s.rowActionButton, width: '78px', minWidth: '78px', minHeight: '30px', padding: '0 7px 0 9px', borderRadius: '8px', gap: '5px', fontSize: '11px' }
-    : s.rowActionButton;
+    ? { ...s.rowActionButton, width: '34px', minWidth: '34px', minHeight: '34px', padding: 0, borderRadius: '8px', justifyContent: 'center' }
+    : { ...s.rowActionButton, width: '34px', minWidth: '34px', minHeight: '34px', padding: 0, borderRadius: '8px', justifyContent: 'center' };
   const rowActionIconBoxStyle = isMobile
     ? { ...s.rowActionIconBox, width: '14px', height: '14px', borderRadius: '4px' }
     : s.rowActionIconBox;
@@ -2357,24 +2357,6 @@ export default function LeadCapture() {
                 </div>
               ) : null}
             </div>
-          </div>
-        </div>
-        <input
-          ref={importFileRef}
-          type="file"
-          accept=".csv,.json"
-          style={{ display: 'none' }}
-          onChange={importDataFromFile}
-        />
-
-        <div style={registerToolbarStyle}>
-          <div style={toolbarLeftStyle}>
-            <span style={s.toolLabel}>Lead Master</span>
-            <span style={s.toolbarMeta}>
-              {sortedLeads.length ? `${firstLeadRecord}-${lastLeadRecord} of ${sortedLeads.length} records` : '0 records'}
-            </span>
-          </div>
-          {!isMobile ? (
             <div style={{ position: 'relative' }}>
               <button
                 ref={customizeButtonRef}
@@ -2414,8 +2396,15 @@ export default function LeadCapture() {
                 </div>
               ) : null}
             </div>
-          ) : null}
+          </div>
         </div>
+        <input
+          ref={importFileRef}
+          type="file"
+          accept=".csv,.json"
+          style={{ display: 'none' }}
+          onChange={importDataFromFile}
+        />
 
         <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped">
           <table style={tableStyleTiny} className="crm-compact-table crm-stack-mobile">
@@ -2533,12 +2522,10 @@ export default function LeadCapture() {
                           className="crm-action-chip"
                           style={rowActionButtonStyle}
                           onClick={(event) => openRowActionMenu(event, lead._id)}
-                          title="Manage lead"
+                          title="More actions"
+                          aria-label="More actions"
                         >
-                          <span>Action</span>
-                          <span className="crm-action-chip-icon" style={rowActionIconBoxStyle}>
-                            <ChevronDown size={11} />
-                          </span>
+                          <MoreHorizontal size={14} />
                         </button>
                         {rowActionLeadId === lead._id && rowActionMenuPosition
                           ? createPortal(
@@ -2650,6 +2637,14 @@ export default function LeadCapture() {
               )}
             </tbody>
           </table>
+        </div>
+        <div style={registerToolbarStyle}>
+          <div style={toolbarLeftStyle}>
+            <span style={s.toolLabel}>Lead Master</span>
+            <span style={s.toolbarMeta}>
+              {sortedLeads.length ? `${firstLeadRecord}-${lastLeadRecord} of ${sortedLeads.length} records` : '0 records'}
+            </span>
+          </div>
         </div>
         <div style={s.pagination}>
           <div style={s.paginationActions}>
