@@ -529,8 +529,8 @@ const summarizeRecords = (records = [], employee, year, month, startDate = '', e
   const yearlyPayments = yearly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyInvoices = yearly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyQuotations = yearly.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
-  const monthlyRevenueAchieved = monthlyInvoices || monthlyQuotations || monthlyPayments;
-  const yearlyRevenueAchieved = yearlyInvoices || yearlyQuotations || yearlyPayments;
+  const monthlyRevenueAchieved = monthlyInvoices + monthlyQuotations + monthlyPayments;
+  const yearlyRevenueAchieved = yearlyInvoices + yearlyQuotations + yearlyPayments;
   return {
     employeeId: employee?.id || '',
     employeeName: employee?.name || 'Employee',
@@ -691,7 +691,7 @@ const buildMonthlyTrend = (context, year) => monthList.map((month) => {
   const monthlyQuotations = monthlyRecords.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
   const monthlyPayments = monthlyRecords.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
   const target = monthlyTargetRows.reduce((sum, row) => sum + num(row.revenueTarget), 0);
-  const achieved = monthlyInvoices || monthlyQuotations || monthlyPayments;
+  const achieved = monthlyInvoices + monthlyQuotations + monthlyPayments;
   return { month, label: monthLabel(month), target, achieved, achievementPercent: percent(achieved, target) };
 });
 const buildYearMatrix = (context, years = []) => years.map((year) => ({
@@ -805,6 +805,15 @@ router.use(async (_req, _res, next) => {
   } catch (error) {
     return next(error);
   }
+});
+
+router.use((req, res, next) => {
+  if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
 });
 
 router.get('/dashboard', async (req, res) => {
