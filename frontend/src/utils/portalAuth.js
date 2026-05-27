@@ -31,16 +31,8 @@ export const getPortalUserName = () => String(portalUserSnapshot?.name || '').tr
 export const getPortalUserId = () => String(portalUserSnapshot?.employeeId || portalUserSnapshot?.id || '').trim();
 
 export const buildPortalAuthHeaders = (user = portalUserSnapshot) => {
-  const currentUser = normalizePortalUser(user);
-  if (!currentUser) return {};
-  return {
-    'x-role': currentUser.role || 'Employee',
-    'x-portal-role': currentUser.role || 'Employee',
-    'x-user-name': currentUser.name || 'User',
-    'x-portal-user': currentUser.name || 'User',
-    'x-user-id': currentUser.employeeId || currentUser.id || '',
-    'x-employee-id': currentUser.employeeId || currentUser.id || ''
-  };
+  void user;
+  return {};
 };
 
 export const fetchPortalUser = async (apiBaseUrl = '') => {

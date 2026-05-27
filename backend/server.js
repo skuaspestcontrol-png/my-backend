@@ -153,7 +153,7 @@ app.use(cors({
     return callback(new Error('CORS origin denied'));
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-api-key", "x-admin-migration-token", "x-migration-token", "x-role", "x-portal-role", "x-user-name", "x-portal-user"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-api-key", "x-admin-migration-token", "x-migration-token"],
   credentials: true,
   maxAge: 600
 }));
@@ -381,7 +381,7 @@ const readAdminMigrationToken = (req) => String(
 ).trim();
 
 const isAdminRoleRequest = (req) => {
-  const role = String(req.portalUser?.role || req.headers['x-role'] || req.headers['x-portal-role'] || '').trim().toLowerCase();
+  const role = String(req.portalUser?.role || '').trim().toLowerCase();
   return role === 'admin';
 };
 
@@ -5534,8 +5534,8 @@ app.post('/api/attendance', async (req, res) => {
     : String(req.body?.employeeCode || '').trim();
   try {
     const stableExternalId = `ATT-${employeeId.replace(/[^a-zA-Z0-9_-]/g, '')}-${date.replace(/[^0-9-]/g, '')}`;
-    const actorName = String(req.portalUser?.name || req.headers['x-user-name'] || req.headers['x-portal-user'] || req.body?.actor || 'Admin').trim();
-    const portalRole = String(req.portalUser?.role || req.headers['x-portal-role'] || req.headers['x-role'] || '').trim();
+    const actorName = String(req.portalUser?.name || req.body?.actor || 'Admin').trim();
+    const portalRole = String(req.portalUser?.role || '').trim();
     const source = resolveAttendanceSource({
       source: req.body?.source,
       actorName,
@@ -7661,7 +7661,7 @@ const appendFollowUpNote = (record, note, createdBy = 'System') => {
   };
 };
 
-const readUserMeta = (req) => String(req?.body?.updatedBy || req?.portalUser?.name || req?.headers?.['x-user-name'] || 'System');
+const readUserMeta = (req) => String(req?.body?.updatedBy || req?.portalUser?.name || 'System');
 
 const syncInvoiceToMysql = async (invoice) => {
   if (!invoice || !invoice._id) return;

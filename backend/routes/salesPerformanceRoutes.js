@@ -76,7 +76,7 @@ const displayTargetLabel = (row = {}) => {
   if (year) return `${typeLabel} ${year}`;
   return typeLabel;
 };
-const requestActor = (req = {}) => text(req.portalUser?.name || req.headers?.['x-user-name'] || req.headers?.['x-portal-user'] || req.body?.actor || 'System');
+const requestActor = (req = {}) => text(req.portalUser?.name || req.body?.actor || 'System');
 const valueOf = (source, keys = []) => {
   for (const key of keys) {
     const raw = source?.[key];

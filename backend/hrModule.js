@@ -89,9 +89,9 @@ const rolePermissions = (rawRole) => {
   };
 };
 
-const getReqRole = (req) => normalizeText(req.portalUser?.role || req.headers['x-role'] || req.headers['x-portal-role'] || req.query.role || req.body?.role || 'employee');
-const getReqUserId = (req) => normalizeText(req.portalUser?.employeeId || req.headers['x-user-id'] || req.headers['x-employee-id'] || req.query.userId || req.query.employeeId || req.body?.employeeId || '');
-const getReqActor = (req) => normalizeText(req.portalUser?.name || req.headers['x-user-name'] || req.headers['x-portal-user'] || req.body?.actor || 'System');
+const getReqRole = (req) => normalizeText(req.portalUser?.role || req.query.role || req.body?.role || 'employee');
+const getReqUserId = (req) => normalizeText(req.portalUser?.employeeId || req.query.userId || req.query.employeeId || req.body?.employeeId || '');
+const getReqActor = (req) => normalizeText(req.portalUser?.name || req.body?.actor || 'System');
 
 const ensureFile = (filePath, defaultValue) => {
   if (fs.existsSync(filePath)) return;
