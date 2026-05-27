@@ -261,6 +261,22 @@ const shell = {
   customerTd: { padding: '9px 10px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 600, verticalAlign: 'top' },
   customerName: { margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' },
   viewBtn: { border: '1px solid #D1D5DB', background: '#fff', color: '#0f172a', borderRadius: '8px', minHeight: '28px', padding: '0 8px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' },
+  mobileAssignedCard: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '14px', background: '#fff', boxShadow: 'var(--shadow-soft)', overflow: 'hidden' },
+  mobileAssignedCardHeader: { padding: '12px 12px 10px', borderBottom: '1px solid rgba(226,232,240,0.9)', display: 'grid', gap: '6px' },
+  mobileAssignedCardTitle: { margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' },
+  mobileAssignedCardMeta: { display: 'grid', gap: '2px', fontSize: '12px', color: '#475569', fontWeight: 600, lineHeight: 1.35 },
+  mobileAssignedCardBody: { padding: '10px 12px 12px', display: 'grid', gap: '10px' },
+  mobileAssignedFieldGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
+  mobileAssignedField: { border: '1px solid rgba(226,232,240,0.9)', borderRadius: '10px', background: '#f8fafc', padding: '8px 10px', display: 'grid', gap: '2px' },
+  mobileAssignedLabel: { fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.25 },
+  mobileAssignedValue: { fontSize: '12px', fontWeight: 700, color: '#0f172a', lineHeight: 1.35, wordBreak: 'break-word' },
+  mobileAssignedExpandBtn: { border: '1px solid #D1D5DB', background: '#fff', color: '#0f172a', borderRadius: '10px', minHeight: '32px', padding: '0 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' },
+  mobileJobList: { display: 'grid', gap: '8px' },
+  mobileJobCard: { border: '1px solid rgba(226,232,240,0.95)', borderRadius: '12px', background: '#fff', padding: '10px', display: 'grid', gap: '8px' },
+  mobileJobTitleRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+  mobileJobTitle: { margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' },
+  mobileJobStatus: { fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  mobileJobActions: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
   expandedCell: { padding: '10px', background: '#fff', borderBottom: '1px solid var(--color-border)' },
   jobsTableWrap: { overflowX: 'auto', border: '1px solid rgba(148,163,184,0.18)', borderRadius: '12px', background: '#fff' },
   jobsTable: { width: '100%', borderCollapse: 'collapse', minWidth: '100%' },
@@ -1602,100 +1618,191 @@ export default function TechnicianPortal() {
           {jobs.length === 0 ? (
             <p style={shell.emptyText}>No active assigned jobs right now.</p>
           ) : (
-            <div style={customerTableWrapStyle}>
-              <table style={customerTableStyle} className="technician-assigned-jobs-table">
-                <thead>
-                  <tr>
-                    <th style={shell.customerTh}>Customer</th>
-                    <th style={shell.customerTh}>Mobile</th>
-                    <th style={shell.customerTh}>City/State</th>
-                    <th style={shell.customerTh}>Visits</th>
-                    <th style={shell.customerTh}>Next Visit</th>
-                    <th style={shell.customerTh}>Technician</th>
-                    <th style={shell.customerTh}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedCustomerWiseJobs.map((group) => (
-                    <React.Fragment key={group.key}>
-                      <tr>
-                        <td style={shell.customerTd}>
-                          <p style={shell.customerName}>{group.customerName}</p>
-                        </td>
-                        <td style={shell.customerTd}>{group.mobileNumber || '-'}</td>
-                        <td style={shell.customerTd}>{[group.city, group.state].filter((value) => value && value !== '-').join(', ') || '-'}</td>
-                        <td style={shell.customerTd}>{group.jobs.length}</td>
-                        <td style={shell.customerTd}>
-                          {group.jobs[0] ? `${formatDisplayDate(group.jobs[0].scheduledDate)} ${formatDisplayTime(group.jobs[0].scheduledTime)}` : '-'}
-                        </td>
-                        <td style={shell.customerTd}>{group.techniciansText}</td>
-                        <td style={shell.customerTd}>
-                          <button
-                            type="button"
-                            style={isMobile ? { ...shell.viewBtn, minWidth: '72px', width: 'auto', padding: '0 8px', fontSize: '10px', whiteSpace: 'nowrap' } : shell.viewBtn}
-                            onClick={() => setExpandedCustomerKey((prev) => (prev === group.key ? '' : group.key))}
-                          >
-                            {expandedCustomerKey === group.key ? 'Hide Jobs' : 'View Jobs'}
-                          </button>
-                        </td>
-                      </tr>
-                      {expandedCustomerKey === group.key ? (
+            isMobile ? (
+              <div style={{ display: 'grid', gap: '12px', marginTop: '12px' }}>
+                {paginatedCustomerWiseJobs.map((group) => {
+                  const firstJob = group.jobs[0] || null;
+                  const isExpanded = expandedCustomerKey === group.key;
+                  return (
+                    <div key={group.key} style={shell.mobileAssignedCard}>
+                      <div style={shell.mobileAssignedCardHeader}>
+                        <p style={shell.mobileAssignedCardTitle}>{group.customerName}</p>
+                        <div style={shell.mobileAssignedCardMeta}>
+                          <span>{group.mobileNumber || '-'}</span>
+                          <span>{[group.city, group.state].filter((value) => value && value !== '-').join(', ') || '-'}</span>
+                        </div>
+                      </div>
+                      <div style={shell.mobileAssignedCardBody}>
+                        <div style={shell.mobileAssignedFieldGrid}>
+                          <div style={shell.mobileAssignedField}>
+                            <span style={shell.mobileAssignedLabel}>Visits</span>
+                            <span style={shell.mobileAssignedValue}>{group.jobs.length}</span>
+                          </div>
+                          <div style={shell.mobileAssignedField}>
+                            <span style={shell.mobileAssignedLabel}>Next Visit</span>
+                            <span style={shell.mobileAssignedValue}>{firstJob ? `${formatDisplayDate(firstJob.scheduledDate)} ${formatDisplayTime(firstJob.scheduledTime)}` : '-'}</span>
+                          </div>
+                          <div style={shell.mobileAssignedField}>
+                            <span style={shell.mobileAssignedLabel}>Technician</span>
+                            <span style={shell.mobileAssignedValue}>{group.techniciansText}</span>
+                          </div>
+                          <div style={shell.mobileAssignedField}>
+                            <span style={shell.mobileAssignedLabel}>Jobs</span>
+                            <span style={shell.mobileAssignedValue}>{group.jobs.length ? 'Open list below' : '-'}</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          style={shell.mobileAssignedExpandBtn}
+                          onClick={() => setExpandedCustomerKey((prev) => (prev === group.key ? '' : group.key))}
+                        >
+                          {isExpanded ? 'Hide Jobs' : 'View Jobs'}
+                        </button>
+                        {isExpanded ? (
+                          <div style={shell.mobileJobList}>
+                            {group.jobs.map((job) => (
+                              <div key={job._id} style={shell.mobileJobCard}>
+                                <div style={shell.mobileJobTitleRow}>
+                                  <p style={shell.mobileJobTitle}>{job.scheduleVisit || 'Job'}</p>
+                                  <span style={shell.mobileJobStatus}>{job.status || '-'}</span>
+                                </div>
+                                <div style={shell.mobileAssignedFieldGrid}>
+                                  <div style={shell.mobileAssignedField}>
+                                    <span style={shell.mobileAssignedLabel}>Date</span>
+                                    <span style={shell.mobileAssignedValue}>{formatDisplayDate(job.scheduledDate)}</span>
+                                  </div>
+                                  <div style={shell.mobileAssignedField}>
+                                    <span style={shell.mobileAssignedLabel}>Time</span>
+                                    <span style={shell.mobileAssignedValue}>{formatDisplayTime(job.scheduledTime)}</span>
+                                  </div>
+                                  <div style={shell.mobileAssignedField}>
+                                    <span style={shell.mobileAssignedLabel}>Technician</span>
+                                    <span style={shell.mobileAssignedValue}>{job.technicianName || '-'}</span>
+                                  </div>
+                                  <div style={shell.mobileAssignedField}>
+                                    <span style={shell.mobileAssignedLabel}>Action</span>
+                                    <span style={shell.mobileAssignedValue}>Ready</span>
+                                  </div>
+                                </div>
+                                <div style={shell.mobileJobActions}>
+                                  <button type="button" style={shell.startSmallBtn} onClick={() => openJob(job)} disabled={isSavingAssignment}>
+                                    {String(job.status || '').trim().toLowerCase() === 'in progress' ? 'Complete Job' : 'Start'}
+                                  </button>
+                                  <button type="button" style={shell.pdfBtn} onClick={() => openJobPdfPreview(job)} disabled={isSavingAssignment}>
+                                    PDF
+                                  </button>
+                                  <button type="button" style={shell.editBtn} onClick={() => handleReassignJob(job)} disabled={isSavingAssignment}>
+                                    Edit
+                                  </button>
+                                  <button type="button" style={shell.removeBtn} onClick={() => handleRemoveAssignment(job)} disabled={isSavingAssignment}>
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={customerTableWrapStyle}>
+                <table style={customerTableStyle} className="technician-assigned-jobs-table">
+                  <thead>
+                    <tr>
+                      <th style={shell.customerTh}>Customer</th>
+                      <th style={shell.customerTh}>Mobile</th>
+                      <th style={shell.customerTh}>City/State</th>
+                      <th style={shell.customerTh}>Visits</th>
+                      <th style={shell.customerTh}>Next Visit</th>
+                      <th style={shell.customerTh}>Technician</th>
+                      <th style={shell.customerTh}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedCustomerWiseJobs.map((group) => (
+                      <React.Fragment key={group.key}>
                         <tr>
-                          <td colSpan={7} style={shell.expandedCell}>
-                            <div style={jobsTableWrapStyle}>
-                              <table style={jobsTableStyle} className="technician-job-details-table">
-                                <thead>
-                                  <tr>
-                                    <th style={shell.jobsTh}>Visit</th>
-                                    <th style={shell.jobsTh}>Date</th>
-                                    <th style={shell.jobsTh}>Time</th>
-                                    <th style={shell.jobsTh}>Technician</th>
-                                    <th style={shell.jobsTh}>Status</th>
-                                    <th style={shell.jobsTh}>Action</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {group.jobs.map((job) => (
-                                    <tr key={job._id}>
-                                      <td style={shell.jobsTd}>{job.scheduleVisit || '-'}</td>
-                                      <td style={shell.jobsTd}>{formatDisplayDate(job.scheduledDate)}</td>
-                                      <td style={shell.jobsTd}>{formatDisplayTime(job.scheduledTime)}</td>
-                                      <td style={shell.jobsTd}>{job.technicianName || '-'}</td>
-                                      <td style={shell.jobsTd}>{job.status || '-'}</td>
-                                      <td style={{ ...shell.jobsTd, ...shell.actionCell }}>
-                                        <div style={mobileActionRowStyle}>
-                                          <button type="button" style={mobileActionButtonStyle ? { ...shell.startSmallBtn, ...mobileActionButtonStyle } : shell.startSmallBtn} onClick={() => openJob(job)} disabled={isSavingAssignment}>
-                                            {String(job.status || '').trim().toLowerCase() === 'in progress' ? 'Complete Job' : 'Start'}
-                                          </button>
-                                          <button
-                                            type="button"
-                                            style={mobileActionButtonStyle ? { ...shell.pdfBtn, ...mobileActionButtonStyle } : shell.pdfBtn}
-                                            onClick={() => openJobPdfPreview(job)}
-                                            disabled={isSavingAssignment}
-                                          >
-                                            PDF
-                                          </button>
-                                          <button type="button" style={mobileActionButtonStyle ? { ...shell.editBtn, ...mobileActionButtonStyle } : shell.editBtn} onClick={() => handleReassignJob(job)} disabled={isSavingAssignment}>
-                                            Edit
-                                          </button>
-                                          <button type="button" style={mobileActionButtonStyle ? { ...shell.removeBtn, ...mobileActionButtonStyle } : shell.removeBtn} onClick={() => handleRemoveAssignment(job)} disabled={isSavingAssignment}>
-                                            Delete
-                                          </button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+                          <td style={shell.customerTd}>
+                            <p style={shell.customerName}>{group.customerName}</p>
+                          </td>
+                          <td style={shell.customerTd}>{group.mobileNumber || '-'}</td>
+                          <td style={shell.customerTd}>{[group.city, group.state].filter((value) => value && value !== '-').join(', ') || '-'}</td>
+                          <td style={shell.customerTd}>{group.jobs.length}</td>
+                          <td style={shell.customerTd}>
+                            {group.jobs[0] ? `${formatDisplayDate(group.jobs[0].scheduledDate)} ${formatDisplayTime(group.jobs[0].scheduledTime)}` : '-'}
+                          </td>
+                          <td style={shell.customerTd}>{group.techniciansText}</td>
+                          <td style={shell.customerTd}>
+                            <button
+                              type="button"
+                              style={isMobile ? { ...shell.viewBtn, minWidth: '72px', width: 'auto', padding: '0 8px', fontSize: '10px', whiteSpace: 'nowrap' } : shell.viewBtn}
+                              onClick={() => setExpandedCustomerKey((prev) => (prev === group.key ? '' : group.key))}
+                            >
+                              {expandedCustomerKey === group.key ? 'Hide Jobs' : 'View Jobs'}
+                            </button>
                           </td>
                         </tr>
-                      ) : null}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        {expandedCustomerKey === group.key ? (
+                          <tr>
+                            <td colSpan={7} style={shell.expandedCell}>
+                              <div style={jobsTableWrapStyle}>
+                                <table style={jobsTableStyle} className="technician-job-details-table">
+                                  <thead>
+                                    <tr>
+                                      <th style={shell.jobsTh}>Visit</th>
+                                      <th style={shell.jobsTh}>Date</th>
+                                      <th style={shell.jobsTh}>Time</th>
+                                      <th style={shell.jobsTh}>Technician</th>
+                                      <th style={shell.jobsTh}>Status</th>
+                                      <th style={shell.jobsTh}>Action</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {group.jobs.map((job) => (
+                                      <tr key={job._id}>
+                                        <td style={shell.jobsTd}>{job.scheduleVisit || '-'}</td>
+                                        <td style={shell.jobsTd}>{formatDisplayDate(job.scheduledDate)}</td>
+                                        <td style={shell.jobsTd}>{formatDisplayTime(job.scheduledTime)}</td>
+                                        <td style={shell.jobsTd}>{job.technicianName || '-'}</td>
+                                        <td style={shell.jobsTd}>{job.status || '-'}</td>
+                                        <td style={{ ...shell.jobsTd, ...shell.actionCell }}>
+                                          <div style={mobileActionRowStyle}>
+                                            <button type="button" style={mobileActionButtonStyle ? { ...shell.startSmallBtn, ...mobileActionButtonStyle } : shell.startSmallBtn} onClick={() => openJob(job)} disabled={isSavingAssignment}>
+                                              {String(job.status || '').trim().toLowerCase() === 'in progress' ? 'Complete Job' : 'Start'}
+                                            </button>
+                                            <button
+                                              type="button"
+                                              style={mobileActionButtonStyle ? { ...shell.pdfBtn, ...mobileActionButtonStyle } : shell.pdfBtn}
+                                              onClick={() => openJobPdfPreview(job)}
+                                              disabled={isSavingAssignment}
+                                            >
+                                              PDF
+                                            </button>
+                                            <button type="button" style={mobileActionButtonStyle ? { ...shell.editBtn, ...mobileActionButtonStyle } : shell.editBtn} onClick={() => handleReassignJob(job)} disabled={isSavingAssignment}>
+                                              Edit
+                                            </button>
+                                            <button type="button" style={mobileActionButtonStyle ? { ...shell.removeBtn, ...mobileActionButtonStyle } : shell.removeBtn} onClick={() => handleRemoveAssignment(job)} disabled={isSavingAssignment}>
+                                              Delete
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : null}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
           )}
           {customerWiseJobs.length > 0 ? (
             <div style={pagerStyle}>
