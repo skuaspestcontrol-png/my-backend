@@ -1632,7 +1632,7 @@ export default function TechnicianPortal() {
                         <td style={shell.customerTd}>
                           <button
                             type="button"
-                            style={isMobile ? { ...shell.viewBtn, minWidth: '84px', width: 'auto', padding: '0 10px', fontSize: '10px', whiteSpace: 'nowrap' } : shell.viewBtn}
+                            style={isMobile ? { ...shell.viewBtn, minWidth: '72px', width: 'auto', padding: '0 8px', fontSize: '10px', whiteSpace: 'nowrap' } : shell.viewBtn}
                             onClick={() => setExpandedCustomerKey((prev) => (prev === group.key ? '' : group.key))}
                           >
                             {expandedCustomerKey === group.key ? 'Hide Jobs' : 'View Jobs'}
