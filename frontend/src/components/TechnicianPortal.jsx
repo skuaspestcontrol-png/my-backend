@@ -758,9 +758,9 @@ export default function TechnicianPortal() {
   const completionGridStyle = isMobile ? { ...shell.completionGrid, gridTemplateColumns: '1fr' } : shell.completionGrid;
   const completionMediaGridStyle = isMobile ? { ...shell.completionMediaGrid, gridTemplateColumns: '1fr' } : shell.completionMediaGrid;
   const customerTableStyle = isMobile
-    ? { ...shell.customerTable, width: '100%', minWidth: '860px', tableLayout: 'fixed' }
+    ? { ...shell.customerTable, width: '100%', minWidth: '760px', tableLayout: 'fixed' }
     : shell.customerTable;
-  const jobsTableStyle = isMobile ? { ...shell.jobsTable, width: '100%', minWidth: '760px', tableLayout: 'fixed' } : shell.jobsTable;
+  const jobsTableStyle = isMobile ? { ...shell.jobsTable, width: '100%', minWidth: '680px', tableLayout: 'fixed' } : shell.jobsTable;
   const customerTableWrapStyle = isMobile
     ? {
       ...shell.customerTableWrap,

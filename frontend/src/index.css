@@ -1846,7 +1846,7 @@ textarea:focus {
   .technician-assigned-jobs-table,
   .technician-job-details-table {
     width: 100% !important;
-    min-width: 960px !important;
+    min-width: 760px !important;
     table-layout: auto !important;
   }
 
@@ -1879,6 +1879,55 @@ textarea:focus {
     padding: 0 10px !important;
     font-size: 10px !important;
     white-space: nowrap !important;
+  }
+
+  .technician-assigned-jobs-table th:nth-child(1),
+  .technician-assigned-jobs-table td:nth-child(1) {
+    width: 140px !important;
+    min-width: 140px !important;
+  }
+
+  .technician-assigned-jobs-table th:nth-child(2),
+  .technician-assigned-jobs-table td:nth-child(2) {
+    width: 108px !important;
+    min-width: 108px !important;
+  }
+
+  .technician-assigned-jobs-table th:nth-child(3),
+  .technician-assigned-jobs-table td:nth-child(3) {
+    width: 128px !important;
+    min-width: 128px !important;
+  }
+
+  .technician-assigned-jobs-table th:nth-child(4),
+  .technician-assigned-jobs-table td:nth-child(4) {
+    width: 72px !important;
+    min-width: 72px !important;
+    text-align: center !important;
+  }
+
+  .technician-assigned-jobs-table th:nth-child(5),
+  .technician-assigned-jobs-table td:nth-child(5) {
+    width: 132px !important;
+    min-width: 132px !important;
+  }
+
+  .technician-assigned-jobs-table th:nth-child(6),
+  .technician-assigned-jobs-table td:nth-child(6) {
+    width: 128px !important;
+    min-width: 128px !important;
+  }
+
+  .technician-assigned-jobs-table th:nth-child(7),
+  .technician-assigned-jobs-table td:nth-child(7) {
+    width: 116px !important;
+    min-width: 116px !important;
+    text-align: center !important;
+  }
+
+  .technician-assigned-jobs-table td:nth-child(4),
+  .technician-assigned-jobs-table td:nth-child(7) {
+    text-align: center !important;
   }
 
   .crm-compact-table.lead-followups-table tbody td.lead-followups-customer-cell {
