@@ -34,7 +34,7 @@ import {
   SalesChartTooltip,
   salesChartTheme
 } from './SalesChartPrimitives';
-import { apiGet, currentMonth, currentYear, monthOptions, money, percent, safeRows } from './salesPerformanceApi';
+import { apiGet, currentMonth, currentYear, monthOptions, money, percent, safeRows, subscribeSalesPerformanceRefresh } from './salesPerformanceApi';
 import './salesPerformance.css';
 
 const targetColor = '#111827';
@@ -136,6 +136,13 @@ export default function SalesPerformanceDashboard() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeSalesPerformanceRefresh(() => {
+      load(filters);
+    });
+    return unsubscribe;
+  }, [filters]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);

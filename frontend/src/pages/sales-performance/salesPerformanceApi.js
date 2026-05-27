@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const SALES_PERFORMANCE_REFRESH_KEY = 'sales_performance_refresh_at';
 
 export const currentYear = new Date().getFullYear();
 export const currentMonth = new Date().getMonth() + 1;
@@ -59,6 +60,29 @@ export const apiPut = async (path, body = {}) => {
 export const apiDelete = async (path) => {
   const response = await axios.delete(`${API_BASE_URL}${path}`);
   return response.data;
+};
+
+export const triggerSalesPerformanceRefresh = () => {
+  const stamp = String(Date.now());
+  try {
+    window.localStorage.setItem(SALES_PERFORMANCE_REFRESH_KEY, stamp);
+  } catch (_error) {}
+  try {
+    window.dispatchEvent(new CustomEvent('sales-performance:refresh', { detail: { stamp } }));
+  } catch (_error) {}
+};
+
+export const subscribeSalesPerformanceRefresh = (handler) => {
+  const onCustomRefresh = () => handler();
+  const onStorageRefresh = (event) => {
+    if (event.key === SALES_PERFORMANCE_REFRESH_KEY) handler();
+  };
+  window.addEventListener('sales-performance:refresh', onCustomRefresh);
+  window.addEventListener('storage', onStorageRefresh);
+  return () => {
+    window.removeEventListener('sales-performance:refresh', onCustomRefresh);
+    window.removeEventListener('storage', onStorageRefresh);
+  };
 };
 
 export const buildCsv = (rows = []) => {

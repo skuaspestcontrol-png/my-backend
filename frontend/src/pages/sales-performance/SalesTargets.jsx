@@ -10,7 +10,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import StatusBadge from '../../components/ui/StatusBadge';
 import useColumnResize from '../../components/table/useColumnResize';
-import { apiDelete, apiGet, apiPost, apiPut, currentMonth, currentYear, monthOptions, money, number, percent, safeRows } from './salesPerformanceApi';
+import { apiDelete, apiGet, apiPost, apiPut, currentMonth, currentYear, monthOptions, money, number, percent, safeRows, subscribeSalesPerformanceRefresh, triggerSalesPerformanceRefresh } from './salesPerformanceApi';
 import './salesPerformance.css';
 
 const initialForm = {
@@ -223,6 +223,13 @@ export default function SalesTargets() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = subscribeSalesPerformanceRefresh(() => {
+      load(filters);
+    });
+    return unsubscribe;
+  }, [filters]);
+
+  useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -354,6 +361,7 @@ export default function SalesTargets() {
       else await apiPost('/api/sales-performance/targets', payload);
       resetForm();
       await load(filters);
+      triggerSalesPerformanceRefresh();
     } catch (err) {
       setError(err?.response?.data?.error || err?.message || 'Unable to save target.');
     } finally {
@@ -369,6 +377,7 @@ export default function SalesTargets() {
       await apiDelete(`/api/sales-performance/targets/${id}`);
       if (form.id === id) resetForm();
       await load(filters);
+      triggerSalesPerformanceRefresh();
     } catch (err) {
       setError(err?.response?.data?.error || err?.message || 'Unable to delete target.');
     } finally {
