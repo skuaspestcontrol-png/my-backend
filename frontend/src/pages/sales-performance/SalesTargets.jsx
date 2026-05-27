@@ -168,7 +168,7 @@ export default function SalesTargets() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState({ year: '', targetType: '', salesPersonId: '' });
+  const [filters, setFilters] = useState({ year: '', month: '', salesPersonId: '' });
   const [form, setForm] = useState(initialForm);
   const {
     getColumnWidth: getYearlyWidth,
@@ -406,10 +406,9 @@ export default function SalesTargets() {
             <option value="">All Years</option>
             {Array.from({ length: 5 }, (_, index) => currentYear - 2 + index).map((year) => <option key={year} value={year}>{year}</option>)}
           </AppSelect>
-          <AppSelect label="Type" value={filters.targetType} onChange={(e) => setFilters({ ...filters, targetType: e.target.value })}>
-            <option value="">All</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
+          <AppSelect label="Month" value={filters.month} onChange={(e) => setFilters({ ...filters, month: e.target.value ? Number(e.target.value) : '' })}>
+            <option value="">All Months</option>
+            {monthOptions.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}
           </AppSelect>
           <AppSelect label="Sales Person" value={filters.salesPersonId} onChange={(e) => setFilters({ ...filters, salesPersonId: e.target.value })}>
             <option value="">All</option>

@@ -14,6 +14,10 @@ export const monthOptions = Array.from({ length: 12 }, (_, index) => ({
 export const safeRows = (value) => (Array.isArray(value) ? value : []);
 
 export const number = (value = 0) => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+const floorToDecimals = (value, decimals = 2) => {
+  const factor = 10 ** decimals;
+  return Math.floor(Number(value || 0) * factor) / factor;
+};
 export const formatCompactIndianCurrency = (value = 0) => {
   const amount = Number(value || 0);
   if (!Number.isFinite(amount)) return '₹0';
@@ -25,19 +29,14 @@ export const formatCompactIndianCurrency = (value = 0) => {
   );
 
   if (absolute >= 10000000) {
-    return `${sign}₹${formatValue(absolute / 10000000, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}Cr`;
+    return `${sign}₹${formatValue(floorToDecimals(absolute / 10000000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}Cr`;
   }
 
   if (absolute >= 100000) {
-    return `${sign}₹${formatValue(absolute / 100000, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L`;
+    return `${sign}₹${formatValue(floorToDecimals(absolute / 100000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L`;
   }
 
-  if (absolute >= 1000) {
-    const scaled = absolute / 1000;
-    return `${sign}₹${formatValue(scaled, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}K`;
-  }
-
-  return `${sign}₹${formatValue(absolute, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${sign}₹${formatValue(floorToDecimals(absolute / 100000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L`;
 };
 export const money = (value = 0) => formatCompactIndianCurrency(value);
 export const percent = (value = 0) => `${Number(value || 0).toFixed(1)}%`;
