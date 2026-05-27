@@ -1846,9 +1846,9 @@ textarea:focus {
 
   .technician-assigned-jobs-table,
   .technician-job-details-table {
-    width: 100% !important;
-    min-width: 0 !important;
-    table-layout: fixed !important;
+    width: max-content !important;
+    min-width: 720px !important;
+    table-layout: auto !important;
   }
 
   .technician-assigned-jobs-table th,
@@ -1858,8 +1858,8 @@ textarea:focus {
     padding: 8px 10px !important;
     font-size: 11px !important;
     line-height: 1.15 !important;
-    white-space: normal !important;
-    overflow: hidden !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
     text-overflow: clip !important;
     vertical-align: middle !important;
   }
@@ -1884,62 +1884,45 @@ textarea:focus {
 
   .technician-assigned-jobs-table th:nth-child(1),
   .technician-assigned-jobs-table td:nth-child(1) {
-    width: 22% !important;
-    min-width: 22% !important;
-    white-space: normal !important;
-    overflow-wrap: anywhere !important;
-    word-break: break-word !important;
+    width: 150px !important;
+    min-width: 150px !important;
   }
 
   .technician-assigned-jobs-table th:nth-child(2),
   .technician-assigned-jobs-table td:nth-child(2) {
-    width: 15% !important;
-    min-width: 15% !important;
+    width: 108px !important;
+    min-width: 108px !important;
   }
 
   .technician-assigned-jobs-table th:nth-child(3),
   .technician-assigned-jobs-table td:nth-child(3) {
-    width: 16% !important;
-    min-width: 16% !important;
-    white-space: normal !important;
-    overflow-wrap: anywhere !important;
-    word-break: break-word !important;
+    width: 128px !important;
+    min-width: 128px !important;
   }
 
   .technician-assigned-jobs-table th:nth-child(4),
   .technician-assigned-jobs-table td:nth-child(4) {
-    width: 7% !important;
-    min-width: 7% !important;
+    width: 48px !important;
+    min-width: 48px !important;
     text-align: center !important;
   }
 
   .technician-assigned-jobs-table th:nth-child(5),
   .technician-assigned-jobs-table td:nth-child(5) {
-    width: 16% !important;
-    min-width: 16% !important;
-    white-space: normal !important;
-    overflow-wrap: anywhere !important;
-    word-break: break-word !important;
+    width: 128px !important;
+    min-width: 128px !important;
   }
 
   .technician-assigned-jobs-table th:nth-child(6),
   .technician-assigned-jobs-table td:nth-child(6) {
-    width: 14% !important;
-    min-width: 14% !important;
-    white-space: normal !important;
-    overflow-wrap: anywhere !important;
-    word-break: break-word !important;
+    width: 126px !important;
+    min-width: 126px !important;
   }
 
   .technician-assigned-jobs-table th:nth-child(7),
   .technician-assigned-jobs-table td:nth-child(7) {
-    width: 10% !important;
-    min-width: 10% !important;
-    text-align: center !important;
-  }
-
-  .technician-assigned-jobs-table td:nth-child(4),
-  .technician-assigned-jobs-table td:nth-child(7) {
+    width: 86px !important;
+    min-width: 86px !important;
     text-align: center !important;
   }
 
