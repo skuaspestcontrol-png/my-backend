@@ -84,6 +84,7 @@ const valueOf = (source, keys = []) => {
   }
   return null;
 };
+const normalizeMatchKey = (value) => text(value).toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
 const hasColumn = (columns, ...names) => names.some((name) => columns.has(String(name).toLowerCase()));
 const stableTargetExternalId = (salesPersonId, targetType, targetYear, targetMonth = null) => {
   const person = text(salesPersonId).replace(/[^a-z0-9]/gi, '').slice(0, 24) || 'TARGET';
@@ -282,22 +283,25 @@ const buildEmployeeLookup = (employees = []) => {
   const byName = new Map();
   const byCode = new Map();
   employees.forEach((employee) => {
-    if (employee.id) byId.set(String(employee.id).toLowerCase(), employee);
-    if (employee.dbId !== null && employee.dbId !== undefined) byId.set(String(employee.dbId).toLowerCase(), employee);
-    if (employee.employeeCode) byCode.set(String(employee.employeeCode).toLowerCase(), employee);
-    if (employee.name) byName.set(String(employee.name).toLowerCase(), employee);
+    if (employee.id) byId.set(normalizeMatchKey(employee.id), employee);
+    if (employee.dbId !== null && employee.dbId !== undefined) byId.set(normalizeMatchKey(employee.dbId), employee);
+    if (employee.employeeCode) byCode.set(normalizeMatchKey(employee.employeeCode), employee);
+    if (employee.name) byName.set(normalizeMatchKey(employee.name), employee);
   });
   return { byId, byName, byCode };
 };
 const pickEmployee = (lookup, value) => {
-  const ref = text(value).toLowerCase();
+  const ref = normalizeMatchKey(value);
   if (!ref) return null;
   return lookup.byId.get(ref) || lookup.byCode.get(ref) || lookup.byName.get(ref) || null;
 };
 const employeeHasValue = (employee, value) => {
-  const ref = text(value).toLowerCase();
+  const ref = normalizeMatchKey(value);
   if (!ref) return false;
-  return [employee.id, employee.dbId, employee.employeeCode, employee.name, employee.role, employee.roleName].map(text).filter(Boolean).some((item) => item.toLowerCase() === ref);
+  return [employee.id, employee.dbId, employee.employeeCode, employee.name, employee.role, employee.roleName]
+    .map(normalizeMatchKey)
+    .filter(Boolean)
+    .some((item) => item === ref);
 };
 const resolveEmployee = (lookup, employeeValue, employeeNameValue = '') => {
   const direct = pickEmployee(lookup, employeeValue);
