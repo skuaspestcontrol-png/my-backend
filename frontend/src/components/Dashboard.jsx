@@ -507,8 +507,8 @@ export default function Dashboard() {
             <div style={{ width: `${analytics.totalReceivables > 0 ? (analytics.receivableOverdue / analytics.totalReceivables) * 100 : 0}%`, background: dangerRed }} />
           </div>
           <div style={shell.legendRow}>
-            <span style={shell.legendItem}><span style={{ ...shell.dot, background: successGreen }} />Current: {formatCurrency(analytics.receivableCurrent)}</span>
-            <span style={shell.legendItem}><span style={{ ...shell.dot, background: dangerRed }} />Overdue: {formatCurrency(analytics.receivableOverdue)}</span>
+            <span style={{ ...shell.legendItem, color: '#166534' }}><span style={{ ...shell.dot, background: successGreen }} />Current: {formatCurrency(analytics.receivableCurrent)}</span>
+            <span style={{ ...shell.legendItem, color: '#9f1239' }}><span style={{ ...shell.dot, background: dangerRed }} />Overdue: {formatCurrency(analytics.receivableOverdue)}</span>
           </div>
         </article>
 
@@ -523,8 +523,8 @@ export default function Dashboard() {
             <div style={{ width: `${analytics.totalPayables > 0 ? (analytics.payableOverdue / analytics.totalPayables) * 100 : 0}%`, background: dangerRed }} />
           </div>
           <div style={shell.legendRow}>
-            <span style={shell.legendItem}><span style={{ ...shell.dot, background: successGreen }} />Current: {formatCurrency(analytics.payableCurrent)}</span>
-            <span style={shell.legendItem}><span style={{ ...shell.dot, background: dangerRed }} />Overdue: {formatCurrency(analytics.payableOverdue)}</span>
+            <span style={{ ...shell.legendItem, color: '#166534' }}><span style={{ ...shell.dot, background: successGreen }} />Current: {formatCurrency(analytics.payableCurrent)}</span>
+            <span style={{ ...shell.legendItem, color: '#9f1239' }}><span style={{ ...shell.dot, background: dangerRed }} />Overdue: {formatCurrency(analytics.payableOverdue)}</span>
           </div>
         </article>
       </section>
