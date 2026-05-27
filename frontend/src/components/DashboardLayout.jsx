@@ -19,6 +19,7 @@ import {
   Package,
   BarChart3,
   Target,
+  LogOut,
   Settings,
   ShoppingCart,
   Smartphone,
@@ -915,24 +916,25 @@ export default function DashboardLayout({ children }) {
               <Settings size={isMobile ? 18 : 20} />
             </button>
             <button
+              type="button"
               onClick={handleLogout}
               style={{
-                color: '#fff',
-                background: 'var(--color-primary)',
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                cursor: 'pointer',
-                border: '1px solid var(--color-primary)',
+                border: '1px solid var(--color-border)',
+                background: '#fff',
+                color: 'var(--color-primary)',
+                width: isMobile ? '38px' : '42px',
+                height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
-                height: isMobile ? '38px' : '40px',
-                minWidth: isMobile ? '92px' : '104px',
-                padding: '0 14px',
-                boxShadow: 'var(--shadow-md)'
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-sm)'
               }}
+              aria-label="Logout"
+              title="Logout"
             >
-              Logout
+              <LogOut size={isMobile ? 18 : 20} />
             </button>
           </div>
         </header>
