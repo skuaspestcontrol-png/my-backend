@@ -315,9 +315,6 @@ const renderQuotationPdfHeader = (doc, settings = {}, companySettings = {}) => {
     companySettings.gstCompanyLogoUrl
     || settings.logo_url
   );
-  console.log('QUOTATION HEADER logo input:', logoInput);
-  console.log('QUOTATION HEADER resolved logo path:', logo || '');
-  console.log('QUOTATION HEADER logo exists:', Boolean(logo && fs.existsSync(logo)));
   const companyName = clean(
     companySettings.gstCompanyName
     || companySettings.companyName

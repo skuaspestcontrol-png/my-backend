@@ -810,7 +810,6 @@ const calcPayrollItem = ({
 };
 
 const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(async (resolve, reject) => {
-  console.log('SALARY PDF branding object:', branding || {});
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));
@@ -828,10 +827,6 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
   );
   const resolvedLogoPath = resolveUploadPath(logoSource) || logoSource;
   const logoExists = Boolean(resolvedLogoPath && fs.existsSync(resolvedLogoPath));
-  console.log('SALARY SLIP PDF USING QUOTATION HEADER');
-  console.log('SALARY SLIP logo path value:', logoSource);
-  console.log('SALARY SLIP resolved logo path:', resolvedLogoPath || '');
-  console.log('SALARY SLIP logo exists:', logoExists);
   const headerSettings = {
     logo_url: resolvedLogoPath
   };
@@ -2642,8 +2637,6 @@ function registerPayrollModule({
 
   app.get('/api/payroll/items/:id/slip/pdf', async (req, res) => {
     try {
-      console.log('ACTIVE SALARY PDF ROUTE HIT');
-      console.log('SALARY SLIP PDF USING QUOTATION HEADER');
       const perms = roleToPermissions(getRoleFromReq(req));
       const identity = getRequestIdentity(req, perms);
       if (!ensureOwnIdentity(identity, res)) return;
@@ -2651,7 +2644,6 @@ function registerPayrollModule({
       if (!item) return res.status(404).json({ error: 'Payroll item not found' });
       if (!canAccessItem(item, identity)) return res.status(403).json({ error: 'You can only view your own salary slip.' });
       const settings = await loadPayrollCompanySettings();
-      console.log('SALARY PDF branding object:', settings || {});
       const company = resolveCompanyDetails(settings);
       const { absolutePath, relativePath } = await ensureSalarySlipStored({ item, company, branding: settings, withMysqlConnection });
       const buffer = fs.readFileSync(absolutePath);

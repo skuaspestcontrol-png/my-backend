@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require("cors");
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -64,23 +66,6 @@ if (!global.__SKUAS_PROCESS_GUARDS_INSTALLED__) {
   global.__SKUAS_PROCESS_GUARDS_INSTALLED__ = true;
 }
 
-console.log('PID:', process.pid);
-if (!global.__SKUAS_MEMORY_LOG_INTERVAL__) {
-  global.__SKUAS_MEMORY_LOG_INTERVAL__ = setInterval(() => {
-    const usage = process.memoryUsage();
-    console.log('MEMORY_USAGE:', {
-      rss: usage.rss,
-      heapTotal: usage.heapTotal,
-      heapUsed: usage.heapUsed,
-      external: usage.external,
-      arrayBuffers: usage.arrayBuffers
-    });
-  }, 30000);
-  if (typeof global.__SKUAS_MEMORY_LOG_INTERVAL__.unref === 'function') {
-    global.__SKUAS_MEMORY_LOG_INTERVAL__.unref();
-  }
-}
-
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
@@ -98,30 +83,14 @@ const allowedCorsOrigins = new Set([
   "https://www.skuaspestcontrol.com",
   "https://skuaspestcontrol.com",
   "http://localhost:5173",
-  "http://localhost:3000"
+  "http://localhost:3000",
+  ...String(process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
 ]);
 const isProduction = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
 const getClientIp = (req) => String(req.ip || req.socket?.remoteAddress || 'unknown');
-const getRequestKey = (req, scope = 'global') => `${scope}:${getClientIp(req)}`;
-const createMemoryRateLimiter = ({ windowMs, max, scope, message }) => {
-  const hits = new Map();
-  return (req, res, next) => {
-    const now = Date.now();
-    const key = getRequestKey(req, scope);
-    const entry = hits.get(key) || { count: 0, resetAt: now + windowMs };
-    if (now > entry.resetAt) {
-      entry.count = 0;
-      entry.resetAt = now + windowMs;
-    }
-    entry.count += 1;
-    hits.set(key, entry);
-    if (entry.count > max) {
-      res.setHeader('Retry-After', Math.ceil((entry.resetAt - now) / 1000));
-      return res.status(429).json({ error: message || 'Too many requests. Please try again later.' });
-    }
-    return next();
-  };
-};
 const adminDebugToken = () => String(process.env.ADMIN_MIGRATION_TOKEN || process.env.ADMIN_DEBUG_TOKEN || '').trim();
 const readSecurityToken = (req) => String(
   req.headers['x-admin-migration-token']
@@ -148,20 +117,29 @@ const securityHeaders = (_req, res, next) => {
   }
   return next();
 };
-const apiRateLimit = createMemoryRateLimiter({
+const createRateLimiter = ({ windowMs, max, message }) => rateLimit({
+  windowMs,
+  limit: max,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => getClientIp(req),
+  message: { error: message || 'Too many requests. Please try again later.' }
+});
+const apiRateLimit = createRateLimiter({
   windowMs: 60 * 1000,
   max: 240,
-  scope: 'api',
   message: 'Too many API requests. Please slow down.'
 });
-const sensitiveRateLimit = createMemoryRateLimiter({
+const sensitiveRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 10,
-  scope: 'sensitive',
   message: 'Too many sensitive requests. Please try again later.'
 });
 
 app.use(securityHeaders);
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
 app.use(cors({
   origin(origin, callback) {
     if (!origin || allowedCorsOrigins.has(origin)) return callback(null, true);
@@ -175,7 +153,16 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use('/api', apiRateLimit);
-app.use(['/api/auth/forgot-password', '/api/auth/reset-password', '/api/admin'], sensitiveRateLimit);
+app.use([
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/admin',
+  '/api/upload',
+  '/api/uploads/delete',
+  '/api/settings/upload-dashboard-image',
+  '/api/settings/upload-branding-image',
+  '/api/employees/upload-document'
+], sensitiveRateLimit);
 
 app.get("/api/db-test", requireAdminDebugAccess, async (req, res) => {
   try {
@@ -554,14 +541,6 @@ if (uploadsMirrorDir) {
     console.error('Uploads mirror directory unavailable:', uploadsMirrorDir, error.message);
   }
 }
-console.log('Employee upload root:', employeeUploadsDir);
-console.log('Customer import upload dir:', customerImportUploadsDir);
-console.log('Employee upload photos dir:', employeePhotoUploadsDir);
-console.log('Employee upload aadhaar dir:', employeeAadhaarUploadsDir);
-console.log('Employee upload pan dir:', employeePanUploadsDir);
-console.log('Employee upload documents dir:', employeeDocumentsUploadsDir);
-console.log('Uploads static directory:', uploadsRootDir);
-console.log('Uploads dir exists:', fs.existsSync(uploadsRootDir));
 const legacyDataDir = path.join(__dirname, 'data');
 const dataDir = String(process.env.DATA_DIR || process.env.PERSISTENT_DATA_DIR || '').trim()
   || path.join(__dirname, '..', 'storage', 'data');
@@ -827,7 +806,6 @@ const storage = multer.diskStorage({
 const customerImportStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     fs.mkdirSync(customerImportUploadsDir, { recursive: true });
-    console.log('[Customer Import Upload] destination:', customerImportUploadsDir);
     cb(null, customerImportUploadsDir);
   },
   filename: (req, file, cb) => {
@@ -840,7 +818,6 @@ const customerImportStorage = multer.diskStorage({
 });
 const employeePhotoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    console.log('Employee photo multer destination:', employeePhotoUploadsDir);
     cb(null, employeePhotoUploadsDir);
   },
   filename: (req, file, cb) => {
@@ -867,7 +844,6 @@ const employeeDocumentStorage = multer.diskStorage({
       documents: employeeDocumentsUploadsDir
     };
     const destination = destinationByType[docType] || employeeDocumentsUploadsDir;
-    console.log('Employee document multer destination:', destination, '| documentType:', docType);
     cb(null, destination);
   },
   filename: (req, file, cb) => {
@@ -1518,7 +1494,6 @@ const cleanupDeprecatedSettingsStorage = async () => {
       if (!deprecatedSettingsKeys.some((key) => Object.prototype.hasOwnProperty.call(rawSettings, key))) return;
 
       await saveSettingsToMysql(sanitizeSettings(rawSettings));
-      console.log('Deprecated settings removed from MySQL storage.');
       return;
     }
 
@@ -1527,7 +1502,6 @@ const cleanupDeprecatedSettingsStorage = async () => {
     if (!deprecatedSettingsKeys.some((key) => Object.prototype.hasOwnProperty.call(rawSettings, key))) return;
 
     fs.writeFileSync(settingsFile, JSON.stringify(sanitizeSettings(rawSettings), null, 2));
-    console.log('Deprecated settings removed from JSON storage.');
   } catch (error) {
     console.error('Failed to clean up deprecated settings:', error.message);
   }
@@ -2045,13 +2019,8 @@ const renderJobCardHeader = (doc, settings = {}, title = 'JOB CARD', options = {
   ).trim();
   const logoFilesystemPath = resolveJobPdfLogoFilesystemPath(logoSource);
   const logoExists = Boolean(logoFilesystemPath && fs.existsSync(logoFilesystemPath));
-  if (logLogo) {
-    console.log(`${prefix} GST branding logo:`, gstBrandingLogo);
-    console.log(`${prefix} logo filesystem path:`, logoFilesystemPath);
-    console.log(`${prefix} logo exists:`, logoExists);
-    if (logoSource && !logoExists) {
-      console.error('Job PDF logo file missing from persistent uploads root. Re-upload GST Company Branding logo or copy file to uploads root.');
-    }
+  if (logLogo && logoSource && !logoExists) {
+    console.error('Job PDF logo file missing from persistent uploads root. Re-upload GST Company Branding logo or copy file to uploads root.');
   }
 
   const companyName = String(settings.gstCompanyName || settings.companyName || '').trim() || 'SKUAS Pest Control Private Limited';
@@ -2086,26 +2055,17 @@ const renderJobCardHeader = (doc, settings = {}, title = 'JOB CARD', options = {
   const headerWidth = right - headerX;
   const detailLineHeight = 9.1;
   const headerBoxHeight = 11.2 + (companyDetailLines.length * detailLineHeight);
-  const logoWidth = logoExists ? 400 : 0;
-  const logoHeight = logoExists ? 160 : 0;
   const logoX = left;
-  const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
+  const logoY = headerTopY + ((headerBoxHeight - 160) / 2);
 
   if (logoExists) {
-    if (logLogo) {
-      console.log(`${prefix} logo rendered:`, false);
-      console.log(`${prefix} logoRenderBox:`, { x: logoX, y: logoY, width: logoWidth, height: logoHeight });
-    }
     try {
       doc.image(logoFilesystemPath, logoX, logoY, {
         fit: [400, 160],
         align: 'left',
         valign: 'center'
       });
-      if (logLogo) console.log(`${prefix} logo rendered:`, true);
-    } catch (_error) {
-      if (logLogo) console.log(`${prefix} logo rendered:`, false);
-    }
+    } catch (_error) {}
   }
 
   doc.font('Helvetica-Bold').fontSize(10.2).fillColor('#111827')
@@ -2893,8 +2853,6 @@ app.post('/api/employees/upload-document', employeeDocumentUpload.single('docume
   const relativePath = `/uploads/employees/${docType}/${req.file.filename}`;
   const mirrorPath = `employees/${docType}/${req.file.filename}`;
   syncUploadToMirror(mirrorPath);
-  console.log('Employee document uploaded path:', req.file.path);
-  console.log('Employee document saved path:', relativePath);
   res.json({
     fileUrl: relativePath,
     filePublicUrl: resolveUploadPublicUrl(req, relativePath),
@@ -2940,16 +2898,11 @@ app.post('/api/uploads/delete', (req, res) => {
         fs.unlinkSync(mirrorPath);
         deletedMirror = true;
       }
-    } catch (error) {
-      console.error('Upload delete failed (mirror):', error.message);
-    }
+  } catch (error) {
+    console.error('Upload delete failed (mirror):', error.message);
   }
+}
 
-  console.log('Upload delete path:', relativePath);
-  console.log('Upload delete local file:', localPath, 'deleted:', deletedLocal);
-  if (uploadsMirrorDir) {
-    console.log('Upload delete mirror checked:', normalizedPart, 'deleted:', deletedMirror);
-  }
   return res.json({ message: 'Upload deleted', fileUrl: relativePath, deletedLocal, deletedMirror });
 });
 
@@ -4926,8 +4879,6 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
       const relativePath = `/uploads/employees/photos/${req.file.filename}`;
       emp.profile_photo = relativePath;
       syncUploadToMirror(`employees/photos/${req.file.filename}`);
-      console.log('Employee profile photo uploaded path:', req.file.path);
-      console.log('Employee profile photo saved path:', relativePath);
     }
     if (!canUseMysql()) {
       const rows = readJsonFile(employeesFile, []);
@@ -5082,8 +5033,6 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
     const relativePath = `/uploads/employees/photos/${req.file.filename}`;
     incoming.profile_photo = relativePath;
     syncUploadToMirror(`employees/photos/${req.file.filename}`);
-    console.log('Employee profile photo uploaded path:', req.file.path);
-    console.log('Employee profile photo saved path:', relativePath);
   }
 
   const firstName = String(incoming.firstName || '').trim();
@@ -5961,7 +5910,6 @@ const handleServiceVisitJobCardPdf = async (req, res) => {
   try {
     const allJobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
     const jobRef = normalizePdfReference(req.params.id || req.params.jobId || req.params.jobRef || '');
-    console.log('JOB SUMMARY jobRef:', jobRef);
     const job = findJobByPdfReference(allJobs, jobRef)
       || (canUseMysql() ? await loadJobByIdFromMysql(jobRef) : null);
     if (!job) return res.status(404).json({ error: 'Job not found' });
@@ -5990,11 +5938,9 @@ app.get('/api/jobs/:id/pdf', handleServiceVisitJobCardPdf);
 const handleContractJobCardSummaryPdf = async (req, res) => {
   try {
     const contractRef = normalizePdfReference(req.params.id || req.params.invoiceId || req.params.contractRef || '');
-    console.log('JOB SUMMARY contractRef:', contractRef);
     const invoices = await loadInvoicesForContext();
     const jobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
     const invoice = findInvoiceByPdfReference(invoices, contractRef);
-    console.log('JOB SUMMARY contract found:', Boolean(invoice));
     if (!invoice) return res.status(404).json({ error: 'Contract not found', contractRef: req.params.id });
 
     const contractReference = normalizePdfReference(
@@ -6012,7 +5958,6 @@ const handleContractJobCardSummaryPdf = async (req, res) => {
       || matchesPdfReference(entry?.invoiceNumber, contractReference)
       || matchesPdfReference(entry?.contractNo, contractReference)
     ));
-    console.log('JOB SUMMARY visits count:', relatedJobs.length);
     const settings = normalizeJobPdfSettings(await readSettingsFromMysql().catch(() => readSettings()), req);
     const pdfBuffer = await buildContractJobCardSummaryPdfBuffer({ invoice, jobs: relatedJobs, settings });
     const fileName = `${String(invoice.invoiceNumber || invoice._id || 'contract').replace(/[^\w.-]+/g, '_')}_job_card_summary.pdf`;
@@ -6609,11 +6554,6 @@ app.put('/api/customers/:id', async (req, res) => {
     const body = normalizePhoneFields(req.body, [
       'mobileNumber', 'workPhone', 'whatsappNumber', 'altNumber', 'billingPhone', 'shippingPhone', 'billingGooglePhone', 'googlePhone', 'google_phone'
     ]);
-    console.log('[Customers API] update request:', {
-      id: req.params.id,
-      bodyKeys: Object.keys(body || {}),
-      hasPremisesPayload: Array.isArray(body?.premises) || Array.isArray(body?.customerPremises)
-    });
     const allowFallback = isCustomersJsonFallbackEnabled();
     if (!canUseMysql()) {
       if (!allowFallback) {
@@ -11388,8 +11328,6 @@ const listenOnce = () => {
 
   global.__SKUAS_SERVER_LISTENING__ = true;
   serverInstance = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Backend Server Live on Port ${PORT}`);
-    console.log(`Health endpoint ready at /health`);
   });
 
   serverInstance.on('error', (error) => {
