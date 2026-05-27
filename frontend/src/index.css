@@ -1845,8 +1845,8 @@ textarea:focus {
 
   .technician-assigned-jobs-table,
   .technician-job-details-table {
-    width: 100% !important;
-    min-width: 0 !important;
+    width: max-content !important;
+    min-width: 920px !important;
     table-layout: auto !important;
   }
 
@@ -1856,15 +1856,10 @@ textarea:focus {
   .technician-job-details-table td {
     padding: 7px 8px !important;
     font-size: 11px !important;
-    white-space: normal !important;
+    white-space: nowrap !important;
     overflow: visible !important;
     text-overflow: clip !important;
     vertical-align: middle !important;
-  }
-
-  .technician-assigned-jobs-table td,
-  .technician-assigned-jobs-table th {
-    word-break: break-word !important;
   }
 
   .technician-assigned-jobs-table .crm-table-primary {
@@ -1882,6 +1877,7 @@ textarea:focus {
     height: 28px !important;
     padding: 0 8px !important;
     font-size: 10px !important;
+    white-space: nowrap !important;
   }
 
   .crm-compact-table.lead-followups-table tbody td.lead-followups-customer-cell {
