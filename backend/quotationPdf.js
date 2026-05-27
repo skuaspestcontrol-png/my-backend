@@ -304,11 +304,12 @@ const drawFooter = (doc, settings = {}) => {
   }
 };
 
-const drawHeader = (doc, settings = {}, companySettings = {}) => {
+const renderQuotationPdfHeader = (doc, settings = {}, companySettings = {}) => {
   const pdfFont = getPdfFont(doc);
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
   const width = right - left;
+  const startY = doc.y;
   const logo = resolveUploadAsset(
     companySettings.gstCompanyLogoUrl
     || settings.logo_url
@@ -379,6 +380,12 @@ const drawHeader = (doc, settings = {}, companySettings = {}) => {
   });
 
   const headerBottomY = Math.max(doc.y + 8, 118);
+  doc.y = startY;
+  return { headerBottomY, headerHeight: headerBottomY - headerTopY };
+};
+
+const drawHeader = (doc, settings = {}, companySettings = {}) => {
+  const { headerBottomY } = renderQuotationPdfHeader(doc, settings, companySettings);
   doc.y = headerBottomY + 18;
 };
 
@@ -680,5 +687,6 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
 module.exports = {
   generateQuotationPdfBuffer,
-  resolveUploadAsset
+  resolveUploadAsset,
+  renderQuotationPdfHeader
 };

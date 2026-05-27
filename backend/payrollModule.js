@@ -3,7 +3,7 @@ const path = require('path');
 const PDFDocument = require('pdfkit');
 const { syncPayrollJsonFilesToMysql } = require('./lib/autoMigrate');
 const { normalizeIndianMobileNumber } = require('./lib/phone');
-const { resolveUploadAsset } = require('./quotationPdf');
+const { renderQuotationPdfHeader } = require('./quotationPdf');
 const { sendEmailMessage, normalizeEmailSettings } = require('./services/email.service');
 
 const round2 = (value) => Number((Number(value) || 0).toFixed(2));
@@ -811,28 +811,13 @@ const calcPayrollItem = ({
 
 const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(async (resolve, reject) => {
   console.log('SALARY PDF branding object:', branding || {});
-  const logoUrl = normalizeText(
-    branding?.gstCompanyLogo
-    || branding?.companyLogo
-    || branding?.logoUrl
-    || branding?.logo
-    || branding?.gstCompanyLogoUrl
-    || branding?.companyLogoUrl
-    || branding?.gstLogoUrl
-    || branding?.gstLogo
-    || branding?.gstBrandingLogoUrl
-    || company?.logoUrl
-    || (Array.isArray(company?.logoCandidates) ? company.logoCandidates[0] : '')
-  );
-  const resolvedLogoPath = resolveUploadAsset(logoUrl) || tryResolveLocalUploadPath(logoUrl) || resolveUploadPath(logoUrl);
-  console.log('SALARY PDF logoUrl:', logoUrl);
-  console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath);
-  console.log('SALARY PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
   const doc = new PDFDocument({ size: 'A4', margin: 42 });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));
   doc.on('end', () => resolve(Buffer.concat(chunks)));
   doc.on('error', reject);
+
+  renderQuotationPdfHeader(doc, branding || {}, branding || {});
 
   const line = (y) => {
     doc.moveTo(42, y).lineTo(553, y).strokeColor('#d0d7e2').stroke();
@@ -845,45 +830,6 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
   const slipMonthLabel = new Date(Number(item.year), Math.max(0, Number(item.month) - 1), 1)
     .toLocaleDateString('en-IN', { month: 'long' })
     .concat(`-${item.year}`);
-  const pageLeft = 55;
-  const pageRight = doc.page.width - 55;
-  const contentWidth = pageRight - pageLeft;
-  const logoWidth = 400;
-  const logoHeight = 160;
-  const headerTopY = 45;
-  const companyName = normalizeText(company.companyName || defaultCompany.companyName);
-  const companyCityLine = [company.city, company.state].map(normalizeText).filter(Boolean).join(',');
-  const companyDetailLines = [
-    normalizeText(company.tagline || ''),
-    normalizeText(company.address || ''),
-    `${companyCityLine}${company.pincode ? ` - ${company.pincode}` : ''}, India`,
-    company.email ? `E Mail Id: ${company.email}` : '',
-    company.phone || company.alternatePhone
-      ? `Mobile: ${company.phone && company.alternatePhone ? `${company.phone} | ${company.alternatePhone}` : (company.phone || company.alternatePhone)}`
-      : '',
-    company.website ? `Visit Us: ${company.website}` : '',
-    company.gstin ? `GST Details: ${company.gstin}` : ''
-  ].filter(Boolean);
-  doc.font('Helvetica-Bold').fontSize(10.2);
-  const companyNameWidth = doc.widthOfString(companyName);
-  const headerX = Math.max(pageLeft, pageRight - companyNameWidth);
-  const headerWidth = pageRight - headerX;
-  const detailLineHeight = 8.1 + 1;
-  const headerBoxHeight = 10.2 + 1 + (companyDetailLines.length * detailLineHeight);
-  const logoY = headerTopY + ((headerBoxHeight - logoHeight) / 2);
-  if (resolvedLogoPath) {
-    try {
-      doc.image(resolvedLogoPath, pageLeft, logoY, { fit: [logoWidth, logoHeight] });
-      console.log('SALARY PDF logo rendered');
-    } catch (error) {
-      console.error('SALARY PDF logo image failed:', error.message);
-    }
-  }
-  doc.font('Helvetica-Bold').fontSize(10.2).fillColor('#111827').text(companyName, headerX, headerTopY, { width: contentWidth, align: 'left', lineBreak: false });
-  doc.font('Helvetica').fontSize(8.1).fillColor('#475569');
-  companyDetailLines.forEach((lineText) => {
-    doc.text(lineText, headerX, doc.y + 1, { width: headerWidth, align: 'left', lineGap: 0 });
-  });
 
   const dividerY = Math.max(doc.y + 8, 118);
   const headerBottomY = dividerY + 26;
