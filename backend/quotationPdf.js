@@ -309,11 +309,15 @@ const renderQuotationPdfHeader = (doc, settings = {}, companySettings = {}) => {
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
   const width = right - left;
+  const logoInput = companySettings.gstCompanyLogoUrl || settings.logo_url || '';
   const startY = doc.y;
   const logo = resolveUploadAsset(
     companySettings.gstCompanyLogoUrl
     || settings.logo_url
   );
+  console.log('QUOTATION HEADER logo input:', logoInput);
+  console.log('QUOTATION HEADER resolved logo path:', logo || '');
+  console.log('QUOTATION HEADER logo exists:', Boolean(logo && fs.existsSync(logo)));
   const companyName = clean(
     companySettings.gstCompanyName
     || companySettings.companyName

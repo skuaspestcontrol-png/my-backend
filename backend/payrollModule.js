@@ -817,7 +817,19 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
   doc.on('end', () => resolve(Buffer.concat(chunks)));
   doc.on('error', reject);
 
-  renderQuotationPdfHeader(doc, branding || {}, branding || {});
+  const headerSettings = {
+    logo_url: normalizeText(
+      branding?.logo_url
+      || branding?.logoUrl
+      || branding?.gstCompanyLogoUrl
+      || ''
+    )
+  };
+  console.log('SALARY SLIP PDF USING QUOTATION HEADER');
+  console.log('SALARY SLIP logo path value:', headerSettings.logo_url);
+  const headerCompanySettings = branding || {};
+  const { headerBottomY: quotationHeaderBottomY } = renderQuotationPdfHeader(doc, headerSettings, headerCompanySettings);
+  doc.y = quotationHeaderBottomY + 18;
 
   const line = (y) => {
     doc.moveTo(42, y).lineTo(553, y).strokeColor('#d0d7e2').stroke();
@@ -1614,6 +1626,34 @@ function registerPayrollModule({
       if (employee) return employee;
     }
     return null;
+  };
+
+  const loadPayrollCompanySettings = async () => {
+    if (typeof withMysqlConnection === 'function') {
+      try {
+        return await withMysqlConnection(async (conn) => {
+          const [rows] = await conn.query(
+            'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
+            ['main']
+          );
+          const row = Array.isArray(rows) ? rows[0] : null;
+          const raw = row?.setting_value;
+          if (!raw) return {};
+          if (typeof raw === 'string') {
+            try {
+              return JSON.parse(raw) || {};
+            } catch (_error) {
+              return {};
+            }
+          }
+          if (raw && typeof raw === 'object') return raw;
+          return {};
+        });
+      } catch (error) {
+        console.error('Failed to load payroll company settings from MySQL, using JSON fallback:', error.message);
+      }
+    }
+    return readSettings ? (readSettings() || {}) : {};
   };
 
   app.use('/api/payroll', async (_req, _res, next) => {
@@ -2597,7 +2637,7 @@ function registerPayrollModule({
       const item = findItemById(req.params.id);
       if (!item) return res.status(404).json({ error: 'Payroll item not found' });
       if (!canAccessItem(item, identity)) return res.status(403).json({ error: 'You can only view your own salary slip.' });
-      const settings = readSettings ? (readSettings() || {}) : {};
+      const settings = await loadPayrollCompanySettings();
       console.log('SALARY PDF branding object:', settings || {});
       const company = resolveCompanyDetails(settings);
       const { absolutePath, relativePath } = await ensureSalarySlipStored({ item, company, branding: settings, withMysqlConnection });
@@ -2630,7 +2670,7 @@ function registerPayrollModule({
       const recipient = normalizeText(req.body?.to || employee?.emailId || employee?.email || '');
       if (!recipient) return res.status(400).json({ error: 'Recipient email is required' });
 
-      const appSettings = readSettings ? (readSettings() || {}) : {};
+      const appSettings = await loadPayrollCompanySettings();
       const emailSettings = await loadRuntimeEmailSettings();
       const company = resolveCompanyDetails(appSettings);
       const { absolutePath } = await ensureSalarySlipStored({ item, company, branding: appSettings, withMysqlConnection });
@@ -2681,7 +2721,7 @@ function registerPayrollModule({
       const phone = normalizeWhatsappPhone(req.body?.phoneNumber || employee?.mobile || '');
       if (!phone) return res.status(400).json({ error: 'Valid WhatsApp phone number is required' });
 
-      const settings = readSettings ? (readSettings() || {}) : {};
+      const settings = await loadPayrollCompanySettings();
       const waConfig = resolveWhatsappConfig(settings);
       if (!waConfig.phoneNumberId || !waConfig.accessToken) {
         return res.status(400).json({ error: 'WhatsApp API settings are incomplete. Configure Phone Number ID and Access Token in Settings.' });
