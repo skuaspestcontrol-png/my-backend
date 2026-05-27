@@ -201,15 +201,16 @@ const shell = {
     background: '#fff',
     color: '#334155',
     cursor: 'pointer',
-    fontSize: '11px',
+    fontSize: '10px',
     fontWeight: 800,
-    padding: 0,
-    lineHeight: 1,
+    padding: '0 2px',
+    lineHeight: 0.95,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
+    whiteSpace: 'nowrap',
     textTransform: 'uppercase',
-    letterSpacing: '0.04em'
+    letterSpacing: '0'
   },
   input: {
     minHeight: '34px',
