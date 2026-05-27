@@ -526,11 +526,13 @@ const summarizeRecords = (records = [], employee, year, month, startDate = '', e
   const monthlyInvoices = monthly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
   const monthlyQuotations = monthly.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
   const monthlyPayments = monthly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
+  const monthlyContracts = monthly.filter((record) => record.kind === 'contracts').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyPayments = yearly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyInvoices = yearly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyQuotations = yearly.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
-  const monthlyRevenueAchieved = monthlyInvoices + monthlyQuotations + monthlyPayments;
-  const yearlyRevenueAchieved = yearlyInvoices + yearlyQuotations + yearlyPayments;
+  const yearlyContracts = yearly.filter((record) => record.kind === 'contracts').reduce((sum, record) => sum + num(record.amount), 0);
+  const monthlyRevenueAchieved = monthlyContracts;
+  const yearlyRevenueAchieved = yearlyContracts;
   return {
     employeeId: employee?.id || '',
     employeeName: employee?.name || 'Employee',
@@ -554,9 +556,11 @@ const summarizeRecords = (records = [], employee, year, month, startDate = '', e
       monthlyPayments,
       monthlyInvoices,
       monthlyQuotations,
+      monthlyContracts,
       yearlyPayments,
       yearlyInvoices,
-      yearlyQuotations
+      yearlyQuotations,
+      yearlyContracts
     }
   };
 };
@@ -691,7 +695,8 @@ const buildMonthlyTrend = (context, year) => monthList.map((month) => {
   const monthlyQuotations = monthlyRecords.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
   const monthlyPayments = monthlyRecords.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
   const target = monthlyTargetRows.reduce((sum, row) => sum + num(row.revenueTarget), 0);
-  const achieved = monthlyInvoices + monthlyQuotations + monthlyPayments;
+  const monthlyContracts = monthlyRecords.filter((record) => record.kind === 'contracts').reduce((sum, record) => sum + num(record.amount), 0);
+  const achieved = monthlyContracts;
   return { month, label: monthLabel(month), target, achieved, achievementPercent: percent(achieved, target) };
 });
 const buildYearMatrix = (context, years = []) => years.map((year) => ({
