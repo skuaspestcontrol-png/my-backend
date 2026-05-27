@@ -817,17 +817,30 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
   doc.on('end', () => resolve(Buffer.concat(chunks)));
   doc.on('error', reject);
 
-  const headerSettings = {
-    logo_url: normalizeText(
-      branding?.logo_url
-      || branding?.logoUrl
-      || branding?.gstCompanyLogoUrl
-      || ''
-    )
-  };
+  const logoSource = normalizeText(
+    branding?.gstCompanyLogoUrl
+    || branding?.gstCompanyLogo
+    || branding?.gstBrandingLogoUrl
+    || branding?.logoUrl
+    || branding?.logo_url
+    || branding?.dashboardImageUrl
+    || ''
+  );
+  const resolvedLogoPath = resolveUploadPath(logoSource) || logoSource;
+  const logoExists = Boolean(resolvedLogoPath && fs.existsSync(resolvedLogoPath));
   console.log('SALARY SLIP PDF USING QUOTATION HEADER');
-  console.log('SALARY SLIP logo path value:', headerSettings.logo_url);
-  const headerCompanySettings = branding || {};
+  console.log('SALARY SLIP logo path value:', logoSource);
+  console.log('SALARY SLIP resolved logo path:', resolvedLogoPath || '');
+  console.log('SALARY SLIP logo exists:', logoExists);
+  const headerSettings = {
+    logo_url: resolvedLogoPath
+  };
+  const headerCompanySettings = {
+    ...(branding || {}),
+    gstCompanyLogoUrl: resolvedLogoPath,
+    logo_url: resolvedLogoPath,
+    logoUrl: resolvedLogoPath
+  };
   const { headerBottomY: quotationHeaderBottomY } = renderQuotationPdfHeader(doc, headerSettings, headerCompanySettings);
   doc.y = quotationHeaderBottomY + 18;
 
