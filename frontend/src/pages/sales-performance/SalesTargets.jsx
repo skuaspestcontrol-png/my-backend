@@ -70,19 +70,6 @@ const firstHeaderLabelStyle = { ...headerLabelStyle, textAlign: 'left' };
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
 const neutralTextColor = '#111827';
-const formatTargetActivityTime = (value) => {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
 const yearlyColumns = [
   { key: 'salesPerson', label: 'Sales Person' },
   { key: 'year', label: 'Year' },
@@ -164,7 +151,6 @@ export default function SalesTargets() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [targets, setTargets] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -210,7 +196,6 @@ export default function SalesTargets() {
       const res = await apiGet('/api/sales-performance/targets', nextFilters);
       setTargets(safeRows(res.rows));
       setEmployees(safeRows(res.employees));
-      setRecentActivity(safeRows(res.recentActivity));
     } catch (err) {
       setError(err?.response?.data?.error || err?.message || 'Unable to load sales targets.');
     } finally {
@@ -489,41 +474,6 @@ export default function SalesTargets() {
             <AppButton type="submit" loading={saving}>{form.id ? 'Update Target' : 'Save Target'}</AppButton>
           </div>
         </form>
-      </AppCard>
-
-      <AppCard title="Recent Target Activity" style={{ width: '100%', minWidth: 0 }}>
-        {recentActivity.length ? (
-          <div style={{ display: 'grid', gap: 10 }}>
-            {recentActivity.map((entry) => (
-              <div
-                key={`${entry.id || entry.targetId || entry.createdAt}-${entry.action}`}
-                style={{
-                  border: '1px solid rgba(159, 23, 77, 0.16)',
-                  borderRadius: 14,
-                  padding: '12px 14px',
-                  background: '#fff',
-                  display: 'grid',
-                  gap: 6
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <strong style={{ color: '#111827' }}>{entry.targetLabel || 'Target'}</strong>
-                  <StatusBadge status={entry.action === 'deleted' ? 'danger' : entry.action === 'updated' ? 'info' : 'success'}>
-                    {entry.action}
-                  </StatusBadge>
-                </div>
-                <div style={{ fontSize: 13, color: '#374151', fontWeight: 600 }}>
-                  {entry.salesPersonName || '---'} • {money(entry.revenueTarget || 0)} revenue • {money(entry.collectionTarget || 0)} collection
-                </div>
-                <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
-                  {entry.actor || 'System'} • {formatTargetActivityTime(entry.createdAt)}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="No target activity yet" message="Save or update a target to see the recent audit trail here." />
-        )}
       </AppCard>
 
       <AppCard title="Target List" style={{ width: '100%', minWidth: 0 }}>
