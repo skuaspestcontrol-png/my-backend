@@ -3,6 +3,7 @@ import axios from 'axios';
 import { ChevronLeft, ChevronRight, IndianRupee, WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useColumnResize } from './table/useColumnResize';
+import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const PAYMENT_PAGE_SIZE = 20;
@@ -120,20 +121,40 @@ const paymentColumnBounds = {
 
 const normalizePayments = (paymentsRaw, invoicesRaw) => {
   const invoices = Array.isArray(invoicesRaw) ? invoicesRaw : [];
-  const invoiceMap = new Map(invoices.map((inv) => [String(inv._id || ''), inv]));
+  const invoiceMap = new Map();
+  invoices.forEach((inv) => {
+    [inv?._id, inv?.id, inv?.external_id, inv?.externalId, inv?.invoiceNumber, inv?.invoice_no, inv?.invoiceNo].forEach((key) => {
+      if (key === undefined || key === null || key === '') return;
+      invoiceMap.set(String(key).toLowerCase(), inv);
+    });
+  });
   const paymentRows = [];
 
   const directPayments = Array.isArray(paymentsRaw) ? paymentsRaw : [];
   directPayments.forEach((payment, idx) => {
-    const invoice = invoiceMap.get(String(payment.invoiceId || ''));
+    const linkedInvoiceKey = String(
+      payment.invoiceId ||
+      payment.linked_invoice_external_id ||
+      payment.linkedInvoiceExternalId ||
+      payment.invoice_external_id ||
+      payment.invoiceExternalId ||
+      payment.invoiceNumber ||
+      payment.invoice_no ||
+      payment.invoiceNo ||
+      ''
+    ).trim().toLowerCase();
+    const invoice = invoiceMap.get(linkedInvoiceKey);
     paymentRows.push({
-      id: payment._id || `pay-${idx}`,
-      date: payment.paymentDate || payment.date || payment.createdAt,
-      invoiceNo: payment.invoiceNumber || invoice?.invoiceNumber || '-',
-      customerName: payment.customerName || invoice?.customerName || '-',
-      mode: payment.mode || payment.paymentMode || '-',
+      id: payment._id || payment.id || payment.external_id || `pay-${idx}`,
+      sourceType: 'payment_received',
+      sourceId: payment.external_id || payment.id || payment._id || `pay-${idx}`,
+      date: payment.paymentDate || payment.payment_date || payment.date || payment.createdAt,
+      invoiceNo: payment.invoiceNumber || payment.invoice_no || payment.invoiceNo || invoice?.invoiceNumber || invoice?.invoice_no || '-',
+      customerName: payment.customerName || payment.customer_name || invoice?.customerName || invoice?.customer_name || '-',
+      mode: payment.mode || payment.paymentMode || payment.payment_mode || '-',
       amount: toNum(payment.amount),
-      note: payment.note || payment.notes || payment.reference || '-'
+      note: payment.note || payment.notes || payment.reference || payment.reference_number || '-',
+      rowSource: payment
     });
   });
 
@@ -144,12 +165,15 @@ const normalizePayments = (paymentsRaw, invoicesRaw) => {
       splits.forEach((split, idx) => {
         paymentRows.push({
           id: `${invoice._id || invoice.invoiceNumber || 'inv'}-split-${idx}`,
+          sourceType: 'legacy_payments',
+          sourceId: `${invoice._id || invoice.invoiceNumber || 'inv'}-split-${idx}`,
           date: split.date || invoice.updatedAt || invoice.date || invoice.createdAt,
           invoiceNo: invoice.invoiceNumber || '-',
           customerName: invoice.customerName || '-',
           mode: split.mode || '-',
           amount: toNum(split.amount),
-          note: split.reference || split.note || '-'
+          note: split.reference || split.note || '-',
+          rowSource: split
         });
       });
     });
@@ -167,7 +191,7 @@ export default function PaymentReceivedDashboard() {
 
   const loadPaymentsData = async () => {
     const [paymentsRes, invoicesRes] = await Promise.all([
-      axios.get(`${API_BASE_URL}/api/payments`),
+      axios.get(`${API_BASE_URL}/api/payment-received`).catch(async () => axios.get(`${API_BASE_URL}/api/payments`)),
       axios.get(`${API_BASE_URL}/api/invoices`)
     ]);
     setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
@@ -209,8 +233,13 @@ export default function PaymentReceivedDashboard() {
     const sure = window.confirm('Delete this payment entry?');
     if (!sure) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/payments/${paymentId}`);
+      const row = rows.find((item) => String(item.id) === String(paymentId) || String(item.sourceId) === String(paymentId));
+      const deleteUrl = row?.sourceType === 'payment_received'
+        ? `${API_BASE_URL}/api/payment-received/${encodeURIComponent(String(row.sourceId || paymentId))}`
+        : `${API_BASE_URL}/api/payments/${paymentId}`;
+      await axios.delete(deleteUrl);
       await loadPaymentsData();
+      triggerSalesPerformanceRefresh();
     } catch (error) {
       console.error('Delete payment failed', error);
       alert(error?.response?.data?.error || 'Unable to delete payment');

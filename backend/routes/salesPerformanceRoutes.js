@@ -460,7 +460,31 @@ const buildTargetPersistData = async (columns, body = {}, lookup = null) => {
   if (hasColumn(columns, 'created_by')) data.created_by = body.createdBy || body.created_by || null;
   return { data, externalId, salesPersonId, targetType, targetMonth, targetYear, collectionTarget, revenueTarget, employeeName, employeeCode };
 };
-const normalizeSource = (kind, row = {}, lookup = null) => {
+const buildInvoiceLookup = (rows = [], records = []) => {
+  const map = new Map();
+  safeRows(rows).forEach((row, index) => {
+    const payload = safeJson(row.payload, {});
+    const source = { ...payload, ...row };
+    const record = records[index];
+    if (!record) return;
+    [
+      source.external_id,
+      source.externalId,
+      source._id,
+      source.id,
+      source.invoice_external_id,
+      source.invoiceExternalId,
+      source.invoiceNumber,
+      source.invoice_number,
+      source.invoiceNo,
+      source.invoice_no
+    ].map(text).filter(Boolean).forEach((key) => {
+      map.set(key.toLowerCase(), record);
+    });
+  });
+  return map;
+};
+const normalizeSource = (kind, row = {}, lookup = null, relatedLookup = null) => {
   const payload = safeJson(row.payload, {});
   const source = { ...payload, ...row };
   const employeeRaw = valueOf(source, [
@@ -471,9 +495,16 @@ const normalizeSource = (kind, row = {}, lookup = null) => {
     'sales_person_name', 'salesPersonName', 'assigned_to_name', 'assignedToName', 'employee_name', 'employeeName',
     'created_by_name', 'createdByName'
   ]);
-  const employee = lookup ? pickEmployee(lookup, employeeRaw) || pickEmployee(lookup, employeeNameRaw) : null;
+  const linkedInvoiceKey = valueOf(source, [
+    'linked_invoice_external_id', 'invoice_external_id', 'linkedInvoiceExternalId', 'invoiceExternalId',
+    'invoiceId', 'invoice_id', 'invoiceNumber', 'invoice_number', 'invoiceNo', 'invoice_no'
+  ]);
+  const relatedRecord = relatedLookup ? relatedLookup.get(text(linkedInvoiceKey).toLowerCase()) || null : null;
+  const resolvedEmployeeRaw = employeeRaw || relatedRecord?.employeeId || '';
+  const resolvedEmployeeNameRaw = employeeNameRaw || relatedRecord?.employeeName || '';
+  const employee = lookup ? pickEmployee(lookup, resolvedEmployeeRaw) || pickEmployee(lookup, resolvedEmployeeNameRaw) : null;
   const dateValue = valueOf(source, kind === 'payments'
-    ? ['payment_date', 'received_date', 'date', 'created_at', 'createdAt']
+    ? ['payment_date', 'received_date', 'paymentDate', 'date', 'created_at', 'createdAt']
     : kind === 'invoices'
       ? ['invoice_date', 'date', 'created_at', 'createdAt']
       : kind === 'quotations'
@@ -526,13 +557,11 @@ const summarizeRecords = (records = [], employee, year, month, startDate = '', e
   const monthlyInvoices = monthly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
   const monthlyQuotations = monthly.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
   const monthlyPayments = monthly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
-  const monthlyContracts = monthly.filter((record) => record.kind === 'contracts').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyPayments = yearly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyInvoices = yearly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyQuotations = yearly.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
-  const yearlyContracts = yearly.filter((record) => record.kind === 'contracts').reduce((sum, record) => sum + num(record.amount), 0);
-  const monthlyRevenueAchieved = monthlyContracts;
-  const yearlyRevenueAchieved = yearlyContracts;
+  const monthlyRevenueAchieved = monthlyInvoices;
+  const yearlyRevenueAchieved = yearlyInvoices;
   return {
     employeeId: employee?.id || '',
     employeeName: employee?.name || 'Employee',
@@ -556,11 +585,11 @@ const summarizeRecords = (records = [], employee, year, month, startDate = '', e
       monthlyPayments,
       monthlyInvoices,
       monthlyQuotations,
-      monthlyContracts,
+      monthlyContracts: monthlyInvoices,
       yearlyPayments,
       yearlyInvoices,
       yearlyQuotations,
-      yearlyContracts
+      yearlyContracts: yearlyInvoices
     }
   };
 };
@@ -627,22 +656,23 @@ const loadSalesPeople = async () => {
   return sales.length ? sales : active;
 };
 const loadSalesContext = async () => {
-  const [employees, leadRows, invoiceRows, paymentRows, quotationRows, contractRows, targetRows] = await Promise.all([
+  const [employees, leadRows, invoiceRows, paymentRows, quotationRows, targetRows] = await Promise.all([
     loadSalesPeople(),
     loadRows('leads', 'leads', 4000),
     loadRows('invoices', 'invoices', 4000),
-    loadRows('payments', 'payments', 4000),
     loadRows('quotations', 'quotations', 4000),
-    loadRows('contracts', 'contracts', 4000),
+    queryRows('SELECT * FROM payment_received ORDER BY id DESC LIMIT 4000'),
     queryRows('SELECT * FROM sales_targets WHERE is_active = 1 ORDER BY target_year DESC, target_month DESC, id DESC')
   ]);
   const lookup = buildEmployeeLookup(employees);
+  const invoiceRecords = safeRows(invoiceRows).map((row) => normalizeSource('invoices', row, lookup));
+  const invoiceLookup = buildInvoiceLookup(safeRows(invoiceRows), invoiceRecords);
+  const livePaymentRows = safeRows(paymentRows).length > 0 ? safeRows(paymentRows) : await loadRows('payments', 'payments', 4000);
   const records = [
     ...safeRows(leadRows).map((row) => normalizeSource('leads', row, lookup)),
-    ...safeRows(invoiceRows).map((row) => normalizeSource('invoices', row, lookup)),
-    ...safeRows(paymentRows).map((row) => normalizeSource('payments', row, lookup)),
-    ...safeRows(quotationRows).map((row) => normalizeSource('quotations', row, lookup)),
-    ...safeRows(contractRows).map((row) => normalizeSource('contracts', row, lookup))
+    ...invoiceRecords,
+    ...livePaymentRows.map((row) => normalizeSource('payments', row, lookup, invoiceLookup)),
+    ...safeRows(quotationRows).map((row) => normalizeSource('quotations', row, lookup))
   ];
   const normalizedTargets = safeRows(targetRows).map((row) => normalizeTargetRow(row, lookup));
   await syncSalesTargetEmployeeFields(safeRows(targetRows), lookup);
@@ -692,11 +722,8 @@ const buildMonthlyTrend = (context, year) => monthList.map((month) => {
   const monthlyTargetRows = context.targets.filter((row) => row.isActive && text(row.targetType) === 'monthly' && Number(row.targetYear) === Number(year) && Number(row.targetMonth) === Number(month));
   const monthlyRecords = context.records.filter((record) => matchesDate(record.date, year, month));
   const monthlyInvoices = monthlyRecords.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
-  const monthlyQuotations = monthlyRecords.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
-  const monthlyPayments = monthlyRecords.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
   const target = monthlyTargetRows.reduce((sum, row) => sum + num(row.revenueTarget), 0);
-  const monthlyContracts = monthlyRecords.filter((record) => record.kind === 'contracts').reduce((sum, record) => sum + num(record.amount), 0);
-  const achieved = monthlyContracts;
+  const achieved = monthlyInvoices;
   return { month, label: monthLabel(month), target, achieved, achievementPercent: percent(achieved, target) };
 });
 const buildYearMatrix = (context, years = []) => years.map((year) => ({

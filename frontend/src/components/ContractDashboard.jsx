@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import useColumnResize from './table/useColumnResize';
 import {
   AlertCircle,
@@ -423,6 +424,20 @@ export default function ContractDashboard() {
     });
   };
 
+  const loadLivePayments = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/api/payment-received`);
+      return Array.isArray(res.data) ? res.data : [];
+    } catch (error) {
+      try {
+        const legacy = await axios.get(`${API_BASE}/api/payments`);
+        return Array.isArray(legacy.data) ? legacy.data : [];
+      } catch (_fallbackError) {
+        return [];
+      }
+    }
+  };
+
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
@@ -437,7 +452,7 @@ export default function ContractDashboard() {
         axios.get(`${API_BASE}/api/invoices`),
         axios.get(`${API_BASE}/api/customers`),
         axios.get(`${API_BASE}/api/service-schedules`),
-        axios.get(`${API_BASE}/api/payments`)
+        loadLivePayments()
       ]);
 
       const nextInvoices = Array.isArray(invoiceRes.data) ? invoiceRes.data : [];
@@ -491,7 +506,7 @@ export default function ContractDashboard() {
           axios.get(`${API_BASE}/api/invoices`),
           axios.get(`${API_BASE}/api/customers`),
           axios.get(`${API_BASE}/api/service-schedules`),
-          axios.get(`${API_BASE}/api/payments`)
+          loadLivePayments()
         ]);
 
         if (!mounted) return;
@@ -730,13 +745,20 @@ export default function ContractDashboard() {
     });
 
     const invoiceIdSet = new Set(relatedInvoices.map((entry) => String(entry?._id || '')).filter(Boolean));
+    const invoiceExternalIdSet = new Set(relatedInvoices.map((entry) => normalizeName(entry?.external_id || entry?.externalId)).filter(Boolean));
     const invoiceNoSet = new Set(relatedInvoices.map((entry) => normalizeName(entry?.invoiceNumber)).filter(Boolean));
 
     const relatedPayments = payments.filter((payment) => {
-      const payInvoiceId = String(payment?.invoiceId || '');
-      const payInvoiceNo = normalizeName(payment?.invoiceNumber);
-      const payCustomer = normalizeName(payment?.customerName);
-      if (payInvoiceId && invoiceIdSet.has(payInvoiceId)) return true;
+      const payInvoiceId = normalizeName(
+        payment?.invoiceId ||
+        payment?.linked_invoice_external_id ||
+        payment?.linkedInvoiceExternalId ||
+        payment?.invoice_external_id ||
+        payment?.invoiceExternalId
+      );
+      const payInvoiceNo = normalizeName(payment?.invoiceNumber || payment?.invoice_no || payment?.invoiceNo);
+      const payCustomer = normalizeName(payment?.customerName || payment?.customer_name);
+      if (payInvoiceId && (invoiceIdSet.has(payInvoiceId) || invoiceExternalIdSet.has(payInvoiceId))) return true;
       if (payInvoiceNo && invoiceNoSet.has(payInvoiceNo)) return true;
       return payCustomer && payCustomer === baseName;
     });
@@ -933,6 +955,7 @@ export default function ContractDashboard() {
       await axios.delete(`${API_BASE}/api/invoices/${row.invoiceId}`);
       setInvoices((prev) => prev.filter((invoice) => String(invoice._id) !== String(row.invoiceId)));
       setActionMenu(null);
+      triggerSalesPerformanceRefresh();
     } catch (error) {
       console.error('Failed to delete contract', error);
       window.alert('Unable to delete contract right now.');

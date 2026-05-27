@@ -10,6 +10,7 @@ import {
   normalizeInvoiceVisibleColumns
 } from '../utils/invoicePreferences';
 import { normalizeIndianMobileNumber } from '../utils/phone';
+import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import PdfPreviewModal from './PdfPreviewModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -2021,6 +2022,7 @@ export default function InvoiceDashboard() {
       setShowModal(false);
       setModalOpenedFromContract(false);
       await loadInvoices();
+      triggerSalesPerformanceRefresh();
     } catch (error) {
       console.error('Failed to save invoice', error);
       setSaveError(error?.response?.data?.error || 'Unable to save invoice. Please ensure backend server is running on port 5000.');
@@ -2035,6 +2037,7 @@ export default function InvoiceDashboard() {
       await Promise.all(selectedIds.map((id) => axios.delete(`${API_BASE_URL}/api/invoices/${id}`)));
       setShowMoreMenu(false);
       await loadInvoices();
+      triggerSalesPerformanceRefresh();
     } catch (error) {
       console.error('Failed to delete invoices', error);
     }
