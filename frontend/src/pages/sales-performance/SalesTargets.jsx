@@ -181,7 +181,7 @@ export default function SalesTargets() {
     enabled: true
   });
   const yearlyCellWidths = {
-    salesPerson: viewportWidth <= 768 ? 110 : getYearlyWidth('salesPerson'),
+    salesPerson: viewportWidth <= 768 ? 84 : getYearlyWidth('salesPerson'),
     year: viewportWidth <= 768 ? 54 : getYearlyWidth('year'),
     monthlyRevenue: viewportWidth <= 768 ? 74 : getYearlyWidth('monthlyRevenue'),
     monthlyCollection: viewportWidth <= 768 ? 74 : getYearlyWidth('monthlyCollection'),
@@ -191,24 +191,24 @@ export default function SalesTargets() {
     yearlyRows: viewportWidth <= 768 ? 58 : getYearlyWidth('yearlyRows')
   };
   const targetCellWidths = {
-    salesPerson: viewportWidth <= 768 ? 112 : getTargetWidth('salesPerson'),
-    type: viewportWidth <= 768 ? 70 : getTargetWidth('type'),
-    month: viewportWidth <= 768 ? 64 : getTargetWidth('month'),
-    year: viewportWidth <= 768 ? 58 : getTargetWidth('year'),
-    revenueTarget: viewportWidth <= 768 ? 74 : getTargetWidth('revenueTarget'),
-    revenueAchieved: viewportWidth <= 768 ? 74 : getTargetWidth('revenueAchieved'),
-    revenuePending: viewportWidth <= 768 ? 74 : getTargetWidth('revenuePending'),
-    revenuePercent: viewportWidth <= 768 ? 62 : getTargetWidth('revenuePercent'),
-    collectionTarget: viewportWidth <= 768 ? 74 : getTargetWidth('collectionTarget'),
-    collectionAchieved: viewportWidth <= 768 ? 74 : getTargetWidth('collectionAchieved'),
-    collectionPending: viewportWidth <= 768 ? 74 : getTargetWidth('collectionPending'),
-    collectionPercent: viewportWidth <= 768 ? 62 : getTargetWidth('collectionPercent'),
-    action: viewportWidth <= 768 ? 70 : getTargetWidth('action')
+    salesPerson: viewportWidth <= 768 ? 94 : getTargetWidth('salesPerson'),
+    type: viewportWidth <= 768 ? 64 : getTargetWidth('type'),
+    month: viewportWidth <= 768 ? 56 : getTargetWidth('month'),
+    year: viewportWidth <= 768 ? 50 : getTargetWidth('year'),
+    revenueTarget: viewportWidth <= 768 ? 68 : getTargetWidth('revenueTarget'),
+    revenueAchieved: viewportWidth <= 768 ? 68 : getTargetWidth('revenueAchieved'),
+    revenuePending: viewportWidth <= 768 ? 68 : getTargetWidth('revenuePending'),
+    revenuePercent: viewportWidth <= 768 ? 54 : getTargetWidth('revenuePercent'),
+    collectionTarget: viewportWidth <= 768 ? 68 : getTargetWidth('collectionTarget'),
+    collectionAchieved: viewportWidth <= 768 ? 68 : getTargetWidth('collectionAchieved'),
+    collectionPending: viewportWidth <= 768 ? 68 : getTargetWidth('collectionPending'),
+    collectionPercent: viewportWidth <= 768 ? 54 : getTargetWidth('collectionPercent'),
+    action: viewportWidth <= 768 ? 64 : getTargetWidth('action')
   };
   const yearlyMinWidth = yearlyColumns.reduce((sum, column) => sum + (yearlyCellWidths[column.key] || yearlyWidths[column.key] || 80), 0);
   const targetMinWidth = targetColumns.reduce((sum, column) => sum + (targetCellWidths[column.key] || targetWidths[column.key] || 80), 0);
   const yearlyTableStyle = { ...tableStyle, minWidth: Math.max(viewportWidth <= 768 ? 620 : 1660, yearlyMinWidth), tableLayout: 'fixed' };
-  const targetTableStyle = { ...tableStyle, minWidth: Math.max(viewportWidth <= 768 ? 840 : 1660, targetMinWidth), tableLayout: 'fixed' };
+  const targetTableStyle = { ...tableStyle, minWidth: Math.max(viewportWidth <= 768 ? 720 : 1660, targetMinWidth), tableLayout: 'fixed' };
   const yearlyHead = (key, align = 'left') => ({ ...headerStyle, position: 'relative', width: `${yearlyCellWidths[key]}px`, minWidth: `${yearlyCellWidths[key]}px`, maxWidth: `${yearlyCellWidths[key]}px`, textAlign: align });
   const yearlyBody = (key, align = 'left') => ({ ...nameCellStyle, width: `${yearlyCellWidths[key]}px`, minWidth: `${yearlyCellWidths[key]}px`, maxWidth: `${yearlyCellWidths[key]}px`, textAlign: align });
   const targetHead = (key, align = 'left') => ({ ...headerStyle, position: 'relative', width: `${targetCellWidths[key]}px`, minWidth: `${targetCellWidths[key]}px`, maxWidth: `${targetCellWidths[key]}px`, textAlign: align });
@@ -437,7 +437,7 @@ export default function SalesTargets() {
           <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table className="table-clean sales-targets-table sales-performance-table" style={yearlyTableStyle}>
               <colgroup>
-                {yearlyColumns.map((column) => <col key={column.key} style={{ width: `${getYearlyWidth(column.key)}px` }} />)}
+                {yearlyColumns.map((column) => <col key={column.key} style={{ width: `${yearlyCellWidths[column.key]}px` }} />)}
               </colgroup>
               <thead>
                 <tr>
@@ -508,7 +508,7 @@ export default function SalesTargets() {
           <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table className="table-clean sales-targets-table sales-performance-table" style={targetTableStyle}>
               <colgroup>
-                {targetColumns.map((column) => <col key={column.key} style={{ width: `${getTargetWidth(column.key)}px` }} />)}
+                {targetColumns.map((column) => <col key={column.key} style={{ width: `${targetCellWidths[column.key]}px` }} />)}
               </colgroup>
               <thead>
                 <tr>
