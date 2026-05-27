@@ -166,8 +166,8 @@ export default function StockItems() {
     ? {
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: 'calc(100dvh - 160px)',
-        overflow: 'hidden',
+        maxHeight: 'none',
+        overflow: 'visible',
         borderRadius: '20px'
       }
     : undefined;
@@ -177,16 +177,16 @@ export default function StockItems() {
         flexDirection: 'column',
         gap: 12,
         minHeight: 0,
-        overflow: 'hidden'
+        overflow: 'visible'
       }
     : undefined;
   const formScrollStyle = isMobileForm
     ? {
-        overflowY: 'auto',
+        overflowY: 'visible',
         minHeight: 0,
         WebkitOverflowScrolling: 'touch',
-        overscrollBehavior: 'contain',
-        paddingRight: 4
+        overscrollBehavior: 'auto',
+        paddingRight: 0
       }
     : undefined;
   const panelStyle = {
