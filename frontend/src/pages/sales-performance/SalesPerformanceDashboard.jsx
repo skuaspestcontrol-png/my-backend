@@ -172,12 +172,6 @@ export default function SalesPerformanceDashboard() {
     if (String(key).includes('Percent')) return { fontSize: 16, lineHeight: 1.05 };
     return { fontSize: 18, lineHeight: 1.05 };
   };
-  const scrollHintStyle = {
-    marginBottom: 8,
-    color: '#6B7280',
-    fontSize: isMobile ? 11 : 12,
-    fontWeight: 600
-  };
   const matrixScrollStyle = {
     width: '100%',
     maxWidth: '100%',
@@ -381,7 +375,6 @@ export default function SalesPerformanceDashboard() {
           <AppCard title="Year-Month Matrix" className="crm-table-card" style={{ width: '100%', minWidth: 0 }}>
             {safeRows(matrix).length ? (
               <div className="table-scroll-x sales-matrix-scroll" style={matrixScrollStyle}>
-                {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all months.</div> : null}
                 <div style={matrixInnerStyle}>
                   <table
                     className="table-clean sales-matrix-table"
