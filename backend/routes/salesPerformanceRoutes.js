@@ -752,6 +752,10 @@ const buildMonthlyTrend = (context, year) => monthList.map((month) => {
   const achieved = monthlyInvoices;
   return { month, label: monthLabel(month), target, achieved, achievementPercent: percent(achieved, target) };
 });
+const getSalesPerformanceDebugInfo = () => ({
+  revenueSource: 'live invoices (GST-inclusive contract totals)',
+  collectionSource: 'invoice.paymentReceivedTotal -> payment_received -> legacy payments'
+});
 const buildYearMatrix = (context, years = []) => years.map((year) => ({
   year,
   cells: monthList.map((month) => {
@@ -908,6 +912,7 @@ router.get('/dashboard', async (req, res) => {
       monthlyTrend,
       matrix,
       salesPersonPerformance: teamRows,
+      debug: getSalesPerformanceDebugInfo(),
       month,
       year
     });
@@ -937,7 +942,7 @@ router.get('/targets', async (req, res) => {
       collectionTarget: num(entry.collection_target, 0),
       createdAt: entry.created_at || ''
     }));
-    return res.json({ success: true, rows, employees: context.employees, recentActivity });
+    return res.json({ success: true, rows, employees: context.employees, recentActivity, debug: getSalesPerformanceDebugInfo() });
   } catch (error) {
     console.error('Sales targets failed:', error.message);
     return sendError(res, 500, 'Unable to load sales targets.');
@@ -966,7 +971,8 @@ router.get('/audit', async (req, res) => {
         collectionTarget: num(entry.collection_target, 0),
         createdAt: entry.created_at || '',
         payload: safeJson(entry.payload_json, {})
-      }))
+      })),
+      debug: getSalesPerformanceDebugInfo()
     });
   } catch (error) {
     console.error('Sales target audit failed:', error.message);
@@ -1120,7 +1126,7 @@ router.get('/team-performance', async (req, res) => {
     const year = Number(req.query.year || currentYear);
     const month = Number(req.query.month || currentMonth);
     const rows = buildTeamRows(context, { year, month, salesPersonId: req.query.salesPersonId || '' });
-    return res.json({ success: true, rows, employees: context.employees, year, month });
+    return res.json({ success: true, rows, employees: context.employees, year, month, debug: getSalesPerformanceDebugInfo() });
   } catch (error) {
     console.error('Sales team performance failed:', error.message);
     return sendError(res, 500, 'Unable to load team performance.');
@@ -1132,7 +1138,7 @@ router.get('/year-month-matrix', async (req, res) => {
     const context = await loadSalesContext();
     const years = (req.query.years ? String(req.query.years).split(',').map((value) => Number(value.trim())).filter(Boolean) : await parseYearList(context)).slice(-4);
     const matrix = buildYearMatrix(context, years);
-    return res.json({ success: true, years, matrix, employees: context.employees });
+    return res.json({ success: true, years, matrix, employees: context.employees, debug: getSalesPerformanceDebugInfo() });
   } catch (error) {
     console.error('Sales year month matrix failed:', error.message);
     return sendError(res, 500, 'Unable to load year month matrix.');
@@ -1185,7 +1191,7 @@ router.get('/reports', async (req, res) => {
       totalYearlyTarget: rows.reduce((sum, row) => sum + num(row.yearlyTarget), 0),
       totalYearlyAchieved: rows.reduce((sum, row) => sum + num(row.yearlyAchieved), 0)
     };
-    return res.json({ success: true, rows, summary, reportType, employees: context.employees });
+    return res.json({ success: true, rows, summary, reportType, employees: context.employees, debug: getSalesPerformanceDebugInfo() });
   } catch (error) {
     console.error('Sales reports failed:', error.message);
     return sendError(res, 500, 'Unable to load sales reports.');
