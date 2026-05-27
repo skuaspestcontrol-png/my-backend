@@ -40,7 +40,9 @@ const dangerColor = '#DC2626';
 const neutralTextColor = '#111827';
 const currencyTooltipLabel = {
   monthlyTarget: 'Monthly Target',
-  monthlyAchieved: 'Monthly Achieved'
+  monthlyAchieved: 'Monthly Achieved',
+  monthlyCollectionTarget: 'Collection Target',
+  monthlyCollectionAchieved: 'Collection Achieved'
 };
 
 export default function SalesTeamPerformance() {
@@ -288,30 +290,31 @@ export default function SalesTeamPerformance() {
               ) : <EmptyState title="No comparison data" message="Team target vs achievement chart will appear here." />}
             </CompactChartCard>
 
-            <CompactChartCard title="Achievement %" isMobile={isMobile}>
+            <CompactChartCard title="Collection Target vs Achievement" isMobile={isMobile}>
               {rows.length ? (
                 <ChartSurface height={chartHeight}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={rows} margin={getChartMargin({ mobile: isMobile })} barCategoryGap={barChartProps.barCategoryGap} barGap={barChartProps.barGap}>
                       <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
                       <XAxis dataKey="employeeName" {...chartAxisProps} />
-                      <YAxis {...percentAxisProps} />
+                      <YAxis {...currencyAxisProps} />
                       <Tooltip
                         cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
-                        content={<SalesChartTooltip valueFormatter={(value) => percent(value || 0)} />}
+                        content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
                       />
-                      <Bar dataKey="yearlyAchievementPercent" name="Yearly %" radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize}>
+                      <Bar dataKey="monthlyCollectionTarget" name={currencyTooltipLabel.monthlyCollectionTarget} fill={targetColor} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize} />
+                      <Bar dataKey="monthlyCollectionAchieved" name={currencyTooltipLabel.monthlyCollectionAchieved} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize}>
                         {rows.map((entry) => (
                           <Cell
                             key={entry.employeeId}
-                            fill={Number(entry.yearlyAchievementPercent || 0) >= 100 ? successColor : dangerColor}
+                            fill={isTargetMet(entry.monthlyCollectionAchieved, entry.monthlyCollectionTarget) ? successColor : dangerColor}
                           />
                         ))}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartSurface>
-              ) : <EmptyState title="No achievement data" message="Achievement percentage chart will appear here." />}
+              ) : <EmptyState title="No collection data" message="Collection target vs achievement chart will appear here." />}
             </CompactChartCard>
           </div>
 
