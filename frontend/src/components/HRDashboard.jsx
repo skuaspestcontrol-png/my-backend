@@ -8,6 +8,7 @@ import {
   Wallet
 } from 'lucide-react';
 import useColumnResize from './table/useColumnResize';
+import { buildPortalAuthHeaders, getPortalUserRole } from '../utils/portalAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const now = new Date();
@@ -112,7 +113,7 @@ const leaveOptions = [
 ];
 
 const roleFlags = () => {
-  const roleRaw = String(localStorage.getItem('portal_user_role') || 'Admin').trim().toLowerCase();
+  const roleRaw = String(getPortalUserRole() || 'Admin').trim().toLowerCase();
   const isAdmin = roleRaw === 'admin' || roleRaw === '';
   const isHr = roleRaw.includes('hr');
   const isManager = roleRaw.includes('manager');
@@ -181,9 +182,7 @@ const hrPayrollBounds = {
 
 const money = (value) => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 const baseHeaders = () => ({
-  'x-role': localStorage.getItem('portal_user_role') || 'Admin',
-  'x-user-name': localStorage.getItem('portal_user_name') || 'System',
-  'x-user-id': localStorage.getItem('portal_user_id') || ''
+  ...buildPortalAuthHeaders()
 });
 
 function MiniBarChart({ rows = [], nameKey = 'name', valueKey = 'value', color = 'var(--color-primary)' }) {

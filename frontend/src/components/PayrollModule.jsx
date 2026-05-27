@@ -4,11 +4,12 @@ import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Download, Fi
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
+import { buildPortalAuthHeaders, getPortalUserId, getPortalUserName, getPortalUserRole } from '../utils/portalAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 const roleFlags = () => {
-  const roleRaw = String(localStorage.getItem('portal_user_role') || 'Admin').trim().toLowerCase();
+  const roleRaw = String(getPortalUserRole() || 'Admin').trim().toLowerCase();
   const isAdmin = roleRaw === 'admin' || roleRaw === '';
   const isHr = roleRaw.includes('hr');
   const isAccountant = roleRaw.includes('account');
@@ -561,11 +562,7 @@ export default function PayrollModule() {
     const width = getHolidayColumnWidth(key);
     return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
   };
-  const headers = useMemo(() => ({
-    'x-role': localStorage.getItem('portal_user_role') || 'Admin',
-    'x-user-name': localStorage.getItem('portal_user_name') || 'System',
-    'x-user-id': localStorage.getItem('portal_user_id') || ''
-  }), []);
+  const headers = useMemo(() => buildPortalAuthHeaders(), []);
 
   const reloadAll = async () => {
     try {
@@ -768,7 +765,7 @@ export default function PayrollModule() {
         if (!joined.includes(search)) return false;
       }
       if (role.canViewOwn) {
-        const loggedEmployeeId = String(localStorage.getItem('portal_user_id') || '').trim();
+        const loggedEmployeeId = String(getPortalUserId() || '').trim();
         if (loggedEmployeeId && String(entry.employeeId || '') !== loggedEmployeeId) return false;
       }
       return true;
@@ -1083,9 +1080,9 @@ export default function PayrollModule() {
   };
 
   const openSlipViewer = (item) => {
-    const userRole = encodeURIComponent(localStorage.getItem('portal_user_role') || 'Admin');
-    const userId = encodeURIComponent(localStorage.getItem('portal_user_id') || '');
-    const userName = encodeURIComponent(localStorage.getItem('portal_user_name') || 'System');
+    const userRole = encodeURIComponent(getPortalUserRole() || 'Admin');
+    const userId = encodeURIComponent(getPortalUserId() || '');
+    const userName = encodeURIComponent(getPortalUserName() || 'System');
     const url = `${API_BASE}/api/payroll/items/${item._id}/slip/pdf?role=${userRole}&userId=${userId}&userName=${userName}&_ts=${Date.now()}`;
     setSlipViewer({
       open: true,
@@ -1124,9 +1121,9 @@ export default function PayrollModule() {
 
   const sendSlipForItem = async (item, channel) => {
     const employee = employeeMap.get(String(item?.employeeId || ''));
-    const userRole = encodeURIComponent(localStorage.getItem('portal_user_role') || 'Admin');
-    const userId = encodeURIComponent(localStorage.getItem('portal_user_id') || '');
-    const userName = encodeURIComponent(localStorage.getItem('portal_user_name') || 'System');
+    const userRole = encodeURIComponent(getPortalUserRole() || 'Admin');
+    const userId = encodeURIComponent(getPortalUserId() || '');
+    const userName = encodeURIComponent(getPortalUserName() || 'System');
     if (channel === 'email') {
       const toDefault = String(employee?.emailId || employee?.email || '').trim();
       const to = window.prompt('Recipient email', toDefault);
@@ -1227,7 +1224,7 @@ export default function PayrollModule() {
         <button
           type="button"
           style={actionButtonStyle}
-          onClick={() => window.open(`${API_BASE}/api/payroll/items/${entry._id}/slip/pdf?role=${encodeURIComponent(localStorage.getItem('portal_user_role') || 'Admin')}&userId=${encodeURIComponent(localStorage.getItem('portal_user_id') || '')}&userName=${encodeURIComponent(localStorage.getItem('portal_user_name') || 'System')}&download=1&_ts=${Date.now()}`, '_blank')}
+          onClick={() => window.open(`${API_BASE}/api/payroll/items/${entry._id}/slip/pdf?role=${encodeURIComponent(getPortalUserRole() || 'Admin')}&userId=${encodeURIComponent(getPortalUserId() || '')}&userName=${encodeURIComponent(getPortalUserName() || 'System')}&download=1&_ts=${Date.now()}`, '_blank')}
         >
           Download
         </button>

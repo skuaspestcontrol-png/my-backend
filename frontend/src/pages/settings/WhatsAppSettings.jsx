@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { PHONE_VALIDATION_ERROR, isValidIndianMobileNumber, normalizeIndianMobileNumber } from '../../utils/phone';
+import { getPortalUserName } from '../../utils/portalAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -66,7 +67,7 @@ export default function WhatsAppSettings() {
       setStatus('Sending test message...');
       await axios.post(`${API_BASE_URL}/api/settings/whatsapp/test`, {
         testNumber: form.testNumber,
-        sentByUser: localStorage.getItem('portal_user_name') || 'Admin'
+        sentByUser: getPortalUserName() || 'Admin'
       });
       setStatus('Test message sent.');
     } catch (error) {

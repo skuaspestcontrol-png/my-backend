@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, loadBrandingSettings, pickBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
-import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 import { Eye, EyeOff } from 'lucide-react';
+import { setPortalUser } from '../utils/portalAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -19,7 +19,6 @@ export default function Login() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [settings, setSettings] = useState(() => loadBrandingSettings() || {});
   const [logoBroken, setLogoBroken] = useState(false);
-  const [employees, setEmployees] = useState([]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -29,10 +28,7 @@ export default function Login() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const [settingsRes, employeesRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/settings`),
-          axios.get(`${API_BASE_URL}/api/employees`)
-        ]);
+        const settingsRes = await axios.get(`${API_BASE_URL}/api/public/settings`);
         const cached = loadBrandingSettings() || {};
         const nextSettings = {
           ...cached,
@@ -47,7 +43,6 @@ export default function Login() {
         setLogoBroken(false);
         applyBrandingTheme(nextSettings || {});
         saveBrandingSettings(nextSettings || {});
-        setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
       } catch (error) {
         console.error('Could not load settings', error);
       }
@@ -109,56 +104,35 @@ export default function Login() {
     e.preventDefault();
     setAuthLoading(true);
     const username = String(credentials.username || '').trim();
-    const loginMobile = normalizeIndianMobileNumber(username);
     const password = String(credentials.password || '').trim();
-    const expectedUsername = String(settings.adminUsername || 'admin').trim() || 'admin';
-    const expectedPassword = String(settings.adminPassword || 'admin123');
-
-    if (username === expectedUsername && password === expectedPassword) {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.removeItem('portal_user_name');
-      localStorage.removeItem('portal_user_role');
-      localStorage.removeItem('portal_user_id');
-      if (rememberMe) localStorage.setItem('portal_remember_username', username);
-      navigate('/dashboard', { replace: true });
+    if (!username || !password) {
       setAuthLoading(false);
+      alert('Username and password are required');
       return;
     }
 
-    if (loginMobile.length !== 10) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        username,
+        password
+      });
+      const user = response?.data?.user || null;
+      if (!user) {
+        throw new Error('Login succeeded without user context');
+      }
+      setPortalUser(user);
+      if (rememberMe) {
+        sessionStorage.setItem('portal_remember_username', username);
+      } else {
+        sessionStorage.removeItem('portal_remember_username');
+      }
+      navigate(getEmployeeLandingPath(user.role), { replace: true });
       setAuthLoading(false);
-      alert(PHONE_VALIDATION_ERROR);
-      return;
-    }
-
-    const employee = employees.find((entry) => {
-      const role = String(entry?.role || '').trim().toLowerCase();
-      const roleEligible = role.includes('technician') || role.includes('sales');
-      const hasPortal = Boolean(
-        entry?.webPortalAccessEnabled
-        || entry?.portalAccess === 'Yes'
-        || entry?.portalAccess === true
-        || entry?.appAccessEnabled
-        || roleEligible
-      );
-      const employeeMobile = normalizeIndianMobileNumber(entry?.mobile || '');
-      const employeePassword = String(entry?.portalPassword || '').trim();
-      return hasPortal && employeeMobile && employeePassword && loginMobile === employeeMobile && password === employeePassword;
-    });
-
-    if (employee) {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('portal_user_name', [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee');
-      localStorage.setItem('portal_user_role', String(employee.role || 'Employee'));
-      localStorage.setItem('portal_user_id', String(employee._id || ''));
-      if (rememberMe) localStorage.setItem('portal_remember_username', username);
-      navigate(getEmployeeLandingPath(employee.role), { replace: true });
+    } catch (error) {
       setAuthLoading(false);
-      return;
+      const message = error?.response?.data?.error || error?.message || 'Invalid credentials';
+      alert(message);
     }
-
-    setAuthLoading(false);
-    alert('Invalid credentials');
   };
 
   const requestResetOtp = async () => {

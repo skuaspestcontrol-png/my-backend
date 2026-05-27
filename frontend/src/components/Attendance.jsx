@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Clock3, MapPinned, Users } from 'lucide-react';
 import useColumnResize from './table/useColumnResize';
+import { buildPortalAuthHeaders } from '../utils/portalAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const leaveTypes = [
@@ -614,11 +615,7 @@ export default function Attendance() {
         leaveReason: row.leaveReason,
         notes: row.notes
       }, {
-        headers: {
-          'x-role': localStorage.getItem('portal_user_role') || 'Admin',
-          'x-user-name': localStorage.getItem('portal_user_name') || 'Admin',
-          'x-user-id': localStorage.getItem('portal_user_id') || ''
-        }
+        headers: buildPortalAuthHeaders()
       });
       const saved = res.data || {};
       setRecords((prev) => ({

@@ -23,6 +23,7 @@ import EmailLogs from '../pages/email/EmailLogs';
 import GoogleIntegrationSettings from '../pages/settings/GoogleIntegrationSettings';
 import { PHONE_VALIDATION_ERROR, isValidIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import { useColumnResize } from './table/useColumnResize';
+import { buildPortalAuthHeaders } from '../utils/portalAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -937,11 +938,7 @@ export default function Settings({ modalMode = false }) {
     setAttendanceSourceHealthLoading(true);
     setAttendanceSourceHealthError('');
     try {
-      const headers = {
-        'x-role': localStorage.getItem('portal_user_role') || 'Admin',
-        'x-portal-role': localStorage.getItem('portal_user_role') || 'Admin',
-        'x-user-name': localStorage.getItem('portal_user_name') || 'Admin'
-      };
+      const headers = buildPortalAuthHeaders();
       const res = await axios.get(`${API_BASE_URL}/api/admin/attendance-source-health-summary`, { headers });
       setAttendanceSourceHealth(res.data || null);
     } catch (error) {

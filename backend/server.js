@@ -19,6 +19,13 @@ const {
   replaceTemplateVariables
 } = require('./services/emailTemplate.service');
 const { encryptSecret } = require('./lib/secretCrypto');
+const {
+  DEFAULT_COOKIE_NAME,
+  createPortalSession,
+  buildPortalAuthCookie,
+  buildClearPortalAuthCookie,
+  readPortalUserFromRequest
+} = require('./lib/portalAuth');
 const { registerPayrollModule } = require('./payrollModule');
 const { registerHrModule } = require('./hrModule');
 const { registerCustomerDedupModule } = require('./customerDedupModule');
@@ -164,6 +171,72 @@ app.use([
   '/api/employees/upload-document'
 ], sensitiveRateLimit);
 
+const PORTAL_AUTH_SECRET = String(
+  process.env.PORTAL_AUTH_SECRET
+  || process.env.JWT_SECRET
+  || process.env.SESSION_SECRET
+  || ''
+).trim();
+const PORTAL_AUTH_COOKIE_NAME = String(process.env.PORTAL_AUTH_COOKIE_NAME || DEFAULT_COOKIE_NAME).trim() || DEFAULT_COOKIE_NAME;
+const PORTAL_AUTH_TTL_MS = Math.max(60 * 1000, Number(process.env.PORTAL_AUTH_TTL_MS || 12 * 60 * 60 * 1000) || 12 * 60 * 60 * 1000);
+const PORTAL_AUTH_COOKIE_DOMAIN = String(process.env.PORTAL_AUTH_COOKIE_DOMAIN || '').trim();
+
+const portalPublicRoutePatterns = [
+  /^\/api\/?$/,
+  /^\/api\/health$/,
+  /^\/health$/,
+  /^\/favicon\.ico$/,
+  /^\/api\/db-test$/,
+  /^\/api\/admin\/.*$/,
+  /^\/api\/auth\/(login|logout|me|forgot-password|reset-password)$/,
+  /^\/api\/public\/.*$/,
+  /^\/api\/google\/oauth\/callback$/,
+  /^\/api\/invoices\/[^/]+\/pdf$/,
+  /^\/api\/service-visits\/[^/]+\/job-card-pdf$/,
+  /^\/api\/jobs\/[^/]+\/pdf$/,
+  /^\/api\/contracts\/[^/]+\/job-card-summary-pdf$/,
+  /^\/api\/contracts\/[^/]+\/job-card-pdf$/,
+  /^\/api\/payroll\/items\/[^/]+\/slip\/pdf$/
+];
+
+const isPortalPublicRoute = (req) => {
+  const method = String(req?.method || 'GET').trim().toUpperCase();
+  if (method === 'OPTIONS') return true;
+  const url = String(req?.originalUrl || req?.url || '').split('?')[0];
+  if (!url.startsWith('/api')) return true;
+  return portalPublicRoutePatterns.some((pattern) => pattern.test(url));
+};
+
+const buildPortalCookieOptions = (req) => {
+  const host = String(req?.get?.('host') || '').trim().toLowerCase();
+  const inferredDomain = host.endsWith('.skuaspestcontrol.com') ? '.skuaspestcontrol.com' : '';
+  return {
+    cookieName: PORTAL_AUTH_COOKIE_NAME,
+    maxAgeMs: PORTAL_AUTH_TTL_MS,
+    domain: PORTAL_AUTH_COOKIE_DOMAIN || inferredDomain,
+    secure: isProduction,
+    sameSite: 'Lax',
+    path: '/'
+  };
+};
+
+const attachPortalUser = (req, _res, next) => {
+  req.portalUser = PORTAL_AUTH_SECRET ? readPortalUserFromRequest(req, {
+    secret: PORTAL_AUTH_SECRET,
+    cookieName: PORTAL_AUTH_COOKIE_NAME
+  }) : null;
+  next();
+};
+
+const requirePortalAuth = (req, res, next) => {
+  if (isPortalPublicRoute(req)) return next();
+  if (req.portalUser) return next();
+  return res.status(401).json({ error: 'Unauthorized' });
+};
+
+app.use(attachPortalUser);
+app.use(requirePortalAuth);
+
 app.get("/api/db-test", requireAdminDebugAccess, async (req, res) => {
   try {
     await dbQuery('SELECT 1');
@@ -308,7 +381,7 @@ const readAdminMigrationToken = (req) => String(
 ).trim();
 
 const isAdminRoleRequest = (req) => {
-  const role = String(req.headers['x-role'] || req.headers['x-portal-role'] || '').trim().toLowerCase();
+  const role = String(req.portalUser?.role || req.headers['x-role'] || req.headers['x-portal-role'] || '').trim().toLowerCase();
   return role === 'admin';
 };
 
@@ -2675,38 +2748,6 @@ const sanitizeAttendanceRecord = (raw = {}) => {
   };
 };
 
-app.get('/api/settings', async (req, res) => {
-  try {
-    const settings = await readSettingsFromMysql();
-    return res.json(maskClientSettings(normalizeJobPdfSettings(settings, req)));
-  } catch (error) {
-    console.error('Failed to fetch settings from MySQL:', error.message);
-    return res.status(500).json({ error: 'Failed to fetch settings' });
-  }
-});
-
-app.post('/api/settings', async (req, res) => {
-  try {
-    const current = await readSettingsFromMysql();
-    const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
-    return res.json({ message: 'Saved', settings: maskClientSettings(normalizeJobPdfSettings(next, req)) });
-  } catch (error) {
-    console.error('Failed to save settings to MySQL:', error.message);
-    return res.status(500).json({ error: 'Failed to save settings' });
-  }
-});
-
-app.post('/api/settings/save', async (req, res) => {
-  try {
-    const current = await readSettingsFromMysql();
-    const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
-    return res.json({ message: 'Saved', settings: maskClientSettings(normalizeJobPdfSettings(next, req)) });
-  } catch (error) {
-    console.error('Failed to save settings to MySQL:', error.message);
-    return res.status(500).json({ error: 'Failed to save settings' });
-  }
-});
-
 app.get('/api/dashboard/summary', async (req, res) => {
   const now = Date.now();
   if (dashboardSummaryCache && (now - dashboardSummaryCachedAt) < DASHBOARD_SUMMARY_TTL_MS) {
@@ -2758,6 +2799,183 @@ app.get('/api/dashboard/summary', async (req, res) => {
   dashboardSummaryCache = fallback;
   dashboardSummaryCachedAt = now;
   return res.json(fallback);
+});
+
+const buildPortalLoginUser = (user = {}) => ({
+  id: String(user.id || user.employeeId || '').trim(),
+  employeeId: String(user.employeeId || user.id || '').trim(),
+  employeeCode: String(user.employeeCode || '').trim(),
+  name: String(user.name || 'User').trim(),
+  role: String(user.role || 'Employee').trim(),
+  type: String(user.type || 'employee').trim()
+});
+
+const resolveEmployeeLoginRecord = async (mobile) => {
+  const normalizedMobile = normalizeIndianMobileNumber(mobile);
+  if (!normalizedMobile) return null;
+
+  if (canUseMysql()) {
+    try {
+      const employee = await withMysqlConnection(async (conn) => {
+        await ensureEmployeeAuthColumns(conn);
+        const [rows] = await conn.query(
+          `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, status, payload
+           FROM employees
+           WHERE REPLACE(REPLACE(REPLACE(COALESCE(mobile, ''), ' ', ''), '-', ''), '+91', '') = ?
+           LIMIT 1`,
+          [normalizedMobile]
+        );
+        const row = Array.isArray(rows) ? rows[0] : null;
+        if (!row) return null;
+        let payload = {};
+        if (row.payload && typeof row.payload === 'object') payload = row.payload;
+        if (typeof row.payload === 'string') {
+          try { payload = JSON.parse(row.payload); } catch { payload = {}; }
+        }
+        return {
+          ...payload,
+          _id: String(payload._id ?? row.external_id ?? row.id ?? '').trim(),
+          empCode: String(payload.empCode ?? row.emp_code ?? '').trim(),
+          firstName: String(payload.firstName ?? row.first_name ?? '').trim(),
+          lastName: String(payload.lastName ?? row.last_name ?? '').trim(),
+          role: String(payload.role ?? row.role ?? '').trim(),
+          roleName: String(payload.roleName ?? row.role_name ?? '').trim(),
+          mobile: String(payload.mobile ?? row.mobile ?? '').trim(),
+          portalPassword: String(payload.portalPassword ?? row.password ?? row.portal_password ?? '').trim(),
+          webPortalAccessEnabled: Boolean(payload.webPortalAccessEnabled ?? payload.portalAccess ?? row.status),
+          portalAccess: payload.portalAccess ?? row.status ?? '',
+          appAccessEnabled: Boolean(payload.appAccessEnabled),
+          email: String(payload.email ?? payload.emailId ?? row.email ?? '').trim()
+        };
+      });
+      if (employee) return employee;
+    } catch (error) {
+      console.error('Portal employee login lookup failed:', error.message);
+    }
+  }
+
+  const employees = readJsonFile(employeesFile, []);
+  return (Array.isArray(employees) ? employees : []).find((entry) => normalizeIndianMobileNumber(entry?.mobile || '') === normalizedMobile) || null;
+};
+
+app.get('/api/public/settings', async (req, res) => {
+  try {
+    const settings = await readSettingsFromMysql();
+    return res.json(maskClientSettings(normalizeJobPdfSettings(settings, req)));
+  } catch (error) {
+    try {
+      return res.json(maskClientSettings(normalizeJobPdfSettings(readSettings(), req)));
+    } catch (fallbackError) {
+      console.error('Failed to fetch public settings:', fallbackError.message);
+      return res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '').trim();
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    if (!PORTAL_AUTH_SECRET) {
+      return res.status(500).json({ error: 'Portal auth secret is not configured on the server.' });
+    }
+
+    const settings = await readSettingsFromMysql().catch(() => readSettings());
+    const expectedUsername = String(settings.adminUsername || 'admin').trim() || 'admin';
+    const expectedPassword = String(settings.adminPassword || 'admin123').trim();
+    const normalizedMobile = normalizeIndianMobileNumber(username);
+    let user = null;
+
+    if (username === expectedUsername && password === expectedPassword) {
+      user = buildPortalLoginUser({
+        id: 'admin',
+        employeeId: 'admin',
+        name: 'Admin',
+        role: 'Admin',
+        type: 'admin'
+      });
+    } else if (normalizedMobile.length === 10) {
+      const employee = await resolveEmployeeLoginRecord(normalizedMobile);
+      const hasPortalAccess = Boolean(
+        employee?.webPortalAccessEnabled
+        || employee?.portalAccess === 'Yes'
+        || employee?.portalAccess === true
+        || employee?.appAccessEnabled
+        || String(employee?.role || '').toLowerCase().includes('technician')
+        || String(employee?.role || '').toLowerCase().includes('sales')
+      );
+      const employeePassword = String(employee?.portalPassword || '').trim();
+      if (employee && hasPortalAccess && employeePassword && password === employeePassword) {
+        const employeeName = [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee';
+        user = buildPortalLoginUser({
+          id: employee._id || employee.empCode || normalizedMobile,
+          employeeId: employee._id || employee.empCode || normalizedMobile,
+          employeeCode: employee.empCode || '',
+          name: employeeName,
+          role: employee.role || 'Employee',
+          type: 'employee'
+        });
+      }
+    }
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = createPortalSession({ user, secret: PORTAL_AUTH_SECRET, ttlMs: PORTAL_AUTH_TTL_MS });
+    res.setHeader('Set-Cookie', buildPortalAuthCookie(token, buildPortalCookieOptions(req)));
+    return res.json({ success: true, user });
+  } catch (error) {
+    console.error('Portal login failed:', error.message);
+    return res.status(500).json({ error: 'Unable to login right now' });
+  }
+});
+
+app.get('/api/auth/me', (req, res) => {
+  if (!req.portalUser) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  return res.json({ user: req.portalUser });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  res.setHeader('Set-Cookie', buildClearPortalAuthCookie(PORTAL_AUTH_COOKIE_NAME, buildPortalCookieOptions(req).domain));
+  return res.json({ success: true });
+});
+
+app.get('/api/settings', async (req, res) => {
+  try {
+    const settings = await readSettingsFromMysql();
+    return res.json(maskClientSettings(normalizeJobPdfSettings(settings, req)));
+  } catch (error) {
+    console.error('Failed to fetch settings from MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+app.post('/api/settings', async (req, res) => {
+  try {
+    const current = await readSettingsFromMysql();
+    const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
+    return res.json({ message: 'Saved', settings: maskClientSettings(normalizeJobPdfSettings(next, req)) });
+  } catch (error) {
+    console.error('Failed to save settings to MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to save settings' });
+  }
+});
+
+app.post('/api/settings/save', async (req, res) => {
+  try {
+    const current = await readSettingsFromMysql();
+    const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
+    return res.json({ message: 'Saved', settings: maskClientSettings(normalizeJobPdfSettings(next, req)) });
+  } catch (error) {
+    console.error('Failed to save settings to MySQL:', error.message);
+    return res.status(500).json({ error: 'Failed to save settings' });
+  }
 });
 
 app.post('/api/auth/forgot-password', async (req, res) => {
@@ -5316,8 +5534,8 @@ app.post('/api/attendance', async (req, res) => {
     : String(req.body?.employeeCode || '').trim();
   try {
     const stableExternalId = `ATT-${employeeId.replace(/[^a-zA-Z0-9_-]/g, '')}-${date.replace(/[^0-9-]/g, '')}`;
-    const actorName = String(req.headers['x-user-name'] || req.headers['x-portal-user'] || req.body?.actor || 'Admin').trim();
-    const portalRole = String(req.headers['x-portal-role'] || req.headers['x-role'] || '').trim();
+    const actorName = String(req.portalUser?.name || req.headers['x-user-name'] || req.headers['x-portal-user'] || req.body?.actor || 'Admin').trim();
+    const portalRole = String(req.portalUser?.role || req.headers['x-portal-role'] || req.headers['x-role'] || '').trim();
     const source = resolveAttendanceSource({
       source: req.body?.source,
       actorName,
@@ -7443,7 +7661,7 @@ const appendFollowUpNote = (record, note, createdBy = 'System') => {
   };
 };
 
-const readUserMeta = (req) => String(req?.body?.updatedBy || req?.headers?.['x-user-name'] || 'System');
+const readUserMeta = (req) => String(req?.body?.updatedBy || req?.portalUser?.name || req?.headers?.['x-user-name'] || 'System');
 
 const syncInvoiceToMysql = async (invoice) => {
   if (!invoice || !invoice._id) return;

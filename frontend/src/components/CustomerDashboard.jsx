@@ -21,6 +21,7 @@ import {
   resolveGoogleMapsUrl
 } from '../utils/googleMaps';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
+import { getPortalUserName } from '../utils/portalAuth';
 
 const normalizeApiBase = (value = '') => {
   const raw = String(value || '').trim();
@@ -1748,7 +1749,7 @@ export default function CustomerDashboard() {
         targetCustomerId,
         sourceCustomerId,
         reason,
-        actor: localStorage.getItem('portal_user_name') || 'Admin'
+        actor: getPortalUserName() || 'Admin'
       });
       window.alert('Customers merged successfully.');
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);

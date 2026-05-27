@@ -72,13 +72,13 @@ const roleToPermissions = (rawRole) => {
 };
 
 const getRoleFromReq = (req) => {
-  const fromHeader = normalizeText(req.headers['x-role'] || req.headers['x-portal-role'] || '');
+  const fromHeader = normalizeText(req.portalUser?.role || req.headers['x-role'] || req.headers['x-portal-role'] || '');
   const fromQuery = normalizeText(req.query.role || '');
   return fromHeader || fromQuery || normalizeText(req.body?.role || '');
 };
 
-const getActorName = (req) => normalizeText(req.headers['x-user-name'] || req.headers['x-portal-user'] || req.query.userName || req.body?.actor || 'System');
-const getActorEmployeeId = (req) => normalizeText(req.headers['x-user-id'] || req.headers['x-employee-id'] || req.query.userId || req.query.employeeId || req.body?.actorEmployeeId || '');
+const getActorName = (req) => normalizeText(req.portalUser?.name || req.headers['x-user-name'] || req.headers['x-portal-user'] || req.query.userName || req.body?.actor || 'System');
+const getActorEmployeeId = (req) => normalizeText(req.portalUser?.employeeId || req.headers['x-user-id'] || req.headers['x-employee-id'] || req.query.userId || req.query.employeeId || req.body?.actorEmployeeId || '');
 const normalizeWhatsappPhone = (raw) => {
   const digits = normalizeIndianMobileNumber(raw);
   if (/^\d{10}$/.test(digits)) return `91${digits}`;

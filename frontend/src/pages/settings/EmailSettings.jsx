@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { getPortalUserName } from '../../utils/portalAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -63,7 +64,7 @@ export default function EmailSettings() {
       setStatus('Sending test email...');
       await axios.post(`${API_BASE_URL}/api/settings/email/test`, {
         testEmailAddress: form.testEmailAddress,
-        sentByUser: localStorage.getItem('portal_user_name') || 'Admin'
+        sentByUser: getPortalUserName() || 'Admin'
       });
       setStatus('Test email sent.');
     } catch (error) {

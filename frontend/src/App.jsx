@@ -1,7 +1,10 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import Login from './components/Login';
 import ModuleWorkspace from './components/ModuleWorkspace';
+import { clearPortalUser, fetchPortalUser } from './utils/portalAuth';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const lazyWithRetry = (importer, storageKey = 'lazy-retry') =>
   lazy(() =>
@@ -104,8 +107,34 @@ const StockIssueUsage = lazy(() => import('./pages/stock-management/StockIssueUs
 const StockReports = lazy(() => import('./pages/stock-management/StockReports'));
 
 const ProtectedRoute = ({ children }) => {
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-  return isLoggedIn ? children : <Navigate to="/" replace />;
+  const [authState, setAuthState] = useState({ loading: true, authenticated: false });
+
+  useEffect(() => {
+    let active = true;
+    fetchPortalUser(API_BASE_URL)
+      .then(() => {
+        if (!active) return;
+        setAuthState({ loading: false, authenticated: true });
+      })
+      .catch(() => {
+        if (!active) return;
+        clearPortalUser();
+        setAuthState({ loading: false, authenticated: false });
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (authState.loading) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: '16px', color: '#475569', fontWeight: 700 }}>
+        Checking session...
+      </div>
+    );
+  }
+
+  return authState.authenticated ? children : <Navigate to="/" replace />;
 };
 
 const AppRoute = ({ element }) => (

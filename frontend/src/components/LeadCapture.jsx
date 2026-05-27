@@ -18,6 +18,7 @@ import {
 import useColumnResize from './table/useColumnResize';
 import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
+import { getPortalUserName } from '../utils/portalAuth';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import {
   ArrowDown,
@@ -1253,7 +1254,7 @@ export default function LeadCapture() {
         recipientEmail,
         recipientName: lead.customerName || 'Customer',
         recipientType: 'Customer',
-        sentByUser: localStorage.getItem('portal_user_name') || 'User',
+        sentByUser: getPortalUserName() || 'User',
         contextData: {
           customer_name: lead.customerName || 'Customer',
           customer_email: recipientEmail,

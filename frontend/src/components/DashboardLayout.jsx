@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, loadBrandingSettings, pickBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
+import { getPortalUserRole, logoutPortalUser } from '../utils/portalAuth';
 import {
   CalendarClock,
   Bell,
@@ -394,11 +395,12 @@ export default function DashboardLayout({ children }) {
     setMenuOpen((prev) => !prev);
   };
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('portal_user_name');
-    localStorage.removeItem('portal_user_role');
-    localStorage.removeItem('portal_user_id');
+  const handleLogout = useCallback(async () => {
+    try {
+      await logoutPortalUser(API_BASE_URL);
+    } catch (_error) {
+      // Ignore logout network failures and still clear the UI session.
+    }
     navigate('/', { replace: true });
   }, [navigate]);
 
@@ -426,7 +428,7 @@ export default function DashboardLayout({ children }) {
   }, [handleLogout]);
 
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim() || 'SKUAS Pest Control Private Limited';
-  const portalUserRole = String(localStorage.getItem('portal_user_role') || 'Admin').trim() || 'Admin';
+  const portalUserRole = getPortalUserRole() || 'Admin';
   const unreadNotificationCount = leadNotifications.filter((item) => !readNotificationIds.includes(item.id)).length;
   const toggleNotificationRead = (id) => {
     setReadNotificationIds((prev) => {

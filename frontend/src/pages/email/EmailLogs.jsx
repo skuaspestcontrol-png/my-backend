@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { getPortalUserName } from '../../utils/portalAuth';
 import useColumnResize from '../../components/table/useColumnResize';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -72,7 +73,7 @@ export default function EmailLogs() {
     try {
       setRetryBusyId(id);
       await axios.post(`${API_BASE_URL}/api/email/logs/${id}/retry`, {
-        sentByUser: localStorage.getItem('portal_user_name') || 'User'
+        sentByUser: getPortalUserName() || 'User'
       });
       await load();
       setStatus('Retry sent.');

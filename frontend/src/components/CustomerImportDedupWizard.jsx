@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { ArrowRight, CheckCircle2, Download, FileSpreadsheet, GitMerge, MapPinned, SearchCheck, UploadCloud, X } from 'lucide-react';
 import { useColumnResize } from './table/useColumnResize';
+import { getPortalUserName } from '../utils/portalAuth';
 
 const normalizeApiBase = (value = '') => {
   const raw = String(value || '').trim();
@@ -317,7 +318,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
     try {
       setBusy(true);
       setStatus(`Finalizing ${rows.length || batch.totalRows || 0} import row(s). Please wait...`);
-      const res = await axios.post(`${API_BASE}/api/customers/import/finalize`, { batchId: batch._id, actor: localStorage.getItem('portal_user_name') || 'Admin' });
+      const res = await axios.post(`${API_BASE}/api/customers/import/finalize`, { batchId: batch._id, actor: getPortalUserName() || 'Admin' });
       setBatch(res.data.batch);
       setRows(res.data.rows || []);
       setSummary(res.data.batch?.stats || null);
