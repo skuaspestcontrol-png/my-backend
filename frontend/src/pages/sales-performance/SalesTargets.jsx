@@ -180,14 +180,39 @@ export default function SalesTargets() {
     minWidth: 80,
     enabled: true
   });
-  const yearlyMinWidth = yearlyColumns.reduce((sum, column) => sum + (getYearlyWidth(column.key) || yearlyWidths[column.key] || 80), 0);
-  const targetMinWidth = targetColumns.reduce((sum, column) => sum + (getTargetWidth(column.key) || targetWidths[column.key] || 80), 0);
-  const yearlyTableStyle = { ...tableStyle, minWidth: Math.max(1660, yearlyMinWidth), tableLayout: 'fixed' };
-  const targetTableStyle = { ...tableStyle, minWidth: Math.max(1660, targetMinWidth), tableLayout: 'fixed' };
-  const yearlyHead = (key, align = 'left') => ({ ...headerStyle, position: 'relative', width: `${getYearlyWidth(key)}px`, minWidth: `${getYearlyWidth(key)}px`, maxWidth: `${getYearlyWidth(key)}px`, textAlign: align });
-  const yearlyBody = (key, align = 'left') => ({ ...nameCellStyle, width: `${getYearlyWidth(key)}px`, minWidth: `${getYearlyWidth(key)}px`, maxWidth: `${getYearlyWidth(key)}px`, textAlign: align });
-  const targetHead = (key, align = 'left') => ({ ...headerStyle, position: 'relative', width: `${getTargetWidth(key)}px`, minWidth: `${getTargetWidth(key)}px`, maxWidth: `${getTargetWidth(key)}px`, textAlign: align });
-  const targetBody = (key, align = 'left') => ({ ...cellStyle, width: `${getTargetWidth(key)}px`, minWidth: `${getTargetWidth(key)}px`, maxWidth: `${getTargetWidth(key)}px`, textAlign: align });
+  const yearlyCellWidths = {
+    salesPerson: viewportWidth <= 768 ? 110 : getYearlyWidth('salesPerson'),
+    year: viewportWidth <= 768 ? 54 : getYearlyWidth('year'),
+    monthlyRevenue: viewportWidth <= 768 ? 74 : getYearlyWidth('monthlyRevenue'),
+    monthlyCollection: viewportWidth <= 768 ? 74 : getYearlyWidth('monthlyCollection'),
+    yearlyRevenue: viewportWidth <= 768 ? 74 : getYearlyWidth('yearlyRevenue'),
+    yearlyCollection: viewportWidth <= 768 ? 74 : getYearlyWidth('yearlyCollection'),
+    monthlyRows: viewportWidth <= 768 ? 58 : getYearlyWidth('monthlyRows'),
+    yearlyRows: viewportWidth <= 768 ? 58 : getYearlyWidth('yearlyRows')
+  };
+  const targetCellWidths = {
+    salesPerson: viewportWidth <= 768 ? 112 : getTargetWidth('salesPerson'),
+    type: viewportWidth <= 768 ? 70 : getTargetWidth('type'),
+    month: viewportWidth <= 768 ? 64 : getTargetWidth('month'),
+    year: viewportWidth <= 768 ? 58 : getTargetWidth('year'),
+    revenueTarget: viewportWidth <= 768 ? 74 : getTargetWidth('revenueTarget'),
+    revenueAchieved: viewportWidth <= 768 ? 74 : getTargetWidth('revenueAchieved'),
+    revenuePending: viewportWidth <= 768 ? 74 : getTargetWidth('revenuePending'),
+    revenuePercent: viewportWidth <= 768 ? 62 : getTargetWidth('revenuePercent'),
+    collectionTarget: viewportWidth <= 768 ? 74 : getTargetWidth('collectionTarget'),
+    collectionAchieved: viewportWidth <= 768 ? 74 : getTargetWidth('collectionAchieved'),
+    collectionPending: viewportWidth <= 768 ? 74 : getTargetWidth('collectionPending'),
+    collectionPercent: viewportWidth <= 768 ? 62 : getTargetWidth('collectionPercent'),
+    action: viewportWidth <= 768 ? 70 : getTargetWidth('action')
+  };
+  const yearlyMinWidth = yearlyColumns.reduce((sum, column) => sum + (yearlyCellWidths[column.key] || yearlyWidths[column.key] || 80), 0);
+  const targetMinWidth = targetColumns.reduce((sum, column) => sum + (targetCellWidths[column.key] || targetWidths[column.key] || 80), 0);
+  const yearlyTableStyle = { ...tableStyle, minWidth: Math.max(viewportWidth <= 768 ? 620 : 1660, yearlyMinWidth), tableLayout: 'fixed' };
+  const targetTableStyle = { ...tableStyle, minWidth: Math.max(viewportWidth <= 768 ? 840 : 1660, targetMinWidth), tableLayout: 'fixed' };
+  const yearlyHead = (key, align = 'left') => ({ ...headerStyle, position: 'relative', width: `${yearlyCellWidths[key]}px`, minWidth: `${yearlyCellWidths[key]}px`, maxWidth: `${yearlyCellWidths[key]}px`, textAlign: align });
+  const yearlyBody = (key, align = 'left') => ({ ...nameCellStyle, width: `${yearlyCellWidths[key]}px`, minWidth: `${yearlyCellWidths[key]}px`, maxWidth: `${yearlyCellWidths[key]}px`, textAlign: align });
+  const targetHead = (key, align = 'left') => ({ ...headerStyle, position: 'relative', width: `${targetCellWidths[key]}px`, minWidth: `${targetCellWidths[key]}px`, maxWidth: `${targetCellWidths[key]}px`, textAlign: align });
+  const targetBody = (key, align = 'left') => ({ ...cellStyle, width: `${targetCellWidths[key]}px`, minWidth: `${targetCellWidths[key]}px`, maxWidth: `${targetCellWidths[key]}px`, textAlign: align });
 
   const load = async (nextFilters = filters) => {
     setLoading(true);

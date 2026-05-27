@@ -242,13 +242,6 @@ export default function SalesPerformanceReports() {
   const chartHeight = getChartHeight({ mobile: isMobile });
   const currencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
   const barChartProps = getBarChartProps(chartData.length, { mobile: isMobile });
-  const scrollHintStyle = {
-    marginBottom: 8,
-    color: '#6B7280',
-    fontSize: isMobile ? 11 : 12,
-    fontWeight: 600
-  };
-
   const exportCsv = () => {
     downloadCsv(rows.map((row) => ({
       SalesPerson: row.employeeName,
@@ -464,7 +457,6 @@ export default function SalesPerformanceReports() {
           <AppCard title="Report Table" className="crm-table-card" style={compactCardStyle} headerStyle={compactHeaderStyle} bodyStyle={compactBodyStyle}>
             {rows.length ? (
               <div className="table-scroll-x sales-report-table-scroll" style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
-                {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
                 <table className="table-clean sales-performance-report-table sales-performance-table" style={reportTableStyle}>
                   <colgroup>
                     {reportTableColumns.map((column) => (

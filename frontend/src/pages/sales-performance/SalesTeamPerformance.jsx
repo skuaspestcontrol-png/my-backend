@@ -191,13 +191,6 @@ export default function SalesTeamPerformance() {
   const currencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
   const percentAxisProps = getPercentAxisProps({ mobile: isMobile });
   const barChartProps = getBarChartProps(rows.length, { mobile: isMobile });
-  const scrollHintStyle = {
-    marginBottom: 8,
-    color: '#6B7280',
-    fontSize: isMobile ? 11 : 12,
-    fontWeight: 600
-  };
-
   const isTargetMet = (actual, target) => Number(actual || 0) >= Number(target || 0);
   const statusColor = (status) => {
     const value = String(status || '').toLowerCase();
@@ -263,7 +256,7 @@ export default function SalesTeamPerformance() {
       ) : (
         <>
           <div style={chartGridStyle}>
-            <CompactChartCard title="Target vs Achievement" isMobile={isMobile}>
+            <CompactChartCard title="Revenue Target vs Achievement" isMobile={isMobile}>
               {rows.length ? (
                 <ChartSurface height={chartHeight}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -321,7 +314,6 @@ export default function SalesTeamPerformance() {
           <AppCard title="Team Performance Table" className="crm-table-card" style={{ width: '100%', minWidth: 0 }}>
             {rows.length ? (
               <div className="table-scroll-x sales-team-table-scroll" style={{ ...tableWrapStyle, touchAction: 'pan-x' }}>
-                {isMobile ? <div style={scrollHintStyle}>Swipe left or right to see all columns.</div> : null}
                 <table className="table-clean sales-team-performance-table sales-performance-table" style={tableStyle}>
                   <colgroup>
                     {teamColumns.map((column) => (
