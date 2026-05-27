@@ -488,7 +488,7 @@ const normalizeSource = (kind, row = {}, lookup = null) => {
       : kind === 'quotations'
         ? ['quotation_value', 'grand_total', 'total_amount', 'amount', 'value']
         : kind === 'contracts'
-          ? ['contract_value', 'total_amount', 'amount', 'annual_value', 'value']
+          ? ['total_amount', 'contract_value', 'amount', 'annual_value', 'value']
           : ['quotation_value', 'value', 'amount', 'estimated_value']);
   const status = text(source.lead_status || source.status || source.leadStatus || '');
   const converted = /converted|booked|won|closed/i.test(status);
