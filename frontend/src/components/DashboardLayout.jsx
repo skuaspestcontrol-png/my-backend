@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { applyBrandingTheme, loadBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
+import { applyBrandingTheme, loadBrandingSettings, pickBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
 import {
   CalendarClock,
   Bell,
@@ -164,13 +164,39 @@ export default function DashboardLayout({ children }) {
   const [serviceSchedules, setServiceSchedules] = useState([]);
   const [readNotificationIds, setReadNotificationIds] = useState(() => loadReadNotificationIds());
 
+  const syncBrandingFromCache = useCallback(() => {
+    const cached = loadBrandingSettings();
+    if (!cached) return;
+    setSettings((prev) => ({
+      ...prev,
+      ...cached,
+      dashboardImageUrl: String(cached.dashboardImageUrl || prev.dashboardImageUrl || '').trim(),
+      companyName: String(cached.companyName || prev.companyName || '').trim(),
+      brandingAppearance: String(cached.brandingAppearance || prev.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
+      brandingAccentColor: String(cached.brandingAccentColor || prev.brandingAccentColor || '#EF4444').trim() || '#EF4444'
+    }));
+  }, []);
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const res = await axios.get(`${API_BASE_URL}/api/settings`);
-        setSettings(res.data);
-        applyBrandingTheme(res.data || {});
-        saveBrandingSettings(res.data || {});
+        const cached = loadBrandingSettings() || {};
+        const nextSettings = {
+          ...cached,
+          ...res.data,
+          ...pickBrandingSettings({
+            ...cached,
+            ...res.data
+          }),
+          dashboardImageUrl: String(res.data?.dashboardImageUrl || cached.dashboardImageUrl || '').trim(),
+          companyName: String(res.data?.companyName || cached.companyName || '').trim(),
+          brandingAppearance: String(res.data?.brandingAppearance || cached.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
+          brandingAccentColor: String(res.data?.brandingAccentColor || cached.brandingAccentColor || '#EF4444').trim() || '#EF4444'
+        };
+        setSettings(nextSettings);
+        applyBrandingTheme(nextSettings || {});
+        saveBrandingSettings(nextSettings || {});
       } catch (error) {
         console.error(error);
       }
@@ -182,6 +208,26 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     applyBrandingTheme(settings || {});
   }, [settings]);
+
+  useEffect(() => {
+    syncBrandingFromCache();
+
+    const handleBrandingSync = () => {
+      syncBrandingFromCache();
+    };
+
+    window.addEventListener('branding-sync', handleBrandingSync);
+    window.addEventListener('storage', handleBrandingSync);
+    window.addEventListener('focus', handleBrandingSync);
+    window.addEventListener('pageshow', handleBrandingSync);
+
+    return () => {
+      window.removeEventListener('branding-sync', handleBrandingSync);
+      window.removeEventListener('storage', handleBrandingSync);
+      window.removeEventListener('focus', handleBrandingSync);
+      window.removeEventListener('pageshow', handleBrandingSync);
+    };
+  }, [syncBrandingFromCache]);
 
   useEffect(() => {
     const isLeadsRoute = location.pathname === '/leads' || location.pathname.startsWith('/leads/');

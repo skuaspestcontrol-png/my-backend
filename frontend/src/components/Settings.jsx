@@ -1303,6 +1303,7 @@ export default function Settings({ modalMode = false }) {
       localStorage.setItem('branding_sync_tick', String(Date.now()));
       applyBrandingTheme(saved);
       saveBrandingSettings(saved);
+      window.dispatchEvent(new Event('branding-sync'));
       setStatus('Settings Saved');
     } catch (error) {
       console.error('Save settings failed', error);
