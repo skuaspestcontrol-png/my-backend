@@ -488,11 +488,13 @@ const normalizeSource = (kind, row = {}, lookup = null, relatedLookup = null) =>
   const payload = safeJson(row.payload, {});
   const source = { ...payload, ...row };
   const employeeRaw = valueOf(source, [
-    'sales_person_id', 'sales_person', 'salesPerson', 'assigned_to', 'assignedTo', 'employee_id', 'employeeId',
+    'sales_person_id', 'sales_person', 'salesPerson', 'salesperson', 'salespersonId', 'salesperson_id',
+    'assigned_to', 'assignedTo', 'employee_id', 'employeeId',
     'created_by', 'createdBy', 'sales_id', 'salesId', 'sold_by', 'soldBy'
   ]);
   const employeeNameRaw = valueOf(source, [
-    'sales_person_name', 'salesPersonName', 'assigned_to_name', 'assignedToName', 'employee_name', 'employeeName',
+    'sales_person_name', 'salesPersonName', 'salespersonName', 'salesperson_name',
+    'assigned_to_name', 'assignedToName', 'employee_name', 'employeeName',
     'created_by_name', 'createdByName'
   ]);
   const linkedInvoiceKey = valueOf(source, [
