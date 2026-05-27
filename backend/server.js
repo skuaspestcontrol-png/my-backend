@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const crypto = require('crypto');
 const multer = require('multer');
 const { execFile } = require('child_process');
@@ -55,11 +56,6 @@ const {
   getGoogleClient
 } = require('./lib/googleTasks');
 const { resolveGoogleMapsUrl } = require('./lib/googleMapsResolve');
-
-if (!global.__SKUAS_DOTENV_LOADED__) {
-  require('dotenv').config();
-  global.__SKUAS_DOTENV_LOADED__ = true;
-}
 
 if (!global.__SKUAS_PROCESS_GUARDS_INSTALLED__) {
   process.on('uncaughtException', (error) => {
