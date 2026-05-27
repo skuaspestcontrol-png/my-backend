@@ -1847,7 +1847,7 @@ textarea:focus {
   .technician-job-details-table {
     width: 100% !important;
     min-width: 0 !important;
-    table-layout: fixed !important;
+    table-layout: auto !important;
   }
 
   .technician-assigned-jobs-table th,
@@ -1856,10 +1856,15 @@ textarea:focus {
   .technician-job-details-table td {
     padding: 7px 8px !important;
     font-size: 11px !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
     vertical-align: middle !important;
+  }
+
+  .technician-assigned-jobs-table td,
+  .technician-assigned-jobs-table th {
+    word-break: break-word !important;
   }
 
   .technician-assigned-jobs-table .crm-table-primary {
