@@ -109,6 +109,11 @@ const resolveCompanyDetails = (settings = {}) => {
       || settings?.companyName
       || defaultCompany.companyName
     ),
+    tagline: normalizeText(
+      settings?.aboutTagline
+      || settings?.companyTagline
+      || ''
+    ),
     phone: normalizeText(
       settings?.gstPhone
       || settings?.companyPhone
@@ -818,7 +823,7 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     || company?.logoUrl
     || (Array.isArray(company?.logoCandidates) ? company.logoCandidates[0] : '')
   );
-  const resolvedLogoPath = resolveUploadPath(logoUrl);
+  const resolvedLogoPath = tryResolveLocalUploadPath(logoUrl) || resolveUploadPath(logoUrl);
   console.log('SALARY PDF logoUrl:', logoUrl);
   console.log('SALARY PDF resolvedLogoPath:', resolvedLogoPath);
   console.log('SALARY PDF logoExists:', resolvedLogoPath ? fs.existsSync(resolvedLogoPath) : false);
@@ -848,13 +853,14 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
   const companyName = normalizeText(company.companyName || defaultCompany.companyName);
   const companyCityLine = [company.city, company.state].map(normalizeText).filter(Boolean).join(',');
   const companyDetailLines = [
+    normalizeText(company.tagline || ''),
     normalizeText(company.address || ''),
     `${companyCityLine}${company.pincode ? ` - ${company.pincode}` : ''}, India`,
-    company.email ? `Email: ${company.email}` : '',
+    company.email ? `E Mail Id: ${company.email}` : '',
     company.phone || company.alternatePhone
       ? `Mobile: ${company.phone && company.alternatePhone ? `${company.phone} | ${company.alternatePhone}` : (company.phone || company.alternatePhone)}`
       : '',
-    company.website ? `Web: ${company.website}` : '',
+    company.website ? `Visit Us: ${company.website}` : '',
     company.gstin ? `GST Details: ${company.gstin}` : ''
   ].filter(Boolean);
   doc.font('Helvetica-Bold').fontSize(10.2);
