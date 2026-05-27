@@ -1086,7 +1086,7 @@ export default function PayrollModule() {
     const userRole = encodeURIComponent(localStorage.getItem('portal_user_role') || 'Admin');
     const userId = encodeURIComponent(localStorage.getItem('portal_user_id') || '');
     const userName = encodeURIComponent(localStorage.getItem('portal_user_name') || 'System');
-    const url = `${API_BASE}/api/payroll/items/${item._id}/slip/pdf?role=${userRole}&userId=${userId}&userName=${userName}`;
+    const url = `${API_BASE}/api/payroll/items/${item._id}/slip/pdf?role=${userRole}&userId=${userId}&userName=${userName}&_ts=${Date.now()}`;
     setSlipViewer({
       open: true,
       url,
@@ -1227,7 +1227,7 @@ export default function PayrollModule() {
         <button
           type="button"
           style={actionButtonStyle}
-          onClick={() => window.open(`${API_BASE}/api/payroll/items/${entry._id}/slip/pdf?role=${encodeURIComponent(localStorage.getItem('portal_user_role') || 'Admin')}&userId=${encodeURIComponent(localStorage.getItem('portal_user_id') || '')}&userName=${encodeURIComponent(localStorage.getItem('portal_user_name') || 'System')}&download=1`, '_blank')}
+          onClick={() => window.open(`${API_BASE}/api/payroll/items/${entry._id}/slip/pdf?role=${encodeURIComponent(localStorage.getItem('portal_user_role') || 'Admin')}&userId=${encodeURIComponent(localStorage.getItem('portal_user_id') || '')}&userName=${encodeURIComponent(localStorage.getItem('portal_user_name') || 'System')}&download=1&_ts=${Date.now()}`, '_blank')}
         >
           Download
         </button>

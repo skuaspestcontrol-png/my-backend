@@ -2590,6 +2590,7 @@ function registerPayrollModule({
   app.get('/api/payroll/items/:id/slip/pdf', async (req, res) => {
     try {
       console.log('ACTIVE SALARY PDF ROUTE HIT');
+      console.log('SALARY SLIP PDF USING QUOTATION HEADER');
       const perms = roleToPermissions(getRoleFromReq(req));
       const identity = getRequestIdentity(req, perms);
       if (!ensureOwnIdentity(identity, res)) return;
@@ -2604,6 +2605,9 @@ function registerPayrollModule({
       const safeName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `${String(req.query.download || '') === '1' ? 'attachment' : 'inline'}; filename="${safeName}"`);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.setHeader('X-Payroll-Slip-Path', relativePath);
       res.send(buffer);
     } catch (error) {
@@ -2688,7 +2692,7 @@ function registerPayrollModule({
       const fileName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       const graphBase = `https://graph.facebook.com/${waConfig.apiVersion}`;
       const shareOrigin = serverOrigin || 'https://crm.skuaspestcontrol.com';
-      const shareLink = `${shareOrigin}/api/payroll/items/${item._id}/slip/pdf?download=1&role=Employee&userId=${encodeURIComponent(item.employeeId || '')}&userName=${encodeURIComponent(item.employeeName || '')}`;
+      const shareLink = `${shareOrigin}/api/payroll/items/${item._id}/slip/pdf?download=1&role=Employee&userId=${encodeURIComponent(item.employeeId || '')}&userName=${encodeURIComponent(item.employeeName || '')}&_ts=${Date.now()}`;
       const caption = String(req.body?.message || `Salary slip for ${pad2(item.month)}/${item.year}\n${company.companyName}\n${shareLink}`).trim().slice(0, 1024);
 
       const mediaForm = new FormData();
