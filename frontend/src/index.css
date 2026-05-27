@@ -1845,7 +1845,7 @@ textarea:focus {
 
   .technician-assigned-jobs-table,
   .technician-job-details-table {
-    width: max-content !important;
+    width: 100% !important;
     min-width: 960px !important;
     table-layout: auto !important;
   }
