@@ -96,6 +96,11 @@ const resolveCompanyDetails = (settings = {}) => {
     settings?.gstLogoUrl,
     settings?.gstLogo,
     settings?.gstBrandingLogoUrl,
+    settings?.nonGstCompanyLogoUrl,
+    settings?.dashboardImageUrl,
+    settings?.logoUrl,
+    settings?.logo_url,
+    settings?.logo,
   ].map((value) => normalizeText(value)).filter(Boolean);
 
   return {
@@ -115,6 +120,7 @@ const resolveCompanyDetails = (settings = {}) => {
     alternatePhone: normalizeText(
       settings?.gstAlternatePhone
       || settings?.companyAlternatePhone
+      || settings?.nonGstPhone
       || settings?.nonGstAlternatePhone
       || settings?.alternatePhone
       || defaultCompany.alternatePhone
@@ -2667,14 +2673,15 @@ function registerPayrollModule({
       const recipient = normalizeText(req.body?.to || employee?.emailId || employee?.email || '');
       if (!recipient) return res.status(400).json({ error: 'Recipient email is required' });
 
-      const settings = await loadRuntimeEmailSettings();
-      const company = resolveCompanyDetails(settings);
-      const { absolutePath } = await ensureSalarySlipStored({ item, company, branding: settings, withMysqlConnection });
+      const appSettings = readSettings ? (readSettings() || {}) : {};
+      const emailSettings = await loadRuntimeEmailSettings();
+      const company = resolveCompanyDetails(appSettings);
+      const { absolutePath } = await ensureSalarySlipStored({ item, company, branding: appSettings, withMysqlConnection });
       const fileName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       const subject = normalizeText(req.body?.subject || `Salary Slip ${pad2(item.month)}/${item.year} - ${item.employeeName}`);
       const message = normalizeText(req.body?.message || `Dear ${item.employeeName},\nPlease find attached your salary slip for ${pad2(item.month)}/${item.year}.\n\n${company.companyName}`);
       await sendEmailMessage({
-        settings,
+        settings: emailSettings,
         to: recipient,
         subject,
         textBody: message,
