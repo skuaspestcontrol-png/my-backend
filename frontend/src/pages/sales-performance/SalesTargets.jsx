@@ -209,8 +209,15 @@ export default function SalesTargets() {
   const targetMinWidth = targetColumns.reduce((sum, column) => sum + (targetCellWidths[column.key] || targetWidths[column.key] || 80), 0);
   const yearlyTableStyle = { ...tableStyle, minWidth: Math.max(viewportWidth <= 768 ? 792 : 1660, yearlyMinWidth), tableLayout: 'fixed' };
   const targetTableStyle = { ...tableStyle, minWidth: Math.max(viewportWidth <= 768 ? 1200 : 1660, targetMinWidth), tableLayout: 'fixed' };
-  const mobileHeaderLabelStyle = viewportWidth <= 768 ? { ...headerLabelStyle, whiteSpace: 'nowrap', wordBreak: 'normal', overflowWrap: 'normal' } : headerLabelStyle;
-  const mobileFirstHeaderLabelStyle = viewportWidth <= 768 ? { ...firstHeaderLabelStyle, whiteSpace: 'nowrap', wordBreak: 'normal', overflowWrap: 'normal' } : firstHeaderLabelStyle;
+  const mobileHeaderLabelStyle = viewportWidth <= 768 ? {
+    ...headerLabelStyle,
+    fontSize: 10,
+    lineHeight: 1.05,
+    whiteSpace: 'normal',
+    wordBreak: 'break-word',
+    overflowWrap: 'anywhere'
+  } : headerLabelStyle;
+  const mobileFirstHeaderLabelStyle = firstHeaderLabelStyle;
   const yearlyHead = (key, align = 'left') => ({ ...headerStyle, position: 'relative', width: `${yearlyCellWidths[key]}px`, minWidth: `${yearlyCellWidths[key]}px`, maxWidth: `${yearlyCellWidths[key]}px`, textAlign: align });
   const yearlyBody = (key, align = 'left') => ({ ...nameCellStyle, width: `${yearlyCellWidths[key]}px`, minWidth: `${yearlyCellWidths[key]}px`, maxWidth: `${yearlyCellWidths[key]}px`, textAlign: align });
   const targetHead = (key, align = 'left') => ({ ...headerStyle, position: 'relative', width: `${targetCellWidths[key]}px`, minWidth: `${targetCellWidths[key]}px`, maxWidth: `${targetCellWidths[key]}px`, textAlign: align });

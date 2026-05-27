@@ -212,6 +212,24 @@ export default function SalesPerformanceReports() {
   const firstHeadCellStyle = viewportWidth <= 640
     ? { ...headCellStyle, textAlign: 'left', whiteSpace: 'nowrap', fontSize: 11, padding: '9px 10px' }
     : headCellStyle;
+  const mobileHeaderLabelStyle = viewportWidth <= 640
+    ? {
+        display: 'block',
+        fontSize: 11,
+        lineHeight: 1.05,
+        whiteSpace: 'normal',
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
+        textAlign: 'center'
+      }
+    : undefined;
+  const mobileFirstHeaderLabelStyle = viewportWidth <= 640
+    ? {
+        display: 'block',
+        whiteSpace: 'nowrap',
+        textAlign: 'left'
+      }
+    : undefined;
 
   const summaryCards = [
     { title: 'Monthly Target', value: money(summary?.totalMonthlyTarget || 0) },
@@ -319,6 +337,11 @@ export default function SalesPerformanceReports() {
     maxWidth: `${getColumnWidth(key)}px`,
     textAlign: align
   });
+  const renderHeaderLabel = (key, label) => (
+    <span style={key === 'salesPerson' ? mobileFirstHeaderLabelStyle : mobileHeaderLabelStyle}>
+      {label}
+    </span>
+  );
 
   return (
     <div
@@ -465,23 +488,23 @@ export default function SalesPerformanceReports() {
                   </colgroup>
                   <thead>
                     <tr>
-                      <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headCell('salesPerson')}>Sales Person</th>
-                      <th className="table-header-cell table-number-cell" style={headCell('monthlyTarget', 'center')}>Monthly Target</th>
-                      <th className="table-header-cell table-number-cell" style={headCell('monthlyAchieved', 'center')}>Monthly Achieved</th>
-                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyPercent', 'center')}>Monthly %</th>
-                      <th className="table-header-cell table-number-cell" style={headCell('monthlyCollectionTarget', 'center')}>Monthly Collection Target</th>
-                      <th className="table-header-cell table-number-cell" style={headCell('monthlyCollectionAchieved', 'center')}>Monthly Collection Achieved</th>
-                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyCollectionPercent', 'center')}>Monthly Collection %</th>
-                      <th className="table-header-cell table-number-cell" style={headCell('yearlyTarget', 'center')}>Yearly Target</th>
-                      <th className="table-header-cell table-number-cell" style={headCell('yearlyAchieved', 'center')}>Yearly Achieved</th>
-                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyPercent', 'center')}>Yearly %</th>
-                      <th className="table-header-cell table-number-cell" style={headCell('yearlyCollectionTarget', 'center')}>Yearly Collection Target</th>
-                      <th className="table-header-cell table-number-cell" style={headCell('yearlyCollectionAchieved', 'center')}>Yearly Collection Achieved</th>
-                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyCollectionPercent', 'center')}>Yearly Collection %</th>
-                      <th className="table-header-cell table-number-cell" style={headCell('leads', 'center')}>Leads</th>
-                      <th className="table-header-cell table-number-cell" style={headCell('converted', 'center')}>Converted</th>
-                      <th className="table-header-cell table-number-cell" style={headCell('revenue', 'center')}>Revenue</th>
-                      <th className="table-header-cell table-status-cell" style={headCell('status', 'center')}>Status</th>
+                      <th className="table-header-cell table-text-cell table-sticky-first sticky-sales-person" style={headCell('salesPerson')}>{renderHeaderLabel('salesPerson', 'Sales Person')}</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyTarget', 'center')}>{renderHeaderLabel('monthlyTarget', 'Monthly Target')}</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyAchieved', 'center')}>{renderHeaderLabel('monthlyAchieved', 'Monthly Achieved')}</th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyPercent', 'center')}>{renderHeaderLabel('monthlyPercent', 'Monthly %')}</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyCollectionTarget', 'center')}>{renderHeaderLabel('monthlyCollectionTarget', 'Monthly Collection Target')}</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('monthlyCollectionAchieved', 'center')}>{renderHeaderLabel('monthlyCollectionAchieved', 'Monthly Collection Achieved')}</th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('monthlyCollectionPercent', 'center')}>{renderHeaderLabel('monthlyCollectionPercent', 'Monthly Collection %')}</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyTarget', 'center')}>{renderHeaderLabel('yearlyTarget', 'Yearly Target')}</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyAchieved', 'center')}>{renderHeaderLabel('yearlyAchieved', 'Yearly Achieved')}</th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyPercent', 'center')}>{renderHeaderLabel('yearlyPercent', 'Yearly %')}</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyCollectionTarget', 'center')}>{renderHeaderLabel('yearlyCollectionTarget', 'Yearly Collection Target')}</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('yearlyCollectionAchieved', 'center')}>{renderHeaderLabel('yearlyCollectionAchieved', 'Yearly Collection Achieved')}</th>
+                      <th className="table-header-cell table-percent-cell" style={headCell('yearlyCollectionPercent', 'center')}>{renderHeaderLabel('yearlyCollectionPercent', 'Yearly Collection %')}</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('leads', 'center')}>{renderHeaderLabel('leads', 'Leads')}</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('converted', 'center')}>{renderHeaderLabel('converted', 'Converted')}</th>
+                      <th className="table-header-cell table-number-cell" style={headCell('revenue', 'center')}>{renderHeaderLabel('revenue', 'Revenue')}</th>
+                      <th className="table-header-cell table-status-cell" style={headCell('status', 'center')}>{renderHeaderLabel('status', 'Status')}</th>
                     </tr>
                   </thead>
                   <tbody>
