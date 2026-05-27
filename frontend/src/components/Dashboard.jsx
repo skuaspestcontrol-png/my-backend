@@ -60,8 +60,7 @@ const toNum = (value, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`;
-const formatCurrencyWhole = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
 const toDate = (value) => {
   const date = new Date(value);
@@ -537,8 +536,8 @@ export default function Dashboard() {
             <span style={{ color: '#475569', fontWeight: 700 }}>This Fiscal Year</span>
           </div>
           <div style={shell.legendRow}>
-            <span style={{ ...shell.legendItem, color: '#166534' }}><span style={{ ...shell.dot, background: successGreen }} />Total Income: {formatCurrencyWhole(analytics.totalIncome)}</span>
-            <span style={{ ...shell.legendItem, color: '#9f1239' }}><span style={{ ...shell.dot, background: dangerRed }} />Total Expense: {formatCurrencyWhole(analytics.totalExpenses)}</span>
+            <span style={{ ...shell.legendItem, color: '#166534' }}><span style={{ ...shell.dot, background: successGreen }} />Total Income: {formatCurrency(analytics.totalIncome)}</span>
+            <span style={{ ...shell.legendItem, color: '#9f1239' }}><span style={{ ...shell.dot, background: dangerRed }} />Total Expense: {formatCurrency(analytics.totalExpenses)}</span>
           </div>
           <div style={shell.barWrap}>
             <div style={shell.bars}>
@@ -552,8 +551,8 @@ export default function Dashboard() {
                       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(income / incomeExpenseMax) * 100}%`, background: successGreen }} />
                       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(expense / incomeExpenseMax) * 100}%`, background: dangerRed, opacity: 0.72 }} />
                     </div>
-                    <span style={{ color: '#166534', fontWeight: 700, fontSize: '12px' }}>{formatCurrencyWhole(income)}</span>
-                    <span style={{ color: '#9f1239', fontWeight: 700, fontSize: '12px' }}>{formatCurrencyWhole(expense)}</span>
+                    <span style={{ color: '#166534', fontWeight: 700, fontSize: '12px' }}>{formatCurrency(income)}</span>
+                    <span style={{ color: '#9f1239', fontWeight: 700, fontSize: '12px' }}>{formatCurrency(expense)}</span>
                   </div>
                 );
               })}
@@ -580,7 +579,7 @@ export default function Dashboard() {
             >
               <div style={shell.donutInner}>
                 <div style={{ color: '#64748b', fontWeight: 700 }}>All Expenses</div>
-                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800 }}>{formatCurrencyWhole(analytics.totalExpenseAmount)}</div>
+                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800 }}>{formatCurrency(analytics.totalExpenseAmount)}</div>
               </div>
             </div>
             <div style={{ display: 'grid', gap: '10px' }}>
@@ -590,7 +589,7 @@ export default function Dashboard() {
                 <div key={`${entry.name}-${idx}`} style={{ display: 'grid', gridTemplateColumns: '16px 1fr auto', gap: '10px', alignItems: 'center' }}>
                   <span style={{ ...shell.dot, width: '16px', height: '16px', borderRadius: '5px', background: expenseColors[idx % expenseColors.length] }} />
                   <span style={{ color: '#334155', fontWeight: 700 }}>{entry.name}</span>
-                  <span style={{ color: '#0f172a', fontWeight: 800 }}>{formatCurrencyWhole(entry.amount)}</span>
+                  <span style={{ color: '#0f172a', fontWeight: 800 }}>{formatCurrency(entry.amount)}</span>
                 </div>
               ))}
             </div>
