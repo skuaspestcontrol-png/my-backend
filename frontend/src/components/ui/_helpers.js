@@ -11,7 +11,11 @@ export const baseControl = {
   padding: '0 12px',
   fontSize: theme.fontSize.sm,
   outline: 'none',
-  width: '100%'
+  width: '100%',
+  maxWidth: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box',
+  display: 'block'
 };
 
 export const focusRingStyle = {
