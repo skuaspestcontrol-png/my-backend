@@ -566,19 +566,37 @@ const summarizeRecords = (records = [], employee, year, month, startDate = '', e
   const yearlyPayments = yearly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyInvoices = yearly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyQuotations = yearly.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
+  const monthlyInvoiceReceived = monthly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(
+    record.source?.paymentReceivedTotal
+      ?? record.source?.payment_received_total
+      ?? record.source?.paymentReceivedAmount
+      ?? record.source?.amountReceived
+      ?? record.source?.receivedAmount
+      ?? 0
+  ), 0);
+  const yearlyInvoiceReceived = yearly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(
+    record.source?.paymentReceivedTotal
+      ?? record.source?.payment_received_total
+      ?? record.source?.paymentReceivedAmount
+      ?? record.source?.amountReceived
+      ?? record.source?.receivedAmount
+      ?? 0
+  ), 0);
   const monthlyRevenueAchieved = monthlyInvoices;
   const yearlyRevenueAchieved = yearlyInvoices;
+  const monthlyCollectionAchieved = monthlyInvoiceReceived > 0 ? monthlyInvoiceReceived : monthlyPayments;
+  const yearlyCollectionAchieved = yearlyInvoiceReceived > 0 ? yearlyInvoiceReceived : yearlyPayments;
   return {
     employeeId: employee?.id || '',
     employeeName: employee?.name || 'Employee',
     monthlyTarget: 0,
     monthlyRevenueAchieved,
-    monthlyCollectionAchieved: monthlyPayments,
+    monthlyCollectionAchieved,
     monthlyPending: 0,
     monthlyAchievementPercent: 0,
     yearlyTarget: 0,
     yearlyRevenueAchieved,
-    yearlyCollectionAchieved: yearlyPayments,
+    yearlyCollectionAchieved,
     yearlyPending: 0,
     yearlyAchievementPercent: 0,
     leadsAssigned: yearlyLeadsAssigned,
@@ -595,7 +613,9 @@ const summarizeRecords = (records = [], employee, year, month, startDate = '', e
       yearlyPayments,
       yearlyInvoices,
       yearlyQuotations,
-      yearlyContracts: yearlyInvoices
+      yearlyContracts: yearlyInvoices,
+      monthlyInvoiceReceived,
+      yearlyInvoiceReceived
     }
   };
 };
