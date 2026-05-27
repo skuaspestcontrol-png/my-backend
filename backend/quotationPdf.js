@@ -319,6 +319,12 @@ const drawHeader = (doc, settings = {}, companySettings = {}) => {
     || settings.company_name
     || 'SKUAS Pest Control Private Limited'
   );
+  const companyTagline = clean(
+    companySettings.aboutTagline
+    || companySettings.companyTagline
+    || settings.about_tagline
+    || settings.aboutTagline
+  );
   const companyAddress = clean(
     companySettings.gstBillingAddress
     || companySettings.companyAddress
@@ -350,7 +356,8 @@ const drawHeader = (doc, settings = {}, companySettings = {}) => {
   const headerX = Math.max(left + 240, right - companyNameWidth);
   const headerWidth = right - headerX;
   const detailLineHeight = 9.1;
-  const headerBoxHeight = 11.2 + (companyDetailLines.length * detailLineHeight);
+  const taglineHeight = companyTagline ? 9.1 : 0;
+  const headerBoxHeight = 11.2 + taglineHeight + (companyDetailLines.length * detailLineHeight);
   const [renewalLetterLogoWidth, renewalLetterLogoHeight] = renewalLetterLogoSize;
   const logoWidth = logo && showLogo ? renewalLetterLogoWidth : 0;
   const logoHeight = logo && showLogo ? renewalLetterLogoHeight : 0;
@@ -362,6 +369,10 @@ const drawHeader = (doc, settings = {}, companySettings = {}) => {
 
   doc.font(pdfFont.bold).fontSize(10.2).fillColor('#111827')
     .text(companyName, headerX, headerTopY, { width: width, align: 'left', lineBreak: false });
+  if (companyTagline) {
+    doc.font(pdfFont.regular).fontSize(8.4).fillColor('#475569')
+      .text(companyTagline, headerX, headerTopY + 11.2, { width: headerWidth, align: 'left', lineBreak: false });
+  }
   doc.font(pdfFont.regular).fontSize(8.1).fillColor('#475569');
   companyDetailLines.forEach((line) => {
     doc.text(line, headerX, doc.y + 1, { width: headerWidth, align: 'left', lineGap: 0 });
