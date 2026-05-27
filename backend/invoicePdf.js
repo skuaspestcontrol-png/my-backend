@@ -493,24 +493,6 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     const contentW = right - left;
     const footerReserved = 34;
 
-    // Watermark logo with transparency (blur not supported in pdfkit)
-    if (company.logo) {
-      try {
-        const watermarkW = contentW - 160;
-        const watermarkH = 320;
-        const watermarkX = left + 80;
-        const usableTop = top + 10;
-        const usableBottom = bottom - footerReserved - 10;
-        const watermarkY = usableTop + ((usableBottom - usableTop - watermarkH) / 2);
-        doc.save();
-        doc.opacity(0.18);
-        doc.image(company.logo, watermarkX, watermarkY, { fit: [watermarkW, watermarkH], align: 'center', valign: 'center' });
-        doc.restore();
-      } catch (_e) {
-        console.error('Invoice PDF watermark logo failed:', company.logo, _e.message);
-      }
-    }
-
     let y = top;
 
     const newPage = () => {
@@ -532,80 +514,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       doc.font('Helvetica').fontSize(7).fillColor(COLORS.label).text('Powered by Skuas Master CRM', left, fy + 9, { width: contentW * 0.55 });
     };
 
-    // Header
-    const headerH = 118;
-    drawCell(doc, '', left, y, contentW, headerH, { border: 'none' });
-
-    const logoBoxW = 102;
-    const logoBoxH = 75;
-    if (company.logo) {
-      try { doc.image(company.logo, left + 11, y + 11, { fit: [logoBoxW - 6, logoBoxH - 6] }); } catch (_e) {
-        console.error('Invoice PDF header logo failed:', company.logo, _e.message);
-      }
-    } else {
-      doc.font('Helvetica').fontSize(8).fillColor('#6b7280').text('LOGO', left + 26, y + 30);
-    }
-
-    const companyX = left + 82;
-    const companyW = contentW - 292;
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(COLORS.text).text(company.name, companyX, y + 8, { width: companyW });
-    doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(company.tagline || '', companyX, y + 20, { width: companyW });
-
-    doc.font('Helvetica').fontSize(8).fillColor(COLORS.text);
-    const addressLines = [
-      company.address1,
-      company.address2,
-      [company.city, company.state, company.pincode].filter(Boolean).join(', '),
-      formatCompanyPhoneLine(company.phone, company.alternatePhone) ? `Mobile: ${formatCompanyPhoneLine(company.phone, company.alternatePhone)}` : '',
-      `E Mail Id: ${company.email || 'info@skuaspestcontrol.com'}`,
-      `Visit Us: ${company.website || '-'}`,
-      !company.isNonGst ? (company.gstin ? `GST Details: ${company.gstin}` : 'GST Details: ') : ''
-    ].filter((line) => line !== '');
-
-    let ay = y + 32;
-    addressLines.forEach((line) => {
-      doc.text(line, companyX, ay, { width: companyW, lineGap: 0 });
-      ay = doc.y;
-    });
-
-    const rightW = 145;
-    const rightX = right - rightW - 2;
-    doc.font('Helvetica-Bold').fontSize(18).fillColor(company.primaryColor).text('TAX INVOICE', rightX, y + 8, { width: rightW, align: 'right' });
-
-    const meta = [
-      ['Invoice #', clean(invoice.invoiceNumber) || '-'],
-      ['Invoice Date', formatDate(invoice.date)],
-      ['Sales Person', clean(invoice.salesperson) || '-']
-    ];
-    doc.font('Helvetica').fontSize(9.8);
-    const metaLabelW = Math.max(...meta.map(([label]) => doc.widthOfString(label))) + 4;
-    const metaColonW = 6;
-    const metaValueW = rightW - metaLabelW - metaColonW;
-    const metaRowH = 11;
-    let my = y + 56;
-    meta.forEach(([label, value]) => {
-      doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(label, rightX, my, {
-        width: metaLabelW,
-        height: metaRowH,
-        align: 'left',
-        lineBreak: false
-      });
-      doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(':', rightX + metaLabelW, my, {
-        width: metaColonW,
-        height: metaRowH,
-        align: 'center',
-        lineBreak: false
-      });
-      doc.font('Helvetica').fontSize(9.8).fillColor(COLORS.text).text(` ${value}`, rightX + metaLabelW + metaColonW, my, {
-        width: metaValueW,
-        height: metaRowH,
-        align: 'left',
-        lineBreak: false
-      });
-      my += metaRowH;
-    });
-
-    y += headerH + 8;
+    y += 8;
 
     // Bill To and Ship To
     const cardGap = 6;
