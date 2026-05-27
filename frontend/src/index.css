@@ -524,6 +524,7 @@ button {
   display: grid;
   gap: 6px;
   min-width: 0;
+  width: 100%;
 }
 
 .crm-form-label {
