@@ -12,6 +12,7 @@ import {
   loadGooglePlacesScript,
   formatGoogleAddressParts,
   getGoogleFormattedAddressText,
+  searchGooglePlacesByText,
   stripAutoFilledIndiaSuffix
 } from '../utils/googlePlaces';
 import {
@@ -1207,11 +1208,8 @@ export default function CustomerDashboard() {
     seq[section] = (seq[section] || 0) + 1;
     const reqId = seq[section];
     try {
-      await loadGooglePlacesScript();
-      const { Place } = await window.google.maps.importLibrary('places');
-      const { places } = await Place.searchByText({
+      const places = await searchGooglePlacesByText({
         textQuery: queryText,
-        fields: ['id', 'displayName', 'formattedAddress', 'location', 'addressComponents', 'nationalPhoneNumber', 'internationalPhoneNumber', 'websiteURI'],
         maxResultCount: 5
       });
       if (addressSuggestionSeqRef.current[section] !== reqId) return;
@@ -1247,20 +1245,8 @@ export default function CustomerDashboard() {
         return;
       }
 
-      await loadGooglePlacesScript();
-      const { Place } = await window.google.maps.importLibrary('places');
-      const { places } = await Place.searchByText({
+      const places = await searchGooglePlacesByText({
         textQuery: query,
-        fields: [
-          'id',
-          'displayName',
-          'formattedAddress',
-          'location',
-          'addressComponents',
-          'nationalPhoneNumber',
-          'internationalPhoneNumber',
-          'websiteURI'
-        ],
         maxResultCount: 10
       });
 

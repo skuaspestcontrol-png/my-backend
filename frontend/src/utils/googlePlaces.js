@@ -208,7 +208,136 @@ const placeToDetails = (place = {}) => {
   };
 };
 
+const PLACE_SEARCH_FIELDS = [
+  'id',
+  'place_id',
+  'name',
+  'displayName',
+  'formattedAddress',
+  'formatted_address',
+  'location',
+  'geometry',
+  'addressComponents',
+  'address_components',
+  'nationalPhoneNumber',
+  'internationalPhoneNumber',
+  'formatted_phone_number',
+  'international_phone_number',
+  'websiteURI',
+  'website'
+];
+
+const LEGACY_PLACE_SEARCH_FIELDS = [
+  'place_id',
+  'name',
+  'formatted_address',
+  'geometry',
+  'address_components',
+  'formatted_phone_number',
+  'international_phone_number',
+  'website',
+  'types'
+];
+
+const normalizeSearchPlace = (place = {}) => {
+  const placeId = String(place.id || place.place_id || '').trim();
+  const name = String(place.name || place.displayName?.text || place.displayName || '').trim();
+  const formattedAddress = String(place.formattedAddress || place.formatted_address || '').trim();
+  const addressComponents = Array.isArray(place.addressComponents)
+    ? place.addressComponents
+    : Array.isArray(place.address_components)
+      ? place.address_components
+      : [];
+  const location = place.location || place.geometry?.location || null;
+  const displayName = typeof place.displayName === 'object' && place.displayName
+    ? place.displayName
+    : { text: name };
+
+  return {
+    ...place,
+    id: placeId,
+    place_id: placeId,
+    name,
+    displayName,
+    formattedAddress,
+    formatted_address: formattedAddress,
+    location,
+    geometry: place.geometry || (location ? { location } : undefined),
+    addressComponents,
+    address_components: addressComponents,
+    nationalPhoneNumber: String(place.nationalPhoneNumber || place.formatted_phone_number || '').trim(),
+    internationalPhoneNumber: String(place.internationalPhoneNumber || place.international_phone_number || '').trim(),
+    websiteURI: String(place.websiteURI || place.website || '').trim(),
+    website: String(place.website || place.websiteURI || '').trim()
+  };
+};
+
 export const formatGoogleAddressParts = (source = {}) => getGoogleAddressParts(source);
+
+export const searchGooglePlacesByText = async ({
+  textQuery,
+  maxResultCount = 5
+} = {}) => {
+  const query = String(textQuery || '').trim();
+  if (!query) return [];
+
+  await loadGooglePlacesScript();
+  if (!window.google?.maps?.places) {
+    throw createGoogleMapsError('Google Places API not enabled', 'GOOGLE_PLACES_UNAVAILABLE');
+  }
+
+  if (window.google.maps.importLibrary) {
+    try {
+      const { Place } = await window.google.maps.importLibrary('places');
+      if (Place?.searchByText) {
+        const response = await Place.searchByText({
+          textQuery: query,
+          fields: PLACE_SEARCH_FIELDS,
+          maxResultCount
+        });
+        const places = Array.isArray(response?.places) ? response.places : [];
+        if (places.length > 0) {
+          return places.map(normalizeSearchPlace);
+        }
+      }
+    } catch {
+      // Fall through to the legacy PlacesService search below.
+    }
+  }
+
+  return await new Promise((resolve, reject) => {
+    const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+    const complete = (results, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && Array.isArray(results)) {
+        resolve(results.slice(0, maxResultCount).map(normalizeSearchPlace));
+        return;
+      }
+      if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        resolve([]);
+        return;
+      }
+      reject(createGoogleMapsError('Google Places text search failed', 'GOOGLE_PLACES_TEXT_SEARCH_FAILED'));
+    };
+
+    if (typeof service.textSearch === 'function') {
+      service.textSearch({ query }, complete);
+      return;
+    }
+
+    if (typeof service.findPlaceFromQuery === 'function') {
+      service.findPlaceFromQuery(
+        {
+          query,
+          fields: LEGACY_PLACE_SEARCH_FIELDS
+        },
+        complete
+      );
+      return;
+    }
+
+    reject(createGoogleMapsError('Google Places search API unavailable', 'GOOGLE_PLACES_SEARCH_UNAVAILABLE'));
+  });
+};
 
 let scriptPromise = null;
 let scriptLoadError = null;

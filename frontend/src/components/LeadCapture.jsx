@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import {
   attachPlacesAutocomplete,
   hasGoogleMapsApiKey,
-  loadGooglePlacesScript,
+  searchGooglePlacesByText,
   formatGoogleAddressParts,
   getGoogleFormattedAddressText
 } from '../utils/googlePlaces';
@@ -1626,11 +1626,8 @@ export default function LeadCapture() {
 
     const reqId = ++suggestionSeqRef.current;
     try {
-      await loadGooglePlacesScript();
-      const { Place } = await window.google.maps.importLibrary('places');
-      const { places } = await Place.searchByText({
+      const places = await searchGooglePlacesByText({
         textQuery: queryText,
-        fields: ['id', 'displayName', 'formattedAddress', 'location', 'addressComponents', 'nationalPhoneNumber', 'internationalPhoneNumber', 'websiteURI'],
         maxResultCount: 5
       });
       if (reqId !== suggestionSeqRef.current) return;
@@ -1668,23 +1665,10 @@ export default function LeadCapture() {
         return;
       }
 
-      await loadGooglePlacesScript();
-      const { Place } = await window.google.maps.importLibrary('places');
-      const request = {
+      const places = await searchGooglePlacesByText({
         textQuery: query,
-        fields: [
-          'id',
-          'displayName',
-          'formattedAddress',
-          'location',
-          'addressComponents',
-          'nationalPhoneNumber',
-          'internationalPhoneNumber',
-          'websiteURI'
-        ],
         maxResultCount: 10
-      };
-      const { places } = await Place.searchByText(request);
+      });
 
       if (!places || places.length === 0) {
         setSearchError('No business/address found. Try full name with city.');
@@ -1701,7 +1685,7 @@ export default function LeadCapture() {
 
       setSearchError('');
     } catch (error) {
-      console.error('Place.searchByText error:', error);
+      console.error('Google place text search error:', error);
       setSearchError(getSearchUnavailableMessage(error));
     } finally {
       setIsFetchingAddress(false);
