@@ -2795,7 +2795,7 @@ export default function CustomerDashboard() {
                     <label style={shell.label}>Address</label>
                     <textarea style={shell.textarea} value={form.billingStreet1} onChange={(event) => updateBillingField('billingStreet1', event.target.value)} />
 
-                    <label style={shell.label}>Area</label>
+                    <label style={shell.label}>Area Name</label>
                     <input
                       style={shell.input}
                       value={form.billingArea}
@@ -2844,7 +2844,7 @@ export default function CustomerDashboard() {
                     <label style={shell.label}>Address</label>
                     <textarea style={shell.textarea} value={form.shippingStreet1} onChange={(event) => updateShippingField('shippingStreet1', event.target.value)} />
 
-                    <label style={shell.label}>Area</label>
+                    <label style={shell.label}>Area Name</label>
                     <input style={shell.input} value={form.shippingArea} onChange={(event) => updateShippingField('shippingArea', event.target.value)} />
 
                     <label style={shell.label}>City</label>

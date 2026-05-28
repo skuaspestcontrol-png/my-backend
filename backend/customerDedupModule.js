@@ -356,6 +356,7 @@ const normalizeImportRow = (raw = {}, mapping = {}) => {
   const normalizedAddress = normalizeAddress(address);
   const segment = properCase(collapseSpaces(pick('segment', pick('serviceType', raw.segment || raw.serviceType || '')))) || 'Residential';
   const billingArea = properCase(collapseSpaces(pick('billingArea', raw.billingArea || raw.area || '')));
+  const billingCity = properCase(collapseSpaces(pick('billingCity', raw.billingCity || raw.city || '')));
   const billingState = properCase(collapseSpaces(pick('billingState', raw.billingState || raw.state || '')));
   const billingPincode = normalizeText(pick('billingPincode', raw.billingPincode || raw.pincode || ''));
   const shippingSameAsBilling = boolValue(pick('shippingSameAsBilling', raw.shippingSameAsBilling || ''));
@@ -363,6 +364,7 @@ const normalizeImportRow = (raw = {}, mapping = {}) => {
   const shippingStreet2 = collapseSpaces(pick('shippingStreet2', raw.shippingStreet2 || ''));
   const shippingAddress = collapseSpaces(pick('shippingAddress', raw.shippingAddress || '')) || (shippingSameAsBilling ? address : '');
   const shippingArea = properCase(collapseSpaces(pick('shippingArea', raw.shippingArea || ''))) || (shippingSameAsBilling ? billingArea : '');
+  const shippingCity = properCase(collapseSpaces(pick('shippingCity', raw.shippingCity || ''))) || (shippingSameAsBilling ? billingCity : '');
   const shippingState = properCase(collapseSpaces(pick('shippingState', raw.shippingState || ''))) || (shippingSameAsBilling ? billingState : '');
   const shippingPincode = normalizeText(pick('shippingPincode', raw.shippingPincode || '')) || (shippingSameAsBilling ? billingPincode : '');
   const gstNumber = normalizeText(pick('gstNumber', raw.gstNumber || raw.gstin || '')).toUpperCase();
@@ -393,6 +395,7 @@ const normalizeImportRow = (raw = {}, mapping = {}) => {
     normalizedAddress,
     serviceType: segment,
     billingArea,
+    billingCity,
     billingState,
     billingPincode,
     billingPhoneCode: normalizeText(pick('billingPhoneCode', raw.billingPhoneCode || '+91')) || '+91',
@@ -404,6 +407,7 @@ const normalizeImportRow = (raw = {}, mapping = {}) => {
     shippingAddress,
     normalizedShippingAddress: normalizeAddress(shippingAddress),
     shippingArea,
+    shippingCity,
     shippingState,
     shippingPincode,
     shippingPhoneCode: normalizeText(pick('shippingPhoneCode', raw.shippingPhoneCode || '+91')) || '+91',
@@ -612,6 +616,7 @@ const buildCustomerPayloadFromImport = (clean) => {
     billingStreet2: clean.billingStreet2 || '',
     billingAddress,
     billingArea: clean.billingArea,
+    billingCity: clean.billingCity || clean.city || '',
     billingState: clean.billingState || 'Delhi',
     billingPincode: clean.billingPincode,
     billingPhoneCode: clean.billingPhoneCode || '+91',
@@ -622,11 +627,13 @@ const buildCustomerPayloadFromImport = (clean) => {
     shippingStreet2: clean.shippingStreet2 || (shippingSameAsBilling ? clean.billingStreet2 : ''),
     shippingAddress: clean.shippingAddress || billingAddress,
     shippingArea: clean.shippingArea || (shippingSameAsBilling ? clean.billingArea : ''),
+    shippingCity: clean.shippingCity || (shippingSameAsBilling ? (clean.billingCity || clean.city || '') : ''),
     shippingState: clean.shippingState || (shippingSameAsBilling ? clean.billingState : '') || 'Delhi',
     shippingPincode: clean.shippingPincode || (shippingSameAsBilling ? clean.billingPincode : ''),
     shippingPhoneCode: clean.shippingPhoneCode || '+91',
     shippingPhone: clean.shippingPhone || clean.mobileNumber,
     area: clean.billingArea,
+    city: clean.billingCity || clean.city || '',
     state: clean.billingState || 'Delhi',
     pincode: clean.billingPincode,
     areaSqft: clean.areaSqft || 0,
@@ -1126,13 +1133,16 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
       email: normalizeEmail(payload.emailId || payload.email),
       billingAddress: normalizeText(payload.billingAddress),
       billingArea: normalizeText(payload.billingArea || payload.area),
+      billingCity: normalizeText(payload.billingCity || payload.city),
       billingState,
       billingPincode: normalizeText(payload.billingPincode || payload.pincode),
       shippingAddress: normalizeText(payload.shippingAddress || payload.billingAddress),
       shippingArea: normalizeText(payload.shippingArea || payload.billingArea || payload.area),
+      shippingCity: normalizeText(payload.shippingCity || payload.billingCity || payload.city),
       shippingState: normalizeText(payload.shippingState || billingState),
       shippingPincode: normalizeText(payload.shippingPincode || payload.billingPincode || payload.pincode),
       area: normalizeText(payload.area || payload.billingArea),
+      city: normalizeText(payload.billingCity || payload.city),
       state: billingState,
       pincode: normalizeText(payload.pincode || payload.billingPincode),
       placeOfSupply: billingState,
