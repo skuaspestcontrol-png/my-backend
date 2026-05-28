@@ -239,6 +239,7 @@ const emptyForm = {
   billingStreet2: '',
   billingAddress: '',
   billingArea: '',
+  billingCity: '',
   billingState: 'Delhi',
   billingPincode: '',
   billingLatitude: '',
@@ -256,6 +257,7 @@ const emptyForm = {
   shippingStreet2: '',
   shippingAddress: '',
   shippingArea: '',
+  shippingCity: '',
   shippingState: 'Delhi',
   shippingPincode: '',
   shippingLatitude: '',
@@ -859,6 +861,7 @@ export default function CustomerDashboard() {
     shippingStreet2: source.billingStreet2,
     shippingAddress: source.billingAddress,
     shippingArea: source.billingArea,
+    shippingCity: source.billingCity,
     shippingState: source.billingState,
     shippingPincode: source.billingPincode,
     shippingLatitude: source.billingLatitude || source.latitude,
@@ -960,6 +963,7 @@ export default function CustomerDashboard() {
     const streetKey = `${prefix}Street1`;
     const addressKey = `${prefix}Address`;
     const areaKey = `${prefix}Area`;
+    const cityKey = `${prefix}City`;
     const stateKey = `${prefix}State`;
     const pincodeKey = `${prefix}Pincode`;
     const latitudeKey = `${prefix}Latitude`;
@@ -969,6 +973,7 @@ export default function CustomerDashboard() {
     const extracted = extractCustomerAddressFields(data);
     const address = extracted.address || getGoogleAddressLineText(data) || getGoogleFormattedAddressText(data) || stripAutoFilledIndiaSuffix(data.address || data.formattedAddress || '', data);
     const area = String(extracted.areaName || data.areaName || data.city || '').trim();
+    const city = String(extracted.city || data.city || '').trim();
     const state = String(extracted.state || data.state || '').trim();
     const pincode = toSixDigitPincode(extracted.pincode || data.pincode || '');
     const placeId = String(data.placeId || data.googlePlaceId || '').trim();
@@ -986,6 +991,7 @@ export default function CustomerDashboard() {
       patch[addressKey] = address;
     }
     if (area) patch[areaKey] = area;
+    if (city) patch[cityKey] = city;
     if (state) patch[stateKey] = state;
     if (pincode) patch[pincodeKey] = pincode;
     if (lat && lng) {
@@ -1349,6 +1355,7 @@ export default function CustomerDashboard() {
       billingStreet2: customer.billingStreet2 || '',
       billingAddress: customer.billingAddress || '',
       billingArea: customer.billingArea || customer.area || '',
+      billingCity: customer.billingCity || customer.city || '',
       billingState: customer.billingState || customer.state || customer.placeOfSupply || 'Delhi',
       billingPincode: toSixDigitPincode(customer.billingPincode || customer.pincode || ''),
       billingLatitude: String(customer.billingLatitude ?? customer.latitude ?? '').trim(),
@@ -1365,6 +1372,7 @@ export default function CustomerDashboard() {
       shippingStreet2: customer.shippingStreet2 || '',
       shippingAddress: customer.shippingAddress || '',
       shippingArea: customer.shippingArea || '',
+      shippingCity: customer.shippingCity || '',
       shippingState: customer.shippingState || customer.state || customer.placeOfSupply || 'Delhi',
       shippingPincode: toSixDigitPincode(customer.shippingPincode || ''),
       shippingLatitude: String(customer.shippingLatitude ?? '').trim(),
@@ -1378,6 +1386,7 @@ export default function CustomerDashboard() {
         (customer.shippingStreet1 || '') === (customer.billingStreet1 || '') &&
         (customer.shippingStreet2 || '') === (customer.billingStreet2 || '') &&
         (customer.shippingArea || '') === (customer.billingArea || customer.area || '') &&
+        (customer.shippingCity || '') === (customer.billingCity || customer.city || '') &&
         (customer.shippingState || '') === (customer.billingState || customer.state || customer.placeOfSupply || '') &&
         (customer.shippingPincode || '') === (customer.billingPincode || customer.pincode || '') &&
         !!(customer.billingAddress || customer.shippingAddress),
@@ -2784,13 +2793,20 @@ export default function CustomerDashboard() {
                     <input style={shell.input} value={form.billingAttention} onChange={(event) => updateBillingField('billingAttention', event.target.value)} />
 
                     <label style={shell.label}>Address</label>
-                    <textarea style={shell.textarea} placeholder="Address" value={form.billingStreet1} onChange={(event) => updateBillingField('billingStreet1', event.target.value)} />
+                    <textarea style={shell.textarea} value={form.billingStreet1} onChange={(event) => updateBillingField('billingStreet1', event.target.value)} />
 
                     <label style={shell.label}>Area</label>
                     <input
                       style={shell.input}
                       value={form.billingArea}
                       onChange={(event) => updateBillingField('billingArea', event.target.value)}
+                    />
+
+                    <label style={shell.label}>City</label>
+                    <input
+                      style={shell.input}
+                      value={form.billingCity}
+                      onChange={(event) => updateBillingField('billingCity', event.target.value)}
                     />
 
                     <label style={shell.label}>State</label>
@@ -2826,10 +2842,17 @@ export default function CustomerDashboard() {
                     <input style={shell.input} value={form.shippingAttention} onChange={(event) => updateShippingField('shippingAttention', event.target.value)} />
 
                     <label style={shell.label}>Address</label>
-                    <textarea style={shell.textarea} placeholder="Address" value={form.shippingStreet1} onChange={(event) => updateShippingField('shippingStreet1', event.target.value)} />
+                    <textarea style={shell.textarea} value={form.shippingStreet1} onChange={(event) => updateShippingField('shippingStreet1', event.target.value)} />
 
                     <label style={shell.label}>Area</label>
                     <input style={shell.input} value={form.shippingArea} onChange={(event) => updateShippingField('shippingArea', event.target.value)} />
+
+                    <label style={shell.label}>City</label>
+                    <input
+                      style={shell.input}
+                      value={form.shippingCity}
+                      onChange={(event) => updateShippingField('shippingCity', event.target.value)}
+                    />
 
                     <label style={shell.label}>State</label>
                     <select style={shell.input} value={form.shippingState} onChange={(event) => updateShippingField('shippingState', event.target.value)}>
