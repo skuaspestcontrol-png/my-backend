@@ -112,6 +112,79 @@ const extractGoogleMapsCoordinates = (value) => {
   return null;
 };
 
+const normalizeApiBaseUrl = (value = '') => {
+  const raw = String(value || '').trim().replace(/\/+$/, '');
+  if (!raw) return '';
+  try {
+    const parsed = new URL(raw, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+    return parsed.origin === 'http://localhost' && !/^https?:\/\//i.test(raw) ? '' : parsed.origin.replace(/\/+$/, '');
+  } catch {
+    return raw;
+  }
+};
+
+const normalizeGooglePlaceSearchResult = (result = {}, fallbackText = '') => {
+  const formattedAddress = String(result.formatted_address || result.formattedAddress || '').trim();
+  const addressComponents = Array.isArray(result.address_components)
+    ? result.address_components
+    : Array.isArray(result.addressComponents)
+      ? result.addressComponents
+      : [];
+  const location = result.geometry?.location
+    || result.location
+    || (Number.isFinite(Number(result.latitude)) && Number.isFinite(Number(result.longitude))
+      ? { lat: Number(result.latitude), lng: Number(result.longitude) }
+      : null);
+  const name = String(result.name || result.displayName?.text || result.displayName || fallbackText || '').trim();
+  const placeId = String(result.place_id || result.placeId || result.id || '').trim();
+  const phone = String(result.formatted_phone_number || result.international_phone_number || result.nationalPhoneNumber || result.internationalPhoneNumber || '').trim();
+  const website = String(result.website || result.websiteURI || '').trim();
+
+  return {
+    ...result,
+    id: placeId,
+    place_id: placeId,
+    name,
+    displayName: { text: name },
+    formattedAddress,
+    formatted_address: formattedAddress,
+    addressComponents,
+    address_components: addressComponents,
+    location,
+    geometry: result.geometry || (location ? { location } : undefined),
+    nationalPhoneNumber: phone,
+    internationalPhoneNumber: phone,
+    formatted_phone_number: phone,
+    websiteURI: website,
+    website
+  };
+};
+
+const resolveGoogleMapsPlaceText = async (text, { apiBaseUrl = '' } = {}) => {
+  const address = String(text || '').trim();
+  if (!address) {
+    return { success: false, message: 'Address is required' };
+  }
+
+  const base = normalizeApiBaseUrl(apiBaseUrl || import.meta.env.VITE_API_BASE_URL || '');
+  const endpoint = `${base}/api/maps/geocode`;
+  const response = await axios.post(endpoint, { address }, {
+    validateStatus: () => true
+  });
+  const data = response?.data || {};
+  if (response.status >= 200 && response.status < 300 && data.result) {
+    return {
+      success: true,
+      result: normalizeGooglePlaceSearchResult(data.result, address)
+    };
+  }
+
+  return {
+    success: false,
+    message: String(data.error || data.message || 'Could not find this address').trim() || 'Could not find this address'
+  };
+};
+
 const resolveGoogleMapsUrl = async (url, { apiBaseUrl = '', timeoutMs = 8000 } = {}) => {
   const normalized = normalizeGoogleMapsUrl(url);
   if (!normalized) {
@@ -147,5 +220,6 @@ export {
   isAllowedGoogleMapsUrl,
   isGoogleMapsShortLink,
   normalizeGoogleMapsUrl,
-  resolveGoogleMapsUrl
+  resolveGoogleMapsUrl,
+  resolveGoogleMapsPlaceText
 };

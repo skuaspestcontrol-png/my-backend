@@ -19,7 +19,8 @@ import {
   extractGoogleMapsCoordinates,
   isAllowedGoogleMapsUrl,
   isGoogleMapsShortLink,
-  resolveGoogleMapsUrl
+  resolveGoogleMapsUrl,
+  resolveGoogleMapsPlaceText
 } from '../utils/googleMaps';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 import { getPortalUserName } from '../utils/portalAuth';
@@ -1208,10 +1209,13 @@ export default function CustomerDashboard() {
     seq[section] = (seq[section] || 0) + 1;
     const reqId = seq[section];
     try {
-      const places = await searchGooglePlacesByText({
-        textQuery: queryText,
-        maxResultCount: 5
-      });
+      const serverResult = await resolveGoogleMapsPlaceText(queryText, { apiBaseUrl: API_BASE_URL });
+      const places = serverResult?.success && serverResult.result
+        ? [serverResult.result]
+        : await searchGooglePlacesByText({
+            textQuery: queryText,
+            maxResultCount: 5
+          });
       if (addressSuggestionSeqRef.current[section] !== reqId) return;
       const suggestions = Array.isArray(places) ? places : [];
       setSectionAddressSearchState(section, {
@@ -1245,10 +1249,13 @@ export default function CustomerDashboard() {
         return;
       }
 
-      const places = await searchGooglePlacesByText({
-        textQuery: query,
-        maxResultCount: 10
-      });
+      const serverResult = await resolveGoogleMapsPlaceText(query, { apiBaseUrl: API_BASE_URL });
+      const places = serverResult?.success && serverResult.result
+        ? [serverResult.result]
+        : await searchGooglePlacesByText({
+            textQuery: query,
+            maxResultCount: 10
+          });
 
       if (!places || places.length === 0) {
         setSectionAddressSearchState(section, { error: 'No address found. Try full address with city.' });

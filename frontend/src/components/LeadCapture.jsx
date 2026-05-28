@@ -12,7 +12,8 @@ import {
   extractGoogleMapsCoordinates,
   isAllowedGoogleMapsUrl,
   isGoogleMapsShortLink,
-  resolveGoogleMapsUrl
+  resolveGoogleMapsUrl,
+  resolveGoogleMapsPlaceText
 } from '../utils/googleMaps';
 import useColumnResize from './table/useColumnResize';
 import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
@@ -1592,9 +1593,7 @@ export default function LeadCapture() {
       onRequireSelection: (message) => {
         if (!cancelled) setSearchError(message);
       },
-      onError: (error) => {
-        if (!cancelled) setSearchError(getSearchUnavailableMessage(error));
-      }
+      onError: () => {}
     }).then((dispose) => {
       if (cancelled) {
         dispose?.();
@@ -1619,10 +1618,13 @@ export default function LeadCapture() {
 
     const reqId = ++suggestionSeqRef.current;
     try {
-      const places = await searchGooglePlacesByText({
-        textQuery: queryText,
-        maxResultCount: 5
-      });
+      const serverResult = await resolveGoogleMapsPlaceText(queryText, { apiBaseUrl: API_BASE_URL });
+      const places = serverResult?.success && serverResult.result
+        ? [serverResult.result]
+        : await searchGooglePlacesByText({
+            textQuery: queryText,
+            maxResultCount: 5
+          });
       if (reqId !== suggestionSeqRef.current) return;
       const results = Array.isArray(places) ? places : [];
       setSearchSuggestions(results);
@@ -1653,10 +1655,13 @@ export default function LeadCapture() {
         return;
       }
 
-      const places = await searchGooglePlacesByText({
-        textQuery: query,
-        maxResultCount: 10
-      });
+      const serverResult = await resolveGoogleMapsPlaceText(query, { apiBaseUrl: API_BASE_URL });
+      const places = serverResult?.success && serverResult.result
+        ? [serverResult.result]
+        : await searchGooglePlacesByText({
+            textQuery: query,
+            maxResultCount: 10
+          });
 
       if (!places || places.length === 0) {
         setSearchError('No business/address found. Try full name with city.');
