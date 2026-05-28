@@ -465,6 +465,7 @@ export default function CustomerDashboard() {
   const billingSearchInputRef = useRef(null);
   const shippingSearchInputRef = useRef(null);
   const addressSuggestionSeqRef = useRef({ billing: 0, shipping: 0 });
+  const lastDisplayNameRef = useRef('');
   const {
     getColumnWidth,
     startResize: startColumnResize,
@@ -621,6 +622,32 @@ export default function CustomerDashboard() {
   useEffect(() => {
     if (!showModal) setAddressSearchState(createAddressSearchState());
   }, [showModal]);
+
+  useEffect(() => {
+    const nextDisplayName = String(form.displayName || '').trim();
+    const previousDisplayName = String(lastDisplayNameRef.current || '').trim();
+    if (!nextDisplayName) {
+      lastDisplayNameRef.current = '';
+      return;
+    }
+
+    setForm((prev) => {
+      const currentBillingAttention = String(prev.billingAttention || '').trim();
+      const currentShippingAttention = String(prev.shippingAttention || '').trim();
+      const shouldSyncBilling = !currentBillingAttention || currentBillingAttention === previousDisplayName;
+      const shouldSyncShipping = !currentShippingAttention || currentShippingAttention === previousDisplayName;
+
+      if (!shouldSyncBilling && !shouldSyncShipping) return prev;
+
+      return {
+        ...prev,
+        ...(shouldSyncBilling ? { billingAttention: nextDisplayName } : {}),
+        ...(shouldSyncShipping ? { shippingAttention: nextDisplayName } : {})
+      };
+    });
+
+    lastDisplayNameRef.current = nextDisplayName;
+  }, [form.displayName]);
 
   useEffect(() => {
     if (!showModal) return () => {};
@@ -1407,6 +1434,7 @@ export default function CustomerDashboard() {
     setAddressSearchState(createAddressSearchState());
     setSaveError('');
     setShowModal(true);
+    lastDisplayNameRef.current = '';
   };
 
   const openEditSelected = () => {
@@ -1420,6 +1448,7 @@ export default function CustomerDashboard() {
     setSaveError('');
     setShowModal(true);
     setShowMoreMenu(false);
+    lastDisplayNameRef.current = String(selected.displayName || selected.name || '').trim();
   };
 
   const openCustomerHistory = async (customer) => {
@@ -1460,6 +1489,21 @@ export default function CustomerDashboard() {
     setEditingId(null);
     setSaveError('');
     setSimilarCustomers([]);
+    lastDisplayNameRef.current = '';
+  };
+
+  const updateBillingAttention = (value) => {
+    setForm((prev) => ({
+      ...prev,
+      billingAttention: value
+    }));
+  };
+
+  const updateShippingAttention = (value) => {
+    setForm((prev) => ({
+      ...prev,
+      shippingAttention: value
+    }));
   };
 
   const openInvoiceInInvoiceModule = (invoice) => {
@@ -2790,7 +2834,11 @@ export default function CustomerDashboard() {
                   </div>
                   <div style={addressGridStyle}>
                     <label style={shell.label}>Attention</label>
-                    <input style={shell.input} value={form.billingAttention} onChange={(event) => updateBillingField('billingAttention', event.target.value)} />
+                    <input
+                      style={shell.input}
+                      value={form.billingAttention}
+                      onChange={(event) => updateBillingAttention(event.target.value)}
+                    />
 
                     <label style={shell.label}>Address</label>
                     <textarea style={shell.textarea} value={form.billingStreet1} onChange={(event) => updateBillingField('billingStreet1', event.target.value)} />
@@ -2839,7 +2887,11 @@ export default function CustomerDashboard() {
                   </div>
                   <div style={addressGridStyle}>
                     <label style={shell.label}>Attention</label>
-                    <input style={shell.input} value={form.shippingAttention} onChange={(event) => updateShippingField('shippingAttention', event.target.value)} />
+                    <input
+                      style={shell.input}
+                      value={form.shippingAttention}
+                      onChange={(event) => updateShippingAttention(event.target.value)}
+                    />
 
                     <label style={shell.label}>Address</label>
                     <textarea style={shell.textarea} value={form.shippingStreet1} onChange={(event) => updateShippingField('shippingStreet1', event.target.value)} />
