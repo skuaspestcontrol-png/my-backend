@@ -1474,6 +1474,19 @@ export default function CustomerDashboard() {
     setHistoryLoading(false);
   };
 
+  const useExistingSimilarCustomer = (customer) => {
+    if (!customer?._id) return;
+    const existing = customers.find((entry) => entry._id === customer._id) || customer;
+    setEditingId(existing._id);
+    setForm(mapCustomerToForm(existing));
+    setShowModal(true);
+    setShowHistory(false);
+    setSaveError('');
+    setSimilarCustomers([]);
+    setAddressSearchState(createAddressSearchState());
+    lastDisplayNameRef.current = String(existing.displayName || existing.name || '').trim();
+  };
+
   const closeCustomerHistory = () => {
     setShowHistory(false);
     setHistoryError('');
@@ -2646,10 +2659,7 @@ export default function CustomerDashboard() {
                           <button
                             type="button"
                             style={{ border: '1px solid #93c5fd', borderRadius: '8px', background: '#fff', color: 'var(--color-primary-dark)', fontSize: '11px', fontWeight: 700, padding: '4px 8px', cursor: 'pointer' }}
-                            onClick={() => {
-                              const existing = customers.find((customer) => customer._id === entry.customerId);
-                              if (existing) openCustomerHistory(existing);
-                            }}
+                            onClick={() => useExistingSimilarCustomer(entry)}
                           >
                             Use Existing Customer
                           </button>
