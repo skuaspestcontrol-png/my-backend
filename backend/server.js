@@ -4274,6 +4274,53 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
   } catch (error) {
     if (!/duplicate|already exists/i.test(String(error.message || ''))) throw error;
   }
+
+  for (const indexSql of [
+    'CREATE INDEX idx_customer_premises_customer_id ON customer_premises (customer_id)',
+    'CREATE INDEX idx_customer_premises_pincode ON customer_premises (pincode)',
+    'CREATE INDEX idx_customer_premises_is_default ON customer_premises (is_default)',
+    'CREATE INDEX idx_customer_premises_is_active ON customer_premises (is_active)'
+  ]) {
+    try {
+      await conn.query(indexSql);
+    } catch (error) {
+      if (!/duplicate|already exists/i.test(String(error.message || ''))) throw error;
+    }
+  }
+
+  if (!customerPremisesCustomerFkEnsured) {
+    try {
+      const [fkRows] = await conn.query(
+        `SELECT COUNT(*) AS count
+         FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = 'customer_premises'
+           AND COLUMN_NAME = 'customer_id'
+           AND REFERENCED_TABLE_NAME = 'customers'
+           AND REFERENCED_COLUMN_NAME = 'id'`
+      );
+      const hasCustomerFk = Number(fkRows?.[0]?.count || 0) > 0;
+      if (!hasCustomerFk) {
+        await conn.query(
+          `DELETE cp
+           FROM customer_premises cp
+           LEFT JOIN customers c ON c.id = cp.customer_id
+           WHERE c.id IS NULL`
+        );
+        await conn.query(
+          `ALTER TABLE customer_premises
+           ADD CONSTRAINT fk_customer_premises_customer
+           FOREIGN KEY (customer_id) REFERENCES customers(id)
+           ON DELETE CASCADE ON UPDATE CASCADE`
+        );
+      }
+      customerPremisesCustomerFkEnsured = true;
+    } catch (error) {
+      if (!/Duplicate|already exists|errno: 121|errno: 1452/i.test(String(error.message || ''))) {
+        console.warn('[MySQL] customer_premises customer FK ensure failed:', error.message);
+      }
+    }
+  }
 };
 
 const fetchCustomerRecordForPremise = async (conn, customerId) => {
@@ -4392,6 +4439,8 @@ const ensureEmployeeAuthColumns = async (conn) => {
   ]);
   employeeAuthColumnsEnsured = true;
 };
+
+let customerPremisesCustomerFkEnsured = false;
 
 const upsertLeadToMysql = async (conn, lead) => {
   await ensureLeadPlaceColumns(conn);
@@ -6996,13 +7045,27 @@ app.delete('/api/customers/:id', async (req, res) => {
       const targetId = String(req.params.id || '').trim();
       const numericId = Number(targetId);
       const isNumeric = Number.isFinite(numericId) && /^\d+$/.test(targetId);
-      const [result] = await conn.query(
-        isNumeric
-          ? 'DELETE FROM customers WHERE external_id = ? OR id = ?'
-          : 'DELETE FROM customers WHERE external_id = ?',
-        isNumeric ? [targetId, numericId] : [targetId]
+      const [externalRows] = await conn.query(
+        'SELECT id FROM customers WHERE external_id = ? LIMIT 1',
+        [targetId]
       );
-      return Number(result?.affectedRows || 0);
+      let customerRow = Array.isArray(externalRows) && externalRows.length ? externalRows[0] : null;
+      if (!customerRow && isNumeric) {
+        const [internalRows] = await conn.query('SELECT id FROM customers WHERE id = ? LIMIT 1', [numericId]);
+        customerRow = Array.isArray(internalRows) && internalRows.length ? internalRows[0] : null;
+      }
+      if (!customerRow) return 0;
+
+      await conn.beginTransaction();
+      try {
+        await conn.query('DELETE FROM customer_premises WHERE customer_id = ?', [customerRow.id]);
+        const [result] = await conn.query('DELETE FROM customers WHERE id = ?', [customerRow.id]);
+        await conn.commit();
+        return Number(result?.affectedRows || 0);
+      } catch (error) {
+        await conn.rollback();
+        throw error;
+      }
     });
 
     if (!deletedRows) {

@@ -221,6 +221,7 @@ const tableDefinitions = [
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
         UNIQUE KEY uk_customer_premises_premise_id (premise_id),
+        CONSTRAINT fk_customer_premises_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE ON UPDATE CASCADE,
         KEY idx_customer_premises_customer_id (customer_id),
         KEY idx_customer_premises_pincode (pincode),
         KEY idx_customer_premises_is_default (is_default),

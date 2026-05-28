@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS customer_premises (
   payload JSON NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_customer_premises_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE ON UPDATE CASCADE,
   KEY idx_customer_premises_customer_id (customer_id),
   KEY idx_customer_premises_premise_id (premise_id),
   KEY idx_customer_premises_pincode (pincode),
