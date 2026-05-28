@@ -1328,6 +1328,9 @@ export default function CustomerDashboard() {
       const res = await axios.get(`${API_BASE_URL}/api/customers/similar-search`, {
         params: {
           name,
+          displayName: draft.displayName || '',
+          companyName: draft.companyName || '',
+          contactPersonName: draft.contactPersonName || '',
           mobile,
           address,
           email: draft.emailId || ''

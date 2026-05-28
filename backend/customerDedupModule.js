@@ -478,12 +478,19 @@ const dedupeScore = (importClean, existingCustomer) => {
     ? existingCustomer._nameKeys
     : [normalizeLower(existingCustomer._displayName)].filter(Boolean);
   const nameExact = importNameKeys.some((name) => existingNameKeys.includes(name));
+  const companyNameExact = normalizeLower(importClean.companyName) && existingNameKeys.includes(normalizeLower(importClean.companyName));
+  const contactPersonExact = normalizeLower(importClean.contactPersonName) && existingNameKeys.includes(normalizeLower(importClean.contactPersonName));
   const addressExact = importClean.normalizedAddress && existingCustomer._normalizedAddress && importClean.normalizedAddress === existingCustomer._normalizedAddress;
   const shippingAddressExact = importClean.normalizedShippingAddress
     && (importClean.normalizedShippingAddress === existingCustomer._normalizedShippingAddress || importClean.normalizedShippingAddress === existingCustomer._normalizedAddress);
 
-  const nameSimilarity = combinedSimilarity(importClean.customerName, existingCustomer._displayName);
+  const nameSimilarity = combinedSimilarity(importClean.customerName || importClean.companyName || importClean.contactPersonName, existingCustomer._displayName);
   const addressSimilarity = combinedSimilarity(importClean.address, existingCustomer._address);
+
+  if (companyNameExact && contactPersonExact) {
+    score = Math.max(score, 100);
+    reasons.push('Exact company name + contact person match');
+  }
 
   if (phoneMatch && nameExact) {
     score = 100;
@@ -526,7 +533,7 @@ const dedupeScore = (importClean, existingCustomer) => {
   else if (score >= 75) classification = 'Possible Duplicate';
   else if (score >= 60) classification = 'Needs Review';
 
-  const sameCustomerDifferentAddress = (phoneMatch || emailMatch || nameExact)
+  const sameCustomerDifferentAddress = (phoneMatch || emailMatch || nameExact || (companyNameExact && contactPersonExact))
     && (
       (importClean.normalizedAddress && existingCustomer._normalizedAddress && !addressExact && addressSimilarity < 90)
       || (importClean.normalizedShippingAddress && !shippingAddressExact)
@@ -2124,10 +2131,16 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
 
   app.get('/api/customers/similar-search', (req, res) => {
     const customerName = normalizeText(req.query.name || req.query.customerName || '');
+    const displayName = normalizeText(req.query.displayName || '');
+    const companyName = normalizeText(req.query.companyName || '');
+    const contactPersonName = normalizeText(req.query.contactPersonName || '');
     const mobile = normalizePhone(req.query.mobile || req.query.mobileNumber || '');
     const address = normalizeText(req.query.address || req.query.billingAddress || '');
     const queryClean = {
-      customerName: properCase(customerName),
+      customerName: properCase(customerName || displayName || companyName || contactPersonName),
+      displayName: properCase(displayName || customerName || companyName || contactPersonName),
+      companyName: properCase(companyName || customerName || displayName || contactPersonName),
+      contactPersonName: properCase(contactPersonName || customerName || displayName || companyName),
       mobileNumber: mobile,
       email: normalizeEmail(req.query.email || req.query.emailId || ''),
       address,
