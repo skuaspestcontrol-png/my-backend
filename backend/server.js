@@ -2952,6 +2952,20 @@ app.get('/api/settings', async (req, res) => {
   }
 });
 
+app.get('/api/public/google-maps-config', (_req, res) => {
+  const googleMapsApiKey = String(
+    process.env.GOOGLE_MAPS_API_KEY
+    || process.env.GOOGLE_GEOCODING_API_KEY
+    || process.env.VITE_GOOGLE_MAPS_API_KEY
+    || ''
+  ).trim();
+
+  return res.json({
+    googleMapsApiKey,
+    googleMapsEnabled: Boolean(googleMapsApiKey)
+  });
+});
+
 app.post('/api/settings', async (req, res) => {
   try {
     const current = await readSettingsFromMysql();

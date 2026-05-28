@@ -3,11 +3,44 @@ import { attachMapsAppCheckTokenProvider, initFirebaseAppCheck } from './firebas
 
 const GOOGLE_MAPS_AUTH_FAILURE_EVENT = 'skuas:google-maps-auth-failure';
 const getApiKey = () => String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
-const hasGoogleMapsApiKey = () => Boolean(getApiKey());
+const getApiBaseUrl = () => {
+  const raw = String(import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '');
+  if (raw) return raw;
+  if (typeof window !== 'undefined') return window.location.origin;
+  return '';
+};
+const buildPublicGoogleMapsConfigUrl = () => `${getApiBaseUrl() || ''}/api/public/google-maps-config`;
+let runtimeGoogleMapsApiKey = '';
+let runtimeGoogleMapsApiKeyPromise = null;
+const hasGoogleMapsApiKey = () => Boolean(getApiKey() || runtimeGoogleMapsApiKey);
 const createGoogleMapsError = (message, code) => {
   const error = new Error(message);
   error.code = code;
   return error;
+};
+
+const resolveGoogleMapsApiKey = async () => {
+  const envApiKey = getApiKey();
+  if (envApiKey) return envApiKey;
+  if (runtimeGoogleMapsApiKey) return runtimeGoogleMapsApiKey;
+  if (runtimeGoogleMapsApiKeyPromise) return runtimeGoogleMapsApiKeyPromise;
+
+  runtimeGoogleMapsApiKeyPromise = (async () => {
+    try {
+      const response = await fetch(buildPublicGoogleMapsConfigUrl(), { credentials: 'include' });
+      if (!response.ok) return '';
+      const data = await response.json();
+      const apiKey = String(data?.googleMapsApiKey || '').trim();
+      runtimeGoogleMapsApiKey = apiKey;
+      return apiKey;
+    } catch {
+      return '';
+    } finally {
+      runtimeGoogleMapsApiKeyPromise = null;
+    }
+  })();
+
+  return runtimeGoogleMapsApiKeyPromise;
 };
 
 const normalizeComponent = (components = [], ...types) => {
@@ -381,7 +414,7 @@ export const loadGooglePlacesScript = async () => {
   }
   if (scriptPromise) return scriptPromise;
 
-  const apiKey = getApiKey();
+  const apiKey = await resolveGoogleMapsApiKey();
   if (!apiKey) {
     throw createGoogleMapsError('Google Maps API key not configured', 'GOOGLE_MAPS_KEY_MISSING');
   }

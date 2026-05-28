@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import {
   attachPlacesAutocomplete,
-  hasGoogleMapsApiKey,
   searchGooglePlacesByText,
   formatGoogleAddressParts,
   getGoogleFormattedAddressText
@@ -1553,7 +1552,6 @@ export default function LeadCapture() {
 
   useEffect(() => {
     if (!show || !searchAddressInputRef.current) return undefined;
-    if (!hasGoogleMapsApiKey()) return undefined;
 
     let cleanup = () => {};
     let cancelled = false;
@@ -1612,11 +1610,6 @@ export default function LeadCapture() {
   }, [show]);
 
   const fetchLiveSearchSuggestions = async (value) => {
-    if (!hasGoogleMapsApiKey()) {
-      setSearchSuggestions([]);
-      setShowSearchSuggestions(false);
-      return;
-    }
     const queryText = String(value || '').trim();
     if (queryText.length < 2) {
       setSearchSuggestions([]);
@@ -1657,11 +1650,6 @@ export default function LeadCapture() {
 
     try {
       if (await resolveMapSearchInput(query, { preserveSearchAddress: true })) {
-        return;
-      }
-
-      if (!hasGoogleMapsApiKey()) {
-        setSearchError('Google Maps search unavailable. You can still paste full Google Maps URL or coordinates.');
         return;
       }
 
