@@ -1000,7 +1000,7 @@ export default function CustomerDashboard() {
     const extracted = extractCustomerAddressFields(data);
     const address = extracted.address || getGoogleAddressLineText(data) || getGoogleFormattedAddressText(data) || stripAutoFilledIndiaSuffix(data.address || data.formattedAddress || '', data);
     const area = String(extracted.areaName || data.areaName || data.city || '').trim();
-    const city = String(extracted.city || data.city || '').trim();
+    const city = String(extracted.city || data.city || extracted.state || data.state || '').trim();
     const state = String(extracted.state || data.state || '').trim();
     const pincode = toSixDigitPincode(extracted.pincode || data.pincode || '');
     const placeId = String(data.placeId || data.googlePlaceId || '').trim();
@@ -1074,7 +1074,7 @@ export default function CustomerDashboard() {
       searchAddress: String(queryText || placeName || '').trim(),
       address,
       areaName: extracted.areaName,
-      city: extracted.city,
+      city: extracted.city || extracted.state,
       state: extracted.state,
       pincode: extracted.pincode,
       latitude: lat,
@@ -1112,7 +1112,7 @@ export default function CustomerDashboard() {
       applyCustomerAddressPatch(section, {
         address: formattedAddress,
         areaName: extracted.areaName,
-        city: extracted.city,
+        city: extracted.city || extracted.state,
         state: extracted.state,
         pincode: extracted.pincode,
         latitude: lat,
