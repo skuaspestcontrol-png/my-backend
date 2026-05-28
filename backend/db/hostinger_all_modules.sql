@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS customers (
   mobile_number VARCHAR(20) NULL,
   whatsapp_number VARCHAR(20) NULL,
   email_id VARCHAR(255) NULL,
+  billing_address TEXT NULL,
+  shipping_address TEXT NULL,
   area_name VARCHAR(255) NULL,
   city VARCHAR(255) NULL,
   state VARCHAR(255) NULL,

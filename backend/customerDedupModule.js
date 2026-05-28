@@ -729,10 +729,10 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
       await conn.query(
         `INSERT INTO customers (
           external_id, display_name, customer_name, company_name, contact_person_name, mobile_number,
-          whatsapp_number, email_id, area_name, city, state, pincode,
+          whatsapp_number, email_id, billing_address, shipping_address, area_name, city, state, pincode,
           google_place_id, google_place_name, google_phone, google_website, latitude, longitude,
           payload, source_created_at, source_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           display_name=VALUES(display_name),
           customer_name=VALUES(customer_name),
@@ -741,6 +741,8 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
           mobile_number=VALUES(mobile_number),
           whatsapp_number=VALUES(whatsapp_number),
           email_id=VALUES(email_id),
+          billing_address=VALUES(billing_address),
+          shipping_address=VALUES(shipping_address),
           area_name=VALUES(area_name),
           city=VALUES(city),
           state=VALUES(state),
@@ -763,6 +765,8 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
           normalizePhone(customer.mobileNumber || customer.workPhone) || null,
           normalizePhone(customer.whatsappNumber) || null,
           normalizeEmail(customer.emailId || customer.email) || null,
+          normalizeText(customer.billingAddress) || null,
+          normalizeText(customer.shippingAddress) || null,
           normalizeText(customer.billingArea || customer.area) || null,
           normalizeText(customer.city || customer.billingCity || customer.billingState) || null,
           normalizeText(customer.state || customer.billingState) || null,
@@ -786,7 +790,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
     if (typeof mysql.canUseMysql === 'function' && mysql.canUseMysql() && typeof mysql.withMysqlConnection === 'function') {
       try {
         const mysqlRows = await mysql.withMysqlConnection(async (conn) => {
-          const [rows] = await conn.query('SELECT id, external_id, payload FROM customers ORDER BY id DESC');
+          const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers ORDER BY id DESC');
           return Array.isArray(rows) ? rows : [];
         });
         if (mysqlRows.length) {
@@ -794,7 +798,22 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
             .map((row) => {
               const payload = parseJsonPayload(row.payload, {});
               const externalId = normalizeText(row.external_id || payload._id || row.id);
-              return externalId ? { ...payload, _id: externalId } : null;
+              if (!externalId) return null;
+              return {
+                ...payload,
+                _id: externalId,
+                billingAddress: normalizeText(row.billing_address || payload.billingAddress || payload.address),
+                shippingAddress: normalizeText(row.shipping_address || payload.shippingAddress),
+                address: normalizeText(row.billing_address || payload.billingAddress || payload.address),
+                billingArea: normalizeText(row.area_name || payload.billingArea || payload.area),
+                billingCity: normalizeText(row.city || payload.billingCity || payload.city),
+                billingState: normalizeText(row.state || payload.billingState || payload.state || payload.placeOfSupply),
+                billingPincode: normalizeText(row.pincode || payload.billingPincode || payload.pincode),
+                area: normalizeText(row.area_name || payload.area || payload.billingArea),
+                city: normalizeText(row.city || payload.city || payload.billingCity),
+                state: normalizeText(row.state || payload.state || payload.billingState || payload.placeOfSupply),
+                pincode: normalizeText(row.pincode || payload.pincode || payload.billingPincode)
+              };
             })
             .filter(Boolean);
         }
