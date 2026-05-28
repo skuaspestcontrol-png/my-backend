@@ -217,6 +217,40 @@ export const getGoogleFormattedAddressText = (source = {}) => stripTrailingIndia
   )
 );
 
+export const getGoogleAddressLineText = (source = {}) => {
+  const formattedAddress = normalizeAddressText(
+    source.formatted_address
+    || source.formattedAddress
+    || source.description
+    || source.name
+    || source.displayName?.text
+    || source.displayName
+    || ''
+  );
+  if (!formattedAddress) return '';
+
+  const parts = getGoogleAddressParts(source);
+  const segments = splitAddressSegments(formattedAddress).filter((segment) => !isPlusCodeSegment(segment));
+  if (segments.length === 0) return '';
+
+  let endIndex = segments.length - 1;
+  while (endIndex >= 0) {
+    const segment = segments[endIndex];
+    const isSuffix =
+      isPincodeSegment(segment, parts.pincode)
+      || (parts.country && isSameSegment(segment, parts.country))
+      || (parts.state && isSameSegment(segment, parts.state));
+    if (!isSuffix) break;
+    endIndex -= 1;
+  }
+
+  return normalizeAddressText(
+    stripTrailingIndiaSuffix(
+      segments.slice(0, endIndex + 1).join(', ')
+    )
+  );
+};
+
 const placeToDetails = (place = {}) => {
   const location = place.geometry?.location;
   const lat = typeof location?.lat === 'function' ? location.lat() : Number(location?.lat || 0);

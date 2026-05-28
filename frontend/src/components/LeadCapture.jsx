@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import {
   attachPlacesAutocomplete,
   searchGooglePlacesByText,
+  getGoogleAddressLineText,
   formatGoogleAddressParts,
   getGoogleFormattedAddressText
 } from '../utils/googlePlaces';
@@ -1488,7 +1489,7 @@ export default function LeadCapture() {
       pincode: String(place.pincode || '').trim(),
       ...extractAddressFields(place)
     };
-    const address = extracted.address || getGoogleFormattedAddressText(place);
+    const address = extracted.address || getGoogleAddressLineText(place) || getGoogleFormattedAddressText(place);
     const googlePhone = place.nationalPhoneNumber || place.internationalPhoneNumber || '';
     const googleWebsite = place.websiteURI || '';
     const lat = typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat;
@@ -1521,7 +1522,7 @@ export default function LeadCapture() {
       const first = response?.results?.[0];
       if (!first) return;
       const extracted = extractAddressFields(first);
-      const formattedAddress = extracted.address || getGoogleFormattedAddressText(first);
+      const formattedAddress = extracted.address || getGoogleAddressLineText(first) || getGoogleFormattedAddressText(first);
       setForm((prev) => {
         const nextPincode = extracted.pincode || prev.pincode;
         return {
