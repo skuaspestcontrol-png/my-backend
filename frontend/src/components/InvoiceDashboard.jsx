@@ -288,11 +288,29 @@ const shell = {
   addressText: { margin: 0, fontSize: '13px', color: '#0f172a', lineHeight: 1.45, whiteSpace: 'pre-line' },
   addressPickerOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.28)', display: 'grid', placeItems: 'center', zIndex: 3200, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },
   addressPicker: { background: '#fff', width: 'min(100%, 720px)', borderRadius: '20px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden' },
-  addressPickerHead: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  addressPickerTitle: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' },
+  addressPickerHead: { padding: '10px 12px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-primary)' },
+  addressPickerTitle: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#fff' },
+  addressPickerCloseButton: { border: 'none', background: 'transparent', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', fontWeight: 700, padding: '0 4px' },
   addressList: { padding: '10px 12px', display: 'grid', gridTemplateColumns: '1fr', gap: '8px', maxHeight: '250px', overflowY: 'auto' },
-  addressChoiceCard: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', padding: '8px 10px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', cursor: 'pointer' },
-  addressChoiceCardActive: { background: 'var(--color-primary-soft)', borderColor: 'var(--color-primary)' },
+  addressChoiceCard: {
+    border: '1px solid var(--color-border)',
+    borderRadius: '12px',
+    padding: '10px 12px',
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '10px',
+    cursor: 'pointer',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,250,252,0.96) 100%)',
+    boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+    transition: 'background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease'
+  },
+  addressChoiceCardActive: {
+    background: 'linear-gradient(180deg, rgba(255,247,250,0.98) 0%, rgba(253,242,248,0.96) 100%)',
+    borderColor: 'var(--color-primary)',
+    boxShadow: '0 8px 22px rgba(159,23,77,0.12)',
+    transform: 'translateY(-1px)'
+  },
   addressChoiceTitle: { margin: 0, fontSize: '12px', fontWeight: 800, color: '#334155' },
   addressChoiceText: { margin: '4px 0 0 0', fontSize: '12px', color: '#0f172a', whiteSpace: 'pre-line' },
   addressEditor: { padding: '12px 14px', borderTop: '1px solid var(--color-border)', display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', columnGap: '10px', rowGap: '10px', alignItems: 'center' },
@@ -641,6 +659,35 @@ const addressOptionText = (option) => {
   return [displayName, street1, street2, area, statePin].filter(Boolean).join('\n');
 };
 
+const displayAddressLabel = (option) => {
+  const rawLabel = String(option?.label || '').trim();
+  if (!rawLabel) return 'Address';
+  if (option?.id === 'billing') return 'Main Billing Address';
+  if (option?.id === 'shipping') return 'Main Shipping Address';
+  if (option?.id?.startsWith('premise:') && /^billing address$/i.test(rawLabel)) return 'Saved Billing Address';
+  if (option?.id?.startsWith('premise:') && /^shipping address$/i.test(rawLabel)) return 'Saved Shipping Address';
+  return rawLabel;
+};
+
+const normalizeAddressOptionSignature = (option) => {
+  const label = String(option?.label || '').trim().toLowerCase();
+  const text = addressOptionText(option)
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+  return `${label}|${text}`;
+};
+
+const dedupeAddressOptions = (options = []) => {
+  const seen = new Set();
+  return options.filter((option) => {
+    const signature = normalizeAddressOptionSignature(option);
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  });
+};
+
 const getAddressDisplayText = (option, fallbackText = '') => {
   const resolved = addressOptionText(option);
   if (resolved !== 'No address selected') return resolved;
@@ -891,11 +938,11 @@ export default function InvoiceDashboard() {
   const billingAddressOptions = useMemo(
     () => {
       const premises = (selectedCustomer?.premises || []).map(premiseToAddressOption);
-      return [
+      return dedupeAddressOptions([
         buildAddressOption('billing', 'Billing Address', selectedCustomer, 'billing'),
         buildAddressOption('shipping', 'Shipping Address', selectedCustomer, 'shipping'),
         ...premises.filter((entry) => entry.isBilling || entry.isDefault || entry.premiseType === 'Billing')
-      ];
+      ]);
     },
     [selectedCustomer]
   );
@@ -920,7 +967,7 @@ export default function InvoiceDashboard() {
       placeOfSupply: normalizeGstState(address.placeOfSupply || address.state || ''),
       id: `custom-${idx}`
     }));
-    return [...base, ...premises, ...custom];
+    return dedupeAddressOptions([...base, ...premises, ...custom]);
   }, [selectedCustomer, form.customShippingAddresses]);
   const selectedShippingAddress = useMemo(
     () => {
@@ -1780,18 +1827,6 @@ export default function InvoiceDashboard() {
     setShowShippingAddressPicker(true);
   };
 
-  const openBillingAddressPicker = () => {
-    if (!selectedCustomer) {
-      setSaveError('Select a customer before choosing a billing address.');
-      return;
-    }
-    setShowShippingAddressPicker(false);
-    setEditingShippingAddressId('');
-    setAddressDraftTarget('billing');
-    setShippingAddressDraft(emptyAddressDraft);
-    setShowBillingAddressPicker(true);
-  };
-
   const selectBillingAddressOption = (id) => {
     setFormWithTotals((prev) => ({
       ...prev,
@@ -2610,16 +2645,6 @@ export default function InvoiceDashboard() {
                 <div style={shell.addressCard}>
                   <div style={shell.addressHead}>
                     <h4 style={shell.addressTitle}>Billing Address</h4>
-                    <div style={shell.addressHeadActions}>
-                      <button
-                        type="button"
-                        style={shell.iconButton}
-                        onClick={openBillingAddressPicker}
-                        title="Edit Billing Address"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                    </div>
                   </div>
                   <p style={shell.addressText}>{getAddressDisplayText(selectedBillingAddress, form.billingAddressText)}</p>
                 </div>
@@ -3330,7 +3355,7 @@ export default function InvoiceDashboard() {
               <h3 style={shell.addressPickerTitle}>Billing Address</h3>
               <button
                 type="button"
-                style={shell.cancelButton}
+                style={shell.addressPickerCloseButton}
                 onClick={() => setShowBillingAddressPicker(false)}
               >
                 Close
@@ -3347,7 +3372,7 @@ export default function InvoiceDashboard() {
                   onClick={() => selectBillingAddressOption(option.id)}
                 >
                   <div>
-                    <p style={shell.addressChoiceTitle}>{option.label}</p>
+                    <p style={shell.addressChoiceTitle}>{displayAddressLabel(option)}</p>
                     <p style={shell.addressChoiceText}>{addressOptionText(option)}</p>
                   </div>
                 </div>
@@ -3367,7 +3392,7 @@ export default function InvoiceDashboard() {
               <h3 style={shell.addressPickerTitle}>Shipping Address</h3>
               <button
                 type="button"
-                style={shell.cancelButton}
+                style={shell.addressPickerCloseButton}
                 onClick={() => {
                   setShowShippingAddressPicker(false);
                   setEditingShippingAddressId('');
@@ -3388,7 +3413,7 @@ export default function InvoiceDashboard() {
                   onClick={() => selectShippingAddressOption(option.id)}
                 >
                   <div>
-                    <p style={shell.addressChoiceTitle}>{option.label}</p>
+                    <p style={shell.addressChoiceTitle}>{displayAddressLabel(option)}</p>
                     <p style={shell.addressChoiceText}>{addressOptionText(option)}</p>
                   </div>
                   {option.id.startsWith('custom-') ? (
