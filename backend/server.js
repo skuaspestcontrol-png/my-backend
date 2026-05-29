@@ -4114,8 +4114,6 @@ const normalizePremisePayload = (body = {}, customer = {}, fallbackId = '') => {
     state: String(body.state || '').trim(),
     pincode: String(body.pincode || '').trim(),
     country: String(body.country || 'India').trim() || 'India',
-    latitude: body.latitude || null,
-    longitude: body.longitude || null,
     googlePlaceId: String(body.googlePlaceId || body.google_place_id || '').trim(),
     googlePlaceName: String(body.googlePlaceName || body.google_place_name || '').trim(),
     googleMapUrl: String(body.googleMapUrl || body.google_map_url || '').trim(),
@@ -4156,8 +4154,6 @@ const mapPremiseRow = (row = {}) => ({
   state: row.state || '',
   pincode: row.pincode || '',
   country: row.country || 'India',
-  latitude: row.latitude,
-  longitude: row.longitude,
   googlePlaceId: row.google_place_id || '',
   googlePlaceName: row.google_place_name || '',
   googleMapUrl: row.google_map_url || '',
@@ -4227,8 +4223,6 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
     { name: 'state', definition: 'VARCHAR(100) NULL' },
     { name: 'pincode', definition: 'VARCHAR(20) NULL' },
     { name: 'country', definition: "VARCHAR(100) DEFAULT 'India'" },
-    { name: 'latitude', definition: 'DECIMAL(10,8) NULL' },
-    { name: 'longitude', definition: 'DECIMAL(11,8) NULL' },
     { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
     { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
     { name: 'google_map_url', definition: 'TEXT NULL' },
@@ -4245,6 +4239,20 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
   } catch (error) {
     if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
       console.warn('[MySQL] customer_premises gstin drop failed:', error.message);
+    }
+  }
+  try {
+    await conn.query('ALTER TABLE customer_premises DROP COLUMN latitude');
+  } catch (error) {
+    if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
+      console.warn('[MySQL] customer_premises latitude drop failed:', error.message);
+    }
+  }
+  try {
+    await conn.query('ALTER TABLE customer_premises DROP COLUMN longitude');
+  } catch (error) {
+    if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
+      console.warn('[MySQL] customer_premises longitude drop failed:', error.message);
     }
   }
   try {
@@ -4366,8 +4374,6 @@ const legacyCustomerToPremise = (customer = {}, rowId) => {
     isShipping: billingAddress && shippingAddress && billingAddress === shippingAddress ? 1 : 0,
     googlePlaceId: customer.googlePlaceId || '',
     googlePlaceName: customer.googlePlaceName || '',
-    latitude: customer.latitude || null,
-    longitude: customer.longitude || null
   }, customer, `PREM-${rowId}-MAIN`);
 };
 
@@ -4384,9 +4390,9 @@ const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
       premise_id, customer_id, premise_code, premise_label, premise_type,
       attention_name, contact_person, mobile, alt_mobile, phone, email,
       address_line_1, address_line_2, address, area, area_name, city, state, pincode, landmark,
-      country, latitude, longitude, google_place_id, google_place_name,
+      country, google_place_id, google_place_name,
       google_map_url, gst_number, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
     ON DUPLICATE KEY UPDATE
       premise_code=VALUES(premise_code),
       premise_label=VALUES(premise_label), premise_type=VALUES(premise_type),
@@ -4397,8 +4403,7 @@ const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
       address=VALUES(address), area=VALUES(area), area_name=VALUES(area_name),
       city=VALUES(city), state=VALUES(state), pincode=VALUES(pincode), country=VALUES(country),
       landmark=VALUES(landmark),
-      latitude=VALUES(latitude), longitude=VALUES(longitude), google_place_id=VALUES(google_place_id),
-      google_place_name=VALUES(google_place_name), google_map_url=VALUES(google_map_url),
+      google_place_id=VALUES(google_place_id), google_place_name=VALUES(google_place_name), google_map_url=VALUES(google_map_url),
       place_of_supply=VALUES(place_of_supply), is_default=VALUES(is_default), is_billing=VALUES(is_billing),
       is_shipping=VALUES(is_shipping), is_active=VALUES(is_active), payload=VALUES(payload)`,
     [
@@ -4408,8 +4413,7 @@ const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
       premise.mobile || premise.phone, premise.altMobile || '', premise.phone, premise.email,
       premise.addressLine1 || premise.address, premise.addressLine2 || '', premise.address,
       premise.area || premise.areaName, premise.areaName, premise.city, premise.state,
-      premise.pincode, premise.landmark || '', premise.country, premise.latitude ? Number(premise.latitude) : null,
-      premise.longitude ? Number(premise.longitude) : null, premise.googlePlaceId, premise.googlePlaceName,
+      premise.pincode, premise.landmark || '', premise.country, premise.googlePlaceId, premise.googlePlaceName,
       premise.googleMapUrl, premise.gstNumber || '', premise.placeOfSupply, premise.isDefault,
       premise.isBilling, premise.isShipping, premise.isActive, payload
     ]

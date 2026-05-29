@@ -1506,16 +1506,16 @@ export default function CustomerDashboard() {
     setHistoryLoading(false);
   };
 
-  const useExistingSimilarCustomer = (customer) => {
+  const reviewExistingSimilarCustomer = async (customer) => {
     if (!customer?._id) return;
     const existing = customers.find((entry) => entry._id === customer._id) || customer;
-    setEditingId(existing._id);
-    setForm(mapCustomerToForm(existing));
-    setShowModal(true);
-    setShowHistory(false);
+    setShowModal(false);
+    setEditingId(null);
     setSaveError('');
     setSimilarCustomers([]);
     setAddressSearchState(createAddressSearchState());
+    setHistoryTab('overview');
+    await openCustomerHistory(existing);
     lastDisplayNameRef.current = String(existing.displayName || existing.name || '').trim();
   };
 
@@ -1613,14 +1613,17 @@ export default function CustomerDashboard() {
       return;
     }
 
-    const highRiskMatch = !editingId && similarCustomers.some((row) => Number(row.confidence || 0) >= 75);
+    const highRiskMatch = !editingId && similarCustomers.some((row) => {
+      const reason = String(row.reason || '');
+      return Number(row.confidence || 0) >= 75 || /exact customer name match/i.test(reason);
+    });
     let duplicateOverrideReason = '';
     if (highRiskMatch) {
-      const reason = window.prompt('Similar customer already exists. Enter reason to create new customer anyway, or Cancel to review existing records.', '');
+      const reason = window.prompt('An exact or high-risk duplicate already exists. Review the existing customer or enter a reason to create a new one.', '');
       if (reason === null) return;
       duplicateOverrideReason = String(reason || '').trim();
       if (!duplicateOverrideReason) {
-        setSaveError('Reason is required to create new customer when duplicate warning exists.');
+        setSaveError('Reason is required when a duplicate warning exists.');
         return;
       }
     }
@@ -2677,6 +2680,9 @@ export default function CustomerDashboard() {
                 {!similarLoading && similarCustomers.length === 0 ? (
                   <p style={{ margin: 0, fontSize: '12px', color: '#166534', fontWeight: 700 }}>No similar customer found.</p>
                 ) : null}
+                {!similarLoading && similarCustomers.some((row) => /exact customer name match/i.test(String(row.reason || ''))) ? (
+                  <p style={{ margin: 0, fontSize: '12px', color: '#991b1b', fontWeight: 800 }}>Exact same customer name found. Review the existing customer before saving.</p>
+                ) : null}
                 {!similarLoading && similarCustomers.length > 0 ? (
                   <div style={{ display: 'grid', gap: '7px' }}>
                     {similarCustomers.slice(0, 5).map((entry) => (
@@ -2691,9 +2697,9 @@ export default function CustomerDashboard() {
                           <button
                             type="button"
                             style={{ border: '1px solid #93c5fd', borderRadius: '8px', background: '#fff', color: 'var(--color-primary-dark)', fontSize: '11px', fontWeight: 700, padding: '4px 8px', cursor: 'pointer' }}
-                            onClick={() => useExistingSimilarCustomer(entry)}
+                            onClick={() => reviewExistingSimilarCustomer(entry)}
                           >
-                            Use Existing Customer
+                            Review Existing Customer
                           </button>
                         </div>
                       </div>

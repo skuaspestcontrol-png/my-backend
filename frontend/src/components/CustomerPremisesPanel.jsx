@@ -31,7 +31,7 @@ const getApiErrorMessage = (error, fallback) => (
 
 const emptyPremise = {
   premiseLabel: '',
-  premiseType: 'Billing',
+  premiseType: 'Shipping',
   contactPerson: '',
   phone: '',
   email: '',
@@ -44,11 +44,8 @@ const emptyPremise = {
   gstNumber: '',
   placeOfSupply: '',
   googleMapUrl: '',
-  latitude: '',
-  longitude: '',
   isDefault: false,
-  isBilling: false,
-  isShipping: false
+  isShipping: true
 };
 
 const styles = {
@@ -81,14 +78,13 @@ const normalizePremise = (premise = {}) => ({
   ...emptyPremise,
   ...premise,
   premiseLabel: premise.premiseLabel || premise.premise_label || '',
-  premiseType: String(premise.premiseType || premise.premise_type || '').trim().toLowerCase() === 'shipping' ? 'Shipping' : 'Billing',
+  premiseType: 'Shipping',
   contactPerson: premise.contactPerson || premise.contact_person || '',
   areaName: premise.areaName || premise.area_name || '',
   googleMapUrl: premise.googleMapUrl || premise.google_map_url || '',
   placeOfSupply: premise.placeOfSupply || premise.place_of_supply || '',
   isDefault: Boolean(premise.isDefault || premise.is_default),
-  isBilling: Boolean(premise.isBilling || premise.is_billing),
-  isShipping: Boolean(premise.isShipping || premise.is_shipping)
+  isShipping: true
 });
 
 const buildLegacyPremise = (customer = {}, form = {}) => {
@@ -97,21 +93,21 @@ const buildLegacyPremise = (customer = {}, form = {}) => {
 
   return normalizePremise({
   premiseId: 'legacy-main',
-  premiseLabel: 'Billing Address',
-  premiseType: 'Billing',
+  premiseLabel: 'Shipping Address',
+  premiseType: 'Shipping',
   contactPerson: safeForm.contactPersonName || safeCustomer.contactPersonName || safeCustomer.name || '',
   phone: safeForm.mobileNumber || safeCustomer.mobileNumber || safeCustomer.workPhone || '',
   email: safeForm.emailId || safeCustomer.emailId || safeCustomer.email || '',
-  address: safeForm.billingAddress || safeCustomer.billingAddress || [safeForm.billingStreet1, safeForm.billingStreet2].filter(Boolean).join(', '),
-  areaName: safeForm.billingArea || safeCustomer.billingArea || safeCustomer.area || '',
+  address: safeForm.shippingAddress || safeCustomer.shippingAddress || [safeForm.shippingStreet1, safeForm.shippingStreet2].filter(Boolean).join(', '),
+  areaName: safeForm.shippingArea || safeCustomer.shippingArea || safeCustomer.area || '',
   city: safeCustomer.city || '',
-  state: safeForm.billingState || safeCustomer.billingState || safeCustomer.state || 'Delhi',
-  pincode: safeForm.billingPincode || safeCustomer.billingPincode || safeCustomer.pincode || '',
+  state: safeForm.shippingState || safeCustomer.shippingState || safeCustomer.state || 'Delhi',
+  pincode: safeForm.shippingPincode || safeCustomer.shippingPincode || safeCustomer.pincode || '',
   country: 'India',
   gstNumber: safeForm.gstNumber || safeCustomer.gstNumber || '',
-  placeOfSupply: safeForm.billingState || safeCustomer.placeOfSupply || safeCustomer.state || '',
+  placeOfSupply: safeForm.shippingState || safeCustomer.placeOfSupply || safeCustomer.state || '',
   isDefault: true,
-  isBilling: true
+  isShipping: true
   });
 };
 
@@ -251,9 +247,7 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
         areaName: areaName || prev.areaName,
         city: city || prev.city,
         state: state || prev.state,
-        pincode: pincode ? pincode.slice(0, 6) : prev.pincode,
-        latitude: String(lat),
-        longitude: String(lng)
+        pincode: pincode ? pincode.slice(0, 6) : prev.pincode
       }));
 
       return { formattedAddress, areaName, city, state, pincode };
@@ -271,9 +265,7 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
       await reverseGeocodePremise(coords.latitude, coords.longitude);
       setDraft((prev) => ({
         ...prev,
-        googleMapUrl: text,
-        latitude: String(coords.latitude),
-        longitude: String(coords.longitude)
+        googleMapUrl: text
       }));
       return true;
     }
@@ -290,9 +282,7 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
       await reverseGeocodePremise(result.latitude, result.longitude);
       setDraft((prev) => ({
         ...prev,
-        googleMapUrl: text,
-        latitude: String(result.latitude),
-        longitude: String(result.longitude)
+        googleMapUrl: text
       }));
       return true;
     } catch {
@@ -314,8 +304,8 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
     <section style={styles.wrap}>
       <div style={styles.head}>
         <div>
-          <h3 style={styles.title}>Billing / Shipping Addresses</h3>
-          <p style={styles.sub}>{customerId ? 'Manage billing and shipping addresses.' : 'Main address will become the default premise after saving.'}</p>
+          <h3 style={styles.title}>Shipping Addresses</h3>
+          <p style={styles.sub}>{customerId ? 'Manage shipping addresses.' : 'Main shipping address will become the default premise after saving.'}</p>
         </div>
         <button type="button" style={styles.addBtn} onClick={beginAdd} disabled={!customerId}>
           <Plus size={15} /> Add New Address
@@ -330,7 +320,8 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
             <article key={normalized.premiseId || normalized.premise_id || 'legacy'} style={{ ...styles.card, ...(active ? styles.activeCard : {}) }}>
               <div style={styles.cardTop}>
                 <div>
-                  <p style={styles.cardTitle}><MapPin size={14} /> {normalized.premiseLabel || 'Premise'}</p>
+                  <p style={styles.cardTitle}><MapPin size={14} /> Shipping Address</p>
+                  {normalized.premiseLabel ? <p style={styles.text}>{normalized.premiseLabel}</p> : null}
                   <p style={styles.text}>{premiseAddressText(normalized) || 'Address not entered'}</p>
                 </div>
                 <div style={styles.actions}>
@@ -344,7 +335,6 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
               </div>
               <div style={styles.tags}>
                 {normalized.isDefault ? <span style={{ ...styles.tag, ...styles.defaultTag }}><Star size={11} /> Default</span> : null}
-                {normalized.isBilling ? <span style={styles.tag}>Billing</span> : null}
                 {normalized.isShipping ? <span style={styles.tag}>Shipping</span> : null}
               </div>
               {customerId && !normalized.isDefault ? (
@@ -360,8 +350,8 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
       {editingId ? (
         <div style={styles.form}>
           <div style={styles.formGrid}>
-            <label style={styles.label}>Premise Label<input style={styles.input} value={draft.premiseLabel} onChange={(e) => setDraft((p) => ({ ...p, premiseLabel: e.target.value }))} /></label>
-            <label style={styles.label}>Premise Type<select style={styles.input} value={draft.premiseType} onChange={(e) => setDraft((p) => ({ ...p, premiseType: e.target.value === 'Shipping' ? 'Shipping' : 'Billing' }))}><option>Billing</option><option>Shipping</option></select></label>
+            <label style={styles.label}>Address Label<input style={styles.input} value={draft.premiseLabel} onChange={(e) => setDraft((p) => ({ ...p, premiseLabel: e.target.value }))} /></label>
+            <label style={styles.label}>Premise Type<select style={styles.input} value="Shipping" disabled><option>Shipping</option></select></label>
             <label style={styles.label}>Contact Person<input style={styles.input} value={draft.contactPerson} onChange={(e) => setDraft((p) => ({ ...p, contactPerson: e.target.value }))} /></label>
             <label style={styles.label}>Phone<input style={styles.input} inputMode="numeric" value={draft.phone} onChange={(e) => setDraft((p) => ({ ...p, phone: normalizeIndianMobileNumber(e.target.value) }))} /></label>
             <label style={styles.label}>Email<input style={styles.input} value={draft.email} onChange={(e) => setDraft((p) => ({ ...p, email: e.target.value }))} /></label>
@@ -380,13 +370,9 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
                 void resolvePremiseMapInput(pastedText);
               }
             }} onChange={(e) => setDraft((p) => ({ ...p, googleMapUrl: e.target.value }))} /></label>
-            <label style={styles.label}>Latitude<input style={styles.input} value={draft.latitude} onChange={(e) => setDraft((p) => ({ ...p, latitude: e.target.value }))} /></label>
-            <label style={styles.label}>Longitude<input style={styles.input} value={draft.longitude} onChange={(e) => setDraft((p) => ({ ...p, longitude: e.target.value }))} /></label>
           </div>
           <div style={styles.tags}>
             <label><input type="checkbox" checked={draft.isDefault} onChange={(e) => setDraft((p) => ({ ...p, isDefault: e.target.checked }))} /> Default</label>
-            <label><input type="checkbox" checked={draft.isBilling} onChange={(e) => setDraft((p) => ({ ...p, isBilling: e.target.checked }))} /> Billing</label>
-            <label><input type="checkbox" checked={draft.isShipping} onChange={(e) => setDraft((p) => ({ ...p, isShipping: e.target.checked }))} /> Shipping</label>
           </div>
           <div style={styles.footer}>
             <button type="button" style={styles.secondaryBtn} onClick={() => { setEditingId(''); setDraft(emptyPremise); }}><X size={14} /> Cancel</button>

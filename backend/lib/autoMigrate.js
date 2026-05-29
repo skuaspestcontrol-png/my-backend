@@ -205,8 +205,6 @@ const tableDefinitions = [
         state VARCHAR(100) NULL,
         pincode VARCHAR(20) NULL,
         country VARCHAR(100) DEFAULT 'India',
-        latitude DECIMAL(10,8) NULL,
-        longitude DECIMAL(11,8) NULL,
         google_place_id VARCHAR(255) NULL,
         google_place_name VARCHAR(255) NULL,
         google_map_url TEXT NULL,
@@ -242,8 +240,6 @@ const tableDefinitions = [
       state: 'VARCHAR(100) NULL',
       pincode: 'VARCHAR(20) NULL',
       country: "VARCHAR(100) DEFAULT 'India'",
-      latitude: 'DECIMAL(10,8) NULL',
-      longitude: 'DECIMAL(11,8) NULL',
       google_place_id: 'VARCHAR(255) NULL',
       google_place_name: 'VARCHAR(255) NULL',
       google_map_url: 'TEXT NULL',
@@ -1420,6 +1416,15 @@ const migratePayrollJsonToMysql = async (target) => {
 
 const migrateCustomerPremises = async (target) => {
   if (!(await tableExists(target, 'customers')) || !(await tableExists(target, 'customer_premises'))) return 0;
+  for (const columnName of ['latitude', 'longitude']) {
+    try {
+      await target.query(`ALTER TABLE customer_premises DROP COLUMN ${quoteIdent(columnName)}`);
+    } catch (error) {
+      if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
+        console.warn(`[MySQL] customer_premises ${columnName} drop failed:`, error.message);
+      }
+    }
+  }
   const [result] = await target.query(`
     INSERT INTO customer_premises (
       premise_id, customer_id, premise_label, premise_type, contact_person, phone, email, address,

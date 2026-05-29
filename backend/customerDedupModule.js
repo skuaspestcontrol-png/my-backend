@@ -550,7 +550,8 @@ const dedupeScore = (importClean, existingCustomer) => {
     classification,
     nameSimilarity,
     addressSimilarity,
-    sameCustomerDifferentAddress
+    sameCustomerDifferentAddress,
+    nameExact
   };
 };
 
@@ -2146,12 +2147,20 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
       address,
       normalizedAddress: normalizeAddress(address)
     };
+    const queryNameKeys = [customerName, displayName, companyName, contactPersonName]
+      .map((value) => normalizeLower(value))
+      .filter(Boolean);
 
     const customers = getCustomers().filter((entry) => entry.active !== false && !entry.isMerged);
     const candidates = customers
       .map((entry) => {
         const normalized = normalizeExistingCustomer(entry);
         const score = dedupeScore(queryClean, normalized);
+        const exactNameMatch = queryNameKeys.some((name) => Array.isArray(normalized._nameKeys) && normalized._nameKeys.includes(name));
+        const confidence = exactNameMatch ? Math.max(score.score, 100) : score.score;
+        const status = exactNameMatch ? 'Exact Duplicate' : score.classification;
+        const reasonList = new Set(score.reasons);
+        if (exactNameMatch) reasonList.add('Exact customer name match');
         return {
           customerId: entry._id,
           customerName: entry.displayName || entry.name || '',
@@ -2179,9 +2188,10 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
           state: entry.state || entry.billingState || entry.placeOfSupply || '',
           pincode: entry.pincode || entry.billingPincode || '',
           placeOfSupply: entry.placeOfSupply || entry.billingState || entry.state || '',
-          confidence: score.score,
-          status: score.classification,
-          reason: score.reasons.join(' | ')
+          confidence,
+          status,
+          reason: Array.from(reasonList).join(' | '),
+          exactNameMatch
         };
       })
       .filter((entry) => entry.confidence >= 60)

@@ -13,8 +13,6 @@ CREATE TABLE IF NOT EXISTS customer_premises (
   state VARCHAR(100) NULL,
   pincode VARCHAR(20) NULL,
   country VARCHAR(100) DEFAULT 'India',
-  latitude DECIMAL(10,8) NULL,
-  longitude DECIMAL(11,8) NULL,
   google_place_id VARCHAR(255) NULL,
   google_place_name VARCHAR(255) NULL,
   google_map_url TEXT NULL,
@@ -34,6 +32,26 @@ CREATE TABLE IF NOT EXISTS customer_premises (
   KEY idx_customer_premises_is_default (is_default),
   KEY idx_customer_premises_is_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @sql := (
+  SELECT IF(COUNT(*) > 0,
+    'ALTER TABLE customer_premises DROP COLUMN latitude',
+    'SELECT 1'
+  )
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'customer_premises' AND COLUMN_NAME = 'latitude'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := (
+  SELECT IF(COUNT(*) > 0,
+    'ALTER TABLE customer_premises DROP COLUMN longitude',
+    'SELECT 1'
+  )
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'customer_premises' AND COLUMN_NAME = 'longitude'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := (
   SELECT IF(COUNT(*) > 0,
