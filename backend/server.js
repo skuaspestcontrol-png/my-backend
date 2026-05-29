@@ -7374,14 +7374,75 @@ const parseMysqlPayloadObject = (raw) => {
   return null;
 };
 
+const parseMysqlPayloadArray = (raw, fallback = []) => {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+};
+
+const hydrateInvoiceMysqlRow = (row = {}) => {
+  const payload = safeJsonObject(row?.payload, {});
+  const customShippingAddresses = parseMysqlPayloadArray(
+    row?.custom_shipping_addresses ?? payload.customShippingAddresses ?? payload.custom_shipping_addresses,
+    []
+  );
+  const externalId = String(row?.external_id || payload._id || row?.id || '').trim();
+  const invoiceDate = String(row?.invoice_date ?? payload.date ?? payload.invoice_date ?? '').trim();
+  const dueDate = String(row?.due_date ?? payload.dueDate ?? payload.due_date ?? '').trim();
+  return {
+    ...payload,
+    ...row,
+    _id: String(externalId || payload._id || '').trim(),
+    customerId: String(row?.customer_external_id ?? payload.customerId ?? payload.customer_external_id ?? '').trim(),
+    customerName: String(row?.customer_name ?? payload.customerName ?? payload.customer_name ?? '').trim(),
+    invoiceNumber: String(row?.invoice_number ?? payload.invoiceNumber ?? payload.invoice_number ?? '').trim(),
+    invoiceType: String(row?.invoice_type ?? payload.invoiceType ?? payload.invoice_type ?? '').trim(),
+    status: String(row?.invoice_status ?? payload.status ?? payload.invoice_status ?? '').trim(),
+    date: invoiceDate,
+    dueDate,
+    total: payload.total ?? row?.total_amount ?? payload.amount ?? 0,
+    amount: payload.amount ?? row?.total_amount ?? 0,
+    balanceDue: payload.balanceDue ?? row?.balance_due ?? 0,
+    billingAddressSource: String(row?.billing_address_source ?? payload.billingAddressSource ?? payload.billing_address_source ?? payload.billingAddressSource ?? 'billing').trim() || 'billing',
+    shippingAddressSource: String(row?.shipping_address_source ?? payload.shippingAddressSource ?? payload.shipping_address_source ?? payload.shippingAddressSource ?? 'shipping').trim() || 'shipping',
+    billingAddressText: String(row?.billing_address_text ?? payload.billingAddressText ?? payload.billing_address_text ?? '').trim(),
+    shippingAddressText: String(row?.shipping_address_text ?? payload.shippingAddressText ?? payload.shipping_address_text ?? '').trim(),
+    customShippingAddresses,
+    customerPremiseId: String(row?.customer_premise_id ?? payload.customerPremiseId ?? payload.customer_premise_id ?? '').trim(),
+    premiseLabel: String(row?.premise_label ?? payload.premiseLabel ?? payload.premise_label ?? '').trim(),
+    premiseAddress: String(row?.premise_address ?? payload.premiseAddress ?? payload.premise_address ?? '').trim(),
+    premiseAreaName: String(row?.premise_area_name ?? payload.premiseAreaName ?? payload.premise_area_name ?? '').trim(),
+    premiseCity: String(row?.premise_city ?? payload.premiseCity ?? payload.premise_city ?? '').trim(),
+    premiseState: String(row?.premise_state ?? payload.premiseState ?? payload.premise_state ?? '').trim(),
+    premisePincode: String(row?.premise_pincode ?? payload.premisePincode ?? payload.premise_pincode ?? '').trim(),
+    premiseGoogleMapUrl: String(row?.premise_google_map_url ?? payload.premiseGoogleMapUrl ?? payload.premise_google_map_url ?? '').trim()
+  };
+};
+
 const loadInvoicesForContext = async () => {
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
-      const [rows] = await conn.query('SELECT payload FROM invoices ORDER BY id DESC');
+      const [rows] = await conn.query(`
+        SELECT
+          external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
+          invoice_date, due_date, total_amount, balance_due, billing_address_source, shipping_address_source,
+          billing_address_text, shipping_address_text, custom_shipping_addresses, customer_premise_id,
+          premise_label, premise_address, premise_area_name, premise_city, premise_state, premise_pincode,
+          premise_google_map_url, payload
+        FROM invoices
+        ORDER BY id DESC
+      `);
       return Array.isArray(rows) ? rows : [];
     });
     const parsed = (Array.isArray(mysqlRows) ? mysqlRows : [])
-      .map((row) => parseMysqlPayloadObject(row?.payload))
+      .map((row) => hydrateInvoiceMysqlRow(row))
       .filter(Boolean);
     if (parsed.length > 0) return parsed;
   } catch (error) {
@@ -7744,10 +7805,11 @@ const syncInvoiceToMysql = async (invoice) => {
     await conn.query(
       `INSERT INTO invoices (
         external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
-        invoice_date, due_date, total_amount, balance_due,
+        invoice_date, due_date, total_amount, balance_due, billing_address_source, shipping_address_source,
+        billing_address_text, shipping_address_text, custom_shipping_addresses,
         customer_premise_id, premise_label, premise_address, premise_area_name, premise_city, premise_state,
         premise_pincode, premise_google_map_url, payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         customer_external_id=VALUES(customer_external_id),
         customer_name=VALUES(customer_name),
@@ -7758,6 +7820,11 @@ const syncInvoiceToMysql = async (invoice) => {
         due_date=VALUES(due_date),
         total_amount=VALUES(total_amount),
         balance_due=VALUES(balance_due),
+        billing_address_source=VALUES(billing_address_source),
+        shipping_address_source=VALUES(shipping_address_source),
+        billing_address_text=VALUES(billing_address_text),
+        shipping_address_text=VALUES(shipping_address_text),
+        custom_shipping_addresses=VALUES(custom_shipping_addresses),
         customer_premise_id=VALUES(customer_premise_id),
         premise_label=VALUES(premise_label),
         premise_address=VALUES(premise_address),
@@ -7780,6 +7847,11 @@ const syncInvoiceToMysql = async (invoice) => {
         invoice.dueDate || null,
         toNumber(invoice.total ?? invoice.amount, 0),
         toNumber(invoice.balanceDue, 0),
+        invoice.billingAddressSource || null,
+        invoice.shippingAddressSource || null,
+        invoice.billingAddressText || null,
+        invoice.shippingAddressText || null,
+        JSON.stringify(Array.isArray(invoice.customShippingAddresses) ? invoice.customShippingAddresses : []),
         invoice.customerPremiseId || invoice.customer_premise_id || null,
         invoice.premiseLabel || invoice.premise_label || null,
         invoice.premiseAddress || invoice.premise_address || invoice.billingAddressText || null,
@@ -8562,18 +8634,20 @@ app.get('/api/invoices', async (req, res) => {
   if (canUseMysql()) {
     try {
       const mysqlRows = await withMysqlConnection(async (conn) => {
-        const [rows] = await conn.query('SELECT payload FROM invoices ORDER BY id DESC');
+        const [rows] = await conn.query(`
+          SELECT
+            external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
+            invoice_date, due_date, total_amount, balance_due, billing_address_source, shipping_address_source,
+            billing_address_text, shipping_address_text, custom_shipping_addresses, customer_premise_id,
+            premise_label, premise_address, premise_area_name, premise_city, premise_state, premise_pincode,
+            premise_google_map_url, payload
+          FROM invoices
+          ORDER BY id DESC
+        `);
         return Array.isArray(rows) ? rows : [];
       });
       const parsed = mysqlRows
-        .map((row) => {
-          const raw = row?.payload;
-          if (!raw) return null;
-          if (typeof raw === 'string') {
-            try { return JSON.parse(raw); } catch { return null; }
-          }
-          return raw;
-        })
+        .map((row) => hydrateInvoiceMysqlRow(row))
         .filter(Boolean);
       return res.json(parsed);
     } catch (error) {

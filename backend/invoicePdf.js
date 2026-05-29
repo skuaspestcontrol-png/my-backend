@@ -237,15 +237,32 @@ const formatCompanyPhoneLine = (phone = '', alternatePhone = '') => {
 
 const splitAddressText = (value = '') => clean(value).split(/\r?\n|,/).map(clean).filter(Boolean);
 
-const resolveAddressParts = ({ invoiceText = '', customer = {}, prefix = 'billing', fallbackAddress = '' }) => {
-  const fallbackParts = splitAddressText(invoiceText || fallbackAddress);
-  const attention = clean(customer[`${prefix}Attention`] || fallbackParts[0]);
-  const street1 = clean(customer[`${prefix}Street1`] || customer[`${prefix}Address`] || fallbackParts[attention && fallbackParts[0] === attention ? 1 : 0]);
-  const street2 = clean(customer[`${prefix}Street2`] || fallbackParts[attention && fallbackParts[0] === attention ? 2 : 1]);
-  const area = clean(customer[`${prefix}Area`] || fallbackParts[attention && fallbackParts[0] === attention ? 3 : 2]);
-  const state = clean(customer[`${prefix}State`] || customer.state);
-  const pincode = clean(customer[`${prefix}Pincode`] || customer.pincode);
-  return { attention, street1, street2, area, state, pincode };
+const parseStatePincodeLine = (value = '') => {
+  const text = clean(value);
+  if (!text) return { state: '', pincode: '' };
+  const match = text.match(/^(.*?)(?:[\s,-]+(\d{6}))$/);
+  if (match) {
+    return {
+      state: clean(match[1]),
+      pincode: clean(match[2])
+    };
+  }
+  return { state: text, pincode: '' };
+};
+
+const resolveAddressParts = ({ invoiceText = '', customer = {}, prefix = 'billing', fallbackAddress = '', invoiceFields = {} }) => {
+  const sourceParts = splitAddressText(invoiceText || fallbackAddress);
+  const fallbackParts = splitAddressText(fallbackAddress || '');
+  const lineParts = sourceParts.length > 0 ? sourceParts : fallbackParts;
+  const lastLineParts = parseStatePincodeLine(lineParts[lineParts.length - 1] || '');
+  const usesNamedLine = lineParts.length > 0 && (clean(customer[`${prefix}Attention`]) || clean(invoiceFields.attention)) === clean(lineParts[0]);
+  const dataAttention = clean(invoiceFields.attention || customer[`${prefix}Attention`] || lineParts[0]);
+  const street1 = clean(invoiceFields.street1 || customer[`${prefix}Street1`] || customer[`${prefix}Address`] || lineParts[usesNamedLine ? 1 : 0]);
+  const street2 = clean(invoiceFields.street2 || customer[`${prefix}Street2`] || lineParts[usesNamedLine ? 2 : 1]);
+  const area = clean(invoiceFields.area || customer[`${prefix}Area`] || lineParts[usesNamedLine ? 3 : 2]);
+  const state = clean(invoiceFields.state || customer[`${prefix}State`] || lastLineParts.state || customer.state);
+  const pincode = clean(invoiceFields.pincode || customer[`${prefix}Pincode`] || lastLineParts.pincode || customer.pincode);
+  return { attention: dataAttention, street1, street2, area, state, pincode };
 };
 
 const resolveBillTo = (invoice = {}, customer = {}) => {
@@ -281,9 +298,17 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
     invoiceText: invoice.shippingAddressText,
     customer,
     prefix: 'shipping',
-    fallbackAddress: customer.shippingAddress || customer.billingAddress
+    fallbackAddress: customer.shippingAddress || customer.billingAddress,
+    invoiceFields: {
+      attention: invoice.premiseLabel || invoice.shippingAttention || '',
+      street1: invoice.premiseAddress || '',
+      street2: '',
+      area: invoice.premiseAreaName || '',
+      state: invoice.premiseState || '',
+      pincode: invoice.premisePincode || ''
+    }
   });
-  const title = clean(customer.shippingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
+  const title = clean(invoice.premiseLabel) || clean(customer.shippingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
   return {
     title,
     attention: clean(parts.attention || title),

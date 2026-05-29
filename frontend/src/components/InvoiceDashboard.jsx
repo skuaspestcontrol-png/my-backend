@@ -877,7 +877,11 @@ export default function InvoiceDashboard() {
     [selectedCustomer]
   );
   const selectedBillingAddress = useMemo(
-    () => billingAddressOptions.find((address) => address.id === form.billingAddressSource) || billingAddressOptions[0] || null,
+    () => {
+      const found = billingAddressOptions.find((address) => address.id === form.billingAddressSource);
+      if (found) return found;
+      return form.billingAddressSource ? null : (billingAddressOptions[0] || null);
+    },
     [billingAddressOptions, form.billingAddressSource]
   );
   const shippingAddressOptions = useMemo(() => {
@@ -896,7 +900,11 @@ export default function InvoiceDashboard() {
     return [...base, ...premises, ...custom];
   }, [selectedCustomer, form.customShippingAddresses]);
   const selectedShippingAddress = useMemo(
-    () => shippingAddressOptions.find((address) => address.id === form.shippingAddressSource) || shippingAddressOptions[0] || null,
+    () => {
+      const found = shippingAddressOptions.find((address) => address.id === form.shippingAddressSource);
+      if (found) return found;
+      return form.shippingAddressSource ? null : (shippingAddressOptions[0] || null);
+    },
     [shippingAddressOptions, form.shippingAddressSource]
   );
 

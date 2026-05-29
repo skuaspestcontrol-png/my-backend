@@ -1047,6 +1047,8 @@ const collectColumns = () => {
     customer_external_id: 'VARCHAR(120) NULL', customer_name: 'VARCHAR(255) NULL', invoice_number: 'VARCHAR(120) NULL',
     invoice_type: 'VARCHAR(80) NULL', invoice_status: 'VARCHAR(80) NULL', invoice_date: 'DATE NULL', due_date: 'DATE NULL',
     total_amount: 'DECIMAL(18,2) NULL', balance_due: 'DECIMAL(18,2) NULL', source_created_at: 'DATETIME NULL', source_updated_at: 'DATETIME NULL',
+    billing_address_source: 'VARCHAR(100) NULL', shipping_address_source: 'VARCHAR(100) NULL',
+    billing_address_text: 'TEXT NULL', shipping_address_text: 'TEXT NULL', custom_shipping_addresses: 'JSON NULL',
     customer_premise_id: 'VARCHAR(100) NULL', premise_label: 'VARCHAR(255) NULL', premise_address: 'TEXT NULL',
     premise_area_name: 'VARCHAR(255) NULL', premise_city: 'VARCHAR(100) NULL', premise_state: 'VARCHAR(100) NULL',
     premise_pincode: 'VARCHAR(20) NULL', premise_google_map_url: 'TEXT NULL'
