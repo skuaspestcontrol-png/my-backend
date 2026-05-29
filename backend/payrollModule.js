@@ -24,6 +24,63 @@ const toDateKey = (date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-
 const normalizeText = (value) => String(value || '').trim();
 const normalizeRole = (value) => normalizeText(value).toLowerCase();
 
+const payrollExportColumns = {
+  monthlyPayrollReport: [
+    ['employeeCode', 'Employee Code'],
+    ['employeeName', 'Employee Name'],
+    ['month', 'Month'],
+    ['year', 'Year'],
+    ['basicSalary', 'Basic Salary'],
+    ['allowancesTotal', 'Allowances'],
+    ['deductionsTotal', 'Deductions'],
+    ['netSalary', 'Net Salary'],
+    ['paymentStatus', 'Payment Status'],
+    ['payrollStatus', 'Payroll Status']
+  ],
+  employeeWiseSalaryReport: [
+    ['employeeCode', 'Employee Code'],
+    ['employeeName', 'Employee Name'],
+    ['month', 'Month'],
+    ['year', 'Year'],
+    ['basicSalary', 'Basic Salary'],
+    ['allowancesTotal', 'Allowances'],
+    ['deductionsTotal', 'Deductions'],
+    ['netSalary', 'Net Salary'],
+    ['paymentStatus', 'Payment Status'],
+    ['payrollStatus', 'Payroll Status']
+  ],
+  deductionReport: [
+    ['employeeCode', 'Employee Code'],
+    ['employeeName', 'Employee Name'],
+    ['month', 'Month'],
+    ['year', 'Year'],
+    ['leaveDeduction', 'Leave Deduction'],
+    ['lateDeduction', 'Late Deduction'],
+    ['advanceDeduction', 'Advance Deduction'],
+    ['loanDeduction', 'Loan Deduction'],
+    ['pf', 'PF'],
+    ['esi', 'ESI'],
+    ['other', 'Other Deduction'],
+    ['totalDeduction', 'Total Deduction']
+  ],
+  advanceSalaryReport: [
+    ['employeeId', 'Employee ID'],
+    ['amount', 'Amount'],
+    ['recoveredAmount', 'Recovered Amount'],
+    ['balanceAmount', 'Balance Amount'],
+    ['monthlyDeduction', 'Monthly Deduction'],
+    ['status', 'Status'],
+    ['issuedDate', 'Issued Date']
+  ]
+};
+
+const getPayrollExportColumns = (type) => {
+  if (type === 'employee-wise') return payrollExportColumns.employeeWiseSalaryReport;
+  if (type === 'deduction') return payrollExportColumns.deductionReport;
+  if (type === 'advance') return payrollExportColumns.advanceSalaryReport;
+  return payrollExportColumns.monthlyPayrollReport;
+};
+
 const defaultCompany = {
   companyName: 'SKUAS Pest Control',
   phone: '9316666656',
@@ -2918,8 +2975,12 @@ function registerPayrollModule({
     );
     const selectedRows = reportPayload[key];
     if (format === 'excel' || format === 'csv') {
-      const headers = Object.keys(selectedRows[0] || { message: 'No data' });
-      const csv = toCsv([headers, ...selectedRows.map((row) => headers.map((h) => row[h]))]);
+      const columns = getPayrollExportColumns(type);
+      const headers = columns.map(([, label]) => label);
+      const csv = toCsv([
+        headers,
+        ...selectedRows.map((row) => columns.map(([keyName]) => row[keyName]))
+      ]);
       const fileName = `payroll_${type}_${Date.now()}.csv`;
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
@@ -2938,12 +2999,13 @@ function registerPayrollModule({
       doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a').text('SKUAS Pest Control - Payroll Report');
       doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`Type: ${type} | Month: ${month || 'All'} | Year: ${year || 'All'} | Generated: ${new Date().toLocaleString()}`);
       doc.moveDown(0.6);
-      const headers = Object.keys(selectedRows[0] || { message: 'No data' });
+      const columns = getPayrollExportColumns(type);
+      const headers = columns.map(([, label]) => label);
       doc.font('Helvetica-Bold').fontSize(8).fillColor('#0f172a').text(headers.join(' | '));
       doc.moveDown(0.3);
       doc.font('Helvetica').fontSize(8).fillColor('#111827');
       selectedRows.slice(0, 300).forEach((row) => {
-        const line = headers.map((keyName) => String(row[keyName] ?? '')).join(' | ');
+        const line = columns.map(([keyName]) => String(row[keyName] ?? '')).join(' | ');
         doc.text(line, { width: 530 });
       });
       doc.end();

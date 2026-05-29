@@ -116,6 +116,35 @@ const customerImportExportColumns = [
   { key: 'longitude', label: 'Longitude' }
 ];
 
+const customerExportColumns = [
+  { key: 'segment', label: 'Segment' },
+  { key: 'companyName', label: 'Company Name' },
+  { key: 'contactPersonName', label: 'Contact Person Name' },
+  { key: 'displayName', label: 'Display Name' },
+  { key: 'position', label: 'Position' },
+  { key: 'mobileNumber', label: 'Mobile Number' },
+  { key: 'whatsappNumber', label: 'WhatsApp Number' },
+  { key: 'altNumber', label: 'Alt Number' },
+  { key: 'emailId', label: 'Email Id' },
+  { key: 'hasGst', label: 'GST Registered' },
+  { key: 'gstNumber', label: 'GST Number' },
+  { key: 'billingAttention', label: 'Billing Attention' },
+  { key: 'billingStreet1', label: 'Billing Street 1' },
+  { key: 'billingStreet2', label: 'Billing Street 2' },
+  { key: 'billingAddress', label: 'Billing Address' },
+  { key: 'billingArea', label: 'Billing Area' },
+  { key: 'billingState', label: 'Billing State' },
+  { key: 'billingPincode', label: 'Billing Pincode' },
+  { key: 'shippingAttention', label: 'Shipping Attention' },
+  { key: 'shippingStreet1', label: 'Shipping Street 1' },
+  { key: 'shippingStreet2', label: 'Shipping Street 2' },
+  { key: 'shippingAddress', label: 'Shipping Address' },
+  { key: 'shippingArea', label: 'Shipping Area' },
+  { key: 'shippingState', label: 'Shipping State' },
+  { key: 'shippingPincode', label: 'Shipping Pincode' },
+  { key: 'areaSqft', label: 'Area in sqft' }
+];
+
 const defaultVisibleColumns = ['name', 'segment', 'companyName', 'contactPersonName', 'mobileNumber', 'emailId', 'billingState', 'shippingState'];
 const mobileCustomerColumnWidths = {
   name: 190,
@@ -1767,7 +1796,7 @@ export default function CustomerDashboard() {
       return;
     }
 
-    const headers = customerImportExportColumns.map((column) => column.key);
+    const headers = customerExportColumns.map((column) => column.key);
     const csvRows = [
       headers.join(','),
       ...sourceRows.map((customer) =>

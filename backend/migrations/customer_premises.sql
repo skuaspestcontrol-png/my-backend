@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS customer_premises (
   google_place_id VARCHAR(255) NULL,
   google_place_name VARCHAR(255) NULL,
   google_map_url TEXT NULL,
-  gstin VARCHAR(50) NULL,
+  gst_number VARCHAR(50) NULL,
   place_of_supply VARCHAR(100) NULL,
   is_default TINYINT(1) DEFAULT 0,
   is_billing TINYINT(1) DEFAULT 0,
@@ -34,6 +34,16 @@ CREATE TABLE IF NOT EXISTS customer_premises (
   KEY idx_customer_premises_is_default (is_default),
   KEY idx_customer_premises_is_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @sql := (
+  SELECT IF(COUNT(*) > 0,
+    'ALTER TABLE customer_premises DROP COLUMN gstin',
+    'SELECT 1'
+  )
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'customer_premises' AND COLUMN_NAME = 'gstin'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @schema_name := DATABASE();
 
@@ -79,7 +89,7 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 INSERT INTO customer_premises (
   premise_id, customer_id, premise_label, premise_type, contact_person, phone, email, address,
-  area_name, city, state, pincode, country, gstin, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
+  area_name, city, state, pincode, country, gst_number, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
 )
 SELECT
   CONCAT('PREM-', COALESCE(c.external_id, c.id), '-MAIN'),

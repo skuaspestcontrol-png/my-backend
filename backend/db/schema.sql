@@ -358,7 +358,7 @@ CREATE TABLE IF NOT EXISTS quotation_template_settings (
   phone VARCHAR(50) DEFAULT '',
   email VARCHAR(255) DEFAULT '',
   website VARCHAR(255) DEFAULT '',
-  gstin VARCHAR(64) DEFAULT '',
+  company_gst_number VARCHAR(64) DEFAULT '',
   header_line_color VARCHAR(20) DEFAULT '#9F174D',
   primary_color VARCHAR(20) DEFAULT '#9F174D',
   border_color VARCHAR(20) DEFAULT '#cbd5e1',

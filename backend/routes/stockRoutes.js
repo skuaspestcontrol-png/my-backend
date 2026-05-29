@@ -1269,6 +1269,94 @@ const csvEscape = (value) => {
   return raw;
 };
 
+const stockExportColumns = {
+  'current-stock': [
+    ['itemName', 'Item'],
+    ['category', 'Category'],
+    ['unit', 'Unit'],
+    ['currentStock', 'Current Stock'],
+    ['minStockLevel', 'Minimum'],
+    ['value', 'Value'],
+    ['status', 'Status']
+  ],
+  'technician-stock': [
+    ['technicianName', 'Technician'],
+    ['itemName', 'Item'],
+    ['currentBalance', 'Balance']
+  ],
+  ledger: [
+    ['movementDate', 'Date'],
+    ['movementType', 'Type'],
+    ['itemName', 'Item'],
+    ['inQty', 'In'],
+    ['outQty', 'Out'],
+    ['officeBalanceAfter', 'Office'],
+    ['technicianName', 'Technician'],
+    ['sourceLocation', 'Source'],
+    ['notes', 'Notes']
+  ],
+  purchase: [
+    ['purchaseDate', 'Date'],
+    ['itemName', 'Item'],
+    ['vendorName', 'Vendor'],
+    ['quantity', 'Qty'],
+    ['rate', 'Rate'],
+    ['totalAmount', 'Total'],
+    ['batchInfo', 'Batch / Expiry']
+  ],
+  usage: [
+    ['movementDate', 'Date'],
+    ['technicianName', 'Technician'],
+    ['itemName', 'Item'],
+    ['outQty', 'Qty'],
+    ['customerName', 'Customer'],
+    ['serviceType', 'Service'],
+    ['notes', 'Notes']
+  ],
+  'low-stock': [
+    ['itemName', 'Item'],
+    ['category', 'Category'],
+    ['currentStock', 'Current'],
+    ['minStockLevel', 'Minimum'],
+    ['status', 'Status']
+  ],
+  expiry: [
+    ['itemName', 'Item'],
+    ['category', 'Category'],
+    ['expiryDate', 'Expiry'],
+    ['currentStock', 'Current'],
+    ['status', 'Status']
+  ]
+};
+
+const buildStockExportRows = (reportType, rows = []) => {
+  const columns = stockExportColumns[reportType] || stockExportColumns['current-stock'];
+  const normalizeDate = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw.slice(0, 10);
+  };
+  const normalizeValue = (row, key) => {
+    if (key === 'value') return num(row.currentStock) * num(row.purchaseRate);
+    if (key === 'batchInfo') return [row.batchNumber || '---', row.expiryDate ? `Exp: ${normalizeDate(row.expiryDate)}` : 'No expiry'].filter(Boolean).join(' | ');
+    if (key === 'movementDate' || key === 'purchaseDate' || key === 'expiryDate') return normalizeDate(row[key]);
+    if (key === 'currentStock' || key === 'minStockLevel' || key === 'currentBalance' || key === 'inQty' || key === 'outQty' || key === 'rate' || key === 'totalAmount') return row[key];
+    if (key === 'technicianName') return row.technicianName || row.technician || '---';
+    if (key === 'vendorName') return row.vendorName || '---';
+    if (key === 'customerName') return row.customerName || '---';
+    if (key === 'serviceType') return row.serviceType || '---';
+    if (key === 'sourceLocation') return row.sourceLocation || 'office';
+    if (key === 'notes') return row.notes || '---';
+    if (key === 'status') return row.status || (reportType === 'expiry' ? 'Expiring Soon' : '');
+    return row[key];
+  };
+  return {
+    columns,
+    headers: columns.map(([, label]) => label),
+    rows: rows.map((row) => columns.map(([key]) => normalizeValue(row, key)))
+  };
+};
+
 router.get('/export', async (req, res) => {
   try {
     const reportType = text(req.query.reportType || req.query.type || 'current-stock').toLowerCase();
@@ -1290,6 +1378,7 @@ router.get('/export', async (req, res) => {
       });
     });
     const rows = safeRows(reportRes.rows);
+    const exportData = buildStockExportRows(reportType, rows);
 
     if (format === 'pdf') {
       const doc = new PDFDocument({ margin: 36, size: 'A4' });
@@ -1300,18 +1389,20 @@ router.get('/export', async (req, res) => {
       doc.moveDown(0.4);
       doc.fontSize(13).text(`Stock Report: ${reportType}`, { align: 'center' });
       doc.moveDown();
-      rows.slice(0, 50).forEach((row) => {
-        doc.fontSize(9).text(JSON.stringify(row));
+      doc.fontSize(9).text(exportData.headers.join(' | '));
+      doc.moveDown(0.3);
+      exportData.rows.slice(0, 50).forEach((row) => {
+        doc.fontSize(9).text(row.map((value) => String(value ?? '')).join(' | '));
         doc.moveDown(0.2);
       });
       doc.end();
       return;
     }
 
-    const headers = rows.length ? Object.keys(rows[0]) : ['message'];
+    const headers = exportData.headers.length ? exportData.headers : ['message'];
     const csv = [
       headers.map(csvEscape).join(','),
-      ...rows.map((row) => headers.map((header) => csvEscape(row?.[header])).join(','))
+      ...exportData.rows.map((row) => row.map((value) => csvEscape(value)).join(','))
     ].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');

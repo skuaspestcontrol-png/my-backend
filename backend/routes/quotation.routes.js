@@ -107,6 +107,35 @@ const loadMainAppSettings = async () => {
   }
 };
 
+const getTableColumns = async (tableName) => {
+  try {
+    const rows = await dbQuery(
+      `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+      [tableName]
+    );
+    return new Set((Array.isArray(rows) ? rows : []).map((row) => clean(row.COLUMN_NAME).toLowerCase()).filter(Boolean));
+  } catch {
+    return new Set();
+  }
+};
+
+const normalizeQuotationTemplateSettings = (row = {}) => ({
+  ...row,
+  company_gst_number: row.company_gst_number || row.companyGstNumber || '',
+  companyGstNumber: row.company_gst_number || row.companyGstNumber || '',
+  showGstin: row.show_gstin ?? row.showGstin ?? 1
+});
+
+const normalizeQuotationRow = (row = {}) => {
+  const { gstin: _gstin, ...rest } = row || {};
+  return {
+    ...rest,
+    gstNumber: row?.gstNumber || row?.gstin || ''
+  };
+};
+
 const ensureTables = async () => {
   await dbQuery(`CREATE TABLE IF NOT EXISTS quotation_template_settings (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -119,7 +148,7 @@ const ensureTables = async () => {
     phone VARCHAR(50) DEFAULT '',
     email VARCHAR(255) DEFAULT '',
     website VARCHAR(255) DEFAULT '',
-    gstin VARCHAR(64) DEFAULT '',
+    company_gst_number VARCHAR(64) DEFAULT '',
     header_line_color VARCHAR(20) DEFAULT '#9F174D',
     primary_color VARCHAR(20) DEFAULT '#9F174D',
     border_color VARCHAR(20) DEFAULT '#cbd5e1',
@@ -140,6 +169,34 @@ const ensureTables = async () => {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )`);
+
+  const templateColumns = await getTableColumns('quotation_template_settings');
+  if (!templateColumns.has('company_gst_number')) {
+    await dbQuery(`ALTER TABLE quotation_template_settings ADD COLUMN company_gst_number VARCHAR(64) DEFAULT ''`);
+    if (templateColumns.has('gstin')) {
+      await dbQuery(`UPDATE quotation_template_settings
+        SET company_gst_number = CASE
+          WHEN company_gst_number IS NULL OR company_gst_number = '' THEN gstin
+          ELSE company_gst_number
+        END`);
+      try {
+        await dbQuery('ALTER TABLE quotation_template_settings DROP COLUMN gstin');
+      } catch (error) {
+        console.warn('[MySQL] quotation_template_settings gstin drop failed:', error.message);
+      }
+    }
+  } else if (templateColumns.has('gstin')) {
+    await dbQuery(`UPDATE quotation_template_settings
+      SET company_gst_number = CASE
+        WHEN company_gst_number IS NULL OR company_gst_number = '' THEN gstin
+        ELSE company_gst_number
+      END`);
+    try {
+      await dbQuery('ALTER TABLE quotation_template_settings DROP COLUMN gstin');
+    } catch (error) {
+      console.warn('[MySQL] quotation_template_settings gstin drop failed:', error.message);
+    }
+  }
 
   await dbQuery(`CREATE TABLE IF NOT EXISTS quotation_prefix_settings (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -302,7 +359,7 @@ const ensureTables = async () => {
 
   const [templateCount] = await dbQuery('SELECT COUNT(*) AS c FROM quotation_template_settings');
   if (!toNumber(templateCount?.c, 0)) {
-    await dbQuery(`INSERT INTO quotation_template_settings (company_name, company_address, phone, email, website, gstin, default_sales_person, default_designation, default_mobile)
+    await dbQuery(`INSERT INTO quotation_template_settings (company_name, company_address, phone, email, website, company_gst_number, default_sales_person, default_designation, default_mobile)
       VALUES ('SKUAS Pest Control Private Limited', '', '', '', '', '', '', '', '')`);
   }
 
@@ -427,7 +484,7 @@ router.use(async (req, _res, next) => {
 
 router.get('/settings/quotation-template', async (_req, res) => {
   const rows = await dbQuery('SELECT * FROM quotation_template_settings ORDER BY id ASC LIMIT 1');
-  res.json(rows[0] || {});
+  res.json(normalizeQuotationTemplateSettings(rows[0] || {}));
 });
 
 router.put('/settings/quotation-template', async (req, res) => {
@@ -436,7 +493,7 @@ router.put('/settings/quotation-template', async (req, res) => {
   const payload = req.body || {};
   const values = [
     clean(payload.logo_url), toNumber(payload.logo_width, 90), toNumber(payload.logo_height, 70), clean(payload.header_alignment || 'left'),
-    clean(payload.company_name), clean(payload.company_address), normalizeOptionalIndianMobileNumber(payload.phone), clean(payload.email), clean(payload.website), clean(payload.gstin),
+    clean(payload.company_name), clean(payload.company_address), normalizeOptionalIndianMobileNumber(payload.phone), clean(payload.email), clean(payload.website), clean(payload.company_gst_number || payload.companyGstNumber || payload.gstin),
     clean(payload.header_line_color || '#9F174D'), clean(payload.primary_color || '#9F174D'), clean(payload.border_color || '#cbd5e1'), clean(payload.font_family || 'Helvetica'),
     toNumber(payload.font_size, 10), toNumber(payload.heading_font_size, 14), toNumber(payload.body_font_size, 10), toNumber(payload.table_font_size, 9),
     clean(payload.footer_text), clean(payload.signature_image_url), clean(payload.default_sales_person), clean(payload.default_designation), normalizeOptionalIndianMobileNumber(payload.default_mobile),
@@ -444,19 +501,19 @@ router.put('/settings/quotation-template', async (req, res) => {
   ];
   if (id) {
     await dbQuery(`UPDATE quotation_template_settings SET
-      logo_url=?,logo_width=?,logo_height=?,header_alignment=?,company_name=?,company_address=?,phone=?,email=?,website=?,gstin=?,
+      logo_url=?,logo_width=?,logo_height=?,header_alignment=?,company_name=?,company_address=?,phone=?,email=?,website=?,company_gst_number=?,
       header_line_color=?,primary_color=?,border_color=?,font_family=?,font_size=?,heading_font_size=?,body_font_size=?,table_font_size=?,
       footer_text=?,signature_image_url=?,default_sales_person=?,default_designation=?,default_mobile=?,show_logo=?,show_gstin=?,show_signature=?,show_page_number=?
       WHERE id=?`, [...values, id]);
   } else {
     await dbQuery(`INSERT INTO quotation_template_settings (
-      logo_url,logo_width,logo_height,header_alignment,company_name,company_address,phone,email,website,gstin,
+      logo_url,logo_width,logo_height,header_alignment,company_name,company_address,phone,email,website,company_gst_number,
       header_line_color,primary_color,border_color,font_family,font_size,heading_font_size,body_font_size,table_font_size,
       footer_text,signature_image_url,default_sales_person,default_designation,default_mobile,show_logo,show_gstin,show_signature,show_page_number
     ) VALUES (${new Array(27).fill('?').join(',')})`, values);
   }
   const out = await dbQuery('SELECT * FROM quotation_template_settings ORDER BY id ASC LIMIT 1');
-  res.json(out[0] || {});
+  res.json(normalizeQuotationTemplateSettings(out[0] || {}));
 });
 
 router.get('/settings/quotation-prefixes', async (_req, res) => {
@@ -600,7 +657,7 @@ router.delete('/settings/infestation-levels/:id', async (req, res) => {
 
 router.get('/quotations', async (_req, res) => {
   const rows = await dbQuery('SELECT * FROM quotations ORDER BY id DESC LIMIT 300');
-  res.json(rows);
+  res.json((Array.isArray(rows) ? rows : []).map(normalizeQuotationRow));
 });
 
 router.get('/quotations/:id', async (req, res) => {
@@ -609,7 +666,7 @@ router.get('/quotations/:id', async (req, res) => {
   const [q] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [id]);
   if (!q) return res.status(404).json({ error: 'Not found' });
   const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC, id ASC', [id]);
-  res.json({ ...q, items });
+  res.json({ ...normalizeQuotationRow(q), items });
 });
 
 router.post('/quotations', async (req, res) => {
@@ -637,7 +694,7 @@ router.post('/quotations', async (req, res) => {
       clean(b.customer_premise_id || b.customerPremiseId), clean(b.premise_label || b.premiseLabel), clean(b.premise_address || b.premiseAddress),
       clean(b.premise_area_name || b.premiseAreaName), clean(b.premise_city || b.premiseCity), clean(b.premise_state || b.premiseState),
       clean(b.premise_pincode || b.premisePincode), clean(b.premise_google_map_url || b.premiseGoogleMapUrl),
-      normalizeOptionalIndianMobileNumber(b.phone), normalizeOptionalIndianMobileNumber(b.whatsapp), clean(b.email), clean(b.gstin),
+      normalizeOptionalIndianMobileNumber(b.phone), normalizeOptionalIndianMobileNumber(b.whatsapp), clean(b.email), clean(b.gstNumber || b.gstin),
       clean(b.quotation_date) || null, toNumber(b.validity_days, 15), clean(b.prepared_by), clean(b.sales_person), clean(b.designation), normalizeOptionalIndianMobileNumber(b.mobile),
       clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
       toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words), clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'),
@@ -668,7 +725,7 @@ router.post('/quotations', async (req, res) => {
     await conn.commit();
     const [q] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [quotationId]);
     const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [quotationId]);
-    res.status(201).json({ ...q, items });
+    res.status(201).json({ ...normalizeQuotationRow(q), items });
   } catch (error) {
     await conn.rollback();
     console.error('Failed to create quotation:', error.message);
@@ -698,7 +755,7 @@ router.put('/quotations/:id', async (req, res) => {
       clean(b.customer_premise_id || b.customerPremiseId), clean(b.premise_label || b.premiseLabel), clean(b.premise_address || b.premiseAddress),
       clean(b.premise_area_name || b.premiseAreaName), clean(b.premise_city || b.premiseCity), clean(b.premise_state || b.premiseState),
       clean(b.premise_pincode || b.premisePincode), clean(b.premise_google_map_url || b.premiseGoogleMapUrl),
-      normalizeOptionalIndianMobileNumber(b.phone), normalizeOptionalIndianMobileNumber(b.whatsapp), clean(b.email), clean(b.gstin), clean(b.quotation_date) || null, toNumber(b.validity_days, 15),
+      normalizeOptionalIndianMobileNumber(b.phone), normalizeOptionalIndianMobileNumber(b.whatsapp), clean(b.email), clean(b.gstNumber || b.gstin), clean(b.quotation_date) || null, toNumber(b.validity_days, 15),
       clean(b.prepared_by), clean(b.sales_person), clean(b.designation), normalizeOptionalIndianMobileNumber(b.mobile), clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
       toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words),
       clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'), clean(b.opening_paragraph), clean(b.payment_terms), clean(b.warranty_note), clean(b.disclaimer), clean(b.closing_paragraph), clean(b.internal_note), id
@@ -724,7 +781,7 @@ router.put('/quotations/:id', async (req, res) => {
     await conn.commit();
     const [q] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [id]);
     const outItems = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [id]);
-    res.json({ ...q, items: outItems });
+    res.json({ ...normalizeQuotationRow(q), items: outItems });
   } catch (error) {
     await conn.rollback();
     res.status(500).json({ error: error.message || 'Failed to update quotation' });

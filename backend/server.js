@@ -4066,7 +4066,6 @@ const buildProfitSnapshot = async ({
 
 const customerPremiseModernColumns = [
   { name: 'premise_code', definition: 'VARCHAR(100) NULL' },
-  { name: 'premise_name', definition: 'VARCHAR(255) NULL' },
   { name: 'attention_name', definition: 'VARCHAR(255) NULL' },
   { name: 'mobile', definition: 'VARCHAR(50) NULL' },
   { name: 'alt_mobile', definition: 'VARCHAR(50) NULL' },
@@ -4099,7 +4098,6 @@ const normalizePremisePayload = (body = {}, customer = {}, fallbackId = '') => {
     premiseId: String(body.premiseId || body.premise_id || fallbackId || `PREM-${Date.now()}`).trim(),
     premiseCode: String(body.premiseCode || body.premise_code || body.premiseId || body.premise_id || fallbackId || `PREM-${Date.now()}`).trim(),
     premiseLabel: String(body.premiseLabel || body.premise_label || '').trim() || 'Main Premise',
-    premiseName: String(body.premiseName || body.premise_name || body.premiseLabel || body.premise_label || '').trim() || 'Main Premise',
     premiseType: String(body.premiseType || body.premise_type || '').trim().toLowerCase() === 'shipping' ? 'Shipping' : 'Billing',
     contactPerson: String(body.contactPerson || body.contact_person || customer.contactPersonName || customer.name || '').trim(),
     attentionName: String(body.attentionName || body.attention_name || body.contactPerson || body.contact_person || customer.contactPersonName || customer.name || '').trim(),
@@ -4121,8 +4119,7 @@ const normalizePremisePayload = (body = {}, customer = {}, fallbackId = '') => {
     googlePlaceId: String(body.googlePlaceId || body.google_place_id || '').trim(),
     googlePlaceName: String(body.googlePlaceName || body.google_place_name || '').trim(),
     googleMapUrl: String(body.googleMapUrl || body.google_map_url || '').trim(),
-    gstin: String(body.gstin || customer.gstNumber || '').trim(),
-    gstNumber: String(body.gstNumber || body.gst_number || body.gstin || customer.gstNumber || '').trim(),
+    gstNumber: String(body.gstNumber || body.gst_number || customer.gstNumber || '').trim(),
     placeOfSupply: String(body.placeOfSupply || body.place_of_supply || body.state || customer.placeOfSupply || '').trim(),
     landmark: String(body.landmark || '').trim(),
     isDefault: body.isDefault ?? body.is_default ? 1 : 0,
@@ -4141,8 +4138,6 @@ const mapPremiseRow = (row = {}) => ({
   customerId: row.customer_id,
   premiseLabel: row.premise_label || '',
   premise_label: row.premise_label || '',
-  premiseName: row.premise_name || row.premise_label || '',
-  premise_name: row.premise_name || row.premise_label || '',
   premiseType: row.premise_type || 'Service',
   premise_type: row.premise_type || 'Service',
   contactPerson: row.contact_person || '',
@@ -4166,8 +4161,7 @@ const mapPremiseRow = (row = {}) => ({
   googlePlaceId: row.google_place_id || '',
   googlePlaceName: row.google_place_name || '',
   googleMapUrl: row.google_map_url || '',
-  gstin: row.gstin || '',
-  gstNumber: row.gst_number || row.gstin || '',
+  gstNumber: row.gst_number || '',
   placeOfSupply: row.place_of_supply || '',
   landmark: row.landmark || '',
   isDefault: !!row.is_default,
@@ -4184,7 +4178,6 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
       premise_id VARCHAR(100) UNIQUE,
       customer_id INT NOT NULL,
       premise_code VARCHAR(100) NULL,
-      premise_name VARCHAR(255) NULL,
       premise_label VARCHAR(255) NULL,
       premise_type ENUM('Billing','Shipping','Service','Other') DEFAULT 'Service',
       attention_name VARCHAR(255) NULL,
@@ -4209,7 +4202,7 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
       google_place_id VARCHAR(255) NULL,
       google_place_name VARCHAR(255) NULL,
       google_map_url TEXT NULL,
-      gstin VARCHAR(50) NULL,
+      gst_number VARCHAR(50) NULL,
       place_of_supply VARCHAR(100) NULL,
       is_default TINYINT(1) DEFAULT 0,
       is_billing TINYINT(1) DEFAULT 0,
@@ -4239,7 +4232,7 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
     { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
     { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
     { name: 'google_map_url', definition: 'TEXT NULL' },
-    { name: 'gstin', definition: 'VARCHAR(50) NULL' },
+    { name: 'gst_number', definition: 'VARCHAR(50) NULL' },
     { name: 'place_of_supply', definition: 'VARCHAR(100) NULL' },
     { name: 'is_default', definition: 'TINYINT(1) DEFAULT 0' },
     { name: 'is_billing', definition: 'TINYINT(1) DEFAULT 0' },
@@ -4247,6 +4240,20 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
     { name: 'is_active', definition: 'TINYINT(1) DEFAULT 1' },
     { name: 'payload', definition: 'JSON NULL' }
   ]);
+  try {
+    await conn.query('ALTER TABLE customer_premises DROP COLUMN gstin');
+  } catch (error) {
+    if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
+      console.warn('[MySQL] customer_premises gstin drop failed:', error.message);
+    }
+  }
+  try {
+    await conn.query('ALTER TABLE customer_premises DROP COLUMN premise_name');
+  } catch (error) {
+    if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
+      console.warn('[MySQL] customer_premises premise_name drop failed:', error.message);
+    }
+  }
   await ensureColumnsIfMissing(conn, 'jobs', premiseSnapshotColumns);
   await ensureColumnsIfMissing(conn, 'jobs', [
     { name: 'job_card_number', definition: 'VARCHAR(50) NULL' },
@@ -4352,7 +4359,7 @@ const legacyCustomerToPremise = (customer = {}, rowId) => {
     state: customer.billingState || customer.state || customer.placeOfSupply || customer.shippingState || '',
     pincode: customer.billingPincode || customer.pincode || customer.shippingPincode || '',
     country: 'India',
-    gstin: customer.gstNumber || '',
+    gstNumber: customer.gstNumber || '',
     placeOfSupply: customer.placeOfSupply || customer.billingState || customer.state || '',
     isDefault: 1,
     isBilling: 1,
@@ -4374,14 +4381,14 @@ const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
   const payload = JSON.stringify(premise);
   await conn.query(
     `INSERT INTO customer_premises (
-      premise_id, customer_id, premise_code, premise_name, premise_label, premise_type,
-      attention_name, contact_person, mobile, alt_mobile, phone, email, gst_number,
+      premise_id, customer_id, premise_code, premise_label, premise_type,
+      attention_name, contact_person, mobile, alt_mobile, phone, email,
       address_line_1, address_line_2, address, area, area_name, city, state, pincode, landmark,
       country, latitude, longitude, google_place_id, google_place_name,
-      google_map_url, gstin, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      google_map_url, gst_number, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
     ON DUPLICATE KEY UPDATE
-      premise_code=VALUES(premise_code), premise_name=VALUES(premise_name),
+      premise_code=VALUES(premise_code),
       premise_label=VALUES(premise_label), premise_type=VALUES(premise_type),
       attention_name=VALUES(attention_name), contact_person=VALUES(contact_person),
       mobile=VALUES(mobile), alt_mobile=VALUES(alt_mobile), phone=VALUES(phone),
@@ -4391,21 +4398,20 @@ const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
       city=VALUES(city), state=VALUES(state), pincode=VALUES(pincode), country=VALUES(country),
       landmark=VALUES(landmark),
       latitude=VALUES(latitude), longitude=VALUES(longitude), google_place_id=VALUES(google_place_id),
-      google_place_name=VALUES(google_place_name), google_map_url=VALUES(google_map_url), gstin=VALUES(gstin),
+      google_place_name=VALUES(google_place_name), google_map_url=VALUES(google_map_url),
       place_of_supply=VALUES(place_of_supply), is_default=VALUES(is_default), is_billing=VALUES(is_billing),
       is_shipping=VALUES(is_shipping), is_active=VALUES(is_active), payload=VALUES(payload)`,
     [
       premise.premiseId, customerRowId, premise.premiseCode || premise.premiseId,
-      premise.premiseName || premise.premiseLabel, premise.premiseLabel, premise.premiseType,
+      premise.premiseLabel, premise.premiseType,
       premise.attentionName || premise.contactPerson, premise.contactPerson,
       premise.mobile || premise.phone, premise.altMobile || '', premise.phone, premise.email,
-      premise.gstNumber || premise.gstin, premise.addressLine1 || premise.address,
-      premise.addressLine2 || '', premise.address, premise.area || premise.areaName,
-      premise.areaName, premise.city, premise.state,
+      premise.addressLine1 || premise.address, premise.addressLine2 || '', premise.address,
+      premise.area || premise.areaName, premise.areaName, premise.city, premise.state,
       premise.pincode, premise.landmark || '', premise.country, premise.latitude ? Number(premise.latitude) : null,
       premise.longitude ? Number(premise.longitude) : null, premise.googlePlaceId, premise.googlePlaceName,
-      premise.googleMapUrl, premise.gstin, premise.placeOfSupply, premise.isDefault, premise.isBilling,
-      premise.isShipping, premise.isActive, payload
+      premise.googleMapUrl, premise.gstNumber || '', premise.placeOfSupply, premise.isDefault,
+      premise.isBilling, premise.isShipping, premise.isActive, payload
     ]
   );
 };

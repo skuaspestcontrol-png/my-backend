@@ -210,7 +210,7 @@ const tableDefinitions = [
         google_place_id VARCHAR(255) NULL,
         google_place_name VARCHAR(255) NULL,
         google_map_url TEXT NULL,
-        gstin VARCHAR(50) NULL,
+        gst_number VARCHAR(50) NULL,
         place_of_supply VARCHAR(100) NULL,
         is_default TINYINT(1) DEFAULT 0,
         is_billing TINYINT(1) DEFAULT 0,
@@ -247,7 +247,7 @@ const tableDefinitions = [
       google_place_id: 'VARCHAR(255) NULL',
       google_place_name: 'VARCHAR(255) NULL',
       google_map_url: 'TEXT NULL',
-      gstin: 'VARCHAR(50) NULL',
+      gst_number: 'VARCHAR(50) NULL',
       place_of_supply: 'VARCHAR(100) NULL',
       is_default: 'TINYINT(1) DEFAULT 0',
       is_billing: 'TINYINT(1) DEFAULT 0',
@@ -1020,7 +1020,7 @@ const collectColumns = () => {
     phone: 'VARCHAR(50) NULL', email: 'VARCHAR(255) NULL', address: 'TEXT NULL', area_name: 'VARCHAR(255) NULL',
     city: 'VARCHAR(100) NULL', state: 'VARCHAR(100) NULL', pincode: 'VARCHAR(20) NULL', country: "VARCHAR(100) DEFAULT 'India'",
     latitude: 'DECIMAL(10,8) NULL', longitude: 'DECIMAL(11,8) NULL', google_place_id: 'VARCHAR(255) NULL',
-    google_place_name: 'VARCHAR(255) NULL', google_map_url: 'TEXT NULL', gstin: 'VARCHAR(50) NULL',
+    google_place_name: 'VARCHAR(255) NULL', google_map_url: 'TEXT NULL', gst_number: 'VARCHAR(50) NULL',
     place_of_supply: 'VARCHAR(100) NULL', is_default: 'TINYINT(1) DEFAULT 0', is_billing: 'TINYINT(1) DEFAULT 0',
     is_shipping: 'TINYINT(1) DEFAULT 0', is_active: 'TINYINT(1) DEFAULT 1'
   });
@@ -1423,7 +1423,7 @@ const migrateCustomerPremises = async (target) => {
   const [result] = await target.query(`
     INSERT INTO customer_premises (
       premise_id, customer_id, premise_label, premise_type, contact_person, phone, email, address,
-      area_name, city, state, pincode, country, gstin, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
+      area_name, city, state, pincode, country, gst_number, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
     )
     SELECT
       CONCAT('PREM-', COALESCE(c.external_id, c.id), '-MAIN'),

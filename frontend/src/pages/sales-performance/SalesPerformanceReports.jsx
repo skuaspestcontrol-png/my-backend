@@ -260,6 +260,31 @@ export default function SalesPerformanceReports() {
   const chartHeight = getChartHeight({ mobile: isMobile });
   const currencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
   const barChartProps = getBarChartProps(chartData.length, { mobile: isMobile });
+  const exportColumns = [
+    'SalesPerson',
+    'Month',
+    'Year',
+    'MonthlyTarget',
+    'MonthlyAchieved',
+    'MonthlyPending',
+    'MonthlyAchievementPercent',
+    'MonthlyCollectionTarget',
+    'MonthlyCollectionAchieved',
+    'MonthlyCollectionPending',
+    'MonthlyCollectionPercent',
+    'YearlyTarget',
+    'YearlyAchieved',
+    'YearlyPending',
+    'YearlyAchievementPercent',
+    'YearlyCollectionTarget',
+    'YearlyCollectionAchieved',
+    'YearlyCollectionPending',
+    'YearlyCollectionPercent',
+    'LeadsAssigned',
+    'LeadsConverted',
+    'RevenueGenerated',
+    'Status'
+  ];
   const exportCsv = () => {
     downloadCsv(rows.map((row) => ({
       SalesPerson: row.employeeName,
@@ -285,7 +310,7 @@ export default function SalesPerformanceReports() {
       LeadsConverted: row.leadsConverted,
       RevenueGenerated: row.revenueGenerated,
       Status: row.status
-    })), 'sales-performance-reports.csv');
+    })), 'sales-performance-reports.csv', exportColumns);
   };
 
   const compactCardStyle = {

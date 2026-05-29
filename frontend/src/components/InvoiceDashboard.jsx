@@ -622,7 +622,7 @@ const premiseToAddressOption = (premise = {}) => ({
   city: premise.city || '',
   state: premise.state || '',
   pincode: premise.pincode || '',
-  gstin: premise.gstin || '',
+  gstNumber: premise.gstNumber || premise.gst_number || '',
   placeOfSupply: normalizeGstState(premise.placeOfSupply || premise.place_of_supply || premise.state || ''),
   googleMapUrl: premise.googleMapUrl || premise.google_map_url || '',
   premiseType: premise.premiseType || premise.premise_type || 'Service',
@@ -1844,7 +1844,6 @@ export default function InvoiceDashboard() {
       area: address.area || '',
       state: address.state || '',
       pincode: toSixDigitPincode(address.pincode || ''),
-      gstin: address.gstin || '',
       placeOfSupply: normalizeGstState(address.placeOfSupply || address.state || '')
     });
   };
@@ -1871,7 +1870,6 @@ export default function InvoiceDashboard() {
         state: shippingAddressDraft.state || '',
         pincode,
         country: 'India',
-        gstin: shippingAddressDraft.gstin || selectedCustomer.gstNumber || '',
         placeOfSupply: normalizeGstState(shippingAddressDraft.placeOfSupply || shippingAddressDraft.state || ''),
         isBilling: addressDraftTarget === 'billing',
         isShipping: addressDraftTarget === 'shipping',
@@ -3508,12 +3506,6 @@ export default function InvoiceDashboard() {
                 maxLength={6}
                 pattern="[0-9]{6}"
                 onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, pincode: toSixDigitPincode(event.target.value) }))}
-              />
-              <label style={shell.label}>GSTIN</label>
-              <input
-                style={shell.input}
-                value={shippingAddressDraft.gstin}
-                onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, gstin: event.target.value }))}
               />
               <label style={shell.label}>Place of Supply</label>
               <select

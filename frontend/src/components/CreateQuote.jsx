@@ -132,7 +132,7 @@ export default function CreateQuote() {
     phone: '',
     whatsapp: '',
     email: '',
-    gstin: '',
+    gstNumber: '',
     quotation_date: today(),
     quotation_number: '',
     validity_days: 15,
@@ -169,7 +169,7 @@ export default function CreateQuote() {
     const mobileNumber = normalizeIndianMobileNumber(leadPrefill.mobileNumber || leadPrefill.mobile || '');
     const whatsappNumber = normalizeIndianMobileNumber(leadPrefill.whatsappNumber || mobileNumber || '');
     const emailId = String(leadPrefill.emailId || leadPrefill.email || '').trim();
-    const gstin = String(leadPrefill.gstin || '').trim();
+    const gstNumber = String(leadPrefill.gstNumber || leadPrefill.gstin || '').trim();
     const leadId = String(leadPrefill._id || leadPrefill.id || '').trim();
     const assignedTo = String(leadPrefill.assignedTo || '').trim();
     setForm((prev) => ({
@@ -186,7 +186,7 @@ export default function CreateQuote() {
       phone: mobileNumber || prev.phone,
       whatsapp: whatsappNumber || prev.whatsapp,
       email: emailId || prev.email,
-      gstin: gstin || prev.gstin,
+      gstNumber: gstNumber || prev.gstNumber,
       prepared_by: assignedTo && assignedTo !== 'Unassigned' ? assignedTo : prev.prepared_by,
       sales_person: assignedTo && assignedTo !== 'Unassigned' ? assignedTo : prev.sales_person
     }));
@@ -393,7 +393,7 @@ export default function CreateQuote() {
       phone: lead.mobileNumber || lead.mobile || '',
       whatsapp: lead.whatsappNumber || '',
       email: lead.emailId || lead.email || '',
-      gstin: lead.gstin || '',
+      gstNumber: lead.gstNumber || lead.gstin || '',
       quotation_number: ''
     }));
     setPremiseRows([]);
@@ -419,7 +419,7 @@ export default function CreateQuote() {
       premise_pincode: premise.pincode || '',
       premise_google_map_url: premise.googleMapUrl || premise.google_map_url || '',
       address,
-      gstin: premise.gstin || p.gstin || ''
+      gstNumber: premise.gstNumber || premise.gst_number || p.gstNumber || p.gstin || ''
     }));
   };
 
@@ -439,7 +439,7 @@ export default function CreateQuote() {
       phone: c.mobileNumber || c.mobile || '',
       whatsapp: c.whatsappNumber || '',
       email: c.emailId || c.email || '',
-      gstin: c.gstNumber || c.gstin || '',
+      gstNumber: c.gstNumber || c.gstin || '',
       quotation_number: ''
     }));
     try {
@@ -608,7 +608,7 @@ export default function CreateQuote() {
               </div>
             </div>
             <div style={customerGridStyle}>
-              {['phone','email','gstin'].map((key) => (
+              {['phone','email','gstNumber'].map((key) => (
                 <div key={key}><p style={{ ...label, textTransform: 'capitalize' }}>{key}</p><input style={input} value={form[key] || ''} inputMode={key === 'phone' ? 'numeric' : undefined} onChange={(e) => setForm((p) => ({ ...p, [key]: key === 'phone' ? normalizeIndianMobileNumber(e.target.value) : e.target.value }))} /></div>
               ))}
             </div>

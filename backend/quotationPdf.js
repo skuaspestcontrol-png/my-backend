@@ -118,7 +118,7 @@ const customerDetailLinesForQuotation = (quotation = {}) => {
     { label: '', value: address, bold: false },
     { label: 'Phone', value: clean(quotation.phone), bold: false },
     { label: 'Email', value: clean(quotation.email), bold: false },
-    { label: 'GSTIN', value: clean(quotation.gstin), bold: false }
+    { label: 'GSTIN', value: clean(quotation.gstNumber || quotation.gstin), bold: false }
   ].filter((row) => clean(row.value));
 };
 
@@ -341,7 +341,7 @@ const renderQuotationPdfHeader = (doc, settings = {}, companySettings = {}) => {
   const companyPhone = clean(companySettings.gstPhone || companySettings.companyMobile || settings.phone);
   const companyAlternatePhone = clean(companySettings.gstAlternatePhone || companySettings.nonGstAlternatePhone);
   const companyWebsite = clean(companySettings.companyWebsite || settings.website);
-  const companyGst = clean(companySettings.companyGstNumber || companySettings.gstRegistrationNumber || settings.gstin);
+  const companyGst = clean(companySettings.companyGstNumber || companySettings.gstRegistrationNumber || settings.company_gst_number || settings.gstNumber);
   const companyDetailLines = [
     companyAddress,
     companyCityLine || companyPin ? `${companyCityLine}${companyPin ? ` - ${companyPin}` : ''}, India` : '',

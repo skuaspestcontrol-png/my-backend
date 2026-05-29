@@ -41,7 +41,7 @@ const emptyPremise = {
   state: 'Delhi',
   pincode: '',
   country: 'India',
-  gstin: '',
+  gstNumber: '',
   placeOfSupply: '',
   googleMapUrl: '',
   latitude: '',
@@ -108,7 +108,7 @@ const buildLegacyPremise = (customer = {}, form = {}) => {
   state: safeForm.billingState || safeCustomer.billingState || safeCustomer.state || 'Delhi',
   pincode: safeForm.billingPincode || safeCustomer.billingPincode || safeCustomer.pincode || '',
   country: 'India',
-  gstin: safeForm.gstNumber || safeCustomer.gstNumber || '',
+  gstNumber: safeForm.gstNumber || safeCustomer.gstNumber || '',
   placeOfSupply: safeForm.billingState || safeCustomer.placeOfSupply || safeCustomer.state || '',
   isDefault: true,
   isBilling: true
@@ -160,7 +160,7 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
       contactPerson: form?.contactPersonName || customer?.contactPersonName || '',
       phone: form?.mobileNumber || customer?.mobileNumber || '',
       email: form?.emailId || customer?.emailId || '',
-      gstin: form?.gstNumber || customer?.gstNumber || '',
+      gstNumber: form?.gstNumber || customer?.gstNumber || '',
       placeOfSupply: form?.billingState || customer?.placeOfSupply || ''
     });
   };

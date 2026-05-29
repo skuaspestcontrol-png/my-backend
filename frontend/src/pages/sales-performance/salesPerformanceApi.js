@@ -108,21 +108,21 @@ export const subscribeContractsRefresh = (handler) => {
   };
 };
 
-export const buildCsv = (rows = []) => {
+export const buildCsv = (rows = [], columns = []) => {
   const safeValue = (value) => {
     const text = String(value ?? '');
     if (/[,"\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
     return text;
   };
-  const headers = rows.length ? Object.keys(rows[0]) : [];
+  const headers = columns.length ? columns : rows.length ? Object.keys(rows[0]) : [];
   return [
     headers.map(safeValue).join(','),
     ...rows.map((row) => headers.map((header) => safeValue(row?.[header])).join(','))
   ].join('\n');
 };
 
-export const downloadCsv = (rows = [], filename = 'sales-performance.csv') => {
-  const csv = buildCsv(rows);
+export const downloadCsv = (rows = [], filename = 'sales-performance.csv', columns = []) => {
+  const csv = buildCsv(rows, columns);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

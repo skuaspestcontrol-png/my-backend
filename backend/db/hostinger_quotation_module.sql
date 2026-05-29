@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS quotation_template_settings (
   phone VARCHAR(50) DEFAULT '',
   email VARCHAR(255) DEFAULT '',
   website VARCHAR(255) DEFAULT '',
-  gstin VARCHAR(64) DEFAULT '',
+  company_gst_number VARCHAR(64) DEFAULT '',
   header_line_color VARCHAR(20) DEFAULT '#9F174D',
   primary_color VARCHAR(20) DEFAULT '#9F174D',
   border_color VARCHAR(20) DEFAULT '#cbd5e1',
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS quotation_items (
   CONSTRAINT fk_quotation_items_quotation FOREIGN KEY (quotation_id) REFERENCES quotations(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO quotation_template_settings (company_name, company_address, phone, email, website, gstin, header_alignment, logo_width, logo_height, primary_color, header_line_color, border_color, font_family, font_size, heading_font_size, body_font_size, table_font_size, show_logo, show_gstin, show_signature, show_page_number)
+INSERT INTO quotation_template_settings (company_name, company_address, phone, email, website, company_gst_number, header_alignment, logo_width, logo_height, primary_color, header_line_color, border_color, font_family, font_size, heading_font_size, body_font_size, table_font_size, show_logo, show_gstin, show_signature, show_page_number)
 SELECT 'SKUAS Pest Control Private Limited', '', '', '', '', '', 'left', 90, 70, '#9F174D', '#9F174D', '#cbd5e1', 'Helvetica', 10, 14, 10, 9, 1, 1, 1, 1
 WHERE NOT EXISTS (SELECT 1 FROM quotation_template_settings LIMIT 1);
 

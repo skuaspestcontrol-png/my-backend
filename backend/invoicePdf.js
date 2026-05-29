@@ -213,9 +213,6 @@ const resolveCompany = (settings = {}, invoice = {}) => {
       : pickFirstText(
         settings.companyGstNumber,
         settings.gstCompanyGstinNumber,
-        settings.gstinNumber,
-        settings.gstRegistrationNumber,
-        settings.gstin,
         settings.gstNumber
       ),
     logo,
@@ -283,12 +280,9 @@ const resolveBillTo = (invoice = {}, customer = {}) => {
     pincode: parts.pincode,
     gstin: pickFirstText(
       customer.gstNumber,
-      customer.gstin,
-      customer.companyGstNumber,
       customer.billingGstNumber,
       invoice.customerGstNumber,
-      invoice.gstNumber,
-      invoice.gstin
+      invoice.gstNumber
     )
   };
 };
@@ -319,12 +313,9 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
     pincode: parts.pincode,
     gstin: pickFirstText(
       customer.gstNumber,
-      customer.gstin,
-      customer.companyGstNumber,
       customer.shippingGstNumber,
       invoice.customerGstNumber,
-      invoice.gstNumber,
-      invoice.gstin
+      invoice.gstNumber
     )
   };
 };
