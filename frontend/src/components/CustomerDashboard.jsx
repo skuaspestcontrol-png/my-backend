@@ -478,6 +478,7 @@ export default function CustomerDashboard() {
   const [saveError, setSaveError] = useState('');
   const [similarCustomers, setSimilarCustomers] = useState([]);
   const [similarLoading, setSimilarLoading] = useState(false);
+  const [pendingPremises, setPendingPremises] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [addressSearchState, setAddressSearchState] = useState(createAddressSearchState);
   const [visibleColumns, setVisibleColumns] = useState(() => {
@@ -640,6 +641,7 @@ export default function CustomerDashboard() {
     setForm(normalizeIncomingCustomerPrefill(incomingState.prefillCustomerFromLead));
     setAddressSearchState(createAddressSearchState());
     setSaveError('');
+    setPendingPremises([]);
     setShowModal(true);
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate]);
@@ -1465,6 +1467,7 @@ export default function CustomerDashboard() {
     setSimilarCustomers([]);
     setAddressSearchState(createAddressSearchState());
     setSaveError('');
+    setPendingPremises([]);
     setShowModal(true);
     lastDisplayNameRef.current = '';
   };
@@ -1478,6 +1481,7 @@ export default function CustomerDashboard() {
     setSimilarCustomers([]);
     setAddressSearchState(createAddressSearchState());
     setSaveError('');
+    setPendingPremises([]);
     setShowModal(true);
     setShowMoreMenu(false);
     lastDisplayNameRef.current = String(selected.displayName || selected.name || '').trim();
@@ -1534,6 +1538,7 @@ export default function CustomerDashboard() {
     setEditingId(null);
     setSaveError('');
     setSimilarCustomers([]);
+    setPendingPremises([]);
     lastDisplayNameRef.current = '';
   };
 
@@ -1694,14 +1699,19 @@ export default function CustomerDashboard() {
     try {
       setIsSaving(true);
       setSaveError('');
-      if (editingId) {
-        await axios.put(`${API_BASE_URL}/api/customers/${editingId}`, payload);
-      } else {
-        await axios.post(`${API_BASE_URL}/api/customers`, payload);
+      const response = editingId
+        ? await axios.put(`${API_BASE_URL}/api/customers/${editingId}`, payload)
+        : await axios.post(`${API_BASE_URL}/api/customers`, payload);
+      const savedCustomerId = String(response?.data?._id || editingId || '').trim();
+      if (savedCustomerId && Array.isArray(pendingPremises) && pendingPremises.length > 0) {
+        for (const premise of pendingPremises) {
+          await axios.post(`${API_BASE_URL}/api/customers/${savedCustomerId}/premises`, premise);
+        }
       }
       setForm(emptyForm);
       setSimilarCustomers([]);
       setEditingId(null);
+      setPendingPremises([]);
       setShowModal(false);
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
     } catch (error) {
@@ -2979,6 +2989,8 @@ export default function CustomerDashboard() {
                 customer={customers.find((customer) => customer._id === editingId) || null}
                 form={form}
                 onError={setSaveError}
+                pendingPremises={pendingPremises}
+                onPendingPremisesChange={setPendingPremises}
               />
 
             </div>

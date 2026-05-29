@@ -62,6 +62,7 @@ const styles = {
   tags: { display: 'flex', gap: 6, flexWrap: 'wrap' },
   tag: { borderRadius: 999, padding: '3px 7px', fontSize: 10, fontWeight: 800, background: '#f1f5f9', color: '#334155' },
   defaultTag: { background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' },
+  pendingTag: { background: '#fff7ed', color: '#9a3412' },
   actions: { display: 'flex', gap: 6, flexWrap: 'wrap' },
   iconBtn: { width: 30, height: 30, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   addBtn: { minHeight: 34, borderRadius: 8, border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#fff', padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, cursor: 'pointer' },
@@ -118,14 +119,31 @@ const premiseAddressText = (premise = {}) => [
   [premise.country, premise.pincode].filter(Boolean).join(' ')
 ].filter(Boolean).join('\n');
 
-export default function CustomerPremisesPanel({ customerId, customer, form, onError }) {
+export default function CustomerPremisesPanel({
+  customerId,
+  customer,
+  form,
+  onError,
+  pendingPremises = [],
+  onPendingPremisesChange = () => {}
+}) {
   const [premises, setPremises] = useState([]);
   const [draft, setDraft] = useState(emptyPremise);
   const [editingId, setEditingId] = useState('');
   const [loading, setLoading] = useState(false);
 
   const legacyPremise = useMemo(() => buildLegacyPremise(customer, form), [customer, form]);
-  const visiblePremises = premises.length ? premises : [legacyPremise];
+  const visiblePremises = useMemo(() => {
+    const base = customerId ? premises : [legacyPremise, ...pendingPremises];
+    const seen = new Set();
+    return base.filter((premise) => {
+      const key = String(premise?.premiseId || premise?.premise_id || premise?.premiseLabel || premise?.premise_label || premise?.address || '').trim();
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [customerId, legacyPremise, pendingPremises, premises]);
 
   const loadPremises = async () => {
     if (!customerId) {
@@ -167,16 +185,40 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
   };
 
   const saveDraft = async () => {
-    if (!customerId) {
-      onError?.('Save customer first, then add additional premises.');
-      return;
-    }
     if (!String(draft.address || '').trim()) {
       onError?.('Premise address is required.');
       return;
     }
     if (draft.pincode && !/^\d{6}$/.test(String(draft.pincode))) {
       onError?.('Pincode should be exactly 6 digits.');
+      return;
+    }
+    if (!customerId) {
+      const tempPremiseId = editingId && editingId !== 'new'
+        ? editingId
+        : `TEMP-${Date.now()}`;
+      const nextPremise = normalizePremise({
+        ...draft,
+        premiseId: tempPremiseId,
+        premise_id: tempPremiseId,
+        premiseLabel: draft.premiseLabel || 'Shipping Address',
+        premiseType: 'Shipping',
+        isDefault: Boolean(draft.isDefault),
+        isShipping: true
+      });
+      onPendingPremisesChange((prev) => {
+        const list = Array.isArray(prev) ? [...prev] : [];
+        const idx = list.findIndex((premise) => String(premise?.premiseId || premise?.premise_id || '') === tempPremiseId);
+        if (idx >= 0) {
+          list[idx] = nextPremise;
+        } else {
+          list.push(nextPremise);
+        }
+        return list;
+      });
+      onError?.('');
+      setEditingId('');
+      setDraft(emptyPremise);
       return;
     }
     try {
@@ -196,7 +238,13 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
   };
 
   const deletePremise = async (premise) => {
-    if (!customerId || !premise?.premiseId) return;
+    if (!premise?.premiseId) return;
+    if (!customerId || String(premise.premiseId).startsWith('TEMP-')) {
+      onPendingPremisesChange((prev) => (Array.isArray(prev)
+        ? prev.filter((row) => String(row?.premiseId || row?.premise_id || '') !== String(premise.premiseId))
+        : []));
+      return;
+    }
     if (!window.confirm('Delete this premise? At least one active premise must remain.')) return;
     try {
       await axios.delete(`${API_BASE_URL}/api/customers/${customerId}/premises/${premise.premiseId}`);
@@ -209,7 +257,16 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
   };
 
   const setDefault = async (premise) => {
-    if (!customerId || !premise?.premiseId) return;
+    if (!premise?.premiseId) return;
+    if (!customerId || String(premise.premiseId).startsWith('TEMP-')) {
+      onPendingPremisesChange((prev) => (Array.isArray(prev)
+        ? prev.map((row) => ({
+          ...row,
+          isDefault: String(row?.premiseId || row?.premise_id || '') === String(premise.premiseId)
+        }))
+        : []));
+      return;
+    }
     try {
       await axios.post(`${API_BASE_URL}/api/customers/${customerId}/premises/${premise.premiseId}/set-default`);
       await loadPremises();
@@ -307,7 +364,7 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
           <h3 style={styles.title}>Shipping Addresses</h3>
           <p style={styles.sub}>{customerId ? 'Manage shipping addresses.' : 'Main shipping address will become the default premise after saving.'}</p>
         </div>
-        <button type="button" style={styles.addBtn} onClick={beginAdd} disabled={!customerId}>
+        <button type="button" style={styles.addBtn} onClick={beginAdd}>
           <Plus size={15} /> Add New Address
         </button>
       </div>
@@ -316,6 +373,7 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
         {visiblePremises.map((premise) => {
           const normalized = normalizePremise(premise);
           const active = normalized.isDefault;
+          const isPending = String(normalized.premiseId || normalized.premise_id || '').startsWith('TEMP-');
           return (
             <article key={normalized.premiseId || normalized.premise_id || 'legacy'} style={{ ...styles.card, ...(active ? styles.activeCard : {}) }}>
               <div style={styles.cardTop}>
@@ -336,6 +394,7 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
               <div style={styles.tags}>
                 {normalized.isDefault ? <span style={{ ...styles.tag, ...styles.defaultTag }}><Star size={11} /> Default</span> : null}
                 {normalized.isShipping ? <span style={styles.tag}>Shipping</span> : null}
+                {isPending ? <span style={{ ...styles.tag, ...styles.pendingTag }}>Pending</span> : null}
               </div>
               {customerId && !normalized.isDefault ? (
                 <button type="button" style={styles.secondaryBtn} onClick={() => setDefault(normalized)}><Check size={14} /> Set Default</button>
