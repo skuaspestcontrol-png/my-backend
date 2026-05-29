@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
+import { subscribeContractsRefresh, triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import useColumnResize from './table/useColumnResize';
 import {
   AlertCircle,
@@ -321,15 +321,28 @@ const deriveContractStatus = (invoiceStatus, startDate, endDate) => {
   return 'Active';
 };
 
-const openInvoicePdf = (invoiceId) => {
-  if (!invoiceId) return '';
-  return `${API_BASE}/api/invoices/${invoiceId}/pdf`;
+const addPdfCacheBust = (url, stamp = Date.now()) => {
+  const base = String(url || '').trim();
+  if (!base) return '';
+  try {
+    const parsed = new URL(base, window.location.origin);
+    parsed.searchParams.set('_v', String(stamp));
+    return parsed.toString();
+  } catch {
+    const separator = base.includes('?') ? '&' : '?';
+    return `${base}${separator}_v=${encodeURIComponent(String(stamp))}`;
+  }
 };
 
-  const openContractJobCardPdf = (invoiceId) => {
-    if (!invoiceId) return '';
-    return `${API_BASE}/api/contracts/${invoiceId}/job-card-summary-pdf`;
-  };
+const openInvoicePdf = (invoiceId) => {
+  if (!invoiceId) return '';
+  return addPdfCacheBust(`${API_BASE}/api/invoices/${invoiceId}/pdf`);
+};
+
+const openContractJobCardPdf = (invoiceId) => {
+  if (!invoiceId) return '';
+  return addPdfCacheBust(`${API_BASE}/api/contracts/${invoiceId}/job-card-summary-pdf`);
+};
 
   const findCustomerForInvoice = (invoice) =>
     customers.find((customer) =>
@@ -539,6 +552,26 @@ export default function ContractDashboard() {
   }, []);
 
   useAutoRefresh(() => loadContractsData({ silent: true }), { enabled: !customerSummary.open });
+
+  useEffect(() => {
+    const refreshOpenPdf = () => {
+      setPdfPreview((prev) => {
+        if (!prev.open || !prev.invoiceId || !prev.pdfUrl) return prev;
+        const invoiceId = String(prev.invoiceId || '').trim();
+        if (!invoiceId) return prev;
+        const nextUrl = String(prev.pdfUrl || '').includes('/job-card-summary-pdf')
+          ? addPdfCacheBust(`${API_BASE}/api/contracts/${invoiceId}/job-card-summary-pdf`)
+          : addPdfCacheBust(`${API_BASE}/api/invoices/${invoiceId}/pdf`);
+        return {
+          ...prev,
+          pdfUrl: nextUrl,
+          publicShareUrl: nextUrl
+        };
+      });
+    };
+
+    return subscribeContractsRefresh(refreshOpenPdf);
+  }, []);
 
   useEffect(() => {
     const onDocClick = (event) => {

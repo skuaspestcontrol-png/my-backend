@@ -31,7 +31,7 @@ const getApiErrorMessage = (error, fallback) => (
 
 const emptyPremise = {
   premiseLabel: '',
-  premiseType: 'Service',
+  premiseType: 'Billing',
   contactPerson: '',
   phone: '',
   email: '',
@@ -68,7 +68,7 @@ const styles = {
   actions: { display: 'flex', gap: 6, flexWrap: 'wrap' },
   iconBtn: { width: 30, height: 30, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   addBtn: { minHeight: 34, borderRadius: 8, border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#fff', padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, cursor: 'pointer' },
-  form: { border: '1px solid var(--color-primary-soft)', borderRadius: 10, padding: 10, display: 'grid', gap: 10, background: '#fdf2f8' },
+  form: { border: '1px solid var(--color-border)', borderRadius: 10, padding: 10, display: 'grid', gap: 10, background: '#f8fafc' },
   formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 8 },
   label: { display: 'grid', gap: 4, fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase' },
   input: { minHeight: 36, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', padding: '0 9px', fontSize: 13, color: '#111827' },
@@ -81,7 +81,7 @@ const normalizePremise = (premise = {}) => ({
   ...emptyPremise,
   ...premise,
   premiseLabel: premise.premiseLabel || premise.premise_label || '',
-  premiseType: premise.premiseType || premise.premise_type || 'Service',
+  premiseType: String(premise.premiseType || premise.premise_type || '').trim().toLowerCase() === 'shipping' ? 'Shipping' : 'Billing',
   contactPerson: premise.contactPerson || premise.contact_person || '',
   areaName: premise.areaName || premise.area_name || '',
   googleMapUrl: premise.googleMapUrl || premise.google_map_url || '',
@@ -97,7 +97,7 @@ const buildLegacyPremise = (customer = {}, form = {}) => {
 
   return normalizePremise({
   premiseId: 'legacy-main',
-  premiseLabel: 'Main / Billing Address',
+  premiseLabel: 'Billing Address',
   premiseType: 'Billing',
   contactPerson: safeForm.contactPersonName || safeCustomer.contactPersonName || safeCustomer.name || '',
   phone: safeForm.mobileNumber || safeCustomer.mobileNumber || safeCustomer.workPhone || '',
@@ -314,8 +314,8 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
     <section style={styles.wrap}>
       <div style={styles.head}>
         <div>
-          <h3 style={styles.title}>Premises / Service Addresses</h3>
-          <p style={styles.sub}>{customerId ? 'Manage billing, shipping, and service premises.' : 'Main address will become the default premise after saving.'}</p>
+          <h3 style={styles.title}>Billing / Shipping Addresses</h3>
+          <p style={styles.sub}>{customerId ? 'Manage billing and shipping addresses.' : 'Main address will become the default premise after saving.'}</p>
         </div>
         <button type="button" style={styles.addBtn} onClick={beginAdd} disabled={!customerId}>
           <Plus size={15} /> Add New Address
@@ -344,7 +344,6 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
               </div>
               <div style={styles.tags}>
                 {normalized.isDefault ? <span style={{ ...styles.tag, ...styles.defaultTag }}><Star size={11} /> Default</span> : null}
-                <span style={styles.tag}>{normalized.premiseType}</span>
                 {normalized.isBilling ? <span style={styles.tag}>Billing</span> : null}
                 {normalized.isShipping ? <span style={styles.tag}>Shipping</span> : null}
               </div>
@@ -362,7 +361,7 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
         <div style={styles.form}>
           <div style={styles.formGrid}>
             <label style={styles.label}>Premise Label<input style={styles.input} value={draft.premiseLabel} onChange={(e) => setDraft((p) => ({ ...p, premiseLabel: e.target.value }))} /></label>
-            <label style={styles.label}>Premise Type<select style={styles.input} value={draft.premiseType} onChange={(e) => setDraft((p) => ({ ...p, premiseType: e.target.value }))}><option>Billing</option><option>Shipping</option><option>Service</option><option>Other</option></select></label>
+            <label style={styles.label}>Premise Type<select style={styles.input} value={draft.premiseType} onChange={(e) => setDraft((p) => ({ ...p, premiseType: e.target.value === 'Shipping' ? 'Shipping' : 'Billing' }))}><option>Billing</option><option>Shipping</option></select></label>
             <label style={styles.label}>Contact Person<input style={styles.input} value={draft.contactPerson} onChange={(e) => setDraft((p) => ({ ...p, contactPerson: e.target.value }))} /></label>
             <label style={styles.label}>Phone<input style={styles.input} inputMode="numeric" value={draft.phone} onChange={(e) => setDraft((p) => ({ ...p, phone: normalizeIndianMobileNumber(e.target.value) }))} /></label>
             <label style={styles.label}>Email<input style={styles.input} value={draft.email} onChange={(e) => setDraft((p) => ({ ...p, email: e.target.value }))} /></label>
@@ -372,7 +371,6 @@ export default function CustomerPremisesPanel({ customerId, customer, form, onEr
             <label style={styles.label}>State<input style={styles.input} value={draft.state} onChange={(e) => setDraft((p) => ({ ...p, state: e.target.value, placeOfSupply: p.placeOfSupply || e.target.value }))} /></label>
             <label style={styles.label}>Pincode<input style={styles.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={draft.pincode} onChange={(e) => setDraft((p) => ({ ...p, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))} /></label>
             <label style={styles.label}>Country<input style={styles.input} value={draft.country} onChange={(e) => setDraft((p) => ({ ...p, country: e.target.value }))} /></label>
-            <label style={styles.label}>GSTIN<input style={styles.input} value={draft.gstin} onChange={(e) => setDraft((p) => ({ ...p, gstin: e.target.value.toUpperCase() }))} /></label>
             <label style={styles.label}>Place of Supply<input style={styles.input} value={draft.placeOfSupply} onChange={(e) => setDraft((p) => ({ ...p, placeOfSupply: e.target.value }))} /></label>
             <label style={styles.label}>Google Map URL<input style={styles.input} value={draft.googleMapUrl} onPaste={(event) => {
               const pastedText = String(event.clipboardData?.getData('text') || '').trim();

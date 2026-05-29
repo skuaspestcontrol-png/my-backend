@@ -11,6 +11,7 @@ import {
 } from '../utils/invoicePreferences';
 import { normalizeIndianMobileNumber } from '../utils/phone';
 import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
+import { triggerContractsRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import PdfPreviewModal from './PdfPreviewModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -1048,6 +1049,19 @@ export default function InvoiceDashboard() {
     return `${safePrefs.prefix}${String(next).padStart(safePrefs.padding, '0')}`;
   };
 
+  const addPdfCacheBust = (url, stamp = Date.now()) => {
+    const base = String(url || '').trim();
+    if (!base) return '';
+    try {
+      const parsed = new URL(base, window.location.origin);
+      parsed.searchParams.set('_v', String(stamp));
+      return parsed.toString();
+    } catch {
+      const separator = base.includes('?') ? '&' : '?';
+      return `${base}${separator}_v=${encodeURIComponent(String(stamp))}`;
+    }
+  };
+
   const getDefaultTermsForInvoiceType = (invoiceType) => {
     const normalized = normalizeInvoiceType(invoiceType);
     if (normalized === 'NON GST') {
@@ -1403,7 +1417,7 @@ export default function InvoiceDashboard() {
   const openInvoicePdfPreview = (invoice) => {
     if (!invoice?._id) return;
     const invoiceNumber = String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || 'Invoice').trim();
-    const pdfUrl = `${API_BASE_URL}/api/invoices/${invoice._id}/pdf`;
+    const pdfUrl = addPdfCacheBust(`${API_BASE_URL}/api/invoices/${invoice._id}/pdf`);
     setPdfPreview({
       open: true,
       title: `Invoice - ${invoiceNumber}`,
@@ -2084,7 +2098,16 @@ export default function InvoiceDashboard() {
       setShowModal(false);
       setModalOpenedFromContract(false);
       await loadInvoices();
+      if (pdfPreview.open && String(pdfPreview.invoiceId || '') === String(editingId || '')) {
+        const refreshedPdfUrl = addPdfCacheBust(`${API_BASE_URL}/api/invoices/${editingId}/pdf`);
+        setPdfPreview((prev) => ({
+          ...prev,
+          pdfUrl: refreshedPdfUrl,
+          publicShareUrl: refreshedPdfUrl
+        }));
+      }
       triggerSalesPerformanceRefresh();
+      triggerContractsRefresh();
     } catch (error) {
       console.error('Failed to save invoice', error);
       setSaveError(error?.response?.data?.error || 'Unable to save invoice. Please ensure backend server is running on port 5000.');
@@ -2100,6 +2123,7 @@ export default function InvoiceDashboard() {
       setShowMoreMenu(false);
       await loadInvoices();
       triggerSalesPerformanceRefresh();
+      triggerContractsRefresh();
     } catch (error) {
       console.error('Failed to delete invoices', error);
     }

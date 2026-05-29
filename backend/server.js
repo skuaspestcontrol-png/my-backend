@@ -4100,9 +4100,7 @@ const normalizePremisePayload = (body = {}, customer = {}, fallbackId = '') => {
     premiseCode: String(body.premiseCode || body.premise_code || body.premiseId || body.premise_id || fallbackId || `PREM-${Date.now()}`).trim(),
     premiseLabel: String(body.premiseLabel || body.premise_label || '').trim() || 'Main Premise',
     premiseName: String(body.premiseName || body.premise_name || body.premiseLabel || body.premise_label || '').trim() || 'Main Premise',
-    premiseType: ['Billing', 'Shipping', 'Service', 'Other'].includes(body.premiseType || body.premise_type)
-      ? (body.premiseType || body.premise_type)
-      : 'Service',
+    premiseType: String(body.premiseType || body.premise_type || '').trim().toLowerCase() === 'shipping' ? 'Shipping' : 'Billing',
     contactPerson: String(body.contactPerson || body.contact_person || customer.contactPersonName || customer.name || '').trim(),
     attentionName: String(body.attentionName || body.attention_name || body.contactPerson || body.contact_person || customer.contactPersonName || customer.name || '').trim(),
     phone: normalizeOptionalIndianMobileNumber(body.phone || customer.mobileNumber || customer.workPhone || ''),
@@ -4343,7 +4341,7 @@ const legacyCustomerToPremise = (customer = {}, rowId) => {
   const shippingAddress = String(customer.shippingAddress || [customer.shippingStreet1, customer.shippingStreet2].filter(Boolean).join(', ')).trim();
   return normalizePremisePayload({
     premiseId: `PREM-${customer._id || rowId}-MAIN`,
-    premiseLabel: 'Main / Billing Address',
+    premiseLabel: 'Billing Address',
     premiseType: 'Billing',
     contactPerson: customer.contactPersonName || customer.name || '',
     phone: customer.mobileNumber || customer.workPhone || '',

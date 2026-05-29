@@ -300,7 +300,7 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
     prefix: 'shipping',
     fallbackAddress: customer.shippingAddress || customer.billingAddress,
     invoiceFields: {
-      attention: invoice.premiseLabel || invoice.shippingAttention || '',
+      attention: invoice.shippingAttention || customer.shippingAttention || '',
       street1: invoice.premiseAddress || '',
       street2: '',
       area: invoice.premiseAreaName || '',
@@ -308,7 +308,7 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
       pincode: invoice.premisePincode || ''
     }
   });
-  const title = clean(invoice.premiseLabel) || clean(customer.shippingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
+  const title = clean(invoice.shippingAttention) || clean(customer.shippingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
   return {
     title,
     attention: clean(parts.attention || title),

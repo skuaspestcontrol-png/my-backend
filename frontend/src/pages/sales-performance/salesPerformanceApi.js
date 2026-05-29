@@ -2,6 +2,7 @@ import axios from 'axios';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const SALES_PERFORMANCE_REFRESH_KEY = 'sales_performance_refresh_at';
+const CONTRACTS_REFRESH_KEY = 'contracts_refresh_at';
 
 export const currentYear = new Date().getFullYear();
 export const currentMonth = new Date().getMonth() + 1;
@@ -80,6 +81,29 @@ export const subscribeSalesPerformanceRefresh = (handler) => {
   window.addEventListener('storage', onStorageRefresh);
   return () => {
     window.removeEventListener('sales-performance:refresh', onCustomRefresh);
+    window.removeEventListener('storage', onStorageRefresh);
+  };
+};
+
+export const triggerContractsRefresh = () => {
+  const stamp = String(Date.now());
+  try {
+    window.localStorage.setItem(CONTRACTS_REFRESH_KEY, stamp);
+  } catch (_error) {}
+  try {
+    window.dispatchEvent(new CustomEvent('contracts:refresh', { detail: { stamp } }));
+  } catch (_error) {}
+};
+
+export const subscribeContractsRefresh = (handler) => {
+  const onCustomRefresh = () => handler();
+  const onStorageRefresh = (event) => {
+    if (event.key === CONTRACTS_REFRESH_KEY) handler();
+  };
+  window.addEventListener('contracts:refresh', onCustomRefresh);
+  window.addEventListener('storage', onStorageRefresh);
+  return () => {
+    window.removeEventListener('contracts:refresh', onCustomRefresh);
     window.removeEventListener('storage', onStorageRefresh);
   };
 };

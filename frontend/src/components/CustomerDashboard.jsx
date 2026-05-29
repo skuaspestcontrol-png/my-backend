@@ -2449,7 +2449,7 @@ export default function CustomerDashboard() {
                               <tr>
                                 <th style={shell.historyHeadCellCompact}>Date</th>
                                 <th style={shell.historyHeadCellCompact}>Contract</th>
-                                <th style={shell.historyHeadCellCompact}>Service</th>
+                                <th style={shell.historyHeadCellCompact}>Visit</th>
                                 <th style={shell.historyHeadCellCompact}>Visit Type</th>
                                 <th style={shell.historyHeadCellCompact}>Revenue</th>
                                 <th style={shell.historyHeadCellCompact}>Total Cost</th>
