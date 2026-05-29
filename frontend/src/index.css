@@ -89,6 +89,18 @@ body {
   overflow-y: auto;
 }
 
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
 .crm-page {
   width: 100%;
   max-width: 100%;
@@ -702,6 +714,42 @@ button {
   .crm-modal-footer .crm-btn,
   .crm-modal-footer button {
     flex: 0 1 auto;
+  }
+
+  .crm-form-label {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .crm-check-row,
+  .crm-radio-row {
+    gap: 6px 10px;
+    font-size: 12px;
+  }
+
+  .crm-check-row label,
+  .crm-radio-row label,
+  .crm-modal label:has(input[type="checkbox"]),
+  .crm-modal label:has(input[type="radio"]) {
+    gap: 6px;
+  }
+
+  .crm-input,
+  .crm-select,
+  .crm-textarea,
+  .crm-modal input:not([type="checkbox"]):not([type="radio"]),
+  .crm-modal select,
+  .crm-modal textarea {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+
+  .crm-textarea,
+  .crm-modal textarea {
+    min-height: 72px;
+    padding: 8px 10px;
   }
 }
 
