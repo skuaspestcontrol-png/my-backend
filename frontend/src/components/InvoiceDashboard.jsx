@@ -166,6 +166,16 @@ const emptyForm = {
   invoiceType: 'GST',
   billingAddressSource: 'billing',
   shippingAddressSource: 'shipping',
+  billingAddressText: '',
+  shippingAddressText: '',
+  customerPremiseId: '',
+  premiseLabel: '',
+  premiseAddress: '',
+  premiseAreaName: '',
+  premiseCity: '',
+  premiseState: '',
+  premisePincode: '',
+  premiseGoogleMapUrl: '',
   customShippingAddresses: [],
   placeOfSupply: '',
   invoiceNumber: '',
@@ -630,6 +640,13 @@ const addressOptionText = (option) => {
   return [displayName, street1, street2, area, statePin].filter(Boolean).join('\n');
 };
 
+const getAddressDisplayText = (option, fallbackText = '') => {
+  const resolved = addressOptionText(option);
+  if (resolved !== 'No address selected') return resolved;
+  const fallback = String(fallbackText || '').trim();
+  return fallback || 'No address selected';
+};
+
 const getEmployeeDisplayName = (employee = {}) => {
   const first = String(employee.firstName || '').trim();
   const last = String(employee.lastName || '').trim();
@@ -912,6 +929,28 @@ export default function InvoiceDashboard() {
     },
     [shippingAddressOptions, form.shippingAddressSource]
   );
+
+  useEffect(() => {
+    const customerId = String(form.customerId || '').trim();
+    if (!customerId) return;
+    if (Object.prototype.hasOwnProperty.call(customerPremises, customerId)) return;
+
+    let alive = true;
+    axios.get(`${API_BASE_URL}/api/customers/${customerId}/premises`)
+      .then((res) => {
+        if (!alive) return;
+        const rows = Array.isArray(res.data) ? res.data : [];
+        setCustomerPremises((prev) => ({ ...prev, [customerId]: rows }));
+      })
+      .catch((error) => {
+        if (!alive) return;
+        console.error('Failed to load customer premises', error);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [form.customerId, customerPremises]);
 
   const salespersonOptions = useMemo(() => {
     const team = Array.isArray(employees) ? employees : [];
@@ -1296,6 +1335,16 @@ export default function InvoiceDashboard() {
       invoiceType,
       billingAddressSource: invoice.billingAddressSource || 'billing',
       shippingAddressSource: invoice.shippingAddressSource || 'shipping',
+      billingAddressText: invoice.billingAddressText || '',
+      shippingAddressText: invoice.shippingAddressText || '',
+      customerPremiseId: invoice.customerPremiseId || '',
+      premiseLabel: invoice.premiseLabel || '',
+      premiseAddress: invoice.premiseAddress || '',
+      premiseAreaName: invoice.premiseAreaName || '',
+      premiseCity: invoice.premiseCity || '',
+      premiseState: invoice.premiseState || '',
+      premisePincode: invoice.premisePincode || '',
+      premiseGoogleMapUrl: invoice.premiseGoogleMapUrl || '',
       customShippingAddresses: Array.isArray(invoice.customShippingAddresses)
         ? invoice.customShippingAddresses.map((address) => ({
           ...address,
@@ -2550,7 +2599,7 @@ export default function InvoiceDashboard() {
                       </button>
                     </div>
                   </div>
-                  <p style={shell.addressText}>{addressOptionText(selectedBillingAddress)}</p>
+                  <p style={shell.addressText}>{getAddressDisplayText(selectedBillingAddress, form.billingAddressText)}</p>
                 </div>
                 <div style={shell.addressCard}>
                   <div style={shell.addressHead}>
@@ -2566,7 +2615,7 @@ export default function InvoiceDashboard() {
                       </button>
                     </div>
                   </div>
-                  <p style={shell.addressText}>{addressOptionText(selectedShippingAddress)}</p>
+                  <p style={shell.addressText}>{getAddressDisplayText(selectedShippingAddress, form.shippingAddressText || form.premiseAddress)}</p>
                 </div>
               </div>
 
