@@ -7095,6 +7095,10 @@ const normalizePaymentSplits = (rawSplits) => {
 };
 
 const serviceFrequencyConfig = {
+  initial_treatment_one_year_warranty: { type: 'single_once' },
+  initial_treatment_two_year_warranty: { type: 'single_once' },
+  initial_treatment_three_year_warranty: { type: 'single_once' },
+  single_treatment_no_followup: { type: 'single_once' },
   single_followup_7: { type: 'followup_days', value: 7 },
   single_followup_10: { type: 'followup_days', value: 10 },
   weekly: { type: 'interval_days', value: 7 },
@@ -7102,7 +7106,8 @@ const serviceFrequencyConfig = {
   monthly: { type: 'interval_months', value: 1 },
   bi_monthly: { type: 'interval_months', value: 2 },
   quarterly_visits: { type: 'interval_months', value: 3 },
-  three_treatment_every_4_months: { type: 'interval_months', value: 4 }
+  three_treatment_every_4_months: { type: 'interval_months', value: 4, maxServices: 3 },
+  initial_spray_gel_batting_7_then_4m: { type: 'followup_then_interval_months', followupDays: 7, intervalMonths: 4 }
 };
 
 const contractPeriodConfig = {
@@ -7199,6 +7204,10 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, maxSe
   const end = parseDateOnly(endDateStr);
   if (!cfg || !start || !end || end < start) return [];
 
+  if (cfg.type === 'single_once') {
+    return [formatDateInput(start)];
+  }
+
   if (cfg.type === 'followup_days') {
     const dates = [formatDateInput(start)];
     const followup = new Date(start);
@@ -7207,20 +7216,45 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, maxSe
     return dates;
   }
 
+  if (cfg.type === 'followup_then_interval_months') {
+    const dates = [formatDateInput(start)];
+    const intervalMonths = Number(cfg.intervalMonths || 0);
+    if (intervalMonths <= 0) return dates;
+    const followup = new Date(start);
+    followup.setDate(followup.getDate() + Number(cfg.followupDays || 0));
+    if (followup <= end && dates.length < maxServices) {
+      dates.push(formatDateInput(followup));
+    }
+
+    let cursor = new Date(start);
+    while (dates.length < maxServices) {
+      cursor = addMonthsClamped(cursor, intervalMonths);
+      if (cursor > end) break;
+      const nextDate = formatDateInput(cursor);
+      if (!dates.includes(nextDate)) dates.push(nextDate);
+    }
+    return dates;
+  }
+
   const dates = [];
   let cursor = new Date(start);
   let guard = 0;
-  while (cursor <= end && guard < maxServices) {
-    dates.push(formatDateInput(cursor));
-    guard += 1;
+  while (guard < maxServices) {
     if (cfg.type === 'interval_days') {
       cursor = new Date(cursor);
       cursor.setDate(cursor.getDate() + cfg.value);
     } else {
       cursor = addMonthsClamped(cursor, cfg.value);
     }
+    if (cursor > end) break;
+    const nextDate = formatDateInput(cursor);
+    if (!dates.includes(nextDate)) {
+      dates.push(nextDate);
+      guard += 1;
+    }
+    if (cfg.maxServices && dates.length >= cfg.maxServices) break;
   }
-  return dates;
+  return dates.length > 0 ? dates : [formatDateInput(start)];
 };
 
 const normalizeServiceSchedules = (rawSchedules, defaultTime = '10:00') => {

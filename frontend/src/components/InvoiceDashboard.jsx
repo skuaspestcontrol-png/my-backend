@@ -27,7 +27,7 @@ const contractPeriodOptions = [
   { value: 'fortnightly_visits', label: 'Fortnightly Visits' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'bi_monthly', label: 'Bi-Monthly' },
-  { value: 'quarterly', label: 'Quaterly' },
+  { value: 'quarterly', label: 'Quarterly' },
   { value: 'half_yearly', label: 'Half Yearly' },
   { value: 'annual', label: 'Annual' },
   { value: 'two_years', label: '2 years' },
@@ -46,9 +46,9 @@ const serviceFrequencyOptions = [
   { value: 'fortnightly', label: 'Fortnightly' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'bi_monthly', label: 'Bi-Monthly' },
-  { value: 'quarterly_visits', label: 'Quaterly Visits' },
-  { value: 'three_treatment_every_4_months', label: 'Three treatment Every 4th Months' },
-  { value: 'initial_spray_gel_batting_7_then_4m', label: 'Initial Spray treatment with Gel Batting after 7 days then Every 4 Months' }
+  { value: 'quarterly_visits', label: 'Quarterly Visits' },
+  { value: 'three_treatment_every_4_months', label: 'Three treatments every 4 months' },
+  { value: 'initial_spray_gel_batting_7_then_4m', label: 'Initial spray treatment with gel batting after 7 days, then every 4 months' }
 ].sort((a, b) => a.label.localeCompare(b.label));
 const contractPeriodConfig = {
   single_time: { unit: 'days', value: 1 },
@@ -76,7 +76,7 @@ const serviceFrequencyConfig = {
   monthly: { type: 'interval_months', value: 1 },
   bi_monthly: { type: 'interval_months', value: 2 },
   quarterly_visits: { type: 'interval_months', value: 3 },
-  three_treatment_every_4_months: { type: 'interval_months', value: 4 },
+  three_treatment_every_4_months: { type: 'interval_months', value: 4, maxServices: 3 },
   initial_spray_gel_batting_7_then_4m: { type: 'followup_then_interval_months', followupDays: 7, intervalMonths: 4 }
 };
 const gstStateOptions = [
@@ -446,16 +446,21 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, maxSe
   let cursor = new Date(start);
   let guard = 0;
   while (cursor <= end && guard < maxServices) {
-    dates.push(formatDateInput(cursor));
-    guard += 1;
     if (cfg.type === 'interval_days') {
       cursor = new Date(cursor);
       cursor.setDate(cursor.getDate() + cfg.value);
     } else {
       cursor = addMonthsClamped(cursor, cfg.value);
     }
+    if (cursor > end) break;
+    const nextDate = formatDateInput(cursor);
+    if (!dates.includes(nextDate)) {
+      dates.push(nextDate);
+      guard += 1;
+    }
+    if (cfg.maxServices && dates.length >= cfg.maxServices) break;
   }
-  return dates;
+  return dates.length > 0 ? dates : [formatDateInput(start)];
 };
 
 const countServicesByFrequency = (startDateStr, endDateStr, frequency) => {
@@ -469,8 +474,8 @@ const buildServiceScheduleEntries = (items = [], defaultTime = '10:00') => {
 
   items.forEach((line, lineIndex) => {
     const baseDates = buildServiceDatesByFrequency(
-      line.contractStartDate,
-      line.contractEndDate,
+      line.contractStartDate || line.serviceStartDate,
+      line.contractEndDate || line.serviceEndDate,
       line.serviceFrequency
     );
     if (baseDates.length === 0) return;
