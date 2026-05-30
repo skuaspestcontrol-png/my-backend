@@ -305,6 +305,9 @@ const emptyForm = {
 };
 
 const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
+const MORE_MENU_APPROX_WIDTH = 170;
+const MORE_MENU_APPROX_HEIGHT = 270;
+const MORE_MENU_GAP = 4;
 
 const shell = {
   page: { background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,251,0.94) 100%)', border: '1px solid var(--color-border)', borderRadius: '20px', boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)', overflow: 'visible', position: 'relative', backgroundClip: 'padding-box' },
@@ -343,7 +346,7 @@ const shell = {
   },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
-  menu: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', width: '170px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 35, overflow: 'hidden', padding: 0 },
+  menu: { position: 'fixed', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', width: '170px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 1200, overflow: 'hidden', padding: 0 },
   menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '6px 10px', fontSize: '11px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', lineHeight: 1.1, minHeight: '30px' },
   menuButtonDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '6px 10px', fontSize: '11px', fontWeight: 600, lineHeight: 1.1, minHeight: '30px' },
   popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '250px', zIndex: 40 },
@@ -618,6 +621,7 @@ export default function CustomerDashboard() {
   const [payments, setPayments] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [moreMenuPosition, setMoreMenuPosition] = useState(null);
   const [showCustomize, setShowCustomize] = useState(false);
   const [showImportWizard, setShowImportWizard] = useState(false);
   const [showDuplicateReport, setShowDuplicateReport] = useState(false);
@@ -741,6 +745,41 @@ export default function CustomerDashboard() {
       setDuplicateRows([]);
       setPossibleDuplicateIds([]);
     }
+  };
+
+  const closeMoreMenu = () => {
+    closeMoreMenu();
+    setMoreMenuPosition(null);
+  };
+
+  const openMoreMenu = (event) => {
+    if (showMoreMenu) {
+      closeMoreMenu();
+      return;
+    }
+
+    const triggerRect = event.currentTarget.getBoundingClientRect();
+    const viewportPadding = MORE_MENU_GAP;
+    const maxLeft = window.innerWidth - MORE_MENU_APPROX_WIDTH - viewportPadding;
+    const anchorLeft = Math.max(
+      viewportPadding,
+      Math.min(maxLeft, triggerRect.right - MORE_MENU_APPROX_WIDTH)
+    );
+
+    const belowTop = triggerRect.bottom + MORE_MENU_GAP;
+    const aboveTop = triggerRect.top - MORE_MENU_APPROX_HEIGHT - MORE_MENU_GAP;
+    const maxTop = window.innerHeight - MORE_MENU_APPROX_HEIGHT - viewportPadding;
+    const hasRoomBelow = belowTop + MORE_MENU_APPROX_HEIGHT <= window.innerHeight - viewportPadding;
+    const anchorTop = Math.max(
+      viewportPadding,
+      Math.min(maxTop, hasRoomBelow ? belowTop : aboveTop)
+    );
+
+    setMoreMenuPosition({
+      left: anchorLeft,
+      top: anchorTop
+    });
+    setShowMoreMenu(true);
   };
 
   const loadTransactions = async () => {
@@ -1058,14 +1097,14 @@ export default function CustomerDashboard() {
         moreMenuButtonRef.current &&
         !moreMenuButtonRef.current.contains(target)
       ) {
-        setShowMoreMenu(false);
+        closeMoreMenu();
       }
     };
 
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
         setShowCustomize(false);
-        setShowMoreMenu(false);
+        closeMoreMenu();
         setShowHistory(false);
       }
     };
@@ -1733,7 +1772,7 @@ export default function CustomerDashboard() {
     setDuplicateConflict(null);
     setPendingPremises([]);
     setShowModal(true);
-    setShowMoreMenu(false);
+    closeMoreMenu();
     lastDisplayNameRef.current = String(selected.displayName || selected.name || '').trim();
   };
 
@@ -2111,7 +2150,7 @@ export default function CustomerDashboard() {
     if (!ok) return;
     try {
       await Promise.all(selectedIds.map((id) => axios.delete(`${API_BASE_URL}/api/customers/${id}`)));
-      setShowMoreMenu(false);
+      closeMoreMenu();
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
     } catch (error) {
       console.error('Failed to delete customers', error);
@@ -2125,7 +2164,7 @@ export default function CustomerDashboard() {
     if (!ok) return;
     try {
       await Promise.all(ids.map((id) => axios.delete(`${API_BASE_URL}/api/customers/${id}`)));
-      setShowMoreMenu(false);
+      closeMoreMenu();
       setSelectedIds([]);
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
     } catch (error) {
@@ -2138,14 +2177,14 @@ export default function CustomerDashboard() {
     const ids = Array.from(new Set((duplicateRows || []).map((row) => row.customerBId).filter(Boolean)));
     if (ids.length === 0) {
       window.alert('No duplicate report customers found to delete.');
-      setShowMoreMenu(false);
+      closeMoreMenu();
       return;
     }
     const ok = window.confirm(`Delete ${ids.length} duplicate customer${ids.length === 1 ? '' : 's'} from the duplicate report? The first customer in each pair will be kept.`);
     if (!ok) return;
     try {
       await Promise.all(ids.map((id) => axios.delete(`${API_BASE_URL}/api/customers/${id}`)));
-      setShowMoreMenu(false);
+      closeMoreMenu();
       setSelectedIds((prev) => prev.filter((id) => !ids.includes(id)));
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
     } catch (error) {
@@ -2202,7 +2241,7 @@ export default function CustomerDashboard() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    setShowMoreMenu(false);
+    closeMoreMenu();
   };
 
   const downloadSampleImportCsv = () => {
@@ -2212,13 +2251,13 @@ export default function CustomerDashboard() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setShowMoreMenu(false);
+    closeMoreMenu();
   };
 
   const mergeSelectedCustomers = async () => {
     if (selectedIds.length !== 2) {
       window.alert('Select exactly 2 customers to merge.');
-      setShowMoreMenu(false);
+      closeMoreMenu();
       return;
     }
     const targetCustomerId = selectedIds[0];
@@ -2235,7 +2274,7 @@ export default function CustomerDashboard() {
       window.alert('Customers merged successfully.');
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
       setSelectedIds([]);
-      setShowMoreMenu(false);
+      closeMoreMenu();
     } catch (error) {
       console.error('Customer merge failed', error);
       window.alert(error?.response?.data?.error || 'Unable to merge selected customers.');
@@ -2510,18 +2549,24 @@ export default function CustomerDashboard() {
             <Plus size={16} />
             New Customer
           </button>
-          <div style={{ position: 'relative' }}>
-            <button
-              ref={moreMenuButtonRef}
-              type="button"
-              style={toolbarIconButtonStyle}
-              aria-label="More options"
-              onClick={() => setShowMoreMenu((prev) => !prev)}
+          <button
+            ref={moreMenuButtonRef}
+            type="button"
+            style={toolbarIconButtonStyle}
+            aria-label="More options"
+            onClick={openMoreMenu}
+          >
+            <MoreHorizontal size={14} />
+          </button>
+          {showMoreMenu && moreMenuPosition ? (
+            <div
+              ref={moreMenuRef}
+              style={{
+                ...shell.menu,
+                left: `${moreMenuPosition.left}px`,
+                top: `${moreMenuPosition.top}px`
+              }}
             >
-              <MoreHorizontal size={14} />
-            </button>
-            {showMoreMenu ? (
-              <div ref={moreMenuRef} style={shell.menu}>
                 <button
                   type="button"
                   style={selectedIds.length === 1 ? shell.menuButton : shell.menuButtonDisabled}
@@ -2537,7 +2582,7 @@ export default function CustomerDashboard() {
                   style={shell.menuButton}
                   onClick={() => {
                     setShowImportWizard(true);
-                    setShowMoreMenu(false);
+                    closeMoreMenu();
                   }}
                 >
                   Import Data (Dedup Wizard)
@@ -2550,7 +2595,7 @@ export default function CustomerDashboard() {
                   style={shell.menuButton}
                   onClick={() => {
                     setShowDuplicateReport(true);
-                    setShowMoreMenu(false);
+                    closeMoreMenu();
                   }}
                 >
                   Duplicate Report
@@ -2572,9 +2617,8 @@ export default function CustomerDashboard() {
                 >
                   Merge Selected ({selectedIds.length}/2)
                 </button>
-              </div>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
       </div>
       <div style={toolbarStyle}>
