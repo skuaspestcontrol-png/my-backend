@@ -3311,6 +3311,70 @@ const hydrateCustomerMysqlRow = (row = {}) => {
   };
 };
 
+const normalizeCustomerGuardText = (value) => String(value || '')
+  .replace(/[\n\r,;]+/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .toLowerCase();
+
+const normalizeCustomerGuardEmail = (value) => normalizeCustomerGuardText(value);
+const normalizeCustomerGuardPhone = (value) => normalizeIndianMobileNumber(value);
+
+const buildCustomerDuplicateProfile = (customer = {}) => {
+  const nameKeys = [
+    customer.displayName,
+    customer.name,
+    customer.companyName,
+    customer.contactPersonName
+  ]
+    .map((value) => normalizeCustomerGuardText(value))
+    .filter(Boolean);
+  const billingAddress = normalizeCustomerGuardText(
+    customer.billingAddress || customer.address || [customer.billingStreet1, customer.billingStreet2].filter(Boolean).join(', ')
+  );
+  const shippingAddress = normalizeCustomerGuardText(
+    customer.shippingAddress || [customer.shippingStreet1, customer.shippingStreet2].filter(Boolean).join(', ')
+  );
+
+  return {
+    _id: String(customer._id || '').trim(),
+    nameKeys: Array.from(new Set(nameKeys)),
+    mobileNumber: normalizeCustomerGuardPhone(customer.mobileNumber || customer.workPhone || ''),
+    email: normalizeCustomerGuardEmail(customer.emailId || customer.email || ''),
+    billingAddress,
+    shippingAddress
+  };
+};
+
+const isExactCustomerDuplicate = (candidate = {}, existingCustomer = {}) => {
+  const importProfile = buildCustomerDuplicateProfile(candidate);
+  const existingProfile = buildCustomerDuplicateProfile(existingCustomer);
+  const existingNameKeys = new Set(existingProfile.nameKeys);
+  const nameMatch = importProfile.nameKeys.some((value) => existingNameKeys.has(value));
+  const mobileMatch = Boolean(importProfile.mobileNumber && existingProfile.mobileNumber && importProfile.mobileNumber === existingProfile.mobileNumber);
+  const emailMatch = Boolean(importProfile.email && existingProfile.email && importProfile.email === existingProfile.email);
+  const billingAddressMatch = Boolean(importProfile.billingAddress && existingProfile.billingAddress && importProfile.billingAddress === existingProfile.billingAddress);
+  const shippingAddressMatch = Boolean(importProfile.shippingAddress && existingProfile.shippingAddress && importProfile.shippingAddress === existingProfile.shippingAddress);
+  const addressMatch = billingAddressMatch || shippingAddressMatch;
+
+  return (
+    (nameMatch && (mobileMatch || emailMatch || addressMatch))
+    || (mobileMatch && (emailMatch || addressMatch))
+    || (emailMatch && addressMatch)
+  );
+};
+
+const findExactCustomerDuplicate = (candidate, customers = [], excludedCustomerId = '') => {
+  const excludedId = String(excludedCustomerId || '').trim();
+  return Array.isArray(customers)
+    ? customers.find((existingCustomer) => {
+      if (!existingCustomer || existingCustomer.active === false || existingCustomer.isMerged) return false;
+      if (excludedId && String(existingCustomer._id || '').trim() === excludedId) return false;
+      return isExactCustomerDuplicate(candidate, existingCustomer);
+    }) || null
+    : null;
+};
+
 const premiseSnapshotColumns = [
   { name: 'customer_premise_id', definition: 'VARCHAR(100) NULL' },
   { name: 'premise_label', definition: 'VARCHAR(255) NULL' },
@@ -6567,6 +6631,7 @@ app.post('/api/customers', async (req, res) => {
     const mobileValue = body.mobileNumber || body.workPhone || '';
     const whatsappValue = body.whatsappNumber || mobileValue;
     const altNumberValue = body.altNumber || '';
+    const duplicateOverrideReason = String(body.duplicateOverrideReason || '').trim();
     const billingPhoneValue = body.billingPhone || '';
     const shippingPhoneValue = body.shippingPhone || '';
     const googlePhoneValue = body.googlePhone || body.google_phone || body.billingGooglePhone || '';
@@ -6645,18 +6710,53 @@ app.post('/api/customers', async (req, res) => {
       googleWebsite: body.googleWebsite || body.google_website || body.billingGoogleWebsite || '',
       latitude: body.latitude || body.billingLatitude || '',
       longitude: body.longitude || body.billingLongitude || '',
+      duplicateOverrideReason,
       createdAt: nowIso
     };
 
     if (!canUseMysql()) {
       if (allowFallback) {
         const rows = readJsonFile(customersFile, []);
+        const exactDuplicate = findExactCustomerDuplicate(newCustomer, rows);
+        if (exactDuplicate && !duplicateOverrideReason) {
+          return res.status(409).json({
+            error: 'Exact duplicate customer already exists. Review the existing customer before saving this one.',
+            duplicateCustomer: {
+              _id: exactDuplicate._id || '',
+              displayName: exactDuplicate.displayName || exactDuplicate.name || '',
+              mobileNumber: exactDuplicate.mobileNumber || exactDuplicate.workPhone || '',
+              email: exactDuplicate.emailId || exactDuplicate.email || '',
+              billingAddress: exactDuplicate.billingAddress || '',
+              shippingAddress: exactDuplicate.shippingAddress || ''
+            }
+          });
+        }
         const nextRows = Array.isArray(rows) ? [...rows, newCustomer] : [newCustomer];
         fs.writeFileSync(customersFile, JSON.stringify(nextRows, null, 2));
         console.warn('[Customers API] source=fallback-json action=create reason=mysql_not_configured');
         return res.json(newCustomer);
       }
       return res.status(503).json({ error: 'Customer create unavailable: MySQL is not configured.' });
+    }
+
+    const existingCustomers = await withMysqlConnection(async (conn) => {
+      await ensureCustomerPlaceColumns(conn);
+      const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers ORDER BY id DESC');
+      return Array.isArray(rows) ? rows.map((row) => hydrateCustomerMysqlRow(row)).filter((row) => row && row._id && row.active !== false && !row.isMerged) : [];
+    });
+    const exactDuplicateOnUpdate = findExactCustomerDuplicate(updatedCustomer, existingCustomers, updatedCustomer._id);
+    if (exactDuplicateOnUpdate && !duplicateOverrideReason) {
+      return res.status(409).json({
+        error: 'Exact duplicate customer already exists. Review the existing customer before saving this one.',
+        duplicateCustomer: {
+          _id: exactDuplicateOnUpdate._id || '',
+          displayName: exactDuplicateOnUpdate.displayName || exactDuplicateOnUpdate.name || '',
+          mobileNumber: exactDuplicateOnUpdate.mobileNumber || exactDuplicateOnUpdate.workPhone || '',
+          email: exactDuplicateOnUpdate.emailId || exactDuplicateOnUpdate.email || '',
+          billingAddress: exactDuplicateOnUpdate.billingAddress || '',
+          shippingAddress: exactDuplicateOnUpdate.shippingAddress || ''
+        }
+      });
     }
 
     await withMysqlConnection(async (conn) => {
@@ -6846,6 +6946,7 @@ app.put('/api/customers/:id', async (req, res) => {
       'mobileNumber', 'workPhone', 'whatsappNumber', 'altNumber', 'billingPhone', 'shippingPhone', 'billingGooglePhone', 'googlePhone', 'google_phone'
     ]);
     const allowFallback = isCustomersJsonFallbackEnabled();
+    const duplicateOverrideReason = String(body.duplicateOverrideReason || '').trim();
     if (!canUseMysql()) {
       if (!allowFallback) {
         return res.status(503).json({ error: 'Customer update unavailable: MySQL is not configured.' });
@@ -6856,7 +6957,21 @@ app.put('/api/customers/:id', async (req, res) => {
       const index = list.findIndex((row) => String(row?._id || '').trim() === targetId);
       if (index === -1) return res.status(404).json({ error: 'Customer not found' });
       const existingCustomer = list[index] || {};
-      const updatedCustomer = { ...existingCustomer, ...body, _id: existingCustomer._id || targetId };
+      const updatedCustomer = { ...existingCustomer, ...body, _id: existingCustomer._id || targetId, duplicateOverrideReason };
+      const exactDuplicate = findExactCustomerDuplicate(updatedCustomer, list, targetId);
+      if (exactDuplicate && !duplicateOverrideReason) {
+        return res.status(409).json({
+          error: 'Exact duplicate customer already exists. Review the existing customer before saving this one.',
+          duplicateCustomer: {
+            _id: exactDuplicate._id || '',
+            displayName: exactDuplicate.displayName || exactDuplicate.name || '',
+            mobileNumber: exactDuplicate.mobileNumber || exactDuplicate.workPhone || '',
+            email: exactDuplicate.emailId || exactDuplicate.email || '',
+            billingAddress: exactDuplicate.billingAddress || '',
+            shippingAddress: exactDuplicate.shippingAddress || ''
+          }
+        });
+      }
       list[index] = updatedCustomer;
       fs.writeFileSync(customersFile, JSON.stringify(list, null, 2));
       console.warn('[Customers API] source=fallback-json action=update reason=mysql_not_configured');
@@ -6883,10 +6998,16 @@ app.put('/api/customers/:id', async (req, res) => {
       return res.status(404).json({ error: 'Customer not found' });
     }
 
+    const existingCustomers = await withMysqlConnection(async (conn) => {
+      const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers ORDER BY id DESC');
+      return Array.isArray(rows) ? rows.map((row) => hydrateCustomerMysqlRow(row)).filter((row) => row && row._id && row.active !== false && !row.isMerged) : [];
+    });
+
     const updatedCustomer = {
       ...existingCustomer,
       ...body,
       _id: existingCustomer._id || req.params.id,
+      duplicateOverrideReason,
       displayName:
         (body.displayName || '').trim() ||
         body.contactPersonName ||

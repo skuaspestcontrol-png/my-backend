@@ -3,7 +3,7 @@ import axios from 'axios';
 import useColumnResize from './table/useColumnResize';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X } from 'lucide-react';
+import { AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import useAutoRefresh from '../hooks/useAutoRefresh';
@@ -445,6 +445,83 @@ const formatDisplayDate = (value) => {
 };
 
 const normalizeText = (value) => String(value || '').trim().toLowerCase();
+const normalizeComparisonText = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+const normalizeDuplicateGuardText = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+const normalizeDuplicateGuardAddress = (value) => normalizeDuplicateGuardText(String(value || '').replace(/[\n\r,;]+/g, ' '));
+const duplicateComparisonFields = [
+  { key: 'displayName', label: 'Display Name' },
+  { key: 'companyName', label: 'Company Name' },
+  { key: 'contactPersonName', label: 'Contact Person' },
+  { key: 'segment', label: 'Segment' },
+  { key: 'mobileNumber', label: 'Mobile Number' },
+  { key: 'email', label: 'Email' },
+  { key: 'billingAddress', label: 'Billing Address' },
+  { key: 'billingArea', label: 'Billing Area' },
+  { key: 'billingState', label: 'Billing State' },
+  { key: 'billingPincode', label: 'Billing Pincode' },
+  { key: 'shippingAddress', label: 'Shipping Address' },
+  { key: 'shippingArea', label: 'Shipping Area' },
+  { key: 'shippingState', label: 'Shipping State' },
+  { key: 'shippingPincode', label: 'Shipping Pincode' }
+];
+const getDuplicateComparisonValue = (record = {}, key) => {
+  const safeRecord = record && typeof record === 'object' ? record : {};
+  switch (key) {
+    case 'displayName':
+      return safeRecord.displayName || safeRecord.name || safeRecord.companyName || safeRecord.contactPersonName || '';
+    case 'companyName':
+      return safeRecord.companyName || safeRecord.displayName || safeRecord.name || '';
+    case 'contactPersonName':
+      return safeRecord.contactPersonName || safeRecord.displayName || safeRecord.name || safeRecord.companyName || '';
+    case 'segment':
+      return safeRecord.segment || 'Residential';
+    case 'mobileNumber':
+      return safeRecord.mobileNumber || safeRecord.workPhone || '';
+    case 'email':
+      return safeRecord.emailId || safeRecord.email || '';
+    case 'billingAddress':
+      return safeRecord.billingAddress || [safeRecord.billingStreet1, safeRecord.billingStreet2].filter(Boolean).join(', ');
+    case 'billingArea':
+      return safeRecord.billingArea || safeRecord.area || '';
+    case 'billingState':
+      return safeRecord.billingState || safeRecord.state || safeRecord.placeOfSupply || '';
+    case 'billingPincode':
+      return safeRecord.billingPincode || safeRecord.pincode || '';
+    case 'shippingAddress':
+      return safeRecord.shippingAddress || [safeRecord.shippingStreet1, safeRecord.shippingStreet2].filter(Boolean).join(', ');
+    case 'shippingArea':
+      return safeRecord.shippingArea || '';
+    case 'shippingState':
+      return safeRecord.shippingState || '';
+    case 'shippingPincode':
+      return safeRecord.shippingPincode || '';
+    default:
+      return safeRecord[key] || '';
+  }
+};
+const buildDuplicateGuardProfile = (record = {}) => {
+  const safeRecord = record && typeof record === 'object' ? record : {};
+  const nameKeys = [
+    safeRecord.displayName,
+    safeRecord.name,
+    safeRecord.companyName,
+    safeRecord.contactPersonName
+  ]
+    .map(normalizeDuplicateGuardText)
+    .filter(Boolean);
+
+  return {
+    nameKeys: Array.from(new Set(nameKeys)),
+    mobileNumber: normalizeIndianMobileNumber(safeRecord.mobileNumber || safeRecord.workPhone || ''),
+    email: normalizeDuplicateGuardText(safeRecord.emailId || safeRecord.email || ''),
+    billingAddress: normalizeDuplicateGuardAddress(
+      safeRecord.billingAddress || safeRecord.address || [safeRecord.billingStreet1, safeRecord.billingStreet2].filter(Boolean).join(', ')
+    ),
+    shippingAddress: normalizeDuplicateGuardAddress(
+      safeRecord.shippingAddress || [safeRecord.shippingStreet1, safeRecord.shippingStreet2].filter(Boolean).join(', ')
+    )
+  };
+};
 const isCustomerRecord = (customer) => Boolean(customer && typeof customer === 'object' && !Array.isArray(customer));
 const sanitizeCustomerRows = (rows) => (Array.isArray(rows) ? rows.filter(isCustomerRecord) : []);
 
@@ -476,6 +553,7 @@ export default function CustomerDashboard() {
   const [editingId, setEditingId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [duplicateConflict, setDuplicateConflict] = useState(null);
   const [similarCustomers, setSimilarCustomers] = useState([]);
   const [similarLoading, setSimilarLoading] = useState(false);
   const [pendingPremises, setPendingPremises] = useState([]);
@@ -758,6 +836,75 @@ export default function CustomerDashboard() {
       .filter(Boolean);
     return new Set(names);
   }, [selectedHistoryCustomer]);
+
+  const duplicateConflictExistingCustomer = useMemo(() => {
+    if (!duplicateConflict) return null;
+    const duplicateId = String(duplicateConflict?.duplicateCustomer?._id || '').trim();
+    if (duplicateId) {
+      const fullMatch = customers.find((entry) => entry?._id === duplicateId);
+      if (fullMatch) return fullMatch;
+    }
+    return duplicateConflict?.duplicateCustomer || null;
+  }, [customers, duplicateConflict]);
+
+  const duplicateConflictSignalFields = useMemo(() => {
+    if (!duplicateConflict) return new Set();
+    const draftProfile = buildDuplicateGuardProfile(duplicateConflict?.payload || {});
+    const existingProfile = buildDuplicateGuardProfile(duplicateConflictExistingCustomer || {});
+    const nameMatch = draftProfile.nameKeys.some((value) => existingProfile.nameKeys.includes(value));
+    const mobileMatch = Boolean(
+      draftProfile.mobileNumber
+      && existingProfile.mobileNumber
+      && draftProfile.mobileNumber === existingProfile.mobileNumber
+    );
+    const emailMatch = Boolean(
+      draftProfile.email
+      && existingProfile.email
+      && draftProfile.email === existingProfile.email
+    );
+    const billingAddressMatch = Boolean(
+      draftProfile.billingAddress
+      && existingProfile.billingAddress
+      && draftProfile.billingAddress === existingProfile.billingAddress
+    );
+    const shippingAddressMatch = Boolean(
+      draftProfile.shippingAddress
+      && existingProfile.shippingAddress
+      && draftProfile.shippingAddress === existingProfile.shippingAddress
+    );
+    const addressMatch = billingAddressMatch || shippingAddressMatch;
+    const triggerFields = new Set();
+    const addNameFields = () => {
+      duplicateComparisonFields
+        .filter((field) => ['displayName', 'companyName', 'contactPersonName'].includes(field.key))
+        .forEach((field) => triggerFields.add(field.key));
+    };
+    if (nameMatch && (mobileMatch || emailMatch || addressMatch)) addNameFields();
+    if (mobileMatch && (nameMatch || emailMatch || addressMatch)) triggerFields.add('mobileNumber');
+    if (emailMatch && (nameMatch || mobileMatch || addressMatch)) triggerFields.add('email');
+    if (billingAddressMatch) triggerFields.add('billingAddress');
+    if (shippingAddressMatch) triggerFields.add('shippingAddress');
+    return triggerFields;
+  }, [duplicateConflict, duplicateConflictExistingCustomer]);
+
+  const duplicateConflictComparisonRows = useMemo(() => {
+    if (!duplicateConflict) return [];
+    const draftRecord = duplicateConflict?.payload || {};
+    const existingRecord = duplicateConflictExistingCustomer || {};
+    return duplicateComparisonFields.map((field) => {
+      const draftValue = getDuplicateComparisonValue(draftRecord, field.key);
+      const existingValue = getDuplicateComparisonValue(existingRecord, field.key);
+      const normalizedDraft = normalizeComparisonText(draftValue);
+      const normalizedExisting = normalizeComparisonText(existingValue);
+      return {
+        ...field,
+        draftValue: draftValue || '-',
+        existingValue: existingValue || '-',
+        matches: Boolean(normalizedDraft && normalizedExisting && normalizedDraft === normalizedExisting),
+        isSignalField: duplicateConflictSignalFields.has(field.key)
+      };
+    });
+  }, [duplicateConflict, duplicateConflictExistingCustomer, duplicateConflictSignalFields]);
 
   const historyInvoices = useMemo(() => {
     if (!selectedHistoryCustomer) return [];
@@ -1350,9 +1497,17 @@ export default function CustomerDashboard() {
     const name = String(draft.displayName || draft.contactPersonName || draft.companyName || '').trim();
     const mobile = toTenDigitNumber(draft.mobileNumber || draft.workPhone || '');
     const address = String(draft.billingAddress || draft.billingStreet1 || '').trim();
-    if (!name && !mobile && !address) {
+    const shippingAddress = String(draft.shippingAddress || draft.shippingStreet1 || '').trim();
+    const billingState = String(draft.billingState || '').trim();
+    const shippingState = String(draft.shippingState || '').trim();
+    const billingArea = String(draft.billingArea || '').trim();
+    const shippingArea = String(draft.shippingArea || '').trim();
+    const billingPincode = String(draft.billingPincode || '').trim();
+    const shippingPincode = String(draft.shippingPincode || '').trim();
+    const email = String(draft.emailId || '').trim();
+    if (!name && !mobile && !address && !shippingAddress && !email) {
       setSimilarCustomers([]);
-      return;
+      return [];
     }
     try {
       setSimilarLoading(true);
@@ -1364,15 +1519,24 @@ export default function CustomerDashboard() {
           contactPersonName: draft.contactPersonName || '',
           mobile,
           address,
+          shippingAddress,
+          billingState,
+          billingArea,
+          billingPincode,
+          shippingState,
+          shippingArea,
+          shippingPincode,
           email: draft.emailId || ''
         }
       });
       const rows = Array.isArray(res.data?.rows) ? res.data.rows : [];
       const filtered = rows.filter((row) => (editingId ? row.customerId !== editingId : true));
       setSimilarCustomers(filtered);
+      return filtered;
     } catch (error) {
       console.error('Failed to search similar customers', error);
       setSimilarCustomers([]);
+      return [];
     } finally {
       setSimilarLoading(false);
     }
@@ -1467,6 +1631,7 @@ export default function CustomerDashboard() {
     setSimilarCustomers([]);
     setAddressSearchState(createAddressSearchState());
     setSaveError('');
+    setDuplicateConflict(null);
     setPendingPremises([]);
     setShowModal(true);
     lastDisplayNameRef.current = '';
@@ -1481,6 +1646,7 @@ export default function CustomerDashboard() {
     setSimilarCustomers([]);
     setAddressSearchState(createAddressSearchState());
     setSaveError('');
+    setDuplicateConflict(null);
     setPendingPremises([]);
     setShowModal(true);
     setShowMoreMenu(false);
@@ -1516,11 +1682,120 @@ export default function CustomerDashboard() {
     setShowModal(false);
     setEditingId(null);
     setSaveError('');
+    setDuplicateConflict(null);
     setSimilarCustomers([]);
     setAddressSearchState(createAddressSearchState());
     setHistoryTab('overview');
     await openCustomerHistory(existing);
     lastDisplayNameRef.current = String(existing.displayName || existing.name || '').trim();
+  };
+
+  const resetCustomerFormState = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setSaveError('');
+    setDuplicateConflict(null);
+    setSimilarCustomers([]);
+    setPendingPremises([]);
+    setAddressSearchState(createAddressSearchState());
+    lastDisplayNameRef.current = '';
+  };
+
+  const completeCustomerSave = async (response, premisesSnapshot = []) => {
+    const savedCustomerId = String(response?.data?._id || editingId || '').trim();
+    if (savedCustomerId && Array.isArray(premisesSnapshot) && premisesSnapshot.length > 0) {
+      for (const premise of premisesSnapshot) {
+        await axios.post(`${API_BASE_URL}/api/customers/${savedCustomerId}/premises`, premise);
+      }
+    }
+    setForm(emptyForm);
+    setSimilarCustomers([]);
+    setEditingId(null);
+    setPendingPremises([]);
+    setDuplicateConflict(null);
+    setShowModal(false);
+    setSaveError('');
+    lastDisplayNameRef.current = '';
+    await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
+  };
+
+  const reviewDuplicateConflictCustomer = async () => {
+    const duplicateId = String(duplicateConflict?.duplicateCustomer?._id || '').trim();
+    if (!duplicateId) return;
+    const existing = duplicateConflictExistingCustomer || duplicateConflict?.duplicateCustomer || customers.find((entry) => entry._id === duplicateId) || null;
+    setDuplicateConflict(null);
+    setShowModal(false);
+    setEditingId(null);
+    setSaveError('');
+    setSimilarCustomers([]);
+    setPendingPremises([]);
+    setAddressSearchState(createAddressSearchState());
+    if (existing && existing._id) {
+      await openCustomerHistory(existing);
+      lastDisplayNameRef.current = String(existing.displayName || existing.name || '').trim();
+      return;
+    }
+    window.alert('The duplicate customer could not be found in the current customer list. Please refresh and try again.');
+  };
+
+  const openDuplicateConflictCustomerRecord = async () => {
+    const duplicateId = String(duplicateConflict?.duplicateCustomer?._id || '').trim();
+    if (!duplicateId) return;
+    const existing = duplicateConflictExistingCustomer || duplicateConflict?.duplicateCustomer || customers.find((entry) => entry._id === duplicateId) || null;
+    if (!existing || !existing._id) {
+      window.alert('The duplicate customer could not be found in the current customer list. Please refresh and try again.');
+      return;
+    }
+    setDuplicateConflict(null);
+    setShowHistory(false);
+    setHistoryError('');
+    setHistoryProfitError('');
+    setHistoryProfitSnapshot(null);
+    setEditingId(existing._id);
+    setForm(mapCustomerToForm(existing));
+    setSimilarCustomers([]);
+    setPendingPremises([]);
+    setSaveError('');
+    setAddressSearchState(createAddressSearchState());
+    setShowModal(true);
+    lastDisplayNameRef.current = String(existing.displayName || existing.name || '').trim();
+  };
+
+  const saveDuplicateConflictOverride = async () => {
+    if (!duplicateConflict) return;
+    const overrideReason = String(duplicateConflict.overrideReason || '').trim();
+    if (!overrideReason) {
+      setDuplicateConflict((prev) => (prev ? { ...prev, error: 'Reason is required to save anyway.' } : prev));
+      return;
+    }
+
+    try {
+      setDuplicateConflict((prev) => (prev ? { ...prev, isSaving: true, error: '' } : prev));
+      const payload = {
+        ...(duplicateConflict.payload || {}),
+        duplicateOverrideReason: overrideReason
+      };
+      const response = duplicateConflict.editingId
+        ? await axios.put(`${API_BASE_URL}/api/customers/${duplicateConflict.editingId}`, payload)
+        : await axios.post(`${API_BASE_URL}/api/customers`, payload);
+      const premisesSnapshot = Array.isArray(pendingPremises) ? [...pendingPremises] : [];
+      await completeCustomerSave(response, premisesSnapshot);
+    } catch (error) {
+      const message = getApiErrorMessage(error, 'Unable to save customer.');
+      const duplicateCustomer = error?.response?.data?.duplicateCustomer;
+      if (error?.response?.status === 409 && duplicateCustomer) {
+        setDuplicateConflict((prev) => (prev ? {
+          ...prev,
+          duplicateCustomer,
+          error: message,
+          isSaving: false
+        } : prev));
+        return;
+      }
+      setDuplicateConflict((prev) => (prev ? { ...prev, error: message, isSaving: false } : prev));
+    } finally {
+      setDuplicateConflict((prev) => (prev ? { ...prev, isSaving: false } : prev));
+    }
   };
 
   const closeCustomerHistory = () => {
@@ -1537,6 +1812,7 @@ export default function CustomerDashboard() {
     setShowModal(false);
     setEditingId(null);
     setSaveError('');
+    setDuplicateConflict(null);
     setSimilarCustomers([]);
     setPendingPremises([]);
     lastDisplayNameRef.current = '';
@@ -1618,19 +1894,9 @@ export default function CustomerDashboard() {
       return;
     }
 
-    const highRiskMatch = !editingId && similarCustomers.some((row) => {
-      const reason = String(row.reason || '');
-      return Number(row.confidence || 0) >= 75 || /exact customer name match/i.test(reason);
-    });
-    let duplicateOverrideReason = '';
-    if (highRiskMatch) {
-      const reason = window.prompt('An exact or high-risk duplicate already exists. Review the existing customer or enter a reason to create a new one.', '');
-      if (reason === null) return;
-      duplicateOverrideReason = String(reason || '').trim();
-      if (!duplicateOverrideReason) {
-        setSaveError('Reason is required when a duplicate warning exists.');
-        return;
-      }
+    const freshSimilarCustomers = await fetchSimilarCustomers(form);
+    if (Array.isArray(freshSimilarCustomers) && freshSimilarCustomers.length > 0) {
+      setSimilarCustomers(freshSimilarCustomers);
     }
 
     const payload = {
@@ -1692,8 +1958,7 @@ export default function CustomerDashboard() {
       googlePhone: form.googlePhone.trim() || form.billingGooglePhone.trim(),
       googleWebsite: form.googleWebsite.trim() || form.billingGoogleWebsite.trim(),
       latitude: billingLatitude,
-      longitude: billingLongitude,
-      duplicateOverrideReason
+      longitude: billingLongitude
     };
 
     try {
@@ -1702,20 +1967,11 @@ export default function CustomerDashboard() {
       const response = editingId
         ? await axios.put(`${API_BASE_URL}/api/customers/${editingId}`, payload)
         : await axios.post(`${API_BASE_URL}/api/customers`, payload);
-      const savedCustomerId = String(response?.data?._id || editingId || '').trim();
-      if (savedCustomerId && Array.isArray(pendingPremises) && pendingPremises.length > 0) {
-        for (const premise of pendingPremises) {
-          await axios.post(`${API_BASE_URL}/api/customers/${savedCustomerId}/premises`, premise);
-        }
-      }
-      setForm(emptyForm);
-      setSimilarCustomers([]);
-      setEditingId(null);
-      setPendingPremises([]);
-      setShowModal(false);
-      await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
+      const premisesSnapshot = Array.isArray(pendingPremises) ? [...pendingPremises] : [];
+      await completeCustomerSave(response, premisesSnapshot);
     } catch (error) {
       const message = getApiErrorMessage(error, 'Unable to save customer.');
+      const duplicateCustomer = error?.response?.data?.duplicateCustomer;
       console.error('Failed to save customer', {
         message,
         status: error?.response?.status,
@@ -1723,6 +1979,18 @@ export default function CustomerDashboard() {
         editingId,
         payload
       });
+      if (error?.response?.status === 409 && duplicateCustomer) {
+        setDuplicateConflict({
+          duplicateCustomer,
+          payload,
+          editingId: editingId || '',
+          overrideReason: '',
+          error: message,
+          isSaving: false
+        });
+        setSaveError('');
+        return;
+      }
       setSaveError(message);
     } finally {
       setIsSaving(false);
@@ -1993,6 +2261,45 @@ export default function CustomerDashboard() {
     }
     : shell.modalFooter;
   const duplicateModalBodyStyle = isTablet || isMobile ? { ...modalBodyStyle, display: 'grid', gap: '10px' } : { ...shell.modalBody, display: 'grid', gap: '10px' };
+  const duplicateConflictModalStyle = isMobile
+    ? {
+      ...modalStyle,
+      width: '96vw',
+      maxHeight: '92dvh',
+      borderRadius: '16px',
+      border: '1px solid var(--color-border)'
+    }
+    : {
+      ...shell.modal,
+      width: 'min(1100px, 100%)',
+      border: '1px solid var(--color-border)'
+    };
+  const duplicateConflictHeaderStyle = isMobile
+    ? {
+      ...modalHeaderStyle,
+      minHeight: '48px',
+      padding: '10px 12px'
+    }
+    : {
+      ...modalHeaderStyle,
+      minHeight: '52px',
+      padding: '10px 14px'
+    };
+  const duplicateConflictBodyStyle = {
+    ...modalBodyStyle,
+    display: 'grid',
+    gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 280px) minmax(0, 1fr)',
+    gap: '8px',
+    alignItems: 'start',
+    paddingBottom: isMobile ? 'calc(16px + env(safe-area-inset-bottom))' : '16px'
+  };
+  const duplicateConflictTableCellStyle = {
+    ...shell.cell,
+    padding: '4px 8px',
+    fontSize: '10px',
+    lineHeight: 1.1
+  };
+  const duplicateConflictOverlayStyle = { ...modalOverlayStyle, zIndex: 4005 };
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const primaryButtonStyle = isTiny ? { ...shell.buttonPrimary, padding: '6px 10px', fontSize: '11px', minHeight: '32px' } : shell.buttonPrimary;
   const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton, width: '32px', height: '32px' } : shell.customizeButton;
@@ -3008,6 +3315,7 @@ export default function CustomerDashboard() {
                   setShowModal(false);
                   setEditingId(null);
                   setSaveError('');
+                  setDuplicateConflict(null);
                   setSimilarCustomers([]);
                   setForm(emptyForm);
                 }}
@@ -3019,6 +3327,130 @@ export default function CustomerDashboard() {
               </button>
             </div>
           </form>
+        </div>,
+        document.body
+      ) : null}
+
+      {duplicateConflict ? createPortal(
+        <div style={duplicateConflictOverlayStyle}>
+          <div className="crm-modal-surface" style={duplicateConflictModalStyle}>
+            <div className="crm-modal-surface-header" style={{ ...duplicateConflictHeaderStyle, background: '#fff', borderBottom: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <AlertTriangle size={16} color="var(--color-text-secondary)" />
+                  <h3 style={{ ...shell.modalHeaderTitle, color: 'var(--color-text-primary)', fontSize: '16px', lineHeight: 1.2 }}>Exact Duplicate Detected</h3>
+                </div>
+              </div>
+              <button type="button" style={shell.modalCloseButton} onClick={() => setDuplicateConflict(null)} aria-label="Close duplicate warning">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="crm-modal-surface-body" style={duplicateConflictBodyStyle}>
+              <div style={{ display: 'grid', gap: '8px', alignContent: 'start' }}>
+                <div style={{ border: '1px solid var(--color-border)', borderRadius: '12px', background: '#fff', padding: '8px', display: 'grid', gap: '3px' }}>
+                  <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Draft Customer</p>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.15 }}>{getDuplicateComparisonValue(duplicateConflict?.payload || {}, 'displayName') || 'Draft customer'}</div>
+                  <div style={{ fontSize: '11px', color: '#475569', lineHeight: 1.35 }}>
+                    <div><strong>Mobile:</strong> {getDuplicateComparisonValue(duplicateConflict?.payload || {}, 'mobileNumber') || '-'}</div>
+                    <div><strong>Email:</strong> {getDuplicateComparisonValue(duplicateConflict?.payload || {}, 'email') || '-'}</div>
+                    <div><strong>Billing Address:</strong> {getDuplicateComparisonValue(duplicateConflict?.payload || {}, 'billingAddress') || '-'}</div>
+                    <div><strong>Shipping Address:</strong> {getDuplicateComparisonValue(duplicateConflict?.payload || {}, 'shippingAddress') || '-'}</div>
+                  </div>
+                </div>
+
+                <div style={{ border: '1px solid var(--color-border)', borderRadius: '12px', background: '#fff', padding: '8px', display: 'grid', gap: '3px' }}>
+                  <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Existing Customer</p>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.15 }}>{getDuplicateComparisonValue(duplicateConflictExistingCustomer || duplicateConflict?.duplicateCustomer || {}, 'displayName') || 'Existing customer'}</div>
+                  <div style={{ fontSize: '11px', color: '#475569', lineHeight: 1.35 }}>
+                    <div><strong>Mobile:</strong> {getDuplicateComparisonValue(duplicateConflictExistingCustomer || duplicateConflict?.duplicateCustomer || {}, 'mobileNumber') || '-'}</div>
+                    <div><strong>Email:</strong> {getDuplicateComparisonValue(duplicateConflictExistingCustomer || duplicateConflict?.duplicateCustomer || {}, 'email') || '-'}</div>
+                    <div><strong>Billing Address:</strong> {getDuplicateComparisonValue(duplicateConflictExistingCustomer || duplicateConflict?.duplicateCustomer || {}, 'billingAddress') || '-'}</div>
+                    <div><strong>Shipping Address:</strong> {getDuplicateComparisonValue(duplicateConflictExistingCustomer || duplicateConflict?.duplicateCustomer || {}, 'shippingAddress') || '-'}</div>
+                  </div>
+                </div>
+
+                <div style={{ border: '1px solid var(--color-border)', borderRadius: '12px', background: '#fff', padding: '10px', display: 'grid', gap: '4px' }}>
+                  <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Override Reason</p>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#475569' }}>
+                    This reason will be saved with the customer record if you choose to continue.
+                  </p>
+                  <textarea
+                    value={duplicateConflict?.overrideReason || ''}
+                    onChange={(event) => setDuplicateConflict((prev) => (prev ? { ...prev, overrideReason: event.target.value, error: '' } : prev))}
+                    rows={5}
+                    placeholder="Explain why a new record is required instead of using the existing customer"
+                    style={{
+                      width: '100%',
+                      borderRadius: '10px',
+                      border: '1px solid #d1d5db',
+                      padding: '8px 10px',
+                      fontSize: '13px',
+                      resize: 'vertical',
+                      minHeight: '96px'
+                    }}
+                  />
+                  {duplicateConflict?.error ? (
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-secondary)' }}>{duplicateConflict.error}</div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div style={{ overflowX: 'auto', border: '1px solid var(--color-border)', borderRadius: '12px', background: '#fff' }}>
+                <table style={{ width: '100%', minWidth: isMobile ? '740px' : '920px', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={shell.headCell}>Field</th>
+                      <th style={shell.headCell}>Draft</th>
+                      <th style={shell.headCell}>Existing</th>
+                      <th style={shell.headCell}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {duplicateConflictComparisonRows.map((row) => (
+                      <tr
+                        key={row.key}
+                        style={{
+                          background: row.isSignalField ? '#f8fafc' : row.matches ? '#f8fafc' : '#fff'
+                        }}
+                      >
+                        <td style={duplicateConflictTableCellStyle}><strong>{row.label}</strong></td>
+                        <td style={duplicateConflictTableCellStyle}>{row.draftValue}</td>
+                        <td style={duplicateConflictTableCellStyle}>{row.existingValue}</td>
+                        <td style={duplicateConflictTableCellStyle}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', borderRadius: '999px', padding: '2px 6px', fontSize: '9px', fontWeight: 800, border: row.isSignalField ? '1px solid rgba(100, 116, 139, 0.22)' : row.matches ? '1px solid rgba(100, 116, 139, 0.22)' : '1px solid rgba(100, 116, 139, 0.22)', color: row.isSignalField ? '#334155' : row.matches ? '#475569' : '#334155', background: row.isSignalField ? 'rgba(148, 163, 184, 0.12)' : row.matches ? 'rgba(100, 116, 139, 0.08)' : 'rgba(148, 163, 184, 0.08)' }}>
+                            {row.isSignalField ? 'Signal' : row.matches ? 'Same' : 'Diff'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="crm-modal-surface-footer" style={modalFooterStyle}>
+              <button type="button" style={shell.cancelButton} onClick={reviewDuplicateConflictCustomer}>Review Existing Customer</button>
+              <button type="button" style={shell.cancelButton} onClick={openDuplicateConflictCustomerRecord}>Open Customer Record</button>
+              <button
+                type="button"
+                style={shell.cancelButton}
+                onClick={() => {
+                  if (duplicateConflict?.isSaving) return;
+                  setDuplicateConflict(null);
+                }}
+                disabled={Boolean(duplicateConflict?.isSaving)}
+              >
+                Keep Editing
+              </button>
+              <button
+                type="button"
+                style={shell.saveButton}
+                onClick={saveDuplicateConflictOverride}
+                disabled={Boolean(duplicateConflict?.isSaving)}
+              >
+                {duplicateConflict?.isSaving ? 'Saving...' : 'Save Anyway'}
+              </button>
+            </div>
+          </div>
         </div>,
         document.body
       ) : null}

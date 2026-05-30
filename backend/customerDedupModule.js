@@ -2137,6 +2137,13 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
     const contactPersonName = normalizeText(req.query.contactPersonName || '');
     const mobile = normalizePhone(req.query.mobile || req.query.mobileNumber || '');
     const address = normalizeText(req.query.address || req.query.billingAddress || '');
+    const shippingAddress = normalizeText(req.query.shippingAddress || req.query.shippingStreet1 || '');
+    const billingArea = normalizeText(req.query.billingArea || '');
+    const shippingArea = normalizeText(req.query.shippingArea || '');
+    const billingState = normalizeText(req.query.billingState || '');
+    const shippingState = normalizeText(req.query.shippingState || '');
+    const billingPincode = normalizeText(req.query.billingPincode || '');
+    const shippingPincode = normalizeText(req.query.shippingPincode || '');
     const queryClean = {
       customerName: properCase(customerName || displayName || companyName || contactPersonName),
       displayName: properCase(displayName || customerName || companyName || contactPersonName),
@@ -2145,7 +2152,15 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
       mobileNumber: mobile,
       email: normalizeEmail(req.query.email || req.query.emailId || ''),
       address,
-      normalizedAddress: normalizeAddress(address)
+      normalizedAddress: normalizeAddress(address),
+      shippingAddress,
+      normalizedShippingAddress: normalizeAddress(shippingAddress),
+      billingArea,
+      shippingArea,
+      billingState,
+      shippingState,
+      billingPincode,
+      shippingPincode
     };
     const queryNameKeys = [customerName, displayName, companyName, contactPersonName]
       .map((value) => normalizeLower(value))
