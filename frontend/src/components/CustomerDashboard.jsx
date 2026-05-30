@@ -522,6 +522,36 @@ const buildDuplicateGuardProfile = (record = {}) => {
     )
   };
 };
+const buildDuplicateCustomerFromSearchRow = (row = {}) => ({
+  _id: String(row.customerId || row._id || '').trim(),
+  displayName: row.displayName || row.customerName || row.name || row.companyName || row.contactPersonName || '',
+  name: row.displayName || row.customerName || row.name || row.companyName || row.contactPersonName || '',
+  companyName: row.companyName || '',
+  contactPersonName: row.contactPersonName || '',
+  mobileNumber: row.mobileNumber || '',
+  emailId: row.email || '',
+  email: row.email || '',
+  billingAddress: row.billingAddress || row.address || '',
+  shippingAddress: row.shippingAddress || '',
+  billingArea: row.billingArea || '',
+  billingState: row.billingState || '',
+  billingPincode: row.billingPincode || '',
+  shippingArea: row.shippingArea || '',
+  shippingState: row.shippingState || '',
+  shippingPincode: row.shippingPincode || ''
+});
+const isStrongDuplicateSearchRow = (row = {}) => {
+  if (!row || typeof row !== 'object') return false;
+  const status = String(row.status || '').trim().toLowerCase();
+  const reason = String(row.reason || '').trim().toLowerCase();
+  const confidence = Number(row.confidence || 0);
+  return (
+    status === 'exact duplicate'
+    || row.exactNameMatch === true
+    || (confidence >= 100 && (status.includes('exact') || reason.includes('exact')))
+    || reason.includes('exact customer name match')
+  );
+};
 const isCustomerRecord = (customer) => Boolean(customer && typeof customer === 'object' && !Array.isArray(customer));
 const sanitizeCustomerRows = (rows) => (Array.isArray(rows) ? rows.filter(isCustomerRecord) : []);
 
@@ -1782,8 +1812,11 @@ export default function CustomerDashboard() {
       await completeCustomerSave(response, premisesSnapshot);
     } catch (error) {
       const message = getApiErrorMessage(error, 'Unable to save customer.');
-      const duplicateCustomer = error?.response?.data?.duplicateCustomer;
-      if (error?.response?.status === 409 && duplicateCustomer) {
+      const duplicateCustomer = error?.response?.data?.duplicateCustomer
+        || duplicateConflict?.duplicateCustomer
+        || buildDuplicateCustomerFromSearchRow(similarCustomers.find(isStrongDuplicateSearchRow))
+        || buildDuplicateCustomerFromSearchRow(similarCustomers[0] || {});
+      if (error?.response?.status === 409) {
         setDuplicateConflict((prev) => (prev ? {
           ...prev,
           duplicateCustomer,
@@ -1844,6 +1877,7 @@ export default function CustomerDashboard() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    let latestSimilarCustomers = [];
     const contactName = form.contactPersonName.trim();
     const companyName = form.companyName.trim();
     if (!contactName && !companyName) {
@@ -1892,11 +1926,6 @@ export default function CustomerDashboard() {
     if (coordinateError) {
       setSaveError(coordinateError);
       return;
-    }
-
-    const freshSimilarCustomers = await fetchSimilarCustomers(form);
-    if (Array.isArray(freshSimilarCustomers) && freshSimilarCustomers.length > 0) {
-      setSimilarCustomers(freshSimilarCustomers);
     }
 
     const payload = {
@@ -1961,6 +1990,27 @@ export default function CustomerDashboard() {
       longitude: billingLongitude
     };
 
+    const freshSimilarCustomers = await fetchSimilarCustomers(form);
+    latestSimilarCustomers = Array.isArray(freshSimilarCustomers) ? freshSimilarCustomers : [];
+    if (Array.isArray(freshSimilarCustomers) && freshSimilarCustomers.length > 0) {
+      setSimilarCustomers(freshSimilarCustomers);
+    }
+
+    const localDuplicateRow = latestSimilarCustomers.find(isStrongDuplicateSearchRow) || null;
+    if (localDuplicateRow) {
+      const duplicateCustomer = buildDuplicateCustomerFromSearchRow(localDuplicateRow);
+      setDuplicateConflict({
+        duplicateCustomer,
+        payload,
+        editingId: editingId || '',
+        overrideReason: '',
+        error: 'Exact duplicate customer already exists. Review the existing customer before saving this one.',
+        isSaving: false
+      });
+      setSaveError('');
+      return;
+    }
+
     try {
       setIsSaving(true);
       setSaveError('');
@@ -1971,15 +2021,18 @@ export default function CustomerDashboard() {
       await completeCustomerSave(response, premisesSnapshot);
     } catch (error) {
       const message = getApiErrorMessage(error, 'Unable to save customer.');
-      const duplicateCustomer = error?.response?.data?.duplicateCustomer;
+      const responseData = error?.response?.data || {};
+      const duplicateCustomer = responseData.duplicateCustomer
+        || buildDuplicateCustomerFromSearchRow(latestSimilarCustomers.find(isStrongDuplicateSearchRow))
+        || buildDuplicateCustomerFromSearchRow(latestSimilarCustomers[0] || {});
       console.error('Failed to save customer', {
         message,
         status: error?.response?.status,
-        data: error?.response?.data,
+        data: responseData,
         editingId,
         payload
       });
-      if (error?.response?.status === 409 && duplicateCustomer) {
+      if (error?.response?.status === 409) {
         setDuplicateConflict({
           duplicateCustomer,
           payload,
