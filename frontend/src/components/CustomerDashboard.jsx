@@ -540,17 +540,70 @@ const buildDuplicateCustomerFromSearchRow = (row = {}) => ({
   shippingState: row.shippingState || '',
   shippingPincode: row.shippingPincode || ''
 });
-const isStrongDuplicateSearchRow = (row = {}) => {
+const isExactDuplicateSearchRow = (draftRecord = {}, row = {}) => {
   if (!row || typeof row !== 'object') return false;
-  const status = String(row.status || '').trim().toLowerCase();
-  const reason = String(row.reason || '').trim().toLowerCase();
-  const confidence = Number(row.confidence || 0);
-  return (
-    status === 'exact duplicate'
-    || row.exactNameMatch === true
-    || (confidence >= 100 && (status.includes('exact') || reason.includes('exact')))
-    || reason.includes('exact customer name match')
+  const draftProfile = buildDuplicateGuardProfile(draftRecord || {});
+  const rowProfile = buildDuplicateGuardProfile(buildDuplicateCustomerFromSearchRow(row));
+  const nameMatch = draftProfile.nameKeys.some((value) => rowProfile.nameKeys.includes(value));
+  const mobileMatch = Boolean(
+    draftProfile.mobileNumber
+    && rowProfile.mobileNumber
+    && draftProfile.mobileNumber === rowProfile.mobileNumber
   );
+  const emailMatch = Boolean(draftProfile.email && rowProfile.email && draftProfile.email === rowProfile.email);
+  const billingAddressMatch = Boolean(
+    draftProfile.billingAddress
+    && rowProfile.billingAddress
+    && draftProfile.billingAddress === rowProfile.billingAddress
+  );
+  const shippingAddressMatch = Boolean(
+    draftProfile.shippingAddress
+    && rowProfile.shippingAddress
+    && draftProfile.shippingAddress === rowProfile.shippingAddress
+  );
+  const addressMatch = billingAddressMatch || shippingAddressMatch;
+  return (
+    (nameMatch && (mobileMatch || emailMatch || addressMatch))
+    || (mobileMatch && (emailMatch || addressMatch))
+    || (emailMatch && addressMatch)
+  );
+};
+const isExactDuplicateCustomerMatch = (candidate = {}, existing = {}) => {
+  const candidateProfile = buildDuplicateGuardProfile(candidate || {});
+  const existingProfile = buildDuplicateGuardProfile(existing || {});
+  const nameMatch = candidateProfile.nameKeys.some((value) => existingProfile.nameKeys.includes(value));
+  const mobileMatch = Boolean(
+    candidateProfile.mobileNumber
+    && existingProfile.mobileNumber
+    && candidateProfile.mobileNumber === existingProfile.mobileNumber
+  );
+  const emailMatch = Boolean(candidateProfile.email && existingProfile.email && candidateProfile.email === existingProfile.email);
+  const billingAddressMatch = Boolean(
+    candidateProfile.billingAddress
+    && existingProfile.billingAddress
+    && candidateProfile.billingAddress === existingProfile.billingAddress
+  );
+  const shippingAddressMatch = Boolean(
+    candidateProfile.shippingAddress
+    && existingProfile.shippingAddress
+    && candidateProfile.shippingAddress === existingProfile.shippingAddress
+  );
+  const addressMatch = billingAddressMatch || shippingAddressMatch;
+  return (
+    (nameMatch && (mobileMatch || emailMatch || addressMatch))
+    || (mobileMatch && (emailMatch || addressMatch))
+    || (emailMatch && addressMatch)
+  );
+};
+const findExactDuplicateCustomer = (candidate = {}, list = [], excludedId = '') => {
+  const excluded = String(excludedId || '').trim();
+  return Array.isArray(list)
+    ? list.find((existing) => {
+      if (!existing || existing.active === false || existing.isMerged) return false;
+      if (excluded && String(existing._id || '').trim() === excluded) return false;
+      return isExactDuplicateCustomerMatch(candidate, existing);
+    }) || null
+    : null;
 };
 const isCustomerRecord = (customer) => Boolean(customer && typeof customer === 'object' && !Array.isArray(customer));
 const sanitizeCustomerRows = (rows) => (Array.isArray(rows) ? rows.filter(isCustomerRecord) : []);
@@ -1814,7 +1867,7 @@ export default function CustomerDashboard() {
       const message = getApiErrorMessage(error, 'Unable to save customer.');
       const duplicateCustomer = error?.response?.data?.duplicateCustomer
         || duplicateConflict?.duplicateCustomer
-        || buildDuplicateCustomerFromSearchRow(similarCustomers.find(isStrongDuplicateSearchRow))
+        || buildDuplicateCustomerFromSearchRow(similarCustomers.find((row) => isExactDuplicateSearchRow(duplicateConflict?.payload || {}, row)))
         || buildDuplicateCustomerFromSearchRow(similarCustomers[0] || {});
       if (error?.response?.status === 409) {
         setDuplicateConflict((prev) => (prev ? {
@@ -1996,9 +2049,10 @@ export default function CustomerDashboard() {
       setSimilarCustomers(freshSimilarCustomers);
     }
 
-    const localDuplicateRow = latestSimilarCustomers.find(isStrongDuplicateSearchRow) || null;
-    if (localDuplicateRow) {
-      const duplicateCustomer = buildDuplicateCustomerFromSearchRow(localDuplicateRow);
+    const localDuplicateCustomer = findExactDuplicateCustomer(payload, customers, editingId || '');
+    const localDuplicateRow = latestSimilarCustomers.find((row) => isExactDuplicateSearchRow(payload, row)) || null;
+    const duplicateCustomer = localDuplicateCustomer || buildDuplicateCustomerFromSearchRow(localDuplicateRow || {});
+    if (localDuplicateCustomer || localDuplicateRow) {
       setDuplicateConflict({
         duplicateCustomer,
         payload,
@@ -2023,7 +2077,7 @@ export default function CustomerDashboard() {
       const message = getApiErrorMessage(error, 'Unable to save customer.');
       const responseData = error?.response?.data || {};
       const duplicateCustomer = responseData.duplicateCustomer
-        || buildDuplicateCustomerFromSearchRow(latestSimilarCustomers.find(isStrongDuplicateSearchRow))
+        || buildDuplicateCustomerFromSearchRow(latestSimilarCustomers.find((row) => isExactDuplicateSearchRow(payload, row)))
         || buildDuplicateCustomerFromSearchRow(latestSimilarCustomers[0] || {});
       console.error('Failed to save customer', {
         message,
