@@ -343,8 +343,9 @@ const shell = {
   },
   checkboxWrap: { width: '40px', textAlign: 'center' },
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
-  menu: { position: 'absolute', right: 0, top: '44px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', width: '170px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 35, overflow: 'hidden', padding: 0 },
+  menu: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', width: '170px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 35, overflow: 'hidden', padding: 0 },
   menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '6px 10px', fontSize: '11px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', lineHeight: 1.1, minHeight: '30px' },
+  menuButtonDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '6px 10px', fontSize: '11px', fontWeight: 600, lineHeight: 1.1, minHeight: '30px' },
   popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '250px', zIndex: 40 },
   popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
@@ -2523,7 +2524,7 @@ export default function CustomerDashboard() {
               <div ref={moreMenuRef} style={shell.menu}>
                 <button
                   type="button"
-                  style={{ ...shell.menuButton, opacity: selectedIds.length === 1 ? 1 : 0.45 }}
+                  style={selectedIds.length === 1 ? shell.menuButton : shell.menuButtonDisabled}
                   onClick={openEditSelected}
                 >
                   Edit Selected
@@ -2565,7 +2566,7 @@ export default function CustomerDashboard() {
                 </button>
                 <button
                   type="button"
-                  style={{ ...shell.menuButton, opacity: selectedIds.length === 2 ? 1 : 0.45, cursor: selectedIds.length === 2 ? 'pointer' : 'not-allowed' }}
+                  style={selectedIds.length === 2 ? shell.menuButton : shell.menuButtonDisabled}
                   disabled={selectedIds.length !== 2}
                   onClick={mergeSelectedCustomers}
                 >
