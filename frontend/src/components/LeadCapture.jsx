@@ -32,6 +32,7 @@ import {
   MapPin,
   MoreHorizontal,
   PhoneCall,
+  Plus,
   Search,
   Settings,
   User,
@@ -240,8 +241,8 @@ const s = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
-    minHeight: '34px',
-    height: '34px',
+    minHeight: '46px',
+    height: '46px',
     padding: '0 10px',
     borderRadius: '8px',
     background: 'var(--color-primary-light)',
@@ -256,9 +257,9 @@ const s = {
     gap: '6px',
     border: 'none',
     borderRadius: '10px',
-    padding: '0 12px',
-    minHeight: '34px',
-    height: '34px',
+    padding: '0 14px',
+    minHeight: '46px',
+    height: '46px',
     background: 'var(--color-primary)',
     color: '#fff',
     cursor: 'pointer',
@@ -281,10 +282,10 @@ const s = {
     background: 'var(--color-primary-light)',
     color: 'var(--color-primary-dark)',
     borderRadius: '10px',
-    width: '34px',
-    height: '34px',
-    minWidth: '34px',
-    minHeight: '34px',
+    width: '46px',
+    height: '46px',
+    minWidth: '46px',
+    minHeight: '46px',
     padding: 0,
     fontSize: '11px',
     fontWeight: 800,
@@ -2150,7 +2151,7 @@ export default function LeadCapture() {
   const leadDateInputStyle = { ...s.in, minHeight: '46px', height: '46px', lineHeight: 1.2, WebkitAppearance: 'none', appearance: 'none' };
   const analyticsTitleStyle = isTiny ? { ...s.analyticsTitle, fontSize: '20px' } : s.analyticsTitle;
   const registerTitleStyle = isTiny ? { ...s.registerTitle, fontSize: '16px' } : s.registerTitle;
-  const buttonPrimaryStyle = isTiny ? { ...s.buttonPrimary, fontSize: '11px', padding: '0 9px', minHeight: '32px', height: '32px' } : s.buttonPrimary;
+  const buttonPrimaryStyle = isTiny ? { ...s.buttonPrimary, fontSize: '11px', padding: '0 10px', minHeight: '32px', height: '32px' } : s.buttonPrimary;
   const toolbarIconButtonStyle = isTiny ? { ...s.customizeButton, width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' } : s.customizeButton;
   const leadModalCompactBodyStyle = isTiny ? { ...leadModalBodyStyle, padding: '10px' } : leadModalBodyStyle;
   const leadTableMinWidth = isMobile
@@ -2351,6 +2352,7 @@ export default function LeadCapture() {
           </div>
           <div style={registerActionsStyle}>
             <button type="button" style={buttonPrimaryStyle} onClick={openLeadModal}>
+              <Plus size={16} />
               New Lead
             </button>
             <div style={{ position: 'relative', marginLeft: isMobile ? 'auto' : 0 }}>

@@ -108,12 +108,41 @@ const shell = {
     overflow: 'visible'
   },
   head: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'start', gap: '10px', minWidth: 0 },
-  titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 8px', borderRadius: '8px', background: 'var(--color-primary-light)', border: '1px solid var(--color-primary-soft)' },
+  titleWrap: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    minHeight: '46px',
+    height: '46px',
+    padding: '0 10px',
+    borderRadius: '8px',
+    background: 'var(--color-primary-light)',
+    border: '1px solid var(--color-primary-soft)',
+    boxSizing: 'border-box'
+  },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111827', display: 'inline-flex', alignItems: 'center', gap: '8px' },
   subtitle: { margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 600 },
   headActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' },
   beta: { border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.6)', color: 'var(--color-primary)', borderRadius: '999px', padding: '7px 12px', fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap' },
-  newBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '9px', padding: '7px 11px', minHeight: '34px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap', maxWidth: '100%', boxSizing: 'border-box' },
+  newBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    border: 'none',
+    borderRadius: '9px',
+    padding: '0 14px',
+    minHeight: '46px',
+    height: '46px',
+    background: 'var(--color-primary)',
+    color: '#fff',
+    cursor: 'pointer',
+    fontWeight: 700,
+    fontSize: '12px',
+    whiteSpace: 'nowrap',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    lineHeight: 1
+  },
   card: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', overflow: 'hidden', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   cardTop: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: '#fff', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   cardTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
@@ -121,7 +150,7 @@ const shell = {
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
   chip: { border: '1px solid transparent', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', gap: '5px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxSizing: 'border-box', minWidth: 0 },
-  customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '9px', width: '32px', height: '32px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', maxWidth: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)', transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease' },
+  customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '9px', width: '46px', height: '46px', minWidth: '46px', minHeight: '46px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', maxWidth: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)', transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease' },
   customizeMenu: { position: 'fixed', width: '292px', maxHeight: '420px', overflow: 'hidden', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', boxShadow: '0 18px 38px rgba(15,23,42,0.18)', zIndex: 5500 },
   customizeHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   customizeBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
@@ -961,7 +990,7 @@ export default function ContractDashboard() {
   const pagerStyle = isMobile ? { ...shell.pager, justifyContent: 'center' } : shell.pager;
   const cardTopStyle = isMobile ? { ...shell.cardTop, flexDirection: 'column', alignItems: 'stretch' } : shell.cardTop;
   const headActionsStyle = isMobile ? { ...shell.headActions, justifyContent: 'stretch', width: '100%' } : shell.headActions;
-  const newButtonStyle = isMobile ? { ...shell.newBtn, width: 'fit-content' } : shell.newBtn;
+  const newButtonStyle = isMobile ? { ...shell.newBtn, width: 'fit-content', minHeight: '32px', height: '32px', padding: '0 10px' } : shell.newBtn;
 
   const openCustomerSummary = (row) => {
     setCustomerSummary({ open: true, row, showHistory: false });
