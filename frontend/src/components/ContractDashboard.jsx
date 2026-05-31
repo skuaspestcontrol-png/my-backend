@@ -149,7 +149,23 @@ const shell = {
   shownPill: { border: '1px solid var(--color-border)', background: '#f8fafc', color: '#334155', borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 },
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
-  chip: { border: '1px solid transparent', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', gap: '5px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxSizing: 'border-box', minWidth: 0 },
+  chip: {
+    border: '1px solid transparent',
+    borderRadius: '999px',
+    padding: '0 10px',
+    minHeight: '34px',
+    height: '34px',
+    fontSize: '11px',
+    fontWeight: 700,
+    display: 'inline-flex',
+    gap: '5px',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    boxSizing: 'border-box',
+    minWidth: 0,
+    lineHeight: 1
+  },
   customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '9px', width: '34px', height: '34px', minWidth: '34px', minHeight: '34px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', maxWidth: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)', transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease' },
   customizeMenu: { position: 'fixed', width: '292px', maxHeight: '420px', overflow: 'hidden', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', boxShadow: '0 18px 38px rgba(15,23,42,0.18)', zIndex: 5500 },
   customizeHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
@@ -943,7 +959,8 @@ export default function ContractDashboard() {
       flex: '1 1 calc(50% - 7px)',
       maxWidth: 'calc(50% - 4px)',
       minHeight: '34px',
-      padding: '5px 7px',
+      height: '34px',
+      padding: '0 8px',
       fontSize: '10px'
     }
     : shell.chip;
