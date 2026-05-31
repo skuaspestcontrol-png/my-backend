@@ -240,8 +240,8 @@ const s = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
-    minHeight: '46px',
-    height: '46px',
+    minHeight: '34px',
+    height: '34px',
     padding: '0 10px',
     borderRadius: '8px',
     background: 'var(--color-primary-light)',
@@ -257,8 +257,8 @@ const s = {
     border: 'none',
     borderRadius: '10px',
     padding: '0 14px',
-    minHeight: '46px',
-    height: '46px',
+    minHeight: '34px',
+    height: '34px',
     background: 'var(--color-primary)',
     color: '#fff',
     cursor: 'pointer',
@@ -266,7 +266,7 @@ const s = {
     fontSize: '12px',
     lineHeight: 1
   },
-  buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '10px', width: '46px', height: '46px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '10px', width: '34px', height: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   menu: { position: 'absolute', right: 0, top: '44px', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '10px', minWidth: '170px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 35, overflow: 'hidden' },
   menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   registerToolbar: { padding: '8px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: '#fff' },
@@ -281,10 +281,10 @@ const s = {
     background: 'var(--color-primary-light)',
     color: 'var(--color-primary-dark)',
     borderRadius: '10px',
-    width: '46px',
-    height: '46px',
-    minWidth: '46px',
-    minHeight: '46px',
+    width: '34px',
+    height: '34px',
+    minWidth: '34px',
+    minHeight: '34px',
     padding: 0,
     fontSize: '11px',
     fontWeight: 800,
@@ -2147,7 +2147,7 @@ export default function LeadCapture() {
   const leadSmallToggleStyle = isMobile
     ? { ...s.smallToggle, maxWidth: '100%', whiteSpace: 'normal', lineHeight: 1.2 }
     : s.smallToggle;
-  const leadDateInputStyle = { ...s.in, minHeight: '46px', height: '46px', lineHeight: 1.2, WebkitAppearance: 'none', appearance: 'none' };
+  const leadDateInputStyle = { ...s.in, minHeight: '34px', height: '34px', lineHeight: 1.2, WebkitAppearance: 'none', appearance: 'none' };
   const analyticsTitleStyle = isTiny ? { ...s.analyticsTitle, fontSize: '20px' } : s.analyticsTitle;
   const registerTitleStyle = isTiny ? { ...s.registerTitle, fontSize: '16px' } : s.registerTitle;
   const buttonPrimaryStyle = isTiny ? { ...s.buttonPrimary, fontSize: '11px', padding: '0 10px', minHeight: '32px', height: '32px' } : s.buttonPrimary;
