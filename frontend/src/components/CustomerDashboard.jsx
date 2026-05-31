@@ -581,6 +581,7 @@ export default function CustomerDashboard() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [moreMenuPosition, setMoreMenuPosition] = useState(null);
+  const [hoveredMoreMenuItem, setHoveredMoreMenuItem] = useState('');
   const [showCustomize, setShowCustomize] = useState(false);
   const [showImportWizard, setShowImportWizard] = useState(false);
   const [showDuplicateReport, setShowDuplicateReport] = useState(false);
@@ -737,6 +738,20 @@ export default function CustomerDashboard() {
       top: anchorTop
     });
     setShowMoreMenu(true);
+  };
+
+  const getMoreMenuButtonStyle = (key, disabled = false) => {
+    const baseStyle = disabled ? shell.menuButtonDisabled : shell.menuButton;
+    if (disabled) return baseStyle;
+    const isHovered = hoveredMoreMenuItem === key;
+    const isPersistentHighlight = key === 'edit-selected' || key === 'merge-selected';
+    return {
+      ...baseStyle,
+      background: isPersistentHighlight || isHovered ? 'rgba(159, 23, 77, 0.10)' : baseStyle.background,
+      borderRadius: '8px',
+      margin: '2px 4px',
+      width: 'calc(100% - 8px)'
+    };
   };
 
   const loadTransactions = async () => {
@@ -1073,6 +1088,12 @@ export default function CustomerDashboard() {
       document.removeEventListener('keydown', handleEscape);
     };
   }, [showCustomize, showMoreMenu]);
+
+  useEffect(() => {
+    if (!showMoreMenu) {
+      setHoveredMoreMenuItem('');
+    }
+  }, [showMoreMenu]);
 
   const sortedCustomers = useMemo(() => {
     const multiplier = nameSortDirection === 'asc' ? 1 : -1;
@@ -2407,45 +2428,47 @@ export default function CustomerDashboard() {
           >
             <MoreHorizontal size={14} />
           </button>
-          <div style={{ position: 'relative' }}>
-            <button
-              ref={customizeButtonRef}
-              type="button"
-              style={toolbarIconButtonStyle}
-              aria-label="Customize fields"
-              title="Customize fields"
-              onClick={() => setShowCustomize((prev) => !prev)}
-            >
-              <Settings size={14} />
-            </button>
-            {showCustomize ? (
-              <div ref={customizePanelRef} style={shell.popover}>
-                <div style={shell.popoverHeader}>Show/Hide Columns</div>
-                <div style={shell.popoverBody}>
-                  <button
-                    type="button"
-                    style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
-                    onClick={() => {
-                      setVisibleColumns(defaultVisibleColumns);
-                      resetCustomerColumns();
-                    }}
-                  >
-                    Reset Default Columns
-                  </button>
-                  {allColumns.map((column) => (
-                    <label key={column.key} style={shell.popoverItem}>
-                      <input
-                        type="checkbox"
-                        checked={visibleColumns.includes(column.key)}
-                        onChange={() => toggleColumn(column.key)}
-                      />
-                      {column.label}
-                    </label>
-                  ))}
+          {!isMobile ? (
+            <div style={{ position: 'relative' }}>
+              <button
+                ref={customizeButtonRef}
+                type="button"
+                style={toolbarIconButtonStyle}
+                aria-label="Customize fields"
+                title="Customize fields"
+                onClick={() => setShowCustomize((prev) => !prev)}
+              >
+                <Settings size={14} />
+              </button>
+              {showCustomize ? (
+                <div ref={customizePanelRef} style={shell.popover}>
+                  <div style={shell.popoverHeader}>Show/Hide Columns</div>
+                  <div style={shell.popoverBody}>
+                    <button
+                      type="button"
+                      style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
+                      onClick={() => {
+                        setVisibleColumns(defaultVisibleColumns);
+                        resetCustomerColumns();
+                      }}
+                    >
+                      Reset Default Columns
+                    </button>
+                    {allColumns.map((column) => (
+                      <label key={column.key} style={shell.popoverItem}>
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns.includes(column.key)}
+                          onChange={() => toggleColumn(column.key)}
+                        />
+                        {column.label}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
+          ) : null}
           {showMoreMenu && moreMenuPosition ? (
             <div
               ref={moreMenuRef}
@@ -2457,17 +2480,27 @@ export default function CustomerDashboard() {
             >
                 <button
                   type="button"
-                  style={selectedIds.length === 1 ? shell.menuButton : shell.menuButtonDisabled}
+                  style={getMoreMenuButtonStyle('edit-selected', selectedIds.length === 1)}
+                  onMouseEnter={() => setHoveredMoreMenuItem('edit-selected')}
+                  onMouseLeave={() => setHoveredMoreMenuItem('')}
                   onClick={openEditSelected}
                 >
                   Edit Selected
                 </button>
-                <button type="button" style={shell.menuButton} onClick={deleteSelected}>
+                <button
+                  type="button"
+                  style={getMoreMenuButtonStyle('delete-selected')}
+                  onMouseEnter={() => setHoveredMoreMenuItem('delete-selected')}
+                  onMouseLeave={() => setHoveredMoreMenuItem('')}
+                  onClick={deleteSelected}
+                >
                   Delete Selected ({selectedIds.length})
                 </button>
                 <button
                   type="button"
-                  style={shell.menuButton}
+                  style={getMoreMenuButtonStyle('import-dedup')}
+                  onMouseEnter={() => setHoveredMoreMenuItem('import-dedup')}
+                  onMouseLeave={() => setHoveredMoreMenuItem('')}
                   onClick={() => {
                     setShowImportWizard(true);
                     closeMoreMenu();
@@ -2475,12 +2508,20 @@ export default function CustomerDashboard() {
                 >
                   Import Data (Dedup Wizard)
                 </button>
-                <button type="button" style={shell.menuButton} onClick={exportData}>
+                <button
+                  type="button"
+                  style={getMoreMenuButtonStyle('export-data')}
+                  onMouseEnter={() => setHoveredMoreMenuItem('export-data')}
+                  onMouseLeave={() => setHoveredMoreMenuItem('')}
+                  onClick={exportData}
+                >
                   Export Data
                 </button>
                 <button
                   type="button"
-                  style={shell.menuButton}
+                  style={getMoreMenuButtonStyle('duplicate-report')}
+                  onMouseEnter={() => setHoveredMoreMenuItem('duplicate-report')}
+                  onMouseLeave={() => setHoveredMoreMenuItem('')}
                   onClick={() => {
                     setShowDuplicateReport(true);
                     closeMoreMenu();
@@ -2488,18 +2529,38 @@ export default function CustomerDashboard() {
                 >
                   Duplicate Report
                 </button>
-                <button type="button" style={shell.menuButton} onClick={downloadSampleImportCsv}>
+                <button
+                  type="button"
+                  style={getMoreMenuButtonStyle('sample-csv')}
+                  onMouseEnter={() => setHoveredMoreMenuItem('sample-csv')}
+                  onMouseLeave={() => setHoveredMoreMenuItem('')}
+                  onClick={downloadSampleImportCsv}
+                >
                   Download Sample Import CSV
                 </button>
-                <button type="button" style={shell.menuButton} onClick={deleteDuplicateReportCustomers}>
+                <button
+                  type="button"
+                  style={getMoreMenuButtonStyle('delete-duplicate-report')}
+                  onMouseEnter={() => setHoveredMoreMenuItem('delete-duplicate-report')}
+                  onMouseLeave={() => setHoveredMoreMenuItem('')}
+                  onClick={deleteDuplicateReportCustomers}
+                >
                   Delete Duplicate Report Customers ({duplicateRows.length})
                 </button>
-                <button type="button" style={shell.menuButton} onClick={deleteAllCustomers}>
+                <button
+                  type="button"
+                  style={getMoreMenuButtonStyle('delete-all')}
+                  onMouseEnter={() => setHoveredMoreMenuItem('delete-all')}
+                  onMouseLeave={() => setHoveredMoreMenuItem('')}
+                  onClick={deleteAllCustomers}
+                >
                   Delete All Customers ({customers.length})
                 </button>
                 <button
                   type="button"
-                  style={selectedIds.length === 2 ? shell.menuButton : shell.menuButtonDisabled}
+                  style={getMoreMenuButtonStyle('merge-selected', selectedIds.length === 2)}
+                  onMouseEnter={() => setHoveredMoreMenuItem('merge-selected')}
+                  onMouseLeave={() => setHoveredMoreMenuItem('')}
                   disabled={selectedIds.length !== 2}
                   onClick={mergeSelectedCustomers}
                 >

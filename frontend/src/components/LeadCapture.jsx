@@ -236,7 +236,18 @@ const s = {
   clearButton: { border: '1px solid var(--color-border)', background: '#fff', color: '#334155', borderRadius: '8px', minWidth: '34px', minHeight: '34px', fontSize: '16px', lineHeight: 1, cursor: 'pointer' },
   registerCard: { background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', overflow: 'visible', boxShadow: 'var(--shadow-sm)', backdropFilter: 'none', backgroundClip: 'padding-box' },
   registerHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 12px', borderBottom: '1px solid var(--brand-border-color)', background: '#fff', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', backgroundClip: 'padding-box' },
-  registerTitleWrap: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 8px', borderRadius: '8px', background: 'var(--color-primary-light)', border: '1px solid var(--color-primary-soft)' },
+  registerTitleWrap: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    minHeight: '34px',
+    height: '34px',
+    padding: '0 10px',
+    borderRadius: '8px',
+    background: 'var(--color-primary-light)',
+    border: '1px solid var(--color-primary-soft)',
+    boxSizing: 'border-box'
+  },
   registerTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   registerActions: { display: 'flex', alignItems: 'center', gap: '8px' },
   buttonPrimary: {
@@ -245,9 +256,9 @@ const s = {
     gap: '6px',
     border: 'none',
     borderRadius: '10px',
-    padding: '0 14px',
-    minHeight: '46px',
-    height: '46px',
+    padding: '0 12px',
+    minHeight: '34px',
+    height: '34px',
     background: 'var(--color-primary)',
     color: '#fff',
     cursor: 'pointer',
@@ -270,10 +281,10 @@ const s = {
     background: 'var(--color-primary-light)',
     color: 'var(--color-primary-dark)',
     borderRadius: '10px',
-    width: '46px',
-    height: '46px',
-    minWidth: '46px',
-    minHeight: '46px',
+    width: '34px',
+    height: '34px',
+    minWidth: '34px',
+    minHeight: '34px',
     padding: 0,
     fontSize: '11px',
     fontWeight: 800,
@@ -2139,8 +2150,8 @@ export default function LeadCapture() {
   const leadDateInputStyle = { ...s.in, minHeight: '46px', height: '46px', lineHeight: 1.2, WebkitAppearance: 'none', appearance: 'none' };
   const analyticsTitleStyle = isTiny ? { ...s.analyticsTitle, fontSize: '20px' } : s.analyticsTitle;
   const registerTitleStyle = isTiny ? { ...s.registerTitle, fontSize: '16px' } : s.registerTitle;
-  const buttonPrimaryStyle = isTiny ? { ...s.buttonPrimary, fontSize: '11px', padding: '7px 9px' } : s.buttonPrimary;
-  const toolbarIconButtonStyle = isTiny ? { ...s.customizeButton, width: '32px', height: '32px' } : s.customizeButton;
+  const buttonPrimaryStyle = isTiny ? { ...s.buttonPrimary, fontSize: '11px', padding: '0 9px', minHeight: '32px', height: '32px' } : s.buttonPrimary;
+  const toolbarIconButtonStyle = isTiny ? { ...s.customizeButton, width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' } : s.customizeButton;
   const leadModalCompactBodyStyle = isTiny ? { ...leadModalBodyStyle, padding: '10px' } : leadModalBodyStyle;
   const leadTableMinWidth = isMobile
     ? `${40 + visibleColumnDefs.reduce((sum, column) => sum + (mobileLeadColumnWidths[column.key] || 128), 0) + 92}px`
