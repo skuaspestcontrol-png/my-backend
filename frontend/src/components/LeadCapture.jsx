@@ -32,7 +32,6 @@ import {
   MapPin,
   MoreHorizontal,
   PhoneCall,
-  Plus,
   Search,
   Settings,
   User,
@@ -2352,7 +2351,6 @@ export default function LeadCapture() {
           </div>
           <div style={registerActionsStyle}>
             <button type="button" style={buttonPrimaryStyle} onClick={openLeadModal}>
-              <Plus size={16} />
               New Lead
             </button>
             <div style={{ position: 'relative', marginLeft: isMobile ? 'auto' : 0 }}>
