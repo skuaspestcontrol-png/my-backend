@@ -526,52 +526,6 @@ const buildDuplicateGuardProfile = (record = {}) => {
     )
   };
 };
-const buildDuplicateCustomerFromSearchRow = (row = {}) => ({
-  _id: String(row.customerId || row._id || '').trim(),
-  displayName: row.displayName || row.customerName || row.name || row.companyName || row.contactPersonName || '',
-  name: row.displayName || row.customerName || row.name || row.companyName || row.contactPersonName || '',
-  companyName: row.companyName || '',
-  contactPersonName: row.contactPersonName || '',
-  mobileNumber: row.mobileNumber || '',
-  emailId: row.email || '',
-  email: row.email || '',
-  billingAddress: row.billingAddress || row.address || '',
-  shippingAddress: row.shippingAddress || '',
-  billingArea: row.billingArea || '',
-  billingState: row.billingState || '',
-  billingPincode: row.billingPincode || '',
-  shippingArea: row.shippingArea || '',
-  shippingState: row.shippingState || '',
-  shippingPincode: row.shippingPincode || ''
-});
-const isExactDuplicateSearchRow = (draftRecord = {}, row = {}) => {
-  if (!row || typeof row !== 'object') return false;
-  const draftProfile = buildDuplicateGuardProfile(draftRecord || {});
-  const rowProfile = buildDuplicateGuardProfile(buildDuplicateCustomerFromSearchRow(row));
-  const nameMatch = draftProfile.nameKeys.some((value) => rowProfile.nameKeys.includes(value));
-  const mobileMatch = Boolean(
-    draftProfile.mobileNumber
-    && rowProfile.mobileNumber
-    && draftProfile.mobileNumber === rowProfile.mobileNumber
-  );
-  const emailMatch = Boolean(draftProfile.email && rowProfile.email && draftProfile.email === rowProfile.email);
-  const billingAddressMatch = Boolean(
-    draftProfile.billingAddress
-    && rowProfile.billingAddress
-    && draftProfile.billingAddress === rowProfile.billingAddress
-  );
-  const shippingAddressMatch = Boolean(
-    draftProfile.shippingAddress
-    && rowProfile.shippingAddress
-    && draftProfile.shippingAddress === rowProfile.shippingAddress
-  );
-  const addressMatch = billingAddressMatch || shippingAddressMatch;
-  return (
-    (nameMatch && (mobileMatch || emailMatch || addressMatch))
-    || (mobileMatch && (emailMatch || addressMatch))
-    || (emailMatch && addressMatch)
-  );
-};
 const isExactDuplicateCustomerMatch = (candidate = {}, existing = {}) => {
   const candidateProfile = buildDuplicateGuardProfile(candidate || {});
   const existingProfile = buildDuplicateGuardProfile(existing || {});
@@ -598,16 +552,6 @@ const isExactDuplicateCustomerMatch = (candidate = {}, existing = {}) => {
     || (mobileMatch && (emailMatch || addressMatch))
     || (emailMatch && addressMatch)
   );
-};
-const findExactDuplicateCustomer = (candidate = {}, list = [], excludedId = '') => {
-  const excluded = String(excludedId || '').trim();
-  return Array.isArray(list)
-    ? list.find((existing) => {
-      if (!existing || existing.active === false || existing.isMerged) return false;
-      if (excluded && String(existing._id || '').trim() === excluded) return false;
-      return isExactDuplicateCustomerMatch(candidate, existing);
-    }) || null
-    : null;
 };
 const isCustomerRecord = (customer) => Boolean(customer && typeof customer === 'object' && !Array.isArray(customer));
 const sanitizeCustomerRows = (rows) => (Array.isArray(rows) ? rows.filter(isCustomerRecord) : []);
@@ -642,8 +586,6 @@ export default function CustomerDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [duplicateConflict, setDuplicateConflict] = useState(null);
-  const [similarCustomers, setSimilarCustomers] = useState([]);
-  const [similarLoading, setSimilarLoading] = useState(false);
   const [pendingPremises, setPendingPremises] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [addressSearchState, setAddressSearchState] = useState(createAddressSearchState);
@@ -1616,63 +1558,6 @@ export default function CustomerDashboard() {
     void enrichCustomerAddressFromLatLng(section, lat, lng, { preserveSearchAddress: true });
   };
 
-  const fetchSimilarCustomers = async (draft = form) => {
-    const name = String(draft.displayName || draft.contactPersonName || draft.companyName || '').trim();
-    const mobile = toTenDigitNumber(draft.mobileNumber || draft.workPhone || '');
-    const address = String(draft.billingAddress || draft.billingStreet1 || '').trim();
-    const shippingAddress = String(draft.shippingAddress || draft.shippingStreet1 || '').trim();
-    const billingState = String(draft.billingState || '').trim();
-    const shippingState = String(draft.shippingState || '').trim();
-    const billingArea = String(draft.billingArea || '').trim();
-    const shippingArea = String(draft.shippingArea || '').trim();
-    const billingPincode = String(draft.billingPincode || '').trim();
-    const shippingPincode = String(draft.shippingPincode || '').trim();
-    const email = String(draft.emailId || '').trim();
-    if (!name && !mobile && !address && !shippingAddress && !email) {
-      setSimilarCustomers([]);
-      return [];
-    }
-    try {
-      setSimilarLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/customers/similar-search`, {
-        params: {
-          name,
-          displayName: draft.displayName || '',
-          companyName: draft.companyName || '',
-          contactPersonName: draft.contactPersonName || '',
-          mobile,
-          address,
-          shippingAddress,
-          billingState,
-          billingArea,
-          billingPincode,
-          shippingState,
-          shippingArea,
-          shippingPincode,
-          email: draft.emailId || ''
-        }
-      });
-      const rows = Array.isArray(res.data?.rows) ? res.data.rows : [];
-      const filtered = rows.filter((row) => (editingId ? row.customerId !== editingId : true));
-      setSimilarCustomers(filtered);
-      return filtered;
-    } catch (error) {
-      console.error('Failed to search similar customers', error);
-      setSimilarCustomers([]);
-      return [];
-    } finally {
-      setSimilarLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!showModal) return undefined;
-    const timer = setTimeout(() => {
-      fetchSimilarCustomers(form);
-    }, 320);
-    return () => clearTimeout(timer);
-  }, [form.displayName, form.contactPersonName, form.companyName, form.mobileNumber, form.billingAddress, form.emailId, showModal]);
-
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
@@ -1751,7 +1636,6 @@ export default function CustomerDashboard() {
   const openNewForm = () => {
     setEditingId(null);
     setForm(emptyForm);
-    setSimilarCustomers([]);
     setAddressSearchState(createAddressSearchState());
     setSaveError('');
     setDuplicateConflict(null);
@@ -1766,7 +1650,6 @@ export default function CustomerDashboard() {
     if (!selected) return;
     setEditingId(selected._id);
     setForm(mapCustomerToForm(selected));
-    setSimilarCustomers([]);
     setAddressSearchState(createAddressSearchState());
     setSaveError('');
     setDuplicateConflict(null);
@@ -1799,26 +1682,11 @@ export default function CustomerDashboard() {
     setHistoryLoading(false);
   };
 
-  const reviewExistingSimilarCustomer = async (customer) => {
-    if (!customer?._id) return;
-    const existing = customers.find((entry) => entry._id === customer._id) || customer;
-    setShowModal(false);
-    setEditingId(null);
-    setSaveError('');
-    setDuplicateConflict(null);
-    setSimilarCustomers([]);
-    setAddressSearchState(createAddressSearchState());
-    setHistoryTab('overview');
-    await openCustomerHistory(existing);
-    lastDisplayNameRef.current = String(existing.displayName || existing.name || '').trim();
-  };
-
   const resetCustomerFormState = () => {
     setShowModal(false);
     setEditingId(null);
     setSaveError('');
     setDuplicateConflict(null);
-    setSimilarCustomers([]);
     setPendingPremises([]);
     setAddressSearchState(createAddressSearchState());
     lastDisplayNameRef.current = '';
@@ -1832,7 +1700,6 @@ export default function CustomerDashboard() {
       }
     }
     setForm(emptyForm);
-    setSimilarCustomers([]);
     setEditingId(null);
     setPendingPremises([]);
     setDuplicateConflict(null);
@@ -1850,7 +1717,6 @@ export default function CustomerDashboard() {
     setShowModal(false);
     setEditingId(null);
     setSaveError('');
-    setSimilarCustomers([]);
     setPendingPremises([]);
     setAddressSearchState(createAddressSearchState());
     if (existing && existing._id) {
@@ -1876,7 +1742,6 @@ export default function CustomerDashboard() {
     setHistoryProfitSnapshot(null);
     setEditingId(existing._id);
     setForm(mapCustomerToForm(existing));
-    setSimilarCustomers([]);
     setPendingPremises([]);
     setSaveError('');
     setAddressSearchState(createAddressSearchState());
@@ -1905,14 +1770,10 @@ export default function CustomerDashboard() {
       await completeCustomerSave(response, premisesSnapshot);
     } catch (error) {
       const message = getApiErrorMessage(error, 'Unable to save customer.');
-      const duplicateCustomer = error?.response?.data?.duplicateCustomer
-        || duplicateConflict?.duplicateCustomer
-        || buildDuplicateCustomerFromSearchRow(similarCustomers.find((row) => isExactDuplicateSearchRow(duplicateConflict?.payload || {}, row)))
-        || buildDuplicateCustomerFromSearchRow(similarCustomers[0] || {});
       if (error?.response?.status === 409) {
         setDuplicateConflict((prev) => (prev ? {
           ...prev,
-          duplicateCustomer,
+          duplicateCustomer: error?.response?.data?.duplicateCustomer || duplicateConflict?.duplicateCustomer || null,
           error: message,
           isSaving: false
         } : prev));
@@ -1939,7 +1800,6 @@ export default function CustomerDashboard() {
     setEditingId(null);
     setSaveError('');
     setDuplicateConflict(null);
-    setSimilarCustomers([]);
     setPendingPremises([]);
     lastDisplayNameRef.current = '';
   };
@@ -1970,7 +1830,6 @@ export default function CustomerDashboard() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    let latestSimilarCustomers = [];
     const contactName = form.contactPersonName.trim();
     const companyName = form.companyName.trim();
     if (!contactName && !companyName) {
@@ -2083,28 +1942,6 @@ export default function CustomerDashboard() {
       longitude: billingLongitude
     };
 
-    const freshSimilarCustomers = await fetchSimilarCustomers(form);
-    latestSimilarCustomers = Array.isArray(freshSimilarCustomers) ? freshSimilarCustomers : [];
-    if (Array.isArray(freshSimilarCustomers) && freshSimilarCustomers.length > 0) {
-      setSimilarCustomers(freshSimilarCustomers);
-    }
-
-    const localDuplicateCustomer = findExactDuplicateCustomer(payload, customers, editingId || '');
-    const localDuplicateRow = latestSimilarCustomers.find((row) => isExactDuplicateSearchRow(payload, row)) || null;
-    const duplicateCustomer = localDuplicateCustomer || buildDuplicateCustomerFromSearchRow(localDuplicateRow || {});
-    if (localDuplicateCustomer || localDuplicateRow) {
-      setDuplicateConflict({
-        duplicateCustomer,
-        payload,
-        editingId: editingId || '',
-        overrideReason: '',
-        error: 'Exact duplicate customer already exists. Review the existing customer before saving this one.',
-        isSaving: false
-      });
-      setSaveError('');
-      return;
-    }
-
     try {
       setIsSaving(true);
       setSaveError('');
@@ -2116,9 +1953,6 @@ export default function CustomerDashboard() {
     } catch (error) {
       const message = getApiErrorMessage(error, 'Unable to save customer.');
       const responseData = error?.response?.data || {};
-      const duplicateCustomer = responseData.duplicateCustomer
-        || buildDuplicateCustomerFromSearchRow(latestSimilarCustomers.find((row) => isExactDuplicateSearchRow(payload, row)))
-        || buildDuplicateCustomerFromSearchRow(latestSimilarCustomers[0] || {});
       console.error('Failed to save customer', {
         message,
         status: error?.response?.status,
@@ -2128,7 +1962,7 @@ export default function CustomerDashboard() {
       });
       if (error?.response?.status === 409) {
         setDuplicateConflict({
-          duplicateCustomer,
+          duplicateCustomer: responseData.duplicateCustomer || null,
           payload,
           editingId: editingId || '',
           overrideReason: '',
@@ -3141,42 +2975,6 @@ export default function CustomerDashboard() {
             </div>
 
             <div className="crm-modal-surface-body" style={modalBodyStyle}>
-              <label style={shell.label}>Duplicate Check</label>
-              <div style={{ border: '1px solid var(--color-border)', borderRadius: '10px', padding: '10px', background: '#fff' }}>
-                {similarLoading ? (
-                  <p style={{ margin: 0, fontSize: '12px', color: '#475569', fontWeight: 600 }}>Checking similar customers...</p>
-                ) : null}
-                {!similarLoading && similarCustomers.length === 0 ? (
-                  <p style={{ margin: 0, fontSize: '12px', color: '#166534', fontWeight: 700 }}>No similar customer found.</p>
-                ) : null}
-                {!similarLoading && similarCustomers.some((row) => /exact customer name match/i.test(String(row.reason || ''))) ? (
-                  <p style={{ margin: 0, fontSize: '12px', color: '#991b1b', fontWeight: 800 }}>Exact same customer name found. Review the existing customer before saving.</p>
-                ) : null}
-                {!similarLoading && similarCustomers.length > 0 ? (
-                  <div style={{ display: 'grid', gap: '7px' }}>
-                    {similarCustomers.slice(0, 5).map((entry) => (
-                      <div key={entry.customerId} style={{ border: '1px solid var(--color-primary-soft)', borderRadius: '8px', padding: '8px', background: 'rgba(252,231,243,0.6)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{entry.customerName}</div>
-                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#92400e' }}>{entry.confidence}%</span>
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#334155', marginTop: '4px' }}>{entry.mobileNumber || '-'} | {entry.email || '-'}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>{entry.reason || entry.status}</div>
-                        <div style={{ marginTop: '6px' }}>
-                          <button
-                            type="button"
-                            style={{ border: '1px solid #93c5fd', borderRadius: '8px', background: '#fff', color: 'var(--color-primary-dark)', fontSize: '11px', fontWeight: 700, padding: '4px 8px', cursor: 'pointer' }}
-                            onClick={() => reviewExistingSimilarCustomer(entry)}
-                          >
-                            Review Existing Customer
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-
               <label style={shell.label}>Segment</label>
               <div style={shell.inlineChecks}>
                 <label>
@@ -3468,7 +3266,6 @@ export default function CustomerDashboard() {
                   setEditingId(null);
                   setSaveError('');
                   setDuplicateConflict(null);
-                  setSimilarCustomers([]);
                   setForm(emptyForm);
                 }}
               >

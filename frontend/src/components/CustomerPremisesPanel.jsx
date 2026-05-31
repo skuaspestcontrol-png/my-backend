@@ -31,7 +31,6 @@ const getApiErrorMessage = (error, fallback) => (
 
 const emptyPremise = {
   premiseLabel: '',
-  premiseType: 'Shipping',
   contactPerson: '',
   phone: '',
   email: '',
@@ -70,6 +69,7 @@ const styles = {
   formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 8 },
   label: { display: 'grid', gap: 4, fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase' },
   input: { minHeight: 36, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', padding: '0 9px', fontSize: 13, color: '#111827' },
+  displayField: { minHeight: 36, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', padding: '0 9px', fontSize: 13, fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: 220, boxSizing: 'border-box' },
   textarea: { minHeight: 68, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', padding: 9, fontSize: 13, color: '#111827', resize: 'vertical' },
   footer: { display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' },
   secondaryBtn: { minHeight: 34, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, cursor: 'pointer' }
@@ -79,7 +79,6 @@ const normalizePremise = (premise = {}) => ({
   ...emptyPremise,
   ...premise,
   premiseLabel: premise.premiseLabel || premise.premise_label || '',
-  premiseType: 'Shipping',
   contactPerson: premise.contactPerson || premise.contact_person || '',
   areaName: premise.areaName || premise.area_name || '',
   googleMapUrl: premise.googleMapUrl || premise.google_map_url || '',
@@ -95,7 +94,6 @@ const buildLegacyPremise = (customer = {}, form = {}) => {
   return normalizePremise({
   premiseId: 'legacy-main',
   premiseLabel: 'Shipping Address',
-  premiseType: 'Shipping',
   contactPerson: safeForm.contactPersonName || safeCustomer.contactPersonName || safeCustomer.name || '',
   phone: safeForm.mobileNumber || safeCustomer.mobileNumber || safeCustomer.workPhone || '',
   email: safeForm.emailId || safeCustomer.emailId || safeCustomer.email || '',
@@ -118,6 +116,18 @@ const premiseAddressText = (premise = {}) => [
   [premise.city, premise.state].filter(Boolean).join(', '),
   [premise.country, premise.pincode].filter(Boolean).join(' ')
 ].filter(Boolean).join('\n');
+
+const getNextPremiseLabel = (rows = []) => {
+  const maxNumber = (Array.isArray(rows) ? rows : [])
+    .map((row) => String(row?.premiseLabel || row?.premise_label || '').trim())
+    .map((label) => {
+      const match = label.match(/^premise\s*(\d+)$/i);
+      return match ? Number(match[1]) : null;
+    })
+    .filter((value) => Number.isFinite(value))
+    .reduce((max, value) => Math.max(max, value), 0);
+  return `Premise ${maxNumber + 1}`;
+};
 
 export default function CustomerPremisesPanel({
   customerId,
@@ -144,6 +154,10 @@ export default function CustomerPremisesPanel({
       return true;
     });
   }, [customerId, legacyPremise, pendingPremises, premises]);
+  const nextPremiseLabel = useMemo(
+    () => getNextPremiseLabel(customerId ? premises : pendingPremises),
+    [customerId, pendingPremises, premises]
+  );
 
   const loadPremises = async () => {
     if (!customerId) {
@@ -171,6 +185,7 @@ export default function CustomerPremisesPanel({
     setEditingId('new');
     setDraft({
       ...emptyPremise,
+      premiseLabel: nextPremiseLabel,
       contactPerson: form?.contactPersonName || customer?.contactPersonName || '',
       phone: form?.mobileNumber || customer?.mobileNumber || '',
       email: form?.emailId || customer?.emailId || '',
@@ -201,8 +216,7 @@ export default function CustomerPremisesPanel({
         ...draft,
         premiseId: tempPremiseId,
         premise_id: tempPremiseId,
-        premiseLabel: draft.premiseLabel || 'Shipping Address',
-        premiseType: 'Shipping',
+        premiseLabel: draft.premiseLabel || getNextPremiseLabel(Array.isArray(prev) ? prev : []),
         isDefault: Boolean(draft.isDefault),
         isShipping: true
       });
@@ -409,8 +423,10 @@ export default function CustomerPremisesPanel({
       {editingId ? (
         <div style={styles.form}>
           <div style={styles.formGrid}>
-            <label style={styles.label}>Address Label<input style={styles.input} value={draft.premiseLabel} onChange={(e) => setDraft((p) => ({ ...p, premiseLabel: e.target.value }))} /></label>
-            <label style={styles.label}>Premise Type<select style={styles.input} value="Shipping" disabled><option>Shipping</option></select></label>
+            <label style={styles.label}>
+              Address Label
+              <div style={styles.displayField}>{draft.premiseLabel}</div>
+            </label>
             <label style={styles.label}>Contact Person<input style={styles.input} value={draft.contactPerson} onChange={(e) => setDraft((p) => ({ ...p, contactPerson: e.target.value }))} /></label>
             <label style={styles.label}>Phone<input style={styles.input} inputMode="numeric" value={draft.phone} onChange={(e) => setDraft((p) => ({ ...p, phone: normalizeIndianMobileNumber(e.target.value) }))} /></label>
             <label style={styles.label}>Email<input style={styles.input} value={draft.email} onChange={(e) => setDraft((p) => ({ ...p, email: e.target.value }))} /></label>
