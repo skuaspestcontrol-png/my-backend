@@ -348,7 +348,22 @@ const shell = {
   checkbox: { width: '16px', height: '16px', accentColor: 'var(--color-primary)' },
   menu: { position: 'fixed', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', width: '170px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 1200, overflow: 'hidden', padding: 0 },
   menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '6px 10px', fontSize: '11px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', lineHeight: 1.1, minHeight: '30px' },
-  menuButtonDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '6px 10px', fontSize: '11px', fontWeight: 600, lineHeight: 1.1, minHeight: '30px' },
+  menuButtonDisabled: {
+    width: '100%',
+    textAlign: 'left',
+    border: 'none',
+    background: '#f8fafc',
+    color: '#94a3b8',
+    cursor: 'not-allowed',
+    padding: '6px 10px',
+    fontSize: '11px',
+    fontWeight: 600,
+    lineHeight: 1.1,
+    minHeight: '30px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-start'
+  },
   popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '250px', zIndex: 40 },
   popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
@@ -690,7 +705,7 @@ export default function CustomerDashboard() {
   };
 
   const closeMoreMenu = () => {
-    closeMoreMenu();
+    setShowMoreMenu(false);
     setMoreMenuPosition(null);
   };
 
@@ -1051,10 +1066,10 @@ export default function CustomerDashboard() {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
   }, [showCustomize, showMoreMenu]);
@@ -2392,6 +2407,45 @@ export default function CustomerDashboard() {
           >
             <MoreHorizontal size={14} />
           </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              ref={customizeButtonRef}
+              type="button"
+              style={toolbarIconButtonStyle}
+              aria-label="Customize fields"
+              title="Customize fields"
+              onClick={() => setShowCustomize((prev) => !prev)}
+            >
+              <Settings size={14} />
+            </button>
+            {showCustomize ? (
+              <div ref={customizePanelRef} style={shell.popover}>
+                <div style={shell.popoverHeader}>Show/Hide Columns</div>
+                <div style={shell.popoverBody}>
+                  <button
+                    type="button"
+                    style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
+                    onClick={() => {
+                      setVisibleColumns(defaultVisibleColumns);
+                      resetCustomerColumns();
+                    }}
+                  >
+                    Reset Default Columns
+                  </button>
+                  {allColumns.map((column) => (
+                    <label key={column.key} style={shell.popoverItem}>
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns.includes(column.key)}
+                        onChange={() => toggleColumn(column.key)}
+                      />
+                      {column.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
           {showMoreMenu && moreMenuPosition ? (
             <div
               ref={moreMenuRef}
@@ -2456,67 +2510,7 @@ export default function CustomerDashboard() {
         </div>
       </div>
       <div style={toolbarStyle}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={shell.toolLabel}>Customer Master</span>
-          {!isMobile ? (
-            <>
-              <span style={{ border: '1px solid rgba(159, 23, 77, 0.25)', background: 'var(--color-primary-light)', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 800, color: 'var(--color-primary-dark)' }}>
-                Data Health: {duplicateSummary?.customerDataHealthScore ?? 100}
-              </span>
-              <span style={{ border: '1px solid rgba(217,119,6,0.28)', background: 'rgba(254,243,199,0.7)', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 800, color: '#92400e' }}>
-                Possible Duplicates: {possibleDuplicateIds.length}
-              </span>
-              <button
-                type="button"
-                style={{ ...shell.duplicateFilterButton, background: showPossibleDuplicatesOnly ? '#fee2e2' : 'var(--color-primary-light)', borderColor: showPossibleDuplicatesOnly ? '#fca5a5' : '#c7d2fe', color: showPossibleDuplicatesOnly ? '#991b1b' : 'var(--color-primary-dark)' }}
-                onClick={() => setShowPossibleDuplicatesOnly((prev) => !prev)}
-              >
-                {showPossibleDuplicatesOnly ? 'Show All Customers' : 'Filter Possible Duplicates'}
-              </button>
-            </>
-          ) : null}
-        </div>
-        {!isMobile ? (
-          <div style={{ position: 'relative' }}>
-            <button
-              ref={customizeButtonRef}
-              type="button"
-              style={toolbarIconButtonStyle}
-              aria-label="Customize fields"
-              title="Customize fields"
-              onClick={() => setShowCustomize((prev) => !prev)}
-            >
-              <Settings size={14} />
-            </button>
-              {showCustomize ? (
-                <div ref={customizePanelRef} style={shell.popover}>
-                  <div style={shell.popoverHeader}>Show/Hide Columns</div>
-                  <div style={shell.popoverBody}>
-                    <button
-                      type="button"
-                      style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
-                      onClick={() => {
-                        setVisibleColumns(defaultVisibleColumns);
-                        resetCustomerColumns();
-                      }}
-                    >
-                      Reset Default Columns
-                    </button>
-                    {allColumns.map((column) => (
-                      <label key={column.key} style={shell.popoverItem}>
-                      <input
-                        type="checkbox"
-                        checked={visibleColumns.includes(column.key)}
-                        onChange={() => toggleColumn(column.key)}
-                      />
-                      {column.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }} />
       </div>
 
       <div style={shell.tableWrap} className="crm-table-shell crm-table-shell--clipped">

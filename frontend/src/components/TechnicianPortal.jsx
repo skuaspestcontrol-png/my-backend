@@ -176,6 +176,8 @@ const buildVisibleJobs = (jobs, serviceSchedules, invoices, customers) => {
     // Show only contract/schedule-linked jobs in Assigned Jobs.
     // Legacy ad-hoc rows without linkage are treated as stale/orphaned.
     if (!scheduleKey && !contractId) return;
+    if (contractId && !activeContractIds.has(contractId)) return;
+    if (customerId && !activeCustomerIds.has(customerId)) return;
     // Do not hide active jobs if linked datasets are briefly out-of-sync after deploy.
     // This prevents "Assigned Jobs" from appearing empty/flashing when contracts/customers
     // are still syncing.
@@ -627,6 +629,7 @@ export default function TechnicianPortal() {
     stockItemId: ''
   });
   const sigCanvas = useRef({});
+  const orphanCleanupNoticeTimerRef = useRef(null);
   const beforePhotoInputRef = useRef(null);
   const afterPhotoInputRef = useRef(null);
 
@@ -646,6 +649,7 @@ export default function TechnicianPortal() {
       const invoicesData = invoicesRes.status === 'fulfilled' ? invoicesRes.value?.data : [];
       const customersData = customersRes.status === 'fulfilled' ? customersRes.value?.data : [];
       const employeesData = employeesRes.status === 'fulfilled' ? employeesRes.value?.data : [];
+      const cleanedCount = Number(jobsRes.status === 'fulfilled' ? jobsRes.value?.headers?.['x-orphan-jobs-cleaned'] : 0) || 0;
 
       const nextSchedules = Array.isArray(schedulesData) ? schedulesData : [];
       setJobs(buildVisibleJobs(jobsData, nextSchedules, invoicesData, customersData));
@@ -653,6 +657,16 @@ export default function TechnicianPortal() {
         (Array.isArray(employeesData) ? employeesData : [])
           .filter((employee) => String(employee?.role || '').trim().toLowerCase() === 'technician')
       );
+      if (cleanedCount > 0) {
+        const message = `Cleaned ${cleanedCount} orphaned assigned job${cleanedCount === 1 ? '' : 's'}.`;
+        setActionStatus(message);
+        if (orphanCleanupNoticeTimerRef.current) {
+          window.clearTimeout(orphanCleanupNoticeTimerRef.current);
+        }
+        orphanCleanupNoticeTimerRef.current = window.setTimeout(() => {
+          setActionStatus((current) => (current === message ? '' : current));
+        }, 4000);
+      }
     } catch (error) {
       console.error('Fetch failed', error);
     }
@@ -687,6 +701,12 @@ export default function TechnicianPortal() {
       window.removeEventListener('storage', onStorage);
     };
   }, [loadPortalData]);
+
+  useEffect(() => () => {
+    if (orphanCleanupNoticeTimerRef.current) {
+      window.clearTimeout(orphanCleanupNoticeTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     const routeTick = String(location.state?.jobsSyncTick || '').trim();

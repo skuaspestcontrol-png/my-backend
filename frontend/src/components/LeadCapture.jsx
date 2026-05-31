@@ -32,7 +32,6 @@ import {
   MapPin,
   MoreHorizontal,
   PhoneCall,
-  Plus,
   Search,
   Settings,
   User,
@@ -240,7 +239,22 @@ const s = {
   registerTitleWrap: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 8px', borderRadius: '8px', background: 'var(--color-primary-light)', border: '1px solid var(--color-primary-soft)' },
   registerTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   registerActions: { display: 'flex', alignItems: 'center', gap: '8px' },
-  buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '8px', padding: '7px 10px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '12px' },
+  buttonPrimary: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    border: 'none',
+    borderRadius: '10px',
+    padding: '0 14px',
+    minHeight: '46px',
+    height: '46px',
+    background: 'var(--color-primary)',
+    color: '#fff',
+    cursor: 'pointer',
+    fontWeight: 700,
+    fontSize: '12px',
+    lineHeight: 1
+  },
   buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '10px', width: '46px', height: '46px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   menu: { position: 'absolute', right: 0, top: '44px', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '10px', minWidth: '170px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 35, overflow: 'hidden' },
   menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
@@ -248,7 +262,24 @@ const s = {
   toolbarLeft: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flexWrap: 'nowrap', whiteSpace: 'nowrap' },
   toolLabel: { fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
   toolbarMeta: { fontSize: '11px', color: '#64748b', fontWeight: 700, whiteSpace: 'nowrap' },
-  customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '9px', width: '32px', height: '32px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)' },
+  customizeButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid var(--color-primary-soft)',
+    background: 'var(--color-primary-light)',
+    color: 'var(--color-primary-dark)',
+    borderRadius: '10px',
+    width: '46px',
+    height: '46px',
+    minWidth: '46px',
+    minHeight: '46px',
+    padding: 0,
+    fontSize: '11px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)'
+  },
   popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '260px', zIndex: 45 },
   popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' },
@@ -2078,7 +2109,7 @@ export default function LeadCapture() {
       ? { ...s.filtersGrid, gridTemplateColumns: 'repeat(3, minmax(120px, 1fr)) minmax(100px, auto)', minWidth: 0 }
       : s.filtersGrid;
   const registerHeadStyle = isMobile ? { ...s.registerHead, flexDirection: 'column', alignItems: 'stretch' } : s.registerHead;
-  const registerActionsStyle = isMobile ? { ...s.registerActions, width: '100%', justifyContent: 'space-between' } : s.registerActions;
+  const registerActionsStyle = isMobile ? { ...s.registerActions, width: '100%', justifyContent: 'flex-start', gap: '8px', alignItems: 'center' } : s.registerActions;
   const registerToolbarStyle = isMobile ? { ...s.registerToolbar, flexDirection: 'column', alignItems: 'stretch' } : s.registerToolbar;
   const toolbarLeftStyle = isMobile ? { ...s.toolbarLeft, flexWrap: 'wrap' } : s.toolbarLeft;
   const tableStyle = s.table;
@@ -2309,10 +2340,9 @@ export default function LeadCapture() {
           </div>
           <div style={registerActionsStyle}>
             <button type="button" style={buttonPrimaryStyle} onClick={openLeadModal}>
-              <Plus size={16} />
               New Lead
             </button>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', marginLeft: isMobile ? 'auto' : 0 }}>
               <button
                 ref={moreMenuButtonRef}
                 type="button"
@@ -2336,45 +2366,47 @@ export default function LeadCapture() {
                 </div>
               ) : null}
             </div>
-            <div style={{ position: 'relative' }}>
-              <button
-                ref={customizeButtonRef}
-                type="button"
-                style={toolbarIconButtonStyle}
-                aria-label="Customize fields"
-                title="Customize fields"
-                onClick={() => setShowCustomize((prev) => !prev)}
-              >
-                <Settings size={14} />
-              </button>
-              {showCustomize ? (
-                <div ref={customizePanelRef} style={s.popover}>
-                  <div style={s.popoverHeader}>Show/Hide Columns</div>
-                  <div style={s.popoverBody}>
-                    <button
-                      type="button"
-                      style={{ ...s.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
-                      onClick={() => {
-                        setVisibleColumns(defaultVisibleLeadColumns);
-                        resetLeadColumns();
-                      }}
-                    >
-                      Reset Default Columns
-                    </button>
-                    {leadColumns.map((column) => (
-                      <label key={column.key} style={s.popoverItem}>
-                        <input
-                          type="checkbox"
-                          checked={visibleColumns.includes(column.key)}
-                          onChange={() => toggleColumn(column.key)}
-                        />
-                        {column.label}
-                      </label>
-                    ))}
+            {!isMobile ? (
+              <div style={{ position: 'relative' }}>
+                <button
+                  ref={customizeButtonRef}
+                  type="button"
+                  style={toolbarIconButtonStyle}
+                  aria-label="Customize fields"
+                  title="Customize fields"
+                  onClick={() => setShowCustomize((prev) => !prev)}
+                >
+                  <Settings size={14} />
+                </button>
+                {showCustomize ? (
+                  <div ref={customizePanelRef} style={s.popover}>
+                    <div style={s.popoverHeader}>Show/Hide Columns</div>
+                    <div style={s.popoverBody}>
+                      <button
+                        type="button"
+                        style={{ ...s.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
+                        onClick={() => {
+                          setVisibleColumns(defaultVisibleLeadColumns);
+                          resetLeadColumns();
+                        }}
+                      >
+                        Reset Default Columns
+                      </button>
+                      {leadColumns.map((column) => (
+                        <label key={column.key} style={s.popoverItem}>
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.includes(column.key)}
+                            onChange={() => toggleColumn(column.key)}
+                          />
+                          {column.label}
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : null}
-            </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
         <input

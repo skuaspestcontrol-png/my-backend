@@ -299,6 +299,11 @@ export default function DashboardLayout({ children }) {
   const contentPadding = isMobile ? '12px' : isTablet ? '16px' : isLaptop ? '18px' : '20px';
   const headerPadding = isMobile ? '0 10px' : isTablet ? '0 14px' : '0 18px';
   const topbarHeight = isDrawerMode ? (isMobile ? '54px' : '58px') : '66px';
+  const closeDrawerOnMobile = useCallback(() => {
+    if (isDrawerMode) {
+      setSidebarOpen(false);
+    }
+  }, [isDrawerMode]);
 
   useEffect(() => {
     setSidebarOpen(!isDrawerMode);
@@ -560,12 +565,26 @@ export default function DashboardLayout({ children }) {
         </div>
 
         <nav style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 0 24px' }}>
-          <Link to="/dashboard" className={isActive('/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/dashboard')} title="Dashboard" aria-label="Dashboard">
+          <Link
+            to="/dashboard"
+            className={isActive('/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'}
+            style={linkStyle('/dashboard')}
+            title="Dashboard"
+            aria-label="Dashboard"
+            onClick={closeDrawerOnMobile}
+          >
             <LayoutDashboard size={18} /> {!isSidebarCollapsed ? 'Dashboard' : null}
           </Link>
 
           <SidebarSection title="Sales & Marketing" collapsed={isSidebarCollapsed}>
-            <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setLeadsMenuOpen)} style={groupToggleStyle(leadsMenuOpen)} title="Leads" aria-label="Leads">
+            <button
+              type="button"
+              className="sidebar-nav-item"
+              onClick={() => toggleGroupMenu(setLeadsMenuOpen)}
+              style={groupToggleStyle(leadsMenuOpen)}
+              title="Leads"
+              aria-label="Leads"
+            >
               <span style={sidebarGroupLabelStyle}>
                 <Users size={18} /> {!isSidebarCollapsed ? 'Leads' : null}
               </span>
@@ -573,11 +592,18 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && leadsMenuOpen ? (
               <>
-                <Link to="/leads" className={isActive('/leads') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads')}>Lead Master</Link>
-                <Link to="/leads/followup" className={isActive('/leads/followup') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads/followup')}>Followup</Link>
+                <Link to="/leads" className={isActive('/leads') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads')} onClick={closeDrawerOnMobile}>Lead Master</Link>
+                <Link to="/leads/followup" className={isActive('/leads/followup') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads/followup')} onClick={closeDrawerOnMobile}>Followup</Link>
               </>
             ) : null}
-            <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setSalesMenuOpen)} style={groupToggleStyle(salesMenuOpen)} title="Sales" aria-label="Sales">
+            <button
+              type="button"
+              className="sidebar-nav-item"
+              onClick={() => toggleGroupMenu(setSalesMenuOpen)}
+              style={groupToggleStyle(salesMenuOpen)}
+              title="Sales"
+              aria-label="Sales"
+            >
               <span style={sidebarGroupLabelStyle}>
                 <Briefcase size={18} /> {!isSidebarCollapsed ? 'Sales' : null}
               </span>
@@ -585,12 +611,12 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && salesMenuOpen ? (
               <>
-                <Link to="/sales/customers" className={isActive('/sales/customers') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/customers')}>Customer</Link>
-                <Link to="/sales/contracts" className={isActive('/sales/contracts') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/contracts')}>Contract</Link>
-                <Link to="/sales/invoices" className={isActive('/sales/invoices') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/invoices')}>Invoice</Link>
-                <Link to="/quotations" className={isActive('/quotations') || isActive('/quotations/new') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/quotations', isActive('/quotations') || isActive('/quotations/new'))}>Quotation</Link>
-                <Link to="/sales/payment-received" className={isActive('/sales/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/payment-received')}>Payment Received</Link>
-                <Link to="/sales/renewal" className={isActive('/sales/renewal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/renewal')}>Renewal</Link>
+                <Link to="/sales/customers" className={isActive('/sales/customers') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/customers')} onClick={closeDrawerOnMobile}>Customer</Link>
+                <Link to="/sales/contracts" className={isActive('/sales/contracts') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/contracts')} onClick={closeDrawerOnMobile}>Contract</Link>
+                <Link to="/sales/invoices" className={isActive('/sales/invoices') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/invoices')} onClick={closeDrawerOnMobile}>Invoice</Link>
+                <Link to="/quotations" className={isActive('/quotations') || isActive('/quotations/new') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/quotations', isActive('/quotations') || isActive('/quotations/new'))} onClick={closeDrawerOnMobile}>Quotation</Link>
+                <Link to="/sales/payment-received" className={isActive('/sales/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/payment-received')} onClick={closeDrawerOnMobile}>Payment Received</Link>
+                <Link to="/sales/renewal" className={isActive('/sales/renewal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/renewal')} onClick={closeDrawerOnMobile}>Renewal</Link>
               </>
             ) : null}
 
@@ -602,10 +628,10 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && salesPerformanceMenuOpen ? (
               <>
-                <Link to="/sales-performance/dashboard" className={isActive('/sales-performance/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/dashboard')}>Dashboard</Link>
-                <Link to="/sales-performance/targets" className={isActive('/sales-performance/targets') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/targets')}>Targets</Link>
-                <Link to="/sales-performance/team-performance" className={isActive('/sales-performance/team-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/team-performance')}>Team Performance</Link>
-                <Link to="/sales-performance/reports" className={isActive('/sales-performance/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/reports')}>Reports</Link>
+                <Link to="/sales-performance/dashboard" className={isActive('/sales-performance/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/dashboard')} onClick={closeDrawerOnMobile}>Dashboard</Link>
+                <Link to="/sales-performance/targets" className={isActive('/sales-performance/targets') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/targets')} onClick={closeDrawerOnMobile}>Targets</Link>
+                <Link to="/sales-performance/team-performance" className={isActive('/sales-performance/team-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/team-performance')} onClick={closeDrawerOnMobile}>Team Performance</Link>
+                <Link to="/sales-performance/reports" className={isActive('/sales-performance/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/reports')} onClick={closeDrawerOnMobile}>Reports</Link>
               </>
             ) : null}
 
@@ -617,9 +643,9 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && purchaseMenuOpen ? (
               <>
-                <Link to="/purchase/vendors" className={isActive('/purchase/vendors') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/vendors')}>Vendors</Link>
-                <Link to="/purchase/bills" className={isActive('/purchase/bills') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/bills')}>Bills</Link>
-                <Link to="/purchase/payment-received" className={isActive('/purchase/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/payment-received')}>Payment Received</Link>
+                <Link to="/purchase/vendors" className={isActive('/purchase/vendors') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/vendors')} onClick={closeDrawerOnMobile}>Vendors</Link>
+                <Link to="/purchase/bills" className={isActive('/purchase/bills') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/bills')} onClick={closeDrawerOnMobile}>Bills</Link>
+                <Link to="/purchase/payment-received" className={isActive('/purchase/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/payment-received')} onClick={closeDrawerOnMobile}>Payment Received</Link>
               </>
             ) : null}
 
@@ -634,13 +660,13 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && fieldOpsMenuOpen ? (
               <>
-                <Link to="/operations/assign-services" className={isActive('/operations/assign-services') || isActive('/schedule-job') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assign-services')}>Assign Services</Link>
-                <Link to="/operations/assigned-jobs" className={isActive('/operations/assigned-jobs') || isActive('/technician-portal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assigned-jobs')}>Assigned Jobs</Link>
-                <Link to="/operations/track-technicians" className={isActive('/operations/track-technicians') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/track-technicians')}>Track Technicians</Link>
-                <Link to="/service-calendar" className={isActive('/service-calendar') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/service-calendar')}>Service Calendar</Link>
+                <Link to="/operations/assign-services" className={isActive('/operations/assign-services') || isActive('/schedule-job') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assign-services')} onClick={closeDrawerOnMobile}>Assign Services</Link>
+                <Link to="/operations/assigned-jobs" className={isActive('/operations/assigned-jobs') || isActive('/technician-portal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assigned-jobs')} onClick={closeDrawerOnMobile}>Assigned Jobs</Link>
+                <Link to="/operations/track-technicians" className={isActive('/operations/track-technicians') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/track-technicians')} onClick={closeDrawerOnMobile}>Track Technicians</Link>
+                <Link to="/service-calendar" className={isActive('/service-calendar') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/service-calendar')} onClick={closeDrawerOnMobile}>Service Calendar</Link>
               </>
             ) : null}
-            <Link to="/complaints" className={isActive('/complaints') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/complaints')} title="Complaints" aria-label="Complaints"><Bell size={18} /> {!isSidebarCollapsed ? 'Complaints' : null}</Link>
+            <Link to="/complaints" className={isActive('/complaints') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/complaints')} title="Complaints" aria-label="Complaints" onClick={closeDrawerOnMobile}><Bell size={18} /> {!isSidebarCollapsed ? 'Complaints' : null}</Link>
           </SidebarSection>
 
           <SidebarSection title="Inventory" collapsed={isSidebarCollapsed}>
@@ -652,24 +678,24 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && stockMenuOpen ? (
               <>
-                <Link to="/stock/dashboard" className={isActive('/stock/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/dashboard')}>Dashboard</Link>
-                <Link to="/stock/items" className={isActive('/stock/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/items')}>Items</Link>
-                <Link to="/stock/purchase" className={isActive('/stock/purchase') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/purchase')}>Stock In / Purchase</Link>
-                <Link to="/stock/issue-usage" className={isActive('/stock/issue-usage') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/issue-usage')}>Issue &amp; Usage</Link>
-                <Link to="/stock/reports" className={isActive('/stock/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/reports')}>Reports</Link>
+                <Link to="/stock/dashboard" className={isActive('/stock/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/dashboard')} onClick={closeDrawerOnMobile}>Dashboard</Link>
+                <Link to="/stock/items" className={isActive('/stock/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/items')} onClick={closeDrawerOnMobile}>Items</Link>
+                <Link to="/stock/purchase" className={isActive('/stock/purchase') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/purchase')} onClick={closeDrawerOnMobile}>Stock In / Purchase</Link>
+                <Link to="/stock/issue-usage" className={isActive('/stock/issue-usage') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/issue-usage')} onClick={closeDrawerOnMobile}>Issue &amp; Usage</Link>
+                <Link to="/stock/reports" className={isActive('/stock/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/reports')} onClick={closeDrawerOnMobile}>Reports</Link>
               </>
             ) : null}
           </SidebarSection>
 
           <SidebarSection title="HR & Payroll" collapsed={isSidebarCollapsed}>
-            <Link to="/hr-dashboard" className={isActive('/hr-dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/hr-dashboard')} title="HR Dashboard" aria-label="HR Dashboard"><LayoutDashboard size={18} /> {!isSidebarCollapsed ? 'HR Dashboard' : null}</Link>
-            <Link to="/employees" className={isActive('/employees') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/employees')} title="Employee Master" aria-label="Employee Master"><UserCheck size={18} /> {!isSidebarCollapsed ? 'Employee Master' : null}</Link>
-            <Link to="/attendance" className={isActive('/attendance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/attendance')} title="Attendance" aria-label="Attendance"><CalendarClock size={18} /> {!isSidebarCollapsed ? 'Attendance' : null}</Link>
-            <Link to="/payroll" className={isActive('/payroll') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/payroll')} title="Payroll" aria-label="Payroll"><IndianRupee size={18} /> {!isSidebarCollapsed ? 'Payroll' : null}</Link>
+            <Link to="/hr-dashboard" className={isActive('/hr-dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/hr-dashboard')} title="HR Dashboard" aria-label="HR Dashboard" onClick={closeDrawerOnMobile}><LayoutDashboard size={18} /> {!isSidebarCollapsed ? 'HR Dashboard' : null}</Link>
+            <Link to="/employees" className={isActive('/employees') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/employees')} title="Employee Master" aria-label="Employee Master" onClick={closeDrawerOnMobile}><UserCheck size={18} /> {!isSidebarCollapsed ? 'Employee Master' : null}</Link>
+            <Link to="/attendance" className={isActive('/attendance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/attendance')} title="Attendance" aria-label="Attendance" onClick={closeDrawerOnMobile}><CalendarClock size={18} /> {!isSidebarCollapsed ? 'Attendance' : null}</Link>
+            <Link to="/payroll" className={isActive('/payroll') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/payroll')} title="Payroll" aria-label="Payroll" onClick={closeDrawerOnMobile}><IndianRupee size={18} /> {!isSidebarCollapsed ? 'Payroll' : null}</Link>
           </SidebarSection>
 
           <SidebarSection title="Administration" collapsed={isSidebarCollapsed}>
-            <Link to="/items" className={isActive('/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/items')} title="Items" aria-label="Items"><Package size={18} /> {!isSidebarCollapsed ? 'Items' : null}</Link>
+            <Link to="/items" className={isActive('/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/items')} title="Items" aria-label="Items" onClick={closeDrawerOnMobile}><Package size={18} /> {!isSidebarCollapsed ? 'Items' : null}</Link>
           </SidebarSection>
         </nav>
       </aside>

@@ -39,9 +39,7 @@ const emptyPremise = {
   city: '',
   state: 'Delhi',
   pincode: '',
-  country: 'India',
   gstNumber: '',
-  placeOfSupply: '',
   googleMapUrl: '',
   isDefault: false,
   isShipping: true
@@ -82,7 +80,6 @@ const normalizePremise = (premise = {}) => ({
   contactPerson: premise.contactPerson || premise.contact_person || '',
   areaName: premise.areaName || premise.area_name || '',
   googleMapUrl: premise.googleMapUrl || premise.google_map_url || '',
-  placeOfSupply: premise.placeOfSupply || premise.place_of_supply || '',
   isDefault: Boolean(premise.isDefault || premise.is_default),
   isShipping: true
 });
@@ -102,9 +99,7 @@ const buildLegacyPremise = (customer = {}, form = {}) => {
   city: safeCustomer.city || '',
   state: safeForm.shippingState || safeCustomer.shippingState || safeCustomer.state || 'Delhi',
   pincode: safeForm.shippingPincode || safeCustomer.shippingPincode || safeCustomer.pincode || '',
-  country: 'India',
   gstNumber: safeForm.gstNumber || safeCustomer.gstNumber || '',
-  placeOfSupply: safeForm.shippingState || safeCustomer.placeOfSupply || safeCustomer.state || '',
   isDefault: true,
   isShipping: true
   });
@@ -114,7 +109,7 @@ const premiseAddressText = (premise = {}) => [
   premise.address,
   premise.areaName,
   [premise.city, premise.state].filter(Boolean).join(', '),
-  [premise.country, premise.pincode].filter(Boolean).join(' ')
+  premise.pincode
 ].filter(Boolean).join('\n');
 
 const getNextPremiseLabel = (rows = []) => {
@@ -189,8 +184,7 @@ export default function CustomerPremisesPanel({
       contactPerson: form?.contactPersonName || customer?.contactPersonName || '',
       phone: form?.mobileNumber || customer?.mobileNumber || '',
       email: form?.emailId || customer?.emailId || '',
-      gstNumber: form?.gstNumber || customer?.gstNumber || '',
-      placeOfSupply: form?.billingState || customer?.placeOfSupply || ''
+      gstNumber: form?.gstNumber || customer?.gstNumber || ''
     });
   };
 
@@ -433,10 +427,8 @@ export default function CustomerPremisesPanel({
             <label style={{ ...styles.label, gridColumn: '1 / -1' }}>Full Address<textarea style={styles.textarea} value={draft.address} onPaste={handlePremiseTextPaste} onChange={(e) => setDraft((p) => ({ ...p, address: e.target.value }))} /></label>
             <label style={styles.label}>Area Name<input style={styles.input} value={draft.areaName} onChange={(e) => setDraft((p) => ({ ...p, areaName: e.target.value }))} /></label>
             <label style={styles.label}>City<input style={styles.input} value={draft.city} onChange={(e) => setDraft((p) => ({ ...p, city: e.target.value }))} /></label>
-            <label style={styles.label}>State<input style={styles.input} value={draft.state} onChange={(e) => setDraft((p) => ({ ...p, state: e.target.value, placeOfSupply: p.placeOfSupply || e.target.value }))} /></label>
+            <label style={styles.label}>State<input style={styles.input} value={draft.state} onChange={(e) => setDraft((p) => ({ ...p, state: e.target.value }))} /></label>
             <label style={styles.label}>Pincode<input style={styles.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={draft.pincode} onChange={(e) => setDraft((p) => ({ ...p, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))} /></label>
-            <label style={styles.label}>Country<input style={styles.input} value={draft.country} onChange={(e) => setDraft((p) => ({ ...p, country: e.target.value }))} /></label>
-            <label style={styles.label}>Place of Supply<input style={styles.input} value={draft.placeOfSupply} onChange={(e) => setDraft((p) => ({ ...p, placeOfSupply: e.target.value }))} /></label>
             <label style={styles.label}>Google Map URL<input style={styles.input} value={draft.googleMapUrl} onPaste={(event) => {
               const pastedText = String(event.clipboardData?.getData('text') || '').trim();
               if (!pastedText) return;

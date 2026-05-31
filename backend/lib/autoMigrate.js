@@ -204,12 +204,10 @@ const tableDefinitions = [
         city VARCHAR(100) NULL,
         state VARCHAR(100) NULL,
         pincode VARCHAR(20) NULL,
-        country VARCHAR(100) DEFAULT 'India',
         google_place_id VARCHAR(255) NULL,
         google_place_name VARCHAR(255) NULL,
         google_map_url TEXT NULL,
         gst_number VARCHAR(50) NULL,
-        place_of_supply VARCHAR(100) NULL,
         is_default TINYINT(1) DEFAULT 0,
         is_billing TINYINT(1) DEFAULT 0,
         is_shipping TINYINT(1) DEFAULT 0,
@@ -239,12 +237,10 @@ const tableDefinitions = [
       city: 'VARCHAR(100) NULL',
       state: 'VARCHAR(100) NULL',
       pincode: 'VARCHAR(20) NULL',
-      country: "VARCHAR(100) DEFAULT 'India'",
       google_place_id: 'VARCHAR(255) NULL',
       google_place_name: 'VARCHAR(255) NULL',
       google_map_url: 'TEXT NULL',
       gst_number: 'VARCHAR(50) NULL',
-      place_of_supply: 'VARCHAR(100) NULL',
       is_default: 'TINYINT(1) DEFAULT 0',
       is_billing: 'TINYINT(1) DEFAULT 0',
       is_shipping: 'TINYINT(1) DEFAULT 0',
@@ -1416,7 +1412,7 @@ const migratePayrollJsonToMysql = async (target) => {
 
 const migrateCustomerPremises = async (target) => {
   if (!(await tableExists(target, 'customers')) || !(await tableExists(target, 'customer_premises'))) return 0;
-  for (const columnName of ['latitude', 'longitude']) {
+  for (const columnName of ['latitude', 'longitude', 'country', 'place_of_supply']) {
     try {
       await target.query(`ALTER TABLE customer_premises DROP COLUMN ${quoteIdent(columnName)}`);
     } catch (error) {
@@ -1428,7 +1424,7 @@ const migrateCustomerPremises = async (target) => {
   const [result] = await target.query(`
     INSERT INTO customer_premises (
       premise_id, customer_id, premise_label, premise_type, contact_person, phone, email, address,
-      area_name, city, state, pincode, country, gst_number, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
+      area_name, city, state, pincode, gst_number, is_default, is_billing, is_shipping, is_active, payload
     )
     SELECT
       CONCAT('PREM-', COALESCE(c.external_id, c.id), '-MAIN'),
@@ -1447,9 +1443,7 @@ const migrateCustomerPremises = async (target) => {
       COALESCE(c.city, ''),
       COALESCE(c.state, JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.billingState')), ''),
       COALESCE(c.pincode, JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.billingPincode')), ''),
-      'India',
       COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.gstNumber')), ''),
-      COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.placeOfSupply')), c.state, ''),
       1,
       1,
       0,

@@ -4177,12 +4177,10 @@ const normalizePremisePayload = (body = {}, customer = {}, fallbackId = '') => {
     city: String(body.city || '').trim(),
     state: String(body.state || '').trim(),
     pincode: String(body.pincode || '').trim(),
-    country: String(body.country || 'India').trim() || 'India',
     googlePlaceId: String(body.googlePlaceId || body.google_place_id || '').trim(),
     googlePlaceName: String(body.googlePlaceName || body.google_place_name || '').trim(),
     googleMapUrl: String(body.googleMapUrl || body.google_map_url || '').trim(),
     gstNumber: String(body.gstNumber || body.gst_number || customer.gstNumber || '').trim(),
-    placeOfSupply: String(body.placeOfSupply || body.place_of_supply || body.state || customer.placeOfSupply || '').trim(),
     landmark: String(body.landmark || '').trim(),
     isDefault: body.isDefault ?? body.is_default ? 1 : 0,
     isBilling: body.isBilling ?? body.is_billing ? 1 : 0,
@@ -4217,12 +4215,10 @@ const mapPremiseRow = (row = {}) => ({
   city: row.city || '',
   state: row.state || '',
   pincode: row.pincode || '',
-  country: row.country || 'India',
   googlePlaceId: row.google_place_id || '',
   googlePlaceName: row.google_place_name || '',
   googleMapUrl: row.google_map_url || '',
   gstNumber: row.gst_number || '',
-  placeOfSupply: row.place_of_supply || '',
   landmark: row.landmark || '',
   isDefault: !!row.is_default,
   isBilling: !!row.is_billing,
@@ -4256,14 +4252,12 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
       state VARCHAR(100) NULL,
       pincode VARCHAR(20) NULL,
       landmark VARCHAR(255) NULL,
-      country VARCHAR(100) DEFAULT 'India',
       latitude DECIMAL(10,8) NULL,
       longitude DECIMAL(11,8) NULL,
       google_place_id VARCHAR(255) NULL,
       google_place_name VARCHAR(255) NULL,
       google_map_url TEXT NULL,
       gst_number VARCHAR(50) NULL,
-      place_of_supply VARCHAR(100) NULL,
       is_default TINYINT(1) DEFAULT 0,
       is_billing TINYINT(1) DEFAULT 0,
       is_shipping TINYINT(1) DEFAULT 0,
@@ -4286,12 +4280,10 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
     { name: 'city', definition: 'VARCHAR(100) NULL' },
     { name: 'state', definition: 'VARCHAR(100) NULL' },
     { name: 'pincode', definition: 'VARCHAR(20) NULL' },
-    { name: 'country', definition: "VARCHAR(100) DEFAULT 'India'" },
     { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
     { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
     { name: 'google_map_url', definition: 'TEXT NULL' },
     { name: 'gst_number', definition: 'VARCHAR(50) NULL' },
-    { name: 'place_of_supply', definition: 'VARCHAR(100) NULL' },
     { name: 'is_default', definition: 'TINYINT(1) DEFAULT 0' },
     { name: 'is_billing', definition: 'TINYINT(1) DEFAULT 0' },
     { name: 'is_shipping', definition: 'TINYINT(1) DEFAULT 0' },
@@ -4306,10 +4298,24 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
     }
   }
   try {
+    await conn.query('ALTER TABLE customer_premises DROP COLUMN country');
+  } catch (error) {
+    if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
+      console.warn('[MySQL] customer_premises country drop failed:', error.message);
+    }
+  }
+  try {
     await conn.query('ALTER TABLE customer_premises DROP COLUMN latitude');
   } catch (error) {
     if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
       console.warn('[MySQL] customer_premises latitude drop failed:', error.message);
+    }
+  }
+  try {
+    await conn.query('ALTER TABLE customer_premises DROP COLUMN place_of_supply');
+  } catch (error) {
+    if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
+      console.warn('[MySQL] customer_premises place_of_supply drop failed:', error.message);
     }
   }
   try {
@@ -4430,9 +4436,7 @@ const legacyCustomerToPremise = (customer = {}, rowId) => {
     city: customer.city || '',
     state: customer.billingState || customer.state || customer.placeOfSupply || customer.shippingState || '',
     pincode: customer.billingPincode || customer.pincode || customer.shippingPincode || '',
-    country: 'India',
     gstNumber: customer.gstNumber || '',
-    placeOfSupply: customer.placeOfSupply || customer.billingState || customer.state || '',
     isDefault: 1,
     isBilling: 1,
     isShipping: billingAddress && shippingAddress && billingAddress === shippingAddress ? 1 : 0,
@@ -4454,9 +4458,8 @@ const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
       premise_id, customer_id, premise_code, premise_label, premise_type,
       attention_name, contact_person, mobile, alt_mobile, phone, email,
       address_line_1, address_line_2, address, area, area_name, city, state, pincode, landmark,
-      country, google_place_id, google_place_name,
-      google_map_url, gst_number, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+      google_place_id, google_place_name, google_map_url, gst_number, is_default, is_billing, is_shipping, is_active, payload
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       premise_code=VALUES(premise_code),
       premise_label=VALUES(premise_label), premise_type=VALUES(premise_type),
@@ -4465,10 +4468,10 @@ const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
       email=VALUES(email), gst_number=VALUES(gst_number),
       address_line_1=VALUES(address_line_1), address_line_2=VALUES(address_line_2),
       address=VALUES(address), area=VALUES(area), area_name=VALUES(area_name),
-      city=VALUES(city), state=VALUES(state), pincode=VALUES(pincode), country=VALUES(country),
+      city=VALUES(city), state=VALUES(state), pincode=VALUES(pincode),
       landmark=VALUES(landmark),
       google_place_id=VALUES(google_place_id), google_place_name=VALUES(google_place_name), google_map_url=VALUES(google_map_url),
-      place_of_supply=VALUES(place_of_supply), is_default=VALUES(is_default), is_billing=VALUES(is_billing),
+      is_default=VALUES(is_default), is_billing=VALUES(is_billing),
       is_shipping=VALUES(is_shipping), is_active=VALUES(is_active), payload=VALUES(payload)`,
     [
       premise.premiseId, customerRowId, premise.premiseCode || premise.premiseId,
@@ -4477,8 +4480,8 @@ const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
       premise.mobile || premise.phone, premise.altMobile || '', premise.phone, premise.email,
       premise.addressLine1 || premise.address, premise.addressLine2 || '', premise.address,
       premise.area || premise.areaName, premise.areaName, premise.city, premise.state,
-      premise.pincode, premise.landmark || '', premise.country, premise.googlePlaceId, premise.googlePlaceName,
-      premise.googleMapUrl, premise.gstNumber || '', premise.placeOfSupply, premise.isDefault,
+      premise.pincode, premise.landmark || '', premise.googlePlaceId, premise.googlePlaceName,
+      premise.googleMapUrl, premise.gstNumber || '', premise.isDefault,
       premise.isBilling, premise.isShipping, premise.isActive, payload
     ]
   );
@@ -5791,11 +5794,15 @@ app.post('/api/attendance', async (req, res) => {
 
 app.get('/api/jobs', async (req, res) => {
   const includeInactive = String(req.query.includeInactive || '').toLowerCase() === 'true';
+  const activeInvoices = await loadInvoicesForContext().catch(() => []);
+  const activeInvoiceIds = getActiveInvoiceReferenceIds(activeInvoices);
   const filterJobs = (jobs) => {
     if (includeInactive) return jobs;
     return jobs.filter((job) => {
       const status = String(job?.status || '').trim().toLowerCase();
       if (job?.isDeleted || job?.deletedAt) return false;
+      const contractReference = getJobContractReference(job);
+      if (contractReference && !activeInvoiceIds.has(contractReference)) return false;
       return !['completed', 'deleted', 'cancelled', 'canceled', 'archived', 'closed'].includes(status);
     });
   };
@@ -5817,6 +5824,12 @@ app.get('/api/jobs', async (req, res) => {
           return raw;
         })
         .filter(Boolean);
+      const cleanupResult = filterJobs(parsed).length !== parsed.length
+        ? await pruneOrphanAssignedJobs({ invoices: activeInvoices, source: 'jobs-list' })
+        : null;
+      if (cleanupResult?.removedCount > 0) {
+        res.set('X-Orphan-Jobs-Cleaned', String(cleanupResult.removedCount));
+      }
       return res.json(filterJobs(parsed));
     } catch (error) {
       console.error('MySQL jobs read failed:', error.message);
@@ -5825,6 +5838,12 @@ app.get('/api/jobs', async (req, res) => {
   }
 
   const jobs = readJsonFile(jobsFile, []);
+  const cleanupResult = filterJobs(jobs).length !== jobs.length
+    ? await pruneOrphanAssignedJobs({ invoices: activeInvoices, source: 'jobs-list-json' })
+    : null;
+  if (cleanupResult?.removedCount > 0) {
+    res.set('X-Orphan-Jobs-Cleaned', String(cleanupResult.removedCount));
+  }
   res.json(filterJobs(jobs));
 });
 
@@ -5843,6 +5862,60 @@ const loadJobsFromMysql = async () => {
       })
       .filter(Boolean);
   });
+};
+
+const getJobContractReference = (job = {}) =>
+  String(job?.contractId || job?.invoiceId || job?.invoice_external_id || '').trim();
+
+const getActiveInvoiceReferenceIds = (invoices = []) => {
+  const ids = new Set();
+  (Array.isArray(invoices) ? invoices : []).forEach((invoice) => {
+    [
+      invoice?._id,
+      invoice?.external_id,
+      invoice?.invoiceId,
+      invoice?.invoice_external_id
+    ]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+      .forEach((value) => ids.add(value));
+  });
+  return ids;
+};
+
+const pruneOrphanAssignedJobs = async ({ invoices = null, source = 'system' } = {}) => {
+  const activeInvoices = invoices || await loadInvoicesForContext();
+  const activeInvoiceIds = getActiveInvoiceReferenceIds(activeInvoices);
+  const currentJobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
+  const nextJobs = (Array.isArray(currentJobs) ? currentJobs : []).filter((job) => {
+    if (job?.isDeleted || job?.deletedAt) return false;
+    const contractReference = getJobContractReference(job);
+    if (!contractReference) return true;
+    return activeInvoiceIds.has(contractReference);
+  });
+
+  if (nextJobs.length === currentJobs.length) {
+    return { removedCount: 0, keptCount: nextJobs.length, source };
+  }
+
+  if (canUseMysql()) {
+    const nextIds = new Set(nextJobs.map((job) => String(job?._id || '').trim()).filter(Boolean));
+    const removedIds = (Array.isArray(currentJobs) ? currentJobs : [])
+      .map((job) => String(job?._id || '').trim())
+      .filter(Boolean)
+      .filter((id) => !nextIds.has(id));
+    if (removedIds.length > 0) {
+      await withMysqlConnection(async (conn) => {
+        for (const externalId of removedIds) {
+          await conn.query('DELETE FROM jobs WHERE external_id = ?', [externalId]);
+        }
+      });
+    }
+  }
+
+  fs.writeFileSync(jobsFile, JSON.stringify(nextJobs, null, 2));
+
+  return { removedCount: currentJobs.length - nextJobs.length, keptCount: nextJobs.length, source };
 };
 
 const loadJobByIdFromMysql = async (jobId) => {
@@ -9721,6 +9794,12 @@ app.delete('/api/invoices/:id', async (req, res) => {
       return res.status(404).json({ error: 'Invoice not found' });
     }
     fs.writeFileSync(invoicesFile, JSON.stringify(updatedInvoices, null, 2));
+  }
+
+  try {
+    await pruneOrphanAssignedJobs({ source: 'invoice-delete' });
+  } catch (error) {
+    console.error('Orphan job cleanup failed after invoice delete:', error.message);
   }
 
   res.json({ message: 'Invoice deleted' });

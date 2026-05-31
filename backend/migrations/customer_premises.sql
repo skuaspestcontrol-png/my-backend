@@ -12,12 +12,10 @@ CREATE TABLE IF NOT EXISTS customer_premises (
   city VARCHAR(100) NULL,
   state VARCHAR(100) NULL,
   pincode VARCHAR(20) NULL,
-  country VARCHAR(100) DEFAULT 'India',
   google_place_id VARCHAR(255) NULL,
   google_place_name VARCHAR(255) NULL,
   google_map_url TEXT NULL,
   gst_number VARCHAR(50) NULL,
-  place_of_supply VARCHAR(100) NULL,
   is_default TINYINT(1) DEFAULT 0,
   is_billing TINYINT(1) DEFAULT 0,
   is_shipping TINYINT(1) DEFAULT 0,
@@ -32,6 +30,8 @@ CREATE TABLE IF NOT EXISTS customer_premises (
   KEY idx_customer_premises_is_default (is_default),
   KEY idx_customer_premises_is_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @schema_name := DATABASE();
 
 SET @sql := (
   SELECT IF(COUNT(*) > 0,
@@ -63,7 +63,25 @@ SET @sql := (
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-SET @schema_name := DATABASE();
+SET @sql := (
+  SELECT IF(COUNT(*) > 0,
+    'ALTER TABLE customer_premises DROP COLUMN country',
+    'SELECT 1'
+  )
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'customer_premises' AND COLUMN_NAME = 'country'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := (
+  SELECT IF(COUNT(*) > 0,
+    'ALTER TABLE customer_premises DROP COLUMN place_of_supply',
+    'SELECT 1'
+  )
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'customer_premises' AND COLUMN_NAME = 'place_of_supply'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := (
   SELECT IF(COUNT(*) = 0,
@@ -107,7 +125,7 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 INSERT INTO customer_premises (
   premise_id, customer_id, premise_label, premise_type, contact_person, phone, email, address,
-  area_name, city, state, pincode, country, gst_number, place_of_supply, is_default, is_billing, is_shipping, is_active, payload
+  area_name, city, state, pincode, gst_number, is_default, is_billing, is_shipping, is_active, payload
 )
 SELECT
   CONCAT('PREM-', COALESCE(c.external_id, c.id), '-MAIN'),
@@ -126,9 +144,7 @@ SELECT
   COALESCE(c.city, ''),
   COALESCE(c.state, JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.billingState')), ''),
   COALESCE(c.pincode, JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.billingPincode')), ''),
-  'India',
   COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.gstNumber')), ''),
-  COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.payload, '$.placeOfSupply')), c.state, ''),
   1,
   1,
   0,
