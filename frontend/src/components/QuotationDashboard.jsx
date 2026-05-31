@@ -45,7 +45,8 @@ const shell = {
   subtitle: { margin: 0, fontSize: 13, color: 'var(--color-muted)', fontWeight: 600 },
   actions: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   primaryBtn: {
-    minHeight: 38,
+    minHeight: 34,
+    height: 34,
     padding: '0 14px',
     borderRadius: 10,
     border: '1px solid var(--color-primary)',

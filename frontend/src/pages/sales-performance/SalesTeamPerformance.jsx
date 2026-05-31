@@ -248,7 +248,15 @@ export default function SalesTeamPerformance() {
         subtitleStyle={isMobile ? { fontSize: 13, lineHeight: 1.3 } : undefined}
         action={viewportWidth <= 640 ? null : (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>Refresh</AppButton>
+            <AppButton
+              variant="outline"
+              iconLeft={<RefreshCcw size={16} />}
+              onClick={() => load(filters)}
+              loading={loading}
+              style={{ minHeight: '34px', height: '34px' }}
+            >
+              Refresh
+            </AppButton>
           </div>
         )}
       />

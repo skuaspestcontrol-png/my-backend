@@ -250,7 +250,13 @@ export default function SalesPerformanceDashboard() {
         subtitleStyle={isMobile ? { fontSize: 13, lineHeight: 1.3 } : undefined}
         action={(
           viewportWidth <= 640 ? null : (
-            <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading}>
+            <AppButton
+              variant="outline"
+              iconLeft={<RefreshCcw size={16} />}
+              onClick={() => load(filters)}
+              loading={loading}
+              style={{ minHeight: '34px', height: '34px' }}
+            >
               Refresh
             </AppButton>
           )

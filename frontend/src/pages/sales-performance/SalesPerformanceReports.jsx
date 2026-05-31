@@ -390,8 +390,24 @@ export default function SalesPerformanceReports() {
         action={(
           viewportWidth <= 640 ? null : (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', maxWidth: '100%' }}>
-              <AppButton variant="outline" iconLeft={<RefreshCcw size={16} />} onClick={() => load(filters)} loading={loading} style={mobileButtonStyle}>Refresh</AppButton>
-              <AppButton variant="outline" iconLeft={<Download size={16} />} onClick={exportCsv} disabled={!rows.length} style={mobileButtonStyle}>CSV Export</AppButton>
+              <AppButton
+                variant="outline"
+                iconLeft={<RefreshCcw size={16} />}
+                onClick={() => load(filters)}
+                loading={loading}
+                style={{ ...(mobileButtonStyle || {}), minHeight: '34px', height: '34px' }}
+              >
+                Refresh
+              </AppButton>
+              <AppButton
+                variant="outline"
+                iconLeft={<Download size={16} />}
+                onClick={exportCsv}
+                disabled={!rows.length}
+                style={{ ...(mobileButtonStyle || {}), minHeight: '34px', height: '34px' }}
+              >
+                CSV Export
+              </AppButton>
             </div>
           )
         )}
