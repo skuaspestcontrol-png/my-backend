@@ -752,12 +752,18 @@ export default function CustomerDashboard() {
 
   const getMoreMenuButtonStyle = (key, disabled = false) => {
     const baseStyle = disabled ? shell.menuButtonDisabled : shell.menuButton;
-    if (disabled) return baseStyle;
+    if (disabled) {
+      return {
+        ...baseStyle,
+        borderRadius: '8px',
+        margin: '2px 4px',
+        width: 'calc(100% - 8px)'
+      };
+    }
     const isHovered = hoveredMoreMenuItem === key;
-    const isPersistentHighlight = key === 'edit-selected' || key === 'merge-selected';
     return {
       ...baseStyle,
-      background: isPersistentHighlight || isHovered ? 'rgba(159, 23, 77, 0.10)' : baseStyle.background,
+      background: isHovered ? 'rgba(159, 23, 77, 0.10)' : baseStyle.background,
       borderRadius: '8px',
       margin: '2px 4px',
       width: 'calc(100% - 8px)'
@@ -2490,9 +2496,10 @@ export default function CustomerDashboard() {
             >
                 <button
                   type="button"
-                  style={getMoreMenuButtonStyle('edit-selected', selectedIds.length === 1)}
+                  style={getMoreMenuButtonStyle('edit-selected', selectedIds.length !== 1)}
                   onMouseEnter={() => setHoveredMoreMenuItem('edit-selected')}
                   onMouseLeave={() => setHoveredMoreMenuItem('')}
+                  disabled={selectedIds.length !== 1}
                   onClick={openEditSelected}
                 >
                   Edit Selected
@@ -2568,7 +2575,7 @@ export default function CustomerDashboard() {
                 </button>
                 <button
                   type="button"
-                  style={getMoreMenuButtonStyle('merge-selected', selectedIds.length === 2)}
+                  style={getMoreMenuButtonStyle('merge-selected', selectedIds.length !== 2)}
                   onMouseEnter={() => setHoveredMoreMenuItem('merge-selected')}
                   onMouseLeave={() => setHoveredMoreMenuItem('')}
                   disabled={selectedIds.length !== 2}
