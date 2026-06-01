@@ -29,6 +29,46 @@ const getApiErrorMessage = (error, fallback) => (
   || fallback
 );
 
+const stateOptions = [
+  '',
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry'
+];
+
 const emptyPremise = {
   premiseLabel: '',
   contactPerson: '',
@@ -66,9 +106,10 @@ const styles = {
   form: { border: '1px solid var(--color-border)', borderRadius: 10, padding: 10, display: 'grid', gap: 10, background: '#f8fafc' },
   formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 8 },
   label: { display: 'grid', gap: 4, fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase' },
-  input: { minHeight: 36, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', padding: '0 9px', fontSize: 13, color: '#111827' },
+  input: { minHeight: 36, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', padding: '0 9px', fontSize: 13, fontWeight: 400, color: '#111827' },
+  select: { minHeight: 36, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', padding: '0 9px', fontSize: 13, fontWeight: 400, color: '#111827' },
   displayField: { minHeight: 36, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', padding: '0 9px', fontSize: 13, fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: 220, boxSizing: 'border-box' },
-  textarea: { minHeight: 68, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', padding: 9, fontSize: 13, color: '#111827', resize: 'vertical' },
+  textarea: { minHeight: 68, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', padding: 9, fontSize: 13, fontWeight: 400, color: '#111827', resize: 'vertical' },
   footer: { display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' },
   secondaryBtn: { minHeight: 34, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, cursor: 'pointer' }
 };
@@ -427,7 +468,15 @@ export default function CustomerPremisesPanel({
             <label style={{ ...styles.label, gridColumn: '1 / -1' }}>Full Address<textarea style={styles.textarea} value={draft.address} onPaste={handlePremiseTextPaste} onChange={(e) => setDraft((p) => ({ ...p, address: e.target.value }))} /></label>
             <label style={styles.label}>Area Name<input style={styles.input} value={draft.areaName} onChange={(e) => setDraft((p) => ({ ...p, areaName: e.target.value }))} /></label>
             <label style={styles.label}>City<input style={styles.input} value={draft.city} onChange={(e) => setDraft((p) => ({ ...p, city: e.target.value }))} /></label>
-            <label style={styles.label}>State<input style={styles.input} value={draft.state} onChange={(e) => setDraft((p) => ({ ...p, state: e.target.value }))} /></label>
+            <label style={styles.label}>State
+              <select style={styles.select} value={draft.state} onChange={(e) => setDraft((p) => ({ ...p, state: e.target.value }))}>
+                {stateOptions.map((state) => (
+                  <option key={state || 'select-state'} value={state}>
+                    {state || 'Select State'}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label style={styles.label}>Pincode<input style={styles.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={draft.pincode} onChange={(e) => setDraft((p) => ({ ...p, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))} /></label>
             <label style={styles.label}>Google Map URL<input style={styles.input} value={draft.googleMapUrl} onPaste={(event) => {
               const pastedText = String(event.clipboardData?.getData('text') || '').trim();
