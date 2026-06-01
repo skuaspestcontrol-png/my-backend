@@ -614,19 +614,37 @@ const buildAddressText = (customer, source) => {
   return [displayName, street1, street2, area, statePin].filter(Boolean).join('\n');
 };
 
-const buildAddressOption = (id, label, customer, prefix) => ({
-  id,
-  label,
-  company: customer?.displayName || customer?.name || '',
-  street1: customer?.[`${prefix}Street1`] || customer?.[`${prefix}Address`] || '',
-  street2: customer?.[`${prefix}Street2`] || '',
-  line1: customer?.[`${prefix}Address`] || '',
-  area: customer?.[`${prefix}Area`] || '',
-  state: customer?.[`${prefix}State`] || '',
-  pincode: customer?.[`${prefix}Pincode`] || '',
-  gstin: customer?.gstNumber || '',
-  placeOfSupply: normalizeGstState(customer?.[`${prefix}State`] || customer?.state || '')
-});
+const buildAddressOption = (id, label, customer, prefix) => {
+  const fallbackPrefix = prefix === 'billing' ? 'shipping' : 'billing';
+  return {
+    id,
+    label,
+    company: customer?.displayName || customer?.name || '',
+    street1:
+      customer?.[`${prefix}Street1`]
+      || customer?.[`${prefix}Address`]
+      || customer?.[`${fallbackPrefix}Street1`]
+      || customer?.[`${fallbackPrefix}Address`]
+      || '',
+    street2: customer?.[`${prefix}Street2`] || customer?.[`${fallbackPrefix}Street2`] || '',
+    line1:
+      customer?.[`${prefix}Address`]
+      || customer?.[`${prefix}Street1`]
+      || customer?.[`${fallbackPrefix}Address`]
+      || customer?.[`${fallbackPrefix}Street1`]
+      || '',
+    area: customer?.[`${prefix}Area`] || customer?.[`${fallbackPrefix}Area`] || '',
+    state: customer?.[`${prefix}State`] || customer?.[`${fallbackPrefix}State`] || '',
+    pincode: customer?.[`${prefix}Pincode`] || customer?.[`${fallbackPrefix}Pincode`] || '',
+    gstin: customer?.gstNumber || '',
+    placeOfSupply: normalizeGstState(
+      customer?.[`${prefix}State`]
+      || customer?.[`${fallbackPrefix}State`]
+      || customer?.state
+      || ''
+    )
+  };
+};
 
 const premiseToAddressOption = (premise = {}) => ({
   id: `premise:${premise.premiseId || premise.premise_id || ''}`,
@@ -941,7 +959,7 @@ export default function InvoiceDashboard() {
       return dedupeAddressOptions([
         buildAddressOption('billing', 'Billing Address', selectedCustomer, 'billing'),
         buildAddressOption('shipping', 'Shipping Address', selectedCustomer, 'shipping'),
-        ...premises.filter((entry) => entry.isBilling || entry.isDefault || entry.premiseType === 'Billing')
+        ...premises
       ]);
     },
     [selectedCustomer]
@@ -956,10 +974,12 @@ export default function InvoiceDashboard() {
   );
   const shippingAddressOptions = useMemo(() => {
     const base = [
-      buildAddressOption('shipping', 'Shipping Address', selectedCustomer, 'shipping'),
-      buildAddressOption('billing', 'Billing Address', selectedCustomer, 'billing')
+      buildAddressOption('shipping', 'Shipping Address', selectedCustomer, 'shipping')
     ];
     const premises = (selectedCustomer?.premises || []).map(premiseToAddressOption);
+    const shippingPremises = premises.filter(
+      (entry) => entry.isShipping || entry.isDefault || entry.premiseType !== 'Billing'
+    );
     const custom = (form.customShippingAddresses || []).map((address, idx) => ({
       ...address,
       street1: address.street1 || address.line1 || '',
@@ -967,7 +987,7 @@ export default function InvoiceDashboard() {
       placeOfSupply: normalizeGstState(address.placeOfSupply || address.state || ''),
       id: `custom-${idx}`
     }));
-    return dedupeAddressOptions([...base, ...premises, ...custom]);
+    return dedupeAddressOptions([...base, ...shippingPremises, ...custom]);
   }, [selectedCustomer, form.customShippingAddresses]);
   const selectedShippingAddress = useMemo(
     () => {
