@@ -399,6 +399,22 @@ const shell = {
   currencyTag: { border: '1px solid #D1D5DB', borderRight: 'none', borderRadius: '8px 0 0 8px', padding: '6px 8px', fontSize: '12px', color: '#334155', background: '#f8fafc' },
   amountInput: { border: '1px solid #D1D5DB', borderRadius: '0 8px 8px 0', padding: '6px 8px', fontSize: '12px', outline: 'none', width: '100%' },
   inlineChecks: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#111827' },
+  inlineDuplicateWarning: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    minHeight: '34px',
+    padding: '0 10px',
+    borderRadius: '10px',
+    border: '1px solid #fcd34d',
+    background: '#fef3c7',
+    color: '#92400e',
+    fontSize: '12px',
+    fontWeight: 700,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  },
   modalFooter: { padding: '12px 24px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#fff' },
   cancelButton: { minHeight: '40px', border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' },
   saveButton: { minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' },
@@ -1018,6 +1034,33 @@ export default function CustomerDashboard() {
       };
     });
   }, [duplicateConflict, duplicateConflictExistingCustomer, duplicateConflictSignalFields]);
+  const inlineDuplicateWarning = useMemo(() => {
+    const candidate = {
+      displayName: form.displayName || form.contactPersonName || form.companyName || '',
+      name: form.displayName || form.contactPersonName || form.companyName || '',
+      companyName: form.companyName || '',
+      contactPersonName: form.contactPersonName || '',
+      mobileNumber: form.mobileNumber || '',
+      workPhone: form.mobileNumber || ''
+    };
+    const candidateProfile = buildDuplicateGuardProfile(candidate);
+    if (!candidateProfile.mobileNumber && candidateProfile.nameKeys.length === 0) return null;
+
+    const matches = customers.filter((entry) => {
+      if (!entry || entry.active === false || entry.isMerged) return false;
+      if (editingId && String(entry._id || '').trim() === String(editingId || '').trim()) return false;
+      const profile = buildDuplicateGuardProfile(entry);
+      const nameMatch = candidateProfile.nameKeys.some((value) => profile.nameKeys.includes(value));
+      const mobileMatch = Boolean(candidateProfile.mobileNumber && profile.mobileNumber && candidateProfile.mobileNumber === profile.mobileNumber);
+      return mobileMatch || (nameMatch && mobileMatch);
+    });
+    if (matches.length === 0) return null;
+    const first = matches[0];
+    const place = String(first.billingCity || first.city || first.shippingCity || first.billingState || first.state || '').trim();
+    const label = String(first.displayName || first.name || first.companyName || first.contactPersonName || 'Existing customer').trim();
+    const mobile = normalizeIndianMobileNumber(first.mobileNumber || first.workPhone || '');
+    return `Possible duplicate: ${label}${mobile ? ` - ${mobile}` : ''}${place ? ` (${place})` : ''}${matches.length > 1 ? ` +${matches.length - 1} more` : ''}`;
+  }, [customers, editingId, form.companyName, form.contactPersonName, form.displayName, form.mobileNumber]);
 
   const historyInvoices = useMemo(() => {
     if (!selectedHistoryCustomer) return [];
@@ -3179,6 +3222,16 @@ export default function CustomerDashboard() {
                   })
                 }
               />
+
+              {inlineDuplicateWarning ? (
+                <>
+                  <div />
+                  <div style={shell.inlineDuplicateWarning}>
+                    <AlertTriangle size={14} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{inlineDuplicateWarning}</span>
+                  </div>
+                </>
+              ) : null}
 
               <label style={shell.label}>WhatsApp Number</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'center' }}>

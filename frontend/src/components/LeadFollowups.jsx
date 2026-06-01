@@ -59,7 +59,7 @@ const shell = {
   statLabel: { margin: '6px 0 0', color: 'var(--color-muted)', fontSize: '11px', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' },
   filters: { background: 'var(--color-white)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '14px 16px', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(136px, 1fr)) 150px 48px', gap: '12px', alignItems: 'end' },
   label: { display: 'block', marginBottom: '6px', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 800 },
-  input: { width: '100%', height: '42px', border: '1px solid var(--color-border)', borderRadius: '10px', background: 'var(--color-white)', color: 'var(--color-text)', padding: '0 12px', fontSize: '13px', fontWeight: 700, outline: 'none', boxSizing: 'border-box' },
+  input: { width: '100%', height: '34px', border: '1px solid var(--color-border)', borderRadius: '10px', background: 'var(--color-white)', color: 'var(--color-text)', padding: '0 12px', fontSize: '13px', fontWeight: 700, outline: 'none', boxSizing: 'border-box' },
   applyBtn: { height: '34px', minHeight: '34px', minWidth: '150px', border: 'none', borderRadius: '10px', background: 'var(--color-primary)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' },
   clearBtn: { height: '34px', minHeight: '34px', minWidth: '48px', border: '1px solid var(--color-primary-soft)', borderRadius: '10px', background: 'var(--color-white)', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   tabs: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },

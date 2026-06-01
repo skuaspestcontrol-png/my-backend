@@ -24,6 +24,7 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 import {
   ArrowDown,
   ArrowUp,
+  AlertTriangle,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -215,6 +216,23 @@ const s = {
   mapsRow: { display: 'flex', gap: '8px' },
   mapsButton: { minWidth: '136px', minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', cursor: 'pointer', fontWeight: 800, padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.02em', fontSize: '14px' },
   referenceHint: { marginTop: '6px', fontSize: '11px', color: '#64748b' },
+  inlineDuplicateWarning: {
+    gridColumn: 'span 2',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    minHeight: '34px',
+    padding: '0 10px',
+    borderRadius: '10px',
+    border: '1px solid #fcd34d',
+    background: '#fef3c7',
+    color: '#92400e',
+    fontSize: '12px',
+    fontWeight: 700,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  },
   referenceBadge: { marginTop: '8px', padding: '8px 10px', borderRadius: '10px', border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.55)', fontSize: '12px', color: '#1e293b', lineHeight: 1.5 },
   analyticsWrap: { background: 'rgba(255,255,255,0.82)', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '12px', marginBottom: '10px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)', display: 'grid', gap: '10px' },
   analyticsHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' },
@@ -446,6 +464,7 @@ const formatDisplayDate = (value) => {
 };
 const getCustomerMobile = (customer) => normalizePhoneNumber(customer.mobileNumber || customer.workPhone || '');
 const getCustomerName = (customer) => customer.displayName || customer.name || customer.companyName || customer.contactPersonName || '';
+const normalizeDuplicateName = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 const ROW_ACTION_MENU_APPROX_WIDTH = 170;
 const ROW_ACTION_MENU_APPROX_HEIGHT = 190;
 const ROW_ACTION_MENU_GAP = 4;
@@ -678,6 +697,26 @@ export default function LeadCapture() {
         .sort((a, b) => getCustomerName(a).localeCompare(getCustomerName(b))),
     [customers]
   );
+  const leadInlineDuplicateWarning = useMemo(() => {
+    const currentName = normalizeDuplicateName(form.customerName);
+    const currentMobile = normalizePhoneNumber(form.mobile);
+    if (!currentName && !currentMobile) return '';
+
+    const matches = customers.filter((customer) => {
+      const customerName = normalizeDuplicateName(getCustomerName(customer));
+      const customerMobile = getCustomerMobile(customer);
+      const mobileMatch = Boolean(currentMobile && customerMobile && currentMobile === customerMobile);
+      const nameMatch = Boolean(currentName && customerName && currentName === customerName);
+      return mobileMatch || (nameMatch && mobileMatch);
+    });
+    if (matches.length === 0) return '';
+
+    const first = matches[0];
+    const label = getCustomerName(first) || 'Existing customer';
+    const mobile = getCustomerMobile(first);
+    const place = String(first.billingCity || first.city || first.shippingCity || first.billingState || first.state || '').trim();
+    return `Possible duplicate: ${label}${mobile ? ` - ${mobile}` : ''}${place ? ` (${place})` : ''}${matches.length > 1 ? ` +${matches.length - 1} more` : ''}`;
+  }, [customers, form.customerName, form.mobile]);
 
   const visibleColumnDefs = useMemo(
     () => leadColumns.filter((column) => visibleColumns.includes(column.key)),
@@ -2913,6 +2952,12 @@ export default function LeadCapture() {
                       required
                     />
                   </div>
+                  {leadInlineDuplicateWarning ? (
+                    <div style={s.inlineDuplicateWarning}>
+                      <AlertTriangle size={14} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{leadInlineDuplicateWarning}</span>
+                    </div>
+                  ) : null}
                   <div>
                     <div style={leadInlineLabelRowStyle}>
                       <label style={{ ...s.lb, marginBottom: 0 }}>Whatsapp Number</label>
