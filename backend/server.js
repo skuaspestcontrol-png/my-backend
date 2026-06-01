@@ -5229,6 +5229,7 @@ app.get('/api/employees', async (req, res) => {
           ? payload.webPortalAccessEnabled
           : ['1', 'true', 'yes', 'enabled', 'active', 'on'].includes(String(rawStatus).trim().toLowerCase()));
       const salary = Number(row?.salary ?? payload.salary ?? payload.salaryPerMonth ?? 0) || 0;
+      const profilePhoto = String(row?.profile_photo ?? payload.profile_photo ?? payload.employeePhotoUrl ?? '').trim();
       return {
         ...payload,
         _id: String(row?.external_id ?? payload._id ?? row?.id ?? '').trim(),
@@ -5245,7 +5246,8 @@ app.get('/api/employees', async (req, res) => {
         dateOfJoining: String(row?.joining_date ?? payload.dateOfJoining ?? '').trim(),
         city: String(row?.city ?? payload.city ?? '').trim(),
         pincode: String(row?.pincode ?? payload.pincode ?? '').trim(),
-        profile_photo: String(row?.profile_photo ?? payload.profile_photo ?? '').trim(),
+        employeePhotoUrl: profilePhoto,
+        profile_photo: profilePhoto,
         present_address: String(row?.present_address ?? payload.present_address ?? '').trim(),
         portalAccess,
         portalPassword: String(row?.password ?? row?.portal_password ?? payload?.portalPassword ?? '').trim()
@@ -5261,9 +5263,13 @@ app.get('/api/employees', async (req, res) => {
 app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (req, res) => {
   try {
     const emp = normalizePhoneFields(req.body || {}, ['mobile', 'emergencyContactNumber', 'emergency_contact_number'], ['mobile']);
+    const existingProfilePhoto = String(emp.profile_photo ?? emp.employeePhotoUrl ?? '').trim();
+    emp.profile_photo = existingProfilePhoto;
+    emp.employeePhotoUrl = existingProfilePhoto;
     if (req.file) {
       const relativePath = `/uploads/employees/photos/${req.file.filename}`;
       emp.profile_photo = relativePath;
+      emp.employeePhotoUrl = relativePath;
       syncUploadToMirror(`employees/photos/${req.file.filename}`);
     }
     if (!canUseMysql()) {
@@ -5392,7 +5398,8 @@ const fetchEmployeeByAnyId = async (employeeId) => {
         portalPassword: String(payload.portalPassword ?? row.password ?? row.portal_password ?? '').trim(),
         city: String(payload.city ?? row.city ?? '').trim(),
         pincode: String(payload.pincode ?? row.pincode ?? '').trim(),
-        profile_photo: String(row?.profile_photo ?? payload.profile_photo ?? '').trim(),
+        employeePhotoUrl: String(row?.profile_photo ?? payload.profile_photo ?? payload.employeePhotoUrl ?? '').trim(),
+        profile_photo: String(row?.profile_photo ?? payload.profile_photo ?? payload.employeePhotoUrl ?? '').trim(),
         present_address: String(row?.present_address ?? payload.present_address ?? '').trim(),
         salary: Number(payload.salary ?? payload.salaryPerMonth ?? row.salary ?? 0) || 0,
         dateOfJoining: String(payload.dateOfJoining ?? row.joining_date ?? '').trim()
@@ -5418,8 +5425,13 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
   if (req.file) {
     const relativePath = `/uploads/employees/photos/${req.file.filename}`;
     incoming.profile_photo = relativePath;
+    incoming.employeePhotoUrl = relativePath;
     syncUploadToMirror(`employees/photos/${req.file.filename}`);
   }
+
+  const normalizedProfilePhoto = String(incoming.profile_photo ?? incoming.employeePhotoUrl ?? '').trim();
+  incoming.profile_photo = normalizedProfilePhoto;
+  incoming.employeePhotoUrl = normalizedProfilePhoto;
 
   const firstName = String(incoming.firstName || '').trim();
   const lastName = String(incoming.lastName || '').trim();
@@ -5441,10 +5453,14 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
     dateOfJoining: String(incoming.dateOfJoining || '').trim(),
     city: String(incoming.city || '').trim(),
     pincode: String(incoming.pincode || '').trim(),
+    employeePhotoUrl: normalizedProfilePhoto,
+    profile_photo: normalizedProfilePhoto,
     portalAccess: Boolean(portalEnabled)
   };
   const payloadToSave = {
     ...incoming,
+    employeePhotoUrl: normalizedProfilePhoto,
+    profile_photo: normalizedProfilePhoto,
     _id: updatedEmployee._id
   };
 
@@ -5488,7 +5504,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
           updatedEmployee.dateOfJoining || null,
           updatedEmployee.city || '',
           updatedEmployee.pincode || '',
-          String(incoming.profile_photo || '').trim(),
+          normalizedProfilePhoto,
           String(incoming.present_address || '').trim(),
           normalizedStatus || null,
           JSON.stringify(payloadToSave),
