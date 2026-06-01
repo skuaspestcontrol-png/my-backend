@@ -2627,10 +2627,6 @@ export default function CustomerDashboard() {
           ) : null}
         </div>
       </div>
-      <div style={toolbarStyle}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }} />
-      </div>
-
       <div style={shell.tableWrap} className="crm-table-shell crm-table-shell--clipped">
         <table style={tableStyle} className="crm-compact-table crm-readable-mobile-table">
           <thead>

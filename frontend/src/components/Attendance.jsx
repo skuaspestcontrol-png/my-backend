@@ -122,7 +122,7 @@ const shell = {
   subtitle: { margin: 0, fontSize: '13px', color: '#475569', fontWeight: 600 },
   topbarActions: { display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   employeeLink: {
-    minHeight: '42px',
+    minHeight: '34px',
     borderRadius: '10px',
     border: '1px solid rgba(159, 23, 77, 0.28)',
     background: '#fff',
@@ -137,7 +137,7 @@ const shell = {
     textTransform: 'uppercase'
   },
   dateInput: {
-    minHeight: '42px',
+    minHeight: '34px',
     borderRadius: '10px',
     border: '1px solid rgba(159, 23, 77, 0.28)',
     background: '#fff',
@@ -190,7 +190,15 @@ const shell = {
   nameCell: { display: 'grid', gap: '2px' },
   empName: { fontWeight: 700, color: '#0f172a' },
   empCode: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
-  statusBtns: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px', width: '100%' },
+  statusBtns: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    flexWrap: 'nowrap',
+    width: '100%',
+    minWidth: '150px'
+  },
   statusBtn: {
     height: '30px',
     minHeight: '30px',
