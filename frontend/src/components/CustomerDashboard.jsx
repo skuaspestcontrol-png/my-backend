@@ -1052,7 +1052,7 @@ export default function CustomerDashboard() {
       const profile = buildDuplicateGuardProfile(entry);
       const nameMatch = candidateProfile.nameKeys.some((value) => profile.nameKeys.includes(value));
       const mobileMatch = Boolean(candidateProfile.mobileNumber && profile.mobileNumber && candidateProfile.mobileNumber === profile.mobileNumber);
-      return mobileMatch || (nameMatch && mobileMatch);
+      return nameMatch || mobileMatch;
     });
     if (matches.length === 0) return null;
     const first = matches[0];
