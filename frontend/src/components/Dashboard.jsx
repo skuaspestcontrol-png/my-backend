@@ -98,11 +98,11 @@ export default function Dashboard() {
     const load = async () => {
       try {
         const [summaryRes, settingsRes, invoicesRes, vendorBillsRes, leadsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/dashboard/summary`).catch(() => ({ data: null })),
-          axios.get(`${API_BASE_URL}/api/settings`),
-          axios.get(`${API_BASE_URL}/api/invoices`),
-          axios.get(`${API_BASE_URL}/api/vendor-bills`).catch(() => ({ data: [] })),
-          axios.get(`${API_BASE_URL}/api/leads`).catch(() => ({ data: [] }))
+          axios.get(`${API_BASE_URL}/api/dashboard/summary`, { params: { _: Date.now() } }).catch(() => ({ data: null })),
+          axios.get(`${API_BASE_URL}/api/settings`, { params: { _: Date.now() } }),
+          axios.get(`${API_BASE_URL}/api/invoices`, { params: { _: Date.now() } }),
+          axios.get(`${API_BASE_URL}/api/vendor-bills`, { params: { _: Date.now() } }).catch(() => ({ data: [] })),
+          axios.get(`${API_BASE_URL}/api/leads`, { params: { _: Date.now() } }).catch(() => ({ data: [] }))
         ]);
 
         if (!active) return;
@@ -112,12 +112,13 @@ export default function Dashboard() {
         setVendorBills(Array.isArray(vendorBillsRes.data) ? vendorBillsRes.data : []);
         setLeads(Array.isArray(leadsRes.data) ? leadsRes.data : []);
       } catch (error) {
+        if (!active) return;
         console.error('Dashboard load failed', error);
       }
     };
 
     load();
-    const timer = window.setInterval(load, 60000);
+    const timer = window.setInterval(load, 15000);
     const onFocus = () => load();
     const onVisibility = () => {
       if (document.visibilityState === 'visible') load();
