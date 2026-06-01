@@ -294,18 +294,22 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
     prefix: 'shipping',
     fallbackAddress: customer.shippingAddress || customer.billingAddress,
     invoiceFields: {
-      attention: invoice.shippingAttention || customer.shippingAttention || '',
-      street1: invoice.premiseAddress || '',
+      attention: '',
+      street1: '',
       street2: '',
       area: invoice.premiseAreaName || '',
       state: invoice.premiseState || '',
       pincode: invoice.premisePincode || ''
     }
   });
-  const title = clean(invoice.shippingAttention) || clean(customer.shippingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
+  const title = clean(customer.companyName)
+    || clean(invoice.customerName)
+    || clean(customer.displayName)
+    || clean(customer.name)
+    || 'Customer';
   return {
     title,
-    attention: clean(parts.attention || title),
+    attention: title,
     street1: parts.street1,
     street2: parts.street2,
     area: parts.area,
