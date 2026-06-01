@@ -43,7 +43,8 @@ const shell = {
   btn: {
     border: '1px solid rgba(159, 23, 77, 0.36)',
     borderRadius: '9px',
-    minHeight: '35px',
+    minHeight: '38px',
+    height: '38px',
     padding: '0 11px',
     fontSize: '12px',
     fontWeight: 700,

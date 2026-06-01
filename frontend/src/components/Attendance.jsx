@@ -213,7 +213,8 @@ const shell = {
     letterSpacing: '0'
   },
   input: {
-    minHeight: '34px',
+    minHeight: '30px',
+    height: '30px',
     width: '100%',
     borderRadius: '8px',
     border: '1px solid #D1D5DB',
@@ -223,8 +224,8 @@ const shell = {
     color: '#0f172a'
   },
   timeInput: {
-    minHeight: '28px',
-    height: '28px',
+    minHeight: '30px',
+    height: '30px',
     width: '100%',
     borderRadius: '8px',
     border: '1px solid #D1D5DB',
@@ -241,6 +242,7 @@ const shell = {
     justifyContent: 'center',
     minWidth: '74px',
     minHeight: '30px',
+    height: '30px',
     borderRadius: '999px',
     border: '1px solid rgba(159, 23, 77, 0.32)',
     background: 'rgba(159, 23, 77, 0.08)',
@@ -249,7 +251,8 @@ const shell = {
     fontWeight: 800
   },
   mapBtn: {
-    minHeight: '24px',
+    minHeight: '30px',
+    height: '30px',
     borderRadius: '7px',
     border: '1px solid rgba(159, 23, 77, 0.24)',
     background: '#fff',
@@ -267,6 +270,7 @@ const shell = {
   },
   actionBtn: {
     minHeight: '30px',
+    height: '30px',
     borderRadius: '8px',
     border: '1px solid #D1D5DB',
     background: '#fff',
