@@ -737,10 +737,10 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
       await conn.query(
         `INSERT INTO customers (
           external_id, display_name, customer_name, company_name, contact_person_name, mobile_number,
-          whatsapp_number, email_id, billing_address, shipping_address, area_name, city, state, pincode,
+          whatsapp_number, email_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode,
           google_place_id, google_place_name, google_phone, google_website, latitude, longitude,
           payload, source_created_at, source_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           display_name=VALUES(display_name),
           customer_name=VALUES(customer_name),
@@ -753,6 +753,8 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
           shipping_address=VALUES(shipping_address),
           area_name=VALUES(area_name),
           city=VALUES(city),
+          billing_state=VALUES(billing_state),
+          shipping_state=VALUES(shipping_state),
           state=VALUES(state),
           pincode=VALUES(pincode),
           google_place_id=VALUES(google_place_id),
@@ -777,6 +779,8 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
           normalizeText(customer.shippingAddress) || null,
           normalizeText(customer.billingArea || customer.area) || null,
           normalizeText(customer.city || customer.billingCity || customer.billingState) || null,
+          normalizeText(customer.billingState || customer.state) || null,
+          normalizeText(customer.shippingState) || null,
           normalizeText(customer.state || customer.billingState) || null,
           normalizeText(customer.pincode || customer.billingPincode) || null,
           normalizeText(customer.googlePlaceId || customer.google_place_id) || null,
@@ -798,7 +802,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
     if (typeof mysql.canUseMysql === 'function' && mysql.canUseMysql() && typeof mysql.withMysqlConnection === 'function') {
       try {
         const mysqlRows = await mysql.withMysqlConnection(async (conn) => {
-          const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers ORDER BY id DESC');
+          const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers ORDER BY id DESC');
           return Array.isArray(rows) ? rows : [];
         });
         if (mysqlRows.length) {
@@ -815,7 +819,8 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
                 address: normalizeText(row.billing_address || payload.billingAddress || payload.address),
                 billingArea: normalizeText(row.area_name || payload.billingArea || payload.area),
                 billingCity: normalizeText(row.city || payload.billingCity || payload.city),
-                billingState: normalizeText(row.state || payload.billingState || payload.state || payload.placeOfSupply),
+                billingState: normalizeText(row.billing_state || row.state || payload.billingState || payload.state || payload.placeOfSupply),
+                shippingState: normalizeText(row.shipping_state || payload.shippingState),
                 billingPincode: normalizeText(row.pincode || payload.billingPincode || payload.pincode),
                 area: normalizeText(row.area_name || payload.area || payload.billingArea),
                 city: normalizeText(row.city || payload.city || payload.billingCity),

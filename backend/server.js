@@ -3271,6 +3271,8 @@ const ensureCustomerPlaceColumns = async (conn) => {
     { name: 'billing_address', definition: 'TEXT NULL' },
     { name: 'shipping_address', definition: 'TEXT NULL' },
     { name: 'city', definition: 'VARCHAR(100) NULL' },
+    { name: 'billing_state', definition: 'VARCHAR(255) NULL' },
+    { name: 'shipping_state', definition: 'VARCHAR(255) NULL' },
     { name: 'source_created_at', definition: 'DATETIME NULL' },
     { name: 'source_updated_at', definition: 'DATETIME NULL' },
     { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
@@ -3291,7 +3293,8 @@ const hydrateCustomerMysqlRow = (row = {}) => {
   const shippingAddress = String(row?.shipping_address ?? payload.shippingAddress ?? '').trim();
   const billingArea = String(row?.area_name ?? payload.billingArea ?? payload.area ?? '').trim();
   const billingCity = String(row?.city ?? payload.billingCity ?? payload.city ?? '').trim();
-  const billingState = String(row?.state ?? payload.billingState ?? payload.state ?? payload.placeOfSupply ?? '').trim();
+  const billingState = String(row?.billing_state ?? row?.state ?? payload.billingState ?? payload.state ?? payload.placeOfSupply ?? '').trim();
+  const shippingState = String(row?.shipping_state ?? payload.shippingState ?? '').trim();
   const billingPincode = String(row?.pincode ?? payload.billingPincode ?? payload.pincode ?? '').trim();
 
   return {
@@ -3303,6 +3306,7 @@ const hydrateCustomerMysqlRow = (row = {}) => {
     billingArea,
     billingCity,
     billingState,
+    shippingState,
     billingPincode,
     area: billingArea || String(payload.area || '').trim(),
     city: billingCity,
@@ -3842,7 +3846,7 @@ const loadProfitSummarySource = async () => {
     canUseMysql()
       ? withMysqlConnection(async (conn) => {
           await ensureCustomerPlaceColumns(conn);
-          const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers ORDER BY id DESC');
+          const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers ORDER BY id DESC');
           return (Array.isArray(rows) ? rows : [])
             .map((row) => hydrateCustomerMysqlRow(row))
             .filter(Boolean);
@@ -4411,8 +4415,8 @@ const fetchCustomerRecordForPremise = async (conn, customerId) => {
   const numericId = toIntId(targetId);
   const [rows] = await conn.query(
     numericId
-      ? 'SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers WHERE external_id = ? OR id = ? LIMIT 1'
-      : 'SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers WHERE external_id = ? LIMIT 1',
+      ? 'SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers WHERE external_id = ? OR id = ? LIMIT 1'
+      : 'SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers WHERE external_id = ? LIMIT 1',
     numericId ? [targetId, numericId] : [targetId]
   );
   const row = Array.isArray(rows) && rows.length ? rows[0] : null;
@@ -6669,7 +6673,7 @@ app.get('/api/customers', async (req, res) => {
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
       await ensureCustomerPlaceColumns(conn);
-      const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers ORDER BY id DESC');
+      const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers ORDER BY id DESC');
       return Array.isArray(rows) ? rows : [];
     });
     if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
@@ -6814,20 +6818,20 @@ app.post('/api/customers', async (req, res) => {
 
     const existingCustomers = await withMysqlConnection(async (conn) => {
       await ensureCustomerPlaceColumns(conn);
-      const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers ORDER BY id DESC');
+      const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers ORDER BY id DESC');
       return Array.isArray(rows) ? rows.map((row) => hydrateCustomerMysqlRow(row)).filter((row) => row && row._id && row.active !== false && !row.isMerged) : [];
     });
-    const exactDuplicateOnUpdate = findExactCustomerDuplicate(updatedCustomer, existingCustomers, updatedCustomer._id);
-    if (exactDuplicateOnUpdate && !duplicateOverrideReason) {
+    const exactDuplicate = findExactCustomerDuplicate(newCustomer, existingCustomers, newCustomer._id);
+    if (exactDuplicate && !duplicateOverrideReason) {
       return res.status(409).json({
         error: 'Exact duplicate customer already exists. Review the existing customer before saving this one.',
         duplicateCustomer: {
-          _id: exactDuplicateOnUpdate._id || '',
-          displayName: exactDuplicateOnUpdate.displayName || exactDuplicateOnUpdate.name || '',
-          mobileNumber: exactDuplicateOnUpdate.mobileNumber || exactDuplicateOnUpdate.workPhone || '',
-          email: exactDuplicateOnUpdate.emailId || exactDuplicateOnUpdate.email || '',
-          billingAddress: exactDuplicateOnUpdate.billingAddress || '',
-          shippingAddress: exactDuplicateOnUpdate.shippingAddress || ''
+          _id: exactDuplicate._id || '',
+          displayName: exactDuplicate.displayName || exactDuplicate.name || '',
+          mobileNumber: exactDuplicate.mobileNumber || exactDuplicate.workPhone || '',
+          email: exactDuplicate.emailId || exactDuplicate.email || '',
+          billingAddress: exactDuplicate.billingAddress || '',
+          shippingAddress: exactDuplicate.shippingAddress || ''
         }
       });
     }
@@ -6837,10 +6841,10 @@ app.post('/api/customers', async (req, res) => {
       await conn.query(
         `INSERT INTO customers (
           external_id, display_name, customer_name, company_name, contact_person_name, mobile_number,
-          whatsapp_number, email_id, billing_address, shipping_address, area_name, city, state, pincode,
+          whatsapp_number, email_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode,
           google_place_id, google_place_name, google_phone, google_website, latitude, longitude,
           payload, source_created_at, source_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           display_name=VALUES(display_name),
           customer_name=VALUES(customer_name),
@@ -6853,6 +6857,8 @@ app.post('/api/customers', async (req, res) => {
           shipping_address=VALUES(shipping_address),
           area_name=VALUES(area_name),
           city=VALUES(city),
+          billing_state=VALUES(billing_state),
+          shipping_state=VALUES(shipping_state),
           state=VALUES(state),
           pincode=VALUES(pincode),
           google_place_id=VALUES(google_place_id),
@@ -6877,6 +6883,8 @@ app.post('/api/customers', async (req, res) => {
           newCustomer.shippingAddress || null,
           newCustomer.billingArea || newCustomer.area || null,
           newCustomer.city || null,
+          newCustomer.billingState || newCustomer.state || null,
+          newCustomer.shippingState || null,
           newCustomer.state || newCustomer.billingState || null,
           newCustomer.pincode || newCustomer.billingPincode || null,
           newCustomer.googlePlaceId || null,
@@ -7058,8 +7066,8 @@ app.put('/api/customers/:id', async (req, res) => {
       const isNumeric = Number.isFinite(numericId) && /^\d+$/.test(targetId);
       const [rows] = await conn.query(
         isNumeric
-          ? 'SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers WHERE external_id = ? OR id = ? LIMIT 1'
-          : 'SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers WHERE external_id = ? LIMIT 1',
+          ? 'SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers WHERE external_id = ? OR id = ? LIMIT 1'
+          : 'SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers WHERE external_id = ? LIMIT 1',
         isNumeric ? [targetId, numericId] : [targetId]
       );
       const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
@@ -7072,7 +7080,7 @@ app.put('/api/customers/:id', async (req, res) => {
     }
 
     const existingCustomers = await withMysqlConnection(async (conn) => {
-      const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers ORDER BY id DESC');
+      const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers ORDER BY id DESC');
       return Array.isArray(rows) ? rows.map((row) => hydrateCustomerMysqlRow(row)).filter((row) => row && row._id && row.active !== false && !row.isMerged) : [];
     });
 
@@ -7153,10 +7161,10 @@ app.put('/api/customers/:id', async (req, res) => {
       await conn.query(
         `INSERT INTO customers (
           external_id, display_name, customer_name, company_name, contact_person_name, mobile_number,
-          whatsapp_number, email_id, billing_address, shipping_address, area_name, city, state, pincode,
+          whatsapp_number, email_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode,
           google_place_id, google_place_name, google_phone, google_website, latitude, longitude,
           payload, source_created_at, source_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           display_name=VALUES(display_name),
           customer_name=VALUES(customer_name),
@@ -7169,6 +7177,8 @@ app.put('/api/customers/:id', async (req, res) => {
           shipping_address=VALUES(shipping_address),
           area_name=VALUES(area_name),
           city=VALUES(city),
+          billing_state=VALUES(billing_state),
+          shipping_state=VALUES(shipping_state),
           state=VALUES(state),
           pincode=VALUES(pincode),
           google_place_id=VALUES(google_place_id),
@@ -7193,6 +7203,8 @@ app.put('/api/customers/:id', async (req, res) => {
           updatedCustomer.shippingAddress || null,
           updatedCustomer.billingArea || updatedCustomer.area || null,
           updatedCustomer.city || updatedCustomer.billingCity || updatedCustomer.billingState || null,
+          updatedCustomer.billingState || updatedCustomer.state || null,
+          updatedCustomer.shippingState || null,
           updatedCustomer.state || updatedCustomer.billingState || null,
           updatedCustomer.pincode || updatedCustomer.billingPincode || null,
           updatedCustomer.googlePlaceId || null,
@@ -7690,7 +7702,7 @@ const loadInvoicesForContext = async () => {
 const loadCustomersForContext = async () => {
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
-      const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, state, pincode, payload FROM customers ORDER BY id DESC');
+      const [rows] = await conn.query('SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers ORDER BY id DESC');
       return Array.isArray(rows) ? rows : [];
     });
     const parsed = (Array.isArray(mysqlRows) ? mysqlRows : [])

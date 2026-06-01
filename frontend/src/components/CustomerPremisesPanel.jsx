@@ -92,7 +92,7 @@ const styles = {
   sub: { margin: '3px 0 0', fontSize: 12, fontWeight: 600, color: '#64748b' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 },
   card: { border: '1px solid #e5e7eb', borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: '#fff', cursor: 'pointer' },
-  activeCard: { borderColor: 'var(--color-primary)', boxShadow: '0 0 0 2px rgba(159,23,77,0.14)' },
+  activeCard: { borderColor: '#d1d5db', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' },
   cardTop: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' },
   cardTitle: { margin: 0, fontSize: 13, fontWeight: 800, color: '#111827' },
   text: { margin: 0, whiteSpace: 'pre-wrap', fontSize: 12, lineHeight: 1.45, color: '#334155' },
@@ -247,11 +247,12 @@ export default function CustomerPremisesPanel({
       const tempPremiseId = editingId && editingId !== 'new'
         ? editingId
         : `TEMP-${Date.now()}`;
+      const draftPremiseLabel = draft.premiseLabel || nextPremiseLabel;
       const nextPremise = normalizePremise({
         ...draft,
         premiseId: tempPremiseId,
         premise_id: tempPremiseId,
-        premiseLabel: draft.premiseLabel || getNextPremiseLabel(Array.isArray(prev) ? prev : []),
+        premiseLabel: draftPremiseLabel,
         isDefault: Boolean(draft.isDefault),
         isShipping: true
       });

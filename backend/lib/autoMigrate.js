@@ -174,6 +174,8 @@ const tableDefinitions = [
       'email_id VARCHAR(255) NULL',
       'area_name VARCHAR(255) NULL',
       'city VARCHAR(255) NULL',
+      'billing_state VARCHAR(255) NULL',
+      'shipping_state VARCHAR(255) NULL',
       'state VARCHAR(255) NULL',
       'pincode VARCHAR(30) NULL',
       'google_place_id VARCHAR(255) NULL',

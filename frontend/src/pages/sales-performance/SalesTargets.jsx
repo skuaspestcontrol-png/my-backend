@@ -129,7 +129,7 @@ const targetWidths = {
   collectionAchieved: 145,
   collectionPending: 145,
   collectionPercent: 100,
-  action: 96
+  action: 116
 };
 const targetBounds = {
   salesPerson: { min: 170, max: 260 },
@@ -144,7 +144,7 @@ const targetBounds = {
   collectionAchieved: { min: 120, max: 200 },
   collectionPending: { min: 120, max: 200 },
   collectionPercent: { min: 80, max: 130 },
-  action: { min: 90, max: 130 }
+  action: { min: 116, max: 140 }
 };
 
 export default function SalesTargets() {
@@ -203,7 +203,7 @@ export default function SalesTargets() {
     collectionAchieved: viewportWidth <= 768 ? 108 : getTargetWidth('collectionAchieved'),
     collectionPending: viewportWidth <= 768 ? 108 : getTargetWidth('collectionPending'),
     collectionPercent: viewportWidth <= 768 ? 82 : getTargetWidth('collectionPercent'),
-    action: viewportWidth <= 768 ? 72 : getTargetWidth('action')
+    action: viewportWidth <= 768 ? 116 : getTargetWidth('action')
   };
   const yearlyMinWidth = yearlyColumns.reduce((sum, column) => sum + (yearlyCellWidths[column.key] || yearlyWidths[column.key] || 80), 0);
   const targetMinWidth = targetColumns.reduce((sum, column) => sum + (targetCellWidths[column.key] || targetWidths[column.key] || 80), 0);
