@@ -7450,9 +7450,9 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, maxSe
     return dates;
   }
 
-  const dates = [];
+  const dates = [formatDateInput(start)];
   let cursor = new Date(start);
-  let guard = 0;
+  let guard = 1;
   while (guard < maxServices) {
     if (cfg.type === 'interval_days') {
       cursor = new Date(cursor);

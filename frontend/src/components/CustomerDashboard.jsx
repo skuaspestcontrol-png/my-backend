@@ -142,6 +142,8 @@ const customerExportColumns = [
   { key: 'shippingArea', label: 'Shipping Area' },
   { key: 'shippingState', label: 'Shipping State' },
   { key: 'shippingPincode', label: 'Shipping Pincode' },
+  { key: 'additionalShippingAddresses', label: 'Additional Shipping Addresses' },
+  { key: 'shippingPremiseCount', label: 'Shipping Premise Count' },
   { key: 'areaSqft', label: 'Area in sqft' }
 ];
 
@@ -2101,7 +2103,9 @@ export default function CustomerDashboard() {
     return text;
   };
 
-  const exportData = () => {
+  const normalizeExportAddress = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+
+  const exportData = async () => {
     const sourceRows = selectedIds.length > 0
       ? customers.filter((customer) => customer?._id && selectedIds.includes(customer._id))
       : customers;
@@ -2110,24 +2114,66 @@ export default function CustomerDashboard() {
       return;
     }
 
-    const headers = customerExportColumns.map((column) => column.key);
-    const csvRows = [
-      headers.join(','),
-      ...sourceRows.map((customer) =>
-        headers.map((key) => csvEscape(handleCellValue(customer, key))).join(',')
-      )
-    ];
+    try {
+      const exportRows = await Promise.all(sourceRows.map(async (customer) => {
+        const customerId = String(customer?._id || '').trim();
+        if (!customerId) {
+          return {
+            ...customer,
+            additionalShippingAddresses: '',
+            shippingPremiseCount: ''
+          };
+        }
 
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `customers-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    closeMoreMenu();
+        try {
+          const res = await axios.get(`${API_BASE_URL}/api/customers/${customerId}/premises`);
+          const premises = Array.isArray(res.data) ? res.data : [];
+          const primaryShippingAddress = normalizeExportAddress(
+            customer.shippingAddress || [customer.shippingStreet1, customer.shippingStreet2].filter(Boolean).join(', ')
+          );
+          const shippingAddresses = premises
+            .map((premise) => normalizeExportAddress(premise?.address))
+            .filter(Boolean);
+          const uniqueShippingAddresses = Array.from(new Set(shippingAddresses));
+          const additionalShippingAddresses = uniqueShippingAddresses.filter((address) => address && address !== primaryShippingAddress);
+
+          return {
+            ...customer,
+            additionalShippingAddresses: additionalShippingAddresses.join(' | '),
+            shippingPremiseCount: String(uniqueShippingAddresses.length || 0)
+          };
+        } catch (error) {
+          console.error('Failed to load customer premises for export', { customerId, error });
+          return {
+            ...customer,
+            additionalShippingAddresses: '',
+            shippingPremiseCount: ''
+          };
+        }
+      }));
+
+      const headers = customerExportColumns.map((column) => column.key);
+      const csvRows = [
+        headers.join(','),
+        ...exportRows.map((customer) =>
+          headers.map((key) => csvEscape(handleCellValue(customer, key))).join(',')
+        )
+      ];
+
+      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `customers-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      closeMoreMenu();
+    } catch (error) {
+      console.error('Failed to export customers', error);
+      window.alert('Unable to export customer data.');
+    }
   };
 
   const downloadSampleImportCsv = () => {
@@ -2230,6 +2276,8 @@ export default function CustomerDashboard() {
     if (key === 'shippingArea') return customer.shippingArea || '';
     if (key === 'shippingState') return customer.shippingState || '';
     if (key === 'shippingPincode') return customer.shippingPincode || '';
+    if (key === 'additionalShippingAddresses') return customer.additionalShippingAddresses || '';
+    if (key === 'shippingPremiseCount') return customer.shippingPremiseCount || '';
     if (key === 'areaSqft') return customer.areaSqft ? String(customer.areaSqft) : '';
     if (key === 'billingPhoneCode') return customer.billingPhoneCode || '+91';
     if (key === 'shippingPhoneCode') return customer.shippingPhoneCode || '+91';
@@ -2494,16 +2542,6 @@ export default function CustomerDashboard() {
                 top: `${moreMenuPosition.top}px`
               }}
             >
-                <button
-                  type="button"
-                  style={getMoreMenuButtonStyle('edit-selected', selectedIds.length !== 1)}
-                  onMouseEnter={() => setHoveredMoreMenuItem('edit-selected')}
-                  onMouseLeave={() => setHoveredMoreMenuItem('')}
-                  disabled={selectedIds.length !== 1}
-                  onClick={openEditSelected}
-                >
-                  Edit Selected
-                </button>
                 <button
                   type="button"
                   style={getMoreMenuButtonStyle('delete-selected')}
