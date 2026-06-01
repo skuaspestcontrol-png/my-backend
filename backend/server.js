@@ -3293,6 +3293,7 @@ const hydrateCustomerMysqlRow = (row = {}) => {
   const shippingAddress = String(row?.shipping_address ?? payload.shippingAddress ?? '').trim();
   const billingArea = String(row?.area_name ?? payload.billingArea ?? payload.area ?? '').trim();
   const billingCity = String(row?.city ?? payload.billingCity ?? payload.city ?? '').trim();
+  const shippingCity = String(payload.shippingCity ?? '').trim();
   const billingState = String(row?.billing_state ?? row?.state ?? payload.billingState ?? payload.state ?? payload.placeOfSupply ?? '').trim();
   const shippingState = String(row?.shipping_state ?? payload.shippingState ?? '').trim();
   const billingPincode = String(row?.pincode ?? payload.billingPincode ?? payload.pincode ?? '').trim();
@@ -3305,8 +3306,11 @@ const hydrateCustomerMysqlRow = (row = {}) => {
     address: billingAddress,
     billingArea,
     billingCity,
+    billingSearchAddress: String(payload.billingSearchAddress ?? payload.searchAddress ?? '').trim(),
     billingState,
     shippingState,
+    shippingSearchAddress: String(payload.shippingSearchAddress ?? '').trim(),
+    shippingCity,
     billingPincode,
     area: billingArea || String(payload.area || '').trim(),
     city: billingCity,
