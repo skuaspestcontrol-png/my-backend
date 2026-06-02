@@ -2752,7 +2752,12 @@ export default function CustomerDashboard() {
             type="search"
             style={shell.input}
             value={customerSearchInput}
-            onChange={(event) => setCustomerSearchInput(event.target.value)}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setCustomerSearchInput(nextValue);
+              setCustomerSearchQuery(nextValue.trim());
+              setCurrentPage(1);
+            }}
             onKeyDown={(event) => {
               if (event.key !== 'Enter') return;
               event.preventDefault();
