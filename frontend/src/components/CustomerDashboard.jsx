@@ -3397,9 +3397,12 @@ export default function CustomerDashboard() {
               <label style={shell.label}>Area in sqft</label>
               <input
                 style={shell.input}
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
                 value={form.areaSqft}
-                onChange={(event) => setForm((prev) => ({ ...prev, areaSqft: event.target.value }))}
+                onChange={(event) => setForm((prev) => ({ ...prev, areaSqft: event.target.value.replace(/\D/g, '') }))}
               />
 
               <CustomerPremisesPanel
