@@ -2404,7 +2404,7 @@ export default function CustomerDashboard() {
     : {
       ...shell.topbar,
       display: 'grid',
-      gridTemplateColumns: 'auto minmax(240px, 1fr) auto',
+      gridTemplateColumns: 'auto minmax(220px, 420px) auto',
       alignItems: 'center'
     };
   const topActionsStyle = isMobile ? { ...shell.topActions, width: '100%', justifyContent: 'space-between' } : shell.topActions;
@@ -2499,7 +2499,9 @@ export default function CustomerDashboard() {
     display: 'block',
     alignItems: 'center',
     minWidth: 0,
-    width: '100%'
+    width: '100%',
+    maxWidth: isMobile ? '100%' : '420px',
+    justifySelf: 'center'
   };
   const customerSearchInputStyle = {
     ...shell.input,
