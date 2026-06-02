@@ -2505,6 +2505,8 @@ export default function CustomerDashboard() {
   };
   const customerSearchInputStyle = {
     ...shell.input,
+    height: '36px',
+    minHeight: '36px',
     paddingLeft: '38px'
   };
   const customerSearchIconStyle = {
