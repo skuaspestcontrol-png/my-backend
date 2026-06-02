@@ -3207,7 +3207,7 @@ export default function CustomerDashboard() {
                   onChange={(event) => setForm((prev) => ({ ...prev, displayName: event.target.value }))}
                 >
                 {displayNameOptions.length === 0 ? (
-                  <option value="">Select from Company/Contact</option>
+                  <option value="">Company Name</option>
                 ) : null}
                 {displayNameOptions.map((option) => (
                   <option key={option} value={option}>{option}</option>
