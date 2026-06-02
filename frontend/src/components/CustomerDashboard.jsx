@@ -2515,12 +2515,6 @@ export default function CustomerDashboard() {
     color: '#94a3b8',
     pointerEvents: 'none'
   };
-  const customerSearchMetaStyle = {
-    fontSize: '12px',
-    color: '#64748b',
-    fontWeight: 600,
-    whiteSpace: 'nowrap'
-  };
   const addressSearchRowStyle = {
     display: 'grid',
     gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) auto',
@@ -2634,9 +2628,6 @@ export default function CustomerDashboard() {
               }}
               placeholder="Search company, contact, display name, or mobile"
             />
-          </div>
-          <div style={customerSearchMetaStyle}>
-            {customerSearchQuery ? `Showing ${sortedCustomers.length} result${sortedCustomers.length === 1 ? '' : 's'}` : `Total ${customers.length} customers`}
           </div>
         </div>
         <div style={topActionsStyle}>
