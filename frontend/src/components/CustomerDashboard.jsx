@@ -2400,10 +2400,20 @@ export default function CustomerDashboard() {
   const isTablet = viewportWidth > 900 && viewportWidth <= 1200;
   const isTiny = viewportWidth <= 380;
   const topbarStyle = isMobile
-    ? { ...shell.topbar, flexDirection: 'column', alignItems: 'stretch', padding: isTiny ? '10px 12px' : shell.topbar.padding }
-    : shell.topbar;
+    ? {
+      ...shell.topbar,
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      gap: '10px',
+      padding: isTiny ? '10px 12px' : shell.topbar.padding
+    }
+    : {
+      ...shell.topbar,
+      display: 'grid',
+      gridTemplateColumns: 'auto minmax(240px, 1fr) auto',
+      alignItems: 'center'
+    };
   const topActionsStyle = isMobile ? { ...shell.topActions, width: '100%', justifyContent: 'space-between' } : shell.topActions;
-  const toolbarStyle = isMobile ? { ...shell.toolbar, flexDirection: 'column', alignItems: 'stretch', padding: isTiny ? '8px 12px' : shell.toolbar.padding } : shell.toolbar;
   const mobileTableMinWidth = 56 + visibleColumnDefs.reduce((sum, column) => (
     sum + Math.max(Number(getColumnWidth(column.key)) || 0, mobileCustomerColumnWidths[column.key] || mobileCustomerDefaultColumnWidth)
   ), 0) + 150;
@@ -2495,7 +2505,8 @@ export default function CustomerDashboard() {
     gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) auto',
     gap: '8px',
     alignItems: 'center',
-    minWidth: 0
+    minWidth: 0,
+    width: '100%'
   };
   const customerSearchButtonStyle = isTiny
     ? { ...shell.buttonPrimary, minHeight: '32px', padding: '0 12px', fontSize: '11px' }
@@ -2598,6 +2609,41 @@ export default function CustomerDashboard() {
       <div style={topbarStyle}>
         <div style={shell.titleWrap}>
           <h1 style={titleStyle}>Active Customers</h1>
+        </div>
+        <div style={{ width: '100%', minWidth: 0, justifySelf: isMobile ? 'stretch' : 'center' }}>
+          <div style={customerSearchBarStyle}>
+            <input
+              type="search"
+              style={shell.input}
+              value={customerSearchInput}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setCustomerSearchInput(nextValue);
+                setCustomerSearchQuery(nextValue.trim());
+                setCurrentPage(1);
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                applyCustomerSearch();
+              }}
+              placeholder="Search company, contact, display name, or mobile"
+            />
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-start', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
+              <button type="button" style={customerSearchButtonStyle} onClick={applyCustomerSearch}>
+                <Search size={14} />
+                Search
+              </button>
+              {customerSearchQuery ? (
+                <button type="button" style={shell.cancelButton} onClick={clearCustomerSearch}>
+                  Clear
+                </button>
+              ) : null}
+            </div>
+          </div>
+          <div style={customerSearchMetaStyle}>
+            {customerSearchQuery ? `Showing ${sortedCustomers.length} result${sortedCustomers.length === 1 ? '' : 's'}` : `Total ${customers.length} customers`}
+          </div>
         </div>
         <div style={topActionsStyle}>
           <button type="button" style={primaryButtonStyle} onClick={openNewForm}>
@@ -2744,41 +2790,6 @@ export default function CustomerDashboard() {
                 </button>
             </div>
           ) : null}
-        </div>
-      </div>
-      <div style={toolbarStyle}>
-        <div style={customerSearchBarStyle}>
-          <input
-            type="search"
-            style={shell.input}
-            value={customerSearchInput}
-            onChange={(event) => {
-              const nextValue = event.target.value;
-              setCustomerSearchInput(nextValue);
-              setCustomerSearchQuery(nextValue.trim());
-              setCurrentPage(1);
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter') return;
-              event.preventDefault();
-              applyCustomerSearch();
-            }}
-            placeholder="Search company, contact, display name, or mobile"
-          />
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-start', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
-            <button type="button" style={customerSearchButtonStyle} onClick={applyCustomerSearch}>
-              <Search size={14} />
-              Search
-            </button>
-            {customerSearchQuery ? (
-              <button type="button" style={shell.cancelButton} onClick={clearCustomerSearch}>
-                Clear
-              </button>
-            ) : null}
-          </div>
-        </div>
-        <div style={customerSearchMetaStyle}>
-          {customerSearchQuery ? `Showing ${sortedCustomers.length} result${sortedCustomers.length === 1 ? '' : 's'}` : `Total ${customers.length} customers`}
         </div>
       </div>
       <div style={shell.tableWrap} className="crm-table-shell crm-table-shell--clipped">
