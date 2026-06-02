@@ -647,6 +647,7 @@ export default function CustomerDashboard() {
   const billingSearchInputRef = useRef(null);
   const shippingSearchInputRef = useRef(null);
   const addressSuggestionSeqRef = useRef({ billing: 0, shipping: 0 });
+  const lastAutoDisplayNameRef = useRef('');
   const lastDisplayNameRef = useRef('');
   const {
     getColumnWidth,
@@ -886,6 +887,31 @@ export default function CustomerDashboard() {
 
     lastDisplayNameRef.current = nextDisplayName;
   }, [form.displayName]);
+
+  useEffect(() => {
+    const companyName = String(form.companyName || '').trim();
+    const contactPersonName = String(form.contactPersonName || '').trim();
+    const preferredDisplayName = companyName || contactPersonName || '';
+    const previousAutoDisplayName = String(lastAutoDisplayNameRef.current || '').trim();
+    const currentDisplayName = String(form.displayName || '').trim();
+
+    if (!preferredDisplayName) {
+      lastAutoDisplayNameRef.current = '';
+      if (!currentDisplayName || currentDisplayName === previousAutoDisplayName) {
+        setForm((prev) => (prev.displayName ? { ...prev, displayName: '' } : prev));
+      }
+      return;
+    }
+
+    setForm((prev) => {
+      const prevDisplayName = String(prev.displayName || '').trim();
+      const isAutoManaged = !prevDisplayName || prevDisplayName === previousAutoDisplayName;
+      if (!isAutoManaged || prevDisplayName === preferredDisplayName) return prev;
+      return { ...prev, displayName: preferredDisplayName };
+    });
+
+    lastAutoDisplayNameRef.current = preferredDisplayName;
+  }, [form.companyName, form.contactPersonName, form.displayName]);
 
   useEffect(() => {
     if (!showModal) return () => {};
@@ -1738,6 +1764,7 @@ export default function CustomerDashboard() {
     setDuplicateConflict(null);
     setPendingPremises([]);
     setShowModal(true);
+    lastAutoDisplayNameRef.current = '';
     lastDisplayNameRef.current = '';
   };
 
@@ -1753,6 +1780,7 @@ export default function CustomerDashboard() {
     setPendingPremises([]);
     setShowModal(true);
     closeMoreMenu();
+    lastAutoDisplayNameRef.current = String(selected.companyName || selected.contactPersonName || selected.displayName || selected.name || '').trim();
     lastDisplayNameRef.current = String(selected.displayName || selected.name || '').trim();
   };
 
@@ -3175,7 +3203,7 @@ export default function CustomerDashboard() {
                 <label style={shell.label}>Display Name</label>
                 <select
                   style={shell.input}
-                  value={displayNameOptions.includes(form.displayName) ? form.displayName : ''}
+                  value={displayNameOptions.includes(form.displayName) ? form.displayName : (displayNameOptions[0] || '')}
                   onChange={(event) => setForm((prev) => ({ ...prev, displayName: event.target.value }))}
                 >
                 {displayNameOptions.length === 0 ? (
