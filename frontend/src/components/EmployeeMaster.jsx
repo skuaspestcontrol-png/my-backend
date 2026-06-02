@@ -5,6 +5,7 @@ import { Edit, Eye, EyeOff, Plus, Trash2, UploadCloud, UserCheck, X } from 'luci
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
+import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -574,6 +575,7 @@ export default function EmployeeMaster() {
         await axios.post(`${API_BASE}/api/employees`, requestData, { headers });
       }
       await loadData();
+      triggerDashboardRefresh();
       closeModal();
     } catch (error) {
       console.error('Failed to save employee', error);
@@ -589,6 +591,7 @@ export default function EmployeeMaster() {
     try {
       await axios.delete(`${API_BASE}/api/employees/${id}`);
       await loadData();
+      triggerDashboardRefresh();
     } catch (error) {
       console.error('Failed to delete employee', error);
       setStatus('Failed to delete employee.');

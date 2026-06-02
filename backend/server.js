@@ -1024,6 +1024,10 @@ const readJsonFile = (filePath, fallback) => {
 let dashboardSummaryCache = null;
 let dashboardSummaryCachedAt = 0;
 const DASHBOARD_SUMMARY_TTL_MS = 60 * 1000;
+const invalidateDashboardSummaryCache = () => {
+  dashboardSummaryCache = null;
+  dashboardSummaryCachedAt = 0;
+};
 
 const canUseMysql = () => {
   return Boolean(
@@ -2761,9 +2765,10 @@ app.get('/api/dashboard/summary', async (req, res) => {
           (SELECT COALESCE(SUM(total_amount), 0) FROM invoices) AS invoicesTotalAmount
       `);
       const [customerRows] = await dbQuery('SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers ORDER BY id DESC');
-      const customersCount = (Array.isArray(customerRows) ? customerRows : [])
+      const hydratedCustomers = (Array.isArray(customerRows) ? customerRows : [])
         .map((entry) => hydrateCustomerMysqlRow(entry))
-        .filter((entry) => entry && entry._id && entry.active !== false && !entry.isMerged).length;
+        .filter((entry) => entry && entry._id && entry.active !== false && !entry.isMerged);
+      const customersCount = hydratedCustomers.length || (Array.isArray(customerRows) ? customerRows.length : 0);
       const summary = {
         leadsCount: Number(row?.leadsCount || 0),
         customersCount,
@@ -4813,6 +4818,7 @@ app.post('/api/leads', async (req, res) => {
     await withMysqlConnection(async (conn) => {
       await upsertLeadToMysql(conn, newLead);
     });
+    invalidateDashboardSummaryCache();
     return res.json(newLead);
   } catch (error) {
     console.error('Failed to save lead in MySQL:', error.message);
@@ -5167,6 +5173,7 @@ app.put('/api/leads/:id', async (req, res) => {
     await withMysqlConnection(async (conn) => {
       await upsertLeadToMysql(conn, updatedLead);
     });
+    invalidateDashboardSummaryCache();
 
     return res.json(updatedLead);
   } catch (error) {
@@ -5191,6 +5198,7 @@ app.delete('/api/leads/:id', async (req, res) => {
       return Number(result?.affectedRows || 0);
     });
     if (!deletedRows) return res.status(404).json({ error: 'Lead not found' });
+    invalidateDashboardSummaryCache();
     return res.json({ message: 'Lead deleted' });
   } catch (error) {
     console.error('Failed to delete lead in MySQL:', error.message);
@@ -5281,6 +5289,7 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
       if (existingIndex >= 0) nextRows[existingIndex] = { ...nextRows[existingIndex], ...next };
       else nextRows.push(next);
       fs.writeFileSync(employeesFile, JSON.stringify(nextRows, null, 2));
+      invalidateDashboardSummaryCache();
       return res.json({ success: true, _id: externalId });
     }
 
@@ -5351,6 +5360,7 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
       );
     });
 
+    invalidateDashboardSummaryCache();
     res.json({ success: true, _id: externalId });
 
   } catch (error) {
@@ -5515,6 +5525,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
       return Number(result?.affectedRows || 0);
     });
     if (!affectedRows) return res.status(404).json({ error: 'Employee not found' });
+    invalidateDashboardSummaryCache();
     return res.json({ success: true, employee: updatedEmployee });
   } catch (error) {
     console.error('MySQL employees update failed:', error.message);
@@ -5532,6 +5543,7 @@ app.delete('/api/employees/:id', async (req, res) => {
         return res.status(404).json({ error: 'Employee not found' });
       }
       fs.writeFileSync(employeesFile, JSON.stringify(nextRows, null, 2));
+      invalidateDashboardSummaryCache();
       return res.json({ message: 'Employee deleted' });
     }
     const deletedRows = await withMysqlConnection(async (conn) => {
@@ -5544,6 +5556,7 @@ app.delete('/api/employees/:id', async (req, res) => {
       return Number(result?.affectedRows || 0);
     });
     if (!deletedRows) return res.status(404).json({ error: 'Employee not found' });
+    invalidateDashboardSummaryCache();
     return res.json({ success: true });
   } catch (error) {
     console.error('MySQL employees delete failed:', error.message);
@@ -6017,6 +6030,7 @@ app.post('/api/jobs', async (req, res) => {
 
       notifyTechnicianPush(newJob, 'job_assigned');
 
+      invalidateDashboardSummaryCache();
       return res.json(newJob);
     } catch (error) {
       console.error('MySQL job create failed:', error.message);
@@ -6068,6 +6082,7 @@ app.post('/api/jobs', async (req, res) => {
 
   notifyTechnicianPush(newJob, 'job_assigned');
 
+  invalidateDashboardSummaryCache();
   res.json(newJob);
 });
 
@@ -6148,6 +6163,7 @@ app.put('/api/jobs/:id', async (req, res) => {
 
       notifyTechnicianPush(updatedJob, nextStatus === 'completed' ? 'job_completed' : 'job_updated');
 
+      invalidateDashboardSummaryCache();
       return res.json(updatedJob);
     } catch (error) {
       console.error('MySQL job update failed:', error.message);
@@ -6263,6 +6279,7 @@ app.put('/api/jobs/:id', async (req, res) => {
 
   notifyTechnicianPush(updatedJob, nextStatus === 'completed' ? 'job_completed' : 'job_updated');
 
+  invalidateDashboardSummaryCache();
   res.json(updatedJob);
 });
 
@@ -6352,6 +6369,7 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
 
       notifyTechnicianPush(updatedJob, 'job_completed');
 
+      invalidateDashboardSummaryCache();
       return res.json(updatedJob);
     }
 
@@ -6371,6 +6389,7 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
       console.error('Failed to sync service material usage on complete:', error.message);
     });
     notifyTechnicianPush(updatedJob, 'job_completed');
+    invalidateDashboardSummaryCache();
     return res.json(updatedJob);
   } catch (error) {
     console.error('Complete job submit failed:', error.message);
@@ -6833,6 +6852,7 @@ app.post('/api/customers', async (req, res) => {
         }
         const nextRows = Array.isArray(rows) ? [...rows, newCustomer] : [newCustomer];
         fs.writeFileSync(customersFile, JSON.stringify(nextRows, null, 2));
+        invalidateDashboardSummaryCache();
         console.warn('[Customers API] source=fallback-json action=create reason=mysql_not_configured');
         return res.json(newCustomer);
       }
@@ -6924,6 +6944,7 @@ app.post('/api/customers', async (req, res) => {
       await ensureDefaultPremiseForCustomer(conn, newCustomer._id);
     });
 
+    invalidateDashboardSummaryCache();
     return res.json(newCustomer);
   } catch (error) {
     console.error('Failed to create customer in MySQL:', error.message);
@@ -7078,6 +7099,7 @@ app.put('/api/customers/:id', async (req, res) => {
       }
       list[index] = updatedCustomer;
       fs.writeFileSync(customersFile, JSON.stringify(list, null, 2));
+      invalidateDashboardSummaryCache();
       console.warn('[Customers API] source=fallback-json action=update reason=mysql_not_configured');
       return res.json(updatedCustomer);
     }
@@ -7244,6 +7266,7 @@ app.put('/api/customers/:id', async (req, res) => {
       await ensureDefaultPremiseForCustomer(conn, updatedCustomer._id);
     });
 
+    invalidateDashboardSummaryCache();
     return res.json(updatedCustomer);
   } catch (error) {
     console.error('Failed to update customer in MySQL:', {
@@ -7274,6 +7297,7 @@ app.delete('/api/customers/:id', async (req, res) => {
         return res.status(404).json({ error: 'Customer not found' });
       }
       fs.writeFileSync(customersFile, JSON.stringify(nextRows, null, 2));
+      invalidateDashboardSummaryCache();
       console.warn('[Customers API] source=fallback-json action=delete reason=mysql_not_configured');
       return res.json({ message: 'Customer deleted' });
     }
@@ -7310,6 +7334,7 @@ app.delete('/api/customers/:id', async (req, res) => {
       return res.status(404).json({ error: 'Customer not found' });
     }
     console.info(`[Customers API] source=mysql action=delete id=${String(req.params.id || '').trim()} result=deleted`);
+    invalidateDashboardSummaryCache();
     return res.json({ message: 'Customer deleted' });
   } catch (error) {
     console.error('Failed to delete customer in MySQL:', error.message);
@@ -9143,6 +9168,7 @@ app.post('/api/vendors', async (req, res) => {
         ]
       );
     });
+    invalidateDashboardSummaryCache();
     return res.status(201).json(payload);
   } catch (error) {
     console.error('MySQL vendors write failed:', error.message);
@@ -9422,6 +9448,7 @@ app.put('/api/vendor-bills/:id', async (req, res) => {
       return Number(result?.affectedRows || 0);
     });
     if (!affectedRows) return res.status(404).json({ error: 'Vendor bill not found' });
+    invalidateDashboardSummaryCache();
     return res.json(payload);
   } catch (error) {
     console.error('MySQL vendor bills update failed:', error.message);
@@ -9446,6 +9473,7 @@ app.delete('/api/vendor-bills/:id', async (req, res) => {
       return Number(result?.affectedRows || 0);
     });
     if (!deletedRows) return res.status(404).json({ error: 'Vendor bill not found' });
+    invalidateDashboardSummaryCache();
     return res.json({ success: true });
   } catch (error) {
     console.error('MySQL vendor bills delete failed:', error.message);
@@ -9693,6 +9721,7 @@ app.post('/api/invoices', async (req, res) => {
     await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
   }
 
+  invalidateDashboardSummaryCache();
   res.json(newInvoice);
 });
 
@@ -9799,6 +9828,7 @@ app.put('/api/invoices/:id', async (req, res) => {
     await updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings);
   }
 
+  invalidateDashboardSummaryCache();
   res.json(updatedInvoice);
 });
 
@@ -9837,6 +9867,7 @@ app.delete('/api/invoices/:id', async (req, res) => {
     console.error('Orphan job cleanup failed after invoice delete:', error.message);
   }
 
+  invalidateDashboardSummaryCache();
   res.json({ message: 'Invoice deleted' });
 });
 

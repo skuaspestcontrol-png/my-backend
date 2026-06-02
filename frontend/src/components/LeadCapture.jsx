@@ -21,6 +21,7 @@ import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 import { getPortalUserName } from '../utils/portalAuth';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import {
   ArrowDown,
   ArrowUp,
@@ -1077,6 +1078,7 @@ export default function LeadCapture() {
       setLeads((prev) => prev.map((entry) => (
         entry._id === leadId ? { ...entry, ...updated, _id: entry._id } : entry
       )));
+      triggerDashboardRefresh();
       closeLogFollowupModal();
     } catch (error) {
       console.error('Log follow-up save failed', error);
@@ -1129,6 +1131,7 @@ export default function LeadCapture() {
           }
           : entry
       )));
+      triggerDashboardRefresh();
       closeStatusEditor();
     } catch (error) {
       console.error('Inline lead status update failed', error);
@@ -1360,6 +1363,7 @@ export default function LeadCapture() {
           status: 'Booked',
           leadStatus: 'Booked'
         });
+        triggerDashboardRefresh();
       } catch (error) {
         console.error('Lead conversion status update failed', error);
       }
@@ -1945,6 +1949,7 @@ export default function LeadCapture() {
       setSelectedLeadIds([]);
       setShowMoreMenu(false);
       await fetchLeadsAndEmployees();
+      triggerDashboardRefresh();
     } catch (error) {
       console.error('Failed to delete selected leads', error);
       window.alert('Unable to delete selected leads.');
@@ -2074,6 +2079,7 @@ export default function LeadCapture() {
       await fetchLeadsAndEmployees();
       setSelectedLeadIds([]);
       setShowMoreMenu(false);
+      triggerDashboardRefresh();
       window.alert(`Imported ${payloads.length} lead(s) successfully.`);
     } catch (error) {
       console.error('Failed to import lead data', error);
@@ -2124,6 +2130,7 @@ export default function LeadCapture() {
         await axios.post(`${API_BASE_URL}/api/leads`, payload);
       }
       await fetchLeadsAndEmployees();
+      triggerDashboardRefresh();
       resetForm();
     } catch (error) {
       console.error('Save failed', error);
@@ -2142,6 +2149,7 @@ export default function LeadCapture() {
     try {
       await axios.delete(`${API_BASE_URL}/api/leads/${id}`);
       await fetchLeadsAndEmployees();
+      triggerDashboardRefresh();
     } catch (error) {
       console.error('Delete failed', error);
       alert('Delete failed. Check backend route.');

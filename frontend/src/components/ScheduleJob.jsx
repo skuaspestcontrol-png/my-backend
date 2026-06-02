@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { CalendarDays, MapPin, Wrench, X } from 'lucide-react';
 import { useColumnResize } from './table/useColumnResize';
+import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -530,6 +531,7 @@ export default function ScheduleJob() {
       await Promise.all(payloads.map((payload) => axios.post(`${API_BASE_URL}/api/jobs`, payload)));
       const jobsSyncTick = String(Date.now());
       localStorage.setItem('jobs_sync_tick', jobsSyncTick);
+      triggerDashboardRefresh();
       window.alert(`Assigned ${payloads.length} service job(s) successfully.`);
       navigate('/operations/assigned-jobs', { state: { jobsSyncTick } });
     } catch (error) {

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import PdfPreviewModal from './PdfPreviewModal';
 import { useLocation, useParams } from 'react-router-dom';
+import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -891,6 +892,7 @@ export default function TechnicianPortal() {
       const response = await axios.put(`${API_BASE_URL}/api/jobs/${activeJob._id}`, savePayload, { timeout: 30000 });
       const savedJob = response?.data || { ...activeJob, ...savePayload };
       syncLocalJob(savedJob);
+      triggerDashboardRefresh();
       return savedJob;
     } catch (error) {
       console.error('Failed to save technician wizard draft', error);
@@ -936,6 +938,7 @@ export default function TechnicianPortal() {
       await axios.put(`${API_BASE_URL}/api/jobs/${activeJob._id}`, { status: 'In Progress', punchInTime: time, serviceStartTime }, { timeout: 15000 });
       setJobs((prev) => prev.map((job) => (job._id === activeJob._id ? { ...job, status: 'In Progress', punchInTime: time, serviceStartTime } : job)));
       setActiveJob((prev) => (prev ? { ...prev, status: 'In Progress', punchInTime: time, serviceStartTime } : prev));
+      triggerDashboardRefresh();
     } catch (error) {
       console.error('Punch in failed', error);
       window.alert(error?.response?.data?.error || error?.message || 'Unable to punch in. Please retry.');
@@ -1010,6 +1013,7 @@ export default function TechnicianPortal() {
       loadPortalData().catch((error) => {
         console.error('Background refresh after completion failed', error);
       });
+      triggerDashboardRefresh();
     } catch (error) {
       console.error('Punch out failed', error);
       if (error?.response?.status === 413) {
@@ -1239,6 +1243,7 @@ export default function TechnicianPortal() {
         status: 'Scheduled'
       });
       await loadPortalData();
+      triggerDashboardRefresh();
       setActionStatus(`Reassigned ${job.serviceName || 'service'} to ${chosen.name}.`);
     } catch (error) {
       console.error('Reassign failed', error);
@@ -1262,6 +1267,7 @@ export default function TechnicianPortal() {
         status: 'Unassigned'
       });
       await loadPortalData();
+      triggerDashboardRefresh();
       setActionStatus('Assignment removed. Service is now available again in Assign Services.');
     } catch (error) {
       console.error('Remove assignment failed', error);

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { subscribeDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -83,6 +84,7 @@ const normalizeLeadSource = (value) => String(value || '').trim();
 export default function Dashboard() {
   const navigate = useNavigate();
   const hasLoadedRef = useRef(false);
+  const loadDashboardRef = useRef(() => {});
   const [summary, setSummary] = useState(null);
   const [settings, setSettings] = useState({});
   const [invoices, setInvoices] = useState([]);
@@ -117,6 +119,7 @@ export default function Dashboard() {
       }
     };
 
+    loadDashboardRef.current = load;
     load();
     const timer = window.setInterval(load, 15000);
     const onFocus = () => load();
@@ -133,6 +136,13 @@ export default function Dashboard() {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeDashboardRefresh(() => {
+      loadDashboardRef.current();
+    });
+    return unsubscribe;
   }, []);
 
   useEffect(() => {

@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Plus, Trash2, X } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useColumnResize } from './table/useColumnResize';
+import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -258,6 +259,7 @@ export default function VendorBillsDashboard() {
       }
       setShowModal(false);
       await loadData();
+      triggerDashboardRefresh();
     } catch (error) {
       setSaveError(error?.response?.data?.error || 'Unable to save vendor bill');
     } finally {
@@ -271,6 +273,7 @@ export default function VendorBillsDashboard() {
     try {
       await axios.delete(`${API_BASE_URL}/api/vendor-bills/${billId}`);
       await loadData();
+      triggerDashboardRefresh();
     } catch (error) {
       window.alert(error?.response?.data?.error || 'Unable to delete bill');
     }

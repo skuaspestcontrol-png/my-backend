@@ -7,6 +7,7 @@ import { AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, 
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import {
   attachPlacesAutocomplete,
   loadGooglePlacesScript,
@@ -1857,6 +1858,7 @@ export default function CustomerDashboard() {
     setShowModal(false);
     setSaveError('');
     lastDisplayNameRef.current = '';
+    triggerDashboardRefresh();
     await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
   };
 
@@ -2138,6 +2140,7 @@ export default function CustomerDashboard() {
     try {
       await Promise.all(selectedIds.map((id) => axios.delete(`${API_BASE_URL}/api/customers/${id}`)));
       closeMoreMenu();
+      triggerDashboardRefresh();
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
     } catch (error) {
       console.error('Failed to delete customers', error);
@@ -2153,6 +2156,7 @@ export default function CustomerDashboard() {
       await Promise.all(ids.map((id) => axios.delete(`${API_BASE_URL}/api/customers/${id}`)));
       closeMoreMenu();
       setSelectedIds([]);
+      triggerDashboardRefresh();
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
     } catch (error) {
       console.error('Failed to delete all customers', error);
@@ -2173,6 +2177,7 @@ export default function CustomerDashboard() {
       await Promise.all(ids.map((id) => axios.delete(`${API_BASE_URL}/api/customers/${id}`)));
       closeMoreMenu();
       setSelectedIds((prev) => prev.filter((id) => !ids.includes(id)));
+      triggerDashboardRefresh();
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
     } catch (error) {
       console.error('Failed to delete duplicate report customers', error);
@@ -2186,6 +2191,7 @@ export default function CustomerDashboard() {
     if (!ok) return;
     try {
       await axios.delete(`${API_BASE_URL}/api/customers/${customerId}`);
+      triggerDashboardRefresh();
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
       setSelectedIds((prev) => prev.filter((id) => id !== customerId));
     } catch (error) {
@@ -2303,6 +2309,7 @@ export default function CustomerDashboard() {
         actor: getPortalUserName() || 'Admin'
       });
       window.alert('Customers merged successfully.');
+      triggerDashboardRefresh();
       await Promise.all([loadCustomers(), loadTransactions(), loadDuplicateReport()]);
       setSelectedIds([]);
       closeMoreMenu();
