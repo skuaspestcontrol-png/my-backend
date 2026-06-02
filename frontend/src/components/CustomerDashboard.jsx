@@ -1096,12 +1096,6 @@ export default function CustomerDashboard() {
     setCurrentPage(1);
   };
 
-  const clearCustomerSearch = () => {
-    setCustomerSearchInput('');
-    setCustomerSearchQuery('');
-    setCurrentPage(1);
-  };
-
   const historyInvoices = useMemo(() => {
     if (!selectedHistoryCustomer) return [];
     return invoices.filter((invoice) => {
@@ -2501,16 +2495,24 @@ export default function CustomerDashboard() {
   const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton, width: '32px', height: '32px' } : shell.customizeButton;
   const historyTitleTinyStyle = isTiny ? { ...historyTitleStyle, fontSize: '20px' } : historyTitleStyle;
   const customerSearchBarStyle = {
-    display: 'grid',
-    gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) auto',
-    gap: '8px',
+    position: 'relative',
+    display: 'block',
     alignItems: 'center',
     minWidth: 0,
     width: '100%'
   };
-  const customerSearchButtonStyle = isTiny
-    ? { ...shell.buttonPrimary, minHeight: '32px', padding: '0 12px', fontSize: '11px' }
-    : { ...shell.buttonPrimary, minHeight: '36px', padding: '0 14px', fontSize: '13px' };
+  const customerSearchInputStyle = {
+    ...shell.input,
+    paddingLeft: '38px'
+  };
+  const customerSearchIconStyle = {
+    position: 'absolute',
+    left: '12px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#94a3b8',
+    pointerEvents: 'none'
+  };
   const customerSearchMetaStyle = {
     fontSize: '12px',
     color: '#64748b',
@@ -2612,9 +2614,10 @@ export default function CustomerDashboard() {
         </div>
         <div style={{ width: '100%', minWidth: 0, justifySelf: isMobile ? 'stretch' : 'center' }}>
           <div style={customerSearchBarStyle}>
+            <Search size={14} style={customerSearchIconStyle} />
             <input
               type="search"
-              style={shell.input}
+              style={customerSearchInputStyle}
               value={customerSearchInput}
               onChange={(event) => {
                 const nextValue = event.target.value;
@@ -2629,17 +2632,6 @@ export default function CustomerDashboard() {
               }}
               placeholder="Search company, contact, display name, or mobile"
             />
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-start', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
-              <button type="button" style={customerSearchButtonStyle} onClick={applyCustomerSearch}>
-                <Search size={14} />
-                Search
-              </button>
-              {customerSearchQuery ? (
-                <button type="button" style={shell.cancelButton} onClick={clearCustomerSearch}>
-                  Clear
-                </button>
-              ) : null}
-            </div>
           </div>
           <div style={customerSearchMetaStyle}>
             {customerSearchQuery ? `Showing ${sortedCustomers.length} result${sortedCustomers.length === 1 ? '' : 's'}` : `Total ${customers.length} customers`}
