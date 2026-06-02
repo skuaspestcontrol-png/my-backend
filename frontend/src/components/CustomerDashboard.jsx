@@ -495,6 +495,7 @@ const normalizeText = (value) => String(value || '').trim().toLowerCase();
 const normalizeComparisonText = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 const normalizeDuplicateGuardText = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 const normalizeDuplicateGuardAddress = (value) => normalizeDuplicateGuardText(String(value || '').replace(/[\n\r,;]+/g, ' '));
+const normalizeSearchDigits = (value) => String(value || '').replace(/\D+/g, '');
 const duplicateComparisonFields = [
   { key: 'displayName', label: 'Display Name' },
   { key: 'companyName', label: 'Company Name' },
@@ -633,6 +634,8 @@ export default function CustomerDashboard() {
   const [pendingPremises, setPendingPremises] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [addressSearchState, setAddressSearchState] = useState(createAddressSearchState);
+  const [customerSearchInput, setCustomerSearchInput] = useState('');
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [visibleColumns, setVisibleColumns] = useState(() => {
     const saved = localStorage.getItem('customers_visible_columns');
     return saved ? JSON.parse(saved) : defaultVisibleColumns;
@@ -1088,6 +1091,17 @@ export default function CustomerDashboard() {
     return `Possible duplicate: ${label}${mobile ? ` - ${mobile}` : ''}${place ? ` (${place})` : ''}${matches.length > 1 ? ` +${matches.length - 1} more` : ''}`;
   }, [customers, editingId, form.companyName, form.contactPersonName, form.displayName, form.mobileNumber]);
 
+  const applyCustomerSearch = () => {
+    setCustomerSearchQuery(String(customerSearchInput || '').trim());
+    setCurrentPage(1);
+  };
+
+  const clearCustomerSearch = () => {
+    setCustomerSearchInput('');
+    setCustomerSearchQuery('');
+    setCurrentPage(1);
+  };
+
   const historyInvoices = useMemo(() => {
     if (!selectedHistoryCustomer) return [];
     return invoices.filter((invoice) => {
@@ -1184,15 +1198,33 @@ export default function CustomerDashboard() {
 
   const sortedCustomers = useMemo(() => {
     const multiplier = nameSortDirection === 'asc' ? 1 : -1;
+    const searchQuery = String(customerSearchQuery || '').trim();
+    const searchDigits = normalizeSearchDigits(searchQuery);
+    const searchText = normalizeText(searchQuery);
     const sourceRows = showPossibleDuplicatesOnly
       ? customers.filter((customer) => customer?._id && possibleDuplicateIds.includes(customer._id))
       : customers;
-    return sanitizeCustomerRows(sourceRows).sort((a, b) => {
+    const filteredRows = sanitizeCustomerRows(sourceRows).filter((customer) => {
+      if (!searchQuery) return true;
+      const nameParts = [
+        customer.displayName,
+        customer.name,
+        customer.companyName,
+        customer.contactPersonName
+      ]
+        .map(normalizeText)
+        .filter(Boolean);
+      const mobileDigits = normalizeSearchDigits(customer.mobileNumber || customer.workPhone || '');
+      const nameMatch = searchText ? nameParts.some((part) => part.includes(searchText)) : false;
+      const mobileMatch = Boolean(searchDigits && mobileDigits && mobileDigits.includes(searchDigits));
+      return nameMatch || mobileMatch;
+    });
+    return filteredRows.sort((a, b) => {
       const aName = String(a.displayName || a.name || '').trim();
       const bName = String(b.displayName || b.name || '').trim();
       return aName.localeCompare(bName, 'en', { sensitivity: 'base', numeric: true }) * multiplier;
     });
-  }, [customers, nameSortDirection, possibleDuplicateIds, showPossibleDuplicatesOnly]);
+  }, [customers, customerSearchQuery, nameSortDirection, possibleDuplicateIds, showPossibleDuplicatesOnly]);
 
   const totalPages = Math.max(1, Math.ceil(sortedCustomers.length / rowsPerPage));
   const paginatedCustomers = useMemo(() => {
@@ -2458,6 +2490,22 @@ export default function CustomerDashboard() {
   const primaryButtonStyle = isTiny ? { ...shell.buttonPrimary, padding: '6px 10px', fontSize: '11px', minHeight: '32px' } : shell.buttonPrimary;
   const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton, width: '32px', height: '32px' } : shell.customizeButton;
   const historyTitleTinyStyle = isTiny ? { ...historyTitleStyle, fontSize: '20px' } : historyTitleStyle;
+  const customerSearchBarStyle = {
+    display: 'grid',
+    gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) auto',
+    gap: '8px',
+    alignItems: 'center',
+    minWidth: 0
+  };
+  const customerSearchButtonStyle = isTiny
+    ? { ...shell.buttonPrimary, minHeight: '32px', padding: '0 12px', fontSize: '11px' }
+    : { ...shell.buttonPrimary, minHeight: '36px', padding: '0 14px', fontSize: '13px' };
+  const customerSearchMetaStyle = {
+    fontSize: '12px',
+    color: '#64748b',
+    fontWeight: 600,
+    whiteSpace: 'nowrap'
+  };
   const addressSearchRowStyle = {
     display: 'grid',
     gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) auto',
@@ -2696,6 +2744,36 @@ export default function CustomerDashboard() {
                 </button>
             </div>
           ) : null}
+        </div>
+      </div>
+      <div style={toolbarStyle}>
+        <div style={customerSearchBarStyle}>
+          <input
+            type="search"
+            style={shell.input}
+            value={customerSearchInput}
+            onChange={(event) => setCustomerSearchInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') return;
+              event.preventDefault();
+              applyCustomerSearch();
+            }}
+            placeholder="Search company, contact, display name, or mobile"
+          />
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-start', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
+            <button type="button" style={customerSearchButtonStyle} onClick={applyCustomerSearch}>
+              <Search size={14} />
+              Search
+            </button>
+            {customerSearchQuery ? (
+              <button type="button" style={shell.cancelButton} onClick={clearCustomerSearch}>
+                Clear
+              </button>
+            ) : null}
+          </div>
+        </div>
+        <div style={customerSearchMetaStyle}>
+          {customerSearchQuery ? `Showing ${sortedCustomers.length} result${sortedCustomers.length === 1 ? '' : 's'}` : `Total ${customers.length} customers`}
         </div>
       </div>
       <div style={shell.tableWrap} className="crm-table-shell crm-table-shell--clipped">
