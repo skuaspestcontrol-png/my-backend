@@ -2174,6 +2174,10 @@ export default function InvoiceDashboard() {
       triggerSalesPerformanceRefresh();
       triggerContractsRefresh();
       triggerDashboardRefresh();
+      if (modalOpenedFromContract) {
+        setModalOpenedFromContract(false);
+        navigate('/sales/contracts', { replace: true });
+      }
     } catch (error) {
       console.error('Failed to save invoice', error);
       setSaveError(error?.response?.data?.error || 'Unable to save invoice. Please ensure backend server is running on port 5000.');
