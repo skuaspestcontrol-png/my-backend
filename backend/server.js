@@ -2756,22 +2756,21 @@ app.get('/api/dashboard/summary', async (req, res) => {
 
   if (canUseMysql()) {
     try {
-      const [row] = await dbQuery(`
+      const [rows, customers] = await Promise.all([
+        dbQuery(`
         SELECT
           (SELECT COUNT(*) FROM leads) AS leadsCount,
           (SELECT COUNT(*) FROM employees) AS employeesCount,
           (SELECT COUNT(*) FROM jobs) AS jobsCount,
           (SELECT COUNT(*) FROM invoices) AS invoicesCount,
           (SELECT COALESCE(SUM(total_amount), 0) FROM invoices) AS invoicesTotalAmount
-      `);
-      const [customerRows] = await dbQuery('SELECT id, external_id, billing_address, shipping_address, area_name, city, billing_state, shipping_state, state, pincode, payload FROM customers ORDER BY id DESC');
-      const hydratedCustomers = (Array.isArray(customerRows) ? customerRows : [])
-        .map((entry) => hydrateCustomerMysqlRow(entry))
-        .filter((entry) => entry && entry._id && entry.active !== false && !entry.isMerged);
-      const customersCount = hydratedCustomers.length || (Array.isArray(customerRows) ? customerRows.length : 0);
+      `),
+        loadCustomersForContext()
+      ]);
+      const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
       const summary = {
         leadsCount: Number(row?.leadsCount || 0),
-        customersCount,
+        customersCount: countActiveCustomers(customers),
         employeesCount: Number(row?.employeesCount || 0),
         jobsCount: Number(row?.jobsCount || 0),
         invoicesCount: Number(row?.invoicesCount || 0),
@@ -2792,7 +2791,7 @@ app.get('/api/dashboard/summary', async (req, res) => {
 
   const fallback = {
     leadsCount: readJsonFile(leadsFile, []).length,
-    customersCount: readJsonFile(customersFile, []).filter((entry) => entry && String(entry._id || '').trim() && entry.active !== false && !entry.isMerged).length,
+    customersCount: countActiveCustomers(readJsonFile(customersFile, [])),
     employeesCount: readJsonFile(employeesFile, []).length,
     jobsCount: readJsonFile(jobsFile, []).length,
     invoicesCount: readJsonFile(invoicesFile, []).length,
@@ -3326,6 +3325,10 @@ const hydrateCustomerMysqlRow = (row = {}) => {
     pincode: billingPincode
   };
 };
+
+const countActiveCustomers = (customers = []) => (
+  Array.isArray(customers) ? customers : []
+).filter((entry) => entry && String(entry._id || '').trim() && entry.active !== false && !entry.isMerged).length;
 
 const normalizeCustomerGuardText = (value) => String(value || '')
   .replace(/[\n\r,;]+/g, ' ')
