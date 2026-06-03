@@ -136,7 +136,7 @@ const normalizeGstState = (value) => {
   return raw;
 };
 
-const createEmptyLine = () => ({
+const createEmptyLine = (defaults = {}) => ({
   itemId: '',
   itemName: '',
   description: '',
@@ -144,7 +144,7 @@ const createEmptyLine = () => ({
   sac: '',
   itemType: 'service',
   contractPeriod: '',
-  contractStartDate: '',
+  contractStartDate: defaults.contractStartDate || '',
   contractEndDate: '',
   renewalDate: '',
   serviceFrequency: '',
@@ -1402,10 +1402,12 @@ export default function InvoiceDashboard() {
     setSaveError('');
     const invoiceNumber = invoiceNumberPrefs.mode === 'auto' ? createNextInvoiceNumber(invoiceNumberPrefs) : '';
     const invoiceType = 'GST';
+    const invoiceDate = new Date().toISOString().slice(0, 10);
     setForm(applyComputedTotals({
       ...emptyForm,
       invoiceNumber,
       invoiceType,
+      date: invoiceDate,
       customerNotes: String(companySettings.customerNotesDefault || '').trim(),
       termsAndConditions: getDefaultTermsForInvoiceType(invoiceType),
       status: 'DRAFT'
@@ -1749,7 +1751,7 @@ export default function InvoiceDashboard() {
   const removeLine = (index) => {
     setFormWithTotals((prev) => {
       if (prev.items.length === 1) {
-        return { ...prev, items: [createEmptyLine()] };
+        return { ...prev, items: [createEmptyLine({ contractStartDate: prev.date || new Date().toISOString().slice(0, 10) })] };
       }
       return { ...prev, items: prev.items.filter((_, idx) => idx !== index) };
     });
@@ -1761,8 +1763,8 @@ export default function InvoiceDashboard() {
       items: [
         ...prev.items,
         prev.invoiceType === 'NON GST'
-          ? { ...createEmptyLine(), taxRate: '0' }
-          : createEmptyLine()
+          ? { ...createEmptyLine({ contractStartDate: prev.date || new Date().toISOString().slice(0, 10) }), taxRate: '0' }
+          : createEmptyLine({ contractStartDate: prev.date || new Date().toISOString().slice(0, 10) })
       ]
     }));
   };
@@ -1792,7 +1794,7 @@ export default function InvoiceDashboard() {
           sac: match.hsnSac || match.sac || '',
           itemType: match.itemType || 'service',
           contractPeriod: '',
-          contractStartDate: '',
+          contractStartDate: prev.date || new Date().toISOString().slice(0, 10),
           contractEndDate: '',
           renewalDate: '',
           serviceFrequency: '',
