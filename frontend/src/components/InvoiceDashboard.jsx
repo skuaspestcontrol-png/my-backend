@@ -957,6 +957,7 @@ export default function InvoiceDashboard() {
       }),
     [customers]
   );
+  const customerNameDatalistId = 'invoice-customer-name-options';
   const selectedCustomer = useMemo(
     () => {
       const customer = customers.find((entry) => entry._id === form.customerId) || null;
@@ -1793,22 +1794,34 @@ export default function InvoiceDashboard() {
     });
   };
 
-  const handleCustomerChange = (customerId) => {
-    const customer = customers.find((entry) => entry._id === customerId);
+  const resolveCustomerMatch = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+    const normalized = raw.toLowerCase();
+    return customers.find((entry) => {
+      const entryId = String(entry?._id || '').trim();
+      const entryName = String(entry?.displayName || entry?.name || '').trim();
+      return entryId === raw || entryName.toLowerCase() === normalized;
+    }) || null;
+  };
+
+  const handleCustomerChange = (value) => {
+    const customer = resolveCustomerMatch(value);
+    const customerName = String(value || '').trim();
     setFormWithTotals((prev) => ({
       ...prev,
-      customerId,
-      customerName: customer ? (customer.displayName || customer.name || '') : '',
+      customerId: customer?._id || '',
+      customerName,
       billingAddressSource: 'billing',
       shippingAddressSource: 'shipping',
       customShippingAddresses: [],
       placeOfSupply: customer ? normalizeGstState(customer.billingState || customer.state || '') : ''
     }));
-    if (customerId) {
-      axios.get(`${API_BASE_URL}/api/customers/${customerId}/premises`)
+    if (customer?._id) {
+      axios.get(`${API_BASE_URL}/api/customers/${customer._id}/premises`)
         .then((res) => {
           const rows = Array.isArray(res.data) ? res.data : [];
-          setCustomerPremises((prev) => ({ ...prev, [customerId]: rows }));
+          setCustomerPremises((prev) => ({ ...prev, [customer._id]: rows }));
           const defaultPremise = rows.find((row) => row.isDefault || row.is_default) || rows[0];
           if (defaultPremise?.premiseId || defaultPremise?.premise_id) {
             const source = `premise:${defaultPremise.premiseId || defaultPremise.premise_id}`;
@@ -2672,16 +2685,18 @@ export default function InvoiceDashboard() {
             <div className="crm-modal-surface-body" style={formBodyStyle}>
               <div style={customerRowStyle}>
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Name*</label>
-                <select
+                <input
+                  list={customerNameDatalistId}
                   style={shell.input}
-                  value={form.customerId}
+                  value={form.customerName}
+                  placeholder="Type to search or add a customer"
                   onChange={(event) => handleCustomerChange(event.target.value)}
-                >
-                  <option value="">Select or add a customer</option>
+                />
+                <datalist id={customerNameDatalistId}>
                   {customerOptions.map((customer) => (
-                    <option key={customer.id} value={customer.id}>{customer.name}</option>
+                    <option key={customer.id} value={customer.name} />
                   ))}
-                </select>
+                </datalist>
               </div>
 
               <div style={addressSplitStyle}>

@@ -913,17 +913,6 @@ export default function ContractDashboard() {
     { key: 'due', label: 'Due' }
   ];
   const isMobile = viewportWidth <= 768;
-  const customerNameTextStyle = {
-    width: '100%',
-    textAlign: 'left',
-    fontSize: '11px',
-    fontWeight: 700,
-    lineHeight: 1.25,
-    wordBreak: 'break-word',
-    whiteSpace: 'normal',
-    overflow: 'visible',
-    textOverflow: 'clip'
-  };
   const getColumnWidth = (columnKey) => {
     const desktopWidth = getResizableColumnWidth(columnKey) || defaultColumnWidths[columnKey] || 120;
     const width = isMobile
@@ -1140,11 +1129,9 @@ export default function ContractDashboard() {
                         {row.customer}
                       </button>
                     ) : (
-                      <div className="contract-customer-name" style={customerNameTextStyle}>{row.customer}</div>
+                      <div className="contract-customer-name">{row.customer}</div>
                     )}
-                    {String(row.customer || '').trim().length <= 24 ? (
-                      <div style={{ ...shell.subText, width: '100%', textAlign: 'left', alignSelf: 'flex-start' }}>{row.mobile || '-'}</div>
-                    ) : null}
+                    <div className="contract-customer-mobile">{row.mobile || '-'}</div>
                   </div>
                 </td> : null}
                 {visibleColumns.property ? <td style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
