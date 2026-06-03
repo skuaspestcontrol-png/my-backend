@@ -545,8 +545,8 @@ function QuotationDashboardInner() {
         {rows.length > perPage ? (
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, padding: '12px 14px', borderTop: '1px solid var(--color-border)' }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button type="button" style={{ ...shell.ghostBtn, width: 34, minWidth: 34, padding: 0, justifyContent: 'center' }} disabled={safePage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
-              <button type="button" style={{ ...shell.ghostBtn, width: 34, minWidth: 34, padding: 0, justifyContent: 'center' }} disabled={safePage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
+              <button type="button" style={{ ...shell.ghostBtn, width: 34, minWidth: 34, minHeight: 32, height: 32, padding: 0, justifyContent: 'center' }} disabled={safePage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
+              <button type="button" style={{ ...shell.ghostBtn, width: 34, minWidth: 34, minHeight: 32, height: 32, padding: 0, justifyContent: 'center' }} disabled={safePage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
             </div>
           </div>
         ) : null}

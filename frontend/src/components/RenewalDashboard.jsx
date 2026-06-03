@@ -115,10 +115,10 @@ const shell = {
   mobileCustomerStack: { display: 'grid', gap: 2, alignItems: 'start', minWidth: 0 },
   mobileCustomerName: { margin: 0, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' },
   mobileCustomerMobile: { fontSize: 12, color: '#64748b', fontWeight: 700, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap', background: '#fff' },
+  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: '#fff' },
   paginationInfo: { color: '#64748b', fontSize: 12, fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: 8 },
-  paginationBtn: { width: 34, minWidth: 34, minHeight: 32, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: 'var(--color-primary)', padding: 0, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
+  paginationBtn: { width: 34, minWidth: 34, minHeight: 32, height: 32, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: 'var(--color-primary)', padding: 0, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }
 };
 
@@ -320,6 +320,9 @@ export default function RenewalDashboard() {
   }, [rows, safePage]);
   const firstRecord = rows.length ? ((safePage - 1) * RENEWAL_PAGE_SIZE) + 1 : 0;
   const lastRecord = Math.min(safePage * RENEWAL_PAGE_SIZE, rows.length);
+  const paginationText = rows.length ? `${firstRecord}-${lastRecord} of ${rows.length} records` : '0 records';
+  const paginationStyle = isMobile ? { ...shell.pagination, flexDirection: 'column', alignItems: 'stretch' } : shell.pagination;
+  const paginationActionsStyle = isMobile ? { ...shell.paginationActions, justifyContent: 'flex-end' } : shell.paginationActions;
 
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
@@ -529,8 +532,9 @@ export default function RenewalDashboard() {
             ))}
           </tbody>
         </table>
-        <div style={shell.pagination}>
-          <div style={shell.paginationActions}>
+        <div style={paginationStyle}>
+          <div style={shell.paginationInfo}>{paginationText}</div>
+          <div style={paginationActionsStyle}>
             <button
               type="button"
               style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }}

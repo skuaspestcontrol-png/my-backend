@@ -464,7 +464,7 @@ const shell = {
   historyEmpty: { margin: 0, padding: '16px 12px', fontSize: '13px', color: '#64748b' },
   paginationBar: {
     display: 'flex',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
     gap: '12px',
     padding: '10px 16px',
@@ -2397,9 +2397,16 @@ export default function CustomerDashboard() {
 
   const pageStart = sortedCustomers.length === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
   const pageEnd = Math.min(currentPage * rowsPerPage, sortedCustomers.length);
+  const paginationText = sortedCustomers.length ? `${pageStart}-${pageEnd} of ${sortedCustomers.length} records` : '0 records';
   const isMobile = viewportWidth <= 900;
   const isTablet = viewportWidth > 900 && viewportWidth <= 1200;
   const isTiny = viewportWidth <= 380;
+  const paginationBarStyle = isMobile
+    ? { ...shell.paginationBar, flexDirection: 'column', alignItems: 'stretch' }
+    : shell.paginationBar;
+  const paginationActionsStyle = isMobile
+    ? { ...shell.paginationActions, justifyContent: 'flex-end' }
+    : shell.paginationActions;
   const topbarStyle = isMobile
     ? {
       ...shell.topbar,
@@ -2870,8 +2877,9 @@ export default function CustomerDashboard() {
           </tbody>
         </table>
       </div>
-      <div style={shell.paginationBar}>
-        <div style={shell.paginationActions}>
+      <div style={paginationBarStyle}>
+        <div style={shell.paginationText}>{paginationText}</div>
+        <div style={paginationActionsStyle}>
           <button
             type="button"
             style={{ ...shell.paginationButton, opacity: currentPage === 1 ? 0.45 : 1 }}

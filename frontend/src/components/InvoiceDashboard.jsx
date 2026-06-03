@@ -240,8 +240,8 @@ const shell = {
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   topActions: { display: 'flex', alignItems: 'center', gap: '8px' },
-  toolbar: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: '#fff' },
   toolLabel: { fontSize: '12px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' },
+  paginationInfo: { fontSize: '12px', color: '#475569', fontWeight: 700 },
   customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', width: '34px', height: '34px', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)', transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease' },
   buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', padding: '9px 14px', background: '#6b7280', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px' },
   buttonGhost: { border: '1px solid #d1d5db', background: '#f9fafb', color: '#111827', borderRadius: '12px', width: '48px', height: '48px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
@@ -2330,7 +2330,6 @@ export default function InvoiceDashboard() {
     ? { ...shell.summaryMetric, minHeight: '112px', padding: isTiny ? '12px' : '12px 14px' }
     : shell.summaryMetric;
   const summaryValueStyle = isMobile ? { ...shell.summaryValue, fontSize: isTiny ? '22px' : '24px' } : shell.summaryValue;
-  const toolbarStyle = isMobile ? { ...shell.toolbar, flexDirection: 'column', alignItems: 'stretch', padding: isTiny ? '8px 12px' : shell.toolbar.padding } : shell.toolbar;
   const customerRowStyle = isMobile ? { ...shell.customerRow, gridTemplateColumns: '1fr' } : shell.customerRow;
   const addressSplitStyle = isMobile ? { ...shell.addressSplit, gridTemplateColumns: '1fr' } : shell.addressSplit;
   const topGridStyle = isMobile ? { ...shell.topGrid, gridTemplateColumns: '1fr' } : shell.topGrid;
@@ -2372,7 +2371,7 @@ export default function InvoiceDashboard() {
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const tinyGhostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
   const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton } : shell.customizeButton;
-  const tinyCustomizeBtnStyle = isTiny ? { ...shell.customizeButton } : shell.customizeButton;
+  const topActionIconStyle = isTiny ? { ...shell.customizeButton, width: '34px', height: '34px', minWidth: '34px', minHeight: '34px' } : shell.customizeButton;
   const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '60px', fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
   const dateInputStyle = {
     ...shell.input,
@@ -2441,6 +2440,38 @@ export default function InvoiceDashboard() {
           >
             <MoreHorizontal size={14} />
           </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              ref={customizeButtonRef}
+              type="button"
+              style={topActionIconStyle}
+              aria-label="Customize fields"
+              title="Customize fields"
+              onClick={() => setShowCustomize((prev) => !prev)}
+            >
+              <Settings size={14} />
+            </button>
+            {showCustomize ? (
+              <div ref={customizePanelRef} style={shell.popover}>
+                <div style={shell.popoverHeader}>Show/Hide Columns</div>
+                <div style={shell.popoverBody}>
+                  {columns.map((column) => (
+                    <label key={column.key} style={shell.popoverItem}>
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns.includes(column.key)}
+                        onChange={() => toggleColumn(column.key)}
+                      />
+                      {column.label}
+                    </label>
+                  ))}
+                  <button type="button" style={shell.menuButton} onClick={resetInvoiceColumnWidths}>
+                    Reset Column Widths
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -2492,44 +2523,6 @@ export default function InvoiceDashboard() {
             </div>
           </div>
         </div>
-      </div>
-
-      <div style={toolbarStyle}>
-        <span style={shell.toolLabel}>Invoice Register</span>
-        {!isMobile ? (
-        <div style={{ position: 'relative' }}>
-          <button
-            ref={customizeButtonRef}
-            type="button"
-            style={tinyCustomizeBtnStyle}
-            aria-label="Customize fields"
-            title="Customize fields"
-            onClick={() => setShowCustomize((prev) => !prev)}
-          >
-            <Settings size={14} />
-          </button>
-          {showCustomize ? (
-            <div ref={customizePanelRef} style={shell.popover}>
-              <div style={shell.popoverHeader}>Show/Hide Columns</div>
-              <div style={shell.popoverBody}>
-                {columns.map((column) => (
-                  <label key={column.key} style={shell.popoverItem}>
-                    <input
-                      type="checkbox"
-                      checked={visibleColumns.includes(column.key)}
-                      onChange={() => toggleColumn(column.key)}
-                    />
-                    {column.label}
-                  </label>
-                ))}
-                <button type="button" style={shell.menuButton} onClick={resetInvoiceColumnWidths}>
-                  Reset Column Widths
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </div>
-        ) : null}
       </div>
 
       <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell crm-table-shell--clipped">
@@ -2633,10 +2626,11 @@ export default function InvoiceDashboard() {
           </tbody>
         </table>
       </div>
-      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px', backgroundClip: 'padding-box', boxShadow: 'inset 1px 0 0 var(--brand-border-color), inset -1px 0 0 var(--brand-border-color), inset 0 -1px 0 var(--brand-border-color)' }}>
+      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px', backgroundClip: 'padding-box', boxShadow: 'inset 1px 0 0 var(--brand-border-color), inset -1px 0 0 var(--brand-border-color), inset 0 -1px 0 var(--brand-border-color)' }}>
+        <div style={shell.paginationInfo}>{firstRecord}-{lastRecord} of {invoices.length} records</div>
         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-          <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', height: '34px', padding: 0 }} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
-          <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', height: '34px', padding: 0 }} disabled={safePage >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
+          <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', minWidth: '34px', height: '32px', minHeight: '32px', padding: 0 }} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
+          <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', minWidth: '34px', height: '32px', minHeight: '32px', padding: 0 }} disabled={safePage >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
         </div>
       </div>
 

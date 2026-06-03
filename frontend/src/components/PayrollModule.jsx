@@ -1618,8 +1618,8 @@ export default function PayrollModule() {
       )}
       <div style={{ ...shell.actionRow, justifyContent: 'flex-end' }}>
         <div style={shell.actionRow}>
-          <button type="button" style={{ ...shell.btnLight, width: 34, minWidth: 34, padding: 0, justifyContent: 'center' }} disabled={page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
-          <button type="button" style={{ ...shell.btnLight, width: 34, minWidth: 34, padding: 0, justifyContent: 'center' }} disabled={page >= totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
+          <button type="button" style={{ ...shell.btnLight, width: 34, minWidth: 34, minHeight: 32, height: 32, padding: 0, justifyContent: 'center' }} disabled={page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
+          <button type="button" style={{ ...shell.btnLight, width: 34, minWidth: 34, minHeight: 32, height: 32, padding: 0, justifyContent: 'center' }} disabled={page >= totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
         </div>
       </div>
     </>

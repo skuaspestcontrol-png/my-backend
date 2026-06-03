@@ -101,7 +101,8 @@ const shell = {
     borderTopRightRadius: '20px',
     backgroundClip: 'padding-box'
   },
-  titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  titleWrap: { display: 'grid', gap: '2px', minWidth: 0 },
+  titleLine: { display: 'inline-flex', alignItems: 'center', gap: '8px', minWidth: 0 },
   title: { margin: 0, fontSize: '28px', fontWeight: 800, letterSpacing: '-0.03em', color: '#1f2937' },
   topActions: { display: 'flex', alignItems: 'center', gap: '10px' },
   buttonPrimary: {
@@ -146,7 +147,8 @@ const shell = {
     color: '#6b7280',
     fontWeight: 700,
     textTransform: 'uppercase',
-    letterSpacing: '0.06em'
+    letterSpacing: '0.06em',
+    lineHeight: 1.1
   },
   customizeButton: {
     display: 'inline-flex',
@@ -404,7 +406,7 @@ const shell = {
     padding: '9px 12px',
     borderTop: '1px solid var(--color-border)',
     display: 'flex',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
     gap: '8px',
     fontSize: '12px',
@@ -412,6 +414,7 @@ const shell = {
     background: '#fff',
     backgroundClip: 'padding-box'
   },
+  paginationInfo: { fontSize: '12px', color: '#475569', fontWeight: 700 },
   pageButton: {
     border: '1px solid var(--color-border)',
     background: '#fff',
@@ -487,6 +490,9 @@ export default function ItemsDashboard() {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return sortedItems.slice(start, start + ITEMS_PER_PAGE);
   }, [currentPage, sortedItems]);
+  const pageStart = sortedItems.length === 0 ? 0 : ((currentPage - 1) * ITEMS_PER_PAGE) + 1;
+  const pageEnd = Math.min(currentPage * ITEMS_PER_PAGE, sortedItems.length);
+  const paginationText = sortedItems.length ? `${pageStart}-${pageEnd} of ${sortedItems.length} records` : '0 records';
 
   const loadItems = async (options = {}) => {
     try {
@@ -746,7 +752,6 @@ export default function ItemsDashboard() {
     ? { ...shell.topbar, flexDirection: 'column', alignItems: 'stretch', padding: isTiny ? '10px 12px' : shell.topbar.padding }
     : shell.topbar;
   const topActionsStyle = isMobile ? { ...shell.topActions, width: '100%', justifyContent: 'space-between' } : shell.topActions;
-  const toolbarStyle = isMobile ? { ...shell.toolbar, flexDirection: 'column', alignItems: 'stretch', padding: isTiny ? '8px 12px' : shell.toolbar.padding } : shell.toolbar;
   const tableStyle = isMobile
     ? { ...shell.table, minWidth: isTiny ? '700px' : '760px' }
     : isTablet
@@ -763,15 +768,20 @@ export default function ItemsDashboard() {
   const modalFooterStyle = isMobile ? { ...shell.modalFooter, flexWrap: 'wrap' } : shell.modalFooter;
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const buttonPrimaryStyle = isTiny ? { ...shell.buttonPrimary, padding: '8px 12px', fontSize: '13px' } : shell.buttonPrimary;
-  const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton, width: '32px', height: '32px' } : shell.customizeButton;
+  const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton, width: '34px', height: '34px', minWidth: '34px', minHeight: '34px' } : shell.customizeButton;
   const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
+  const paginationStyle = isMobile ? { ...shell.pagination, flexDirection: 'column', alignItems: 'stretch' } : shell.pagination;
+  const paginationActionsStyle = isMobile ? { display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' } : { display: 'inline-flex', alignItems: 'center', gap: '8px' };
 
   return (
     <section className="crm-page crm-section" style={shell.page}>
       <div style={topbarStyle}>
         <div style={shell.titleWrap}>
-          <h1 style={titleStyle}>All Items</h1>
-          <ChevronDown size={20} color="var(--color-primary)" />
+          <div style={shell.titleLine}>
+            <h1 style={titleStyle}>All Items</h1>
+            <ChevronDown size={20} color="var(--color-primary)" />
+          </div>
+          <span style={shell.toolLabel}>Item Master</span>
         </div>
         <div style={topActionsStyle}>
           <button type="button" style={buttonPrimaryStyle} onClick={openNewItemForm}>
@@ -804,49 +814,45 @@ export default function ItemsDashboard() {
               </div>
             ) : null}
           </div>
-        </div>
-      </div>
-
-      <div style={toolbarStyle}>
-        <span style={shell.toolLabel}>Item Master</span>
-        <div style={{ position: 'relative' }}>
-          <button
-            ref={customizeButtonRef}
-            type="button"
-            style={toolbarIconButtonStyle}
-            aria-label="Customize fields"
-            title="Customize fields"
-            onClick={() => setShowCustomize((prev) => !prev)}
-          >
-            <Settings size={14} />
-          </button>
-          {showCustomize ? (
-            <div ref={customizePanelRef} style={shell.popover}>
-              <div style={shell.popoverHeader}>Table Columns</div>
-              <div style={shell.popoverBody}>
-                <button
-                  type="button"
-                  style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
-                  onClick={() => {
-                    setVisibleColumns(defaultVisibleColumns);
-                    resetItemColumns();
-                  }}
-                >
-                  Reset Default Columns
-                </button>
-                {columns.map((column) => (
-                  <label key={column.key} style={shell.popoverItem}>
-                    <input
-                      type="checkbox"
-                      checked={visibleColumns.includes(column.key)}
-                      onChange={() => toggleColumn(column.key)}
-                    />
-                    {column.label}
-                  </label>
-                ))}
+          <div style={{ position: 'relative' }}>
+            <button
+              ref={customizeButtonRef}
+              type="button"
+              style={toolbarIconButtonStyle}
+              aria-label="Customize fields"
+              title="Customize fields"
+              onClick={() => setShowCustomize((prev) => !prev)}
+            >
+              <Settings size={14} />
+            </button>
+            {showCustomize ? (
+              <div ref={customizePanelRef} style={shell.popover}>
+                <div style={shell.popoverHeader}>Table Columns</div>
+                <div style={shell.popoverBody}>
+                  <button
+                    type="button"
+                    style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
+                    onClick={() => {
+                      setVisibleColumns(defaultVisibleColumns);
+                      resetItemColumns();
+                    }}
+                  >
+                    Reset Default Columns
+                  </button>
+                  {columns.map((column) => (
+                    <label key={column.key} style={shell.popoverItem}>
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns.includes(column.key)}
+                        onChange={() => toggleColumn(column.key)}
+                      />
+                      {column.label}
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -913,8 +919,9 @@ export default function ItemsDashboard() {
             ))}
           </tbody>
         </table>
-        <div style={shell.pagination}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+        <div style={paginationStyle}>
+          <div style={shell.paginationInfo}>{paginationText}</div>
+          <div style={paginationActionsStyle}>
             <button
               type="button"
               style={{ ...shell.pageButton, opacity: currentPage === 1 ? 0.45 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}

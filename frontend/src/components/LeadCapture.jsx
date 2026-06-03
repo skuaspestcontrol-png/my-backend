@@ -369,7 +369,7 @@ const s = {
   rowActionMenu: { position: 'fixed', width: '170px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 1200, overflow: 'hidden' },
   rowActionMenuBtn: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '6px 10px', fontSize: '11px', fontWeight: 600, lineHeight: 1.1, minHeight: '30px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   rowActionMenuBtnDisabled: { width: '100%', textAlign: 'left', border: 'none', background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed', padding: '6px 10px', fontSize: '11px', fontWeight: 600, lineHeight: 1.1, minHeight: '30px' },
-  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' },
+  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', backgroundClip: 'padding-box' },
   paginationInfo: { color: '#64748b', fontSize: '12px', fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
   paginationButton: { width: '34px', minWidth: '34px', minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: '#334155', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
@@ -2168,8 +2168,9 @@ export default function LeadCapture() {
       : s.filtersGrid;
   const registerHeadStyle = isMobile ? { ...s.registerHead, flexDirection: 'column', alignItems: 'stretch' } : s.registerHead;
   const registerActionsStyle = isMobile ? { ...s.registerActions, width: '100%', justifyContent: 'flex-start', gap: '8px', alignItems: 'center' } : s.registerActions;
-  const registerToolbarStyle = isMobile ? { ...s.registerToolbar, flexDirection: 'column', alignItems: 'stretch' } : s.registerToolbar;
   const toolbarLeftStyle = isMobile ? { ...s.toolbarLeft, flexWrap: 'wrap' } : s.toolbarLeft;
+  const leadFooterStyle = isMobile ? { ...s.pagination, flexDirection: 'column', alignItems: 'stretch' } : s.pagination;
+  const paginationActionsStyle = isMobile ? { ...s.paginationActions, justifyContent: 'flex-end' } : s.paginationActions;
   const tableStyle = s.table;
   const viewGridStyle = isMobile ? { ...s.viewGrid, gridTemplateColumns: '1fr' } : s.viewGrid;
   const isFollowupCompact = viewportWidth <= 980;
@@ -2707,16 +2708,14 @@ export default function LeadCapture() {
             </tbody>
           </table>
         </div>
-        <div style={registerToolbarStyle}>
+        <div style={leadFooterStyle}>
           <div style={toolbarLeftStyle}>
             <span style={s.toolLabel}>Lead Master</span>
             <span style={s.toolbarMeta}>
               {sortedLeads.length ? `${firstLeadRecord}-${lastLeadRecord} of ${sortedLeads.length} records` : '0 records'}
             </span>
           </div>
-        </div>
-        <div style={s.pagination}>
-          <div style={s.paginationActions}>
+          <div style={paginationActionsStyle}>
             <button
               type="button"
               style={{ ...s.paginationButton, ...(safeLeadPage <= 1 ? s.paginationButtonDisabled : {}) }}

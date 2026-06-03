@@ -350,7 +350,7 @@ const shell = {
   pager: { marginTop: '10px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   pagerText: { margin: 0, fontSize: '12px', color: '#475569', fontWeight: 700 },
   pagerActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  pagerBtn: { border: '1px solid #D1D5DB', background: '#fff', color: '#334155', borderRadius: '8px', width: '34px', minWidth: '34px', minHeight: '30px', padding: 0, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
+  pagerBtn: { border: '1px solid #D1D5DB', background: '#fff', color: '#334155', borderRadius: '8px', width: '34px', minWidth: '34px', minHeight: '32px', height: '32px', padding: 0, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   backBtn: {
     border: '1px solid rgba(148,163,184,0.4)',
     background: '#fff',

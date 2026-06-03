@@ -58,10 +58,10 @@ const shell = {
     letterSpacing: '0.06em'
   },
   td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#334155', fontSize: '13px', verticalAlign: 'top' },
-  pagination: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap', background: '#fff' },
+  pagination: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: '#fff' },
   paginationInfo: { color: '#64748b', fontSize: '12px', fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  paginationBtn: { width: '34px', minWidth: '34px', minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: 'var(--color-primary)', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
+  paginationBtn: { width: '34px', minWidth: '34px', minHeight: '32px', height: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: 'var(--color-primary)', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }
   , actionButton: {
     border: '1px solid #fecaca',
@@ -255,6 +255,7 @@ export default function PaymentReceivedDashboard() {
   }, [rows, safePage]);
   const firstRecord = rows.length ? ((safePage - 1) * PAYMENT_PAGE_SIZE) + 1 : 0;
   const lastRecord = Math.min(safePage * PAYMENT_PAGE_SIZE, rows.length);
+  const paginationText = rows.length ? `${firstRecord}-${lastRecord} of ${rows.length} records` : '0 records';
 
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
@@ -274,6 +275,8 @@ export default function PaymentReceivedDashboard() {
   const isTiny = viewportWidth < 390;
   const statsStyle = isMobile ? { ...shell.statsGrid, gridTemplateColumns: isTiny ? '1fr' : 'repeat(2, minmax(0, 1fr))' } : shell.statsGrid;
   const statStyle = isMobile ? { ...shell.stat, minHeight: '104px' } : shell.stat;
+  const paginationStyle = isMobile ? { ...shell.pagination, flexDirection: 'column', alignItems: 'stretch' } : shell.pagination;
+  const paginationActionsStyle = isMobile ? { ...shell.paginationActions, justifyContent: 'flex-end' } : shell.paginationActions;
   const {
     getColumnWidth,
     resetColumns,
@@ -360,8 +363,9 @@ export default function PaymentReceivedDashboard() {
             </tbody>
           </table>
         </div>
-        <div style={shell.pagination}>
-          <div style={shell.paginationActions}>
+        <div style={paginationStyle}>
+          <div style={shell.paginationInfo}>{paginationText}</div>
+          <div style={paginationActionsStyle}>
             <button
               type="button"
               style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }}
