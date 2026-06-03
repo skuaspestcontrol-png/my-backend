@@ -9,6 +9,7 @@ import {
   resolveGoogleMapsUrl
 } from '../utils/googleMaps';
 import { normalizeIndianMobileNumber } from '../utils/phone';
+import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 
 const normalizeApiBase = (value = '') => {
   const raw = String(value || '').trim();
@@ -280,6 +281,7 @@ export default function CustomerPremisesPanel({
       setEditingId('');
       setDraft(emptyPremise);
       await loadPremises();
+      triggerDashboardRefresh();
     } catch (error) {
       const message = getApiErrorMessage(error, 'Unable to save premise.');
       console.error('Failed to save premise', { message, status: error?.response?.status, data: error?.response?.data, customerId, editingId, draft });
@@ -299,6 +301,7 @@ export default function CustomerPremisesPanel({
     try {
       await axios.delete(`${API_BASE_URL}/api/customers/${customerId}/premises/${premise.premiseId}`);
       await loadPremises();
+      triggerDashboardRefresh();
     } catch (error) {
       const message = getApiErrorMessage(error, 'Unable to delete premise.');
       console.error('Failed to delete premise', { message, status: error?.response?.status, data: error?.response?.data, customerId, premise });
@@ -320,6 +323,7 @@ export default function CustomerPremisesPanel({
     try {
       await axios.post(`${API_BASE_URL}/api/customers/${customerId}/premises/${premise.premiseId}/set-default`);
       await loadPremises();
+      triggerDashboardRefresh();
     } catch (error) {
       const message = getApiErrorMessage(error, 'Unable to set default premise.');
       console.error('Failed to set default premise', { message, status: error?.response?.status, data: error?.response?.data, customerId, premise });

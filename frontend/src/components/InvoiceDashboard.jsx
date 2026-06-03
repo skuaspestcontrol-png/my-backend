@@ -12,7 +12,7 @@ import {
 import { normalizeIndianMobileNumber } from '../utils/phone';
 import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { triggerContractsRefresh } from '../pages/sales-performance/salesPerformanceApi';
-import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
+import { subscribeDashboardRefresh, triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import PdfPreviewModal from './PdfPreviewModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -1071,7 +1071,6 @@ export default function InvoiceDashboard() {
   useEffect(() => {
     const customerId = String(form.customerId || '').trim();
     if (!customerId) return;
-    if (Object.prototype.hasOwnProperty.call(customerPremises, customerId)) return;
 
     let alive = true;
     axios.get(`${API_BASE_URL}/api/customers/${customerId}/premises`)
@@ -1269,6 +1268,16 @@ export default function InvoiceDashboard() {
   useEffect(() => {
     loadInvoices();
     loadMasterData();
+  }, []);
+
+  useEffect(() => {
+    const refreshFromDashboard = () => {
+      setCustomerPremises({});
+      loadInvoices({ preserveSelection: true, preservePage: true });
+      loadMasterData();
+    };
+
+    return subscribeDashboardRefresh(refreshFromDashboard);
   }, []);
 
   useAutoRefresh(() => loadInvoices({ preserveSelection: true, preservePage: true }), { enabled: !showModal });
