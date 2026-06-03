@@ -2022,4 +2022,20 @@ textarea:focus {
   .crm-compact-table.lead-followups-table .lead-followups-customer-cell .crm-table-muted {
     font-size: 10px !important;
   }
+
+  .contract-customer-link-btn {
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    text-align: left !important;
+    white-space: normal !important;
+    line-height: 1.25 !important;
+    overflow: visible !important;
+    word-break: break-word !important;
+  }
 }

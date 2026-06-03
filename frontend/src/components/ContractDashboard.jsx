@@ -338,6 +338,7 @@ const formatDate = (value) => {
 };
 
 const formatINR = (num) => `₹${Number(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatWholeAmount = (num) => Number(num || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
 const deriveContractCode = (contractNo) => {
   const raw = String(contractNo || '').trim();
@@ -907,9 +908,9 @@ export default function ContractDashboard() {
     { key: 'duration', label: 'Duration' },
     { key: 'services', label: 'Services' },
     { key: 'status', label: 'Status' },
-    { key: 'total', label: 'Total (₹)' },
-    { key: 'paid', label: 'Paid (₹)' },
-    { key: 'due', label: 'Due (₹)' }
+    { key: 'total', label: 'Total' },
+    { key: 'paid', label: 'Paid' },
+    { key: 'due', label: 'Due' }
   ];
   const isMobile = viewportWidth <= 768;
   const getColumnWidth = (columnKey) => {
@@ -1096,9 +1097,9 @@ export default function ContractDashboard() {
             {visibleColumns.duration ? renderResizableHeader('duration', 'Duration') : null}
             {visibleColumns.services ? renderResizableHeader('services', 'Services', { textAlign: 'center', paddingLeft: '0', paddingRight: '0' }) : null}
             {visibleColumns.status ? renderResizableHeader('status', 'Status') : null}
-            {visibleColumns.total ? renderResizableHeader('total', 'Total (₹)') : null}
-            {visibleColumns.paid ? renderResizableHeader('paid', 'Paid (₹)') : null}
-            {visibleColumns.due ? renderResizableHeader('due', 'Due (₹)') : null}
+            {visibleColumns.total ? renderResizableHeader('total', 'Total') : null}
+            {visibleColumns.paid ? renderResizableHeader('paid', 'Paid') : null}
+            {visibleColumns.due ? renderResizableHeader('due', 'Due') : null}
             {renderResizableHeader('actions', 'Actions')}
           </tr>
         </thead>
@@ -1118,6 +1119,7 @@ export default function ContractDashboard() {
                     {row.status === 'Active' ? (
                       <button
                         type="button"
+                        className="contract-customer-link-btn"
                         onClick={(event) => {
                           event.stopPropagation();
                           openCustomerSummary(row);
@@ -1150,9 +1152,9 @@ export default function ContractDashboard() {
                 {visibleColumns.status ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <span style={{ ...shell.statusPill, ...statusTone }}>{row.status.toUpperCase()}</span>
                 </td> : null}
-                {visibleColumns.total ? <td style={{ ...shell.td, fontWeight: 800, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{formatINR(row.total)}</td> : null}
-                {visibleColumns.paid ? <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}), ...(row.paid > 0 ? shell.amountGreen : (selected ? shell.selectedText : {})) }}>{formatINR(row.paid)}</td> : null}
-                {visibleColumns.due ? <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}), ...(row.due > 0 ? shell.amountRed : (selected ? shell.selectedText : {})) }}>{formatINR(row.due)}</td> : null}
+                {visibleColumns.total ? <td style={{ ...shell.td, fontWeight: 800, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{formatWholeAmount(row.total)}</td> : null}
+                {visibleColumns.paid ? <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}), ...(row.paid > 0 ? shell.amountGreen : (selected ? shell.selectedText : {})) }}>{formatWholeAmount(row.paid)}</td> : null}
+                {visibleColumns.due ? <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}), ...(row.due > 0 ? shell.amountRed : (selected ? shell.selectedText : {})) }}>{formatWholeAmount(row.due)}</td> : null}
                 <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}) }}>
                   <div style={{ position: 'relative', display: 'inline-flex' }} data-contract-row-action="true">
                     <button
