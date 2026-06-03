@@ -866,6 +866,30 @@ export default function InvoiceDashboard() {
   const menuRef = useRef(null);
   const menuButtonRef = useRef(null);
   const invoiceResizeStateRef = useRef(null);
+  const routeModalRequest = Boolean(
+    location.state?.openInvoiceNumberPrefs
+      || location.state?.openNewInvoice
+      || location.state?.openInvoiceId
+      || String(location.state?.openInvoiceNumber || '').trim()
+      || routeInvoiceParams.get('openInvoiceNumberPrefs')
+      || routeInvoiceParams.get('openNewInvoice')
+      || routeInvoiceParams.get('openInvoiceId')
+      || String(routeInvoiceParams.get('openInvoiceNumber') || '').trim()
+  );
+  const routeFromContract = Boolean(location.state?.fromContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('fromContract') || '').toLowerCase());
+  const routeEditContract = Boolean(location.state?.editContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('editContract') || '').toLowerCase());
+  const routeOpenInvoiceNumberPrefs = Boolean(location.state?.openInvoiceNumberPrefs) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('openInvoiceNumberPrefs') || '').toLowerCase());
+  const routeOpenNewInvoice = Boolean(location.state?.openNewInvoice) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('openNewInvoice') || '').toLowerCase());
+  const routeOpenInvoiceId = String(location.state?.openInvoiceId || routeInvoiceParams.get('openInvoiceId') || '').trim();
+  const routeOpenInvoiceNumber = String(location.state?.openInvoiceNumber || routeInvoiceParams.get('openInvoiceNumber') || '').trim();
+  const routeHasQueryParams = Boolean(
+    routeInvoiceParams.get('openInvoiceNumberPrefs')
+      || routeInvoiceParams.get('openNewInvoice')
+      || routeInvoiceParams.get('openInvoiceId')
+      || routeInvoiceParams.get('openInvoiceNumber')
+      || routeInvoiceParams.get('fromContract')
+      || routeInvoiceParams.get('editContract')
+  );
 
   const visibleColumnDefs = useMemo(
     () => columns.filter((column) => visibleColumns.includes(column.key)),
@@ -2525,8 +2549,8 @@ export default function InvoiceDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
-  const mobileItemInlineGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' };
   const hideInvoiceShellWhileOpeningModal = routeModalRequest && !showModal && !showInvoiceNumberPrefs;
+  const mobileItemInlineGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' };
 
   return (
     <section
