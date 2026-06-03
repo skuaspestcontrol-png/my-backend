@@ -2038,4 +2038,21 @@ textarea:focus {
     overflow: visible !important;
     word-break: break-word !important;
   }
+
+  .contract-customer-cell {
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    height: auto !important;
+    min-height: 64px !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+
+  .contract-customer-cell .contract-customer-link-btn,
+  .contract-customer-cell .contract-customer-name {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    text-align: left !important;
+  }
 }

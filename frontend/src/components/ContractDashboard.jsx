@@ -913,6 +913,17 @@ export default function ContractDashboard() {
     { key: 'due', label: 'Due' }
   ];
   const isMobile = viewportWidth <= 768;
+  const customerNameTextStyle = {
+    width: '100%',
+    textAlign: 'left',
+    fontSize: '11px',
+    fontWeight: 700,
+    lineHeight: 1.25,
+    wordBreak: 'break-word',
+    whiteSpace: 'normal',
+    overflow: 'visible',
+    textOverflow: 'clip'
+  };
   const getColumnWidth = (columnKey) => {
     const desktopWidth = getResizableColumnWidth(columnKey) || defaultColumnWidths[columnKey] || 120;
     const width = isMobile
@@ -1114,7 +1125,7 @@ export default function ContractDashboard() {
                 {visibleColumns.contractNo ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
                 </td> : null}
-                {visibleColumns.customer ? <td style={{ ...shell.td, ...mobileStackCellStyle, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                {visibleColumns.customer ? <td className="contract-customer-cell" style={{ ...shell.td, ...mobileStackCellStyle, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', gap: '2px', width: '100%' }}>
                     {row.status === 'Active' ? (
                       <button
@@ -1129,7 +1140,7 @@ export default function ContractDashboard() {
                         {row.customer}
                       </button>
                     ) : (
-                      <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'visible', textOverflow: 'clip', whiteSpace: 'normal', lineHeight: 1.25, wordBreak: 'break-word', width: '100%', textAlign: 'left' }}>{row.customer}</div>
+                      <div className="contract-customer-name" style={customerNameTextStyle}>{row.customer}</div>
                     )}
                     {String(row.customer || '').trim().length <= 24 ? (
                       <div style={{ ...shell.subText, width: '100%', textAlign: 'left', alignSelf: 'flex-start' }}>{row.mobile || '-'}</div>
