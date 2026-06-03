@@ -3,7 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { ChevronDown, ChevronLeft, ChevronRight, FileText, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
 import {
   defaultInvoiceVisibleColumns,
   invoiceColumns as columns,
@@ -2370,8 +2370,20 @@ export default function InvoiceDashboard() {
   const miniPrefsGridStyle = isMobile ? { ...shell.miniPrefsGrid, gridTemplateColumns: '1fr', paddingLeft: 0 } : shell.miniPrefsGrid;
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const tinyGhostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
-  const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton } : shell.customizeButton;
-  const topActionIconStyle = isTiny ? { ...shell.customizeButton, width: '34px', height: '34px', minWidth: '34px', minHeight: '34px' } : shell.customizeButton;
+  const toolbarIconButtonStyle = {
+    ...shell.customizeButton,
+    width: '34px',
+    height: '34px',
+    minWidth: '34px',
+    minHeight: '34px'
+  };
+  const topActionIconStyle = {
+    ...shell.customizeButton,
+    width: '34px',
+    height: '34px',
+    minWidth: '34px',
+    minHeight: '34px'
+  };
   const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '60px', fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
   const dateInputStyle = {
     ...shell.input,
@@ -2428,7 +2440,6 @@ export default function InvoiceDashboard() {
       <div style={topbarStyle}>
         <div style={shell.titleWrap}>
           <h1 style={titleStyle}>All Invoices</h1>
-          <ChevronDown size={18} color="var(--color-primary)" />
         </div>
         <div style={topActionsStyle}>
           <button
@@ -2438,7 +2449,7 @@ export default function InvoiceDashboard() {
             aria-label="More options"
             onClick={() => setShowMoreMenu((prev) => !prev)}
           >
-            <MoreHorizontal size={14} />
+            <MoreHorizontal size={12} />
           </button>
           <div style={{ position: 'relative' }}>
             <button
@@ -2449,7 +2460,7 @@ export default function InvoiceDashboard() {
               title="Customize fields"
               onClick={() => setShowCustomize((prev) => !prev)}
             >
-              <Settings size={14} />
+              <Settings size={12} />
             </button>
             {showCustomize ? (
               <div ref={customizePanelRef} style={shell.popover}>
