@@ -943,7 +943,18 @@ export default function InvoiceDashboard() {
   };
 
   const customerOptions = useMemo(
-    () => customers.map((customer) => ({ id: customer._id, name: customer.displayName || customer.name || '' })),
+    () => customers
+      .map((customer) => ({ id: customer._id, name: customer.displayName || customer.name || '' }))
+      .sort((left, right) => {
+        const leftName = String(left.name || '').trim().toLowerCase();
+        const rightName = String(right.name || '').trim().toLowerCase();
+        if (!leftName && !rightName) return 0;
+        if (!leftName) return 1;
+        if (!rightName) return -1;
+        const nameCompare = leftName.localeCompare(rightName, undefined, { sensitivity: 'base' });
+        if (nameCompare !== 0) return nameCompare;
+        return String(left.name || '').localeCompare(String(right.name || ''), undefined, { sensitivity: 'variant' });
+      }),
     [customers]
   );
   const selectedCustomer = useMemo(
