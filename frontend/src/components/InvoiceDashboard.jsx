@@ -599,12 +599,17 @@ const sumPaymentSplits = (splits = []) =>
 
 const withholdingRates = [0, 1, 2, 5, 10];
 
-const buildAddressText = (customer, source) => {
-  if (!customer) return 'No customer selected';
+const buildAddressText = (customer, source, fallbackText = '') => {
+  const fallback = String(fallbackText || '').trim();
+  if (!customer) return fallback || 'No customer selected';
   if (String(source || '').startsWith('premise:')) {
     const premiseId = String(source).replace('premise:', '');
     const premise = (customer.premises || []).find((entry) => String(entry.premiseId || entry.premise_id || '') === premiseId);
-    return premise ? addressOptionText(premiseToAddressOption(premise)) : 'No address selected';
+    if (premise) {
+      const resolvedPremise = addressOptionText(premiseToAddressOption(premise));
+      if (resolvedPremise && resolvedPremise !== 'No address selected') return resolvedPremise;
+    }
+    return fallback || 'No address selected';
   }
   const prefix = source === 'shipping' ? 'shipping' : 'billing';
   const displayName = customer.displayName || customer.name || '';
@@ -612,7 +617,8 @@ const buildAddressText = (customer, source) => {
   const street2 = customer[`${prefix}Street2`] || '';
   const area = customer[`${prefix}Area`] || '';
   const statePin = [customer[`${prefix}State`], customer[`${prefix}Pincode`]].filter(Boolean).join(' ');
-  return [displayName, street1, street2, area, statePin].filter(Boolean).join('\n');
+  const resolved = [displayName, street1, street2, area, statePin].filter(Boolean).join('\n');
+  return resolved || fallback || 'No address selected';
 };
 
 const buildAddressOption = (id, label, customer, prefix) => {
@@ -2118,7 +2124,11 @@ export default function InvoiceDashboard() {
       shippingAddressSource: form.shippingAddressSource,
       customShippingAddresses: form.customShippingAddresses || [],
       placeOfSupply: normalizeGstState(selectedShippingAddress?.placeOfSupply || form.placeOfSupply),
-      billingAddressText: buildAddressText(selectedCustomer, form.billingAddressSource),
+      billingAddressText: buildAddressText(
+        selectedCustomer,
+        form.billingAddressSource,
+        selectedShippingAddress ? addressOptionText(selectedShippingAddress) : form.shippingAddressText || form.premiseAddress
+      ),
       shippingAddressText: addressOptionText(selectedShippingAddress),
       customerPremiseId: selectedShippingAddress?.premiseId || selectedBillingAddress?.premiseId || '',
       premiseLabel: selectedShippingAddress?.label || selectedBillingAddress?.label || '',
@@ -2704,7 +2714,7 @@ export default function InvoiceDashboard() {
                   <div style={shell.addressHead}>
                     <h4 style={shell.addressTitle}>Billing Address</h4>
                   </div>
-                  <p style={shell.addressText}>{getAddressDisplayText(selectedBillingAddress, form.billingAddressText)}</p>
+                  <p style={shell.addressText}>{getAddressDisplayText(selectedBillingAddress, form.billingAddressText || (selectedShippingAddress ? addressOptionText(selectedShippingAddress) : ''))}</p>
                 </div>
                 <div style={shell.addressCard}>
                   <div style={shell.addressHead}>
