@@ -793,9 +793,25 @@ const emptyAddressDraft = {
   placeOfSupply: ''
 };
 
+const normalizeRouteReference = (value) => String(value || '').trim().toLowerCase();
+
+const matchesInvoiceReference = (invoice, reference) => {
+  const target = normalizeRouteReference(reference);
+  if (!target) return false;
+  return [
+    invoice?._id,
+    invoice?.external_id,
+    invoice?.invoiceNumber,
+    invoice?.invoice_number,
+    invoice?.contractNumber,
+    invoice?.contractNo
+  ].some((candidate) => normalizeRouteReference(candidate) === target);
+};
+
 export default function InvoiceDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
+  const routeInvoiceParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -1377,6 +1393,8 @@ export default function InvoiceDashboard() {
     if (modalOpenedFromContract) {
       setModalOpenedFromContract(false);
       navigate('/sales/contracts', { replace: true });
+    } else if (routeHasQueryParams) {
+      navigate(location.pathname, { replace: true });
     }
   };
 
@@ -1606,46 +1624,63 @@ export default function InvoiceDashboard() {
   };
 
   useEffect(() => {
-    if (location.state?.openInvoiceNumberPrefs) {
+    if (showModal || showInvoiceNumberPrefs) return;
+
+    if (routeOpenInvoiceNumberPrefs) {
       if (!settingsHydrated || !invoicesHydrated) return;
-      setModalOpenedFromContract(Boolean(location.state?.fromContract));
+      setModalOpenedFromContract(routeFromContract);
       openNewForm();
       setTimeout(() => openInvoiceNumberPrefs(), 0);
-      navigate(location.pathname, { replace: true, state: null });
+      if (location.state?.openInvoiceNumberPrefs) navigate(location.pathname, { replace: true, state: null });
       return;
     }
 
-    if (location.state?.openNewInvoice) {
+    if (routeOpenNewInvoice) {
       if (!settingsHydrated || !invoicesHydrated) return;
-      setModalOpenedFromContract(Boolean(location.state?.fromContract ?? true));
+      setModalOpenedFromContract(routeFromContract || routeEditContract || routeOpenNewInvoice);
       openNewForm();
-      navigate(location.pathname, { replace: true, state: null });
+      if (location.state?.openNewInvoice) navigate(location.pathname, { replace: true, state: null });
       return;
     }
 
-    const targetId = location.state?.openInvoiceId;
-    const targetNumber = String(location.state?.openInvoiceNumber || '').trim();
+    const targetId = routeOpenInvoiceId;
+    const targetNumber = routeOpenInvoiceNumber;
     if (!targetId && !targetNumber) return;
     if (!Array.isArray(invoices) || invoices.length === 0) return;
 
     const matched = invoices.find((invoice) => {
-      if (targetId && invoice._id === targetId) return true;
-      if (targetNumber) {
-        return String(invoice.invoiceNumber || '').trim().toLowerCase() === targetNumber.toLowerCase();
-      }
+      if (targetId && matchesInvoiceReference(invoice, targetId)) return true;
+      if (targetNumber) return matchesInvoiceReference(invoice, targetNumber);
       return false;
     });
     if (!matched) return;
 
     setSelectedIds([matched._id]);
-    setModalOpenedFromContract(Boolean(location.state?.fromContract));
+    setModalOpenedFromContract(routeFromContract || routeEditContract);
     setEditingId(matched._id);
     setForm(mapInvoiceToForm(matched));
     setSaveError('');
     setShowModal(true);
     setShowMoreMenu(false);
-    navigate(location.pathname, { replace: true, state: null });
-  }, [invoices, invoicesHydrated, location.pathname, location.state, navigate, settingsHydrated]);
+    if (location.state?.openInvoiceId || location.state?.openInvoiceNumber) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [
+    invoices,
+    invoicesHydrated,
+    location.pathname,
+    location.state,
+    navigate,
+    routeEditContract,
+    routeFromContract,
+    routeOpenInvoiceId,
+    routeOpenInvoiceNumber,
+    routeOpenInvoiceNumberPrefs,
+    routeOpenNewInvoice,
+    settingsHydrated,
+    showInvoiceNumberPrefs,
+    showModal
+  ]);
 
   const setFormWithTotals = (updater) => {
     setForm((prev) => {
@@ -2217,6 +2252,8 @@ export default function InvoiceDashboard() {
       if (modalOpenedFromContract) {
         setModalOpenedFromContract(false);
         navigate('/sales/contracts', { replace: true });
+      } else if (routeHasQueryParams) {
+        navigate(location.pathname, { replace: true });
       }
     } catch (error) {
       console.error('Failed to save invoice', error);
@@ -2494,8 +2531,26 @@ export default function InvoiceDashboard() {
       || location.state?.openNewInvoice
       || location.state?.openInvoiceId
       || String(location.state?.openInvoiceNumber || '').trim()
+      || routeInvoiceParams.get('openInvoiceNumberPrefs')
+      || routeInvoiceParams.get('openNewInvoice')
+      || routeInvoiceParams.get('openInvoiceId')
+      || String(routeInvoiceParams.get('openInvoiceNumber') || '').trim()
   );
   const hideInvoiceShellWhileOpeningModal = routeModalRequest && !showModal && !showInvoiceNumberPrefs;
+  const routeFromContract = Boolean(location.state?.fromContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('fromContract') || '').toLowerCase());
+  const routeEditContract = Boolean(location.state?.editContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('editContract') || '').toLowerCase());
+  const routeOpenInvoiceNumberPrefs = Boolean(location.state?.openInvoiceNumberPrefs) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('openInvoiceNumberPrefs') || '').toLowerCase());
+  const routeOpenNewInvoice = Boolean(location.state?.openNewInvoice) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('openNewInvoice') || '').toLowerCase());
+  const routeOpenInvoiceId = String(location.state?.openInvoiceId || routeInvoiceParams.get('openInvoiceId') || '').trim();
+  const routeOpenInvoiceNumber = String(location.state?.openInvoiceNumber || routeInvoiceParams.get('openInvoiceNumber') || '').trim();
+  const routeHasQueryParams = Boolean(
+    routeInvoiceParams.get('openInvoiceNumberPrefs')
+      || routeInvoiceParams.get('openNewInvoice')
+      || routeInvoiceParams.get('openInvoiceId')
+      || routeInvoiceParams.get('openInvoiceNumber')
+      || routeInvoiceParams.get('fromContract')
+      || routeInvoiceParams.get('editContract')
+  );
 
   return (
     <section

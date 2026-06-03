@@ -447,6 +447,19 @@ export default function ContractDashboard() {
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' });
   const [page, setPage] = useState(1);
   const customizeButtonRef = useRef(null);
+
+  const navigateToInvoiceEditor = (params = {}) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      searchParams.set(key, String(value));
+    });
+    navigate({
+      pathname: '/sales/invoices',
+      search: `?${searchParams.toString()}`
+    });
+  };
+
   const {
     getColumnWidth: getResizableColumnWidth,
     startResize: startColumnResize,
@@ -1051,7 +1064,7 @@ export default function ContractDashboard() {
       return;
     }
     if (tabLabel === 'Invoices') {
-      navigate('/sales/invoices', { state: { openInvoiceNumber: selectedContract.contractNo } });
+      navigateToInvoiceEditor({ openInvoiceNumber: selectedContract.contractNo, fromContract: 1 });
       return;
     }
     if (tabLabel === 'Schedules') {
@@ -1210,7 +1223,7 @@ export default function ContractDashboard() {
             <button
               type="button"
               style={newButtonStyle}
-              onClick={() => navigate('/sales/invoices', { state: { openNewInvoice: true } })}
+              onClick={() => navigateToInvoiceEditor({ openNewInvoice: 1, fromContract: 1 })}
             >
               <Plus size={16} />
               New Contract
@@ -1401,7 +1414,7 @@ export default function ContractDashboard() {
             className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
-              navigate('/sales/invoices', { state: { openInvoiceNumber: actionMenu.row.contractNo, fromContract: true } });
+              navigateToInvoiceEditor({ openInvoiceNumber: actionMenu.row.contractNo, fromContract: 1 });
               setActionMenu(null);
             }}
           >
@@ -1412,7 +1425,7 @@ export default function ContractDashboard() {
             className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
-              navigate('/sales/invoices', { state: { openInvoiceNumber: actionMenu.row.contractNo, fromContract: true, editContract: true } });
+              navigateToInvoiceEditor({ openInvoiceNumber: actionMenu.row.contractNo, fromContract: 1, editContract: 1 });
               setActionMenu(null);
             }}
           >
