@@ -416,6 +416,17 @@ const formatDateInput = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeDateInput = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  const dmyMatch = raw.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
+  const parsed = parseDateOnly(raw);
+  return parsed ? formatDateInput(parsed) : '';
+};
+
 const addMonthsClamped = (date, months) => {
   const next = new Date(date);
   const originalDay = next.getDate();
@@ -1453,9 +1464,15 @@ export default function InvoiceDashboard() {
         : [],
       placeOfSupply: normalizeGstState(invoice.placeOfSupply || ''),
       invoiceNumber: invoice.invoiceNumber || '',
-      date: invoice.date || new Date().toISOString().slice(0, 10),
+      date: normalizeDateInput(
+        invoice.date
+          || invoice.invoiceDate
+          || invoice.createdAt
+          || invoice.invoice_date
+          || invoice.contractDate
+      ) || new Date().toISOString().slice(0, 10),
       terms: invoice.terms || 'Paid',
-      dueDate: invoice.dueDate || invoice.date || new Date().toISOString().slice(0, 10),
+      dueDate: normalizeDateInput(invoice.dueDate || invoice.date || invoice.invoiceDate || invoice.createdAt) || new Date().toISOString().slice(0, 10),
       salesperson: invoice.salesperson || '',
       servicePeriod: invoice.servicePeriod || '',
       servicePeriodStart: invoice.servicePeriodStart || '',
@@ -2472,9 +2489,22 @@ export default function InvoiceDashboard() {
     appearance: 'none'
   };
   const mobileItemInlineGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' };
+  const routeModalRequest = Boolean(
+    location.state?.openInvoiceNumberPrefs
+      || location.state?.openNewInvoice
+      || location.state?.openInvoiceId
+      || String(location.state?.openInvoiceNumber || '').trim()
+  );
+  const hideInvoiceShellWhileOpeningModal = routeModalRequest && !showModal && !showInvoiceNumberPrefs;
 
   return (
-    <section className="crm-page crm-section" style={shell.page}>
+    <section
+      className="crm-page crm-section"
+      style={{
+        ...shell.page,
+        visibility: hideInvoiceShellWhileOpeningModal ? 'hidden' : 'visible'
+      }}
+    >
       <div style={topbarStyle}>
         <div style={shell.titleWrap}>
           <h1 style={titleStyle}>All Invoices</h1>
