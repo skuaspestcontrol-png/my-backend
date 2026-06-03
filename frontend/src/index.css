@@ -2062,22 +2062,21 @@ textarea:focus {
     box-shadow: none !important;
     font-size: 11px !important;
     font-weight: 700 !important;
-    line-height: 1.25 !important;
+    line-height: 1.15 !important;
     text-align: left !important;
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   .contract-customer-cell .contract-customer-name {
-    word-break: break-word !important;
     margin-top: 0 !important;
   }
 
   .contract-customer-cell .contract-customer-mobile {
     display: block !important;
     width: 100% !important;
-    margin-top: 1px !important;
+    margin-top: 2px !important;
     color: #64748b !important;
     font-size: 9px !important;
     font-weight: 600 !important;

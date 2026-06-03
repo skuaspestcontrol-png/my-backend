@@ -1116,21 +1116,24 @@ export default function ContractDashboard() {
                 </td> : null}
                 {visibleColumns.customer ? <td className="contract-customer-cell" style={{ ...shell.td, ...mobileStackCellStyle, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', gap: '2px', width: '100%' }}>
-                    {row.status === 'Active' ? (
-                      <button
-                        type="button"
-                        className="contract-customer-link-btn"
-                        onClick={(event) => {
+                    <div
+                      className="contract-customer-name"
+                      role={row.status === 'Active' ? 'button' : undefined}
+                      tabIndex={row.status === 'Active' ? 0 : undefined}
+                      onClick={row.status === 'Active' ? (event) => {
+                        event.stopPropagation();
+                        openCustomerSummary(row);
+                      } : undefined}
+                      onKeyDown={row.status === 'Active' ? (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
                           event.stopPropagation();
                           openCustomerSummary(row);
-                        }}
-                        style={{ ...shell.customerLinkBtn, color: '#111827', textAlign: 'left', alignSelf: 'flex-start' }}
-                      >
-                        {row.customer}
-                      </button>
-                    ) : (
-                      <div className="contract-customer-name">{row.customer}</div>
-                    )}
+                        }
+                      } : undefined}
+                    >
+                      {row.customer}
+                    </div>
                     <div className="contract-customer-mobile">{row.mobile || '-'}</div>
                   </div>
                 </td> : null}
