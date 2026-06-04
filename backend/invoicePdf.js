@@ -217,10 +217,11 @@ const resolveCompany = (settings = {}, invoice = {}) => {
       ),
     logo,
     signature: parseLocalAsset(isNonGst ? settings.nonGstDigitalSignatureUrl : settings.gstDigitalSignatureUrl),
-    bankName: isNonGst ? '' : clean(settings.gstBankName),
-    bankAccount: isNonGst ? '' : clean(settings.gstBankAccountNumber),
-    bankIfsc: isNonGst ? '' : clean(settings.gstBankIfsc),
-    bankUpi: isNonGst ? '' : clean(settings.gstBankUpiId),
+    bankAccountName: isNonGst ? clean(settings.nonGstBankAccountName) : clean(settings.gstBankAccountName),
+    bankName: isNonGst ? clean(settings.nonGstBankName) : clean(settings.gstBankName),
+    bankAccount: isNonGst ? clean(settings.nonGstBankAccountNumber) : clean(settings.gstBankAccountNumber),
+    bankIfsc: isNonGst ? clean(settings.nonGstBankIfsc) : clean(settings.gstBankIfsc),
+    bankUpi: isNonGst ? clean(settings.nonGstBankUpiId) : clean(settings.gstBankUpiId),
     terms: isNonGst ? clean(settings.nonGstTermsAndConditions) : clean(settings.gstTermsAndConditions)
   };
 };
@@ -724,6 +725,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
     const bankLines = company.bankName
       ? [
+          `A/C Name: ${company.bankAccountName}`,
           `Bank Name: ${company.bankName}`,
           `A/C No: ${company.bankAccount}`,
           `IFSC: ${company.bankIfsc}`

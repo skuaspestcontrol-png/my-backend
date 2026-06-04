@@ -63,6 +63,21 @@ const cleanPaymentTerms = (value = '') => {
     .join('\n');
 };
 
+const resolveQuotationBankDetails = (companySettings = {}, preferGst = true) => {
+  const useGst = preferGst !== false;
+  const primary = useGst ? 'gst' : 'nonGst';
+  const fallback = useGst ? 'nonGst' : 'gst';
+  const pick = (field) => clean(companySettings[`${primary}${field}`] || companySettings[`${fallback}${field}`]);
+
+  return {
+    bankAccountName: pick('BankAccountName'),
+    bankName: pick('BankName'),
+    bankAccount: pick('BankAccountNumber'),
+    bankIfsc: pick('BankIfsc'),
+    bankUpi: pick('BankUpiId')
+  };
+};
+
 const ownTextOrDefault = (source = {}, key, fallback = '') => (
   Object.prototype.hasOwnProperty.call(source, key) && source[key] !== null
     ? clean(source[key])
@@ -644,6 +659,15 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     ? baseClosingText
     : `${baseClosingText}\nFor any clarification, please feel free to contact me.`;
   const paymentTermsText = ownTextOrDefault(quotation, 'payment_terms', commonParagraphs.payment_terms);
+  const showGstin = String(templateSettings.show_gstin ?? companySettings.show_gstin ?? '1') !== '0';
+  const bankDetails = resolveQuotationBankDetails(companySettings, showGstin);
+  const paymentDetailsRows = [
+    ['A/C Name', bankDetails.bankAccountName],
+    ['Bank Name', bankDetails.bankName],
+    ['A/C No', bankDetails.bankAccount],
+    ['IFSC', bankDetails.bankIfsc],
+    ['UPI ID', bankDetails.bankUpi]
+  ].filter(([, value]) => clean(value));
   const blocks = [
     ['Payment Terms', paymentTermsText ? cleanPaymentTerms(paymentTermsText) : ''],
     ['', closingText]
@@ -661,6 +685,20 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     doc.font(pdfFont.regular).fontSize(bodySize).fillColor('#111827').text(body, left, doc.y, { width: right - left, align: titleText === 'Payment Terms' ? 'left' : 'justify', lineGap: 1 });
     if (titleText === 'Payment Terms') doc.moveDown(0.45);
   });
+
+  if (paymentDetailsRows.length) {
+    ensureSpace(60);
+    doc.moveDown(sectionSpacing.beforeHeading);
+    doc.font(pdfFont.bold).fontSize(pdfTextSize.paymentHeading).fillColor(primaryColor).text('Payment Details', left, doc.y, { width: right - left, align: 'left' });
+    doc.moveDown(sectionSpacing.afterHeading);
+    drawLabeledDetailBlock(doc, paymentDetailsRows.map(([label, value]) => ({ label, value })), left, doc.y, right - left, {
+      fontSize: pdfTextSize.paymentBody,
+      lineGap: 1.2,
+      rowGap: 2,
+      labelWidth: 82
+    });
+    doc.moveDown(0.45);
+  }
 
   ensureSpace(90);
   doc.moveDown(2.8);

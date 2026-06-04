@@ -67,11 +67,12 @@ const stateOptions = [
   'Puducherry'
 ];
 
-const bankColumns = ['primary', 'type', 'bankName', 'accountNumber', 'ifsc', 'upiId', 'openingBalance', 'currentBalance', 'actions'];
+const bankColumns = ['primary', 'type', 'bankName', 'accountName', 'accountNumber', 'ifsc', 'upiId', 'openingBalance', 'currentBalance', 'actions'];
 const bankColumnWidths = {
   primary: 86,
   type: 100,
   bankName: 180,
+  accountName: 180,
   accountNumber: 170,
   ifsc: 140,
   upiId: 170,
@@ -83,6 +84,7 @@ const bankColumnBounds = {
   primary: { min: 72, max: 110 },
   type: { min: 80, max: 130 },
   bankName: { min: 140, max: 260 },
+  accountName: { min: 140, max: 260 },
   accountNumber: { min: 140, max: 240 },
   ifsc: { min: 120, max: 180 },
   upiId: { min: 140, max: 260 },
@@ -186,6 +188,7 @@ const defaultForm = {
   nonGstCompanyLogoUrl: '',
   nonGstDigitalSignatureUrl: '',
   gstBankName: '',
+  gstBankAccountName: '',
   gstBankAccountNumber: '',
   gstBankIfsc: '',
   gstBankBranch: '',
@@ -195,6 +198,7 @@ const defaultForm = {
   gstBankQrUrl: '',
   gstBankPrimary: true,
   nonGstBankName: '',
+  nonGstBankAccountName: '',
   nonGstBankAccountNumber: '',
   nonGstBankIfsc: '',
   nonGstBankBranch: '',
@@ -848,6 +852,7 @@ export default function Settings({ modalMode = false }) {
           nonGstCompanyLogoUrl: data.nonGstCompanyLogoUrl || '',
           nonGstDigitalSignatureUrl: data.nonGstDigitalSignatureUrl || '',
           gstBankName: data.gstBankName || '',
+          gstBankAccountName: data.gstBankAccountName || '',
           gstBankAccountNumber: data.gstBankAccountNumber || '',
           gstBankIfsc: data.gstBankIfsc || '',
           gstBankBranch: data.gstBankBranch || '',
@@ -857,6 +862,7 @@ export default function Settings({ modalMode = false }) {
           gstBankQrUrl: data.gstBankQrUrl || '',
           gstBankPrimary: data.gstBankPrimary !== false,
           nonGstBankName: data.nonGstBankName || '',
+          nonGstBankAccountName: data.nonGstBankAccountName || '',
           nonGstBankAccountNumber: data.nonGstBankAccountNumber || '',
           nonGstBankIfsc: data.nonGstBankIfsc || '',
           nonGstBankBranch: data.nonGstBankBranch || '',
@@ -1077,6 +1083,7 @@ export default function Settings({ modalMode = false }) {
     setForm((prev) => ({
       ...prev,
       gstBankName: '',
+      gstBankAccountName: '',
       gstBankAccountNumber: '',
       gstBankIfsc: '',
       gstBankBranch: '',
@@ -1086,6 +1093,7 @@ export default function Settings({ modalMode = false }) {
       gstBankQrUrl: '',
       gstBankPrimary: true,
       nonGstBankName: '',
+      nonGstBankAccountName: '',
       nonGstBankAccountNumber: '',
       nonGstBankIfsc: '',
       nonGstBankBranch: '',
@@ -1201,6 +1209,7 @@ export default function Settings({ modalMode = false }) {
       nonGstCompanyLogoUrl: String(form.nonGstCompanyLogoUrl || '').trim(),
       nonGstDigitalSignatureUrl: String(form.nonGstDigitalSignatureUrl || '').trim(),
       gstBankName: String(form.gstBankName || '').trim(),
+      gstBankAccountName: String(form.gstBankAccountName || '').trim(),
       gstBankAccountNumber: String(form.gstBankAccountNumber || '').trim(),
       gstBankIfsc: String(form.gstBankIfsc || '').trim().toUpperCase(),
       gstBankBranch: String(form.gstBankBranch || '').trim(),
@@ -1210,6 +1219,7 @@ export default function Settings({ modalMode = false }) {
       gstBankQrUrl: String(form.gstBankQrUrl || '').trim(),
       gstBankPrimary: Boolean(form.gstBankPrimary),
       nonGstBankName: String(form.nonGstBankName || '').trim(),
+      nonGstBankAccountName: String(form.nonGstBankAccountName || '').trim(),
       nonGstBankAccountNumber: String(form.nonGstBankAccountNumber || '').trim(),
       nonGstBankIfsc: String(form.nonGstBankIfsc || '').trim().toUpperCase(),
       nonGstBankBranch: String(form.nonGstBankBranch || '').trim(),
@@ -2502,6 +2512,7 @@ export default function Settings({ modalMode = false }) {
         type: 'GST',
         primary: Boolean(form.gstBankPrimary),
         bankName: form.gstBankName,
+        accountName: form.gstBankAccountName,
         accountNumber: form.gstBankAccountNumber,
         ifsc: form.gstBankIfsc,
         upiId: form.gstBankUpiId,
@@ -2514,6 +2525,7 @@ export default function Settings({ modalMode = false }) {
         type: 'Non-GST',
         primary: Boolean(form.nonGstBankPrimary),
         bankName: form.nonGstBankName,
+        accountName: form.nonGstBankAccountName,
         accountNumber: form.nonGstBankAccountNumber,
         ifsc: form.nonGstBankIfsc,
         upiId: form.nonGstBankUpiId,
@@ -2541,6 +2553,11 @@ export default function Settings({ modalMode = false }) {
         <div style={shell.twoCol}>
           <div style={shell.bankCard}>
             <h4 style={shell.bankCardTitle}>GST Company Bank Details</h4>
+            <div style={shell.field}>
+              <p style={shell.fieldLabel}>Account Name</p>
+              <input style={shell.input} value={form.gstBankAccountName} onChange={(event) => updateField('gstBankAccountName', event.target.value)} placeholder="e.g., Name on the account/passbook" />
+              <p style={shell.hint}>Name on the account or passbook.</p>
+            </div>
             <div style={shell.field}>
               <p style={shell.fieldLabel}>Bank Name *</p>
               <input style={shell.input} value={form.gstBankName} onChange={(event) => updateField('gstBankName', event.target.value)} placeholder="e.g., HDFC Bank" />
@@ -2587,6 +2604,11 @@ export default function Settings({ modalMode = false }) {
 
           <div style={shell.bankCard}>
             <h4 style={shell.bankCardTitle}>Non-GST Company Bank Details</h4>
+            <div style={shell.field}>
+              <p style={shell.fieldLabel}>Account Name</p>
+              <input style={shell.input} value={form.nonGstBankAccountName} onChange={(event) => updateField('nonGstBankAccountName', event.target.value)} placeholder="e.g., Name on the account/passbook" />
+              <p style={shell.hint}>Name on the account or passbook.</p>
+            </div>
             <div style={shell.field}>
               <p style={shell.fieldLabel}>Bank Name *</p>
               <input style={shell.input} value={form.nonGstBankName} onChange={(event) => updateField('nonGstBankName', event.target.value)} placeholder="e.g., ICICI Bank" />
@@ -2644,6 +2666,7 @@ export default function Settings({ modalMode = false }) {
                 <th style={bankHeadStyle('primary', 'center')}>Primary</th>
                 <th style={bankHeadStyle('type', 'center')}>Type</th>
                 <th style={bankHeadStyle('bankName')}>Bank Name</th>
+                <th style={bankHeadStyle('accountName')}>Account Name</th>
                 <th style={bankHeadStyle('accountNumber')}>Account Number</th>
                 <th style={bankHeadStyle('ifsc')}>IFSC</th>
                 <th style={bankHeadStyle('upiId')}>UPI ID</th>
@@ -2658,6 +2681,7 @@ export default function Settings({ modalMode = false }) {
                   <td style={bankCellStyle('primary', 'center')}><input type="radio" checked={row.primary} readOnly /></td>
                   <td style={bankCellStyle('type', 'center')}>{row.type}</td>
                   <td style={bankCellStyle('bankName')}>{row.bankName || '-'}</td>
+                  <td style={bankCellStyle('accountName')}>{row.accountName || '-'}</td>
                   <td style={bankCellStyle('accountNumber')}>{row.accountNumber ? maskAccountNumber(row.accountNumber) : '-'}</td>
                   <td style={bankCellStyle('ifsc')}>{row.ifsc || '-'}</td>
                   <td style={bankCellStyle('upiId')}>{row.upiId || '-'}</td>
@@ -2672,9 +2696,9 @@ export default function Settings({ modalMode = false }) {
                         style={{ ...shell.smallActionBtn, color: '#dc2626', borderColor: 'rgba(220,38,38,0.36)' }}
                         onClick={() => {
                           if (row.key === 'gst') {
-                            setForm((prev) => ({ ...prev, gstBankName: '', gstBankAccountNumber: '', gstBankIfsc: '', gstBankBranch: '', gstBankUpiId: '', gstBankOpeningBalance: '0', gstBankCurrentBalance: '0', gstBankQrUrl: '' }));
+                            setForm((prev) => ({ ...prev, gstBankName: '', gstBankAccountName: '', gstBankAccountNumber: '', gstBankIfsc: '', gstBankBranch: '', gstBankUpiId: '', gstBankOpeningBalance: '0', gstBankCurrentBalance: '0', gstBankQrUrl: '' }));
                           } else {
-                            setForm((prev) => ({ ...prev, nonGstBankName: '', nonGstBankAccountNumber: '', nonGstBankIfsc: '', nonGstBankBranch: '', nonGstBankUpiId: '', nonGstBankOpeningBalance: '0', nonGstBankCurrentBalance: '0', nonGstBankQrUrl: '' }));
+                            setForm((prev) => ({ ...prev, nonGstBankName: '', nonGstBankAccountName: '', nonGstBankAccountNumber: '', nonGstBankIfsc: '', nonGstBankBranch: '', nonGstBankUpiId: '', nonGstBankOpeningBalance: '0', nonGstBankCurrentBalance: '0', nonGstBankQrUrl: '' }));
                           }
                           setStatus(`${row.type} bank details cleared. Save changes to apply.`);
                         }}
