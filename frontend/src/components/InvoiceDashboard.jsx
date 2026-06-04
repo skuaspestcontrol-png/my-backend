@@ -397,7 +397,7 @@ const shell = {
   miniRadioRow: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 600, color: '#1f2937' },
   miniPrefsGrid: { display: 'grid', gridTemplateColumns: '200px minmax(0, 1fr)', gap: '12px', alignItems: 'end', paddingLeft: '30px' },
   miniFooter: { padding: '14px 18px', borderTop: '1px solid var(--color-border)', display: 'flex', gap: '10px' },
-  itemSection: { border: '1px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden', background: '#fff', minHeight: '132px' },
+  itemSection: { border: '1px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden', background: '#fff' },
   itemHead: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontWeight: 800, fontSize: '12px', color: '#334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   itemTableWrap: { width: '100%', overflowX: 'auto', overflowY: 'hidden' },
   itemTable: { width: '100%', minWidth: '860px', borderCollapse: 'collapse' },
@@ -1234,6 +1234,18 @@ export default function InvoiceDashboard() {
     () => normalizeServiceScheduleTime(form.serviceScheduleDefaultTime, '10:00'),
     [form.serviceScheduleDefaultTime]
   );
+  const serviceScheduleSourceLine = useMemo(
+    () => {
+      if (!Array.isArray(form.items)) return null;
+      return form.items.find((line) => (
+        String(line?.contractStartDate || '').trim()
+        || String(line?.contractEndDate || '').trim()
+        || String(line?.serviceFrequency || '').trim()
+        || String(line?.serviceWeekday || '').trim()
+      )) || form.items[0] || null;
+    },
+    [form.items]
+  );
 
   const computeTotals = (lines, invoiceType = 'GST') => {
     const nonGst = normalizeInvoiceType(invoiceType) === 'NON GST';
@@ -1456,14 +1468,6 @@ export default function InvoiceDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!showModal || editingId || !settingsHydrated) return;
-    if (String(form.termsAndConditions || '').trim()) return;
-    const nextTerms = getDefaultTermsForInvoiceType(form.invoiceType);
-    if (!nextTerms) return;
-    setFormWithTotals((prev) => ({ ...prev, termsAndConditions: nextTerms }));
-  }, [editingId, form.invoiceType, form.termsAndConditions, settingsHydrated, showModal]);
-
-  useEffect(() => {
     const onDocClick = (event) => {
       const target = event.target;
 
@@ -1502,6 +1506,25 @@ export default function InvoiceDashboard() {
       document.removeEventListener('keydown', onEsc);
     };
   }, [showCustomize, showMoreMenu]);
+
+  useEffect(() => {
+    if (serviceScheduleRows !== null) return;
+    if (!serviceScheduleSourceLine) return;
+    setServiceScheduleDraft(buildServiceScheduleDraftFromInvoice({
+      ...form,
+      items: [serviceScheduleSourceLine],
+      serviceScheduleDefaultTime: form.serviceScheduleDefaultTime || '10:00'
+    }, serviceScheduleTime));
+  }, [
+    form.serviceScheduleDefaultTime,
+    serviceScheduleRows,
+    serviceScheduleSourceLine,
+    serviceScheduleSourceLine?.contractEndDate,
+    serviceScheduleSourceLine?.contractStartDate,
+    serviceScheduleSourceLine?.serviceFrequency,
+    serviceScheduleSourceLine?.serviceWeekday,
+    serviceScheduleTime
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(invoices.length / INVOICE_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -1619,8 +1642,8 @@ export default function InvoiceDashboard() {
       invoiceType,
       date: invoiceDate,
       items: [createEmptyLine({ contractStartDate: invoiceDate, contractStartDateSource: 'invoice-date' })],
-      customerNotes: String(companySettings.customerNotesDefault || '').trim(),
-      termsAndConditions: getDefaultTermsForInvoiceType(invoiceType),
+      customerNotes: '',
+      termsAndConditions: '',
       status: 'DRAFT'
     });
     setForm(nextForm);
@@ -3177,9 +3200,6 @@ export default function InvoiceDashboard() {
               </div>
 
               <div style={shell.itemSection}>
-                <div style={shell.itemHead}>
-                  <span>Item Table</span>
-                </div>
                 <div style={itemTableWrapStyle}>
                   <table style={itemTableStyle}>
                     <thead>
@@ -3487,15 +3507,6 @@ export default function InvoiceDashboard() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={shell.label}>Customer Notes</label>
-                  <textarea
-                    style={{ ...shell.textArea, borderRadius: '6px', minHeight: '64px' }}
-                    value={form.customerNotes}
-                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, customerNotes: event.target.value }))}
-                  />
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>Will be displayed on the invoice</span>
-                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label style={shell.label}>Terms & Conditions</label>
                   <textarea
