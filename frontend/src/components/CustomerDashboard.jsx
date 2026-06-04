@@ -39,6 +39,49 @@ const normalizeApiBase = (value = '') => {
 };
 
 const API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL);
+const CUSTOMER_DASHBOARD_CACHE_KEY = 'skuasmaster-customer-dashboard-cache-v1';
+
+const readCustomerDashboardCache = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(CUSTOMER_DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      customers: Array.isArray(parsed.customers) ? parsed.customers : [],
+      invoices: Array.isArray(parsed.invoices) ? parsed.invoices : [],
+      payments: Array.isArray(parsed.payments) ? parsed.payments : [],
+      duplicateSummary: parsed.duplicateSummary || null,
+      duplicateRows: Array.isArray(parsed.duplicateRows) ? parsed.duplicateRows : [],
+      possibleDuplicateIds: Array.isArray(parsed.possibleDuplicateIds) ? parsed.possibleDuplicateIds : [],
+      visibleColumns: Array.isArray(parsed.visibleColumns) ? parsed.visibleColumns : null,
+      updatedAt: Number(parsed.updatedAt || 0) || 0
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeCustomerDashboardCache = (snapshot = {}) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = readCustomerDashboardCache() || {};
+    window.sessionStorage.setItem(CUSTOMER_DASHBOARD_CACHE_KEY, JSON.stringify({
+      customers: Array.isArray(snapshot.customers) ? snapshot.customers : (Array.isArray(current.customers) ? current.customers : []),
+      invoices: Array.isArray(snapshot.invoices) ? snapshot.invoices : (Array.isArray(current.invoices) ? current.invoices : []),
+      payments: Array.isArray(snapshot.payments) ? snapshot.payments : (Array.isArray(current.payments) ? current.payments : []),
+      duplicateSummary: snapshot.duplicateSummary || current.duplicateSummary || null,
+      duplicateRows: Array.isArray(snapshot.duplicateRows) ? snapshot.duplicateRows : (Array.isArray(current.duplicateRows) ? current.duplicateRows : []),
+      possibleDuplicateIds: Array.isArray(snapshot.possibleDuplicateIds) ? snapshot.possibleDuplicateIds : (Array.isArray(current.possibleDuplicateIds) ? current.possibleDuplicateIds : []),
+      visibleColumns: Array.isArray(snapshot.visibleColumns) ? snapshot.visibleColumns : (Array.isArray(current.visibleColumns) ? current.visibleColumns : null),
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore storage failures in restricted browsers.
+  }
+};
+
 const getApiErrorMessage = (error, fallback) => (
   error?.response?.data?.error
   || error?.response?.data?.message
@@ -607,10 +650,11 @@ const sanitizeCustomerRows = (rows) => (Array.isArray(rows) ? rows.filter(isCust
 export default function CustomerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const cachedCustomerState = useMemo(() => readCustomerDashboardCache(), []);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [customers, setCustomers] = useState([]);
-  const [invoices, setInvoices] = useState([]);
-  const [payments, setPayments] = useState([]);
+  const [customers, setCustomers] = useState(() => cachedCustomerState?.customers || []);
+  const [invoices, setInvoices] = useState(() => cachedCustomerState?.invoices || []);
+  const [payments, setPayments] = useState(() => cachedCustomerState?.payments || []);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [moreMenuPosition, setMoreMenuPosition] = useState(null);
@@ -618,9 +662,9 @@ export default function CustomerDashboard() {
   const [showCustomize, setShowCustomize] = useState(false);
   const [showImportWizard, setShowImportWizard] = useState(false);
   const [showDuplicateReport, setShowDuplicateReport] = useState(false);
-  const [duplicateSummary, setDuplicateSummary] = useState(null);
-  const [duplicateRows, setDuplicateRows] = useState([]);
-  const [possibleDuplicateIds, setPossibleDuplicateIds] = useState([]);
+  const [duplicateSummary, setDuplicateSummary] = useState(() => cachedCustomerState?.duplicateSummary || null);
+  const [duplicateRows, setDuplicateRows] = useState(() => cachedCustomerState?.duplicateRows || []);
+  const [possibleDuplicateIds, setPossibleDuplicateIds] = useState(() => cachedCustomerState?.possibleDuplicateIds || []);
   const [showPossibleDuplicatesOnly, setShowPossibleDuplicatesOnly] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -641,11 +685,17 @@ export default function CustomerDashboard() {
   const [customerSearchInput, setCustomerSearchInput] = useState('');
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [visibleColumns, setVisibleColumns] = useState(() => {
+    if (Array.isArray(cachedCustomerState?.visibleColumns) && cachedCustomerState.visibleColumns.length > 0) {
+      return cachedCustomerState.visibleColumns;
+    }
     const saved = localStorage.getItem('customers_visible_columns');
     return saved ? JSON.parse(saved) : defaultVisibleColumns;
   });
   const [nameSortDirection, setNameSortDirection] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
+  const customersLoadRef = useRef(false);
+  const transactionsLoadRef = useRef(false);
+  const duplicateLoadRef = useRef(false);
 
   const customizePanelRef = useRef(null);
   const customizeButtonRef = useRef(null);
@@ -716,28 +766,47 @@ export default function CustomerDashboard() {
   };
 
   const loadCustomers = async (options = {}) => {
+    if (customersLoadRef.current) return;
+    customersLoadRef.current = true;
     try {
       const res = await axios.get(`${API_BASE_URL}/api/customers`);
-      setCustomers(sanitizeCustomerRows(res.data));
+      const nextCustomers = sanitizeCustomerRows(res.data);
+      setCustomers(nextCustomers);
       if (!options.preserveSelection) setSelectedIds([]);
+      writeCustomerDashboardCache({ customers: nextCustomers, visibleColumns });
     } catch (error) {
       console.error('Failed to load customers', error);
       setCustomers([]);
       if (!options.preserveSelection) setSelectedIds([]);
+    } finally {
+      customersLoadRef.current = false;
     }
   };
 
   const loadDuplicateReport = async () => {
+    if (duplicateLoadRef.current) return;
+    duplicateLoadRef.current = true;
     try {
       const res = await axios.get(`${API_BASE_URL}/api/customers/duplicates/report`);
-      setDuplicateSummary(res.data?.summary || null);
-      setDuplicateRows(Array.isArray(res.data?.rows) ? res.data.rows : []);
-      setPossibleDuplicateIds(Array.isArray(res.data?.possibleDuplicateCustomerIds) ? res.data.possibleDuplicateCustomerIds : []);
+      const nextSummary = res.data?.summary || null;
+      const nextRows = Array.isArray(res.data?.rows) ? res.data.rows : [];
+      const nextIds = Array.isArray(res.data?.possibleDuplicateCustomerIds) ? res.data.possibleDuplicateCustomerIds : [];
+      setDuplicateSummary(nextSummary);
+      setDuplicateRows(nextRows);
+      setPossibleDuplicateIds(nextIds);
+      writeCustomerDashboardCache({
+        duplicateSummary: nextSummary,
+        duplicateRows: nextRows,
+        possibleDuplicateIds: nextIds,
+        visibleColumns
+      });
     } catch (error) {
       console.error('Failed to load duplicate report', error);
       setDuplicateSummary(null);
       setDuplicateRows([]);
       setPossibleDuplicateIds([]);
+    } finally {
+      duplicateLoadRef.current = false;
     }
   };
 
@@ -797,19 +866,30 @@ export default function CustomerDashboard() {
   };
 
   const loadTransactions = async () => {
+    if (transactionsLoadRef.current) return true;
+    transactionsLoadRef.current = true;
     try {
       const [invoicesRes, paymentsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/invoices`),
         axios.get(`${API_BASE_URL}/api/payments`)
       ]);
-      setInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
-      setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
+      const nextInvoices = Array.isArray(invoicesRes.data) ? invoicesRes.data : [];
+      const nextPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+      setInvoices(nextInvoices);
+      setPayments(nextPayments);
+      writeCustomerDashboardCache({
+        invoices: nextInvoices,
+        payments: nextPayments,
+        visibleColumns
+      });
       return true;
     } catch (error) {
       console.error('Failed to load customer transactions', error);
       setInvoices([]);
       setPayments([]);
       return false;
+    } finally {
+      transactionsLoadRef.current = false;
     }
   };
 
@@ -863,6 +943,7 @@ export default function CustomerDashboard() {
 
   useEffect(() => {
     localStorage.setItem('customers_visible_columns', JSON.stringify(visibleColumns));
+    writeCustomerDashboardCache({ visibleColumns });
   }, [visibleColumns]);
 
   useEffect(() => {

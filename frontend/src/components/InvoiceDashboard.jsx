@@ -17,6 +17,50 @@ import PdfPreviewModal from './PdfPreviewModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const INVOICE_PAGE_SIZE = 20;
+const INVOICE_DASHBOARD_CACHE_KEY = 'skuasmaster-invoice-dashboard-cache-v1';
+
+const readInvoiceDashboardCache = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(INVOICE_DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      invoices: Array.isArray(parsed.invoices) ? parsed.invoices : [],
+      payments: Array.isArray(parsed.payments) ? parsed.payments : [],
+      customers: Array.isArray(parsed.customers) ? parsed.customers : [],
+      itemsCatalog: Array.isArray(parsed.itemsCatalog) ? parsed.itemsCatalog : [],
+      employees: Array.isArray(parsed.employees) ? parsed.employees : [],
+      companySettings: parsed.companySettings || {},
+      invoiceNumberPrefs: parsed.invoiceNumberPrefs || defaultInvoiceNumberPrefs,
+      visibleColumns: Array.isArray(parsed.visibleColumns) ? parsed.visibleColumns : null,
+      updatedAt: Number(parsed.updatedAt || 0) || 0
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeInvoiceDashboardCache = (snapshot = {}) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = readInvoiceDashboardCache() || {};
+    window.sessionStorage.setItem(INVOICE_DASHBOARD_CACHE_KEY, JSON.stringify({
+      invoices: Array.isArray(snapshot.invoices) ? snapshot.invoices : (Array.isArray(current.invoices) ? current.invoices : []),
+      payments: Array.isArray(snapshot.payments) ? snapshot.payments : (Array.isArray(current.payments) ? current.payments : []),
+      customers: Array.isArray(snapshot.customers) ? snapshot.customers : (Array.isArray(current.customers) ? current.customers : []),
+      itemsCatalog: Array.isArray(snapshot.itemsCatalog) ? snapshot.itemsCatalog : (Array.isArray(current.itemsCatalog) ? current.itemsCatalog : []),
+      employees: Array.isArray(snapshot.employees) ? snapshot.employees : (Array.isArray(current.employees) ? current.employees : []),
+      companySettings: snapshot.companySettings || current.companySettings || {},
+      invoiceNumberPrefs: snapshot.invoiceNumberPrefs || current.invoiceNumberPrefs || defaultInvoiceNumberPrefs,
+      visibleColumns: Array.isArray(snapshot.visibleColumns) ? snapshot.visibleColumns : (Array.isArray(current.visibleColumns) ? current.visibleColumns : null),
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore storage failures so the page still works in restricted environments.
+  }
+};
 
 const termsOptions = ['Paid', 'Due on Receipt', 'Net 15', 'Net 30', 'Net 45', 'Net 60'];
 const termsToDays = { Paid: 0, 'Due on Receipt': 0, 'Net 15': 15, 'Net 30': 30, 'Net 45': 45, 'Net 60': 60 };
@@ -862,13 +906,14 @@ export default function InvoiceDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   const routeInvoiceParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const cachedInvoiceState = useMemo(() => readInvoiceDashboardCache(), []);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [invoices, setInvoices] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [customers, setCustomers] = useState([]);
+  const [invoices, setInvoices] = useState(() => cachedInvoiceState?.invoices || []);
+  const [payments, setPayments] = useState(() => cachedInvoiceState?.payments || []);
+  const [customers, setCustomers] = useState(() => cachedInvoiceState?.customers || []);
   const [customerPremises, setCustomerPremises] = useState({});
-  const [itemsCatalog, setItemsCatalog] = useState([]);
-  const [employees, setEmployees] = useState([]);
+  const [itemsCatalog, setItemsCatalog] = useState(() => cachedInvoiceState?.itemsCatalog || []);
+  const [employees, setEmployees] = useState(() => cachedInvoiceState?.employees || []);
   const [selectedIds, setSelectedIds] = useState([]);
   const [page, setPage] = useState(1);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -887,8 +932,8 @@ export default function InvoiceDashboard() {
   const [invoiceNumberPrefs, setInvoiceNumberPrefs] = useState(defaultInvoiceNumberPrefs);
   const [invoiceNumberPrefsDraft, setInvoiceNumberPrefsDraft] = useState(defaultInvoiceNumberPrefs);
   const [companySettings, setCompanySettings] = useState({});
-  const [settingsHydrated, setSettingsHydrated] = useState(false);
-  const [invoicesHydrated, setInvoicesHydrated] = useState(false);
+  const [settingsHydrated, setSettingsHydrated] = useState(Boolean(cachedInvoiceState));
+  const [invoicesHydrated, setInvoicesHydrated] = useState(Boolean(cachedInvoiceState));
   const [form, setForm] = useState(emptyForm);
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' });
   const [invoiceColumnWidths, setInvoiceColumnWidths] = useState(() => {
@@ -902,6 +947,9 @@ export default function InvoiceDashboard() {
   });
   const [resizingInvoiceColumn, setResizingInvoiceColumn] = useState('');
   const [visibleColumns, setVisibleColumns] = useState(() => {
+    if (Array.isArray(cachedInvoiceState?.visibleColumns) && cachedInvoiceState.visibleColumns.length > 0) {
+      return normalizeInvoiceVisibleColumns(cachedInvoiceState.visibleColumns);
+    }
     const saved = localStorage.getItem('invoice_visible_columns');
     if (!saved) return [...defaultInvoiceVisibleColumns];
     try {
@@ -916,6 +964,8 @@ export default function InvoiceDashboard() {
   const menuRef = useRef(null);
   const menuButtonRef = useRef(null);
   const invoiceResizeStateRef = useRef(null);
+  const invoicesLoadRef = useRef(false);
+  const masterDataLoadRef = useRef(false);
   const routeModalRequest = Boolean(
     location.state?.openInvoiceNumberPrefs
       || location.state?.openNewInvoice
@@ -1121,6 +1171,7 @@ export default function InvoiceDashboard() {
   useEffect(() => {
     const customerId = String(form.customerId || '').trim();
     if (!customerId) return;
+    if (customerPremises[customerId]) return;
 
     let alive = true;
     axios.get(`${API_BASE_URL}/api/customers/${customerId}/premises`)
@@ -1257,23 +1308,34 @@ export default function InvoiceDashboard() {
   };
 
   const loadInvoices = async (options = {}) => {
+    if (invoicesLoadRef.current) return;
+    invoicesLoadRef.current = true;
     try {
       const [invoicesRes, paymentsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/invoices`),
         axios.get(`${API_BASE_URL}/api/payments`)
       ]);
-      setInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
-      setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
+      const nextInvoices = Array.isArray(invoicesRes.data) ? invoicesRes.data : [];
+      const nextPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+      setInvoices(nextInvoices);
+      setPayments(nextPayments);
       if (!options.preserveSelection) setSelectedIds([]);
       if (!options.preservePage) setPage(1);
+      writeInvoiceDashboardCache({
+        invoices: nextInvoices,
+        payments: nextPayments
+      });
     } catch (error) {
       console.error('Failed to load invoices', error);
     } finally {
       setInvoicesHydrated(true);
+      invoicesLoadRef.current = false;
     }
   };
 
   const loadMasterData = async () => {
+    if (masterDataLoadRef.current) return;
+    masterDataLoadRef.current = true;
     try {
       const [customersRes, itemsRes, employeesRes, settingsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/customers`),
@@ -1281,9 +1343,9 @@ export default function InvoiceDashboard() {
         axios.get(`${API_BASE_URL}/api/employees`),
         axios.get(`${API_BASE_URL}/api/settings`)
       ]);
-      setCustomers(Array.isArray(customersRes.data) ? customersRes.data : []);
-      setItemsCatalog(Array.isArray(itemsRes.data) ? itemsRes.data : []);
-      setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
+      const nextCustomers = Array.isArray(customersRes.data) ? customersRes.data : [];
+      const nextItemsCatalog = Array.isArray(itemsRes.data) ? itemsRes.data : [];
+      const nextEmployees = Array.isArray(employeesRes.data) ? employeesRes.data : [];
       const settingsData = settingsRes.data || {};
       const prefs = sanitizeInvoiceNumberPrefs({
         mode: settingsData.invoiceNumberMode || 'auto',
@@ -1291,10 +1353,14 @@ export default function InvoiceDashboard() {
         nextNumber: settingsData.invoiceNextNumber ?? 66,
         padding: settingsData.invoiceNumberPadding ?? 4
       });
+      setCustomers(nextCustomers);
+      setItemsCatalog(nextItemsCatalog);
+      setEmployees(nextEmployees);
       setInvoiceNumberPrefs(prefs);
       setInvoiceNumberPrefsDraft(prefs);
-      setVisibleColumns(normalizeInvoiceVisibleColumns(settingsData.invoiceVisibleColumns));
-      setCompanySettings({
+      const nextVisibleColumns = normalizeInvoiceVisibleColumns(settingsData.invoiceVisibleColumns);
+      setVisibleColumns(nextVisibleColumns);
+      const nextCompanySettings = {
         companyName: settingsData.companyName || settingsData.gstCompanyName || '',
         companyAddress: settingsData.companyAddress || settingsData.gstBillingAddress || '',
         companyCity: settingsData.companyCity || settingsData.gstCity || '',
@@ -1308,10 +1374,21 @@ export default function InvoiceDashboard() {
         gstTermsAndConditions: settingsData.gstTermsAndConditions || settingsData.termsAndConditionsDefault || '',
         nonGstTermsAndConditions: settingsData.nonGstTermsAndConditions || '',
         customerNotesDefault: settingsData.customerNotesDefault || ''
-      });
+      };
+      setCompanySettings(nextCompanySettings);
       setSettingsHydrated(true);
+      writeInvoiceDashboardCache({
+        customers: nextCustomers,
+        itemsCatalog: nextItemsCatalog,
+        employees: nextEmployees,
+        companySettings: nextCompanySettings,
+        invoiceNumberPrefs: prefs,
+        visibleColumns: nextVisibleColumns
+      });
     } catch (error) {
       console.error('Failed to load master data for invoice form', error);
+    } finally {
+      masterDataLoadRef.current = false;
     }
   };
 

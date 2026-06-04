@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Clock3, MapPinned, Users } from 'lucide-react';
@@ -6,6 +6,7 @@ import useColumnResize from './table/useColumnResize';
 import { buildPortalAuthHeaders } from '../utils/portalAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const ATTENDANCE_CACHE_KEY = 'attendance_dashboard_cache_v1';
 const leaveTypes = [
   { value: '', label: 'None' },
   { value: 'Casual Leave (CL)', label: 'Casual Leave (CL)' },
@@ -345,14 +346,53 @@ const isSundayDate = (value) => {
   return parsed.getDay() === 0;
 };
 
+const readAttendanceCache = () => {
+  try {
+    const raw = window.sessionStorage.getItem(ATTENDANCE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      date: String(parsed.date || ''),
+      month: String(parsed.month || ''),
+      employees: Array.isArray(parsed.employees) ? parsed.employees : [],
+      records: parsed.records && typeof parsed.records === 'object' ? parsed.records : {},
+      monthRecords: Array.isArray(parsed.monthRecords) ? parsed.monthRecords : [],
+      statusMessage: String(parsed.statusMessage || '')
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeAttendanceCache = (next = {}) => {
+  try {
+    window.sessionStorage.setItem(ATTENDANCE_CACHE_KEY, JSON.stringify({
+      date: String(next.date || ''),
+      month: String(next.month || ''),
+      employees: Array.isArray(next.employees) ? next.employees : [],
+      records: next.records && typeof next.records === 'object' ? next.records : {},
+      monthRecords: Array.isArray(next.monthRecords) ? next.monthRecords : [],
+      statusMessage: String(next.statusMessage || ''),
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore sessionStorage failures.
+  }
+};
+
 export default function Attendance() {
-  const [date, setDate] = useState(() => todayDate());
-  const [month, setMonth] = useState(() => monthFromDate(todayDate()));
-  const [employees, setEmployees] = useState([]);
-  const [records, setRecords] = useState({});
-  const [monthRecords, setMonthRecords] = useState([]);
+  const initialDate = todayDate();
+  const initialMonth = monthFromDate(initialDate);
+  const [cachedAttendanceData] = useState(() => readAttendanceCache());
+  const [date, setDate] = useState(() => cachedAttendanceData?.date || initialDate);
+  const [month, setMonth] = useState(() => cachedAttendanceData?.month || initialMonth);
+  const [employees, setEmployees] = useState(() => cachedAttendanceData?.employees || []);
+  const [records, setRecords] = useState(() => cachedAttendanceData?.records || {});
+  const [monthRecords, setMonthRecords] = useState(() => cachedAttendanceData?.monthRecords || []);
   const [statusMessage, setStatusMessage] = useState('');
   const [auditModal, setAuditModal] = useState({ open: false, loading: false, employeeName: '', items: [] });
+  const loadRequestRef = useRef(null);
   const {
     getColumnWidth,
     startResize,
@@ -366,91 +406,116 @@ export default function Attendance() {
     enabled: true
   });
 
-  const loadData = async (attendanceDate) => {
-    const sunday = isSundayDate(attendanceDate);
-    const employeesRes = await axios.get(`${API_BASE}/api/employees`);
-    const employeeList = Array.isArray(employeesRes.data) ? employeesRes.data : [];
+  const loadData = async ({ silent = false } = {}) => {
+    if (loadRequestRef.current) return loadRequestRef.current;
 
-    let attendanceRows = [];
-    try {
-      const attendanceRes = await axios.get(`${API_BASE}/api/attendance`, { params: { date: attendanceDate } });
-      attendanceRows = Array.isArray(attendanceRes.data) ? attendanceRes.data : [];
-    } catch (error) {
-      console.error('Attendance endpoint failed, showing employee list only', error);
-      setStatusMessage('Attendance history is unavailable right now. You can still mark employee attendance.');
-    }
+    const request = (async () => {
+      const attendanceDate = date;
+      const attendanceMonth = monthFromDate(attendanceDate) || month;
+      const cachedSelection = readAttendanceCache();
+      const shouldSilenceLoad = silent || Boolean(cachedSelection && cachedSelection.date === attendanceDate && cachedSelection.month === attendanceMonth);
+      const sunday = isSundayDate(attendanceDate);
+      try {
+        const [employeesRes, attendanceRes, monthAttendanceRes] = await Promise.allSettled([
+          axios.get(`${API_BASE}/api/employees`),
+          axios.get(`${API_BASE}/api/attendance`, { params: { date: attendanceDate } }),
+          attendanceMonth ? axios.get(`${API_BASE}/api/attendance`) : Promise.resolve({ data: [] })
+        ]);
 
-    const recordMap = {};
-    attendanceRows.forEach((entry) => {
-      const key = String(entry.employeeId || '').trim();
-      if (!key) return;
-      const normalizedStatus = entry.status === 'half-day' ? 'leave' : (entry.status || 'absent');
-      const normalizedCheckIn = normalizedStatus === 'present' ? (entry.checkIn || '09:00') : '';
-      const normalizedCheckOut = normalizedStatus === 'present' ? (entry.checkOut || '17:00') : '';
-      recordMap[key] = {
-        _id: entry._id,
-        employeeId: key,
-        date: attendanceDate,
-        status: normalizedStatus,
-        checkIn: normalizedCheckIn,
-        checkOut: normalizedCheckOut,
-        leaveType: normalizeLeaveType(entry.leaveType),
-        leaveReason: entry.leaveReason || '',
-        notes: entry.notes || '',
-        source: entry.source || '',
-        punchInLatitude: entry.punchInLatitude ?? null,
-        punchInLongitude: entry.punchInLongitude ?? null,
-        punchInMapUrl: entry.punchInMapUrl || '',
-        punchOutLatitude: entry.punchOutLatitude ?? null,
-        punchOutLongitude: entry.punchOutLongitude ?? null,
-        punchOutMapUrl: entry.punchOutMapUrl || ''
-      };
+        const employeeList = employeesRes.status === 'fulfilled' && Array.isArray(employeesRes.value.data)
+          ? employeesRes.value.data
+          : [];
+        const attendanceRows = attendanceRes.status === 'fulfilled' && Array.isArray(attendanceRes.value.data)
+          ? attendanceRes.value.data
+          : [];
+        const monthRows = monthAttendanceRes.status === 'fulfilled' && Array.isArray(monthAttendanceRes.value.data)
+          ? monthAttendanceRes.value.data
+          : [];
+        const filteredMonthRows = monthRows.filter((entry) => String(entry.date || '').startsWith(attendanceMonth ? `${attendanceMonth}-` : ''));
+
+        const recordMap = {};
+        attendanceRows.forEach((entry) => {
+          const key = String(entry.employeeId || '').trim();
+          if (!key) return;
+          const normalizedStatus = entry.status === 'half-day' ? 'leave' : (entry.status || 'absent');
+          const normalizedCheckIn = normalizedStatus === 'present' ? (entry.checkIn || '09:00') : '';
+          const normalizedCheckOut = normalizedStatus === 'present' ? (entry.checkOut || '17:00') : '';
+          recordMap[key] = {
+            _id: entry._id,
+            employeeId: key,
+            date: attendanceDate,
+            status: normalizedStatus,
+            checkIn: normalizedCheckIn,
+            checkOut: normalizedCheckOut,
+            leaveType: normalizeLeaveType(entry.leaveType),
+            leaveReason: entry.leaveReason || '',
+            notes: entry.notes || '',
+            source: entry.source || '',
+            punchInLatitude: entry.punchInLatitude ?? null,
+            punchInLongitude: entry.punchInLongitude ?? null,
+            punchInMapUrl: entry.punchInMapUrl || '',
+            punchOutLatitude: entry.punchOutLatitude ?? null,
+            punchOutLongitude: entry.punchOutLongitude ?? null,
+            punchOutMapUrl: entry.punchOutMapUrl || ''
+          };
+        });
+
+        employeeList.forEach((entry) => {
+          const key = String(entry._id || '').trim();
+          if (!key || recordMap[key]) return;
+          recordMap[key] = {
+            employeeId: key,
+            date: attendanceDate,
+            status: sunday ? 'weekly-off' : 'absent',
+            checkIn: '',
+            checkOut: '',
+            leaveType: '',
+            leaveReason: '',
+            notes: '',
+            source: ''
+          };
+        });
+
+        const nextStatusMessage = attendanceRes.status === 'rejected'
+          ? 'Attendance history is unavailable right now. You can still mark employee attendance.'
+          : monthAttendanceRes.status === 'rejected'
+            ? 'Month-wise summary is temporarily unavailable.'
+            : '';
+
+        setEmployees(employeeList);
+        setRecords(recordMap);
+        setMonthRecords(filteredMonthRows);
+        if (!shouldSilenceLoad || nextStatusMessage) {
+          setStatusMessage(nextStatusMessage);
+        }
+        writeAttendanceCache({
+          date: attendanceDate,
+          month: attendanceMonth,
+          employees: employeeList,
+          records: recordMap,
+          monthRecords: filteredMonthRows,
+          statusMessage: nextStatusMessage
+        });
+      } catch (error) {
+        console.error('Failed to load attendance', error);
+        if (!shouldSilenceLoad) {
+          setStatusMessage('Failed to load attendance data.');
+        }
+      }
+    })();
+
+    loadRequestRef.current = request;
+    request.finally(() => {
+      if (loadRequestRef.current === request) {
+        loadRequestRef.current = null;
+      }
     });
-
-    employeeList.forEach((entry) => {
-      const key = String(entry._id || '').trim();
-      if (!key || recordMap[key]) return;
-      recordMap[key] = {
-        employeeId: key,
-        date: attendanceDate,
-        status: sunday ? 'weekly-off' : 'absent',
-        checkIn: '',
-        checkOut: '',
-        leaveType: '',
-        leaveReason: '',
-        notes: '',
-        source: ''
-      };
-    });
-
-    setEmployees(employeeList);
-    setRecords(recordMap);
-  };
-
-  const loadMonthData = async (attendanceMonth) => {
-    if (!attendanceMonth) return;
-    try {
-      const attendanceRes = await axios.get(`${API_BASE}/api/attendance`);
-      const rows = Array.isArray(attendanceRes.data) ? attendanceRes.data : [];
-      const prefix = `${attendanceMonth}-`;
-      setMonthRecords(rows.filter((entry) => String(entry.date || '').startsWith(prefix)));
-    } catch (error) {
-      console.error('Failed to load monthly attendance data', error);
-      setMonthRecords([]);
-      setStatusMessage('Month-wise summary is temporarily unavailable.');
-    }
+    return request;
   };
 
   useEffect(() => {
-    loadData(date).catch((error) => {
-      console.error('Failed to load attendance', error);
-      setStatusMessage('Failed to load attendance data.');
-    });
-  }, [date]);
-
-  useEffect(() => {
-    loadMonthData(month);
-  }, [month]);
+    loadData();
+  }, [cachedAttendanceData, date, month]);
 
   const employeeRows = useMemo(
     () => employees.map((employee) => {
@@ -658,7 +723,7 @@ export default function Attendance() {
         }
       }));
       if (monthFromDate(date) === month) {
-        loadMonthData(month);
+        loadData({ silent: true });
       }
     } catch (error) {
       console.error('Failed to save attendance', error);

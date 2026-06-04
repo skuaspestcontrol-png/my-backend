@@ -20,6 +20,37 @@ import { useLocation, useParams } from 'react-router-dom';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const TECHNICIAN_PORTAL_CACHE_KEY = 'skuasmaster-technician-portal-cache-v1';
+
+const readTechnicianPortalCache = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(TECHNICIAN_PORTAL_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      jobs: Array.isArray(parsed.jobs) ? parsed.jobs : [],
+      technicians: Array.isArray(parsed.technicians) ? parsed.technicians : [],
+      updatedAt: Number(parsed.updatedAt || 0) || 0
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeTechnicianPortalCache = (snapshot = {}) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(TECHNICIAN_PORTAL_CACHE_KEY, JSON.stringify({
+      jobs: Array.isArray(snapshot.jobs) ? snapshot.jobs : [],
+      technicians: Array.isArray(snapshot.technicians) ? snapshot.technicians : [],
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore storage failures so the portal still works in private mode or low-quota browsers.
+  }
+};
 
 const parseDateOnly = (value) => {
   const date = new Date(value);
@@ -601,8 +632,9 @@ export default function TechnicianPortal() {
   const location = useLocation();
   const params = useParams();
   const lastJobsSyncTickRef = useRef('');
-  const [jobs, setJobs] = useState([]);
-  const [technicians, setTechnicians] = useState([]);
+  const cachedPortalState = useMemo(() => readTechnicianPortalCache(), []);
+  const [jobs, setJobs] = useState(() => Array.isArray(cachedPortalState?.jobs) ? cachedPortalState.jobs : []);
+  const [technicians, setTechnicians] = useState(() => Array.isArray(cachedPortalState?.technicians) ? cachedPortalState.technicians : []);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [customerPage, setCustomerPage] = useState(1);
   const [expandedCustomerKey, setExpandedCustomerKey] = useState('');
@@ -640,27 +672,43 @@ export default function TechnicianPortal() {
     portalDataLoadingRef.current = true;
     try {
       const stamp = Date.now();
-      const [jobsRes, schedulesRes, invoicesRes, customersRes, employeesRes] = await Promise.allSettled([
+      const supportRequestsPromise = Promise.allSettled([
+        axios.get(`${API_BASE_URL}/api/invoices`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
+        axios.get(`${API_BASE_URL}/api/customers`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 })
+      ]);
+      const criticalRequests = await Promise.allSettled([
         axios.get(`${API_BASE_URL}/api/jobs`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
         axios.get(`${API_BASE_URL}/api/service-schedules`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
-        axios.get(`${API_BASE_URL}/api/invoices`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
-        axios.get(`${API_BASE_URL}/api/customers`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
         axios.get(`${API_BASE_URL}/api/employees`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 })
       ]);
+      const supportRequests = await supportRequestsPromise;
+
+      const jobsRes = criticalRequests[0];
+      const schedulesRes = criticalRequests[1];
+      const employeesRes = criticalRequests[2];
+      const invoicesRes = supportRequests[0];
+      const customersRes = supportRequests[1];
 
       const jobsData = jobsRes.status === 'fulfilled' ? jobsRes.value?.data : [];
       const schedulesData = schedulesRes.status === 'fulfilled' ? schedulesRes.value?.data : [];
+      const employeesData = employeesRes.status === 'fulfilled' ? employeesRes.value?.data : [];
       const invoicesData = invoicesRes.status === 'fulfilled' ? invoicesRes.value?.data : [];
       const customersData = customersRes.status === 'fulfilled' ? customersRes.value?.data : [];
-      const employeesData = employeesRes.status === 'fulfilled' ? employeesRes.value?.data : [];
       const cleanedCount = Number(jobsRes.status === 'fulfilled' ? jobsRes.value?.headers?.['x-orphan-jobs-cleaned'] : 0) || 0;
 
       const nextSchedules = Array.isArray(schedulesData) ? schedulesData : [];
-      setJobs(buildVisibleJobs(jobsData, nextSchedules, invoicesData, customersData));
-      setTechnicians(
-        (Array.isArray(employeesData) ? employeesData : [])
-          .filter((employee) => String(employee?.role || '').trim().toLowerCase() === 'technician')
-      );
+      const criticalVisibleJobs = buildVisibleJobs(jobsData, nextSchedules);
+      const nextTechnicians = (Array.isArray(employeesData) ? employeesData : [])
+        .filter((employee) => String(employee?.role || '').trim().toLowerCase() === 'technician');
+
+      setJobs(criticalVisibleJobs);
+      setTechnicians(nextTechnicians);
+      writeTechnicianPortalCache({ jobs: criticalVisibleJobs, technicians: nextTechnicians });
+
+      const refinedVisibleJobs = buildVisibleJobs(jobsData, nextSchedules, invoicesData, customersData);
+      setJobs(refinedVisibleJobs);
+      writeTechnicianPortalCache({ jobs: refinedVisibleJobs, technicians: nextTechnicians });
+
       if (cleanedCount > 0) {
         const message = `Cleaned ${cleanedCount} orphaned assigned job${cleanedCount === 1 ? '' : 's'}.`;
         setActionStatus(message);

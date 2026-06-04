@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Plus, Trash2, X } from 'lucide-react';
@@ -7,6 +7,7 @@ import { useColumnResize } from './table/useColumnResize';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const VENDOR_BILLS_CACHE_KEY = 'vendor_bills_dashboard_cache_v1';
 
 const taxOptions = [0, 5, 12, 18];
 
@@ -134,26 +135,57 @@ const formatDateDisplay = (value) => {
   return `${day}/${month}/${year}`;
 };
 
+const readVendorBillsCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(VENDOR_BILLS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergeVendorBillsCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readVendorBillsCache() || {};
+    window.sessionStorage.setItem(VENDOR_BILLS_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // Best effort only.
+  }
+};
+
 export default function VendorBillsDashboard() {
-  const [vendors, setVendors] = useState([]);
-  const [bills, setBills] = useState([]);
+  const [cachedDashboard] = useState(() => readVendorBillsCache());
+  const [vendors, setVendors] = useState(() => Array.isArray(cachedDashboard?.vendors) ? cachedDashboard.vendors : []);
+  const [bills, setBills] = useState(() => Array.isArray(cachedDashboard?.bills) ? cachedDashboard.bills : []);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const loadRequestRef = useRef(0);
 
   const isMobile = viewportWidth <= 900;
 
   const loadData = async () => {
+    const requestId = loadRequestRef.current + 1;
+    loadRequestRef.current = requestId;
     try {
       const [vendorsRes, billsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/vendors`),
         axios.get(`${API_BASE_URL}/api/vendor-bills`)
       ]);
+      if (loadRequestRef.current !== requestId) return;
       setVendors(Array.isArray(vendorsRes.data) ? vendorsRes.data : []);
       setBills(Array.isArray(billsRes.data) ? billsRes.data : []);
+      mergeVendorBillsCache({
+        vendors: Array.isArray(vendorsRes.data) ? vendorsRes.data : [],
+        bills: Array.isArray(billsRes.data) ? billsRes.data : []
+      });
     } catch (error) {
       console.error('Failed to load vendor bills data', error);
     }

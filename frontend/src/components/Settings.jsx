@@ -26,6 +26,7 @@ import { useColumnResize } from './table/useColumnResize';
 import { buildPortalAuthHeaders } from '../utils/portalAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const SETTINGS_CACHE_KEY = 'settings_page_cache_v1';
 
 const stateOptions = [
   'Andhra Pradesh',
@@ -264,6 +265,33 @@ const defaultForm = {
   dashboardImageUrl: '',
   brandingAppearance: 'light',
   brandingAccentColor: '#EF4444'
+};
+
+const readSettingsCache = () => {
+  try {
+    const raw = window.sessionStorage.getItem(SETTINGS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      form: parsed.form || null,
+      quotationPrefix: parsed.quotationPrefix || {}
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeSettingsCache = (form, quotationPrefix = {}) => {
+  try {
+    window.sessionStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({
+      form: form || null,
+      quotationPrefix: quotationPrefix || {},
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore sessionStorage failures.
+  }
 };
 
 const shell = {
@@ -685,8 +713,9 @@ const getSectionCompletion = (form, securityForm) => {
 
 export default function Settings({ modalMode = false }) {
   const flatSections = useMemo(() => sectionGroups.flatMap((group) => group.items), []);
-  const [form, setForm] = useState(defaultForm);
-  const [initialForm, setInitialForm] = useState(defaultForm);
+  const [cachedSettings] = useState(() => readSettingsCache());
+  const [form, setForm] = useState(() => cachedSettings?.form || defaultForm);
+  const [initialForm, setInitialForm] = useState(() => cachedSettings?.form || defaultForm);
   const [status, setStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [activeSection, setActiveSection] = useState(flatSections[0].key);
@@ -750,6 +779,10 @@ export default function Settings({ modalMode = false }) {
 
     const loadSettings = async () => {
       try {
+        if (cachedSettings?.form) {
+          setForm(cachedSettings.form);
+          setInitialForm(cachedSettings.form);
+        }
         const [res, quotationPrefixRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/api/settings`),
           axios.get(`${API_BASE_URL}/api/settings/quotation-prefixes`).catch(() => ({ data: {} }))
@@ -895,8 +928,9 @@ export default function Settings({ modalMode = false }) {
 
         setForm(next);
         setInitialForm(next);
+        writeSettingsCache(next, quotationPrefix);
         setSecurityForm(defaultSecurityForm);
-        setStatus('Settings Saved');
+        setStatus('Settings ready');
         applyBrandingTheme(next);
         saveBrandingSettings(next);
       } catch (error) {
@@ -909,7 +943,7 @@ export default function Settings({ modalMode = false }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [cachedSettings]);
 
   const statusTone = useMemo(() => {
     const raw = String(status || '').toLowerCase();
@@ -1294,6 +1328,7 @@ export default function Settings({ modalMode = false }) {
       };
       setForm(saved);
       setInitialForm(saved);
+      writeSettingsCache(saved, quotationPrefixRes.data || {});
       setSecurityForm(defaultSecurityForm);
       localStorage.setItem('invoice_visible_columns', JSON.stringify(saved.invoiceVisibleColumns));
       localStorage.setItem('invoice_sync_tick', String(Date.now()));

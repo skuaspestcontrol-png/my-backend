@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Edit, Eye, EyeOff, Plus, Trash2, UploadCloud, UserCheck, X } from 'lucide-react';
@@ -8,6 +8,7 @@ import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/ph
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const EMPLOYEE_MASTER_CACHE_KEY = 'employee_master_cache_v1';
 
 const roles = ['Sales', 'Sales Person', 'Technician', 'Operations'];
 const genderOptions = ['Male', 'Female'];
@@ -288,9 +289,37 @@ const normalizeEmployee = (employee = {}) => {
   };
 };
 
+const readEmployeeMasterCache = () => {
+  try {
+    const raw = window.sessionStorage.getItem(EMPLOYEE_MASTER_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      employees: Array.isArray(parsed.employees) ? parsed.employees : [],
+      settings: parsed.settings || { employeeCodePrefix: 'EMP-', employeeCodeNextNumber: 1001, employeeCodePadding: 4 }
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeEmployeeMasterCache = (employees = [], settings = {}) => {
+  try {
+    window.sessionStorage.setItem(EMPLOYEE_MASTER_CACHE_KEY, JSON.stringify({
+      employees: Array.isArray(employees) ? employees : [],
+      settings: settings || {},
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore sessionStorage issues.
+  }
+};
+
 export default function EmployeeMaster() {
-  const [employees, setEmployees] = useState([]);
-  const [settings, setSettings] = useState({ employeeCodePrefix: 'EMP-', employeeCodeNextNumber: 1001, employeeCodePadding: 4 });
+  const [cachedEmployeeData] = useState(() => readEmployeeMasterCache());
+  const [employees, setEmployees] = useState(() => cachedEmployeeData?.employees || []);
+  const [settings, setSettings] = useState(() => cachedEmployeeData?.settings || { employeeCodePrefix: 'EMP-', employeeCodeNextNumber: 1001, employeeCodePadding: 4 });
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState('');
   const [form, setForm] = useState(defaultForm);
@@ -300,6 +329,7 @@ export default function EmployeeMaster() {
   const [showPortalPassword, setShowPortalPassword] = useState(false);
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const loadRequestRef = useRef(null);
   const {
     getColumnWidth,
     startResize,
@@ -341,23 +371,45 @@ export default function EmployeeMaster() {
     textAlign: align
   });
 
-  const loadData = async () => {
-    const [employeeRes, settingsRes] = await Promise.all([
-      axios.get(`${API_BASE}/api/employees`),
-      axios.get(`${API_BASE}/api/settings`)
-    ]);
-    setEmployees(Array.isArray(employeeRes.data) ? employeeRes.data : []);
-    setSettings(settingsRes.data || {});
+  const loadData = async ({ silent = false } = {}) => {
+    if (loadRequestRef.current) return loadRequestRef.current;
+
+    const request = (async () => {
+      try {
+        const [employeeRes, settingsRes] = await Promise.all([
+          axios.get(`${API_BASE}/api/employees`),
+          axios.get(`${API_BASE}/api/settings`)
+        ]);
+        const nextEmployees = Array.isArray(employeeRes.data) ? employeeRes.data : [];
+        const nextSettings = settingsRes.data || {};
+        setEmployees(nextEmployees);
+        setSettings(nextSettings);
+        writeEmployeeMasterCache(nextEmployees, nextSettings);
+      } catch (error) {
+        if (!silent) {
+          throw error;
+        }
+        console.error('Failed to load employee data', error);
+      }
+    })();
+
+    loadRequestRef.current = request;
+    request.finally(() => {
+      if (loadRequestRef.current === request) {
+        loadRequestRef.current = null;
+      }
+    });
+    return request;
   };
 
   useEffect(() => {
-    loadData().catch((error) => {
+    loadData({ silent: Boolean(cachedEmployeeData) }).catch((error) => {
       console.error('Failed to load employee data', error);
       setStatus('Failed to load employee records.');
     });
-  }, []);
+  }, [cachedEmployeeData]);
 
-  useAutoRefresh(() => loadData(), { enabled: !showModal });
+  useAutoRefresh(() => loadData({ silent: true }), { enabled: !showModal });
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);

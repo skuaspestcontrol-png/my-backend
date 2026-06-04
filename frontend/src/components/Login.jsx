@@ -6,6 +6,29 @@ import { Eye, EyeOff } from 'lucide-react';
 import { setPortalUser } from '../utils/portalAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const LOGIN_SETTINGS_CACHE_KEY = 'login_public_settings_cache_v1';
+
+const readLoginSettingsCache = () => {
+  try {
+    const raw = window.sessionStorage.getItem(LOGIN_SETTINGS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeLoginSettingsCache = (settings) => {
+  try {
+    window.sessionStorage.setItem(LOGIN_SETTINGS_CACHE_KEY, JSON.stringify({
+      settings: settings || {},
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore sessionStorage issues.
+  }
+};
 
 export default function Login() {
   const masterResetEmail = 'skuaspestcontrol@gmail.com';
@@ -24,31 +47,49 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
   const navigate = useNavigate();
+  const [cachedLoginSettings] = useState(() => readLoginSettingsCache());
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const settingsRes = await axios.get(`${API_BASE_URL}/api/public/settings`);
         const cached = loadBrandingSettings() || {};
+        const cachedPublic = cachedLoginSettings?.settings || {};
+        const settingsRes = await axios.get(`${API_BASE_URL}/api/public/settings`);
         const nextSettings = {
           ...cached,
+          ...cachedPublic,
           ...settingsRes.data,
-          ...pickBrandingSettings({ ...cached, ...settingsRes.data }),
-          dashboardImageUrl: String(settingsRes.data?.dashboardImageUrl || cached.dashboardImageUrl || '').trim(),
-          companyName: String(settingsRes.data?.companyName || cached.companyName || '').trim(),
-          brandingAppearance: String(settingsRes.data?.brandingAppearance || cached.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
-          brandingAccentColor: String(settingsRes.data?.brandingAccentColor || cached.brandingAccentColor || '#EF4444').trim() || '#EF4444'
+          ...pickBrandingSettings({ ...cached, ...cachedPublic, ...settingsRes.data }),
+          dashboardImageUrl: String(settingsRes.data?.dashboardImageUrl || cachedPublic.dashboardImageUrl || cached.dashboardImageUrl || '').trim(),
+          companyName: String(settingsRes.data?.companyName || cachedPublic.companyName || cached.companyName || '').trim(),
+          brandingAppearance: String(settingsRes.data?.brandingAppearance || cachedPublic.brandingAppearance || cached.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
+          brandingAccentColor: String(settingsRes.data?.brandingAccentColor || cachedPublic.brandingAccentColor || cached.brandingAccentColor || '#EF4444').trim() || '#EF4444'
         };
         setSettings(nextSettings);
         setLogoBroken(false);
         applyBrandingTheme(nextSettings || {});
         saveBrandingSettings(nextSettings || {});
+        writeLoginSettingsCache(nextSettings);
       } catch (error) {
         console.error('Could not load settings', error);
       }
     };
+    if (cachedLoginSettings?.settings) {
+      const cached = loadBrandingSettings() || {};
+      const nextSettings = {
+        ...cached,
+        ...cachedLoginSettings.settings,
+        dashboardImageUrl: String(cachedLoginSettings.settings?.dashboardImageUrl || cached.dashboardImageUrl || '').trim(),
+        companyName: String(cachedLoginSettings.settings?.companyName || cached.companyName || '').trim(),
+        brandingAppearance: String(cachedLoginSettings.settings?.brandingAppearance || cached.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
+        brandingAccentColor: String(cachedLoginSettings.settings?.brandingAccentColor || cached.brandingAccentColor || '#EF4444').trim() || '#EF4444'
+      };
+      setSettings(nextSettings);
+      applyBrandingTheme(nextSettings || {});
+      setLogoBroken(false);
+    }
     fetchSettings();
-  }, []);
+  }, [cachedLoginSettings]);
 
   useEffect(() => {
     const syncBranding = () => {

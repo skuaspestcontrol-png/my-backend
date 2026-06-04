@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Trash2, X, Pencil } from 'lucide-react';
@@ -8,6 +8,7 @@ import useColumnResize from './table/useColumnResize';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const VENDOR_DASHBOARD_CACHE_KEY = 'vendor_dashboard_cache_v1';
 const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
 
 const emptyForm = {
@@ -89,36 +90,72 @@ const toTenDigitNumber = normalizeIndianMobileNumber;
 const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
 const isValidPincode = (value) => !value || /^\d{6}$/.test(value);
 
+const readVendorDashboardCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(VENDOR_DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergeVendorDashboardCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readVendorDashboardCache() || {};
+    window.sessionStorage.setItem(VENDOR_DASHBOARD_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // Best effort only.
+  }
+};
+
 export default function VendorDashboard() {
-  const [vendors, setVendors] = useState([]);
+  const [cachedDashboard] = useState(() => readVendorDashboardCache());
+  const [vendors, setVendors] = useState(() => Array.isArray(cachedDashboard?.vendors) ? cachedDashboard.vendors : []);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const companyNameInputRef = React.useRef(null);
-  const billingAreaInputRef = React.useRef(null);
+  const loadRequestRef = useRef(null);
+  const companyNameInputRef = useRef(null);
+  const billingAreaInputRef = useRef(null);
 
   const isMobile = viewportWidth <= 900;
 
-  const loadVendors = async () => {
+  const loadVendors = async (options = {}) => {
+    if (loadRequestRef.current) return loadRequestRef.current;
+    const request = (async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/vendors`);
-      setVendors(Array.isArray(res.data) ? res.data : []);
+      const nextVendors = Array.isArray(res.data) ? res.data : [];
+      setVendors(nextVendors);
+      mergeVendorDashboardCache({ vendors: nextVendors });
     } catch (error) {
       console.error('Failed to load vendors', error);
+      if (!options.silent && !cachedDashboard) setVendors([]);
+    }
+    })();
+    loadRequestRef.current = request;
+    try {
+      return await request;
+    } finally {
+      if (loadRequestRef.current === request) loadRequestRef.current = null;
     }
   };
 
   useEffect(() => {
-    loadVendors();
+    loadVendors({ silent: Boolean(cachedDashboard) });
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, []);
+  }, [cachedDashboard]);
 
-  useAutoRefresh(loadVendors, { enabled: !showModal });
+  useAutoRefresh(() => loadVendors({ silent: true }), { enabled: !showModal });
 
   useEffect(() => {
     if (!showModal) return () => {};
@@ -262,7 +299,7 @@ export default function VendorDashboard() {
         await axios.post(`${API_BASE_URL}/api/vendors`, payload);
       }
       setShowModal(false);
-      await loadVendors();
+      await loadVendors({ silent: true });
     } catch (error) {
       setSaveError(error?.response?.data?.error || 'Unable to save vendor');
     } finally {
@@ -275,7 +312,7 @@ export default function VendorDashboard() {
     if (!window.confirm('Delete this vendor?')) return;
     try {
       await axios.delete(`${API_BASE_URL}/api/vendors/${vendorId}`);
-      await loadVendors();
+      await loadVendors({ silent: true });
     } catch (error) {
       window.alert(error?.response?.data?.error || 'Unable to delete vendor');
     }

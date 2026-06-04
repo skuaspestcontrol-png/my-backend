@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { AlertCircle, List, Plus, Save, Send, Users } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const COMPLAINTS_DASHBOARD_CACHE_KEY = 'complaints_dashboard_cache_v1';
 
 const isContractActive = (invoice) => {
   const items = Array.isArray(invoice?.items) ? invoice.items : [];
@@ -41,17 +42,41 @@ const formatEmployeeName = (entry) => {
   return full || entry.empCode || 'Technician';
 };
 
+const readComplaintsDashboardCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(COMPLAINTS_DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergeComplaintsDashboardCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readComplaintsDashboardCache() || {};
+    window.sessionStorage.setItem(COMPLAINTS_DASHBOARD_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // Cache is a performance hint only.
+  }
+};
+
 export default function ComplaintsDashboard() {
-  const [complaints, setComplaints] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [activeInvoices, setActiveInvoices] = useState([]);
+  const [cachedDashboard] = useState(() => readComplaintsDashboardCache());
+  const [complaints, setComplaints] = useState(() => Array.isArray(cachedDashboard?.complaints) ? cachedDashboard.complaints : []);
+  const [customers, setCustomers] = useState(() => Array.isArray(cachedDashboard?.customers) ? cachedDashboard.customers : []);
+  const [employees, setEmployees] = useState(() => Array.isArray(cachedDashboard?.employees) ? cachedDashboard.employees : []);
+  const [activeInvoices, setActiveInvoices] = useState(() => Array.isArray(cachedDashboard?.activeInvoices) ? cachedDashboard.activeInvoices : []);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState(emptyComplaint);
   const [statusFilter, setStatusFilter] = useState('All');
   const [customerFilter, setCustomerFilter] = useState('');
   const [technicianSearch, setTechnicianSearch] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const loadRequestRef = useRef(0);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -61,13 +86,16 @@ export default function ComplaintsDashboard() {
 
   const isMobile = viewportWidth <= 900;
 
-  const loadData = async () => {
+  const loadData = async (options = {}) => {
+    const requestId = loadRequestRef.current + 1;
+    loadRequestRef.current = requestId;
     const [complaintsRes, invoicesRes, customersRes, employeesRes] = await Promise.all([
       axios.get(`${API_BASE}/api/complaints`),
       axios.get(`${API_BASE}/api/invoices`),
       axios.get(`${API_BASE}/api/customers`),
       axios.get(`${API_BASE}/api/employees`)
     ]);
+    if (loadRequestRef.current !== requestId) return;
 
     const invoiceRows = Array.isArray(invoicesRes.data) ? invoicesRes.data : [];
     const activeInvoiceRows = invoiceRows.filter(isContractActive);
@@ -82,13 +110,19 @@ export default function ComplaintsDashboard() {
     setActiveInvoices(activeInvoiceRows);
     setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
     setComplaints(Array.isArray(complaintsRes.data) ? complaintsRes.data : []);
+    mergeComplaintsDashboardCache({
+      complaints: Array.isArray(complaintsRes.data) ? complaintsRes.data : [],
+      customers: activeCustomers,
+      employees: Array.isArray(employeesRes.data) ? employeesRes.data : [],
+      activeInvoices: activeInvoiceRows
+    });
   };
 
   useEffect(() => {
-    loadData().catch((error) => console.error('complaints load failed', error));
-  }, []);
+    loadData({ silent: Boolean(cachedDashboard) }).catch((error) => console.error('complaints load failed', error));
+  }, [cachedDashboard]);
 
-  useAutoRefresh(() => loadData(), { enabled: !showNew });
+  useAutoRefresh(() => loadData({ silent: true }), { enabled: !showNew });
 
   const technicianOptions = useMemo(() => employees.filter((entry) => String(entry.role || '').trim().toLowerCase() === 'technician'), [employees]);
 
@@ -178,7 +212,7 @@ export default function ComplaintsDashboard() {
     setShowNew(false);
     setForm(emptyComplaint);
     setTechnicianSearch('');
-    await loadData();
+    await loadData({ silent: true });
   };
 
   return (

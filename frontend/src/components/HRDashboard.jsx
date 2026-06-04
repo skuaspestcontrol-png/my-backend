@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import {
   Activity,
@@ -12,6 +12,7 @@ import { buildPortalAuthHeaders, getPortalUserRole } from '../utils/portalAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const now = new Date();
+const HR_DASHBOARD_CACHE_KEY = 'hr_dashboard_cache_v1';
 
 const shell = {
   page: { display: 'grid', gap: '14px' },
@@ -186,6 +187,54 @@ const baseHeaders = () => ({
   ...buildPortalAuthHeaders()
 });
 
+const buildHrDashboardCacheKey = ({ month, year, filters }) => JSON.stringify({
+  month,
+  year,
+  search: String(filters?.search || '').trim(),
+  department: String(filters?.department || '').trim(),
+  role: String(filters?.role || '').trim(),
+  location: String(filters?.location || '').trim(),
+  status: String(filters?.status || '').trim()
+});
+
+const readHrDashboardCache = (key) => {
+  try {
+    const raw = window.sessionStorage.getItem(HR_DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.queryKey !== key) return null;
+    return {
+      filterOptions: parsed.filterOptions || { departments: [], roles: [], locations: [], statuses: [] },
+      summary: parsed.summary || null,
+      leaves: Array.isArray(parsed.leaves) ? parsed.leaves : [],
+      leaveBalances: Array.isArray(parsed.leaveBalances) ? parsed.leaveBalances : [],
+      payrollQuick: parsed.payrollQuick || null,
+      employees: Array.isArray(parsed.employees) ? parsed.employees : [],
+      status: String(parsed.status || '').trim()
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeHrDashboardCache = (queryKey, next = {}) => {
+  try {
+    window.sessionStorage.setItem(HR_DASHBOARD_CACHE_KEY, JSON.stringify({
+      queryKey,
+      filterOptions: next.filterOptions || { departments: [], roles: [], locations: [], statuses: [] },
+      summary: next.summary || null,
+      leaves: Array.isArray(next.leaves) ? next.leaves : [],
+      leaveBalances: Array.isArray(next.leaveBalances) ? next.leaveBalances : [],
+      payrollQuick: next.payrollQuick || null,
+      employees: Array.isArray(next.employees) ? next.employees : [],
+      status: String(next.status || '').trim(),
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore sessionStorage issues.
+  }
+};
+
 function MiniBarChart({ rows = [], nameKey = 'name', valueKey = 'value', color = 'var(--color-primary)' }) {
   if (!rows.length) return <p style={shell.panelSub}>No data available.</p>;
   const max = Math.max(1, ...rows.map((row) => Number(row[valueKey] || 0)));
@@ -232,11 +281,19 @@ function InsightList({ title, rows = [], valuePrefix = '' }) {
 
 export default function HRDashboard() {
   const role = useMemo(() => roleFlags(), []);
+  const initialMonth = now.getMonth() + 1;
+  const initialYear = now.getFullYear();
+  const initialQueryKey = buildHrDashboardCacheKey({
+    month: initialMonth,
+    year: initialYear,
+    filters: { search: '', department: '', role: '', location: '', status: '' }
+  });
+  const [cachedHrData] = useState(() => readHrDashboardCache(initialQueryKey));
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(initialMonth);
+  const [year, setYear] = useState(initialYear);
 
   const [filterOptions, setFilterOptions] = useState({ departments: [], roles: [], locations: [], statuses: [] });
   const [filters, setFilters] = useState({ search: '', department: '', role: '', location: '', status: '' });
@@ -250,6 +307,18 @@ export default function HRDashboard() {
   const [leaveForm, setLeaveForm] = useState({ employeeId: '', leaveType: 'Paid Leave', fromDate: new Date().toISOString().slice(0, 10), toDate: new Date().toISOString().slice(0, 10), days: 1, reason: '' });
 
   const headers = useMemo(() => baseHeaders(), []);
+  const loadRequestRef = useRef(null);
+
+  useEffect(() => {
+    if (!cachedHrData) return;
+    setFilterOptions(cachedHrData.filterOptions);
+    setSummary(cachedHrData.summary);
+    setLeaves(cachedHrData.leaves);
+    setLeaveBalances(cachedHrData.leaveBalances);
+    setPayrollQuick(cachedHrData.payrollQuick);
+    setEmployees(cachedHrData.employees);
+    setStatus(cachedHrData.status);
+  }, [cachedHrData]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -268,36 +337,67 @@ export default function HRDashboard() {
   }), [filters, month, year]);
 
   const fetchAll = useCallback(async (silent = false) => {
-    try {
-      if (!silent) setBusy(true);
-      const results = await Promise.allSettled([
-        axios.get(`${API_BASE}/api/hr/filters`, { headers }),
-        axios.get(`${API_BASE}/api/hr/dashboard-summary`, { params: queryParams, headers }),
-        axios.get(`${API_BASE}/api/hr/leaves`, { params: { month, year }, headers }),
-        axios.get(`${API_BASE}/api/hr/leaves/balance`, { params: { month, year }, headers }),
-        axios.get(`${API_BASE}/api/hr/payroll-summary`, { params: queryParams, headers }),
-        axios.get(`${API_BASE}/api/employees`, { headers })
-      ]);
+    if (loadRequestRef.current) return loadRequestRef.current;
 
-      const hasFailure = results.some((entry) => entry.status === 'rejected');
-      const getData = (index, fallback) => (
-        results[index]?.status === 'fulfilled' ? results[index].value?.data : fallback
-      );
+    const queryKey = buildHrDashboardCacheKey({ month, year, filters });
+    const cachedForQuery = readHrDashboardCache(queryKey);
+    const shouldSilenceLoad = silent || Boolean(cachedForQuery);
+    const request = (async () => {
+      try {
+        if (!shouldSilenceLoad) setBusy(true);
+        const results = await Promise.allSettled([
+          axios.get(`${API_BASE}/api/hr/filters`, { headers }),
+          axios.get(`${API_BASE}/api/hr/dashboard-summary`, { params: queryParams, headers }),
+          axios.get(`${API_BASE}/api/hr/leaves`, { params: { month, year }, headers }),
+          axios.get(`${API_BASE}/api/hr/leaves/balance`, { params: { month, year }, headers }),
+          axios.get(`${API_BASE}/api/hr/payroll-summary`, { params: queryParams, headers }),
+          axios.get(`${API_BASE}/api/employees`, { headers })
+        ]);
 
-      setFilterOptions(getData(0, { departments: [], roles: [], locations: [], statuses: [] }));
-      setSummary(getData(1, null));
-      setLeaves(Array.isArray(getData(2, [])) ? getData(2, []) : []);
-      setLeaveBalances(Array.isArray(getData(3, [])) ? getData(3, []) : []);
-      setPayrollQuick(getData(4, null));
-      setEmployees(Array.isArray(getData(5, [])) ? getData(5, []) : []);
-      setStatus(hasFailure ? 'Some HR data could not be loaded. Showing available data.' : '');
-    } catch (error) {
-      console.error('HR dashboard load failed', error);
-      setStatus(error?.response?.data?.error || 'Unable to load HR dashboard right now.');
-    } finally {
-      if (!silent) setBusy(false);
-    }
-  }, [headers, month, queryParams, year]);
+        const hasFailure = results.some((entry) => entry.status === 'rejected');
+        const getData = (index, fallback) => (
+          results[index]?.status === 'fulfilled' ? results[index].value?.data : fallback
+        );
+        const nextFilterOptions = getData(0, { departments: [], roles: [], locations: [], statuses: [] });
+        const nextSummary = getData(1, null);
+        const nextLeaves = Array.isArray(getData(2, [])) ? getData(2, []) : [];
+        const nextLeaveBalances = Array.isArray(getData(3, [])) ? getData(3, []) : [];
+        const nextPayrollQuick = getData(4, null);
+        const nextEmployees = Array.isArray(getData(5, [])) ? getData(5, []) : [];
+        const nextStatus = hasFailure ? 'Some HR data could not be loaded. Showing available data.' : '';
+
+        setFilterOptions(nextFilterOptions);
+        setSummary(nextSummary);
+        setLeaves(nextLeaves);
+        setLeaveBalances(nextLeaveBalances);
+        setPayrollQuick(nextPayrollQuick);
+        setEmployees(nextEmployees);
+        setStatus(nextStatus);
+        writeHrDashboardCache(queryKey, {
+          filterOptions: nextFilterOptions,
+          summary: nextSummary,
+          leaves: nextLeaves,
+          leaveBalances: nextLeaveBalances,
+          payrollQuick: nextPayrollQuick,
+          employees: nextEmployees,
+          status: nextStatus
+        });
+      } catch (error) {
+        console.error('HR dashboard load failed', error);
+        setStatus(error?.response?.data?.error || 'Unable to load HR dashboard right now.');
+      } finally {
+        if (!shouldSilenceLoad) setBusy(false);
+      }
+    })();
+
+    loadRequestRef.current = request;
+    request.finally(() => {
+      if (loadRequestRef.current === request) {
+        loadRequestRef.current = null;
+      }
+    });
+    return request;
+  }, [filters, headers, month, queryParams, year]);
 
   useEffect(() => {
     fetchAll();

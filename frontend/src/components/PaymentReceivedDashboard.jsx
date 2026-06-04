@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { ChevronLeft, ChevronRight, IndianRupee, WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
@@ -119,6 +119,30 @@ const paymentColumnBounds = {
   action: { min: 100, max: 150 }
 };
 
+const PAYMENT_RECEIVED_CACHE_KEY = 'payment_received_dashboard_cache_v1';
+
+const readPaymentReceivedCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(PAYMENT_RECEIVED_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergePaymentReceivedCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readPaymentReceivedCache() || {};
+    window.sessionStorage.setItem(PAYMENT_RECEIVED_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // Best effort only.
+  }
+};
+
 const normalizePayments = (paymentsRaw, invoicesRaw) => {
   const invoices = Array.isArray(invoicesRaw) ? invoicesRaw : [];
   const invoiceMap = new Map();
@@ -183,19 +207,43 @@ const normalizePayments = (paymentsRaw, invoicesRaw) => {
 };
 
 export default function PaymentReceivedDashboard() {
-  const [payments, setPayments] = useState([]);
-  const [invoices, setInvoices] = useState([]);
+  const [cachedDashboard] = useState(() => readPaymentReceivedCache());
+  const [payments, setPayments] = useState(() => Array.isArray(cachedDashboard?.payments) ? cachedDashboard.payments : []);
+  const [invoices, setInvoices] = useState(() => Array.isArray(cachedDashboard?.invoices) ? cachedDashboard.invoices : []);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [status, setStatus] = useState('Loading payments...');
+  const [status, setStatus] = useState(() => (cachedDashboard ? 'Live payment data' : 'Loading payments...'));
   const [page, setPage] = useState(1);
+  const loadRequestRef = useRef(null);
 
-  const loadPaymentsData = async () => {
-    const [paymentsRes, invoicesRes] = await Promise.all([
-      axios.get(`${API_BASE_URL}/api/payment-received`).catch(async () => axios.get(`${API_BASE_URL}/api/payments`)),
-      axios.get(`${API_BASE_URL}/api/invoices`)
-    ]);
-    setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
-    setInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
+  const loadPaymentsData = async (options = {}) => {
+    if (loadRequestRef.current) return loadRequestRef.current;
+    const request = (async () => {
+      try {
+        if (!options.silent) setStatus('Loading payments...');
+        const [paymentsRes, invoicesRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/payment-received`).catch(async () => axios.get(`${API_BASE_URL}/api/payments`)),
+          axios.get(`${API_BASE_URL}/api/invoices`)
+        ]);
+        const nextPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+        const nextInvoices = Array.isArray(invoicesRes.data) ? invoicesRes.data : [];
+        setPayments(nextPayments);
+        setInvoices(nextInvoices);
+        mergePaymentReceivedCache({ payments: nextPayments, invoices: nextInvoices });
+      } catch (error) {
+        if (!options.silent && !cachedDashboard) {
+          setStatus('Could not load payment data right now.');
+          setPayments([]);
+          setInvoices([]);
+        }
+        throw error;
+      }
+    })();
+    loadRequestRef.current = request;
+    try {
+      return await request;
+    } finally {
+      if (loadRequestRef.current === request) loadRequestRef.current = null;
+    }
   };
 
   useEffect(() => {
@@ -205,26 +253,20 @@ export default function PaymentReceivedDashboard() {
   }, []);
 
   useEffect(() => {
-    let mounted = true;
     const load = async () => {
       try {
-        await loadPaymentsData();
-        if (!mounted) return;
+        await loadPaymentsData({ silent: Boolean(cachedDashboard) });
         setStatus('Live payment data');
       } catch (error) {
-        if (!mounted) return;
         console.error('Payment received load failed', error);
-        setStatus('Could not load payment data right now.');
+        if (!cachedDashboard) setStatus('Could not load payment data right now.');
       }
     };
     load();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  }, [cachedDashboard]);
 
   useAutoRefresh(async () => {
-    await loadPaymentsData();
+    await loadPaymentsData({ silent: true });
     setStatus('Live payment data');
   });
 
@@ -238,7 +280,7 @@ export default function PaymentReceivedDashboard() {
         ? `${API_BASE_URL}/api/payment-received/${encodeURIComponent(String(row.sourceId || paymentId))}`
         : `${API_BASE_URL}/api/payments/${paymentId}`;
       await axios.delete(deleteUrl);
-      await loadPaymentsData();
+      await loadPaymentsData({ silent: true });
       triggerSalesPerformanceRefresh();
     } catch (error) {
       console.error('Delete payment failed', error);

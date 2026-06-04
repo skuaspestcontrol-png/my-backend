@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Clock3, Sparkles } from 'lucide-react';
 
@@ -94,44 +94,18 @@ export default function ModuleWorkspace({
   sideTitle = 'Team Note',
   sideText = 'Use this module to move work forward, keep operators aligned, and surface what needs attention next.'
 }) {
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-
-  useEffect(() => {
-    const onResize = () => setViewportWidth(window.innerWidth);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
-  const isMobile = viewportWidth < 768;
-  const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
-  const isLaptop = viewportWidth >= 992 && viewportWidth <= 1199;
-  const isSmallMobile = viewportWidth < 420;
-
-  const heroStyle = isMobile
-    ? { ...shell.hero, gridTemplateColumns: '1fr', padding: isSmallMobile ? '16px' : '20px 16px' }
-    : isTablet || isLaptop
-      ? { ...shell.hero, gridTemplateColumns: '1fr', padding: isTablet ? '22px' : '24px' }
-      : shell.hero;
-  const statsStyle = isMobile
-    ? { ...shell.stats, gridTemplateColumns: '1fr' }
-    : isTablet
-      ? { ...shell.stats, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : shell.stats;
-  const gridStyle = viewportWidth >= 1200 ? shell.grid : { ...shell.grid, gridTemplateColumns: '1fr' };
-  const titleStyle = isMobile ? { ...shell.title, fontSize: isSmallMobile ? '22px' : '26px' } : shell.title;
-
   return (
     <div style={shell.page}>
-      <section className="hero-section command-center" style={heroStyle}>
+      <section className="hero-section command-center module-workspace-hero">
         <div>
           <div style={shell.badge}>
             <Sparkles size={14} />
             {badge}
           </div>
-          <h1 style={{ ...titleStyle, color: '#ffffff' }}>{title}</h1>
+          <h1 className="module-workspace-title" style={{ color: '#ffffff' }}>{title}</h1>
           <p style={shell.description}>{description}</p>
 
-          <div style={statsStyle}>
+          <div className="module-workspace-stats">
             {stats.map((stat) => (
               <div key={stat.label} style={shell.stat}>
                 <div style={shell.statLabel}>{stat.label}</div>
@@ -156,7 +130,7 @@ export default function ModuleWorkspace({
         </div>
       </section>
 
-      <section className="content-grid dashboard-section-grid" style={gridStyle}>
+      <section className="content-grid dashboard-section-grid module-workspace-grid">
         <div style={shell.panel}>
           <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>{queueTitle}</div>
           <div style={shell.list}>

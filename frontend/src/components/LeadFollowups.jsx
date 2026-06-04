@@ -24,6 +24,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ALL_VALUE = '__all__';
 const FOLLOWUP_PAGE_SIZE = 20;
 const FOLLOWUP_COLUMN_WIDTHS_KEY = 'lead_followups_column_widths';
+const LEAD_FOLLOWUPS_CACHE_KEY = 'lead_followups_cache_v1';
 
 const defaultColumnWidths = {
   lead: 72,
@@ -129,9 +130,32 @@ const getUrgency = (lead, today) => {
 };
 const isDoneLead = (lead) => ['booked', 'converted'].includes(normalizeStatus(lead.status || lead.leadStatus));
 
+const readLeadFollowupsCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(LEAD_FOLLOWUPS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergeLeadFollowupsCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readLeadFollowupsCache() || {};
+    window.sessionStorage.setItem(LEAD_FOLLOWUPS_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // Best effort only.
+  }
+};
+
 export default function LeadFollowups() {
   const navigate = useNavigate();
-  const [leads, setLeads] = useState([]);
+  const [cachedDashboard] = useState(() => readLeadFollowupsCache());
+  const [leads, setLeads] = useState(() => Array.isArray(cachedDashboard?.leads) ? cachedDashboard.leads : []);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overdue');
   const [draftFilters, setDraftFilters] = useState({ fromDate: '', toDate: '', assignedTo: ALL_VALUE, urgency: ALL_VALUE });
@@ -139,6 +163,7 @@ export default function LeadFollowups() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [page, setPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: 'nextFollowup', direction: 'asc' });
+  const loadRequestRef = useRef(null);
   const {
     getColumnWidth,
     startResize: startColumnResize,
@@ -162,21 +187,32 @@ export default function LeadFollowups() {
   });
 
   const loadLeads = async (options = {}) => {
-    if (!options.silent) setLoading(true);
+    if (loadRequestRef.current) return loadRequestRef.current;
+    const request = (async () => {
+      if (!options.silent) setLoading(true);
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/leads`);
+        const nextLeads = Array.isArray(res.data) ? res.data : [];
+        setLeads(nextLeads);
+        mergeLeadFollowupsCache({ leads: nextLeads });
+      } catch (error) {
+        console.error('Failed to load lead follow-ups', error);
+        if (!options.silent && !cachedDashboard) setLeads([]);
+      } finally {
+        if (!options.silent) setLoading(false);
+      }
+    })();
+    loadRequestRef.current = request;
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/leads`);
-      setLeads(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error('Failed to load lead follow-ups', error);
-      setLeads([]);
+      return await request;
     } finally {
-      if (!options.silent) setLoading(false);
+      if (loadRequestRef.current === request) loadRequestRef.current = null;
     }
   };
 
   useEffect(() => {
-    loadLeads();
-  }, []);
+    loadLeads({ silent: Boolean(cachedDashboard) });
+  }, [cachedDashboard]);
 
   useAutoRefresh(() => loadLeads({ silent: true }));
 

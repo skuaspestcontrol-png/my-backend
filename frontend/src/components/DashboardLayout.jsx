@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, loadBrandingSettings, pickBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
@@ -33,6 +33,7 @@ import {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const INACTIVITY_LOGOUT_MS = 5 * 60 * 1000;
 const NOTIFICATION_READ_STORAGE_KEY = 'skuas_read_notification_ids';
+const DASHBOARD_NOTIFICATION_CACHE_KEY = 'dashboard_notifications_cache_v1';
 
 const toDateOnly = (value) => {
   if (!value) return null;
@@ -108,6 +109,36 @@ const buildLeadNotifications = (rows = [], jobs = []) => {
   return [...newLeads, ...serviceSchedules, ...followups];
 };
 
+const readDashboardNotificationCache = () => {
+  try {
+    const raw = sessionStorage.getItem(DASHBOARD_NOTIFICATION_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      leadNotifications: Array.isArray(parsed.leadNotifications) ? parsed.leadNotifications : [],
+      serviceSchedules: Array.isArray(parsed.serviceSchedules) ? parsed.serviceSchedules : []
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeDashboardNotificationCache = (leadNotifications = [], serviceSchedules = []) => {
+  try {
+    sessionStorage.setItem(
+      DASHBOARD_NOTIFICATION_CACHE_KEY,
+      JSON.stringify({
+        leadNotifications: Array.isArray(leadNotifications) ? leadNotifications : [],
+        serviceSchedules: Array.isArray(serviceSchedules) ? serviceSchedules : [],
+        updatedAt: Date.now()
+      })
+    );
+  } catch (_error) {
+    // Ignore sessionStorage issues.
+  }
+};
+
 const loadReadNotificationIds = () => {
   try {
     const parsed = JSON.parse(localStorage.getItem(NOTIFICATION_READ_STORAGE_KEY) || '[]');
@@ -148,6 +179,7 @@ const SidebarSection = ({ title, children, collapsed = false }) => (
 export default function DashboardLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [cachedNotificationData] = useState(() => readDashboardNotificationCache());
   const [settings, setSettings] = useState(() => loadBrandingSettings() || {});
   const [leadsMenuOpen, setLeadsMenuOpen] = useState(false);
   const [salesMenuOpen, setSalesMenuOpen] = useState(false);
@@ -161,9 +193,10 @@ export default function DashboardLayout({ children }) {
   const [sidebarHovering, setSidebarHovering] = useState(false);
   const [sidebarFocusWithin, setSidebarFocusWithin] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [leadNotifications, setLeadNotifications] = useState([]);
-  const [serviceSchedules, setServiceSchedules] = useState([]);
+  const [leadNotifications, setLeadNotifications] = useState(() => cachedNotificationData?.leadNotifications || []);
+  const [serviceSchedules, setServiceSchedules] = useState(() => cachedNotificationData?.serviceSchedules || []);
   const [readNotificationIds, setReadNotificationIds] = useState(() => loadReadNotificationIds());
+  const notificationLoadRef = useRef(null);
 
   const syncBrandingFromCache = useCallback(() => {
     const cached = loadBrandingSettings();
@@ -253,28 +286,47 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     let active = true;
-    const fetchLeadNotifications = async () => {
-      try {
-        const [leadRes, jobsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/leads`),
-          axios.get(`${API_BASE_URL}/api/jobs`).catch(() => ({ data: [] }))
-        ]);
-        if (!active) return;
-        const jobRows = Array.isArray(jobsRes.data) ? jobsRes.data : [];
-        setServiceSchedules(getTodayServiceScheduleNotifications(jobRows));
-        setLeadNotifications(buildLeadNotifications(leadRes.data, jobRows));
-      } catch (error) {
-        console.error('Could not load notifications', error);
-      }
+    const fetchLeadNotifications = async ({ silent = false } = {}) => {
+      if (notificationLoadRef.current) return notificationLoadRef.current;
+
+      const request = (async () => {
+        try {
+          const [leadRes, jobsRes] = await Promise.all([
+            axios.get(`${API_BASE_URL}/api/leads`),
+            axios.get(`${API_BASE_URL}/api/jobs`).catch(() => ({ data: [] }))
+          ]);
+          if (!active) return;
+          const jobRows = Array.isArray(jobsRes.data) ? jobsRes.data : [];
+          const nextServiceSchedules = getTodayServiceScheduleNotifications(jobRows);
+          const nextLeadNotifications = buildLeadNotifications(leadRes.data, jobRows);
+          setServiceSchedules(nextServiceSchedules);
+          setLeadNotifications(nextLeadNotifications);
+          writeDashboardNotificationCache(nextLeadNotifications, nextServiceSchedules);
+        } catch (error) {
+          if (!silent) {
+            console.error('Could not load notifications', error);
+          }
+        }
+      })();
+
+      notificationLoadRef.current = request;
+      request.finally(() => {
+        if (notificationLoadRef.current === request) {
+          notificationLoadRef.current = null;
+        }
+      });
+      return request;
     };
 
-    fetchLeadNotifications();
-    const interval = window.setInterval(fetchLeadNotifications, 60000);
+    fetchLeadNotifications({ silent: Boolean(cachedNotificationData) });
+    const interval = window.setInterval(() => {
+      fetchLeadNotifications({ silent: true });
+    }, 60000);
     return () => {
       active = false;
       window.clearInterval(interval);
     };
-  }, []);
+  }, [cachedNotificationData]);
 
   useEffect(() => {
     const onPointerDown = (event) => {

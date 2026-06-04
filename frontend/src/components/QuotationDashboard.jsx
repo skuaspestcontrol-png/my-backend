@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
@@ -7,6 +7,7 @@ import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const QUOTATION_DASHBOARD_CACHE_KEY = 'quotation_dashboard_cache_v1';
 const quotationColumns = [
   { key: 'srNo', label: 'Sr No' },
   { key: 'quotationNumber', label: 'Quotation #' },
@@ -202,6 +203,28 @@ const formatINR = (value) => {
   return `₹ ${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
+const readQuotationDashboardCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(QUOTATION_DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergeQuotationDashboardCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readQuotationDashboardCache() || {};
+    window.sessionStorage.setItem(QUOTATION_DASHBOARD_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // Cache is a performance hint only.
+  }
+};
+
 class QuotationDashboardBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -240,13 +263,15 @@ class QuotationDashboardBoundary extends React.Component {
 
 function QuotationDashboardInner() {
   const navigate = useNavigate();
-  const [rows, setRows] = useState([]);
+  const [cachedDashboard] = useState(() => readQuotationDashboardCache());
+  const [rows, setRows] = useState(() => Array.isArray(cachedDashboard?.rows) ? cachedDashboard.rows : []);
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(() => (cachedDashboard ? '' : ''));
   const [page, setPage] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', quotationId: null });
   const perPage = 20;
+  const loadRequestRef = useRef(null);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -255,17 +280,27 @@ function QuotationDashboardInner() {
   }, []);
 
   const load = async (options = {}) => {
+    if (loadRequestRef.current) return loadRequestRef.current;
+    const request = (async () => {
     try {
       if (!options.silent) setLoading(true);
       setStatus('');
       const res = await axios.get(`${API_BASE_URL}/api/quotations`);
       const nextRows = Array.isArray(res.data) ? res.data : [];
       setRows(nextRows);
+      mergeQuotationDashboardCache({ rows: nextRows });
       if (!options.preservePage) setPage(1);
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Could not load quotations');
     } finally {
       if (!options.silent) setLoading(false);
+    }
+    })();
+    loadRequestRef.current = request;
+    try {
+      return await request;
+    } finally {
+      if (loadRequestRef.current === request) loadRequestRef.current = null;
     }
   };
 
@@ -276,7 +311,7 @@ function QuotationDashboardInner() {
     try {
       setStatus('');
       await axios.delete(`${API_BASE_URL}/api/quotations/${id}`);
-      await load();
+      await load({ silent: true, preservePage: true });
       setStatus('Quotation deleted successfully');
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Could not delete quotation');
@@ -317,8 +352,8 @@ function QuotationDashboardInner() {
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    load({ silent: Boolean(cachedDashboard) });
+  }, [cachedDashboard]);
 
   useAutoRefresh(() => load({ silent: true, preservePage: true }));
 

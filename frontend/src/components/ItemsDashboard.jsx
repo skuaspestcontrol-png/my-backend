@@ -8,6 +8,7 @@ import useColumnResize from './table/useColumnResize';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ITEMS_PER_PAGE = 20;
 const VISIBLE_COLUMNS_STORAGE_KEY = 'items_visible_columns_v2';
+const ITEMS_DASHBOARD_CACHE_KEY = 'items_dashboard_cache_v1';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -435,8 +436,31 @@ const shell = {
 
 const formatINR = (value) => `₹${Number(value || 0).toFixed(2)}`;
 
+const readItemsDashboardCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(ITEMS_DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergeItemsDashboardCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readItemsDashboardCache() || {};
+    window.sessionStorage.setItem(ITEMS_DASHBOARD_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // Cache is a best-effort performance hint.
+  }
+};
+
 export default function ItemsDashboard() {
-  const [items, setItems] = useState([]);
+  const [cachedDashboard] = useState(() => readItemsDashboardCache());
+  const [items, setItems] = useState(() => Array.isArray(cachedDashboard?.items) ? cachedDashboard.items : []);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -464,6 +488,7 @@ export default function ItemsDashboard() {
   const customizeButtonRef = useRef(null);
   const moreMenuRef = useRef(null);
   const moreMenuButtonRef = useRef(null);
+  const loadRequestRef = useRef(null);
   const {
     getColumnStyle,
     startResize,
@@ -495,18 +520,39 @@ export default function ItemsDashboard() {
   const paginationText = sortedItems.length ? `${pageStart}-${pageEnd} of ${sortedItems.length} records` : '0 records';
 
   const loadItems = async (options = {}) => {
+    if (loadRequestRef.current) {
+      if (options.force) {
+        await loadRequestRef.current;
+      } else {
+        return loadRequestRef.current;
+      }
+    }
+    const request = (async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/items`);
+        const nextItems = Array.isArray(res.data) ? res.data : [];
+        setItems(nextItems);
+        if (!options.preserveSelection) setSelectedIds([]);
+        mergeItemsDashboardCache({ items: nextItems });
+      } catch (error) {
+        console.error('Failed to load items', error);
+        if (!options.preserveSelection && !cachedDashboard) {
+          setItems([]);
+          setSelectedIds([]);
+        }
+      }
+    })();
+    loadRequestRef.current = request;
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/items`);
-      setItems(Array.isArray(res.data) ? res.data : []);
-      if (!options.preserveSelection) setSelectedIds([]);
-    } catch (error) {
-      console.error('Failed to load items', error);
+      return await request;
+    } finally {
+      if (loadRequestRef.current === request) loadRequestRef.current = null;
     }
   };
 
   useEffect(() => {
-    loadItems();
-  }, []);
+    loadItems({ preserveSelection: true });
+  }, [cachedDashboard]);
 
   useAutoRefresh(() => loadItems({ preserveSelection: true }), { enabled: !showAddModal });
 
@@ -717,7 +763,7 @@ export default function ItemsDashboard() {
       setForm(emptyForm);
       setEditingItemId(null);
       setShowAddModal(false);
-      await loadItems();
+      await loadItems({ preserveSelection: false, force: true });
     } catch (error) {
       console.error('Failed to add item', error);
       setSaveError('Unable to save item. Please ensure backend server is running.');
@@ -731,7 +777,7 @@ export default function ItemsDashboard() {
     try {
       await Promise.all(selectedIds.map((id) => axios.delete(`${API_BASE_URL}/api/items/${id}`)));
       setShowMoreMenu(false);
-      await loadItems();
+      await loadItems({ preserveSelection: false, force: true });
     } catch (error) {
       console.error('Failed to delete selected items', error);
     }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, FileText, RefreshCw, UserRound } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
@@ -73,9 +73,34 @@ const normalizeTime = (value, fallback = '10:00') => {
   return `${match[1]}:${match[2]}`;
 };
 
+const SERVICE_CALENDAR_CACHE_KEY = 'service_calendar_cache_v1';
+
+const readServiceCalendarCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(SERVICE_CALENDAR_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergeServiceCalendarCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readServiceCalendarCache() || {};
+    window.sessionStorage.setItem(SERVICE_CALENDAR_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // Cache is a best-effort performance hint.
+  }
+};
+
 export default function ServiceCalendar() {
+  const [cachedCalendar] = useState(() => readServiceCalendarCache());
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState(() => Array.isArray(cachedCalendar?.events) ? cachedCalendar.events : []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentMonth, setCurrentMonth] = useState(() => {
@@ -85,43 +110,41 @@ export default function ServiceCalendar() {
     return now;
   });
   const [selectedDate, setSelectedDate] = useState(() => formatDateInput(new Date()));
+  const loadRequestRef = useRef(null);
 
-  const loadSchedules = async () => {
+  const loadSchedules = async (options = {}) => {
+    if (loadRequestRef.current) return loadRequestRef.current;
+    const request = (async () => {
+      try {
+        if (!options.silent) setLoading(true);
+        setError('');
+        const response = await axios.get(`${API_BASE_URL}/api/service-schedules`);
+        const nextEvents = Array.isArray(response.data) ? response.data : [];
+        setEvents(nextEvents);
+        mergeServiceCalendarCache({ events: nextEvents });
+      } catch (loadError) {
+        console.error('Failed to load service schedules', loadError);
+        if (!options.silent && !cachedCalendar) {
+          setError('Could not load service schedules right now.');
+          setEvents([]);
+        }
+      } finally {
+        if (!options.silent) setLoading(false);
+      }
+    })();
+    loadRequestRef.current = request;
     try {
-      setLoading(true);
-      setError('');
-      const response = await axios.get(`${API_BASE_URL}/api/service-schedules`);
-      setEvents(Array.isArray(response.data) ? response.data : []);
-    } catch (loadError) {
-      console.error('Failed to load service schedules', loadError);
-      setError('Could not load service schedules right now.');
-      setEvents([]);
+      return await request;
     } finally {
-      setLoading(false);
+      if (loadRequestRef.current === request) loadRequestRef.current = null;
     }
   };
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/api/service-schedules`);
-        if (!mounted) return;
-        setError('');
-        setEvents(Array.isArray(response.data) ? response.data : []);
-      } catch (loadError) {
-        console.error('Failed to load service schedules', loadError);
-        if (!mounted) return;
-        setError('Could not load service schedules right now.');
-        setEvents([]);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    loadSchedules({ silent: Boolean(cachedCalendar) });
+  }, [cachedCalendar]);
 
-  useAutoRefresh(loadSchedules);
+  useAutoRefresh(() => loadSchedules({ silent: true }));
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;

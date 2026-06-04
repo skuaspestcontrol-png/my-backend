@@ -102,6 +102,7 @@ const LEAD_STATUSES = ['Cold', 'Warm', 'Hot', 'Booked', 'Decline'];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ALL_FILTER_VALUE = '__all__';
 const LEAD_PAGE_SIZE = 20;
+const LEADS_DASHBOARD_CACHE_KEY = 'leads_dashboard_cache_v1';
 const MONTH_FILTER_OPTIONS = [
   { value: '1', label: 'January' },
   { value: '2', label: 'February' },
@@ -147,6 +148,28 @@ const defaultOverviewFilters = {
   leadSource: ALL_FILTER_VALUE,
   status: ALL_FILTER_VALUE,
   assignedTo: ALL_FILTER_VALUE
+};
+
+const readLeadsDashboardCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(LEADS_DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergeLeadsDashboardCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readLeadsDashboardCache() || {};
+    window.sessionStorage.setItem(LEADS_DASHBOARD_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // Cache is an optimization only.
+  }
 };
 
 const emptyForm = {
@@ -589,10 +612,11 @@ const mapLeadToCustomerPrefill = (lead) => {
 export default function LeadCapture() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [cachedDashboard] = useState(() => readLeadsDashboardCache());
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [leads, setLeads] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [employees, setEmployees] = useState([]);
+  const [leads, setLeads] = useState(() => Array.isArray(cachedDashboard?.leads) ? cachedDashboard.leads : []);
+  const [customers, setCustomers] = useState(() => Array.isArray(cachedDashboard?.customers) ? cachedDashboard.customers : []);
+  const [employees, setEmployees] = useState(() => Array.isArray(cachedDashboard?.employees) ? cachedDashboard.employees : []);
   const [show, setShow] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [sameAsMobile, setSameAsMobile] = useState(false);
@@ -664,6 +688,8 @@ export default function LeadCapture() {
   const importFileRef = useRef(null);
   const searchAddressInputRef = useRef(null);
   const suggestionSeqRef = useRef(0);
+  const dashboardLoadRef = useRef(0);
+  const modalLookupLoadRef = useRef(0);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -890,93 +916,84 @@ export default function LeadCapture() {
     status: getLeadStatus(lead)
   });
 
-  const fetchLeadsAndEmployees = async () => {
+  const loadDashboardData = async (options = {}) => {
+    const requestId = dashboardLoadRef.current + 1;
+    dashboardLoadRef.current = requestId;
+
     const [leadRes, employeeRes, customerRes] = await Promise.allSettled([
       axios.get(`${API_BASE_URL}/api/leads`),
       axios.get(`${API_BASE_URL}/api/employees`),
       axios.get(`${API_BASE_URL}/api/customers`)
     ]);
+    if (dashboardLoadRef.current !== requestId) return;
 
-    if (leadRes.status === 'fulfilled') {
-      setLeads(toObjectList(leadRes.value?.data));
+    const nextLeads = leadRes.status === 'fulfilled' ? toObjectList(leadRes.value?.data) : [];
+    const nextEmployees = employeeRes.status === 'fulfilled' ? toObjectList(employeeRes.value?.data) : [];
+    const nextCustomers = customerRes.status === 'fulfilled' ? toObjectList(customerRes.value?.data) : [];
+
+    setLeads(nextLeads);
+    setEmployees(nextEmployees);
+    setCustomers(nextCustomers);
+
+    if (leadRes.status !== 'fulfilled') {
+      console.error('Leads fetch failed', leadRes.reason);
     }
-    if (employeeRes.status === 'fulfilled') {
-      setEmployees(toObjectList(employeeRes.value?.data));
+    if (employeeRes.status !== 'fulfilled') {
+      console.error('Employees fetch failed', employeeRes.reason);
     }
-    if (customerRes.status === 'fulfilled') {
-      setCustomers(toObjectList(customerRes.value?.data));
-    } else {
-      setCustomers([]);
-      console.error('Customers fetch failed in lead module:', customerRes.reason);
+    if (customerRes.status !== 'fulfilled') {
+      console.error('Customers fetch failed', customerRes.reason);
     }
+
+    mergeLeadsDashboardCache({
+      leads: nextLeads,
+      employees: nextEmployees,
+      customers: nextCustomers,
+      visibleColumns
+    });
   };
 
   const fetchEmployeesAndCustomers = async () => {
+    const requestId = modalLookupLoadRef.current + 1;
+    modalLookupLoadRef.current = requestId;
     const [employeeRes, customerRes] = await Promise.allSettled([
       axios.get(`${API_BASE_URL}/api/employees`),
       axios.get(`${API_BASE_URL}/api/customers`)
     ]);
+    if (modalLookupLoadRef.current !== requestId) return;
+
+    const nextEmployees = employeeRes.status === 'fulfilled' ? toObjectList(employeeRes.value?.data) : [];
+    const nextCustomers = customerRes.status === 'fulfilled' ? toObjectList(customerRes.value?.data) : [];
     if (employeeRes.status === 'fulfilled') {
-      setEmployees(toObjectList(employeeRes.value?.data));
+      setEmployees(nextEmployees);
     }
     if (customerRes.status === 'fulfilled') {
-      setCustomers(toObjectList(customerRes.value?.data));
+      setCustomers(nextCustomers);
     } else {
       setCustomers([]);
       console.error('Customers fetch failed in lead module:', customerRes.reason);
     }
+
+    mergeLeadsDashboardCache({
+      employees: nextEmployees,
+      customers: nextCustomers
+    });
   };
 
   useEffect(() => {
-    let mounted = true;
-
     const load = async () => {
       try {
-        const [leadRes, employeeRes, customerRes] = await Promise.allSettled([
-          axios.get(`${API_BASE_URL}/api/leads`),
-          axios.get(`${API_BASE_URL}/api/employees`),
-          axios.get(`${API_BASE_URL}/api/customers`)
-        ]);
-
-        if (!mounted) return;
-        if (leadRes.status === 'fulfilled') {
-          setLeads(toObjectList(leadRes.value?.data));
-        } else {
-          setLeads([]);
-          console.error('Leads fetch failed', leadRes.reason);
-        }
-        if (employeeRes.status === 'fulfilled') {
-          setEmployees(toObjectList(employeeRes.value?.data));
-        } else {
-          setEmployees([]);
-          console.error('Employees fetch failed', employeeRes.reason);
-        }
-        if (customerRes.status === 'fulfilled') {
-          setCustomers(toObjectList(customerRes.value?.data));
-        } else {
-          setCustomers([]);
-          console.error('Customers fetch failed', customerRes.reason);
-        }
+        await loadDashboardData({ silent: Boolean(cachedDashboard) });
       } catch (error) {
         console.error('Data fetch failed', error);
       }
     };
 
     load();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  }, [cachedDashboard]);
 
   useAutoRefresh(async () => {
-    const [leadRes, employeeRes, customerRes] = await Promise.allSettled([
-      axios.get(`${API_BASE_URL}/api/leads`),
-      axios.get(`${API_BASE_URL}/api/employees`),
-      axios.get(`${API_BASE_URL}/api/customers`)
-    ]);
-    if (leadRes.status === 'fulfilled') setLeads(toObjectList(leadRes.value?.data));
-    if (employeeRes.status === 'fulfilled') setEmployees(toObjectList(employeeRes.value?.data));
-    if (customerRes.status === 'fulfilled') setCustomers(toObjectList(customerRes.value?.data));
+    await loadDashboardData({ silent: true });
   }, { enabled: !show && !viewLeadId && !logFollowupLeadId });
 
   useEffect(() => {
@@ -985,6 +1002,10 @@ export default function LeadCapture() {
     } catch {
       // Ignore storage failures (private mode / blocked storage)
     }
+  }, [visibleColumns]);
+
+  useEffect(() => {
+    mergeLeadsDashboardCache({ visibleColumns });
   }, [visibleColumns]);
 
   useEffect(() => {

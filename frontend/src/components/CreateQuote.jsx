@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { normalizeIndianMobileNumber } from '../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const QUOTATION_RECOMMENDATION_DEFAULT_KEY = 'quotation_default_recommendation';
+const CREATE_QUOTE_CACHE_KEY = 'create_quote_dependencies_cache_v1';
+const CREATE_QUOTE_EDIT_CACHE_PREFIX = 'create_quote_edit_cache_v1:';
 
 const tabs = ['Customer Details', 'Quotation Details', 'Services', 'Recommendation Table', 'Pricing', 'Terms & Preview'];
 
@@ -93,26 +95,99 @@ const getItemField = (item = {}, ...keys) => {
 
 const money = (v) => `₹ ${num(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const readCreateQuoteCache = () => {
+  try {
+    const raw = window.sessionStorage.getItem(CREATE_QUOTE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      leadRows: Array.isArray(parsed.leadRows) ? parsed.leadRows : [],
+      customerRows: Array.isArray(parsed.customerRows) ? parsed.customerRows : [],
+      employeeRows: Array.isArray(parsed.employeeRows) ? parsed.employeeRows : [],
+      serviceCatalog: Array.isArray(parsed.serviceCatalog) ? parsed.serviceCatalog : [],
+      levels: Array.isArray(parsed.levels) ? parsed.levels : [],
+      prefixSettings: parsed.prefixSettings || {},
+      commonParagraphs: parsed.commonParagraphs || {}
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeCreateQuoteCache = (next = {}) => {
+  try {
+    window.sessionStorage.setItem(CREATE_QUOTE_CACHE_KEY, JSON.stringify({
+      leadRows: Array.isArray(next.leadRows) ? next.leadRows : [],
+      customerRows: Array.isArray(next.customerRows) ? next.customerRows : [],
+      employeeRows: Array.isArray(next.employeeRows) ? next.employeeRows : [],
+      serviceCatalog: Array.isArray(next.serviceCatalog) ? next.serviceCatalog : [],
+      levels: Array.isArray(next.levels) ? next.levels : [],
+      prefixSettings: next.prefixSettings || {},
+      commonParagraphs: next.commonParagraphs || {},
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore sessionStorage failures.
+  }
+};
+
+const readCreateQuoteEditCache = (editId) => {
+  try {
+    const raw = window.sessionStorage.getItem(`${CREATE_QUOTE_EDIT_CACHE_PREFIX}${editId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      form: parsed.form || null,
+      items: Array.isArray(parsed.items) ? parsed.items : [],
+      savedId: parsed.savedId || null,
+      status: String(parsed.status || '')
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeCreateQuoteEditCache = (editId, next = {}) => {
+  if (!editId) return;
+  try {
+    window.sessionStorage.setItem(`${CREATE_QUOTE_EDIT_CACHE_PREFIX}${editId}`, JSON.stringify({
+      form: next.form || null,
+      items: Array.isArray(next.items) ? next.items : [],
+      savedId: next.savedId || null,
+      status: String(next.status || ''),
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore sessionStorage failures.
+  }
+};
+
 export default function CreateQuote() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('id') || '';
   const isEditMode = Boolean(editId);
   const leadPrefill = location.state?.lead || null;
+  const [cachedDependencies] = useState(() => readCreateQuoteCache());
+  const [cachedEditQuote] = useState(() => (isEditMode ? readCreateQuoteEditCache(editId) : null));
   const [active, setActive] = useState(0);
-  const [leadRows, setLeadRows] = useState([]);
-  const [customerRows, setCustomerRows] = useState([]);
-  const [employeeRows, setEmployeeRows] = useState([]);
-  const [serviceCatalog, setServiceCatalog] = useState([]);
-  const [levels, setLevels] = useState([]);
-  const [prefixSettings, setPrefixSettings] = useState({});
-  const [commonParagraphs, setCommonParagraphs] = useState({});
+  const [leadRows, setLeadRows] = useState(() => cachedDependencies?.leadRows || []);
+  const [customerRows, setCustomerRows] = useState(() => cachedDependencies?.customerRows || []);
+  const [employeeRows, setEmployeeRows] = useState(() => cachedDependencies?.employeeRows || []);
+  const [serviceCatalog, setServiceCatalog] = useState(() => cachedDependencies?.serviceCatalog || []);
+  const [levels, setLevels] = useState(() => cachedDependencies?.levels || []);
+  const [prefixSettings, setPrefixSettings] = useState(() => cachedDependencies?.prefixSettings || {});
+  const [commonParagraphs, setCommonParagraphs] = useState(() => cachedDependencies?.commonParagraphs || {});
   const [premiseRows, setPremiseRows] = useState([]);
   const [status, setStatus] = useState('');
-  const [savedId, setSavedId] = useState(null);
+  const [savedId, setSavedId] = useState(() => (isEditMode ? cachedEditQuote?.savedId || null : null));
   const [recommendationDefault, setRecommendationDefault] = useState(getStoredRecommendationDefault);
   const [termsEditable, setTermsEditable] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1024 : window.innerWidth));
+  const dependencyLoadRef = useRef(null);
+  const quoteLoadRef = useRef(null);
 
   const [form, setForm] = useState({
     source_type: 'Manual',
@@ -155,6 +230,16 @@ export default function CreateQuote() {
   const [items, setItems] = useState([makeItem()]);
 
   useEffect(() => {
+    if (!isEditMode || !cachedEditQuote?.form) return;
+    setForm((prev) => ({
+      ...prev,
+      ...cachedEditQuote.form
+    }));
+    setItems(cachedEditQuote.items.length ? cachedEditQuote.items : [makeItem()]);
+    setStatus(cachedEditQuote.status || '');
+  }, [cachedEditQuote, isEditMode]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
@@ -195,36 +280,67 @@ export default function CreateQuote() {
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      const [leadRes, customerRes, employeeRes, itemRes, levelRes, prefixRes, commonRes, templateRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/leads`).catch(() => ({ data: [] })),
-        axios.get(`${API_BASE_URL}/api/customers`).catch(() => ({ data: [] })),
-        axios.get(`${API_BASE_URL}/api/employees`).catch(() => ({ data: [] })),
-        axios.get(`${API_BASE_URL}/api/items`),
-        axios.get(`${API_BASE_URL}/api/settings/infestation-levels`),
-        axios.get(`${API_BASE_URL}/api/settings/quotation-prefixes`),
-        axios.get(`${API_BASE_URL}/api/settings/quotation-common-paragraphs`),
-        axios.get(`${API_BASE_URL}/api/settings/quotation-template`)
-      ]);
-      if (!mounted) return;
-      setLeadRows(Array.isArray(leadRes.data) ? leadRes.data : []);
-      setCustomerRows(Array.isArray(customerRes.data) ? customerRes.data : []);
-      setEmployeeRows(Array.isArray(employeeRes.data) ? employeeRes.data : []);
-      setServiceCatalog(Array.isArray(itemRes.data)
-        ? itemRes.data.filter((item) => item.sellable !== false && String(item.itemType || item.item_type || 'service').toLowerCase() === 'service')
-        : []);
-      setLevels(Array.isArray(levelRes.data) ? levelRes.data.filter((s) => Number(s.is_active || 0) === 1) : []);
-      setPrefixSettings(prefixRes.data || {});
-      setCommonParagraphs(commonRes.data || {});
-      setForm((p) => ({
-        ...p,
-        prepared_by: p.prepared_by || templateRes.data?.default_sales_person || '',
-        sales_person: p.sales_person || templateRes.data?.default_sales_person || '',
-        designation: p.designation || templateRes.data?.default_designation || '',
-        mobile: p.mobile || templateRes.data?.default_mobile || '',
-        opening_paragraph: isEditMode ? p.opening_paragraph : (p.opening_paragraph || commonRes.data?.opening_paragraph || ''),
-        payment_terms: isEditMode ? p.payment_terms : (p.payment_terms || commonRes.data?.payment_terms || ''),
-        closing_paragraph: isEditMode ? p.closing_paragraph : (p.closing_paragraph || commonRes.data?.closing_paragraph || commonRes.data?.relationship_closing_paragraph || '')
-      }));
+      if (dependencyLoadRef.current) return dependencyLoadRef.current;
+      const request = (async () => {
+        try {
+          const [leadRes, customerRes, employeeRes, itemRes, levelRes, prefixRes, commonRes, templateRes] = await Promise.all([
+            axios.get(`${API_BASE_URL}/api/leads`).catch(() => ({ data: [] })),
+            axios.get(`${API_BASE_URL}/api/customers`).catch(() => ({ data: [] })),
+            axios.get(`${API_BASE_URL}/api/employees`).catch(() => ({ data: [] })),
+            axios.get(`${API_BASE_URL}/api/items`),
+            axios.get(`${API_BASE_URL}/api/settings/infestation-levels`),
+            axios.get(`${API_BASE_URL}/api/settings/quotation-prefixes`),
+            axios.get(`${API_BASE_URL}/api/settings/quotation-common-paragraphs`),
+            axios.get(`${API_BASE_URL}/api/settings/quotation-template`)
+          ]);
+          if (!mounted) return;
+          const nextLeadRows = Array.isArray(leadRes.data) ? leadRes.data : [];
+          const nextCustomerRows = Array.isArray(customerRes.data) ? customerRes.data : [];
+          const nextEmployeeRows = Array.isArray(employeeRes.data) ? employeeRes.data : [];
+          const nextServiceCatalog = Array.isArray(itemRes.data)
+            ? itemRes.data.filter((item) => item.sellable !== false && String(item.itemType || item.item_type || 'service').toLowerCase() === 'service')
+            : [];
+          const nextLevels = Array.isArray(levelRes.data) ? levelRes.data.filter((s) => Number(s.is_active || 0) === 1) : [];
+          const nextPrefixSettings = prefixRes.data || {};
+          const nextCommonParagraphs = commonRes.data || {};
+          setLeadRows(nextLeadRows);
+          setCustomerRows(nextCustomerRows);
+          setEmployeeRows(nextEmployeeRows);
+          setServiceCatalog(nextServiceCatalog);
+          setLevels(nextLevels);
+          setPrefixSettings(nextPrefixSettings);
+          setCommonParagraphs(nextCommonParagraphs);
+          writeCreateQuoteCache({
+            leadRows: nextLeadRows,
+            customerRows: nextCustomerRows,
+            employeeRows: nextEmployeeRows,
+            serviceCatalog: nextServiceCatalog,
+            levels: nextLevels,
+            prefixSettings: nextPrefixSettings,
+            commonParagraphs: nextCommonParagraphs
+          });
+          setForm((p) => ({
+            ...p,
+            prepared_by: p.prepared_by || templateRes.data?.default_sales_person || '',
+            sales_person: p.sales_person || templateRes.data?.default_sales_person || '',
+            designation: p.designation || templateRes.data?.default_designation || '',
+            mobile: p.mobile || templateRes.data?.default_mobile || '',
+            opening_paragraph: isEditMode ? p.opening_paragraph : (p.opening_paragraph || commonRes.data?.opening_paragraph || ''),
+            payment_terms: isEditMode ? p.payment_terms : (p.payment_terms || commonRes.data?.payment_terms || ''),
+            closing_paragraph: isEditMode ? p.closing_paragraph : (p.closing_paragraph || commonRes.data?.closing_paragraph || commonRes.data?.relationship_closing_paragraph || '')
+          }));
+        } catch (error) {
+          if (mounted) setStatus('Could not load quotation dependencies');
+          throw error;
+        }
+      })();
+      dependencyLoadRef.current = request;
+      request.finally(() => {
+        if (dependencyLoadRef.current === request) {
+          dependencyLoadRef.current = null;
+        }
+      });
+      return request;
     };
     load().catch(() => setStatus('Could not load quotation dependencies'));
     return () => {
@@ -236,28 +352,52 @@ export default function CreateQuote() {
     if (!isEditMode) return;
     let mounted = true;
     const loadQuotation = async () => {
-      try {
-        setStatus('Loading quotation...');
-        const res = await axios.get(`${API_BASE_URL}/api/quotations/${editId}`);
-        if (!mounted) return;
-        const data = res.data || {};
-        setSavedId(data.id || Number(editId));
-        setForm((prev) => ({
-          ...prev,
-          ...data,
-          quotation_date: data.quotation_date ? String(data.quotation_date).slice(0, 10) : prev.quotation_date
-        }));
-        setItems(Array.isArray(data.items) && data.items.length ? data.items : [makeItem()]);
-        setStatus('Quotation loaded');
-      } catch (error) {
-        setStatus(error?.response?.data?.error || 'Failed to load quotation');
-      }
+      if (quoteLoadRef.current) return quoteLoadRef.current;
+      const request = (async () => {
+        try {
+          setStatus('Loading quotation...');
+          const res = await axios.get(`${API_BASE_URL}/api/quotations/${editId}`);
+          if (!mounted) return;
+          const data = res.data || {};
+          const nextForm = {
+            ...form,
+            ...data,
+            quotation_date: data.quotation_date ? String(data.quotation_date).slice(0, 10) : form.quotation_date
+          };
+          const nextItems = Array.isArray(data.items) && data.items.length ? data.items : [makeItem()];
+          setSavedId(data.id || Number(editId));
+          setForm(nextForm);
+          setItems(nextItems);
+          setStatus('Quotation loaded');
+          writeCreateQuoteEditCache(editId, {
+            form: nextForm,
+            items: nextItems,
+            savedId: data.id || Number(editId),
+            status: 'Quotation loaded'
+          });
+        } catch (error) {
+          if (mounted) {
+            setStatus(error?.response?.data?.error || 'Failed to load quotation');
+          }
+          throw error;
+        }
+      })();
+      quoteLoadRef.current = request;
+      request.finally(() => {
+        if (quoteLoadRef.current === request) {
+          quoteLoadRef.current = null;
+        }
+      });
+      return request;
     };
-    loadQuotation();
+    if (cachedEditQuote?.form) {
+      return undefined;
+    }
+    loadQuotation().catch(() => {});
     return () => {
       mounted = false;
     };
-  }, [editId, isEditMode]);
+  }, [cachedEditQuote, editId, isEditMode]);
 
   const updateItem = (idx, patch) => {
     setItems((prev) => {
@@ -502,6 +642,16 @@ export default function CreateQuote() {
       }));
       if (Array.isArray(res.data?.items) && res.data.items.length) setItems(res.data.items);
       setStatus(`Quotation ${isEditMode ? 'updated' : 'saved'}${res.data?.quotation_number ? `: ${res.data.quotation_number}` : ''}`);
+      writeCreateQuoteEditCache(editId || String(returnedId || ''), {
+        form: {
+          ...form,
+          ...res.data,
+          quotation_date: res.data?.quotation_date ? String(res.data.quotation_date).slice(0, 10) : form.quotation_date
+        },
+        items: Array.isArray(res.data?.items) && res.data.items.length ? res.data.items : items,
+        savedId: returnedId,
+        status: `Quotation ${isEditMode ? 'updated' : 'saved'}`
+      });
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Failed to save quotation');
     }

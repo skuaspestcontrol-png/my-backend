@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { CalendarDays, MapPin, Wrench, X } from 'lucide-react';
@@ -6,6 +6,7 @@ import { useColumnResize } from './table/useColumnResize';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const SCHEDULE_JOB_CACHE_KEY = 'schedule_job_dashboard_cache_v1';
 
 const statusFilters = ['All', 'Assigned', 'Scheduled', 'Completed'];
 
@@ -112,6 +113,40 @@ const isContractActive = (invoice) => {
   return end >= today;
 };
 
+const readScheduleJobCache = () => {
+  try {
+    const raw = sessionStorage.getItem(SCHEDULE_JOB_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      customers: Array.isArray(parsed.customers) ? parsed.customers : [],
+      invoices: Array.isArray(parsed.invoices) ? parsed.invoices : [],
+      employees: Array.isArray(parsed.employees) ? parsed.employees : [],
+      jobs: Array.isArray(parsed.jobs) ? parsed.jobs : []
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeScheduleJobCache = (next = {}) => {
+  try {
+    sessionStorage.setItem(
+      SCHEDULE_JOB_CACHE_KEY,
+      JSON.stringify({
+        customers: Array.isArray(next.customers) ? next.customers : [],
+        invoices: Array.isArray(next.invoices) ? next.invoices : [],
+        employees: Array.isArray(next.employees) ? next.employees : [],
+        jobs: Array.isArray(next.jobs) ? next.jobs : [],
+        updatedAt: Date.now()
+      })
+    );
+  } catch (_error) {
+    // Ignore sessionStorage failures.
+  }
+};
+
 const scheduleColumns = ['select', 'service', 'visit', 'date', 'window', 'site', 'status'];
 const scheduleColumnWidths = {
   select: 56,
@@ -138,16 +173,18 @@ export default function ScheduleJob() {
   const prefillLead = location.state?.lead || null;
   const prefillCustomerName = location.state?.customerName || prefillLead?.customerName || '';
   const prefillContractNumber = location.state?.contractNumber || '';
+  const [cachedScheduleData] = useState(() => readScheduleJobCache());
 
-  const [customers, setCustomers] = useState([]);
-  const [invoices, setInvoices] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState(() => cachedScheduleData?.customers || []);
+  const [invoices, setInvoices] = useState(() => cachedScheduleData?.invoices || []);
+  const [employees, setEmployees] = useState(() => cachedScheduleData?.employees || []);
+  const [jobs, setJobs] = useState(() => cachedScheduleData?.jobs || []);
+  const [loading, setLoading] = useState(() => !cachedScheduleData);
   const [loadError, setLoadError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const loadRequestRef = useRef(null);
 
   const [customerId, setCustomerId] = useState('');
   const [contractId, setContractId] = useState('');
@@ -160,35 +197,61 @@ export default function ScheduleJob() {
   useEffect(() => {
     let mounted = true;
 
-    const load = async () => {
-      setLoading(true);
-      setLoadError('');
-      try {
-        const [customerRes, invoiceRes, employeeRes, jobsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/customers`),
-          axios.get(`${API_BASE_URL}/api/invoices`),
-          axios.get(`${API_BASE_URL}/api/employees`),
-          axios.get(`${API_BASE_URL}/api/jobs`)
-        ]);
-        if (!mounted) return;
-        setCustomers(Array.isArray(customerRes.data) ? customerRes.data : []);
-        setInvoices(Array.isArray(invoiceRes.data) ? invoiceRes.data : []);
-        setEmployees(Array.isArray(employeeRes.data) ? employeeRes.data : []);
-        setJobs(Array.isArray(jobsRes.data) ? jobsRes.data : []);
-      } catch (error) {
-        console.error('Failed to load assign-service data', error);
-        if (!mounted) return;
-        setLoadError('Could not fetch customer/contract/employee data.');
-      } finally {
-        if (mounted) setLoading(false);
-      }
+    const load = async ({ silent = false } = {}) => {
+      if (loadRequestRef.current) return loadRequestRef.current;
+
+      const request = (async () => {
+        if (!silent) {
+          setLoading(true);
+          setLoadError('');
+        }
+        try {
+          const [customerRes, invoiceRes, employeeRes, jobsRes] = await Promise.all([
+            axios.get(`${API_BASE_URL}/api/customers`),
+            axios.get(`${API_BASE_URL}/api/invoices`),
+            axios.get(`${API_BASE_URL}/api/employees`),
+            axios.get(`${API_BASE_URL}/api/jobs`)
+          ]);
+          if (!mounted) return;
+          const nextCustomers = Array.isArray(customerRes.data) ? customerRes.data : [];
+          const nextInvoices = Array.isArray(invoiceRes.data) ? invoiceRes.data : [];
+          const nextEmployees = Array.isArray(employeeRes.data) ? employeeRes.data : [];
+          const nextJobs = Array.isArray(jobsRes.data) ? jobsRes.data : [];
+          setCustomers(nextCustomers);
+          setInvoices(nextInvoices);
+          setEmployees(nextEmployees);
+          setJobs(nextJobs);
+          writeScheduleJobCache({
+            customers: nextCustomers,
+            invoices: nextInvoices,
+            employees: nextEmployees,
+            jobs: nextJobs
+          });
+        } catch (error) {
+          console.error('Failed to load assign-service data', error);
+          if (!mounted) return;
+          if (!cachedScheduleData) {
+            setLoadError('Could not fetch customer/contract/employee data.');
+          }
+        } finally {
+          if (mounted) setLoading(false);
+        }
+      })();
+
+      loadRequestRef.current = request;
+      request.finally(() => {
+        if (loadRequestRef.current === request) {
+          loadRequestRef.current = null;
+        }
+      });
+      return request;
     };
 
-    load();
+    load({ silent: Boolean(cachedScheduleData) });
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [cachedScheduleData]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);

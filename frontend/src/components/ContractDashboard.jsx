@@ -34,6 +34,7 @@ import PdfPreviewModal from './PdfPreviewModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const CONTRACT_PAGE_SIZE = 20;
+const CONTRACTS_DASHBOARD_CACHE_KEY = 'contracts_dashboard_cache_v1';
 
 const statusStyles = {
   Active: { background: 'rgba(22,163,74,0.16)', color: '#166534' },
@@ -390,6 +391,31 @@ const openContractJobCardPdf = (invoiceId) => {
   return addPdfCacheBust(`${API_BASE}/api/contracts/${invoiceId}/job-card-summary-pdf`);
 };
 
+const readContractsDashboardCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(CONTRACTS_DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergeContractsDashboardCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readContractsDashboardCache() || {};
+    window.sessionStorage.setItem(
+      CONTRACTS_DASHBOARD_CACHE_KEY,
+      JSON.stringify({ ...current, ...patch })
+    );
+  } catch {
+    // Best effort only. Cache failures should never block the dashboard.
+  }
+};
+
   const findCustomerForInvoice = (invoice) =>
     customers.find((customer) =>
       (invoice.customerId && String(customer._id) === String(invoice.customerId)) ||
@@ -415,21 +441,23 @@ const openContractJobCardPdf = (invoiceId) => {
 
 export default function ContractDashboard() {
   const navigate = useNavigate();
+  const [cachedDashboard] = useState(() => readContractsDashboardCache());
+  const hasCachedDashboard = Boolean(cachedDashboard);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [quickFilter, setQuickFilter] = useState('All');
   const [filters, setFilters] = useState({ status: 'All Status', type: 'All Type', from: '', to: '', search: '' });
   const [activeTab, setActiveTab] = useState('Overview');
-  const [invoices, setInvoices] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [serviceSchedules, setServiceSchedules] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [invoices, setInvoices] = useState(() => Array.isArray(cachedDashboard?.invoices) ? cachedDashboard.invoices : []);
+  const [customers, setCustomers] = useState(() => Array.isArray(cachedDashboard?.customers) ? cachedDashboard.customers : []);
+  const [serviceSchedules, setServiceSchedules] = useState(() => Array.isArray(cachedDashboard?.serviceSchedules) ? cachedDashboard.serviceSchedules : []);
+  const [payments, setPayments] = useState(() => Array.isArray(cachedDashboard?.payments) ? cachedDashboard.payments : []);
+  const [loading, setLoading] = useState(() => !cachedDashboard);
   const [loadError, setLoadError] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('');
   const [actionMenu, setActionMenu] = useState(null);
   const [showCustomize, setShowCustomize] = useState(false);
   const [customizeMenuPosition, setCustomizeMenuPosition] = useState(null);
-  const [visibleColumns, setVisibleColumns] = useState({
+  const [visibleColumns, setVisibleColumns] = useState(() => ({
     contractNo: true,
     customer: true,
     property: true,
@@ -439,7 +467,7 @@ export default function ContractDashboard() {
     total: true,
     paid: true,
     due: true
-  });
+  }));
   const [customerSummary, setCustomerSummary] = useState({ open: false, row: null, showHistory: false });
   const [customerProfitSummary, setCustomerProfitSummary] = useState(null);
   const [customerProfitLoading, setCustomerProfitLoading] = useState(false);
@@ -447,6 +475,8 @@ export default function ContractDashboard() {
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' });
   const [page, setPage] = useState(1);
   const customizeButtonRef = useRef(null);
+  const contractsLoadPromiseRef = useRef(null);
+  const contractProfitRequestRef = useRef(0);
 
   const navigateToInvoiceEditor = (params = {}) => {
     const searchParams = new URLSearchParams();
@@ -517,61 +547,9 @@ export default function ContractDashboard() {
   }, []);
 
   const loadContractsData = async (options = {}) => {
-    if (!options.silent) setLoading(true);
-    setLoadError('');
-    try {
-      const [invoiceRes, customerRes, schedulesRes, paymentsRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/invoices`),
-        axios.get(`${API_BASE}/api/customers`),
-        axios.get(`${API_BASE}/api/service-schedules`),
-        loadLivePayments()
-      ]);
-
-      const nextInvoices = Array.isArray(invoiceRes.data) ? invoiceRes.data : [];
-      const nextCustomers = Array.isArray(customerRes.data) ? customerRes.data : [];
-      const nextSchedules = Array.isArray(schedulesRes.data) ? schedulesRes.data : [];
-      const nextPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
-      setInvoices(nextInvoices);
-      setCustomers(nextCustomers);
-      setServiceSchedules(nextSchedules);
-      setPayments(nextPayments);
-    } catch (error) {
-      console.error('Failed to load contracts dashboard data', error);
-      if (!options.silent) {
-        setLoadError('Unable to fetch contracts right now. Please refresh once.');
-        setInvoices([]);
-        setCustomers([]);
-        setServiceSchedules([]);
-        setPayments([]);
-      }
-    } finally {
-      if (!options.silent) setLoading(false);
-    }
-  };
-
-  const loadContractProfitSummary = async (invoiceId) => {
-    if (!invoiceId) return false;
-    try {
-      setCustomerProfitLoading(true);
-      setCustomerProfitError('');
-      const res = await axios.get(`${API_BASE}/api/contracts/${invoiceId}/profit-loss`);
-      setCustomerProfitSummary(res.data || null);
-      return true;
-    } catch (error) {
-      console.error('Failed to load contract profit summary', error);
-      setCustomerProfitSummary(null);
-      setCustomerProfitError(error?.response?.data?.error || 'Could not load profit and cost summary.');
-      return false;
-    } finally {
-      setCustomerProfitLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let mounted = true;
-
-    const load = async () => {
-      setLoading(true);
+    if (contractsLoadPromiseRef.current) return contractsLoadPromiseRef.current;
+    const request = (async () => {
+      if (!options.silent) setLoading(true);
       setLoadError('');
       try {
         const [invoiceRes, customerRes, schedulesRes, paymentsRes] = await Promise.all([
@@ -581,8 +559,6 @@ export default function ContractDashboard() {
           loadLivePayments()
         ]);
 
-        if (!mounted) return;
-
         const nextInvoices = Array.isArray(invoiceRes.data) ? invoiceRes.data : [];
         const nextCustomers = Array.isArray(customerRes.data) ? customerRes.data : [];
         const nextSchedules = Array.isArray(schedulesRes.data) ? schedulesRes.data : [];
@@ -591,26 +567,69 @@ export default function ContractDashboard() {
         setCustomers(nextCustomers);
         setServiceSchedules(nextSchedules);
         setPayments(nextPayments);
+        mergeContractsDashboardCache({
+          invoices: nextInvoices,
+          customers: nextCustomers,
+          serviceSchedules: nextSchedules,
+          payments: nextPayments,
+          visibleColumns
+        });
       } catch (error) {
         console.error('Failed to load contracts dashboard data', error);
-        if (!mounted) return;
-        setLoadError('Unable to fetch contracts right now. Please refresh once.');
-        setInvoices([]);
-        setCustomers([]);
-        setServiceSchedules([]);
-        setPayments([]);
+        if (!options.silent) {
+          setLoadError('Unable to fetch contracts right now. Please refresh once.');
+          setInvoices([]);
+          setCustomers([]);
+          setServiceSchedules([]);
+          setPayments([]);
+        }
       } finally {
-        if (mounted) setLoading(false);
+        if (!options.silent) setLoading(false);
       }
-    };
+    })();
+    contractsLoadPromiseRef.current = request;
+    try {
+      return await request;
+    } finally {
+      if (contractsLoadPromiseRef.current === request) {
+        contractsLoadPromiseRef.current = null;
+      }
+    }
+  };
 
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const loadContractProfitSummary = async (invoiceId) => {
+    if (!invoiceId) return false;
+    const requestId = contractProfitRequestRef.current + 1;
+    contractProfitRequestRef.current = requestId;
+    setCustomerProfitLoading(true);
+    setCustomerProfitError('');
+    try {
+      const res = await axios.get(`${API_BASE}/api/contracts/${invoiceId}/profit-loss`);
+      if (contractProfitRequestRef.current !== requestId) return false;
+      setCustomerProfitSummary(res.data || null);
+      return true;
+    } catch (error) {
+      if (contractProfitRequestRef.current !== requestId) return false;
+      console.error('Failed to load contract profit summary', error);
+      setCustomerProfitSummary(null);
+      setCustomerProfitError(error?.response?.data?.error || 'Could not load profit and cost summary.');
+      return false;
+    } finally {
+      if (contractProfitRequestRef.current === requestId) {
+        setCustomerProfitLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    loadContractsData({ silent: hasCachedDashboard });
+  }, [hasCachedDashboard]);
 
   useAutoRefresh(() => loadContractsData({ silent: true }), { enabled: !customerSummary.open });
+
+  useEffect(() => {
+    mergeContractsDashboardCache({ visibleColumns });
+  }, [visibleColumns]);
 
   useEffect(() => {
     const refreshOpenPdf = () => {

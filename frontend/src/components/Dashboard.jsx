@@ -4,6 +4,43 @@ import { useNavigate } from 'react-router-dom';
 import { subscribeDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const DASHBOARD_CACHE_KEY = 'skuasmaster-dashboard-cache-v1';
+
+const readDashboardCache = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      summary: parsed.summary || null,
+      settings: parsed.settings || {},
+      invoices: Array.isArray(parsed.invoices) ? parsed.invoices : [],
+      vendorBills: Array.isArray(parsed.vendorBills) ? parsed.vendorBills : [],
+      leads: Array.isArray(parsed.leads) ? parsed.leads : [],
+      updatedAt: Number(parsed.updatedAt || 0) || 0
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeDashboardCache = (snapshot = {}) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
+      summary: snapshot.summary || null,
+      settings: snapshot.settings || {},
+      invoices: Array.isArray(snapshot.invoices) ? snapshot.invoices : [],
+      vendorBills: Array.isArray(snapshot.vendorBills) ? snapshot.vendorBills : [],
+      leads: Array.isArray(snapshot.leads) ? snapshot.leads : [],
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore storage failures so the dashboard still works in restricted environments.
+  }
+};
 
 const shell = {
   page: {
@@ -85,11 +122,13 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const hasLoadedRef = useRef(false);
   const loadDashboardRef = useRef(() => {});
-  const [summary, setSummary] = useState(null);
-  const [settings, setSettings] = useState({});
-  const [invoices, setInvoices] = useState([]);
-  const [vendorBills, setVendorBills] = useState([]);
-  const [leads, setLeads] = useState([]);
+  const dashboardLoadingRef = useRef(false);
+  const cachedDashboardState = useMemo(() => readDashboardCache(), []);
+  const [summary, setSummary] = useState(() => cachedDashboardState?.summary || null);
+  const [settings, setSettings] = useState(() => cachedDashboardState?.settings || {});
+  const [invoices, setInvoices] = useState(() => cachedDashboardState?.invoices || []);
+  const [vendorBills, setVendorBills] = useState(() => cachedDashboardState?.vendorBills || []);
+  const [leads, setLeads] = useState(() => cachedDashboardState?.leads || []);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 
   useEffect(() => {
@@ -98,24 +137,44 @@ export default function Dashboard() {
     let active = true;
 
     const load = async () => {
+      if (dashboardLoadingRef.current) return;
+      dashboardLoadingRef.current = true;
       try {
-        const [summaryRes, settingsRes, invoicesRes, vendorBillsRes, leadsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/dashboard/summary`, { params: { _: Date.now() } }).catch(() => ({ data: null })),
-          axios.get(`${API_BASE_URL}/api/settings`, { params: { _: Date.now() } }),
-          axios.get(`${API_BASE_URL}/api/invoices`, { params: { _: Date.now() } }),
-          axios.get(`${API_BASE_URL}/api/vendor-bills`, { params: { _: Date.now() } }).catch(() => ({ data: [] })),
-          axios.get(`${API_BASE_URL}/api/leads`, { params: { _: Date.now() } }).catch(() => ({ data: [] }))
+        const stamp = Date.now();
+        const summaryPromise = axios.get(`${API_BASE_URL}/api/dashboard/summary`, { params: { _: stamp } }).catch(() => ({ data: null }));
+        const settingsPromise = axios.get(`${API_BASE_URL}/api/settings`, { params: { _: stamp } }).catch(() => ({ data: {} }));
+        const supportPromise = Promise.all([
+          axios.get(`${API_BASE_URL}/api/invoices`, { params: { _: stamp } }).catch(() => ({ data: [] })),
+          axios.get(`${API_BASE_URL}/api/vendor-bills`, { params: { _: stamp } }).catch(() => ({ data: [] })),
+          axios.get(`${API_BASE_URL}/api/leads`, { params: { _: stamp } }).catch(() => ({ data: [] }))
         ]);
+
+        const [summaryRes, settingsRes] = await Promise.all([summaryPromise, settingsPromise]);
 
         if (!active) return;
         setSummary(summaryRes?.data || null);
         setSettings(settingsRes.data || {});
-        setInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
-        setVendorBills(Array.isArray(vendorBillsRes.data) ? vendorBillsRes.data : []);
-        setLeads(Array.isArray(leadsRes.data) ? leadsRes.data : []);
+
+        const [invoicesRes, vendorBillsRes, leadsRes] = await supportPromise;
+        if (!active) return;
+        const nextInvoices = Array.isArray(invoicesRes.data) ? invoicesRes.data : [];
+        const nextVendorBills = Array.isArray(vendorBillsRes.data) ? vendorBillsRes.data : [];
+        const nextLeads = Array.isArray(leadsRes.data) ? leadsRes.data : [];
+        setInvoices(nextInvoices);
+        setVendorBills(nextVendorBills);
+        setLeads(nextLeads);
+        writeDashboardCache({
+          summary: summaryRes?.data || null,
+          settings: settingsRes.data || {},
+          invoices: nextInvoices,
+          vendorBills: nextVendorBills,
+          leads: nextLeads
+        });
       } catch (error) {
         if (!active) return;
         console.error('Dashboard load failed', error);
+      } finally {
+        dashboardLoadingRef.current = false;
       }
     };
 

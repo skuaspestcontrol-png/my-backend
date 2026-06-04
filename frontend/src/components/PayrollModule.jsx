@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, Pencil, ShieldCheck, Trash2, UserRoundCheck } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
@@ -7,6 +7,7 @@ import PdfPreviewModal from './PdfPreviewModal';
 import { buildPortalAuthHeaders, getPortalUserId, getPortalUserName, getPortalUserRole } from '../utils/portalAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const PAYROLL_DASHBOARD_CACHE_KEY = 'payroll_dashboard_cache_v1';
 
 const roleFlags = () => {
   const roleRaw = String(getPortalUserRole() || 'Admin').trim().toLowerCase();
@@ -367,21 +368,44 @@ const salaryFormDefaults = {
   notes: ''
 };
 
+const readPayrollDashboardCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(PAYROLL_DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergePayrollDashboardCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readPayrollDashboardCache() || {};
+    window.sessionStorage.setItem(PAYROLL_DASHBOARD_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // Cache is best effort only.
+  }
+};
+
 export default function PayrollModule() {
   const role = useMemo(() => roleFlags(), []);
+  const [cachedDashboard] = useState(() => readPayrollDashboardCache());
   const [activeTab, setActiveTab] = useState('dashboard');
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [month, setMonth] = useState(defaultMonth);
   const [year, setYear] = useState(defaultYear);
 
-  const [employees, setEmployees] = useState([]);
-  const [salaryStructures, setSalaryStructures] = useState([]);
-  const [holidays, setHolidays] = useState([]);
-  const [advances, setAdvances] = useState([]);
-  const [dashboard, setDashboard] = useState(null);
-  const [payrollItems, setPayrollItems] = useState([]);
-  const [meta, setMeta] = useState({ config: { weeklyOffDay: 0, lateMarkGraceMinutes: 15, workStartTime: '09:00' } });
+  const [employees, setEmployees] = useState(() => Array.isArray(cachedDashboard?.employees) ? cachedDashboard.employees : []);
+  const [salaryStructures, setSalaryStructures] = useState(() => Array.isArray(cachedDashboard?.salaryStructures) ? cachedDashboard.salaryStructures : []);
+  const [holidays, setHolidays] = useState(() => Array.isArray(cachedDashboard?.holidays) ? cachedDashboard.holidays : []);
+  const [advances, setAdvances] = useState(() => Array.isArray(cachedDashboard?.advances) ? cachedDashboard.advances : []);
+  const [dashboard, setDashboard] = useState(() => cachedDashboard?.dashboard || null);
+  const [payrollItems, setPayrollItems] = useState(() => Array.isArray(cachedDashboard?.payrollItems) ? cachedDashboard.payrollItems : []);
+  const [meta, setMeta] = useState(() => cachedDashboard?.meta || { config: { weeklyOffDay: 0, lateMarkGraceMinutes: 15, workStartTime: '09:00' } });
 
   const [filters, setFilters] = useState({ employeeId: '', department: '', paymentStatus: '', payrollStatus: '', search: '' });
   const [salaryForm, setSalaryForm] = useState(salaryFormDefaults);
@@ -393,6 +417,7 @@ export default function PayrollModule() {
   const [slipViewer, setSlipViewer] = useState({ open: false, url: '', title: '', item: null });
   const [page, setPage] = useState(1);
   const [screenWidth, setScreenWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
+  const reloadRef = useRef(null);
 
   const pageSize = 10;
   const canResizeDesktopTables = screenWidth >= 960;
@@ -535,6 +560,7 @@ export default function PayrollModule() {
   const setupTableMinWidth = payrollSetupColumns.reduce((sum, column) => sum + (getSetupColumnWidth(column.key) || column.width), 0);
   const advanceTableMinWidth = payrollAdvanceColumns.reduce((sum, column) => sum + (getAdvanceColumnWidth(column.key) || column.width), 0);
   const holidayTableMinWidth = payrollHolidayColumns.reduce((sum, column) => sum + (getHolidayColumnWidth(column.key) || column.width), 0);
+  const cacheMatchesSelection = Boolean(cachedDashboard && String(cachedDashboard.month) === String(month) && String(cachedDashboard.year) === String(year));
   const setupTableStyle = { ...shell.table, minWidth: `${Math.max(920, setupTableMinWidth)}px`, tableLayout: 'fixed' };
   const advanceTableStyle = { ...shell.table, minWidth: `${Math.max(980, advanceTableMinWidth)}px`, tableLayout: 'fixed' };
   const holidayTableStyle = { ...shell.table, minWidth: `${Math.max(760, holidayTableMinWidth)}px`, tableLayout: 'fixed' };
@@ -564,57 +590,90 @@ export default function PayrollModule() {
   };
   const headers = useMemo(() => buildPortalAuthHeaders(), []);
 
-  const reloadAll = async () => {
-    try {
-      setBusy(true);
-      const [empRes, metaRes, structureRes, holidayRes, advanceRes, dashboardRes, payrollRes, payrollAllRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/employees`),
-        axios.get(`${API_BASE}/api/payroll/meta`, { headers }),
-        axios.get(`${API_BASE}/api/payroll/salary-structures`, { headers }),
-        axios.get(`${API_BASE}/api/payroll/holidays`, { params: { month, year }, headers }),
-        axios.get(`${API_BASE}/api/payroll/advances`, { headers }),
-        axios.get(`${API_BASE}/api/payroll/dashboard`, { params: { month, year }, headers }),
-        axios.get(`${API_BASE}/api/payroll/items`, { params: { month, year }, headers }),
-        axios.get(`${API_BASE}/api/payroll/items`, { headers })
-      ]);
-      const rawEmployees = Array.isArray(empRes.data) ? empRes.data : [];
-      const normalizedEmployees = rawEmployees
-        .map((entry) => {
-          const employeeId = getEmployeeKey(entry);
-          if (!employeeId) return null;
-          return {
-            ...entry,
-            _id: employeeId,
-            empCode: String(entry?.empCode || entry?.employeeCode || employeeId).trim()
-          };
-        })
-        .filter(Boolean);
-      setEmployees(normalizedEmployees);
-      setMeta(metaRes.data || {});
-      setSalaryStructures(Array.isArray(structureRes.data) ? structureRes.data : []);
-      setHolidays(Array.isArray(holidayRes.data) ? holidayRes.data : []);
-      setAdvances(Array.isArray(advanceRes.data) ? advanceRes.data : []);
-      setDashboard(dashboardRes.data || null);
-      const scopedItems = Array.isArray(payrollRes.data) ? payrollRes.data : [];
-      const allItems = Array.isArray(payrollAllRes.data) ? payrollAllRes.data : [];
-      setPayrollItems(scopedItems);
-      if (scopedItems.length === 0 && allItems.length > 0) {
-        setStatus('No payroll rows found for selected month. You can generate payroll for this month.');
+  const reloadAll = async (options = {}) => {
+    if (reloadRef.current) {
+      if (options.force) {
+        await reloadRef.current;
       } else {
-        setStatus('');
+        return reloadRef.current;
       }
-    } catch (error) {
-      console.error('Payroll fetch failed', error);
-      setStatus(error?.response?.data?.error || 'Unable to load payroll module right now.');
+    }
+    const request = (async () => {
+      try {
+        if (!options.silent) setBusy(true);
+        const [empRes, metaRes, structureRes, holidayRes, advanceRes, dashboardRes, payrollRes, payrollAllRes] = await Promise.all([
+          axios.get(`${API_BASE}/api/employees`),
+          axios.get(`${API_BASE}/api/payroll/meta`, { headers }),
+          axios.get(`${API_BASE}/api/payroll/salary-structures`, { headers }),
+          axios.get(`${API_BASE}/api/payroll/holidays`, { params: { month, year }, headers }),
+          axios.get(`${API_BASE}/api/payroll/advances`, { headers }),
+          axios.get(`${API_BASE}/api/payroll/dashboard`, { params: { month, year }, headers }),
+          axios.get(`${API_BASE}/api/payroll/items`, { params: { month, year }, headers }),
+          axios.get(`${API_BASE}/api/payroll/items`, { headers })
+        ]);
+        const rawEmployees = Array.isArray(empRes.data) ? empRes.data : [];
+        const normalizedEmployees = rawEmployees
+          .map((entry) => {
+            const employeeId = getEmployeeKey(entry);
+            if (!employeeId) return null;
+            return {
+              ...entry,
+              _id: employeeId,
+              empCode: String(entry?.empCode || entry?.employeeCode || employeeId).trim()
+            };
+          })
+          .filter(Boolean);
+        const nextMeta = metaRes.data || {};
+        const nextSalaryStructures = Array.isArray(structureRes.data) ? structureRes.data : [];
+        const nextHolidays = Array.isArray(holidayRes.data) ? holidayRes.data : [];
+        const nextAdvances = Array.isArray(advanceRes.data) ? advanceRes.data : [];
+        const nextDashboard = dashboardRes.data || null;
+        const scopedItems = Array.isArray(payrollRes.data) ? payrollRes.data : [];
+        const allItems = Array.isArray(payrollAllRes.data) ? payrollAllRes.data : [];
+
+        setEmployees(normalizedEmployees);
+        setMeta(nextMeta);
+        setSalaryStructures(nextSalaryStructures);
+        setHolidays(nextHolidays);
+        setAdvances(nextAdvances);
+        setDashboard(nextDashboard);
+        setPayrollItems(scopedItems);
+        if (scopedItems.length === 0 && allItems.length > 0) {
+          setStatus('No payroll rows found for selected month. You can generate payroll for this month.');
+        } else {
+          setStatus('');
+        }
+
+        mergePayrollDashboardCache({
+          month,
+          year,
+          employees: normalizedEmployees,
+          meta: nextMeta,
+          salaryStructures: nextSalaryStructures,
+          holidays: nextHolidays,
+          advances: nextAdvances,
+          dashboard: nextDashboard,
+          payrollItems: scopedItems
+        });
+      } catch (error) {
+        console.error('Payroll fetch failed', error);
+        setStatus(error?.response?.data?.error || 'Unable to load payroll module right now.');
+      } finally {
+        if (!options.silent) setBusy(false);
+      }
+    })();
+    reloadRef.current = request;
+    try {
+      return await request;
     } finally {
-      setBusy(false);
+      if (reloadRef.current === request) reloadRef.current = null;
     }
   };
 
   useEffect(() => {
-    reloadAll();
+    reloadAll({ silent: cacheMatchesSelection });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [month, year]);
+  }, [month, year, cacheMatchesSelection]);
 
   useEffect(() => {
     const handleResize = () => setScreenWidth(window.innerWidth);
@@ -623,7 +682,7 @@ export default function PayrollModule() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useAutoRefresh(() => reloadAll(), { enabled: !paymentModal.open && !adjustModal.open && !slipViewer.open });
+  useAutoRefresh(() => reloadAll({ silent: true }), { enabled: !paymentModal.open && !adjustModal.open && !slipViewer.open });
 
   const employeeMap = useMemo(() => {
     const next = new Map();
@@ -822,7 +881,7 @@ export default function PayrollModule() {
       await axios.post(`${API_BASE}/api/payroll/salary-structures`, payload, { headers });
       setStatus('Salary structure saved.');
       setSalaryForm(salaryFormDefaults);
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Salary save failed', error);
       window.alert(error?.response?.data?.error || 'Failed to save salary structure.');
@@ -837,7 +896,7 @@ export default function PayrollModule() {
       setBusy(true);
       const res = await axios.post(`${API_BASE}/api/payroll/salary-structures/sync-employees`, { updateExisting }, { headers });
       setStatus(`${res?.data?.message || 'Sync complete'} (Created: ${res?.data?.createdCount || 0}, Updated: ${res?.data?.updatedCount || 0})`);
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Employee master sync failed', error);
       window.alert(error?.response?.data?.error || 'Unable to sync Employee Master data.');
@@ -865,7 +924,7 @@ export default function PayrollModule() {
         : '';
       const baseText = forceRegenerate ? 'Payroll regenerated.' : 'Payroll generated.';
       setStatus(`${baseText} Generated: ${generatedCount}.${skippedText}`);
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Payroll generate failed', error);
       const message = error?.response?.data?.error || 'Unable to generate payroll.';
@@ -884,7 +943,7 @@ export default function PayrollModule() {
       await axios.post(`${API_BASE}/api/payroll/holidays`, holidayForm, { headers });
       setHolidayForm({ date: '', title: '', type: 'paid', notes: '' });
       setStatus('Holiday saved.');
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Holiday save failed', error);
       window.alert(error?.response?.data?.error || 'Unable to save holiday.');
@@ -899,7 +958,7 @@ export default function PayrollModule() {
     try {
       setBusy(true);
       await axios.delete(`${API_BASE}/api/payroll/holidays/${id}`, { headers });
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Holiday delete failed', error);
       window.alert(error?.response?.data?.error || 'Unable to delete holiday.');
@@ -923,7 +982,7 @@ export default function PayrollModule() {
       }, { headers });
       setAdvanceForm({ employeeId: '', amount: '', monthlyDeduction: '', deductionMode: 'partial', reason: '', issuedDate: new Date().toISOString().slice(0, 10) });
       setStatus('Advance saved.');
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Advance save failed', error);
       window.alert(error?.response?.data?.error || 'Unable to save advance.');
@@ -953,7 +1012,7 @@ export default function PayrollModule() {
         }
       }
       setStatus('Advance record deleted.');
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Advance delete failed', error);
       const isNetwork = error?.message && String(error.message).toLowerCase().includes('network');
@@ -989,7 +1048,7 @@ export default function PayrollModule() {
       }, { headers });
       setPaymentModal((prev) => ({ ...prev, open: false, item: null }));
       setStatus('Salary marked as paid.');
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Mark paid failed', error);
       window.alert(error?.response?.data?.error || 'Unable to mark as paid.');
@@ -1024,7 +1083,7 @@ export default function PayrollModule() {
       }, { headers });
       setAdjustModal((prev) => ({ ...prev, open: false, item: null }));
       setStatus('Payroll item updated.');
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Adjustment update failed', error);
       window.alert(error?.response?.data?.error || 'Unable to update payroll item.');
@@ -1041,7 +1100,7 @@ export default function PayrollModule() {
       setBusy(true);
       await axios.delete(`${API_BASE}/api/payroll/items/${encodeURIComponent(String(item._id))}`, { headers });
       setStatus('Payroll row deleted.');
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Delete payroll row failed', error);
       const payload = error?.response?.data || {};
@@ -1068,7 +1127,7 @@ export default function PayrollModule() {
         paymentStatus: 'Pending'
       }, { headers });
       setStatus('Payroll row unlocked. You can now edit or delete it.');
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Unlock payroll row failed', error);
       const message = error?.response?.data?.error || 'Unable to unlock payroll row.';
@@ -1155,7 +1214,7 @@ export default function PayrollModule() {
       setBusy(true);
       await axios.post(`${API_BASE}/api/payroll/seed-sample`, {}, { headers });
       setStatus('Payroll seed data created.');
-      await reloadAll();
+      await reloadAll({ force: true });
     } catch (error) {
       console.error('Seed failed', error);
       window.alert(error?.response?.data?.error || 'Unable to seed payroll data.');

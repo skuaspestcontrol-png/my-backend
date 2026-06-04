@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { MapPin, Navigation, Route, ShieldAlert, ShieldCheck, Users } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const EARTH_RADIUS_KM = 6371;
 const GEOFENCE_RADIUS_KM = 0.2;
+const TRACK_TECHNICIANS_CACHE_KEY = 'track_technicians_cache_v1';
 
 const shell = {
   page: { display: 'grid', gap: '14px', background: 'transparent', border: 'none', borderRadius: 0, padding: 0 },
@@ -53,11 +54,42 @@ const formatDateTime = (value) => {
   return date.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 };
 
+const readTrackTechniciansCache = () => {
+  try {
+    const raw = window.sessionStorage.getItem(TRACK_TECHNICIANS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      jobs: Array.isArray(parsed.jobs) ? parsed.jobs : [],
+      employees: Array.isArray(parsed.employees) ? parsed.employees : [],
+      status: String(parsed.status || 'Loading technician tracking data...')
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeTrackTechniciansCache = (jobs = [], employees = [], status = '') => {
+  try {
+    window.sessionStorage.setItem(TRACK_TECHNICIANS_CACHE_KEY, JSON.stringify({
+      jobs: Array.isArray(jobs) ? jobs : [],
+      employees: Array.isArray(employees) ? employees : [],
+      status: String(status || '').trim(),
+      updatedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore sessionStorage issues.
+  }
+};
+
 export default function TrackTechnicians() {
-  const [jobs, setJobs] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [status, setStatus] = useState('Loading technician tracking data...');
+  const [cachedTrackingData] = useState(() => readTrackTechniciansCache());
+  const [jobs, setJobs] = useState(() => cachedTrackingData?.jobs || []);
+  const [employees, setEmployees] = useState(() => cachedTrackingData?.employees || []);
+  const [status, setStatus] = useState(() => cachedTrackingData?.status || 'Loading technician tracking data...');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const loadRequestRef = useRef(null);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -68,26 +100,40 @@ export default function TrackTechnicians() {
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      try {
-        const [jobsRes, employeesRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/jobs`),
-          axios.get(`${API_BASE_URL}/api/employees`)
-        ]);
-        if (!mounted) return;
-        setJobs(Array.isArray(jobsRes.data) ? jobsRes.data : []);
-        setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
-        setStatus('Live technician tracking view.');
-      } catch (error) {
-        if (!mounted) return;
-        console.error('Failed to load technician tracking data', error);
-        setStatus('Unable to load technician tracking data right now.');
-      }
+      if (loadRequestRef.current) return loadRequestRef.current;
+      const request = (async () => {
+        try {
+          const [jobsRes, employeesRes] = await Promise.all([
+            axios.get(`${API_BASE_URL}/api/jobs`),
+            axios.get(`${API_BASE_URL}/api/employees`)
+          ]);
+          if (!mounted) return;
+          const nextJobs = Array.isArray(jobsRes.data) ? jobsRes.data : [];
+          const nextEmployees = Array.isArray(employeesRes.data) ? employeesRes.data : [];
+          setJobs(nextJobs);
+          setEmployees(nextEmployees);
+          setStatus('Live technician tracking view.');
+          writeTrackTechniciansCache(nextJobs, nextEmployees, 'Live technician tracking view.');
+        } catch (error) {
+          if (!mounted) return;
+          console.error('Failed to load technician tracking data', error);
+          setStatus('Unable to load technician tracking data right now.');
+          writeTrackTechniciansCache(cachedTrackingData?.jobs || [], cachedTrackingData?.employees || [], 'Unable to load technician tracking data right now.');
+        }
+      })();
+      loadRequestRef.current = request;
+      request.finally(() => {
+        if (loadRequestRef.current === request) {
+          loadRequestRef.current = null;
+        }
+      });
+      return request;
     };
     load();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [cachedTrackingData]);
 
   const technicians = useMemo(() => {
     const technicianNameSet = new Set();

@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { IndianRupee, WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useColumnResize } from './table/useColumnResize';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const VENDOR_PAYMENT_CACHE_KEY = 'vendor_payment_dashboard_cache_v1';
 
 const shell = {
   page: {
@@ -151,14 +152,58 @@ const normalizeVendorPayments = (vendorBillsRaw) => {
   return rows.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 };
 
-export default function VendorPaymentDashboard() {
-  const [vendorBills, setVendorBills] = useState([]);
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [status, setStatus] = useState('Loading vendor payment data...');
+const readVendorPaymentCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.sessionStorage.getItem(VENDOR_PAYMENT_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
 
-  const loadData = async () => {
-    const billsRes = await axios.get(`${API_BASE_URL}/api/vendor-bills`);
-    setVendorBills(Array.isArray(billsRes.data) ? billsRes.data : []);
+const mergeVendorPaymentCache = (patch) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = readVendorPaymentCache() || {};
+    window.sessionStorage.setItem(VENDOR_PAYMENT_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // Best effort only.
+  }
+};
+
+export default function VendorPaymentDashboard() {
+  const [cachedDashboard] = useState(() => readVendorPaymentCache());
+  const [vendorBills, setVendorBills] = useState(() => Array.isArray(cachedDashboard?.vendorBills) ? cachedDashboard.vendorBills : []);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [status, setStatus] = useState(() => (cachedDashboard ? 'Live vendor expense payment data' : 'Loading vendor payment data...'));
+  const loadRequestRef = useRef(null);
+
+  const loadData = async (options = {}) => {
+    if (loadRequestRef.current) return loadRequestRef.current;
+    const request = (async () => {
+      try {
+        if (!options.silent) setStatus('Loading vendor payment data...');
+        const billsRes = await axios.get(`${API_BASE_URL}/api/vendor-bills`);
+        const nextBills = Array.isArray(billsRes.data) ? billsRes.data : [];
+        setVendorBills(nextBills);
+        mergeVendorPaymentCache({ vendorBills: nextBills });
+      } catch (error) {
+        if (!options.silent && !cachedDashboard) {
+          setStatus('Could not load vendor payment data right now.');
+          setVendorBills([]);
+        }
+        throw error;
+      }
+    })();
+    loadRequestRef.current = request;
+    try {
+      return await request;
+    } finally {
+      if (loadRequestRef.current === request) loadRequestRef.current = null;
+    }
   };
 
   useEffect(() => {
@@ -168,26 +213,20 @@ export default function VendorPaymentDashboard() {
   }, []);
 
   useEffect(() => {
-    let mounted = true;
     const run = async () => {
       try {
-        await loadData();
-        if (!mounted) return;
+        await loadData({ silent: Boolean(cachedDashboard) });
         setStatus('Live vendor expense payment data');
       } catch (error) {
-        if (!mounted) return;
         console.error('Vendor payment load failed', error);
-        setStatus('Could not load vendor payment data right now.');
+        if (!cachedDashboard) setStatus('Could not load vendor payment data right now.');
       }
     };
     run();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  }, [cachedDashboard]);
 
   useAutoRefresh(async () => {
-    await loadData();
+    await loadData({ silent: true });
     setStatus('Live vendor expense payment data');
   });
 
@@ -228,7 +267,7 @@ export default function VendorPaymentDashboard() {
         paymentMadeEnabled: nextPaidTotal > 0,
         paymentMadeTotal: nextPaidTotal
       });
-      await loadData();
+      await loadData({ silent: true });
       setStatus('Vendor payment entry deleted.');
     } catch (error) {
       window.alert(error?.response?.data?.error || 'Unable to delete vendor payment entry');
