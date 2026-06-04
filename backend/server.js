@@ -7509,25 +7509,8 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
     return dates;
   }
 
-  if (frequency === 'weekly' && cfg.type === 'interval_days' && cfg.value === 7) {
-    const targetWeekday = parseWeekdayValue(serviceWeekday);
-    if (targetWeekday === null) {
-      const dates = [formatDateInput(start)];
-      let cursor = new Date(start);
-      let guard = 1;
-      while (cursor <= end && guard < maxServices) {
-        cursor = new Date(cursor);
-        cursor.setDate(cursor.getDate() + cfg.value);
-        if (cursor > end) break;
-        const nextDate = formatDateInput(cursor);
-        if (!dates.includes(nextDate)) {
-          dates.push(nextDate);
-          guard += 1;
-        }
-      }
-      return dates.length > 0 ? dates : [formatDateInput(start)];
-    }
-
+  const targetWeekday = parseWeekdayValue(serviceWeekday);
+  if (targetWeekday !== null && cfg.type === 'interval_days' && cfg.value > 0) {
     const dates = [];
     const cursor = new Date(start);
     const offset = (targetWeekday - cursor.getDay() + 7) % 7;
@@ -7537,9 +7520,9 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
       if (!dates.includes(nextDate)) {
         dates.push(nextDate);
       }
-      cursor.setDate(cursor.getDate() + 7);
+      cursor.setDate(cursor.getDate() + cfg.value);
     }
-    return dates;
+    return dates.length > 0 ? dates : [formatDateInput(start)];
   }
 
   const dates = [formatDateInput(start)];

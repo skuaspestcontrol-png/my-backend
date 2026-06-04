@@ -3320,21 +3320,19 @@ export default function InvoiceDashboard() {
                                       ))}
                                     </select>
                                   </div>
-                                  {line.serviceFrequency === 'weekly' ? (
-                                    <div style={shell.itemMetaField}>
-                                      <span style={shell.itemMetaLabel}>Service Day</span>
-                                      <select
-                                        style={shell.itemMetaInput}
-                                        value={line.serviceWeekday || ''}
-                                        onChange={(event) => updateLine(index, { serviceWeekday: event.target.value })}
-                                      >
-                                        <option value="">Select day</option>
-                                        {weekdayOptions.map((option) => (
-                                          <option key={option.value} value={option.value}>{option.label}</option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                  ) : null}
+                                  <div style={shell.itemMetaField}>
+                                    <span style={shell.itemMetaLabel}>Preferred Day</span>
+                                    <select
+                                      style={shell.itemMetaInput}
+                                      value={line.serviceWeekday || ''}
+                                      onChange={(event) => updateLine(index, { serviceWeekday: event.target.value })}
+                                    >
+                                      <option value="">Select day</option>
+                                      {weekdayOptions.map((option) => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                      ))}
+                                    </select>
+                                  </div>
                                   <div style={shell.itemMetaField}>
                                     <span style={shell.itemMetaLabel}>Total Services</span>
                                     <input
