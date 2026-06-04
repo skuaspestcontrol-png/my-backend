@@ -1596,9 +1596,6 @@ export default function InvoiceDashboard() {
       nextErrors.endDate = 'End date must be after start date.';
     }
     if (!frequency) nextErrors.frequency = 'Frequency is required.';
-    if ((frequency === 'weekly' || frequency === 'fortnightly' || (frequency === 'custom' && repeatUnit === 'weeks')) && weekdays.length === 0) {
-      nextErrors.weekdays = 'Pick at least one service day.';
-    }
     if (frequency === 'custom' && repeatEvery < 1) {
       nextErrors.repeatEvery = 'Repeat every must be at least 1.';
     }

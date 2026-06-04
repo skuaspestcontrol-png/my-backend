@@ -78,6 +78,17 @@ export const getServiceScheduleWeekdayLabel = (value, short = false) => {
   return short ? weekday.short : weekday.label;
 };
 
+const describeWeekdaySelection = (weekdays = []) => {
+  const normalized = normalizeServiceScheduleWeekdays(weekdays);
+  if (normalized.length === 0) return '';
+  if (normalized.length === 7) return 'any day';
+  const labels = normalized.map((value) => getServiceScheduleWeekdayLabel(value)).filter(Boolean);
+  if (labels.length === 0) return '';
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} & ${labels[1]}`;
+  return `${labels.slice(0, -1).join(', ')} & ${labels[labels.length - 1]}`;
+};
+
 export const addMonthsClamped = (date, months) => {
   const next = new Date(date);
   const originalDay = next.getDate();
@@ -135,6 +146,23 @@ const buildWeekdaySeries = ({ start, end, stepWeeks, weekdays, maxVisits }) => {
   return dates.sort();
 };
 
+const buildIntervalSeries = ({ start, end, stepDays, maxVisits }) => {
+  const dates = [];
+  const step = Number(stepDays || 0);
+  if (!Number.isFinite(step) || step <= 0) return dates;
+
+  let cursor = new Date(start);
+  while (cursor <= end && dates.length < maxVisits) {
+    const stamp = formatDateInput(cursor);
+    if (stamp) dates.push(stamp);
+    cursor = addDuration(cursor, 'days', step);
+    if (!Number.isFinite(cursor.getTime())) break;
+    if (cursor <= start) break;
+  }
+
+  return Array.from(new Set(dates)).sort();
+};
+
 const buildAnchoredMonthSeries = ({ start, end, stepMonths, maxVisits }) => {
   const dates = [];
   const anchorDay = start.getDate();
@@ -161,14 +189,14 @@ export const getServiceScheduleRuleLabel = (draft = {}) => {
   const weekdays = normalizeServiceScheduleWeekdays(draft.weekdays || []);
   const repeatEvery = Math.max(1, Number(draft.repeatEvery || 1));
   const repeatUnit = String(draft.repeatUnit || 'weeks').toLowerCase();
-  const weekdayLabel = weekdays.map((value) => getServiceScheduleWeekdayLabel(value)).filter(Boolean).join(', ');
+  const weekdayLabel = describeWeekdaySelection(weekdays);
 
   if (frequency === 'daily') return 'Every day';
   if (frequency === 'weekly') {
-    return weekdayLabel ? `Every week on ${weekdayLabel}` : 'Every week';
+    return weekdayLabel ? `Every week on ${weekdayLabel}` : 'Every week on any day';
   }
   if (frequency === 'fortnightly') {
-    return weekdayLabel ? `Every 2 weeks on ${weekdayLabel}` : 'Every 2 weeks';
+    return weekdayLabel ? `Every 2 weeks on ${weekdayLabel}` : 'Every 2 weeks on any day';
   }
   if (frequency === 'monthly') return 'Every month';
   if (frequency === 'quarterly') return 'Every 3 months';
@@ -178,7 +206,9 @@ export const getServiceScheduleRuleLabel = (draft = {}) => {
     const unitLabel = repeatEvery === 1 ? repeatUnit.replace(/s$/, '') : repeatUnit;
     return repeatUnit === 'weeks' && weekdayLabel
       ? `Every ${repeatEvery} ${repeatUnit} on ${weekdayLabel}`
-      : `Every ${repeatEvery} ${unitLabel}${repeatEvery === 1 ? '' : ''}`;
+      : repeatUnit === 'weeks'
+        ? `Every ${repeatEvery} ${repeatUnit} on any day`
+        : `Every ${repeatEvery} ${unitLabel}${repeatEvery === 1 ? '' : ''}`;
   }
   return 'Custom rule';
 };
@@ -194,7 +224,14 @@ export const generateServiceScheduleDates = (draft = {}, maxVisits = 500) => {
   const repeatUnit = String(draft.repeatUnit || 'weeks').toLowerCase();
 
   if (frequency === 'weekly' || frequency === 'fortnightly' || (frequency === 'custom' && repeatUnit === 'weeks')) {
-    if (weekdays.length === 0) return [];
+    if (weekdays.length === 0) {
+      const stepWeeks = frequency === 'fortnightly' ? 2 : frequency === 'weekly' ? 1 : repeatEvery;
+      return buildIntervalSeries({ start, end, stepDays: Math.max(1, stepWeeks) * 7, maxVisits });
+    }
+    if (weekdays.length === 7) {
+      const stepWeeks = frequency === 'fortnightly' ? 2 : frequency === 'weekly' ? 1 : repeatEvery;
+      return buildIntervalSeries({ start, end, stepDays: Math.max(1, stepWeeks) * 7, maxVisits });
+    }
     const stepWeeks = frequency === 'fortnightly' ? 2 : frequency === 'weekly' ? 1 : repeatEvery;
     return buildWeekdaySeries({ start, end, stepWeeks: Math.max(1, stepWeeks), weekdays, maxVisits });
   }

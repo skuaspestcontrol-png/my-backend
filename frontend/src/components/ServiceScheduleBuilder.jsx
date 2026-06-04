@@ -28,7 +28,11 @@ const styles = {
   helper: { fontSize: '11px', color: '#64748b', lineHeight: 1.4 },
   error: { fontSize: '11px', color: '#dc2626', fontWeight: 700, lineHeight: 1.4 },
   chipRow: { display: 'flex', gap: '6px', flexWrap: 'wrap' },
-  chip: { border: '1px solid #d1d5db', background: '#fff', color: '#475569', borderRadius: '999px', minHeight: '28px', padding: '0 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' },
+  chipRowCompact: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(82px, 1fr))', gap: '6px' },
+  chipRowDays: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(48px, 1fr))', gap: '6px' },
+  chipGroup: { display: 'grid', gap: '6px' },
+  chipGroupLabel: { fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  chip: { border: '1px solid #d1d5db', background: '#fff', color: '#475569', borderRadius: '999px', minHeight: '28px', padding: '0 10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', textAlign: 'center' },
   chipActive: { borderColor: 'var(--color-primary-soft)', background: 'var(--color-primary)', color: '#fff' },
   sectionCard: { border: '1px solid var(--color-border)', borderRadius: '10px', background: '#fff', padding: '10px', display: 'grid', gap: '10px' },
   summary: { display: 'grid', gap: '6px' },
@@ -101,12 +105,35 @@ export default function ServiceScheduleBuilder({
     onDraftChange({ ...draft, ...patch });
   };
 
+  const selectedWeekdays = Array.isArray(draft.weekdays) ? draft.weekdays : [];
+  const isAnyDaySelected = showWeekdays && selectedWeekdays.length === 0;
+  const isExactWeekdaySelection = (values) => {
+    const current = [...selectedWeekdays].sort();
+    const target = [...values].map((value) => String(value)).sort();
+    if (current.length !== target.length) return false;
+    return current.every((value, index) => value === target[index]);
+  };
+  const isWeekdaysSelected = isExactWeekdaySelection(['1', '2', '3', '4', '5']);
+  const isWeekendSelected = isExactWeekdaySelection(['0', '6']);
+
   const toggleWeekday = (weekdayValue) => {
-    const current = Array.isArray(draft.weekdays) ? draft.weekdays : [];
+    const current = selectedWeekdays;
     const next = current.includes(String(weekdayValue))
       ? current.filter((value) => value !== String(weekdayValue))
       : [...current, String(weekdayValue)];
     updateDraft({ weekdays: next });
+  };
+
+  const selectAnyDay = () => {
+    updateDraft({ weekdays: [] });
+  };
+
+  const selectWeekdays = () => {
+    updateDraft({ weekdays: ['1', '2', '3', '4', '5'] });
+  };
+
+  const selectWeekend = () => {
+    updateDraft({ weekdays: ['0', '6'] });
   };
 
   const handleFrequencyChange = (value) => {
@@ -235,7 +262,7 @@ export default function ServiceScheduleBuilder({
               </select>
               <input style={styles.input} value={`Every ${repeatEvery} ${draft.repeatUnit || 'weeks'}`} readOnly />
             </div>
-            <span style={styles.helper}>Use weeks when you need weekday chips, like every 2 weeks on Saturday.</span>
+            <span style={styles.helper}>Use weeks when you need weekday chips, like every 2 weeks on Saturday, Friday, or any day.</span>
           </div>
         ) : (
           <div style={styles.field}>
@@ -249,22 +276,52 @@ export default function ServiceScheduleBuilder({
       {showWeekdays ? (
         <div style={styles.field}>
           <label style={styles.label}>Service Day</label>
-          <div style={styles.chipRow}>
-            {serviceScheduleWeekdayOptions.map((weekday) => {
-              const active = Array.isArray(draft.weekdays) && draft.weekdays.includes(weekday.value);
-              return (
-                <button
-                  key={weekday.value}
-                  type="button"
-                  style={{ ...styles.chip, ...(active ? styles.chipActive : null) }}
-                  onClick={() => toggleWeekday(weekday.value)}
-                >
-                  {weekday.short}
-                </button>
-              );
-            })}
+          <span style={styles.helper}>Select Days</span>
+          <div style={styles.chipGroup}>
+            <span style={styles.chipGroupLabel}>Quick Pick</span>
+            <div style={styles.chipRowCompact}>
+              <button
+                type="button"
+                style={{ ...styles.chip, ...(isAnyDaySelected ? styles.chipActive : null) }}
+                onClick={selectAnyDay}
+              >
+                Any day
+              </button>
+              <button
+                type="button"
+                style={{ ...styles.chip, ...(isWeekdaysSelected ? styles.chipActive : null) }}
+                onClick={selectWeekdays}
+              >
+                Weekdays
+              </button>
+              <button
+                type="button"
+                style={{ ...styles.chip, ...(isWeekendSelected ? styles.chipActive : null) }}
+                onClick={selectWeekend}
+              >
+                Weekend
+              </button>
+            </div>
           </div>
-          {errors.weekdays ? <span style={styles.error}>{errors.weekdays}</span> : <span style={styles.helper}>Pick one or more days. Example: Saturday only.</span>}
+          <div style={styles.chipGroup}>
+            <span style={styles.chipGroupLabel}>Specific Days</span>
+            <div style={styles.chipRowDays}>
+              {serviceScheduleWeekdayOptions.map((weekday) => {
+                const active = Array.isArray(draft.weekdays) && draft.weekdays.includes(weekday.value);
+                return (
+                  <button
+                    key={weekday.value}
+                    type="button"
+                    style={{ ...styles.chip, ...(active ? styles.chipActive : null) }}
+                    onClick={() => toggleWeekday(weekday.value)}
+                  >
+                    {weekday.short}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {errors.weekdays ? <span style={styles.error}>{errors.weekdays}</span> : <span style={styles.helper}>Pick one or more days, or leave it on <strong>Any day</strong> for interval-based visits.</span>}
         </div>
       ) : null}
 
