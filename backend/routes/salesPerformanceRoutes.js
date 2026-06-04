@@ -84,6 +84,36 @@ const valueOf = (source, keys = []) => {
   }
   return null;
 };
+const getInvoiceGrossAmount = (source = {}) => {
+  const subtotal = num(valueOf(source, ['subtotal', 'subtotal_without_gst', 'subtotalWithoutGst', 'amount_without_gst', 'amountWithoutGst']), 0);
+  const totalTax = num(valueOf(source, ['totalTax', 'total_tax', 'taxAmount', 'tax_amount']), 0);
+  const grossCandidates = [
+    subtotal > 0 && totalTax > 0 ? subtotal + totalTax : null,
+    valueOf(source, ['grand_total', 'total_amount', 'invoice_total', 'total']),
+    valueOf(source, ['amount', 'net_amount'])
+  ];
+  for (const candidate of grossCandidates) {
+    const amount = num(candidate, 0);
+    if (amount > 0) return amount;
+  }
+  return 0;
+};
+const getInvoiceCollectionAmount = (source = {}) => {
+  const grossAmount = getInvoiceGrossAmount(source);
+  const receivedAmount = num(valueOf(source, [
+    'paymentReceivedTotal',
+    'payment_received_total',
+    'paymentReceivedAmount',
+    'amountReceived',
+    'receivedAmount'
+  ]), 0);
+  const status = text(source.status || source.invoiceStatus || '').toUpperCase();
+
+  if (status === 'PAID' && grossAmount > 0) return grossAmount;
+  if (receivedAmount > 0) return receivedAmount;
+  if (status === 'PAID' && grossAmount > 0) return grossAmount;
+  return 0;
+};
 const normalizeMatchKey = (value) => text(value).toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
 const hasColumn = (columns, ...names) => names.some((name) => columns.has(String(name).toLowerCase()));
 const stableTargetExternalId = (salesPersonId, targetType, targetYear, targetMonth = null) => {
@@ -518,10 +548,10 @@ const normalizeSource = (kind, row = {}, lookup = null, relatedLookup = null) =>
         : kind === 'contracts'
           ? ['contract_date', 'start_date', 'date', 'created_at', 'createdAt']
           : ['lead_date', 'date', 'created_at', 'createdAt']);
-  const amountValue = valueOf(source, kind === 'payments'
-    ? ['payment_amount', 'amount', 'paid_amount', 'received_amount', 'receipt_amount', 'total_amount']
-    : kind === 'invoices'
-      ? ['grand_total', 'total_amount', 'invoice_total', 'amount', 'net_amount']
+  const amountValue = kind === 'invoices'
+    ? getInvoiceGrossAmount(source)
+    : valueOf(source, kind === 'payments'
+      ? ['payment_amount', 'amount', 'paid_amount', 'received_amount', 'receipt_amount', 'total_amount']
       : kind === 'quotations'
         ? ['quotation_value', 'grand_total', 'total_amount', 'amount', 'value']
         : kind === 'contracts'
@@ -566,22 +596,8 @@ const summarizeRecords = (records = [], employee, year, month, startDate = '', e
   const yearlyPayments = yearly.filter((record) => record.kind === 'payments').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyInvoices = yearly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
   const yearlyQuotations = yearly.filter((record) => record.kind === 'quotations').reduce((sum, record) => sum + num(record.amount), 0);
-  const monthlyInvoiceReceived = monthly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(
-    record.source?.paymentReceivedTotal
-      ?? record.source?.payment_received_total
-      ?? record.source?.paymentReceivedAmount
-      ?? record.source?.amountReceived
-      ?? record.source?.receivedAmount
-      ?? 0
-  ), 0);
-  const yearlyInvoiceReceived = yearly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(
-    record.source?.paymentReceivedTotal
-      ?? record.source?.payment_received_total
-      ?? record.source?.paymentReceivedAmount
-      ?? record.source?.amountReceived
-      ?? record.source?.receivedAmount
-      ?? 0
-  ), 0);
+  const monthlyInvoiceReceived = monthly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + getInvoiceCollectionAmount(record.source), 0);
+  const yearlyInvoiceReceived = yearly.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + getInvoiceCollectionAmount(record.source), 0);
   const monthlyRevenueAchieved = monthlyInvoices;
   const yearlyRevenueAchieved = yearlyInvoices;
   const monthlyCollectionAchieved = monthlyInvoiceReceived > 0 ? monthlyInvoiceReceived : monthlyPayments;
