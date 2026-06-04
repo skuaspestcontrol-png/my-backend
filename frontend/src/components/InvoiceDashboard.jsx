@@ -1408,6 +1408,7 @@ export default function InvoiceDashboard() {
       invoiceNumber,
       invoiceType,
       date: invoiceDate,
+      items: [createEmptyLine({ contractStartDate: invoiceDate })],
       customerNotes: String(companySettings.customerNotesDefault || '').trim(),
       termsAndConditions: getDefaultTermsForInvoiceType(invoiceType),
       status: 'DRAFT'
