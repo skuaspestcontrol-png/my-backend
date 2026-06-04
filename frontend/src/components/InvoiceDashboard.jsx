@@ -14,6 +14,12 @@ import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/sales
 import { triggerContractsRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { subscribeDashboardRefresh, triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import PdfPreviewModal from './PdfPreviewModal';
+import ServiceScheduleBuilder from './ServiceScheduleBuilder';
+import {
+  buildServiceScheduleDraftFromInvoice,
+  normalizeServiceScheduleRows,
+  normalizeServiceScheduleTime
+} from '../utils/serviceScheduleBuilder';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const INVOICE_PAGE_SIZE = 20;
@@ -902,6 +908,15 @@ const matchesInvoiceReference = (invoice, reference) => {
   ].some((candidate) => normalizeRouteReference(candidate) === target);
 };
 
+const getServiceScheduleItemMeta = (invoiceForm = emptyForm) => {
+  const firstLine = Array.isArray(invoiceForm.items) ? (invoiceForm.items[0] || {}) : {};
+  return {
+    itemId: firstLine.itemId || '',
+    itemName: firstLine.itemName || firstLine.frequency || 'Service Visit',
+    itemDescription: firstLine.frequency || firstLine.description || ''
+  };
+};
+
 export default function InvoiceDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -935,6 +950,10 @@ export default function InvoiceDashboard() {
   const [settingsHydrated, setSettingsHydrated] = useState(Boolean(cachedInvoiceState));
   const [invoicesHydrated, setInvoicesHydrated] = useState(Boolean(cachedInvoiceState));
   const [form, setForm] = useState(emptyForm);
+  const [serviceScheduleDraft, setServiceScheduleDraft] = useState(() => buildServiceScheduleDraftFromInvoice(emptyForm, '10:00'));
+  const [serviceScheduleRows, setServiceScheduleRows] = useState(null);
+  const [serviceScheduleExpanded, setServiceScheduleExpanded] = useState(false);
+  const [serviceScheduleErrors, setServiceScheduleErrors] = useState({});
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' });
   const [invoiceColumnWidths, setInvoiceColumnWidths] = useState(() => {
     const saved = localStorage.getItem(invoiceColumnWidthStorageKey);
@@ -1204,15 +1223,11 @@ export default function InvoiceDashboard() {
   const sortedItemsCatalog = useMemo(() => (
     [...itemsCatalog].sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), undefined, { sensitivity: 'base' }))
   ), [itemsCatalog]);
+  const serviceScheduleItemMeta = useMemo(() => getServiceScheduleItemMeta(form), [form.items]);
 
   const serviceScheduleTime = useMemo(
-    () => normalizeTimeInput(form.serviceScheduleDefaultTime, '10:00'),
+    () => normalizeServiceScheduleTime(form.serviceScheduleDefaultTime, '10:00'),
     [form.serviceScheduleDefaultTime]
-  );
-
-  const generatedServiceSchedules = useMemo(
-    () => buildServiceScheduleEntries(form.items, serviceScheduleTime),
-    [form.items, serviceScheduleTime]
   );
 
   const computeTotals = (lines, invoiceType = 'GST') => {
@@ -1524,13 +1539,76 @@ export default function InvoiceDashboard() {
     });
   };
 
+  const resetServiceScheduleBuilder = (invoiceLike = null, nextForm = null) => {
+    const source = invoiceLike || {};
+    const targetForm = nextForm || form;
+    const normalizedRows = normalizeServiceScheduleRows(source.serviceSchedules || [], targetForm.serviceScheduleDefaultTime || source.serviceScheduleDefaultTime || '10:00');
+    setServiceScheduleRows(normalizedRows.length > 0 ? normalizedRows : null);
+    setServiceScheduleExpanded(false);
+    setServiceScheduleErrors({});
+    setServiceScheduleDraft(buildServiceScheduleDraftFromInvoice({
+      ...source,
+      items: Array.isArray(targetForm.items) && targetForm.items.length > 0 ? targetForm.items : source.items || [],
+      serviceScheduleDefaultTime: targetForm.serviceScheduleDefaultTime || source.serviceScheduleDefaultTime || '10:00'
+    }, targetForm.serviceScheduleDefaultTime || source.serviceScheduleDefaultTime || '10:00'));
+  };
+
+  const validateServiceScheduleDraft = () => {
+    const nextErrors = {};
+    const startDate = String(serviceScheduleDraft.startDate || '').trim();
+    const endDate = String(serviceScheduleDraft.endDate || '').trim();
+    const frequency = String(serviceScheduleDraft.frequency || '').trim();
+    const weekdays = Array.isArray(serviceScheduleDraft.weekdays) ? serviceScheduleDraft.weekdays.filter(Boolean) : [];
+    const repeatEvery = Math.max(1, Number(serviceScheduleDraft.repeatEvery || 1));
+    const repeatUnit = String(serviceScheduleDraft.repeatUnit || 'weeks').trim().toLowerCase();
+
+    if (!startDate) nextErrors.startDate = 'Start date is required.';
+    if (!endDate) nextErrors.endDate = 'End date is required.';
+    if (startDate && endDate && endDate <= startDate) {
+      nextErrors.endDate = 'End date must be after start date.';
+    }
+    if (!frequency) nextErrors.frequency = 'Frequency is required.';
+    if ((frequency === 'weekly' || frequency === 'fortnightly' || (frequency === 'custom' && repeatUnit === 'weeks')) && weekdays.length === 0) {
+      nextErrors.weekdays = 'Pick at least one service day.';
+    }
+    if (frequency === 'custom' && repeatEvery < 1) {
+      nextErrors.repeatEvery = 'Repeat every must be at least 1.';
+    }
+
+    setServiceScheduleErrors(nextErrors);
+    return nextErrors;
+  };
+
+  const handleGenerateServiceSchedule = () => {
+    const nextErrors = validateServiceScheduleDraft();
+    if (Object.keys(nextErrors).length > 0) return;
+    const rows = buildServiceScheduleRows({
+      draft: serviceScheduleDraft,
+      defaultTime: serviceScheduleTime,
+      itemMeta: serviceScheduleItemMeta
+    });
+    setServiceScheduleRows(rows);
+    setServiceScheduleExpanded(true);
+  };
+
+  const handleResetServiceSchedule = () => {
+    setServiceScheduleRows(null);
+    setServiceScheduleExpanded(false);
+    setServiceScheduleErrors({});
+  };
+
+  const handleServiceScheduleRowsChange = (rows) => {
+    const nextRows = normalizeServiceScheduleRows(rows, serviceScheduleTime);
+    setServiceScheduleRows(nextRows.length > 0 ? nextRows : null);
+  };
+
   const openNewForm = () => {
     setEditingId(null);
     setSaveError('');
     const invoiceNumber = invoiceNumberPrefs.mode === 'auto' ? createNextInvoiceNumber(invoiceNumberPrefs) : '';
     const invoiceType = 'GST';
     const invoiceDate = new Date().toISOString().slice(0, 10);
-    setForm(applyComputedTotals({
+    const nextForm = applyComputedTotals({
       ...emptyForm,
       invoiceNumber,
       invoiceType,
@@ -1539,7 +1617,9 @@ export default function InvoiceDashboard() {
       customerNotes: String(companySettings.customerNotesDefault || '').trim(),
       termsAndConditions: getDefaultTermsForInvoiceType(invoiceType),
       status: 'DRAFT'
-    }));
+    });
+    setForm(nextForm);
+    resetServiceScheduleBuilder(nextForm, nextForm);
     setShowModal(true);
   };
 
@@ -1552,6 +1632,10 @@ export default function InvoiceDashboard() {
     setEditingId(null);
     setSaveError('');
     setForm(emptyForm);
+    setServiceScheduleDraft(buildServiceScheduleDraftFromInvoice(emptyForm, '10:00'));
+    setServiceScheduleRows(null);
+    setServiceScheduleExpanded(false);
+    setServiceScheduleErrors({});
 
     if (modalOpenedFromContract) {
       setModalOpenedFromContract(false);
@@ -1688,7 +1772,9 @@ export default function InvoiceDashboard() {
     if (!selected) return;
     setModalOpenedFromContract(false);
     setEditingId(selected._id);
-    setForm(mapInvoiceToForm(selected));
+    const nextForm = mapInvoiceToForm(selected);
+    setForm(nextForm);
+    resetServiceScheduleBuilder(selected, nextForm);
     setSaveError('');
     setShowModal(true);
     setShowMoreMenu(false);
@@ -1820,10 +1906,12 @@ export default function InvoiceDashboard() {
     });
     if (!matched) return;
 
+    const nextForm = mapInvoiceToForm(matched);
     setSelectedIds([matched._id]);
     setModalOpenedFromContract(routeFromContract || routeEditContract);
     setEditingId(matched._id);
-    setForm(mapInvoiceToForm(matched));
+    setForm(nextForm);
+    resetServiceScheduleBuilder(matched, nextForm);
     setSaveError('');
     setShowModal(true);
     setShowMoreMenu(false);
@@ -2340,14 +2428,16 @@ export default function InvoiceDashboard() {
       return;
     }
 
-    const normalizedServiceSchedules = buildServiceScheduleEntries(validItems, serviceScheduleTime).map((schedule) => ({
-      serviceNumber: schedule.serviceNumber,
-      serviceDate: schedule.serviceDate,
-      serviceTime: schedule.serviceTime,
-      itemId: schedule.itemId || '',
-      itemName: schedule.itemName || '',
-      itemDescription: schedule.itemDescription || ''
-    }));
+    const normalizedServiceSchedules = Array.isArray(serviceScheduleRows)
+      ? normalizeServiceScheduleRows(serviceScheduleRows, serviceScheduleTime)
+      : buildServiceScheduleEntries(validItems, serviceScheduleTime).map((schedule) => ({
+        serviceNumber: schedule.serviceNumber,
+        serviceDate: schedule.serviceDate,
+        serviceTime: schedule.serviceTime,
+        itemId: schedule.itemId || '',
+        itemName: schedule.itemName || '',
+        itemDescription: schedule.itemDescription || ''
+      }));
 
     const payload = {
       customerId: form.customerId,
@@ -2417,6 +2507,10 @@ export default function InvoiceDashboard() {
       setEditingShippingAddressId('');
       setShippingAddressDraft(emptyAddressDraft);
       setShowModal(false);
+      setServiceScheduleDraft(buildServiceScheduleDraftFromInvoice(emptyForm, '10:00'));
+      setServiceScheduleRows(null);
+      setServiceScheduleExpanded(false);
+      setServiceScheduleErrors({});
       setModalOpenedFromContract(false);
       await loadInvoices();
       if (pdfPreview.open && String(pdfPreview.invoiceId || '') === String(editingId || '')) {
@@ -3404,84 +3498,26 @@ export default function InvoiceDashboard() {
                     onChange={(event) => setFormWithTotals((prev) => ({ ...prev, termsAndConditions: event.target.value }))}
                   />
                 </div>
-                <div style={shell.serviceScheduleBlock}>
-                  <div style={shell.serviceScheduleHead}>
-                    <label style={shell.label}>Service Schedules</label>
-                    <div style={shell.serviceScheduleTimeControl}>
-                      <span>Default Time</span>
-                      <input
-                        type="time"
-                        style={{ ...shell.itemMetaInput, minHeight: '34px', width: '130px' }}
-                        value={serviceScheduleTime}
-                        onChange={(event) =>
-                          setFormWithTotals((prev) => ({
-                            ...prev,
-                            serviceScheduleDefaultTime: normalizeTimeInput(event.target.value, '10:00')
-                          }))
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div style={shell.serviceScheduleCount}>
-                    Auto-generated visits: {generatedServiceSchedules.length}
-                  </div>
-                  {generatedServiceSchedules.length > 0 ? (
-                    <div style={shell.serviceScheduleTableWrap}>
-                      <table style={serviceScheduleTableStyle}>
-                        <thead>
-                          {isMobile ? (
-                            <tr>
-                              <th style={{ ...serviceScheduleThStyle, width: '12%' }}>#</th>
-                              <th style={{ ...serviceScheduleThStyle, width: '28%' }}>Date</th>
-                              <th style={{ ...serviceScheduleThStyle, width: '20%' }}>Time</th>
-                              <th style={{ ...serviceScheduleThStyle, width: '40%' }}>Item</th>
-                            </tr>
-                          ) : (
-                            <tr>
-                              <th style={serviceScheduleThStyle}>Service #</th>
-                              <th style={serviceScheduleThStyle}>Date</th>
-                              <th style={serviceScheduleThStyle}>Time</th>
-                              <th style={serviceScheduleThStyle}>Customer</th>
-                              <th style={serviceScheduleThStyle}>Item Details</th>
-                            </tr>
-                          )}
-                        </thead>
-                        <tbody>
-                          {generatedServiceSchedules.map((entry) => (
-                            <tr key={entry.key}>
-                              {isMobile ? (
-                                <>
-                                  <td style={serviceScheduleTdStyle}>{entry.serviceNumber}</td>
-                                  <td style={serviceScheduleTdStyle}>{formatDisplayDate(entry.serviceDate)}</td>
-                                  <td style={serviceScheduleTdStyle}>{entry.serviceTime}</td>
-                                  <td style={{ ...serviceScheduleTdStyle, fontWeight: 700 }}>
-                                    {entry.itemName || '-'}
-                                  </td>
-                                </>
-                              ) : (
-                                <>
-                                  <td style={serviceScheduleTdStyle}>{entry.serviceNumber}</td>
-                                  <td style={serviceScheduleTdStyle}>{formatDisplayDate(entry.serviceDate)}</td>
-                                  <td style={serviceScheduleTdStyle}>{entry.serviceTime}</td>
-                                  <td style={serviceScheduleTdStyle}>{form.customerName || '-'}</td>
-                                  <td style={serviceScheduleTdStyle}>
-                                    <div style={{ fontWeight: 700 }}>{entry.itemName || '-'}</div>
-                                    <div style={{ marginTop: '2px', color: '#64748b', fontSize: '11px' }}>
-                                      {entry.itemDescription || 'No description'}
-                                    </div>
-                                  </td>
-                                </>
-                              )}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div style={shell.serviceScheduleEmpty}>
-                      Add Contract Start Date, Contract End Date, Service Frequency, and Service Day for weekly plans to auto-create schedules.
-                    </div>
-                  )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <ServiceScheduleBuilder
+                    draft={serviceScheduleDraft}
+                    time={serviceScheduleTime}
+                    defaultItemMeta={serviceScheduleItemMeta}
+                    scheduleRows={serviceScheduleRows}
+                    onDraftChange={setServiceScheduleDraft}
+                    onTimeChange={(nextTime) =>
+                      setFormWithTotals((prev) => ({
+                        ...prev,
+                        serviceScheduleDefaultTime: nextTime
+                      }))
+                    }
+                    onGenerate={handleGenerateServiceSchedule}
+                    onReset={handleResetServiceSchedule}
+                    onRowsChange={handleServiceScheduleRowsChange}
+                    errors={serviceScheduleErrors}
+                    expanded={serviceScheduleExpanded}
+                    onExpandedChange={setServiceScheduleExpanded}
+                  />
                 </div>
                 <div style={shell.paymentBlock}>
                   <label style={shell.paymentToggle}>
