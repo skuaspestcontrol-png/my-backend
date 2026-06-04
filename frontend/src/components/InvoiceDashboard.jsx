@@ -52,6 +52,15 @@ const serviceFrequencyOptions = [
   { value: 'three_treatment_every_4_months', label: 'Three treatments every 4 months' },
   { value: 'initial_spray_gel_batting_7_then_4m', label: 'Initial spray treatment with gel batting after 7 days, then every 4 months' }
 ].sort((a, b) => a.label.localeCompare(b.label));
+const weekdayOptions = [
+  { value: '0', label: 'Sunday' },
+  { value: '1', label: 'Monday' },
+  { value: '2', label: 'Tuesday' },
+  { value: '3', label: 'Wednesday' },
+  { value: '4', label: 'Thursday' },
+  { value: '5', label: 'Friday' },
+  { value: '6', label: 'Saturday' }
+];
 const contractPeriodConfig = {
   single_time: { unit: 'days', value: 1 },
   weekly: { unit: 'days', value: 7 },
@@ -146,6 +155,7 @@ const createEmptyLine = (defaults = {}) => ({
   contractPeriod: '',
   contractStartDate: defaults.contractStartDate || '',
   contractStartDateSource: defaults.contractStartDateSource || (defaults.contractStartDate ? 'manual' : 'invoice-date'),
+  serviceWeekday: defaults.serviceWeekday || '',
   contractEndDate: '',
   renewalDate: '',
   serviceFrequency: '',
@@ -445,7 +455,12 @@ const normalizeTimeInput = (value, fallback = '10:00') => {
   return `${match[1]}:${match[2]}`;
 };
 
-const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, maxServices = 500) => {
+const parseWeekdayValue = (value) => {
+  const weekday = Number(value);
+  return Number.isInteger(weekday) && weekday >= 0 && weekday <= 6 ? weekday : null;
+};
+
+const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, serviceWeekday = '', maxServices = 500) => {
   const cfg = serviceFrequencyConfig[frequency];
   const start = parseDateOnly(startDateStr);
   const end = parseDateOnly(endDateStr);
@@ -484,6 +499,39 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, maxSe
     return dates;
   }
 
+  if (frequency === 'weekly' && cfg.type === 'interval_days' && cfg.value === 7) {
+    const targetWeekday = parseWeekdayValue(serviceWeekday);
+    if (targetWeekday === null) {
+      const dates = [formatDateInput(start)];
+      let cursor = new Date(start);
+      let guard = 1;
+      while (cursor <= end && guard < maxServices) {
+        cursor = new Date(cursor);
+        cursor.setDate(cursor.getDate() + cfg.value);
+        if (cursor > end) break;
+        const nextDate = formatDateInput(cursor);
+        if (!dates.includes(nextDate)) {
+          dates.push(nextDate);
+          guard += 1;
+        }
+      }
+      return dates.length > 0 ? dates : [formatDateInput(start)];
+    }
+
+    const dates = [];
+    const cursor = new Date(start);
+    const offset = (targetWeekday - cursor.getDay() + 7) % 7;
+    cursor.setDate(cursor.getDate() + offset);
+    while (cursor <= end && dates.length < maxServices) {
+      const nextDate = formatDateInput(cursor);
+      if (!dates.includes(nextDate)) {
+        dates.push(nextDate);
+      }
+      cursor.setDate(cursor.getDate() + 7);
+    }
+    return dates;
+  }
+
   const dates = [formatDateInput(start)];
   let cursor = new Date(start);
   let guard = 1;
@@ -505,8 +553,8 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, maxSe
   return dates.length > 0 ? dates : [formatDateInput(start)];
 };
 
-const countServicesByFrequency = (startDateStr, endDateStr, frequency) => {
-  const dates = buildServiceDatesByFrequency(startDateStr, endDateStr, frequency);
+const countServicesByFrequency = (startDateStr, endDateStr, frequency, serviceWeekday = '') => {
+  const dates = buildServiceDatesByFrequency(startDateStr, endDateStr, frequency, serviceWeekday);
   return dates.length > 0 ? String(dates.length) : '';
 };
 
@@ -518,7 +566,8 @@ const buildServiceScheduleEntries = (items = [], defaultTime = '10:00') => {
     const baseDates = buildServiceDatesByFrequency(
       line.contractStartDate || line.serviceStartDate,
       line.contractEndDate || line.serviceEndDate,
-      line.serviceFrequency
+      line.serviceFrequency,
+      line.serviceWeekday
     );
     if (baseDates.length === 0) return;
 
@@ -576,7 +625,7 @@ const withContractSchedule = (line) => {
     ...line,
     contractEndDate: formatDateInput(end),
     renewalDate: formatDateInput(renewal),
-    totalServices: countServicesByFrequency(formatDateInput(start), formatDateInput(end), line.serviceFrequency)
+    totalServices: countServicesByFrequency(formatDateInput(start), formatDateInput(end), line.serviceFrequency, line.serviceWeekday)
   };
 };
 
@@ -1477,6 +1526,7 @@ export default function InvoiceDashboard() {
         contractPeriod: line.contractPeriod || '',
         contractStartDate: line.contractStartDate || '',
         contractStartDateSource: line.contractStartDate ? 'manual' : 'invoice-date',
+        serviceWeekday: line.serviceWeekday || '',
         contractEndDate: line.contractEndDate || '',
         renewalDate: line.renewalDate || '',
         serviceFrequency: line.serviceFrequency || '',
@@ -3054,6 +3104,21 @@ export default function InvoiceDashboard() {
                                       ))}
                                     </select>
                                   </div>
+                                  {line.serviceFrequency === 'weekly' ? (
+                                    <div style={shell.itemMetaField}>
+                                      <span style={shell.itemMetaLabel}>Service Day</span>
+                                      <select
+                                        style={shell.itemMetaInput}
+                                        value={line.serviceWeekday || ''}
+                                        onChange={(event) => updateLine(index, { serviceWeekday: event.target.value })}
+                                      >
+                                        <option value="">Select day</option>
+                                        {weekdayOptions.map((option) => (
+                                          <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  ) : null}
                                   <div style={shell.itemMetaField}>
                                     <span style={shell.itemMetaLabel}>Total Services</span>
                                     <input
@@ -3337,7 +3402,7 @@ export default function InvoiceDashboard() {
                     </div>
                   ) : (
                     <div style={shell.serviceScheduleEmpty}>
-                      Add Contract Start Date, Contract End Date, and Service Frequency in item rows to auto-create schedules.
+                      Add Contract Start Date, Contract End Date, Service Frequency, and Service Day for weekly plans to auto-create schedules.
                     </div>
                   )}
                 </div>

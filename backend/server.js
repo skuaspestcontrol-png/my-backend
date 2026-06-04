@@ -7374,6 +7374,10 @@ const serviceFrequencyConfig = {
   three_treatment_every_4_months: { type: 'interval_months', value: 4, maxServices: 3 },
   initial_spray_gel_batting_7_then_4m: { type: 'followup_then_interval_months', followupDays: 7, intervalMonths: 4 }
 };
+const parseWeekdayValue = (value) => {
+  const weekday = Number(value);
+  return Number.isInteger(weekday) && weekday >= 0 && weekday <= 6 ? weekday : null;
+};
 
 const contractPeriodConfig = {
   single_time: { unit: 'days', value: 1 },
@@ -7463,7 +7467,7 @@ const normalizeServiceScheduleTime = (value, fallback = '10:00') => {
   return `${match[1]}:${match[2]}`;
 };
 
-const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, maxServices = 500) => {
+const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, serviceWeekday = '', maxServices = 500) => {
   const cfg = serviceFrequencyConfig[frequency];
   const start = parseDateOnly(startDateStr);
   const end = parseDateOnly(endDateStr);
@@ -7497,6 +7501,39 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, maxSe
       if (cursor > end) break;
       const nextDate = formatDateInput(cursor);
       if (!dates.includes(nextDate)) dates.push(nextDate);
+    }
+    return dates;
+  }
+
+  if (frequency === 'weekly' && cfg.type === 'interval_days' && cfg.value === 7) {
+    const targetWeekday = parseWeekdayValue(serviceWeekday);
+    if (targetWeekday === null) {
+      const dates = [formatDateInput(start)];
+      let cursor = new Date(start);
+      let guard = 1;
+      while (cursor <= end && guard < maxServices) {
+        cursor = new Date(cursor);
+        cursor.setDate(cursor.getDate() + cfg.value);
+        if (cursor > end) break;
+        const nextDate = formatDateInput(cursor);
+        if (!dates.includes(nextDate)) {
+          dates.push(nextDate);
+          guard += 1;
+        }
+      }
+      return dates.length > 0 ? dates : [formatDateInput(start)];
+    }
+
+    const dates = [];
+    const cursor = new Date(start);
+    const offset = (targetWeekday - cursor.getDay() + 7) % 7;
+    cursor.setDate(cursor.getDate() + offset);
+    while (cursor <= end && dates.length < maxServices) {
+      const nextDate = formatDateInput(cursor);
+      if (!dates.includes(nextDate)) {
+        dates.push(nextDate);
+      }
+      cursor.setDate(cursor.getDate() + 7);
     }
     return dates;
   }
@@ -7550,7 +7587,7 @@ const buildServiceScheduleEntries = (invoiceLike) => {
       line?.contractEndDate ||
       line?.serviceEndDate ||
       buildContractEndDate(line?.contractStartDate || '', line?.contractPeriod || '');
-    const baseDates = buildServiceDatesByFrequency(lineStartDate, lineEndDate, line?.serviceFrequency || '');
+    const baseDates = buildServiceDatesByFrequency(lineStartDate, lineEndDate, line?.serviceFrequency || '', line?.serviceWeekday || '');
     if (baseDates.length === 0) return;
 
     const requestedServices = toNumber(line?.totalServices, 0);
