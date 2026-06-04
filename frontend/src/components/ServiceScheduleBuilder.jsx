@@ -44,6 +44,7 @@ const styles = {
   actionRow: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   actionBtn: { minHeight: '34px', borderRadius: '8px', border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#fff', fontSize: '12px', fontWeight: 800, cursor: 'pointer', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' },
   secondaryBtn: { minHeight: '34px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: '12px', fontWeight: 800, cursor: 'pointer', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' },
+  headerActionRow: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   rowsWrap: { display: 'grid', gap: '8px' },
   rowsHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
   rowsTitle: { margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a' },
@@ -177,6 +178,17 @@ export default function ServiceScheduleBuilder({
             {previewRows.length} visits
           </span>
           <span style={styles.compactBadge}>{ruleLabel}</span>
+          <div style={styles.headerActionRow}>
+            <button type="button" style={styles.actionBtn} onClick={onGenerate}>
+              {isManual ? <RefreshCw size={14} /> : <Plus size={14} />}
+              {isManual ? 'Regenerate' : 'Generate'}
+            </button>
+            {isManual ? (
+              <button type="button" style={styles.secondaryBtn} onClick={onReset}>
+                Reset
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
 

@@ -163,6 +163,15 @@ const buildIntervalSeries = ({ start, end, stepDays, maxVisits }) => {
   return Array.from(new Set(dates)).sort();
 };
 
+const shiftDateToWeekday = (date, weekday) => {
+  const cursor = new Date(date);
+  const target = Number(weekday);
+  if (!Number.isInteger(target) || target < 0 || target > 6) return cursor;
+  const offset = (target - cursor.getDay() + 7) % 7;
+  cursor.setDate(cursor.getDate() + offset);
+  return cursor;
+};
+
 const buildAnchoredMonthSeries = ({ start, end, stepMonths, maxVisits }) => {
   const dates = [];
   const anchorDay = start.getDate();
@@ -224,6 +233,7 @@ export const generateServiceScheduleDates = (draft = {}, maxVisits = 500) => {
   const weekdays = normalizeServiceScheduleWeekdays(draft.weekdays || []);
   const repeatEvery = Math.max(1, Number(draft.repeatEvery || 1));
   const repeatUnit = String(draft.repeatUnit || 'weeks').toLowerCase();
+  const preferredWeekday = weekdays.length > 0 ? Number(weekdays[0]) : null;
 
   if (frequency === 'weekly' || frequency === 'fortnightly' || (frequency === 'custom' && repeatUnit === 'weeks')) {
     if (weekdays.length === 0) {
@@ -236,6 +246,21 @@ export const generateServiceScheduleDates = (draft = {}, maxVisits = 500) => {
     }
     const stepWeeks = frequency === 'fortnightly' ? 2 : frequency === 'weekly' ? 1 : repeatEvery;
     return buildWeekdaySeries({ start, end, stepWeeks: Math.max(1, stepWeeks), weekdays, maxVisits });
+  }
+
+  if (frequency === 'daily') {
+    const dates = [];
+    let cursor = new Date(start);
+    while (cursor <= end && dates.length < maxVisits) {
+      if (weekdays.length === 0 || weekdays.includes(String(cursor.getDay()))) {
+        const stamp = formatDateInput(cursor);
+        if (stamp) dates.push(stamp);
+      }
+      cursor = addDuration(cursor, 'days', 1);
+      if (!Number.isFinite(cursor.getTime())) break;
+      if (cursor <= start) break;
+    }
+    return Array.from(new Set(dates)).sort();
   }
 
   let unit = '';
@@ -261,7 +286,17 @@ export const generateServiceScheduleDates = (draft = {}, maxVisits = 500) => {
 
   if (unit === 'months' || unit === 'years') {
     const stepMonths = unit === 'years' ? step * 12 : step;
-    return buildAnchoredMonthSeries({ start, end, stepMonths: Math.max(1, stepMonths), maxVisits });
+    const baseDates = buildAnchoredMonthSeries({ start, end, stepMonths: Math.max(1, stepMonths), maxVisits });
+    if (weekdays.length === 0) return baseDates;
+    const shifted = baseDates
+      .map((stamp) => {
+        const date = parseDateOnly(stamp);
+        if (!date) return '';
+        return formatDateInput(shiftDateToWeekday(date, preferredWeekday));
+      })
+      .filter(Boolean)
+      .filter((stamp) => parseDateOnly(stamp) <= end);
+    return Array.from(new Set(shifted)).sort();
   }
 
   const dates = [];

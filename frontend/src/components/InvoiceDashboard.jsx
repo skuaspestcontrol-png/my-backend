@@ -1637,7 +1637,6 @@ export default function InvoiceDashboard() {
       itemMeta: serviceScheduleItemMeta
     });
     setServiceScheduleRows(rows);
-    setServiceScheduleExpanded(true);
   };
 
   const handleResetServiceSchedule = () => {

@@ -7575,6 +7575,7 @@ const normalizeServiceSchedules = (rawSchedules, defaultTime = '10:00') => {
       itemId: schedule?.itemId || '',
       itemName: schedule?.itemName || '',
       itemDescription: schedule?.itemDescription || '',
+      scheduleRuleLabel: String(schedule?.scheduleRuleLabel || schedule?.scheduleRule || '').trim(),
       status: schedule?.status || 'Scheduled'
     }))
     .filter((schedule) => parseDateOnly(schedule.serviceDate));
@@ -7605,6 +7606,7 @@ const buildServiceScheduleEntries = (invoiceLike) => {
         itemId: line?.itemId || '',
         itemName: line?.itemName || `Item ${lineIndex + 1}`,
         itemDescription: line?.description || '',
+        scheduleRuleLabel: '',
         status: 'Scheduled'
       });
     });
