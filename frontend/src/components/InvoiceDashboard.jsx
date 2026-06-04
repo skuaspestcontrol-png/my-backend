@@ -977,6 +977,11 @@ export default function InvoiceDashboard() {
       return [...defaultInvoiceVisibleColumns];
     }
   });
+  const preventRateStepper = (event) => {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+    }
+  };
 
   const customizePanelRef = useRef(null);
   const customizeButtonRef = useRef(null);
@@ -3020,7 +3025,7 @@ export default function InvoiceDashboard() {
       </div>
 
       {showModal ? createPortal(
-        <div style={modalOverlayStyle} onClick={closeInvoiceModal}>
+        <div style={modalOverlayStyle}>
           <form className="crm-modal-surface" style={modalStyle} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()}>
             <div className="crm-modal-surface-header" style={modalHeaderStyle}>
               <h3 style={shell.modalHeaderTitle}>{editingId ? 'Edit Contract' : 'New Contract'}</h3>
@@ -3321,6 +3326,7 @@ export default function InvoiceDashboard() {
                                           min="0"
                                           step="0.01"
                                           value={line.rate}
+                                          onKeyDown={preventRateStepper}
                                           onChange={(event) => updateLine(index, { rate: event.target.value })}
                                         />
                                       </div>
@@ -3366,14 +3372,15 @@ export default function InvoiceDashboard() {
                                   />
                                 </td>
                                 <td style={shell.itemTd}>
-                                  <input
-                                    style={shell.input}
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={line.rate}
-                                    onChange={(event) => updateLine(index, { rate: event.target.value })}
-                                  />
+                                <input
+                                  style={shell.input}
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={line.rate}
+                                  onKeyDown={preventRateStepper}
+                                  onChange={(event) => updateLine(index, { rate: event.target.value })}
+                                />
                                 </td>
                                 <td style={shell.itemTd}>
                                   <select
