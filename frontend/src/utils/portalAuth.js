@@ -38,7 +38,7 @@ export const buildPortalAuthHeaders = (user = portalUserSnapshot) => {
 export const fetchPortalUser = async (apiBaseUrl = '') => {
   const baseUrl = String(apiBaseUrl || '').trim();
   const url = `${baseUrl}/api/auth/me`;
-  const response = await axios.get(url, { withCredentials: true });
+  const response = await axios.get(url, { withCredentials: true, timeout: 10000 });
   return setPortalUser(response?.data?.user || null);
 };
 

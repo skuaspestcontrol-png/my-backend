@@ -631,18 +631,21 @@ export default function TechnicianPortal() {
   });
   const sigCanvas = useRef({});
   const orphanCleanupNoticeTimerRef = useRef(null);
+  const portalDataLoadingRef = useRef(false);
   const beforePhotoInputRef = useRef(null);
   const afterPhotoInputRef = useRef(null);
 
   const loadPortalData = useCallback(async () => {
+    if (portalDataLoadingRef.current) return;
+    portalDataLoadingRef.current = true;
     try {
       const stamp = Date.now();
       const [jobsRes, schedulesRes, invoicesRes, customersRes, employeesRes] = await Promise.allSettled([
-        axios.get(`${API_BASE_URL}/api/jobs`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' } }),
-        axios.get(`${API_BASE_URL}/api/service-schedules`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' } }),
-        axios.get(`${API_BASE_URL}/api/invoices`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' } }),
-        axios.get(`${API_BASE_URL}/api/customers`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' } }),
-        axios.get(`${API_BASE_URL}/api/employees`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' } })
+        axios.get(`${API_BASE_URL}/api/jobs`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
+        axios.get(`${API_BASE_URL}/api/service-schedules`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
+        axios.get(`${API_BASE_URL}/api/invoices`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
+        axios.get(`${API_BASE_URL}/api/customers`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
+        axios.get(`${API_BASE_URL}/api/employees`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 })
       ]);
 
       const jobsData = jobsRes.status === 'fulfilled' ? jobsRes.value?.data : [];
@@ -670,6 +673,8 @@ export default function TechnicianPortal() {
       }
     } catch (error) {
       console.error('Fetch failed', error);
+    } finally {
+      portalDataLoadingRef.current = false;
     }
   }, []);
 
@@ -677,7 +682,7 @@ export default function TechnicianPortal() {
     let active = true;
     const refreshKeys = new Set(['customer_sync_tick', 'invoice_sync_tick', 'contract_sync_tick', 'jobs_sync_tick']);
     const safeRefresh = async () => {
-      if (!active) return;
+      if (!active || portalDataLoadingRef.current) return;
       await loadPortalData();
     };
 
