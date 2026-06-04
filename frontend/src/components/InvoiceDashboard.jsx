@@ -145,6 +145,7 @@ const createEmptyLine = (defaults = {}) => ({
   itemType: 'service',
   contractPeriod: '',
   contractStartDate: defaults.contractStartDate || '',
+  contractStartDateSource: defaults.contractStartDateSource || (defaults.contractStartDate ? 'manual' : 'invoice-date'),
   contractEndDate: '',
   renewalDate: '',
   serviceFrequency: '',
@@ -1408,7 +1409,7 @@ export default function InvoiceDashboard() {
       invoiceNumber,
       invoiceType,
       date: invoiceDate,
-      items: [createEmptyLine({ contractStartDate: invoiceDate })],
+      items: [createEmptyLine({ contractStartDate: invoiceDate, contractStartDateSource: 'invoice-date' })],
       customerNotes: String(companySettings.customerNotesDefault || '').trim(),
       termsAndConditions: getDefaultTermsForInvoiceType(invoiceType),
       status: 'DRAFT'
@@ -1475,6 +1476,7 @@ export default function InvoiceDashboard() {
         itemType: line.itemType || 'service',
         contractPeriod: line.contractPeriod || '',
         contractStartDate: line.contractStartDate || '',
+        contractStartDateSource: line.contractStartDate ? 'manual' : 'invoice-date',
         contractEndDate: line.contractEndDate || '',
         renewalDate: line.renewalDate || '',
         serviceFrequency: line.serviceFrequency || '',
@@ -1728,7 +1730,14 @@ export default function InvoiceDashboard() {
   const updateLine = (index, patch) => {
     setFormWithTotals((prev) => {
       const nextItems = [...prev.items];
-      nextItems[index] = withContractSchedule({ ...nextItems[index], ...patch });
+      const currentLine = nextItems[index] || createEmptyLine();
+      nextItems[index] = withContractSchedule({
+        ...currentLine,
+        ...patch,
+        contractStartDateSource: Object.prototype.hasOwnProperty.call(patch, 'contractStartDate')
+          ? 'manual'
+          : currentLine.contractStartDateSource || 'invoice-date'
+      });
       return { ...prev, items: nextItems };
     });
   };
@@ -1752,7 +1761,7 @@ export default function InvoiceDashboard() {
   const removeLine = (index) => {
     setFormWithTotals((prev) => {
       if (prev.items.length === 1) {
-        return { ...prev, items: [createEmptyLine({ contractStartDate: prev.date || new Date().toISOString().slice(0, 10) })] };
+        return { ...prev, items: [createEmptyLine({ contractStartDate: prev.date || new Date().toISOString().slice(0, 10), contractStartDateSource: 'invoice-date' })] };
       }
       return { ...prev, items: prev.items.filter((_, idx) => idx !== index) };
     });
@@ -1764,8 +1773,8 @@ export default function InvoiceDashboard() {
       items: [
         ...prev.items,
         prev.invoiceType === 'NON GST'
-          ? { ...createEmptyLine({ contractStartDate: prev.date || new Date().toISOString().slice(0, 10) }), taxRate: '0' }
-          : createEmptyLine({ contractStartDate: prev.date || new Date().toISOString().slice(0, 10) })
+          ? { ...createEmptyLine({ contractStartDate: prev.date || new Date().toISOString().slice(0, 10), contractStartDateSource: 'invoice-date' }), taxRate: '0' }
+          : createEmptyLine({ contractStartDate: prev.date || new Date().toISOString().slice(0, 10), contractStartDateSource: 'invoice-date' })
       ]
     }));
   };
@@ -1796,6 +1805,7 @@ export default function InvoiceDashboard() {
           itemType: match.itemType || 'service',
           contractPeriod: '',
           contractStartDate: prev.date || new Date().toISOString().slice(0, 10),
+          contractStartDateSource: 'invoice-date',
           contractEndDate: '',
           renewalDate: '',
           serviceFrequency: '',
@@ -1884,11 +1894,9 @@ export default function InvoiceDashboard() {
   const handleDateChange = (date) => {
     setFormWithTotals((prev) => {
       const days = termsToDays[prev.terms] ?? 0;
-      const previousDate = prev.date || '';
       const nextItems = Array.isArray(prev.items)
         ? prev.items.map((line) => {
-          const currentStartDate = String(line.contractStartDate || '').trim();
-          const shouldFollowInvoiceDate = !currentStartDate || currentStartDate === previousDate;
+          const shouldFollowInvoiceDate = String(line.contractStartDateSource || 'invoice-date') !== 'manual';
           return shouldFollowInvoiceDate
             ? { ...line, contractStartDate: date }
             : line;
