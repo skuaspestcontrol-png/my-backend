@@ -198,14 +198,16 @@ export const getServiceScheduleRuleLabel = (draft = {}) => {
   if (frequency === 'fortnightly') {
     return weekdayLabel ? `Every 2 weeks on ${weekdayLabel}` : 'Every 2 weeks on any day';
   }
-  if (frequency === 'monthly') return 'Every month';
-  if (frequency === 'quarterly') return 'Every 3 months';
-  if (frequency === 'half_yearly') return 'Every 6 months';
-  if (frequency === 'yearly') return 'Every year';
+  if (frequency === 'monthly') return weekdayLabel ? `Every month on ${weekdayLabel}` : 'Every month';
+  if (frequency === 'quarterly') return weekdayLabel ? `Every 3 months on ${weekdayLabel}` : 'Every 3 months';
+  if (frequency === 'half_yearly') return weekdayLabel ? `Every 6 months on ${weekdayLabel}` : 'Every 6 months';
+  if (frequency === 'yearly') return weekdayLabel ? `Every year on ${weekdayLabel}` : 'Every year';
   if (frequency === 'custom') {
     const unitLabel = repeatEvery === 1 ? repeatUnit.replace(/s$/, '') : repeatUnit;
     return repeatUnit === 'weeks' && weekdayLabel
       ? `Every ${repeatEvery} ${repeatUnit} on ${weekdayLabel}`
+      : repeatUnit !== 'weeks' && weekdayLabel
+        ? `Every ${repeatEvery} ${unitLabel} on ${weekdayLabel}`
       : repeatUnit === 'weeks'
         ? `Every ${repeatEvery} ${repeatUnit} on any day`
         : `Every ${repeatEvery} ${unitLabel}${repeatEvery === 1 ? '' : ''}`;
@@ -306,6 +308,7 @@ export const normalizeServiceScheduleRows = (rows = [], defaultTime = '10:00') =
       itemId: String(row?.itemId || '').trim(),
       itemName: String(row?.itemName || '').trim(),
       itemDescription: String(row?.itemDescription || '').trim(),
+      scheduleRuleLabel: String(row?.scheduleRuleLabel || row?.scheduleRule || '').trim(),
       status: String(row?.status || 'Scheduled').trim() || 'Scheduled'
     }))
     .filter((row) => Boolean(row.serviceDate))
@@ -329,6 +332,7 @@ export const buildServiceScheduleRows = ({
 } = {}) => {
   const dates = generateServiceScheduleDates(draft, maxVisits);
   const normalizedTime = normalizeServiceScheduleTime(defaultTime, '10:00');
+  const scheduleRuleLabel = getServiceScheduleRuleLabel(draft);
   return dates.map((serviceDate, index) => ({
     serviceNumber: index + 1,
     serviceDate,
@@ -336,6 +340,7 @@ export const buildServiceScheduleRows = ({
     itemId: String(itemMeta.itemId || '').trim(),
     itemName: String(itemMeta.itemName || 'Service Visit').trim() || 'Service Visit',
     itemDescription: String(itemMeta.itemDescription || '').trim(),
+    scheduleRuleLabel,
     status: 'Scheduled'
   }));
 };

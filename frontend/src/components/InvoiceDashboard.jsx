@@ -990,6 +990,7 @@ export default function InvoiceDashboard() {
   const invoiceResizeStateRef = useRef(null);
   const invoicesLoadRef = useRef(false);
   const masterDataLoadRef = useRef(false);
+  const termsAutoSeededRef = useRef(false);
   const routeModalRequest = Boolean(
     location.state?.openInvoiceNumberPrefs
       || location.state?.openNewInvoice
@@ -1423,6 +1424,29 @@ export default function InvoiceDashboard() {
       masterDataLoadRef.current = false;
     }
   };
+
+  useEffect(() => {
+    if (!showModal || editingId) {
+      termsAutoSeededRef.current = false;
+      return;
+    }
+    if (!settingsHydrated) return;
+    if (termsAutoSeededRef.current) return;
+    if (String(form.termsAndConditions || '').trim()) {
+      termsAutoSeededRef.current = true;
+      return;
+    }
+    const nextTerms = getDefaultTermsForInvoiceType(form.invoiceType);
+    if (!nextTerms) {
+      termsAutoSeededRef.current = true;
+      return;
+    }
+    termsAutoSeededRef.current = true;
+    setFormWithTotals((prev) => {
+      if (String(prev.termsAndConditions || '').trim()) return prev;
+      return { ...prev, termsAndConditions: nextTerms };
+    });
+  }, [editingId, form.invoiceType, form.termsAndConditions, getDefaultTermsForInvoiceType, settingsHydrated, showModal]);
 
   useEffect(() => {
     loadInvoices();
@@ -3512,6 +3536,9 @@ export default function InvoiceDashboard() {
                     value={form.termsAndConditions}
                     onChange={(event) => setFormWithTotals((prev) => ({ ...prev, termsAndConditions: event.target.value }))}
                   />
+                  {!editingId && settingsHydrated && String(form.termsAndConditions || '').trim() && String(form.termsAndConditions || '').trim() === getDefaultTermsForInvoiceType(form.invoiceType) ? (
+                    <span style={shell.helperText}>Loaded from Settings</span>
+                  ) : null}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <ServiceScheduleBuilder

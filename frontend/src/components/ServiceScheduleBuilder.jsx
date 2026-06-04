@@ -98,8 +98,9 @@ export default function ServiceScheduleBuilder({
   const visibleRows = previewRows.slice(0, rowLimit);
   const hasRows = previewRows.length > 0;
   const isManual = Array.isArray(scheduleRows);
-  const showWeekdays = isWeekBasedFrequency(draft.frequency, draft.repeatUnit);
+  const showWeekdays = Boolean(String(draft.frequency || '').trim());
   const repeatEvery = Math.max(1, Number(draft.repeatEvery || 1));
+  const previewRuleLabel = previewRows[0]?.scheduleRuleLabel || ruleLabel;
 
   const updateDraft = (patch) => {
     onDraftChange({ ...draft, ...patch });
@@ -262,7 +263,7 @@ export default function ServiceScheduleBuilder({
               </select>
               <input style={styles.input} value={`Every ${repeatEvery} ${draft.repeatUnit || 'weeks'}`} readOnly />
             </div>
-            <span style={styles.helper}>Use weeks when you need weekday chips, like every 2 weeks on Saturday, Friday, or any day.</span>
+          <span style={styles.helper}>Use the day chips to pick Any day, Weekdays, Weekend, or specific days for the schedule.</span>
           </div>
         ) : (
           <div style={styles.field}>
@@ -321,7 +322,7 @@ export default function ServiceScheduleBuilder({
               })}
             </div>
           </div>
-          {errors.weekdays ? <span style={styles.error}>{errors.weekdays}</span> : <span style={styles.helper}>Pick one or more days, or leave it on <strong>Any day</strong> for interval-based visits.</span>}
+          {errors.weekdays ? <span style={styles.error}>{errors.weekdays}</span> : <span style={styles.helper}>Pick Any day, Weekdays, Weekend, or specific days. The chosen day set is saved with the rule.</span>}
         </div>
       ) : null}
 
@@ -341,8 +342,22 @@ export default function ServiceScheduleBuilder({
           </div>
           <div style={styles.summaryRow}>
             <span style={styles.summaryKey}>Rule</span>
-            <span style={styles.summaryValue}>{ruleLabel}</span>
+            <span style={styles.summaryValue}>{previewRuleLabel}</span>
           </div>
+          {showWeekdays ? (
+            <div style={styles.summaryRow}>
+              <span style={styles.summaryKey}>Selected days</span>
+              <span style={styles.summaryValue}>
+                {selectedWeekdays.length === 0
+                  ? 'Any day'
+                  : isWeekdaysSelected
+                    ? 'Weekdays'
+                    : isWeekendSelected
+                      ? 'Weekend'
+                      : selectedWeekdays.map((value) => serviceScheduleWeekdayOptions.find((day) => day.value === value)?.short).filter(Boolean).join(', ')}
+              </span>
+            </div>
+          ) : null}
         </div>
 
         <div>
