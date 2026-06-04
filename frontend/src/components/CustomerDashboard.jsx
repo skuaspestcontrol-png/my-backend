@@ -344,6 +344,9 @@ const shell = {
   cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 500, color: '#334155', verticalAlign: 'middle', lineHeight: 1.25 },
   cellClamp: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   nameCell: { color: 'var(--color-primary)', fontWeight: 400, cursor: 'pointer', textDecoration: 'underline dotted rgba(159,23,77,0.45)' },
+  customerNameStack: { display: 'grid', gap: '1px', minWidth: 0 },
+  customerNamePrimary: { fontSize: '11px', fontWeight: 700, color: '#334155', lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  customerNameMobile: { fontSize: '9px', fontWeight: 600, color: '#64748b', lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   rowActionButton: {
     border: '1px solid #d1d5db',
     background: '#fff',
@@ -2837,8 +2840,15 @@ export default function CustomerDashboard() {
                   <td
                     key={`${customer._id || customer.name}-${column.key}`}
                     style={
-                      column.key === 'name' || column.key === 'companyName'
-                        ? { ...shell.cell, ...shell.nameCell, ...shell.cellClamp, ...getColumnStyle(column.key) }
+                      column.key === 'name'
+                        ? {
+                          ...shell.cell,
+                          ...(isMobile ? {} : shell.nameCell),
+                          ...shell.cellClamp,
+                          ...getColumnStyle(column.key)
+                        }
+                        : column.key === 'companyName'
+                          ? { ...shell.cell, ...shell.nameCell, ...shell.cellClamp, ...getColumnStyle(column.key) }
                         : { ...shell.cell, ...shell.cellClamp, ...getColumnStyle(column.key) }
                     }
                     onClick={
@@ -2848,7 +2858,14 @@ export default function CustomerDashboard() {
                     }
                     title={String(handleCellValue(customer, column.key) || '')}
                   >
-                    {handleCellValue(customer, column.key)}
+                    {column.key === 'name' && isMobile ? (
+                      <div style={shell.customerNameStack}>
+                        <div style={shell.customerNamePrimary}>{handleCellValue(customer, column.key)}</div>
+                        <div style={shell.customerNameMobile}>{customer.mobileNumber || customer.workPhone || '-'}</div>
+                      </div>
+                    ) : (
+                      handleCellValue(customer, column.key)
+                    )}
                   </td>
                 ))}
                 <td style={{ ...shell.cell, whiteSpace: 'nowrap' }}>
