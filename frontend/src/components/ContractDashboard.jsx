@@ -445,6 +445,7 @@ export default function ContractDashboard() {
   const [cachedDashboard] = useState(() => readContractsDashboardCache());
   const hasCachedDashboard = Boolean(cachedDashboard);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [contractSortDirection, setContractSortDirection] = useState('asc');
   const [quickFilter, setQuickFilter] = useState('All');
   const [filters, setFilters] = useState({ status: 'All Status', type: 'All Type', from: '', to: '', search: '' });
   const [activeTab, setActiveTab] = useState('Overview');
@@ -829,7 +830,16 @@ export default function ContractDashboard() {
     });
   }, [allContracts, filters, quickFilter]);
 
-  const sortedContracts = useMemo(() => filteredContracts, [filteredContracts]);
+  const sortedContracts = useMemo(() => {
+    const list = [...filteredContracts];
+    list.sort((leftRow, rightRow) => {
+      const left = String(leftRow.contractNo || '').trim();
+      const right = String(rightRow.contractNo || '').trim();
+      const comparison = left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
+      return contractSortDirection === 'asc' ? comparison : -comparison;
+    });
+    return list;
+  }, [filteredContracts, contractSortDirection]);
   const totalPages = Math.max(1, Math.ceil(sortedContracts.length / CONTRACT_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const paginatedContracts = useMemo(() => {
@@ -962,6 +972,9 @@ export default function ContractDashboard() {
       
     </th>
   );
+  const toggleContractSort = () => {
+    setContractSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+  };
   const contractColumnList = [
     `${getColumnWidth('rowNumber')}px`,
     visibleColumns.contractNo ? `${getColumnWidth('contractNo')}px` : null,
@@ -1122,10 +1135,28 @@ export default function ContractDashboard() {
             {renderResizableHeader('rowNumber', '#')}
             {visibleColumns.contractNo ? (
               renderResizableHeader('contractNo', (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={toggleContractSort}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    border: 'none',
+                    background: 'transparent',
+                    padding: 0,
+                    margin: 0,
+                    color: 'inherit',
+                    font: 'inherit',
+                    fontWeight: 'inherit',
+                    cursor: 'pointer'
+                  }}
+                  aria-label={`Sort Contract ${contractSortDirection === 'asc' ? 'descending' : 'ascending'}`}
+                  title={`Sort Contract ${contractSortDirection === 'asc' ? 'descending' : 'ascending'}`}
+                >
                   <span>Contract</span>
                   <ArrowUpDown size={13} strokeWidth={2.2} style={{ color: '#64748b' }} />
-                </span>
+                </button>
               ))
             ) : null}
             {visibleColumns.customer ? (
