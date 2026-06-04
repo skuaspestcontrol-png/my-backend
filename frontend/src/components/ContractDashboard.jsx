@@ -24,6 +24,7 @@ import {
   Receipt,
   RefreshCcw,
   Settings,
+  ArrowUpDown,
   TriangleAlert,
   UserRound,
   Wallet,
@@ -934,7 +935,7 @@ export default function ContractDashboard() {
     { label: 'Renewed', icon: RefreshCcw }
   ];
   const customColumns = [
-    { key: 'contractNo', label: 'Contract #' },
+    { key: 'contractNo', label: 'Contract' },
     { key: 'customer', label: 'Customer' },
     { key: 'property', label: 'Property' },
     { key: 'duration', label: 'Duration' },
@@ -1120,7 +1121,12 @@ export default function ContractDashboard() {
           <tr>
             {renderResizableHeader('rowNumber', '#')}
             {visibleColumns.contractNo ? (
-              renderResizableHeader('contractNo', 'Contract #')
+              renderResizableHeader('contractNo', (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span>Contract</span>
+                  <ArrowUpDown size={13} strokeWidth={2.2} style={{ color: '#64748b' }} />
+                </span>
+              ))
             ) : null}
             {visibleColumns.customer ? (
               renderResizableHeader('customer', 'Customer', { textAlign: 'left' })
