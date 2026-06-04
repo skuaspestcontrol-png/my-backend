@@ -1884,7 +1884,17 @@ export default function InvoiceDashboard() {
   const handleDateChange = (date) => {
     setFormWithTotals((prev) => {
       const days = termsToDays[prev.terms] ?? 0;
-      return { ...prev, date, dueDate: addDays(date, days) };
+      const previousDate = prev.date || '';
+      const nextItems = Array.isArray(prev.items)
+        ? prev.items.map((line) => {
+          const currentStartDate = String(line.contractStartDate || '').trim();
+          const shouldFollowInvoiceDate = !currentStartDate || currentStartDate === previousDate;
+          return shouldFollowInvoiceDate
+            ? { ...line, contractStartDate: date }
+            : line;
+        })
+        : prev.items;
+      return { ...prev, date, dueDate: addDays(date, days), items: nextItems };
     });
   };
 
