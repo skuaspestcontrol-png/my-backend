@@ -555,6 +555,20 @@ button {
   outline: none;
 }
 
+.crm-input[type="number"],
+.crm-modal input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.crm-input[type="number"]::-webkit-inner-spin-button,
+.crm-input[type="number"]::-webkit-outer-spin-button,
+.crm-modal input[type="number"]::-webkit-inner-spin-button,
+.crm-modal input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .crm-textarea,
 .crm-modal textarea {
   min-height: 80px;

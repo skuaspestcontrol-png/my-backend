@@ -1,9 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Calendar } from 'lucide-react';
 import {
   buildServiceScheduleRows,
   formatServiceScheduleDate,
-  getServiceScheduleRuleLabel,
   normalizeServiceScheduleRows,
   normalizeServiceScheduleTime
 } from '../utils/serviceScheduleBuilder';
@@ -53,11 +52,11 @@ const styles = {
     borderRight: '1px solid #d9e1ea',
     background: '#f8fafc',
     color: '#55657a',
-    fontSize: '9px',
+    fontSize: '8px',
     fontWeight: 800,
     textTransform: 'uppercase',
     letterSpacing: '0.02em',
-    padding: '6px 8px',
+    padding: '3px 8px',
     textAlign: 'left'
   },
   td: {
@@ -65,23 +64,41 @@ const styles = {
     borderRight: '1px solid #d9e1ea',
     color: '#334155',
     fontSize: '10px',
-    padding: '6px 8px',
+    padding: '3px 8px',
     verticalAlign: 'middle'
   },
-  numberCell: { width: '34px', textAlign: 'center', color: '#475569', fontWeight: 700, fontSize: '12px' },
-  serviceCell: { fontSize: '11px', fontWeight: 600, color: '#334155', lineHeight: 1.15 },
-  visitCell: { fontSize: '11px', fontWeight: 500, color: '#475569', whiteSpace: 'pre-line', lineHeight: 1.15 },
+  numberCell: { width: '34px', textAlign: 'center', color: '#475569', fontWeight: 700, fontSize: '11px', paddingTop: '3px', paddingBottom: '3px' },
+  serviceCell: { fontSize: '10px', fontWeight: 600, color: '#334155', lineHeight: 1.05 },
+  visitCell: { fontSize: '10px', fontWeight: 500, color: '#475569', whiteSpace: 'nowrap', lineHeight: 1.02 },
   dateInput: {
     width: '100%',
-    minHeight: '30px',
-    borderRadius: '5px',
+    minHeight: '22px',
+    height: '22px',
+    borderRadius: '4px',
     border: '1px solid #d1d5db',
     background: '#fff',
     color: '#475569',
-    fontSize: '10px',
+    fontSize: '8px',
     fontWeight: 600,
-    padding: '0 6px',
+    padding: '0 22px 0 5px',
     boxSizing: 'border-box'
+  },
+  dateField: {
+    position: 'relative',
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  dateIcon: {
+    position: 'absolute',
+    right: '6px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#64748b',
+    cursor: 'pointer'
   },
   emptyState: {
     borderTop: '1px solid var(--color-border)',
@@ -124,6 +141,7 @@ export default function ServiceScheduleBuilder({
   onExpandedChange
 }) {
   const normalizedTime = normalizeServiceScheduleTime(time, '10:00');
+  const dateInputRefs = useRef({});
   const previewRows = useMemo(() => {
     if (Array.isArray(scheduleRows) && scheduleRows.length > 0) {
       return normalizeServiceScheduleRows(scheduleRows, normalizedTime);
@@ -135,8 +153,27 @@ export default function ServiceScheduleBuilder({
     });
   }, [defaultItemMeta, draft, normalizedTime, scheduleRows]);
 
-  const ruleLabel = getServiceScheduleRuleLabel(draft);
   const previewCount = previewRows.length;
+
+  const handleServiceDateChange = (index, nextDate) => {
+    if (typeof onRowsChange !== 'function') return;
+    const updatedRows = previewRows.map((row, rowIndex) =>
+      rowIndex === index
+        ? { ...row, serviceDate: nextDate, serviceNumber: rowIndex + 1 }
+        : row
+    );
+    onRowsChange(updatedRows);
+  };
+
+  const focusDatePicker = (index) => {
+    const input = dateInputRefs.current?.[index];
+    if (!input) return;
+    if (typeof input.showPicker === 'function') {
+      input.showPicker();
+      return;
+    }
+    input.focus();
+  };
 
   return (
     <section style={styles.block}>
@@ -154,7 +191,7 @@ export default function ServiceScheduleBuilder({
             <colgroup>
               <col style={{ width: '34px' }} />
               <col style={{ width: '108px' }} />
-              <col style={{ width: '66px' }} />
+              <col style={{ width: '74px' }} />
               <col style={{ width: '150px' }} />
             </colgroup>
             <thead>
@@ -177,8 +214,34 @@ export default function ServiceScheduleBuilder({
                     <td style={styles.td}>
                       <div style={styles.visitCell}>{`Visit\n${row.serviceNumber || index + 1}`}</div>
                     </td>
-                    <td style={styles.td}>
-                      <input type="date" style={styles.dateInput} value={currentDate} readOnly aria-label={`Visit ${index + 1} date`} />
+                    <td style={{ ...styles.td, paddingTop: '1px', paddingBottom: '1px' }}>
+                      <div style={styles.dateField}>
+                        <input
+                          ref={(node) => {
+                            dateInputRefs.current[index] = node;
+                          }}
+                          type="date"
+                          style={styles.dateInput}
+                          value={currentDate}
+                          onChange={(event) => handleServiceDateChange(index, event.target.value)}
+                          aria-label={`Visit ${index + 1} date`}
+                        />
+                        <span
+                          style={styles.dateIcon}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Open calendar for visit ${index + 1}`}
+                          onClick={() => focusDatePicker(index)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              focusDatePicker(index);
+                            }
+                          }}
+                        >
+                          <Calendar size={12} />
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -189,7 +252,6 @@ export default function ServiceScheduleBuilder({
       ) : (
         <div style={styles.emptyState}>
           No visits are available yet. Choose the contract rule and dates to generate a schedule preview.
-          {ruleLabel ? <div style={{ marginTop: '6px', fontWeight: 700, color: '#334155' }}>{ruleLabel}</div> : null}
         </div>
       )}
     </section>

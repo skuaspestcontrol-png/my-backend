@@ -3,7 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { ChevronLeft, ChevronRight, FileText, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, FileText, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
 import {
   defaultInvoiceVisibleColumns,
   invoiceColumns as columns,
@@ -938,6 +938,71 @@ const matchesInvoiceReference = (invoice, reference) => {
     invoice?.contractNo
   ].some((candidate) => normalizeRouteReference(candidate) === target);
 };
+
+const compactCalendarFieldStyle = {
+  position: 'relative',
+  width: '100%',
+  display: 'flex',
+  alignItems: 'center'
+};
+
+const compactCalendarIconStyle = {
+  position: 'absolute',
+  right: '6px',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#64748b',
+  cursor: 'pointer'
+};
+
+function CompactCalendarDateInput({ value, onChange, style, ariaLabel, readOnly = false }) {
+  const inputRef = useRef(null);
+
+  const openPicker = () => {
+    if (readOnly) return;
+    const input = inputRef.current;
+    if (!input) return;
+    if (typeof input.showPicker === 'function') {
+      input.showPicker();
+      return;
+    }
+    input.focus();
+  };
+
+  return (
+    <div style={compactCalendarFieldStyle}>
+      <input
+        ref={inputRef}
+        type="date"
+        style={{ ...style, paddingRight: readOnly ? style?.paddingRight : '28px' }}
+        value={value || ''}
+        onChange={onChange}
+        readOnly={readOnly}
+        aria-label={ariaLabel}
+      />
+      {!readOnly ? (
+        <span
+          style={compactCalendarIconStyle}
+          role="button"
+          tabIndex={0}
+          aria-label={ariaLabel ? `Open calendar for ${ariaLabel.toLowerCase()}` : 'Open calendar'}
+          onClick={openPicker}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              openPicker();
+            }
+          }}
+        >
+          <Calendar size={12} />
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 const getServiceScheduleItemMeta = (invoiceForm = emptyForm) => {
   const firstLine = Array.isArray(invoiceForm.items) ? (invoiceForm.items[0] || {}) : {};
@@ -3359,11 +3424,11 @@ export default function InvoiceDashboard() {
                 </div>
 
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Invoice Date*</label>
-                <input
-                  type="date"
+                <CompactCalendarDateInput
                   style={compactContractDateStyle}
                   value={form.date}
                   onChange={(event) => handleDateChange(event.target.value)}
+                  ariaLabel="invoice date"
                 />
 
                 <label style={shell.label}>Terms</label>
@@ -3378,11 +3443,11 @@ export default function InvoiceDashboard() {
                 </select>
 
                 <label style={shell.label}>Due Date</label>
-                <input
-                  type="date"
+                <CompactCalendarDateInput
                   style={compactContractDateStyle}
                   value={form.dueDate}
                   onChange={(event) => setFormWithTotals((prev) => ({ ...prev, dueDate: event.target.value }))}
+                  ariaLabel="due date"
                 />
               </div>
 
@@ -3485,29 +3550,29 @@ export default function InvoiceDashboard() {
                                   </div>
                                   <div style={itemMetaFieldStyle}>
                                     <span style={itemMetaLabelStyle}>Contract Start Date</span>
-                                    <input
-                                      type="date"
+                                    <CompactCalendarDateInput
                                       style={itemMetaDateInputStyle}
                                       value={line.contractStartDate || ''}
                                       onChange={(event) => updateLine(index, { contractStartDate: event.target.value })}
+                                      ariaLabel="contract start date"
                                     />
                                   </div>
                                   <div style={itemMetaFieldStyle}>
                                     <span style={itemMetaLabelStyle}>Contract End Date</span>
-                                    <input
-                                      type="date"
+                                    <CompactCalendarDateInput
                                       style={itemMetaDateInputStyle}
                                       value={line.contractEndDate || ''}
                                       readOnly
+                                      ariaLabel="contract end date"
                                     />
                                   </div>
                                   <div style={itemMetaFieldStyle}>
                                     <span style={itemMetaLabelStyle}>Renewal Date</span>
-                                    <input
-                                      type="date"
+                                    <CompactCalendarDateInput
                                       style={itemMetaDateInputStyle}
                                       value={line.renewalDate || ''}
                                       readOnly
+                                      ariaLabel="renewal date"
                                     />
                                   </div>
                                   <div style={itemMetaFieldStyle}>
