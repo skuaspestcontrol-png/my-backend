@@ -340,7 +340,7 @@ const formatDate = (value) => {
   return `${day}/${month}/${year}`;
 };
 
-const formatINR = (num) => `₹${Number(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+const formatINR = (num) => `₹${Number(num || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 const formatWholeAmount = (num) => Number(num || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
 const deriveContractCode = (contractNo) => {
