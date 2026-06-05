@@ -28,6 +28,38 @@ const REPEAT_UNIT_OPTIONS = [
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const SERVICE_FREQUENCY_ALIASES = {
+  fortnightly_visits: { frequency: 'fortnightly' },
+  quarterly_visits: { frequency: 'quarterly' },
+  annual: { frequency: 'yearly' },
+  bi_monthly: { frequency: 'custom', repeatEvery: 2, repeatUnit: 'months' },
+  three_treatment_every_4_months: { frequency: 'custom', repeatEvery: 4, repeatUnit: 'months' },
+  initial_spray_gel_batting_7_then_4m: { frequency: 'custom', repeatEvery: 4, repeatUnit: 'months' },
+  single_followup_7: { frequency: 'custom', repeatEvery: 7, repeatUnit: 'days' },
+  single_followup_10: { frequency: 'custom', repeatEvery: 10, repeatUnit: 'days' },
+  initial_treatment_one_year_warranty: { frequency: 'single_once' },
+  initial_treatment_two_year_warranty: { frequency: 'single_once' },
+  initial_treatment_three_year_warranty: { frequency: 'single_once' },
+  single_treatment_no_followup: { frequency: 'single_once' }
+};
+
+const normalizeServiceScheduleFrequencyConfig = (value, repeatEvery, repeatUnit) => {
+  const raw = String(value || '').trim().toLowerCase();
+  const alias = SERVICE_FREQUENCY_ALIASES[raw];
+  if (alias) {
+    return {
+      frequency: alias.frequency,
+      repeatEvery: Math.max(1, Number(alias.repeatEvery || repeatEvery || 1)),
+      repeatUnit: String(alias.repeatUnit || repeatUnit || 'weeks').toLowerCase()
+    };
+  }
+  return {
+    frequency: raw,
+    repeatEvery: Math.max(1, Number(repeatEvery || 1)),
+    repeatUnit: String(repeatUnit || 'weeks').toLowerCase()
+  };
+};
+
 const normalizeDateOnly = (value) => {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -194,10 +226,11 @@ const buildAnchoredMonthSeries = ({ start, end, stepMonths, maxVisits }) => {
 };
 
 export const getServiceScheduleRuleLabel = (draft = {}) => {
-  const frequency = String(draft.frequency || '').trim().toLowerCase();
+  const normalized = normalizeServiceScheduleFrequencyConfig(draft.frequency, draft.repeatEvery, draft.repeatUnit);
+  const frequency = normalized.frequency;
+  const repeatEvery = normalized.repeatEvery;
+  const repeatUnit = normalized.repeatUnit;
   const weekdays = normalizeServiceScheduleWeekdays(draft.weekdays || []);
-  const repeatEvery = Math.max(1, Number(draft.repeatEvery || 1));
-  const repeatUnit = String(draft.repeatUnit || 'weeks').toLowerCase();
   const weekdayLabel = describeWeekdaySelection(weekdays);
 
   if (frequency === 'daily') return 'Every day';
@@ -229,10 +262,11 @@ export const generateServiceScheduleDates = (draft = {}, maxVisits = 500) => {
   const end = parseDateOnly(draft.endDate);
   if (!start || !end || end < start) return [];
 
-  const frequency = String(draft.frequency || '').trim().toLowerCase();
+  const normalized = normalizeServiceScheduleFrequencyConfig(draft.frequency, draft.repeatEvery, draft.repeatUnit);
+  const frequency = normalized.frequency;
+  const repeatEvery = normalized.repeatEvery;
+  const repeatUnit = normalized.repeatUnit;
   const weekdays = normalizeServiceScheduleWeekdays(draft.weekdays || []);
-  const repeatEvery = Math.max(1, Number(draft.repeatEvery || 1));
-  const repeatUnit = String(draft.repeatUnit || 'weeks').toLowerCase();
   const preferredWeekday = weekdays.length > 0 ? Number(weekdays[0]) : null;
 
   if (frequency === 'weekly' || frequency === 'fortnightly' || (frequency === 'custom' && repeatUnit === 'weeks')) {
@@ -392,11 +426,7 @@ export const buildServiceScheduleDraftFromInvoice = (invoice = {}, fallbackTime 
   });
   const firstSchedule = sortedSchedules[0] || null;
   const lastSchedule = sortedSchedules[sortedSchedules.length - 1] || null;
-  const serviceFrequency = String(firstLine.serviceFrequency || '').trim().toLowerCase();
-  const repeatEvery = serviceFrequency === 'fortnightly' ? 2 : 1;
-  const repeatUnit = serviceFrequency === 'monthly' || serviceFrequency === 'quarterly' || serviceFrequency === 'half_yearly' || serviceFrequency === 'yearly'
-    ? 'months'
-    : 'weeks';
+  const serviceFrequencyConfig = normalizeServiceScheduleFrequencyConfig(firstLine.serviceFrequency, 1, 'weeks');
 
   return {
     startDate: toDateStamp(
@@ -413,14 +443,14 @@ export const buildServiceScheduleDraftFromInvoice = (invoice = {}, fallbackTime 
       || invoice.servicePeriodEnd
       || lastSchedule?.serviceDate
     ),
-    frequency: serviceFrequency,
+    frequency: serviceFrequencyConfig.frequency,
     weekdays: normalizeServiceScheduleWeekdays(
       firstLine.serviceWeekday != null && firstLine.serviceWeekday !== ''
         ? [firstLine.serviceWeekday]
         : []
     ),
-    repeatEvery,
-    repeatUnit,
+    repeatEvery: serviceFrequencyConfig.repeatEvery,
+    repeatUnit: serviceFrequencyConfig.repeatUnit,
     defaultTime: normalizeServiceScheduleTime(invoice.serviceScheduleDefaultTime, fallbackTime)
   };
 };
