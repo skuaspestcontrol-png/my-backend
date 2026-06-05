@@ -7805,6 +7805,10 @@ const hydrateInvoiceMysqlRow = (row = {}) => {
     row?.custom_shipping_addresses ?? payload.customShippingAddresses ?? payload.custom_shipping_addresses,
     []
   );
+  const serviceSchedules = parseMysqlPayloadArray(
+    row?.service_schedules ?? payload.serviceSchedules ?? payload.service_schedules,
+    []
+  );
   const externalId = String(row?.external_id || payload._id || row?.id || '').trim();
   const invoiceDate = String(row?.invoice_date ?? payload.date ?? payload.invoice_date ?? '').trim();
   const dueDate = String(row?.due_date ?? payload.dueDate ?? payload.due_date ?? '').trim();
@@ -7827,6 +7831,8 @@ const hydrateInvoiceMysqlRow = (row = {}) => {
     billingAddressText: String(row?.billing_address_text ?? payload.billingAddressText ?? payload.billing_address_text ?? '').trim(),
     shippingAddressText: String(row?.shipping_address_text ?? payload.shippingAddressText ?? payload.shipping_address_text ?? '').trim(),
     customShippingAddresses,
+    serviceScheduleDefaultTime: String(row?.service_schedule_default_time ?? payload.serviceScheduleDefaultTime ?? payload.service_schedule_default_time ?? '10:00').trim() || '10:00',
+    serviceSchedules,
     customerPremiseId: String(row?.customer_premise_id ?? payload.customerPremiseId ?? payload.customer_premise_id ?? '').trim(),
     premiseLabel: String(row?.premise_label ?? payload.premiseLabel ?? payload.premise_label ?? '').trim(),
     premiseAddress: String(row?.premise_address ?? payload.premiseAddress ?? payload.premise_address ?? '').trim(),
@@ -7834,7 +7840,8 @@ const hydrateInvoiceMysqlRow = (row = {}) => {
     premiseCity: String(row?.premise_city ?? payload.premiseCity ?? payload.premise_city ?? '').trim(),
     premiseState: String(row?.premise_state ?? payload.premiseState ?? payload.premise_state ?? '').trim(),
     premisePincode: String(row?.premise_pincode ?? payload.premisePincode ?? payload.premise_pincode ?? '').trim(),
-    premiseGoogleMapUrl: String(row?.premise_google_map_url ?? payload.premiseGoogleMapUrl ?? payload.premise_google_map_url ?? '').trim()
+    premiseGoogleMapUrl: String(row?.premise_google_map_url ?? payload.premiseGoogleMapUrl ?? payload.premise_google_map_url ?? '').trim(),
+    discount: toNumber(payload.discount ?? row?.discount ?? payload.roundOff ?? row?.round_off, 0)
   };
 };
 
@@ -7844,7 +7851,8 @@ const loadInvoicesForContext = async () => {
       const [rows] = await conn.query(`
         SELECT
           external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
-          invoice_date, due_date, total_amount, balance_due, billing_address_source, shipping_address_source,
+          invoice_date, due_date, total_amount, balance_due, service_schedule_default_time, service_schedules, discount,
+          billing_address_source, shipping_address_source,
           billing_address_text, shipping_address_text, custom_shipping_addresses, customer_premise_id,
           premise_label, premise_address, premise_area_name, premise_city, premise_state, premise_pincode,
           premise_google_map_url, payload
@@ -8214,14 +8222,25 @@ const syncInvoiceToMysql = async (invoice) => {
   if (!invoice || !invoice._id) return;
   await withMysqlConnection(async (conn) => {
     await ensureCustomerPremisesInfrastructure(conn);
+    try {
+      await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_schedule_default_time VARCHAR(10) NULL DEFAULT \'10:00\'');
+      await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_schedules JSON NULL');
+      await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS discount DECIMAL(12,2) NULL DEFAULT 0');
+    } catch (_error) {
+      const [cols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='invoices'");
+      const names = new Set((cols || []).map((c) => String(c.COLUMN_NAME || '')));
+      if (!names.has('service_schedule_default_time')) await conn.query('ALTER TABLE invoices ADD COLUMN service_schedule_default_time VARCHAR(10) NULL DEFAULT \'10:00\'');
+      if (!names.has('service_schedules')) await conn.query('ALTER TABLE invoices ADD COLUMN service_schedules JSON NULL');
+      if (!names.has('discount')) await conn.query('ALTER TABLE invoices ADD COLUMN discount DECIMAL(12,2) NULL DEFAULT 0');
+    }
     await conn.query(
       `INSERT INTO invoices (
         external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
         invoice_date, due_date, total_amount, balance_due, billing_address_source, shipping_address_source,
         billing_address_text, shipping_address_text, custom_shipping_addresses,
         customer_premise_id, premise_label, premise_address, premise_area_name, premise_city, premise_state,
-        premise_pincode, premise_google_map_url, payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        premise_pincode, premise_google_map_url, service_schedule_default_time, service_schedules, discount, payload, source_created_at, source_updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         customer_external_id=VALUES(customer_external_id),
         customer_name=VALUES(customer_name),
@@ -8245,6 +8264,9 @@ const syncInvoiceToMysql = async (invoice) => {
         premise_state=VALUES(premise_state),
         premise_pincode=VALUES(premise_pincode),
         premise_google_map_url=VALUES(premise_google_map_url),
+        service_schedule_default_time=VALUES(service_schedule_default_time),
+        service_schedules=VALUES(service_schedules),
+        discount=VALUES(discount),
         payload=VALUES(payload),
         source_created_at=VALUES(source_created_at),
         source_updated_at=VALUES(source_updated_at)`,
@@ -8272,6 +8294,9 @@ const syncInvoiceToMysql = async (invoice) => {
         invoice.premiseState || invoice.premise_state || null,
         invoice.premisePincode || invoice.premise_pincode || null,
         invoice.premiseGoogleMapUrl || invoice.premise_google_map_url || null,
+        String(invoice.serviceScheduleDefaultTime || '10:00').trim() || '10:00',
+        JSON.stringify(Array.isArray(invoice.serviceSchedules) ? invoice.serviceSchedules : []),
+        toNumber(invoice.discount, toNumber(invoice.roundOff, 0)),
         JSON.stringify(invoice),
         invoice.createdAt ? new Date(invoice.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
         new Date().toISOString().slice(0, 19).replace('T', ' ')
@@ -9798,7 +9823,7 @@ app.post('/api/invoices', async (req, res) => {
     withholdingType: req.body.withholdingType || 'TDS',
     withholdingRate: toNumber(req.body.withholdingRate, 0),
     withholdingAmount: toNumber(req.body.withholdingAmount, 0),
-    roundOff: toNumber(req.body.roundOff, 0),
+    discount: toNumber(req.body.discount, toNumber(req.body.roundOff, 0)),
     total: toNumber(req.body.total, amount),
     customerNotes: req.body.customerNotes || '',
     termsAndConditions: req.body.termsAndConditions || '',

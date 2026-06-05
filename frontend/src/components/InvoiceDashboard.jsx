@@ -311,7 +311,7 @@ const emptyForm = {
   withholdingType: 'TDS',
   withholdingRate: '0',
   withholdingAmount: '0',
-  roundOff: '0',
+  discount: '0',
   total: '0'
 };
 
@@ -1392,8 +1392,8 @@ export default function InvoiceDashboard() {
     const totals = computeTotals(nextForm.items, nextForm.invoiceType);
     const withholdingRate = Number(nextForm.withholdingRate || 0);
     const withholdingAmount = Number(((totals.subtotal * withholdingRate) / 100).toFixed(2));
-    const roundOff = Number(nextForm.roundOff || 0);
-    const grandTotal = Number((totals.total - withholdingAmount + roundOff).toFixed(2));
+    const discount = Number(nextForm.discount || 0);
+    const grandTotal = Number((totals.total - withholdingAmount - discount).toFixed(2));
     const status = (nextForm.status || 'DRAFT').toUpperCase();
     const paymentSplits = Array.isArray(nextForm.paymentSplits) && nextForm.paymentSplits.length > 0
       ? nextForm.paymentSplits
@@ -1419,6 +1419,7 @@ export default function InvoiceDashboard() {
       amount: String(grandTotal),
       total: String(grandTotal),
       withholdingAmount: String(withholdingAmount),
+      discount: String(discount),
       paymentSplits,
       paymentReceivedTotal: String(paymentReceivedTotal),
       status: nextStatus,
@@ -1956,7 +1957,7 @@ export default function InvoiceDashboard() {
       withholdingType: invoice.withholdingType || 'TDS',
       withholdingRate: String(invoice.withholdingRate ?? 0),
       withholdingAmount: String(invoice.withholdingAmount ?? 0),
-      roundOff: String(invoice.roundOff ?? 0),
+      discount: String(invoice.discount ?? invoice.roundOff ?? 0),
       total: String(invoice.total ?? invoice.amount ?? 0)
     });
   };
@@ -2697,7 +2698,7 @@ export default function InvoiceDashboard() {
       withholdingType: form.withholdingType,
       withholdingRate: Number(form.withholdingRate || 0),
       withholdingAmount: Number(form.withholdingAmount || 0),
-      roundOff: Number(form.roundOff || 0),
+      discount: Number(form.discount || 0),
       total: Number(form.total || invoiceTotal),
       balanceDue: computedBalance,
       notes: form.customerNotes.trim()
@@ -3061,7 +3062,7 @@ export default function InvoiceDashboard() {
   const itemMetaFieldStyle = isTiny ? { ...shell.itemMetaField, gap: '3px' } : shell.itemMetaField;
   const itemMetaLabelStyle = isTiny ? { ...shell.itemMetaLabel, fontSize: '10px' } : shell.itemMetaLabel;
   const compactItemInputStyle = isTiny
-    ? { ...shell.input, minHeight: '28px', height: '28px', fontSize: '13px', padding: '0 10px' }
+    ? { ...shell.input, minHeight: '28px', height: '28px', fontSize: '12px', padding: '0 10px' }
     : shell.input;
   const compactItemMetaInputStyle = isTiny
     ? {
@@ -3838,50 +3839,14 @@ export default function InvoiceDashboard() {
                     <strong>{formatINR(0)}</strong>
                   </div>
                 )}
-                <div style={shell.taxControlRow}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <label>
-                      <input
-                        type="radio"
-                        name="withholdingType"
-                        checked={form.withholdingType === 'TDS'}
-                        onChange={() => setFormWithTotals((prev) => ({ ...prev, withholdingType: 'TDS' }))}
-                      />{' '}
-                      TDS
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        name="withholdingType"
-                        checked={form.withholdingType === 'TCS'}
-                        onChange={() => setFormWithTotals((prev) => ({ ...prev, withholdingType: 'TCS' }))}
-                      />{' '}
-                      TCS
-                    </label>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <select
-                      style={shell.tinySelect}
-                      value={form.withholdingRate}
-                      onChange={(event) => setFormWithTotals((prev) => ({ ...prev, withholdingRate: event.target.value }))}
-                    >
-                      {withholdingRates.map((rate) => (
-                        <option key={rate} value={String(rate)}>
-                          {rate === 0 ? 'Select a Tax' : `${rate}%`}
-                        </option>
-                      ))}
-                    </select>
-                    <strong style={{ color: '#64748b' }}>{`- ${formatINR(form.withholdingAmount)}`}</strong>
-                  </div>
-                </div>
                 <div style={shell.totalRow}>
-                  <span>Round Off</span>
+                  <span>Discount</span>
                   <input
                     style={{ ...shell.input, width: '88px', minHeight: '30px', textAlign: 'right' }}
                     type="number"
                     step="0.01"
-                    value={form.roundOff}
-                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, roundOff: event.target.value }))}
+                    value={form.discount}
+                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, discount: event.target.value }))}
                   />
                 </div>
                 <div style={shell.totalSummaryRow}>

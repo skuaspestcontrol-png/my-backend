@@ -487,8 +487,8 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
   const subtotal = toNumber(invoice.subtotal, rows.reduce((sum, r) => sum + (r.amount - r.taxAmount), 0));
   const totalTax = toNumber(invoice.totalTax, rows.reduce((sum, r) => sum + r.taxAmount, 0));
-  const roundOff = toNumber(invoice.roundOff, 0);
-  const total = toNumber(invoice.total, subtotal + totalTax + roundOff);
+  const discount = toNumber(invoice.discount ?? invoice.roundOff, 0);
+  const total = toNumber(invoice.total, subtotal + totalTax - discount);
 
   const doc = new PDFDocument({
     size: 'A4',
@@ -782,7 +782,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       ['IGST', formatINR(company.isNonGst ? 0 : igst)],
       ['CGST', formatINR(company.isNonGst ? 0 : cgst)],
       ['SGST', formatINR(company.isNonGst ? 0 : sgst)],
-      ['Rounding', formatINR(roundOff)],
+      ['Discount', formatINR(discount)],
       ['Grand Total', formatINR(total)]
     ];
 
