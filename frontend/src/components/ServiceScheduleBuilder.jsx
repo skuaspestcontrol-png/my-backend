@@ -11,84 +11,83 @@ import {
 const styles = {
   block: {
     border: '1px solid var(--color-border)',
-    borderRadius: '12px',
+    borderRadius: '8px',
     background: '#fff',
     overflow: 'hidden',
     display: 'grid'
   },
   head: {
-    padding: '10px 14px',
+    padding: '6px 10px',
     borderBottom: '1px solid var(--color-border)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '8px',
+    gap: '4px',
     flexWrap: 'wrap'
   },
-  titleWrap: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
-  title: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' },
+  titleWrap: { display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' },
+  title: { margin: 0, fontSize: '13px', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' },
   countBadge: {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '24px',
-    padding: '0 9px',
-    borderRadius: '8px',
+    minHeight: '18px',
+    padding: '0 7px',
+    borderRadius: '6px',
     background: '#a855f7',
     color: '#fff',
-    fontSize: '12px',
+    fontSize: '10px',
     fontWeight: 800,
     lineHeight: 1
   },
-  hint: { margin: 0, fontSize: '11px', color: '#64748b', lineHeight: 1.35 },
+  hint: { margin: 0, fontSize: '9px', color: '#64748b', lineHeight: 1.25 },
   tableWrap: {
-    maxHeight: '360px',
+    maxHeight: '240px',
     overflow: 'auto',
     borderTop: '1px solid var(--color-border)',
     background: '#fff'
   },
-  table: { width: '100%', minWidth: '920px', borderCollapse: 'collapse', tableLayout: 'fixed' },
+  table: { width: '100%', minWidth: '680px', borderCollapse: 'collapse', tableLayout: 'fixed' },
   th: {
     borderBottom: '1px solid #d9e1ea',
     borderRight: '1px solid #d9e1ea',
     background: '#f8fafc',
     color: '#55657a',
-    fontSize: '11px',
+    fontSize: '9px',
     fontWeight: 800,
     textTransform: 'uppercase',
     letterSpacing: '0.02em',
-    padding: '10px 12px',
+    padding: '6px 8px',
     textAlign: 'left'
   },
   td: {
     borderBottom: '1px solid #d9e1ea',
     borderRight: '1px solid #d9e1ea',
     color: '#334155',
-    fontSize: '12px',
-    padding: '10px 12px',
+    fontSize: '10px',
+    padding: '6px 8px',
     verticalAlign: 'middle'
   },
-  numberCell: { width: '48px', textAlign: 'center', color: '#475569', fontWeight: 700, fontSize: '16px' },
-  serviceCell: { fontSize: '13px', fontWeight: 600, color: '#334155', lineHeight: 1.25 },
-  visitCell: { fontSize: '13px', fontWeight: 500, color: '#475569', whiteSpace: 'pre-line', lineHeight: 1.25 },
+  numberCell: { width: '34px', textAlign: 'center', color: '#475569', fontWeight: 700, fontSize: '12px' },
+  serviceCell: { fontSize: '11px', fontWeight: 600, color: '#334155', lineHeight: 1.15 },
+  visitCell: { fontSize: '11px', fontWeight: 500, color: '#475569', whiteSpace: 'pre-line', lineHeight: 1.15 },
   dateInput: {
     width: '100%',
-    minHeight: '40px',
-    borderRadius: '6px',
+    minHeight: '30px',
+    borderRadius: '5px',
     border: '1px solid #d1d5db',
     background: '#fff',
     color: '#475569',
-    fontSize: '13px',
+    fontSize: '10px',
     fontWeight: 600,
-    padding: '0 10px',
+    padding: '0 6px',
     boxSizing: 'border-box'
   },
-  windowGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
   emptyState: {
     borderTop: '1px solid var(--color-border)',
-    padding: '14px',
+    padding: '10px',
     color: '#64748b',
-    fontSize: '12px',
+    fontSize: '10px',
     lineHeight: 1.5,
     background: '#fff'
   }
@@ -108,18 +107,6 @@ const formatDateInput = (value) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-};
-
-const shiftDate = (value, days) => {
-  const date = parseDateOnly(value);
-  if (!date) return '';
-  date.setDate(date.getDate() + Number(days || 0));
-  return formatDateInput(date);
-};
-
-const formatWindowEnd = (nextDate, fallbackDate) => {
-  const shifted = shiftDate(nextDate, -1);
-  return shifted || formatDateInput(fallbackDate);
 };
 
 export default function ServiceScheduleBuilder({
@@ -165,11 +152,10 @@ export default function ServiceScheduleBuilder({
         <div style={styles.tableWrap}>
           <table style={styles.table}>
             <colgroup>
-              <col style={{ width: '48px' }} />
-              <col style={{ width: '140px' }} />
-              <col style={{ width: '84px' }} />
-              <col style={{ width: '220px' }} />
-              <col style={{ width: 'auto' }} />
+              <col style={{ width: '34px' }} />
+              <col style={{ width: '108px' }} />
+              <col style={{ width: '66px' }} />
+              <col style={{ width: '150px' }} />
             </colgroup>
             <thead>
               <tr>
@@ -177,15 +163,11 @@ export default function ServiceScheduleBuilder({
                 <th style={styles.th}>Service</th>
                 <th style={styles.th}>Visit</th>
                 <th style={styles.th}>Date</th>
-                <th style={styles.th}>Window</th>
               </tr>
             </thead>
             <tbody>
               {previewRows.map((row, index) => {
                 const currentDate = formatDateInput(row.serviceDate);
-                const nextDate = previewRows[index + 1]?.serviceDate || '';
-                const windowStart = currentDate;
-                const windowEnd = formatWindowEnd(nextDate, currentDate);
                 return (
                   <tr key={`${row.serviceDate}-${row.serviceTime}-${index}`}>
                     <td style={{ ...styles.td, ...styles.numberCell }}>{index + 1}</td>
@@ -197,12 +179,6 @@ export default function ServiceScheduleBuilder({
                     </td>
                     <td style={styles.td}>
                       <input type="date" style={styles.dateInput} value={currentDate} readOnly aria-label={`Visit ${index + 1} date`} />
-                    </td>
-                    <td style={styles.td}>
-                      <div style={styles.windowGrid}>
-                        <input type="date" style={styles.dateInput} value={windowStart} readOnly aria-label={`Visit ${index + 1} window start`} />
-                        <input type="date" style={styles.dateInput} value={windowEnd} readOnly aria-label={`Visit ${index + 1} window end`} />
-                      </div>
                     </td>
                   </tr>
                 );
