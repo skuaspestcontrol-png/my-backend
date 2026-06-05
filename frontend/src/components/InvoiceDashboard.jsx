@@ -345,8 +345,9 @@ const shell = {
   customerRow: { display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', columnGap: '16px', rowGap: '12px', alignItems: 'center' },
   addressSplit: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px' },
   addressCard: { border: '1px solid var(--color-border)', borderRadius: '10px', padding: '12px', background: '#fff' },
-  addressHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
+  addressHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', minHeight: '28px' },
   addressHeadActions: { display: 'flex', alignItems: 'center', gap: '6px' },
+  addressHeadSpacer: { width: '28px', height: '28px', flex: '0 0 auto' },
   addressTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#475569', textTransform: 'uppercase' },
   addressText: { margin: 0, fontSize: '13px', color: '#0f172a', lineHeight: 1.45, whiteSpace: 'pre-line' },
   addressPickerOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.28)', display: 'grid', placeItems: 'center', zIndex: 3200, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },
@@ -2970,6 +2971,13 @@ export default function InvoiceDashboard() {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap'
   };
+  const shippingAddressEditButtonStyle = {
+    ...shell.iconButton,
+    width: '28px',
+    height: '28px',
+    minHeight: '28px',
+    borderRadius: '8px'
+  };
   const amountActionRowStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -3255,6 +3263,7 @@ export default function InvoiceDashboard() {
                   <div style={addressStackSectionStyle}>
                     <div style={shell.addressHead}>
                       <h4 style={addressTitleStyle}>Billing Address</h4>
+                      <div style={shell.addressHeadSpacer} aria-hidden="true" />
                     </div>
                     <p style={addressTextStyle}>{getAddressDisplayText(selectedBillingAddress, form.billingAddressText || (selectedShippingAddress ? addressOptionText(selectedShippingAddress) : ''))}</p>
                   </div>
@@ -3265,7 +3274,7 @@ export default function InvoiceDashboard() {
                       <div style={shell.addressHeadActions}>
                         <button
                           type="button"
-                          style={shell.iconButton}
+                          style={shippingAddressEditButtonStyle}
                           onClick={openShippingAddressPicker}
                           title="Edit Shipping Address"
                         >
@@ -3281,6 +3290,7 @@ export default function InvoiceDashboard() {
                   <div style={addressCardStyle}>
                     <div style={shell.addressHead}>
                       <h4 style={addressTitleStyle}>Billing Address</h4>
+                      <div style={shell.addressHeadSpacer} aria-hidden="true" />
                     </div>
                     <p style={addressTextStyle}>{getAddressDisplayText(selectedBillingAddress, form.billingAddressText || (selectedShippingAddress ? addressOptionText(selectedShippingAddress) : ''))}</p>
                   </div>
@@ -3290,7 +3300,7 @@ export default function InvoiceDashboard() {
                       <div style={shell.addressHeadActions}>
                         <button
                           type="button"
-                          style={shell.iconButton}
+                          style={shippingAddressEditButtonStyle}
                           onClick={openShippingAddressPicker}
                           title="Edit Shipping Address"
                         >
