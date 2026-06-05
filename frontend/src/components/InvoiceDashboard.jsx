@@ -407,7 +407,7 @@ const shell = {
   itemMetaGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', width: '100%' },
   itemMetaField: { display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, width: '100%' },
   itemMetaLabel: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
-  itemMetaInput: { border: '1px solid #D1D5DB', borderRadius: '8px', padding: '6px 8px', fontSize: '12px', outline: 'none', width: '100%', minWidth: 0, maxWidth: '100%', minHeight: '32px', boxSizing: 'border-box', display: 'block' },
+  itemMetaInput: { border: '1px solid #D1D5DB', borderRadius: '8px', padding: '4px 10px', fontSize: '12px', outline: 'none', width: '100%', minWidth: 0, maxWidth: '100%', minHeight: '32px', boxSizing: 'border-box', display: 'block' },
   iconButton: { border: '1px solid var(--color-border)', borderRadius: '10px', width: '36px', height: '36px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', color: '#475569', cursor: 'pointer' },
   tinyText: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
   addRowBtn: { border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '7px 11px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
@@ -2940,7 +2940,7 @@ export default function InvoiceDashboard() {
       ...shell.itemMetaInput,
       minHeight: '28px',
       height: '28px',
-      padding: '0 7px',
+      padding: '0 10px',
       fontSize: '11px'
     }
     : shell.itemMetaInput;
@@ -2953,7 +2953,7 @@ export default function InvoiceDashboard() {
     ...shell.itemMetaInput,
     minHeight: '28px',
     height: '28px',
-    padding: '0 8px',
+    padding: '0 10px',
     lineHeight: '1.2',
     textAlign: 'left',
     WebkitAppearance: 'none',
@@ -2966,7 +2966,7 @@ export default function InvoiceDashboard() {
     justifyContent: 'space-between',
     minHeight: '28px',
     height: '28px',
-    padding: '0 7px'
+    padding: '0 10px'
   };
   const hideInvoiceShellWhileOpeningModal = routeModalRequest && !showModal && !showInvoiceNumberPrefs;
   const mobileItemInlineGridStyle = {
@@ -3553,7 +3553,7 @@ export default function InvoiceDashboard() {
                                         <span style={itemMetaLabelStyle}>Amount</span>
                                         <div style={compactItemAmountBoxStyle}>
                                           <strong>{formatINR(amount)}</strong>
-                                          <button type="button" style={{ ...shell.iconButton, width: '20px', height: '20px', minHeight: '20px', borderRadius: '6px', border: 'none', background: 'transparent', padding: 0 }} onClick={() => removeLine(index)} title="Remove row">
+                                          <button type="button" style={{ ...shell.iconButton, width: '28px', height: '28px', minHeight: '28px', borderRadius: '6px', border: 'none', background: 'transparent', padding: 0 }} onClick={() => removeLine(index)} title="Remove row">
                                             <Trash2 size={13} />
                                           </button>
                                         </div>
@@ -3600,7 +3600,7 @@ export default function InvoiceDashboard() {
                                 <td style={{ ...shell.itemTd, fontWeight: 700 }}>
                                   <div style={compactItemAmountBoxStyle}>
                                     <span>{formatINR(amount)}</span>
-                                    <button type="button" style={shell.iconButton} onClick={() => removeLine(index)} title="Remove row">
+                                    <button type="button" style={{ ...shell.iconButton, width: '28px', height: '28px', minHeight: '28px', borderRadius: '6px' }} onClick={() => removeLine(index)} title="Remove row">
                                       <Trash2 size={14} />
                                     </button>
                                   </div>
