@@ -478,6 +478,7 @@ export default function ContractDashboard() {
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' });
   const [page, setPage] = useState(1);
   const customizeButtonRef = useRef(null);
+  const customerNameClickTimerRef = useRef(null);
   const contractsLoadPromiseRef = useRef(null);
   const contractProfitRequestRef = useRef(0);
 
@@ -1067,12 +1068,35 @@ export default function ContractDashboard() {
     }
   };
 
+  const handleCustomerNameClick = (row) => {
+    if (customerNameClickTimerRef.current) return;
+    customerNameClickTimerRef.current = window.setTimeout(() => {
+      customerNameClickTimerRef.current = null;
+      navigateToInvoiceEditor({ openInvoiceNumber: row.contractNo, fromContract: 1, viewContract: 1 });
+    }, 180);
+  };
+
+  const handleCustomerNameDoubleClick = (row) => {
+    if (customerNameClickTimerRef.current) {
+      clearTimeout(customerNameClickTimerRef.current);
+      customerNameClickTimerRef.current = null;
+    }
+    openCustomerSummary(row);
+  };
+
   const closeCustomerSummary = () => {
     setCustomerSummary({ open: false, row: null, showHistory: false });
     setCustomerProfitSummary(null);
     setCustomerProfitError('');
     setCustomerProfitLoading(false);
   };
+
+  useEffect(() => () => {
+    if (customerNameClickTimerRef.current) {
+      clearTimeout(customerNameClickTimerRef.current);
+      customerNameClickTimerRef.current = null;
+    }
+  }, []);
 
   const deleteContract = async (row) => {
     if (!row?.invoiceId) return;
@@ -1191,9 +1215,14 @@ export default function ContractDashboard() {
                         className="contract-customer-name"
                         role="button"
                         tabIndex={0}
+                        title="Single click opens contract. Double-click opens customer summary."
                         onClick={(event) => {
                           event.stopPropagation();
-                          navigateToInvoiceEditor({ openInvoiceNumber: row.contractNo, fromContract: 1, viewContract: 1 });
+                          handleCustomerNameClick(row);
+                        }}
+                        onDoubleClick={(event) => {
+                          event.stopPropagation();
+                          handleCustomerNameDoubleClick(row);
                         }}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
@@ -1202,21 +1231,10 @@ export default function ContractDashboard() {
                             navigateToInvoiceEditor({ openInvoiceNumber: row.contractNo, fromContract: 1, viewContract: 1 });
                           }
                         }}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
                       >
                         {row.customer}
                       </div>
-                      <button
-                        type="button"
-                        style={shell.customerSummaryBtn}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openCustomerSummary(row);
-                        }}
-                        title="Customer Summary"
-                        aria-label="Customer Summary"
-                      >
-                        <UserRound size={12} />
-                      </button>
                     </div>
                     <div className="contract-customer-mobile">{row.mobile || '-'}</div>
                   </div>
