@@ -385,7 +385,7 @@ const shell = {
   labelRequired: { color: '#dc2626' },
   input: { border: '1px solid #D1D5DB', borderRadius: '11px', padding: '0 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '40px', boxSizing: 'border-box' },
   textArea: { border: '1px solid #D1D5DB', borderRadius: '11px', padding: '10px 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '80px', resize: 'vertical', boxSizing: 'border-box' },
-  inputWithAction: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 42px', gap: '0' },
+  inputWithAction: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 28px', gap: '0' },
   inputMainWithButton: { borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' },
   inputActionButton: { border: '1px solid var(--color-primary)', borderRadius: '0 8px 8px 0', minHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', color: 'var(--color-primary)', cursor: 'pointer' },
   miniCloseButton: { border: 'none', background: 'transparent', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, width: '28px', height: '28px' },
@@ -2807,6 +2807,26 @@ export default function InvoiceDashboard() {
   const addressTextStyle = isMobile
     ? { ...shell.addressText, fontSize: isTiny ? '12px' : '12px', lineHeight: 1.32 }
     : shell.addressText;
+  const compactContractControlStyle = {
+    ...shell.input,
+    minHeight: '28px',
+    height: '28px',
+    fontSize: '13px',
+    padding: '0 10px'
+  };
+  const compactContractDateStyle = {
+    ...compactContractControlStyle,
+    WebkitAppearance: 'none',
+    appearance: 'none'
+  };
+  const compactContractButtonStyle = {
+    ...shell.inputActionButton,
+    minHeight: '28px',
+    height: '28px',
+    minWidth: '28px',
+    width: '28px',
+    padding: 0
+  };
   const topGridStyle = isMobile ? { ...shell.topGrid, gridTemplateColumns: '1fr' } : shell.topGrid;
   const secondGridStyle = isMobile ? { ...shell.secondGrid, gridTemplateColumns: '1fr' } : shell.secondGrid;
   const subjectRowStyle = isMobile ? { ...shell.subjectRow, gridTemplateColumns: '1fr' } : shell.subjectRow;
@@ -3181,7 +3201,7 @@ export default function InvoiceDashboard() {
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Name*</label>
                 <input
                   list={customerNameDatalistId}
-                  style={shell.input}
+                  style={compactContractControlStyle}
                   value={form.customerName}
                   placeholder="Type to search or add a customer"
                   onChange={(event) => handleCustomerChange(event.target.value)}
@@ -3249,7 +3269,7 @@ export default function InvoiceDashboard() {
               <div style={supplyRowStyle}>
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Place of Supply*</label>
                 <select
-                  style={shell.input}
+                  style={compactContractControlStyle}
                   value={form.placeOfSupply}
                   onChange={(event) => setFormWithTotals((prev) => ({ ...prev, placeOfSupply: event.target.value }))}
                 >
@@ -3269,13 +3289,13 @@ export default function InvoiceDashboard() {
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Invoice#*</label>
                 <div style={shell.inputWithAction}>
                   <input
-                    style={{ ...shell.input, ...shell.inputMainWithButton }}
+                    style={{ ...compactContractControlStyle, ...shell.inputMainWithButton }}
                     value={form.invoiceNumber}
                     onChange={(event) => setFormWithTotals((prev) => ({ ...prev, invoiceNumber: event.target.value }))}
                   />
                   <button
                     type="button"
-                    style={shell.inputActionButton}
+                    style={compactContractButtonStyle}
                     onClick={openInvoiceNumberPrefs}
                     title="Configure invoice number"
                   >
@@ -3286,14 +3306,14 @@ export default function InvoiceDashboard() {
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Invoice Date*</label>
                 <input
                   type="date"
-                  style={dateInputStyle}
+                  style={compactContractDateStyle}
                   value={form.date}
                   onChange={(event) => handleDateChange(event.target.value)}
                 />
 
                 <label style={shell.label}>Terms</label>
                 <select
-                  style={shell.input}
+                  style={compactContractControlStyle}
                   value={form.terms}
                   onChange={(event) => handleTermsChange(event.target.value)}
                 >
@@ -3305,7 +3325,7 @@ export default function InvoiceDashboard() {
                 <label style={shell.label}>Due Date</label>
                 <input
                   type="date"
-                  style={dateInputStyle}
+                  style={compactContractDateStyle}
                   value={form.dueDate}
                   onChange={(event) => setFormWithTotals((prev) => ({ ...prev, dueDate: event.target.value }))}
                 />
@@ -3314,7 +3334,7 @@ export default function InvoiceDashboard() {
               <div style={secondGridStyle}>
                 <label style={shell.label}>Sales Person</label>
                 <select
-                  style={shell.input}
+                  style={compactContractControlStyle}
                   value={form.salesperson}
                   onChange={(event) => setFormWithTotals((prev) => ({ ...prev, salesperson: event.target.value }))}
                 >
@@ -3328,7 +3348,7 @@ export default function InvoiceDashboard() {
                 </select>
                 <label style={shell.label}>Invoice Type</label>
                 <select
-                  style={shell.input}
+                  style={compactContractControlStyle}
                   value={form.invoiceType}
                   onChange={(event) => handleInvoiceTypeChange(event.target.value)}
                 >
@@ -3340,7 +3360,7 @@ export default function InvoiceDashboard() {
               <div style={subjectRowStyle}>
                 <label style={shell.label}>Subject</label>
                 <input
-                  style={shell.input}
+                  style={compactContractControlStyle}
                   placeholder="Let your customer know what this Invoice is for"
                   value={form.subject}
                   onChange={(event) => setFormWithTotals((prev) => ({ ...prev, subject: event.target.value }))}
