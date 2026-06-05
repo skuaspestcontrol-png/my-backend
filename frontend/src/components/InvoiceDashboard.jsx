@@ -2924,13 +2924,14 @@ export default function InvoiceDashboard() {
   const itemMetaFieldStyle = isTiny ? { ...shell.itemMetaField, gap: '3px' } : shell.itemMetaField;
   const itemMetaLabelStyle = isTiny ? { ...shell.itemMetaLabel, fontSize: '10px' } : shell.itemMetaLabel;
   const compactItemInputStyle = isTiny
-    ? { ...shell.input, minHeight: '36px', fontSize: '13px', padding: '0 10px' }
+    ? { ...shell.input, minHeight: '28px', height: '28px', fontSize: '13px', padding: '0 10px' }
     : shell.input;
   const compactItemMetaInputStyle = isTiny
     ? {
       ...shell.itemMetaInput,
-      minHeight: '30px',
-      padding: '4px 7px',
+      minHeight: '28px',
+      height: '28px',
+      padding: '0 7px',
       fontSize: '11px'
     }
     : shell.itemMetaInput;
@@ -2941,13 +2942,22 @@ export default function InvoiceDashboard() {
   const serviceScheduleTdStyle = isMobile ? { ...shell.serviceScheduleTd, fontSize: '11px', padding: '7px 6px', wordBreak: 'break-word' } : shell.serviceScheduleTd;
   const itemMetaDateInputStyle = {
     ...shell.itemMetaInput,
-    minHeight: '32px',
-    height: '32px',
-    padding: '4px 8px',
+    minHeight: '28px',
+    height: '28px',
+    padding: '0 8px',
     lineHeight: '1.2',
     textAlign: 'left',
     WebkitAppearance: 'none',
     appearance: 'none'
+  };
+  const compactItemAmountBoxStyle = {
+    ...compactItemMetaInputStyle,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: '28px',
+    height: '28px',
+    padding: '0 7px'
   };
   const hideInvoiceShellWhileOpeningModal = routeModalRequest && !showModal && !showInvoiceNumberPrefs;
   const mobileItemInlineGridStyle = {
@@ -3432,7 +3442,7 @@ export default function InvoiceDashboard() {
                                     <span style={itemMetaLabelStyle}>Contract Start Date</span>
                                     <input
                                       type="date"
-                                      style={isTiny ? { ...itemMetaDateInputStyle, minHeight: '30px', height: '30px', padding: '3px 6px', fontSize: '11px' } : itemMetaDateInputStyle}
+                                      style={itemMetaDateInputStyle}
                                       value={line.contractStartDate || ''}
                                       onChange={(event) => updateLine(index, { contractStartDate: event.target.value })}
                                     />
@@ -3441,7 +3451,7 @@ export default function InvoiceDashboard() {
                                     <span style={itemMetaLabelStyle}>Contract End Date</span>
                                     <input
                                       type="date"
-                                      style={isTiny ? { ...itemMetaDateInputStyle, minHeight: '30px', height: '30px', padding: '3px 6px', fontSize: '11px' } : itemMetaDateInputStyle}
+                                      style={itemMetaDateInputStyle}
                                       value={line.contractEndDate || ''}
                                       readOnly
                                     />
@@ -3450,7 +3460,7 @@ export default function InvoiceDashboard() {
                                     <span style={itemMetaLabelStyle}>Renewal Date</span>
                                     <input
                                       type="date"
-                                      style={isTiny ? { ...itemMetaDateInputStyle, minHeight: '30px', height: '30px', padding: '3px 6px', fontSize: '11px' } : itemMetaDateInputStyle}
+                                      style={itemMetaDateInputStyle}
                                       value={line.renewalDate || ''}
                                       readOnly
                                     />
@@ -3532,13 +3542,7 @@ export default function InvoiceDashboard() {
                                       </div>
                                       <div style={itemMetaFieldStyle}>
                                         <span style={itemMetaLabelStyle}>Amount</span>
-                                        <div style={{
-                                          ...compactItemMetaInputStyle,
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'space-between',
-                                          padding: isTiny ? '4px 7px' : '6px 8px'
-                                        }}>
+                                        <div style={compactItemAmountBoxStyle}>
                                           <strong>{formatINR(amount)}</strong>
                                           <button type="button" style={{ ...shell.iconButton, width: '20px', height: '20px', minHeight: '20px', borderRadius: '6px', border: 'none', background: 'transparent', padding: 0 }} onClick={() => removeLine(index)} title="Remove row">
                                             <Trash2 size={13} />
@@ -3553,8 +3557,8 @@ export default function InvoiceDashboard() {
                             {!isMobile ? (
                               <>
                                 <td style={shell.itemTd}>
-                                  <input
-                                    style={shell.input}
+                              <input
+                                    style={compactItemMetaInputStyle}
                                     type="number"
                                     min="0"
                                     step="0.01"
@@ -3564,7 +3568,7 @@ export default function InvoiceDashboard() {
                                 </td>
                                 <td style={shell.itemTd}>
                                 <input
-                                  style={shell.input}
+                                  style={compactItemMetaInputStyle}
                                   type="text"
                                   inputMode="decimal"
                                   pattern="[0-9]*[.,]?[0-9]*"
@@ -3574,7 +3578,7 @@ export default function InvoiceDashboard() {
                                 </td>
                                 <td style={shell.itemTd}>
                                   <select
-                                    style={shell.input}
+                                    style={compactItemMetaInputStyle}
                                     value={line.taxRate}
                                     onChange={(event) => updateLine(index, { taxRate: event.target.value })}
                                     disabled={form.invoiceType === 'NON GST'}
@@ -3585,7 +3589,7 @@ export default function InvoiceDashboard() {
                                   </select>
                                 </td>
                                 <td style={{ ...shell.itemTd, fontWeight: 700 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                  <div style={compactItemAmountBoxStyle}>
                                     <span>{formatINR(amount)}</span>
                                     <button type="button" style={shell.iconButton} onClick={() => removeLine(index)} title="Remove row">
                                       <Trash2 size={14} />
