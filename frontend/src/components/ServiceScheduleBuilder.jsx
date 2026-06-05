@@ -11,84 +11,84 @@ import {
 const styles = {
   block: {
     border: '1px solid var(--color-border)',
-    borderRadius: '14px',
+    borderRadius: '12px',
     background: '#fff',
     overflow: 'hidden',
     display: 'grid'
   },
   head: {
-    padding: '14px 18px',
+    padding: '10px 14px',
     borderBottom: '1px solid var(--color-border)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '10px',
+    gap: '8px',
     flexWrap: 'wrap'
   },
-  titleWrap: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
-  title: { margin: 0, fontSize: '18px', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' },
+  titleWrap: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+  title: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' },
   countBadge: {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '28px',
-    padding: '0 10px',
-    borderRadius: '9px',
+    minHeight: '24px',
+    padding: '0 9px',
+    borderRadius: '8px',
     background: '#a855f7',
     color: '#fff',
-    fontSize: '14px',
+    fontSize: '12px',
     fontWeight: 800,
     lineHeight: 1
   },
-  hint: { margin: 0, fontSize: '12px', color: '#64748b', lineHeight: 1.4 },
+  hint: { margin: 0, fontSize: '11px', color: '#64748b', lineHeight: 1.35 },
   tableWrap: {
-    maxHeight: '430px',
+    maxHeight: '360px',
     overflow: 'auto',
     borderTop: '1px solid var(--color-border)',
     background: '#fff'
   },
-  table: { width: '100%', minWidth: '1160px', borderCollapse: 'collapse', tableLayout: 'fixed' },
+  table: { width: '100%', minWidth: '920px', borderCollapse: 'collapse', tableLayout: 'fixed' },
   th: {
     borderBottom: '1px solid #d9e1ea',
     borderRight: '1px solid #d9e1ea',
     background: '#f8fafc',
     color: '#55657a',
-    fontSize: '13px',
+    fontSize: '11px',
     fontWeight: 800,
     textTransform: 'uppercase',
     letterSpacing: '0.02em',
-    padding: '16px 14px',
+    padding: '10px 12px',
     textAlign: 'left'
   },
   td: {
     borderBottom: '1px solid #d9e1ea',
     borderRight: '1px solid #d9e1ea',
     color: '#334155',
-    fontSize: '14px',
-    padding: '16px 14px',
+    fontSize: '12px',
+    padding: '10px 12px',
     verticalAlign: 'middle'
   },
-  numberCell: { width: '60px', textAlign: 'center', color: '#475569', fontWeight: 700, fontSize: '20px' },
-  serviceCell: { fontSize: '16px', fontWeight: 500, color: '#334155' },
-  visitCell: { fontSize: '16px', fontWeight: 400, color: '#475569', whiteSpace: 'pre-line', lineHeight: 1.35 },
+  numberCell: { width: '48px', textAlign: 'center', color: '#475569', fontWeight: 700, fontSize: '16px' },
+  serviceCell: { fontSize: '13px', fontWeight: 600, color: '#334155', lineHeight: 1.25 },
+  visitCell: { fontSize: '13px', fontWeight: 500, color: '#475569', whiteSpace: 'pre-line', lineHeight: 1.25 },
   dateInput: {
     width: '100%',
-    minHeight: '56px',
-    borderRadius: '8px',
+    minHeight: '40px',
+    borderRadius: '6px',
     border: '1px solid #d1d5db',
     background: '#fff',
     color: '#475569',
-    fontSize: '15px',
+    fontSize: '13px',
     fontWeight: 600,
-    padding: '0 14px',
+    padding: '0 10px',
     boxSizing: 'border-box'
   },
-  windowGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' },
+  windowGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
   emptyState: {
     borderTop: '1px solid var(--color-border)',
-    padding: '18px',
+    padding: '14px',
     color: '#64748b',
-    fontSize: '13px',
+    fontSize: '12px',
     lineHeight: 1.5,
     background: '#fff'
   }
@@ -165,10 +165,10 @@ export default function ServiceScheduleBuilder({
         <div style={styles.tableWrap}>
           <table style={styles.table}>
             <colgroup>
-              <col style={{ width: '60px' }} />
-              <col style={{ width: '116px' }} />
-              <col style={{ width: '92px' }} />
-              <col style={{ width: '284px' }} />
+              <col style={{ width: '48px' }} />
+              <col style={{ width: '140px' }} />
+              <col style={{ width: '84px' }} />
+              <col style={{ width: '220px' }} />
               <col style={{ width: 'auto' }} />
             </colgroup>
             <thead>
