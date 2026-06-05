@@ -2779,7 +2779,27 @@ export default function InvoiceDashboard() {
     : shell.summaryMetric;
   const summaryValueStyle = isMobile ? { ...shell.summaryValue, fontSize: isTiny ? '22px' : '24px' } : shell.summaryValue;
   const customerRowStyle = isMobile ? { ...shell.customerRow, gridTemplateColumns: '1fr' } : shell.customerRow;
-  const addressSplitStyle = isMobile ? { ...shell.addressSplit, gridTemplateColumns: '1fr' } : shell.addressSplit;
+  const addressSplitStyle = isMobile
+    ? { ...shell.addressSplit, gridTemplateColumns: '1fr', gap: isTiny ? '10px' : '12px' }
+    : shell.addressSplit;
+  const addressStackStyle = isTiny
+    ? {
+      ...shell.addressCard,
+      padding: '10px 12px',
+      display: 'grid',
+      gap: '10px'
+    }
+    : shell.addressCard;
+  const addressStackSectionStyle = isTiny
+    ? { display: 'grid', gap: '10px' }
+    : null;
+  const addressCardStyle = isMobile
+    ? { ...shell.addressCard, padding: isTiny ? '10px' : '11px' }
+    : shell.addressCard;
+  const addressTitleStyle = isMobile ? { ...shell.addressTitle, fontSize: isTiny ? '12px' : '13px' } : shell.addressTitle;
+  const addressTextStyle = isMobile
+    ? { ...shell.addressText, fontSize: isTiny ? '12px' : '12px', lineHeight: 1.32 }
+    : shell.addressText;
   const topGridStyle = isMobile ? { ...shell.topGrid, gridTemplateColumns: '1fr' } : shell.topGrid;
   const secondGridStyle = isMobile ? { ...shell.secondGrid, gridTemplateColumns: '1fr' } : shell.secondGrid;
   const subjectRowStyle = isMobile ? { ...shell.subjectRow, gridTemplateColumns: '1fr' } : shell.subjectRow;
@@ -2808,13 +2828,17 @@ export default function InvoiceDashboard() {
   const modalFooterStyle = isMobile
     ? {
       ...shell.modalFooter,
-      flexWrap: 'wrap',
+      flexDirection: 'column',
+      alignItems: 'stretch',
       position: 'sticky',
       bottom: 0,
       background: '#fff',
       paddingBottom: 'calc(10px + env(safe-area-inset-bottom))'
     }
     : shell.modalFooter;
+  const modalFooterButtonStyle = isMobile
+    ? { width: '100%', justifyContent: 'center' }
+    : null;
   const miniPrefsGridStyle = isMobile ? { ...shell.miniPrefsGrid, gridTemplateColumns: '1fr', paddingLeft: 0 } : shell.miniPrefsGrid;
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const tinyGhostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
@@ -2865,7 +2889,24 @@ export default function InvoiceDashboard() {
   const rowActionButtonStyle = isCompactInvoiceViewport
     ? { ...shell.rowActionButton, width: '28px', height: '28px' }
     : shell.rowActionButton;
-  const itemMetaGridStyle = isMobile ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' } : shell.itemMetaGrid;
+  const itemMetaGridStyle = isTiny
+    ? { ...shell.itemMetaGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px' }
+    : isMobile
+      ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' }
+      : shell.itemMetaGrid;
+  const itemMetaFieldStyle = isTiny ? { ...shell.itemMetaField, gap: '3px' } : shell.itemMetaField;
+  const itemMetaLabelStyle = isTiny ? { ...shell.itemMetaLabel, fontSize: '10px' } : shell.itemMetaLabel;
+  const compactItemInputStyle = isTiny
+    ? { ...shell.input, minHeight: '36px', fontSize: '13px', padding: '0 10px' }
+    : shell.input;
+  const compactItemMetaInputStyle = isTiny
+    ? {
+      ...shell.itemMetaInput,
+      minHeight: '30px',
+      padding: '4px 7px',
+      fontSize: '11px'
+    }
+    : shell.itemMetaInput;
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : shell.itemTable;
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
   const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '100%', tableLayout: 'fixed' } : shell.serviceScheduleTable;
@@ -2882,7 +2923,12 @@ export default function InvoiceDashboard() {
     appearance: 'none'
   };
   const hideInvoiceShellWhileOpeningModal = routeModalRequest && !showModal && !showInvoiceNumberPrefs;
-  const mobileItemInlineGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' };
+  const mobileItemInlineGridStyle = {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: isTiny ? '6px' : '8px',
+    marginTop: '8px'
+  };
 
   return (
     <section
@@ -3109,7 +3155,20 @@ export default function InvoiceDashboard() {
                 <X size={24} />
               </button>
             </div>
-            <fieldset disabled={contractViewOnly} style={{ border: 'none', margin: 0, padding: 0, minWidth: 0 }}>
+            <fieldset
+              disabled={contractViewOnly}
+              style={{
+                border: 'none',
+                margin: 0,
+                padding: 0,
+                minWidth: 0,
+                minHeight: 0,
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+            >
             <div className="crm-modal-surface-body" style={formBodyStyle}>
               <div style={customerRowStyle}>
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Name*</label>
@@ -3127,30 +3186,58 @@ export default function InvoiceDashboard() {
                 </datalist>
               </div>
 
-              <div style={addressSplitStyle}>
-                <div style={shell.addressCard}>
-                  <div style={shell.addressHead}>
-                    <h4 style={shell.addressTitle}>Billing Address</h4>
-                  </div>
-                  <p style={shell.addressText}>{getAddressDisplayText(selectedBillingAddress, form.billingAddressText || (selectedShippingAddress ? addressOptionText(selectedShippingAddress) : ''))}</p>
-                </div>
-                <div style={shell.addressCard}>
-                  <div style={shell.addressHead}>
-                    <h4 style={shell.addressTitle}>Shipping Address</h4>
-                    <div style={shell.addressHeadActions}>
-                      <button
-                        type="button"
-                        style={shell.iconButton}
-                        onClick={openShippingAddressPicker}
-                        title="Edit Shipping Address"
-                      >
-                        <Pencil size={14} />
-                      </button>
+              {isTiny ? (
+                <div style={addressStackStyle}>
+                  <div style={addressStackSectionStyle}>
+                    <div style={shell.addressHead}>
+                      <h4 style={addressTitleStyle}>Billing Address</h4>
                     </div>
+                    <p style={addressTextStyle}>{getAddressDisplayText(selectedBillingAddress, form.billingAddressText || (selectedShippingAddress ? addressOptionText(selectedShippingAddress) : ''))}</p>
                   </div>
-                  <p style={shell.addressText}>{getAddressDisplayText(selectedShippingAddress, form.shippingAddressText || form.premiseAddress)}</p>
+                  <div style={{ height: '1px', background: 'var(--color-border)', opacity: 0.75 }} />
+                  <div style={addressStackSectionStyle}>
+                    <div style={shell.addressHead}>
+                      <h4 style={addressTitleStyle}>Shipping Address</h4>
+                      <div style={shell.addressHeadActions}>
+                        <button
+                          type="button"
+                          style={shell.iconButton}
+                          onClick={openShippingAddressPicker}
+                          title="Edit Shipping Address"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    <p style={addressTextStyle}>{getAddressDisplayText(selectedShippingAddress, form.shippingAddressText || form.premiseAddress)}</p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={addressSplitStyle}>
+                  <div style={addressCardStyle}>
+                    <div style={shell.addressHead}>
+                      <h4 style={addressTitleStyle}>Billing Address</h4>
+                    </div>
+                    <p style={addressTextStyle}>{getAddressDisplayText(selectedBillingAddress, form.billingAddressText || (selectedShippingAddress ? addressOptionText(selectedShippingAddress) : ''))}</p>
+                  </div>
+                  <div style={addressCardStyle}>
+                    <div style={shell.addressHead}>
+                      <h4 style={addressTitleStyle}>Shipping Address</h4>
+                      <div style={shell.addressHeadActions}>
+                        <button
+                          type="button"
+                          style={shell.iconButton}
+                          onClick={openShippingAddressPicker}
+                          title="Edit Shipping Address"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    <p style={addressTextStyle}>{getAddressDisplayText(selectedShippingAddress, form.shippingAddressText || form.premiseAddress)}</p>
+                  </div>
+                </div>
+              )}
 
               <div style={supplyRowStyle}>
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Place of Supply*</label>
@@ -3282,7 +3369,7 @@ export default function InvoiceDashboard() {
                             <td style={shell.itemTd}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <select
-                                  style={shell.input}
+                                  style={compactItemInputStyle}
                                   value={line.itemId}
                                   onChange={(event) => handleItemSelect(index, event.target.value)}
                                 >
@@ -3292,7 +3379,7 @@ export default function InvoiceDashboard() {
                                   ))}
                                 </select>
                                 <input
-                                  style={shell.input}
+                                  style={compactItemInputStyle}
                                   placeholder="Frequency"
                                   value={line.frequency || ''}
                                   onChange={(event) => updateLine(index, { frequency: event.target.value })}
@@ -3301,10 +3388,10 @@ export default function InvoiceDashboard() {
                                   {line.itemType?.toUpperCase() || 'SERVICE'} SAC: {line.sac || '-'}
                                 </span>
                                 <div style={itemMetaGridStyle}>
-                                  <div style={shell.itemMetaField}>
-                                    <span style={shell.itemMetaLabel}>Contract Period</span>
+                                  <div style={itemMetaFieldStyle}>
+                                    <span style={itemMetaLabelStyle}>Contract Period</span>
                                     <select
-                                      style={shell.itemMetaInput}
+                                      style={compactItemMetaInputStyle}
                                       value={line.contractPeriod || ''}
                                       onChange={(event) => updateLine(index, { contractPeriod: event.target.value })}
                                     >
@@ -3314,37 +3401,37 @@ export default function InvoiceDashboard() {
                                       ))}
                                     </select>
                                   </div>
-                                  <div style={shell.itemMetaField}>
-                                    <span style={shell.itemMetaLabel}>Contract Start Date</span>
+                                  <div style={itemMetaFieldStyle}>
+                                    <span style={itemMetaLabelStyle}>Contract Start Date</span>
                                     <input
                                       type="date"
-                                      style={itemMetaDateInputStyle}
+                                      style={isTiny ? { ...itemMetaDateInputStyle, minHeight: '30px', height: '30px', padding: '3px 6px', fontSize: '11px' } : itemMetaDateInputStyle}
                                       value={line.contractStartDate || ''}
                                       onChange={(event) => updateLine(index, { contractStartDate: event.target.value })}
                                     />
                                   </div>
-                                  <div style={shell.itemMetaField}>
-                                    <span style={shell.itemMetaLabel}>Contract End Date</span>
+                                  <div style={itemMetaFieldStyle}>
+                                    <span style={itemMetaLabelStyle}>Contract End Date</span>
                                     <input
                                       type="date"
-                                      style={itemMetaDateInputStyle}
+                                      style={isTiny ? { ...itemMetaDateInputStyle, minHeight: '30px', height: '30px', padding: '3px 6px', fontSize: '11px' } : itemMetaDateInputStyle}
                                       value={line.contractEndDate || ''}
                                       readOnly
                                     />
                                   </div>
-                                  <div style={shell.itemMetaField}>
-                                    <span style={shell.itemMetaLabel}>Renewal Date</span>
+                                  <div style={itemMetaFieldStyle}>
+                                    <span style={itemMetaLabelStyle}>Renewal Date</span>
                                     <input
                                       type="date"
-                                      style={itemMetaDateInputStyle}
+                                      style={isTiny ? { ...itemMetaDateInputStyle, minHeight: '30px', height: '30px', padding: '3px 6px', fontSize: '11px' } : itemMetaDateInputStyle}
                                       value={line.renewalDate || ''}
                                       readOnly
                                     />
                                   </div>
-                                  <div style={shell.itemMetaField}>
-                                    <span style={shell.itemMetaLabel}>Service Frequency</span>
+                                  <div style={itemMetaFieldStyle}>
+                                    <span style={itemMetaLabelStyle}>Service Frequency</span>
                                     <select
-                                      style={shell.itemMetaInput}
+                                      style={compactItemMetaInputStyle}
                                       value={line.serviceFrequency || ''}
                                       onChange={(event) => updateLine(index, { serviceFrequency: event.target.value })}
                                     >
@@ -3354,10 +3441,10 @@ export default function InvoiceDashboard() {
                                       ))}
                                     </select>
                                   </div>
-                                  <div style={shell.itemMetaField}>
-                                    <span style={shell.itemMetaLabel}>Preferred Day</span>
+                                  <div style={itemMetaFieldStyle}>
+                                    <span style={itemMetaLabelStyle}>Preferred Day</span>
                                     <select
-                                      style={shell.itemMetaInput}
+                                      style={compactItemMetaInputStyle}
                                       value={line.serviceWeekday || ''}
                                       onChange={(event) => updateLine(index, { serviceWeekday: event.target.value })}
                                     >
@@ -3367,10 +3454,10 @@ export default function InvoiceDashboard() {
                                       ))}
                                     </select>
                                   </div>
-                                  <div style={shell.itemMetaField}>
-                                    <span style={shell.itemMetaLabel}>Total Services</span>
+                                  <div style={itemMetaFieldStyle}>
+                                    <span style={itemMetaLabelStyle}>Total Services</span>
                                     <input
-                                      style={shell.itemMetaInput}
+                                      style={compactItemMetaInputStyle}
                                       value={line.totalServices || ''}
                                       readOnly
                                     />
@@ -3379,10 +3466,10 @@ export default function InvoiceDashboard() {
                                 {isMobile ? (
                                   <>
                                     <div style={mobileItemInlineGridStyle}>
-                                      <div style={shell.itemMetaField}>
-                                        <span style={shell.itemMetaLabel}>Quantity</span>
+                                      <div style={itemMetaFieldStyle}>
+                                        <span style={itemMetaLabelStyle}>Quantity</span>
                                         <input
-                                          style={shell.itemMetaInput}
+                                          style={compactItemMetaInputStyle}
                                           type="number"
                                           min="0"
                                           step="0.01"
@@ -3390,10 +3477,10 @@ export default function InvoiceDashboard() {
                                           onChange={(event) => updateLine(index, { quantity: event.target.value })}
                                         />
                                       </div>
-                                      <div style={shell.itemMetaField}>
-                                        <span style={shell.itemMetaLabel}>Rate</span>
+                                      <div style={itemMetaFieldStyle}>
+                                        <span style={itemMetaLabelStyle}>Rate</span>
                                         <input
-                                          style={shell.itemMetaInput}
+                                          style={compactItemMetaInputStyle}
                                           type="number"
                                           min="0"
                                           step="0.01"
@@ -3404,10 +3491,10 @@ export default function InvoiceDashboard() {
                                       </div>
                                     </div>
                                     <div style={mobileItemInlineGridStyle}>
-                                      <div style={shell.itemMetaField}>
-                                        <span style={shell.itemMetaLabel}>Tax</span>
+                                      <div style={itemMetaFieldStyle}>
+                                        <span style={itemMetaLabelStyle}>Tax</span>
                                         <select
-                                          style={shell.itemMetaInput}
+                                          style={compactItemMetaInputStyle}
                                           value={line.taxRate}
                                           onChange={(event) => updateLine(index, { taxRate: event.target.value })}
                                           disabled={form.invoiceType === 'NON GST'}
@@ -3417,9 +3504,15 @@ export default function InvoiceDashboard() {
                                           ))}
                                         </select>
                                       </div>
-                                      <div style={shell.itemMetaField}>
-                                        <span style={shell.itemMetaLabel}>Amount</span>
-                                        <div style={{ ...shell.itemMetaInput, minHeight: '32px', height: '32px', padding: '6px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                      <div style={itemMetaFieldStyle}>
+                                        <span style={itemMetaLabelStyle}>Amount</span>
+                                        <div style={{
+                                          ...compactItemMetaInputStyle,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          padding: isTiny ? '4px 7px' : '6px 8px'
+                                        }}>
                                           <strong>{formatINR(amount)}</strong>
                                           <button type="button" style={{ ...shell.iconButton, width: '20px', height: '20px', minHeight: '20px', borderRadius: '6px', border: 'none', background: 'transparent', padding: 0 }} onClick={() => removeLine(index)} title="Remove row">
                                             <Trash2 size={13} />
@@ -3700,13 +3793,13 @@ export default function InvoiceDashboard() {
               ) : null}
               <button
                 type="button"
-                style={shell.cancelButton}
+                style={modalFooterButtonStyle ? { ...shell.cancelButton, ...modalFooterButtonStyle } : shell.cancelButton}
                 onClick={closeInvoiceModal}
               >
                 {contractViewOnly ? 'Close' : 'Cancel'}
               </button>
               {contractViewOnly ? null : (
-                <button type="submit" style={shell.saveButton} disabled={isSaving}>
+                <button type="submit" style={modalFooterButtonStyle ? { ...shell.saveButton, ...modalFooterButtonStyle } : shell.saveButton} disabled={isSaving}>
                   {isSaving ? 'Saving...' : editingId ? 'Update Contract' : 'Save Contract'}
                 </button>
               )}
