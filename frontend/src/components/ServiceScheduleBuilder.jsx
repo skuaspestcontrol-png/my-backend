@@ -17,26 +17,26 @@ const styles = {
     display: 'grid'
   },
   head: {
-    padding: '18px 20px',
+    padding: '14px 18px',
     borderBottom: '1px solid var(--color-border)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '12px',
+    gap: '10px',
     flexWrap: 'wrap'
   },
-  titleWrap: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' },
-  title: { margin: 0, fontSize: '22px', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' },
+  titleWrap: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
+  title: { margin: 0, fontSize: '18px', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' },
   countBadge: {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '32px',
-    padding: '0 12px',
-    borderRadius: '10px',
+    minHeight: '28px',
+    padding: '0 10px',
+    borderRadius: '9px',
     background: '#a855f7',
     color: '#fff',
-    fontSize: '15px',
+    fontSize: '14px',
     fontWeight: 800,
     lineHeight: 1
   },
@@ -138,7 +138,7 @@ export default function ServiceScheduleBuilder({
 }) {
   const normalizedTime = normalizeServiceScheduleTime(time, '10:00');
   const previewRows = useMemo(() => {
-    if (Array.isArray(scheduleRows)) {
+    if (Array.isArray(scheduleRows) && scheduleRows.length > 0) {
       return normalizeServiceScheduleRows(scheduleRows, normalizedTime);
     }
     return buildServiceScheduleRows({

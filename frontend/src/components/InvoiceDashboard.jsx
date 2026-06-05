@@ -1670,7 +1670,7 @@ export default function InvoiceDashboard() {
       defaultTime: serviceScheduleTime,
       itemMeta: serviceScheduleItemMeta
     });
-    setServiceScheduleRows(rows);
+    setServiceScheduleRows(rows.length > 0 ? rows : null);
   };
 
   const handleResetServiceSchedule = () => {
