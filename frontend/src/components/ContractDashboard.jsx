@@ -246,6 +246,7 @@ const shell = {
   mobileMetaLabel: { fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
   mobileMetaValue: { fontSize: '12px', color: '#1f2937', fontWeight: 700 },
   mobileActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+  customerSummaryBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '999px', minWidth: '24px', width: '24px', height: '24px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' },
   modalCard: { width: 'min(860px, 100%)', maxHeight: '90vh', overflow: 'auto', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-primary-soft)', boxShadow: '0 22px 54px rgba(15,23,42,0.2)' },
   modalHead: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' },
@@ -1184,24 +1185,38 @@ export default function ContractDashboard() {
                   <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
                 </td> : null}
                 {visibleColumns.customer ? <td className="contract-customer-cell" style={{ ...shell.td, ...mobileStackCellStyle, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', gap: '2px', width: '100%' }}>
-                    <div
-                      className="contract-customer-name"
-                      role={row.status === 'Active' ? 'button' : undefined}
-                      tabIndex={row.status === 'Active' ? 0 : undefined}
-                      onClick={row.status === 'Active' ? (event) => {
-                        event.stopPropagation();
-                        openCustomerSummary(row);
-                      } : undefined}
-                      onKeyDown={row.status === 'Active' ? (event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', gap: '4px', width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
+                      <div
+                        className="contract-customer-name"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigateToInvoiceEditor({ openInvoiceNumber: row.contractNo, fromContract: 1, viewContract: 1 });
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            navigateToInvoiceEditor({ openInvoiceNumber: row.contractNo, fromContract: 1, viewContract: 1 });
+                          }
+                        }}
+                      >
+                        {row.customer}
+                      </div>
+                      <button
+                        type="button"
+                        style={shell.customerSummaryBtn}
+                        onClick={(event) => {
                           event.stopPropagation();
                           openCustomerSummary(row);
-                        }
-                      } : undefined}
-                    >
-                      {row.customer}
+                        }}
+                        title="Customer Summary"
+                        aria-label="Customer Summary"
+                      >
+                        <UserRound size={12} />
+                      </button>
                     </div>
                     <div className="contract-customer-mobile">{row.mobile || '-'}</div>
                   </div>
@@ -1470,7 +1485,7 @@ export default function ContractDashboard() {
             className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
-              navigateToInvoiceEditor({ openInvoiceNumber: actionMenu.row.contractNo, fromContract: 1 });
+              navigateToInvoiceEditor({ openInvoiceNumber: actionMenu.row.contractNo, fromContract: 1, viewContract: 1 });
               setActionMenu(null);
             }}
           >

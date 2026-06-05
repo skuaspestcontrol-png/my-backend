@@ -7429,6 +7429,32 @@ const addDays = (date, days) => {
   return next;
 };
 
+const shiftDateToWeekday = (date, weekday) => {
+  const cursor = new Date(date);
+  const target = Number(weekday);
+  if (!Number.isInteger(target) || target < 0 || target > 6) return cursor;
+  const offset = (target - cursor.getDay() + 7) % 7;
+  cursor.setDate(cursor.getDate() + offset);
+  return cursor;
+};
+
+const alignDatesToWeekday = (dates = [], weekday, endDate = null) => {
+  const target = parseWeekdayValue(weekday);
+  const aligned = (Array.isArray(dates) ? dates : [])
+    .map((stamp) => {
+      const date = parseDateOnly(stamp);
+      if (!date || target === null) return '';
+      return formatDateInput(shiftDateToWeekday(date, target));
+    })
+    .filter(Boolean)
+    .filter((stamp) => {
+      if (!endDate) return true;
+      const date = parseDateOnly(stamp);
+      return date ? date <= endDate : false;
+    });
+  return Array.from(new Set(aligned)).sort();
+};
+
 const inclusiveDaysBetween = (start, end) => {
   if (!(start instanceof Date) || !(end instanceof Date) || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0;
   const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
@@ -7476,9 +7502,12 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
   const start = parseDateOnly(startDateStr);
   const end = parseDateOnly(endDateStr);
   if (!cfg || !start || !end || end < start) return [];
+  const targetWeekday = parseWeekdayValue(serviceWeekday);
 
   if (cfg.type === 'single_once') {
-    return [formatDateInput(start)];
+    return targetWeekday === null
+      ? [formatDateInput(start)]
+      : alignDatesToWeekday([formatDateInput(start)], targetWeekday, end);
   }
 
   if (cfg.type === 'followup_days') {
@@ -7486,7 +7515,7 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
     const followup = new Date(start);
     followup.setDate(followup.getDate() + cfg.value);
     if (followup <= end) dates.push(formatDateInput(followup));
-    return dates;
+    return targetWeekday === null ? dates : alignDatesToWeekday(dates, targetWeekday, end);
   }
 
   if (cfg.type === 'followup_then_interval_months') {
@@ -7506,10 +7535,9 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
       const nextDate = formatDateInput(cursor);
       if (!dates.includes(nextDate)) dates.push(nextDate);
     }
-    return dates;
+    return targetWeekday === null ? dates : alignDatesToWeekday(dates, targetWeekday, end);
   }
 
-  const targetWeekday = parseWeekdayValue(serviceWeekday);
   if (targetWeekday !== null && cfg.type === 'interval_days' && cfg.value > 0) {
     const dates = [];
     const cursor = new Date(start);
@@ -7522,7 +7550,8 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
       }
       cursor.setDate(cursor.getDate() + cfg.value);
     }
-    return dates.length > 0 ? dates : [formatDateInput(start)];
+    const baseDates = dates.length > 0 ? dates : [formatDateInput(start)];
+    return alignDatesToWeekday(baseDates, targetWeekday, end);
   }
 
   const dates = [formatDateInput(start)];
@@ -7543,7 +7572,8 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
     }
     if (cfg.maxServices && dates.length >= cfg.maxServices) break;
   }
-  return dates.length > 0 ? dates : [formatDateInput(start)];
+  const baseDates = dates.length > 0 ? dates : [formatDateInput(start)];
+  return targetWeekday === null ? baseDates : alignDatesToWeekday(baseDates, targetWeekday, end);
 };
 
 const normalizeServiceSchedules = (rawSchedules, defaultTime = '10:00') => {

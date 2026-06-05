@@ -318,6 +318,13 @@ export const formatServiceScheduleDate = (value) => {
   return `${String(date.getDate()).padStart(2, '0')} ${MONTH_LABELS[date.getMonth()]} ${date.getFullYear()}`;
 };
 
+export const formatServiceScheduleDateWithWeekday = (value) => {
+  const date = parseDateOnly(value);
+  if (!date) return '';
+  const weekday = getServiceScheduleWeekdayLabel(date.getDay(), true);
+  return [weekday, formatServiceScheduleDate(value)].filter(Boolean).join(', ');
+};
+
 export const formatServiceScheduleTime = (value) => {
   const raw = normalizeServiceScheduleTime(value, '10:00');
   const [hoursRaw, minutes] = raw.split(':');

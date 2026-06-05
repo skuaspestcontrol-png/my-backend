@@ -510,14 +510,43 @@ const parseWeekdayValue = (value) => {
   return Number.isInteger(weekday) && weekday >= 0 && weekday <= 6 ? weekday : null;
 };
 
+const shiftDateToWeekday = (date, weekday) => {
+  const cursor = new Date(date);
+  const target = Number(weekday);
+  if (!Number.isInteger(target) || target < 0 || target > 6) return cursor;
+  const offset = (target - cursor.getDay() + 7) % 7;
+  cursor.setDate(cursor.getDate() + offset);
+  return cursor;
+};
+
+const alignDatesToWeekday = (dates = [], weekday, endDate = null) => {
+  const target = parseWeekdayValue(weekday);
+  const aligned = (Array.isArray(dates) ? dates : [])
+    .map((stamp) => {
+      const date = parseDateOnly(stamp);
+      if (!date || target === null) return '';
+      return formatDateInput(shiftDateToWeekday(date, target));
+    })
+    .filter(Boolean)
+    .filter((stamp) => {
+      if (!endDate) return true;
+      const date = parseDateOnly(stamp);
+      return date ? date <= endDate : false;
+    });
+  return Array.from(new Set(aligned)).sort();
+};
+
 const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, serviceWeekday = '', maxServices = 500) => {
   const cfg = serviceFrequencyConfig[frequency];
   const start = parseDateOnly(startDateStr);
   const end = parseDateOnly(endDateStr);
   if (!cfg || !start || !end || end < start) return [];
+  const targetWeekday = parseWeekdayValue(serviceWeekday);
 
   if (cfg.type === 'single_once') {
-    return [formatDateInput(start)];
+    return targetWeekday === null
+      ? [formatDateInput(start)]
+      : alignDatesToWeekday([formatDateInput(start)], targetWeekday, end);
   }
 
   if (cfg.type === 'followup_days') {
@@ -525,7 +554,7 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
     const followup = new Date(start);
     followup.setDate(followup.getDate() + cfg.value);
     if (followup <= end) dates.push(formatDateInput(followup));
-    return dates;
+    return targetWeekday === null ? dates : alignDatesToWeekday(dates, targetWeekday, end);
   }
 
   if (cfg.type === 'followup_then_interval_months') {
@@ -546,11 +575,10 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
       const nextDate = formatDateInput(cursor);
       if (!dates.includes(nextDate)) dates.push(nextDate);
     }
-    return dates;
+    return targetWeekday === null ? dates : alignDatesToWeekday(dates, targetWeekday, end);
   }
 
   if (frequency === 'weekly' && cfg.type === 'interval_days' && cfg.value === 7) {
-    const targetWeekday = parseWeekdayValue(serviceWeekday);
     if (targetWeekday === null) {
       const dates = [formatDateInput(start)];
       let cursor = new Date(start);
@@ -579,7 +607,7 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
       }
       cursor.setDate(cursor.getDate() + 7);
     }
-    return dates;
+    return alignDatesToWeekday(dates, targetWeekday, end);
   }
 
   const dates = [formatDateInput(start)];
@@ -600,7 +628,8 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
     }
     if (cfg.maxServices && dates.length >= cfg.maxServices) break;
   }
-  return dates.length > 0 ? dates : [formatDateInput(start)];
+  const baseDates = dates.length > 0 ? dates : [formatDateInput(start)];
+  return targetWeekday === null ? baseDates : alignDatesToWeekday(baseDates, targetWeekday, end);
 };
 
 const countServicesByFrequency = (startDateStr, endDateStr, frequency, serviceWeekday = '') => {
@@ -1003,6 +1032,8 @@ export default function InvoiceDashboard() {
   );
   const routeFromContract = Boolean(location.state?.fromContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('fromContract') || '').toLowerCase());
   const routeEditContract = Boolean(location.state?.editContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('editContract') || '').toLowerCase());
+  const routeViewContract = Boolean(location.state?.viewContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('viewContract') || '').toLowerCase());
+  const contractViewOnly = routeViewContract && !routeEditContract;
   const routeOpenInvoiceNumberPrefs = Boolean(location.state?.openInvoiceNumberPrefs) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('openInvoiceNumberPrefs') || '').toLowerCase());
   const routeOpenNewInvoice = Boolean(location.state?.openNewInvoice) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('openNewInvoice') || '').toLowerCase());
   const routeOpenInvoiceId = String(location.state?.openInvoiceId || routeInvoiceParams.get('openInvoiceId') || '').trim();
@@ -1014,6 +1045,7 @@ export default function InvoiceDashboard() {
       || routeInvoiceParams.get('openInvoiceNumber')
       || routeInvoiceParams.get('fromContract')
       || routeInvoiceParams.get('editContract')
+      || routeInvoiceParams.get('viewContract')
   );
 
   const visibleColumnDefs = useMemo(
@@ -1956,8 +1988,8 @@ export default function InvoiceDashboard() {
 
     const nextForm = mapInvoiceToForm(matched);
     setSelectedIds([matched._id]);
-    setModalOpenedFromContract(routeFromContract || routeEditContract);
-    setEditingId(matched._id);
+    setModalOpenedFromContract(routeFromContract || routeEditContract || routeViewContract);
+    setEditingId(contractViewOnly ? null : matched._id);
     setForm(nextForm);
     resetServiceScheduleBuilder(matched, nextForm);
     setSaveError('');
@@ -1974,6 +2006,7 @@ export default function InvoiceDashboard() {
     navigate,
     routeEditContract,
     routeFromContract,
+    routeViewContract,
     routeOpenInvoiceId,
     routeOpenInvoiceNumber,
     routeOpenInvoiceNumberPrefs,
@@ -3071,11 +3104,12 @@ export default function InvoiceDashboard() {
         <div style={modalOverlayStyle}>
           <form className="crm-modal-surface" style={modalStyle} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()}>
             <div className="crm-modal-surface-header" style={modalHeaderStyle}>
-              <h3 style={shell.modalHeaderTitle}>{editingId ? 'Edit Contract' : 'New Contract'}</h3>
+              <h3 style={shell.modalHeaderTitle}>{contractViewOnly ? 'View Contract' : editingId ? 'Edit Contract' : 'New Contract'}</h3>
               <button type="button" style={shell.modalCloseButton} onClick={closeInvoiceModal} aria-label="Close">
                 <X size={24} />
               </button>
             </div>
+            <fieldset disabled={contractViewOnly} style={{ border: 'none', margin: 0, padding: 0, minWidth: 0 }}>
             <div className="crm-modal-surface-body" style={formBodyStyle}>
               <div style={customerRowStyle}>
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Name*</label>
@@ -3656,6 +3690,7 @@ export default function InvoiceDashboard() {
                 </div>
               </div>
             </div>
+            </fieldset>
 
             <div className="crm-modal-surface-footer" style={modalFooterStyle}>
               {saveError ? (
@@ -3668,11 +3703,13 @@ export default function InvoiceDashboard() {
                 style={shell.cancelButton}
                 onClick={closeInvoiceModal}
               >
-                Cancel
+                {contractViewOnly ? 'Close' : 'Cancel'}
               </button>
-              <button type="submit" style={shell.saveButton} disabled={isSaving}>
-                {isSaving ? 'Saving...' : editingId ? 'Update Contract' : 'Save Contract'}
-              </button>
+              {contractViewOnly ? null : (
+                <button type="submit" style={shell.saveButton} disabled={isSaving}>
+                  {isSaving ? 'Saving...' : editingId ? 'Update Contract' : 'Save Contract'}
+                </button>
+              )}
             </div>
           </form>
         </div>,

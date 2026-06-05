@@ -3,8 +3,10 @@ import { Calendar, ChevronDown, ChevronUp, Pencil, Plus, RefreshCw, Trash2 } fro
 import {
   buildServiceScheduleRows,
   formatServiceScheduleDate,
+  formatServiceScheduleDateWithWeekday,
   formatServiceScheduleDateTime,
   getServiceScheduleRuleLabel,
+  getServiceScheduleWeekdayLabel,
   normalizeServiceScheduleRows,
   normalizeServiceScheduleTime,
   serviceScheduleFrequencyOptions,
@@ -54,6 +56,9 @@ const styles = {
   rowTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
   rowLabel: { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: '#0f172a' },
   rowMeta: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
+  rowMetaLine: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' },
+  rowWeekdayBadge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '38px', padding: '2px 7px', borderRadius: '999px', background: 'rgba(159,23,77,0.10)', border: '1px solid rgba(159,23,77,0.18)', color: 'var(--color-primary-dark)', fontSize: '10px', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase' },
+  rowMetaText: { fontSize: '11px', color: '#475569', fontWeight: 700 },
   rowGrid: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 140px auto', gap: '8px', alignItems: 'end' },
   rowInput: { border: '1px solid #d1d5db', borderRadius: '8px', minHeight: '34px', padding: '0 10px', fontSize: '13px', color: '#0f172a', background: '#fff', width: '100%', boxSizing: 'border-box' },
   rowDelete: { border: '1px solid #fecaca', background: '#fff1f2', color: '#be123c', borderRadius: '8px', minHeight: '34px', width: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
@@ -94,7 +99,6 @@ export default function ServiceScheduleBuilder({
     });
   }, [defaultItemMeta, draft, normalizedTime, scheduleRows]);
   const ruleLabel = getServiceScheduleRuleLabel(draft);
-  const previewDates = previewRows.slice(0, 5).map((row) => formatServiceScheduleDate(row.serviceDate)).filter(Boolean);
   const rowLimit = expanded ? previewRows.length : Math.min(previewRows.length, 5);
   const visibleRows = previewRows.slice(0, rowLimit);
   const hasRows = previewRows.length > 0;
@@ -102,6 +106,7 @@ export default function ServiceScheduleBuilder({
   const showWeekdays = Boolean(String(draft.frequency || '').trim());
   const repeatEvery = Math.max(1, Number(draft.repeatEvery || 1));
   const previewRuleLabel = previewRows[0]?.scheduleRuleLabel || ruleLabel;
+  const previewChipDates = previewRows.slice(0, 5).map((row) => formatServiceScheduleDateWithWeekday(row.serviceDate)).filter(Boolean);
 
   const updateDraft = (patch) => {
     onDraftChange({ ...draft, ...patch });
@@ -378,8 +383,8 @@ export default function ServiceScheduleBuilder({
             <span style={styles.summaryValue}>{hasRows ? `${Math.min(previewRows.length, 5)} shown` : 'No visits yet'}</span>
           </div>
           <div style={styles.dateChipRow}>
-            {previewDates.length > 0 ? (
-              previewDates.map((date, index) => (
+            {previewChipDates.length > 0 ? (
+              previewChipDates.map((date, index) => (
                 <span key={`${date}-${index}`} style={styles.dateChip}>{date}</span>
               ))
             ) : (
@@ -449,7 +454,10 @@ export default function ServiceScheduleBuilder({
                       <Trash2 size={14} />
                     </button>
                   </div>
-                  <span style={styles.rowMeta}>{formatServiceScheduleDateTime(row.serviceDate, row.serviceTime)}</span>
+                  <div style={styles.rowMetaLine}>
+                    <span style={styles.rowWeekdayBadge}>{getServiceScheduleWeekdayLabel(new Date(`${row.serviceDate}T00:00:00`).getDay(), true) || 'Day'}</span>
+                    <span style={styles.rowMetaText}>{[formatServiceScheduleDate(row.serviceDate), normalizeServiceScheduleTime(row.serviceTime, normalizedTime)].filter(Boolean).join(', ')}</span>
+                  </div>
                 </div>
               ))}
               {!expanded && previewRows.length > 5 ? (
