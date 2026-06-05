@@ -17,6 +17,7 @@ import PdfPreviewModal from './PdfPreviewModal';
 import ServiceScheduleBuilder from './ServiceScheduleBuilder';
 import {
   buildServiceScheduleDraftFromInvoice,
+  buildServiceScheduleRows,
   normalizeServiceScheduleRows,
   normalizeServiceScheduleTime
 } from '../utils/serviceScheduleBuilder';
@@ -2511,13 +2512,19 @@ export default function InvoiceDashboard() {
 
     const normalizedServiceSchedules = Array.isArray(serviceScheduleRows)
       ? normalizeServiceScheduleRows(serviceScheduleRows, serviceScheduleTime)
-      : buildServiceScheduleEntries(validItems, serviceScheduleTime).map((schedule) => ({
+      : buildServiceScheduleRows({
+        draft: serviceScheduleDraft,
+        defaultTime: serviceScheduleTime,
+        itemMeta: serviceScheduleItemMeta
+      }).map((schedule) => ({
         serviceNumber: schedule.serviceNumber,
         serviceDate: schedule.serviceDate,
         serviceTime: schedule.serviceTime,
         itemId: schedule.itemId || '',
         itemName: schedule.itemName || '',
-        itemDescription: schedule.itemDescription || ''
+        itemDescription: schedule.itemDescription || '',
+        scheduleRuleLabel: schedule.scheduleRuleLabel || '',
+        status: schedule.status || 'Scheduled'
       }));
 
     const payload = {
