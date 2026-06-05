@@ -411,7 +411,7 @@ const shell = {
   itemMetaInput: { border: '1px solid #D1D5DB', borderRadius: '8px', padding: '0 10px', fontSize: '12px', outline: 'none', width: '100%', minWidth: 0, maxWidth: '100%', minHeight: '28px', height: '28px', boxSizing: 'border-box', display: 'block' },
   iconButton: { border: '1px solid var(--color-border)', borderRadius: '10px', width: '36px', height: '36px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', color: '#475569', cursor: 'pointer' },
   tinyText: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
-  addRowBtn: { border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '7px 11px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
+  addRowBtn: { border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', padding: '0 11px', height: '34px', minHeight: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
   actionLinkBtn: { border: 'none', background: 'transparent', color: 'var(--color-primary)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
   itemActionsRow: { display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' },
   newAddressBtn: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' },
