@@ -1,5 +1,4 @@
-import React, { useMemo, useRef } from 'react';
-import { Calendar } from 'lucide-react';
+import React, { useMemo } from 'react';
 import {
   buildServiceScheduleRows,
   formatServiceScheduleDate,
@@ -64,41 +63,38 @@ const styles = {
     borderRight: '1px solid #d9e1ea',
     color: '#334155',
     fontSize: '10px',
-    padding: '3px 8px',
+    padding: '1px 8px',
     verticalAlign: 'middle'
   },
-  numberCell: { width: '34px', textAlign: 'center', color: '#475569', fontWeight: 700, fontSize: '11px', paddingTop: '3px', paddingBottom: '3px' },
-  dateCell: { fontSize: '10px', fontWeight: 600, color: '#334155', lineHeight: 1.05, whiteSpace: 'nowrap' },
-  preferredCell: { fontSize: '10px', fontWeight: 600, color: '#475569', lineHeight: 1.05, whiteSpace: 'nowrap' },
+  numberCell: { width: '34px', textAlign: 'center', color: '#475569', fontWeight: 700, fontSize: '11px', paddingTop: '1px', paddingBottom: '1px' },
+  dateCell: { fontSize: '11px', fontWeight: 400, color: '#334155', lineHeight: 1.1, whiteSpace: 'nowrap' },
+  preferredCell: { fontSize: '11px', fontWeight: 400, color: '#475569', lineHeight: 1.1, whiteSpace: 'nowrap' },
+  timeCell: { fontSize: '11px', fontWeight: 400, color: '#334155', lineHeight: 1.1, whiteSpace: 'nowrap' },
+  timeInput: {
+    width: '100%',
+    minHeight: '20px',
+    height: '20px',
+    borderRadius: '4px',
+    border: '1px solid #d1d5db',
+    background: '#fff',
+    color: '#334155',
+    fontSize: '11px',
+    fontWeight: 400,
+    padding: '0 8px',
+    boxSizing: 'border-box'
+  },
   dateInput: {
     width: '100%',
-    minHeight: '22px',
-    height: '22px',
+    minHeight: '20px',
+    height: '20px',
     borderRadius: '4px',
     border: '1px solid #d1d5db',
     background: '#fff',
     color: '#475569',
-    fontSize: '8px',
-    fontWeight: 600,
-    padding: '0 22px 0 5px',
+    fontSize: '11px',
+    fontWeight: 400,
+    padding: '0 8px',
     boxSizing: 'border-box'
-  },
-  dateField: {
-    position: 'relative',
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center'
-  },
-  dateIcon: {
-    position: 'absolute',
-    right: '6px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#64748b',
-    cursor: 'pointer'
   },
   emptyState: {
     borderTop: '1px solid var(--color-border)',
@@ -141,7 +137,6 @@ export default function ServiceScheduleBuilder({
   onExpandedChange
 }) {
   const normalizedTime = normalizeServiceScheduleTime(time, '10:00');
-  const dateInputRefs = useRef({});
   const previewRows = useMemo(() => {
     if (Array.isArray(scheduleRows) && scheduleRows.length > 0) {
       return normalizeServiceScheduleRows(scheduleRows, normalizedTime);
@@ -155,6 +150,25 @@ export default function ServiceScheduleBuilder({
 
   const previewCount = previewRows.length;
 
+  const handleServiceTimeChange = (index, nextTime) => {
+    const normalizedNextTime = normalizeServiceScheduleTime(nextTime, normalizedTime);
+    const nextRows = previewRows.map((row, rowIndex) => {
+      if (rowIndex === index) {
+        return { ...row, serviceTime: normalizedNextTime, serviceNumber: rowIndex + 1 };
+      }
+      if (index === 0) {
+        return { ...row, serviceTime: normalizedNextTime, serviceNumber: rowIndex + 1 };
+      }
+      return row;
+    });
+    if (typeof onTimeChange === 'function' && index === 0) {
+      onTimeChange(normalizedNextTime);
+    }
+    if (typeof onRowsChange === 'function') {
+      onRowsChange(nextRows);
+    }
+  };
+
   const handleServiceDateChange = (index, nextDate) => {
     if (typeof onRowsChange !== 'function') return;
     const updatedRows = previewRows.map((row, rowIndex) =>
@@ -163,16 +177,6 @@ export default function ServiceScheduleBuilder({
         : row
     );
     onRowsChange(updatedRows);
-  };
-
-  const focusDatePicker = (index) => {
-    const input = dateInputRefs.current?.[index];
-    if (!input) return;
-    if (typeof input.showPicker === 'function') {
-      input.showPicker();
-      return;
-    }
-    input.focus();
   };
 
   return (
@@ -190,8 +194,9 @@ export default function ServiceScheduleBuilder({
           <table style={styles.table}>
             <colgroup>
               <col style={{ width: '34px' }} />
-              <col style={{ width: '160px' }} />
-              <col style={{ width: '160px' }} />
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '130px' }} />
               <col style={{ width: '220px' }} />
             </colgroup>
             <thead>
@@ -199,6 +204,7 @@ export default function ServiceScheduleBuilder({
                 <th style={{ ...styles.th, ...styles.numberCell }}>#</th>
                 <th style={styles.th}>Base Date</th>
                 <th style={styles.th}>Preferred Day</th>
+                <th style={styles.th}>Time</th>
                 <th style={styles.th}>Final Service Date</th>
               </tr>
             </thead>
@@ -207,6 +213,7 @@ export default function ServiceScheduleBuilder({
                 const currentDate = formatDateInput(row.finalServiceDate || row.serviceDate);
                 const baseDate = row.baseServiceDate || row.serviceDate;
                 const preferredDayLabel = row.preferredDayLabel || 'Normal dates';
+                const currentTime = normalizeServiceScheduleTime(row.serviceTime || normalizedTime, normalizedTime);
                 return (
                   <tr key={`${row.finalServiceDate || row.serviceDate}-${row.serviceTime}-${index}`}>
                     <td style={{ ...styles.td, ...styles.numberCell }}>{index + 1}</td>
@@ -216,34 +223,23 @@ export default function ServiceScheduleBuilder({
                     <td style={styles.td}>
                       <div style={styles.preferredCell}>{preferredDayLabel}</div>
                     </td>
-                    <td style={{ ...styles.td, paddingTop: '1px', paddingBottom: '1px' }}>
-                      <div style={styles.dateField}>
-                        <input
-                          ref={(node) => {
-                            dateInputRefs.current[index] = node;
-                          }}
-                          type="date"
-                          style={styles.dateInput}
-                          value={currentDate}
-                          onChange={(event) => handleServiceDateChange(index, event.target.value)}
-                          aria-label={`Visit ${index + 1} final service date`}
-                        />
-                        <span
-                          style={styles.dateIcon}
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`Open calendar for visit ${index + 1}`}
-                          onClick={() => focusDatePicker(index)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              focusDatePicker(index);
-                            }
-                          }}
-                        >
-                          <Calendar size={12} />
-                        </span>
-                      </div>
+                    <td style={styles.td}>
+                      <input
+                        type="time"
+                        style={styles.timeInput}
+                        value={currentTime}
+                        onChange={(event) => handleServiceTimeChange(index, event.target.value)}
+                        aria-label={`Visit ${index + 1} service time`}
+                      />
+                    </td>
+                    <td style={{ ...styles.td, paddingTop: '0px', paddingBottom: '0px' }}>
+                      <input
+                        type="date"
+                        style={styles.dateInput}
+                        value={currentDate}
+                        onChange={(event) => handleServiceDateChange(index, event.target.value)}
+                        aria-label={`Visit ${index + 1} final service date`}
+                      />
                     </td>
                   </tr>
                 );
