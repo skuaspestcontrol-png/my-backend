@@ -28,6 +28,26 @@ const REPEAT_UNIT_OPTIONS = [
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const PREFERRED_DAY_OPTIONS = [
+  { value: '', label: 'Normal dates' },
+  ...WEEKDAY_LABELS
+];
+
+const CONTRACT_PERIOD_CONFIG = {
+  single_time: { unit: 'days', value: 1 },
+  weekly: { unit: 'days', value: 7 },
+  fortnightly_visits: { unit: 'days', value: 14 },
+  monthly: { unit: 'months', value: 1 },
+  bi_monthly: { unit: 'months', value: 2 },
+  quarterly: { unit: 'months', value: 3 },
+  half_yearly: { unit: 'months', value: 6 },
+  annual: { unit: 'months', value: 12 },
+  two_years: { unit: 'months', value: 24 },
+  three_years: { unit: 'months', value: 36 },
+  five_years: { unit: 'months', value: 60 },
+  ten_years: { unit: 'months', value: 120 }
+};
+
 const SERVICE_FREQUENCY_ALIASES = {
   fortnightly_visits: { frequency: 'fortnightly' },
   quarterly_visits: { frequency: 'quarterly' },
@@ -110,6 +130,18 @@ export const getServiceScheduleWeekdayLabel = (value, short = false) => {
   return short ? weekday.short : weekday.label;
 };
 
+export const normalizeServiceSchedulePreferredDay = (value) => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw || raw === 'normal' || raw === 'normal dates') return '';
+  const numeric = Number(raw);
+  return Number.isInteger(numeric) && numeric >= 0 && numeric <= 6 ? String(numeric) : '';
+};
+
+export const getServiceSchedulePreferredDayLabel = (value) => {
+  const normalized = normalizeServiceSchedulePreferredDay(value);
+  return normalized === '' ? 'Normal dates' : getServiceScheduleWeekdayLabel(normalized) || 'Normal dates';
+};
+
 const describeWeekdaySelection = (weekdays = []) => {
   const normalized = normalizeServiceScheduleWeekdays(weekdays);
   if (normalized.length === 0) return '';
@@ -129,6 +161,120 @@ export const addMonthsClamped = (date, months) => {
   const monthLastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
   next.setDate(Math.min(originalDay, monthLastDay));
   return next;
+};
+
+export const buildContractWindow = (startDateValue, contractPeriod) => {
+  const cfg = CONTRACT_PERIOD_CONFIG[String(contractPeriod || '').trim()];
+  const start = parseDateOnly(startDateValue);
+  if (!cfg || !start) {
+    return {
+      contractStartDate: '',
+      contractEndDate: '',
+      renewalDate: ''
+    };
+  }
+
+  let end = new Date(start);
+  if (cfg.unit === 'days') {
+    end.setDate(end.getDate() + cfg.value - 1);
+  } else {
+    end = addMonthsClamped(start, cfg.value);
+    end.setDate(end.getDate() - 1);
+  }
+
+  const renewal = new Date(end);
+  renewal.setDate(renewal.getDate() + 1);
+
+  return {
+    contractStartDate: formatDateInput(start),
+    contractEndDate: formatDateInput(end),
+    renewalDate: formatDateInput(renewal)
+  };
+};
+
+const resolveFrequencyConfig = (frequency, repeatEvery, repeatUnit) => {
+  const normalized = normalizeServiceScheduleFrequencyConfig(frequency, repeatEvery, repeatUnit);
+  const resolved = normalized.frequency;
+  if (resolved === 'single_once') return { mode: 'single_once' };
+  if (resolved === 'daily') return { unit: 'days', step: 1 };
+  if (resolved === 'weekly') return { unit: 'days', step: 7 };
+  if (resolved === 'fortnightly') return { unit: 'days', step: 14 };
+  if (resolved === 'monthly') return { unit: 'months', step: 1 };
+  if (resolved === 'quarterly') return { unit: 'months', step: 3 };
+  if (resolved === 'half_yearly') return { unit: 'months', step: 6 };
+  if (resolved === 'yearly') return { unit: 'months', step: 12 };
+  if (resolved === 'custom') {
+    return {
+      unit: normalized.repeatUnit,
+      step: Math.max(1, Number(normalized.repeatEvery || 1))
+    };
+  }
+  return null;
+};
+
+const buildBaseServiceDates = ({ start, end, frequency, repeatEvery, repeatUnit, maxVisits = 500 }) => {
+  const config = resolveFrequencyConfig(frequency, repeatEvery, repeatUnit);
+  const dates = [];
+  if (!config || !start || !end || end < start) return dates;
+  if (config.mode === 'single_once') return [formatDateInput(start)];
+
+  let cursor = new Date(start);
+  while (cursor <= end && dates.length < maxVisits) {
+    const stamp = formatDateInput(cursor);
+    if (stamp) dates.push(stamp);
+    if (config.unit === 'days') {
+      cursor = addDuration(cursor, 'days', config.step);
+    } else if (config.unit === 'weeks') {
+      cursor = addDuration(cursor, 'weeks', config.step);
+    } else if (config.unit === 'months') {
+      cursor = addMonthsClamped(cursor, config.step);
+    } else if (config.unit === 'years') {
+      cursor = addMonthsClamped(cursor, config.step * 12);
+    } else {
+      break;
+    }
+    if (!Number.isFinite(cursor.getTime())) break;
+    if (cursor <= start) break;
+  }
+  return Array.from(new Set(dates));
+};
+
+const buildWeekdayCandidatesInRange = (start, end, weekday) => {
+  const target = Number(weekday);
+  if (!Number.isInteger(target) || target < 0 || target > 6 || !start || !end || end < start) return [];
+  const candidates = [];
+  const cursor = new Date(start);
+  const offset = (target - cursor.getDay() + 7) % 7;
+  cursor.setDate(cursor.getDate() + offset);
+  while (cursor <= end) {
+    const stamp = formatDateInput(cursor);
+    if (stamp) candidates.push(stamp);
+    cursor.setDate(cursor.getDate() + 7);
+  }
+  return candidates;
+};
+
+const findNearestPreferredDate = (baseDateValue, preferredDay, start, end) => {
+  const target = normalizeServiceSchedulePreferredDay(preferredDay);
+  const base = parseDateOnly(baseDateValue);
+  if (!base) return '';
+  if (target === '') return formatDateInput(base);
+  const candidates = buildWeekdayCandidatesInRange(start, end, target)
+    .map((stamp) => parseDateOnly(stamp))
+    .filter(Boolean);
+  if (candidates.length === 0) return '';
+
+  let best = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  candidates.forEach((candidate) => {
+    const distance = Math.abs(candidate.getTime() - base.getTime());
+    if (distance < bestDistance || (distance === bestDistance && (!best || candidate.getTime() > best.getTime()))) {
+      best = candidate;
+      bestDistance = distance;
+    }
+  });
+
+  return best ? formatDateInput(best) : '';
 };
 
 const addDuration = (date, unit, amount) => {
@@ -261,95 +407,13 @@ export const generateServiceScheduleDates = (draft = {}, maxVisits = 500) => {
   const start = parseDateOnly(draft.startDate);
   const end = parseDateOnly(draft.endDate);
   if (!start || !end || end < start) return [];
-
-  const normalized = normalizeServiceScheduleFrequencyConfig(draft.frequency, draft.repeatEvery, draft.repeatUnit);
-  const frequency = normalized.frequency;
-  const repeatEvery = normalized.repeatEvery;
-  const repeatUnit = normalized.repeatUnit;
-  const weekdays = normalizeServiceScheduleWeekdays(draft.weekdays || []);
-  const preferredWeekday = weekdays.length > 0 ? Number(weekdays[0]) : null;
-
-  if (frequency === 'weekly' || frequency === 'fortnightly' || (frequency === 'custom' && repeatUnit === 'weeks')) {
-    if (weekdays.length === 0) {
-      const stepWeeks = frequency === 'fortnightly' ? 2 : frequency === 'weekly' ? 1 : repeatEvery;
-      return buildIntervalSeries({ start, end, stepDays: Math.max(1, stepWeeks) * 7, maxVisits });
-    }
-    if (weekdays.length === 7) {
-      const stepWeeks = frequency === 'fortnightly' ? 2 : frequency === 'weekly' ? 1 : repeatEvery;
-      return buildIntervalSeries({ start, end, stepDays: Math.max(1, stepWeeks) * 7, maxVisits });
-    }
-    const stepWeeks = frequency === 'fortnightly' ? 2 : frequency === 'weekly' ? 1 : repeatEvery;
-    return buildWeekdaySeries({ start, end, stepWeeks: Math.max(1, stepWeeks), weekdays, maxVisits });
-  }
-
-  if (frequency === 'daily') {
-    const dates = [];
-    let cursor = new Date(start);
-    while (cursor <= end && dates.length < maxVisits) {
-      if (weekdays.length === 0 || weekdays.includes(String(cursor.getDay()))) {
-        const stamp = formatDateInput(cursor);
-        if (stamp) dates.push(stamp);
-      }
-      cursor = addDuration(cursor, 'days', 1);
-      if (!Number.isFinite(cursor.getTime())) break;
-      if (cursor <= start) break;
-    }
-    return Array.from(new Set(dates)).sort();
-  }
-
-  let unit = '';
-  let step = 1;
-  if (frequency === 'daily') {
-    unit = 'days';
-  } else if (frequency === 'monthly') {
-    unit = 'months';
-  } else if (frequency === 'quarterly') {
-    unit = 'months';
-    step = 3;
-  } else if (frequency === 'half_yearly') {
-    unit = 'months';
-    step = 6;
-  } else if (frequency === 'yearly') {
-    unit = 'years';
-  } else if (frequency === 'custom') {
-    unit = repeatUnit;
-    step = repeatEvery;
-  }
-
-  if (!unit) return [];
-
-  if (unit === 'months' || unit === 'years') {
-    const stepMonths = unit === 'years' ? step * 12 : step;
-    const baseDates = buildAnchoredMonthSeries({ start, end, stepMonths: Math.max(1, stepMonths), maxVisits });
-    if (weekdays.length === 0) return baseDates;
-    const shifted = baseDates
-      .map((stamp) => {
-        const date = parseDateOnly(stamp);
-        if (!date) return '';
-        return formatDateInput(shiftDateToWeekday(date, preferredWeekday));
-      })
-      .filter(Boolean)
-      .filter((stamp) => parseDateOnly(stamp) <= end);
-    return Array.from(new Set(shifted)).sort();
-  }
-
-  const dates = [];
-  let cursor = new Date(start);
-  while (cursor <= end && dates.length < maxVisits) {
-    const stamp = formatDateInput(cursor);
-    if (stamp) dates.push(stamp);
-    cursor = addDuration(cursor, unit, step);
-    if (!Number.isFinite(cursor.getTime())) break;
-    if (cursor <= start) break;
-  }
-
-  return Array.from(new Set(dates)).sort();
+  return buildServiceScheduleRows(draft, '', {}, maxVisits).map((row) => row.serviceDate).filter(Boolean);
 };
 
 export const formatServiceScheduleDate = (value) => {
   const date = parseDateOnly(value);
   if (!date) return '';
-  return `${String(date.getDate()).padStart(2, '0')} ${MONTH_LABELS[date.getMonth()]} ${date.getFullYear()}`;
+  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 };
 
 export const formatServiceScheduleDateWithWeekday = (value) => {
@@ -379,7 +443,11 @@ export const normalizeServiceScheduleRows = (rows = [], defaultTime = '10:00') =
       serviceNumber: Number.isFinite(Number(row?.serviceNumber)) && Number(row.serviceNumber) > 0
         ? Number(row.serviceNumber)
         : index + 1,
-      serviceDate: toDateStamp(row?.serviceDate),
+      baseServiceDate: toDateStamp(row?.baseServiceDate || row?.baseDate || row?.serviceDate),
+      preferredDay: normalizeServiceSchedulePreferredDay(row?.preferredDay || row?.serviceWeekday || ''),
+      preferredDayLabel: String(row?.preferredDayLabel || getServiceSchedulePreferredDayLabel(row?.preferredDay || row?.serviceWeekday || '')).trim(),
+      serviceDate: toDateStamp(row?.finalServiceDate || row?.serviceDate),
+      finalServiceDate: toDateStamp(row?.finalServiceDate || row?.serviceDate),
       serviceTime: normalizeServiceScheduleTime(row?.serviceTime, normalizedTime),
       itemId: String(row?.itemId || '').trim(),
       itemName: String(row?.itemName || '').trim(),
@@ -400,19 +468,58 @@ export const buildServiceScheduleRows = ({
   itemMeta = {},
   maxVisits = 500
 } = {}) => {
-  const dates = generateServiceScheduleDates(draft, maxVisits);
+  const start = parseDateOnly(draft.startDate);
+  const end = parseDateOnly(draft.endDate);
+  if (!start || !end || end < start) return [];
   const normalizedTime = normalizeServiceScheduleTime(defaultTime, '10:00');
   const scheduleRuleLabel = getServiceScheduleRuleLabel(draft);
-  return dates.map((serviceDate, index) => ({
-    serviceNumber: index + 1,
-    serviceDate,
-    serviceTime: normalizedTime,
-    itemId: String(itemMeta.itemId || '').trim(),
-    itemName: String(itemMeta.itemName || 'Service Visit').trim() || 'Service Visit',
-    itemDescription: String(itemMeta.itemDescription || '').trim(),
-    scheduleRuleLabel,
-    status: 'Scheduled'
-  }));
+  const normalized = normalizeServiceScheduleFrequencyConfig(draft.frequency, draft.repeatEvery, draft.repeatUnit);
+  const preferredDay = normalizeServiceSchedulePreferredDay(draft.preferredDay || (Array.isArray(draft.weekdays) && draft.weekdays.length > 0 ? draft.weekdays[0] : ''));
+  const baseDates = buildBaseServiceDates({
+    start,
+    end,
+    frequency: normalized.frequency,
+    repeatEvery: normalized.repeatEvery,
+    repeatUnit: normalized.repeatUnit,
+    maxVisits
+  });
+  return baseDates
+    .map((baseServiceDate, index) => {
+      const finalServiceDate = preferredDay === ''
+        ? baseServiceDate
+        : findNearestPreferredDate(baseServiceDate, preferredDay, start, end);
+      if (!finalServiceDate) return null;
+      return {
+        serviceNumber: index + 1,
+        baseServiceDate,
+        preferredDay,
+        preferredDayLabel: getServiceSchedulePreferredDayLabel(preferredDay),
+        serviceDate: finalServiceDate,
+        finalServiceDate,
+        serviceTime: normalizedTime,
+        itemId: String(itemMeta.itemId || '').trim(),
+        itemName: String(itemMeta.itemName || 'Service Visit').trim() || 'Service Visit',
+        itemDescription: String(itemMeta.itemDescription || '').trim(),
+        scheduleRuleLabel,
+        status: 'Scheduled'
+      };
+    })
+    .filter(Boolean);
+};
+
+export const buildServiceSchedulePlan = ({
+  draft = {},
+  defaultTime = '10:00',
+  itemMeta = {},
+  maxVisits = 500
+} = {}) => {
+  const rows = buildServiceScheduleRows({ draft, defaultTime, itemMeta, maxVisits });
+  return {
+    startDate: String(draft.startDate || '').trim(),
+    endDate: String(draft.endDate || '').trim(),
+    totalServices: rows.length,
+    rows
+  };
 };
 
 export const buildServiceScheduleDraftFromInvoice = (invoice = {}, fallbackTime = '10:00') => {
@@ -458,3 +565,4 @@ export const buildServiceScheduleDraftFromInvoice = (invoice = {}, fallbackTime 
 export const serviceScheduleFrequencyOptions = FREQUENCY_OPTIONS;
 export const serviceScheduleRepeatUnitOptions = REPEAT_UNIT_OPTIONS;
 export const serviceScheduleWeekdayOptions = WEEKDAY_LABELS;
+export const serviceSchedulePreferredDayOptions = PREFERRED_DAY_OPTIONS;

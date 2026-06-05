@@ -16,10 +16,12 @@ import { subscribeDashboardRefresh, triggerDashboardRefresh } from '../utils/das
 import PdfPreviewModal from './PdfPreviewModal';
 import ServiceScheduleBuilder from './ServiceScheduleBuilder';
 import {
+  buildContractWindow,
   buildServiceScheduleDraftFromInvoice,
   buildServiceScheduleRows,
   normalizeServiceScheduleRows,
-  normalizeServiceScheduleTime
+  normalizeServiceScheduleTime,
+  serviceSchedulePreferredDayOptions
 } from '../utils/serviceScheduleBuilder';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -103,15 +105,6 @@ const serviceFrequencyOptions = [
   { value: 'three_treatment_every_4_months', label: 'Three treatments every 4 months' },
   { value: 'initial_spray_gel_batting_7_then_4m', label: 'Initial spray treatment with gel batting after 7 days, then every 4 months' }
 ].sort((a, b) => a.label.localeCompare(b.label));
-const weekdayOptions = [
-  { value: '0', label: 'Sunday' },
-  { value: '1', label: 'Monday' },
-  { value: '2', label: 'Tuesday' },
-  { value: '3', label: 'Wednesday' },
-  { value: '4', label: 'Thursday' },
-  { value: '5', label: 'Friday' },
-  { value: '6', label: 'Saturday' }
-];
 const contractPeriodConfig = {
   single_time: { unit: 'days', value: 1 },
   weekly: { unit: 'days', value: 7 },
@@ -681,9 +674,8 @@ const buildServiceScheduleEntries = (items = [], defaultTime = '10:00') => {
 };
 
 const withContractSchedule = (line) => {
-  const cfg = contractPeriodConfig[line.contractPeriod];
-  const start = parseDateOnly(line.contractStartDate);
-  if (!cfg || !start) {
+  const window = buildContractWindow(line.contractStartDate, line.contractPeriod);
+  if (!window.contractEndDate) {
     return {
       ...line,
       contractEndDate: '',
@@ -692,21 +684,22 @@ const withContractSchedule = (line) => {
     };
   }
 
-  let end = new Date(start);
-  if (cfg.unit === 'days') {
-    end.setDate(end.getDate() + cfg.value - 1);
-  } else {
-    end = addMonthsClamped(start, cfg.value);
-    end.setDate(end.getDate() - 1);
-  }
-  const renewal = new Date(end);
-  renewal.setDate(renewal.getDate() + 1);
+  const plan = buildServiceSchedulePlan({
+    draft: {
+      startDate: window.contractStartDate,
+      endDate: window.contractEndDate,
+      frequency: line.serviceFrequency,
+      preferredDay: line.serviceWeekday
+    },
+    defaultTime: '10:00',
+    itemMeta: {}
+  });
 
   return {
     ...line,
-    contractEndDate: formatDateInput(end),
-    renewalDate: formatDateInput(renewal),
-    totalServices: countServicesByFrequency(formatDateInput(start), formatDateInput(end), line.serviceFrequency, line.serviceWeekday)
+    contractEndDate: window.contractEndDate,
+    renewalDate: window.renewalDate,
+    totalServices: String(plan.totalServices || '')
   };
 };
 
@@ -2098,6 +2091,8 @@ export default function InvoiceDashboard() {
     });
   };
 
+  const scheduleResetKeys = new Set(['contractStartDate', 'contractPeriod', 'serviceFrequency', 'serviceWeekday', 'serviceStartDate', 'serviceEndDate']);
+
   const updateLine = (index, patch) => {
     setFormWithTotals((prev) => {
       const nextItems = [...prev.items];
@@ -2111,6 +2106,9 @@ export default function InvoiceDashboard() {
       });
       return { ...prev, items: nextItems };
     });
+    if (Object.keys(patch || {}).some((key) => scheduleResetKeys.has(key))) {
+      setServiceScheduleRows(null);
+    }
   };
 
   const updatePaymentSplit = (index, patch) => {
@@ -2136,6 +2134,7 @@ export default function InvoiceDashboard() {
       }
       return { ...prev, items: prev.items.filter((_, idx) => idx !== index) };
     });
+    setServiceScheduleRows(null);
   };
 
   const addLine = () => {
@@ -2148,6 +2147,7 @@ export default function InvoiceDashboard() {
           : createEmptyLine({ contractStartDate: prev.date || new Date().toISOString().slice(0, 10), contractStartDateSource: 'invoice-date' })
       ]
     }));
+    setServiceScheduleRows(null);
   };
 
   const scanItem = () => {
@@ -2189,6 +2189,7 @@ export default function InvoiceDashboard() {
         }
       ]
     }));
+    setServiceScheduleRows(null);
   };
 
   const applyBulkTax = () => {
@@ -2275,6 +2276,7 @@ export default function InvoiceDashboard() {
         : prev.items;
       return { ...prev, date, dueDate: addDays(date, days), items: nextItems };
     });
+    setServiceScheduleRows(null);
   };
 
   const resolveCustomerMatch = (value) => {
@@ -3595,8 +3597,7 @@ export default function InvoiceDashboard() {
                                       value={line.serviceWeekday || ''}
                                       onChange={(event) => updateLine(index, { serviceWeekday: event.target.value })}
                                     >
-                                      <option value="">Select day</option>
-                                      {weekdayOptions.map((option) => (
+                                      {serviceSchedulePreferredDayOptions.map((option) => (
                                         <option key={option.value} value={option.value}>{option.label}</option>
                                       ))}
                                     </select>

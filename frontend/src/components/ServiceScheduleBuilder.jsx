@@ -46,7 +46,7 @@ const styles = {
     borderTop: '1px solid var(--color-border)',
     background: '#fff'
   },
-  table: { width: '100%', minWidth: '680px', borderCollapse: 'collapse', tableLayout: 'fixed' },
+  table: { width: '100%', minWidth: '760px', borderCollapse: 'collapse', tableLayout: 'fixed' },
   th: {
     borderBottom: '1px solid #d9e1ea',
     borderRight: '1px solid #d9e1ea',
@@ -68,8 +68,8 @@ const styles = {
     verticalAlign: 'middle'
   },
   numberCell: { width: '34px', textAlign: 'center', color: '#475569', fontWeight: 700, fontSize: '11px', paddingTop: '3px', paddingBottom: '3px' },
-  serviceCell: { fontSize: '10px', fontWeight: 600, color: '#334155', lineHeight: 1.05 },
-  visitCell: { fontSize: '10px', fontWeight: 500, color: '#475569', whiteSpace: 'nowrap', lineHeight: 1.02 },
+  dateCell: { fontSize: '10px', fontWeight: 600, color: '#334155', lineHeight: 1.05, whiteSpace: 'nowrap' },
+  preferredCell: { fontSize: '10px', fontWeight: 600, color: '#475569', lineHeight: 1.05, whiteSpace: 'nowrap' },
   dateInput: {
     width: '100%',
     minHeight: '22px',
@@ -159,7 +159,7 @@ export default function ServiceScheduleBuilder({
     if (typeof onRowsChange !== 'function') return;
     const updatedRows = previewRows.map((row, rowIndex) =>
       rowIndex === index
-        ? { ...row, serviceDate: nextDate, serviceNumber: rowIndex + 1 }
+        ? { ...row, serviceDate: nextDate, finalServiceDate: nextDate, serviceNumber: rowIndex + 1 }
         : row
     );
     onRowsChange(updatedRows);
@@ -190,29 +190,31 @@ export default function ServiceScheduleBuilder({
           <table style={styles.table}>
             <colgroup>
               <col style={{ width: '34px' }} />
-              <col style={{ width: '108px' }} />
-              <col style={{ width: '74px' }} />
-              <col style={{ width: '150px' }} />
+              <col style={{ width: '160px' }} />
+              <col style={{ width: '160px' }} />
+              <col style={{ width: '220px' }} />
             </colgroup>
             <thead>
               <tr>
                 <th style={{ ...styles.th, ...styles.numberCell }}>#</th>
-                <th style={styles.th}>Service</th>
-                <th style={styles.th}>Visit</th>
-                <th style={styles.th}>Date</th>
+                <th style={styles.th}>Base Date</th>
+                <th style={styles.th}>Preferred Day</th>
+                <th style={styles.th}>Final Service Date</th>
               </tr>
             </thead>
             <tbody>
               {previewRows.map((row, index) => {
-                const currentDate = formatDateInput(row.serviceDate);
+                const currentDate = formatDateInput(row.finalServiceDate || row.serviceDate);
+                const baseDate = row.baseServiceDate || row.serviceDate;
+                const preferredDayLabel = row.preferredDayLabel || 'Normal dates';
                 return (
-                  <tr key={`${row.serviceDate}-${row.serviceTime}-${index}`}>
+                  <tr key={`${row.finalServiceDate || row.serviceDate}-${row.serviceTime}-${index}`}>
                     <td style={{ ...styles.td, ...styles.numberCell }}>{index + 1}</td>
                     <td style={styles.td}>
-                      <div style={styles.serviceCell}>{row.itemName || 'Service'}</div>
+                      <div style={styles.dateCell}>{formatServiceScheduleDate(baseDate)}</div>
                     </td>
                     <td style={styles.td}>
-                      <div style={styles.visitCell}>{`Visit\n${row.serviceNumber || index + 1}`}</div>
+                      <div style={styles.preferredCell}>{preferredDayLabel}</div>
                     </td>
                     <td style={{ ...styles.td, paddingTop: '1px', paddingBottom: '1px' }}>
                       <div style={styles.dateField}>
@@ -224,7 +226,7 @@ export default function ServiceScheduleBuilder({
                           style={styles.dateInput}
                           value={currentDate}
                           onChange={(event) => handleServiceDateChange(index, event.target.value)}
-                          aria-label={`Visit ${index + 1} date`}
+                          aria-label={`Visit ${index + 1} final service date`}
                         />
                         <span
                           style={styles.dateIcon}

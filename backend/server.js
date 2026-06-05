@@ -7576,6 +7576,54 @@ const buildServiceDatesByFrequency = (startDateStr, endDateStr, frequency, servi
   return targetWeekday === null ? baseDates : alignDatesToWeekday(baseDates, targetWeekday, end);
 };
 
+const normalizeServiceSchedulePreferredDay = (value) => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw || raw === 'normal' || raw === 'normal dates') return '';
+  const numeric = Number(raw);
+  return Number.isInteger(numeric) && numeric >= 0 && numeric <= 6 ? String(numeric) : '';
+};
+
+const getServiceSchedulePreferredDayLabel = (value) => {
+  const normalized = normalizeServiceSchedulePreferredDay(value);
+  if (normalized === '') return 'Normal dates';
+  return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number(normalized)] || 'Normal dates';
+};
+
+const buildWeekdayCandidatesInRange = (start, end, weekday) => {
+  const target = parseWeekdayValue(weekday);
+  if (target === null || !start || !end || end < start) return [];
+  const candidates = [];
+  const cursor = new Date(start);
+  const offset = (target - cursor.getDay() + 7) % 7;
+  cursor.setDate(cursor.getDate() + offset);
+  while (cursor <= end) {
+    const stamp = formatDateInput(cursor);
+    if (stamp) candidates.push(stamp);
+    cursor.setDate(cursor.getDate() + 7);
+  }
+  return candidates;
+};
+
+const findNearestPreferredDate = (baseDateValue, preferredDay, start, end) => {
+  const target = normalizeServiceSchedulePreferredDay(preferredDay);
+  const base = parseDateOnly(baseDateValue);
+  if (!base) return '';
+  if (target === '') return formatDateInput(base);
+  const candidates = buildWeekdayCandidatesInRange(start, end, target).map(parseDateOnly).filter(Boolean);
+  if (candidates.length === 0) return '';
+
+  let best = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  candidates.forEach((candidate) => {
+    const distance = Math.abs(candidate.getTime() - base.getTime());
+    if (distance < bestDistance || (distance === bestDistance && (!best || candidate.getTime() > best.getTime()))) {
+      best = candidate;
+      bestDistance = distance;
+    }
+  });
+  return best ? formatDateInput(best) : '';
+};
+
 const normalizeServiceSchedules = (rawSchedules, defaultTime = '10:00') => {
   if (!Array.isArray(rawSchedules)) return [];
   return rawSchedules
@@ -7583,7 +7631,11 @@ const normalizeServiceSchedules = (rawSchedules, defaultTime = '10:00') => {
       serviceNumber: Number.isFinite(Number(schedule?.serviceNumber)) && Number(schedule?.serviceNumber) > 0
         ? Number(schedule.serviceNumber)
         : index + 1,
-      serviceDate: String(schedule?.serviceDate || '').slice(0, 10),
+      baseServiceDate: String(schedule?.baseServiceDate || schedule?.baseDate || schedule?.serviceDate || '').slice(0, 10),
+      preferredDay: normalizeServiceSchedulePreferredDay(schedule?.preferredDay || schedule?.serviceWeekday || ''),
+      preferredDayLabel: String(schedule?.preferredDayLabel || getServiceSchedulePreferredDayLabel(schedule?.preferredDay || schedule?.serviceWeekday || '')).trim(),
+      serviceDate: String(schedule?.finalServiceDate || schedule?.serviceDate || '').slice(0, 10),
+      finalServiceDate: String(schedule?.finalServiceDate || schedule?.serviceDate || '').slice(0, 10),
       serviceTime: normalizeServiceScheduleTime(schedule?.serviceTime, defaultTime),
       itemId: schedule?.itemId || '',
       itemName: schedule?.itemName || '',
@@ -7605,16 +7657,25 @@ const buildServiceScheduleEntries = (invoiceLike) => {
       line?.contractEndDate ||
       line?.serviceEndDate ||
       buildContractEndDate(line?.contractStartDate || '', line?.contractPeriod || '');
-    const baseDates = buildServiceDatesByFrequency(lineStartDate, lineEndDate, line?.serviceFrequency || '', line?.serviceWeekday || '');
+    const preferredDay = normalizeServiceSchedulePreferredDay(line?.serviceWeekday || '');
+    const baseDates = buildServiceDatesByFrequency(lineStartDate, lineEndDate, line?.serviceFrequency || '', '', 500);
     if (baseDates.length === 0) return;
 
     const requestedServices = toNumber(line?.totalServices, 0);
     const dates = requestedServices > 0 ? baseDates.slice(0, requestedServices) : baseDates;
 
-    dates.forEach((serviceDate, serviceIndex) => {
+    dates.forEach((baseServiceDate, serviceIndex) => {
+      const finalServiceDate = preferredDay === ''
+        ? baseServiceDate
+        : findNearestPreferredDate(baseServiceDate, preferredDay, parseDateOnly(lineStartDate), parseDateOnly(lineEndDate));
+      if (!finalServiceDate) return;
       schedules.push({
         serviceNumber: serviceIndex + 1,
-        serviceDate,
+        baseServiceDate,
+        preferredDay,
+        preferredDayLabel: getServiceSchedulePreferredDayLabel(preferredDay),
+        serviceDate: finalServiceDate,
+        finalServiceDate,
         serviceTime: defaultTime,
         itemId: line?.itemId || '',
         itemName: line?.itemName || `Item ${lineIndex + 1}`,
@@ -7625,11 +7686,7 @@ const buildServiceScheduleEntries = (invoiceLike) => {
     });
   });
 
-  return schedules.sort((a, b) => {
-    const aStamp = `${a.serviceDate || ''}T${a.serviceTime || '00:00'}`;
-    const bStamp = `${b.serviceDate || ''}T${b.serviceTime || '00:00'}`;
-    return aStamp.localeCompare(bStamp);
-  });
+  return schedules;
 };
 
 const extractInvoiceSequence = (invoiceNumber, prefix = '') => {
