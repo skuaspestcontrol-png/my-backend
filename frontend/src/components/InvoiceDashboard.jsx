@@ -3,7 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { Calendar, ChevronLeft, ChevronRight, FileText, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
 import {
   defaultInvoiceVisibleColumns,
   invoiceColumns as columns,
@@ -18,6 +18,7 @@ import ServiceScheduleBuilder from './ServiceScheduleBuilder';
 import {
   buildContractWindow,
   buildServiceScheduleDraftFromInvoice,
+  buildServiceSchedulePlan,
   buildServiceScheduleRows,
   normalizeServiceScheduleRows,
   normalizeServiceScheduleTime,
@@ -27,6 +28,7 @@ import {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const INVOICE_PAGE_SIZE = 20;
 const INVOICE_DASHBOARD_CACHE_KEY = 'skuasmaster-invoice-dashboard-cache-v1';
+const INVOICE_NEW_CONTRACT_DRAFT_CACHE_KEY = 'skuasmaster-invoice-new-contract-draft-v1';
 
 const readInvoiceDashboardCache = () => {
   if (typeof window === 'undefined') return null;
@@ -66,6 +68,55 @@ const writeInvoiceDashboardCache = (snapshot = {}) => {
       visibleColumns: Array.isArray(snapshot.visibleColumns) ? snapshot.visibleColumns : (Array.isArray(current.visibleColumns) ? current.visibleColumns : null),
       updatedAt: Date.now()
     }));
+  } catch (_error) {
+    // Ignore storage failures so the page still works in restricted environments.
+  }
+};
+
+const readInvoiceDraftCache = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(INVOICE_NEW_CONTRACT_DRAFT_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      form: parsed.form && typeof parsed.form === 'object' ? parsed.form : null,
+      serviceScheduleDraft: parsed.serviceScheduleDraft && typeof parsed.serviceScheduleDraft === 'object' ? parsed.serviceScheduleDraft : null,
+      serviceScheduleRows: Array.isArray(parsed.serviceScheduleRows) ? parsed.serviceScheduleRows : null,
+      serviceScheduleExpanded: Boolean(parsed.serviceScheduleExpanded),
+      serviceScheduleTime: String(parsed.serviceScheduleTime || '').trim(),
+      showModal: Boolean(parsed.showModal),
+      modalOpenedFromContract: Boolean(parsed.modalOpenedFromContract),
+      savedAt: Number(parsed.savedAt || 0) || 0
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeInvoiceDraftCache = (snapshot = {}) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(INVOICE_NEW_CONTRACT_DRAFT_CACHE_KEY, JSON.stringify({
+      form: snapshot.form && typeof snapshot.form === 'object' ? snapshot.form : null,
+      serviceScheduleDraft: snapshot.serviceScheduleDraft && typeof snapshot.serviceScheduleDraft === 'object' ? snapshot.serviceScheduleDraft : null,
+      serviceScheduleRows: Array.isArray(snapshot.serviceScheduleRows) ? snapshot.serviceScheduleRows : null,
+      serviceScheduleExpanded: Boolean(snapshot.serviceScheduleExpanded),
+      serviceScheduleTime: String(snapshot.serviceScheduleTime || '').trim(),
+      showModal: Boolean(snapshot.showModal),
+      modalOpenedFromContract: Boolean(snapshot.modalOpenedFromContract),
+      savedAt: Date.now()
+    }));
+  } catch (_error) {
+    // Ignore storage failures so the page still works in restricted environments.
+  }
+};
+
+const clearInvoiceDraftCache = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(INVOICE_NEW_CONTRACT_DRAFT_CACHE_KEY);
   } catch (_error) {
     // Ignore storage failures so the page still works in restricted environments.
   }
@@ -932,68 +983,16 @@ const matchesInvoiceReference = (invoice, reference) => {
   ].some((candidate) => normalizeRouteReference(candidate) === target);
 };
 
-const compactCalendarFieldStyle = {
-  position: 'relative',
-  width: '100%',
-  display: 'flex',
-  alignItems: 'center'
-};
-
-const compactCalendarIconStyle = {
-  position: 'absolute',
-  right: '6px',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: '#64748b',
-  cursor: 'pointer'
-};
-
 function CompactCalendarDateInput({ value, onChange, style, ariaLabel, readOnly = false }) {
-  const inputRef = useRef(null);
-
-  const openPicker = () => {
-    if (readOnly) return;
-    const input = inputRef.current;
-    if (!input) return;
-    if (typeof input.showPicker === 'function') {
-      input.showPicker();
-      return;
-    }
-    input.focus();
-  };
-
   return (
-    <div style={compactCalendarFieldStyle}>
-      <input
-        ref={inputRef}
-        type="date"
-        style={{ ...style, paddingRight: readOnly ? style?.paddingRight : '28px' }}
-        value={value || ''}
-        onChange={onChange}
-        readOnly={readOnly}
-        aria-label={ariaLabel}
-      />
-      {!readOnly ? (
-        <span
-          style={compactCalendarIconStyle}
-          role="button"
-          tabIndex={0}
-          aria-label={ariaLabel ? `Open calendar for ${ariaLabel.toLowerCase()}` : 'Open calendar'}
-          onClick={openPicker}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              openPicker();
-            }
-          }}
-        >
-          <Calendar size={12} />
-        </span>
-      ) : null}
-    </div>
+    <input
+      type="date"
+      style={style}
+      value={value || ''}
+      onChange={onChange}
+      readOnly={readOnly}
+      aria-label={ariaLabel}
+    />
   );
 }
 
@@ -1011,6 +1010,40 @@ export default function InvoiceDashboard() {
   const navigate = useNavigate();
   const routeInvoiceParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const cachedInvoiceState = useMemo(() => readInvoiceDashboardCache(), []);
+  const routeModalRequest = Boolean(
+    location.state?.openInvoiceNumberPrefs
+      || location.state?.openNewInvoice
+      || location.state?.openInvoiceId
+      || String(location.state?.openInvoiceNumber || '').trim()
+      || routeInvoiceParams.get('openInvoiceNumberPrefs')
+      || routeInvoiceParams.get('openNewInvoice')
+      || routeInvoiceParams.get('openInvoiceId')
+      || String(routeInvoiceParams.get('openInvoiceNumber') || '').trim()
+  );
+  const routeFromContract = Boolean(location.state?.fromContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('fromContract') || '').toLowerCase());
+  const routeEditContract = Boolean(location.state?.editContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('editContract') || '').toLowerCase());
+  const routeViewContract = Boolean(location.state?.viewContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('viewContract') || '').toLowerCase());
+  const contractViewOnly = routeViewContract && !routeEditContract;
+  const routeOpenInvoiceNumberPrefs = Boolean(location.state?.openInvoiceNumberPrefs) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('openInvoiceNumberPrefs') || '').toLowerCase());
+  const routeOpenNewInvoice = Boolean(location.state?.openNewInvoice) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('openNewInvoice') || '').toLowerCase());
+  const routeOpenInvoiceId = String(location.state?.openInvoiceId || routeInvoiceParams.get('openInvoiceId') || '').trim();
+  const routeOpenInvoiceNumber = String(location.state?.openInvoiceNumber || routeInvoiceParams.get('openInvoiceNumber') || '').trim();
+  const routeHasQueryParams = Boolean(
+    routeInvoiceParams.get('openInvoiceNumberPrefs')
+      || routeInvoiceParams.get('openNewInvoice')
+      || routeInvoiceParams.get('openInvoiceId')
+      || routeInvoiceParams.get('openInvoiceNumber')
+      || routeInvoiceParams.get('fromContract')
+      || routeInvoiceParams.get('editContract')
+      || routeInvoiceParams.get('viewContract')
+  );
+  const savedNewContractDraft = readInvoiceDraftCache();
+  const canRestoreNewContractDraft = Boolean(
+    savedNewContractDraft?.showModal
+      && !routeOpenInvoiceId
+      && !routeOpenInvoiceNumber
+      && !routeOpenInvoiceNumberPrefs
+  );
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [invoices, setInvoices] = useState(() => cachedInvoiceState?.invoices || []);
   const [payments, setPayments] = useState(() => cachedInvoiceState?.payments || []);
@@ -1027,8 +1060,12 @@ export default function InvoiceDashboard() {
   const [editingShippingAddressId, setEditingShippingAddressId] = useState('');
   const [addressDraftTarget, setAddressDraftTarget] = useState('shipping');
   const [shippingAddressDraft, setShippingAddressDraft] = useState(emptyAddressDraft);
-  const [showModal, setShowModal] = useState(false);
-  const [modalOpenedFromContract, setModalOpenedFromContract] = useState(false);
+  const [showModal, setShowModal] = useState(() => canRestoreNewContractDraft);
+  const [modalOpenedFromContract, setModalOpenedFromContract] = useState(() => Boolean(
+    canRestoreNewContractDraft
+      ? savedNewContractDraft?.modalOpenedFromContract
+      : routeFromContract || routeEditContract || routeViewContract
+  ));
   const [editingId, setEditingId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -1038,10 +1075,18 @@ export default function InvoiceDashboard() {
   const [companySettings, setCompanySettings] = useState({});
   const [settingsHydrated, setSettingsHydrated] = useState(Boolean(cachedInvoiceState));
   const [invoicesHydrated, setInvoicesHydrated] = useState(Boolean(cachedInvoiceState));
-  const [form, setForm] = useState(emptyForm);
-  const [serviceScheduleDraft, setServiceScheduleDraft] = useState(() => buildServiceScheduleDraftFromInvoice(emptyForm, '10:00'));
-  const [serviceScheduleRows, setServiceScheduleRows] = useState(null);
-  const [serviceScheduleExpanded, setServiceScheduleExpanded] = useState(false);
+  const [form, setForm] = useState(() => (canRestoreNewContractDraft && savedNewContractDraft?.form ? savedNewContractDraft.form : emptyForm));
+  const [serviceScheduleDraft, setServiceScheduleDraft] = useState(() => (
+    canRestoreNewContractDraft && savedNewContractDraft?.serviceScheduleDraft
+      ? savedNewContractDraft.serviceScheduleDraft
+      : buildServiceScheduleDraftFromInvoice(emptyForm, '10:00')
+  ));
+  const [serviceScheduleRows, setServiceScheduleRows] = useState(() => (
+    canRestoreNewContractDraft ? savedNewContractDraft?.serviceScheduleRows || null : null
+  ));
+  const [serviceScheduleExpanded, setServiceScheduleExpanded] = useState(() => (
+    canRestoreNewContractDraft ? Boolean(savedNewContractDraft?.serviceScheduleExpanded) : false
+  ));
   const [serviceScheduleErrors, setServiceScheduleErrors] = useState({});
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' });
   const [invoiceColumnWidths, setInvoiceColumnWidths] = useState(() => {
@@ -1080,33 +1125,6 @@ export default function InvoiceDashboard() {
   const invoicesLoadRef = useRef(false);
   const masterDataLoadRef = useRef(false);
   const termsAutoSeededRef = useRef(false);
-  const routeModalRequest = Boolean(
-    location.state?.openInvoiceNumberPrefs
-      || location.state?.openNewInvoice
-      || location.state?.openInvoiceId
-      || String(location.state?.openInvoiceNumber || '').trim()
-      || routeInvoiceParams.get('openInvoiceNumberPrefs')
-      || routeInvoiceParams.get('openNewInvoice')
-      || routeInvoiceParams.get('openInvoiceId')
-      || String(routeInvoiceParams.get('openInvoiceNumber') || '').trim()
-  );
-  const routeFromContract = Boolean(location.state?.fromContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('fromContract') || '').toLowerCase());
-  const routeEditContract = Boolean(location.state?.editContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('editContract') || '').toLowerCase());
-  const routeViewContract = Boolean(location.state?.viewContract) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('viewContract') || '').toLowerCase());
-  const contractViewOnly = routeViewContract && !routeEditContract;
-  const routeOpenInvoiceNumberPrefs = Boolean(location.state?.openInvoiceNumberPrefs) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('openInvoiceNumberPrefs') || '').toLowerCase());
-  const routeOpenNewInvoice = Boolean(location.state?.openNewInvoice) || ['1', 'true', 'yes'].includes(String(routeInvoiceParams.get('openNewInvoice') || '').toLowerCase());
-  const routeOpenInvoiceId = String(location.state?.openInvoiceId || routeInvoiceParams.get('openInvoiceId') || '').trim();
-  const routeOpenInvoiceNumber = String(location.state?.openInvoiceNumber || routeInvoiceParams.get('openInvoiceNumber') || '').trim();
-  const routeHasQueryParams = Boolean(
-    routeInvoiceParams.get('openInvoiceNumberPrefs')
-      || routeInvoiceParams.get('openNewInvoice')
-      || routeInvoiceParams.get('openInvoiceId')
-      || routeInvoiceParams.get('openInvoiceNumber')
-      || routeInvoiceParams.get('fromContract')
-      || routeInvoiceParams.get('editContract')
-      || routeInvoiceParams.get('viewContract')
-  );
 
   const visibleColumnDefs = useMemo(
     () => columns.filter((column) => visibleColumns.includes(column.key)),
@@ -1750,6 +1768,34 @@ export default function InvoiceDashboard() {
     setServiceScheduleRows(nextRows.length > 0 ? nextRows : null);
   };
 
+  useEffect(() => {
+    if (showModal && editingId) {
+      clearInvoiceDraftCache();
+      return;
+    }
+
+    if (!showModal || editingId) return;
+
+    writeInvoiceDraftCache({
+      form,
+      serviceScheduleDraft,
+      serviceScheduleRows,
+      serviceScheduleExpanded,
+      serviceScheduleTime,
+      showModal,
+      modalOpenedFromContract
+    });
+  }, [
+    editingId,
+    form,
+    modalOpenedFromContract,
+    serviceScheduleDraft,
+    serviceScheduleExpanded,
+    serviceScheduleRows,
+    serviceScheduleTime,
+    showModal
+  ]);
+
   const openNewForm = () => {
     setEditingId(null);
     setSaveError('');
@@ -1772,6 +1818,7 @@ export default function InvoiceDashboard() {
   };
 
   const closeInvoiceModal = () => {
+    clearInvoiceDraftCache();
     setShowBillingAddressPicker(false);
     setShowShippingAddressPicker(false);
     setEditingShippingAddressId('');
@@ -2676,6 +2723,7 @@ export default function InvoiceDashboard() {
       setServiceScheduleExpanded(false);
       setServiceScheduleErrors({});
       setModalOpenedFromContract(false);
+      clearInvoiceDraftCache();
       await loadInvoices();
       if (pdfPreview.open && String(pdfPreview.invoiceId || '') === String(editingId || '')) {
         const refreshedPdfUrl = addPdfCacheBust(`${API_BASE_URL}/api/invoices/${editingId}/pdf`);
@@ -2910,6 +2958,10 @@ export default function InvoiceDashboard() {
   const totalsWrapStyle = isMobile ? { ...shell.totalsWrap, width: '100%', marginLeft: 0 } : shell.totalsWrap;
   const paymentTotalsStyle = isMobile ? { ...shell.paymentTotals, minWidth: '100%', marginLeft: 0 } : shell.paymentTotals;
   const modalOverlayStyle = isMobile ? { ...shell.modalOverlay, padding: '16px 10px' } : shell.modalOverlay;
+  const modalOverlayLockedStyle = {
+    ...modalOverlayStyle,
+    overscrollBehavior: 'contain'
+  };
   const modalStyle = isMobile
     ? {
       ...shell.modal,
@@ -3029,6 +3081,49 @@ export default function InvoiceDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
+  const isAnyOverlayOpen = showModal || showInvoiceNumberPrefs || showBillingAddressPicker || showShippingAddressPicker || Boolean(pdfPreview.open);
+
+  useEffect(() => {
+    if (!isAnyOverlayOpen) return;
+
+    const { body, documentElement } = document;
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const previous = {
+      bodyOverflow: body.style.overflow,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyLeft: body.style.left,
+      bodyRight: body.style.right,
+      bodyWidth: body.style.width,
+      htmlOverflow: documentElement.style.overflow,
+      scrollRestoration: window.history.scrollRestoration
+    };
+
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    documentElement.style.overflow = 'hidden';
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+
+    return () => {
+      body.style.overflow = previous.bodyOverflow;
+      body.style.position = previous.bodyPosition;
+      body.style.top = previous.bodyTop;
+      body.style.left = previous.bodyLeft;
+      body.style.right = previous.bodyRight;
+      body.style.width = previous.bodyWidth;
+      documentElement.style.overflow = previous.htmlOverflow;
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = previous.scrollRestoration || 'auto';
+      }
+      window.scrollTo(0, scrollY);
+    };
+  }, [isAnyOverlayOpen]);
   const compactItemAmountBoxStyle = {
     ...compactItemMetaInputStyle,
     display: 'flex',
@@ -3294,7 +3389,7 @@ export default function InvoiceDashboard() {
       </div>
 
       {showModal ? createPortal(
-        <div style={modalOverlayStyle}>
+        <div style={modalOverlayLockedStyle}>
           <form className="crm-modal-surface" style={modalStyle} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()}>
             <div className="crm-modal-surface-header" style={modalHeaderStyle}>
               <h3 style={shell.modalHeaderTitle}>{contractViewOnly ? 'View Contract' : editingId ? 'Edit Contract' : 'New Contract'}</h3>
