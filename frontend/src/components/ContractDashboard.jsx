@@ -1231,12 +1231,14 @@ export default function ContractDashboard() {
                             navigateToInvoiceEditor({ openInvoiceNumber: row.contractNo, fromContract: 1, viewContract: 1 });
                           }
                         }}
-                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        style={{ cursor: 'pointer', userSelect: 'none', fontSize: '11px', fontWeight: 700, lineHeight: 1.15 }}
                       >
                         {row.customer}
                       </div>
                     </div>
-                    <div className="contract-customer-mobile">{row.mobile || '-'}</div>
+                    <div className="contract-customer-mobile" style={{ fontSize: '9px', fontWeight: 600, lineHeight: 1.3 }}>
+                      {row.mobile || '-'}
+                    </div>
                   </div>
                 </td> : null}
                 {visibleColumns.property ? <td style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
