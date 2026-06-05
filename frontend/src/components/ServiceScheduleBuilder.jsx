@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Calendar, ChevronDown, ChevronUp, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Calendar, ChevronDown, ChevronUp, GripVertical, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import {
   buildServiceScheduleRows,
   formatServiceScheduleDate,
@@ -59,9 +59,24 @@ const styles = {
   rowMetaLine: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' },
   rowWeekdayBadge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '38px', padding: '2px 7px', borderRadius: '999px', background: 'rgba(159,23,77,0.10)', border: '1px solid rgba(159,23,77,0.18)', color: 'var(--color-primary-dark)', fontSize: '10px', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase' },
   rowMetaText: { fontSize: '11px', color: '#475569', fontWeight: 700 },
-  rowGrid: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 140px auto', gap: '8px', alignItems: 'end' },
+  rowGrid: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 140px', gap: '8px', alignItems: 'end' },
+  rowDragHandle: {
+    border: '1px solid #d1d5db',
+    background: 'radial-gradient(circle at 25% 30%, rgba(100,116,139,0.45) 0 1px, transparent 1.5px) 0 0 / 8px 8px, #fff',
+    color: '#64748b',
+    borderRadius: '8px',
+    minHeight: '34px',
+    width: '34px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'grab',
+    userSelect: 'none'
+  },
+  rowActions: { display: 'inline-flex', alignItems: 'center', gap: '4px', justifySelf: 'end' },
   rowInput: { border: '1px solid #d1d5db', borderRadius: '8px', minHeight: '34px', padding: '0 10px', fontSize: '13px', color: '#0f172a', background: '#fff', width: '100%', boxSizing: 'border-box' },
   rowDelete: { border: '1px solid #fecaca', background: '#fff1f2', color: '#be123c', borderRadius: '8px', minHeight: '34px', width: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  rowDragged: { opacity: 0.6, transform: 'scale(0.995)', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.08)' },
   emptyState: { border: '1px dashed #cbd5e1', borderRadius: '10px', background: '#fff', padding: '10px 12px', fontSize: '12px', color: '#64748b', lineHeight: 1.45 },
   desktopTwoCol: { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' },
   desktopThreeCol: { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }
@@ -87,6 +102,7 @@ export default function ServiceScheduleBuilder({
   expanded,
   onExpandedChange
 }) {
+  const [draggedIndex, setDraggedIndex] = useState(null);
   const normalizedTime = normalizeServiceScheduleTime(time, '10:00');
   const previewRows = useMemo(() => {
     if (Array.isArray(scheduleRows)) {
@@ -163,6 +179,33 @@ export default function ServiceScheduleBuilder({
   const updateRow = (index, patch) => {
     const nextRows = previewRows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row));
     onRowsChange(normalizeServiceScheduleRows(nextRows, normalizedTime));
+  };
+
+  const moveDraggedRow = (fromIndex, toIndex) => {
+    if (fromIndex == null || toIndex == null || fromIndex === toIndex) return;
+    if (fromIndex < 0 || fromIndex >= previewRows.length) return;
+    if (toIndex < 0 || toIndex >= previewRows.length) return;
+    const nextRows = [...previewRows];
+    const [movedRow] = nextRows.splice(fromIndex, 1);
+    nextRows.splice(toIndex, 0, movedRow);
+    onRowsChange(normalizeServiceScheduleRows(nextRows, normalizedTime));
+  };
+
+  const handleDragStart = (index) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = (index) => {
+    moveDraggedRow(draggedIndex, index);
+    setDraggedIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
   };
 
   const deleteRow = (index) => {
@@ -423,13 +466,37 @@ export default function ServiceScheduleBuilder({
           ) : (
             <div style={styles.rowList}>
               {visibleRows.map((row, index) => (
-                <div key={`${row.serviceDate}-${row.serviceTime}-${index}`} style={styles.rowItem}>
+                <div
+                  key={`${row.serviceDate}-${row.serviceTime}-${index}`}
+                  style={{ ...styles.rowItem, ...(draggedIndex === index ? styles.rowDragged : null) }}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(index)}
+                >
                   <div style={styles.rowTop}>
                     <span style={styles.rowLabel}>
                       <Pencil size={12} />
                       Visit {row.serviceNumber}
                     </span>
-                    <span style={styles.rowMeta}>{row.itemName || 'Service Visit'}</span>
+                    <div style={styles.rowActions}>
+                      <button
+                        type="button"
+                        style={styles.rowDragHandle}
+                        draggable
+                        onDragStart={(event) => {
+                          event.dataTransfer.effectAllowed = 'move';
+                          event.dataTransfer.setData('text/plain', String(index));
+                          handleDragStart(index);
+                        }}
+                        onDragEnd={handleDragEnd}
+                        title="Drag to reorder"
+                        aria-label="Drag to reorder"
+                      >
+                        <GripVertical size={14} />
+                      </button>
+                      <button type="button" style={styles.rowDelete} onClick={() => deleteRow(index)} title="Delete visit" aria-label="Delete visit">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                   <div style={styles.rowGrid}>
                     <label style={styles.field}>
@@ -450,9 +517,6 @@ export default function ServiceScheduleBuilder({
                         onChange={(event) => updateRow(index, { serviceTime: normalizeServiceScheduleTime(event.target.value, normalizedTime) })}
                       />
                     </label>
-                    <button type="button" style={styles.rowDelete} onClick={() => deleteRow(index)} title="Delete visit">
-                      <Trash2 size={14} />
-                    </button>
                   </div>
                   <div style={styles.rowMetaLine}>
                     <span style={styles.rowWeekdayBadge}>{getServiceScheduleWeekdayLabel(new Date(`${row.serviceDate}T00:00:00`).getDay(), true) || 'Day'}</span>

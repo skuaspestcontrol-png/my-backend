@@ -354,12 +354,6 @@ export const normalizeServiceScheduleRows = (rows = [], defaultTime = '10:00') =
       status: String(row?.status || 'Scheduled').trim() || 'Scheduled'
     }))
     .filter((row) => Boolean(row.serviceDate))
-    .sort((left, right) => {
-      const leftStamp = `${left.serviceDate || ''}T${left.serviceTime || '00:00'}`;
-      const rightStamp = `${right.serviceDate || ''}T${right.serviceTime || '00:00'}`;
-      if (leftStamp === rightStamp) return Number(left.serviceNumber || 0) - Number(right.serviceNumber || 0);
-      return leftStamp.localeCompare(rightStamp);
-    })
     .map((row, index) => ({
       ...row,
       serviceNumber: index + 1
@@ -390,8 +384,14 @@ export const buildServiceScheduleRows = ({
 export const buildServiceScheduleDraftFromInvoice = (invoice = {}, fallbackTime = '10:00') => {
   const firstLine = Array.isArray(invoice.items) ? (invoice.items.find((line) => line) || {}) : {};
   const scheduleRows = normalizeServiceScheduleRows(invoice.serviceSchedules, fallbackTime);
-  const firstSchedule = scheduleRows[0] || null;
-  const lastSchedule = scheduleRows[scheduleRows.length - 1] || null;
+  const sortedSchedules = [...scheduleRows].sort((left, right) => {
+    const leftStamp = `${left.serviceDate || ''}T${left.serviceTime || '00:00'}`;
+    const rightStamp = `${right.serviceDate || ''}T${right.serviceTime || '00:00'}`;
+    if (leftStamp === rightStamp) return Number(left.serviceNumber || 0) - Number(right.serviceNumber || 0);
+    return leftStamp.localeCompare(rightStamp);
+  });
+  const firstSchedule = sortedSchedules[0] || null;
+  const lastSchedule = sortedSchedules[sortedSchedules.length - 1] || null;
   const serviceFrequency = String(firstLine.serviceFrequency || '').trim().toLowerCase();
   const repeatEvery = serviceFrequency === 'fortnightly' ? 2 : 1;
   const repeatUnit = serviceFrequency === 'monthly' || serviceFrequency === 'quarterly' || serviceFrequency === 'half_yearly' || serviceFrequency === 'yearly'
