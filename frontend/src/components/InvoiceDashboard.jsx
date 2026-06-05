@@ -1281,6 +1281,14 @@ export default function InvoiceDashboard() {
     },
     [form.items]
   );
+  const liveServiceScheduleDraft = useMemo(
+    () => buildServiceScheduleDraftFromInvoice({
+      ...form,
+      items: Array.isArray(form.items) ? form.items : [],
+      serviceScheduleDefaultTime: form.serviceScheduleDefaultTime || '10:00'
+    }, serviceScheduleTime),
+    [form, serviceScheduleTime]
+  );
 
   const computeTotals = (lines, invoiceType = 'GST') => {
     const nonGst = normalizeInvoiceType(invoiceType) === 'NON GST';
@@ -1666,7 +1674,7 @@ export default function InvoiceDashboard() {
     const nextErrors = validateServiceScheduleDraft();
     if (Object.keys(nextErrors).length > 0) return;
     const rows = buildServiceScheduleRows({
-      draft: serviceScheduleDraft,
+      draft: liveServiceScheduleDraft,
       defaultTime: serviceScheduleTime,
       itemMeta: serviceScheduleItemMeta
     });
@@ -2514,7 +2522,7 @@ export default function InvoiceDashboard() {
     const normalizedServiceSchedules = Array.isArray(serviceScheduleRows)
       ? normalizeServiceScheduleRows(serviceScheduleRows, serviceScheduleTime)
       : buildServiceScheduleRows({
-        draft: serviceScheduleDraft,
+        draft: liveServiceScheduleDraft,
         defaultTime: serviceScheduleTime,
         itemMeta: serviceScheduleItemMeta
       }).map((schedule) => ({
@@ -3736,7 +3744,7 @@ export default function InvoiceDashboard() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <ServiceScheduleBuilder
-                    draft={serviceScheduleDraft}
+                    draft={liveServiceScheduleDraft}
                     time={serviceScheduleTime}
                     defaultItemMeta={serviceScheduleItemMeta}
                     scheduleRows={serviceScheduleRows}
