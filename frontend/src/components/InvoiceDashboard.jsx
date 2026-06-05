@@ -2839,19 +2839,28 @@ export default function InvoiceDashboard() {
       ...shell.modal,
       width: '96vw',
       maxHeight: '92dvh',
-      height: 'auto',
+      height: '92dvh',
       borderRadius: '16px',
       border: '1px solid rgba(159, 23, 77, 0.24)'
     }
-    : shell.modal;
+    : {
+      ...shell.modal,
+      height: '92vh'
+    };
   const formBodyStyle = isMobile
     ? {
       ...shell.formBody,
       padding: isTiny ? '10px 12px' : '12px 14px',
       paddingBottom: 'calc(130px + env(safe-area-inset-bottom))',
-      WebkitOverflowScrolling: 'touch'
+      WebkitOverflowScrolling: 'touch',
+      overflowY: 'scroll',
+      scrollbarGutter: 'stable'
     }
-    : shell.formBody;
+    : {
+      ...shell.formBody,
+      overflowY: 'scroll',
+      scrollbarGutter: 'stable'
+    };
   const modalFooterStyle = isMobile
     ? {
       ...shell.modalFooter,
