@@ -55,44 +55,44 @@ const quickFilterStyles = {
 };
 
 const defaultColumnWidths = {
-  rowNumber: 42,
-  contractNo: 132,
-  customer: 180,
-  property: 150,
-  duration: 150,
-  services: 115,
-  status: 120,
-  total: 120,
-  paid: 120,
-  due: 115,
-  actions: 150
+  rowNumber: 36,
+  contractNo: 120,
+  customer: 220,
+  property: 140,
+  duration: 138,
+  services: 100,
+  status: 104,
+  total: 112,
+  paid: 112,
+  due: 106,
+  actions: 132
 };
 
 const mobileColumnWidths = {
-  rowNumber: 44,
-  contractNo: 128,
-  customer: 140,
-  property: 132,
-  duration: 124,
-  services: 104,
-  status: 96,
-  total: 104,
-  paid: 96,
-  due: 96,
+  rowNumber: 40,
+  contractNo: 120,
+  customer: 150,
+  property: 128,
+  duration: 120,
+  services: 96,
+  status: 92,
+  total: 100,
+  paid: 92,
+  due: 92,
   actions: 96
 };
 const contractColumnResizeBounds = {
-  rowNumber: { min: 42, max: 64 },
-  contractNo: { min: 100, max: 190 },
-  customer: { min: 180, max: 340 },
-  property: { min: 140, max: 260 },
-  duration: { min: 110, max: 180 },
-  services: { min: 160, max: 320 },
-  status: { min: 100, max: 160 },
-  total: { min: 100, max: 170 },
-  paid: { min: 100, max: 170 },
-  due: { min: 100, max: 170 },
-  actions: { min: 110, max: 170 }
+  rowNumber: { min: 36, max: 56 },
+  contractNo: { min: 96, max: 180 },
+  customer: { min: 200, max: 380 },
+  property: { min: 130, max: 240 },
+  duration: { min: 110, max: 170 },
+  services: { min: 140, max: 280 },
+  status: { min: 92, max: 150 },
+  total: { min: 100, max: 160 },
+  paid: { min: 100, max: 160 },
+  due: { min: 96, max: 160 },
+  actions: { min: 110, max: 160 }
 };
 
 const shell = {

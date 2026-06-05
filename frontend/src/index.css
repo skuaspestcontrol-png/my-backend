@@ -2137,4 +2137,15 @@ textarea:focus {
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
   }
+
+  .invoice-rate-input {
+    -moz-appearance: textfield !important;
+    appearance: textfield !important;
+  }
+
+  .invoice-rate-input::-webkit-inner-spin-button,
+  .invoice-rate-input::-webkit-outer-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+  }
 }

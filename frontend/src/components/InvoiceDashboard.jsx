@@ -3481,6 +3481,7 @@ export default function InvoiceDashboard() {
                                         <span style={itemMetaLabelStyle}>Rate</span>
                                         <input
                                           style={compactItemMetaInputStyle}
+                                          className="invoice-rate-input"
                                           type="number"
                                           min="0"
                                           step="0.01"
@@ -3539,6 +3540,7 @@ export default function InvoiceDashboard() {
                                 <td style={shell.itemTd}>
                                 <input
                                   style={shell.input}
+                                  className="invoice-rate-input"
                                   type="number"
                                   min="0"
                                   step="0.01"
