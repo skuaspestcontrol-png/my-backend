@@ -3082,6 +3082,14 @@ export default function InvoiceDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
+  const compactContractDateInputStyle = {
+    ...itemMetaDateInputStyle,
+    minWidth: 0,
+    width: '100%',
+    maxWidth: '100%',
+    padding: '0 6px',
+    fontSize: '10px'
+  };
   const itemRowCellStyle = isMobile ? shell.itemTd : { ...shell.itemTd, padding: '4px 6px' };
   const numericItemCellStyle = isMobile
     ? itemRowCellStyle
@@ -3659,7 +3667,7 @@ export default function InvoiceDashboard() {
                                   <div style={itemMetaFieldStyle}>
                                     <span style={itemMetaLabelStyle}>Contract Start Date</span>
                                     <CompactCalendarDateInput
-                                      style={itemMetaDateInputStyle}
+                                      style={compactContractDateInputStyle}
                                       value={line.contractStartDate || ''}
                                       onChange={(event) => updateLine(index, { contractStartDate: event.target.value })}
                                       ariaLabel="contract start date"
@@ -3668,7 +3676,7 @@ export default function InvoiceDashboard() {
                                   <div style={itemMetaFieldStyle}>
                                     <span style={itemMetaLabelStyle}>Contract End Date</span>
                                     <CompactCalendarDateInput
-                                      style={itemMetaDateInputStyle}
+                                      style={compactContractDateInputStyle}
                                       value={line.contractEndDate || ''}
                                       readOnly
                                       ariaLabel="contract end date"
@@ -3677,7 +3685,7 @@ export default function InvoiceDashboard() {
                                   <div style={itemMetaFieldStyle}>
                                     <span style={itemMetaLabelStyle}>Renewal Date</span>
                                     <CompactCalendarDateInput
-                                      style={itemMetaDateInputStyle}
+                                      style={compactContractDateInputStyle}
                                       value={line.renewalDate || ''}
                                       readOnly
                                       ariaLabel="renewal date"
