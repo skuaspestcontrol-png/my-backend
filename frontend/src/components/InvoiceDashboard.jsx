@@ -3082,6 +3082,9 @@ export default function InvoiceDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
+  const noNumberSpinnerStyle = {
+    MozAppearance: 'textfield'
+  };
   const compactContractDateInputStyle = {
     ...itemMetaDateInputStyle,
     minWidth: 0,
@@ -3731,10 +3734,10 @@ export default function InvoiceDashboard() {
                                       <div style={itemMetaFieldStyle}>
                                         <span style={itemMetaLabelStyle}>Quantity</span>
                                         <input
-                                          style={compactItemMetaInputStyle}
-                                          type="number"
-                                          min="0"
-                                          step="0.01"
+                                          style={{ ...compactItemMetaInputStyle, ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
+                                          type="text"
+                                          inputMode="decimal"
+                                          pattern="[0-9]*[.,]?[0-9]*"
                                           value={line.quantity}
                                           onChange={(event) => updateLine(index, { quantity: event.target.value })}
                                         />
@@ -3785,10 +3788,10 @@ export default function InvoiceDashboard() {
                               <>
                                 <td style={numericItemCellStyle}>
                                   <input
-                                    style={compactItemMetaInputStyle}
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
+                                    style={{ ...compactItemMetaInputStyle, ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
+                                    type="text"
+                                    inputMode="decimal"
+                                    pattern="[0-9]*[.,]?[0-9]*"
                                     value={line.quantity}
                                     onChange={(event) => updateLine(index, { quantity: event.target.value })}
                                   />
@@ -3860,9 +3863,10 @@ export default function InvoiceDashboard() {
                 <div style={shell.totalRow}>
                   <span>Discount</span>
                   <input
-                    style={{ ...shell.input, width: '88px', minHeight: '30px', textAlign: 'right' }}
-                    type="number"
-                    step="0.01"
+                    style={{ ...shell.input, width: '88px', minHeight: '30px', textAlign: 'right', ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]*"
                     value={form.discount}
                     onChange={(event) => setFormWithTotals((prev) => ({ ...prev, discount: event.target.value }))}
                   />
