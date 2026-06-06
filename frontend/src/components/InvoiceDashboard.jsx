@@ -3605,11 +3605,11 @@ export default function InvoiceDashboard() {
                         </tr>
                       ) : (
                         <tr>
+                          <th style={{ ...shell.itemTh, width: '52%' }}>Item Details</th>
                           <th style={{ ...shell.itemTh, width: '10%' }}>Quantity</th>
                           <th style={{ ...shell.itemTh, width: '12%' }}>Rate</th>
                           <th style={{ ...shell.itemTh, width: '12%' }}>Tax</th>
                           <th style={{ ...shell.itemTh, width: '14%' }}>Amount</th>
-                          <th style={{ ...shell.itemTh, width: '52%' }}>Item Details</th>
                         </tr>
                       )}
                     </thead>
@@ -3621,52 +3621,6 @@ export default function InvoiceDashboard() {
                         const amount = base;
                         return (
                           <tr key={`${index}-${line.itemId || 'line'}`}>
-                            {!isMobile ? (
-                              <>
-                                <td style={numericItemCellStyle}>
-                                  <input
-                                    style={compactItemMetaInputStyle}
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={line.quantity}
-                                    onChange={(event) => updateLine(index, { quantity: event.target.value })}
-                                  />
-                                </td>
-                                <td style={numericItemCellStyle}>
-                                  <input
-                                    style={compactItemMetaInputStyle}
-                                    type="text"
-                                    inputMode="decimal"
-                                    pattern="[0-9]*[.,]?[0-9]*"
-                                    value={line.rate}
-                                    onChange={(event) => updateLine(index, { rate: event.target.value })}
-                                  />
-                                </td>
-                                <td style={numericItemCellStyle}>
-                                  <select
-                                    style={compactItemMetaInputStyle}
-                                    value={line.taxRate}
-                                    onChange={(event) => updateLine(index, { taxRate: event.target.value })}
-                                    disabled={form.invoiceType === 'NON GST'}
-                                  >
-                                    {(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => (
-                                      <option key={tax} value={String(tax)}>{tax}%</option>
-                                    ))}
-                                  </select>
-                                </td>
-                                <td style={{ ...numericItemCellStyle, fontWeight: 700 }}>
-                                  <div style={amountActionRowStyle}>
-                                    <div style={compactItemAmountBoxStyle}>
-                                      <span style={compactItemAmountValueStyle}>{formatINR(amount)}</span>
-                                    </div>
-                                    <button type="button" style={itemRowDeleteButtonStyle} onClick={() => removeLine(index)} title="Remove row">
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </div>
-                                </td>
-                              </>
-                            ) : null}
                             <td style={itemRowCellStyle}>
                               <div style={itemDetailStackStyle}>
                                 <select
@@ -3814,11 +3768,57 @@ export default function InvoiceDashboard() {
                                           </button>
                                         </div>
                                       </div>
-                                    </div>
-                                  </>
-                                ) : null}
-                              </div>
+                                  </div>
+                                </>
+                              ) : null}
+                            </div>
                             </td>
+                            {!isMobile ? (
+                              <>
+                                <td style={numericItemCellStyle}>
+                                  <input
+                                    style={compactItemMetaInputStyle}
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={line.quantity}
+                                    onChange={(event) => updateLine(index, { quantity: event.target.value })}
+                                  />
+                                </td>
+                                <td style={numericItemCellStyle}>
+                                  <input
+                                    style={compactItemMetaInputStyle}
+                                    type="text"
+                                    inputMode="decimal"
+                                    pattern="[0-9]*[.,]?[0-9]*"
+                                    value={line.rate}
+                                    onChange={(event) => updateLine(index, { rate: event.target.value })}
+                                  />
+                                </td>
+                                <td style={numericItemCellStyle}>
+                                  <select
+                                    style={compactItemMetaInputStyle}
+                                    value={line.taxRate}
+                                    onChange={(event) => updateLine(index, { taxRate: event.target.value })}
+                                    disabled={form.invoiceType === 'NON GST'}
+                                  >
+                                    {(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => (
+                                      <option key={tax} value={String(tax)}>{tax}%</option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td style={{ ...numericItemCellStyle, fontWeight: 700 }}>
+                                  <div style={amountActionRowStyle}>
+                                    <div style={compactItemAmountBoxStyle}>
+                                      <span style={compactItemAmountValueStyle}>{formatINR(amount)}</span>
+                                    </div>
+                                    <button type="button" style={itemRowDeleteButtonStyle} onClick={() => removeLine(index)} title="Remove row">
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </>
+                            ) : null}
                           </tr>
                         );
                       })}
