@@ -3138,10 +3138,10 @@ export default function InvoiceDashboard() {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '6px',
-    minHeight: '28px',
-    height: '28px',
-    padding: '0 8px',
-    minWidth: '76px'
+    minHeight: '30px',
+    height: '30px',
+    padding: '0 10px',
+    minWidth: '88px'
   };
   const compactItemAmountValueStyle = {
     flex: 1,
@@ -3160,14 +3160,14 @@ export default function InvoiceDashboard() {
   const amountActionRowStyle = {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px'
+    gap: '10px'
   };
   const itemRowDeleteButtonStyle = {
     ...shell.iconButton,
-    width: '28px',
-    height: '28px',
-    minHeight: '28px',
-    borderRadius: '6px',
+    width: '36px',
+    height: '36px',
+    minHeight: '36px',
+    borderRadius: '10px',
     border: '1px solid #CBD5E1',
     background: '#fff',
     padding: 0,
@@ -3661,7 +3661,7 @@ export default function InvoiceDashboard() {
                                       <span style={compactItemAmountValueStyle}>{formatINR(amount)}</span>
                                     </div>
                                     <button type="button" style={itemRowDeleteButtonStyle} onClick={() => removeLine(index)} title="Remove row">
-                                      <Trash2 size={14} />
+                                      <Trash2 size={16} />
                                     </button>
                                   </div>
                                 </td>
