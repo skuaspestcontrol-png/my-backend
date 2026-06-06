@@ -6528,9 +6528,11 @@ const normalizeItemRecord = (input = {}, fallbackExternalId = '') => {
     _id: externalId,
     name: String(source.name || '').trim(),
     itemType,
+    aboutPest: isServiceItem ? String(source.aboutPest || source.about_pest || '').trim() : '',
     treatmentMethod: isServiceItem ? String(source.treatmentMethod || source.treatment_method || '').trim() : '',
     pestsCovered: isServiceItem ? String(source.pestsCovered || source.pests_covered || '').trim() : '',
     serviceDescription: isServiceItem ? String(source.serviceDescription || source.service_description || '').trim() : '',
+    whatWeDo: isServiceItem ? String(source.whatWeDo || source.what_we_do || '').trim() : '',
     unit: String(source.unit || '').trim(),
     sac: String(source.sac || '').trim(),
     hsnSac: String(source.hsnSac || source.hsn_sac || '').trim(),
@@ -6557,16 +6559,18 @@ const normalizeItemRecord = (input = {}, fallbackExternalId = '') => {
 const upsertItemRow = async (conn, item) => {
   await conn.query(
     `INSERT INTO items (
-      external_id, name, item_type, treatment_method, pests_covered, service_description,
-      unit, sac, hsn_sac, tax_preference, sellable, purchasable, sales_account, purchase_account,
+      external_id, name, item_type, about_pest, treatment_method, pests_covered, service_description,
+      what_we_do, unit, sac, hsn_sac, tax_preference, sellable, purchasable, sales_account, purchase_account,
       preferred_vendor, sales_description, purchase_description, purchase_rate, description, rate, payload
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       name=VALUES(name),
       item_type=VALUES(item_type),
+      about_pest=VALUES(about_pest),
       treatment_method=VALUES(treatment_method),
       pests_covered=VALUES(pests_covered),
       service_description=VALUES(service_description),
+      what_we_do=VALUES(what_we_do),
       unit=VALUES(unit),
       sac=VALUES(sac),
       hsn_sac=VALUES(hsn_sac),
@@ -6587,9 +6591,11 @@ const upsertItemRow = async (conn, item) => {
       item._id,
       item.name,
       item.itemType,
+      item.aboutPest,
       item.treatmentMethod,
       item.pestsCovered,
       item.serviceDescription,
+      item.whatWeDo,
       item.unit,
       item.sac,
       item.hsnSac,

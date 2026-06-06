@@ -390,9 +390,11 @@ const tableDefinitions = [
     createSql: createBaseTableSql('items', [
       'name VARCHAR(255) NULL',
       'item_type VARCHAR(100) NULL',
+      'about_pest TEXT NULL',
       'treatment_method VARCHAR(255) NULL',
       'pests_covered TEXT NULL',
       'service_description TEXT NULL',
+      'what_we_do TEXT NULL',
       'unit VARCHAR(100) NULL',
       'sac VARCHAR(100) NULL',
       'hsn_sac VARCHAR(100) NULL',
@@ -1052,8 +1054,8 @@ const collectColumns = () => {
     description: 'TEXT NULL', quantity: 'DECIMAL(12,2) NULL', rate: 'DECIMAL(18,2) NULL', tax_rate: 'DECIMAL(8,2) NULL', amount: 'DECIMAL(18,2) NULL'
   });
   add('items', {
-    name: 'VARCHAR(255) NULL', item_type: 'VARCHAR(100) NULL', treatment_method: 'VARCHAR(255) NULL', pests_covered: 'TEXT NULL',
-    service_description: 'TEXT NULL', unit: 'VARCHAR(100) NULL', sac: 'VARCHAR(100) NULL', hsn_sac: 'VARCHAR(100) NULL',
+    name: 'VARCHAR(255) NULL', item_type: 'VARCHAR(100) NULL', about_pest: 'TEXT NULL', treatment_method: 'VARCHAR(255) NULL', pests_covered: 'TEXT NULL',
+    service_description: 'TEXT NULL', what_we_do: 'TEXT NULL', unit: 'VARCHAR(100) NULL', sac: 'VARCHAR(100) NULL', hsn_sac: 'VARCHAR(100) NULL',
     tax_preference: 'VARCHAR(100) NULL', sellable: 'TINYINT(1) NOT NULL DEFAULT 1', purchasable: 'TINYINT(1) NOT NULL DEFAULT 1',
     sales_account: 'VARCHAR(255) NULL', purchase_account: 'VARCHAR(255) NULL', preferred_vendor: 'VARCHAR(255) NULL',
     sales_description: 'TEXT NULL', purchase_description: 'TEXT NULL', purchase_rate: 'DECIMAL(18,2) NULL',
