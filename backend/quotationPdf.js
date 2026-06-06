@@ -668,23 +668,16 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     ['IFSC', bankDetails.bankIfsc],
     ['UPI ID', bankDetails.bankUpi]
   ].filter(([, value]) => clean(value));
-  const blocks = [
-    ['Payment Terms', paymentTermsText ? cleanPaymentTerms(paymentTermsText) : ''],
-    ['', closingText]
-  ].filter(([, txt]) => txt);
-
-  blocks.forEach(([titleText, body]) => {
+  const paymentTermsBody = paymentTermsText ? cleanPaymentTerms(paymentTermsText) : '';
+  if (paymentTermsBody) {
     ensureSpace(70);
-    doc.moveDown(titleText ? sectionSpacing.beforeHeading : 0.2);
-    if (titleText) {
-      const headingSize = titleText === 'Payment Terms' ? pdfTextSize.paymentHeading : pdfTextSize.sectionHeading;
-      doc.font(pdfFont.bold).fontSize(headingSize).fillColor(primaryColor).text(titleText, left, doc.y, { width: right - left, align: 'left' });
-      if (titleText === 'Payment Terms') doc.moveDown(sectionSpacing.afterHeading);
-    }
-    const bodySize = titleText === 'Payment Terms' ? pdfTextSize.paymentBody : pdfTextSize.body;
-    doc.font(pdfFont.regular).fontSize(bodySize).fillColor('#111827').text(body, left, doc.y, { width: right - left, align: titleText === 'Payment Terms' ? 'left' : 'justify', lineGap: 1 });
-    if (titleText === 'Payment Terms') doc.moveDown(0.45);
-  });
+    doc.moveDown(sectionSpacing.beforeHeading);
+    doc.font(pdfFont.bold).fontSize(pdfTextSize.paymentHeading).fillColor(primaryColor).text('Payment Terms', left, doc.y, { width: right - left, align: 'left' });
+    doc.moveDown(sectionSpacing.afterHeading);
+    doc.font(pdfFont.regular).fontSize(pdfTextSize.paymentBody).fillColor('#111827')
+      .text(paymentTermsBody, left, doc.y, { width: right - left, align: 'left', lineGap: 1 });
+    doc.moveDown(0.45);
+  }
 
   if (paymentDetailsRows.length) {
     ensureSpace(60);
@@ -700,10 +693,20 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     doc.moveDown(0.45);
   }
 
+  if (closingText) {
+    ensureSpace(44);
+    doc.moveDown(0.25);
+    doc.font(pdfFont.regular).fontSize(pdfTextSize.body).fillColor('#111827')
+      .text(closingText, left, doc.y, { width: right - left, align: 'justify', lineGap: 1 });
+    doc.moveDown(0.9);
+  }
+
   ensureSpace(90);
-  doc.moveDown(2.8);
+  doc.moveDown(2.2);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.signature).fillColor('#111827').text('Yours Truly,', left, doc.y, { width: right - left, align: 'left' });
+  doc.moveDown(0.65);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.signature).text('For Skuas Pest Control Pvt Ltd', left, doc.y, { width: right - left, align: 'left' });
+  doc.moveDown(1.4);
 
   if (String(templateSettings.show_signature || '1') !== '0') {
     const signature = resolveUploadAsset(templateSettings.signature_image_url);
@@ -712,7 +715,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     }
   }
 
-  doc.moveDown(3.3);
+  doc.moveDown(2.2);
   [
     clean(quotation.sales_person || templateSettings.default_sales_person),
     clean(quotation.designation || templateSettings.default_designation),
