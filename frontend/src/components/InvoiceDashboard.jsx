@@ -3807,7 +3807,7 @@ export default function InvoiceDashboard() {
                                     ))}
                                   </select>
                                 </td>
-                                <td style={{ ...numericItemCellStyle, fontWeight: 700 }}>
+                                <td style={{ ...numericItemCellStyle, fontWeight: 700, verticalAlign: 'top' }}>
                                   <div style={amountActionRowStyle}>
                                     <div style={compactItemAmountBoxStyle}>
                                       <span style={compactItemAmountValueStyle}>{formatINR(amount)}</span>
