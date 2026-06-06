@@ -462,7 +462,7 @@ const shell = {
   copyBillingBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' },
   totalsWrap: { marginTop: '8px', marginLeft: 'auto', width: '340px', border: '1px solid var(--color-border)', borderRadius: '10px', background: '#fafafa' },
   totalRow: { display: 'flex', justifyContent: 'space-between', padding: '10px 12px', fontSize: '12px', color: '#334155', borderBottom: '1px solid var(--color-border)' },
-  gstRowsWrap: { margin: '0 8px', padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'grid', gap: '10px' },
+  gstRowsWrap: { margin: 0, padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'grid', gap: '10px' },
   gstRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#111827' },
   taxControlRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '10px 12px', fontSize: '12px', color: '#334155', borderBottom: '1px solid var(--color-border)' },
   tinySelect: { border: '1px solid #D1D5DB', borderRadius: '8px', padding: '6px 8px', fontSize: '12px', outline: 'none', minWidth: '120px' },
