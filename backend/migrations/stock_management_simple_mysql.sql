@@ -93,3 +93,7 @@ CREATE TABLE IF NOT EXISTS stock_movements (
   INDEX idx_stock_movements_type (movement_type),
   INDEX idx_stock_movements_technician (technician_id)
 );
+
+UPDATE stock_items
+SET unit = 'piece'
+WHERE LOWER(unit) = 'pcs';

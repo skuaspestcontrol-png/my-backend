@@ -10,6 +10,12 @@ const EXPIRY_ALERT_DAYS = 30;
 const DEFAULT_LIMIT = 1000;
 
 const text = (value) => String(value ?? '').trim();
+const normalizeUnit = (value) => {
+  const unit = text(value).toLowerCase();
+  if (!unit) return '';
+  if (unit === 'pcs') return 'piece';
+  return unit;
+};
 const num = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -173,6 +179,7 @@ const ensureSchema = async () => {
   if (purchaseColumns.has('product_id') && purchaseColumns.has('item_id')) {
     await dbQuery('UPDATE stock_purchases SET item_id = COALESCE(item_id, product_id) WHERE item_id IS NULL AND product_id IS NOT NULL');
   }
+  await dbQuery("UPDATE stock_items SET unit = 'piece' WHERE LOWER(unit) = 'pcs'");
 };
 
 let schemaReadyPromise = null;
@@ -265,7 +272,7 @@ const loadItems = async () => {
       itemName: safeName(row.item_name, `Item ${row.id}`),
       itemCode: text(row.item_code),
       category: safeName(row.category, 'Other'),
-      unit: safeName(row.unit, 'piece'),
+      unit: safeName(normalizeUnit(row.unit) || 'piece', 'piece'),
       openingStock: num(row.opening_stock),
       currentStock: num(row.current_stock),
       minStockLevel: num(row.min_stock_level),
@@ -433,7 +440,7 @@ const loadMovements = async (filters = {}, limit = DEFAULT_LIMIT) => {
 
 const validateItem = (body = {}) => {
   const itemName = text(body.itemName || body.item_name);
-  const unit = text(body.unit);
+  const unit = normalizeUnit(body.unit);
   if (!itemName) return 'Item name is required.';
   if (!unit) return 'Unit is required.';
   if (!UNITS.includes(unit.toLowerCase())) return 'Please choose a valid unit.';
@@ -662,7 +669,7 @@ router.post('/items', async (req, res) => {
     const itemName = text(body.itemName || body.item_name);
     const itemCode = text(body.itemCode || body.item_code) || null;
     const category = text(body.category || 'Other') || 'Other';
-    const unit = text(body.unit);
+    const unit = normalizeUnit(body.unit) || 'piece';
     const openingStock = round3(body.openingStock ?? body.opening_stock ?? 0);
     const currentStock = round3(body.currentStock ?? body.current_stock ?? openingStock);
     const minStockLevel = round3(body.minStockLevel ?? body.min_stock_level ?? 0);
@@ -730,7 +737,7 @@ router.put('/items/:id', async (req, res) => {
     const itemName = text(body.itemName || body.item_name);
     const itemCode = text(body.itemCode || body.item_code) || null;
     const category = text(body.category || 'Other') || 'Other';
-    const unit = text(body.unit);
+    const unit = normalizeUnit(body.unit) || 'piece';
     const openingStock = round3(body.openingStock ?? body.opening_stock ?? 0);
     const currentStock = round3(body.currentStock ?? body.current_stock ?? openingStock);
     const minStockLevel = round3(body.minStockLevel ?? body.min_stock_level ?? 0);

@@ -67,6 +67,13 @@ const text = (v) => {
   return s || null;
 };
 
+const normalizeUnit = (value) => {
+  const unit = String(value ?? '').trim().toLowerCase();
+  if (!unit) return null;
+  if (unit === 'pcs') return 'piece';
+  return unit;
+};
+
 const toDate = (v) => {
   if (!v) return null;
   const d = new Date(v);
@@ -200,7 +207,7 @@ const normalizeItem = (item = {}) => {
     pestsCovered: isServiceItem ? String(item.pestsCovered || item.pests_covered || '').trim() : '',
     serviceDescription: isServiceItem ? String(item.serviceDescription || item.service_description || '').trim() : '',
     whatWeDo: isServiceItem ? String(item.whatWeDo || item.what_we_do || '').trim() : '',
-    unit: String(item.unit || '').trim(),
+    unit: normalizeUnit(item.unit) || 'piece',
     sac: String(item.sac || '').trim(),
     hsnSac: String(item.hsnSac || item.hsn_sac || '').trim(),
     taxPreference: String(item.taxPreference || item.tax_preference || 'Taxable').trim() || 'Taxable',

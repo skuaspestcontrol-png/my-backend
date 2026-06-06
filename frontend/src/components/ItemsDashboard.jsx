@@ -29,11 +29,9 @@ const units = [
   { value: 'ml', label: 'ml' },
   { value: 'num', label: 'Number' }
 ];
-const taxPreferences = ['Taxable', 'Non-Taxable'];
 const salesAccounts = ['Sales', 'Service Income', 'Other Income'];
 const purchaseAccounts = ['Cost of Goods Sold', 'Purchases', 'Direct Expenses'];
 const preferredVendors = ['No vendor', 'Vendor A', 'Vendor B'];
-const taxRateOptions = ['18%'];
 const defaultColumnWidths = {
   name: 220,
   description: 360,
@@ -66,7 +64,6 @@ const emptyForm = {
   whatWeDo: '',
   unit: 'pcs',
   sac: '',
-  taxPreference: 'Taxable',
   sellable: true,
   purchasable: true,
   sellingPrice: '',
@@ -75,9 +72,7 @@ const emptyForm = {
   costPrice: '',
   purchaseAccount: 'Cost of Goods Sold',
   purchaseInfoDescription: '',
-  preferredVendor: 'No vendor',
-  intraTaxRate: '18%',
-  interTaxRate: '18%'
+  preferredVendor: 'No vendor'
 };
 
 const shell = {
@@ -682,7 +677,6 @@ export default function ItemsDashboard() {
     whatWeDo: item.whatWeDo ?? item.what_we_do ?? item.treatmentMethod ?? '',
     unit: item.unit || 'pcs',
     sac: item.sac || item.hsnSac || '',
-    taxPreference: item.taxPreference || 'Taxable',
     sellable: item.sellable !== false,
     purchasable: item.purchasable !== false,
     sellingPrice: String(item.sellingPrice ?? item.rate ?? ''),
@@ -691,9 +685,7 @@ export default function ItemsDashboard() {
     costPrice: String(item.costPrice ?? item.purchaseRate ?? ''),
     purchaseAccount: item.purchaseAccount || 'Cost of Goods Sold',
     purchaseInfoDescription: item.purchaseInfoDescription ?? item.purchaseDescription ?? '',
-    preferredVendor: item.preferredVendor || 'No vendor',
-    intraTaxRate: item.intraTaxRate || '18%',
-    interTaxRate: item.interTaxRate || '18%'
+    preferredVendor: item.preferredVendor || 'No vendor'
   });
 
   const openEditSelected = () => {
@@ -734,7 +726,6 @@ export default function ItemsDashboard() {
       unit: form.unit,
       sac: form.sac.trim(),
       hsnSac: form.sac.trim(),
-      taxPreference: form.taxPreference,
       sellable: form.sellable,
       purchasable: form.purchasable,
       rate: Number(form.sellingPrice || 0),
@@ -747,9 +738,7 @@ export default function ItemsDashboard() {
       purchaseAccount: form.purchaseAccount,
       purchaseDescription: form.purchaseInfoDescription.trim(),
       purchaseInfoDescription: form.purchaseInfoDescription.trim(),
-      preferredVendor: form.preferredVendor,
-      intraTaxRate: form.intraTaxRate,
-      interTaxRate: form.interTaxRate
+      preferredVendor: form.preferredVendor
     };
 
     try {
@@ -807,10 +796,6 @@ export default function ItemsDashboard() {
   const topGridStyle = isMobile ? { ...shell.topGrid, gridTemplateColumns: '1fr' } : shell.topGrid;
   const sectionSplitStyle = isMobile ? { ...shell.sectionSplit, gridTemplateColumns: '1fr' } : shell.sectionSplit;
   const sectionFieldsStyle = isMobile ? { ...shell.sectionFields, gridTemplateColumns: '1fr' } : shell.sectionFields;
-  const taxPanelStyle = isMobile ? { ...shell.taxPanel, gridTemplateColumns: '1fr' } : shell.taxPanel;
-  const taxGridStyle = isMobile
-    ? { display: 'grid', gridTemplateColumns: '1fr', rowGap: '8px', columnGap: '8px' }
-    : { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr)', rowGap: '8px', columnGap: '8px' };
   const modalFooterStyle = isMobile ? { ...shell.modalFooter, flexWrap: 'wrap' } : shell.modalFooter;
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const buttonPrimaryStyle = isTiny ? { ...shell.buttonPrimary, padding: '8px 12px', fontSize: '13px' } : shell.buttonPrimary;
@@ -1092,13 +1077,6 @@ export default function ItemsDashboard() {
                     <Search size={16} color="var(--color-primary)" />
                   </button>
                 </div>
-
-                <label style={{ ...shell.label, ...shell.requiredLabel }}>Tax Preference*</label>
-                <select style={shell.input} value={form.taxPreference} onChange={(event) => updateForm('taxPreference', event.target.value)}>
-                  {taxPreferences.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
               </div>
 
               <div style={sectionSplitStyle}>
@@ -1184,24 +1162,6 @@ export default function ItemsDashboard() {
                 </div>
               </div>
 
-              <div style={taxPanelStyle}>
-                <h3 style={{ ...shell.sectionTitle, margin: 0 }}>Default Tax Rates</h3>
-                <div style={taxGridStyle}>
-                  <label style={shell.label}>Intra State Tax Rate</label>
-                  <select style={shell.input} value={form.intraTaxRate} onChange={(event) => updateForm('intraTaxRate', event.target.value)}>
-                    {taxRateOptions.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-
-                  <label style={shell.label}>Inter State Tax Rate</label>
-                  <select style={shell.input} value={form.interTaxRate} onChange={(event) => updateForm('interTaxRate', event.target.value)}>
-                    {taxRateOptions.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
             </div>
 
             <div className="crm-modal-surface-footer" style={modalFooterStyle}>

@@ -3863,7 +3863,7 @@ export default function InvoiceDashboard() {
                 <div style={shell.totalRow}>
                   <span>Discount</span>
                   <input
-                    style={{ ...shell.input, width: '88px', minHeight: '30px', textAlign: 'right', ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
+                    style={{ ...shell.input, width: '88px', minHeight: '39px', height: '39px', textAlign: 'right', ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
                     type="text"
                     inputMode="decimal"
                     pattern="[0-9]*[.,]?[0-9]*"
