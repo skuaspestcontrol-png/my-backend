@@ -3085,7 +3085,7 @@ export default function InvoiceDashboard() {
   const itemRowCellStyle = isMobile ? shell.itemTd : { ...shell.itemTd, padding: '4px 6px' };
   const numericItemCellStyle = isMobile
     ? itemRowCellStyle
-    : { ...itemRowCellStyle, verticalAlign: 'middle', padding: '4px 5px' };
+    : { ...itemRowCellStyle, verticalAlign: 'top', padding: '4px 5px' };
   const itemDetailStackStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', gap: '4px' }
     : { display: 'flex', flexDirection: 'column', gap: '0px' };
@@ -3160,8 +3160,7 @@ export default function InvoiceDashboard() {
   const amountActionRowStyle = {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
-    marginTop: isMobile ? '0' : '-46px'
+    gap: '10px'
   };
   const itemRowDeleteButtonStyle = {
     ...shell.iconButton,
