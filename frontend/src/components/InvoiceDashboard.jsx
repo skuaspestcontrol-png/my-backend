@@ -3063,13 +3063,13 @@ export default function InvoiceDashboard() {
   const itemMetaLabelStyle = isTiny ? { ...shell.itemMetaLabel, fontSize: '10px' } : shell.itemMetaLabel;
   const compactItemInputStyle = isTiny
     ? { ...shell.input, minHeight: '28px', height: '28px', fontSize: '12px', padding: '0 10px' }
-    : { ...shell.input, minHeight: '30px', height: '30px', fontSize: '13px', padding: '0 8px' };
+    : { ...shell.input, minHeight: '28px', height: '28px', fontSize: '13px', padding: '0 8px' };
   const compactItemMetaInputStyle = isTiny
     ? {
       ...shell.itemMetaInput,
       fontSize: '11px'
     }
-    : { ...shell.itemMetaInput, minHeight: '24px', height: '24px', padding: '0 7px', fontSize: '11px' };
+    : { ...shell.itemMetaInput, minHeight: '28px', height: '28px', padding: '0 7px', fontSize: '11px' };
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' };
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
   const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '100%', tableLayout: 'fixed' } : shell.serviceScheduleTable;
@@ -3164,9 +3164,9 @@ export default function InvoiceDashboard() {
   };
   const itemRowDeleteButtonStyle = {
     ...shell.iconButton,
-    width: '32px',
-    height: '32px',
-    minHeight: '32px',
+    width: '28px',
+    height: '28px',
+    minHeight: '28px',
     borderRadius: '10px',
     border: '1px solid #CBD5E1',
     background: '#fff',
