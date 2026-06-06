@@ -3058,19 +3058,19 @@ export default function InvoiceDashboard() {
     ? { ...shell.itemMetaGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px' }
     : isMobile
       ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' }
-      : shell.itemMetaGrid;
-  const itemMetaFieldStyle = isTiny ? { ...shell.itemMetaField, gap: '3px' } : shell.itemMetaField;
+      : { ...shell.itemMetaGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '3px' };
+  const itemMetaFieldStyle = isTiny ? { ...shell.itemMetaField, gap: '3px' } : { ...shell.itemMetaField, gap: '2px' };
   const itemMetaLabelStyle = isTiny ? { ...shell.itemMetaLabel, fontSize: '10px' } : shell.itemMetaLabel;
   const compactItemInputStyle = isTiny
     ? { ...shell.input, minHeight: '28px', height: '28px', fontSize: '12px', padding: '0 10px' }
-    : shell.input;
+    : { ...shell.input, minHeight: '31px', height: '31px', fontSize: '13px', padding: '0 9px' };
   const compactItemMetaInputStyle = isTiny
     ? {
       ...shell.itemMetaInput,
       fontSize: '11px'
     }
-    : shell.itemMetaInput;
-  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : shell.itemTable;
+    : { ...shell.itemMetaInput, minHeight: '24px', height: '24px', padding: '0 7px', fontSize: '11px' };
+  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : { ...shell.itemTable, minWidth: '740px' };
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
   const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '100%', tableLayout: 'fixed' } : shell.serviceScheduleTable;
   const serviceScheduleThStyle = isMobile ? { ...shell.serviceScheduleTh, fontSize: '10px', padding: '7px 6px' } : shell.serviceScheduleTh;
@@ -3082,6 +3082,10 @@ export default function InvoiceDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
+  const itemRowCellStyle = isMobile ? shell.itemTd : { ...shell.itemTd, padding: '5px 7px' };
+  const itemDetailStackStyle = isMobile
+    ? { display: 'flex', flexDirection: 'column', gap: '4px' }
+    : { display: 'flex', flexDirection: 'column', gap: '1px' };
   const isAnyOverlayOpen = showModal || showInvoiceNumberPrefs || showBillingAddressPicker || showShippingAddressPicker || Boolean(pdfPreview.open);
 
   useEffect(() => {
@@ -3129,11 +3133,11 @@ export default function InvoiceDashboard() {
     ...compactItemMetaInputStyle,
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: '8px',
+    justifyContent: 'center',
+    gap: '6px',
     minHeight: '28px',
     height: '28px',
-    padding: '0 10px'
+    padding: '0 8px'
   };
   const compactItemAmountValueStyle = {
     flex: 1,
@@ -3152,7 +3156,7 @@ export default function InvoiceDashboard() {
   const amountActionRowStyle = {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px'
+    gap: '6px'
   };
   const itemRowDeleteButtonStyle = {
     ...shell.iconButton,
@@ -3163,7 +3167,8 @@ export default function InvoiceDashboard() {
     border: 'none',
     background: 'transparent',
     padding: 0,
-    flex: '0 0 auto'
+    flex: '0 0 auto',
+    alignSelf: 'center'
   };
   const hideInvoiceShellWhileOpeningModal = routeModalRequest && !showModal && !showInvoiceNumberPrefs;
   const mobileItemInlineGridStyle = {
@@ -3595,11 +3600,11 @@ export default function InvoiceDashboard() {
                         </tr>
                       ) : (
                         <tr>
-                          <th style={{ ...shell.itemTh, width: '52%' }}>Item Details</th>
                           <th style={{ ...shell.itemTh, width: '10%' }}>Quantity</th>
                           <th style={{ ...shell.itemTh, width: '12%' }}>Rate</th>
                           <th style={{ ...shell.itemTh, width: '12%' }}>Tax</th>
                           <th style={{ ...shell.itemTh, width: '14%' }}>Amount</th>
+                          <th style={{ ...shell.itemTh, width: '52%' }}>Item Details</th>
                         </tr>
                       )}
                     </thead>
@@ -3611,8 +3616,54 @@ export default function InvoiceDashboard() {
                         const amount = base;
                         return (
                           <tr key={`${index}-${line.itemId || 'line'}`}>
-                            <td style={shell.itemTd}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {!isMobile ? (
+                              <>
+                                <td style={itemRowCellStyle}>
+                                  <input
+                                    style={compactItemMetaInputStyle}
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={line.quantity}
+                                    onChange={(event) => updateLine(index, { quantity: event.target.value })}
+                                  />
+                                </td>
+                                <td style={itemRowCellStyle}>
+                                  <input
+                                    style={compactItemMetaInputStyle}
+                                    type="text"
+                                    inputMode="decimal"
+                                    pattern="[0-9]*[.,]?[0-9]*"
+                                    value={line.rate}
+                                    onChange={(event) => updateLine(index, { rate: event.target.value })}
+                                  />
+                                </td>
+                                <td style={itemRowCellStyle}>
+                                  <select
+                                    style={compactItemMetaInputStyle}
+                                    value={line.taxRate}
+                                    onChange={(event) => updateLine(index, { taxRate: event.target.value })}
+                                    disabled={form.invoiceType === 'NON GST'}
+                                  >
+                                    {(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => (
+                                      <option key={tax} value={String(tax)}>{tax}%</option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td style={{ ...itemRowCellStyle, fontWeight: 700 }}>
+                                  <div style={amountActionRowStyle}>
+                                    <div style={compactItemAmountBoxStyle}>
+                                      <span style={compactItemAmountValueStyle}>{formatINR(amount)}</span>
+                                    </div>
+                                    <button type="button" style={itemRowDeleteButtonStyle} onClick={() => removeLine(index)} title="Remove row">
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </>
+                            ) : null}
+                            <td style={itemRowCellStyle}>
+                              <div style={itemDetailStackStyle}>
                                 <select
                                   style={compactItemInputStyle}
                                   value={line.itemId}
@@ -3763,52 +3814,6 @@ export default function InvoiceDashboard() {
                                 ) : null}
                               </div>
                             </td>
-                            {!isMobile ? (
-                              <>
-                                <td style={shell.itemTd}>
-                              <input
-                                    style={compactItemMetaInputStyle}
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={line.quantity}
-                                    onChange={(event) => updateLine(index, { quantity: event.target.value })}
-                                  />
-                                </td>
-                                <td style={shell.itemTd}>
-                                <input
-                                  style={compactItemMetaInputStyle}
-                                  type="text"
-                                  inputMode="decimal"
-                                  pattern="[0-9]*[.,]?[0-9]*"
-                                  value={line.rate}
-                                  onChange={(event) => updateLine(index, { rate: event.target.value })}
-                                />
-                                </td>
-                                <td style={shell.itemTd}>
-                                  <select
-                                    style={compactItemMetaInputStyle}
-                                    value={line.taxRate}
-                                    onChange={(event) => updateLine(index, { taxRate: event.target.value })}
-                                    disabled={form.invoiceType === 'NON GST'}
-                                  >
-                                    {(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => (
-                                      <option key={tax} value={String(tax)}>{tax}%</option>
-                                    ))}
-                                  </select>
-                                </td>
-                                <td style={{ ...shell.itemTd, fontWeight: 700 }}>
-                                  <div style={amountActionRowStyle}>
-                                    <div style={compactItemAmountBoxStyle}>
-                                      <span style={compactItemAmountValueStyle}>{formatINR(amount)}</span>
-                                    </div>
-                                    <button type="button" style={itemRowDeleteButtonStyle} onClick={() => removeLine(index)} title="Remove row">
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </div>
-                                </td>
-                              </>
-                            ) : null}
                           </tr>
                         );
                       })}
