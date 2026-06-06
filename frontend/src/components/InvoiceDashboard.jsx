@@ -3093,7 +3093,7 @@ export default function InvoiceDashboard() {
   const itemRowCellStyle = isMobile ? shell.itemTd : { ...shell.itemTd, padding: '4px 6px', borderBottom: 'none' };
   const numericItemCellStyle = isMobile
     ? itemRowCellStyle
-    : { ...itemRowCellStyle, verticalAlign: 'top', padding: '4px 5px', transform: 'translateY(-10px)', borderBottom: 'none' };
+    : { ...itemRowCellStyle, verticalAlign: 'top', padding: '4px 5px', borderBottom: 'none' };
   const itemDetailStackStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', gap: '4px' }
     : { display: 'flex', flexDirection: 'column', gap: '6px' };
