@@ -3058,12 +3058,12 @@ export default function InvoiceDashboard() {
     ? { ...shell.itemMetaGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px' }
     : isMobile
       ? { ...shell.itemMetaGrid, gridTemplateColumns: '1fr' }
-      : { ...shell.itemMetaGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '3px' };
-  const itemMetaFieldStyle = isTiny ? { ...shell.itemMetaField, gap: '3px' } : { ...shell.itemMetaField, gap: '2px' };
+      : { ...shell.itemMetaGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '2px' };
+  const itemMetaFieldStyle = isTiny ? { ...shell.itemMetaField, gap: '3px' } : { ...shell.itemMetaField, gap: '1px' };
   const itemMetaLabelStyle = isTiny ? { ...shell.itemMetaLabel, fontSize: '10px' } : shell.itemMetaLabel;
   const compactItemInputStyle = isTiny
     ? { ...shell.input, minHeight: '28px', height: '28px', fontSize: '12px', padding: '0 10px' }
-    : { ...shell.input, minHeight: '31px', height: '31px', fontSize: '13px', padding: '0 9px' };
+    : { ...shell.input, minHeight: '30px', height: '30px', fontSize: '13px', padding: '0 8px' };
   const compactItemMetaInputStyle = isTiny
     ? {
       ...shell.itemMetaInput,
@@ -3082,10 +3082,13 @@ export default function InvoiceDashboard() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
-  const itemRowCellStyle = isMobile ? shell.itemTd : { ...shell.itemTd, padding: '5px 7px' };
+  const itemRowCellStyle = isMobile ? shell.itemTd : { ...shell.itemTd, padding: '4px 6px' };
+  const numericItemCellStyle = isMobile
+    ? itemRowCellStyle
+    : { ...itemRowCellStyle, verticalAlign: 'middle', padding: '4px 5px' };
   const itemDetailStackStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', gap: '4px' }
-    : { display: 'flex', flexDirection: 'column', gap: '1px' };
+    : { display: 'flex', flexDirection: 'column', gap: '0px' };
   const isAnyOverlayOpen = showModal || showInvoiceNumberPrefs || showBillingAddressPicker || showShippingAddressPicker || Boolean(pdfPreview.open);
 
   useEffect(() => {
@@ -3134,10 +3137,10 @@ export default function InvoiceDashboard() {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '6px',
+    gap: '4px',
     minHeight: '28px',
     height: '28px',
-    padding: '0 8px'
+    padding: '0 6px'
   };
   const compactItemAmountValueStyle = {
     flex: 1,
@@ -3156,7 +3159,7 @@ export default function InvoiceDashboard() {
   const amountActionRowStyle = {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px'
+    gap: '4px'
   };
   const itemRowDeleteButtonStyle = {
     ...shell.iconButton,
@@ -3168,7 +3171,8 @@ export default function InvoiceDashboard() {
     background: 'transparent',
     padding: 0,
     flex: '0 0 auto',
-    alignSelf: 'center'
+    alignSelf: 'center',
+    marginTop: 0
   };
   const hideInvoiceShellWhileOpeningModal = routeModalRequest && !showModal && !showInvoiceNumberPrefs;
   const mobileItemInlineGridStyle = {
@@ -3618,7 +3622,7 @@ export default function InvoiceDashboard() {
                           <tr key={`${index}-${line.itemId || 'line'}`}>
                             {!isMobile ? (
                               <>
-                                <td style={itemRowCellStyle}>
+                                <td style={numericItemCellStyle}>
                                   <input
                                     style={compactItemMetaInputStyle}
                                     type="number"
@@ -3628,7 +3632,7 @@ export default function InvoiceDashboard() {
                                     onChange={(event) => updateLine(index, { quantity: event.target.value })}
                                   />
                                 </td>
-                                <td style={itemRowCellStyle}>
+                                <td style={numericItemCellStyle}>
                                   <input
                                     style={compactItemMetaInputStyle}
                                     type="text"
@@ -3638,7 +3642,7 @@ export default function InvoiceDashboard() {
                                     onChange={(event) => updateLine(index, { rate: event.target.value })}
                                   />
                                 </td>
-                                <td style={itemRowCellStyle}>
+                                <td style={numericItemCellStyle}>
                                   <select
                                     style={compactItemMetaInputStyle}
                                     value={line.taxRate}
@@ -3650,7 +3654,7 @@ export default function InvoiceDashboard() {
                                     ))}
                                   </select>
                                 </td>
-                                <td style={{ ...itemRowCellStyle, fontWeight: 700 }}>
+                                <td style={{ ...numericItemCellStyle, fontWeight: 700 }}>
                                   <div style={amountActionRowStyle}>
                                     <div style={compactItemAmountBoxStyle}>
                                       <span style={compactItemAmountValueStyle}>{formatINR(amount)}</span>
