@@ -3090,7 +3090,7 @@ export default function InvoiceDashboard() {
     padding: '0 6px',
     fontSize: '10px'
   };
-  const itemRowCellStyle = isMobile ? shell.itemTd : { ...shell.itemTd, padding: '4px 6px' };
+  const itemRowCellStyle = isMobile ? shell.itemTd : { ...shell.itemTd, padding: '4px 6px', borderBottom: 'none' };
   const numericItemCellStyle = isMobile
     ? itemRowCellStyle
     : { ...itemRowCellStyle, verticalAlign: 'top', padding: '4px 5px', transform: 'translateY(-10px)', borderBottom: 'none' };
