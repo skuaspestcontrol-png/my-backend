@@ -3160,7 +3160,8 @@ export default function InvoiceDashboard() {
   const amountActionRowStyle = {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px'
+    gap: '10px',
+    marginTop: isMobile ? '0' : '-46px'
   };
   const itemRowDeleteButtonStyle = {
     ...shell.iconButton,
