@@ -3070,7 +3070,7 @@ export default function InvoiceDashboard() {
       fontSize: '11px'
     }
     : { ...shell.itemMetaInput, minHeight: '24px', height: '24px', padding: '0 7px', fontSize: '11px' };
-  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : { ...shell.itemTable, minWidth: '740px', tableLayout: 'fixed' };
+  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' };
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
   const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '100%', tableLayout: 'fixed' } : shell.serviceScheduleTable;
   const serviceScheduleThStyle = isMobile ? { ...shell.serviceScheduleTh, fontSize: '10px', padding: '7px 6px' } : shell.serviceScheduleTh;
@@ -3085,7 +3085,7 @@ export default function InvoiceDashboard() {
   const itemRowCellStyle = isMobile ? shell.itemTd : { ...shell.itemTd, padding: '4px 6px' };
   const numericItemCellStyle = isMobile
     ? itemRowCellStyle
-    : { ...itemRowCellStyle, verticalAlign: 'top', padding: '4px 5px' };
+    : { ...itemRowCellStyle, verticalAlign: 'top', padding: '4px 5px', transform: 'translateY(-10px)' };
   const itemDetailStackStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', gap: '4px' }
     : { display: 'flex', flexDirection: 'column', gap: '0px' };
@@ -3138,10 +3138,10 @@ export default function InvoiceDashboard() {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '6px',
-    minHeight: '30px',
-    height: '30px',
-    padding: '0 10px',
-    minWidth: '88px'
+    minHeight: '28px',
+    height: '28px',
+    padding: '0 8px',
+    minWidth: '72px'
   };
   const compactItemAmountValueStyle = {
     flex: 1,
@@ -3160,13 +3160,13 @@ export default function InvoiceDashboard() {
   const amountActionRowStyle = {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px'
+    gap: '6px'
   };
   const itemRowDeleteButtonStyle = {
     ...shell.iconButton,
-    width: '36px',
-    height: '36px',
-    minHeight: '36px',
+    width: '32px',
+    height: '32px',
+    minHeight: '32px',
     borderRadius: '10px',
     border: '1px solid #CBD5E1',
     background: '#fff',
