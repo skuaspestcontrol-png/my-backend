@@ -3088,7 +3088,7 @@ export default function InvoiceDashboard() {
     : { ...itemRowCellStyle, verticalAlign: 'top', padding: '4px 5px', transform: 'translateY(-10px)', borderBottom: 'none' };
   const itemDetailStackStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', gap: '4px' }
-    : { display: 'flex', flexDirection: 'column', gap: '0px' };
+    : { display: 'flex', flexDirection: 'column', gap: '6px' };
   const isAnyOverlayOpen = showModal || showInvoiceNumberPrefs || showBillingAddressPicker || showShippingAddressPicker || Boolean(pdfPreview.open);
 
   useEffect(() => {
