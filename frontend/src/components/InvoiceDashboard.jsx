@@ -443,12 +443,12 @@ const shell = {
   miniRadioRow: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 600, color: '#1f2937' },
   miniPrefsGrid: { display: 'grid', gridTemplateColumns: '200px minmax(0, 1fr)', gap: '12px', alignItems: 'end', paddingLeft: '30px' },
   miniFooter: { padding: '14px 18px', borderTop: '1px solid var(--color-border)', display: 'flex', gap: '10px' },
-  itemSection: { border: '1px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden', background: '#fff' },
-  itemHead: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontWeight: 800, fontSize: '12px', color: '#334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  itemSection: { border: '1px solid #d1d5db', borderRadius: '12px', overflow: 'hidden', background: '#fff' },
+  itemHead: { padding: '10px 12px', borderBottom: '1px solid #d1d5db', background: '#f8fafc', fontWeight: 800, fontSize: '12px', color: '#334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   itemTableWrap: { width: '100%', overflowX: 'auto', overflowY: 'hidden' },
   itemTable: { width: '100%', minWidth: '860px', borderCollapse: 'collapse' },
-  itemTh: { padding: '8px 10px', borderBottom: '1px solid var(--color-border)', color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', textAlign: 'left' },
-  itemTd: { padding: '8px 10px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#111827', verticalAlign: 'top' },
+  itemTh: { padding: '8px 10px', borderBottom: '1px solid #d1d5db', color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', textAlign: 'left' },
+  itemTd: { padding: '8px 10px', borderBottom: '1px solid #e5e7eb', fontSize: '12px', color: '#111827', verticalAlign: 'top' },
   itemMetaGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', width: '100%' },
   itemMetaField: { display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, width: '100%' },
   itemMetaLabel: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
@@ -3070,7 +3070,7 @@ export default function InvoiceDashboard() {
       fontSize: '11px'
     }
     : { ...shell.itemMetaInput, minHeight: '24px', height: '24px', padding: '0 7px', fontSize: '11px' };
-  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : { ...shell.itemTable, minWidth: '740px' };
+  const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : { ...shell.itemTable, minWidth: '740px', tableLayout: 'fixed' };
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
   const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '100%', tableLayout: 'fixed' } : shell.serviceScheduleTable;
   const serviceScheduleThStyle = isMobile ? { ...shell.serviceScheduleTh, fontSize: '10px', padding: '7px 6px' } : shell.serviceScheduleTh;
@@ -3085,7 +3085,7 @@ export default function InvoiceDashboard() {
   const itemRowCellStyle = isMobile ? shell.itemTd : { ...shell.itemTd, padding: '4px 6px' };
   const numericItemCellStyle = isMobile
     ? itemRowCellStyle
-    : { ...itemRowCellStyle, verticalAlign: 'top', padding: '4px 5px', position: 'relative', top: '-112px' };
+    : { ...itemRowCellStyle, verticalAlign: 'top', padding: '4px 5px' };
   const itemDetailStackStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', gap: '4px' }
     : { display: 'flex', flexDirection: 'column', gap: '0px' };
@@ -3604,7 +3604,7 @@ export default function InvoiceDashboard() {
                           <th style={{ ...shell.itemTh, width: '100%' }}>Item Details</th>
                         </tr>
                       ) : (
-                        <tr>
+                        <tr style={{ boxShadow: 'inset 0 -1px 0 #d1d5db' }}>
                           <th style={{ ...shell.itemTh, width: '52%' }}>Item Details</th>
                           <th style={{ ...shell.itemTh, width: '10%' }}>Quantity</th>
                           <th style={{ ...shell.itemTh, width: '12%' }}>Rate</th>
