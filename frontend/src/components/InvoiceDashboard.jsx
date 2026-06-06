@@ -3085,7 +3085,7 @@ export default function InvoiceDashboard() {
   const itemRowCellStyle = isMobile ? shell.itemTd : { ...shell.itemTd, padding: '4px 6px' };
   const numericItemCellStyle = isMobile
     ? itemRowCellStyle
-    : { ...itemRowCellStyle, verticalAlign: 'top', padding: '4px 5px', transform: 'translateY(-10px)' };
+    : { ...itemRowCellStyle, verticalAlign: 'top', padding: '4px 5px', transform: 'translateY(-10px)', borderBottom: 'none' };
   const itemDetailStackStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', gap: '4px' }
     : { display: 'flex', flexDirection: 'column', gap: '0px' };
