@@ -295,6 +295,7 @@ export default function HRDashboard() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [busy, setBusy] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [highlightUpdatedAt, setHighlightUpdatedAt] = useState(false);
   const [status, setStatus] = useState('');
   const [lastUpdatedAt, setLastUpdatedAt] = useState(() => cachedHrData?.updatedAt || 0);
   const [month, setMonth] = useState(initialMonth);
@@ -324,6 +325,7 @@ export default function HRDashboard() {
     setEmployees(cachedHrData.employees);
     setStatus(cachedHrData.status);
     setLastUpdatedAt(cachedHrData.updatedAt || 0);
+    setHighlightUpdatedAt(false);
   }, [cachedHrData]);
 
   useEffect(() => {
@@ -382,6 +384,9 @@ export default function HRDashboard() {
         setEmployees(nextEmployees);
         setStatus(nextStatus);
         setLastUpdatedAt(Date.now());
+        setHighlightUpdatedAt(true);
+        window.clearTimeout(window.__hrDashboardUpdatedTimer);
+        window.__hrDashboardUpdatedTimer = window.setTimeout(() => setHighlightUpdatedAt(false), 1200);
         writeHrDashboardCache(queryKey, {
           filterOptions: nextFilterOptions,
           summary: nextSummary,
@@ -415,6 +420,10 @@ export default function HRDashboard() {
   }, [fetchAll]);
 
   useAutoRefresh(() => fetchAll(true), { intervalMs: 15000 });
+
+  useEffect(() => () => {
+    window.clearTimeout(window.__hrDashboardUpdatedTimer);
+  }, []);
 
   const submitLeave = async () => {
     try {
@@ -524,6 +533,11 @@ export default function HRDashboard() {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        @keyframes hr-dashboard-updated-pulse {
+          0% { transform: scale(1); opacity: 1; }
+          35% { transform: scale(1.05); opacity: 0.82; }
+          100% { transform: scale(1); opacity: 1; }
+        }
       `}</style>
       <section style={shell.hero}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
@@ -545,7 +559,14 @@ export default function HRDashboard() {
                   opacity: isRefreshing ? 1 : 0.85
                 }}
               />
-              <span>{lastUpdatedLabel}</span>
+              <span
+                style={{
+                  display: 'inline-block',
+                  animation: highlightUpdatedAt ? 'hr-dashboard-updated-pulse 0.9s ease-out' : 'none'
+                }}
+              >
+                {lastUpdatedLabel}
+              </span>
             </p>
           </div>
         </div>
