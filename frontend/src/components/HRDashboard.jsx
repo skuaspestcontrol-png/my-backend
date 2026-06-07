@@ -211,7 +211,8 @@ const readHrDashboardCache = (key) => {
       leaveBalances: Array.isArray(parsed.leaveBalances) ? parsed.leaveBalances : [],
       payrollQuick: parsed.payrollQuick || null,
       employees: Array.isArray(parsed.employees) ? parsed.employees : [],
-      status: String(parsed.status || '').trim()
+      status: String(parsed.status || '').trim(),
+      updatedAt: Number(parsed.updatedAt || 0) || 0
     };
   } catch (_error) {
     return null;
@@ -229,7 +230,7 @@ const writeHrDashboardCache = (queryKey, next = {}) => {
       payrollQuick: next.payrollQuick || null,
       employees: Array.isArray(next.employees) ? next.employees : [],
       status: String(next.status || '').trim(),
-      updatedAt: Date.now()
+      updatedAt: Number(next.updatedAt || Date.now()) || Date.now()
     }));
   } catch (_error) {
     // Ignore sessionStorage issues.
@@ -293,6 +294,7 @@ export default function HRDashboard() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(() => cachedHrData?.updatedAt || 0);
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
 
@@ -319,6 +321,7 @@ export default function HRDashboard() {
     setPayrollQuick(cachedHrData.payrollQuick);
     setEmployees(cachedHrData.employees);
     setStatus(cachedHrData.status);
+    setLastUpdatedAt(cachedHrData.updatedAt || 0);
   }, [cachedHrData]);
 
   useEffect(() => {
@@ -375,6 +378,7 @@ export default function HRDashboard() {
         setPayrollQuick(nextPayrollQuick);
         setEmployees(nextEmployees);
         setStatus(nextStatus);
+        setLastUpdatedAt(Date.now());
         writeHrDashboardCache(queryKey, {
           filterOptions: nextFilterOptions,
           summary: nextSummary,
@@ -382,7 +386,8 @@ export default function HRDashboard() {
           leaveBalances: nextLeaveBalances,
           payrollQuick: nextPayrollQuick,
           employees: nextEmployees,
-          status: nextStatus
+          status: nextStatus,
+          updatedAt: Date.now()
         });
       } catch (error) {
         console.error('HR dashboard load failed', error);
@@ -486,6 +491,12 @@ export default function HRDashboard() {
   const leaveTableStyle = { ...shell.table, minWidth: `${Math.max(920, leaveTableMinWidth)}px` };
   const balanceTableStyle = { ...shell.table, minWidth: `${Math.max(920, balanceTableMinWidth)}px` };
   const payrollTableStyle = { ...shell.table, minWidth: `${Math.max(920, payrollTableMinWidth)}px` };
+  const lastUpdatedLabel = lastUpdatedAt
+    ? new Intl.DateTimeFormat('en-IN', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    }).format(new Date(lastUpdatedAt))
+    : 'Not updated yet';
   const headStyle = (getWidth, key, align = 'left') => ({
     ...shell.th,
     position: 'relative',
@@ -505,8 +516,18 @@ export default function HRDashboard() {
   return (
     <div style={shell.page}>
       <section style={shell.hero}>
-        <h1 style={shell.title}>HR Dashboard</h1>
-        <p style={shell.subtitle}>Eagle-eye view for workforce, attendance, payroll, leaves, productivity, and employee lifecycle actions.</p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={shell.title}>HR Dashboard</h1>
+            <p style={shell.subtitle}>Eagle-eye view for workforce, attendance, payroll, leaves, productivity, and employee lifecycle actions.</p>
+          </div>
+          <div style={{ textAlign: 'right', minWidth: '180px' }}>
+            <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.78)' }}>
+              Last updated
+            </p>
+            <p style={{ margin: '3px 0 0', fontSize: '13px', fontWeight: 700, color: '#fff' }}>{lastUpdatedLabel}</p>
+          </div>
+        </div>
       </section>
 
       {status ? <div style={{ ...shell.panel, borderColor: 'rgba(159, 23, 77, 0.3)', color: 'var(--color-primary-deep)', fontWeight: 700 }}>{status}</div> : null}
