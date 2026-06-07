@@ -129,11 +129,7 @@ const paymentModeOptions = ['Cheque', 'Cash', 'Bank Transfer', 'UPI', 'Card'];
 const paymentDepositOptions = ['Billing', 'Bank', 'Cash', 'Undeposited Funds'];
 const contractPeriodOptions = [
   { value: 'single_time', label: 'Single time' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'fortnightly_visits', label: 'Fortnightly Visits' },
   { value: 'monthly', label: 'Monthly' },
-  { value: 'bi_monthly', label: 'Bi-Monthly' },
-  { value: 'quarterly', label: 'Quarterly' },
   { value: 'half_yearly', label: 'Half Yearly' },
   { value: 'annual', label: 'Annual' },
   { value: 'two_years', label: '2 years' },
