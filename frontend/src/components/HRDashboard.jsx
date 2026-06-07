@@ -8,6 +8,7 @@ import {
   Wallet
 } from 'lucide-react';
 import useColumnResize from './table/useColumnResize';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import { buildPortalAuthHeaders, getPortalUserRole } from '../utils/portalAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -342,16 +343,17 @@ export default function HRDashboard() {
     const queryKey = buildHrDashboardCacheKey({ month, year, filters });
     const cachedForQuery = readHrDashboardCache(queryKey);
     const shouldSilenceLoad = silent || Boolean(cachedForQuery);
+    const refreshToken = Date.now();
     const request = (async () => {
       try {
         if (!shouldSilenceLoad) setBusy(true);
         const results = await Promise.allSettled([
-          axios.get(`${API_BASE}/api/hr/filters`, { headers }),
-          axios.get(`${API_BASE}/api/hr/dashboard-summary`, { params: queryParams, headers }),
-          axios.get(`${API_BASE}/api/hr/leaves`, { params: { month, year }, headers }),
-          axios.get(`${API_BASE}/api/hr/leaves/balance`, { params: { month, year }, headers }),
-          axios.get(`${API_BASE}/api/hr/payroll-summary`, { params: queryParams, headers }),
-          axios.get(`${API_BASE}/api/employees`, { headers })
+          axios.get(`${API_BASE}/api/hr/filters`, { params: { _ts: refreshToken }, headers }),
+          axios.get(`${API_BASE}/api/hr/dashboard-summary`, { params: { ...queryParams, _ts: refreshToken }, headers }),
+          axios.get(`${API_BASE}/api/hr/leaves`, { params: { month, year, _ts: refreshToken }, headers }),
+          axios.get(`${API_BASE}/api/hr/leaves/balance`, { params: { month, year, _ts: refreshToken }, headers }),
+          axios.get(`${API_BASE}/api/hr/payroll-summary`, { params: { ...queryParams, _ts: refreshToken }, headers }),
+          axios.get(`${API_BASE}/api/employees`, { params: { _ts: refreshToken }, headers })
         ]);
 
         const hasFailure = results.some((entry) => entry.status === 'rejected');
@@ -403,24 +405,7 @@ export default function HRDashboard() {
     fetchAll();
   }, [fetchAll]);
 
-  useEffect(() => {
-    const refreshOnFocus = () => fetchAll(true);
-    const refreshOnVisible = () => {
-      if (document.visibilityState === 'visible') fetchAll(true);
-    };
-
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState === 'visible') fetchAll(true);
-    }, 30000);
-
-    window.addEventListener('focus', refreshOnFocus);
-    document.addEventListener('visibilitychange', refreshOnVisible);
-    return () => {
-      window.clearInterval(intervalId);
-      window.removeEventListener('focus', refreshOnFocus);
-      document.removeEventListener('visibilitychange', refreshOnVisible);
-    };
-  }, [fetchAll]);
+  useAutoRefresh(() => fetchAll(true), { intervalMs: 15000 });
 
   const submitLeave = async () => {
     try {

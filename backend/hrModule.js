@@ -187,6 +187,19 @@ const normalizeEmployeeWorkflow = (raw = {}) => {
   };
 };
 
+const normalizeEmploymentStatus = (raw = {}) => {
+  const statusRaw = normalizeLower(raw.employmentStatus || raw.employment_status || '');
+  if (statusRaw === 'active') return 'Active';
+  if (statusRaw === 'inactive') return 'Inactive';
+  if (statusRaw === 'resigned') return 'Resigned';
+  if (raw.resignationDate || raw.resignation_date) return 'Resigned';
+
+  const legacyStatus = normalizeLower(raw.status || '');
+  if (legacyStatus === 'resigned') return 'Resigned';
+  if (legacyStatus === 'inactive') return 'Inactive';
+  return 'Active';
+};
+
 const normalizePerformance = (raw = {}) => ({
   employeeId: normalizeText(raw.employeeId || ''),
   jobsCompleted: Math.max(0, toNumber(raw.jobsCompleted, 0)),
@@ -660,6 +673,9 @@ function registerHrModule({
     const workflowByEmployee = new Map(workflow.map((entry) => [entry.employeeId, entry]));
     const performanceByEmployee = new Map(performance.map((entry) => [entry.employeeId, entry]));
     const latestActivityByEmployee = getEmployeeActivityMap(jobs);
+    const employmentStatusByEmployee = new Map(
+      employees.map((employee) => [normalizeText(employee._id), normalizeEmploymentStatus(employee)])
+    );
 
     const normalizedSearch = normalizeLower(search || '');
 
@@ -836,8 +852,8 @@ function registerHrModule({
 
     const cards = {
       totalEmployees: filteredEmployees.length,
-      activeEmployees: workflow.filter((entry) => employeeIds.has(entry.employeeId) && entry.status === 'Active Employees').length,
-      inactiveEmployees: workflow.filter((entry) => employeeIds.has(entry.employeeId) && (entry.status === 'Resigned' || entry.status === 'Terminated')).length,
+      activeEmployees: filteredEmployees.filter((employee) => employmentStatusByEmployee.get(normalizeText(employee._id)) === 'Active').length,
+      inactiveEmployees: filteredEmployees.filter((employee) => employmentStatusByEmployee.get(normalizeText(employee._id)) !== 'Active').length,
       techniciansOnDutyToday: attendanceToday.summary.onDuty,
       absentToday: attendanceToday.summary.absent,
       onLeaveToday: attendanceToday.summary.onLeave,

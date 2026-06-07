@@ -1021,6 +1021,89 @@ const readJsonFile = (filePath, fallback) => {
   }
 };
 
+const parseMysqlEmployeeRow = (row = {}) => {
+  let payload = {};
+  const rawPayload = row?.payload;
+  if (rawPayload && typeof rawPayload === 'object') payload = rawPayload;
+  if (typeof rawPayload === 'string') {
+    try { payload = JSON.parse(rawPayload); } catch { payload = {}; }
+  }
+  const firstName = String(payload.firstName ?? row?.first_name ?? '').trim();
+  const lastName = String(payload.lastName ?? row?.last_name ?? '').trim();
+  const rawStatus = row?.status ?? payload?.status ?? '';
+  const portalAccess = typeof payload?.portalAccess === 'boolean'
+    ? payload.portalAccess
+    : (typeof payload?.webPortalAccessEnabled === 'boolean'
+      ? payload.webPortalAccessEnabled
+      : ['1', 'true', 'yes', 'enabled', 'active', 'on'].includes(String(rawStatus).trim().toLowerCase()));
+  const salary = Number(row?.salary ?? payload.salary ?? payload.salaryPerMonth ?? 0) || 0;
+  const profilePhoto = String(row?.profile_photo ?? payload.profile_photo ?? payload.employeePhotoUrl ?? '').trim();
+  return {
+    ...payload,
+    _id: String(row?.external_id ?? payload._id ?? row?.id ?? '').trim(),
+    id: row?.id ?? null,
+    empCode: String(row?.emp_code ?? payload.empCode ?? '').trim(),
+    firstName: String(row?.first_name ?? firstName).trim(),
+    lastName: String(row?.last_name ?? lastName).trim(),
+    mobile: String(row?.mobile ?? payload.mobile ?? '').trim(),
+    email: String(row?.email ?? payload.email ?? payload.emailId ?? '').trim(),
+    role: String(row?.role ?? payload.role ?? '').trim(),
+    roleName: String(row?.role_name ?? payload.roleName ?? '').trim(),
+    salary,
+    salaryPerMonth: salary,
+    dateOfJoining: normalizeDateOnly(row?.joining_date ?? payload.dateOfJoining ?? ''),
+    employmentStatus: normalizeEmploymentStatus(payload.employmentStatus ?? row?.employment_status ?? (payload.resignationDate || payload.resignation_date ? 'Resigned' : 'Active'), 'Active'),
+    resignationDate: normalizeDateOnly(payload.resignationDate ?? row?.resignation_date ?? ''),
+    city: String(row?.city ?? payload.city ?? '').trim(),
+    pincode: String(row?.pincode ?? payload.pincode ?? '').trim(),
+    employeePhotoUrl: profilePhoto,
+    profile_photo: profilePhoto,
+    present_address: String(row?.present_address ?? payload.present_address ?? '').trim(),
+    portalAccess,
+    portalPassword: String(row?.password ?? row?.portal_password ?? payload?.portalPassword ?? '').trim()
+  };
+};
+
+const writeJsonFile = (filePath, value) => {
+  fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+};
+
+const syncEmployeeJsonMirror = (employeeId, nextEmployee = null) => {
+  const rows = readJsonFile(employeesFile, []);
+  const nextRows = Array.isArray(rows) ? [...rows] : [];
+  const id = String(employeeId || '').trim();
+  if (!id) return;
+  const index = nextRows.findIndex((entry) => String(entry?._id || '').trim() === id);
+  if (nextEmployee) {
+    if (index >= 0) {
+      nextRows[index] = { ...nextRows[index], ...nextEmployee };
+    } else {
+      nextRows.push(nextEmployee);
+    }
+  } else if (index >= 0) {
+    nextRows.splice(index, 1);
+  }
+  writeJsonFile(employeesFile, nextRows);
+};
+
+const syncEmployeesJsonFromMysql = async () => {
+  if (!canUseMysql()) return;
+  try {
+    const mysqlRows = await withMysqlConnection(async (conn) => {
+      await ensureEmployeeAuthColumns(conn);
+      const [rows] = await conn.query(
+        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, status, payload
+         FROM employees
+         ORDER BY id DESC`
+      );
+      return Array.isArray(rows) ? rows : [];
+    });
+    writeJsonFile(employeesFile, mysqlRows.map(parseMysqlEmployeeRow));
+  } catch (error) {
+    console.error('Employee mirror sync failed:', error.message);
+  }
+};
+
 let dashboardSummaryCache = null;
 let dashboardSummaryCachedAt = 0;
 const DASHBOARD_SUMMARY_TTL_MS = 60 * 1000;
@@ -5254,49 +5337,7 @@ app.get('/api/employees', async (req, res) => {
       );
       return Array.isArray(rows) ? rows : [];
     });
-    const toEmployeeResponse = (row) => {
-      let payload = {};
-      const rawPayload = row?.payload;
-      if (rawPayload && typeof rawPayload === 'object') payload = rawPayload;
-      if (typeof rawPayload === 'string') {
-        try { payload = JSON.parse(rawPayload); } catch { payload = {}; }
-      }
-      const firstName = String(payload.firstName ?? row?.first_name ?? '').trim();
-      const lastName = String(payload.lastName ?? row?.last_name ?? '').trim();
-      const rawStatus = row?.status ?? payload?.status ?? '';
-      const portalAccess = typeof payload?.portalAccess === 'boolean'
-        ? payload.portalAccess
-        : (typeof payload?.webPortalAccessEnabled === 'boolean'
-          ? payload.webPortalAccessEnabled
-          : ['1', 'true', 'yes', 'enabled', 'active', 'on'].includes(String(rawStatus).trim().toLowerCase()));
-      const salary = Number(row?.salary ?? payload.salary ?? payload.salaryPerMonth ?? 0) || 0;
-      const profilePhoto = String(row?.profile_photo ?? payload.profile_photo ?? payload.employeePhotoUrl ?? '').trim();
-      return {
-        ...payload,
-        _id: String(row?.external_id ?? payload._id ?? row?.id ?? '').trim(),
-        id: row?.id ?? null,
-        empCode: String(row?.emp_code ?? payload.empCode ?? '').trim(),
-        firstName: String(row?.first_name ?? firstName).trim(),
-        lastName: String(row?.last_name ?? lastName).trim(),
-        mobile: String(row?.mobile ?? payload.mobile ?? '').trim(),
-        email: String(row?.email ?? payload.email ?? payload.emailId ?? '').trim(),
-        role: String(row?.role ?? payload.role ?? '').trim(),
-        roleName: String(row?.role_name ?? payload.roleName ?? '').trim(),
-        salary,
-        salaryPerMonth: salary,
-        dateOfJoining: normalizeDateOnly(row?.joining_date ?? payload.dateOfJoining ?? ''),
-        employmentStatus: normalizeEmploymentStatus(payload.employmentStatus ?? row?.employment_status ?? (payload.resignationDate || payload.resignation_date ? 'Resigned' : 'Active'), 'Active'),
-        resignationDate: normalizeDateOnly(payload.resignationDate ?? row?.resignation_date ?? ''),
-        city: String(row?.city ?? payload.city ?? '').trim(),
-        pincode: String(row?.pincode ?? payload.pincode ?? '').trim(),
-        employeePhotoUrl: profilePhoto,
-        profile_photo: profilePhoto,
-        present_address: String(row?.present_address ?? payload.present_address ?? '').trim(),
-        portalAccess,
-        portalPassword: String(row?.password ?? row?.portal_password ?? payload?.portalPassword ?? '').trim()
-      };
-    };
-    return res.json(mysqlRows.map(toEmployeeResponse));
+    return res.json(mysqlRows.map(parseMysqlEmployeeRow));
   } catch (error) {
     console.error('MySQL employees read failed:', error.message);
     return res.status(500).json({ error: error.message || 'Failed to fetch employees from MySQL' });
@@ -5402,6 +5443,15 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
           JSON.stringify(emp),
         ]
       );
+    });
+    syncEmployeeJsonMirror(externalId, {
+      ...emp,
+      _id: externalId,
+      dateOfJoining: normalizeDateOnly(emp.dateOfJoining),
+      employmentStatus: normalizeEmploymentStatus(emp.employmentStatus, 'Active'),
+      resignationDate: normalizeDateOnly(emp.resignationDate),
+      profile_photo: emp.profile_photo || '',
+      employeePhotoUrl: emp.employeePhotoUrl || ''
     });
 
     invalidateDashboardSummaryCache();
@@ -5581,6 +5631,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
       return Number(result?.affectedRows || 0);
     });
     if (!affectedRows) return res.status(404).json({ error: 'Employee not found' });
+    syncEmployeeJsonMirror(employeeId, { ...payloadToSave, ...updatedEmployee });
     invalidateDashboardSummaryCache();
     return res.json({ success: true, employee: updatedEmployee });
   } catch (error) {
@@ -5612,6 +5663,7 @@ app.delete('/api/employees/:id', async (req, res) => {
       return Number(result?.affectedRows || 0);
     });
     if (!deletedRows) return res.status(404).json({ error: 'Employee not found' });
+    syncEmployeeJsonMirror(employeeId, null);
     invalidateDashboardSummaryCache();
     return res.json({ success: true });
   } catch (error) {
@@ -11983,6 +12035,12 @@ registerHrModule({
     performanceFile: hrPerformanceFile
   }
 });
+
+if (canUseMysql()) {
+  syncEmployeesJsonFromMysql().catch((error) => {
+    console.error('Initial employee mirror sync failed:', error.message);
+  });
+}
 
 registerCustomerDedupModule({
   app,
