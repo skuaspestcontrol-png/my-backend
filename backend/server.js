@@ -3297,6 +3297,8 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
   const leadStatus = String(source.status || source.leadStatus || '').trim();
   const assignedTo = String(source.assignedTo || '').trim();
   const followupDate = String(source.followupDate || '').trim();
+  const quotationValueRaw = String(source.quotationValue ?? source.quotation_value ?? '').trim();
+  const quotationValue = quotationValueRaw ? Number(quotationValueRaw) : null;
   const date = String(source.date || source.createdAt || new Date().toISOString()).trim();
   const googlePlaceId = String(source.googlePlaceId || source.google_place_id || '').trim();
   const googlePlaceName = String(source.googlePlaceName || source.google_place_name || '').trim();
@@ -3306,12 +3308,17 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
   const longitude = String(source.longitude || '').trim();
   const serviceRequired = String(source.serviceRequired || source.serviceName || '').trim();
   const serviceName = String(source.serviceName || serviceRequired).trim();
-  const notes = String(source.notes || source.message || '').trim();
+  const referenceCustomerId = String(source.referenceCustomerId || source.referredByCustomerId || '').trim();
+  const referenceCustomerName = String(source.referenceCustomerName || source.referredByCustomerName || '').trim();
+  const referenceCustomerDate = String(source.referenceCustomerDate || source.referredByCustomerDate || '').trim();
+  const notes = String(source.notes || source.message || source.remarks || '').trim();
   const remarks = String(source.remarks || notes).trim();
   const websitePage = String(source.websitePage || '').trim();
   const sourceName = String(source.source || leadSource).trim();
   const leadDate = String(source.leadDate || source.date || '').trim();
   const createdAt = String(source.createdAt || new Date().toISOString()).trim();
+  const sourceCreatedAt = String(source.sourceCreatedAt || source.source_created_at || createdAt).trim();
+  const sourceUpdatedAt = String(source.sourceUpdatedAt || source.source_updated_at || '').trim();
 
   return {
     _id: leadId,
@@ -3335,6 +3342,8 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
     postal_code: pincode,
     zip: pincode,
     pestIssue,
+    quotationValue: quotationValueRaw,
+    quotation_value: quotationValue,
     serviceRequired,
     serviceName,
     leadSource,
@@ -3343,12 +3352,20 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
     leadStatus,
     notes,
     remarks,
+    referenceCustomerId,
+    referenceCustomerName,
+    referenceCustomerDate,
+    referredByCustomerId: referenceCustomerId,
+    referredByCustomerName: referenceCustomerName,
+    referredByCustomerDate: referenceCustomerDate,
     websitePage,
     leadDate,
     assignedTo,
     followupDate,
     date,
     createdAt,
+    sourceCreatedAt,
+    sourceUpdatedAt,
     googlePlaceId,
     googlePlaceName,
     googlePhone,
@@ -3384,7 +3401,15 @@ let leadsPlaceColumnsEnsured = false;
 const ensureLeadPlaceColumns = async (conn) => {
   if (leadsPlaceColumnsEnsured) return;
   await ensureColumnsIfMissing(conn, 'leads', [
+    { name: 'lead_date', definition: 'DATE NULL' },
     { name: 'pincode', definition: 'VARCHAR(20) NULL' },
+    { name: 'quotation_value', definition: 'DECIMAL(18,2) NULL' },
+    { name: 'remarks', definition: 'TEXT NULL' },
+    { name: 'reference_customer_id', definition: 'VARCHAR(80) NULL' },
+    { name: 'reference_customer_name', definition: 'VARCHAR(255) NULL' },
+    { name: 'reference_customer_date', definition: 'DATE NULL' },
+    { name: 'source_created_at', definition: 'DATETIME NULL' },
+    { name: 'source_updated_at', definition: 'DATETIME NULL' },
     { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
     { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
     { name: 'google_phone', definition: 'VARCHAR(50) NULL' },
@@ -4664,14 +4689,24 @@ let customerPremisesCustomerFkEnsured = false;
 
 const upsertLeadToMysql = async (conn, lead) => {
   await ensureLeadPlaceColumns(conn);
+  const quotationValueRaw = lead.quotation_value !== undefined && lead.quotation_value !== null && lead.quotation_value !== ''
+    ? Number(lead.quotation_value)
+    : (String(lead.quotationValue || '').trim() ? Number(lead.quotationValue) : null);
+  const quotationValue = Number.isFinite(quotationValueRaw) ? quotationValueRaw : null;
+  const referenceCustomerDate = String(lead.referenceCustomerDate || lead.referredByCustomerDate || '').trim() || null;
+  const sourceCreatedAt = lead.createdAt || lead.sourceCreatedAt || lead.date || lead.leadDate || null;
+  const sourceUpdatedAt = new Date().toISOString();
   await conn.query(
     `INSERT INTO leads (
-      external_id, customer_name, display_name, company_name, contact_person_name, title, mobile,
+      external_id, lead_date, customer_name, display_name, company_name, contact_person_name, title, mobile,
       whatsapp_number, email_id, address, area_name, city, state, pincode, pest_issue,
-      lead_source, lead_status, assigned_to, followup_date,
-      google_place_id, google_place_name, google_phone, google_website, latitude, longitude, payload
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      quotation_value, lead_source, lead_status, assigned_to, followup_date,
+      remarks, reference_customer_id, reference_customer_name, reference_customer_date,
+      google_place_id, google_place_name, google_phone, google_website, latitude, longitude,
+      source_created_at, source_updated_at, payload
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
+      lead_date=VALUES(lead_date),
       customer_name=VALUES(customer_name),
       display_name=VALUES(display_name),
       company_name=VALUES(company_name),
@@ -4686,19 +4721,27 @@ const upsertLeadToMysql = async (conn, lead) => {
       state=VALUES(state),
       pincode=VALUES(pincode),
       pest_issue=VALUES(pest_issue),
+      quotation_value=VALUES(quotation_value),
       lead_source=VALUES(lead_source),
       lead_status=VALUES(lead_status),
       assigned_to=VALUES(assigned_to),
       followup_date=VALUES(followup_date),
+      remarks=VALUES(remarks),
+      reference_customer_id=VALUES(reference_customer_id),
+      reference_customer_name=VALUES(reference_customer_name),
+      reference_customer_date=VALUES(reference_customer_date),
       google_place_id=VALUES(google_place_id),
       google_place_name=VALUES(google_place_name),
       google_phone=VALUES(google_phone),
       google_website=VALUES(google_website),
       latitude=VALUES(latitude),
       longitude=VALUES(longitude),
+      source_created_at=VALUES(source_created_at),
+      source_updated_at=VALUES(source_updated_at),
       payload=VALUES(payload)`,
     [
       lead._id,
+      lead.leadDate || lead.date || null,
       lead.customerName || null,
       lead.displayName || null,
       lead.companyName || null,
@@ -4713,19 +4756,42 @@ const upsertLeadToMysql = async (conn, lead) => {
       lead.state || null,
       lead.pincode || null,
       lead.pestIssue || null,
+      quotationValue,
       lead.leadSource || null,
       lead.leadStatus || null,
       lead.assignedTo || null,
       lead.followupDate || null,
+      lead.remarks || null,
+      lead.referenceCustomerId || lead.referredByCustomerId || null,
+      lead.referenceCustomerName || lead.referredByCustomerName || null,
+      referenceCustomerDate,
       lead.googlePlaceId || null,
       lead.googlePlaceName || null,
       lead.googlePhone || null,
       lead.googleWebsite || null,
       lead.latitude ? Number(lead.latitude) : null,
       lead.longitude ? Number(lead.longitude) : null,
+      sourceCreatedAt,
+      sourceUpdatedAt,
       JSON.stringify(lead)
     ]
   );
+};
+
+const normalizeLeadRow = (row = {}) => {
+  const payload = parseMysqlLeadPayload(row?.payload) || {};
+  return normalizeLeadShape({
+    ...payload,
+    _id: row?.external_id || payload?._id || '',
+    leadDate: row?.lead_date || payload?.leadDate || payload?.date || '',
+    quotation_value: row?.quotation_value ?? payload?.quotation_value ?? payload?.quotationValue ?? '',
+    remarks: row?.remarks ?? payload?.remarks ?? payload?.notes ?? '',
+    referenceCustomerId: row?.reference_customer_id ?? payload?.referenceCustomerId ?? payload?.referredByCustomerId ?? '',
+    referenceCustomerName: row?.reference_customer_name ?? payload?.referenceCustomerName ?? payload?.referredByCustomerName ?? '',
+    referenceCustomerDate: row?.reference_customer_date ?? payload?.referenceCustomerDate ?? payload?.referredByCustomerDate ?? '',
+    sourceCreatedAt: row?.source_created_at ?? payload?.sourceCreatedAt ?? '',
+    sourceUpdatedAt: row?.source_updated_at ?? payload?.sourceUpdatedAt ?? ''
+  }, row?.external_id || payload?._id || '');
 };
 
 const saveLeadToJsonFallback = (lead) => {
@@ -4921,11 +4987,17 @@ app.get('/api/leads', async (req, res) => {
   }
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
-      const [rows] = await conn.query('SELECT payload FROM leads ORDER BY id DESC');
+      await ensureLeadPlaceColumns(conn);
+      const [rows] = await conn.query(
+        `SELECT external_id, lead_date, quotation_value, remarks, reference_customer_id, reference_customer_name,
+                reference_customer_date, source_created_at, source_updated_at, payload
+         FROM leads
+         ORDER BY id DESC`
+      );
       return Array.isArray(rows) ? rows : [];
     });
     const parsed = (Array.isArray(mysqlRows) ? mysqlRows : [])
-      .map((row) => normalizeLeadShape(parseMysqlLeadPayload(row?.payload) || {}))
+      .map((row) => normalizeLeadRow(row))
       .filter((entry) => String(entry._id || '').trim());
     return res.json(parsed);
   } catch (error) {
@@ -5278,10 +5350,15 @@ app.put('/api/leads/:id', async (req, res) => {
   try {
     const leadId = String(req.params.id || '').trim();
     const existingRow = await withMysqlConnection(async (conn) => {
+      await ensureLeadPlaceColumns(conn);
       const isNumeric = /^\d+$/.test(leadId);
       const query = isNumeric
-        ? 'SELECT payload, external_id FROM leads WHERE external_id = ? OR id = ? LIMIT 1'
-        : 'SELECT payload, external_id FROM leads WHERE external_id = ? LIMIT 1';
+        ? `SELECT external_id, lead_date, quotation_value, remarks, reference_customer_id, reference_customer_name,
+                  reference_customer_date, source_created_at, source_updated_at, payload
+           FROM leads WHERE external_id = ? OR id = ? LIMIT 1`
+        : `SELECT external_id, lead_date, quotation_value, remarks, reference_customer_id, reference_customer_name,
+                  reference_customer_date, source_created_at, source_updated_at, payload
+           FROM leads WHERE external_id = ? LIMIT 1`;
       const params = isNumeric ? [leadId, Number(leadId)] : [leadId];
       const [rows] = await conn.query(query, params);
       return Array.isArray(rows) && rows[0] ? rows[0] : null;
@@ -5289,7 +5366,7 @@ app.put('/api/leads/:id', async (req, res) => {
 
     if (!existingRow) return res.status(404).json({ error: 'Lead not found' });
 
-    const existingLead = normalizeLeadShape(parseMysqlLeadPayload(existingRow.payload) || {}, existingRow.external_id || leadId);
+    const existingLead = normalizeLeadRow(existingRow);
     const incoming = normalizePhoneFields(req.body && typeof req.body === 'object' ? req.body : {}, [
       'mobile', 'mobileNumber', 'whatsappNumber', 'googlePhone', 'google_phone', 'phone'
     ]);

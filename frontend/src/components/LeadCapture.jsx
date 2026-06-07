@@ -897,7 +897,7 @@ export default function LeadCapture() {
     googlePhone: lead.googlePhone || lead.google_phone || '',
     googleWebsite: lead.googleWebsite || lead.google_website || '',
     pestIssue: lead.pestIssue || '',
-    quotationValue: String(lead.quotationValue || lead.quotation_value || '').trim(),
+    quotationValue: String(lead.quotationValue ?? lead.quotation_value ?? '').trim(),
     leadSource: lead.leadSource || emptyForm.leadSource,
     propertyType: lead.propertyType || lead.customerSegment || emptyForm.propertyType,
     status: getLeadStatus(lead),
@@ -952,6 +952,8 @@ export default function LeadCapture() {
       visibleColumns
     });
   };
+
+  const fetchLeadsAndEmployees = loadDashboardData;
 
   const fetchEmployeesAndCustomers = async () => {
     const requestId = modalLookupLoadRef.current + 1;
@@ -1901,7 +1903,7 @@ export default function LeadCapture() {
     if (key === 'leadSource') return lead.leadSource || '';
     if (key === 'propertyType') return lead.propertyType || lead.customerSegment || '';
     if (key === 'status') return getLeadStatus(lead);
-    if (key === 'quotationValue') return lead.quotationValue || lead.quotation_value || '';
+    if (key === 'quotationValue') return lead.quotationValue ?? lead.quotation_value ?? '';
     if (key === 'followupDate') return formatDisplayDate(lead.followupDate);
     if (key === 'assignedTo') return lead.assignedTo || 'Unassigned';
     if (key === 'referenceCustomerName') return lead.referenceCustomerName || lead.referredByCustomerName || '';
@@ -2150,7 +2152,11 @@ export default function LeadCapture() {
       } else {
         await axios.post(`${API_BASE_URL}/api/leads`, payload);
       }
-      await fetchLeadsAndEmployees();
+      try {
+        await fetchLeadsAndEmployees();
+      } catch (refreshError) {
+        console.error('Lead list refresh failed after save', refreshError);
+      }
       triggerDashboardRefresh();
       resetForm();
     } catch (error) {

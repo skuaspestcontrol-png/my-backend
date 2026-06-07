@@ -150,6 +150,12 @@ const tableDefinitions = [
       'lead_status VARCHAR(120) NULL',
       'assigned_to VARCHAR(255) NULL',
       'followup_date DATE NULL',
+      'remarks TEXT NULL',
+      'reference_customer_id VARCHAR(80) NULL',
+      'reference_customer_name VARCHAR(255) NULL',
+      'reference_customer_date DATE NULL',
+      'source_created_at DATETIME NULL',
+      'source_updated_at DATETIME NULL',
       'google_place_id VARCHAR(255) NULL',
       'google_place_name VARCHAR(255) NULL',
       'google_phone VARCHAR(50) NULL',
@@ -1001,9 +1007,11 @@ const collectColumns = () => {
     contact_person_name: 'VARCHAR(255) NULL', title: 'VARCHAR(255) NULL', mobile: 'VARCHAR(30) NULL', whatsapp_number: 'VARCHAR(30) NULL',
     email_id: 'VARCHAR(255) NULL', address: 'TEXT NULL', area_name: 'VARCHAR(255) NULL', city: 'VARCHAR(255) NULL', state: 'VARCHAR(255) NULL',
     pincode: 'VARCHAR(30) NULL', pest_issue: 'VARCHAR(255) NULL', quotation_value: 'DECIMAL(18,2) NULL', lead_source: 'VARCHAR(120) NULL',
-    lead_status: 'VARCHAR(120) NULL', assigned_to: 'VARCHAR(255) NULL', followup_date: 'DATE NULL', google_place_id: 'VARCHAR(255) NULL',
-    google_place_name: 'VARCHAR(255) NULL', google_phone: 'VARCHAR(50) NULL', google_website: 'VARCHAR(255) NULL', latitude: 'DECIMAL(10,8) NULL',
-    longitude: 'DECIMAL(11,8) NULL'
+    lead_status: 'VARCHAR(120) NULL', assigned_to: 'VARCHAR(255) NULL', followup_date: 'DATE NULL', remarks: 'TEXT NULL',
+    reference_customer_id: 'VARCHAR(80) NULL', reference_customer_name: 'VARCHAR(255) NULL', reference_customer_date: 'DATE NULL',
+    source_created_at: 'DATETIME NULL', source_updated_at: 'DATETIME NULL',
+    google_place_id: 'VARCHAR(255) NULL', google_place_name: 'VARCHAR(255) NULL', google_phone: 'VARCHAR(50) NULL', google_website: 'VARCHAR(255) NULL',
+    latitude: 'DECIMAL(10,8) NULL', longitude: 'DECIMAL(11,8) NULL'
   });
   add('customers', {
     display_name: 'VARCHAR(255) NULL', customer_name: 'VARCHAR(255) NULL', company_name: 'VARCHAR(255) NULL', contact_person_name: 'VARCHAR(255) NULL',
@@ -1226,6 +1234,19 @@ const readJsonFile = (filePath, fallback) => {
   }
 };
 
+const parseJsonPayload = (value) => {
+  if (value && typeof value === 'object') return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_error) {
+      return {};
+    }
+  }
+  return {};
+};
+
 const resolveDataFile = (fileName) => {
   const dataDir = String(process.env.DATA_DIR || process.env.PERSISTENT_DATA_DIR || '').trim()
     || path.join(__dirname, '..', '..', 'storage', 'data');
@@ -1259,6 +1280,24 @@ const ensureIndexFactory = (target, status) => async function ensureIndex(tableN
   } catch (error) {
     if (/duplicate|already exists/i.test(String(error.message || ''))) return;
     throw error;
+  }
+};
+
+const ensureLeadBackfillColumns = async (target) => {
+  const required = [
+    ['lead_date', 'DATE NULL'],
+    ['quotation_value', 'DECIMAL(18,2) NULL'],
+    ['remarks', 'TEXT NULL'],
+    ['reference_customer_id', 'VARCHAR(80) NULL'],
+    ['reference_customer_name', 'VARCHAR(255) NULL'],
+    ['reference_customer_date', 'DATE NULL'],
+    ['source_created_at', 'DATETIME NULL'],
+    ['source_updated_at', 'DATETIME NULL']
+  ];
+
+  for (const [columnName, columnDefinition] of required) {
+    if (await columnExists(target, 'leads', columnName)) continue;
+    await target.query(`ALTER TABLE ${quoteIdent('leads')} ADD COLUMN ${quoteIdent(columnName)} ${columnDefinition}`);
   }
 };
 
@@ -1417,6 +1456,135 @@ const migratePayrollJsonToMysql = async (target) => {
   return counts;
 };
 
+const parseNullableNumber = (value) => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const backfillLeadColumnsFromPayload = async (target) => {
+  if (!(await tableExists(target, 'leads'))) return { inspected: 0, updated: 0, skipped: 0 };
+  await ensureLeadBackfillColumns(target);
+
+  const rows = await query(
+    target,
+    `SELECT id, lead_date, quotation_value, remarks, reference_customer_id, reference_customer_name,
+            reference_customer_date, source_created_at, source_updated_at, payload
+     FROM leads
+     ORDER BY id ASC`
+  );
+
+  let inspected = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  for (const row of Array.isArray(rows) ? rows : []) {
+    inspected += 1;
+    const payload = parseJsonPayload(row?.payload);
+
+    const currentLeadDate = toDate(row?.lead_date);
+    const payloadLeadDate = toDate(payload?.leadDate || payload?.date || payload?.createdAt || '');
+    const nextLeadDate = currentLeadDate || payloadLeadDate || null;
+
+    const currentQuotation = parseNullableNumber(row?.quotation_value);
+    const payloadQuotation = parseNullableNumber(payload?.quotation_value ?? payload?.quotationValue);
+    const nextQuotation = currentQuotation ?? payloadQuotation;
+
+    const currentRemarks = normalizeText(row?.remarks);
+    const payloadRemarks = normalizeText(payload?.remarks || payload?.notes || '');
+    const nextRemarks = currentRemarks || payloadRemarks;
+
+    const currentReferenceCustomerId = normalizeText(row?.reference_customer_id);
+    const payloadReferenceCustomerId = normalizeText(payload?.referenceCustomerId || payload?.referredByCustomerId || '');
+    const nextReferenceCustomerId = currentReferenceCustomerId || payloadReferenceCustomerId;
+
+    const currentReferenceCustomerName = normalizeText(row?.reference_customer_name);
+    const payloadReferenceCustomerName = normalizeText(payload?.referenceCustomerName || payload?.referredByCustomerName || '');
+    const nextReferenceCustomerName = currentReferenceCustomerName || payloadReferenceCustomerName;
+
+    const currentReferenceCustomerDate = toDate(row?.reference_customer_date);
+    const payloadReferenceCustomerDate = toDate(payload?.referenceCustomerDate || payload?.referredByCustomerDate || '');
+    const nextReferenceCustomerDate = currentReferenceCustomerDate || payloadReferenceCustomerDate || null;
+
+    const currentSourceCreatedAt = toDateTime(row?.source_created_at);
+    const payloadSourceCreatedAt = toDateTime(payload?.sourceCreatedAt || payload?.createdAt || payload?.date || '');
+    const nextSourceCreatedAt = currentSourceCreatedAt || payloadSourceCreatedAt || null;
+
+    const currentSourceUpdatedAt = toDateTime(row?.source_updated_at);
+    const payloadSourceUpdatedAt = toDateTime(payload?.sourceUpdatedAt || payload?.updatedAt || payload?.createdAt || '');
+    const nextSourceUpdatedAt = currentSourceUpdatedAt || payloadSourceUpdatedAt || nextSourceCreatedAt || null;
+
+    const nextPayload = {
+      ...payload,
+      ...(nextLeadDate ? { leadDate: nextLeadDate } : {}),
+      ...(nextQuotation !== null ? { quotationValue: nextQuotation, quotation_value: nextQuotation } : {}),
+      ...(nextRemarks ? { remarks: nextRemarks, notes: nextRemarks } : {}),
+      ...(nextReferenceCustomerId ? {
+        referenceCustomerId: nextReferenceCustomerId,
+        referredByCustomerId: nextReferenceCustomerId
+      } : {}),
+      ...(nextReferenceCustomerName ? {
+        referenceCustomerName: nextReferenceCustomerName,
+        referredByCustomerName: nextReferenceCustomerName
+      } : {}),
+      ...(nextReferenceCustomerDate ? {
+        referenceCustomerDate: nextReferenceCustomerDate,
+        referredByCustomerDate: nextReferenceCustomerDate
+      } : {}),
+      ...(nextSourceCreatedAt ? { sourceCreatedAt: nextSourceCreatedAt } : {}),
+      ...(nextSourceUpdatedAt ? { sourceUpdatedAt: nextSourceUpdatedAt } : {})
+    };
+
+    const nextPayloadJson = JSON.stringify(nextPayload);
+    const payloadChanged = nextPayloadJson !== JSON.stringify(payload);
+    const columnChanged = [
+      currentLeadDate !== nextLeadDate,
+      currentQuotation !== nextQuotation,
+      currentRemarks !== nextRemarks,
+      currentReferenceCustomerId !== nextReferenceCustomerId,
+      currentReferenceCustomerName !== nextReferenceCustomerName,
+      currentReferenceCustomerDate !== nextReferenceCustomerDate,
+      currentSourceCreatedAt !== nextSourceCreatedAt,
+      currentSourceUpdatedAt !== nextSourceUpdatedAt
+    ].some(Boolean);
+
+    if (!payloadChanged && !columnChanged) {
+      skipped += 1;
+      continue;
+    }
+
+    await target.query(
+      `UPDATE leads
+       SET lead_date = ?,
+           quotation_value = ?,
+           remarks = ?,
+           reference_customer_id = ?,
+           reference_customer_name = ?,
+           reference_customer_date = ?,
+           source_created_at = ?,
+           source_updated_at = ?,
+           payload = ?
+       WHERE id = ?`,
+      [
+        nextLeadDate,
+        nextQuotation,
+        nextRemarks || null,
+        nextReferenceCustomerId || null,
+        nextReferenceCustomerName || null,
+        nextReferenceCustomerDate,
+        nextSourceCreatedAt,
+        nextSourceUpdatedAt,
+        nextPayloadJson,
+        row.id
+      ]
+    );
+    updated += 1;
+  }
+
+  return { inspected, updated, skipped };
+};
+
 const migrateCustomerPremises = async (target) => {
   if (!(await tableExists(target, 'customers')) || !(await tableExists(target, 'customer_premises'))) return 0;
   for (const columnName of ['latitude', 'longitude', 'country', 'place_of_supply']) {
@@ -1523,6 +1691,14 @@ async function runAutoMigrations(poolOrConnection) {
     }
 
     try {
+      const leadBackfill = await backfillLeadColumnsFromPayload(target);
+      status.tablesChecked.push(`leads:backfill:${leadBackfill.updated}`);
+    } catch (error) {
+      status.errors.push({ step: 'leads_backfill', error: error.message });
+      console.error('AUTO MIGRATION LEADS BACKFILL ERROR:', error.message);
+    }
+
+    try {
       const migratedPremises = await migrateCustomerPremises(target);
       if (migratedPremises) status.tablesChecked.push(`customer_premises:migrated:${migratedPremises}`);
     } catch (error) {
@@ -1551,5 +1727,6 @@ const getLastMigrationStatus = () => lastMigrationStatus;
 module.exports = {
   runAutoMigrations,
   syncPayrollJsonFilesToMysql,
+  backfillLeadColumnsFromPayload,
   getLastMigrationStatus
 };
