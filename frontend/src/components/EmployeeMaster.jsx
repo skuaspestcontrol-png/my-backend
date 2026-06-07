@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { Edit, Eye, EyeOff, Plus, Trash2, UploadCloud, UserCheck, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit, Eye, EyeOff, Plus, Trash2, UploadCloud, UserCheck, X } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
@@ -90,7 +90,7 @@ const shell = {
     fontSize: '11px',
     fontWeight: 700,
     color: '#64748b',
-    padding: '10px 8px',
+    padding: '8px 6px',
     borderBottom: '1px solid var(--color-border)',
     textTransform: 'uppercase',
     letterSpacing: '0.03em',
@@ -99,15 +99,21 @@ const shell = {
     textOverflow: 'ellipsis'
   },
   td: {
-    padding: '9px 8px',
+    padding: '8px 6px',
     borderBottom: '1px solid #eef2f7',
-    fontSize: '12px',
+    fontSize: '11px',
     color: '#334155',
     verticalAlign: 'middle',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   },
+  detailRow: { background: 'rgba(248,250,252,0.85)' },
+  detailCell: { padding: '10px 12px 14px', borderBottom: '1px solid #eef2f7' },
+  detailPanel: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px 12px' },
+  detailItem: { display: 'grid', gap: '3px', padding: '8px 10px', borderRadius: '10px', background: '#fff', border: '1px solid rgba(159, 23, 77, 0.12)' },
+  detailLabel: { margin: 0, fontSize: '10px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#64748b' },
+  detailValue: { margin: 0, fontSize: '12px', fontWeight: 700, color: '#0f172a' },
   rowActionBtn: {
     width: '34px',
     height: '34px',
@@ -198,36 +204,33 @@ const employeeColumns = [
   { key: 'name', label: 'Name' },
   { key: 'role', label: 'Role' },
   { key: 'employment', label: 'Employment Status' },
-  { key: 'resignDate', label: 'Resign Date' },
   { key: 'mobile', label: 'Mobile' },
   { key: 'email', label: 'Email' },
   { key: 'salary', label: 'Salary/Month' },
-  { key: 'portal', label: 'Portal Access' },
+  { key: 'details', label: 'More' },
   { key: 'actions', label: 'Actions' }
 ];
 const employeeDefaultWidths = {
-  code: 112,
-  name: 170,
-  role: 106,
-  employment: 120,
-  resignDate: 104,
-  mobile: 112,
-  email: 190,
-  salary: 120,
-  portal: 106,
-  actions: 96
+  code: 100,
+  name: 150,
+  role: 92,
+  employment: 110,
+  mobile: 100,
+  email: 160,
+  salary: 104,
+  details: 86,
+  actions: 88
 };
 const employeeColumnBounds = {
-  code: { min: 96, max: 130 },
-  name: { min: 140, max: 210 },
-  role: { min: 92, max: 140 },
-  employment: { min: 96, max: 140 },
-  resignDate: { min: 92, max: 126 },
-  mobile: { min: 100, max: 130 },
-  email: { min: 140, max: 240 },
-  salary: { min: 100, max: 140 },
-  portal: { min: 92, max: 130 },
-  actions: { min: 88, max: 120 }
+  code: { min: 88, max: 120 },
+  name: { min: 120, max: 180 },
+  role: { min: 80, max: 120 },
+  employment: { min: 88, max: 128 },
+  mobile: { min: 90, max: 114 },
+  email: { min: 130, max: 200 },
+  salary: { min: 90, max: 120 },
+  details: { min: 72, max: 90 },
+  actions: { min: 72, max: 108 }
 };
 
 const toAnnual = (value) => {
@@ -260,6 +263,12 @@ const normalizeDateInputValue = (value) => {
   const month = String(parsed.getMonth() + 1).padStart(2, '0');
   const day = String(parsed.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+const formatDate = (value) => {
+  const normalized = normalizeDateInputValue(value);
+  if (!normalized) return '';
+  const [year, month, day] = normalized.split('-');
+  return `${day}/${month}/${year}`;
 };
 const toAbsoluteUploadUrl = (value) => {
   const raw = String(value || '').trim();
@@ -391,6 +400,7 @@ export default function EmployeeMaster() {
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [employmentFilter, setEmploymentFilter] = useState('All');
+  const [expandedEmployeeIds, setExpandedEmployeeIds] = useState(() => new Set());
   const loadRequestRef = useRef(null);
   const {
     getColumnWidth,
@@ -401,7 +411,7 @@ export default function EmployeeMaster() {
     columns: employeeColumns.map((column) => column.key),
     defaultColumnWidths: employeeDefaultWidths,
     columnBounds: employeeColumnBounds,
-    minWidth: 100,
+    minWidth: 72,
     enabled: true
   });
 
@@ -428,6 +438,16 @@ export default function EmployeeMaster() {
       return statusValue === employmentFilter;
     });
   }, [employees, employmentFilter]);
+  const toggleEmployeeDetails = (employeeId) => {
+    const id = String(employeeId || '').trim();
+    if (!id) return;
+    setExpandedEmployeeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   const headCellStyle = (key, align = 'left') => ({
     ...shell.th,
     position: 'relative',
@@ -774,24 +794,24 @@ export default function EmployeeMaster() {
               <th style={headCellStyle('name')}>Name</th>
               <th style={headCellStyle('role', 'center')}>Role</th>
               <th style={headCellStyle('employment', 'center')}>Employment Status</th>
-              <th style={headCellStyle('resignDate', 'center')}>Resign Date</th>
               <th style={headCellStyle('mobile', 'center')}>Mobile</th>
               <th style={headCellStyle('email')}>Email</th>
               <th style={headCellStyle('salary', 'center')}>Salary/Month</th>
-              <th style={headCellStyle('portal', 'center')}>Portal Access</th>
+              <th style={headCellStyle('details', 'center')}>More</th>
               <th style={headCellStyle('actions', 'center')}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredEmployees.length === 0 ? (
               <tr>
-                <td style={shell.td} colSpan={10}>
+                <td style={shell.td} colSpan={9}>
                   {employmentFilter === 'All' ? 'No employees found.' : `No ${employmentFilter.toLowerCase()} employees found.`}
                 </td>
               </tr>
             ) : (
               filteredEmployees.map((employee) => (
-                <tr key={employee._id || employee.empCode}>
+                <React.Fragment key={employee._id || employee.empCode}>
+                <tr>
                   <td style={{ ...bodyCellStyle('code'), color: 'var(--color-primary-dark)', fontWeight: 800 }}>{employee.empCode || '-'}</td>
                   <td style={{ ...bodyCellStyle('name'), fontWeight: 600 }}>{employeeDisplayName(employee)}</td>
                   <td style={bodyCellStyle('role', 'center')}>{employee.role || '-'}</td>
@@ -822,13 +842,32 @@ export default function EmployeeMaster() {
                       {normalizeEmploymentStatus(employee.employmentStatus || employee.employment_status || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active'))}
                     </span>
                   </td>
-                  <td style={bodyCellStyle('resignDate', 'center')}>
-                    {normalizeDateInputValue(employee.resignationDate || employee.resignation_date || '') ? formatDate(employee.resignationDate || employee.resignation_date) : '-'}
-                  </td>
                   <td style={{ ...bodyCellStyle('mobile', 'center'), fontWeight: 600 }}>{employee.mobile || '-'}</td>
                   <td style={bodyCellStyle('email')}>{employee.email || employee.emailId || '-'}</td>
                   <td style={{ ...bodyCellStyle('salary', 'center'), fontWeight: 600 }}>{formatCurrency(employee.salaryPerMonth || employee.salary || 0)}</td>
-                  <td style={{ ...bodyCellStyle('portal', 'center'), fontWeight: 600 }}>{employee.webPortalAccessEnabled || employee.portalAccess === 'Yes' || employee.portalAccess === true ? 'Enabled' : 'Disabled'}</td>
+                  <td style={bodyCellStyle('details', 'center')}>
+                    <button
+                      type="button"
+                      onClick={() => toggleEmployeeDetails(employee._id || employee.empCode)}
+                      style={{
+                        border: '1px solid rgba(159, 23, 77, 0.18)',
+                        background: expandedEmployeeIds.has(String(employee._id || employee.empCode || '').trim()) ? 'rgba(159, 23, 77, 0.08)' : '#fff',
+                        color: 'var(--color-primary-dark)',
+                        borderRadius: '999px',
+                        minHeight: '28px',
+                        padding: '0 10px',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {expandedEmployeeIds.has(String(employee._id || employee.empCode || '').trim()) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      More
+                    </button>
+                  </td>
                   <td style={bodyCellStyle('actions', 'center')}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
                       <button type="button" onClick={() => openEditEmployee(employee)} style={{ ...shell.rowActionBtn, width: '30px', height: '30px', minHeight: '30px', color: 'var(--color-primary-dark)' }}><Edit size={16} strokeWidth={2.25} /></button>
@@ -836,6 +875,31 @@ export default function EmployeeMaster() {
                     </div>
                   </td>
                 </tr>
+                {expandedEmployeeIds.has(String(employee._id || employee.empCode || '').trim()) ? (
+                  <tr style={shell.detailRow}>
+                    <td style={shell.detailCell} colSpan={9}>
+                      <div style={shell.detailPanel}>
+                        <div style={shell.detailItem}>
+                          <p style={shell.detailLabel}>Resign Date</p>
+                          <p style={shell.detailValue}>{normalizeDateInputValue(employee.resignationDate || employee.resignation_date || '') ? formatDate(employee.resignationDate || employee.resignation_date) : '-'}</p>
+                        </div>
+                        <div style={shell.detailItem}>
+                          <p style={shell.detailLabel}>Portal Access</p>
+                          <p style={shell.detailValue}>{employee.webPortalAccessEnabled || employee.portalAccess === 'Yes' || employee.portalAccess === true ? 'Enabled' : 'Disabled'}</p>
+                        </div>
+                        <div style={shell.detailItem}>
+                          <p style={shell.detailLabel}>Date of Joining</p>
+                          <p style={shell.detailValue}>{normalizeDateInputValue(employee.dateOfJoining || employee.joining_date || '') ? formatDate(employee.dateOfJoining || employee.joining_date) : '-'}</p>
+                        </div>
+                        <div style={shell.detailItem}>
+                          <p style={shell.detailLabel}>Salary/Month</p>
+                          <p style={shell.detailValue}>{formatCurrency(employee.salaryPerMonth || employee.salary || 0)}</p>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+                </React.Fragment>
               ))
             )}
           </tbody>
