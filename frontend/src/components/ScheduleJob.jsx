@@ -4,6 +4,7 @@ import axios from 'axios';
 import { CalendarDays, MapPin, Wrench, X } from 'lucide-react';
 import { useColumnResize } from './table/useColumnResize';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
+import { formatServiceScheduleTime } from '../utils/serviceScheduleBuilder';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const SCHEDULE_JOB_CACHE_KEY = 'schedule_job_dashboard_cache_v1';
@@ -71,7 +72,7 @@ const shell = {
   muted: { color: '#94a3b8' },
   techRow: { display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr)', gap: '8px', alignItems: 'end' },
   selectedWrap: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
-  selectedTag: { display: 'inline-flex', gap: '6px', alignItems: 'center', minHeight: '32px', border: '1px solid #D1D5DB', borderRadius: '999px', background: '#f8fafc', color: '#334155', fontSize: '11px', fontWeight: 700, padding: '0 10px' },
+  selectedTag: { display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center', height: '32px', boxSizing: 'border-box', border: '1px solid #D1D5DB', borderRadius: '999px', background: '#f8fafc', color: '#334155', fontSize: '11px', fontWeight: 700, lineHeight: '1', padding: '0 12px' },
   removeTag: { border: 'none', background: 'transparent', color: '#64748b', display: 'inline-flex', padding: 0, cursor: 'pointer' },
   bottomStatus: { margin: 0, fontSize: '12px', fontWeight: 700 }
 };
@@ -91,6 +92,49 @@ const formatDate = (value) => {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   return `${day}/${month}/${year}`;
+};
+
+const normalizeDateInputValue = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  const dmyMatch = raw.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseTimeTo24Hour = (value, fallback = '') => {
+  const raw = String(value || '').trim();
+  if (!raw) return fallback;
+
+  const normalized24 = raw.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (normalized24) {
+    return `${String(Number(normalized24[1])).padStart(2, '0')}:${normalized24[2]}`;
+  }
+
+  const normalized12 = raw.match(/^(\d{1,2})(?::([0-5]\d))?\s*([ap]m)$/i);
+  if (normalized12) {
+    let hours = Number(normalized12[1]);
+    const minutes = normalized12[2] || '00';
+    const suffix = normalized12[3].toLowerCase();
+    if (!Number.isFinite(hours) || hours < 1 || hours > 12) return fallback;
+    if (suffix === 'pm' && hours !== 12) hours += 12;
+    if (suffix === 'am' && hours === 12) hours = 0;
+    return `${String(hours).padStart(2, '0')}:${minutes}`;
+  }
+
+  return fallback;
+};
+
+const formatTimeForEdit = (value) => {
+  const normalized = parseTimeTo24Hour(value, '');
+  return normalized ? formatServiceScheduleTime(normalized) : '';
 };
 
 const formatEmployeeName = (employee) => {
@@ -193,6 +237,7 @@ export default function ScheduleJob() {
   const [selectedTechnicians, setSelectedTechnicians] = useState([]);
   const [premiseRows, setPremiseRows] = useState([]);
   const [selectedPremiseId, setSelectedPremiseId] = useState('');
+  const [editableServiceRows, setEditableServiceRows] = useState([]);
 
   useEffect(() => {
     let mounted = true;
@@ -417,6 +462,16 @@ export default function ScheduleJob() {
     }).filter((row) => row.status !== 'Assigned' && !assignedScheduleKeys.has(row.key));
   }, [selectedContract, selectedCustomer, jobs]);
 
+  useEffect(() => {
+    setEditableServiceRows(
+      serviceRows.map((row) => ({
+        ...row,
+        editableDate: normalizeDateInputValue(row.date),
+        editableTime: formatTimeForEdit(row.window)
+      }))
+    );
+  }, [serviceRows]);
+
   const filteredServiceRows = useMemo(
     () => serviceRows.filter((row) => scheduleStatusFilter === 'All' || row.status === scheduleStatusFilter),
     [scheduleStatusFilter, serviceRows]
@@ -485,8 +540,8 @@ export default function ScheduleJob() {
   };
 
   const selectedRows = useMemo(
-    () => serviceRows.filter((row) => selectedScheduleKeys.includes(row.key)),
-    [selectedScheduleKeys, serviceRows]
+    () => editableServiceRows.filter((row) => selectedScheduleKeys.includes(row.key)),
+    [editableServiceRows, selectedScheduleKeys]
   );
   const isMobile = viewportWidth <= 900;
   const {
@@ -517,6 +572,11 @@ export default function ScheduleJob() {
     return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
   };
   const techRowStyle = isMobile ? { ...shell.techRow, gridTemplateColumns: '1fr' } : shell.techRow;
+  const updateEditableRow = (rowKey, patch) => {
+    setEditableServiceRows((prev) =>
+      prev.map((row) => (row.key === rowKey ? { ...row, ...patch } : row))
+    );
+  };
 
   const assignNow = async () => {
     const resolvedTechnicians = selectedTechnicians;
@@ -572,6 +632,8 @@ export default function ScheduleJob() {
 
       const payloads = [];
       resolvedRows.forEach((row) => {
+        const scheduledDate = normalizeDateInputValue(row.editableDate || row.date || '');
+        const scheduledTime = parseTimeTo24Hour(row.editableTime || row.window || '', row.window || '');
         resolvedTechnicians.forEach((tech) => {
           payloads.push({
             ...basePayload,
@@ -579,8 +641,8 @@ export default function ScheduleJob() {
             scheduleVisit: row.visit,
             serviceName: row.service,
             sourceScheduleStatus: row.status,
-            scheduledDate: row.date || '',
-            scheduledTime: row.window || '',
+            scheduledDate,
+            scheduledTime,
             serviceInstructions: String(row.raw?.itemDescription || row.raw?.itemName || row.service || ''),
             technicianId: tech._id || '',
             technicianName: formatEmployeeName(tech),
@@ -756,8 +818,8 @@ export default function ScheduleJob() {
                   </th>
                   <th style={headStyle('service')}>Service</th>
                   <th style={headStyle('visit', 'center')}>Visit</th>
-                  <th style={headStyle('date', 'center')}>Date</th>
-                  <th style={headStyle('window', 'center')}>Window</th>
+                    <th style={headStyle('date', 'center')}>Date</th>
+                    <th style={headStyle('window', 'center')}>Time</th>
                   <th style={headStyle('site')}>Site</th>
                   <th style={headStyle('status', 'center')}>Status</th>
                 </tr>
@@ -776,8 +838,25 @@ export default function ScheduleJob() {
                     </td>
                     <td style={cellStyle('service')}>{row.service}</td>
                     <td style={cellStyle('visit', 'center')}>{row.visit}</td>
-                    <td style={cellStyle('date', 'center')}>{formatDate(row.date)}</td>
-                    <td style={cellStyle('window', 'center')}>{row.window || '-'}</td>
+                    <td style={cellStyle('date', 'center')}>
+                      <input
+                        type="date"
+                        value={editableServiceRows.find((entry) => entry.key === row.key)?.editableDate || ''}
+                        onChange={(event) => updateEditableRow(row.key, { editableDate: event.target.value })}
+                        style={{ ...shell.input, minHeight: '32px', textAlign: 'center' }}
+                      />
+                    </td>
+                    <td style={cellStyle('window', 'center')}>
+                      <input
+                        type="text"
+                        inputMode="text"
+                        placeholder="1:00 PM"
+                        value={editableServiceRows.find((entry) => entry.key === row.key)?.editableTime || ''}
+                        onChange={(event) => updateEditableRow(row.key, { editableTime: event.target.value })}
+                        onBlur={(event) => updateEditableRow(row.key, { editableTime: formatTimeForEdit(event.target.value) })}
+                        style={{ ...shell.input, minHeight: '32px', textAlign: 'center' }}
+                      />
+                    </td>
                     <td style={cellStyle('site')}>{row.site || '-'}</td>
                     <td style={cellStyle('status', 'center')}>{row.status}</td>
                   </tr>

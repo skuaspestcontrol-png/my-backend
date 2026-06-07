@@ -69,10 +69,28 @@ const formatDisplayDate = (value) => {
 };
 
 const formatDisplayTime = (value) => {
-  if (!value) return '--:--';
-  const [hour, minute] = String(value).split(':');
-  if (!hour || !minute) return value;
-  return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+  const raw = String(value || '').trim();
+  if (!raw) return '--:--';
+
+  const twentyFourHour = raw.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (twentyFourHour) {
+    const hours = Number(twentyFourHour[1]);
+    const minutes = twentyFourHour[2];
+    const suffix = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes} ${suffix}`;
+  }
+
+  const twelveHour = raw.match(/^(\d{1,2})(?::([0-5]\d))?\s*([ap]m)$/i);
+  if (twelveHour) {
+    const hours = Number(twelveHour[1]);
+    const minutes = (twelveHour[2] || '00').padStart(2, '0');
+    const suffix = twelveHour[3].toUpperCase();
+    if (!Number.isFinite(hours) || hours < 1 || hours > 12) return raw;
+    return `${hours}:${minutes} ${suffix}`;
+  }
+
+  return raw;
 };
 
 const createCompletionCardNumber = () => `JC-${Date.now().toString().slice(-8)}`;
