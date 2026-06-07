@@ -875,17 +875,17 @@ export default function EmployeeMaster() {
                         background: expandedEmployeeIds.has(String(employee._id || employee.empCode || '').trim()) ? 'rgba(159, 23, 77, 0.08)' : '#fff',
                         color: 'var(--color-primary-dark)',
                         borderRadius: '999px',
-                        minHeight: '28px',
-                        padding: '0 10px',
-                        fontSize: '11px',
+                        minHeight: '24px',
+                        padding: '0 8px',
+                        fontSize: '10px',
                         fontWeight: 800,
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '3px',
                         cursor: 'pointer'
                       }}
                     >
-                      {expandedEmployeeIds.has(String(employee._id || employee.empCode || '').trim()) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      {expandedEmployeeIds.has(String(employee._id || employee.empCode || '').trim()) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                       More
                     </button>
                   </td>
