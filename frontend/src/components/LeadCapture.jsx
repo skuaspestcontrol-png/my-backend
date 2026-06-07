@@ -7,7 +7,8 @@ import {
   searchGooglePlacesByText,
   getGoogleAddressLineText,
   formatGoogleAddressParts,
-  getGoogleFormattedAddressText
+  getGoogleFormattedAddressText,
+  stripAutoFilledIndiaSuffix
 } from '../utils/googlePlaces';
 import {
   extractGoogleMapsCoordinates,
@@ -430,6 +431,11 @@ const formatEmployeeName = (employee) => {
 
 const normalizePhoneNumber = normalizeIndianMobileNumber;
 const normalizePincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
+const normalizeLeadAddressLine = (value = '') => {
+  const source = String(value || '').trim();
+  if (!source) return '';
+  return getGoogleAddressLineText({ formatted_address: source }) || stripAutoFilledIndiaSuffix(source);
+};
 const toObjectList = (value) => (
   Array.isArray(value)
     ? value.filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
@@ -881,7 +887,7 @@ export default function LeadCapture() {
     whatsappNumber: normalizePhoneNumber(lead.whatsappNumber || getLeadMobile(lead)),
     emailId: lead.emailId || '',
     searchAddress: lead.searchAddress || lead.address || '',
-    address: lead.address || '',
+    address: normalizeLeadAddressLine(lead.address || ''),
     areaName: lead.areaName || '',
     city: lead.city || '',
     state: lead.state || '',
@@ -1429,7 +1435,7 @@ export default function LeadCapture() {
       whatsappNumber: normalizePhoneNumber(selectedLead.whatsappNumber || getLeadMobile(selectedLead) || ''),
       emailId: selectedLead.emailId || '',
       searchAddress: selectedLead.searchAddress || selectedLead.address || '',
-      address: selectedLead.address || '',
+      address: normalizeLeadAddressLine(selectedLead.address || ''),
       areaName: selectedLead.areaName || '',
       city: selectedLead.city || '',
       state: selectedLead.state || '',
@@ -1597,7 +1603,7 @@ export default function LeadCapture() {
       pincode: String(place.pincode || '').trim(),
       ...extractAddressFields(place)
     };
-    const address = extracted.address || getGoogleAddressLineText(place) || getGoogleFormattedAddressText(place);
+    const address = normalizeLeadAddressLine(extracted.address || getGoogleAddressLineText(place) || getGoogleFormattedAddressText(place));
     const googlePhone = place.nationalPhoneNumber || place.internationalPhoneNumber || '';
     const googleWebsite = place.websiteURI || '';
     const lat = typeof place.location?.lat === 'function' ? place.location.lat() : place.location?.lat;
@@ -1630,7 +1636,7 @@ export default function LeadCapture() {
       const first = response?.results?.[0];
       if (!first) return;
       const extracted = extractAddressFields(first);
-      const formattedAddress = extracted.address || getGoogleAddressLineText(first) || getGoogleFormattedAddressText(first);
+      const formattedAddress = normalizeLeadAddressLine(extracted.address || getGoogleAddressLineText(first) || getGoogleFormattedAddressText(first));
       setForm((prev) => {
         const nextPincode = extracted.pincode || prev.pincode;
         return {

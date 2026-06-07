@@ -805,7 +805,7 @@ export default function ItemsDashboard() {
   const paginationActionsStyle = isMobile ? { display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' } : { display: 'inline-flex', alignItems: 'center', gap: '8px' };
 
   return (
-    <section className="crm-page crm-section" style={shell.page}>
+    <section className="crm-page crm-section" style={{ ...shell.page, gap: 0 }}>
       <div style={topbarStyle}>
         <div style={shell.titleWrap}>
           <div style={shell.titleLine}>
