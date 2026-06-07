@@ -173,6 +173,7 @@ export default function PdfPreviewModal({
 
     let active = true;
     let objectUrl = '';
+    setPreviewUrl(sourceUrl);
 
     const loadPreview = async () => {
       try {
@@ -190,8 +191,9 @@ export default function PdfPreviewModal({
         if (active) setPreviewUrl(objectUrl);
       } catch (loadError) {
         if (active) {
-          setPreviewUrl('');
-          setError('Could not load PDF preview. Please try Download PDF.');
+          console.warn('PDF preview blob load failed; falling back to the direct PDF URL.', loadError);
+          setPreviewUrl(sourceUrl);
+          setError('');
         }
       } finally {
         if (active) setLoading(false);
@@ -231,6 +233,10 @@ export default function PdfPreviewModal({
       downloadBlob(blobUrl, downloadFileName || title || 'document.pdf');
       setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
     } catch {
+      if (sourceUrl) {
+        window.open(sourceUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
       setError('Could not load PDF preview. Please try Download PDF.');
     } finally {
       setLoading(false);
@@ -255,7 +261,13 @@ export default function PdfPreviewModal({
       window.open(blobUrl, '_blank', 'noopener,noreferrer');
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     };
-    openBlobTab().catch(() => setError('Could not load PDF preview. Please try Download PDF.'));
+    openBlobTab().catch(() => {
+      if (sourceUrl) {
+        window.open(sourceUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      setError('Could not load PDF preview. Please try Download PDF.');
+    });
   };
 
   const handleShareEmail = async () => {

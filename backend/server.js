@@ -7996,7 +7996,8 @@ const loadCustomersForContext = async () => {
 
 const resolveInvoiceContext = async (invoiceId) => {
   const invoices = await loadInvoicesForContext();
-  const invoice = (Array.isArray(invoices) ? invoices : []).find((entry) => String(entry?._id || '') === String(invoiceId || ''));
+  const invoiceReference = normalizePdfReference(invoiceId);
+  const invoice = findInvoiceByPdfReference(invoices, invoiceReference);
   if (!invoice) return null;
 
   const customers = await loadCustomersForContext();
