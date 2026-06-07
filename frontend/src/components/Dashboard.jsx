@@ -78,10 +78,10 @@ const shell = {
   graphGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '18px' },
   panel: { background: 'rgba(255,255,255,0.9)', borderRadius: '20px', border: '1px solid rgba(159, 23, 77, 0.15)', padding: '20px', boxShadow: 'var(--shadow-soft)' },
   sourcePanel: { background: '#fff', borderRadius: '22px', border: '1px solid #dbe4f0', padding: 0, overflow: 'hidden', boxShadow: 'none' },
-  sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '16px 22px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0' },
+  sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '15px 22px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0' },
   sourceHeaderTitle: { margin: 0, color: '#475569', fontSize: '19px', fontWeight: 700 },
   sourceHeaderBadge: { color: '#111827', fontWeight: 700, background: '#f1f5f9', borderRadius: '10px', padding: '6px 10px', fontSize: '13px', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.10)' },
-  sourceBody: { padding: '18px 18px 20px', display: 'grid', gap: '16px', justifyItems: 'center' },
+  sourceBody: { padding: '18px 18px 18px', display: 'grid', gap: '14px', justifyItems: 'center' },
   panelHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' },
   panelTitle: { margin: 0, color: '#0f172a', fontSize: '20px', fontWeight: 800 },
   panelSub: { margin: 0, color: '#334155', fontSize: '15px', fontWeight: 700 },
@@ -94,10 +94,10 @@ const shell = {
   bars: { display: 'grid', gap: '10px' },
   barRow: { display: 'grid', gridTemplateColumns: '42px 1fr auto auto', alignItems: 'center', gap: '10px' },
   donutWrap: { display: 'grid', gridTemplateColumns: '1fr', gap: '14px', justifyItems: 'center', marginTop: '2px' },
-  donut: { width: '244px', height: '244px', borderRadius: '50%', position: 'relative' },
+  donut: { width: '268px', height: '268px', borderRadius: '50%', position: 'relative' },
   donutInner: { position: 'absolute', inset: '30%', borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px' },
-  sourceLegend: { display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 14px', maxWidth: '840px' },
-  sourceLegendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '13px', fontWeight: 600, lineHeight: 1.2 },
+  sourceLegend: { display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 12px', maxWidth: '840px' },
+  sourceLegendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 },
   sourceLegendDot: { width: '13px', height: '13px', borderRadius: '999px', display: 'inline-block', flexShrink: 0 }
 };
 
