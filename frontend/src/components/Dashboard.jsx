@@ -77,6 +77,11 @@ const shell = {
   metricSub: { margin: '6px 0 0 0', color: '#475569', fontSize: '13px' },
   graphGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '18px' },
   panel: { background: 'rgba(255,255,255,0.9)', borderRadius: '20px', border: '1px solid rgba(159, 23, 77, 0.15)', padding: '20px', boxShadow: 'var(--shadow-soft)' },
+  sourcePanel: { background: '#fff', borderRadius: '20px', border: '1px solid #dbe4f0', padding: 0, overflow: 'hidden', boxShadow: 'none' },
+  sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '18px 22px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0' },
+  sourceHeaderTitle: { margin: 0, color: '#475569', fontSize: '20px', fontWeight: 700 },
+  sourceHeaderBadge: { color: '#111827', fontWeight: 800, background: '#f1f5f9', borderRadius: '10px', padding: '6px 10px', fontSize: '13px', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.12)' },
+  sourceBody: { padding: '22px 22px 24px', display: 'grid', gap: '18px', justifyItems: 'center' },
   panelHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' },
   panelTitle: { margin: 0, color: '#0f172a', fontSize: '20px', fontWeight: 800 },
   panelSub: { margin: 0, color: '#334155', fontSize: '15px', fontWeight: 700 },
@@ -88,9 +93,12 @@ const shell = {
   barWrap: { marginTop: '12px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' },
   bars: { display: 'grid', gap: '10px' },
   barRow: { display: 'grid', gridTemplateColumns: '42px 1fr auto auto', alignItems: 'center', gap: '10px' },
-  donutWrap: { display: 'grid', gridTemplateColumns: '220px 1fr', gap: '18px', alignItems: 'center', marginTop: '8px' },
-  donut: { width: '200px', height: '200px', borderRadius: '50%', position: 'relative' },
-  donutInner: { position: 'absolute', inset: '25%', borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px' }
+  donutWrap: { display: 'grid', gridTemplateColumns: '1fr', gap: '16px', justifyItems: 'center', marginTop: '4px' },
+  donut: { width: '260px', height: '260px', borderRadius: '50%', position: 'relative' },
+  donutInner: { position: 'absolute', inset: '29%', borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px' },
+  sourceLegend: { display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '10px 16px', maxWidth: '920px' },
+  sourceLegendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '14px', fontWeight: 700, lineHeight: 1.2 },
+  sourceLegendDot: { width: '14px', height: '14px', borderRadius: '999px', display: 'inline-block', flexShrink: 0 }
 };
 
 const toNum = (value, fallback = 0) => {
@@ -117,6 +125,30 @@ const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).
 const monthLabel = (date) => date.toLocaleString('en-IN', { month: 'short' });
 const normalizeLeadStatus = (value) => String(value || '').trim().toLowerCase();
 const normalizeLeadSource = (value) => String(value || '').trim();
+const leadSourceOrder = ['Website', 'Google Ads', 'Google Business Profile', 'Facebook', 'WhatsApp', 'Call', 'Referral'];
+const leadSourcePalette = {
+  Website: '#4f6bed',
+  'Google Ads': '#10b981',
+  'Google Business Profile': '#f59e0b',
+  Facebook: '#06b6d4',
+  WhatsApp: '#8b5cf6',
+  Call: '#f43f5e',
+  Referral: '#f97316',
+  Other: '#94a3b8'
+};
+const mapLeadSourceLabel = (value) => {
+  const raw = normalizeLeadSource(value);
+  const compact = raw.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  if (!compact) return 'Unknown';
+  if (['website', 'web', 'site'].includes(compact)) return 'Website';
+  if (['googleads', 'googlead', 'adwords', 'googleadvertising'].includes(compact)) return 'Google Ads';
+  if (['gmb', 'googlebusinessprofile', 'googlemybusiness', 'googlegbp', 'googlebusiness'].includes(compact)) return 'Google Business Profile';
+  if (['facebook', 'fb'].includes(compact)) return 'Facebook';
+  if (['whatsapp', 'wa'].includes(compact)) return 'WhatsApp';
+  if (['call', 'phone', 'telecall', 'telephone'].includes(compact)) return 'Call';
+  if (['referral', 'reference', 'rpci', 'refer', 'ref'].includes(compact)) return 'Referral';
+  return raw || 'Unknown';
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -304,13 +336,16 @@ export default function Dashboard() {
 
     const sourceCounts = new Map();
     leads.forEach((lead) => {
-      const key = normalizeLeadSource(lead.leadSource) || 'Unknown';
+      const key = mapLeadSourceLabel(lead.leadSource);
       sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1);
     });
-    const sourceSeries = Array.from(sourceCounts.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6);
+    const orderedSources = [
+      ...leadSourceOrder,
+      ...Array.from(sourceCounts.keys()).filter((name) => !leadSourceOrder.includes(name) && name !== 'Unknown').sort((a, b) => a.localeCompare(b))
+    ];
+    const sourceSeries = orderedSources
+      .map((name) => ({ name, count: sourceCounts.get(name) || 0 }))
+      .filter((entry) => entry.count > 0);
     const sourceTotal = sourceSeries.reduce((sum, row) => sum + row.count, 0);
 
     return {
@@ -397,7 +432,6 @@ export default function Dashboard() {
   const dangerRed = '#D45D79';
   const neutralBlack = '#111827';
   const expenseColors = ['#56B881', '#D45D79', '#111827', '#8B5CF6', '#0F766E'];
-  const leadSourceColors = ['#3A6ECC', '#56B881', '#E8A03A', '#E14F61', '#45ABC8', '#7B61E8'];
   const leadFunnelRows = [
     { label: 'Total Leads', value: leadPipeline.totalLeads, color: '#4965dd' },
     { label: 'Interested', value: leadPipeline.interested, color: '#12abc4' },
@@ -521,46 +555,55 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={shell.panel}>
-          <div style={shell.panelHead}>
-            <h2 style={shell.panelTitle}>Lead Sources</h2>
-            <span style={{ color: '#0f172a', fontWeight: 800, background: '#f1f5f9', borderRadius: '8px', padding: '4px 8px', fontSize: '13px' }}>{leadPipeline.sourceTotal} total</span>
+        <article style={shell.sourcePanel}>
+          <div style={shell.sourceHeader}>
+            <h2 style={shell.sourceHeaderTitle}>Lead Sources</h2>
+            <span style={shell.sourceHeaderBadge}>{leadPipeline.totalLeads} total</span>
           </div>
-          <div style={{ ...shell.donutWrap, alignItems: 'flex-start' }}>
+          <div style={shell.sourceBody}>
             <div
               style={{
                 ...shell.donut,
-                background: `conic-gradient(${leadPipeline.sourceSeries.map((item, idx) => {
-                  const start = leadPipeline.sourceSeries.slice(0, idx).reduce((sum, e) => sum + e.count, 0);
-                  const startPct = leadPipeline.sourceTotal > 0 ? (start / leadPipeline.sourceTotal) * 100 : 0;
-                  const endPct = leadPipeline.sourceTotal > 0 ? ((start + item.count) / leadPipeline.sourceTotal) * 100 : startPct;
-                  return `${leadSourceColors[idx % leadSourceColors.length]} ${startPct}% ${endPct}%`;
-                }).join(', ') || '#e5e7eb 0 100%'})`
+                background: `conic-gradient(${leadPipeline.sourceSeries.reduce((segments, item, index, list) => {
+                  const entryColor = leadSourcePalette[item.name] || leadSourcePalette.Other;
+                  const start = list.slice(0, index).reduce((sum, e) => sum + e.count, 0);
+                  const startPct = leadPipeline.totalLeads > 0 ? (start / leadPipeline.totalLeads) * 100 : 0;
+                  const endPct = leadPipeline.totalLeads > 0 ? ((start + item.count) / leadPipeline.totalLeads) * 100 : startPct;
+                  segments.push(`${entryColor} ${startPct}% ${endPct}%`);
+                  return segments;
+                }, []).join(', ') || '#e5e7eb 0 100%'})`
               }}
             >
               <div style={shell.donutInner}>
-                <div style={{ color: '#64748b', fontWeight: 700 }}>Lead Sources</div>
-                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800 }}>{leadPipeline.sourceTotal}</div>
+                <div style={{ color: '#64748b', fontWeight: 700, fontSize: '15px' }}>Lead Sources</div>
+                <div style={{ color: '#0f172a', fontSize: '26px', fontWeight: 800, lineHeight: 1 }}>{leadPipeline.totalLeads}</div>
               </div>
             </div>
-            <div style={{ display: 'grid', gap: '10px', alignContent: 'flex-start' }}>
-              {leadPipeline.sourceSeries.length === 0 ? (
-                <div style={{ color: '#64748b', fontWeight: 700 }}>No lead source data available.</div>
-              ) : leadPipeline.sourceSeries.map((entry, idx) => (
-                <button
-                  key={`${entry.name}-${idx}`}
-                  type="button"
-                  onClick={() => navigate('/leads')}
-                  style={{ border: 'none', background: 'transparent', padding: 0, textAlign: 'left', cursor: 'pointer' }}
-                >
-                  <div style={{ display: 'grid', gridTemplateColumns: '16px 1fr auto', gap: '10px', alignItems: 'center' }}>
-                    <span style={{ ...shell.dot, width: '16px', height: '16px', borderRadius: '5px', background: leadSourceColors[idx % leadSourceColors.length] }} />
-                    <span style={{ color: '#334155', fontWeight: 700 }}>{entry.name}</span>
-                    <span style={{ color: '#0f172a', fontWeight: 800 }}>{entry.count}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
+            {leadPipeline.sourceSeries.length === 0 ? (
+              <div style={{ color: '#64748b', fontWeight: 700 }}>No lead source data available.</div>
+            ) : (
+              <div style={shell.sourceLegend}>
+                {leadPipeline.sourceSeries.map((entry) => (
+                  <button
+                    key={entry.name}
+                    type="button"
+                    onClick={() => navigate('/leads')}
+                    style={{ border: 'none', background: 'transparent', padding: 0, textAlign: 'left', cursor: 'pointer' }}
+                  >
+                    <span style={shell.sourceLegendItem}>
+                      <span
+                        style={{
+                          ...shell.sourceLegendDot,
+                          background: leadSourcePalette[entry.name] || leadSourcePalette.Other
+                        }}
+                      />
+                      <span>{entry.name}</span>
+                      <span style={{ color: '#64748b', fontWeight: 700 }}>{entry.count}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </article>
       </section>
