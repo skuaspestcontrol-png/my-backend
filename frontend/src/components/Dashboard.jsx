@@ -77,11 +77,11 @@ const shell = {
   metricSub: { margin: '6px 0 0 0', color: '#475569', fontSize: '13px' },
   graphGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '18px' },
   panel: { background: 'rgba(255,255,255,0.9)', borderRadius: '20px', border: '1px solid rgba(159, 23, 77, 0.15)', padding: '20px', boxShadow: 'var(--shadow-soft)' },
-  sourcePanel: { background: '#fff', borderRadius: '20px', border: '1px solid #dbe4f0', padding: 0, overflow: 'hidden', boxShadow: 'none' },
-  sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '18px 22px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0' },
-  sourceHeaderTitle: { margin: 0, color: '#475569', fontSize: '20px', fontWeight: 700 },
-  sourceHeaderBadge: { color: '#111827', fontWeight: 800, background: '#f1f5f9', borderRadius: '10px', padding: '6px 10px', fontSize: '13px', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.12)' },
-  sourceBody: { padding: '22px 22px 24px', display: 'grid', gap: '18px', justifyItems: 'center' },
+  sourcePanel: { background: '#fff', borderRadius: '22px', border: '1px solid #dbe4f0', padding: 0, overflow: 'hidden', boxShadow: 'none' },
+  sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '16px 22px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0' },
+  sourceHeaderTitle: { margin: 0, color: '#475569', fontSize: '19px', fontWeight: 700 },
+  sourceHeaderBadge: { color: '#111827', fontWeight: 700, background: '#f1f5f9', borderRadius: '10px', padding: '6px 10px', fontSize: '13px', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.10)' },
+  sourceBody: { padding: '18px 18px 20px', display: 'grid', gap: '16px', justifyItems: 'center' },
   panelHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' },
   panelTitle: { margin: 0, color: '#0f172a', fontSize: '20px', fontWeight: 800 },
   panelSub: { margin: 0, color: '#334155', fontSize: '15px', fontWeight: 700 },
@@ -93,12 +93,12 @@ const shell = {
   barWrap: { marginTop: '12px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' },
   bars: { display: 'grid', gap: '10px' },
   barRow: { display: 'grid', gridTemplateColumns: '42px 1fr auto auto', alignItems: 'center', gap: '10px' },
-  donutWrap: { display: 'grid', gridTemplateColumns: '1fr', gap: '16px', justifyItems: 'center', marginTop: '4px' },
-  donut: { width: '260px', height: '260px', borderRadius: '50%', position: 'relative' },
-  donutInner: { position: 'absolute', inset: '29%', borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px' },
-  sourceLegend: { display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '10px 16px', maxWidth: '920px' },
-  sourceLegendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '14px', fontWeight: 700, lineHeight: 1.2 },
-  sourceLegendDot: { width: '14px', height: '14px', borderRadius: '999px', display: 'inline-block', flexShrink: 0 }
+  donutWrap: { display: 'grid', gridTemplateColumns: '1fr', gap: '14px', justifyItems: 'center', marginTop: '2px' },
+  donut: { width: '244px', height: '244px', borderRadius: '50%', position: 'relative' },
+  donutInner: { position: 'absolute', inset: '30%', borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px' },
+  sourceLegend: { display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 14px', maxWidth: '840px' },
+  sourceLegendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '13px', fontWeight: 600, lineHeight: 1.2 },
+  sourceLegendDot: { width: '13px', height: '13px', borderRadius: '999px', display: 'inline-block', flexShrink: 0 }
 };
 
 const toNum = (value, fallback = 0) => {
@@ -575,8 +575,8 @@ export default function Dashboard() {
               }}
             >
               <div style={shell.donutInner}>
-                <div style={{ color: '#64748b', fontWeight: 700, fontSize: '15px' }}>Lead Sources</div>
-                <div style={{ color: '#0f172a', fontSize: '26px', fontWeight: 800, lineHeight: 1 }}>{leadPipeline.totalLeads}</div>
+                <div style={{ color: '#64748b', fontWeight: 700, fontSize: '14px' }}>Lead Sources</div>
+                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800, lineHeight: 1 }}>{leadPipeline.totalLeads}</div>
               </div>
             </div>
             {leadPipeline.sourceSeries.length === 0 ? (
