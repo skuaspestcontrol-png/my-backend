@@ -4,6 +4,7 @@ import {
   Activity,
   BadgeIndianRupee,
   CalendarCheck,
+  RefreshCw,
   Users,
   Wallet
 } from 'lucide-react';
@@ -293,6 +294,7 @@ export default function HRDashboard() {
   const [cachedHrData] = useState(() => readHrDashboardCache(initialQueryKey));
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [busy, setBusy] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [status, setStatus] = useState('');
   const [lastUpdatedAt, setLastUpdatedAt] = useState(() => cachedHrData?.updatedAt || 0);
   const [month, setMonth] = useState(initialMonth);
@@ -349,6 +351,7 @@ export default function HRDashboard() {
     const refreshToken = Date.now();
     const request = (async () => {
       try {
+        setIsRefreshing(true);
         if (!shouldSilenceLoad) setBusy(true);
         const results = await Promise.allSettled([
           axios.get(`${API_BASE}/api/hr/filters`, { params: { _ts: refreshToken }, headers }),
@@ -393,6 +396,7 @@ export default function HRDashboard() {
         console.error('HR dashboard load failed', error);
         setStatus(error?.response?.data?.error || 'Unable to load HR dashboard right now.');
       } finally {
+        setIsRefreshing(false);
         if (!shouldSilenceLoad) setBusy(false);
       }
     })();
@@ -515,6 +519,12 @@ export default function HRDashboard() {
 
   return (
     <div style={shell.page}>
+      <style>{`
+        @keyframes hr-dashboard-refresh-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       <section style={shell.hero}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <div>
@@ -525,7 +535,18 @@ export default function HRDashboard() {
             <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.78)' }}>
               Last updated
             </p>
-            <p style={{ margin: '3px 0 0', fontSize: '13px', fontWeight: 700, color: '#fff' }}>{lastUpdatedLabel}</p>
+            <p style={{ margin: '3px 0 0', fontSize: '13px', fontWeight: 700, color: '#fff', display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+              <RefreshCw
+                size={14}
+                strokeWidth={2.3}
+                style={{
+                  flex: '0 0 auto',
+                  animation: isRefreshing ? 'hr-dashboard-refresh-spin 0.9s linear infinite' : 'none',
+                  opacity: isRefreshing ? 1 : 0.85
+                }}
+              />
+              <span>{lastUpdatedLabel}</span>
+            </p>
           </div>
         </div>
       </section>
