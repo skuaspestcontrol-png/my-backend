@@ -9025,7 +9025,7 @@ const syncAttendanceToMysql = async (record) => {
 
 app.get('/api/invoices/:id/pdf', async (req, res) => {
   try {
-    const context = await resolveInvoiceContext(req.params.id);
+    const context = await resolveInvoiceContext(req.query.ref || req.params.id);
     if (!context) return res.status(404).json({ error: 'Invoice not found' });
 
     const pdfBuffer = await generateInvoicePdfBuffer(context);
@@ -9043,7 +9043,7 @@ app.get('/api/invoices/:id/pdf', async (req, res) => {
 
 app.post('/api/invoices/:id/send-email', async (req, res) => {
   try {
-    const context = await resolveInvoiceContext(req.params.id);
+    const context = await resolveInvoiceContext(req.query.ref || req.params.id);
     if (!context) return res.status(404).json({ error: 'Invoice not found' });
 
     const recipient = String(
@@ -9103,7 +9103,7 @@ app.post('/api/invoices/:id/send-email', async (req, res) => {
 
 app.post('/api/invoices/:id/send-whatsapp', async (req, res) => {
   try {
-    const context = await resolveInvoiceContext(req.params.id);
+    const context = await resolveInvoiceContext(req.query.ref || req.params.id);
     if (!context) return res.status(404).json({ error: 'Invoice not found' });
 
     const phoneRaw = String(

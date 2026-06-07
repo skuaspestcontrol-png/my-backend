@@ -1983,16 +1983,18 @@ export default function InvoiceDashboard() {
     ) || null;
 
   const openInvoicePdfPreview = (invoice) => {
-    if (!invoice?._id) return;
     const invoiceNumber = String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || 'Invoice').trim();
-    const pdfUrl = addPdfCacheBust(`${API_BASE_URL}/api/invoices/${invoice._id}/pdf`);
+    const invoiceRef = String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || '').trim();
+    if (!invoiceRef) return;
+    const primaryRef = String(invoice._id || invoiceRef).trim();
+    const pdfUrl = addPdfCacheBust(`${API_BASE_URL}/api/invoices/${encodeURIComponent(primaryRef)}/pdf?ref=${encodeURIComponent(invoiceRef)}`);
     setPdfPreview({
       open: true,
       title: `Invoice - ${invoiceNumber}`,
       pdfUrl,
       downloadFileName: `${invoiceNumber.replace(/[^\w.-]+/g, '_')}.pdf`,
       publicShareUrl: pdfUrl,
-      invoiceId: invoice._id
+      invoiceId: String(invoice._id || invoiceRef).trim()
     });
   };
 
