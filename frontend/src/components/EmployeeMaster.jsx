@@ -390,6 +390,7 @@ export default function EmployeeMaster() {
   const [showPortalPassword, setShowPortalPassword] = useState(false);
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [searchQuery, setSearchQuery] = useState('');
   const [employmentFilter, setEmploymentFilter] = useState('All');
   const [expandedEmployeeIds, setExpandedEmployeeIds] = useState(() => new Set());
   const loadRequestRef = useRef(null);
@@ -418,7 +419,7 @@ export default function EmployeeMaster() {
   };
   const tableStyle = { ...shell.table };
   const filteredEmployees = useMemo(() => {
-    if (employmentFilter === 'All') return employees;
+    const search = String(searchQuery || '').trim().toLowerCase();
     return employees.filter((employee) => {
       const statusValue = normalizeEmploymentStatus(
         employee.employmentStatus
@@ -426,9 +427,30 @@ export default function EmployeeMaster() {
         || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active'),
         'Active'
       );
-      return statusValue === employmentFilter;
+      if (employmentFilter !== 'All' && statusValue !== employmentFilter) return false;
+      if (!search) return true;
+
+      const haystack = [
+        employee.empCode,
+        employeeDisplayName(employee),
+        employee.role,
+        statusValue,
+        employee.mobile,
+        employee.email,
+        employee.emailId,
+        employee.salaryPerMonth,
+        employee.salary,
+        employee.resignationDate,
+        employee.resignation_date,
+        employee.dateOfJoining,
+        employee.joining_date
+      ]
+        .map((value) => String(value || '').toLowerCase())
+        .join(' ');
+
+      return haystack.includes(search);
     });
-  }, [employees, employmentFilter]);
+  }, [employees, employmentFilter, searchQuery]);
   const toggleEmployeeDetails = (employeeId) => {
     const id = String(employeeId || '').trim();
     if (!id) return;
@@ -752,6 +774,17 @@ export default function EmployeeMaster() {
       <div style={shell.topbar}>
         <h2 style={shell.title}>Employee Master</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <label style={{ display: 'grid', gap: '4px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b' }}>
+              Search
+            </span>
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search employee"
+              style={{ ...shell.input, minHeight: '34px', height: '34px', width: '200px', padding: '0 10px' }}
+            />
+          </label>
           <label style={{ display: 'grid', gap: '4px' }}>
             <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b' }}>
               Filter by status
