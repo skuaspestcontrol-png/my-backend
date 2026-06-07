@@ -83,10 +83,31 @@ const shell = {
     letterSpacing: '0.05em',
     textTransform: 'uppercase'
   },
-  tableWrap: { background: '#fff', borderRadius: '18px', border: '1px solid var(--border)', overflowX: 'auto' },
-  table: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
-  th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#475569', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
-  td: { padding: '11px 10px', borderBottom: '1px solid #eef2f7', fontSize: '13px', color: '#0f172a', verticalAlign: 'top' },
+  tableWrap: { background: '#fff', borderRadius: '18px', border: '1px solid var(--border)', overflow: 'hidden' },
+  table: { width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' },
+  th: {
+    textAlign: 'left',
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#64748b',
+    padding: '10px 8px',
+    borderBottom: '1px solid var(--color-border)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  },
+  td: {
+    padding: '9px 8px',
+    borderBottom: '1px solid #eef2f7',
+    fontSize: '12px',
+    color: '#334155',
+    verticalAlign: 'middle',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  },
   rowActionBtn: {
     width: '34px',
     height: '34px',
@@ -185,28 +206,28 @@ const employeeColumns = [
   { key: 'actions', label: 'Actions' }
 ];
 const employeeDefaultWidths = {
-  code: 140,
-  name: 180,
-  role: 140,
-  employment: 150,
-  resignDate: 130,
-  mobile: 130,
-  email: 220,
-  salary: 130,
-  portal: 130,
-  actions: 130
+  code: 112,
+  name: 170,
+  role: 106,
+  employment: 120,
+  resignDate: 104,
+  mobile: 112,
+  email: 190,
+  salary: 120,
+  portal: 106,
+  actions: 96
 };
 const employeeColumnBounds = {
-  code: { min: 120, max: 180 },
-  name: { min: 160, max: 240 },
-  role: { min: 120, max: 180 },
-  employment: { min: 130, max: 190 },
-  resignDate: { min: 110, max: 160 },
-  mobile: { min: 110, max: 160 },
-  email: { min: 180, max: 320 },
-  salary: { min: 110, max: 180 },
-  portal: { min: 110, max: 180 },
-  actions: { min: 120, max: 180 }
+  code: { min: 96, max: 130 },
+  name: { min: 140, max: 210 },
+  role: { min: 92, max: 140 },
+  employment: { min: 96, max: 140 },
+  resignDate: { min: 92, max: 126 },
+  mobile: { min: 100, max: 130 },
+  email: { min: 140, max: 240 },
+  salary: { min: 100, max: 140 },
+  portal: { min: 92, max: 130 },
+  actions: { min: 88, max: 120 }
 };
 
 const toAnnual = (value) => {
@@ -394,8 +415,7 @@ export default function EmployeeMaster() {
     WebkitAppearance: 'none',
     appearance: 'none'
   };
-  const tableMinWidth = employeeColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || employeeDefaultWidths[column.key] || 100), 0);
-  const tableStyle = { ...shell.table, minWidth: `${Math.max(980, tableMinWidth)}px` };
+  const tableStyle = { ...shell.table };
   const filteredEmployees = useMemo(() => {
     if (employmentFilter === 'All') return employees;
     return employees.filter((employee) => {
@@ -773,7 +793,7 @@ export default function EmployeeMaster() {
               filteredEmployees.map((employee) => (
                 <tr key={employee._id || employee.empCode}>
                   <td style={{ ...bodyCellStyle('code'), color: 'var(--color-primary-dark)', fontWeight: 800 }}>{employee.empCode || '-'}</td>
-                  <td style={bodyCellStyle('name')}>{employeeDisplayName(employee)}</td>
+                  <td style={{ ...bodyCellStyle('name'), fontWeight: 600 }}>{employeeDisplayName(employee)}</td>
                   <td style={bodyCellStyle('role', 'center')}>{employee.role || '-'}</td>
                   <td style={bodyCellStyle('employment', 'center')}>
                     <span
@@ -781,8 +801,8 @@ export default function EmployeeMaster() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        minHeight: '28px',
-                        padding: '0 10px',
+                        minHeight: '24px',
+                        padding: '0 8px',
                         borderRadius: '999px',
                         border: '1px solid rgba(159, 23, 77, 0.16)',
                         background: normalizeEmploymentStatus(employee.employmentStatus || employee.employment_status || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active')) === 'Resigned'
@@ -795,8 +815,8 @@ export default function EmployeeMaster() {
                           : normalizeEmploymentStatus(employee.employmentStatus || employee.employment_status || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active')) === 'Inactive'
                             ? '#475569'
                             : '#15803d',
-                        fontSize: '12px',
-                        fontWeight: 800
+                        fontSize: '11px',
+                        fontWeight: 700
                       }}
                     >
                       {normalizeEmploymentStatus(employee.employmentStatus || employee.employment_status || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active'))}
@@ -805,14 +825,14 @@ export default function EmployeeMaster() {
                   <td style={bodyCellStyle('resignDate', 'center')}>
                     {normalizeDateInputValue(employee.resignationDate || employee.resignation_date || '') ? formatDate(employee.resignationDate || employee.resignation_date) : '-'}
                   </td>
-                  <td style={bodyCellStyle('mobile', 'center')}>{employee.mobile || '-'}</td>
+                  <td style={{ ...bodyCellStyle('mobile', 'center'), fontWeight: 600 }}>{employee.mobile || '-'}</td>
                   <td style={bodyCellStyle('email')}>{employee.email || employee.emailId || '-'}</td>
-                  <td style={bodyCellStyle('salary', 'center')}>{formatCurrency(employee.salaryPerMonth || employee.salary || 0)}</td>
-                  <td style={bodyCellStyle('portal', 'center')}>{employee.webPortalAccessEnabled || employee.portalAccess === 'Yes' || employee.portalAccess === true ? 'Enabled' : 'Disabled'}</td>
+                  <td style={{ ...bodyCellStyle('salary', 'center'), fontWeight: 600 }}>{formatCurrency(employee.salaryPerMonth || employee.salary || 0)}</td>
+                  <td style={{ ...bodyCellStyle('portal', 'center'), fontWeight: 600 }}>{employee.webPortalAccessEnabled || employee.portalAccess === 'Yes' || employee.portalAccess === true ? 'Enabled' : 'Disabled'}</td>
                   <td style={bodyCellStyle('actions', 'center')}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <button type="button" onClick={() => openEditEmployee(employee)} style={{ ...shell.rowActionBtn, color: 'var(--color-primary-dark)' }}><Edit size={19} strokeWidth={2.25} /></button>
-                      <button type="button" onClick={() => deleteEmployee(employee._id)} style={{ ...shell.rowActionBtn, color: '#dc2626' }}><Trash2 size={19} strokeWidth={2.25} /></button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                      <button type="button" onClick={() => openEditEmployee(employee)} style={{ ...shell.rowActionBtn, width: '30px', height: '30px', minHeight: '30px', color: 'var(--color-primary-dark)' }}><Edit size={16} strokeWidth={2.25} /></button>
+                      <button type="button" onClick={() => deleteEmployee(employee._id)} style={{ ...shell.rowActionBtn, width: '30px', height: '30px', minHeight: '30px', color: '#dc2626' }}><Trash2 size={16} strokeWidth={2.25} /></button>
                     </div>
                   </td>
                 </tr>
