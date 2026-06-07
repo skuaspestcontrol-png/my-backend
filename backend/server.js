@@ -5600,7 +5600,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
       const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
       const [result] = await conn.query(
         `UPDATE employees
-         SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, password = ?, email = ?, portal_password = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, city = ?, pincode = ?, profile_photo = ?, present_address = ?, status = ?, payload = ?
+         SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, password = ?, email = ?, portal_password = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, employment_status = ?, resignation_date = ?, city = ?, pincode = ?, profile_photo = ?, present_address = ?, status = ?, payload = ?
          WHERE external_id = ? OR id = ?`,
         [
           updatedEmployee._id,
