@@ -71,7 +71,7 @@ const shell = {
   muted: { color: '#94a3b8' },
   techRow: { display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr)', gap: '8px', alignItems: 'end' },
   selectedWrap: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
-  selectedTag: { display: 'inline-flex', gap: '6px', alignItems: 'center', border: '1px solid #D1D5DB', borderRadius: '999px', background: '#f8fafc', color: '#334155', fontSize: '11px', fontWeight: 700, padding: '3px 8px' },
+  selectedTag: { display: 'inline-flex', gap: '6px', alignItems: 'center', minHeight: '32px', border: '1px solid #D1D5DB', borderRadius: '999px', background: '#f8fafc', color: '#334155', fontSize: '11px', fontWeight: 700, padding: '0 10px' },
   removeTag: { border: 'none', background: 'transparent', color: '#64748b', display: 'inline-flex', padding: 0, cursor: 'pointer' },
   bottomStatus: { margin: 0, fontSize: '12px', fontWeight: 700 }
 };
