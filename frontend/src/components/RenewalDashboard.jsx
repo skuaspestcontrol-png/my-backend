@@ -75,7 +75,7 @@ const renewalColumnBounds = {
 };
 
 const shell = {
-  page: { display: 'grid', gap: 12, fontFamily: 'Inter, system-ui, sans-serif' },
+  page: { display: 'grid', gap: 12, fontFamily: 'var(--font-sans)' },
   hero: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111827' },
   subtitle: { margin: '4px 0 0', color: '#64748b', fontSize: 13, fontWeight: 650 },

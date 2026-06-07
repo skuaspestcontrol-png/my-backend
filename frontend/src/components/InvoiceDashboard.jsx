@@ -130,6 +130,7 @@ const paymentDepositOptions = ['Billing', 'Bank', 'Cash', 'Undeposited Funds'];
 const contractPeriodOptions = [
   { value: 'single_time', label: 'Single time' },
   { value: 'monthly', label: 'Monthly' },
+  { value: 'three_months', label: '3 months' },
   { value: 'half_yearly', label: 'Half Yearly' },
   { value: 'annual', label: 'Annual' },
   { value: 'two_years', label: '2 years' },

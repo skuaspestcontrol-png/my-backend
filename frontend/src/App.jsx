@@ -44,7 +44,7 @@ class RouteErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '18px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <div style={{ padding: '18px', fontFamily: 'var(--font-sans)' }}>
           <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>Module failed to load</h3>
           <p style={{ margin: '0 0 12px 0', color: '#475569' }}>{this.state.errorMessage}</p>
           <button

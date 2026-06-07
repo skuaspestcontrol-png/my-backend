@@ -38,6 +38,7 @@ const CONTRACT_PERIOD_CONFIG = {
   weekly: { unit: 'days', value: 7 },
   fortnightly_visits: { unit: 'days', value: 14 },
   monthly: { unit: 'months', value: 1 },
+  three_months: { unit: 'months', value: 3 },
   bi_monthly: { unit: 'months', value: 2 },
   quarterly: { unit: 'months', value: 3 },
   half_yearly: { unit: 'months', value: 6 },
