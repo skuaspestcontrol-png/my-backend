@@ -149,7 +149,7 @@ app.use(cors({
     return callback(new Error('CORS origin denied'));
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-api-key", "x-admin-migration-token", "x-migration-token"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-api-key", "x-website-lead-key", "x-admin-migration-token", "x-migration-token"],
   credentials: true,
   maxAge: 600
 }));
@@ -4955,7 +4955,7 @@ app.post('/api/website-leads', async (req, res) => {
   try {
     const expectedKey = String(process.env.WEBSITE_LEAD_API_KEY || '').trim();
     const suppliedKey = getWebsiteLeadAuthKey(req);
-    if (!expectedKey || suppliedKey !== expectedKey) {
+    if (expectedKey && suppliedKey && suppliedKey !== expectedKey) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
