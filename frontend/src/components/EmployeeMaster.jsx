@@ -58,14 +58,14 @@ const defaultForm = {
 
 const shell = {
   page: {
-    padding: '12px',
+    padding: '10px',
     background: 'transparent',
     border: 'none',
     borderRadius: 0,
     backdropFilter: 'none'
   },
-  topbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' },
-  title: { margin: 0, fontSize: '30px', letterSpacing: '-0.02em', color: '#0f172a', fontWeight: 800 },
+  topbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' },
+  title: { margin: 0, fontSize: '28px', letterSpacing: '-0.02em', color: '#0f172a', fontWeight: 800, lineHeight: 1.1 },
   addBtn: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -74,11 +74,11 @@ const shell = {
     background: 'var(--color-primary)',
     color: '#fff',
     borderRadius: '12px',
-    minHeight: '34px',
-    height: '34px',
-    padding: '0 14px',
+    minHeight: '32px',
+    height: '32px',
+    padding: '0 12px',
     cursor: 'pointer',
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: 700,
     letterSpacing: '0.05em',
     textTransform: 'uppercase'
@@ -87,10 +87,10 @@ const shell = {
   table: { width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' },
   th: {
     textAlign: 'left',
-    fontSize: '11px',
+    fontSize: '10px',
     fontWeight: 700,
     color: '#64748b',
-    padding: '8px 6px',
+    padding: '7px 5px',
     borderBottom: '1px solid var(--color-border)',
     textTransform: 'uppercase',
     letterSpacing: '0.03em',
@@ -99,9 +99,9 @@ const shell = {
     textOverflow: 'ellipsis'
   },
   td: {
-    padding: '8px 6px',
+    padding: '7px 5px',
     borderBottom: '1px solid #eef2f7',
-    fontSize: '11px',
+    fontSize: '10px',
     color: '#334155',
     verticalAlign: 'middle',
     whiteSpace: 'nowrap',
@@ -778,24 +778,24 @@ export default function EmployeeMaster() {
         <h2 style={shell.title}>Employee Master</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <label style={{ display: 'grid', gap: '4px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b' }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b' }}>
               Search
             </span>
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search employee"
-              style={{ ...shell.input, minHeight: '34px', height: '34px', width: '200px', padding: '0 10px' }}
+              style={{ ...shell.input, minHeight: '32px', height: '32px', width: '184px', padding: '0 10px', fontSize: '13px' }}
             />
           </label>
           <label style={{ display: 'grid', gap: '4px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b' }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b' }}>
               Filter by status
             </span>
             <select
               value={employmentFilter}
               onChange={(event) => setEmploymentFilter(event.target.value)}
-              style={{ ...shell.input, minHeight: '34px', height: '34px', width: '160px', padding: '0 10px' }}
+              style={{ ...shell.input, minHeight: '32px', height: '32px', width: '152px', padding: '0 10px', fontSize: '13px' }}
             >
               {employeeStatusFilters.map((entry) => (
                 <option key={entry} value={entry}>{entry}</option>
