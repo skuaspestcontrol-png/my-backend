@@ -14,6 +14,7 @@ const roles = ['Sales', 'Sales Person', 'Technician', 'Operations'];
 const genderOptions = ['Male', 'Female'];
 const maritalOptions = ['Married', 'Unmarried'];
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+const employeeStatusFilters = ['All', 'Active', 'Inactive', 'Resigned'];
 
 const defaultForm = {
   empCode: '',
@@ -368,6 +369,7 @@ export default function EmployeeMaster() {
   const [showPortalPassword, setShowPortalPassword] = useState(false);
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [employmentFilter, setEmploymentFilter] = useState('All');
   const loadRequestRef = useRef(null);
   const {
     getColumnWidth,
@@ -394,6 +396,18 @@ export default function EmployeeMaster() {
   };
   const tableMinWidth = employeeColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || employeeDefaultWidths[column.key] || 100), 0);
   const tableStyle = { ...shell.table, minWidth: `${Math.max(980, tableMinWidth)}px` };
+  const filteredEmployees = useMemo(() => {
+    if (employmentFilter === 'All') return employees;
+    return employees.filter((employee) => {
+      const statusValue = normalizeEmploymentStatus(
+        employee.employmentStatus
+        || employee.employment_status
+        || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active'),
+        'Active'
+      );
+      return statusValue === employmentFilter;
+    });
+  }, [employees, employmentFilter]);
   const headCellStyle = (key, align = 'left') => ({
     ...shell.th,
     position: 'relative',
@@ -707,6 +721,20 @@ export default function EmployeeMaster() {
       <div style={shell.topbar}>
         <h2 style={shell.title}>Employee Master</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <label style={{ display: 'grid', gap: '4px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b' }}>
+              Filter by status
+            </span>
+            <select
+              value={employmentFilter}
+              onChange={(event) => setEmploymentFilter(event.target.value)}
+              style={{ ...shell.input, minHeight: '34px', height: '34px', width: '160px', padding: '0 10px' }}
+            >
+              {employeeStatusFilters.map((entry) => (
+                <option key={entry} value={entry}>{entry}</option>
+              ))}
+            </select>
+          </label>
           <button type="button" style={shell.addBtn} onClick={openAddEmployee}>
             <Plus size={16} /> Add Employee
           </button>
@@ -735,12 +763,14 @@ export default function EmployeeMaster() {
             </tr>
           </thead>
           <tbody>
-            {employees.length === 0 ? (
+            {filteredEmployees.length === 0 ? (
               <tr>
-                <td style={shell.td} colSpan={10}>No employees found.</td>
+                <td style={shell.td} colSpan={10}>
+                  {employmentFilter === 'All' ? 'No employees found.' : `No ${employmentFilter.toLowerCase()} employees found.`}
+                </td>
               </tr>
             ) : (
-              employees.map((employee) => (
+              filteredEmployees.map((employee) => (
                 <tr key={employee._id || employee.empCode}>
                   <td style={{ ...bodyCellStyle('code'), color: 'var(--color-primary-dark)', fontWeight: 800 }}>{employee.empCode || '-'}</td>
                   <td style={bodyCellStyle('name')}>{employeeDisplayName(employee)}</td>
