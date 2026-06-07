@@ -18,6 +18,8 @@ const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const defaultForm = {
   empCode: '',
   dateOfJoining: '',
+  employmentStatus: 'Active',
+  resignationDate: '',
   firstName: '',
   lastName: '',
   gender: 'Male',
@@ -173,6 +175,8 @@ const employeeColumns = [
   { key: 'code', label: 'Employee Code' },
   { key: 'name', label: 'Name' },
   { key: 'role', label: 'Role' },
+  { key: 'employment', label: 'Employment Status' },
+  { key: 'resignDate', label: 'Resign Date' },
   { key: 'mobile', label: 'Mobile' },
   { key: 'email', label: 'Email' },
   { key: 'salary', label: 'Salary/Month' },
@@ -183,6 +187,8 @@ const employeeDefaultWidths = {
   code: 140,
   name: 180,
   role: 140,
+  employment: 150,
+  resignDate: 130,
   mobile: 130,
   email: 220,
   salary: 130,
@@ -193,6 +199,8 @@ const employeeColumnBounds = {
   code: { min: 120, max: 180 },
   name: { min: 160, max: 240 },
   role: { min: 120, max: 180 },
+  employment: { min: 130, max: 190 },
+  resignDate: { min: 110, max: 160 },
   mobile: { min: 110, max: 160 },
   email: { min: 180, max: 320 },
   salary: { min: 110, max: 180 },
@@ -209,6 +217,14 @@ const toAnnual = (value) => {
 const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 const toTenDigitNumber = normalizeIndianMobileNumber;
 const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
+const normalizeEmploymentStatus = (value, fallback = 'Active') => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return fallback;
+  if (['active', 'working', 'currently working'].includes(raw)) return 'Active';
+  if (['resigned', 'left', 'quit'].includes(raw)) return 'Resigned';
+  if (['inactive', 'not active', 'disabled'].includes(raw)) return 'Inactive';
+  return String(value || fallback).trim();
+};
 const normalizeDateInputValue = (value) => {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -262,11 +278,20 @@ const buildEmployeeCode = (settings, employees) => {
 
 const normalizeEmployee = (employee = {}) => {
   const salary = Number(employee.salaryPerMonth ?? employee.salary ?? 0);
+  const normalizedEmploymentStatus = normalizeEmploymentStatus(
+    employee.employmentStatus
+    || employee.employment_status
+    || (employee.resignationDate || employee.resignation_date ? 'Resigned' : ''),
+    'Active'
+  );
+  const normalizedResignationDate = normalizeDateInputValue(employee.resignationDate || employee.resignation_date || '');
   return {
     ...defaultForm,
     ...employee,
     empCode: employee.empCode || '',
     dateOfJoining: normalizeDateInputValue(employee.dateOfJoining || employee.joiningDate || ''),
+    employmentStatus: normalizedEmploymentStatus,
+    resignationDate: normalizedEmploymentStatus === 'Resigned' ? normalizedResignationDate : '',
     firstName: employee.firstName || '',
     lastName: employee.lastName || '',
     gender: employee.gender || 'Male',
@@ -445,6 +470,17 @@ export default function EmployeeMaster() {
       return;
     }
     setForm((prev) => {
+      if (key === 'employmentStatus') {
+        const nextEmploymentStatus = normalizeEmploymentStatus(value, 'Active');
+        return {
+          ...prev,
+          employmentStatus: nextEmploymentStatus,
+          resignationDate: nextEmploymentStatus === 'Resigned' ? prev.resignationDate : ''
+        };
+      }
+      if (key === 'resignationDate') {
+        return { ...prev, resignationDate: normalizeDateInputValue(value) };
+      }
       if (key === 'role') {
         const nextRole = String(value || '');
         if (isPortalEligibleRole(nextRole)) {
@@ -587,6 +623,8 @@ export default function EmployeeMaster() {
       profile_photo: String(form.employeePhotoUrl || '').trim(),
       dateOfBirth: normalizeDateInputValue(form.dateOfBirth),
       dateOfJoining: normalizeDateInputValue(form.dateOfJoining),
+      employmentStatus: normalizeEmploymentStatus(form.employmentStatus, 'Active'),
+      resignationDate: normalizeDateInputValue(form.resignationDate),
       role: String(form.role || 'Technician').trim(),
       roleName: String(form.roleName || '').trim(),
       maritalStatus: String(form.maritalStatus || 'Unmarried').trim(),
@@ -687,6 +725,8 @@ export default function EmployeeMaster() {
               <th style={headCellStyle('code')}>Employee Code</th>
               <th style={headCellStyle('name')}>Name</th>
               <th style={headCellStyle('role', 'center')}>Role</th>
+              <th style={headCellStyle('employment', 'center')}>Employment Status</th>
+              <th style={headCellStyle('resignDate', 'center')}>Resign Date</th>
               <th style={headCellStyle('mobile', 'center')}>Mobile</th>
               <th style={headCellStyle('email')}>Email</th>
               <th style={headCellStyle('salary', 'center')}>Salary/Month</th>
@@ -697,7 +737,7 @@ export default function EmployeeMaster() {
           <tbody>
             {employees.length === 0 ? (
               <tr>
-                <td style={shell.td} colSpan={8}>No employees found.</td>
+                <td style={shell.td} colSpan={10}>No employees found.</td>
               </tr>
             ) : (
               employees.map((employee) => (
@@ -705,6 +745,36 @@ export default function EmployeeMaster() {
                   <td style={{ ...bodyCellStyle('code'), color: 'var(--color-primary-dark)', fontWeight: 800 }}>{employee.empCode || '-'}</td>
                   <td style={bodyCellStyle('name')}>{employeeDisplayName(employee)}</td>
                   <td style={bodyCellStyle('role', 'center')}>{employee.role || '-'}</td>
+                  <td style={bodyCellStyle('employment', 'center')}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: '28px',
+                        padding: '0 10px',
+                        borderRadius: '999px',
+                        border: '1px solid rgba(159, 23, 77, 0.16)',
+                        background: normalizeEmploymentStatus(employee.employmentStatus || employee.employment_status || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active')) === 'Resigned'
+                          ? 'rgba(220, 38, 38, 0.08)'
+                          : normalizeEmploymentStatus(employee.employmentStatus || employee.employment_status || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active')) === 'Inactive'
+                            ? 'rgba(148, 163, 184, 0.16)'
+                            : 'rgba(16, 185, 129, 0.10)',
+                        color: normalizeEmploymentStatus(employee.employmentStatus || employee.employment_status || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active')) === 'Resigned'
+                          ? '#b91c1c'
+                          : normalizeEmploymentStatus(employee.employmentStatus || employee.employment_status || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active')) === 'Inactive'
+                            ? '#475569'
+                            : '#15803d',
+                        fontSize: '12px',
+                        fontWeight: 800
+                      }}
+                    >
+                      {normalizeEmploymentStatus(employee.employmentStatus || employee.employment_status || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active'))}
+                    </span>
+                  </td>
+                  <td style={bodyCellStyle('resignDate', 'center')}>
+                    {normalizeDateInputValue(employee.resignationDate || employee.resignation_date || '') ? formatDate(employee.resignationDate || employee.resignation_date) : '-'}
+                  </td>
                   <td style={bodyCellStyle('mobile', 'center')}>{employee.mobile || '-'}</td>
                   <td style={bodyCellStyle('email')}>{employee.email || employee.emailId || '-'}</td>
                   <td style={bodyCellStyle('salary', 'center')}>{formatCurrency(employee.salaryPerMonth || employee.salary || 0)}</td>
@@ -743,6 +813,34 @@ export default function EmployeeMaster() {
                   <div style={shell.field}>
                     <label style={shell.label}>Employee Code (Auto)</label>
                     <input style={shell.input} value={form.empCode} onChange={(event) => updateField('empCode', event.target.value)} />
+                  </div>
+                </div>
+                <div style={{ ...grid3Style, marginTop: '12px' }}>
+                  <div style={shell.field}>
+                    <label style={shell.label}>Employment Status</label>
+                    <select style={shell.input} value={form.employmentStatus} onChange={(event) => updateField('employmentStatus', event.target.value)}>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                      <option value="Resigned">Resigned</option>
+                    </select>
+                  </div>
+                  <div style={shell.field}>
+                    <label style={shell.label}>Resignation Date</label>
+                    <input
+                      type="date"
+                      style={dateInputStyle}
+                      value={form.resignationDate}
+                      onChange={(event) => updateField('resignationDate', event.target.value)}
+                      disabled={normalizeEmploymentStatus(form.employmentStatus, 'Active') !== 'Resigned'}
+                    />
+                  </div>
+                  <div style={shell.field}>
+                    <label style={shell.label}>Employment Note</label>
+                    <input
+                      style={shell.input}
+                      value={normalizeEmploymentStatus(form.employmentStatus, 'Active') === 'Resigned' ? 'Add reason in notes if needed' : 'Currently employed'}
+                      readOnly
+                    />
                   </div>
                 </div>
                 <p style={{ ...shell.helper, marginTop: '8px' }}>Employee code is auto-generated from Settings prefix for new records.</p>

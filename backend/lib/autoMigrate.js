@@ -274,6 +274,8 @@ const tableDefinitions = [
       'role_name VARCHAR(255) NULL',
       'salary DECIMAL(18,2) NULL',
       'joining_date DATE NULL',
+      'employment_status VARCHAR(40) NULL',
+      'resignation_date DATE NULL',
       'city VARCHAR(255) NULL',
       'pincode VARCHAR(30) NULL',
       'profile_photo TEXT NULL',
@@ -1024,6 +1026,7 @@ const collectColumns = () => {
     emp_code: 'VARCHAR(120) NULL', first_name: 'VARCHAR(255) NULL', last_name: 'VARCHAR(255) NULL', full_name: 'VARCHAR(255) NULL',
     mobile: 'VARCHAR(30) NULL', password: 'VARCHAR(255) NULL', email: 'VARCHAR(255) NULL', portal_password: 'VARCHAR(255) NULL',
     role: 'VARCHAR(120) NULL', role_name: 'VARCHAR(255) NULL', salary: 'DECIMAL(18,2) NULL', joining_date: 'DATE NULL',
+    employment_status: 'VARCHAR(40) NULL', resignation_date: 'DATE NULL',
     city: 'VARCHAR(255) NULL', pincode: 'VARCHAR(30) NULL', profile_photo: 'TEXT NULL', present_address: 'TEXT NULL', status: 'VARCHAR(80) NULL'
   });
   add('jobs', {

@@ -1201,6 +1201,14 @@ const normalizeDateOnly = (value) => {
   const day = String(parsed.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+const normalizeEmploymentStatus = (value, fallback = 'Active') => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return fallback;
+  if (['active', 'working', 'currently working'].includes(raw)) return 'Active';
+  if (['resigned', 'left', 'quit'].includes(raw)) return 'Resigned';
+  if (['inactive', 'not active', 'disabled'].includes(raw)) return 'Inactive';
+  return String(value || fallback).trim();
+};
 const formatCompanyPhoneLine = (phone = '', alternatePhone = '') => {
   const primary = String(phone ?? '').trim();
   const alternate = String(alternatePhone ?? '').trim();
@@ -2840,7 +2848,7 @@ const resolveEmployeeLoginRecord = async (mobile) => {
       const employee = await withMysqlConnection(async (conn) => {
         await ensureEmployeeAuthColumns(conn);
         const [rows] = await conn.query(
-          `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, status, payload
+          `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, status, payload
            FROM employees
            WHERE REPLACE(REPLACE(REPLACE(COALESCE(mobile, ''), ' ', ''), '-', ''), '+91', '') = ?
            LIMIT 1`,
@@ -2866,7 +2874,9 @@ const resolveEmployeeLoginRecord = async (mobile) => {
           webPortalAccessEnabled: Boolean(payload.webPortalAccessEnabled ?? payload.portalAccess ?? row.status),
           portalAccess: payload.portalAccess ?? row.status ?? '',
           appAccessEnabled: Boolean(payload.appAccessEnabled),
-          email: String(payload.email ?? payload.emailId ?? row.email ?? '').trim()
+          email: String(payload.email ?? payload.emailId ?? row.email ?? '').trim(),
+          employmentStatus: normalizeEmploymentStatus(payload.employmentStatus ?? row.employment_status ?? (payload.resignationDate || payload.resignation_date ? 'Resigned' : 'Active'), 'Active'),
+          resignationDate: normalizeDateOnly(payload.resignationDate ?? row.resignation_date ?? '')
         };
       });
       if (employee) return employee;
@@ -4547,7 +4557,9 @@ const ensureEmployeeAuthColumns = async (conn) => {
   if (employeeAuthColumnsEnsured) return;
   await ensureColumnsIfMissing(conn, 'employees', [
     { name: 'password', definition: 'VARCHAR(255) NULL' },
-    { name: 'portal_password', definition: 'VARCHAR(255) NULL' }
+    { name: 'portal_password', definition: 'VARCHAR(255) NULL' },
+    { name: 'employment_status', definition: 'VARCHAR(40) NULL' },
+    { name: 'resignation_date', definition: 'DATE NULL' }
   ]);
   employeeAuthColumnsEnsured = true;
 };
@@ -5236,7 +5248,7 @@ app.get('/api/employees', async (req, res) => {
     const mysqlRows = await withMysqlConnection(async (conn) => {
       await ensureEmployeeAuthColumns(conn);
       const [rows] = await conn.query(
-        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, status, payload
+        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, status, payload
          FROM employees
          ORDER BY id DESC`
       );
@@ -5273,6 +5285,8 @@ app.get('/api/employees', async (req, res) => {
         salary,
         salaryPerMonth: salary,
         dateOfJoining: normalizeDateOnly(row?.joining_date ?? payload.dateOfJoining ?? ''),
+        employmentStatus: normalizeEmploymentStatus(payload.employmentStatus ?? row?.employment_status ?? (payload.resignationDate || payload.resignation_date ? 'Resigned' : 'Active'), 'Active'),
+        resignationDate: normalizeDateOnly(payload.resignationDate ?? row?.resignation_date ?? ''),
         city: String(row?.city ?? payload.city ?? '').trim(),
         pincode: String(row?.pincode ?? payload.pincode ?? '').trim(),
         employeePhotoUrl: profilePhoto,
@@ -5296,6 +5310,8 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
     emp.profile_photo = existingProfilePhoto;
     emp.employeePhotoUrl = existingProfilePhoto;
     emp.dateOfJoining = normalizeDateOnly(emp.dateOfJoining);
+    emp.employmentStatus = normalizeEmploymentStatus(emp.employmentStatus, 'Active');
+    emp.resignationDate = normalizeDateOnly(emp.resignationDate);
     if (req.file) {
       const relativePath = `/uploads/employees/photos/${req.file.filename}`;
       emp.profile_photo = relativePath;
@@ -5334,12 +5350,14 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
           role_name,
           salary,
           joining_date,
+          employment_status,
+          resignation_date,
           city,
           pincode,
           profile_photo,
           present_address,
           payload
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           emp_code = VALUES(emp_code),
           first_name = VALUES(first_name),
@@ -5353,6 +5371,8 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
           role_name = VALUES(role_name),
           salary = VALUES(salary),
           joining_date = VALUES(joining_date),
+          employment_status = VALUES(employment_status),
+          resignation_date = VALUES(resignation_date),
           city = VALUES(city),
           pincode = VALUES(pincode),
           profile_photo = VALUES(profile_photo),
@@ -5373,6 +5393,8 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
           emp.roleName || "",
           emp.salary || emp.salaryPerMonth || 0,
           normalizeDateOnly(emp.dateOfJoining) || null,
+          normalizeEmploymentStatus(emp.employmentStatus, 'Active'),
+          normalizeDateOnly(emp.resignationDate) || null,
           emp.city || "",
           emp.pincode || "",
           emp.profile_photo || "",
@@ -5401,10 +5423,10 @@ const fetchEmployeeByAnyId = async (employeeId) => {
       await ensureEmployeeAuthColumns(conn);
       const isNumeric = /^\d+$/.test(target);
       const query = isNumeric
-        ? `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, payload
+        ? `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, payload
            FROM employees
            WHERE external_id = ? OR id = ? LIMIT 1`
-        : `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, payload
+        : `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, payload
            FROM employees
            WHERE external_id = ? LIMIT 1`;
       const params = isNumeric ? [target, Number(target)] : [target];
@@ -5434,7 +5456,9 @@ const fetchEmployeeByAnyId = async (employeeId) => {
         profile_photo: String(row?.profile_photo ?? payload.profile_photo ?? payload.employeePhotoUrl ?? '').trim(),
         present_address: String(row?.present_address ?? payload.present_address ?? '').trim(),
         salary: Number(payload.salary ?? payload.salaryPerMonth ?? row.salary ?? 0) || 0,
-        dateOfJoining: normalizeDateOnly(payload.dateOfJoining ?? row.joining_date ?? '')
+        dateOfJoining: normalizeDateOnly(payload.dateOfJoining ?? row.joining_date ?? ''),
+        employmentStatus: normalizeEmploymentStatus(payload.employmentStatus ?? row.employment_status ?? (payload.resignationDate || payload.resignation_date ? 'Resigned' : 'Active'), 'Active'),
+        resignationDate: normalizeDateOnly(payload.resignationDate ?? row.resignation_date ?? '')
       };
     });
     if (mysqlEmployee && typeof mysqlEmployee === 'object') return mysqlEmployee;
@@ -5465,6 +5489,8 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
   incoming.profile_photo = normalizedProfilePhoto;
   incoming.employeePhotoUrl = normalizedProfilePhoto;
   incoming.dateOfJoining = normalizeDateOnly(incoming.dateOfJoining);
+  incoming.employmentStatus = normalizeEmploymentStatus(incoming.employmentStatus, 'Active');
+  incoming.resignationDate = normalizeDateOnly(incoming.resignationDate);
 
   const firstName = String(incoming.firstName || '').trim();
   const lastName = String(incoming.lastName || '').trim();
@@ -5484,6 +5510,8 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
     roleName: String(incoming.roleName || '').trim(),
     salary: Number(incoming.salary ?? incoming.salaryPerMonth ?? 0) || 0,
     dateOfJoining: normalizeDateOnly(incoming.dateOfJoining),
+    employmentStatus: normalizeEmploymentStatus(incoming.employmentStatus, 'Active'),
+    resignationDate: incoming.employmentStatus === 'Resigned' ? normalizeDateOnly(incoming.resignationDate) : '',
     city: String(incoming.city || '').trim(),
     pincode: String(incoming.pincode || '').trim(),
     employeePhotoUrl: normalizedProfilePhoto,
@@ -5493,6 +5521,8 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
   const payloadToSave = {
     ...incoming,
     dateOfJoining: updatedEmployee.dateOfJoining,
+    employmentStatus: updatedEmployee.employmentStatus,
+    resignationDate: updatedEmployee.resignationDate,
     employeePhotoUrl: normalizedProfilePhoto,
     profile_photo: normalizedProfilePhoto,
     _id: updatedEmployee._id
@@ -5536,6 +5566,8 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
           updatedEmployee.roleName || '',
           updatedEmployee.salary || 0,
           normalizeDateOnly(updatedEmployee.dateOfJoining) || null,
+          normalizeEmploymentStatus(updatedEmployee.employmentStatus, 'Active'),
+          normalizeDateOnly(updatedEmployee.resignationDate) || null,
           updatedEmployee.city || '',
           updatedEmployee.pincode || '',
           normalizedProfilePhoto,
