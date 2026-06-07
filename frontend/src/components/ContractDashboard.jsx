@@ -383,14 +383,16 @@ const addPdfCacheBust = (url, stamp = Date.now()) => {
   }
 };
 
-const openInvoicePdf = (invoiceId) => {
-  if (!invoiceId) return '';
-  return addPdfCacheBust(`${API_BASE}/api/invoices/${invoiceId}/pdf`);
+const openInvoicePdf = (invoiceRef) => {
+  const ref = String(invoiceRef || '').trim();
+  if (!ref) return '';
+  return addPdfCacheBust(`${API_BASE}/api/invoices/${encodeURIComponent(ref)}/pdf`);
 };
 
-const openContractJobCardPdf = (invoiceId) => {
-  if (!invoiceId) return '';
-  return addPdfCacheBust(`${API_BASE}/api/contracts/${invoiceId}/job-card-summary-pdf`);
+const openContractJobCardPdf = (invoiceRef) => {
+  const ref = String(invoiceRef || '').trim();
+  if (!ref) return '';
+  return addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(ref)}/job-card-summary-pdf`);
 };
 
 const readContractsDashboardCache = () => {
@@ -1529,9 +1531,9 @@ export default function ContractDashboard() {
             onClick={() => {
               openPdfPreview(
                 `Invoice - ${String(actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId || 'Invoice').trim()}`,
-                openInvoicePdf(actionMenu.row.invoiceId),
+                openInvoicePdf(actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber),
                 actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId,
-                actionMenu.row.invoiceId
+                actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber
               );
               setActionMenu(null);
             }}
@@ -1545,7 +1547,7 @@ export default function ContractDashboard() {
             onClick={() => {
               openPdfPreview(
                 `Contract Service History - ${String(actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId || 'Contract').trim()}`,
-                openContractJobCardPdf(actionMenu.row.invoiceId),
+                openContractJobCardPdf(actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber),
                 `${actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId || 'contract'}_job_card_summary`
               );
               setActionMenu(null);
