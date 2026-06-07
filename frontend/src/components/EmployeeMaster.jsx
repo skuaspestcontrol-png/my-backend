@@ -204,7 +204,6 @@ const employeeColumns = [
   { key: 'name', label: 'Name' },
   { key: 'role', label: 'Role' },
   { key: 'employment', label: 'Employment Status' },
-  { key: 'mobile', label: 'Mobile' },
   { key: 'details', label: 'More' },
   { key: 'actions', label: 'Actions' }
 ];
@@ -213,7 +212,6 @@ const employeeDefaultWidths = {
   name: 150,
   role: 92,
   employment: 110,
-  mobile: 100,
   details: 86,
   actions: 88
 };
@@ -222,7 +220,6 @@ const employeeColumnBounds = {
   name: { min: 120, max: 180 },
   role: { min: 80, max: 120 },
   employment: { min: 88, max: 128 },
-  mobile: { min: 90, max: 114 },
   details: { min: 72, max: 90 },
   actions: { min: 72, max: 108 }
 };
@@ -788,7 +785,6 @@ export default function EmployeeMaster() {
               <th style={headCellStyle('name')}>Name</th>
               <th style={headCellStyle('role', 'center')}>Role</th>
               <th style={headCellStyle('employment', 'center')}>Employment Status</th>
-              <th style={headCellStyle('mobile', 'center')}>Mobile</th>
               <th style={headCellStyle('details', 'center')}>More</th>
               <th style={headCellStyle('actions', 'center')}>Actions</th>
             </tr>
@@ -796,7 +792,7 @@ export default function EmployeeMaster() {
           <tbody>
             {filteredEmployees.length === 0 ? (
               <tr>
-                <td style={shell.td} colSpan={7}>
+                <td style={shell.td} colSpan={6}>
                   {employmentFilter === 'All' ? 'No employees found.' : `No ${employmentFilter.toLowerCase()} employees found.`}
                 </td>
               </tr>
@@ -834,7 +830,6 @@ export default function EmployeeMaster() {
                       {normalizeEmploymentStatus(employee.employmentStatus || employee.employment_status || (employee.resignationDate || employee.resignation_date ? 'Resigned' : 'Active'))}
                     </span>
                   </td>
-                  <td style={{ ...bodyCellStyle('mobile', 'center'), fontWeight: 600 }}>{employee.mobile || '-'}</td>
                   <td style={bodyCellStyle('details', 'center')}>
                     <button
                       type="button"
@@ -867,7 +862,7 @@ export default function EmployeeMaster() {
                 </tr>
                 {expandedEmployeeIds.has(String(employee._id || employee.empCode || '').trim()) ? (
                   <tr style={shell.detailRow}>
-                    <td style={shell.detailCell} colSpan={7}>
+                    <td style={shell.detailCell} colSpan={6}>
                       <div style={shell.detailPanel}>
                         <div style={shell.detailItem}>
                           <p style={shell.detailLabel}>Resign Date</p>
@@ -876,6 +871,10 @@ export default function EmployeeMaster() {
                         <div style={shell.detailItem}>
                           <p style={shell.detailLabel}>Email</p>
                           <p style={shell.detailValue}>{employee.email || employee.emailId || '-'}</p>
+                        </div>
+                        <div style={shell.detailItem}>
+                          <p style={shell.detailLabel}>Mobile</p>
+                          <p style={shell.detailValue}>{employee.mobile || '-'}</p>
                         </div>
                         <div style={shell.detailItem}>
                           <p style={shell.detailLabel}>Portal Access</p>
