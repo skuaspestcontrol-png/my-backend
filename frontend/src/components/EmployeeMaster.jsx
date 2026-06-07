@@ -209,6 +209,20 @@ const toAnnual = (value) => {
 const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 const toTenDigitNumber = normalizeIndianMobileNumber;
 const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
+const normalizeDateInputValue = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  const dmyMatch = raw.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 const toAbsoluteUploadUrl = (value) => {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -252,14 +266,14 @@ const normalizeEmployee = (employee = {}) => {
     ...defaultForm,
     ...employee,
     empCode: employee.empCode || '',
-    dateOfJoining: employee.dateOfJoining || employee.joiningDate || '',
+    dateOfJoining: normalizeDateInputValue(employee.dateOfJoining || employee.joiningDate || ''),
     firstName: employee.firstName || '',
     lastName: employee.lastName || '',
     gender: employee.gender || 'Male',
     fatherName: employee.fatherName || '',
     motherName: employee.motherName || '',
     employeePhotoUrl: employee.profile_photo || employee.employeePhotoUrl || '',
-    dateOfBirth: employee.dateOfBirth || '',
+    dateOfBirth: normalizeDateInputValue(employee.dateOfBirth || ''),
     role: employee.role || 'Technician',
     roleName: employee.roleName || '',
     maritalStatus: employee.maritalStatus || employee.martialStatus || 'Unmarried',
@@ -571,8 +585,8 @@ export default function EmployeeMaster() {
       motherName: String(form.motherName || '').trim(),
       employeePhotoUrl: String(form.employeePhotoUrl || '').trim(),
       profile_photo: String(form.employeePhotoUrl || '').trim(),
-      dateOfBirth: String(form.dateOfBirth || '').trim(),
-      dateOfJoining: String(form.dateOfJoining || '').trim(),
+      dateOfBirth: normalizeDateInputValue(form.dateOfBirth),
+      dateOfJoining: normalizeDateInputValue(form.dateOfJoining),
       role: String(form.role || 'Technician').trim(),
       roleName: String(form.roleName || '').trim(),
       maritalStatus: String(form.maritalStatus || 'Unmarried').trim(),

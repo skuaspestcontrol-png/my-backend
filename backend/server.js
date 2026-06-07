@@ -1187,6 +1187,20 @@ const defaultSettings = {
 };
 
 const normalizeSettingsText = (value) => String(value ?? '').trim();
+const normalizeDateOnly = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw || raw === '0000-00-00') return '';
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  const dmyMatch = raw.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 const formatCompanyPhoneLine = (phone = '', alternatePhone = '') => {
   const primary = String(phone ?? '').trim();
   const alternate = String(alternatePhone ?? '').trim();
@@ -5258,7 +5272,7 @@ app.get('/api/employees', async (req, res) => {
         roleName: String(row?.role_name ?? payload.roleName ?? '').trim(),
         salary,
         salaryPerMonth: salary,
-        dateOfJoining: String(row?.joining_date ?? payload.dateOfJoining ?? '').trim(),
+        dateOfJoining: normalizeDateOnly(row?.joining_date ?? payload.dateOfJoining ?? ''),
         city: String(row?.city ?? payload.city ?? '').trim(),
         pincode: String(row?.pincode ?? payload.pincode ?? '').trim(),
         employeePhotoUrl: profilePhoto,
@@ -5281,6 +5295,7 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
     const existingProfilePhoto = String(emp.profile_photo ?? emp.employeePhotoUrl ?? '').trim();
     emp.profile_photo = existingProfilePhoto;
     emp.employeePhotoUrl = existingProfilePhoto;
+    emp.dateOfJoining = normalizeDateOnly(emp.dateOfJoining);
     if (req.file) {
       const relativePath = `/uploads/employees/photos/${req.file.filename}`;
       emp.profile_photo = relativePath;
@@ -5357,7 +5372,7 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
           emp.role || "",
           emp.roleName || "",
           emp.salary || emp.salaryPerMonth || 0,
-          emp.dateOfJoining || null,
+          normalizeDateOnly(emp.dateOfJoining) || null,
           emp.city || "",
           emp.pincode || "",
           emp.profile_photo || "",
@@ -5419,7 +5434,7 @@ const fetchEmployeeByAnyId = async (employeeId) => {
         profile_photo: String(row?.profile_photo ?? payload.profile_photo ?? payload.employeePhotoUrl ?? '').trim(),
         present_address: String(row?.present_address ?? payload.present_address ?? '').trim(),
         salary: Number(payload.salary ?? payload.salaryPerMonth ?? row.salary ?? 0) || 0,
-        dateOfJoining: String(payload.dateOfJoining ?? row.joining_date ?? '').trim()
+        dateOfJoining: normalizeDateOnly(payload.dateOfJoining ?? row.joining_date ?? '')
       };
     });
     if (mysqlEmployee && typeof mysqlEmployee === 'object') return mysqlEmployee;
@@ -5449,6 +5464,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
   const normalizedProfilePhoto = String(incoming.profile_photo ?? incoming.employeePhotoUrl ?? '').trim();
   incoming.profile_photo = normalizedProfilePhoto;
   incoming.employeePhotoUrl = normalizedProfilePhoto;
+  incoming.dateOfJoining = normalizeDateOnly(incoming.dateOfJoining);
 
   const firstName = String(incoming.firstName || '').trim();
   const lastName = String(incoming.lastName || '').trim();
@@ -5467,7 +5483,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
     role: String(incoming.role || '').trim(),
     roleName: String(incoming.roleName || '').trim(),
     salary: Number(incoming.salary ?? incoming.salaryPerMonth ?? 0) || 0,
-    dateOfJoining: String(incoming.dateOfJoining || '').trim(),
+    dateOfJoining: normalizeDateOnly(incoming.dateOfJoining),
     city: String(incoming.city || '').trim(),
     pincode: String(incoming.pincode || '').trim(),
     employeePhotoUrl: normalizedProfilePhoto,
@@ -5476,6 +5492,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
   };
   const payloadToSave = {
     ...incoming,
+    dateOfJoining: updatedEmployee.dateOfJoining,
     employeePhotoUrl: normalizedProfilePhoto,
     profile_photo: normalizedProfilePhoto,
     _id: updatedEmployee._id
@@ -5518,7 +5535,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
           updatedEmployee.role || '',
           updatedEmployee.roleName || '',
           updatedEmployee.salary || 0,
-          updatedEmployee.dateOfJoining || null,
+          normalizeDateOnly(updatedEmployee.dateOfJoining) || null,
           updatedEmployee.city || '',
           updatedEmployee.pincode || '',
           normalizedProfilePhoto,
