@@ -109,11 +109,11 @@ const shell = {
     textOverflow: 'ellipsis'
   },
   detailRow: { background: 'rgba(248,250,252,0.85)' },
-  detailCell: { padding: '10px 12px 14px', borderBottom: '1px solid #eef2f7' },
-  detailPanel: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px 12px' },
-  detailItem: { display: 'grid', gap: '3px', padding: '8px 10px', borderRadius: '10px', background: '#fff', border: '1px solid rgba(159, 23, 77, 0.12)' },
-  detailLabel: { margin: 0, fontSize: '10px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#64748b' },
-  detailValue: { margin: 0, fontSize: '12px', fontWeight: 700, color: '#0f172a' },
+  detailCell: { padding: '8px 10px 12px', borderBottom: '1px solid #eef2f7' },
+  detailPanel: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px 8px' },
+  detailItem: { display: 'grid', gap: '2px', padding: '6px 8px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(159, 23, 77, 0.10)' },
+  detailLabel: { margin: 0, fontSize: '9px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#64748b' },
+  detailValue: { margin: 0, fontSize: '11px', fontWeight: 700, color: '#0f172a', lineHeight: 1.25 },
   rowActionBtn: {
     width: '34px',
     height: '34px',
@@ -411,6 +411,9 @@ export default function EmployeeMaster() {
   const isCompactModal = viewportWidth <= 980;
   const grid2Style = isCompactModal ? { ...shell.grid2, gridTemplateColumns: '1fr' } : shell.grid2;
   const grid3Style = isCompactModal ? { ...shell.grid3, gridTemplateColumns: '1fr' } : shell.grid3;
+  const detailPanelStyle = viewportWidth <= 860
+    ? { ...shell.detailPanel, gridTemplateColumns: '1fr' }
+    : shell.detailPanel;
   const dateInputStyle = {
     ...shell.input,
     boxSizing: 'border-box',
@@ -895,8 +898,8 @@ export default function EmployeeMaster() {
                 </tr>
                 {expandedEmployeeIds.has(String(employee._id || employee.empCode || '').trim()) ? (
                   <tr style={shell.detailRow}>
-                    <td style={shell.detailCell} colSpan={6}>
-                      <div style={shell.detailPanel}>
+                      <td style={shell.detailCell} colSpan={6}>
+                      <div style={detailPanelStyle}>
                         <div style={shell.detailItem}>
                           <p style={shell.detailLabel}>Resign Date</p>
                           <p style={shell.detailValue}>{normalizeDateInputValue(employee.resignationDate || employee.resignation_date || '') ? formatDate(employee.resignationDate || employee.resignation_date) : '-'}</p>
