@@ -2666,18 +2666,23 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
 const buildContractJobCardPdfBuffer = (...args) => buildContractJobCardSummaryPdfBuffer(...args);
 
 const normalizePdfReference = (value) => String(value || '').trim();
+const normalizePdfReferenceLoose = (value) => normalizePdfReference(value).toLowerCase().replace(/[^a-z0-9]+/g, '');
 
 const matchesPdfReference = (candidate, reference) => {
   const left = normalizePdfReference(candidate);
   const right = normalizePdfReference(reference);
   if (!left || !right) return false;
-  return left === right || left.toLowerCase() === right.toLowerCase();
+  if (left === right || left.toLowerCase() === right.toLowerCase()) return true;
+  const leftLoose = normalizePdfReferenceLoose(left);
+  const rightLoose = normalizePdfReferenceLoose(right);
+  return Boolean(leftLoose && rightLoose && leftLoose === rightLoose);
 };
 
 const findInvoiceByPdfReference = (invoices = [], reference = '') => {
   const ref = normalizePdfReference(reference);
   if (!ref) return null;
   const lowerRef = ref.toLowerCase();
+  const looseRef = normalizePdfReferenceLoose(ref);
   return (Array.isArray(invoices) ? invoices : []).find((entry) => {
     const candidates = [
       entry?._id,
@@ -2687,11 +2692,19 @@ const findInvoiceByPdfReference = (invoices = [], reference = '') => {
       entry?.invoice_no,
       entry?.contractId,
       entry?.contractNumber,
-      entry?.contractNo
+      entry?.contractNo,
+      entry?.payload?.invoiceNumber,
+      entry?.payload?.invoice_number,
+      entry?.payload?.invoiceNo,
+      entry?.payload?.contractNo,
+      entry?.payload?.contractNumber,
+      entry?.payload?.contractId
     ];
     return candidates.some((candidate) => {
       const value = normalizePdfReference(candidate);
-      return value && (value === ref || value.toLowerCase() === lowerRef);
+      if (!value) return false;
+      if (value === ref || value.toLowerCase() === lowerRef) return true;
+      return normalizePdfReferenceLoose(value) === looseRef;
     });
   }) || null;
 };
