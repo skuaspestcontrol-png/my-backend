@@ -196,8 +196,11 @@ const formatAddress = (job) => {
 const isActiveJob = (job) => {
   const status = String(job?.status || '').trim().toLowerCase();
   if (job?.isDeleted || job?.deletedAt) return false;
-  return !['completed', 'deleted', 'cancelled', 'canceled', 'archived', 'closed'].includes(status);
+  return !['deleted', 'cancelled', 'canceled', 'archived', 'closed'].includes(status);
 };
+
+const isCompletedJob = (job) => String(job?.status || '').trim().toLowerCase() === 'completed';
+const isInProgressJob = (job) => String(job?.status || '').trim().toLowerCase() === 'in progress';
 
 const buildVisibleJobs = (jobs, serviceSchedules, invoices, customers) => {
   const safeJobs = Array.isArray(jobs) ? jobs : [];
@@ -923,7 +926,7 @@ export default function TechnicianPortal() {
   }, [location.search, params?.jobId]);
 
   useEffect(() => {
-    if (!routeJobId || activeJob) return;
+    if (!routeJobId || activeJob || pdfPreview.open) return;
     const match = jobs.find((job) => {
       const jobId = String(job?._id || job?.id || '').trim();
       return jobId === String(routeJobId).trim();
@@ -931,7 +934,7 @@ export default function TechnicianPortal() {
     if (match) {
       openJob(match);
     }
-  }, [activeJob, jobs, routeJobId]);
+  }, [activeJob, jobs, routeJobId, pdfPreview.open]);
 
   const syncLocalJob = useCallback((nextJob) => {
     if (!nextJob?._id) return;
@@ -975,6 +978,10 @@ export default function TechnicianPortal() {
   }, [activeJob, isSavingWizard, normalizeDraftForSave, syncLocalJob, jobWizard]);
 
   const openJob = (job) => {
+    if (isCompletedJob(job)) {
+      openJobPdfPreview(job);
+      return;
+    }
     setActiveJob(job);
     setPunchInTime(job.punchInTime || null);
     setWizardStep('photos');
@@ -1072,8 +1079,8 @@ export default function TechnicianPortal() {
         afterPhoto: normalizedDraft.afterPhotos[0] || activeJob.afterPhoto || '',
         customerSignature: sig
       });
-      // Immediate UI update: remove completed job without waiting for full data refetch.
-      setJobs((prev) => prev.filter((job) => job._id !== completedJobId));
+      // Keep the completed row visible so the technician can review the PDF and completion state.
+      setJobs((prev) => prev.map((job) => (job._id === completedJobId ? { ...job, ...statusPayload } : job)));
       setActiveJob(null);
       setPunchInTime(null);
       if (sigCanvas.current && typeof sigCanvas.current.clear === 'function') {
@@ -1096,6 +1103,14 @@ export default function TechnicianPortal() {
       setIsCompleting(false);
     }
   };
+
+  const getJobActionLabel = (job) => {
+    if (isCompletedJob(job)) return 'Completed';
+    if (isInProgressJob(job)) return 'Complete Job';
+    return 'Start';
+  };
+
+  const isJobActionDisabled = (job) => isSavingAssignment || isCompletedJob(job);
 
   const handleCompleteButton = () => {
     if (!activeJob) return;
@@ -1782,8 +1797,8 @@ export default function TechnicianPortal() {
                                   </div>
                                 </div>
                                 <div style={shell.mobileJobActions}>
-                                  <button type="button" style={shell.startSmallBtn} onClick={() => openJob(job)} disabled={isSavingAssignment}>
-                                    {String(job.status || '').trim().toLowerCase() === 'in progress' ? 'Complete Job' : 'Start'}
+                                  <button type="button" style={shell.startSmallBtn} onClick={() => openJob(job)} disabled={isJobActionDisabled(job)}>
+                                    {getJobActionLabel(job)}
                                   </button>
                                   <button type="button" style={shell.pdfBtn} onClick={() => openJobPdfPreview(job)} disabled={isSavingAssignment}>
                                     PDF
@@ -1867,8 +1882,8 @@ export default function TechnicianPortal() {
                                         <td style={shell.jobsTd}>{job.status || '-'}</td>
                                         <td style={{ ...shell.jobsTd, ...shell.actionCell }}>
                                           <div style={mobileActionRowStyle}>
-                                            <button type="button" style={mobileActionButtonStyle ? { ...shell.startSmallBtn, ...mobileActionButtonStyle } : shell.startSmallBtn} onClick={() => openJob(job)} disabled={isSavingAssignment}>
-                                              {String(job.status || '').trim().toLowerCase() === 'in progress' ? 'Complete Job' : 'Start'}
+                                            <button type="button" style={mobileActionButtonStyle ? { ...shell.startSmallBtn, ...mobileActionButtonStyle } : shell.startSmallBtn} onClick={() => openJob(job)} disabled={isJobActionDisabled(job)}>
+                                              {getJobActionLabel(job)}
                                             </button>
                                             <button
                                               type="button"

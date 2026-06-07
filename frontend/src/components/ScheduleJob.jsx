@@ -419,21 +419,26 @@ export default function ScheduleJob() {
   const serviceRows = useMemo(() => {
     if (!selectedContract) return [];
     const contractIdText = String(selectedContract._id || '').trim();
-    const assignedScheduleKeys = new Set(
-      (Array.isArray(jobs) ? jobs : [])
-        .filter((job) => {
-          const scheduleKey = String(job?.scheduleKey || '').trim();
-          if (!scheduleKey) return false;
-          const hasTechnician = Boolean(String(job?.technicianId || '').trim() || String(job?.technicianName || '').trim());
-          if (!hasTechnician) return false;
-          const status = String(job?.status || '').trim().toLowerCase();
-          if (['cancelled', 'canceled', 'deleted', 'archived', 'closed'].includes(status)) return false;
-          const sameContract = String(job?.contractId || '').trim() === contractIdText;
-          const sameContractNumber = String(job?.contractNumber || '').trim().toLowerCase() === String(selectedContract.contractNumber || '').trim().toLowerCase();
-          return sameContract || sameContractNumber;
-        })
-        .map((job) => String(job?.scheduleKey || '').trim())
-    );
+    const scheduleJobState = new Map();
+    (Array.isArray(jobs) ? jobs : []).forEach((job) => {
+      const scheduleKey = String(job?.scheduleKey || '').trim();
+      if (!scheduleKey) return;
+      const sameContract = String(job?.contractId || '').trim() === contractIdText;
+      const sameContractNumber = String(job?.contractNumber || '').trim().toLowerCase() === String(selectedContract.contractNumber || '').trim().toLowerCase();
+      if (!sameContract && !sameContractNumber) return;
+
+      const status = String(job?.status || '').trim().toLowerCase();
+      if (['cancelled', 'canceled', 'deleted', 'archived', 'closed'].includes(status)) return;
+
+      const hasTechnician = Boolean(String(job?.technicianId || '').trim() || String(job?.technicianName || '').trim());
+      const current = scheduleJobState.get(scheduleKey) || { hasAssignment: false, hasCompletion: false };
+      if (status === 'completed') {
+        current.hasCompletion = true;
+      } else if (hasTechnician || status === 'assigned' || status === 'in progress') {
+        current.hasAssignment = true;
+      }
+      scheduleJobState.set(scheduleKey, current);
+    });
     const schedules = Array.isArray(selectedContract.serviceSchedules) ? selectedContract.serviceSchedules : [];
     const itemById = new Map(
       (Array.isArray(selectedContract.items) ? selectedContract.items : [])
@@ -449,6 +454,12 @@ export default function ScheduleJob() {
         : statusRaw.toLowerCase().includes('assign')
           ? 'Assigned'
           : 'Scheduled';
+      const jobState = scheduleJobState.get(key);
+      const resolvedStatus = jobState?.hasCompletion
+        ? 'Completed'
+        : jobState?.hasAssignment
+          ? 'Assigned'
+          : status;
       return {
         key,
         service: schedule.itemName || item.itemName || item.name || 'Service',
@@ -456,10 +467,10 @@ export default function ScheduleJob() {
         date: schedule.serviceDate || '',
         window: schedule.serviceTime || selectedContract.serviceScheduleDefaultTime || '',
         site: [selectedCustomer?.billingArea || selectedCustomer?.area, selectedCustomer?.billingState || selectedCustomer?.state].filter(Boolean).join(', '),
-        status,
+        status: resolvedStatus,
         raw: schedule
       };
-    }).filter((row) => row.status !== 'Assigned' && !assignedScheduleKeys.has(row.key));
+    });
   }, [selectedContract, selectedCustomer, jobs]);
 
   useEffect(() => {
@@ -475,6 +486,11 @@ export default function ScheduleJob() {
   const filteredServiceRows = useMemo(
     () => serviceRows.filter((row) => scheduleStatusFilter === 'All' || row.status === scheduleStatusFilter),
     [scheduleStatusFilter, serviceRows]
+  );
+
+  const selectableFilteredServiceRows = useMemo(
+    () => filteredServiceRows.filter((row) => row.status === 'Scheduled'),
+    [filteredServiceRows]
   );
 
   const technicians = useMemo(
@@ -512,23 +528,25 @@ export default function ScheduleJob() {
   };
 
   const toggleSchedule = (key) => {
+    const nextRow = editableServiceRows.find((entry) => entry.key === key);
+    if (nextRow && nextRow.status !== 'Scheduled') return;
     setSelectedScheduleKeys((prev) => (prev.includes(key) ? prev.filter((entry) => entry !== key) : [...prev, key]));
   };
 
   const allFilteredSelected = useMemo(
-    () => filteredServiceRows.length > 0 && filteredServiceRows.every((row) => selectedScheduleKeys.includes(row.key)),
-    [filteredServiceRows, selectedScheduleKeys]
+    () => selectableFilteredServiceRows.length > 0 && selectableFilteredServiceRows.every((row) => selectedScheduleKeys.includes(row.key)),
+    [selectableFilteredServiceRows, selectedScheduleKeys]
   );
 
   const someFilteredSelected = useMemo(
-    () => filteredServiceRows.some((row) => selectedScheduleKeys.includes(row.key)),
-    [filteredServiceRows, selectedScheduleKeys]
+    () => selectableFilteredServiceRows.some((row) => selectedScheduleKeys.includes(row.key)),
+    [selectableFilteredServiceRows, selectedScheduleKeys]
   );
 
   const toggleSelectAllFiltered = () => {
     setSelectedScheduleKeys((prev) => {
-      if (filteredServiceRows.length === 0) return prev;
-      const filteredKeys = filteredServiceRows.map((row) => row.key);
+      if (selectableFilteredServiceRows.length === 0) return prev;
+      const filteredKeys = selectableFilteredServiceRows.map((row) => row.key);
       const everySelected = filteredKeys.every((key) => prev.includes(key));
       if (everySelected) {
         return prev.filter((key) => !filteredKeys.includes(key));
@@ -538,6 +556,11 @@ export default function ScheduleJob() {
       return Array.from(merged);
     });
   };
+
+  useEffect(() => {
+    const selectableKeys = new Set(serviceRows.filter((row) => row.status === 'Scheduled').map((row) => row.key));
+    setSelectedScheduleKeys((prev) => prev.filter((key) => selectableKeys.has(key)));
+  }, [serviceRows]);
 
   const selectedRows = useMemo(
     () => editableServiceRows.filter((row) => selectedScheduleKeys.includes(row.key)),
@@ -834,7 +857,13 @@ export default function ScheduleJob() {
                 ) : filteredServiceRows.map((row) => (
                   <tr key={row.key}>
                     <td style={cellStyle('select', 'center')}>
-                      <input type="checkbox" checked={selectedScheduleKeys.includes(row.key)} onChange={() => toggleSchedule(row.key)} />
+                      <input
+                        type="checkbox"
+                        checked={selectedScheduleKeys.includes(row.key)}
+                        onChange={() => toggleSchedule(row.key)}
+                        disabled={row.status !== 'Scheduled'}
+                        aria-label={row.status !== 'Scheduled' ? `Selection disabled for ${row.status.toLowerCase()} service` : `Select ${row.service}`}
+                      />
                     </td>
                     <td style={cellStyle('service')}>{row.service}</td>
                     <td style={cellStyle('visit', 'center')}>{row.visit}</td>

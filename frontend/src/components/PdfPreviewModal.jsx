@@ -245,16 +245,7 @@ export default function PdfPreviewModal({
         return;
       }
       if (!sourceUrl) return;
-      const response = await fetch(sourceUrl, { credentials: 'include' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-      if (!contentType.includes('application/pdf')) {
-        throw new Error(`Unexpected content type: ${contentType || 'unknown'}`);
-      }
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank', 'noopener,noreferrer');
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      window.open(sourceUrl, '_blank', 'noopener,noreferrer');
     };
     openBlobTab().catch(() => setError('Could not load PDF preview. Please try Download PDF.'));
   };
