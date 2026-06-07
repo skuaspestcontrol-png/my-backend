@@ -4884,6 +4884,16 @@ const buildWebsiteLead = (body = {}) => {
   }, leadId);
 };
 
+const getWebsiteLeadAuthKey = (req = {}) => String(
+  req.headers?.['x-website-lead-key']
+  || req.headers?.['x-api-key']
+  || req.body?.websiteLeadKey
+  || req.body?.apiKey
+  || req.query?.key
+  || req.query?.apiKey
+  || ''
+).trim();
+
 const saveWebsiteLead = async (body = {}) => {
   const name = String(body?.name || body?.customerName || '').trim();
   const mobile = normalizeOptionalIndianMobileNumber(body?.phone || body?.mobile || body?.mobileNumber || '');
@@ -4936,13 +4946,15 @@ const saveWebsiteLead = async (body = {}) => {
     throw error;
   }
 
+  invalidateDashboardSummaryCache();
+
   return { lead, savedToMysql, savedToJson };
 };
 
 app.post('/api/website-leads', async (req, res) => {
   try {
     const expectedKey = String(process.env.WEBSITE_LEAD_API_KEY || '').trim();
-    const suppliedKey = String(req.headers['x-api-key'] || '').trim();
+    const suppliedKey = getWebsiteLeadAuthKey(req);
     if (!expectedKey || suppliedKey !== expectedKey) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
@@ -4963,8 +4975,8 @@ app.post('/api/website-leads', async (req, res) => {
 app.post('/api/public/website-lead', async (req, res) => {
   try {
     const expectedKey = String(process.env.WEBSITE_LEAD_API_KEY || '').trim();
-    const suppliedKey = String(req.headers['x-website-lead-key'] || '').trim();
-    if (!expectedKey || suppliedKey !== expectedKey) {
+    const suppliedKey = getWebsiteLeadAuthKey(req);
+    if (expectedKey && suppliedKey && suppliedKey !== expectedKey) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
 
