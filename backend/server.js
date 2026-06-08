@@ -10214,6 +10214,12 @@ app.delete('/api/invoices/:id', async (req, res) => {
   }
 
   try {
+    await cleanupRenewalsForDeletedInvoice(req.params.id);
+  } catch (error) {
+    console.error('Renewal cleanup failed after invoice delete:', error.message);
+  }
+
+  try {
     await pruneOrphanAssignedJobs({ source: 'invoice-delete' });
   } catch (error) {
     console.error('Orphan job cleanup failed after invoice delete:', error.message);
@@ -10829,7 +10835,16 @@ const loadRenewalRows = async () => {
   return withMysqlConnection(async (conn) => {
     await ensureRenewalTables(conn);
     const [rows] = await conn.query('SELECT * FROM renewals ORDER BY renewal_due_date ASC, customer_name ASC');
-    return (Array.isArray(rows) ? rows : []).map(renewalPublicRow);
+    const invoices = await loadInvoicesForContext();
+    const { activeContractIds, activeRenewalIds } = collectRenewalSourceKeys(invoices);
+    return (Array.isArray(rows) ? rows : [])
+      .map(renewalPublicRow)
+      .filter((row) => {
+        const contractId = String(row.contractId || '').trim();
+        const renewalId = String(row.renewalId || '').trim();
+        if (!contractId && !renewalId) return false;
+        return activeContractIds.has(contractId) || activeRenewalIds.has(renewalId);
+      });
   });
 };
 const findRenewalRow = async (id) => {
@@ -11012,6 +11027,82 @@ const sourceRenewalCandidates = async () => {
     .filter(Boolean);
 };
 
+const collectRenewalSourceKeys = (invoices = []) => {
+  const activeContractIds = new Set();
+  const activeRenewalIds = new Set();
+  (Array.isArray(invoices) ? invoices : []).forEach((invoice) => {
+    const contractId = String(invoice?._id || '').trim();
+    if (!contractId) return;
+    activeContractIds.add(contractId);
+    activeRenewalIds.add(renewalIdFromContract(contractId, invoice?.customerName || ''));
+  });
+  return { activeContractIds, activeRenewalIds };
+};
+
+const deleteRenewalRowsByIdentifiers = async (conn, identifiers = []) => {
+  const ids = Array.from(new Set((Array.isArray(identifiers) ? identifiers : []).map((value) => String(value || '').trim()).filter(Boolean)));
+  if (!ids.length) return 0;
+  await ensureRenewalTables(conn);
+  const placeholders = ids.map(() => '?').join(',');
+  const [renewalRows] = await conn.query(
+    `SELECT renewal_id, external_id, contract_id, renewal_letter_url
+     FROM renewals
+     WHERE renewal_id IN (${placeholders})
+        OR external_id IN (${placeholders})
+        OR contract_id IN (${placeholders})`,
+    [...ids, ...ids, ...ids]
+  );
+  const letterUrls = new Set();
+  (Array.isArray(renewalRows) ? renewalRows : []).forEach((row) => {
+    if (row?.renewal_letter_url) letterUrls.add(String(row.renewal_letter_url).trim());
+  });
+  const [letterRows] = await conn.query(
+    `SELECT pdf_url
+     FROM renewal_letters
+     WHERE renewal_id IN (${placeholders})
+        OR external_id IN (${placeholders})`,
+    [...ids, ...ids]
+  );
+  (Array.isArray(letterRows) ? letterRows : []).forEach((row) => {
+    if (row?.pdf_url) letterUrls.add(String(row.pdf_url).trim());
+  });
+  await conn.query(
+    `DELETE FROM renewal_followups
+     WHERE renewal_id IN (${placeholders})
+        OR external_id IN (${placeholders})`,
+    [...ids, ...ids]
+  );
+  await conn.query(
+    `DELETE FROM renewal_letters
+     WHERE renewal_id IN (${placeholders})
+        OR external_id IN (${placeholders})`,
+    [...ids, ...ids]
+  );
+  const [result] = await conn.query(
+    `DELETE FROM renewals
+     WHERE renewal_id IN (${placeholders})
+        OR external_id IN (${placeholders})
+        OR contract_id IN (${placeholders})`,
+    [...ids, ...ids, ...ids]
+  );
+  letterUrls.forEach((url) => deleteUploadFile(url));
+  return Number(result?.affectedRows || 0);
+};
+
+const cleanupRenewalsForDeletedInvoice = async (invoiceId) => {
+  const targetInvoiceId = String(invoiceId || '').trim();
+  if (!targetInvoiceId) return;
+  if (canUseMysql()) {
+    await withMysqlConnection(async (conn) => {
+      await deleteRenewalRowsByIdentifiers(conn, [targetInvoiceId, renewalIdFromContract(targetInvoiceId)]);
+    });
+    return;
+  }
+  const records = readJsonFile(renewalsFile, []);
+  const updatedRecords = (Array.isArray(records) ? records : []).filter((record) => String(record?.invoiceId || '').trim() !== targetInvoiceId);
+  if (updatedRecords.length !== records.length) saveRenewalRecords(updatedRecords);
+};
+
 app.get('/api/renewals', async (req, res) => {
   try {
     const rows = applyRenewalFilters(await loadRenewalRows(), req.query);
@@ -11089,6 +11180,18 @@ app.post('/api/renewals/sync', async (req, res) => {
         );
         if (result?.affectedRows === 1) inserted += 1;
       }
+      const activeInvoices = await loadInvoicesForContext();
+      const { activeContractIds, activeRenewalIds } = collectRenewalSourceKeys(activeInvoices);
+      const [allRenewals] = await conn.query('SELECT renewal_id, external_id, contract_id FROM renewals ORDER BY id ASC');
+      const staleIdentifiers = (Array.isArray(allRenewals) ? allRenewals : [])
+        .filter((entry) => {
+          const renewalId = String(entry.renewal_id || entry.external_id || '').trim();
+          const contractId = String(entry.contract_id || entry.external_id || '').trim();
+          if (!renewalId && !contractId) return false;
+          return !activeRenewalIds.has(renewalId) && !activeContractIds.has(contractId);
+        })
+        .flatMap((entry) => [entry.external_id, entry.renewal_id, entry.contract_id]);
+      await deleteRenewalRowsByIdentifiers(conn, staleIdentifiers);
     });
     if (nextRenewalNumber) await updateSettingsNextRenewalNumber(nextRenewalNumber);
     return res.json({ success: true, message: 'Renewal synced successfully', inserted, totalCandidates: candidates.length });

@@ -357,13 +357,13 @@ const MORE_MENU_GAP = 4;
 
 const shell = {
   page: { background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,251,0.94) 100%)', border: '1px solid var(--color-border)', borderRadius: '20px', boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)', overflow: 'visible', position: 'relative', backgroundClip: 'padding-box' },
-  topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '16px 18px', borderBottom: '1px solid var(--brand-border-color)', background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', backgroundClip: 'padding-box' },
+  topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '10px 18px', borderBottom: '1px solid var(--brand-border-color)', background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', backgroundClip: 'padding-box' },
   titleWrap: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
-    minHeight: '34px',
-    height: '34px',
+    minHeight: '30px',
+    height: '30px',
     padding: '0',
     borderRadius: 0,
     background: 'transparent',
@@ -2497,7 +2497,7 @@ export default function CustomerDashboard() {
       flexDirection: 'column',
       alignItems: 'stretch',
       gap: '10px',
-      padding: isTiny ? '10px 12px' : shell.topbar.padding
+      padding: isTiny ? '8px 12px' : '10px 18px'
     }
     : {
       ...shell.topbar,

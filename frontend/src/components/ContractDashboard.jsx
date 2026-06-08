@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { subscribeContractsRefresh, triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
+import { subscribeContractsRefresh, triggerRenewalsRefresh, triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import useColumnResize from './table/useColumnResize';
 import {
   AlertCircle,
@@ -1109,6 +1109,7 @@ export default function ContractDashboard() {
       setInvoices((prev) => prev.filter((invoice) => String(invoice._id) !== String(row.invoiceId)));
       setActionMenu(null);
       triggerSalesPerformanceRefresh();
+      triggerRenewalsRefresh();
     } catch (error) {
       console.error('Failed to delete contract', error);
       window.alert('Unable to delete contract right now.');

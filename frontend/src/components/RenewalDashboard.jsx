@@ -3,6 +3,7 @@ import axios from 'axios';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
+import { subscribeRenewalsRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import {
   CalendarClock,
   ChevronLeft,
@@ -328,6 +329,10 @@ export default function RenewalDashboard() {
     };
     initialLoad();
   }, [cachedDashboard]);
+
+  useEffect(() => subscribeRenewalsRefresh(() => {
+    void loadData(filters, { autoSync: false, autoGenerateLetters: false });
+  }), [filters]);
 
   useAutoRefresh(() => loadData(filters, { autoSync: false, autoGenerateLetters: false }), { enabled: !modal.type });
 

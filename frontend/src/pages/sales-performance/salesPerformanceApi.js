@@ -3,6 +3,7 @@ import axios from 'axios';
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const SALES_PERFORMANCE_REFRESH_KEY = 'sales_performance_refresh_at';
 const CONTRACTS_REFRESH_KEY = 'contracts_refresh_at';
+const RENEWALS_REFRESH_KEY = 'renewals_refresh_at';
 
 export const currentYear = new Date().getFullYear();
 export const currentMonth = new Date().getMonth() + 1;
@@ -104,6 +105,29 @@ export const subscribeContractsRefresh = (handler) => {
   window.addEventListener('storage', onStorageRefresh);
   return () => {
     window.removeEventListener('contracts:refresh', onCustomRefresh);
+    window.removeEventListener('storage', onStorageRefresh);
+  };
+};
+
+export const triggerRenewalsRefresh = () => {
+  const stamp = String(Date.now());
+  try {
+    window.localStorage.setItem(RENEWALS_REFRESH_KEY, stamp);
+  } catch (_error) {}
+  try {
+    window.dispatchEvent(new CustomEvent('renewals:refresh', { detail: { stamp } }));
+  } catch (_error) {}
+};
+
+export const subscribeRenewalsRefresh = (handler) => {
+  const onCustomRefresh = () => handler();
+  const onStorageRefresh = (event) => {
+    if (event.key === RENEWALS_REFRESH_KEY) handler();
+  };
+  window.addEventListener('renewals:refresh', onCustomRefresh);
+  window.addEventListener('storage', onStorageRefresh);
+  return () => {
+    window.removeEventListener('renewals:refresh', onCustomRefresh);
     window.removeEventListener('storage', onStorageRefresh);
   };
 };
