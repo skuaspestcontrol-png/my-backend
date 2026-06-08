@@ -18,15 +18,11 @@ const emptyForm = {
   mobileNumber: '',
   gstNumber: '',
   billingAttention: '',
-  billingStreet1: '',
-  billingStreet2: '',
   billingAddress: '',
   billingArea: '',
   billingState: '',
   billingPincode: '',
   shippingAttention: '',
-  shippingStreet1: '',
-  shippingStreet2: '',
   shippingAddress: '',
   shippingArea: '',
   shippingState: '',
@@ -60,8 +56,8 @@ const shell = {
   grid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' },
   field: { display: 'grid', gap: '6px' },
   label: { fontSize: '13px', color: '#3f3f46', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
-  input: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '48px', boxSizing: 'border-box' },
-  textarea: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '84px', resize: 'vertical', boxSizing: 'border-box' },
+  input: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '0 14px', fontSize: '15px', outline: 'none', width: '100%', height: '40px', minHeight: '40px', boxSizing: 'border-box' },
+  textarea: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', lineHeight: 1.2, outline: 'none', width: '100%', height: '40px', minHeight: '40px', resize: 'vertical', boxSizing: 'border-box' },
   addressSplit: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '12px' },
   addressCard: { border: '1px solid var(--color-border)', borderRadius: '10px', padding: '12px', background: '#fff' },
   addressHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', minHeight: '28px' },
@@ -168,7 +164,6 @@ export default function VendorDashboard() {
           setForm((prev) => ({
             ...prev,
             companyName: place.name || prev.companyName,
-            billingStreet1: place.formatted_address || prev.billingStreet1,
             billingAddress: place.formatted_address || prev.billingAddress,
             billingArea: place.areaName || prev.billingArea,
             billingState: place.state || prev.billingState,
@@ -191,7 +186,6 @@ export default function VendorDashboard() {
           setForm((prev) => ({
             ...prev,
             companyName: prev.companyName || place.name || '',
-            billingStreet1: place.formatted_address || prev.billingStreet1,
             billingAddress: place.formatted_address || prev.billingAddress,
             billingArea: place.areaName || prev.billingArea,
             billingState: place.state || prev.billingState,
@@ -246,8 +240,6 @@ export default function VendorDashboard() {
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
   const copyBillingToShipping = (source) => ({
     shippingAttention: source.billingAttention,
-    shippingStreet1: source.billingStreet1,
-    shippingStreet2: source.billingStreet2,
     shippingAddress: source.billingAddress,
     shippingArea: source.billingArea,
     shippingState: source.billingState,
@@ -424,10 +416,7 @@ export default function VendorDashboard() {
                     <input style={shell.input} value={form.billingAttention} onChange={(e) => update('billingAttention', e.target.value)} />
 
                     <label style={shell.label}>Address</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <textarea style={shell.textarea} placeholder="Street 1" value={form.billingStreet1} onChange={(e) => update('billingStreet1', e.target.value)} />
-                      <textarea style={shell.textarea} placeholder="Street 2" value={form.billingStreet2} onChange={(e) => update('billingStreet2', e.target.value)} />
-                    </div>
+                    <textarea style={shell.textarea} placeholder="Enter address" value={form.billingAddress} onChange={(e) => update('billingAddress', e.target.value)} />
 
                     <label style={shell.label}>Area</label>
                     <input ref={billingAreaInputRef} style={shell.input} value={form.billingArea} onChange={(e) => update('billingArea', e.target.value)} />
@@ -452,10 +441,7 @@ export default function VendorDashboard() {
                     <input style={shell.input} value={form.shippingAttention} onChange={(e) => update('shippingAttention', e.target.value)} />
 
                     <label style={shell.label}>Address</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <textarea style={shell.textarea} placeholder="Street 1" value={form.shippingStreet1} onChange={(e) => update('shippingStreet1', e.target.value)} />
-                      <textarea style={shell.textarea} placeholder="Street 2" value={form.shippingStreet2} onChange={(e) => update('shippingStreet2', e.target.value)} />
-                    </div>
+                    <textarea style={shell.textarea} placeholder="Enter address" value={form.shippingAddress} onChange={(e) => update('shippingAddress', e.target.value)} />
 
                     <label style={shell.label}>Area</label>
                     <input style={shell.input} value={form.shippingArea} onChange={(e) => update('shippingArea', e.target.value)} />

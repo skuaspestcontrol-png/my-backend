@@ -9319,6 +9319,7 @@ const ensureVendorFinanceTables = async (conn) => {
       email_id VARCHAR(255) NULL,
       gst_number VARCHAR(80) NULL,
       address TEXT NULL,
+      shipping_address TEXT NULL,
       area_name VARCHAR(255) NULL,
       city VARCHAR(120) NULL,
       state VARCHAR(120) NULL,
@@ -9339,6 +9340,7 @@ const ensureVendorFinanceTables = async (conn) => {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
   await ensureColumnsIfMissing(conn, 'vendors', [
+    { name: 'shipping_address', definition: 'TEXT NULL' },
     { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
     { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
     { name: 'google_phone', definition: 'VARCHAR(50) NULL' },
@@ -9429,6 +9431,7 @@ app.get('/api/vendors', async (req, res) => {
           emailId: String(row.email_id ?? payload.emailId ?? '').trim(),
           gstNumber: String(row.gst_number ?? payload.gstNumber ?? '').trim(),
           billingAddress: String(row.address ?? payload.billingAddress ?? payload.address ?? '').trim(),
+          shippingAddress: String(row.shipping_address ?? payload.shippingAddress ?? '').trim(),
           billingArea: String(row.area_name ?? payload.billingArea ?? payload.areaName ?? '').trim(),
           city: String(row.city ?? payload.city ?? '').trim(),
           state: String(row.state ?? payload.state ?? '').trim(),
@@ -9468,6 +9471,7 @@ app.post('/api/vendors', async (req, res) => {
       email_id: String(vendor.emailId || '').trim(),
       gst_number: String(vendor.gstNumber || '').trim(),
       address: String(vendor.billingAddress || vendor.address || '').trim(),
+      shipping_address: String(vendor.shippingAddress || '').trim(),
       area_name: String(vendor.billingArea || vendor.areaName || '').trim(),
       city: String(vendor.city || '').trim(),
       state: String(vendor.state || vendor.billingState || '').trim(),
@@ -9487,10 +9491,10 @@ app.post('/api/vendors', async (req, res) => {
       await conn.query(
         `INSERT INTO vendors (
           external_id, vendor_name, company_name, contact_person_name, mobile, whatsapp_number, email_id, gst_number,
-          address, area_name, city, state, pincode,
+          address, shipping_address, area_name, city, state, pincode,
           google_place_id, google_place_name, google_phone, google_website, latitude, longitude,
           opening_balance, status, payload
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           vendor_name=VALUES(vendor_name),
           company_name=VALUES(company_name),
@@ -9500,6 +9504,7 @@ app.post('/api/vendors', async (req, res) => {
           email_id=VALUES(email_id),
           gst_number=VALUES(gst_number),
           address=VALUES(address),
+          shipping_address=VALUES(shipping_address),
           area_name=VALUES(area_name),
           city=VALUES(city),
           state=VALUES(state),
@@ -9515,7 +9520,7 @@ app.post('/api/vendors', async (req, res) => {
           payload=VALUES(payload)`,
         [
           mapped.external_id, mapped.vendor_name, mapped.company_name, mapped.contact_person_name, mapped.mobile,
-          mapped.whatsapp_number, mapped.email_id, mapped.gst_number, mapped.address, mapped.area_name, mapped.city,
+          mapped.whatsapp_number, mapped.email_id, mapped.gst_number, mapped.address, mapped.shipping_address, mapped.area_name, mapped.city,
           mapped.state, mapped.pincode, mapped.google_place_id, mapped.google_place_name, mapped.google_phone, mapped.google_website, mapped.latitude, mapped.longitude, mapped.opening_balance, mapped.status, JSON.stringify(payload)
         ]
       );
@@ -9543,7 +9548,7 @@ app.put('/api/vendors/:id', async (req, res) => {
       return conn.query(
         `UPDATE vendors SET
           external_id=?, vendor_name=?, company_name=?, contact_person_name=?, mobile=?, whatsapp_number=?, email_id=?, gst_number=?,
-          address=?, area_name=?, city=?, state=?, pincode=?, google_place_id=?, google_place_name=?, google_phone=?, google_website=?, latitude=?, longitude=?, opening_balance=?, status=?, payload=?
+          address=?, shipping_address=?, area_name=?, city=?, state=?, pincode=?, google_place_id=?, google_place_name=?, google_phone=?, google_website=?, latitude=?, longitude=?, opening_balance=?, status=?, payload=?
          WHERE external_id = ? OR id = ?`,
         [
           payload._id,
@@ -9555,6 +9560,7 @@ app.put('/api/vendors/:id', async (req, res) => {
           String(payload.emailId || '').trim(),
           String(payload.gstNumber || '').trim(),
           String(payload.billingAddress || payload.address || '').trim(),
+          String(payload.shippingAddress || '').trim(),
           String(payload.billingArea || payload.areaName || '').trim(),
           String(payload.city || '').trim(),
           String(payload.state || payload.billingState || '').trim(),
