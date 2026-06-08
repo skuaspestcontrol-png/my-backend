@@ -62,12 +62,12 @@ const shell = {
   label: { fontSize: '13px', color: '#3f3f46', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
   input: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '48px', boxSizing: 'border-box' },
   textarea: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '84px', resize: 'vertical', boxSizing: 'border-box' },
-  addressSplit: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '16px' },
-  addressCard: { border: '1px solid var(--color-border)', borderRadius: '16px', padding: '14px', background: '#fff' },
-  addressHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
-  addressTitle: { margin: 0, fontSize: '44px', fontWeight: 800, color: '#111827', lineHeight: 1.1 },
+  addressSplit: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '12px' },
+  addressCard: { border: '1px solid var(--color-border)', borderRadius: '16px', padding: '12px', background: '#fff' },
+  addressHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' },
+  addressTitle: { margin: 0, fontSize: '26px', fontWeight: 800, color: '#111827', lineHeight: 1.15 },
   addressCopy: { fontSize: '14px', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', border: 'none', background: 'transparent', padding: 0, lineHeight: 1.2 },
-  addressGrid: { display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', rowGap: '10px', columnGap: '10px', alignItems: 'center' },
+  addressGrid: { display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', rowGap: '8px', columnGap: '10px', alignItems: 'center' },
   footer: { padding: '12px 18px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#fff' },
   cancelButton: { border: '1px solid #d1d5db', background: '#fff', color: '#2563eb', borderRadius: '18px', padding: '10px 18px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' },
   saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '18px', padding: '10px 20px', fontSize: '16px', fontWeight: 800, cursor: 'pointer' }
@@ -413,60 +413,57 @@ export default function VendorDashboard() {
                 </div>
               </div>
 
-              <div style={shell.card}>
-                <p style={shell.sectionTitle}>Billing Address</p>
-                <div style={addressSplitStyle}>
-                  <div style={shell.addressCard}>
-                    <div style={shell.addressHead}>
-                      <h4 style={addressTitleStyle}>Billing Address</h4>
-                    </div>
-                    <div style={addressGridStyle}>
-                      <label style={shell.label}>Attention</label>
-                      <input style={shell.input} value={form.billingAttention} onChange={(e) => update('billingAttention', e.target.value)} />
+              <div style={addressSplitStyle}>
+                <div style={shell.addressCard}>
+                  <div style={shell.addressHead}>
+                    <h4 style={addressTitleStyle}>Billing Address</h4>
+                  </div>
+                  <div style={addressGridStyle}>
+                    <label style={shell.label}>Attention</label>
+                    <input style={shell.input} value={form.billingAttention} onChange={(e) => update('billingAttention', e.target.value)} />
 
-                      <label style={shell.label}>Address</label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={shell.label}>Address</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <textarea style={shell.textarea} placeholder="Street 1" value={form.billingStreet1} onChange={(e) => update('billingStreet1', e.target.value)} />
-                        <textarea style={shell.textarea} placeholder="Street 2" value={form.billingStreet2} onChange={(e) => update('billingStreet2', e.target.value)} />
-                      </div>
+                      <textarea style={shell.textarea} placeholder="Street 2" value={form.billingStreet2} onChange={(e) => update('billingStreet2', e.target.value)} />
+                    </div>
 
-                      <label style={shell.label}>Area</label>
+                    <label style={shell.label}>Area</label>
                     <input ref={billingAreaInputRef} style={shell.input} value={form.billingArea} onChange={(e) => update('billingArea', e.target.value)} />
 
-                      <label style={shell.label}>State</label>
-                      <input style={shell.input} value={form.billingState} onChange={(e) => update('billingState', e.target.value)} />
+                    <label style={shell.label}>State</label>
+                    <input style={shell.input} value={form.billingState} onChange={(e) => update('billingState', e.target.value)} />
 
-                      <label style={shell.label}>Pin Code</label>
-                      <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.billingPincode} onChange={(e) => update('billingPincode', toSixDigitPincode(e.target.value))} />
-                    </div>
+                    <label style={shell.label}>Pin Code</label>
+                    <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.billingPincode} onChange={(e) => update('billingPincode', toSixDigitPincode(e.target.value))} />
                   </div>
+                </div>
 
-                  <div style={shell.addressCard}>
-                    <div style={shell.addressHead}>
-                      <h4 style={addressTitleStyle}>Shipping Address</h4>
-                      <button type="button" style={shell.addressCopy} onClick={() => setForm((prev) => ({ ...prev, ...copyBillingToShipping(prev) }))}>
-                        ↓ Copy billing address
-                      </button>
+                <div style={shell.addressCard}>
+                  <div style={shell.addressHead}>
+                    <h4 style={addressTitleStyle}>Shipping Address</h4>
+                    <button type="button" style={shell.addressCopy} onClick={() => setForm((prev) => ({ ...prev, ...copyBillingToShipping(prev) }))}>
+                      ↓ Copy billing address
+                    </button>
+                  </div>
+                  <div style={addressGridStyle}>
+                    <label style={shell.label}>Attention</label>
+                    <input style={shell.input} value={form.shippingAttention} onChange={(e) => update('shippingAttention', e.target.value)} />
+
+                    <label style={shell.label}>Address</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <textarea style={shell.textarea} placeholder="Street 1" value={form.shippingStreet1} onChange={(e) => update('shippingStreet1', e.target.value)} />
+                      <textarea style={shell.textarea} placeholder="Street 2" value={form.shippingStreet2} onChange={(e) => update('shippingStreet2', e.target.value)} />
                     </div>
-                    <div style={addressGridStyle}>
-                      <label style={shell.label}>Attention</label>
-                      <input style={shell.input} value={form.shippingAttention} onChange={(e) => update('shippingAttention', e.target.value)} />
 
-                      <label style={shell.label}>Address</label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <textarea style={shell.textarea} placeholder="Street 1" value={form.shippingStreet1} onChange={(e) => update('shippingStreet1', e.target.value)} />
-                        <textarea style={shell.textarea} placeholder="Street 2" value={form.shippingStreet2} onChange={(e) => update('shippingStreet2', e.target.value)} />
-                      </div>
+                    <label style={shell.label}>Area</label>
+                    <input style={shell.input} value={form.shippingArea} onChange={(e) => update('shippingArea', e.target.value)} />
 
-                      <label style={shell.label}>Area</label>
-                      <input style={shell.input} value={form.shippingArea} onChange={(e) => update('shippingArea', e.target.value)} />
+                    <label style={shell.label}>State</label>
+                    <input style={shell.input} value={form.shippingState} onChange={(e) => update('shippingState', e.target.value)} />
 
-                      <label style={shell.label}>State</label>
-                      <input style={shell.input} value={form.shippingState} onChange={(e) => update('shippingState', e.target.value)} />
-
-                      <label style={shell.label}>Pin Code</label>
-                      <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(e) => update('shippingPincode', toSixDigitPincode(e.target.value))} />
-                    </div>
+                    <label style={shell.label}>Pin Code</label>
+                    <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(e) => update('shippingPincode', toSixDigitPincode(e.target.value))} />
                   </div>
                 </div>
               </div>
