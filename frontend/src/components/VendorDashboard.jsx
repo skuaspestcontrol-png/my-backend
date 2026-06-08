@@ -321,6 +321,7 @@ export default function VendorDashboard() {
   const addressCardStyle = isMobile ? { ...shell.addressCard, padding: '10px 11px' } : shell.addressCard;
   const addressGridStyle = isMobile ? { ...shell.addressGrid, gridTemplateColumns: '1fr' } : shell.addressGrid;
   const addressTitleStyle = isMobile ? { ...shell.addressTitle, fontSize: '13px' } : shell.addressTitle;
+  const addressTextareaStyle = { ...shell.textarea, height: '65px', minHeight: '65px' };
   const {
     getColumnWidth,
     startResize,
@@ -416,7 +417,7 @@ export default function VendorDashboard() {
                     <input style={shell.input} value={form.billingAttention} onChange={(e) => update('billingAttention', e.target.value)} />
 
                     <label style={shell.label}>Address</label>
-                    <textarea style={shell.textarea} placeholder="Enter address" value={form.billingAddress} onChange={(e) => update('billingAddress', e.target.value)} />
+                    <textarea style={addressTextareaStyle} placeholder="Enter address" value={form.billingAddress} onChange={(e) => update('billingAddress', e.target.value)} />
 
                     <label style={shell.label}>Area</label>
                     <input ref={billingAreaInputRef} style={shell.input} value={form.billingArea} onChange={(e) => update('billingArea', e.target.value)} />
@@ -441,7 +442,7 @@ export default function VendorDashboard() {
                     <input style={shell.input} value={form.shippingAttention} onChange={(e) => update('shippingAttention', e.target.value)} />
 
                     <label style={shell.label}>Address</label>
-                    <textarea style={shell.textarea} placeholder="Enter address" value={form.shippingAddress} onChange={(e) => update('shippingAddress', e.target.value)} />
+                    <textarea style={addressTextareaStyle} placeholder="Enter address" value={form.shippingAddress} onChange={(e) => update('shippingAddress', e.target.value)} />
 
                     <label style={shell.label}>Area</label>
                     <input style={shell.input} value={form.shippingArea} onChange={(e) => update('shippingArea', e.target.value)} />
