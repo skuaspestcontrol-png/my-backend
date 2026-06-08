@@ -50,22 +50,22 @@ const shell = {
   td: { padding: '12px 10px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7' },
   iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '8px' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
-  modal: { background: '#fff', width: 'min(100%, 1100px)', borderRadius: '24px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
-  modalHeader: { padding: '16px 20px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '28px', fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  modal: { background: '#fff', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
+  modalHeader: { minHeight: '64px', padding: '16px 22px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
   modalTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
   closeBtn: { border: 'none', background: 'transparent', color: '#fff', width: '36px', height: '36px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
-  body: { padding: '16px', overflowY: 'auto', display: 'grid', gap: '16px' },
+  body: { padding: '20px 24px', overflowY: 'auto', display: 'grid', gap: '14px' },
   card: { border: '1px solid var(--color-border)', borderRadius: '16px', padding: '14px', background: '#fff' },
-  sectionTitle: { margin: '0 0 12px 0', fontSize: '28px', fontWeight: 700, color: '#111827' },
+  sectionTitle: { margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' },
   field: { display: 'grid', gap: '6px' },
   label: { fontSize: '13px', color: '#3f3f46', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
   input: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '48px', boxSizing: 'border-box' },
   textarea: { border: '1px solid #D1D5DB', borderRadius: '14px', padding: '10px 14px', fontSize: '15px', outline: 'none', width: '100%', minHeight: '84px', resize: 'vertical', boxSizing: 'border-box' },
   addressSplit: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '12px' },
-  addressCard: { border: '1px solid var(--color-border)', borderRadius: '16px', padding: '12px', background: '#fff' },
-  addressHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' },
-  addressTitle: { margin: 0, fontSize: '26px', fontWeight: 800, color: '#111827', lineHeight: 1.15 },
+  addressCard: { border: '1px solid var(--color-border)', borderRadius: '10px', padding: '12px', background: '#fff' },
+  addressHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', minHeight: '28px' },
+  addressTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#475569', textTransform: 'uppercase' },
   addressCopy: { fontSize: '14px', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', border: 'none', background: 'transparent', padding: 0, lineHeight: 1.2 },
   addressGrid: { display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', rowGap: '8px', columnGap: '10px', alignItems: 'center' },
   footer: { padding: '12px 18px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#fff' },
@@ -320,14 +320,15 @@ export default function VendorDashboard() {
 
   const modalOverlayStyle = isMobile ? { ...shell.modalOverlay, padding: '16px 10px' } : shell.modalOverlay;
   const modalStyle = isMobile
-    ? { ...shell.modal, width: 'min(100%, 92vw)', maxHeight: '92dvh', height: '92dvh', borderRadius: '28px', border: '1px solid rgba(159, 23, 77, 0.24)' }
+    ? { ...shell.modal, width: '96vw', maxHeight: '92dvh', height: '92dvh', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)' }
     : shell.modal;
-  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
-  const bodyStyle = isMobile ? { ...shell.body, paddingBottom: 'calc(130px + env(safe-area-inset-bottom))', padding: '16px 14px' } : shell.body;
+  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '60px', fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
+  const bodyStyle = isMobile ? { ...shell.body, padding: '12px 14px', paddingBottom: 'calc(130px + env(safe-area-inset-bottom))' } : shell.body;
   const gridStyle = isMobile ? { ...shell.grid, gridTemplateColumns: '1fr' } : shell.grid;
-  const addressSplitStyle = isMobile ? { ...shell.addressSplit, gridTemplateColumns: '1fr' } : shell.addressSplit;
+  const addressSplitStyle = isMobile ? { ...shell.addressSplit, gridTemplateColumns: '1fr', gap: '10px' } : shell.addressSplit;
+  const addressCardStyle = isMobile ? { ...shell.addressCard, padding: '10px 11px' } : shell.addressCard;
   const addressGridStyle = isMobile ? { ...shell.addressGrid, gridTemplateColumns: '1fr' } : shell.addressGrid;
-  const addressTitleStyle = isMobile ? { ...shell.addressTitle, fontSize: '20px' } : { ...shell.addressTitle, fontSize: '44px' };
+  const addressTitleStyle = isMobile ? { ...shell.addressTitle, fontSize: '13px' } : shell.addressTitle;
   const {
     getColumnWidth,
     startResize,
@@ -414,7 +415,7 @@ export default function VendorDashboard() {
               </div>
 
               <div style={addressSplitStyle}>
-                <div style={shell.addressCard}>
+                <div style={addressCardStyle}>
                   <div style={shell.addressHead}>
                     <h4 style={addressTitleStyle}>Billing Address</h4>
                   </div>
@@ -439,7 +440,7 @@ export default function VendorDashboard() {
                   </div>
                 </div>
 
-                <div style={shell.addressCard}>
+                <div style={addressCardStyle}>
                   <div style={shell.addressHead}>
                     <h4 style={addressTitleStyle}>Shipping Address</h4>
                     <button type="button" style={shell.addressCopy} onClick={() => setForm((prev) => ({ ...prev, ...copyBillingToShipping(prev) }))}>
