@@ -1,13 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { CalendarDays, MapPin, Wrench, X } from 'lucide-react';
 import { useColumnResize } from './table/useColumnResize';
-import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
+import { subscribeDashboardRefresh, triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import { formatServiceScheduleTime } from '../utils/serviceScheduleBuilder';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const SCHEDULE_JOB_CACHE_KEY = 'schedule_job_dashboard_cache_v1';
+const SCHEDULE_JOB_FOCUS_KEY = 'schedule_job_focus_status';
 
 const statusFilters = ['All', 'Assigned', 'Scheduled', 'Completed'];
 
@@ -229,6 +230,7 @@ export default function ScheduleJob() {
   const [saveError, setSaveError] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const loadRequestRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   const [customerId, setCustomerId] = useState('');
   const [contractId, setContractId] = useState('');
@@ -239,70 +241,99 @@ export default function ScheduleJob() {
   const [selectedPremiseId, setSelectedPremiseId] = useState('');
   const [editableServiceRows, setEditableServiceRows] = useState([]);
 
-  useEffect(() => {
-    let mounted = true;
+  const loadPortalData = useCallback(async ({ silent = false } = {}) => {
+    if (loadRequestRef.current) return loadRequestRef.current;
 
-    const load = async ({ silent = false } = {}) => {
-      if (loadRequestRef.current) return loadRequestRef.current;
-
-      const request = (async () => {
-        if (!silent) {
-          setLoading(true);
-          setLoadError('');
+    const request = (async () => {
+      if (!silent) {
+        setLoading(true);
+        setLoadError('');
+      }
+      try {
+        const [customerRes, invoiceRes, employeeRes, jobsRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/customers`),
+          axios.get(`${API_BASE_URL}/api/invoices`),
+          axios.get(`${API_BASE_URL}/api/employees`),
+          axios.get(`${API_BASE_URL}/api/jobs`)
+        ]);
+        if (!isMountedRef.current) return;
+        const nextCustomers = Array.isArray(customerRes.data) ? customerRes.data : [];
+        const nextInvoices = Array.isArray(invoiceRes.data) ? invoiceRes.data : [];
+        const nextEmployees = Array.isArray(employeeRes.data) ? employeeRes.data : [];
+        const nextJobs = Array.isArray(jobsRes.data) ? jobsRes.data : [];
+        setCustomers(nextCustomers);
+        setInvoices(nextInvoices);
+        setEmployees(nextEmployees);
+        setJobs(nextJobs);
+        writeScheduleJobCache({
+          customers: nextCustomers,
+          invoices: nextInvoices,
+          employees: nextEmployees,
+          jobs: nextJobs
+        });
+      } catch (error) {
+        console.error('Failed to load assign-service data', error);
+        if (!isMountedRef.current) return;
+        if (!cachedScheduleData) {
+          setLoadError('Could not fetch customer/contract/employee data.');
         }
-        try {
-          const [customerRes, invoiceRes, employeeRes, jobsRes] = await Promise.all([
-            axios.get(`${API_BASE_URL}/api/customers`),
-            axios.get(`${API_BASE_URL}/api/invoices`),
-            axios.get(`${API_BASE_URL}/api/employees`),
-            axios.get(`${API_BASE_URL}/api/jobs`)
-          ]);
-          if (!mounted) return;
-          const nextCustomers = Array.isArray(customerRes.data) ? customerRes.data : [];
-          const nextInvoices = Array.isArray(invoiceRes.data) ? invoiceRes.data : [];
-          const nextEmployees = Array.isArray(employeeRes.data) ? employeeRes.data : [];
-          const nextJobs = Array.isArray(jobsRes.data) ? jobsRes.data : [];
-          setCustomers(nextCustomers);
-          setInvoices(nextInvoices);
-          setEmployees(nextEmployees);
-          setJobs(nextJobs);
-          writeScheduleJobCache({
-            customers: nextCustomers,
-            invoices: nextInvoices,
-            employees: nextEmployees,
-            jobs: nextJobs
-          });
-        } catch (error) {
-          console.error('Failed to load assign-service data', error);
-          if (!mounted) return;
-          if (!cachedScheduleData) {
-            setLoadError('Could not fetch customer/contract/employee data.');
-          }
-        } finally {
-          if (mounted) setLoading(false);
-        }
-      })();
+      } finally {
+        if (isMountedRef.current) setLoading(false);
+      }
+    })();
 
-      loadRequestRef.current = request;
-      request.finally(() => {
-        if (loadRequestRef.current === request) {
-          loadRequestRef.current = null;
-        }
-      });
-      return request;
-    };
-
-    load({ silent: Boolean(cachedScheduleData) });
-    return () => {
-      mounted = false;
-    };
+    loadRequestRef.current = request;
+    request.finally(() => {
+      if (loadRequestRef.current === request) {
+        loadRequestRef.current = null;
+      }
+    });
+    return request;
   }, [cachedScheduleData]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    void loadPortalData({ silent: Boolean(cachedScheduleData) });
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [cachedScheduleData, loadPortalData]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    const refreshKeys = new Set(['jobs_sync_tick']);
+    const refresh = () => {
+      loadPortalData({ silent: true }).catch((error) => {
+        console.error('Failed to refresh assign-service data', error);
+      });
+    };
+    const openCompletedTabIfRequested = () => {
+      const focusStatus = String(localStorage.getItem(SCHEDULE_JOB_FOCUS_KEY) || '').trim().toLowerCase();
+      if (focusStatus === 'completed') {
+        setScheduleStatusFilter('Completed');
+        localStorage.removeItem(SCHEDULE_JOB_FOCUS_KEY);
+      }
+    };
+    const unsubscribeDashboardRefresh = subscribeDashboardRefresh(refresh);
+    const onStorage = (event) => {
+      if (event.key && refreshKeys.has(event.key)) {
+        refresh();
+        openCompletedTabIfRequested();
+      }
+      if (event.key === SCHEDULE_JOB_FOCUS_KEY) openCompletedTabIfRequested();
+    };
+    openCompletedTabIfRequested();
+    window.addEventListener('storage', onStorage);
+    return () => {
+      unsubscribeDashboardRefresh();
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [loadPortalData]);
 
   const customersWithContracts = useMemo(() => {
     const activeInvoices = invoices.filter((invoice) => isContractActive(invoice));

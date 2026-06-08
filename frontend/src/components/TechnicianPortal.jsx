@@ -1088,6 +1088,8 @@ export default function TechnicianPortal() {
       }
       setActionStatus('Job marked as completed successfully.');
       // Non-blocking background refresh for consistency.
+      localStorage.setItem('schedule_job_focus_status', 'completed');
+      localStorage.setItem('jobs_sync_tick', String(Date.now()));
       loadPortalData().catch((error) => {
         console.error('Background refresh after completion failed', error);
       });
