@@ -477,7 +477,7 @@ const loadPurchases = async () => {
       id: row.id,
       vendorId: row.vendor_id ?? null,
       vendorName: safeName(row.vendor_name || row.company_name, ''),
-      purchaseDate: row.purchase_date,
+      purchaseDate: dateOnly(row.purchase_date),
       invoiceNumber: text(row.invoice_number),
       itemId: row.item_id ?? null,
       itemName: safeName(row.item_name, ''),
@@ -488,7 +488,7 @@ const loadPurchases = async () => {
       gstPercent: num(row.gst_percent),
       totalAmount: num(row.total_amount),
       batchNumber: text(row.batch_number),
-      expiryDate: row.expiry_date || null,
+      expiryDate: dateOnly(row.expiry_date),
       notes: text(row.notes)
     }));
   } catch (_error) {

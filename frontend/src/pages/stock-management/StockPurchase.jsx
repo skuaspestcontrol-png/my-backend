@@ -14,6 +14,14 @@ import { apiGet, apiPost, money, number, safeRows, stockCategoryDisplayLabel, to
 const vendorLabel = (row) => String(row.name || row.vendor_name || row.company_name || row.displayName || `Vendor ${row.id || row._id || ''}`).trim();
 
 const today = new Date().toISOString().slice(0, 10);
+const formatDateDisplay = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '---';
+  const datePart = raw.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return '---';
+  const [year, month, day] = datePart.split('-');
+  return `${day}/${month}/${year}`;
+};
 
 const initialForm = {
   vendorId: '',
@@ -241,7 +249,7 @@ export default function StockPurchase() {
               <tbody>
                 {purchases.map((row) => (
                   <tr key={row.id}>
-                    <td style={bodyStyle('date', 'center')}>{row.purchaseDate}</td>
+                    <td style={bodyStyle('date', 'center')}>{formatDateDisplay(row.purchaseDate)}</td>
                     <td style={bodyStyle('item')}>
                       <div style={{ fontWeight: 700 }}>{row.itemName}</div>
                       <div style={{ color: '#6B7280', fontSize: 12 }}>{stockCategoryDisplayLabel(row.category)}</div>
@@ -252,7 +260,7 @@ export default function StockPurchase() {
                     <td style={bodyStyle('total', 'center')}>{money(row.totalAmount)}</td>
                     <td style={bodyStyle('batchExpiry')}>
                       <div>{row.batchNumber || '---'}</div>
-                      <div style={{ color: '#6B7280', fontSize: 12 }}>{row.expiryDate || 'No expiry'}</div>
+                      <div style={{ color: '#6B7280', fontSize: 12 }}>{row.expiryDate ? formatDateDisplay(row.expiryDate) : 'No expiry'}</div>
                     </td>
                   </tr>
                 ))}
