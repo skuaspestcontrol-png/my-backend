@@ -396,7 +396,7 @@ export default function StockItems() {
                   <th className="table-header-cell table-text-cell" style={headStyle('unit', 'center')}>Unit</th>
                   <th className="table-header-cell table-text-cell" style={headStyle('hsnSac', 'center')}>HSN Code</th>
                   <th className="table-header-cell table-text-cell" style={headStyle('packSizePerBottle', 'center')}>Pack Size / Per Bottle</th>
-                  <th className="table-header-cell table-number-cell" style={headStyle('currentStock', 'center')}>Current Stock</th>
+                  <th className="table-header-cell table-number-cell" style={headStyle('currentStock', 'left')}>Current Stock</th>
                   <th className="table-header-cell table-number-cell" style={headStyle('minimum', 'center')}>Minimum</th>
                   <th className="table-header-cell table-status-cell" style={headStyle('status', 'center')}>Status</th>
                   <th className="table-header-cell table-actions-cell" style={headStyle('actions', 'center')}>Actions</th>
@@ -413,8 +413,8 @@ export default function StockItems() {
                     <td className="table-text-cell" style={bodyStyle('unit', 'center')}>{row.unit}</td>
                     <td className="table-text-cell" style={bodyStyle('hsnSac', 'center')}>{row.hsnSac || '-'}</td>
                     <td className="table-text-cell" style={bodyStyle('packSizePerBottle', 'center')}>{row.packSizePerBottle || '-'}</td>
-                    <td className="table-number-cell" style={bodyStyle('currentStock', 'center')}>
-                      <div style={{ display: 'grid', gap: 2, justifyItems: 'center' }}>
+                    <td className="table-number-cell" style={bodyStyle('currentStock', 'left')}>
+                      <div style={{ display: 'grid', gap: 2, justifyItems: 'start' }}>
                         <span style={{ fontWeight: 800, color: theme.colors.text }}>{formatCurrentStockDisplay(row)}</span>
                         {row.currentStockFormula ? <span style={{ color: theme.colors.muted, fontSize: 11, lineHeight: 1.2 }}>{row.currentStockFormula}</span> : null}
                       </div>
