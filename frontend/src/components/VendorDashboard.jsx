@@ -101,7 +101,7 @@ const shell = {
     textOverflow: 'ellipsis',
     background: 'color-mix(in srgb, var(--color-surface-soft) 92%, var(--color-surface))'
   },
-  td: { padding: '10px 12px', fontSize: '13px', color: '#111827', borderBottom: `1px solid ${theme.colors.borderSoft}`, fontWeight: 400, verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  td: { padding: '10px 12px', fontSize: '13px', color: '#111827', borderBottom: `1px solid ${theme.colors.borderSoft}`, fontWeight: 400, verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: theme.colors.surface },
   iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '12px', width: '34px', height: '34px', minWidth: '34px', minHeight: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
@@ -506,7 +506,7 @@ export default function VendorDashboard() {
                   );
                 })}
                 <td style={cellStyle('actions', 'left')}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', justifyContent: 'flex-start' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-start' }}>
                     <button type="button" style={shell.iconBtn} onClick={() => openEdit(vendor)} aria-label="Edit vendor" title="Edit vendor"><Pencil size={15} strokeWidth={2.25} /></button>
                     <button type="button" style={shell.iconBtn} onClick={() => deleteVendor(vendor._id)} aria-label="Delete vendor" title="Delete vendor"><Trash2 size={15} strokeWidth={2.25} /></button>
                   </div>
