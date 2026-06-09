@@ -400,7 +400,7 @@ export default function StockItems() {
                   <th className="table-header-cell table-text-cell" style={headStyle('hsnSac', 'center')}>HSN Code</th>
                   <th className="table-header-cell table-text-cell" style={headStyle('packSizePerBottle', 'center')}>Pack Size / Per Bottle</th>
                   <th className="table-header-cell table-number-cell" style={headStyle('currentStock', 'left')}>Current Stock</th>
-                  <th className="table-header-cell table-number-cell" style={headStyle('minimum', 'center')}>Minimum</th>
+                  <th className="table-header-cell table-number-cell" style={headStyle('minimum', 'left')}>Minimum</th>
                   <th className="table-header-cell table-status-cell" style={headStyle('status', 'center')}>Status</th>
                   <th className="table-header-cell table-actions-cell" style={headStyle('actions', 'center')}>Actions</th>
                 </tr>
@@ -422,7 +422,7 @@ export default function StockItems() {
                         {row.currentStockFormula ? <span style={{ color: theme.colors.muted, fontSize: 11, lineHeight: 1.2 }}>{row.currentStockFormula}</span> : null}
                       </div>
                     </td>
-                    <td className="table-number-cell" style={bodyStyle('minimum', 'center')}>{number(row.minStockLevel)}</td>
+                    <td className="table-number-cell" style={bodyStyle('minimum', 'left')}>{number(row.minStockLevel)}</td>
                     <td className="table-status-cell" style={bodyStyle('status', 'center')}><span style={badgeStyle(row.status)}>{row.status}</span></td>
                     <td className="table-actions-cell" style={bodyStyle('actions', 'left')}>
                       <div style={{ display: 'inline-flex', gap: 8, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-start' }}>
