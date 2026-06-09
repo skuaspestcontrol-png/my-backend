@@ -6,29 +6,29 @@ const shell = {
   overlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(15,23,42,0.45)',
+    background: 'rgba(15,23,42,0.48)',
     zIndex: 6500,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '14px'
+    padding: '18px'
   },
   modal: {
-    width: 'min(1120px, 100%)',
-    maxHeight: '90vh',
+    width: 'min(86vw, 1720px)',
+    height: 'min(88vh, 960px)',
     overflow: 'hidden',
     background: '#fff',
-    borderRadius: '14px',
-    border: '1px solid var(--color-primary)',
-    boxShadow: '0 22px 54px rgba(15,23,42,0.2)',
+    borderRadius: '18px',
+    border: '1px solid rgba(15,23,42,0.08)',
+    boxShadow: '0 28px 70px rgba(15,23,42,0.28)',
     display: 'flex',
     flexDirection: 'column'
   },
   header: {
-    minHeight: '64px',
-    padding: '12px 14px',
-    borderBottom: '1px solid var(--color-primary-dark)',
-    background: 'var(--color-primary)',
+    minHeight: '78px',
+    padding: '14px 22px',
+    borderBottom: '1px solid rgba(15,23,42,0.08)',
+    background: '#000',
     color: '#fff',
     display: 'flex',
     alignItems: 'center',
@@ -38,44 +38,50 @@ const shell = {
   },
   title: {
     margin: 0,
-    fontSize: '17px',
-    fontWeight: 600,
+    fontSize: '22px',
+    fontWeight: 800,
     color: '#fff',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '5px',
+    gap: '8px',
     lineHeight: 1.15
   },
   closeButton: {
-    border: '1px solid rgba(255,255,255,0.75)',
+    border: 'none',
     background: 'rgba(255,255,255,0.18)',
     color: '#fff',
-    borderRadius: '8px',
-    minWidth: '26px',
-    height: '26px',
+    borderRadius: '12px',
+    minWidth: '40px',
+    width: '40px',
+    height: '40px',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer'
   },
   body: {
-    padding: '9px 12px 12px',
-    display: 'grid',
-    gap: '5px',
-    overflowY: 'auto'
+    padding: '0 14px 14px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    overflow: 'hidden',
+    minHeight: 0,
+    flex: 1
   },
   actions: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: '5px'
+    gap: '8px',
+    padding: '10px 0 0 0',
+    alignItems: 'center'
   },
   actionButton: {
-    minHeight: '32px',
+    minHeight: '40px',
     borderRadius: '999px',
     border: '1px solid #d1d5db',
     background: '#fff',
     color: '#374151',
-    padding: '0 18px',
+    padding: '0 16px',
     fontWeight: 700,
     fontSize: '13px',
     display: 'inline-flex',
@@ -91,15 +97,16 @@ const shell = {
     cursor: 'not-allowed'
   },
   frameShell: {
-    border: '1px solid var(--color-primary)',
-    borderRadius: '10px',
+    border: '1px solid rgba(15,23,42,0.08)',
+    borderRadius: '12px',
     background: '#fff',
     overflow: 'hidden',
-    minHeight: 0
+    minHeight: 0,
+    flex: 1
   },
   frame: {
     width: '100%',
-    height: '66vh',
+    height: '100%',
     border: 'none',
     background: '#fff'
   },
@@ -292,11 +299,10 @@ export default function PdfPreviewModal({
         <div style={shell.header}>
           <h3 style={shell.title}><FileText size={16} /> {title || 'PDF Preview'}</h3>
           <button type="button" onClick={handleClose} style={shell.closeButton} aria-label="Close">
-            <X size={18} />
+            <X size={22} />
           </button>
         </div>
         <div style={shell.body}>
-          {error ? <div style={shell.status}>{error}</div> : null}
           <div style={{ ...shell.actions, flexDirection: 'row' }}>
             <button type="button" style={actionButtonStyle(Boolean(sourceUrl))} onClick={handleDownload} disabled={!sourceUrl}>
               <Download size={14} /> Download PDF
@@ -324,10 +330,11 @@ export default function PdfPreviewModal({
               Close
             </button>
           </div>
+          {error ? <div style={shell.status}>{error}</div> : null}
 
           <div style={{
             ...shell.frameShell,
-            height: screenWidth < 640 ? '58vh' : '66vh'
+            height: screenWidth < 640 ? '58vh' : '100%'
           }}>
             {loading ? (
               <div style={{ ...shell.status, margin: '12px' }}>Loading PDF preview...</div>
