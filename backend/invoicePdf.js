@@ -249,17 +249,36 @@ const parseStatePincodeLine = (value = '') => {
 };
 
 const resolveAddressParts = ({ invoiceText = '', customer = {}, prefix = 'billing', fallbackAddress = '', invoiceFields = {} }) => {
-  const sourceParts = splitAddressText(invoiceText || fallbackAddress);
+  const hasInvoiceText = Boolean(clean(invoiceText));
+  const sourceParts = splitAddressText(invoiceText);
   const fallbackParts = splitAddressText(fallbackAddress || '');
-  const lineParts = sourceParts.length > 0 ? sourceParts : fallbackParts;
+  const lineParts = hasInvoiceText ? sourceParts : fallbackParts;
   const lastLineParts = parseStatePincodeLine(lineParts[lineParts.length - 1] || '');
   const usesNamedLine = lineParts.length > 0 && (clean(customer[`${prefix}Attention`]) || clean(invoiceFields.attention)) === clean(lineParts[0]);
   const dataAttention = clean(invoiceFields.attention || customer[`${prefix}Attention`] || lineParts[0]);
-  const street1 = clean(invoiceFields.street1 || customer[`${prefix}Street1`] || customer[`${prefix}Address`] || lineParts[usesNamedLine ? 1 : 0]);
-  const street2 = clean(invoiceFields.street2 || customer[`${prefix}Street2`] || lineParts[usesNamedLine ? 2 : 1]);
-  const area = clean(invoiceFields.area || customer[`${prefix}Area`] || lineParts[usesNamedLine ? 3 : 2]);
-  const state = clean(invoiceFields.state || customer[`${prefix}State`] || lastLineParts.state || customer.state);
-  const pincode = clean(invoiceFields.pincode || customer[`${prefix}Pincode`] || lastLineParts.pincode || customer.pincode);
+  const invoiceStreet1 = lineParts[usesNamedLine ? 1 : 0];
+  const invoiceStreet2 = lineParts[usesNamedLine ? 2 : 1];
+  const invoiceArea = lineParts[usesNamedLine ? 3 : 2];
+  const street1 = clean(
+    invoiceFields.street1
+      || (hasInvoiceText ? invoiceStreet1 : customer[`${prefix}Street1`] || customer[`${prefix}Address`] || invoiceStreet1)
+  );
+  const street2 = clean(
+    invoiceFields.street2
+      || (hasInvoiceText ? invoiceStreet2 : customer[`${prefix}Street2`] || invoiceStreet2)
+  );
+  const area = clean(
+    invoiceFields.area
+      || (hasInvoiceText ? invoiceArea : customer[`${prefix}Area`] || invoiceArea)
+  );
+  const state = clean(
+    invoiceFields.state
+      || (hasInvoiceText ? lastLineParts.state : customer[`${prefix}State`] || lastLineParts.state || customer.state)
+  );
+  const pincode = clean(
+    invoiceFields.pincode
+      || (hasInvoiceText ? lastLineParts.pincode : customer[`${prefix}Pincode`] || lastLineParts.pincode || customer.pincode)
+  );
   return { attention: dataAttention, street1, street2, area, state, pincode };
 };
 

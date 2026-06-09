@@ -903,6 +903,15 @@ const getAddressDisplayText = (option, fallbackText = '') => {
   return fallback || 'No address selected';
 };
 
+const findAddressOptionByText = (options = [], addressText = '') => {
+  const target = String(addressText || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!target) return null;
+  return options.find((option) => {
+    const candidate = addressOptionText(option).trim().toLowerCase().replace(/\s+/g, ' ');
+    return candidate && candidate === target;
+  }) || null;
+};
+
 const getEmployeeDisplayName = (employee = {}) => {
   const first = String(employee.firstName || '').trim();
   const last = String(employee.lastName || '').trim();
@@ -1270,9 +1279,11 @@ export default function InvoiceDashboard() {
     () => {
       const found = billingAddressOptions.find((address) => address.id === form.billingAddressSource);
       if (found) return found;
+      const matchedByText = findAddressOptionByText(billingAddressOptions, form.billingAddressText || form.premiseAddress);
+      if (matchedByText) return matchedByText;
       return form.billingAddressSource ? null : (billingAddressOptions[0] || null);
     },
-    [billingAddressOptions, form.billingAddressSource]
+    [billingAddressOptions, form.billingAddressSource, form.billingAddressText, form.premiseAddress]
   );
   const shippingAddressOptions = useMemo(() => {
     const base = [
@@ -1295,9 +1306,11 @@ export default function InvoiceDashboard() {
     () => {
       const found = shippingAddressOptions.find((address) => address.id === form.shippingAddressSource);
       if (found) return found;
+      const matchedByText = findAddressOptionByText(shippingAddressOptions, form.shippingAddressText || form.premiseAddress);
+      if (matchedByText) return matchedByText;
       return form.shippingAddressSource ? null : (shippingAddressOptions[0] || null);
     },
-    [shippingAddressOptions, form.shippingAddressSource]
+    [shippingAddressOptions, form.shippingAddressSource, form.shippingAddressText, form.premiseAddress]
   );
 
   useEffect(() => {
@@ -2404,6 +2417,18 @@ export default function InvoiceDashboard() {
     setShowShippingAddressPicker(true);
   };
 
+  const openBillingAddressPicker = () => {
+    if (!selectedCustomer) {
+      setSaveError('Select a customer before choosing a billing address.');
+      return;
+    }
+    setShowShippingAddressPicker(false);
+    setEditingShippingAddressId('');
+    setAddressDraftTarget('billing');
+    setShippingAddressDraft(emptyAddressDraft);
+    setShowBillingAddressPicker(true);
+  };
+
   const selectBillingAddressOption = (id) => {
     setFormWithTotals((prev) => ({
       ...prev,
@@ -2661,17 +2686,17 @@ export default function InvoiceDashboard() {
       billingAddressText: buildAddressText(
         selectedCustomer,
         form.billingAddressSource,
-        selectedShippingAddress ? addressOptionText(selectedShippingAddress) : form.shippingAddressText || form.premiseAddress
+        selectedBillingAddress ? addressOptionText(selectedBillingAddress) : form.billingAddressText || form.premiseAddress
       ),
-      shippingAddressText: addressOptionText(selectedShippingAddress),
-      customerPremiseId: selectedShippingAddress?.premiseId || selectedBillingAddress?.premiseId || '',
-      premiseLabel: selectedShippingAddress?.label || selectedBillingAddress?.label || '',
-      premiseAddress: selectedShippingAddress ? addressOptionText(selectedShippingAddress) : '',
-      premiseAreaName: selectedShippingAddress?.area || '',
-      premiseCity: selectedShippingAddress?.city || '',
-      premiseState: selectedShippingAddress?.state || '',
-      premisePincode: selectedShippingAddress?.pincode || '',
-      premiseGoogleMapUrl: selectedShippingAddress?.googleMapUrl || '',
+      shippingAddressText: getAddressDisplayText(selectedShippingAddress, form.shippingAddressText || form.premiseAddress),
+      customerPremiseId: selectedShippingAddress?.premiseId || selectedBillingAddress?.premiseId || form.customerPremiseId || '',
+      premiseLabel: selectedShippingAddress?.label || selectedBillingAddress?.label || form.premiseLabel || '',
+      premiseAddress: selectedShippingAddress ? addressOptionText(selectedShippingAddress) : (form.premiseAddress || form.shippingAddressText || ''),
+      premiseAreaName: selectedShippingAddress?.area || form.premiseAreaName || '',
+      premiseCity: selectedShippingAddress?.city || form.premiseCity || '',
+      premiseState: selectedShippingAddress?.state || form.premiseState || '',
+      premisePincode: selectedShippingAddress?.pincode || form.premisePincode || '',
+      premiseGoogleMapUrl: selectedShippingAddress?.googleMapUrl || form.premiseGoogleMapUrl || '',
       invoiceNumber: form.invoiceNumber.trim() || createNextInvoiceNumber(),
       date: form.date,
       terms: form.terms,
@@ -3454,7 +3479,16 @@ export default function InvoiceDashboard() {
                   <div style={addressStackSectionStyle}>
                     <div style={shell.addressHead}>
                       <h4 style={addressTitleStyle}>Billing Address</h4>
-                      <div style={shell.addressHeadSpacer} aria-hidden="true" />
+                      <div style={shell.addressHeadActions}>
+                        <button
+                          type="button"
+                          style={shippingAddressEditButtonStyle}
+                          onClick={openBillingAddressPicker}
+                          title="Edit Billing Address"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </div>
                     </div>
                     <p style={addressTextStyle}>{getAddressDisplayText(selectedBillingAddress, form.billingAddressText || (selectedShippingAddress ? addressOptionText(selectedShippingAddress) : ''))}</p>
                   </div>
@@ -3481,7 +3515,16 @@ export default function InvoiceDashboard() {
                   <div style={addressCardStyle}>
                     <div style={shell.addressHead}>
                       <h4 style={addressTitleStyle}>Billing Address</h4>
-                      <div style={shell.addressHeadSpacer} aria-hidden="true" />
+                      <div style={shell.addressHeadActions}>
+                        <button
+                          type="button"
+                          style={shippingAddressEditButtonStyle}
+                          onClick={openBillingAddressPicker}
+                          title="Edit Billing Address"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </div>
                     </div>
                     <p style={addressTextStyle}>{getAddressDisplayText(selectedBillingAddress, form.billingAddressText || (selectedShippingAddress ? addressOptionText(selectedShippingAddress) : ''))}</p>
                   </div>

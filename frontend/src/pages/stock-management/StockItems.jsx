@@ -9,7 +9,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import useColumnResize from '../../components/table/useColumnResize';
 import { theme } from '../../styles/theme';
-import { apiDelete, apiGet, apiPost, apiPut, number, safeRows, stockCategories, stockCategoryDisplayLabel, stockUnits } from './stockApi';
+import { apiDelete, apiGet, apiPost, apiPut, computeStockFromPackSize, formatCurrentStockDisplay, number, safeRows, stockCategories, stockCategoryDisplayLabel, stockUnits } from './stockApi';
 
 const vendorLabel = (row) => String(row.name || row.vendor_name || row.company_name || row.displayName || `Vendor ${row.id || row._id || ''}`).trim();
 
@@ -19,6 +19,7 @@ const initialForm = {
   itemCode: '',
   hsnSac: '',
   packSizePerBottle: '',
+  noOfBottles: '',
   category: 'Other',
   unit: 'piece',
   purchaseRate: '0',
@@ -140,6 +141,7 @@ export default function StockItems() {
   }, []);
 
   const vendorOptions = useMemo(() => safeRows(vendors), [vendors]);
+  const stockPreview = useMemo(() => computeStockFromPackSize(form.packSizePerBottle, form.noOfBottles), [form.packSizePerBottle, form.noOfBottles]);
   const {
     getColumnWidth,
     startResize,
@@ -226,6 +228,7 @@ export default function StockItems() {
       itemCode: row.itemCode || '',
       hsnSac: row.hsnSac || '',
       packSizePerBottle: row.packSizePerBottle || '',
+      noOfBottles: String(row.noOfBottles ?? ''),
       category: row.category || 'Other',
       unit: row.unit || 'piece',
       purchaseRate: String(row.purchaseRate ?? 0),
@@ -303,6 +306,15 @@ export default function StockItems() {
               {stockUnits.map((item) => <option key={item} value={item}>{item}</option>)}
             </AppSelect>
             <AppInput label="Pack Size / Per Bottle" value={form.packSizePerBottle} onChange={(e) => setForm({ ...form, packSizePerBottle: e.target.value })} />
+            <AppInput
+              type="number"
+              step="1"
+              min="0"
+              label="No of Bottles"
+              value={form.noOfBottles}
+              onChange={(e) => setForm({ ...form, noOfBottles: e.target.value })}
+              helper={stockPreview.formula || 'Enter both fields to auto-calculate current stock.'}
+            />
             <AppInput type="number" step="0.01" min="0" label="Purchase Rate" value={form.purchaseRate} onChange={(e) => setForm({ ...form, purchaseRate: e.target.value })} />
             <AppSelect label="Vendor" value={form.vendorId} onChange={(e) => setForm({ ...form, vendorId: e.target.value })}>
               <option value="">Optional</option>
@@ -357,7 +369,12 @@ export default function StockItems() {
                     <td className="table-text-cell" style={bodyStyle('unit', 'center')}>{row.unit}</td>
                     <td className="table-text-cell" style={bodyStyle('hsnSac', 'center')}>{row.hsnSac || '-'}</td>
                     <td className="table-text-cell" style={bodyStyle('packSizePerBottle', 'center')}>{row.packSizePerBottle || '-'}</td>
-                    <td className="table-number-cell" style={bodyStyle('currentStock', 'center')}>{number(row.currentStock)}</td>
+                    <td className="table-number-cell" style={bodyStyle('currentStock', 'center')}>
+                      <div style={{ display: 'grid', gap: 2, justifyItems: 'center' }}>
+                        <span style={{ fontWeight: 800, color: theme.colors.text }}>{formatCurrentStockDisplay(row)}</span>
+                        {row.currentStockFormula ? <span style={{ color: theme.colors.muted, fontSize: 11, lineHeight: 1.2 }}>{row.currentStockFormula}</span> : null}
+                      </div>
+                    </td>
                     <td className="table-number-cell" style={bodyStyle('minimum', 'center')}>{number(row.minStockLevel)}</td>
                     <td className="table-status-cell" style={bodyStyle('status', 'center')}><span style={badgeStyle(row.status)}>{row.status}</span></td>
                     <td className="table-actions-cell" style={bodyStyle('actions', 'left')}>

@@ -16,6 +16,80 @@ const normalizeUnit = (value) => {
   if (unit === 'pcs') return 'piece';
   return unit;
 };
+const normalizePackUnit = (value) => {
+  const unit = text(value).toLowerCase();
+  if (!unit) return '';
+  if (['ml', 'millilitre', 'milliliter', 'millilitres', 'milliliters'].includes(unit)) return 'ml';
+  if (['l', 'lt', 'ltr', 'litre', 'liter', 'litres', 'liters'].includes(unit)) return 'litre';
+  if (['g', 'gram', 'grams'].includes(unit)) return 'gram';
+  if (['kg', 'kilogram', 'kilograms'].includes(unit)) return 'kg';
+  return unit;
+};
+const getStockUnitLabel = (unit) => {
+  const normalized = text(unit).toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'ml' || normalized === 'litre') return 'Liter';
+  if (normalized === 'gram') return 'Gram';
+  if (normalized === 'kg') return 'Kg';
+  if (normalized === 'piece') return 'Piece';
+  if (normalized === 'bottle') return 'Bottle';
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+};
+const formatStockNumber = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return '0';
+  const rounded = Number(parsed.toFixed(3));
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+};
+const parsePackSizePerBottle = (value) => {
+  const raw = text(value).replace(/,/g, '');
+  if (!raw) return { quantity: 0, unit: '', valid: false };
+  const match = raw.match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z]+)?$/);
+  if (!match) return { quantity: 0, unit: '', valid: false };
+  return {
+    quantity: num(match[1]),
+    unit: normalizePackUnit(match[2]),
+    valid: true
+  };
+};
+const computeStockFromPackSize = (packSizePerBottle, bottleCount) => {
+  const parsed = parsePackSizePerBottle(packSizePerBottle);
+  const bottles = num(bottleCount);
+  if (!parsed.valid || parsed.quantity <= 0 || bottles <= 0) {
+    return {
+      value: 0,
+      unit: '',
+      unitLabel: '',
+      bottles,
+      packQuantity: parsed.quantity,
+      packUnit: parsed.unit,
+      formula: ''
+    };
+  }
+
+  let value = parsed.quantity * bottles;
+  let unit = parsed.unit;
+  if (unit === 'ml') {
+    value /= 1000;
+    unit = 'litre';
+  } else if (unit === 'gram') {
+    value /= 1000;
+    unit = 'kg';
+  }
+
+  const valueRounded = round3(value);
+  const bottleLabel = bottles === 1 ? 'bottle' : 'bottles';
+  const displayUnit = getStockUnitLabel(unit);
+  return {
+    value: valueRounded,
+    unit,
+    unitLabel: displayUnit,
+    bottles,
+    packQuantity: parsed.quantity,
+    packUnit: parsed.unit,
+    formula: displayUnit ? `${formatStockNumber(parsed.quantity)}${parsed.unit || ''} × ${formatStockNumber(bottles)} ${bottleLabel} = ${formatStockNumber(valueRounded)} ${displayUnit}` : ''
+  };
+};
 const num = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -78,6 +152,7 @@ const ensureSchema = async () => {
     unit VARCHAR(50) NOT NULL,
     hsn_sac VARCHAR(100) NULL,
     pack_size_per_bottle VARCHAR(100) NULL,
+    no_of_bottles DECIMAL(12,3) DEFAULT 0,
     opening_stock DECIMAL(12,3) DEFAULT 0,
     current_stock DECIMAL(12,3) DEFAULT 0,
     min_stock_level DECIMAL(12,3) DEFAULT 0,
@@ -174,6 +249,7 @@ const ensureSchema = async () => {
   await ensureColumn('stock_items', 'expiry_date', 'expiry_date DATE NULL');
   await ensureColumn('stock_items', 'hsn_sac', 'hsn_sac VARCHAR(100) NULL');
   await ensureColumn('stock_items', 'pack_size_per_bottle', 'pack_size_per_bottle VARCHAR(100) NULL');
+  await ensureColumn('stock_items', 'no_of_bottles', 'no_of_bottles DECIMAL(12,3) DEFAULT 0');
   await ensureColumn('stock_items', 'storage_location', 'storage_location VARCHAR(255) NULL');
   await ensureColumn('stock_items', 'description', 'description TEXT NULL');
   await ensureColumn('stock_items', 'is_active', 'is_active TINYINT(1) DEFAULT 1');
@@ -220,6 +296,22 @@ const coerceOptionalText = (value, fallback = null) => {
   if (value === undefined) return fallback;
   const cleaned = text(value);
   return cleaned || null;
+};
+const resolveItemStockFields = (body = {}, existing = null) => {
+  const packSizePerBottle = coerceOptionalText(getProvidedValue(body, 'packSizePerBottle', 'pack_size_per_bottle'), text(existing?.pack_size_per_bottle));
+  const noOfBottles = coerceStockValue(getProvidedValue(body, 'noOfBottles', 'no_of_bottles'), num(existing?.no_of_bottles));
+  const stockMeta = computeStockFromPackSize(packSizePerBottle, noOfBottles);
+  const fallbackOpening = coerceStockValue(getProvidedValue(body, 'openingStock', 'opening_stock'), num(existing?.opening_stock));
+  const fallbackCurrent = coerceStockValue(getProvidedValue(body, 'currentStock', 'current_stock'), num(existing?.current_stock ?? fallbackOpening));
+  const computedStock = stockMeta.value > 0 ? stockMeta.value : fallbackCurrent;
+  const openingStock = stockMeta.value > 0 ? stockMeta.value : fallbackOpening;
+  return {
+    packSizePerBottle,
+    noOfBottles,
+    openingStock: round3(openingStock),
+    currentStock: round3(computedStock),
+    stockMeta
+  };
 };
 
 const loadVendors = async () => {
@@ -288,6 +380,19 @@ const loadItems = async () => {
        ORDER BY i.is_active DESC, i.item_name ASC`
     );
     return safeRows(rows).map((row) => ({
+      ...(() => {
+        const stockMeta = computeStockFromPackSize(row.pack_size_per_bottle, row.no_of_bottles);
+        const computedStock = stockMeta.value > 0 && stockMeta.unitLabel ? stockMeta.value : num(row.current_stock);
+        const currentStockDisplay = stockMeta.value > 0 && stockMeta.unitLabel
+          ? `${formatStockNumber(stockMeta.value)} ${stockMeta.unitLabel}`
+          : formatStockNumber(num(row.current_stock));
+        return {
+          currentStock: computedStock,
+          currentStockUnitLabel: stockMeta.unitLabel,
+          currentStockDisplay,
+          currentStockFormula: stockMeta.formula
+        };
+      })(),
       id: row.id,
       itemName: safeName(row.item_name, `Item ${row.id}`),
       itemCode: text(row.item_code),
@@ -295,8 +400,8 @@ const loadItems = async () => {
       unit: safeName(normalizeUnit(row.unit) || 'piece', 'piece'),
       hsnSac: text(row.hsn_sac),
       packSizePerBottle: text(row.pack_size_per_bottle),
+      noOfBottles: num(row.no_of_bottles),
       openingStock: num(row.opening_stock),
-      currentStock: num(row.current_stock),
       minStockLevel: num(row.min_stock_level),
       purchaseRate: num(row.purchase_rate),
       vendorId: row.vendor_id ?? null,
@@ -306,7 +411,13 @@ const loadItems = async () => {
       storageLocation: text(row.storage_location),
       description: text(row.description),
       isActive: Number(row.is_active || 0) !== 0,
-      status: stockStatus(row)
+      status: stockStatus({
+        current_stock: (() => {
+          const stockMeta = computeStockFromPackSize(row.pack_size_per_bottle, row.no_of_bottles);
+          return stockMeta.value > 0 && stockMeta.unitLabel ? stockMeta.value : row.current_stock;
+        })(),
+        min_stock_level: row.min_stock_level
+      })
     }));
   } catch (_error) {
     return [];
@@ -693,9 +804,11 @@ router.post('/items', async (req, res) => {
     const category = text(body.category || 'Other') || 'Other';
     const unit = normalizeUnit(body.unit) || 'piece';
     const hsnSac = coerceOptionalText(getProvidedValue(body, 'hsnSac', 'hsn_sac'));
-    const packSizePerBottle = coerceOptionalText(getProvidedValue(body, 'packSizePerBottle', 'pack_size_per_bottle'));
-    const openingStock = coerceStockValue(getProvidedValue(body, 'openingStock', 'opening_stock'));
-    const currentStock = coerceStockValue(getProvidedValue(body, 'currentStock', 'current_stock'), openingStock);
+    const stockFields = resolveItemStockFields(body);
+    const packSizePerBottle = stockFields.packSizePerBottle;
+    const noOfBottles = stockFields.noOfBottles;
+    const openingStock = stockFields.openingStock;
+    const currentStock = stockFields.currentStock;
     const minStockLevel = coerceStockValue(getProvidedValue(body, 'minStockLevel', 'min_stock_level'));
     const purchaseRate = round3(body.purchaseRate ?? body.purchase_rate ?? 0);
     const vendorId = body.vendorId || body.vendor_id ? Number(body.vendorId || body.vendor_id) : null;
@@ -714,19 +827,19 @@ router.post('/items', async (req, res) => {
       await conn.beginTransaction();
       const [insertResult] = await conn.query(
         `INSERT INTO stock_items (
-          item_name, item_code, category, unit, hsn_sac, pack_size_per_bottle, opening_stock, current_stock, min_stock_level,
+          item_name, item_code, category, unit, hsn_sac, pack_size_per_bottle, no_of_bottles, opening_stock, current_stock, min_stock_level,
           purchase_rate, vendor_id, batch_number, expiry_date, storage_location, description, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, openingStock, currentStock, minStockLevel, purchaseRate, vendorId, batchNumber, expiryDate, storageLocation, description, isActive]
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, noOfBottles, openingStock, currentStock, minStockLevel, purchaseRate, vendorId, batchNumber, expiryDate, storageLocation, description, isActive]
       );
 
-      if (openingStock > 0) {
+      if (currentStock > 0) {
         await insertMovement(conn, {
           movementType: 'opening',
           itemId: insertResult.insertId,
           vendorId,
           sourceLocation: 'office',
-          inQty: openingStock,
+          inQty: currentStock,
           outQty: 0,
           officeBalanceAfter: currentStock,
           technicianBalanceAfter: 0,
@@ -771,9 +884,11 @@ router.put('/items/:id', async (req, res) => {
     const category = text(body.category || 'Other') || 'Other';
     const unit = normalizeUnit(body.unit) || 'piece';
     const hsnSac = coerceOptionalText(getProvidedValue(body, 'hsnSac', 'hsn_sac'), text(existing.hsn_sac));
-    const packSizePerBottle = coerceOptionalText(getProvidedValue(body, 'packSizePerBottle', 'pack_size_per_bottle'), text(existing.pack_size_per_bottle));
-    const openingStock = coerceStockValue(getProvidedValue(body, 'openingStock', 'opening_stock'), num(existing.opening_stock));
-    const currentStock = coerceStockValue(getProvidedValue(body, 'currentStock', 'current_stock'), num(existing.current_stock));
+    const stockFields = resolveItemStockFields(body, existing);
+    const packSizePerBottle = stockFields.packSizePerBottle;
+    const noOfBottles = stockFields.noOfBottles;
+    const openingStock = stockFields.openingStock;
+    const currentStock = stockFields.currentStock;
     const minStockLevel = coerceStockValue(getProvidedValue(body, 'minStockLevel', 'min_stock_level'), num(existing.min_stock_level));
     const purchaseRate = round3(body.purchaseRate ?? body.purchase_rate ?? 0);
     const vendorId = body.vendorId || body.vendor_id ? Number(body.vendorId || body.vendor_id) : null;
@@ -794,6 +909,7 @@ router.put('/items/:id', async (req, res) => {
         unit = ?,
         hsn_sac = ?,
         pack_size_per_bottle = ?,
+        no_of_bottles = ?,
         opening_stock = ?,
         current_stock = ?,
         min_stock_level = ?,
@@ -805,7 +921,7 @@ router.put('/items/:id', async (req, res) => {
         description = ?,
         is_active = ?
        WHERE id = ?`,
-      [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, openingStock, currentStock, minStockLevel, purchaseRate, vendorId, batchNumber, expiryDate, storageLocation, description, isActive, itemId]
+      [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, noOfBottles, openingStock, currentStock, minStockLevel, purchaseRate, vendorId, batchNumber, expiryDate, storageLocation, description, isActive, itemId]
     );
     if (Number(result?.affectedRows || 0) === 0) {
       return sendError(res, 404, 'Item not found.');
@@ -1383,7 +1499,8 @@ const buildStockExportRows = (reportType, rows = []) => {
     if (key === 'value') return num(row.currentStock) * num(row.purchaseRate);
     if (key === 'batchInfo') return [row.batchNumber || '---', row.expiryDate ? `Exp: ${normalizeDate(row.expiryDate)}` : 'No expiry'].filter(Boolean).join(' | ');
     if (key === 'movementDate' || key === 'purchaseDate' || key === 'expiryDate') return normalizeDate(row[key]);
-    if (key === 'currentStock' || key === 'minStockLevel' || key === 'currentBalance' || key === 'inQty' || key === 'outQty' || key === 'rate' || key === 'totalAmount') return row[key];
+    if (key === 'currentStock') return row.currentStockDisplay || row.currentStock;
+    if (key === 'minStockLevel' || key === 'currentBalance' || key === 'inQty' || key === 'outQty' || key === 'rate' || key === 'totalAmount') return row[key];
     if (key === 'technicianName') return row.technicianName || row.technician || '---';
     if (key === 'vendorName') return row.vendorName || '---';
     if (key === 'customerName') return row.customerName || '---';

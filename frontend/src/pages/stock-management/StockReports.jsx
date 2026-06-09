@@ -7,7 +7,7 @@ import AppSelect from '../../components/ui/AppSelect';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
-import { apiGet, exportUrl, money, number, reportTypes, safeRows, stockCategories, movementTypes, stockCategoryDisplayLabel } from './stockApi';
+import { apiGet, exportUrl, formatCurrentStockDisplay, money, number, reportTypes, safeRows, stockCategories, movementTypes, stockCategoryDisplayLabel } from './stockApi';
 
 const tableStyle = { width: '100%', borderCollapse: 'separate', borderSpacing: 0 };
 const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
@@ -133,7 +133,7 @@ export default function StockReports() {
                 <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
                 <td className="table-text-cell" style={cellStyle}>{stockCategoryDisplayLabel(row.category)}</td>
                 <td className="table-text-cell" style={cellStyle}>{row.unit}</td>
-                <td className="table-number-cell" style={cellStyle}>{number(row.currentStock)}</td>
+                <td className="table-number-cell" style={cellStyle}>{formatCurrentStockDisplay(row)}</td>
                 <td className="table-number-cell" style={cellStyle}>{number(row.minStockLevel)}</td>
                 <td className="table-number-cell" style={cellStyle}>{money((Number(row.currentStock || 0) * Number(row.purchaseRate || 0)))}</td>
                 <td className="table-status-cell" style={cellStyle}><span style={badgeStyle(row.status)}>{row.status}</span></td>
@@ -220,7 +220,7 @@ export default function StockReports() {
               <tr key={row.id}>
                 <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
                 <td className="table-text-cell" style={cellStyle}>{stockCategoryDisplayLabel(row.category)}</td>
-                <td className="table-number-cell" style={cellStyle}>{number(row.currentStock)}</td>
+                <td className="table-number-cell" style={cellStyle}>{formatCurrentStockDisplay(row)}</td>
                 <td className="table-number-cell" style={cellStyle}>{number(row.minStockLevel)}</td>
                 <td className="table-status-cell" style={cellStyle}><span style={badgeStyle(row.status)}>{row.status}</span></td>
               </tr>
@@ -242,7 +242,7 @@ export default function StockReports() {
                 <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
                 <td className="table-text-cell" style={cellStyle}>{stockCategoryDisplayLabel(row.category)}</td>
                 <td className="table-text-cell" style={cellStyle}>{row.expiryDate || '---'}</td>
-                <td className="table-number-cell" style={cellStyle}>{number(row.currentStock)}</td>
+                <td className="table-number-cell" style={cellStyle}>{formatCurrentStockDisplay(row)}</td>
                 <td className="table-status-cell" style={cellStyle}><span style={badgeStyle('Expiring Soon')}>Expiring Soon</span></td>
               </tr>
             ))}

@@ -23,6 +23,95 @@ export const stockCategoryDisplayLabel = (value) => {
 
 export const stockUnits = ['ml', 'litre', 'gram', 'kg', 'tube', 'piece', 'box', 'packet', 'bottle', 'can'];
 
+export const normalizePackUnit = (value) => {
+  const unit = String(value || '').trim().toLowerCase();
+  if (!unit) return '';
+  if (['ml', 'millilitre', 'milliliter', 'millilitres', 'milliliters'].includes(unit)) return 'ml';
+  if (['l', 'lt', 'ltr', 'litre', 'liter', 'litres', 'liters'].includes(unit)) return 'litre';
+  if (['g', 'gram', 'grams'].includes(unit)) return 'gram';
+  if (['kg', 'kilogram', 'kilograms'].includes(unit)) return 'kg';
+  return unit;
+};
+
+export const getStockUnitLabel = (unit) => {
+  const normalized = String(unit || '').trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'ml' || normalized === 'litre') return 'Liter';
+  if (normalized === 'gram') return 'Gram';
+  if (normalized === 'kg') return 'Kg';
+  if (normalized === 'piece') return 'Piece';
+  if (normalized === 'bottle') return 'Bottle';
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+};
+
+export const formatStockNumber = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return '0';
+  const rounded = Number(parsed.toFixed(3));
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+};
+
+export const parsePackSizePerBottle = (value) => {
+  const raw = String(value || '').trim().replace(/,/g, '');
+  if (!raw) return { quantity: 0, unit: '', valid: false };
+  const match = raw.match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z]+)?$/);
+  if (!match) return { quantity: 0, unit: '', valid: false };
+  return {
+    quantity: Number(match[1]),
+    unit: normalizePackUnit(match[2]),
+    valid: true
+  };
+};
+
+export const computeStockFromPackSize = (packSizePerBottle, bottleCount) => {
+  const parsed = parsePackSizePerBottle(packSizePerBottle);
+  const bottles = Number(bottleCount || 0);
+  if (!parsed.valid || parsed.quantity <= 0 || bottles <= 0) {
+    return {
+      value: 0,
+      unit: '',
+      unitLabel: '',
+      bottles,
+      packQuantity: parsed.quantity,
+      packUnit: parsed.unit,
+      formula: ''
+    };
+  }
+
+  let value = parsed.quantity * bottles;
+  let unit = parsed.unit;
+  if (unit === 'ml') {
+    value /= 1000;
+    unit = 'litre';
+  } else if (unit === 'gram') {
+    value /= 1000;
+    unit = 'kg';
+  }
+
+  const rounded = Number(value.toFixed(3));
+  const bottleLabel = bottles === 1 ? 'bottle' : 'bottles';
+  const displayUnit = getStockUnitLabel(unit);
+  return {
+    value: rounded,
+    unit,
+    unitLabel: displayUnit,
+    bottles,
+    packQuantity: parsed.quantity,
+    packUnit: parsed.unit,
+    formula: displayUnit ? `${formatStockNumber(parsed.quantity)}${parsed.unit || ''} × ${formatStockNumber(bottles)} ${bottleLabel} = ${formatStockNumber(rounded)} ${displayUnit}` : ''
+  };
+};
+
+export const formatCurrentStockDisplay = (row = {}) => {
+  if (row.currentStockDisplay) return String(row.currentStockDisplay);
+  const stockMeta = computeStockFromPackSize(row.packSizePerBottle || row.pack_size_per_bottle, row.noOfBottles || row.no_of_bottles);
+  if (stockMeta.value > 0 && stockMeta.unitLabel) {
+    return `${formatStockNumber(stockMeta.value)} ${stockMeta.unitLabel}`;
+  }
+  const value = row.currentStock ?? row.current_stock ?? 0;
+  return formatStockNumber(value);
+};
+
 export const reportTypes = [
   { value: 'current-stock', label: 'Current Stock' },
   { value: 'technician-stock', label: 'Technician Stock' },

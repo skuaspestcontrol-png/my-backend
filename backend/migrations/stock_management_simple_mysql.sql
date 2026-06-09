@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS stock_items (
   item_code VARCHAR(100) NULL UNIQUE,
   category VARCHAR(100) DEFAULT 'Other',
   unit VARCHAR(50) NOT NULL,
+  pack_size_per_bottle VARCHAR(100) NULL,
+  no_of_bottles DECIMAL(12,3) DEFAULT 0,
   opening_stock DECIMAL(12,3) DEFAULT 0,
   current_stock DECIMAL(12,3) DEFAULT 0,
   min_stock_level DECIMAL(12,3) DEFAULT 0,
