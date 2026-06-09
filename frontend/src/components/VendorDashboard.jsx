@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { Trash2, X, Pencil } from 'lucide-react';
+import { Trash2, X, Pencil, Settings } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
@@ -53,6 +53,8 @@ const emptyForm = {
   contactPersonName: '',
   emailId: '',
   mobileNumber: '',
+  whatsappSameAsMobile: false,
+  whatsappNumber: '',
   gstNumber: '',
   billingAttention: '',
   billingAddress: '',
@@ -77,11 +79,16 @@ const shell = {
   topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)', background: '#fff' },
   title: { margin: 0, fontSize: '30px', fontWeight: 800, letterSpacing: '-0.03em', color: '#1f2937' },
   buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', minHeight: '34px', height: '34px', padding: '0 14px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap', flexWrap: 'nowrap' },
+  customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', width: '34px', height: '34px', minWidth: '34px', minHeight: '34px', padding: 0, cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)' },
+  customizeWrap: { position: 'relative', display: 'inline-flex' },
+  customizePopover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', minWidth: '200px', zIndex: 40, overflow: 'hidden' },
+  customizePopoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
+  customizePopoverButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937' },
   tableWrap: { overflowX: 'auto', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-border)', marginTop: '12px' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '900px' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
-  td: { padding: '12px 10px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7' },
-  iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '8px' },
+  td: { padding: '12px 10px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7', fontWeight: 400 },
+  iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '34px', height: '34px', minWidth: '34px', minHeight: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '8px' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
   modalHeader: { minHeight: '64px', padding: '16px 22px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
@@ -149,6 +156,7 @@ export default function VendorDashboard() {
   const [cachedDashboard] = useState(() => readVendorDashboardCache());
   const [vendors, setVendors] = useState(() => Array.isArray(cachedDashboard?.vendors) ? cachedDashboard.vendors : []);
   const [showModal, setShowModal] = useState(false);
+  const [showCustomize, setShowCustomize] = useState(false);
   const [editingId, setEditingId] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
@@ -196,10 +204,15 @@ export default function VendorDashboard() {
   };
 
   const openEdit = (vendor) => {
+    const mobileNumber = toTenDigitNumber(vendor?.mobileNumber || vendor?.mobile || '');
+    const whatsappNumber = toTenDigitNumber(vendor?.whatsappNumber || '');
     setEditingId(String(vendor?._id || ''));
     setForm({
       ...emptyForm,
       ...(vendor || {}),
+      mobileNumber,
+      whatsappNumber,
+      whatsappSameAsMobile: Boolean(mobileNumber && whatsappNumber && mobileNumber === whatsappNumber),
       billingPincode: toSixDigitPincode(vendor?.billingPincode || vendor?.pincode || ''),
       shippingPincode: toSixDigitPincode(vendor?.shippingPincode || '')
     });
@@ -213,6 +226,18 @@ export default function VendorDashboard() {
   };
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const updateMobileNumber = (value) => {
+    const mobileNumber = toTenDigitNumber(value);
+    setForm((prev) => ({
+      ...prev,
+      mobileNumber,
+      whatsappNumber: prev.whatsappSameAsMobile ? mobileNumber : prev.whatsappNumber
+    }));
+  };
+  const updateWhatsappNumber = (value) => {
+    const whatsappNumber = toTenDigitNumber(value);
+    setForm((prev) => ({ ...prev, whatsappNumber }));
+  };
   const copyBillingToShipping = (source) => ({
     shippingAttention: source.billingAttention,
     shippingAddress: source.billingAddress,
@@ -240,6 +265,11 @@ export default function VendorDashboard() {
       setSaveError(PHONE_VALIDATION_ERROR);
       return;
     }
+    const whatsappNumber = form.whatsappSameAsMobile ? mobile : toTenDigitNumber(form.whatsappNumber);
+    if (!form.whatsappSameAsMobile && whatsappNumber && whatsappNumber.length !== 10) {
+      setSaveError(PHONE_VALIDATION_ERROR);
+      return;
+    }
     const gstNumber = String(form.gstNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
     if (!gstinRegex.test(gstNumber)) {
       setSaveError('Enter a valid 15-character GSTIN (e.g., 08ABCDE9999F1Z8).');
@@ -259,7 +289,14 @@ export default function VendorDashboard() {
     setSaveError('');
     setIsSaving(true);
     try {
-      const payload = { ...form, mobileNumber: mobile, gstNumber, billingPincode, shippingPincode };
+      const payload = {
+        ...form,
+        mobileNumber: mobile,
+        whatsappNumber: whatsappNumber || (form.whatsappSameAsMobile ? mobile : ''),
+        gstNumber,
+        billingPincode,
+        shippingPincode
+      };
       if (editingId) {
         await axios.put(`${API_BASE_URL}/api/vendors/${editingId}`, payload);
       } else {
@@ -319,6 +356,32 @@ export default function VendorDashboard() {
       <div style={shell.topbar}>
         <h1 style={shell.title}>Vendors Dashboard</h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={shell.customizeWrap}>
+            <button
+              type="button"
+              style={shell.customizeButton}
+              aria-label="Customize columns"
+              title="Customize columns"
+              onClick={() => setShowCustomize((prev) => !prev)}
+            >
+              <Settings size={14} />
+            </button>
+            {showCustomize ? (
+              <div style={shell.customizePopover}>
+                <div style={shell.customizePopoverHeader}>Show / Hide Columns</div>
+                <button
+                  type="button"
+                  style={shell.customizePopoverButton}
+                  onClick={() => {
+                    resetColumns();
+                    setShowCustomize(false);
+                  }}
+                >
+                  Reset Default Columns
+                </button>
+              </div>
+            ) : null}
+          </div>
           <button type="button" style={shell.buttonPrimary} onClick={openNew}>
             + New Vendor
           </button>
@@ -377,7 +440,33 @@ export default function VendorDashboard() {
                   <div style={shell.field}><label style={shell.label}>Company Name</label><input style={shell.input} placeholder="Enter company name" value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
                   <div style={shell.field}><label style={shell.label}>Contact Person Name</label><input style={shell.input} value={form.contactPersonName} onChange={(e) => update('contactPersonName', e.target.value)} /></div>
                   <div style={shell.field}><label style={shell.label}>Email Address</label><input style={shell.input} type="email" value={form.emailId} onChange={(e) => update('emailId', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Mobile</label><input style={shell.input} inputMode="numeric" value={form.mobileNumber} onChange={(e) => update('mobileNumber', toTenDigitNumber(e.target.value))} /></div>
+                  <div style={shell.field}><label style={shell.label}>Mobile</label><input style={shell.input} inputMode="numeric" value={form.mobileNumber} onChange={(e) => updateMobileNumber(e.target.value)} /></div>
+                  <div style={shell.field}>
+                    <label style={shell.label}>WhatsApp Number</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        style={shell.input}
+                        inputMode="numeric"
+                        value={form.whatsappSameAsMobile ? form.mobileNumber : form.whatsappNumber}
+                        disabled={form.whatsappSameAsMobile}
+                        onChange={(e) => updateWhatsappNumber(e.target.value)}
+                      />
+                      <label style={{ fontSize: '11px', color: '#334155', whiteSpace: 'nowrap' }}>
+                        <input
+                          type="checkbox"
+                          checked={form.whatsappSameAsMobile}
+                          onChange={(e) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              whatsappSameAsMobile: e.target.checked,
+                              whatsappNumber: e.target.checked ? prev.mobileNumber : prev.whatsappNumber
+                            }))
+                          }
+                        />{' '}
+                        Same as mobile
+                      </label>
+                    </div>
+                  </div>
                   <div style={shell.field}><label style={shell.label}>GST Number</label><input style={shell.input} inputMode="text" maxLength={15} value={form.gstNumber} onChange={(e) => update('gstNumber', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))} /></div>
                 </div>
               </div>
