@@ -90,7 +90,7 @@ const shell = {
   table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   td: { padding: '8px 6px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '30px', height: '28px', minWidth: '30px', minHeight: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '4px' },
+  iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '10px', width: '30px', height: '28px', minWidth: '30px', minHeight: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
   modalHeader: { minHeight: '64px', padding: '16px 22px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
@@ -494,8 +494,10 @@ export default function VendorDashboard() {
                   );
                 })}
                 <td style={cellStyle('actions', 'center')}>
-                  <button type="button" style={shell.iconBtn} onClick={() => openEdit(vendor)}><Pencil size={13} /></button>
-                  <button type="button" style={{ ...shell.iconBtn, marginRight: 0 }} onClick={() => deleteVendor(vendor._id)}><Trash2 size={13} /></button>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
+                    <button type="button" style={shell.iconBtn} onClick={() => openEdit(vendor)} aria-label="Edit vendor" title="Edit vendor"><Pencil size={14} strokeWidth={2.25} /></button>
+                    <button type="button" style={shell.iconBtn} onClick={() => deleteVendor(vendor._id)} aria-label="Delete vendor" title="Delete vendor"><Trash2 size={14} strokeWidth={2.25} /></button>
+                  </div>
                 </td>
               </tr>
             ))}
