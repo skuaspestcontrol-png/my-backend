@@ -295,6 +295,30 @@ body {
   margin-left: auto;
 }
 
+.stock-items-left-cell.table-number-cell,
+.stock-items-left-cell.table-status-cell,
+.stock-items-left-cell.table-actions-cell {
+  text-align: left !important;
+}
+
+.stock-items-left-cell.table-actions-cell > * {
+  margin-left: 0;
+}
+
+.stock-items-table tbody tr.stock-items-row td {
+  height: 60px;
+}
+
+.stock-items-table tbody td.table-number-cell.stock-items-left-cell,
+.stock-items-table tbody td.table-status-cell.stock-items-left-cell,
+.stock-items-table tbody td.table-actions-cell.stock-items-left-cell {
+  text-align: left !important;
+}
+
+.stock-items-table tbody td.table-actions-cell.stock-items-left-cell > * {
+  margin-left: 0;
+}
+
 .table-sticky-first {
   position: sticky;
   left: 0;

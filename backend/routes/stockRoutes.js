@@ -441,7 +441,7 @@ const loadItems = async () => {
       vendorId: row.vendor_id ?? null,
       vendorName: safeName(row.vendor_name || row.company_name, ''),
       batchNumber: text(row.batch_number),
-      expiryDate: row.expiry_date || null,
+      expiryDate: dateOnly(row.expiry_date),
       storageLocation: text(row.storage_location),
       description: text(row.description),
       isActive: Number(row.is_active || 0) !== 0,

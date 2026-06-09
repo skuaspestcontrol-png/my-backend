@@ -122,6 +122,14 @@ export const formatCurrentStockDisplay = (row = {}) => {
   return formatStockNumber(value);
 };
 
+export const formatDateInputValue = (value) => {
+  if (!value) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+  const dateOnly = raw.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateOnly) ? dateOnly : '';
+};
+
 export const reportTypes = [
   { value: 'current-stock', label: 'Current Stock' },
   { value: 'technician-stock', label: 'Technician Stock' },

@@ -9,7 +9,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import useColumnResize from '../../components/table/useColumnResize';
 import { theme } from '../../styles/theme';
-import { apiDelete, apiGet, apiPost, apiPut, formatCurrentStockDisplay, number, safeRows, stockCategories, stockCategoryDisplayLabel, stockUnits } from './stockApi';
+import { apiDelete, apiGet, apiPost, apiPut, formatCurrentStockDisplay, formatDateInputValue, number, safeRows, stockCategories, stockCategoryDisplayLabel, stockUnits } from './stockApi';
 
 const vendorLabel = (row) => String(row.name || row.vendor_name || row.company_name || row.displayName || `Vendor ${row.id || row._id || ''}`).trim();
 
@@ -252,7 +252,7 @@ export default function StockItems() {
       vendorId: row.vendorId || '',
       batchNumber: row.batchNumber || '',
       minStockLevel: String(row.minStockLevel ?? ''),
-      expiryDate: row.expiryDate || '',
+      expiryDate: formatDateInputValue(row.expiryDate || row.expiry_date),
       isActive: Boolean(row.isActive)
     });
   };
@@ -386,7 +386,7 @@ export default function StockItems() {
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : items.length ? (
           <div style={{ overflowX: 'auto' }}>
-            <table className="table-clean" style={listTableStyle}>
+            <table className="table-clean stock-items-table" style={listTableStyle}>
               <colgroup>
                 {stockItemColumns.map((column) => (
                   <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
@@ -400,14 +400,14 @@ export default function StockItems() {
                   <th className="table-header-cell table-text-cell" style={headStyle('hsnSac', 'center')}>HSN Code</th>
                   <th className="table-header-cell table-text-cell" style={headStyle('packSizePerBottle', 'center')}>Pack Size / Per Bottle</th>
                   <th className="table-header-cell table-number-cell" style={headStyle('currentStock', 'left')}>Current Stock</th>
-                  <th className="table-header-cell table-number-cell" style={headStyle('minimum', 'left')}>Minimum</th>
-                  <th className="table-header-cell table-status-cell" style={headStyle('status', 'center')}>Status</th>
-                  <th className="table-header-cell table-actions-cell" style={headStyle('actions', 'center')}>Actions</th>
+                  <th className="table-header-cell table-number-cell stock-items-left-cell" style={headStyle('minimum', 'left')}>Minimum</th>
+                  <th className="table-header-cell table-status-cell stock-items-left-cell" style={headStyle('status', 'left')}>Status</th>
+                  <th className="table-header-cell table-actions-cell stock-items-left-cell" style={headStyle('actions', 'left')}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((row) => (
-                  <tr key={row.id} style={{ minHeight: 48 }}>
+                  <tr key={row.id} className="stock-items-row" style={{ minHeight: 60 }}>
                     <td className="table-name-cell" style={bodyStyle('item')}>
                       <div style={{ fontWeight: 800, color: theme.colors.text, letterSpacing: '-0.01em' }}>{row.itemName}</div>
                       <div style={{ color: theme.colors.muted, fontSize: 12, fontWeight: 600 }}>{row.itemCode || 'No code'}</div>
@@ -422,9 +422,9 @@ export default function StockItems() {
                         {row.currentStockFormula ? <span style={{ color: theme.colors.muted, fontSize: 11, lineHeight: 1.2 }}>{row.currentStockFormula}</span> : null}
                       </div>
                     </td>
-                    <td className="table-number-cell" style={bodyStyle('minimum', 'left')}>{number(row.minStockLevel)}</td>
-                    <td className="table-status-cell" style={bodyStyle('status', 'center')}><span style={badgeStyle(row.status)}>{row.status}</span></td>
-                    <td className="table-actions-cell" style={bodyStyle('actions', 'left')}>
+                    <td className="table-number-cell stock-items-left-cell" style={bodyStyle('minimum', 'left')}>{number(row.minStockLevel)}</td>
+                    <td className="table-status-cell stock-items-left-cell" style={bodyStyle('status', 'left')}><span style={badgeStyle(row.status)}>{row.status}</span></td>
+                    <td className="table-actions-cell stock-items-left-cell" style={bodyStyle('actions', 'left')}>
                       <div style={{ display: 'inline-flex', gap: 8, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-start' }}>
                         <button
                           type="button"
