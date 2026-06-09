@@ -76,6 +76,8 @@ const ensureSchema = async () => {
     item_code VARCHAR(100) NULL UNIQUE,
     category VARCHAR(100) DEFAULT 'Other',
     unit VARCHAR(50) NOT NULL,
+    hsn_sac VARCHAR(100) NULL,
+    pack_size_per_bottle VARCHAR(100) NULL,
     opening_stock DECIMAL(12,3) DEFAULT 0,
     current_stock DECIMAL(12,3) DEFAULT 0,
     min_stock_level DECIMAL(12,3) DEFAULT 0,
@@ -170,6 +172,8 @@ const ensureSchema = async () => {
   await ensureColumn('stock_items', 'vendor_id', 'vendor_id INT NULL');
   await ensureColumn('stock_items', 'batch_number', 'batch_number VARCHAR(100) NULL');
   await ensureColumn('stock_items', 'expiry_date', 'expiry_date DATE NULL');
+  await ensureColumn('stock_items', 'hsn_sac', 'hsn_sac VARCHAR(100) NULL');
+  await ensureColumn('stock_items', 'pack_size_per_bottle', 'pack_size_per_bottle VARCHAR(100) NULL');
   await ensureColumn('stock_items', 'storage_location', 'storage_location VARCHAR(255) NULL');
   await ensureColumn('stock_items', 'description', 'description TEXT NULL');
   await ensureColumn('stock_items', 'is_active', 'is_active TINYINT(1) DEFAULT 1');
@@ -201,6 +205,21 @@ const stockStatus = (item) => {
 };
 
 const safeName = (value, fallback) => text(value) || fallback;
+const getProvidedValue = (body, ...keys) => {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(body || {}, key)) return body[key];
+  }
+  return undefined;
+};
+const coerceStockValue = (value, fallback = 0) => {
+  if (value === undefined || value === null || value === '') return round3(fallback);
+  return round3(value);
+};
+const coerceOptionalText = (value, fallback = null) => {
+  if (value === undefined) return fallback;
+  const cleaned = text(value);
+  return cleaned || null;
+};
 
 const loadVendors = async () => {
   try {
@@ -273,6 +292,8 @@ const loadItems = async () => {
       itemCode: text(row.item_code),
       category: safeName(row.category, 'Other'),
       unit: safeName(normalizeUnit(row.unit) || 'piece', 'piece'),
+      hsnSac: text(row.hsn_sac),
+      packSizePerBottle: text(row.pack_size_per_bottle),
       openingStock: num(row.opening_stock),
       currentStock: num(row.current_stock),
       minStockLevel: num(row.min_stock_level),
@@ -670,15 +691,17 @@ router.post('/items', async (req, res) => {
     const itemCode = text(body.itemCode || body.item_code) || null;
     const category = text(body.category || 'Other') || 'Other';
     const unit = normalizeUnit(body.unit) || 'piece';
-    const openingStock = round3(body.openingStock ?? body.opening_stock ?? 0);
-    const currentStock = round3(body.currentStock ?? body.current_stock ?? openingStock);
-    const minStockLevel = round3(body.minStockLevel ?? body.min_stock_level ?? 0);
+    const hsnSac = coerceOptionalText(getProvidedValue(body, 'hsnSac', 'hsn_sac'));
+    const packSizePerBottle = coerceOptionalText(getProvidedValue(body, 'packSizePerBottle', 'pack_size_per_bottle'));
+    const openingStock = coerceStockValue(getProvidedValue(body, 'openingStock', 'opening_stock'));
+    const currentStock = coerceStockValue(getProvidedValue(body, 'currentStock', 'current_stock'), openingStock);
+    const minStockLevel = coerceStockValue(getProvidedValue(body, 'minStockLevel', 'min_stock_level'));
     const purchaseRate = round3(body.purchaseRate ?? body.purchase_rate ?? 0);
     const vendorId = body.vendorId || body.vendor_id ? Number(body.vendorId || body.vendor_id) : null;
     const batchNumber = text(body.batchNumber || body.batch_number) || null;
     const expiryDate = dateOnly(body.expiryDate || body.expiry_date);
-    const storageLocation = text(body.storageLocation || body.storage_location) || null;
-    const description = text(body.description || '') || null;
+    const storageLocation = coerceOptionalText(getProvidedValue(body, 'storageLocation', 'storage_location'));
+    const description = coerceOptionalText(getProvidedValue(body, 'description'));
     const isActive = body.isActive === false || body.is_active === 0 ? 0 : 1;
     if ([openingStock, currentStock, minStockLevel, purchaseRate].some((value) => value < 0)) {
       return sendError(res, 400, 'Stock and rate values cannot be negative.');
@@ -690,10 +713,10 @@ router.post('/items', async (req, res) => {
       await conn.beginTransaction();
       const [insertResult] = await conn.query(
         `INSERT INTO stock_items (
-          item_name, item_code, category, unit, opening_stock, current_stock, min_stock_level,
+          item_name, item_code, category, unit, hsn_sac, pack_size_per_bottle, opening_stock, current_stock, min_stock_level,
           purchase_rate, vendor_id, batch_number, expiry_date, storage_location, description, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [itemName, itemCode, category, unit, openingStock, currentStock, minStockLevel, purchaseRate, vendorId, batchNumber, expiryDate, storageLocation, description, isActive]
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, openingStock, currentStock, minStockLevel, purchaseRate, vendorId, batchNumber, expiryDate, storageLocation, description, isActive]
       );
 
       if (openingStock > 0) {
@@ -734,19 +757,29 @@ router.put('/items/:id', async (req, res) => {
 
     const body = req.body || {};
     const itemId = Number(req.params.id);
+    if (!Number.isFinite(itemId)) {
+      return sendError(res, 400, 'Invalid item id.');
+    }
+    const existingRows = await dbQuery('SELECT * FROM stock_items WHERE id = ? LIMIT 1', [itemId]);
+    const existing = firstRow(existingRows);
+    if (!existing) {
+      return sendError(res, 404, 'Item not found.');
+    }
     const itemName = text(body.itemName || body.item_name);
     const itemCode = text(body.itemCode || body.item_code) || null;
     const category = text(body.category || 'Other') || 'Other';
     const unit = normalizeUnit(body.unit) || 'piece';
-    const openingStock = round3(body.openingStock ?? body.opening_stock ?? 0);
-    const currentStock = round3(body.currentStock ?? body.current_stock ?? openingStock);
-    const minStockLevel = round3(body.minStockLevel ?? body.min_stock_level ?? 0);
+    const hsnSac = coerceOptionalText(getProvidedValue(body, 'hsnSac', 'hsn_sac'), text(existing.hsn_sac));
+    const packSizePerBottle = coerceOptionalText(getProvidedValue(body, 'packSizePerBottle', 'pack_size_per_bottle'), text(existing.pack_size_per_bottle));
+    const openingStock = coerceStockValue(getProvidedValue(body, 'openingStock', 'opening_stock'), num(existing.opening_stock));
+    const currentStock = coerceStockValue(getProvidedValue(body, 'currentStock', 'current_stock'), num(existing.current_stock));
+    const minStockLevel = coerceStockValue(getProvidedValue(body, 'minStockLevel', 'min_stock_level'), num(existing.min_stock_level));
     const purchaseRate = round3(body.purchaseRate ?? body.purchase_rate ?? 0);
     const vendorId = body.vendorId || body.vendor_id ? Number(body.vendorId || body.vendor_id) : null;
     const batchNumber = text(body.batchNumber || body.batch_number) || null;
     const expiryDate = dateOnly(body.expiryDate || body.expiry_date);
-    const storageLocation = text(body.storageLocation || body.storage_location) || null;
-    const description = text(body.description || '') || null;
+    const storageLocation = coerceOptionalText(getProvidedValue(body, 'storageLocation', 'storage_location'), text(existing.storage_location));
+    const description = coerceOptionalText(getProvidedValue(body, 'description'), text(existing.description));
     const isActive = body.isActive === false || body.is_active === 0 ? 0 : 1;
     if ([openingStock, currentStock, minStockLevel, purchaseRate].some((value) => value < 0)) {
       return sendError(res, 400, 'Stock and rate values cannot be negative.');
@@ -758,6 +791,8 @@ router.put('/items/:id', async (req, res) => {
         item_code = ?,
         category = ?,
         unit = ?,
+        hsn_sac = ?,
+        pack_size_per_bottle = ?,
         opening_stock = ?,
         current_stock = ?,
         min_stock_level = ?,
@@ -769,7 +804,7 @@ router.put('/items/:id', async (req, res) => {
         description = ?,
         is_active = ?
        WHERE id = ?`,
-      [itemName, itemCode, category, unit, openingStock, currentStock, minStockLevel, purchaseRate, vendorId, batchNumber, expiryDate, storageLocation, description, isActive, itemId]
+      [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, openingStock, currentStock, minStockLevel, purchaseRate, vendorId, batchNumber, expiryDate, storageLocation, description, isActive, itemId]
     );
     if (Number(result?.affectedRows || 0) === 0) {
       return sendError(res, 404, 'Item not found.');

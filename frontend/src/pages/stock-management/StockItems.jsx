@@ -4,7 +4,6 @@ import AppButton from '../../components/ui/AppButton';
 import AppCard from '../../components/ui/AppCard';
 import AppInput from '../../components/ui/AppInput';
 import AppSelect from '../../components/ui/AppSelect';
-import AppTextarea from '../../components/ui/AppTextarea';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
@@ -18,17 +17,14 @@ const initialForm = {
   id: '',
   itemName: '',
   itemCode: '',
+  hsnSac: '',
+  packSizePerBottle: '',
   category: 'Other',
   unit: 'piece',
-  openingStock: '0',
-  currentStock: '0',
-  minStockLevel: '0',
   purchaseRate: '0',
   vendorId: '',
   batchNumber: '',
   expiryDate: '',
-  storageLocation: '',
-  description: '',
   isActive: true
 };
 
@@ -207,17 +203,14 @@ export default function StockItems() {
       id: row.id,
       itemName: row.itemName || '',
       itemCode: row.itemCode || '',
+      hsnSac: row.hsnSac || '',
+      packSizePerBottle: row.packSizePerBottle || '',
       category: row.category || 'Other',
       unit: row.unit || 'piece',
-      openingStock: String(row.openingStock ?? 0),
-      currentStock: String(row.currentStock ?? 0),
-      minStockLevel: String(row.minStockLevel ?? 0),
       purchaseRate: String(row.purchaseRate ?? 0),
       vendorId: row.vendorId || '',
       batchNumber: row.batchNumber || '',
       expiryDate: row.expiryDate || '',
-      storageLocation: row.storageLocation || '',
-      description: row.description || '',
       isActive: Boolean(row.isActive)
     });
   };
@@ -230,9 +223,6 @@ export default function StockItems() {
       const payload = {
         ...form,
         vendorId: form.vendorId || null,
-        openingStock: Number(form.openingStock || 0),
-        currentStock: Number(form.currentStock || 0),
-        minStockLevel: Number(form.minStockLevel || 0),
         purchaseRate: Number(form.purchaseRate || 0)
       };
       if (form.id) {
@@ -284,15 +274,14 @@ export default function StockItems() {
           <div style={formGridStyle}>
             <AppInput label="Item Name" value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} required />
             <AppInput label="Item Code" value={form.itemCode} onChange={(e) => setForm({ ...form, itemCode: e.target.value })} />
+            <AppInput label="HSN Code" value={form.hsnSac} onChange={(e) => setForm({ ...form, hsnSac: e.target.value })} />
             <AppSelect label="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
               {stockCategories.map((item) => <option key={item} value={item}>{item}</option>)}
             </AppSelect>
             <AppSelect label="Unit" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
               {stockUnits.map((item) => <option key={item} value={item}>{item}</option>)}
             </AppSelect>
-            <AppInput type="number" step="0.001" min="0" label="Opening Stock" value={form.openingStock} onChange={(e) => setForm({ ...form, openingStock: e.target.value })} />
-            <AppInput type="number" step="0.001" min="0" label="Current Office Stock" value={form.currentStock} onChange={(e) => setForm({ ...form, currentStock: e.target.value })} />
-            <AppInput type="number" step="0.001" min="0" label="Minimum Stock Alert" value={form.minStockLevel} onChange={(e) => setForm({ ...form, minStockLevel: e.target.value })} />
+            <AppInput label="Pack Size / Per Bottle" value={form.packSizePerBottle} onChange={(e) => setForm({ ...form, packSizePerBottle: e.target.value })} />
             <AppInput type="number" step="0.01" min="0" label="Purchase Rate" value={form.purchaseRate} onChange={(e) => setForm({ ...form, purchaseRate: e.target.value })} />
             <AppSelect label="Vendor" value={form.vendorId} onChange={(e) => setForm({ ...form, vendorId: e.target.value })}>
               <option value="">Optional</option>
@@ -300,13 +289,11 @@ export default function StockItems() {
             </AppSelect>
             <AppInput label="Batch Number" value={form.batchNumber} onChange={(e) => setForm({ ...form, batchNumber: e.target.value })} />
             <AppInput type="date" label="Expiry Date" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
-            <AppInput label="Storage Location" value={form.storageLocation} onChange={(e) => setForm({ ...form, storageLocation: e.target.value })} />
             <AppSelect label="Status" value={form.isActive ? '1' : '0'} onChange={(e) => setForm({ ...form, isActive: e.target.value === '1' })}>
               <option value="1">Active</option>
               <option value="0">Inactive</option>
             </AppSelect>
           </div>
-          <AppTextarea label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <div style={actionRowStyle}>
             {form.id ? <AppButton variant="outline" onClick={resetForm} type="button">Cancel Edit</AppButton> : null}
             <AppButton type="submit" loading={saving} style={actionButtonStyle}>{form.id ? 'Update Item' : 'Save Item'}</AppButton>
