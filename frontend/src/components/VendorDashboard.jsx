@@ -88,8 +88,8 @@ const shell = {
   customizePopoverItem: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937' },
   tableWrap: { overflowX: 'hidden', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-border)', marginTop: '12px' },
   table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
-  th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  td: { padding: '8px 6px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '10px 12px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  td: { padding: '10px 12px', fontSize: '13px', color: '#111827', borderBottom: '1px solid #eef2f7', fontWeight: 400, verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '10px', width: '30px', height: '28px', minWidth: '30px', minHeight: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
@@ -487,7 +487,7 @@ export default function VendorDashboard() {
                     column.key === 'shipping' ? vendor.shippingAddress : '';
                   return (
                     <td key={`${vendor._id}-${column.key}`} style={cellStyle(column.key, column.key === 'mobile' ? 'center' : 'left')}>
-                      <span style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={value || '-'}>
+                      <span style={{ display: 'block', fontWeight: 400, fontSize: '13px', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={value || '-'}>
                         {value || '-'}
                       </span>
                     </td>
