@@ -87,7 +87,7 @@ const shell = {
   customizePopoverButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937' },
   customizePopoverItem: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937' },
   tableWrap: { overflowX: 'hidden', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-border)', marginTop: '12px' },
-  table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
+  table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '10px 12px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   td: { padding: '10px 12px', fontSize: '13px', color: '#111827', borderBottom: '1px solid #eef2f7', fontWeight: 400, verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '12px', width: '34px', height: '34px', minWidth: '34px', minHeight: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)' },
@@ -487,14 +487,14 @@ export default function VendorDashboard() {
                     column.key === 'shipping' ? vendor.shippingAddress : '';
                   return (
                     <td key={`${vendor._id}-${column.key}`} style={cellStyle(column.key, column.key === 'mobile' ? 'center' : 'left')}>
-                      <span style={{ display: 'block', fontWeight: 400, fontSize: '13px', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={value || '-'}>
+                      <span style={{ display: 'block', fontWeight: 400, fontSize: '13px', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={value || '-'}>
                         {value || '-'}
                       </span>
                     </td>
                   );
                 })}
                 <td style={cellStyle('actions', 'left')}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-start' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', justifyContent: 'flex-start' }}>
                     <button type="button" style={shell.iconBtn} onClick={() => openEdit(vendor)} aria-label="Edit vendor" title="Edit vendor"><Pencil size={15} strokeWidth={2.25} /></button>
                     <button type="button" style={shell.iconBtn} onClick={() => deleteVendor(vendor._id)} aria-label="Delete vendor" title="Delete vendor"><Trash2 size={15} strokeWidth={2.25} /></button>
                   </div>
