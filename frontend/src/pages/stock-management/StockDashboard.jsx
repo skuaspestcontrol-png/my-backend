@@ -19,7 +19,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import AppCard from '../../components/ui/AppCard';
-import { apiGet, money, number, safeRows } from './stockApi';
+import { apiGet, money, number, safeRows, stockCategoryDisplayLabel } from './stockApi';
 
 const summaryCards = [
   { key: 'totalItems', title: 'Total Items', icon: <Package size={18} /> },
@@ -142,7 +142,7 @@ export default function StockDashboard() {
                   <ResponsiveContainer>
                     <BarChart data={safeRows(data?.categoryWise)}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="category" />
+                      <XAxis dataKey="category" tickFormatter={stockCategoryDisplayLabel} />
                       <YAxis />
                       <Tooltip />
                       <Bar dataKey="currentStock" radius={[8, 8, 0, 0]}>

@@ -14,6 +14,13 @@ export const stockCategories = [
   'Other'
 ];
 
+export const stockCategoryDisplayLabel = (value) => {
+  const label = String(value || '').trim();
+  if (!label) return '-';
+  if (label === 'Rodent Control') return 'Glue Pad Traps-Big';
+  return label;
+};
+
 export const stockUnits = ['ml', 'litre', 'gram', 'kg', 'tube', 'piece', 'box', 'packet', 'bottle', 'can'];
 
 export const reportTypes = [

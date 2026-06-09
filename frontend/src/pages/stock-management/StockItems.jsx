@@ -9,7 +9,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import useColumnResize from '../../components/table/useColumnResize';
 import { theme } from '../../styles/theme';
-import { apiDelete, apiGet, apiPost, apiPut, number, safeRows, stockCategories, stockUnits } from './stockApi';
+import { apiDelete, apiGet, apiPost, apiPut, number, safeRows, stockCategories, stockCategoryDisplayLabel, stockUnits } from './stockApi';
 
 const vendorLabel = (row) => String(row.name || row.vendor_name || row.company_name || row.displayName || `Vendor ${row.id || row._id || ''}`).trim();
 
@@ -58,6 +58,8 @@ const stockItemColumns = [
   { key: 'item', label: 'Item' },
   { key: 'category', label: 'Category' },
   { key: 'unit', label: 'Unit' },
+  { key: 'hsnSac', label: 'HSN Code' },
+  { key: 'packSizePerBottle', label: 'Pack Size / Per Bottle' },
   { key: 'currentStock', label: 'Current Stock' },
   { key: 'minimum', label: 'Minimum' },
   { key: 'status', label: 'Status' },
@@ -67,6 +69,8 @@ const stockItemWidths = {
   item: 220,
   category: 140,
   unit: 110,
+  hsnSac: 130,
+  packSizePerBottle: 170,
   currentStock: 130,
   minimum: 120,
   status: 120,
@@ -76,6 +80,8 @@ const stockItemBounds = {
   item: { min: 180, max: 320 },
   category: { min: 120, max: 200 },
   unit: { min: 90, max: 150 },
+  hsnSac: { min: 110, max: 180 },
+  packSizePerBottle: { min: 140, max: 240 },
   currentStock: { min: 100, max: 170 },
   minimum: { min: 100, max: 170 },
   status: { min: 100, max: 160 },
@@ -132,7 +138,7 @@ export default function StockItems() {
     enabled: true
   });
   const tableMinWidth = stockItemColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || stockItemWidths[column.key] || 100), 0);
-  const listTableStyle = { ...tableStyle, minWidth: `${Math.max(880, tableMinWidth)}px`, tableLayout: 'fixed' };
+  const listTableStyle = { ...tableStyle, minWidth: `${Math.max(1100, tableMinWidth)}px`, tableLayout: 'fixed' };
   const isMobileForm = viewportWidth <= 768;
   const headStyle = (key, align = 'left') => ({
     ...headerCellStyle,
@@ -317,6 +323,8 @@ export default function StockItems() {
                   <th className="table-header-cell table-text-cell" style={headStyle('item')}>Item</th>
                   <th className="table-header-cell table-text-cell" style={headStyle('category', 'center')}>Category</th>
                   <th className="table-header-cell table-text-cell" style={headStyle('unit', 'center')}>Unit</th>
+                  <th className="table-header-cell table-text-cell" style={headStyle('hsnSac', 'center')}>HSN Code</th>
+                  <th className="table-header-cell table-text-cell" style={headStyle('packSizePerBottle', 'center')}>Pack Size / Per Bottle</th>
                   <th className="table-header-cell table-number-cell" style={headStyle('currentStock', 'center')}>Current Stock</th>
                   <th className="table-header-cell table-number-cell" style={headStyle('minimum', 'center')}>Minimum</th>
                   <th className="table-header-cell table-status-cell" style={headStyle('status', 'center')}>Status</th>
@@ -330,8 +338,10 @@ export default function StockItems() {
                       <div style={{ fontWeight: 800, color: theme.colors.text, letterSpacing: '-0.01em' }}>{row.itemName}</div>
                       <div style={{ color: theme.colors.muted, fontSize: 12, fontWeight: 600 }}>{row.itemCode || 'No code'}</div>
                     </td>
-                    <td className="table-text-cell" style={bodyStyle('category', 'center')}>{row.category}</td>
+                    <td className="table-text-cell" style={bodyStyle('category', 'center')}>{stockCategoryDisplayLabel(row.category)}</td>
                     <td className="table-text-cell" style={bodyStyle('unit', 'center')}>{row.unit}</td>
+                    <td className="table-text-cell" style={bodyStyle('hsnSac', 'center')}>{row.hsnSac || '-'}</td>
+                    <td className="table-text-cell" style={bodyStyle('packSizePerBottle', 'center')}>{row.packSizePerBottle || '-'}</td>
                     <td className="table-number-cell" style={bodyStyle('currentStock', 'center')}>{number(row.currentStock)}</td>
                     <td className="table-number-cell" style={bodyStyle('minimum', 'center')}>{number(row.minStockLevel)}</td>
                     <td className="table-status-cell" style={bodyStyle('status', 'center')}><span style={badgeStyle(row.status)}>{row.status}</span></td>
