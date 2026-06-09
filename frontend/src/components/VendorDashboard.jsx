@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Trash2, X, Pencil } from 'lucide-react';
-import { attachPlacesAutocomplete } from '../utils/googlePlaces';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
@@ -10,6 +9,44 @@ import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/ph
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const VENDOR_DASHBOARD_CACHE_KEY = 'vendor_dashboard_cache_v1';
 const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
+const indiaStates = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry'
+];
 
 const emptyForm = {
   companyName: '',
@@ -65,7 +102,7 @@ const shell = {
   addressCopy: { fontSize: '12px', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', border: 'none', background: 'transparent', padding: 0, lineHeight: 1.2 },
   addressGrid: { display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', rowGap: '8px', columnGap: '10px', alignItems: 'center' },
   footer: { padding: '12px 18px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#fff' },
-  cancelButton: { border: '1px solid #d1d5db', background: '#fff', color: '#2563eb', borderRadius: '18px', padding: '10px 18px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' },
+  cancelButton: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '18px', padding: '10px 18px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' },
   saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '18px', padding: '10px 20px', fontSize: '16px', fontWeight: 800, cursor: 'pointer' }
 };
 
@@ -118,7 +155,6 @@ export default function VendorDashboard() {
   const [saveError, setSaveError] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const loadRequestRef = useRef(null);
-  const billingAreaInputRef = useRef(null);
 
   const isMobile = viewportWidth <= 900;
 
@@ -151,43 +187,6 @@ export default function VendorDashboard() {
   }, [cachedDashboard]);
 
   useAutoRefresh(() => loadVendors({ silent: true }), { enabled: !showModal });
-
-  useEffect(() => {
-    if (!showModal) return () => {};
-    let cleanups = [];
-
-    const initPlaces = async () => {
-      const billingCleanup = await attachPlacesAutocomplete({
-        input: billingAreaInputRef.current,
-        onSelected: (place) => {
-          setForm((prev) => ({
-            ...prev,
-            billingAddress: place.formatted_address || prev.billingAddress,
-            billingArea: place.areaName || prev.billingArea,
-            billingState: place.state || prev.billingState,
-            billingPincode: place.pincode ? toSixDigitPincode(place.pincode) : prev.billingPincode,
-            googlePlaceId: place.place_id || prev.googlePlaceId,
-            googlePlaceName: place.name || prev.googlePlaceName,
-            googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
-            googleWebsite: place.website || prev.googleWebsite,
-            latitude: place.latitude !== null ? String(place.latitude) : prev.latitude,
-            longitude: place.longitude !== null ? String(place.longitude) : prev.longitude
-          }));
-        },
-        onError: (error) => alert(error?.message || 'Google Maps API key not configured'),
-        onRequireSelection: (message) => alert(message || 'Please select address/company from suggestions')
-      });
-
-      cleanups = [billingCleanup];
-    };
-
-    initPlaces();
-    return () => {
-      cleanups.forEach((fn) => {
-        if (typeof fn === 'function') fn();
-      });
-    };
-  }, [showModal]);
 
   const openNew = () => {
     setEditingId('');
@@ -396,10 +395,15 @@ export default function VendorDashboard() {
                     <textarea style={addressTextareaStyle} placeholder="Enter address" value={form.billingAddress} onChange={(e) => update('billingAddress', e.target.value)} />
 
                     <label style={shell.label}>Area</label>
-                    <input ref={billingAreaInputRef} style={shell.input} value={form.billingArea} onChange={(e) => update('billingArea', e.target.value)} />
+                    <input style={shell.input} value={form.billingArea} onChange={(e) => update('billingArea', e.target.value)} />
 
                     <label style={shell.label}>State</label>
-                    <input style={shell.input} value={form.billingState} onChange={(e) => update('billingState', e.target.value)} />
+                    <select style={shell.input} value={form.billingState} onChange={(e) => update('billingState', e.target.value)}>
+                      <option value="">Select state</option>
+                      {indiaStates.map((state) => (
+                        <option key={state} value={state}>{state}</option>
+                      ))}
+                    </select>
 
                     <label style={shell.label}>Pin Code</label>
                     <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.billingPincode} onChange={(e) => update('billingPincode', toSixDigitPincode(e.target.value))} />
@@ -424,7 +428,12 @@ export default function VendorDashboard() {
                     <input style={shell.input} value={form.shippingArea} onChange={(e) => update('shippingArea', e.target.value)} />
 
                     <label style={shell.label}>State</label>
-                    <input style={shell.input} value={form.shippingState} onChange={(e) => update('shippingState', e.target.value)} />
+                    <select style={shell.input} value={form.shippingState} onChange={(e) => update('shippingState', e.target.value)}>
+                      <option value="">Select state</option>
+                      {indiaStates.map((state) => (
+                        <option key={state} value={state}>{state}</option>
+                      ))}
+                    </select>
 
                     <label style={shell.label}>Pin Code</label>
                     <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(e) => update('shippingPincode', toSixDigitPincode(e.target.value))} />

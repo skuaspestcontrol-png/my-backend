@@ -9411,41 +9411,77 @@ const ensureVendorFinanceTables = async (conn) => {
 
 const readMysqlPayload = (rawPayload) => parseMysqlJsonPayload(rawPayload) || {};
 
+const normalizeVendorRecord = (row = {}) => {
+  const payload = readMysqlPayload(row.payload);
+  const source = { ...payload, ...row };
+  const externalId = String(source._id || source.external_id || row.id || '').trim();
+  const latitudeValue = source.latitude ?? source.lat ?? '';
+  const longitudeValue = source.longitude ?? source.lng ?? '';
+  return {
+    ...payload,
+    ...row,
+    _id: externalId,
+    id: row.id ?? source.id ?? externalId,
+    vendorName: String(source.vendorName || source.displayName || source.companyName || '').trim(),
+    companyName: String(source.companyName || '').trim(),
+    contactPersonName: String(source.contactPersonName || '').trim(),
+    mobileNumber: String(source.mobileNumber || source.mobile || '').trim(),
+    whatsappNumber: String(source.whatsappNumber || '').trim(),
+    emailId: String(source.emailId || '').trim(),
+    gstNumber: String(source.gstNumber || '').trim(),
+    billingAddress: String(source.billingAddress || source.address || '').trim(),
+    shippingAddress: String(source.shippingAddress || '').trim(),
+    billingArea: String(source.billingArea || source.areaName || '').trim(),
+    city: String(source.city || '').trim(),
+    state: String(source.state || source.billingState || '').trim(),
+    billingPincode: String(source.billingPincode || source.pincode || '').trim(),
+    googlePlaceId: String(source.googlePlaceId || source.google_place_id || '').trim(),
+    googlePlaceName: String(source.googlePlaceName || source.google_place_name || '').trim(),
+    googlePhone: String(source.googlePhone || source.google_phone || '').trim(),
+    googleWebsite: String(source.googleWebsite || source.google_website || '').trim(),
+    latitude: latitudeValue !== undefined && latitudeValue !== null ? latitudeValue : '',
+    longitude: longitudeValue !== undefined && longitudeValue !== null ? longitudeValue : '',
+    openingBalance: toNumber(source.openingBalance ?? source.opening_balance, 0),
+    status: String(source.status || 'active').trim()
+  };
+};
+
+const loadVendorRecords = () => readJsonFile(vendorsFile, []).map((row) => normalizeVendorRecord(row));
+const saveVendorRecords = (rows) => {
+  writeJsonFile(vendorsFile, (Array.isArray(rows) ? rows : []).map((row) => normalizeVendorRecord(row)));
+};
+
 app.get('/api/vendors', async (req, res) => {
-  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendors module' });
+  if (!canUseMysql()) return res.json(loadVendorRecords());
   try {
     const result = await withMysqlConnection(async (conn) => {
       await ensureVendorFinanceTables(conn);
       const [rows] = await conn.query('SELECT * FROM vendors ORDER BY id DESC');
-      return (Array.isArray(rows) ? rows : []).map((row) => {
-        const payload = readMysqlPayload(row.payload);
-        return {
-          ...payload,
-          _id: String(row.external_id || payload._id || row.id || '').trim(),
-          id: row.id,
-          vendorName: String(row.vendor_name ?? payload.vendorName ?? payload.displayName ?? '').trim(),
-          companyName: String(row.company_name ?? payload.companyName ?? '').trim(),
-          contactPersonName: String(row.contact_person_name ?? payload.contactPersonName ?? '').trim(),
-          mobileNumber: String(row.mobile ?? payload.mobileNumber ?? '').trim(),
-          whatsappNumber: String(row.whatsapp_number ?? payload.whatsappNumber ?? '').trim(),
-          emailId: String(row.email_id ?? payload.emailId ?? '').trim(),
-          gstNumber: String(row.gst_number ?? payload.gstNumber ?? '').trim(),
-          billingAddress: String(row.address ?? payload.billingAddress ?? payload.address ?? '').trim(),
-          shippingAddress: String(row.shipping_address ?? payload.shippingAddress ?? '').trim(),
-          billingArea: String(row.area_name ?? payload.billingArea ?? payload.areaName ?? '').trim(),
-          city: String(row.city ?? payload.city ?? '').trim(),
-          state: String(row.state ?? payload.state ?? '').trim(),
-          billingPincode: String(row.pincode ?? payload.billingPincode ?? payload.pincode ?? '').trim(),
-          googlePlaceId: String(row.google_place_id ?? payload.googlePlaceId ?? payload.google_place_id ?? '').trim(),
-          googlePlaceName: String(row.google_place_name ?? payload.googlePlaceName ?? payload.google_place_name ?? '').trim(),
-          googlePhone: String(row.google_phone ?? payload.googlePhone ?? payload.google_phone ?? '').trim(),
-          googleWebsite: String(row.google_website ?? payload.googleWebsite ?? payload.google_website ?? '').trim(),
-          latitude: row.latitude ?? payload.latitude ?? '',
-          longitude: row.longitude ?? payload.longitude ?? '',
-          openingBalance: toNumber(row.opening_balance ?? payload.openingBalance, 0),
-          status: String(row.status ?? payload.status ?? 'active').trim()
-        };
-      });
+      return (Array.isArray(rows) ? rows : []).map((row) => normalizeVendorRecord({
+        ...row,
+        _id: String(row.external_id || row.id || '').trim(),
+        vendorName: row.vendor_name,
+        companyName: row.company_name,
+        contactPersonName: row.contact_person_name,
+        mobileNumber: row.mobile,
+        whatsappNumber: row.whatsapp_number,
+        emailId: row.email_id,
+        gstNumber: row.gst_number,
+        billingAddress: row.address,
+        shippingAddress: row.shipping_address,
+        billingArea: row.area_name,
+        city: row.city,
+        state: row.state,
+        billingPincode: row.pincode,
+        googlePlaceId: row.google_place_id,
+        googlePlaceName: row.google_place_name,
+        googlePhone: row.google_phone,
+        googleWebsite: row.google_website,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        openingBalance: row.opening_balance,
+        status: row.status
+      }));
     });
     return res.json(result);
   } catch (error) {
@@ -9455,7 +9491,21 @@ app.get('/api/vendors', async (req, res) => {
 });
 
 app.post('/api/vendors', async (req, res) => {
-  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendors module' });
+  if (!canUseMysql()) {
+    try {
+      const vendor = normalizePhoneFields(req.body && typeof req.body === 'object' ? req.body : {}, [
+        'mobileNumber', 'mobile', 'whatsappNumber', 'googlePhone', 'google_phone'
+      ]);
+      const externalId = String(vendor._id || `VND-${Date.now()}`).trim();
+      const payload = normalizeVendorRecord({ ...vendor, _id: externalId });
+      const current = loadVendorRecords();
+      saveVendorRecords([payload, ...current]);
+      return res.status(201).json(payload);
+    } catch (error) {
+      console.error('JSON vendors write failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Failed to save vendor' });
+    }
+  }
   try {
     const vendor = normalizePhoneFields(req.body && typeof req.body === 'object' ? req.body : {}, [
       'mobileNumber', 'mobile', 'whatsappNumber', 'googlePhone', 'google_phone'
@@ -9534,7 +9584,24 @@ app.post('/api/vendors', async (req, res) => {
 });
 
 app.put('/api/vendors/:id', async (req, res) => {
-  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendors module' });
+  if (!canUseMysql()) {
+    try {
+      const vendorId = String(req.params.id || '').trim();
+      const vendor = normalizePhoneFields(req.body && typeof req.body === 'object' ? req.body : {}, [
+        'mobileNumber', 'mobile', 'whatsappNumber', 'googlePhone', 'google_phone'
+      ]);
+      const current = loadVendorRecords();
+      const index = current.findIndex((entry) => String(entry?._id || entry?.id || '').trim() === vendorId);
+      if (index < 0) return res.status(404).json({ error: 'Vendor not found' });
+      const updated = normalizeVendorRecord({ ...current[index], ...vendor, _id: String(vendor._id || vendorId).trim(), id: current[index].id ?? current[index]._id ?? vendorId });
+      current[index] = updated;
+      saveVendorRecords(current);
+      return res.json(updated);
+    } catch (error) {
+      console.error('JSON vendors update failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Failed to update vendor' });
+    }
+  }
   try {
     const vendorId = String(req.params.id || '').trim();
     const vendor = normalizePhoneFields(req.body && typeof req.body === 'object' ? req.body : {}, [
@@ -9588,7 +9655,19 @@ app.put('/api/vendors/:id', async (req, res) => {
 });
 
 app.delete('/api/vendors/:id', async (req, res) => {
-  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured for vendors module' });
+  if (!canUseMysql()) {
+    try {
+      const vendorId = String(req.params.id || '').trim();
+      const current = loadVendorRecords();
+      const nextRows = current.filter((entry) => String(entry?._id || entry?.id || '').trim() !== vendorId);
+      if (nextRows.length === current.length) return res.status(404).json({ error: 'Vendor not found' });
+      saveVendorRecords(nextRows);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('JSON vendors delete failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Failed to delete vendor' });
+    }
+  }
   try {
     const vendorId = String(req.params.id || '').trim();
     const numericId = Number(vendorId);
