@@ -5,6 +5,7 @@ import { Trash2, X, Pencil, Settings } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
+import { theme } from '../styles/theme';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const VENDOR_DASHBOARD_CACHE_KEY = 'vendor_dashboard_cache_v1';
