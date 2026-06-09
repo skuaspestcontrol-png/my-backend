@@ -84,11 +84,12 @@ const shell = {
   customizeWrap: { position: 'relative', display: 'inline-flex' },
   customizePopover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', minWidth: '200px', zIndex: 40, overflow: 'hidden' },
   customizePopoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
-  customizePopoverButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937' },
+  customizePopoverButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937' },
+  customizePopoverItem: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937' },
   tableWrap: { overflowX: 'hidden', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-border)', marginTop: '12px' },
   table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
-  th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
-  td: { padding: '12px 10px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7', fontWeight: 400 },
+  th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  td: { padding: '8px 6px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '34px', height: '34px', minWidth: '34px', minHeight: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '8px' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
@@ -124,16 +125,16 @@ const vendorColumnsMeta = [
   { key: 'billing', label: 'Billing Address' },
   { key: 'shipping', label: 'Shipping Address' }
 ];
-const vendorWidths = { company: 160, contact: 150, email: 170, mobile: 120, gst: 150, billing: 190, shipping: 190, actions: 90 };
+const vendorWidths = { company: 120, contact: 110, email: 130, mobile: 90, gst: 120, billing: 130, shipping: 130, actions: 72 };
 const vendorBounds = {
-  company: { min: 130, max: 220 },
-  contact: { min: 120, max: 200 },
-  email: { min: 140, max: 230 },
-  mobile: { min: 100, max: 150 },
-  gst: { min: 130, max: 180 },
-  billing: { min: 150, max: 260 },
-  shipping: { min: 150, max: 260 },
-  actions: { min: 80, max: 110 }
+  company: { min: 100, max: 160 },
+  contact: { min: 90, max: 150 },
+  email: { min: 100, max: 180 },
+  mobile: { min: 80, max: 120 },
+  gst: { min: 100, max: 150 },
+  billing: { min: 110, max: 170 },
+  shipping: { min: 110, max: 170 },
+  actions: { min: 68, max: 84 }
 };
 
 const toTenDigitNumber = normalizeIndianMobileNumber;
@@ -198,6 +199,7 @@ export default function VendorDashboard() {
   const [saveError, setSaveError] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const loadRequestRef = useRef(null);
+  const customizeWrapRef = useRef(null);
 
   const isMobile = viewportWidth <= 900;
 
@@ -230,6 +232,17 @@ export default function VendorDashboard() {
   }, [cachedDashboard]);
 
   useAutoRefresh(() => loadVendors({ silent: true }), { enabled: !showModal });
+
+  useEffect(() => {
+    if (!showCustomize) return undefined;
+    const handlePointerDown = (event) => {
+      if (customizeWrapRef.current && !customizeWrapRef.current.contains(event.target)) {
+        setShowCustomize(false);
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [showCustomize]);
 
   const openNew = () => {
     setEditingId('');
@@ -382,7 +395,7 @@ export default function VendorDashboard() {
     enabled: true
   });
   const tableMinWidth = [...visibleColumns, 'actions'].reduce((sum, key) => sum + (getColumnWidth(key) || vendorWidths[key] || 100), 0);
-  const tableStyle = { ...shell.table, minWidth: `${Math.max(760, tableMinWidth)}px` };
+  const tableStyle = { ...shell.table, minWidth: `${Math.max(600, tableMinWidth)}px` };
   const headStyle = (key, align = 'left') => ({ ...shell.th, position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px`, textAlign: align });
   const cellStyle = (key, align = 'left') => ({ ...shell.td, width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px`, textAlign: align });
   const visibleVendorColumns = vendorColumnsMeta.filter((column) => visibleColumns.includes(column.key));
@@ -406,7 +419,7 @@ export default function VendorDashboard() {
           <button type="button" style={shell.buttonPrimary} onClick={openNew}>
             + New Vendor
           </button>
-          <div style={shell.customizeWrap}>
+          <div ref={customizeWrapRef} style={shell.customizeWrap}>
             <button
               type="button"
               style={shell.customizeButton}
@@ -419,19 +432,15 @@ export default function VendorDashboard() {
             {showCustomize ? (
               <div style={shell.customizePopover}>
                 <div style={shell.customizePopoverHeader}>Show / Hide Columns</div>
-                <button
-                  type="button"
-                  style={shell.customizePopoverButton}
-                  onClick={() => {
-                    resetVendorColumns();
-                    resetColumns();
-                    setShowCustomize(false);
-                  }}
-                >
+                <button type="button" style={shell.customizePopoverButton} onClick={() => {
+                  resetVendorColumns();
+                  resetColumns();
+                  setShowCustomize(false);
+                }}>
                   Reset Default Columns
                 </button>
                 {vendorColumnsMeta.map((column) => (
-                  <label key={column.key} style={{ ...shell.customizePopoverButton, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label key={column.key} style={{ ...shell.customizePopoverItem, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <input
                       type="checkbox"
                       checked={visibleColumns.includes(column.key)}
@@ -478,7 +487,9 @@ export default function VendorDashboard() {
                     column.key === 'shipping' ? vendor.shippingAddress : '';
                   return (
                     <td key={`${vendor._id}-${column.key}`} style={cellStyle(column.key, column.key === 'mobile' ? 'center' : 'left')}>
-                      <span style={{ fontWeight: 400 }}>{value || '-'}</span>
+                      <span style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={value || '-'}>
+                        {value || '-'}
+                      </span>
                     </td>
                   );
                 })}

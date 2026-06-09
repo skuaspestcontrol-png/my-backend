@@ -289,8 +289,30 @@ export default function LeadFollowups() {
   const firstRecord = sortedRows.length ? ((safePage - 1) * FOLLOWUP_PAGE_SIZE) + 1 : 0;
   const lastRecord = Math.min(safePage * FOLLOWUP_PAGE_SIZE, sortedRows.length);
   const paginationText = sortedRows.length ? `${firstRecord}-${lastRecord} of ${sortedRows.length} records` : '0 records';
+  const isMobile = viewportWidth < 768;
   const paginationStyle = isMobile ? { ...shell.pagination, flexDirection: 'column', alignItems: 'stretch' } : shell.pagination;
   const paginationActionsStyle = isMobile ? { ...shell.paginationActions, justifyContent: 'flex-end' } : shell.paginationActions;
+  const statGridStyle = isMobile ? { ...shell.statGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' } : viewportWidth < 1100 ? { ...shell.statGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.statGrid;
+  const statCardStyle = isMobile
+    ? { ...shell.statCard, minHeight: '118px', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', padding: '12px' }
+    : shell.statCard;
+  const statIconStyle = isMobile ? { ...shell.statIcon, width: '38px', height: '38px', borderRadius: '11px' } : shell.statIcon;
+  const statValueStyle = isMobile ? { ...shell.statValue, fontSize: '22px' } : shell.statValue;
+  const statLabelStyle = isMobile ? { ...shell.statLabel, margin: '5px 0 0', fontSize: '10px', lineHeight: 1.2 } : shell.statLabel;
+  const filterStyle = isMobile
+    ? { ...shell.filters, gridTemplateColumns: '1fr', padding: '14px', gap: '10px' }
+    : viewportWidth < 1200
+      ? { ...shell.filters, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', padding: '14px 16px' }
+      : shell.filters;
+  const tabsStyle = isMobile
+    ? { ...shell.tabs, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px', alignItems: 'stretch' }
+    : shell.tabs;
+  const tabStyle = isMobile
+    ? { ...shell.tab, width: '100%', height: '34px', padding: '0 8px', gap: '5px', fontSize: '11px', minWidth: 0 }
+    : shell.tab;
+  const tabBadgeStyle = isMobile
+    ? { ...shell.badge, minWidth: '18px', height: '18px', padding: '0 6px', fontSize: '10px', flexShrink: 0 }
+    : shell.badge;
 
   useEffect(() => {
     setPage(1);
@@ -313,28 +335,6 @@ export default function LeadFollowups() {
     };
   }, [followups, today, weekEnd]);
 
-  const isMobile = viewportWidth < 768;
-  const statGridStyle = isMobile ? { ...shell.statGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' } : viewportWidth < 1100 ? { ...shell.statGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.statGrid;
-  const statCardStyle = isMobile
-    ? { ...shell.statCard, minHeight: '118px', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', padding: '12px' }
-    : shell.statCard;
-  const statIconStyle = isMobile ? { ...shell.statIcon, width: '38px', height: '38px', borderRadius: '11px' } : shell.statIcon;
-  const statValueStyle = isMobile ? { ...shell.statValue, fontSize: '22px' } : shell.statValue;
-  const statLabelStyle = isMobile ? { ...shell.statLabel, margin: '5px 0 0', fontSize: '10px', lineHeight: 1.2 } : shell.statLabel;
-  const filterStyle = isMobile
-    ? { ...shell.filters, gridTemplateColumns: '1fr', padding: '14px', gap: '10px' }
-    : viewportWidth < 1200
-      ? { ...shell.filters, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', padding: '14px 16px' }
-      : shell.filters;
-  const tabsStyle = isMobile
-    ? { ...shell.tabs, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px', alignItems: 'stretch' }
-    : shell.tabs;
-  const tabStyle = isMobile
-    ? { ...shell.tab, width: '100%', height: '34px', padding: '0 8px', gap: '5px', fontSize: '11px', minWidth: 0 }
-    : shell.tab;
-  const tabBadgeStyle = isMobile
-    ? { ...shell.badge, minWidth: '18px', height: '18px', padding: '0 6px', fontSize: '10px', flexShrink: 0 }
-    : shell.badge;
   const updateSort = (columnKey) => {
     setSortConfig((current) => ({
       key: columnKey,
