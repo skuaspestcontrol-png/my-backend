@@ -113,7 +113,11 @@ const formatCurrentStockDisplay = (row = {}) => {
   return {
     value: rawValue,
     unitLabel: unit ? getStockUnitLabel(unit) : '',
-    display: unit ? `${formatStockNumber(rawValue)} ${getStockUnitLabel(unit)}` : formatStockNumber(rawValue),
+    display: unit && ['ml', 'litre', 'liter'].includes(unit)
+      ? `${formatStockNumber(rawValue)} ${getStockUnitLabel(unit)}`
+      : unit
+        ? `${formatStockNumber(rawValue)} ${getStockUnitLabel(unit)}`
+        : formatStockNumber(rawValue),
     formula: ''
   };
 };

@@ -367,7 +367,7 @@ export default function StockItems() {
               {vendorOptions.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendorLabel(vendor)}</option>)}
             </AppSelect>
             <AppInput label="Batch Number" value={form.batchNumber} onChange={(e) => setForm({ ...form, batchNumber: e.target.value })} style={stockControlStyle} />
-            <AppInput type="number" step="0.001" min="0" label="Minimum Stock" value={form.minStockLevel} onChange={(e) => setForm({ ...form, minStockLevel: e.target.value })} style={stockControlStyle} />
+            <AppInput type="number" step="0.001" min="0" label="Minimum Stock Level" value={form.minStockLevel} onChange={(e) => setForm({ ...form, minStockLevel: e.target.value })} style={stockControlStyle} />
             <AppInput type="date" label="Expiry Date" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} style={stockControlStyle} />
             <AppSelect label="Status" value={form.isActive ? '1' : '0'} onChange={(e) => setForm({ ...form, isActive: e.target.value === '1' })} style={stockControlStyle}>
               <option value="1">Active</option>

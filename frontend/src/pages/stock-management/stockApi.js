@@ -114,6 +114,8 @@ export const formatCurrentStockDisplay = (row = {}) => {
   }
   if (Number.isFinite(rawValue) && rawValue > 0 && unit) {
     const label = getStockUnitLabel(unit);
+    const liquidUnits = ['ml', 'litre', 'liter'];
+    if (liquidUnits.includes(unit)) return `${formatStockNumber(rawValue)} ${label || 'Ltr'}`;
     return label ? `${formatStockNumber(rawValue)} ${label}` : formatStockNumber(rawValue);
   }
   const value = rawValue;
