@@ -118,7 +118,6 @@ export default function VendorDashboard() {
   const [saveError, setSaveError] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const loadRequestRef = useRef(null);
-  const companyNameInputRef = useRef(null);
   const billingAreaInputRef = useRef(null);
 
   const isMobile = viewportWidth <= 900;
@@ -158,34 +157,11 @@ export default function VendorDashboard() {
     let cleanups = [];
 
     const initPlaces = async () => {
-      const companyCleanup = await attachPlacesAutocomplete({
-        input: companyNameInputRef.current,
-        onSelected: (place) => {
-          setForm((prev) => ({
-            ...prev,
-            companyName: place.name || prev.companyName,
-            billingAddress: place.formatted_address || prev.billingAddress,
-            billingArea: place.areaName || prev.billingArea,
-            billingState: place.state || prev.billingState,
-            billingPincode: place.pincode ? toSixDigitPincode(place.pincode) : prev.billingPincode,
-            googlePlaceId: place.place_id || prev.googlePlaceId,
-            googlePlaceName: place.name || prev.googlePlaceName,
-            googlePhone: place.formatted_phone_number || place.international_phone_number || prev.googlePhone,
-            googleWebsite: place.website || prev.googleWebsite,
-            latitude: place.latitude !== null ? String(place.latitude) : prev.latitude,
-            longitude: place.longitude !== null ? String(place.longitude) : prev.longitude
-          }));
-        },
-        onError: (error) => alert(error?.message || 'Google Maps API key not configured'),
-        onRequireSelection: (message) => alert(message || 'Please select address/company from suggestions')
-      });
-
       const billingCleanup = await attachPlacesAutocomplete({
         input: billingAreaInputRef.current,
         onSelected: (place) => {
           setForm((prev) => ({
             ...prev,
-            companyName: prev.companyName || place.name || '',
             billingAddress: place.formatted_address || prev.billingAddress,
             billingArea: place.areaName || prev.billingArea,
             billingState: place.state || prev.billingState,
@@ -202,7 +178,7 @@ export default function VendorDashboard() {
         onRequireSelection: (message) => alert(message || 'Please select address/company from suggestions')
       });
 
-      cleanups = [companyCleanup, billingCleanup];
+      cleanups = [billingCleanup];
     };
 
     initPlaces();
@@ -399,11 +375,11 @@ export default function VendorDashboard() {
               <div style={shell.card}>
                 <p style={shell.sectionTitle}>Vendor Details</p>
                 <div style={gridStyle}>
-                  <div style={shell.field}><label style={shell.label}>Company Name*</label><input ref={companyNameInputRef} style={shell.input} value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Contact Person Name*</label><input style={shell.input} value={form.contactPersonName} onChange={(e) => update('contactPersonName', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Email Address*</label><input style={shell.input} type="email" value={form.emailId} onChange={(e) => update('emailId', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Mobile*</label><input style={shell.input} inputMode="numeric" value={form.mobileNumber} onChange={(e) => update('mobileNumber', toTenDigitNumber(e.target.value))} /></div>
-                  <div style={shell.field}><label style={shell.label}>GST Number*</label><input style={shell.input} inputMode="text" maxLength={15} value={form.gstNumber} onChange={(e) => update('gstNumber', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))} /></div>
+                  <div style={shell.field}><label style={shell.label}>Company Name</label><input style={shell.input} placeholder="Enter company name" value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
+                  <div style={shell.field}><label style={shell.label}>Contact Person Name</label><input style={shell.input} value={form.contactPersonName} onChange={(e) => update('contactPersonName', e.target.value)} /></div>
+                  <div style={shell.field}><label style={shell.label}>Email Address</label><input style={shell.input} type="email" value={form.emailId} onChange={(e) => update('emailId', e.target.value)} /></div>
+                  <div style={shell.field}><label style={shell.label}>Mobile</label><input style={shell.input} inputMode="numeric" value={form.mobileNumber} onChange={(e) => update('mobileNumber', toTenDigitNumber(e.target.value))} /></div>
+                  <div style={shell.field}><label style={shell.label}>GST Number</label><input style={shell.input} inputMode="text" maxLength={15} value={form.gstNumber} onChange={(e) => update('gstNumber', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))} /></div>
                 </div>
               </div>
 
