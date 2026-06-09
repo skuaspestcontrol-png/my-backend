@@ -39,7 +39,22 @@ const headerCellStyle = {
   fontWeight: 800,
   background: 'color-mix(in srgb, var(--color-surface-soft) 92%, var(--color-surface))'
 };
-const iconButtonStyle = { width: 34, minWidth: 34, height: 34, minHeight: 34, padding: 0, justifyContent: 'center', borderRadius: '999px' };
+const actionIconButtonStyle = {
+  border: '1px solid #d1d5db',
+  background: '#fff',
+  color: '#334155',
+  borderRadius: '10px',
+  width: '30px',
+  height: '28px',
+  minWidth: '30px',
+  minHeight: '28px',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  padding: 0,
+  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)'
+};
 const badgeStyle = (status) => {
   const value = String(status || '').toLowerCase();
   let bg = 'color-mix(in srgb, var(--color-surface-soft) 90%, var(--color-surface))';
@@ -346,26 +361,26 @@ export default function StockItems() {
                     <td className="table-number-cell" style={bodyStyle('minimum', 'center')}>{number(row.minStockLevel)}</td>
                     <td className="table-status-cell" style={bodyStyle('status', 'center')}><span style={badgeStyle(row.status)}>{row.status}</span></td>
                     <td className="table-actions-cell" style={bodyStyle('actions', 'center')}>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <AppButton
-                          variant="outline"
-                          size="sm"
-                          iconLeft={<Edit3 size={14} />}
+                      <div style={{ display: 'inline-flex', gap: 8, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'center' }}>
+                        <button
+                          type="button"
+                          style={actionIconButtonStyle}
                           onClick={() => editRow(row)}
                           title="Edit item"
                           aria-label="Edit item"
-                          style={iconButtonStyle}
-                        />
-                        <AppButton
-                          variant="danger"
-                          size="sm"
-                          iconLeft={<Trash2 size={14} />}
+                        >
+                          <Edit3 size={14} strokeWidth={2.25} />
+                        </button>
+                        <button
+                          type="button"
+                          style={{ ...actionIconButtonStyle, marginRight: 0, color: '#dc2626' }}
                           onClick={() => handleDelete(row.id)}
-                          loading={saving}
+                          disabled={saving}
                           title="Delete item"
                           aria-label="Delete item"
-                          style={iconButtonStyle}
-                        />
+                        >
+                          <Trash2 size={14} strokeWidth={2.25} />
+                        </button>
                       </div>
                     </td>
                   </tr>
