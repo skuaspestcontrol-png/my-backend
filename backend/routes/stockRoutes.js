@@ -86,7 +86,7 @@ const computeStockFromPackSize = (packSizePerBottle, bottleCount, itemUnit = '')
     bottles,
     packQuantity: parsed.quantity,
     packUnit: parsed.unit,
-    formula: displayUnit ? `${formatStockNumber(parsed.quantity)}${parsed.unit || ''} × ${formatStockNumber(bottles)} ${bottleLabel} = ${formatStockNumber(valueRounded)} ${displayUnit}` : ''
+    formula: `${formatStockNumber(parsed.quantity)}${parsed.unit || ''} × ${formatStockNumber(bottles)} ${bottleLabel}`
   };
 };
 const formatCurrentStockDisplay = (row = {}) => {
