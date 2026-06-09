@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { CalendarDays, MapPin, Wrench, X } from 'lucide-react';
+import PdfPreviewModal from './PdfPreviewModal';
 import { useColumnResize } from './table/useColumnResize';
 import { subscribeDashboardRefresh, triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import { formatServiceScheduleTime } from '../utils/serviceScheduleBuilder';
@@ -242,6 +243,7 @@ export default function ScheduleJob() {
   const [premiseRows, setPremiseRows] = useState([]);
   const [selectedPremiseId, setSelectedPremiseId] = useState('');
   const [editableServiceRows, setEditableServiceRows] = useState([]);
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
 
   const loadPortalData = useCallback(async ({ silent = false } = {}) => {
     if (loadRequestRef.current) return loadRequestRef.current;
@@ -644,10 +646,17 @@ export default function ScheduleJob() {
     );
   };
 
-  const openJobPdf = (job) => {
-    const jobId = String(job?.relatedJobId || job?._id || '').trim();
+  const openJobPdf = (row) => {
+    const jobId = String(row?.relatedJobId || row?._id || '').trim();
     if (!jobId) return;
-    window.open(`${API_BASE_URL}/api/service-visits/${encodeURIComponent(jobId)}/job-card-pdf`, '_blank', 'noopener,noreferrer');
+    const pdfUrl = `${API_BASE_URL}/api/service-visits/${encodeURIComponent(jobId)}/job-card-pdf`;
+    setPdfPreview({
+      open: true,
+      title: `Job Card - ${String(row?.visit || row?.service || 'Job').trim()}`,
+      pdfUrl,
+      downloadFileName: `${String(row?.visit || row?.service || 'job-card').replace(/[^\w.-]+/g, '_')}.pdf`,
+      publicShareUrl: pdfUrl
+    });
   };
 
   const assignNow = async () => {
@@ -1009,6 +1018,15 @@ export default function ScheduleJob() {
       {saveError ? <p style={{ ...shell.bottomStatus, color: '#dc2626' }}>{saveError}</p> : null}
       {loading ? <p style={{ ...shell.bottomStatus, color: '#64748b' }}>Loading customer/contracts/employees...</p> : null}
       {!loading && !loadError ? <p style={{ ...shell.bottomStatus, color: '#64748b' }}><CalendarDays size={14} style={{ verticalAlign: 'middle' }} /> Assign Service is synced with Customers, Contracts, and Employee Master modules.</p> : null}
+
+      <PdfPreviewModal
+        open={pdfPreview.open}
+        title={pdfPreview.title}
+        pdfUrl={pdfPreview.pdfUrl}
+        downloadFileName={pdfPreview.downloadFileName}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        publicShareUrl={pdfPreview.publicShareUrl}
+      />
     </section>
   );
 }
