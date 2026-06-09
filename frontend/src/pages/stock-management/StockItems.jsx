@@ -360,8 +360,8 @@ export default function StockItems() {
                     <td className="table-number-cell" style={bodyStyle('currentStock', 'center')}>{number(row.currentStock)}</td>
                     <td className="table-number-cell" style={bodyStyle('minimum', 'center')}>{number(row.minStockLevel)}</td>
                     <td className="table-status-cell" style={bodyStyle('status', 'center')}><span style={badgeStyle(row.status)}>{row.status}</span></td>
-                    <td className="table-actions-cell" style={bodyStyle('actions', 'center')}>
-                      <div style={{ display: 'inline-flex', gap: 8, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'center' }}>
+                    <td className="table-actions-cell" style={bodyStyle('actions', 'left')}>
+                      <div style={{ display: 'inline-flex', gap: 8, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-start' }}>
                         <button
                           type="button"
                           style={actionIconButtonStyle}
