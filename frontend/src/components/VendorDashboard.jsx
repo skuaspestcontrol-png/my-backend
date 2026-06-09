@@ -137,16 +137,16 @@ const vendorColumnsMeta = [
   { key: 'billing', label: 'Billing Address' },
   { key: 'shipping', label: 'Shipping Address' }
 ];
-const vendorWidths = { company: 120, contact: 110, email: 130, mobile: 90, gst: 120, billing: 130, shipping: 130, actions: 100 };
+const vendorWidths = { company: 180, contact: 150, email: 210, mobile: 120, gst: 160, billing: 210, shipping: 210, actions: 120 };
 const vendorBounds = {
-  company: { min: 100, max: 160 },
-  contact: { min: 90, max: 150 },
-  email: { min: 100, max: 180 },
-  mobile: { min: 80, max: 120 },
-  gst: { min: 100, max: 150 },
-  billing: { min: 110, max: 170 },
-  shipping: { min: 110, max: 170 },
-  actions: { min: 92, max: 120 }
+  company: { min: 140, max: 240 },
+  contact: { min: 120, max: 190 },
+  email: { min: 170, max: 280 },
+  mobile: { min: 100, max: 150 },
+  gst: { min: 130, max: 200 },
+  billing: { min: 170, max: 280 },
+  shipping: { min: 170, max: 280 },
+  actions: { min: 100, max: 140 }
 };
 
 const toTenDigitNumber = normalizeIndianMobileNumber;
