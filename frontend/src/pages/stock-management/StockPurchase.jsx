@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import useColumnResize from '../../components/table/useColumnResize';
-import { apiGet, apiPost, money, number, safeRows, toNumber } from './stockApi';
+import { apiGet, apiPost, money, number, safeRows, stockCategoryDisplayLabel, toNumber } from './stockApi';
 
 const vendorLabel = (row) => String(row.name || row.vendor_name || row.company_name || row.displayName || `Vendor ${row.id || row._id || ''}`).trim();
 
@@ -244,7 +244,7 @@ export default function StockPurchase() {
                     <td style={bodyStyle('date', 'center')}>{row.purchaseDate}</td>
                     <td style={bodyStyle('item')}>
                       <div style={{ fontWeight: 700 }}>{row.itemName}</div>
-                      <div style={{ color: '#6B7280', fontSize: 12 }}>{row.category}</div>
+                      <div style={{ color: '#6B7280', fontSize: 12 }}>{stockCategoryDisplayLabel(row.category)}</div>
                     </td>
                     <td style={bodyStyle('vendor')}>{row.vendorName || '---'}</td>
                     <td style={bodyStyle('qty', 'center')}>{number(row.quantity)}</td>
