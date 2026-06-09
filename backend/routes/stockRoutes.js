@@ -72,9 +72,6 @@ const computeStockFromPackSize = (packSizePerBottle, bottleCount) => {
   if (unit === 'ml') {
     value /= 1000;
     unit = 'litre';
-  } else if (unit === 'gram') {
-    value /= 1000;
-    unit = 'kg';
   }
 
   const valueRounded = round3(value);
@@ -95,6 +92,7 @@ const num = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 const round3 = (value) => Number(num(value).toFixed(3));
+const round2 = (value) => Number(num(value).toFixed(2));
 const intOrNull = (value) => {
   if (value === undefined || value === null || value === '') return null;
   const parsed = Number(value);
@@ -157,6 +155,8 @@ const ensureSchema = async () => {
     current_stock DECIMAL(12,3) DEFAULT 0,
     min_stock_level DECIMAL(12,3) DEFAULT 0,
     purchase_rate DECIMAL(12,2) DEFAULT 0,
+    gst_percent DECIMAL(5,2) DEFAULT 0,
+    total_amount DECIMAL(12,2) DEFAULT 0,
     vendor_id INT NULL,
     batch_number VARCHAR(100) NULL,
     expiry_date DATE NULL,
@@ -244,6 +244,8 @@ const ensureSchema = async () => {
   await ensureColumn('stock_items', 'current_stock', 'current_stock DECIMAL(12,3) DEFAULT 0');
   await ensureColumn('stock_items', 'min_stock_level', 'min_stock_level DECIMAL(12,3) DEFAULT 0');
   await ensureColumn('stock_items', 'purchase_rate', 'purchase_rate DECIMAL(12,2) DEFAULT 0');
+  await ensureColumn('stock_items', 'gst_percent', 'gst_percent DECIMAL(5,2) DEFAULT 0');
+  await ensureColumn('stock_items', 'total_amount', 'total_amount DECIMAL(12,2) DEFAULT 0');
   await ensureColumn('stock_items', 'vendor_id', 'vendor_id INT NULL');
   await ensureColumn('stock_items', 'batch_number', 'batch_number VARCHAR(100) NULL');
   await ensureColumn('stock_items', 'expiry_date', 'expiry_date DATE NULL');
@@ -404,6 +406,8 @@ const loadItems = async () => {
       openingStock: num(row.opening_stock),
       minStockLevel: num(row.min_stock_level),
       purchaseRate: num(row.purchase_rate),
+      gstPercent: num(row.gst_percent),
+      totalAmount: num(row.total_amount) || round2(num(row.purchase_rate) * (1 + num(row.gst_percent) / 100)),
       vendorId: row.vendor_id ?? null,
       vendorName: safeName(row.vendor_name || row.company_name, ''),
       batchNumber: text(row.batch_number),
@@ -811,13 +815,15 @@ router.post('/items', async (req, res) => {
     const currentStock = stockFields.currentStock;
     const minStockLevel = coerceStockValue(getProvidedValue(body, 'minStockLevel', 'min_stock_level'));
     const purchaseRate = round3(body.purchaseRate ?? body.purchase_rate ?? 0);
+    const gstPercent = round2(body.gstPercent ?? body.gst_percent ?? 0);
+    const totalAmount = round2(body.totalAmount ?? body.total_amount ?? purchaseRate * (1 + gstPercent / 100));
     const vendorId = body.vendorId || body.vendor_id ? Number(body.vendorId || body.vendor_id) : null;
     const batchNumber = text(body.batchNumber || body.batch_number) || null;
     const expiryDate = dateOnly(body.expiryDate || body.expiry_date);
     const storageLocation = coerceOptionalText(getProvidedValue(body, 'storageLocation', 'storage_location'));
     const description = coerceOptionalText(getProvidedValue(body, 'description'));
     const isActive = body.isActive === false || body.is_active === 0 ? 0 : 1;
-    if ([openingStock, currentStock, minStockLevel, purchaseRate].some((value) => value < 0)) {
+    if ([openingStock, currentStock, minStockLevel, purchaseRate, gstPercent, totalAmount].some((value) => value < 0)) {
       return sendError(res, 400, 'Stock and rate values cannot be negative.');
     }
     const createdBy = body.createdBy || body.created_by || null;
@@ -828,9 +834,9 @@ router.post('/items', async (req, res) => {
       const [insertResult] = await conn.query(
         `INSERT INTO stock_items (
           item_name, item_code, category, unit, hsn_sac, pack_size_per_bottle, no_of_bottles, opening_stock, current_stock, min_stock_level,
-          purchase_rate, vendor_id, batch_number, expiry_date, storage_location, description, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, noOfBottles, openingStock, currentStock, minStockLevel, purchaseRate, vendorId, batchNumber, expiryDate, storageLocation, description, isActive]
+          purchase_rate, gst_percent, total_amount, vendor_id, batch_number, expiry_date, storage_location, description, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, noOfBottles, openingStock, currentStock, minStockLevel, purchaseRate, gstPercent, totalAmount, vendorId, batchNumber, expiryDate, storageLocation, description, isActive]
       );
 
       if (currentStock > 0) {
@@ -891,13 +897,15 @@ router.put('/items/:id', async (req, res) => {
     const currentStock = stockFields.currentStock;
     const minStockLevel = coerceStockValue(getProvidedValue(body, 'minStockLevel', 'min_stock_level'), num(existing.min_stock_level));
     const purchaseRate = round3(body.purchaseRate ?? body.purchase_rate ?? 0);
+    const gstPercent = round2(body.gstPercent ?? body.gst_percent ?? num(existing.gst_percent));
+    const totalAmount = round2(body.totalAmount ?? body.total_amount ?? purchaseRate * (1 + gstPercent / 100));
     const vendorId = body.vendorId || body.vendor_id ? Number(body.vendorId || body.vendor_id) : null;
     const batchNumber = text(body.batchNumber || body.batch_number) || null;
     const expiryDate = dateOnly(body.expiryDate || body.expiry_date);
     const storageLocation = coerceOptionalText(getProvidedValue(body, 'storageLocation', 'storage_location'), text(existing.storage_location));
     const description = coerceOptionalText(getProvidedValue(body, 'description'), text(existing.description));
     const isActive = body.isActive === false || body.is_active === 0 ? 0 : 1;
-    if ([openingStock, currentStock, minStockLevel, purchaseRate].some((value) => value < 0)) {
+    if ([openingStock, currentStock, minStockLevel, purchaseRate, gstPercent, totalAmount].some((value) => value < 0)) {
       return sendError(res, 400, 'Stock and rate values cannot be negative.');
     }
 
@@ -914,6 +922,8 @@ router.put('/items/:id', async (req, res) => {
         current_stock = ?,
         min_stock_level = ?,
         purchase_rate = ?,
+        gst_percent = ?,
+        total_amount = ?,
         vendor_id = ?,
         batch_number = ?,
         expiry_date = ?,
@@ -921,7 +931,7 @@ router.put('/items/:id', async (req, res) => {
         description = ?,
         is_active = ?
        WHERE id = ?`,
-      [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, noOfBottles, openingStock, currentStock, minStockLevel, purchaseRate, vendorId, batchNumber, expiryDate, storageLocation, description, isActive, itemId]
+      [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, noOfBottles, openingStock, currentStock, minStockLevel, purchaseRate, gstPercent, totalAmount, vendorId, batchNumber, expiryDate, storageLocation, description, isActive, itemId]
     );
     if (Number(result?.affectedRows || 0) === 0) {
       return sendError(res, 404, 'Item not found.');

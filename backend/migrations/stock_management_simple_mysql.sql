@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS stock_items (
   current_stock DECIMAL(12,3) DEFAULT 0,
   min_stock_level DECIMAL(12,3) DEFAULT 0,
   purchase_rate DECIMAL(12,2) DEFAULT 0,
+  gst_percent DECIMAL(5,2) DEFAULT 0,
+  total_amount DECIMAL(12,2) DEFAULT 0,
   vendor_id INT NULL,
   batch_number VARCHAR(100) NULL,
   expiry_date DATE NULL,

@@ -9,7 +9,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import useColumnResize from '../../components/table/useColumnResize';
 import { theme } from '../../styles/theme';
-import { apiDelete, apiGet, apiPost, apiPut, computeStockFromPackSize, formatCurrentStockDisplay, number, safeRows, stockCategories, stockCategoryDisplayLabel, stockUnits } from './stockApi';
+import { apiDelete, apiGet, apiPost, apiPut, formatCurrentStockDisplay, number, safeRows, stockCategories, stockCategoryDisplayLabel, stockUnits } from './stockApi';
 
 const vendorLabel = (row) => String(row.name || row.vendor_name || row.company_name || row.displayName || `Vendor ${row.id || row._id || ''}`).trim();
 
@@ -23,6 +23,8 @@ const initialForm = {
   category: 'Other',
   unit: 'piece',
   purchaseRate: '0',
+  gstPercent: '',
+  totalAmount: '0',
   vendorId: '',
   batchNumber: '',
   expiryDate: '',
@@ -141,7 +143,6 @@ export default function StockItems() {
   }, []);
 
   const vendorOptions = useMemo(() => safeRows(vendors), [vendors]);
-  const stockPreview = useMemo(() => computeStockFromPackSize(form.packSizePerBottle, form.noOfBottles), [form.packSizePerBottle, form.noOfBottles]);
   const {
     getColumnWidth,
     startResize,
@@ -213,6 +214,17 @@ export default function StockItems() {
     background: theme.colors.surface,
     boxShadow: theme.shadow.sm
   };
+  const stockControlStyle = {
+    minHeight: '40px',
+    height: '40px'
+  };
+  const computeTotalAmount = (rate, gstPercent) => {
+    const purchaseRate = Number(rate || 0);
+    const gst = Number(gstPercent || 0);
+    if (!Number.isFinite(purchaseRate) || purchaseRate <= 0) return '0.00';
+    const total = purchaseRate * (1 + gst / 100);
+    return total.toFixed(2);
+  };
   const toolbarButtonStyle = {
     minHeight: 38,
     borderRadius: 999,
@@ -232,12 +244,23 @@ export default function StockItems() {
       category: row.category || 'Other',
       unit: row.unit || 'piece',
       purchaseRate: String(row.purchaseRate ?? 0),
+      gstPercent: String(row.gstPercent ?? ''),
+      totalAmount: String(row.totalAmount ?? computeTotalAmount(row.purchaseRate ?? 0, row.gstPercent ?? 0)),
       vendorId: row.vendorId || '',
       batchNumber: row.batchNumber || '',
       expiryDate: row.expiryDate || '',
       isActive: Boolean(row.isActive)
     });
   };
+
+  useEffect(() => {
+    setForm((prev) => {
+      if (!prev) return prev;
+      const totalAmount = computeTotalAmount(prev.purchaseRate, prev.gstPercent);
+      if (prev.totalAmount === totalAmount) return prev;
+      return { ...prev, totalAmount };
+    });
+  }, [form.purchaseRate, form.gstPercent]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -247,7 +270,9 @@ export default function StockItems() {
       const payload = {
         ...form,
         vendorId: form.vendorId || null,
-        purchaseRate: Number(form.purchaseRate || 0)
+        purchaseRate: Number(form.purchaseRate || 0),
+        gstPercent: Number(form.gstPercent || 0),
+        totalAmount: Number(form.totalAmount || 0)
       };
       if (form.id) {
         await apiPut(`/api/stock/items/${form.id}`, payload);
@@ -296,16 +321,16 @@ export default function StockItems() {
       <AppCard title={form.id ? 'Edit Item' : 'Add Item'} className="crm-filter-card" style={{ ...panelStyle, ...formCardStyle }} bodyStyle={formBodyStyle}>
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0, ...formScrollStyle }}>
           <div style={formGridStyle}>
-            <AppInput label="Item Name" value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} required />
-            <AppInput label="Item Code" value={form.itemCode} onChange={(e) => setForm({ ...form, itemCode: e.target.value })} />
-            <AppInput label="HSN Code" value={form.hsnSac} onChange={(e) => setForm({ ...form, hsnSac: e.target.value })} />
+            <AppInput label="Item Name" value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} required style={stockControlStyle} />
+            <AppInput label="Item Code" value={form.itemCode} onChange={(e) => setForm({ ...form, itemCode: e.target.value })} style={stockControlStyle} />
+            <AppInput label="HSN Code" value={form.hsnSac} onChange={(e) => setForm({ ...form, hsnSac: e.target.value })} style={stockControlStyle} />
             <AppSelect label="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
               {stockCategories.map((item) => <option key={item} value={item}>{item}</option>)}
             </AppSelect>
-            <AppSelect label="Unit" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
+            <AppSelect label="Unit" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} style={stockControlStyle}>
               {stockUnits.map((item) => <option key={item} value={item}>{item}</option>)}
             </AppSelect>
-            <AppInput label="Pack Size / Per Bottle" value={form.packSizePerBottle} onChange={(e) => setForm({ ...form, packSizePerBottle: e.target.value })} />
+            <AppInput label="Pack Size / Per Bottle" value={form.packSizePerBottle} onChange={(e) => setForm({ ...form, packSizePerBottle: e.target.value })} style={stockControlStyle} />
             <AppInput
               type="number"
               step="1"
@@ -313,16 +338,33 @@ export default function StockItems() {
               label="No of Bottles"
               value={form.noOfBottles}
               onChange={(e) => setForm({ ...form, noOfBottles: e.target.value })}
-              helper={stockPreview.formula || 'Enter both fields to auto-calculate current stock.'}
+              style={stockControlStyle}
             />
-            <AppInput type="number" step="0.01" min="0" label="Purchase Rate" value={form.purchaseRate} onChange={(e) => setForm({ ...form, purchaseRate: e.target.value })} />
-            <AppSelect label="Vendor" value={form.vendorId} onChange={(e) => setForm({ ...form, vendorId: e.target.value })}>
+            <AppInput type="number" step="0.01" min="0" label="Purchase Rate" value={form.purchaseRate} onChange={(e) => setForm({ ...form, purchaseRate: e.target.value })} style={stockControlStyle} />
+            <AppSelect label="GST Amount" value={form.gstPercent} onChange={(e) => setForm({ ...form, gstPercent: e.target.value })} style={stockControlStyle}>
+              <option value="">Select GST</option>
+              <option value="5">5%</option>
+              <option value="12">12%</option>
+              <option value="18">18%</option>
+              <option value="26">26%</option>
+            </AppSelect>
+            <AppInput
+              type="number"
+              step="0.01"
+              min="0"
+              label="Total Amount"
+              value={form.totalAmount}
+              onChange={(e) => setForm({ ...form, totalAmount: e.target.value })}
+              style={stockControlStyle}
+              readOnly
+            />
+            <AppSelect label="Vendor" value={form.vendorId} onChange={(e) => setForm({ ...form, vendorId: e.target.value })} style={stockControlStyle}>
               <option value="">Optional</option>
               {vendorOptions.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendorLabel(vendor)}</option>)}
             </AppSelect>
-            <AppInput label="Batch Number" value={form.batchNumber} onChange={(e) => setForm({ ...form, batchNumber: e.target.value })} />
-            <AppInput type="date" label="Expiry Date" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
-            <AppSelect label="Status" value={form.isActive ? '1' : '0'} onChange={(e) => setForm({ ...form, isActive: e.target.value === '1' })}>
+            <AppInput label="Batch Number" value={form.batchNumber} onChange={(e) => setForm({ ...form, batchNumber: e.target.value })} style={stockControlStyle} />
+            <AppInput type="date" label="Expiry Date" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} style={stockControlStyle} />
+            <AppSelect label="Status" value={form.isActive ? '1' : '0'} onChange={(e) => setForm({ ...form, isActive: e.target.value === '1' })} style={stockControlStyle}>
               <option value="1">Active</option>
               <option value="0">Inactive</option>
             </AppSelect>

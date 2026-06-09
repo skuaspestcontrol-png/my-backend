@@ -83,9 +83,6 @@ export const computeStockFromPackSize = (packSizePerBottle, bottleCount) => {
   if (unit === 'ml') {
     value /= 1000;
     unit = 'litre';
-  } else if (unit === 'gram') {
-    value /= 1000;
-    unit = 'kg';
   }
 
   const rounded = Number(value.toFixed(3));
