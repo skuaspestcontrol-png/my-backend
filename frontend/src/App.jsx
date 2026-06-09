@@ -62,7 +62,7 @@ class RouteErrorBoundary extends React.Component {
 }
 
 const DashboardLayout = lazyWithRetry(() => import('./components/DashboardLayout'), 'dashboard-layout');
-const CustomerDashboard = lazy(() => import('./components/CustomerDashboard'));
+const CustomerDashboard = lazyWithRetry(() => import('./components/CustomerDashboard'), 'customer-dashboard');
 const ContractDashboard = lazy(() => import('./components/ContractDashboard'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const EmployeeMaster = lazy(() => import('./components/EmployeeMaster'));
