@@ -28,11 +28,11 @@ const normalizePackUnit = (value) => {
 const getStockUnitLabel = (unit) => {
   const normalized = text(unit).toLowerCase();
   if (!normalized) return '';
-  if (normalized === 'ml' || normalized === 'litre') return 'Liter';
-  if (normalized === 'gram') return 'Gram';
-  if (normalized === 'kg') return 'Kg';
-  if (normalized === 'piece') return 'Piece';
-  if (normalized === 'bottle') return 'Bottle';
+  if (normalized === 'ml' || normalized === 'litre' || normalized === 'liter') return 'Ltr';
+  if (normalized === 'gram' || normalized === 'g') return 'gm';
+  if (normalized === 'kg') return 'kg';
+  if (normalized === 'piece' || normalized === 'pcs') return 'piece';
+  if (normalized === 'bottle') return 'bottle';
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
 const formatStockNumber = (value) => {
@@ -85,6 +85,34 @@ const computeStockFromPackSize = (packSizePerBottle, bottleCount) => {
     packQuantity: parsed.quantity,
     packUnit: parsed.unit,
     formula: displayUnit ? `${formatStockNumber(parsed.quantity)}${parsed.unit || ''} × ${formatStockNumber(bottles)} ${bottleLabel} = ${formatStockNumber(valueRounded)} ${displayUnit}` : ''
+  };
+};
+const formatCurrentStockDisplay = (row = {}) => {
+  const stockMeta = computeStockFromPackSize(row.pack_size_per_bottle, row.no_of_bottles);
+  if (stockMeta.value > 0 && stockMeta.unitLabel) {
+    return {
+      value: stockMeta.value,
+      unitLabel: stockMeta.unitLabel,
+      display: `${formatStockNumber(stockMeta.value)} ${stockMeta.unitLabel}`,
+      formula: stockMeta.formula
+    };
+  }
+  const rawValue = num(row.current_stock);
+  const unit = text(row.unit || '').toLowerCase();
+  if (unit === 'ml' && rawValue > 0) {
+    const liters = round3(rawValue / 1000);
+    return {
+      value: liters,
+      unitLabel: 'Ltr',
+      display: `${formatStockNumber(liters)} Ltr`,
+      formula: ''
+    };
+  }
+  return {
+    value: rawValue,
+    unitLabel: unit ? getStockUnitLabel(unit) : '',
+    display: unit ? `${formatStockNumber(rawValue)} ${getStockUnitLabel(unit)}` : formatStockNumber(rawValue),
+    formula: ''
   };
 };
 const num = (value, fallback = 0) => {
@@ -383,16 +411,12 @@ const loadItems = async () => {
     );
     return safeRows(rows).map((row) => ({
       ...(() => {
-        const stockMeta = computeStockFromPackSize(row.pack_size_per_bottle, row.no_of_bottles);
-        const computedStock = stockMeta.value > 0 && stockMeta.unitLabel ? stockMeta.value : num(row.current_stock);
-        const currentStockDisplay = stockMeta.value > 0 && stockMeta.unitLabel
-          ? `${formatStockNumber(stockMeta.value)} ${stockMeta.unitLabel}`
-          : formatStockNumber(num(row.current_stock));
+        const stockDisplay = formatCurrentStockDisplay(row);
         return {
-          currentStock: computedStock,
-          currentStockUnitLabel: stockMeta.unitLabel,
-          currentStockDisplay,
-          currentStockFormula: stockMeta.formula
+          currentStock: stockDisplay.value,
+          currentStockUnitLabel: stockDisplay.unitLabel,
+          currentStockDisplay: stockDisplay.display,
+          currentStockFormula: stockDisplay.formula
         };
       })(),
       id: row.id,
@@ -417,8 +441,8 @@ const loadItems = async () => {
       isActive: Number(row.is_active || 0) !== 0,
       status: stockStatus({
         current_stock: (() => {
-          const stockMeta = computeStockFromPackSize(row.pack_size_per_bottle, row.no_of_bottles);
-          return stockMeta.value > 0 && stockMeta.unitLabel ? stockMeta.value : row.current_stock;
+          const stockDisplay = formatCurrentStockDisplay(row);
+          return stockDisplay.value;
         })(),
         min_stock_level: row.min_stock_level
       })
@@ -816,7 +840,7 @@ router.post('/items', async (req, res) => {
     const minStockLevel = coerceStockValue(getProvidedValue(body, 'minStockLevel', 'min_stock_level'));
     const purchaseRate = round3(body.purchaseRate ?? body.purchase_rate ?? 0);
     const gstPercent = round2(body.gstPercent ?? body.gst_percent ?? 0);
-    const totalAmount = round2(body.totalAmount ?? body.total_amount ?? purchaseRate * (1 + gstPercent / 100));
+    const totalAmount = round2(body.totalAmount ?? body.total_amount ?? noOfBottles * purchaseRate * (1 + gstPercent / 100));
     const vendorId = body.vendorId || body.vendor_id ? Number(body.vendorId || body.vendor_id) : null;
     const batchNumber = text(body.batchNumber || body.batch_number) || null;
     const expiryDate = dateOnly(body.expiryDate || body.expiry_date);
@@ -898,7 +922,7 @@ router.put('/items/:id', async (req, res) => {
     const minStockLevel = coerceStockValue(getProvidedValue(body, 'minStockLevel', 'min_stock_level'), num(existing.min_stock_level));
     const purchaseRate = round3(body.purchaseRate ?? body.purchase_rate ?? 0);
     const gstPercent = round2(body.gstPercent ?? body.gst_percent ?? num(existing.gst_percent));
-    const totalAmount = round2(body.totalAmount ?? body.total_amount ?? purchaseRate * (1 + gstPercent / 100));
+    const totalAmount = round2(body.totalAmount ?? body.total_amount ?? noOfBottles * purchaseRate * (1 + gstPercent / 100));
     const vendorId = body.vendorId || body.vendor_id ? Number(body.vendorId || body.vendor_id) : null;
     const batchNumber = text(body.batchNumber || body.batch_number) || null;
     const expiryDate = dateOnly(body.expiryDate || body.expiry_date);

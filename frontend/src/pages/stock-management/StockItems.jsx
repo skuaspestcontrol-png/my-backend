@@ -218,11 +218,13 @@ export default function StockItems() {
     minHeight: '40px',
     height: '40px'
   };
-  const computeTotalAmount = (rate, gstPercent) => {
+  const computeTotalAmount = (bottles, rate, gstPercent) => {
+    const bottleCount = Number(bottles || 0);
     const purchaseRate = Number(rate || 0);
     const gst = Number(gstPercent || 0);
-    if (!Number.isFinite(purchaseRate) || purchaseRate <= 0) return '0.00';
-    const total = purchaseRate * (1 + gst / 100);
+    if (!Number.isFinite(bottleCount) || !Number.isFinite(purchaseRate) || bottleCount <= 0 || purchaseRate <= 0) return '0.00';
+    const subtotal = bottleCount * purchaseRate;
+    const total = subtotal * (1 + gst / 100);
     return total.toFixed(2);
   };
   const toolbarButtonStyle = {
@@ -245,7 +247,7 @@ export default function StockItems() {
       unit: row.unit || 'piece',
       purchaseRate: String(row.purchaseRate ?? 0),
       gstPercent: String(row.gstPercent ?? ''),
-      totalAmount: String(row.totalAmount ?? computeTotalAmount(row.purchaseRate ?? 0, row.gstPercent ?? 0)),
+      totalAmount: String(row.totalAmount ?? computeTotalAmount(row.noOfBottles ?? 0, row.purchaseRate ?? 0, row.gstPercent ?? 0)),
       vendorId: row.vendorId || '',
       batchNumber: row.batchNumber || '',
       expiryDate: row.expiryDate || '',
@@ -256,11 +258,11 @@ export default function StockItems() {
   useEffect(() => {
     setForm((prev) => {
       if (!prev) return prev;
-      const totalAmount = computeTotalAmount(prev.purchaseRate, prev.gstPercent);
+      const totalAmount = computeTotalAmount(prev.noOfBottles, prev.purchaseRate, prev.gstPercent);
       if (prev.totalAmount === totalAmount) return prev;
       return { ...prev, totalAmount };
     });
-  }, [form.purchaseRate, form.gstPercent]);
+  }, [form.noOfBottles, form.purchaseRate, form.gstPercent]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();

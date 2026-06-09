@@ -36,11 +36,11 @@ export const normalizePackUnit = (value) => {
 export const getStockUnitLabel = (unit) => {
   const normalized = String(unit || '').trim().toLowerCase();
   if (!normalized) return '';
-  if (normalized === 'ml' || normalized === 'litre') return 'Liter';
-  if (normalized === 'gram') return 'Gram';
-  if (normalized === 'kg') return 'Kg';
-  if (normalized === 'piece') return 'Piece';
-  if (normalized === 'bottle') return 'Bottle';
+  if (normalized === 'ml' || normalized === 'litre' || normalized === 'liter') return 'Ltr';
+  if (normalized === 'gram' || normalized === 'g') return 'gm';
+  if (normalized === 'kg') return 'kg';
+  if (normalized === 'piece' || normalized === 'pcs') return 'piece';
+  if (normalized === 'bottle') return 'bottle';
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
 
@@ -105,7 +105,16 @@ export const formatCurrentStockDisplay = (row = {}) => {
   if (stockMeta.value > 0 && stockMeta.unitLabel) {
     return `${formatStockNumber(stockMeta.value)} ${stockMeta.unitLabel}`;
   }
-  const value = row.currentStock ?? row.current_stock ?? 0;
+  const rawValue = Number(row.currentStock ?? row.current_stock ?? 0);
+  const unit = String(row.unit || row.itemUnit || row.item_unit || '').trim().toLowerCase();
+  if (unit === 'ml' && Number.isFinite(rawValue) && rawValue > 0) {
+    return `${formatStockNumber(rawValue / 1000)} Ltr`;
+  }
+  if (Number.isFinite(rawValue) && rawValue > 0 && unit) {
+    const label = getStockUnitLabel(unit);
+    return label ? `${formatStockNumber(rawValue)} ${label}` : formatStockNumber(rawValue);
+  }
+  const value = rawValue;
   return formatStockNumber(value);
 };
 
