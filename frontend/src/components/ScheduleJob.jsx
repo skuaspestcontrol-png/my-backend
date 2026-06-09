@@ -196,22 +196,22 @@ const writeScheduleJobCache = (next = {}) => {
 const scheduleColumns = ['select', 'service', 'visit', 'date', 'window', 'site', 'status', 'pdf'];
 const scheduleColumnWidths = {
   select: 56,
-  service: 240,
-  visit: 130,
-  date: 120,
-  window: 130,
-  site: 260,
-  status: 140,
-  pdf: 92
+  service: 220,
+  visit: 118,
+  date: 138,
+  window: 122,
+  site: 230,
+  status: 128,
+  pdf: 90
 };
 const scheduleColumnBounds = {
   select: { min: 48, max: 72 },
   service: { min: 180, max: 360 },
   visit: { min: 100, max: 180 },
-  date: { min: 100, max: 180 },
-  window: { min: 100, max: 180 },
-  site: { min: 180, max: 360 },
-  status: { min: 100, max: 180 },
+  date: { min: 120, max: 190 },
+  window: { min: 110, max: 170 },
+  site: { min: 170, max: 320 },
+  status: { min: 100, max: 160 },
   pdf: { min: 82, max: 120 }
 };
 
