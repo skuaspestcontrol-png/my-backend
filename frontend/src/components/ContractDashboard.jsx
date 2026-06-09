@@ -1523,7 +1523,7 @@ export default function ContractDashboard() {
               setActionMenu(null);
             }}
           >
-            Edit Contract
+            Reassign
           </button>
           <button
             type="button"

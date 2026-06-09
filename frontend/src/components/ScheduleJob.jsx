@@ -192,7 +192,7 @@ const writeScheduleJobCache = (next = {}) => {
   }
 };
 
-const scheduleColumns = ['select', 'service', 'visit', 'date', 'window', 'site', 'status'];
+const scheduleColumns = ['select', 'service', 'visit', 'date', 'window', 'site', 'status', 'pdf'];
 const scheduleColumnWidths = {
   select: 56,
   service: 240,
@@ -200,7 +200,8 @@ const scheduleColumnWidths = {
   date: 120,
   window: 130,
   site: 260,
-  status: 140
+  status: 140,
+  pdf: 92
 };
 const scheduleColumnBounds = {
   select: { min: 48, max: 72 },
@@ -209,7 +210,8 @@ const scheduleColumnBounds = {
   date: { min: 100, max: 180 },
   window: { min: 100, max: 180 },
   site: { min: 180, max: 360 },
-  status: { min: 100, max: 180 }
+  status: { min: 100, max: 180 },
+  pdf: { min: 82, max: 120 }
 };
 
 export default function ScheduleJob() {
@@ -254,7 +256,7 @@ export default function ScheduleJob() {
           axios.get(`${API_BASE_URL}/api/customers`),
           axios.get(`${API_BASE_URL}/api/invoices`),
           axios.get(`${API_BASE_URL}/api/employees`),
-          axios.get(`${API_BASE_URL}/api/jobs`)
+          axios.get(`${API_BASE_URL}/api/jobs`, { params: { includeInactive: true } })
         ]);
         if (!isMountedRef.current) return;
         const nextCustomers = Array.isArray(customerRes.data) ? customerRes.data : [];
@@ -632,6 +634,12 @@ export default function ScheduleJob() {
     );
   };
 
+  const openJobPdf = (job) => {
+    const jobId = String(job?._id || '').trim();
+    if (!jobId) return;
+    window.open(`${API_BASE_URL}/api/service-visits/${encodeURIComponent(jobId)}/job-card-pdf`, '_blank', 'noopener,noreferrer');
+  };
+
   const assignNow = async () => {
     const resolvedTechnicians = selectedTechnicians;
     const resolvedRows = selectedRows;
@@ -873,15 +881,16 @@ export default function ScheduleJob() {
                   <th style={headStyle('service')}>Service</th>
                   <th style={headStyle('visit', 'center')}>Visit</th>
                     <th style={headStyle('date', 'center')}>Date</th>
-                    <th style={headStyle('window', 'center')}>Time</th>
+                  <th style={headStyle('window', 'center')}>Time</th>
                   <th style={headStyle('site')}>Site</th>
                   <th style={headStyle('status', 'center')}>Status</th>
+                  <th style={headStyle('pdf', 'center')}>PDF</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredServiceRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ ...shell.td, textAlign: 'center', ...shell.muted }}>
+                    <td colSpan={8} style={{ ...shell.td, textAlign: 'center', ...shell.muted }}>
                       {customerId ? 'No service schedules available for this filter.' : 'Select a customer to begin.'}
                     </td>
                   </tr>
@@ -919,6 +928,26 @@ export default function ScheduleJob() {
                     </td>
                     <td style={cellStyle('site')}>{row.site || '-'}</td>
                     <td style={cellStyle('status', 'center')}>{row.status}</td>
+                    <td style={cellStyle('pdf', 'center')}>
+                      <button
+                        type="button"
+                        style={{
+                          minHeight: '28px',
+                          minWidth: '64px',
+                          borderRadius: '8px',
+                          border: '1px solid #bfdbfe',
+                          background: '#eff6ff',
+                          color: '#1e3a8a',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          padding: '0 10px'
+                        }}
+                        onClick={() => openJobPdf(row.raw)}
+                      >
+                        PDF
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

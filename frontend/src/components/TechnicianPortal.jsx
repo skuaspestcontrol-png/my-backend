@@ -698,7 +698,7 @@ export default function TechnicianPortal() {
         axios.get(`${API_BASE_URL}/api/customers`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 })
       ]);
       const criticalRequests = await Promise.allSettled([
-        axios.get(`${API_BASE_URL}/api/jobs`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
+        axios.get(`${API_BASE_URL}/api/jobs`, { params: { _t: stamp, includeInactive: true }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
         axios.get(`${API_BASE_URL}/api/service-schedules`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 }),
         axios.get(`${API_BASE_URL}/api/employees`, { params: { _t: stamp }, headers: { 'Cache-Control': 'no-cache' }, timeout: 15000 })
       ]);
