@@ -8,6 +8,7 @@ import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/ph
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const VENDOR_DASHBOARD_CACHE_KEY = 'vendor_dashboard_cache_v1';
+const VENDOR_VISIBLE_COLUMNS_KEY = 'vendor_dashboard_visible_columns_v1';
 const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
 const indiaStates = [
   'Andhra Pradesh',
@@ -84,8 +85,8 @@ const shell = {
   customizePopover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', minWidth: '200px', zIndex: 40, overflow: 'hidden' },
   customizePopoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
   customizePopoverButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937' },
-  tableWrap: { overflowX: 'auto', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-border)', marginTop: '12px' },
-  table: { width: '100%', borderCollapse: 'collapse', minWidth: '900px' },
+  tableWrap: { overflowX: 'hidden', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-border)', marginTop: '12px' },
+  table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
   td: { padding: '12px 10px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7', fontWeight: 400 },
   iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '34px', height: '34px', minWidth: '34px', minHeight: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '8px' },
@@ -114,16 +115,25 @@ const shell = {
 };
 
 const vendorColumns = ['company', 'contact', 'email', 'mobile', 'gst', 'billing', 'shipping', 'actions'];
-const vendorWidths = { company: 180, contact: 160, email: 180, mobile: 130, gst: 140, billing: 220, shipping: 220, actions: 120 };
+const vendorColumnsMeta = [
+  { key: 'company', label: 'Company Name' },
+  { key: 'contact', label: 'Contact Person' },
+  { key: 'email', label: 'Email' },
+  { key: 'mobile', label: 'Mobile' },
+  { key: 'gst', label: 'GST Number' },
+  { key: 'billing', label: 'Billing Address' },
+  { key: 'shipping', label: 'Shipping Address' }
+];
+const vendorWidths = { company: 160, contact: 150, email: 170, mobile: 120, gst: 150, billing: 190, shipping: 190, actions: 90 };
 const vendorBounds = {
-  company: { min: 150, max: 260 },
-  contact: { min: 140, max: 220 },
-  email: { min: 150, max: 260 },
-  mobile: { min: 110, max: 160 },
-  gst: { min: 120, max: 180 },
-  billing: { min: 180, max: 320 },
-  shipping: { min: 180, max: 320 },
-  actions: { min: 100, max: 160 }
+  company: { min: 130, max: 220 },
+  contact: { min: 120, max: 200 },
+  email: { min: 140, max: 230 },
+  mobile: { min: 100, max: 150 },
+  gst: { min: 130, max: 180 },
+  billing: { min: 150, max: 260 },
+  shipping: { min: 150, max: 260 },
+  actions: { min: 80, max: 110 }
 };
 
 const toTenDigitNumber = normalizeIndianMobileNumber;
@@ -142,6 +152,30 @@ const readVendorDashboardCache = () => {
   }
 };
 
+const readVendorVisibleColumns = () => {
+  try {
+    if (typeof window === 'undefined') return vendorColumns;
+    const raw = window.localStorage.getItem(VENDOR_VISIBLE_COLUMNS_KEY);
+    if (!raw) return vendorColumns;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return vendorColumns;
+    const valid = parsed.filter((key) => vendorColumns.includes(key));
+    return valid.length > 0 ? valid : vendorColumns;
+  } catch {
+    return vendorColumns;
+  }
+};
+
+const writeVendorVisibleColumns = (columns) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const valid = Array.isArray(columns) ? columns.filter((key) => vendorColumns.includes(key)) : vendorColumns;
+    window.localStorage.setItem(VENDOR_VISIBLE_COLUMNS_KEY, JSON.stringify(valid));
+  } catch {
+    // Best effort only.
+  }
+};
+
 const mergeVendorDashboardCache = (patch) => {
   try {
     if (typeof window === 'undefined') return;
@@ -155,6 +189,7 @@ const mergeVendorDashboardCache = (patch) => {
 export default function VendorDashboard() {
   const [cachedDashboard] = useState(() => readVendorDashboardCache());
   const [vendors, setVendors] = useState(() => Array.isArray(cachedDashboard?.vendors) ? cachedDashboard.vendors : []);
+  const [visibleColumns, setVisibleColumns] = useState(() => readVendorVisibleColumns());
   const [showModal, setShowModal] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
   const [editingId, setEditingId] = useState('');
@@ -346,16 +381,31 @@ export default function VendorDashboard() {
     minWidth: 100,
     enabled: true
   });
-  const tableMinWidth = vendorColumns.reduce((sum, key) => sum + (getColumnWidth(key) || vendorWidths[key] || 100), 0);
-  const tableStyle = { ...shell.table, minWidth: `${Math.max(900, tableMinWidth)}px`, tableLayout: 'fixed' };
+  const tableMinWidth = [...visibleColumns, 'actions'].reduce((sum, key) => sum + (getColumnWidth(key) || vendorWidths[key] || 100), 0);
+  const tableStyle = { ...shell.table, minWidth: `${Math.max(760, tableMinWidth)}px` };
   const headStyle = (key, align = 'left') => ({ ...shell.th, position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px`, textAlign: align });
   const cellStyle = (key, align = 'left') => ({ ...shell.td, width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px`, textAlign: align });
+  const visibleVendorColumns = vendorColumnsMeta.filter((column) => visibleColumns.includes(column.key));
+  const toggleVendorColumn = (columnKey) => {
+    setVisibleColumns((prev) => {
+      const next = prev.includes(columnKey) ? prev.filter((key) => key !== columnKey) : [...prev, columnKey];
+      writeVendorVisibleColumns(next);
+      return next;
+    });
+  };
+  const resetVendorColumns = () => {
+    setVisibleColumns(vendorColumns);
+    writeVendorVisibleColumns(vendorColumns);
+  };
 
   return (
     <section style={shell.page}>
       <div style={shell.topbar}>
         <h1 style={shell.title}>Vendors Dashboard</h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" style={shell.buttonPrimary} onClick={openNew}>
+            + New Vendor
+          </button>
           <div style={shell.customizeWrap}>
             <button
               type="button"
@@ -373,46 +423,65 @@ export default function VendorDashboard() {
                   type="button"
                   style={shell.customizePopoverButton}
                   onClick={() => {
+                    resetVendorColumns();
                     resetColumns();
                     setShowCustomize(false);
                   }}
                 >
                   Reset Default Columns
                 </button>
+                {vendorColumnsMeta.map((column) => (
+                  <label key={column.key} style={{ ...shell.customizePopoverButton, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={visibleColumns.includes(column.key)}
+                      onChange={() => toggleVendorColumn(column.key)}
+                    />
+                    {column.label}
+                  </label>
+                ))}
               </div>
             ) : null}
           </div>
-          <button type="button" style={shell.buttonPrimary} onClick={openNew}>
-            + New Vendor
-          </button>
         </div>
       </div>
 
       <div style={shell.tableWrap}>
         <table style={tableStyle}>
-          <colgroup>{vendorColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key)}px` }} />)}</colgroup>
+          <colgroup>
+            {visibleVendorColumns.map((column) => (
+              <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
+            ))}
+            <col style={{ width: `${getColumnWidth('actions')}px` }} />
+          </colgroup>
           <thead>
             <tr>
-              <th style={headStyle('company')}>Company Name</th>
-              <th style={headStyle('contact')}>Contact Person</th>
-              <th style={headStyle('email')}>Email</th>
-              <th style={headStyle('mobile', 'center')}>Mobile</th>
-              <th style={headStyle('gst')}>GST Number</th>
-              <th style={headStyle('billing')}>Billing Address</th>
-              <th style={headStyle('shipping')}>Shipping Address</th>
+              {visibleVendorColumns.map((column) => (
+                <th key={column.key} style={headStyle(column.key, column.key === 'mobile' ? 'center' : 'left')}>
+                  {column.label}
+                </th>
+              ))}
               <th style={headStyle('actions', 'center')}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {vendors.map((vendor) => (
               <tr key={vendor._id}>
-                <td style={cellStyle('company')}>{vendor.companyName || '-'}</td>
-                <td style={cellStyle('contact')}>{vendor.contactPersonName || '-'}</td>
-                <td style={cellStyle('email')}>{vendor.emailId || '-'}</td>
-                <td style={cellStyle('mobile', 'center')}>{vendor.mobileNumber || '-'}</td>
-                <td style={cellStyle('gst')}>{vendor.gstNumber || '-'}</td>
-                <td style={cellStyle('billing')}>{vendor.billingAddress || '-'}</td>
-                <td style={cellStyle('shipping')}>{vendor.shippingAddress || '-'}</td>
+                {visibleVendorColumns.map((column) => {
+                  const value =
+                    column.key === 'company' ? vendor.companyName :
+                    column.key === 'contact' ? vendor.contactPersonName :
+                    column.key === 'email' ? vendor.emailId :
+                    column.key === 'mobile' ? vendor.mobileNumber :
+                    column.key === 'gst' ? vendor.gstNumber :
+                    column.key === 'billing' ? vendor.billingAddress :
+                    column.key === 'shipping' ? vendor.shippingAddress : '';
+                  return (
+                    <td key={`${vendor._id}-${column.key}`} style={cellStyle(column.key, column.key === 'mobile' ? 'center' : 'left')}>
+                      <span style={{ fontWeight: 400 }}>{value || '-'}</span>
+                    </td>
+                  );
+                })}
                 <td style={cellStyle('actions', 'center')}>
                   <button type="button" style={shell.iconBtn} onClick={() => openEdit(vendor)}><Pencil size={14} /></button>
                   <button type="button" style={shell.iconBtn} onClick={() => deleteVendor(vendor._id)}><Trash2 size={14} /></button>
@@ -420,7 +489,7 @@ export default function VendorDashboard() {
               </tr>
             ))}
             {vendors.length === 0 ? (
-              <tr><td style={shell.td} colSpan={8}>No vendors found.</td></tr>
+              <tr><td style={shell.td} colSpan={visibleVendorColumns.length + 1}>No vendors found.</td></tr>
             ) : null}
           </tbody>
         </table>
