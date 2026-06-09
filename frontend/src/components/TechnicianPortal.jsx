@@ -979,6 +979,8 @@ export default function TechnicianPortal() {
 
   const openJob = (job) => {
     if (isCompletedJob(job)) {
+      setActiveJob(null);
+      setPunchInTime(null);
       openJobPdfPreview(job);
       return;
     }

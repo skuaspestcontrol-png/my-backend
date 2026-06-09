@@ -453,6 +453,7 @@ export default function ScheduleJob() {
     if (!selectedContract) return [];
     const contractIdText = String(selectedContract._id || '').trim();
     const scheduleJobState = new Map();
+    const scheduleJobByKey = new Map();
     (Array.isArray(jobs) ? jobs : []).forEach((job) => {
       const scheduleKey = String(job?.scheduleKey || '').trim();
       if (!scheduleKey) return;
@@ -471,6 +472,13 @@ export default function ScheduleJob() {
         current.hasAssignment = true;
       }
       scheduleJobState.set(scheduleKey, current);
+
+      const existingJob = scheduleJobByKey.get(scheduleKey);
+      const existingTs = new Date(existingJob?.createdAt || existingJob?.updatedAt || 0).getTime();
+      const nextTs = new Date(job?.createdAt || job?.updatedAt || 0).getTime();
+      if (!existingJob || nextTs >= existingTs || status === 'completed') {
+        scheduleJobByKey.set(scheduleKey, job);
+      }
     });
     const schedules = Array.isArray(selectedContract.serviceSchedules) ? selectedContract.serviceSchedules : [];
     const itemById = new Map(
@@ -493,6 +501,7 @@ export default function ScheduleJob() {
         : jobState?.hasAssignment
           ? 'Assigned'
           : status;
+      const relatedJob = scheduleJobByKey.get(key) || null;
       return {
         key,
         service: schedule.itemName || item.itemName || item.name || 'Service',
@@ -501,6 +510,7 @@ export default function ScheduleJob() {
         window: schedule.serviceTime || selectedContract.serviceScheduleDefaultTime || '',
         site: [selectedCustomer?.billingArea || selectedCustomer?.area, selectedCustomer?.billingState || selectedCustomer?.state].filter(Boolean).join(', '),
         status: resolvedStatus,
+        relatedJobId: String(relatedJob?._id || '').trim(),
         raw: schedule
       };
     });
@@ -635,7 +645,7 @@ export default function ScheduleJob() {
   };
 
   const openJobPdf = (job) => {
-    const jobId = String(job?._id || '').trim();
+    const jobId = String(job?.relatedJobId || job?._id || '').trim();
     if (!jobId) return;
     window.open(`${API_BASE_URL}/api/service-visits/${encodeURIComponent(jobId)}/job-card-pdf`, '_blank', 'noopener,noreferrer');
   };
@@ -943,7 +953,8 @@ export default function ScheduleJob() {
                           cursor: 'pointer',
                           padding: '0 10px'
                         }}
-                        onClick={() => openJobPdf(row.raw)}
+                        onClick={() => openJobPdf(row)}
+                        disabled={!row.relatedJobId}
                       >
                         PDF
                       </button>
