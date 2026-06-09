@@ -63,9 +63,10 @@ export const parsePackSizePerBottle = (value) => {
   };
 };
 
-export const computeStockFromPackSize = (packSizePerBottle, bottleCount) => {
+export const computeStockFromPackSize = (packSizePerBottle, bottleCount, itemUnit = '') => {
   const parsed = parsePackSizePerBottle(packSizePerBottle);
   const bottles = Number(bottleCount || 0);
+  const normalizedItemUnit = String(itemUnit || '').trim().toLowerCase();
   if (!parsed.valid || parsed.quantity <= 0 || bottles <= 0) {
     return {
       value: 0,
@@ -80,7 +81,8 @@ export const computeStockFromPackSize = (packSizePerBottle, bottleCount) => {
 
   let value = parsed.quantity * bottles;
   let unit = parsed.unit;
-  if (unit === 'ml') {
+  const shouldConvertMl = unit === 'ml' || (!unit && ['ml', 'litre', 'liter'].includes(normalizedItemUnit));
+  if (shouldConvertMl) {
     value /= 1000;
     unit = 'litre';
   }
@@ -101,7 +103,7 @@ export const computeStockFromPackSize = (packSizePerBottle, bottleCount) => {
 
 export const formatCurrentStockDisplay = (row = {}) => {
   if (row.currentStockDisplay) return String(row.currentStockDisplay);
-  const stockMeta = computeStockFromPackSize(row.packSizePerBottle || row.pack_size_per_bottle, row.noOfBottles || row.no_of_bottles);
+  const stockMeta = computeStockFromPackSize(row.packSizePerBottle || row.pack_size_per_bottle, row.noOfBottles || row.no_of_bottles, row.unit || row.itemUnit || row.item_unit);
   if (stockMeta.value > 0 && stockMeta.unitLabel) {
     return `${formatStockNumber(stockMeta.value)} ${stockMeta.unitLabel}`;
   }
