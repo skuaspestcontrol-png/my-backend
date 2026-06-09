@@ -5,7 +5,9 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 export const stockCategories = [
   'Chemical',
   'Gel / Bait',
-  'Rodent Control',
+  'Glue Pad Traps-Big',
+  'Glue Pad Traps-Small',
+  'Roda Boxes',
   'Equipment',
   'PPE',
   'Consumable',

@@ -4,7 +4,7 @@ const { query: dbQuery, getConnection } = require('../lib/db');
 
 const router = express.Router();
 
-const CATEGORIES = ['Chemical', 'Gel / Bait', 'Rodent Control', 'Equipment', 'PPE', 'Consumable', 'Other'];
+const CATEGORIES = ['Chemical', 'Gel / Bait', 'Glue Pad Traps-Big', 'Glue Pad Traps-Small', 'Roda Boxes', 'Equipment', 'PPE', 'Consumable', 'Other'];
 const UNITS = ['ml', 'litre', 'gram', 'kg', 'tube', 'piece', 'box', 'packet', 'bottle', 'can'];
 const EXPIRY_ALERT_DAYS = 30;
 const DEFAULT_LIMIT = 1000;
@@ -183,6 +183,7 @@ const ensureSchema = async () => {
   if (purchaseColumns.has('product_id') && purchaseColumns.has('item_id')) {
     await dbQuery('UPDATE stock_purchases SET item_id = COALESCE(item_id, product_id) WHERE item_id IS NULL AND product_id IS NOT NULL');
   }
+  await dbQuery("UPDATE stock_items SET category = 'Glue Pad Traps-Big' WHERE category = 'Rodent Control'");
   await dbQuery("UPDATE stock_items SET unit = 'piece' WHERE LOWER(unit) = 'pcs'");
 };
 
