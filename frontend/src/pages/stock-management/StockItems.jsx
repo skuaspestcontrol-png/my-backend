@@ -43,11 +43,11 @@ const actionIconButtonStyle = {
   border: '1px solid #d1d5db',
   background: '#fff',
   color: '#334155',
-  borderRadius: '10px',
-  width: '30px',
-  height: '28px',
-  minWidth: '30px',
-  minHeight: '28px',
+  borderRadius: '12px',
+  width: '34px',
+  height: '34px',
+  minWidth: '34px',
+  minHeight: '34px',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -373,13 +373,13 @@ export default function StockItems() {
                         </button>
                         <button
                           type="button"
-                          style={{ ...actionIconButtonStyle, marginRight: 0, color: '#dc2626' }}
+                          style={{ ...actionIconButtonStyle, marginRight: 0 }}
                           onClick={() => handleDelete(row.id)}
                           disabled={saving}
                           title="Delete item"
                           aria-label="Delete item"
                         >
-                          <Trash2 size={14} strokeWidth={2.25} />
+                          <Trash2 size={15} strokeWidth={2.25} />
                         </button>
                       </div>
                     </td>
