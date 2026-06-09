@@ -90,7 +90,7 @@ const shell = {
   table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
   th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   td: { padding: '8px 6px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '34px', height: '34px', minWidth: '34px', minHeight: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '8px' },
+  iconBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '30px', height: '28px', minWidth: '30px', minHeight: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '4px' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
   modalHeader: { minHeight: '64px', padding: '16px 22px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
@@ -125,7 +125,7 @@ const vendorColumnsMeta = [
   { key: 'billing', label: 'Billing Address' },
   { key: 'shipping', label: 'Shipping Address' }
 ];
-const vendorWidths = { company: 120, contact: 110, email: 130, mobile: 90, gst: 120, billing: 130, shipping: 130, actions: 72 };
+const vendorWidths = { company: 120, contact: 110, email: 130, mobile: 90, gst: 120, billing: 130, shipping: 130, actions: 100 };
 const vendorBounds = {
   company: { min: 100, max: 160 },
   contact: { min: 90, max: 150 },
@@ -134,7 +134,7 @@ const vendorBounds = {
   gst: { min: 100, max: 150 },
   billing: { min: 110, max: 170 },
   shipping: { min: 110, max: 170 },
-  actions: { min: 68, max: 84 }
+  actions: { min: 92, max: 120 }
 };
 
 const toTenDigitNumber = normalizeIndianMobileNumber;
@@ -494,8 +494,8 @@ export default function VendorDashboard() {
                   );
                 })}
                 <td style={cellStyle('actions', 'center')}>
-                  <button type="button" style={shell.iconBtn} onClick={() => openEdit(vendor)}><Pencil size={14} /></button>
-                  <button type="button" style={shell.iconBtn} onClick={() => deleteVendor(vendor._id)}><Trash2 size={14} /></button>
+                  <button type="button" style={shell.iconBtn} onClick={() => openEdit(vendor)}><Pencil size={13} /></button>
+                  <button type="button" style={{ ...shell.iconBtn, marginRight: 0 }} onClick={() => deleteVendor(vendor._id)}><Trash2 size={13} /></button>
                 </td>
               </tr>
             ))}
