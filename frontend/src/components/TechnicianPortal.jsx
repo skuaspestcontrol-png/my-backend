@@ -18,6 +18,7 @@ import {
 import PdfPreviewModal from './PdfPreviewModal';
 import { useLocation, useParams } from 'react-router-dom';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
+import { getPortalUserName } from '../utils/portalAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const TECHNICIAN_PORTAL_CACHE_KEY = 'skuasmaster-technician-portal-cache-v1';
@@ -660,7 +661,7 @@ export default function TechnicianPortal() {
   const [customerPage, setCustomerPage] = useState(1);
   const [expandedCustomerKey, setExpandedCustomerKey] = useState('');
   const [completionCard, setCompletionCard] = useState(null);
-  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', shareContext: null });
   const [activeJob, setActiveJob] = useState(null);
   const [wizardStep, setWizardStep] = useState('photos');
   const [jobWizard, setJobWizard] = useState(() => buildWizardDraft({}));
@@ -1001,8 +1002,76 @@ export default function TechnicianPortal() {
       title: `Job Card - ${jobNumber}`,
       pdfUrl,
       downloadFileName: `${jobNumber.replace(/[^\w.-]+/g, '_')}.pdf`,
-      publicShareUrl: pdfUrl
+      publicShareUrl: pdfUrl,
+      shareContext: {
+        jobNumber,
+        customerName: String(job.customerName || '-').trim() || '-',
+        customerEmail: String(job.customerEmail || job.emailId || job.email || job.customer_email || '').trim(),
+        customerPhone: String(job.mobileNumber || job.mobile || job.whatsappNumber || '').trim(),
+        serviceType: String(job.serviceName || job.serviceInstructions || '').trim(),
+        address: String(formatAddress(job) || '').trim(),
+        jobDate: String(job.scheduledDate || '').trim(),
+        jobTime: String(job.scheduledTime || '').trim(),
+        technicianName: String(job.technicianName || '').trim(),
+        pdfUrl
+      }
     });
+  };
+
+  const shareJobCardByEmail = async () => {
+    const context = pdfPreview.shareContext || {};
+    const defaultEmail = String(context.customerEmail || '').trim();
+    const recipientEmail = String(window.prompt('Enter recipient email', defaultEmail) || '').trim();
+    if (!recipientEmail) return;
+
+    const jobNumber = String(context.jobNumber || pdfPreview.title.replace(/^Job Card -\s*/i, '') || 'Job').trim();
+    const customerName = String(context.customerName || 'Customer').trim() || 'Customer';
+    const shareUrl = String(pdfPreview.publicShareUrl || pdfPreview.pdfUrl || '').trim();
+    const subject = `Job Card - ${jobNumber} from SKUAS Pest Control`;
+    const body = `
+      <div style="font-family:Arial,sans-serif;color:#111827;font-size:14px;line-height:1.5">
+        <p>Dear ${customerName},</p>
+        <p>Please find attached your service job card for <strong>${jobNumber}</strong>.</p>
+        <p>
+          ${context.serviceType ? `<strong>Service:</strong> ${context.serviceType}<br/>` : ''}
+          ${context.jobDate ? `<strong>Date:</strong> ${context.jobDate}<br/>` : ''}
+          ${context.jobTime ? `<strong>Time:</strong> ${context.jobTime}<br/>` : ''}
+          ${context.address ? `<strong>Address:</strong> ${context.address}<br/>` : ''}
+        </p>
+        ${shareUrl ? `<p>PDF link: <a href="${shareUrl}" target="_blank" rel="noreferrer">${shareUrl}</a></p>` : ''}
+        <p>Regards,<br/>SKUAS Pest Control</p>
+      </div>
+    `;
+
+    try {
+      await axios.post(`${API_BASE_URL}/api/email/send`, {
+        moduleType: 'job',
+        moduleName: 'Job Card',
+        templateType: 'custom_email',
+        recipientEmail,
+        recipientName: customerName,
+        recipientType: 'Customer',
+        sentByUser: getPortalUserName() || 'User',
+        subject,
+        body,
+        attachmentUrl: shareUrl,
+        attachmentName: `${jobNumber.replace(/[^\w.-]+/g, '_') || 'job-card'}.pdf`,
+        contextData: {
+          customer_name: customerName,
+          customer_email: recipientEmail,
+          customer_phone: context.customerPhone || '',
+          service_type: context.serviceType || 'Service Job Card',
+          address: context.address || '',
+          job_date: context.jobDate || '',
+          job_time: context.jobTime || '',
+          company_name: 'SKUAS Pest Control'
+        }
+      });
+      window.alert('Job card email sent successfully.');
+    } catch (error) {
+      console.error('Failed to send job card email', error);
+      window.alert(error?.response?.data?.error || 'Could not send job card email.');
+    }
   };
 
   const handlePunchIn = async () => {
@@ -2149,7 +2218,8 @@ export default function TechnicianPortal() {
         title={pdfPreview.title}
         pdfUrl={pdfPreview.pdfUrl}
         downloadFileName={pdfPreview.downloadFileName}
-        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', shareContext: null })}
+        onShareEmail={shareJobCardByEmail}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
     </section>
