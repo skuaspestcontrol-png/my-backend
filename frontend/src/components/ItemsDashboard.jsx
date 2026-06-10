@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Settings, X } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 
@@ -256,9 +256,9 @@ const shell = {
   modal: {
     background: '#fff',
     width: 'min(100%, 760px)',
-    borderRadius: '24px',
+    borderRadius: '28px',
     border: '1px solid var(--color-border)',
-    boxShadow: 'var(--shadow)',
+    boxShadow: '0 24px 60px rgba(15, 23, 42, 0.18)',
     height: 'min(92vh, calc(100dvh - 24px))',
     maxHeight: 'min(92vh, calc(100dvh - 24px))',
     overflow: 'hidden',
@@ -268,35 +268,36 @@ const shell = {
   },
   modalHeader: {
     flexShrink: 0,
-    padding: '16px 20px',
-    borderBottom: '1px solid var(--brand-border-color)',
-    fontSize: '18px',
+    padding: '9px 14px',
+    borderBottom: '1px solid rgba(255,255,255,0.10)',
+    fontSize: '16px',
     fontWeight: 800,
     color: '#fff',
-    background: 'var(--color-primary)',
+    background: 'linear-gradient(180deg, rgba(12, 12, 12, 0.98) 0%, rgba(4, 4, 4, 1) 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: '10px'
+    gap: '10px',
+    minHeight: '52px'
   },
   modalHeaderTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
   modalCloseButton: {
     border: 'none',
     background: 'transparent',
     color: '#fff',
-    width: '32px',
-    height: '32px',
-    borderRadius: '8px',
+    width: '30px',
+    height: '30px',
+    borderRadius: '999px',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer'
   },
   formContent: {
-    padding: '10px 12px 12px',
+    padding: '8px 10px 8px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
+    gap: '5px',
     flex: '1 1 auto',
     overflowX: 'hidden',
     overflowY: 'auto',
@@ -305,19 +306,19 @@ const shell = {
     WebkitOverflowScrolling: 'touch',
     overscrollBehavior: 'contain'
   },
-  topGrid: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'center' },
-  typeRadios: { display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#111827' },
-  sectionSplit: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '12px' },
-  sectionTitle: { margin: 0, fontSize: '18px', fontWeight: 600, color: '#111827' },
+  topGrid: { display: 'grid', gridTemplateColumns: '108px minmax(0, 1fr)', columnGap: '7px', rowGap: '4px', alignItems: 'center' },
+  typeRadios: { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#111827' },
+  sectionSplit: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '8px' },
+  sectionTitle: { margin: 0, fontSize: '16px', fontWeight: 600, color: '#111827' },
   checkLabel: { display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px' },
-  sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
-  sectionFields: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'center' },
+  sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' },
+  sectionFields: { display: 'grid', gridTemplateColumns: '108px minmax(0, 1fr)', columnGap: '7px', rowGap: '4px', alignItems: 'center' },
   label: { fontSize: '12px', color: '#111827' },
   requiredLabel: { color: '#dc2626' },
   input: {
     border: '1px solid var(--color-border)',
     borderRadius: '8px',
-    padding: '6px 8px',
+    padding: '4px 7px',
     fontSize: '12px',
     outline: 'none',
     width: '100%'
@@ -325,28 +326,28 @@ const shell = {
   textArea: {
     border: '1px solid var(--color-border)',
     borderRadius: '8px',
-    padding: '6px 8px',
+    padding: '4px 7px',
     fontSize: '12px',
     outline: 'none',
     width: '100%',
-    minHeight: '58px',
+    minHeight: '40px',
     resize: 'vertical'
   },
-  amountRow: { display: 'grid', gridTemplateColumns: '60px 1fr', gap: '0' },
+  amountRow: { display: 'grid', gridTemplateColumns: '46px 1fr', gap: '0' },
   currencyTag: {
     border: '1px solid var(--color-border)',
     borderRight: 'none',
     borderRadius: '8px 0 0 8px',
-    padding: '8px 10px',
-    fontSize: '13px',
+    padding: '4px 8px',
+    fontSize: '12px',
     color: '#334155',
     background: '#f8fafc'
   },
   amountInput: {
     border: '1px solid #D1D5DB',
     borderRadius: '0 8px 8px 0',
-    padding: '8px 10px',
-    fontSize: '13px',
+    padding: '4px 8px',
+    fontSize: '12px',
     outline: 'none',
     width: '100%'
   },
@@ -360,32 +361,34 @@ const shell = {
   },
   modalFooter: {
     flexShrink: 0,
-    padding: '10px 12px',
-    borderTop: '1px solid var(--color-border)',
+    padding: '8px 10px',
+    borderTop: '1px solid rgba(15, 23, 42, 0.08)',
     display: 'flex',
     justifyContent: 'flex-end',
     gap: '8px',
-    background: '#fff'
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,1) 100%)'
   },
   cancelButton: {
     border: '1px solid #D1D5DB',
     background: '#fff',
     color: '#334155',
-    borderRadius: '8px',
-    padding: '8px 12px',
+    borderRadius: '9px',
+    padding: '6px 12px',
     fontSize: '12px',
     fontWeight: 700,
-    cursor: 'pointer'
+    cursor: 'pointer',
+    boxShadow: '0 1px 1px rgba(15, 23, 42, 0.03)'
   },
   saveButton: {
     border: 'none',
-    background: 'var(--color-primary)',
+    background: 'linear-gradient(180deg, rgba(12, 12, 12, 0.98) 0%, rgba(4, 4, 4, 1) 100%)',
     color: '#fff',
-    borderRadius: '8px',
-    padding: '8px 12px',
+    borderRadius: '9px',
+    padding: '6px 12px',
     fontSize: '12px',
     fontWeight: 700,
-    cursor: 'pointer'
+    cursor: 'pointer',
+    boxShadow: '0 8px 18px rgba(15, 23, 42, 0.16)'
   },
   pagination: {
     padding: '9px 12px',
@@ -1042,11 +1045,8 @@ export default function ItemsDashboard() {
                 </select>
 
                 <label style={shell.label}>SAC</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 36px', gap: '8px' }}>
+                <div style={{ display: 'block' }}>
                   <input style={shell.input} value={form.sac} onChange={(event) => updateForm('sac', event.target.value)} />
-                  <button type="button" style={{ ...shell.buttonGhost, width: '36px', height: '36px' }} aria-label="Find SAC">
-                    <Search size={16} color="var(--color-primary)" />
-                  </button>
                 </div>
               </div>
 
