@@ -2338,7 +2338,6 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   pushField('Service End Time', serviceEnd);
   pushField('Customer Name', job.customerName);
   pushField('Address', joinPdfAddress(job.shippingAddress, job.serviceAddress, job.premiseAddress, job.address, job.areaName, job.city, job.state, job.pincode), 'full');
-  pushField('Mobile Number', job.mobileNumber || job.mobile || job.phone);
   pushField('Service Name', serviceName);
   pushField('Contract Number', job.contractNumber || job.invoiceNumber || job.contractId || job.invoiceId);
   pushField('Contract', contractRange);
@@ -2395,14 +2394,13 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     y = renderCardPair(y, [leftItem, rightItem]);
   }
 
-  if (job.customerObservation || job.customer_observation || job.technicianRemarks || job.reviewRemarks || job.remarks) {
+  if (job.technicianRemarks || job.reviewRemarks || job.remarks) {
     y += 4;
     y = renderSectionTitle(y, 'Observations & Remarks');
-    const obsCards = [
-      ['Customer Complaint / Observation', job.customerObservation || job.customer_observation || '-'],
-      ['Technician Remarks', job.technicianRemarks || job.reviewRemarks || job.remarks || '-']
-    ];
-    y = renderCardPair(y, obsCards.map(([label, value]) => ({ label, value })));
+    y = renderFullCard(y, {
+      label: 'Technician Remarks',
+      value: job.technicianRemarks || job.reviewRemarks || job.remarks || '-'
+    }, 56);
   }
 
   if (rodentService) {

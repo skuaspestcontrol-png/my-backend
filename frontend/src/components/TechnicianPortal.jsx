@@ -104,6 +104,7 @@ const DEFAULT_CHECKLIST_ITEMS = [
   'Before / during / after photos uploaded',
   'Customer signature taken'
 ];
+const PEST_INFESTATION_LEVEL_OPTIONS = ['Low', 'Medium', 'High', 'Severe'];
 
 const createDraftId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 
@@ -175,6 +176,7 @@ const buildWizardDraft = (job = {}) => ({
   afterPhotos: normalizePhotoArray(job.afterPhotos, job.afterPhoto),
   chemicalsUsed: normalizeChemicals(job.chemicalsUsed),
   checklistItems: normalizeChecklist(job.checklistItems),
+  infestationLevel: String(job.infestationLevel || job.infestation_level || '').trim(),
   reviewRemarks: String(job.reviewRemarks || job.remarks || '').trim()
 });
 
@@ -949,12 +951,14 @@ export default function TechnicianPortal() {
       afterPhotos: draft.afterPhotos,
       chemicalsUsed: draft.chemicalsUsed,
       checklistItems: draft.checklistItems,
+      infestationLevel: draft.infestationLevel,
       reviewRemarks: draft.reviewRemarks
     });
     return {
       ...nextDraft,
       beforePhoto: nextDraft.beforePhotos[0] || '',
       afterPhoto: nextDraft.afterPhotos[0] || '',
+      infestationLevel: nextDraft.infestationLevel || '',
       remarks: nextDraft.reviewRemarks || ''
     };
   }, [jobWizard]);
@@ -1103,6 +1107,10 @@ export default function TechnicianPortal() {
     if (!activeJob || isCompleting) return;
     setActionStatus('');
     const normalizedDraft = normalizeDraftForSave(jobWizard);
+    if (!normalizedDraft.infestationLevel) {
+      window.alert('Pest infestation level is required before completing the job.');
+      return;
+    }
     const customerSignaturePadReady = customerSigCanvas.current && typeof customerSigCanvas.current.isEmpty === 'function' && typeof customerSigCanvas.current.getTrimmedCanvas === 'function';
     const technicianSignaturePadReady = technicianSigCanvas.current && typeof technicianSigCanvas.current.isEmpty === 'function' && typeof technicianSigCanvas.current.getTrimmedCanvas === 'function';
     const customerSig = customerSignaturePadReady && !customerSigCanvas.current.isEmpty()
@@ -1143,6 +1151,7 @@ export default function TechnicianPortal() {
       completePayload.append('afterPhotos', JSON.stringify(normalizedDraft.afterPhotos || []));
       completePayload.append('chemicalsUsed', JSON.stringify(normalizedDraft.chemicalsUsed || []));
       completePayload.append('checklistItems', JSON.stringify(normalizedDraft.checklistItems || []));
+      completePayload.append('infestationLevel', normalizedDraft.infestationLevel || '');
       completePayload.append('reviewRemarks', normalizedDraft.reviewRemarks || '');
       completePayload.append('remarks', normalizedDraft.reviewRemarks || '');
       completePayload.append('customerSignature', customerSig || '');
@@ -1283,6 +1292,10 @@ export default function TechnicianPortal() {
 
   const handleReviewRemarksChange = (value) => {
     updateWizardDraft((prev) => ({ ...prev, reviewRemarks: value }));
+  };
+
+  const handleInfestationLevelChange = (value) => {
+    updateWizardDraft((prev) => ({ ...prev, infestationLevel: value }));
   };
 
   const openAddCostModal = () => {
@@ -1655,6 +1668,20 @@ export default function TechnicianPortal() {
                 <p style={shell.sectionSub}>Confirm job completion points before submitting.</p>
               </div>
             </div>
+            <div style={{ ...shell.field, marginBottom: '12px' }}>
+              <p style={shell.label}>Pest Infestation Level</p>
+              <select
+                style={shell.textInput}
+                value={wizardDraftView.infestationLevel}
+                onChange={(event) => handleInfestationLevelChange(event.target.value)}
+                required
+              >
+                <option value="">Select level</option>
+                {PEST_INFESTATION_LEVEL_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
             <div style={shell.checkboxList}>
               {wizardDraftView.checklistItems.map((item, index) => (
                 <label key={item.id || index} style={shell.checkboxItem}>
@@ -1740,6 +1767,10 @@ export default function TechnicianPortal() {
               <div style={shell.reviewStat}>
                 <p style={shell.reviewStatLabel}>Checklist</p>
                 <p style={shell.reviewStatValue}>{wizardChecklistDoneCount} of {wizardChecklistTotal} done</p>
+              </div>
+              <div style={shell.reviewStat}>
+                <p style={shell.reviewStatLabel}>Pest Infestation Level</p>
+                <p style={shell.reviewStatValue}>{wizardDraftView.infestationLevel || 'Missing'}</p>
               </div>
               <div style={shell.reviewStat}>
                 <p style={shell.reviewStatLabel}>Customer Signature</p>
