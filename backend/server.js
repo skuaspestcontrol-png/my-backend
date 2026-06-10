@@ -1941,6 +1941,18 @@ const normalizePdfChemicalRows = (rows = []) => (Array.isArray(rows) ? rows : []
 })).filter((row) => row.materialName || row.quantityUsed || row.unit || row.dilutionRatio || row.areaTreated);
 
 const normalizePdfChemicalRowsFromJob = (job = {}) => normalizePdfChemicalRows(parseJobChemicals(job));
+const buildJobPdfTechnicianRemarks = (job = {}) => {
+  const manualRemarks = String(job.technicianRemarks || job.reviewRemarks || job.remarks || '').trim();
+  const checklistRows = Array.isArray(job.checklistItems) ? job.checklistItems : [];
+  const checkedChecklistLabels = checklistRows
+    .filter((item) => Boolean(item?.done || item?.checked))
+    .map((item) => String(item?.label || '').trim())
+    .filter(Boolean);
+
+  if (!checkedChecklistLabels.length) return manualRemarks;
+  const checklistText = checkedChecklistLabels.map((label) => `- ${label}`).join('\n');
+  return manualRemarks ? `${manualRemarks}\n${checklistText}` : checklistText;
+};
 
 const resolveJobServiceNameList = (job = {}) => {
   const raw = [
@@ -2311,6 +2323,7 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   const materialRows = normalizePdfChemicalRows(materialRowsMap.get(String(job._id || '').trim()) || []);
   const resolvedMaterialRows = materialRows.length > 0 ? materialRows : normalizePdfChemicalRowsFromJob(job);
   const rodentService = /rodent/i.test(String(serviceName || ''));
+  const technicianRemarksText = buildJobPdfTechnicianRemarks(job);
   const invoices = await loadInvoicesForContext().catch(() => []);
   const linkedContract = findInvoiceByPdfReference(
     invoices,
@@ -2394,13 +2407,17 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     y = renderCardPair(y, [leftItem, rightItem]);
   }
 
-  if (job.technicianRemarks || job.reviewRemarks || job.remarks) {
+  if (technicianRemarksText) {
     y += 4;
     y = renderSectionTitle(y, 'Observations & Remarks');
+    const remarksHeight = Math.max(
+      56,
+      doc.heightOfString(technicianRemarksText, { width: header.width - 20 }) + 30
+    );
     y = renderFullCard(y, {
       label: 'Technician Remarks',
-      value: job.technicianRemarks || job.reviewRemarks || job.remarks || '-'
-    }, 56);
+      value: technicianRemarksText
+    }, remarksHeight);
   }
 
   if (rodentService) {
