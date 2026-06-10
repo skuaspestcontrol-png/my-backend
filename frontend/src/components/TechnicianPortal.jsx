@@ -683,7 +683,8 @@ export default function TechnicianPortal() {
     notes: '',
     stockItemId: ''
   });
-  const sigCanvas = useRef({});
+  const customerSigCanvas = useRef({});
+  const technicianSigCanvas = useRef({});
   const orphanCleanupNoticeTimerRef = useRef(null);
   const portalDataLoadingRef = useRef(false);
   const beforePhotoInputRef = useRef(null);
@@ -988,8 +989,11 @@ export default function TechnicianPortal() {
     setPunchInTime(job.punchInTime || null);
     setWizardStep('photos');
     setJobWizard(buildWizardDraft(job));
-    if (sigCanvas.current && typeof sigCanvas.current.clear === 'function') {
-      sigCanvas.current.clear();
+    if (customerSigCanvas.current && typeof customerSigCanvas.current.clear === 'function') {
+      customerSigCanvas.current.clear();
+    }
+    if (technicianSigCanvas.current && typeof technicianSigCanvas.current.clear === 'function') {
+      technicianSigCanvas.current.clear();
     }
   };
 
@@ -1099,10 +1103,22 @@ export default function TechnicianPortal() {
     if (!activeJob || isCompleting) return;
     setActionStatus('');
     const normalizedDraft = normalizeDraftForSave(jobWizard);
-    const signaturePadReady = sigCanvas.current && typeof sigCanvas.current.isEmpty === 'function' && typeof sigCanvas.current.getTrimmedCanvas === 'function';
-    const sig = signaturePadReady && !sigCanvas.current.isEmpty()
-      ? sigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
+    const customerSignaturePadReady = customerSigCanvas.current && typeof customerSigCanvas.current.isEmpty === 'function' && typeof customerSigCanvas.current.getTrimmedCanvas === 'function';
+    const technicianSignaturePadReady = technicianSigCanvas.current && typeof technicianSigCanvas.current.isEmpty === 'function' && typeof technicianSigCanvas.current.getTrimmedCanvas === 'function';
+    const customerSig = customerSignaturePadReady && !customerSigCanvas.current.isEmpty()
+      ? customerSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
       : '';
+    const technicianSig = technicianSignaturePadReady && !technicianSigCanvas.current.isEmpty()
+      ? technicianSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
+      : '';
+    if (!customerSig) {
+      window.alert('Customer signature is required before completing the job.');
+      return;
+    }
+    if (!technicianSig) {
+      window.alert('Technician signature is required before completing the job.');
+      return;
+    }
     const resolvedPunchInTime = punchInTime || activeJob.punchInTime || new Date().toLocaleString();
     const completedAt = new Date().toISOString();
     const completionCardNumber = createCompletionCardNumber();
@@ -1129,7 +1145,20 @@ export default function TechnicianPortal() {
       completePayload.append('checklistItems', JSON.stringify(normalizedDraft.checklistItems || []));
       completePayload.append('reviewRemarks', normalizedDraft.reviewRemarks || '');
       completePayload.append('remarks', normalizedDraft.reviewRemarks || '');
-      completePayload.append('customerSignature', sig || '');
+      completePayload.append('customerSignature', customerSig || '');
+      completePayload.append('technicianSignature', technicianSig || '');
+      try {
+        const signatureBlob = await fetch(customerSig).then((response) => response.blob());
+        completePayload.append('customerSignatureFile', signatureBlob, 'customer-signature.jpg');
+      } catch (_error) {
+        // Keep the data URL fallback if blob conversion fails.
+      }
+      try {
+        const technicianSignatureBlob = await fetch(technicianSig).then((response) => response.blob());
+        completePayload.append('technicianSignatureFile', technicianSignatureBlob, 'technician-signature.jpg');
+      } catch (_error) {
+        // Keep the data URL fallback if blob conversion fails.
+      }
       await axios.post(`${API_BASE_URL}/api/jobs/${completedJobId}/complete`, completePayload, { timeout: 30000 });
       setCompletionCard({
         jobId: completedJobId,
@@ -1147,14 +1176,18 @@ export default function TechnicianPortal() {
         technicianMobile: activeJob.technicianMobile || '-',
         beforePhoto: normalizedDraft.beforePhotos[0] || activeJob.beforePhoto || '',
         afterPhoto: normalizedDraft.afterPhotos[0] || activeJob.afterPhoto || '',
-        customerSignature: sig
+        customerSignature: customerSig,
+        technicianSignature: technicianSig
       });
       // Keep the completed row visible so the technician can review the PDF and completion state.
       setJobs((prev) => prev.map((job) => (job._id === completedJobId ? { ...job, ...statusPayload } : job)));
       setActiveJob(null);
       setPunchInTime(null);
-      if (sigCanvas.current && typeof sigCanvas.current.clear === 'function') {
-        sigCanvas.current.clear();
+      if (customerSigCanvas.current && typeof customerSigCanvas.current.clear === 'function') {
+        customerSigCanvas.current.clear();
+      }
+      if (technicianSigCanvas.current && typeof technicianSigCanvas.current.clear === 'function') {
+        technicianSigCanvas.current.clear();
       }
       setActionStatus('Job marked as completed successfully.');
       // Non-blocking background refresh for consistency.
@@ -1643,22 +1676,44 @@ export default function TechnicianPortal() {
             <div style={shell.sectionTitleRow}>
               <div>
                 <p style={shell.sectionTitle}><PenLine size={16} /> Signature</p>
-                <p style={shell.sectionSub}>Capture customer sign-off before completing the job.</p>
+                <p style={shell.sectionSub}>Capture both customer and technician sign-off before completing the job.</p>
               </div>
               <button
                 type="button"
                 style={shell.viewBtn}
-                onClick={() => sigCanvas.current && typeof sigCanvas.current.clear === 'function' && sigCanvas.current.clear()}
+                onClick={() => {
+                  if (customerSigCanvas.current && typeof customerSigCanvas.current.clear === 'function') {
+                    customerSigCanvas.current.clear();
+                  }
+                  if (technicianSigCanvas.current && typeof technicianSigCanvas.current.clear === 'function') {
+                    technicianSigCanvas.current.clear();
+                  }
+                }}
               >
                 Clear
               </button>
             </div>
-            <div style={shell.signatureWrap}>
-              <SignatureCanvas
-                ref={sigCanvas}
-                penColor="black"
-                canvasProps={{ width: signatureWidth, height: 170, style: { borderRadius: '8px', width: '100%', maxWidth: `${signatureWidth}px` } }}
-              />
+            <div style={{ display: 'grid', gap: '12px' }}>
+              <div>
+                <p style={shell.label}>Customer Signature</p>
+                <div style={shell.signatureWrap}>
+                  <SignatureCanvas
+                    ref={customerSigCanvas}
+                    penColor="black"
+                    canvasProps={{ width: signatureWidth, height: 170, style: { borderRadius: '8px', width: '100%', maxWidth: `${signatureWidth}px` } }}
+                  />
+                </div>
+              </div>
+              <div>
+                <p style={shell.label}>Technician Signature</p>
+                <div style={shell.signatureWrap}>
+                  <SignatureCanvas
+                    ref={technicianSigCanvas}
+                    penColor="black"
+                    canvasProps={{ width: signatureWidth, height: 170, style: { borderRadius: '8px', width: '100%', maxWidth: `${signatureWidth}px` } }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -1687,9 +1742,15 @@ export default function TechnicianPortal() {
                 <p style={shell.reviewStatValue}>{wizardChecklistDoneCount} of {wizardChecklistTotal} done</p>
               </div>
               <div style={shell.reviewStat}>
-                <p style={shell.reviewStatLabel}>Signature</p>
+                <p style={shell.reviewStatLabel}>Customer Signature</p>
                 <p style={shell.reviewStatValue}>
-                  {sigCanvas.current && typeof sigCanvas.current.isEmpty === 'function' && !sigCanvas.current.isEmpty() ? 'Captured' : 'Missing'}
+                  {customerSigCanvas.current && typeof customerSigCanvas.current.isEmpty === 'function' && !customerSigCanvas.current.isEmpty() ? 'Captured' : 'Missing'}
+                </p>
+              </div>
+              <div style={shell.reviewStat}>
+                <p style={shell.reviewStatLabel}>Technician Signature</p>
+                <p style={shell.reviewStatValue}>
+                  {technicianSigCanvas.current && typeof technicianSigCanvas.current.isEmpty === 'function' && !technicianSigCanvas.current.isEmpty() ? 'Captured' : 'Missing'}
                 </p>
               </div>
             </div>

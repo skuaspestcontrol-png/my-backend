@@ -1002,7 +1002,9 @@ const employeeDocumentUpload = multer({
 });
 const jobCompletionUpload = upload.fields([
   { name: 'beforePhotoFile', maxCount: 1 },
-  { name: 'afterPhotoFile', maxCount: 1 }
+  { name: 'afterPhotoFile', maxCount: 1 },
+  { name: 'customerSignatureFile', maxCount: 1 },
+  { name: 'technicianSignatureFile', maxCount: 1 }
 ]);
 
 const settingsFile = path.join(dataDir, 'settings.json');
@@ -6587,11 +6589,16 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
   try {
     const targetId = String(req.params.id || '').trim();
     const safeNumericId = /^\d+$/.test(targetId) ? Number(targetId) : null;
-    const signature = String(req.body?.customerSignature || '').trim();
     const uploadedBeforeFile = req.files?.beforePhotoFile?.[0];
     const uploadedAfterFile = req.files?.afterPhotoFile?.[0];
+    const uploadedSignatureFile = req.files?.customerSignatureFile?.[0];
+    const uploadedTechnicianSignatureFile = req.files?.technicianSignatureFile?.[0];
     const uploadedBeforeUrl = uploadedBeforeFile ? `${resolveServerOrigin(req)}/uploads/${uploadedBeforeFile.filename}` : '';
     const uploadedAfterUrl = uploadedAfterFile ? `${resolveServerOrigin(req)}/uploads/${uploadedAfterFile.filename}` : '';
+    const uploadedSignatureUrl = uploadedSignatureFile ? `${resolveServerOrigin(req)}/uploads/${uploadedSignatureFile.filename}` : '';
+    const uploadedTechnicianSignatureUrl = uploadedTechnicianSignatureFile ? `${resolveServerOrigin(req)}/uploads/${uploadedTechnicianSignatureFile.filename}` : '';
+    const signature = uploadedSignatureUrl || String(req.body?.customerSignature || '').trim();
+    const technicianSignature = uploadedTechnicianSignatureUrl || String(req.body?.technicianSignature || '').trim();
     const providedBeforeUrl = String(req.body?.beforePhoto || '').trim();
     const providedAfterUrl = String(req.body?.afterPhoto || '').trim();
     const serviceDateForCard = String(req.body?.serviceDate || req.body?.scheduledDate || req.body?.completionCardGeneratedAt || new Date()).trim();
@@ -6608,7 +6615,7 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
       beforePhoto: uploadedBeforeUrl || providedBeforeUrl || '',
       afterPhoto: uploadedAfterUrl || providedAfterUrl || '',
       customerSignature: signature,
-      technicianSignature: String(req.body?.technicianSignature || '').trim(),
+      technicianSignature,
       jobCardNumber: String(req.body?.jobCardNumber || '').trim(),
       technicianRemarks: String(req.body?.technicianRemarks || req.body?.reviewRemarks || req.body?.remarks || '').trim(),
       customerObservation: String(req.body?.customerObservation || '').trim(),
