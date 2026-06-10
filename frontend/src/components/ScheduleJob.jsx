@@ -708,6 +708,8 @@ export default function ScheduleJob() {
         pincode: premiseAddress?.pincode || selectedCustomer.billingPincode || selectedCustomer.pincode || '',
         contractId: selectedContract._id,
         contractNumber: selectedContract.contractNumber,
+        contractStartDate: selectedContract.startDate || '',
+        contractEndDate: selectedContract.endDate || '',
         priority: 'Normal',
         accessInstructions: '',
         latitude: '',

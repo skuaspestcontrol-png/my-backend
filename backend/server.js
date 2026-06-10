@@ -2309,6 +2309,21 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   const materialRows = normalizePdfChemicalRows(materialRowsMap.get(String(job._id || '').trim()) || []);
   const resolvedMaterialRows = materialRows.length > 0 ? materialRows : normalizePdfChemicalRowsFromJob(job);
   const rodentService = /rodent/i.test(String(serviceName || ''));
+  const invoices = await loadInvoicesForContext().catch(() => []);
+  const linkedContract = findInvoiceByPdfReference(
+    invoices,
+    job.contractId || job.invoiceId || job.contractNumber || job.invoiceNumber || ''
+  ) || null;
+  const linkedContractWindow = linkedContract ? deriveInvoiceContractWindow(linkedContract) : { contractStartDate: '', contractEndDate: '' };
+  const contractStartDate = job.contractStartDate || job.serviceStartDate || linkedContractWindow.contractStartDate || '';
+  const contractEndDate = job.contractEndDate || job.serviceEndDate || linkedContractWindow.contractEndDate || '';
+  const contractRange = contractStartDate && contractEndDate
+    ? `${formatPdfDate(contractStartDate)} to ${formatPdfDate(contractEndDate)}`
+    : contractStartDate
+      ? formatPdfDate(contractStartDate)
+      : contractEndDate
+        ? formatPdfDate(contractEndDate)
+        : '-';
   const signatureBuffer = await loadJobPdfLogoBuffer(job.customerSignature || job.customer_signature || job.customer_signature_url || '');
   const technicianSignatureBuffer = await loadJobPdfLogoBuffer(job.technicianSignature || job.technician_signature || '');
 
@@ -2324,8 +2339,7 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   pushField('Mobile Number', job.mobileNumber || job.mobile || job.phone);
   pushField('Service Name', serviceName);
   pushField('Contract Number', job.contractNumber || job.invoiceNumber || job.contractId || job.invoiceId);
-  pushField('Contract Start Date', formatPdfDate(job.contractStartDate || job.serviceStartDate));
-  pushField('Contract End Date', formatPdfDate(job.contractEndDate || job.serviceEndDate));
+  pushField('Contract', contractRange);
   pushField('Technician Name', technicianName);
   pushField('Pest Infestation Level', job.infestationLevel || job.infestation_level || '-');
 
@@ -6127,17 +6141,41 @@ app.get('/api/jobs', async (req, res) => {
 
 const loadJobsFromMysql = async () => {
   if (!canUseMysql()) return [];
+  const hydrateJobMysqlRow = (row = {}) => {
+    const payload = parseMysqlPayloadObject(row?.payload) || {};
+    const externalId = String(row?.external_id || payload._id || row?.id || '').trim();
+    return {
+      ...payload,
+      ...row,
+      _id: externalId || String(payload._id || '').trim(),
+      status: String(row?.status ?? payload.status ?? '').trim(),
+      beforePhoto: String(row?.before_photo_url ?? payload.beforePhoto ?? '').trim(),
+      afterPhoto: String(row?.after_photo_url ?? payload.afterPhoto ?? '').trim(),
+      customerSignature: String(row?.customer_signature_url ?? row?.customer_signature ?? payload.customerSignature ?? payload.customer_signature ?? payload.customer_signature_url ?? '').trim(),
+      customer_signature: String(row?.customer_signature ?? payload.customer_signature ?? payload.customerSignature ?? '').trim(),
+      customer_signature_url: String(row?.customer_signature_url ?? row?.customer_signature ?? payload.customer_signature_url ?? payload.customerSignature ?? '').trim(),
+      technicianSignature: String(row?.technician_signature ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
+      technician_signature: String(row?.technician_signature ?? payload.technician_signature ?? payload.technicianSignature ?? '').trim(),
+      serviceStartTime: String(row?.service_start_time ?? payload.serviceStartTime ?? payload.service_start_time ?? '').trim(),
+      serviceEndTime: String(row?.service_end_time ?? payload.serviceEndTime ?? payload.service_end_time ?? '').trim(),
+      customerObservation: String(row?.customer_observation ?? payload.customerObservation ?? payload.customer_observation ?? '').trim(),
+      technicianRemarks: String(row?.technician_remarks ?? payload.technicianRemarks ?? payload.technician_remarks ?? payload.reviewRemarks ?? '').trim(),
+      infestationLevel: String(row?.infestation_level ?? payload.infestationLevel ?? payload.infestation_level ?? '').trim(),
+      jobCardNumber: String(row?.job_card_number ?? payload.jobCardNumber ?? payload.job_card_number ?? '').trim()
+    };
+  };
   return withMysqlConnection(async (conn) => {
-    const [rows] = await conn.query('SELECT payload FROM jobs ORDER BY id DESC');
+    const [rows] = await conn.query(`
+      SELECT
+        id, external_id, status, before_photo_url, after_photo_url,
+        customer_signature, customer_signature_url, technician_signature,
+        service_start_time, service_end_time, customer_observation,
+        technician_remarks, infestation_level, job_card_number, payload
+      FROM jobs
+      ORDER BY id DESC
+    `);
     return (Array.isArray(rows) ? rows : [])
-      .map((row) => {
-        const raw = row?.payload;
-        if (!raw) return null;
-        if (typeof raw === 'string') {
-          try { return JSON.parse(raw); } catch { return null; }
-        }
-        return raw;
-      })
+      .map((row) => hydrateJobMysqlRow(row))
       .filter(Boolean);
   });
 };
@@ -6201,17 +6239,41 @@ const loadJobByIdFromMysql = async (jobId) => {
   const targetId = String(jobId || '').trim();
   const safeNumericId = /^\d+$/.test(targetId) ? Number(targetId) : null;
   return withMysqlConnection(async (conn) => {
+    const selectSql = `
+      SELECT
+        id, external_id, status, before_photo_url, after_photo_url,
+        customer_signature, customer_signature_url, technician_signature,
+        service_start_time, service_end_time, customer_observation,
+        technician_remarks, infestation_level, job_card_number, payload
+      FROM jobs
+    `;
     const sql = safeNumericId !== null
-      ? 'SELECT payload FROM jobs WHERE external_id = ? OR id = ? ORDER BY id DESC LIMIT 1'
-      : 'SELECT payload FROM jobs WHERE external_id = ? ORDER BY id DESC LIMIT 1';
+      ? `${selectSql} WHERE external_id = ? OR id = ? ORDER BY id DESC LIMIT 1`
+      : `${selectSql} WHERE external_id = ? ORDER BY id DESC LIMIT 1`;
     const params = safeNumericId !== null ? [targetId, safeNumericId] : [targetId];
     const [rows] = await conn.query(sql, params);
-    const raw = Array.isArray(rows) && rows[0] ? rows[0].payload : null;
-    if (!raw) return null;
-    if (typeof raw === 'string') {
-      try { return JSON.parse(raw); } catch { return null; }
-    }
-    return raw;
+    const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+    if (!row) return null;
+    const payload = parseMysqlPayloadObject(row.payload) || {};
+    return {
+      ...payload,
+      ...row,
+      _id: String(row.external_id || payload._id || row.id || '').trim(),
+      status: String(row.status ?? payload.status ?? '').trim(),
+      beforePhoto: String(row.before_photo_url ?? payload.beforePhoto ?? '').trim(),
+      afterPhoto: String(row.after_photo_url ?? payload.afterPhoto ?? '').trim(),
+      customerSignature: String(row.customer_signature_url ?? row.customer_signature ?? payload.customerSignature ?? payload.customer_signature ?? payload.customer_signature_url ?? '').trim(),
+      customer_signature: String(row.customer_signature ?? payload.customer_signature ?? payload.customerSignature ?? '').trim(),
+      customer_signature_url: String(row.customer_signature_url ?? row.customer_signature ?? payload.customer_signature_url ?? payload.customerSignature ?? '').trim(),
+      technicianSignature: String(row.technician_signature ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
+      technician_signature: String(row.technician_signature ?? payload.technician_signature ?? payload.technicianSignature ?? '').trim(),
+      serviceStartTime: String(row.service_start_time ?? payload.serviceStartTime ?? payload.service_start_time ?? '').trim(),
+      serviceEndTime: String(row.service_end_time ?? payload.serviceEndTime ?? payload.service_end_time ?? '').trim(),
+      customerObservation: String(row.customer_observation ?? payload.customerObservation ?? payload.customer_observation ?? '').trim(),
+      technicianRemarks: String(row.technician_remarks ?? payload.technicianRemarks ?? payload.technician_remarks ?? payload.reviewRemarks ?? '').trim(),
+      infestationLevel: String(row.infestation_level ?? payload.infestationLevel ?? payload.infestation_level ?? '').trim(),
+      jobCardNumber: String(row.job_card_number ?? payload.jobCardNumber ?? payload.job_card_number ?? '').trim()
+    };
   });
 };
 
