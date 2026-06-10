@@ -198,7 +198,7 @@ const scheduleColumnWidths = {
   select: 56,
   service: 220,
   visit: 118,
-  date: 148,
+  date: 220,
   window: 122,
   site: 230,
   status: 128,
@@ -208,7 +208,7 @@ const scheduleColumnBounds = {
   select: { min: 48, max: 72 },
   service: { min: 180, max: 360 },
   visit: { min: 100, max: 180 },
-  date: { min: 120, max: 190 },
+  date: { min: 180, max: 260 },
   window: { min: 110, max: 170 },
   site: { min: 170, max: 320 },
   status: { min: 100, max: 160 },
@@ -935,7 +935,9 @@ export default function ScheduleJob() {
                           ...shell.input,
                           minHeight: '32px',
                           textAlign: 'left',
-                          padding: '0 34px 0 10px'
+                          padding: '0 40px 0 10px',
+                          fontSize: '11px',
+                          fontWeight: 700
                         }}
                       />
                     </td>
