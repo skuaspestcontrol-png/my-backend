@@ -158,7 +158,7 @@ const shell = {
     overflowY: 'hidden',
     background: '#fff',
     border: '1px solid var(--color-border)',
-    borderRadius: '16px',
+    borderRadius: '0',
     backgroundClip: 'padding-box'
   },
   table: { width: '100%', minWidth: '820px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
@@ -167,6 +167,8 @@ const shell = {
     fontSize: '10px',
     fontWeight: 700,
     color: '#6b7280',
+    height: '38px',
+    minHeight: '38px',
     padding: '2px 10px',
     borderBottom: '1px solid var(--color-border)',
     textTransform: 'uppercase',
@@ -176,7 +178,7 @@ const shell = {
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   },
-  headerInner: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minHeight: '22px' },
+  headerInner: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minHeight: '18px' },
   headerLabelButton: {
     border: 'none',
     background: 'transparent',
@@ -193,7 +195,7 @@ const shell = {
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   nameCell: { color: 'var(--color-primary)', fontWeight: 700 },
-  checkboxWrap: { width: '40px', textAlign: 'center', paddingTop: '2px', paddingBottom: '2px' },
+  checkboxWrap: { width: '40px', textAlign: 'center', paddingTop: '0', paddingBottom: '0' },
   checkbox: { width: '15px', height: '15px', accentColor: 'var(--color-primary)' },
   menu: {
     position: 'absolute',
