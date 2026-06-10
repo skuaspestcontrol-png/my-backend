@@ -6759,7 +6759,28 @@ const normalizeItemRecord = (input = {}, fallbackExternalId = '') => {
   };
 };
 
+const stripDeletedItemFields = (item = {}) => {
+  const copy = { ...(item && typeof item === 'object' ? item : {}) };
+  [
+    'sellable',
+    'purchasable',
+    'salesAccount',
+    'purchaseAccount',
+    'preferredVendor',
+    'salesDescription',
+    'purchaseInfoDescription',
+    'purchaseDescription',
+    'purchaseRate',
+    'sellingPrice',
+    'costPrice'
+  ].forEach((key) => {
+    delete copy[key];
+  });
+  return copy;
+};
+
 const upsertItemRow = async (conn, item) => {
+  const payload = stripDeletedItemFields(item);
   await conn.query(
     `INSERT INTO items (
       external_id, name, item_type, about_pest, treatment_method, pests_covered, service_description,
@@ -6813,7 +6834,7 @@ const upsertItemRow = async (conn, item) => {
       Number.isFinite(item.purchaseRate) ? item.purchaseRate : 0,
       item.description,
       Number.isFinite(item.rate) ? item.rate : 0,
-      JSON.stringify(item)
+      JSON.stringify(payload)
     ]
   );
 };
@@ -6828,7 +6849,7 @@ app.get('/api/items', async (req, res) => {
       return Array.isArray(rows) ? rows : [];
     });
     const parsed = (Array.isArray(mysqlRows) ? mysqlRows : [])
-      .map((row) => normalizeItemRecord(parseMysqlJsonPayload(row?.payload) || {}))
+      .map((row) => stripDeletedItemFields(normalizeItemRecord(parseMysqlJsonPayload(row?.payload) || {})))
       .filter((item) => String(item._id || '').trim());
     return res.json(parsed);
   } catch (error) {
@@ -6846,7 +6867,7 @@ app.post('/api/items', async (req, res) => {
     await withMysqlConnection(async (conn) => {
       await upsertItemRow(conn, newItem);
     });
-    return res.json(newItem);
+    return res.json(stripDeletedItemFields(newItem));
   } catch (error) {
     console.error('Failed to create item in MySQL:', error.message);
     return res.status(500).json({ error: 'Failed to create item' });
@@ -6884,7 +6905,7 @@ app.put('/api/items/:id', async (req, res) => {
       await upsertItemRow(conn, merged);
     });
 
-    return res.json(merged);
+    return res.json(stripDeletedItemFields(merged));
   } catch (error) {
     console.error('Failed to update item in MySQL:', error.message);
     return res.status(500).json({ error: 'Failed to update item' });

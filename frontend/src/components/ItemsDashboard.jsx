@@ -29,9 +29,6 @@ const units = [
   { value: 'ml', label: 'ml' },
   { value: 'num', label: 'Number' }
 ];
-const salesAccounts = ['Sales', 'Service Income', 'Other Income'];
-const purchaseAccounts = ['Cost of Goods Sold', 'Purchases', 'Direct Expenses'];
-const preferredVendors = ['No vendor', 'Vendor A', 'Vendor B'];
 const defaultColumnWidths = {
   name: 220,
   description: 360,
@@ -64,15 +61,7 @@ const emptyForm = {
   whatWeDo: '',
   unit: 'pcs',
   sac: '',
-  sellable: true,
-  purchasable: true,
-  sellingPrice: '',
-  salesAccount: 'Sales',
-  salesDescription: '',
-  costPrice: '',
-  purchaseAccount: 'Cost of Goods Sold',
-  purchaseInfoDescription: '',
-  preferredVendor: 'No vendor'
+  rate: ''
 };
 
 const shell = {
@@ -646,16 +635,18 @@ export default function ItemsDashboard() {
           pestsCovered: '',
           serviceDescription: '',
           frequency: '',
-          whatWeDo: '',
-          salesDescription: ''
+          whatWeDo: ''
         };
       }
 
       return {
         ...prev,
         itemType: value,
-        purchaseInfoDescription: '',
-        preferredVendor: 'No vendor'
+        aboutPest: '',
+        pestsCovered: '',
+        serviceDescription: '',
+        frequency: '',
+        whatWeDo: ''
       };
     });
   };
@@ -677,15 +668,7 @@ export default function ItemsDashboard() {
     whatWeDo: item.whatWeDo ?? item.what_we_do ?? item.treatmentMethod ?? '',
     unit: item.unit || 'pcs',
     sac: item.sac || item.hsnSac || '',
-    sellable: item.sellable !== false,
-    purchasable: item.purchasable !== false,
-    sellingPrice: String(item.sellingPrice ?? item.rate ?? ''),
-    salesAccount: item.salesAccount || 'Sales',
-    salesDescription: item.salesDescription ?? item.description ?? '',
-    costPrice: String(item.costPrice ?? item.purchaseRate ?? ''),
-    purchaseAccount: item.purchaseAccount || 'Cost of Goods Sold',
-    purchaseInfoDescription: item.purchaseInfoDescription ?? item.purchaseDescription ?? '',
-    preferredVendor: item.preferredVendor || 'No vendor'
+    rate: String(item.rate ?? item.sellingPrice ?? ''),
   });
 
   const openEditSelected = () => {
@@ -713,7 +696,6 @@ export default function ItemsDashboard() {
     const serviceDescription = isServiceItem ? form.serviceDescription.trim() : '';
     const frequency = isServiceItem ? form.frequency.trim() : '';
     const whatWeDo = isServiceItem ? form.whatWeDo.trim() : '';
-    const salesDescription = form.salesDescription.trim() || frequency || serviceDescription;
 
     const payload = {
       itemType: form.itemType,
@@ -726,19 +708,8 @@ export default function ItemsDashboard() {
       unit: form.unit,
       sac: form.sac.trim(),
       hsnSac: form.sac.trim(),
-      sellable: form.sellable,
-      purchasable: form.purchasable,
-      rate: Number(form.sellingPrice || 0),
-      sellingPrice: Number(form.sellingPrice || 0),
-      salesAccount: form.salesAccount,
-      description: frequency || salesDescription,
-      salesDescription,
-      purchaseRate: Number(form.costPrice || 0),
-      costPrice: Number(form.costPrice || 0),
-      purchaseAccount: form.purchaseAccount,
-      purchaseDescription: form.purchaseInfoDescription.trim(),
-      purchaseInfoDescription: form.purchaseInfoDescription.trim(),
-      preferredVendor: form.preferredVendor
+      rate: Number(form.rate || 0),
+      description: frequency || serviceDescription
     };
 
     try {
@@ -1076,89 +1047,6 @@ export default function ItemsDashboard() {
                   <button type="button" style={{ ...shell.buttonGhost, width: '36px', height: '36px' }} aria-label="Find SAC">
                     <Search size={16} color="var(--color-primary)" />
                   </button>
-                </div>
-              </div>
-
-              <div style={sectionSplitStyle}>
-                <div>
-                  <div style={shell.sectionHeader}>
-                    <h3 style={shell.sectionTitle}>Sales Information</h3>
-                    <label style={shell.checkLabel}>
-                      <input type="checkbox" checked={form.sellable} onChange={(event) => updateForm('sellable', event.target.checked)} />
-                      Sellable
-                    </label>
-                  </div>
-                  <div style={sectionFieldsStyle}>
-                    <label style={{ ...shell.label, ...shell.requiredLabel }}>Selling Price*</label>
-                    <div style={shell.amountRow}>
-                      <span style={shell.currencyTag}>INR</span>
-                      <input
-                        style={shell.amountInput}
-                        type="number"
-                        step="0.01"
-                        value={form.sellingPrice}
-                        onChange={(event) => updateForm('sellingPrice', event.target.value)}
-                      />
-                    </div>
-
-                    <label style={{ ...shell.label, ...shell.requiredLabel }}>Account*</label>
-                    <select style={shell.input} value={form.salesAccount} onChange={(event) => updateForm('salesAccount', event.target.value)}>
-                      {salesAccounts.map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-
-                    <label style={shell.label}>Description</label>
-                    <textarea
-                      style={shell.textArea}
-                      value={form.salesDescription}
-                      onChange={(event) => updateForm('salesDescription', event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div style={shell.sectionHeader}>
-                    <h3 style={shell.sectionTitle}>Purchase Information</h3>
-                    <label style={shell.checkLabel}>
-                      <input type="checkbox" checked={form.purchasable} onChange={(event) => updateForm('purchasable', event.target.checked)} />
-                      Purchasable
-                    </label>
-                  </div>
-                  <div style={sectionFieldsStyle}>
-                    <label style={{ ...shell.label, ...shell.requiredLabel }}>Cost Price*</label>
-                    <div style={shell.amountRow}>
-                      <span style={shell.currencyTag}>INR</span>
-                      <input
-                        style={shell.amountInput}
-                        type="number"
-                        step="0.01"
-                        value={form.costPrice}
-                        onChange={(event) => updateForm('costPrice', event.target.value)}
-                      />
-                    </div>
-
-                    <label style={{ ...shell.label, ...shell.requiredLabel }}>Account*</label>
-                    <select style={shell.input} value={form.purchaseAccount} onChange={(event) => updateForm('purchaseAccount', event.target.value)}>
-                      {purchaseAccounts.map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-
-                    <label style={shell.label}>Description</label>
-                    <textarea
-                      style={shell.textArea}
-                      value={form.purchaseInfoDescription}
-                      onChange={(event) => updateForm('purchaseInfoDescription', event.target.value)}
-                    />
-
-                    <label style={shell.label}>Preferred Vendor</label>
-                    <select style={shell.input} value={form.preferredVendor} onChange={(event) => updateForm('preferredVendor', event.target.value)}>
-                      {preferredVendors.map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
               </div>
 

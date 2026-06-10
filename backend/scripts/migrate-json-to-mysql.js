@@ -80,6 +80,26 @@ const toDate = (v) => {
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 };
 
+const stripDeletedItemFields = (item = {}) => {
+  const copy = { ...(item && typeof item === 'object' ? item : {}) };
+  [
+    'sellable',
+    'purchasable',
+    'salesAccount',
+    'purchaseAccount',
+    'preferredVendor',
+    'salesDescription',
+    'purchaseInfoDescription',
+    'purchaseDescription',
+    'purchaseRate',
+    'sellingPrice',
+    'costPrice'
+  ].forEach((key) => {
+    delete copy[key];
+  });
+  return copy;
+};
+
 const toJson = (v) => JSON.stringify(v || {});
 
 const upsertEmployees = async (conn) => {
@@ -229,7 +249,7 @@ const upsertItems = async (conn) => {
   const rows = readJsonArray('items.json');
   for (const raw of rows) {
     const item = normalizeItem(raw);
-    const payload = {
+    const payload = stripDeletedItemFields({
       ...raw,
       _id: item.externalId,
       itemType: item.itemType,
@@ -250,7 +270,7 @@ const upsertItems = async (conn) => {
       purchaseRate: item.purchaseRate,
       description: item.description,
       rate: item.rate
-    };
+    });
 
     await conn.query(
       `INSERT INTO items (
