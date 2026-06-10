@@ -248,9 +248,10 @@ const shell = {
     inset: 0,
     background: 'rgba(2,6,23,0.45)',
     display: 'grid',
-    placeItems: 'center',
+    placeItems: 'start center',
     zIndex: 3000,
     padding: 'clamp(12px, 3vh, 24px)',
+    paddingTop: '24px',
     overflowY: 'auto',
     backdropFilter: 'blur(12px)',
     WebkitOverflowScrolling: 'touch'
