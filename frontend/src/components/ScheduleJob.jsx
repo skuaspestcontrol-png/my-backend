@@ -198,7 +198,7 @@ const scheduleColumnWidths = {
   select: 56,
   service: 220,
   visit: 118,
-  date: 168,
+  date: 148,
   window: 122,
   site: 230,
   status: 128,
@@ -208,7 +208,7 @@ const scheduleColumnBounds = {
   select: { min: 48, max: 72 },
   service: { min: 180, max: 360 },
   visit: { min: 100, max: 180 },
-  date: { min: 156, max: 190 },
+  date: { min: 140, max: 160 },
   window: { min: 110, max: 170 },
   site: { min: 170, max: 320 },
   status: { min: 100, max: 160 },
@@ -617,7 +617,7 @@ export default function ScheduleJob() {
     resetColumns,
     startResize
   } = useColumnResize({
-    storageKey: 'skuas-table-widths-schedule-job',
+    storageKey: 'skuas-table-widths-schedule-job-v2',
     columns: scheduleColumns,
     defaultColumnWidths: scheduleColumnWidths,
     columnBounds: scheduleColumnBounds,
@@ -633,11 +633,13 @@ export default function ScheduleJob() {
   const tableStyle = { ...shell.table, minWidth: `${Math.max(720, scheduleTableMinWidth)}px`, tableLayout: 'fixed' };
   const headStyle = (key, align = 'left') => {
     const width = getColumnWidth(key) || scheduleColumnWidths[key] || 80;
-    return { ...shell.th, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+    const compactPadding = key === 'date' ? '8px 6px' : shell.th.padding;
+    return { ...shell.th, position: 'relative', width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align, padding: compactPadding };
   };
   const cellStyle = (key, align = 'left') => {
     const width = getColumnWidth(key) || scheduleColumnWidths[key] || 80;
-    return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align };
+    const compactPadding = key === 'date' ? '8px 6px' : shell.td.padding;
+    return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align, padding: compactPadding };
   };
   const techRowStyle = isMobile ? { ...shell.techRow, gridTemplateColumns: '1fr' } : shell.techRow;
   const updateEditableRow = (rowKey, patch) => {
@@ -935,7 +937,7 @@ export default function ScheduleJob() {
                           ...shell.input,
                           minHeight: '32px',
                           textAlign: 'left',
-                          padding: '0 24px 0 8px',
+                          padding: '0 20px 0 8px',
                           fontSize: '11px',
                           fontWeight: 700
                         }}
