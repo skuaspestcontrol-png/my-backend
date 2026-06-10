@@ -469,7 +469,15 @@ const shell = {
   fileInput: { width: '100%', minHeight: '42px', border: '1px solid rgba(159, 23, 77, 0.22)', borderRadius: '10px', background: '#fff', padding: '8px', fontSize: '12px' },
   photoWrap: { display: 'grid', gap: '8px' },
   photoPreview: { width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.22)' },
-  signatureWrap: { border: '1px solid rgba(159, 23, 77, 0.24)', borderRadius: '10px', background: '#fff', overflowX: 'auto', padding: '8px' },
+  signatureWrap: {
+    width: '100%',
+    border: '1px solid rgba(159, 23, 77, 0.24)',
+    borderRadius: '10px',
+    background: '#fff',
+    overflow: 'hidden',
+    padding: '8px',
+    boxSizing: 'border-box'
+  },
   completeBtn: {
     width: '100%',
     border: '1px solid rgba(159, 23, 77, 0.34)',
@@ -1772,7 +1780,7 @@ export default function TechnicianPortal() {
             <div style={{ display: 'grid', gap: '12px' }}>
               <div>
                 <p style={shell.label}>Customer Signature</p>
-                <div style={shell.signatureWrap}>
+                <div style={{ ...shell.signatureWrap, maxWidth: `${signatureWidth + 16}px` }}>
                   <SignatureCanvas
                     ref={customerSigCanvas}
                     penColor="black"
@@ -1782,7 +1790,7 @@ export default function TechnicianPortal() {
               </div>
               <div>
                 <p style={shell.label}>Technician Signature</p>
-                <div style={shell.signatureWrap}>
+                <div style={{ ...shell.signatureWrap, maxWidth: `${signatureWidth + 16}px` }}>
                   <SignatureCanvas
                     ref={technicianSigCanvas}
                     penColor="black"

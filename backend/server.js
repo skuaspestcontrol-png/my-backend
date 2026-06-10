@@ -6600,6 +6600,79 @@ app.put('/api/jobs/:id', async (req, res) => {
   res.json(updatedJob);
 });
 
+app.delete('/api/jobs/:id', async (req, res) => {
+  const targetId = String(req.params.id || '').trim();
+  if (!targetId) return res.status(400).json({ error: 'Job id is required' });
+
+  if (canUseMysql()) {
+    try {
+      const safeNumericId = /^\d+$/.test(targetId) ? Number(targetId) : null;
+      const mysqlJob = await withMysqlConnection(async (conn) => {
+        const sql = safeNumericId !== null
+          ? 'SELECT payload, external_id FROM jobs WHERE external_id = ? OR id = ? ORDER BY id DESC LIMIT 1'
+          : 'SELECT payload, external_id FROM jobs WHERE external_id = ? ORDER BY id DESC LIMIT 1';
+        const params = safeNumericId !== null ? [targetId, safeNumericId] : [targetId];
+        const [rows] = await conn.query(sql, params);
+        const row = Array.isArray(rows) ? rows[0] : null;
+        if (!row?.payload) return null;
+        if (typeof row.payload === 'string') {
+          try { return JSON.parse(row.payload); } catch { return null; }
+        }
+        return row.payload;
+      });
+      if (!mysqlJob || String(mysqlJob?._id || '').trim() === '') {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+      if (String(mysqlJob.status || '').trim().toLowerCase() !== 'completed') {
+        return res.status(409).json({ error: 'Only completed jobs can be deleted from Assign Pest Service.' });
+      }
+
+      await withMysqlConnection(async (conn) => {
+        if (safeNumericId !== null) {
+          await conn.query('DELETE FROM jobs WHERE external_id = ? OR id = ?', [targetId, safeNumericId]);
+        } else {
+          await conn.query('DELETE FROM jobs WHERE external_id = ?', [targetId]);
+        }
+      });
+
+      if (fs.existsSync(jobsFile)) {
+        const jobs = readJsonFile(jobsFile, []);
+        const nextJobs = jobs.filter((job) => String(job?._id || '').trim() !== targetId);
+        if (nextJobs.length !== jobs.length) {
+          fs.writeFileSync(jobsFile, JSON.stringify(nextJobs, null, 2));
+        }
+      }
+
+      invalidateDashboardSummaryCache();
+      return res.json({ success: true, deletedId: targetId, status: 'Scheduled' });
+    } catch (error) {
+      console.error('MySQL job delete failed:', error.message);
+      return res.status(500).json({ error: error.message || 'Failed to delete job' });
+    }
+  }
+
+  const jobs = readJsonFile(jobsFile, []);
+  const jobIndex = jobs.findIndex((job) => String(job?._id || '').trim() === targetId);
+  if (jobIndex === -1) return res.status(404).json({ error: 'Job not found' });
+  if (String(jobs[jobIndex]?.status || '').trim().toLowerCase() !== 'completed') {
+    return res.status(409).json({ error: 'Only completed jobs can be deleted from Assign Pest Service.' });
+  }
+
+  jobs.splice(jobIndex, 1);
+  fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      await conn.query('DELETE FROM jobs WHERE external_id = ?', [targetId]);
+    });
+  } catch (error) {
+    console.error('MySQL mirror delete failed (JSON saved):', error.message);
+  }
+
+  invalidateDashboardSummaryCache();
+  return res.json({ success: true, deletedId: targetId, status: 'Scheduled' });
+});
+
 app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
   try {
     const targetId = String(req.params.id || '').trim();

@@ -76,7 +76,10 @@ const shell = {
   selectedWrap: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
   selectedTag: { display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center', height: '32px', boxSizing: 'border-box', border: '1px solid #D1D5DB', borderRadius: '999px', background: '#f8fafc', color: '#334155', fontSize: '11px', fontWeight: 700, lineHeight: '1', padding: '0 12px' },
   removeTag: { border: 'none', background: 'transparent', color: '#64748b', display: 'inline-flex', padding: 0, cursor: 'pointer' },
-  bottomStatus: { margin: 0, fontSize: '12px', fontWeight: 700 }
+  bottomStatus: { margin: 0, fontSize: '12px', fontWeight: 700 },
+  actionRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' },
+  actionBtn: { minHeight: '28px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#334155', fontSize: '11px', fontWeight: 800, cursor: 'pointer', padding: '0 10px' },
+  deleteBtn: { minHeight: '28px', borderRadius: '8px', border: '1px solid #fecaca', background: '#fff5f5', color: '#b91c1c', fontSize: '11px', fontWeight: 800, cursor: 'pointer', padding: '0 10px' }
 };
 
 const toDateOnly = (value) => {
@@ -193,7 +196,7 @@ const writeScheduleJobCache = (next = {}) => {
   }
 };
 
-const scheduleColumns = ['select', 'service', 'visit', 'date', 'window', 'site', 'status', 'pdf'];
+const scheduleColumns = ['select', 'service', 'visit', 'date', 'window', 'site', 'status', 'pdf', 'action'];
 const scheduleColumnWidths = {
   select: 56,
   service: 220,
@@ -202,7 +205,8 @@ const scheduleColumnWidths = {
   window: 122,
   site: 230,
   status: 128,
-  pdf: 90
+  pdf: 90,
+  action: 170
 };
 const scheduleColumnBounds = {
   select: { min: 48, max: 72 },
@@ -212,7 +216,8 @@ const scheduleColumnBounds = {
   window: { min: 110, max: 170 },
   site: { min: 170, max: 320 },
   status: { min: 100, max: 160 },
-  pdf: { min: 82, max: 120 }
+  pdf: { min: 82, max: 120 },
+  action: { min: 150, max: 220 }
 };
 
 export default function ScheduleJob() {
@@ -230,6 +235,7 @@ export default function ScheduleJob() {
   const [loading, setLoading] = useState(() => !cachedScheduleData);
   const [loadError, setLoadError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRowActionSaving, setIsRowActionSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const loadRequestRef = useRef(null);
@@ -663,6 +669,57 @@ export default function ScheduleJob() {
     });
   };
 
+  const handleEditCompletedJob = async (row) => {
+    if (!row?.relatedJobId || row?.status !== 'Completed' || isRowActionSaving) return;
+    const editableRow = editableServiceRows.find((entry) => entry.key === row.key) || row;
+    const scheduledDate = normalizeDateInputValue(editableRow?.editableDate || row.date || '');
+    const scheduledTime = parseTimeTo24Hour(editableRow?.editableTime || row.window || '', row.window || '');
+    if (!scheduledDate) {
+      window.alert('Service date is required.');
+      return;
+    }
+    if (!scheduledTime) {
+      window.alert('Service time is required.');
+      return;
+    }
+    try {
+      setIsRowActionSaving(true);
+      setSaveError('');
+      await axios.put(`${API_BASE_URL}/api/jobs/${encodeURIComponent(row.relatedJobId)}`, {
+        scheduledDate,
+        scheduledTime,
+        status: 'Completed'
+      });
+      await loadPortalData({ silent: true });
+      triggerDashboardRefresh();
+      window.alert('Completed service updated successfully.');
+    } catch (error) {
+      console.error('Edit completed service failed', error);
+      window.alert(error?.response?.data?.error || error?.message || 'Failed to update completed service.');
+    } finally {
+      setIsRowActionSaving(false);
+    }
+  };
+
+  const handleDeleteCompletedJob = async (row) => {
+    if (!row?.relatedJobId || row?.status !== 'Completed' || isRowActionSaving) return;
+    const okay = window.confirm(`Delete completed service ${row.visit || ''}? This will move it back to Scheduled.`);
+    if (!okay) return;
+    try {
+      setIsRowActionSaving(true);
+      setSaveError('');
+      await axios.delete(`${API_BASE_URL}/api/jobs/${encodeURIComponent(row.relatedJobId)}`);
+      await loadPortalData({ silent: true });
+      triggerDashboardRefresh();
+      window.alert('Completed service removed and marked as Scheduled again.');
+    } catch (error) {
+      console.error('Delete completed service failed', error);
+      window.alert(error?.response?.data?.error || error?.message || 'Failed to delete completed service.');
+    } finally {
+      setIsRowActionSaving(false);
+    }
+  };
+
   const assignNow = async () => {
     const resolvedTechnicians = selectedTechnicians;
     const resolvedRows = selectedRows;
@@ -910,12 +967,13 @@ export default function ScheduleJob() {
                   <th style={headStyle('site')}>Site</th>
                   <th style={headStyle('status', 'center')}>Status</th>
                   <th style={headStyle('pdf', 'center')}>PDF</th>
+                  <th style={headStyle('action', 'center')}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredServiceRows.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ ...shell.td, textAlign: 'center', ...shell.muted }}>
+                    <td colSpan={9} style={{ ...shell.td, textAlign: 'center', ...shell.muted }}>
                       {customerId ? 'No service schedules available for this filter.' : 'Select a customer to begin.'}
                     </td>
                   </tr>
@@ -986,6 +1044,30 @@ export default function ScheduleJob() {
                         >
                           PDF
                         </button>
+                      ) : (
+                        <span style={{ ...shell.muted, fontSize: '11px', fontWeight: 700 }}>-</span>
+                      )}
+                    </td>
+                    <td style={cellStyle('action', 'center')}>
+                      {row.status === 'Completed' && row.relatedJobId ? (
+                        <div style={shell.actionRow}>
+                          <button
+                            type="button"
+                            style={shell.actionBtn}
+                            onClick={() => handleEditCompletedJob(row)}
+                            disabled={isRowActionSaving}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            style={shell.deleteBtn}
+                            onClick={() => handleDeleteCompletedJob(row)}
+                            disabled={isRowActionSaving}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       ) : (
                         <span style={{ ...shell.muted, fontSize: '11px', fontWeight: 700 }}>-</span>
                       )}
