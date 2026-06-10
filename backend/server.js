@@ -6642,6 +6642,9 @@ const handleServiceVisitJobCardPdf = async (req, res) => {
     const job = findJobByPdfReference(allJobs, jobRef)
       || (canUseMysql() ? await loadJobByIdFromMysql(jobRef) : null);
     if (!job) return res.status(404).json({ error: 'Job not found' });
+    if (String(job.status || '').trim().toLowerCase() !== 'completed') {
+      return res.status(409).json({ error: 'Service job card PDF is available only for completed services' });
+    }
 
     const settings = normalizeJobPdfSettings(await readSettingsFromMysql().catch(() => readSettings()), req);
     const pdfBuffer = await buildJobPdfBuffer({ job, settings, req, allJobs });

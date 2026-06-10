@@ -512,6 +512,7 @@ export default function ScheduleJob() {
         window: schedule.serviceTime || selectedContract.serviceScheduleDefaultTime || '',
         site: [selectedCustomer?.billingArea || selectedCustomer?.area, selectedCustomer?.billingState || selectedCustomer?.state].filter(Boolean).join(', '),
         status: resolvedStatus,
+        canViewPdf: resolvedStatus === 'Completed' && Boolean(String(relatedJob?._id || '').trim()),
         relatedJobId: String(relatedJob?._id || '').trim(),
         raw: schedule
       };
@@ -649,6 +650,7 @@ export default function ScheduleJob() {
   };
 
   const openJobPdf = (row) => {
+    if (!row?.canViewPdf) return;
     const jobId = String(row?.relatedJobId || row?._id || '').trim();
     if (!jobId) return;
     const pdfUrl = `${API_BASE_URL}/api/service-visits/${encodeURIComponent(jobId)}/job-card-pdf`;
@@ -963,25 +965,28 @@ export default function ScheduleJob() {
                     <td style={cellStyle('site')}>{row.site || '-'}</td>
                     <td style={cellStyle('status', 'center')}>{row.status}</td>
                     <td style={cellStyle('pdf', 'center')}>
-                      <button
-                        type="button"
-                        style={{
-                          minHeight: '28px',
-                          minWidth: '64px',
-                          borderRadius: '8px',
-                          border: '1px solid #bfdbfe',
-                          background: '#eff6ff',
-                          color: '#1e3a8a',
-                          fontSize: '11px',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          padding: '0 10px'
-                        }}
-                        onClick={() => openJobPdf(row)}
-                        disabled={!row.relatedJobId}
-                      >
-                        PDF
-                      </button>
+                      {row.canViewPdf ? (
+                        <button
+                          type="button"
+                          style={{
+                            minHeight: '28px',
+                            minWidth: '64px',
+                            borderRadius: '8px',
+                            border: '1px solid #bfdbfe',
+                            background: '#eff6ff',
+                            color: '#1e3a8a',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            padding: '0 10px'
+                          }}
+                          onClick={() => openJobPdf(row)}
+                        >
+                          PDF
+                        </button>
+                      ) : (
+                        <span style={{ ...shell.muted, fontSize: '11px', fontWeight: 700 }}>-</span>
+                      )}
                     </td>
                   </tr>
                 ))}
