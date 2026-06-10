@@ -198,7 +198,7 @@ const scheduleColumnWidths = {
   select: 56,
   service: 220,
   visit: 118,
-  date: 138,
+  date: 148,
   window: 122,
   site: 230,
   status: 128,
@@ -931,7 +931,12 @@ export default function ScheduleJob() {
                         type="date"
                         value={editableServiceRows.find((entry) => entry.key === row.key)?.editableDate || ''}
                         onChange={(event) => updateEditableRow(row.key, { editableDate: event.target.value })}
-                        style={{ ...shell.input, minHeight: '32px', textAlign: 'center' }}
+                        style={{
+                          ...shell.input,
+                          minHeight: '32px',
+                          textAlign: 'left',
+                          padding: '0 34px 0 10px'
+                        }}
                       />
                     </td>
                     <td style={cellStyle('window', 'center')}>
