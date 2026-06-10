@@ -865,7 +865,6 @@ export default function TechnicianPortal() {
   }, [customerPage, customerWiseJobs]);
   const isMobile = viewportWidth <= 900;
   const pageStyle = isMobile ? { ...shell.page, maxWidth: '100%', padding: '12px 10px' } : shell.page;
-  const titleStyle = isMobile ? { ...shell.title, fontSize: '24px' } : shell.title;
   const completionGridStyle = isMobile ? { ...shell.completionGrid, gridTemplateColumns: '1fr' } : shell.completionGrid;
   const completionMediaGridStyle = isMobile ? { ...shell.completionMediaGrid, gridTemplateColumns: '1fr' } : shell.completionMediaGrid;
   const customerTableStyle = isMobile
@@ -1648,7 +1647,6 @@ export default function TechnicianPortal() {
     return (
       <section style={pageStyle}>
         <div style={shell.hero}>
-          <h2 style={titleStyle}>Assigned Jobs</h2>
           <p style={shell.subtitle}>
             Track upcoming services, start assigned jobs, capture photos, and close work with customer signature in one themed workspace.
           </p>
@@ -1729,7 +1727,6 @@ export default function TechnicianPortal() {
         ) : null}
 
         <div style={shell.panel}>
-          <h3 style={shell.panelTitle}><ClipboardList size={16} /> Assigned Jobs</h3>
           <p style={shell.panelSub}>Open any job to begin execution workflow.</p>
           {jobs.length === 0 ? (
             <p style={shell.emptyText}>No active assigned jobs right now.</p>
@@ -1804,11 +1801,8 @@ export default function TechnicianPortal() {
                                   <button type="button" style={shell.startSmallBtn} onClick={() => openJob(job)} disabled={isJobActionDisabled(job)}>
                                     {getJobActionLabel(job)}
                                   </button>
-                                  <button type="button" style={shell.pdfBtn} onClick={() => openJobPdfPreview(job)} disabled={isSavingAssignment}>
-                                    PDF
-                                  </button>
                                   <button type="button" style={shell.editBtn} onClick={() => handleReassignJob(job)} disabled={isSavingAssignment}>
-                                    Edit
+                                    Reassign
                                   </button>
                                   <button type="button" style={shell.removeBtn} onClick={() => handleRemoveAssignment(job)} disabled={isSavingAssignment}>
                                     Delete
@@ -1889,16 +1883,8 @@ export default function TechnicianPortal() {
                                             <button type="button" style={mobileActionButtonStyle ? { ...shell.startSmallBtn, ...mobileActionButtonStyle } : shell.startSmallBtn} onClick={() => openJob(job)} disabled={isJobActionDisabled(job)}>
                                               {getJobActionLabel(job)}
                                             </button>
-                                            <button
-                                              type="button"
-                                              style={mobileActionButtonStyle ? { ...shell.pdfBtn, ...mobileActionButtonStyle } : shell.pdfBtn}
-                                              onClick={() => openJobPdfPreview(job)}
-                                              disabled={isSavingAssignment}
-                                            >
-                                              PDF
-                                            </button>
                                             <button type="button" style={mobileActionButtonStyle ? { ...shell.editBtn, ...mobileActionButtonStyle } : shell.editBtn} onClick={() => handleReassignJob(job)} disabled={isSavingAssignment}>
-                                              Edit
+                                              Reassign
                                             </button>
                                             <button type="button" style={mobileActionButtonStyle ? { ...shell.removeBtn, ...mobileActionButtonStyle } : shell.removeBtn} onClick={() => handleRemoveAssignment(job)} disabled={isSavingAssignment}>
                                               Delete
