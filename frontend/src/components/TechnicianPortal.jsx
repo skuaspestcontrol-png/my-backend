@@ -177,6 +177,8 @@ const buildWizardDraft = (job = {}) => ({
   chemicalsUsed: normalizeChemicals(job.chemicalsUsed),
   checklistItems: normalizeChecklist(job.checklistItems),
   infestationLevel: String(job.infestationLevel || job.infestation_level || '').trim(),
+  customerSignature: String(job.customerSignature || job.customer_signature || '').trim(),
+  technicianSignature: String(job.technicianSignature || job.technician_signature || '').trim(),
   reviewRemarks: String(job.reviewRemarks || job.remarks || '').trim()
 });
 
@@ -939,11 +941,46 @@ export default function TechnicianPortal() {
     }
   }, [activeJob, jobs, routeJobId, pdfPreview.open]);
 
+  useEffect(() => {
+    if (wizardStep !== 'signature') return;
+    const customerSignature = String(jobWizard?.customerSignature || '').trim();
+    const technicianSignature = String(jobWizard?.technicianSignature || '').trim();
+
+    const timer = window.setTimeout(() => {
+      if (customerSigCanvas.current && typeof customerSigCanvas.current.fromDataURL === 'function') {
+        customerSigCanvas.current.clear();
+        if (customerSignature) customerSigCanvas.current.fromDataURL(customerSignature);
+      }
+      if (technicianSigCanvas.current && typeof technicianSigCanvas.current.fromDataURL === 'function') {
+        technicianSigCanvas.current.clear();
+        if (technicianSignature) technicianSigCanvas.current.fromDataURL(technicianSignature);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [jobWizard?.customerSignature, jobWizard?.technicianSignature, wizardStep]);
+
   const syncLocalJob = useCallback((nextJob) => {
     if (!nextJob?._id) return;
     setJobs((prev) => prev.map((job) => (String(job._id) === String(nextJob._id) ? { ...job, ...nextJob } : job)));
     setActiveJob((prev) => (prev && String(prev._id) === String(nextJob._id) ? { ...prev, ...nextJob } : prev));
   }, []);
+
+  const captureSignatureDraft = useCallback((draft = jobWizard) => {
+    const customerSignaturePadReady = customerSigCanvas.current && typeof customerSigCanvas.current.isEmpty === 'function' && typeof customerSigCanvas.current.getTrimmedCanvas === 'function';
+    const technicianSignaturePadReady = technicianSigCanvas.current && typeof technicianSigCanvas.current.isEmpty === 'function' && typeof technicianSigCanvas.current.getTrimmedCanvas === 'function';
+    const nextCustomerSignature = customerSignaturePadReady && !customerSigCanvas.current.isEmpty()
+      ? customerSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
+      : String(draft?.customerSignature || '').trim();
+    const nextTechnicianSignature = technicianSignaturePadReady && !technicianSigCanvas.current.isEmpty()
+      ? technicianSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
+      : String(draft?.technicianSignature || '').trim();
+    return normalizeDraftForSave({
+      ...draft,
+      customerSignature: nextCustomerSignature,
+      technicianSignature: nextTechnicianSignature
+    });
+  }, [jobWizard, normalizeDraftForSave]);
 
   const normalizeDraftForSave = useCallback((draft = jobWizard) => {
     const nextDraft = buildWizardDraft({
@@ -952,6 +989,8 @@ export default function TechnicianPortal() {
       chemicalsUsed: draft.chemicalsUsed,
       checklistItems: draft.checklistItems,
       infestationLevel: draft.infestationLevel,
+      customerSignature: draft.customerSignature,
+      technicianSignature: draft.technicianSignature,
       reviewRemarks: draft.reviewRemarks
     });
     return {
@@ -959,6 +998,8 @@ export default function TechnicianPortal() {
       beforePhoto: nextDraft.beforePhotos[0] || '',
       afterPhoto: nextDraft.afterPhotos[0] || '',
       infestationLevel: nextDraft.infestationLevel || '',
+      customerSignature: nextDraft.customerSignature || '',
+      technicianSignature: nextDraft.technicianSignature || '',
       remarks: nextDraft.reviewRemarks || ''
     };
   }, [jobWizard]);
@@ -1106,19 +1147,14 @@ export default function TechnicianPortal() {
   const handlePunchOut = async () => {
     if (!activeJob || isCompleting) return;
     setActionStatus('');
-    const normalizedDraft = normalizeDraftForSave(jobWizard);
+    const normalizedDraft = captureSignatureDraft(jobWizard);
+    setJobWizard(normalizedDraft);
     if (!normalizedDraft.infestationLevel) {
       window.alert('Pest infestation level is required before completing the job.');
       return;
     }
-    const customerSignaturePadReady = customerSigCanvas.current && typeof customerSigCanvas.current.isEmpty === 'function' && typeof customerSigCanvas.current.getTrimmedCanvas === 'function';
-    const technicianSignaturePadReady = technicianSigCanvas.current && typeof technicianSigCanvas.current.isEmpty === 'function' && typeof technicianSigCanvas.current.getTrimmedCanvas === 'function';
-    const customerSig = customerSignaturePadReady && !customerSigCanvas.current.isEmpty()
-      ? customerSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
-      : '';
-    const technicianSig = technicianSignaturePadReady && !technicianSigCanvas.current.isEmpty()
-      ? technicianSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
-      : '';
+    const customerSig = String(normalizedDraft.customerSignature || '').trim();
+    const technicianSig = String(normalizedDraft.technicianSignature || '').trim();
     if (!customerSig) {
       window.alert('Customer signature is required before completing the job.');
       return;
@@ -1244,7 +1280,9 @@ export default function TechnicianPortal() {
 
   const handleWizardStepChange = async (nextStep) => {
     if (!nextStep || nextStep === wizardStep) return;
-    await persistWizardDraft(jobWizard);
+    const nextDraft = captureSignatureDraft(jobWizard);
+    setJobWizard(nextDraft);
+    await persistWizardDraft(nextDraft);
     setWizardStep(nextStep);
   };
 
@@ -1489,12 +1527,16 @@ export default function TechnicianPortal() {
 
   const handleWizardBack = async () => {
     if (wizardStep === 'photos') {
-      await persistWizardDraft(jobWizard);
+      const nextDraft = captureSignatureDraft(jobWizard);
+      setJobWizard(nextDraft);
+      await persistWizardDraft(nextDraft);
       setActiveJob(null);
       return;
     }
     const nextIndex = Math.max(0, wizardStepIndex - 1);
-    await persistWizardDraft(jobWizard);
+    const nextDraft = captureSignatureDraft(jobWizard);
+    setJobWizard(nextDraft);
+    await persistWizardDraft(nextDraft);
     setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
   };
 
@@ -1504,7 +1546,9 @@ export default function TechnicianPortal() {
       return;
     }
     const nextIndex = Math.min(wizardLastStepIndex, wizardStepIndex + 1);
-    await persistWizardDraft(jobWizard);
+    const nextDraft = captureSignatureDraft(jobWizard);
+    setJobWizard(nextDraft);
+    await persistWizardDraft(nextDraft);
     setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
   };
 
@@ -1715,6 +1759,11 @@ export default function TechnicianPortal() {
                   if (technicianSigCanvas.current && typeof technicianSigCanvas.current.clear === 'function') {
                     technicianSigCanvas.current.clear();
                   }
+                  updateWizardDraft((prev) => ({
+                    ...prev,
+                    customerSignature: '',
+                    technicianSignature: ''
+                  }));
                 }}
               >
                 Clear
@@ -1775,13 +1824,13 @@ export default function TechnicianPortal() {
               <div style={shell.reviewStat}>
                 <p style={shell.reviewStatLabel}>Customer Signature</p>
                 <p style={shell.reviewStatValue}>
-                  {customerSigCanvas.current && typeof customerSigCanvas.current.isEmpty === 'function' && !customerSigCanvas.current.isEmpty() ? 'Captured' : 'Missing'}
+                  {wizardDraftView.customerSignature ? 'Captured' : 'Missing'}
                 </p>
               </div>
               <div style={shell.reviewStat}>
                 <p style={shell.reviewStatLabel}>Technician Signature</p>
                 <p style={shell.reviewStatValue}>
-                  {technicianSigCanvas.current && typeof technicianSigCanvas.current.isEmpty === 'function' && !technicianSigCanvas.current.isEmpty() ? 'Captured' : 'Missing'}
+                  {wizardDraftView.technicianSignature ? 'Captured' : 'Missing'}
                 </p>
               </div>
             </div>
