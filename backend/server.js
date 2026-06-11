@@ -2339,6 +2339,25 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
       : contractEndDate
         ? formatPdfDate(contractEndDate)
         : '-';
+  const customerRepresentativeName = pdfValue(
+    job.customerRepresentativeName
+    || job.customer_representative_name
+    || job.contactPersonName
+    || job.contact_person_name
+    || job.customerContactPersonName
+    || job.customerContactPerson
+    || job.customerName
+  );
+  const customerRepresentativeMobile = pdfValue(
+    job.customerRepresentativeMobile
+    || job.customer_representative_mobile
+    || job.contactPersonMobile
+    || job.contact_person_mobile
+    || job.customerContactPersonMobile
+    || job.customerPhone
+    || job.mobileNumber
+    || job.mobile
+  );
   const signatureBuffer = await loadJobPdfLogoBuffer(job.customerSignature || job.customer_signature || job.customer_signature_url || '');
   const technicianSignatureBuffer = await loadJobPdfLogoBuffer(job.technicianSignature || job.technician_signature || '');
 
@@ -2350,6 +2369,8 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   pushField('Service Start Time', serviceStart);
   pushField('Service End Time', serviceEnd);
   pushField('Customer Name', job.customerName);
+  pushField('Customer Representative', customerRepresentativeName);
+  pushField('Representative Mobile', customerRepresentativeMobile);
   pushField('Address', joinPdfAddress(job.shippingAddress, job.serviceAddress, job.premiseAddress, job.address, job.areaName, job.city, job.state, job.pincode), 'full');
   pushField('Service Name', serviceName);
   pushField('Contract Number', job.contractNumber || job.invoiceNumber || job.contractId || job.invoiceId);
@@ -2526,15 +2547,33 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
     const header = renderJobCardHeader(doc, settings, 'CONTRACT SERVICE HISTORY / JOB CARD SUMMARY', { prefix: 'CONTRACT JOB PDF', logLogo: false });
-    const completedJobs = (Array.isArray(jobs) ? jobs : []).filter((job) => String(job?.status || '').trim().toLowerCase() === 'completed');
-    const contractWindow = deriveInvoiceContractWindow(invoice);
-    const uniqueServiceNames = Array.from(new Set(completedJobs.map((job) => String(job.serviceName || job.service_type || job.serviceType || '').trim()).filter(Boolean))).join(', ') || contractWindow.serviceType || '-';
-    const scheduledServices = buildServiceScheduleEntries(invoice);
-    const totalScheduled = scheduledServices.length > 0 ? scheduledServices.length : (Array.isArray(invoice?.items) ? invoice.items.reduce((sum, line) => sum + Math.max(0, Number(line?.totalServices || 0)), 0) : 0);
-    const totalCompleted = completedJobs.length;
-    const pendingServices = Math.max(totalScheduled - totalCompleted, 0);
-    const mobileNumber = String(invoice.mobileNumber || invoice.mobile || invoice.whatsappNumber || '').trim() || (completedJobs[0] ? String(completedJobs[0].mobileNumber || completedJobs[0].mobile || completedJobs[0].phone || '').trim() : '');
-    const address = joinPdfAddress(invoice.shippingAddress, invoice.serviceAddress, invoice.billingAddress, completedJobs[0]?.address, completedJobs[0]?.premiseAddress, completedJobs[0]?.areaName, completedJobs[0]?.city, completedJobs[0]?.state, completedJobs[0]?.pincode);
+  const completedJobs = (Array.isArray(jobs) ? jobs : []).filter((job) => String(job?.status || '').trim().toLowerCase() === 'completed');
+  const contractWindow = deriveInvoiceContractWindow(invoice);
+  const uniqueServiceNames = Array.from(new Set(completedJobs.map((job) => String(job.serviceName || job.service_type || job.serviceType || '').trim()).filter(Boolean))).join(', ') || contractWindow.serviceType || '-';
+  const scheduledServices = buildServiceScheduleEntries(invoice);
+  const totalScheduled = scheduledServices.length > 0 ? scheduledServices.length : (Array.isArray(invoice?.items) ? invoice.items.reduce((sum, line) => sum + Math.max(0, Number(line?.totalServices || 0)), 0) : 0);
+  const totalCompleted = completedJobs.length;
+  const pendingServices = Math.max(totalScheduled - totalCompleted, 0);
+  const mobileNumber = String(invoice.mobileNumber || invoice.mobile || invoice.whatsappNumber || '').trim() || (completedJobs[0] ? String(completedJobs[0].mobileNumber || completedJobs[0].mobile || completedJobs[0].phone || '').trim() : '');
+  const representativeName = String(
+    completedJobs[0]?.customerRepresentativeName
+    || completedJobs[0]?.customer_representative_name
+    || invoice.contactPersonName
+    || invoice.contactPerson
+    || invoice.contact_person_name
+    || invoice.customerName
+    || ''
+  ).trim() || '-';
+  const representativeMobile = String(
+    completedJobs[0]?.customerRepresentativeMobile
+    || completedJobs[0]?.customer_representative_mobile
+    || invoice.contactPersonMobile
+    || invoice.mobileNumber
+    || invoice.mobile
+    || invoice.whatsappNumber
+    || ''
+  ).trim() || '-';
+  const address = joinPdfAddress(invoice.shippingAddress, invoice.serviceAddress, invoice.billingAddress, completedJobs[0]?.address, completedJobs[0]?.premiseAddress, completedJobs[0]?.areaName, completedJobs[0]?.city, completedJobs[0]?.state, completedJobs[0]?.pincode);
     const serviceMaterialMap = await loadServiceMaterialUsageMap(completedJobs.map((job) => job._id));
     const getMaterialsForJob = (job) => {
       const fromTable = serviceMaterialMap.get(String(job._id || '').trim()) || [];
@@ -2575,6 +2614,8 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     const overviewRows = [
       ['Contract Number', invoice.invoiceNumber || invoice.contractNumber || '-'],
       ['Customer Name', invoice.customerName || completedJobs[0]?.customerName || '-'],
+      ['Customer Representative', representativeName],
+      ['Representative Mobile', representativeMobile],
       ['Address', address],
       ['Service Name', uniqueServiceNames],
       ['Contract Start Date', formatPdfDate(contractWindow.contractStartDate || invoice.contractStartDate || invoice.servicePeriodStart)],
