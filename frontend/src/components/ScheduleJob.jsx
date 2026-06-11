@@ -511,17 +511,20 @@ export default function ScheduleJob() {
           ? 'Assigned'
           : status;
       const relatedJob = scheduleJobByKey.get(key) || null;
+      const relatedJobDate = String(relatedJob?.scheduledDate || relatedJob?.serviceDate || schedule.serviceDate || '').trim();
+      const relatedJobTime = String(relatedJob?.scheduledTime || relatedJob?.serviceTime || schedule.serviceTime || selectedContract.serviceScheduleDefaultTime || '').trim();
       return {
         key,
         service: schedule.itemName || item.itemName || item.name || 'Service',
         visit: `#${schedule.serviceNumber || index + 1}`,
-        date: schedule.serviceDate || '',
-        window: schedule.serviceTime || selectedContract.serviceScheduleDefaultTime || '',
+        date: relatedJobDate,
+        window: relatedJobTime,
         site: [selectedCustomer?.billingArea || selectedCustomer?.area, selectedCustomer?.billingState || selectedCustomer?.state].filter(Boolean).join(', '),
         status: resolvedStatus,
         canViewPdf: resolvedStatus === 'Completed' && Boolean(String(relatedJob?._id || '').trim()),
         relatedJobId: String(relatedJob?._id || '').trim(),
-        raw: schedule
+        raw: schedule,
+        relatedJob
       };
     });
   }, [selectedContract, selectedCustomer, jobs]);

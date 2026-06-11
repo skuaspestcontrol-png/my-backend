@@ -470,7 +470,9 @@ const shell = {
   photoWrap: { display: 'grid', gap: '8px' },
   photoPreview: { width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.22)' },
   signatureWrap: {
+    position: 'relative',
     width: '100%',
+    height: '170px',
     border: '1px solid rgba(159, 23, 77, 0.24)',
     borderRadius: '10px',
     background: '#fff',
@@ -928,6 +930,9 @@ export default function TechnicianPortal() {
     }
     : null;
   const detailsGridStyle = isMobile ? { ...shell.detailsGrid, gridTemplateColumns: '1fr' } : shell.detailsGrid;
+  const signatureGridStyle = isMobile
+    ? { display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }
+    : { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' };
   const pagerStyle = isMobile ? { ...shell.pager, flexDirection: 'column', alignItems: 'stretch' } : shell.pager;
   const signatureWidth = isMobile ? Math.max(260, Math.min(360, viewportWidth - 56)) : 520;
   const routeJobId = useMemo(() => {
@@ -1777,22 +1782,22 @@ export default function TechnicianPortal() {
                 Clear
               </button>
             </div>
-            <div style={{ display: 'grid', gap: '12px' }}>
+            <div style={signatureGridStyle}>
               <div>
-                <p style={shell.label}>Customer Signature</p>
-                <div style={{ ...shell.signatureWrap, maxWidth: `${signatureWidth + 16}px` }}>
+                <p style={shell.label}>Technician Signature</p>
+                <div style={{ ...shell.signatureWrap, maxWidth: '100%' }}>
                   <SignatureCanvas
-                    ref={customerSigCanvas}
+                    ref={technicianSigCanvas}
                     penColor="black"
                     canvasProps={{ width: signatureWidth, height: 170, style: { borderRadius: '8px', width: '100%', maxWidth: `${signatureWidth}px` } }}
                   />
                 </div>
               </div>
               <div>
-                <p style={shell.label}>Technician Signature</p>
-                <div style={{ ...shell.signatureWrap, maxWidth: `${signatureWidth + 16}px` }}>
+                <p style={shell.label}>Customer Signature</p>
+                <div style={{ ...shell.signatureWrap, maxWidth: '100%' }}>
                   <SignatureCanvas
-                    ref={technicianSigCanvas}
+                    ref={customerSigCanvas}
                     penColor="black"
                     canvasProps={{ width: signatureWidth, height: 170, style: { borderRadius: '8px', width: '100%', maxWidth: `${signatureWidth}px` } }}
                   />
