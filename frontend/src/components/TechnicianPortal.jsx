@@ -672,6 +672,7 @@ const shell = {
   completionValue: { margin: '2px 0 0 0', fontSize: '13px', color: '#0f172a', fontWeight: 700 },
   completionMediaGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' },
   completionMediaImg: { width: '100%', height: '140px', objectFit: 'cover', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.22)' },
+  signatureInfoGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' },
   signatureMetaField: { display: 'grid', gap: '6px' },
   signatureMetaInput: { width: '100%', minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0 10px', fontSize: '13px', color: '#0f172a', boxSizing: 'border-box', background: '#fff', fontWeight: 600 },
   customerTableWrap: { marginTop: '12px', border: '1px solid rgba(159, 23, 77, 0.18)', borderRadius: '12px', background: '#fff', overflowX: 'auto' },
@@ -2254,7 +2255,7 @@ export default function TechnicianPortal() {
                 Clear
               </button>
             </div>
-            <div style={shell.signatureInfoGrid}>
+            <div style={{ ...shell.signatureInfoGrid, gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))' }}>
               <div style={shell.signatureMetaField}>
                 <p style={shell.label}>Customer Representative</p>
                 <input
