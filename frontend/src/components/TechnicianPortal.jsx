@@ -913,17 +913,6 @@ const shell = {
   },
   workflowTabIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   workflowTabLabel: { margin: 0, fontSize: '11px', fontWeight: 800, textAlign: 'center', lineHeight: 1.2 },
-  chemicalMatchText: {
-    margin: 0,
-    minHeight: '16px',
-    fontSize: '11px',
-    color: '#0f766e',
-    fontWeight: 700,
-    lineHeight: 1.35,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis'
-  },
   workflowCard: {
     position: 'relative',
     isolation: 'isolate',
@@ -1041,8 +1030,7 @@ const shell = {
   },
   chemicalNameField: {
     display: 'grid',
-    gap: '6px',
-    minHeight: '68px'
+    gap: '4px'
   },
   addChemicalBtn: {
     width: '100%',
@@ -2258,11 +2246,12 @@ export default function TechnicianPortal() {
                       value={chemical.chemicalName}
                       onChange={(event) => handleChemicalChange(index, 'chemicalName', event.target.value)}
                       placeholder="Start typing or choose from stock items"
-                      style={shell.textInput}
+                      title={chemical.stockItemName ? `Matched stock item: ${chemical.stockItemName}` : ''}
+                      style={{
+                        ...shell.textInput,
+                        borderColor: chemical.stockItemName ? 'rgba(15, 118, 110, 0.35)' : shell.textInput.borderColor
+                      }}
                     />
-                    {chemical.stockItemName ? (
-                      <p style={shell.chemicalMatchText}>Matched stock item: {chemical.stockItemName}</p>
-                    ) : null}
                   </div>
                   <div style={shell.field}>
                     <p style={shell.label}>Quantity Used</p>
