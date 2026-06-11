@@ -182,6 +182,34 @@ const buildWizardDraft = (job = {}) => ({
   reviewRemarks: String(job.reviewRemarks || job.remarks || '').trim()
 });
 
+const getCustomerRepresentativeInfo = (job = {}) => {
+  const name = String(
+    job.customerRepresentativeName
+    || job.customer_representative_name
+    || job.contactPersonName
+    || job.contact_person_name
+    || job.customerContactPersonName
+    || job.customerContactPerson
+    || job.customerName
+    || ''
+  ).trim();
+  const mobile = String(
+    job.customerRepresentativeMobile
+    || job.customer_representative_mobile
+    || job.contactPersonMobile
+    || job.contact_person_mobile
+    || job.customerContactPersonMobile
+    || job.customerPhone
+    || job.mobileNumber
+    || job.mobile
+    || ''
+  ).trim();
+  return {
+    name: name || '-',
+    mobile: mobile || '-'
+  };
+};
+
 const wizardSteps = [
   { key: 'photos', label: 'Photos', icon: Camera, countLabel: '1' },
   { key: 'chemicals', label: 'Chemicals', icon: FlaskConical, countLabel: '2' },
@@ -652,6 +680,10 @@ const shell = {
   completionValue: { margin: '2px 0 0 0', fontSize: '13px', color: '#0f172a', fontWeight: 700 },
   completionMediaGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' },
   completionMediaImg: { width: '100%', height: '140px', objectFit: 'cover', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.22)' },
+  signatureInfoGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginTop: '6px' },
+  signatureInfoCard: { border: '1px solid rgba(226,232,240,0.95)', borderRadius: '12px', background: '#f8fafc', padding: '10px 12px', display: 'grid', gap: '4px' },
+  signatureInfoLabel: { margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  signatureInfoValue: { margin: 0, fontSize: '13px', color: '#0f172a', fontWeight: 700, lineHeight: 1.35, wordBreak: 'break-word' },
   customerTableWrap: { marginTop: '12px', border: '1px solid rgba(159, 23, 77, 0.18)', borderRadius: '12px', background: '#fff', overflowX: 'auto' },
   customerTable: { width: '100%', borderCollapse: 'collapse', minWidth: '100%' },
   customerTh: { textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em', background: '#f8fafc' },
@@ -1298,6 +1330,7 @@ export default function TechnicianPortal() {
   const signatureGridStyle = isMobile
     ? { display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }
     : { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' };
+  const customerRepresentativeInfo = useMemo(() => getCustomerRepresentativeInfo(activeJob || {}), [activeJob]);
   const pagerStyle = isMobile ? { ...shell.pager, flexDirection: 'column', alignItems: 'stretch' } : shell.pager;
   const signatureWidth = isMobile ? Math.max(260, Math.min(360, viewportWidth - 56)) : 520;
   const routeJobId = useMemo(() => {
@@ -2223,6 +2256,16 @@ export default function TechnicianPortal() {
               >
                 Clear
               </button>
+            </div>
+            <div style={shell.signatureInfoGrid}>
+              <div style={shell.signatureInfoCard}>
+                <p style={shell.signatureInfoLabel}>Customer Representative</p>
+                <p style={shell.signatureInfoValue}>{customerRepresentativeInfo.name}</p>
+              </div>
+              <div style={shell.signatureInfoCard}>
+                <p style={shell.signatureInfoLabel}>Representative Mobile</p>
+                <p style={shell.signatureInfoValue}>{customerRepresentativeInfo.mobile}</p>
+              </div>
             </div>
             <div style={{ ...signatureGridStyle, position: 'relative', zIndex: 1 }}>
               <div>

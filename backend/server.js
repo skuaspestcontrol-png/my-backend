@@ -6175,6 +6175,8 @@ const loadJobsFromMysql = async () => {
       ...row,
       _id: externalId || String(payload._id || '').trim(),
       status: String(row?.status ?? payload.status ?? '').trim(),
+      customerRepresentativeName: String(row?.customer_representative_name ?? payload.customerRepresentativeName ?? payload.customer_representative_name ?? '').trim(),
+      customerRepresentativeMobile: String(row?.customer_representative_mobile ?? payload.customerRepresentativeMobile ?? payload.customer_representative_mobile ?? '').trim(),
       beforePhoto: String(row?.before_photo_url ?? payload.beforePhoto ?? '').trim(),
       afterPhoto: String(row?.after_photo_url ?? payload.afterPhoto ?? '').trim(),
       customerSignature: String(row?.customer_signature_url ?? row?.customer_signature ?? payload.customerSignature ?? payload.customer_signature ?? payload.customer_signature_url ?? '').trim(),
@@ -6193,7 +6195,7 @@ const loadJobsFromMysql = async () => {
   return withMysqlConnection(async (conn) => {
     const [rows] = await conn.query(`
       SELECT
-        id, external_id, status, before_photo_url, after_photo_url,
+        id, external_id, status, customer_representative_name, customer_representative_mobile, before_photo_url, after_photo_url,
         customer_signature, customer_signature_url, technician_signature,
         service_start_time, service_end_time, customer_observation,
         technician_remarks, infestation_level, job_card_number, payload
@@ -8932,6 +8934,8 @@ const syncJobToMysql = async (job) => {
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS job_number VARCHAR(120) NULL');
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS service_name VARCHAR(255) NULL');
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS service_type VARCHAR(120) NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS customer_representative_name VARCHAR(255) NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS customer_representative_mobile VARCHAR(50) NULL');
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS area_name VARCHAR(255) NULL');
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS scheduled_date DATE NULL');
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS scheduled_time VARCHAR(40) NULL');
@@ -8948,6 +8952,8 @@ const syncJobToMysql = async (job) => {
       if (!names.has('job_number')) await conn.query('ALTER TABLE jobs ADD COLUMN job_number VARCHAR(120) NULL');
       if (!names.has('service_name')) await conn.query('ALTER TABLE jobs ADD COLUMN service_name VARCHAR(255) NULL');
       if (!names.has('service_type')) await conn.query('ALTER TABLE jobs ADD COLUMN service_type VARCHAR(120) NULL');
+      if (!names.has('customer_representative_name')) await conn.query('ALTER TABLE jobs ADD COLUMN customer_representative_name VARCHAR(255) NULL');
+      if (!names.has('customer_representative_mobile')) await conn.query('ALTER TABLE jobs ADD COLUMN customer_representative_mobile VARCHAR(50) NULL');
       if (!names.has('area_name')) await conn.query('ALTER TABLE jobs ADD COLUMN area_name VARCHAR(255) NULL');
       if (!names.has('scheduled_date')) await conn.query('ALTER TABLE jobs ADD COLUMN scheduled_date DATE NULL');
       if (!names.has('scheduled_time')) await conn.query('ALTER TABLE jobs ADD COLUMN scheduled_time VARCHAR(40) NULL');
@@ -8968,6 +8974,8 @@ const syncJobToMysql = async (job) => {
       invoice_external_id: job.invoiceId || job.contractId || null,
       invoice_id: job.invoiceId || job.contractId || null,
       customer_name: job.customerName || null,
+      customer_representative_name: job.customerRepresentativeName || null,
+      customer_representative_mobile: job.customerRepresentativeMobile || null,
       job_number: job.jobNumber || null,
       job_card_number: job.jobCardNumber || job.job_card_number || job.jobNumber || null,
       assigned_to: job.technicianName || null,
@@ -12664,6 +12672,22 @@ app.post('/api/renewals/:id/assign-technician', async (req, res) => {
     const technicianMobiles = technicians
       .map((tech) => String(tech.mobile || '').trim())
       .filter(Boolean);
+    const customerRepresentativeName = String(
+      customer?.contactPersonName
+      || customer?.attentionName
+      || customer?.displayName
+      || customer?.name
+      || invoice.customerName
+      || ''
+    ).trim();
+    const customerRepresentativeMobile = String(
+      customer?.mobileNumber
+      || customer?.workPhone
+      || customer?.whatsappNumber
+      || invoice.mobileNumber
+      || invoice.workPhone
+      || ''
+    ).trim();
     const generatedJobNumber = createNextJobNumber([...jobs, ...createdJobs], settings);
     lastGeneratedJobNumber = generatedJobNumber;
     const newJob = {
@@ -12672,6 +12696,8 @@ app.post('/api/renewals/:id/assign-technician', async (req, res) => {
       customerId: customer?._id || invoice.customerId || '',
       customerName: customer?.displayName || customer?.name || invoice.customerName || '',
       mobileNumber: customer?.mobileNumber || customer?.workPhone || '',
+      customerRepresentativeName,
+      customerRepresentativeMobile,
       address: customer?.billingAddress || customer?.shippingAddress || '',
       areaName: customer?.billingArea || customer?.area || '',
       city: customer?.city || customer?.billingState || customer?.state || '',
