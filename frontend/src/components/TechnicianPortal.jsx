@@ -344,20 +344,23 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
 
   const finishStroke = useCallback((event) => {
     const canvas = canvasRef.current;
+    const pointerId = pointerIdRef.current;
     if (typeof windowCleanupRef.current === 'function') {
-      windowCleanupRef.current();
+      const cleanup = windowCleanupRef.current;
       windowCleanupRef.current = null;
+      cleanup();
+    } else {
+      drawingRef.current = false;
+      pointerIdRef.current = null;
     }
     if (!canvas) return;
-    if (pointerIdRef.current !== null && canvas.hasPointerCapture?.(pointerIdRef.current)) {
+    if (pointerId !== null && canvas.hasPointerCapture?.(pointerId)) {
       try {
-        canvas.releasePointerCapture(pointerIdRef.current);
+        canvas.releasePointerCapture(pointerId);
       } catch (_error) {
         // Ignore release issues if the browser already cleared capture.
       }
     }
-    drawingRef.current = false;
-    pointerIdRef.current = null;
   }, []);
 
   const handlePointerDown = useCallback((event) => {
@@ -381,10 +384,20 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
       windowCleanupRef.current();
     }
     const cleanupStrokeListeners = () => {
+      const canvasNode = canvasRef.current;
+      if (canvasNode && pointerIdRef.current !== null && canvasNode.hasPointerCapture?.(pointerIdRef.current)) {
+        try {
+          canvasNode.releasePointerCapture(pointerIdRef.current);
+        } catch (_error) {
+          // Ignore release issues if capture is already gone.
+        }
+      }
       window.removeEventListener('pointerup', cleanupStrokeListeners, true);
       window.removeEventListener('pointercancel', cleanupStrokeListeners, true);
       window.removeEventListener('blur', cleanupStrokeListeners, true);
       windowCleanupRef.current = null;
+      drawingRef.current = false;
+      pointerIdRef.current = null;
     };
     windowCleanupRef.current = cleanupStrokeListeners;
     window.addEventListener('pointerup', cleanupStrokeListeners, true);
@@ -421,6 +434,11 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
+      if (typeof windowCleanupRef.current === 'function') {
+        const cleanup = windowCleanupRef.current;
+        windowCleanupRef.current = null;
+        cleanup();
+      }
     };
   }, [resizeCanvas]);
 
