@@ -393,6 +393,7 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
 
   const stopStroke = useCallback((event, shouldPreventDefault = true) => {
     const canvas = canvasRef.current;
+    const wrapper = wrapperRef.current;
     const activePointerId = pointerIdRef.current;
     if (typeof strokeCleanupRef.current === 'function') {
       const cleanup = strokeCleanupRef.current;
@@ -403,7 +404,13 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
       pointerIdRef.current = null;
     }
     if (!canvas) return;
-    if (activePointerId !== null && canvas.hasPointerCapture?.(activePointerId)) {
+    if (activePointerId !== null && wrapper?.hasPointerCapture?.(activePointerId)) {
+      try {
+        wrapper.releasePointerCapture(activePointerId);
+      } catch (_error) {
+        // Ignore release issues if the browser already cleared capture.
+      }
+    } else if (activePointerId !== null && canvas.hasPointerCapture?.(activePointerId)) {
       try {
         canvas.releasePointerCapture(activePointerId);
       } catch (_error) {
@@ -475,6 +482,7 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
 
   const handlePointerDown = useCallback((event) => {
     const canvas = canvasRef.current;
+    const wrapper = wrapperRef.current;
     if (!canvas) return;
     if (event.button !== undefined && event.button !== 0) return;
     event.preventDefault();
@@ -508,9 +516,9 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     window.addEventListener('blur', cleanupStrokeListeners, true);
     document.addEventListener('visibilitychange', cleanupStrokeListeners, true);
 
-    if (canvas.setPointerCapture) {
+    if (wrapper?.setPointerCapture) {
       try {
-        canvas.setPointerCapture(event.pointerId);
+        wrapper.setPointerCapture(event.pointerId);
       } catch (_error) {
         // Ignore capture failures on browsers that do not support it fully.
       }
@@ -534,9 +542,9 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
 
   useEffect(() => {
     const handleOutsidePointerDown = (event) => {
-      const canvas = canvasRef.current;
-      if (!canvas || pointerIdRef.current === null) return;
-      if (event.target && canvas.contains(event.target)) return;
+      const wrapper = wrapperRef.current;
+      if (!wrapper || pointerIdRef.current === null) return;
+      if (event.target && wrapper.contains(event.target)) return;
       stopStroke(event, false);
     };
     document.addEventListener('pointerdown', handleOutsidePointerDown, true);
@@ -618,6 +626,16 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
   return (
     <div
       ref={wrapperRef}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={stopStroke}
+      onPointerCancel={stopStroke}
+      onLostPointerCapture={stopStroke}
+      onPointerLeave={(event) => {
+        if (drawingRef.current && pointerIdRef.current === event.pointerId) {
+          stopStroke(event);
+        }
+      }}
       style={{
         position: 'relative',
         width: '100%',
@@ -627,29 +645,20 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
         overflow: 'hidden',
         background: '#fff',
         pointerEvents: 'auto',
+        touchAction: 'none',
         boxSizing: 'border-box',
         zIndex: 0
       }}
     >
       <canvas
         ref={canvasRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={stopStroke}
-        onPointerCancel={stopStroke}
-        onLostPointerCapture={stopStroke}
-        onPointerLeave={(event) => {
-          if (drawingRef.current && pointerIdRef.current === event.pointerId) {
-            stopStroke(event);
-          }
-        }}
         style={{
           display: 'block',
           width: '100%',
           height: '100%',
           touchAction: 'none',
           cursor: 'crosshair',
-          pointerEvents: 'auto',
+          pointerEvents: 'none',
           background: '#fff'
         }}
       />
