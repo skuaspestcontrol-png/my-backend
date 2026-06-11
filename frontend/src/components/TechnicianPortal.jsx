@@ -516,7 +516,16 @@ const shell = {
   },
   workflowTabIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   workflowTabLabel: { margin: 0, fontSize: '11px', fontWeight: 800, textAlign: 'center', lineHeight: 1.2 },
-  workflowCard: { border: '1px solid rgba(159, 23, 77, 0.18)', borderRadius: '16px', background: '#fff', padding: '14px', display: 'grid', gap: '12px' },
+  workflowCard: {
+    position: 'relative',
+    isolation: 'isolate',
+    border: '1px solid rgba(159, 23, 77, 0.18)',
+    borderRadius: '16px',
+    background: '#fff',
+    padding: '14px',
+    display: 'grid',
+    gap: '12px'
+  },
   workflowHeader: { display: 'grid', gap: '4px' },
   workflowTitle: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' },
   workflowSub: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 600, lineHeight: 1.5 },
@@ -640,7 +649,7 @@ const shell = {
   reviewNote: { borderRadius: '12px', background: '#FEF3C7', color: '#B45309', padding: '10px 12px', fontSize: '12px', fontWeight: 700, lineHeight: 1.5 },
   wizardFooter: {
     position: 'relative',
-    zIndex: 2,
+    zIndex: 20,
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: '10px',
@@ -1789,7 +1798,7 @@ export default function TechnicianPortal() {
                 Clear
               </button>
             </div>
-            <div style={{ ...signatureGridStyle, position: 'relative', zIndex: 0 }}>
+            <div style={{ ...signatureGridStyle, position: 'relative', zIndex: 1 }}>
               <div>
                 <p style={shell.label}>Technician Signature</p>
                 <div style={{ ...shell.signatureWrap, maxWidth: '100%' }}>
