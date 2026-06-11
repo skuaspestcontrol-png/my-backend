@@ -325,7 +325,7 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
   {
     penColor = '#000000',
     strokeWidth = 2.25,
-    height = 170,
+    height = '100%',
     maxWidth = '100%'
   },
   ref
@@ -336,7 +336,40 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
   const pointerIdRef = useRef(null);
   const hasInkRef = useRef(false);
   const dprRef = useRef(1);
-  const windowCleanupRef = useRef(null);
+  const strokeCleanupRef = useRef(null);
+
+  const syncDebugState = useCallback(() => {
+    if (!import.meta.env.DEV || typeof window === 'undefined') return;
+    window.__skuasSignatureDebug = {
+      isDrawing: drawingRef.current,
+      activePointerId: pointerIdRef.current
+    };
+  }, []);
+
+  const getResolvedHeight = useCallback(() => (typeof height === 'number' ? `${height}px` : String(height || '100%')), [height]);
+
+  const stopStroke = useCallback((event) => {
+    const canvas = canvasRef.current;
+    const activePointerId = pointerIdRef.current;
+    if (typeof strokeCleanupRef.current === 'function') {
+      const cleanup = strokeCleanupRef.current;
+      strokeCleanupRef.current = null;
+      cleanup();
+    } else {
+      drawingRef.current = false;
+      pointerIdRef.current = null;
+    }
+    if (!canvas) return;
+    if (activePointerId !== null && canvas.hasPointerCapture?.(activePointerId)) {
+      try {
+        canvas.releasePointerCapture(activePointerId);
+      } catch (_error) {
+        // Ignore release issues if the browser already cleared capture.
+      }
+    }
+    syncDebugState();
+    if (event?.preventDefault) event.preventDefault();
+  }, [syncDebugState]);
 
   const getPoint = useCallback((event) => {
     const canvas = canvasRef.current;
@@ -397,27 +430,6 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     }
   }, [configureContext]);
 
-  const finishStroke = useCallback((event) => {
-    const canvas = canvasRef.current;
-    const pointerId = pointerIdRef.current;
-    if (typeof windowCleanupRef.current === 'function') {
-      const cleanup = windowCleanupRef.current;
-      windowCleanupRef.current = null;
-      cleanup();
-    } else {
-      drawingRef.current = false;
-      pointerIdRef.current = null;
-    }
-    if (!canvas) return;
-    if (pointerId !== null && canvas.hasPointerCapture?.(pointerId)) {
-      try {
-        canvas.releasePointerCapture(pointerId);
-      } catch (_error) {
-        // Ignore release issues if the browser already cleared capture.
-      }
-    }
-  }, []);
-
   const handlePointerDown = useCallback((event) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -434,30 +446,24 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     drawingRef.current = true;
     pointerIdRef.current = event.pointerId;
     hasInkRef.current = true;
+    syncDebugState();
 
-    if (typeof windowCleanupRef.current === 'function') {
-      windowCleanupRef.current();
+    if (typeof strokeCleanupRef.current === 'function') {
+      strokeCleanupRef.current();
     }
-    const cleanupStrokeListeners = () => {
-      const canvasNode = canvasRef.current;
-      if (canvasNode && pointerIdRef.current !== null && canvasNode.hasPointerCapture?.(pointerIdRef.current)) {
-        try {
-          canvasNode.releasePointerCapture(pointerIdRef.current);
-        } catch (_error) {
-          // Ignore release issues if capture is already gone.
-        }
-      }
+    const cleanupStrokeListeners = (cleanupEvent) => {
       window.removeEventListener('pointerup', cleanupStrokeListeners, true);
       window.removeEventListener('pointercancel', cleanupStrokeListeners, true);
       window.removeEventListener('blur', cleanupStrokeListeners, true);
-      windowCleanupRef.current = null;
-      drawingRef.current = false;
-      pointerIdRef.current = null;
+      document.removeEventListener('visibilitychange', cleanupStrokeListeners, true);
+      strokeCleanupRef.current = null;
+      stopStroke(cleanupEvent);
     };
-    windowCleanupRef.current = cleanupStrokeListeners;
+    strokeCleanupRef.current = cleanupStrokeListeners;
     window.addEventListener('pointerup', cleanupStrokeListeners, true);
     window.addEventListener('pointercancel', cleanupStrokeListeners, true);
     window.addEventListener('blur', cleanupStrokeListeners, true);
+    document.addEventListener('visibilitychange', cleanupStrokeListeners, true);
 
     if (canvas.setPointerCapture) {
       try {
@@ -469,7 +475,7 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
 
     context.beginPath();
     context.moveTo(point.x, point.y);
-  }, [configureContext, getPoint, resizeCanvas]);
+  }, [configureContext, getPoint, resizeCanvas, stopStroke, syncDebugState]);
 
   const handlePointerMove = useCallback((event) => {
     if (!drawingRef.current || pointerIdRef.current !== event.pointerId) return;
@@ -489,9 +495,9 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (typeof windowCleanupRef.current === 'function') {
-        const cleanup = windowCleanupRef.current;
-        windowCleanupRef.current = null;
+      if (typeof strokeCleanupRef.current === 'function') {
+        const cleanup = strokeCleanupRef.current;
+        strokeCleanupRef.current = null;
         cleanup();
       }
     };
@@ -507,6 +513,12 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
       hasInkRef.current = false;
       drawingRef.current = false;
       pointerIdRef.current = null;
+      syncDebugState();
+      if (typeof strokeCleanupRef.current === 'function') {
+        const cleanup = strokeCleanupRef.current;
+        strokeCleanupRef.current = null;
+        cleanup();
+      }
     },
     isEmpty() {
       return !hasInkRef.current;
@@ -547,7 +559,7 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
       const canvas = canvasRef.current;
       return canvas ? canvas.toDataURL(type, quality) : '';
     }
-  }), [resizeCanvas]);
+  }), [resizeCanvas, syncDebugState]);
 
   return (
     <div
@@ -556,23 +568,25 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
         position: 'relative',
         width: '100%',
         maxWidth,
-        height: `${height}px`,
+        height: getResolvedHeight(),
         borderRadius: '8px',
         overflow: 'hidden',
         background: '#fff',
-        pointerEvents: 'auto'
+        pointerEvents: 'auto',
+        boxSizing: 'border-box',
+        zIndex: 0
       }}
     >
       <canvas
         ref={canvasRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={finishStroke}
-        onPointerCancel={finishStroke}
-        onLostPointerCapture={finishStroke}
+        onPointerUp={stopStroke}
+        onPointerCancel={stopStroke}
+        onLostPointerCapture={stopStroke}
         onPointerLeave={(event) => {
           if (drawingRef.current && pointerIdRef.current === event.pointerId) {
-            finishStroke(event);
+            stopStroke(event);
           }
         }}
         style={{
@@ -801,7 +815,8 @@ const shell = {
     background: '#fff',
     overflow: 'hidden',
     padding: '8px',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    zIndex: 0
   },
   completeBtn: {
     width: '100%',
@@ -816,7 +831,7 @@ const shell = {
     letterSpacing: '0.04em',
     textTransform: 'uppercase'
   },
-  workflowTabs: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px' },
+  workflowTabs: { position: 'relative', zIndex: 50, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px' },
   workflowTab: {
     border: '1px solid rgba(159, 23, 77, 0.18)',
     borderRadius: '12px',
@@ -829,7 +844,9 @@ const shell = {
     justifyItems: 'center',
     alignContent: 'center',
     cursor: 'pointer',
-    boxShadow: '0 4px 10px rgba(15,23,42,0.05)'
+    boxShadow: '0 4px 10px rgba(15,23,42,0.05)',
+    position: 'relative',
+    zIndex: 51
   },
   workflowTabActive: {
     background: 'var(--color-primary)',
@@ -972,7 +989,7 @@ const shell = {
   reviewNote: { borderRadius: '12px', background: '#FEF3C7', color: '#B45309', padding: '10px 12px', fontSize: '12px', fontWeight: 700, lineHeight: 1.5 },
   wizardFooter: {
     position: 'relative',
-    zIndex: 20,
+    zIndex: 60,
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: '10px',
@@ -987,7 +1004,9 @@ const shell = {
     padding: '0 14px',
     fontSize: '13px',
     fontWeight: 800,
-    cursor: 'pointer'
+    cursor: 'pointer',
+    position: 'relative',
+    zIndex: 61
   },
   wizardNextBtn: {
     border: '1px solid rgba(159, 23, 77, 0.34)',
@@ -998,7 +1017,9 @@ const shell = {
     padding: '0 14px',
     fontSize: '13px',
     fontWeight: 800,
-    cursor: 'pointer'
+    cursor: 'pointer',
+    position: 'relative',
+    zIndex: 61
   },
   emptyText: { margin: '8px 0 0 0', color: '#64748b', fontSize: '13px' }
 };
@@ -1038,6 +1059,10 @@ export default function TechnicianPortal() {
   });
   const customerSigCanvas = useRef({});
   const technicianSigCanvas = useRef({});
+  const workflowTabButtonRefs = useRef([]);
+  const wizardBackButtonRef = useRef(null);
+  const wizardNextButtonRef = useRef(null);
+  const signatureClearButtonRef = useRef(null);
   const orphanCleanupNoticeTimerRef = useRef(null);
   const portalDataLoadingRef = useRef(false);
   const beforePhotoInputRef = useRef(null);
@@ -1326,6 +1351,32 @@ export default function TechnicianPortal() {
     };
   }, [jobWizard?.customerSignature, jobWizard?.technicianSignature, wizardStep]);
 
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined;
+    const logHitTargets = () => {
+      const logPoint = (label, node) => {
+        if (!node) return;
+        const rect = node.getBoundingClientRect();
+        const x = Math.round(rect.left + rect.width / 2);
+        const y = Math.round(rect.top + rect.height / 2);
+        console.log(label, document.elementFromPoint(x, y));
+      };
+      logPoint('element at next button', wizardNextButtonRef.current);
+      logPoint('element at back button', wizardBackButtonRef.current);
+      logPoint('element at clear button', signatureClearButtonRef.current);
+      console.log('technician portal signature debug', {
+        isSavingWizard,
+        wizardStep,
+        activeJobId: activeJob?._id || '',
+        isDrawing: Boolean(window.__skuasSignatureDebug?.isDrawing),
+        activePointerId: window.__skuasSignatureDebug?.activePointerId ?? null
+      });
+    };
+
+    const frame = window.requestAnimationFrame(logHitTargets);
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeJob?._id, isSavingWizard, wizardStep, jobWizard?.customerSignature, jobWizard?.technicianSignature]);
+
   const syncLocalJob = useCallback((nextJob) => {
     if (!nextJob?._id) return;
     setJobs((prev) => prev.map((job) => (String(job._id) === String(nextJob._id) ? { ...job, ...nextJob } : job)));
@@ -1400,6 +1451,8 @@ export default function TechnicianPortal() {
       return savedJob;
     } catch (error) {
       console.error('Failed to save technician wizard draft in background', error);
+      const message = error?.response?.data?.error || error?.message || 'Unable to save job progress.';
+      setActionStatus(`Save failed: ${message}`);
       return null;
     }
   }, [activeJob, normalizeDraftForSave, syncLocalJob]);
@@ -2152,7 +2205,8 @@ export default function TechnicianPortal() {
               </div>
               <button
                 type="button"
-                style={shell.viewBtn}
+                ref={signatureClearButtonRef}
+                style={{ ...shell.viewBtn, position: 'relative', zIndex: 70 }}
                 onClick={() => {
                   if (customerSigCanvas.current && typeof customerSigCanvas.current.clear === 'function') {
                     customerSigCanvas.current.clear();
@@ -2618,10 +2672,11 @@ export default function TechnicianPortal() {
             return (
               <button
                 key={step.key}
+                ref={(node) => { workflowTabButtonRefs.current[step.key] = node; }}
                 type="button"
                 style={{ ...shell.workflowTab, ...(isActiveStep ? shell.workflowTabActive : {}) }}
                 onClick={() => handleWizardStepChange(step.key)}
-                disabled={isCompleting || (isSavingWizard && wizardStep !== 'signature')}
+                disabled={isCompleting}
               >
                 <span style={shell.workflowTabIcon}><StepIcon size={18} /></span>
                 <p style={shell.workflowTabLabel}>{step.label}</p>
@@ -2635,19 +2690,21 @@ export default function TechnicianPortal() {
         <div style={shell.wizardFooter}>
           <button
             type="button"
+            ref={wizardBackButtonRef}
             style={shell.wizardBackBtn}
             onClick={handleWizardBack}
-            disabled={isCompleting || (isSavingWizard && wizardStep !== 'signature')}
+            disabled={isCompleting}
           >
             Back
           </button>
           <button
             type="button"
+            ref={wizardNextButtonRef}
             style={shell.wizardNextBtn}
             onClick={handleWizardNext}
-            disabled={isCompleting || (isSavingWizard && wizardStep !== 'signature')}
+            disabled={isCompleting}
           >
-            {wizardStep === 'review' ? (isCompleting ? 'Saving...' : 'Complete Service') : (isSavingWizard ? 'Saving...' : 'Next')}
+            {wizardStep === 'review' ? (isCompleting ? 'Saving...' : 'Complete Service') : 'Next'}
           </button>
         </div>
       </div>
