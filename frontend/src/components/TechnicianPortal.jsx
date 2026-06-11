@@ -2243,20 +2243,6 @@ export default function TechnicianPortal() {
                 <p style={shell.sectionSub}>Confirm job completion points before submitting.</p>
               </div>
             </div>
-            <div style={{ ...shell.field, marginBottom: '12px' }}>
-              <p style={shell.label}>Pest Infestation Level</p>
-              <select
-                style={shell.textInput}
-                value={wizardDraftView.infestationLevel}
-                onChange={(event) => handleInfestationLevelChange(event.target.value)}
-                required
-              >
-                <option value="">Select level</option>
-                {PEST_INFESTATION_LEVEL_OPTIONS.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            </div>
             <div style={shell.checkboxList}>
               {wizardDraftView.checklistItems.map((item, index) => (
                 <label key={item.id || index} style={shell.checkboxItem}>
@@ -2395,6 +2381,20 @@ export default function TechnicianPortal() {
             </div>
             <div style={shell.reviewNote}>
               Confirm that the service details are correct, then complete the job so the CRM can sync the activity back to the portal.
+            </div>
+            <div style={shell.field}>
+              <p style={shell.label}>Pest Infestation Level</p>
+              <select
+                style={shell.textInput}
+                value={wizardDraftView.infestationLevel}
+                onChange={(event) => handleInfestationLevelChange(event.target.value)}
+                required
+              >
+                <option value="">Select level</option>
+                {PEST_INFESTATION_LEVEL_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
             </div>
             <div style={shell.field}>
               <p style={shell.label}>Remarks</p>
