@@ -10,6 +10,7 @@ import {
   FileCheck2,
   FlaskConical,
   PenLine,
+  Plus,
   Trash2,
   Upload,
   UserCog
@@ -1078,6 +1079,7 @@ export default function TechnicianPortal() {
   const [isSavingAssignment, setIsSavingAssignment] = useState(false);
   const [isSavingWizard, setIsSavingWizard] = useState(false);
   const [actionStatus, setActionStatus] = useState('');
+  const [stockItemsCatalog, setStockItemsCatalog] = useState([]);
   const [showCostModal, setShowCostModal] = useState(false);
   const [costModalSaving, setCostModalSaving] = useState(false);
   const [costModalError, setCostModalError] = useState('');
@@ -1100,6 +1102,33 @@ export default function TechnicianPortal() {
   const portalDataLoadingRef = useRef(false);
   const beforePhotoInputRef = useRef(null);
   const afterPhotoInputRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadStockItemsCatalog = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/items`);
+        if (cancelled) return;
+        const nextCatalog = Array.isArray(response.data)
+          ? Array.from(new Set(
+            response.data
+              .map((item) => String(item?.name || item?.itemName || '').trim())
+              .filter(Boolean)
+          )).sort((a, b) => String(a).localeCompare(String(b), 'en', { sensitivity: 'base' }))
+          : [];
+        setStockItemsCatalog(nextCatalog);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load stock item catalog for technician chemicals', error);
+          setStockItemsCatalog([]);
+        }
+      }
+    };
+    loadStockItemsCatalog();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadPortalData = useCallback(async () => {
     if (portalDataLoadingRef.current) return;
@@ -2011,6 +2040,7 @@ export default function TechnicianPortal() {
   const wizardChecklistTotal = wizardDraftView.checklistItems.length;
   const wizardStepIndex = Math.max(0, wizardSteps.findIndex((step) => step.key === wizardStep));
   const wizardLastStepIndex = wizardSteps.length - 1;
+  const chemicalNameDatalistId = 'technician-chemical-name-options';
 
   const handleWizardBack = async () => {
     if (wizardStep === 'photos') {
@@ -2135,9 +2165,10 @@ export default function TechnicianPortal() {
                     <p style={shell.label}>Chemical Name</p>
                     <input
                       type="text"
+                      list={chemicalNameDatalistId}
                       value={chemical.chemicalName}
                       onChange={(event) => handleChemicalChange(index, 'chemicalName', event.target.value)}
-                      placeholder="e.g. Cypermethrin 10% EC"
+                      placeholder="Start typing or choose from stock items"
                       style={shell.textInput}
                     />
                   </div>
@@ -2193,6 +2224,11 @@ export default function TechnicianPortal() {
                 </label>
               </div>
             ))}
+            <datalist id={chemicalNameDatalistId}>
+              {stockItemsCatalog.map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
             <button type="button" style={shell.addChemicalBtn} onClick={handleAddChemicalRow}>
               <Plus size={14} /> Add another chemical
             </button>
