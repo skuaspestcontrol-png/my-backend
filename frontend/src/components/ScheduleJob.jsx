@@ -202,9 +202,9 @@ const scheduleColumnWidths = {
   select: 56,
   service: 220,
   visit: 118,
-  date: 115,
+  date: 140,
   window: 88,
-  site: 230,
+  site: 180,
   status: 128,
   pdf: 90,
   action: 170
@@ -213,9 +213,9 @@ const scheduleColumnBounds = {
   select: { min: 48, max: 72 },
   service: { min: 180, max: 360 },
   visit: { min: 100, max: 180 },
-  date: { min: 115, max: 140 },
+  date: { min: 130, max: 160 },
   window: { min: 88, max: 88 },
-  site: { min: 170, max: 320 },
+  site: { min: 150, max: 220 },
   status: { min: 100, max: 160 },
   pdf: { min: 82, max: 120 },
   action: { min: 150, max: 220 }
