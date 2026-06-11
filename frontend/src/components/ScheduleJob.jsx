@@ -5,6 +5,7 @@ import { CalendarDays, MapPin, Wrench, X } from 'lucide-react';
 import PdfPreviewModal from './PdfPreviewModal';
 import { useColumnResize } from './table/useColumnResize';
 import { subscribeDashboardRefresh, triggerDashboardRefresh } from '../utils/dashboardRefresh';
+import { getPortalUserName } from '../utils/portalAuth';
 import { formatServiceScheduleTime } from '../utils/serviceScheduleBuilder';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -249,7 +250,7 @@ export default function ScheduleJob() {
   const [premiseRows, setPremiseRows] = useState([]);
   const [selectedPremiseId, setSelectedPremiseId] = useState('');
   const [editableServiceRows, setEditableServiceRows] = useState([]);
-  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', shareContext: null });
 
   const loadPortalData = useCallback(async ({ silent = false } = {}) => {
     if (loadRequestRef.current) return loadRequestRef.current;
@@ -660,13 +661,85 @@ export default function ScheduleJob() {
     const jobId = String(row?.relatedJobId || row?._id || '').trim();
     if (!jobId) return;
     const pdfUrl = `${API_BASE_URL}/api/service-visits/${encodeURIComponent(jobId)}/job-card-pdf`;
+    const selectedCustomerEmail = String(selectedCustomer?.emailId || selectedCustomer?.email || '').trim();
     setPdfPreview({
       open: true,
       title: `Job Card - ${String(row?.visit || row?.service || 'Job').trim()}`,
       pdfUrl,
       downloadFileName: `${String(row?.visit || row?.service || 'job-card').replace(/[^\w.-]+/g, '_')}.pdf`,
-      publicShareUrl: pdfUrl
+      publicShareUrl: pdfUrl,
+      shareContext: {
+        jobId,
+        jobNumber: String(row?.visit || row?.service || jobId || 'Job').trim(),
+        customerName: String(selectedCustomer?.displayName || selectedCustomer?.name || selectedContract?.customerName || 'Customer').trim() || 'Customer',
+        customerEmail: selectedCustomerEmail,
+        customerPhone: String(selectedCustomer?.whatsappNumber || selectedCustomer?.mobileNumber || selectedCustomer?.workPhone || '').trim(),
+        serviceName: String(row?.service || row?.raw?.itemName || row?.raw?.itemDescription || 'Service').trim() || 'Service',
+        visit: String(row?.visit || '').trim(),
+        scheduledDate: String(row?.date || '').trim(),
+        scheduledTime: String(row?.window || '').trim(),
+        address: String(premiseAddress?.address || selectedCustomer?.billingAddress || selectedCustomer?.shippingAddress || '').trim(),
+        site: String(row?.site || '').trim()
+      }
     });
+  };
+
+  const shareCompletedServiceByEmail = async () => {
+    const context = pdfPreview.shareContext || {};
+    const defaultEmail = String(context.customerEmail || '').trim();
+    const recipientEmail = String(window.prompt('Enter recipient email', defaultEmail) || '').trim();
+    if (!recipientEmail) return;
+
+    const serviceName = String(context.serviceName || 'Service').trim() || 'Service';
+    const customerName = String(context.customerName || 'Customer').trim() || 'Customer';
+    const jobNumber = String(context.jobNumber || pdfPreview.title.replace(/^Job Card -\s*/i, '') || 'Job').trim();
+    const shareUrl = String(pdfPreview.publicShareUrl || pdfPreview.pdfUrl || '').trim();
+    const subject = `Job Card - ${jobNumber} from SKUAS Pest Control`;
+    const body = `
+      <div style="font-family:Arial,sans-serif;color:#111827;font-size:14px;line-height:1.5">
+        <p>Dear ${customerName},</p>
+        <p>Please find attached your completed service job card for <strong>${jobNumber}</strong>.</p>
+        <p>
+          <strong>Service:</strong> ${serviceName}<br/>
+          ${context.visit ? `<strong>Visit:</strong> ${context.visit}<br/>` : ''}
+          ${context.scheduledDate ? `<strong>Date:</strong> ${context.scheduledDate}<br/>` : ''}
+          ${context.scheduledTime ? `<strong>Time:</strong> ${context.scheduledTime}<br/>` : ''}
+          ${context.address ? `<strong>Address:</strong> ${context.address}<br/>` : ''}
+        </p>
+        ${shareUrl ? `<p>PDF link: <a href="${shareUrl}" target="_blank" rel="noreferrer">${shareUrl}</a></p>` : ''}
+        <p>Regards,<br/>SKUAS Pest Control</p>
+      </div>
+    `;
+
+    try {
+      await axios.post(`${API_BASE_URL}/api/email/send`, {
+        moduleType: 'job',
+        moduleName: 'Job Card',
+        templateType: 'custom_email',
+        recipientEmail,
+        recipientName: customerName,
+        recipientType: 'Customer',
+        sentByUser: getPortalUserName() || 'User',
+        subject,
+        body,
+        attachmentUrl: shareUrl,
+        attachmentName: `${jobNumber.replace(/[^\w.-]+/g, '_') || 'job-card'}.pdf`,
+        contextData: {
+          customer_name: customerName,
+          customer_email: recipientEmail,
+          customer_phone: String(context.customerPhone || '').trim(),
+          service_type: serviceName,
+          address: String(context.address || '').trim(),
+          job_date: String(context.scheduledDate || '').trim(),
+          job_time: String(context.scheduledTime || '').trim(),
+          company_name: 'SKUAS Pest Control'
+        }
+      });
+      window.alert('Job card email sent successfully.');
+    } catch (error) {
+      console.error('Failed to send job card email', error);
+      window.alert(error?.response?.data?.error || 'Could not send job card email.');
+    }
   };
 
   const handleEditCompletedJob = async (row) => {
@@ -1128,7 +1201,8 @@ export default function ScheduleJob() {
         title={pdfPreview.title}
         pdfUrl={pdfPreview.pdfUrl}
         downloadFileName={pdfPreview.downloadFileName}
-        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', shareContext: null })}
+        onShareEmail={shareCompletedServiceByEmail}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
     </section>

@@ -974,22 +974,6 @@ export default function TechnicianPortal() {
     setActiveJob((prev) => (prev && String(prev._id) === String(nextJob._id) ? { ...prev, ...nextJob } : prev));
   }, []);
 
-  const captureSignatureDraft = useCallback((draft = jobWizard) => {
-    const customerSignaturePadReady = customerSigCanvas.current && typeof customerSigCanvas.current.isEmpty === 'function' && typeof customerSigCanvas.current.getTrimmedCanvas === 'function';
-    const technicianSignaturePadReady = technicianSigCanvas.current && typeof technicianSigCanvas.current.isEmpty === 'function' && typeof technicianSigCanvas.current.getTrimmedCanvas === 'function';
-    const nextCustomerSignature = customerSignaturePadReady && !customerSigCanvas.current.isEmpty()
-      ? customerSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
-      : String(draft?.customerSignature || '').trim();
-    const nextTechnicianSignature = technicianSignaturePadReady && !technicianSigCanvas.current.isEmpty()
-      ? technicianSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
-      : String(draft?.technicianSignature || '').trim();
-    return normalizeDraftForSave({
-      ...draft,
-      customerSignature: nextCustomerSignature,
-      technicianSignature: nextTechnicianSignature
-    });
-  }, [jobWizard, normalizeDraftForSave]);
-
   const normalizeDraftForSave = useCallback((draft = jobWizard) => {
     const nextDraft = buildWizardDraft({
       beforePhotos: draft.beforePhotos,
@@ -1011,6 +995,22 @@ export default function TechnicianPortal() {
       remarks: nextDraft.reviewRemarks || ''
     };
   }, [jobWizard]);
+
+  const captureSignatureDraft = useCallback((draft = jobWizard) => {
+    const customerSignaturePadReady = customerSigCanvas.current && typeof customerSigCanvas.current.isEmpty === 'function' && typeof customerSigCanvas.current.getTrimmedCanvas === 'function';
+    const technicianSignaturePadReady = technicianSigCanvas.current && typeof technicianSigCanvas.current.isEmpty === 'function' && typeof technicianSigCanvas.current.getTrimmedCanvas === 'function';
+    const nextCustomerSignature = customerSignaturePadReady && !customerSigCanvas.current.isEmpty()
+      ? customerSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
+      : String(draft?.customerSignature || '').trim();
+    const nextTechnicianSignature = technicianSignaturePadReady && !technicianSigCanvas.current.isEmpty()
+      ? technicianSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
+      : String(draft?.technicianSignature || '').trim();
+    return normalizeDraftForSave({
+      ...draft,
+      customerSignature: nextCustomerSignature,
+      technicianSignature: nextTechnicianSignature
+    });
+  }, [jobWizard, normalizeDraftForSave]);
 
   const persistWizardDraft = useCallback(async (draft = jobWizard) => {
     if (!activeJob?._id || isSavingWizard) return null;

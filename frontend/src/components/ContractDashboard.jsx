@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { subscribeContractsRefresh, triggerRenewalsRefresh, triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import useColumnResize from './table/useColumnResize';
+import { getPortalUserName } from '../utils/portalAuth';
 import {
   AlertCircle,
   BadgeIndianRupee,
@@ -443,6 +444,53 @@ const mergeContractsDashboardCache = (patch) => {
     }
   };
 
+  const sendContractJobCardEmail = async (invoice) => {
+    const customer = findCustomerForInvoice(invoice);
+    const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Contract';
+    const recipient = window.prompt('Enter recipient email', String(customer?.emailId || customer?.email || '').trim());
+    if (!recipient) return;
+
+    const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(String(invoice._id || invoiceNumber).trim())}/job-card-summary-pdf`);
+    const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
+    const subject = `Job Card Summary - ${invoiceNumber} from SKUAS Pest Control`;
+    const body = `
+      <div style="font-family:Arial,sans-serif;color:#111827;font-size:14px;line-height:1.5">
+        <p>Dear ${customerName},</p>
+        <p>Please find attached your contract service history / job card summary for <strong>${invoiceNumber}</strong>.</p>
+        ${pdfUrl ? `<p>PDF link: <a href="${pdfUrl}" target="_blank" rel="noreferrer">${pdfUrl}</a></p>` : ''}
+        <p>Regards,<br/>SKUAS Pest Control</p>
+      </div>
+    `;
+
+    try {
+      const response = await axios.post(`${API_BASE}/api/email/send`, {
+        moduleType: 'contract',
+        moduleName: 'Contract Job Card Summary',
+        templateType: 'custom_email',
+        recipientEmail: recipient,
+        recipientName: customerName,
+        recipientType: 'Customer',
+        sentByUser: getPortalUserName() || 'User',
+        subject,
+        body,
+        attachmentUrl: pdfUrl,
+        attachmentName: `${String(invoiceNumber || 'contract_job_card_summary').replace(/[^\w.-]+/g, '_')}.pdf`,
+        contextData: {
+          customer_name: customerName,
+          customer_email: recipient,
+          customer_phone: String(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '').trim(),
+          service_type: 'Contract Service History',
+          address: String(customer?.billingAddress || customer?.shippingAddress || '').trim(),
+          company_name: 'SKUAS Pest Control'
+        }
+      });
+      window.alert(response.data?.success ? 'Job card summary email sent successfully.' : 'Job card summary email queued.');
+    } catch (error) {
+      console.error('Failed to send contract job card summary email', error);
+      window.alert(error?.response?.data?.error || `Could not send ${invoiceNumber} email.`);
+    }
+  };
+
 export default function ContractDashboard() {
   const navigate = useNavigate();
   const [cachedDashboard] = useState(() => readContractsDashboardCache());
@@ -477,7 +525,7 @@ export default function ContractDashboard() {
   const [customerProfitSummary, setCustomerProfitSummary] = useState(null);
   const [customerProfitLoading, setCustomerProfitLoading] = useState(false);
   const [customerProfitError, setCustomerProfitError] = useState('');
-  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' });
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '', previewKind: 'invoice', shareContext: null });
   const [page, setPage] = useState(1);
   const customizeButtonRef = useRef(null);
   const customerNameClickTimerRef = useRef(null);
@@ -906,7 +954,7 @@ export default function ContractDashboard() {
     };
   }, [customerSummary?.row, invoices, payments]);
 
-  const openPdfPreview = (title, pdfUrl, fileName, invoiceId = '') => {
+  const openPdfPreview = (title, pdfUrl, fileName, invoiceId = '', extra = {}) => {
     if (!pdfUrl) return;
     setPdfPreview({
       open: true,
@@ -914,7 +962,9 @@ export default function ContractDashboard() {
       pdfUrl,
       downloadFileName: `${String(fileName || title || 'document').replace(/[^\w.-]+/g, '_')}.pdf`,
       publicShareUrl: pdfUrl,
-      invoiceId: String(invoiceId || '').trim()
+      invoiceId: String(invoiceId || '').trim(),
+      previewKind: String(extra.previewKind || 'invoice').trim() || 'invoice',
+      shareContext: extra.shareContext || null
     });
   };
 
@@ -1534,7 +1584,8 @@ export default function ContractDashboard() {
                 `Invoice - ${String(actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId || 'Invoice').trim()}`,
                 openInvoicePdf(actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber),
                 actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId,
-                actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber
+                actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber,
+                { previewKind: 'invoice' }
               );
               setActionMenu(null);
             }}
@@ -1549,7 +1600,14 @@ export default function ContractDashboard() {
               openPdfPreview(
                 `Contract Service History - ${String(actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId || 'Contract').trim()}`,
                 openContractJobCardPdf(actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber),
-                `${actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId || 'contract'}_job_card_summary`
+                `${actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId || 'contract'}_job_card_summary`,
+                actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber,
+                {
+                  previewKind: 'contract-job-card',
+                  shareContext: {
+                    invoiceRef: String(actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber || '').trim()
+                  }
+                }
               );
               setActionMenu(null);
             }}
@@ -1697,11 +1755,12 @@ export default function ContractDashboard() {
                               <button
                                 type="button"
                                 style={shell.detailBtn}
-                                onClick={() => openPdfPreview(
+                              onClick={() => openPdfPreview(
                                   `Invoice - ${String(invoice?.invoiceNumber || invoice?._id || 'Invoice').trim()}`,
                                   openInvoicePdf(invoice?._id),
                                   invoice?.invoiceNumber || invoice?._id,
-                                  invoice?._id
+                                  invoice?._id,
+                                  { previewKind: 'invoice' }
                                 )}
                               >
                                 PDF
@@ -1765,9 +1824,13 @@ export default function ContractDashboard() {
         title={pdfPreview.title}
         pdfUrl={pdfPreview.pdfUrl}
         downloadFileName={pdfPreview.downloadFileName}
-        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' })}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '', previewKind: 'invoice', shareContext: null })}
         onShareEmail={async () => {
           const invoice = invoices.find((entry) => String(entry._id) === String(pdfPreview.invoiceId));
+          if (pdfPreview.previewKind === 'contract-job-card') {
+            if (invoice) await sendContractJobCardEmail(invoice);
+            return;
+          }
           if (invoice) await sendInvoiceEmail(invoice);
         }}
         publicShareUrl={pdfPreview.publicShareUrl}

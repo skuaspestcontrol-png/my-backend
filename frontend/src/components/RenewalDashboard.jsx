@@ -4,6 +4,7 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
 import { subscribeRenewalsRefresh } from '../pages/sales-performance/salesPerformanceApi';
+import { getPortalUserName } from '../utils/portalAuth';
 import {
   CalendarClock,
   ChevronLeft,
@@ -207,7 +208,7 @@ export default function RenewalDashboard() {
   const [message, setMessage] = useState('');
   const [modal, setModal] = useState({ type: '', row: null });
   const [form, setForm] = useState({});
-  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' });
+  const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', renewalId: '', shareContext: null });
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 760);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
@@ -311,8 +312,65 @@ export default function RenewalDashboard() {
       title: `Renewal Letter - ${titleName}`,
       pdfUrl,
       downloadFileName: `${fileLabel.replace(/[^\w.-]+/g, '_')}.pdf`,
-      publicShareUrl: pdfUrl
+      publicShareUrl: pdfUrl,
+      renewalId: String(row?.renewalId || row?.renewal_id || row?.id || '').trim(),
+      shareContext: {
+        customerName: titleName,
+        customerEmail: String(row?.email || row?.customerEmail || row?.customer_email || '').trim(),
+        customerPhone: String(row?.mobile || row?.phone || '').trim(),
+        renewalDisplayId: fileLabel,
+        serviceType: String(row?.serviceType || row?.service_type || 'Renewal Letter').trim() || 'Renewal Letter',
+        pdfUrl
+      }
     });
+  };
+
+  const shareRenewalLetterByEmail = async () => {
+    const context = pdfPreview.shareContext || {};
+    const defaultEmail = String(context.customerEmail || '').trim();
+    const recipientEmail = String(window.prompt('Enter recipient email', defaultEmail) || '').trim();
+    if (!recipientEmail) return;
+
+    const customerName = String(context.customerName || 'Customer').trim() || 'Customer';
+    const renewalDisplayId = String(context.renewalDisplayId || pdfPreview.title.replace(/^Renewal Letter -\s*/i, '') || 'Renewal').trim();
+    const shareUrl = String(pdfPreview.publicShareUrl || pdfPreview.pdfUrl || '').trim();
+    const subject = `Renewal Letter - ${renewalDisplayId} from SKUAS Pest Control`;
+    const body = `
+      <div style="font-family:Arial,sans-serif;color:#111827;font-size:14px;line-height:1.5">
+        <p>Dear ${customerName},</p>
+        <p>Please find attached your renewal letter for <strong>${renewalDisplayId}</strong>.</p>
+        ${shareUrl ? `<p>PDF link: <a href="${shareUrl}" target="_blank" rel="noreferrer">${shareUrl}</a></p>` : ''}
+        <p>Regards,<br/>SKUAS Pest Control</p>
+      </div>
+    `;
+
+    try {
+      const response = await axios.post(`${API_BASE}/api/email/send`, {
+        moduleType: 'renewal',
+        moduleName: 'Renewal Letter',
+        templateType: 'custom_email',
+        recipientEmail,
+        recipientName: customerName,
+        recipientType: 'Customer',
+        sentByUser: getPortalUserName() || 'User',
+        subject,
+        body,
+        attachmentUrl: shareUrl,
+        attachmentName: `${renewalDisplayId.replace(/[^\w.-]+/g, '_')}.pdf`,
+        contextData: {
+          customer_name: customerName,
+          customer_email: recipientEmail,
+          customer_phone: String(context.customerPhone || '').trim(),
+          service_type: String(context.serviceType || 'Renewal Letter').trim(),
+          address: '',
+          company_name: 'SKUAS Pest Control'
+        }
+      });
+      window.alert(response.data?.success ? 'Renewal letter email sent successfully.' : 'Renewal letter email queued.');
+    } catch (error) {
+      console.error('Failed to send renewal letter email', error);
+      window.alert(error?.response?.data?.error || 'Could not send renewal letter email.');
+    }
   };
 
   useEffect(() => {
@@ -759,7 +817,8 @@ export default function RenewalDashboard() {
         title={pdfPreview.title}
         pdfUrl={pdfPreview.pdfUrl}
         downloadFileName={pdfPreview.downloadFileName}
-        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '' })}
+        onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', renewalId: '', shareContext: null })}
+        onShareEmail={shareRenewalLetterByEmail}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
       {renderModal()}
