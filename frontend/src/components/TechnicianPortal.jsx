@@ -638,7 +638,14 @@ const shell = {
   reviewStatLabel: { margin: 0, fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
   reviewStatValue: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' },
   reviewNote: { borderRadius: '12px', background: '#FEF3C7', color: '#B45309', padding: '10px 12px', fontSize: '12px', fontWeight: 700, lineHeight: 1.5 },
-  wizardFooter: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px', marginTop: '2px' },
+  wizardFooter: {
+    position: 'relative',
+    zIndex: 2,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: '10px',
+    marginTop: '2px'
+  },
   wizardBackBtn: {
     border: '1px solid rgba(148,163,184,0.4)',
     background: '#fff',
@@ -1782,7 +1789,7 @@ export default function TechnicianPortal() {
                 Clear
               </button>
             </div>
-            <div style={signatureGridStyle}>
+            <div style={{ ...signatureGridStyle, position: 'relative', zIndex: 0 }}>
               <div>
                 <p style={shell.label}>Technician Signature</p>
                 <div style={{ ...shell.signatureWrap, maxWidth: '100%' }}>
