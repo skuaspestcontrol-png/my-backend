@@ -281,6 +281,7 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
   const pointerIdRef = useRef(null);
   const hasInkRef = useRef(false);
   const dprRef = useRef(1);
+  const windowCleanupRef = useRef(null);
 
   const getPoint = useCallback((event) => {
     const canvas = canvasRef.current;
@@ -343,6 +344,10 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
 
   const finishStroke = useCallback((event) => {
     const canvas = canvasRef.current;
+    if (typeof windowCleanupRef.current === 'function') {
+      windowCleanupRef.current();
+      windowCleanupRef.current = null;
+    }
     if (!canvas) return;
     if (pointerIdRef.current !== null && canvas.hasPointerCapture?.(pointerIdRef.current)) {
       try {
@@ -353,10 +358,6 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     }
     drawingRef.current = false;
     pointerIdRef.current = null;
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
   }, []);
 
   const handlePointerDown = useCallback((event) => {
@@ -375,6 +376,20 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     drawingRef.current = true;
     pointerIdRef.current = event.pointerId;
     hasInkRef.current = true;
+
+    if (typeof windowCleanupRef.current === 'function') {
+      windowCleanupRef.current();
+    }
+    const cleanupStrokeListeners = () => {
+      window.removeEventListener('pointerup', cleanupStrokeListeners, true);
+      window.removeEventListener('pointercancel', cleanupStrokeListeners, true);
+      window.removeEventListener('blur', cleanupStrokeListeners, true);
+      windowCleanupRef.current = null;
+    };
+    windowCleanupRef.current = cleanupStrokeListeners;
+    window.addEventListener('pointerup', cleanupStrokeListeners, true);
+    window.addEventListener('pointercancel', cleanupStrokeListeners, true);
+    window.addEventListener('blur', cleanupStrokeListeners, true);
 
     if (canvas.setPointerCapture) {
       try {
@@ -481,6 +496,7 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
         onPointerMove={handlePointerMove}
         onPointerUp={finishStroke}
         onPointerCancel={finishStroke}
+        onLostPointerCapture={finishStroke}
         onPointerLeave={(event) => {
           if (drawingRef.current && pointerIdRef.current === event.pointerId) {
             finishStroke(event);
