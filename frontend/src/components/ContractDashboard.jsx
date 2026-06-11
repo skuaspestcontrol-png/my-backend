@@ -115,16 +115,16 @@ const shell = {
   titleWrap: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px',
-    minHeight: '34px',
-    height: '34px',
-    padding: '0 10px',
-    borderRadius: '8px',
-    background: 'var(--color-primary-light)',
-    border: '1px solid var(--color-primary-soft)',
+    gap: '8px',
+    minHeight: '30px',
+    height: '30px',
+    padding: '0',
+    borderRadius: 0,
+    background: 'transparent',
+    border: 'none',
     boxSizing: 'border-box'
   },
-  title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111827', display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   subtitle: { margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 600 },
   headActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' },
   beta: { border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.6)', color: 'var(--color-primary)', borderRadius: '999px', padding: '7px 12px', fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap' },
@@ -149,7 +149,7 @@ const shell = {
   },
   card: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', overflow: 'hidden', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   cardTop: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: '#fff', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
-  cardTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
+  cardTitle: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
   shownPill: { border: '1px solid var(--color-border)', background: '#f8fafc', color: '#334155', borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 },
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
@@ -1082,8 +1082,8 @@ export default function ContractDashboard() {
     : { width: 'min(100%, 420px)', justifySelf: 'center' };
   const headerSearchInputStyle = {
     ...shell.input,
-    height: '34px',
-    minHeight: '34px',
+    height: '36px',
+    minHeight: '36px',
     paddingLeft: '38px'
   };
   const headerSearchWrapStyle = {
