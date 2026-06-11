@@ -10,7 +10,6 @@ import {
   FileCheck2,
   FlaskConical,
   PenLine,
-  Plus,
   Trash2,
   Upload,
   UserCog
@@ -2690,9 +2689,6 @@ export default function TechnicianPortal() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
           <button type="button" style={shell.backBtn} onClick={() => setActiveJob(null)}>
             <ArrowLeft size={14} /> Back to Jobs
-          </button>
-          <button type="button" style={shell.costAddBtn} onClick={openAddCostModal}>
-            <Plus size={14} /> Add Cost
           </button>
         </div>
 
