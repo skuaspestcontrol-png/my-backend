@@ -108,9 +108,30 @@ const PEST_INFESTATION_LEVEL_OPTIONS = ['Low', 'Medium', 'High', 'Severe'];
 
 const createDraftId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 
+const normalizeLookupKey = (value) => String(value || '').trim().toLowerCase();
+
+const getStockItemId = (item = {}) => String(item?._id || item?.id || item?.stockItemId || '').trim();
+
+const getStockItemName = (item = {}) => String(item?.name || item?.itemName || item?.label || '').trim();
+
+const matchStockItemForChemicalName = (chemicalName, catalog = []) => {
+  const target = normalizeLookupKey(chemicalName);
+  if (!target) return null;
+  const items = Array.isArray(catalog) ? catalog : [];
+
+  return items.find((item) => normalizeLookupKey(getStockItemName(item)) === target)
+    || items.find((item) => {
+      const name = normalizeLookupKey(getStockItemName(item));
+      return Boolean(name) && (name.includes(target) || target.includes(name));
+    })
+    || null;
+};
+
 const createDefaultChemical = (label = '') => ({
   id: createDraftId('chem'),
   chemicalName: label,
+  stockItemId: '',
+  stockItemName: '',
   quantityUsed: '',
   dilutionRatio: '',
   targetPest: '',
@@ -142,6 +163,8 @@ const normalizeChemicals = (value) => {
     .map((row, index) => ({
       id: String(row?.id || '').trim() || createDraftId(`chem-${index}`),
       chemicalName: String(row?.chemicalName || row?.name || '').trim(),
+      stockItemId: String(row?.stockItemId || row?.stock_item_id || '').trim(),
+      stockItemName: String(row?.stockItemName || row?.stock_item_name || '').trim(),
       quantityUsed: String(row?.quantityUsed || row?.quantity || '').trim(),
       dilutionRatio: String(row?.dilutionRatio || row?.ratio || '').trim(),
       targetPest: String(row?.targetPest || row?.pest || '').trim(),
@@ -890,6 +913,7 @@ const shell = {
   },
   workflowTabIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   workflowTabLabel: { margin: 0, fontSize: '11px', fontWeight: 800, textAlign: 'center', lineHeight: 1.2 },
+  chemicalMatchText: { margin: '2px 0 0 0', fontSize: '11px', color: '#0f766e', fontWeight: 700, lineHeight: 1.35 },
   workflowCard: {
     position: 'relative',
     isolation: 'isolate',
@@ -1110,11 +1134,20 @@ export default function TechnicianPortal() {
         const response = await axios.get(`${API_BASE_URL}/api/items`);
         if (cancelled) return;
         const nextCatalog = Array.isArray(response.data)
-          ? Array.from(new Set(
-            response.data
-              .map((item) => String(item?.name || item?.itemName || '').trim())
-              .filter(Boolean)
-          )).sort((a, b) => String(a).localeCompare(String(b), 'en', { sensitivity: 'base' }))
+          ? Array.from(
+            response.data.reduce((acc, item) => {
+              const name = getStockItemName(item);
+              const id = getStockItemId(item);
+              const key = normalizeLookupKey(id || name);
+              if (!key || acc.has(key)) return acc;
+              acc.set(key, {
+                _id: id,
+                name,
+                itemName: String(item?.itemName || '').trim()
+              });
+              return acc;
+            }, new Map()).values()
+          ).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'en', { sensitivity: 'base' }))
           : [];
         setStockItemsCatalog(nextCatalog);
       } catch (error) {
@@ -1380,6 +1413,29 @@ export default function TechnicianPortal() {
       openJob(match);
     }
   }, [activeJob, jobs, routeJobId, pdfPreview.open]);
+
+  useEffect(() => {
+    if (!stockItemsCatalog.length) return;
+    setJobWizard((prev) => {
+      const nextChemicals = normalizeChemicals(prev.chemicalsUsed).map((row) => {
+        const matchedStockItem = matchStockItemForChemicalName(row.chemicalName, stockItemsCatalog);
+        const stockItemId = matchedStockItem ? getStockItemId(matchedStockItem) : '';
+        const stockItemName = matchedStockItem ? getStockItemName(matchedStockItem) : '';
+        if (row.stockItemId === stockItemId && row.stockItemName === stockItemName) {
+          return row;
+        }
+        return {
+          ...row,
+          stockItemId,
+          stockItemName
+        };
+      });
+      return {
+        ...prev,
+        chemicalsUsed: nextChemicals
+      };
+    });
+  }, [stockItemsCatalog]);
 
   useLayoutEffect(() => {
     if (wizardStep !== 'signature') return;
@@ -1820,9 +1876,16 @@ export default function TechnicianPortal() {
 
   const handleChemicalChange = (index, field, value) => {
     updateWizardDraft((prev) => {
-      const nextRows = normalizeChemicals(prev.chemicalsUsed).map((row, rowIndex) =>
-        rowIndex === index ? { ...row, [field]: value } : row
-      );
+      const nextRows = normalizeChemicals(prev.chemicalsUsed).map((row, rowIndex) => {
+        if (rowIndex !== index) return row;
+        const nextRow = { ...row, [field]: value };
+        if (field === 'chemicalName') {
+          const matchedStockItem = matchStockItemForChemicalName(value, stockItemsCatalog);
+          nextRow.stockItemId = matchedStockItem ? getStockItemId(matchedStockItem) : '';
+          nextRow.stockItemName = matchedStockItem ? getStockItemName(matchedStockItem) : '';
+        }
+        return nextRow;
+      });
       return { ...prev, chemicalsUsed: nextRows };
     });
   };
@@ -2171,6 +2234,9 @@ export default function TechnicianPortal() {
                       placeholder="Start typing or choose from stock items"
                       style={shell.textInput}
                     />
+                    {chemical.stockItemName ? (
+                      <p style={shell.chemicalMatchText}>Matched stock item: {chemical.stockItemName}</p>
+                    ) : null}
                   </div>
                   <div style={shell.field}>
                     <p style={shell.label}>Quantity Used</p>
@@ -2225,8 +2291,8 @@ export default function TechnicianPortal() {
               </div>
             ))}
             <datalist id={chemicalNameDatalistId}>
-              {stockItemsCatalog.map((name) => (
-                <option key={name} value={name} />
+              {stockItemsCatalog.map((item) => (
+                <option key={item._id || item.name} value={item.name} />
               ))}
             </datalist>
             <button type="button" style={shell.addChemicalBtn} onClick={handleAddChemicalRow}>
