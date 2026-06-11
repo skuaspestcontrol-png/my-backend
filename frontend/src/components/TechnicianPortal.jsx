@@ -2214,10 +2214,6 @@ export default function TechnicianPortal() {
             <div style={shell.bigValueBox}>{formatAddress(activeJob) || '-'}</div>
           </div>
           <div style={shell.field}>
-            <p style={shell.label}>Technician Blueprint</p>
-            <div style={shell.bigValueBox}>{activeJob.technicianBlueprint || 'No blueprint provided.'}</div>
-          </div>
-          <div style={shell.field}>
             <p style={shell.label}>Service Instructions</p>
             <div style={shell.bigValueBox}>{activeJob.serviceInstructions || 'No special instructions.'}</div>
           </div>
