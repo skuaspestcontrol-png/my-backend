@@ -368,7 +368,7 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
 
   const getResolvedHeight = useCallback(() => (typeof height === 'number' ? `${height}px` : String(height || '100%')), [height]);
 
-  const stopStroke = useCallback((event) => {
+  const stopStroke = useCallback((event, shouldPreventDefault = true) => {
     const canvas = canvasRef.current;
     const activePointerId = pointerIdRef.current;
     if (typeof strokeCleanupRef.current === 'function') {
@@ -388,7 +388,7 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
       }
     }
     syncDebugState();
-    if (event?.preventDefault) event.preventDefault();
+    if (shouldPreventDefault && event?.preventDefault) event.preventDefault();
   }, [syncDebugState]);
 
   const getPoint = useCallback((event) => {
@@ -508,6 +508,17 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     context.lineTo(point.x, point.y);
     context.stroke();
   }, [configureContext, getPoint]);
+
+  useEffect(() => {
+    const handleOutsidePointerDown = (event) => {
+      const canvas = canvasRef.current;
+      if (!canvas || pointerIdRef.current === null) return;
+      if (event.target && canvas.contains(event.target)) return;
+      stopStroke(event, false);
+    };
+    document.addEventListener('pointerdown', handleOutsidePointerDown, true);
+    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
+  }, [stopStroke]);
 
   useEffect(() => {
     resizeCanvas();
@@ -1012,7 +1023,7 @@ const shell = {
   reviewNote: { borderRadius: '12px', background: '#FEF3C7', color: '#B45309', padding: '10px 12px', fontSize: '12px', fontWeight: 700, lineHeight: 1.5 },
   wizardFooter: {
     position: 'relative',
-    zIndex: 60,
+    zIndex: 120,
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: '10px',
