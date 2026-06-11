@@ -2278,6 +2278,7 @@ export default function TechnicianPortal() {
         ) : null}
 
         <div style={shell.panel}>
+          <h3 style={shell.panelTitle}><FileCheck2 size={16} /> Assigned Jobs</h3>
           <p style={shell.panelSub}>Open any job to begin execution workflow.</p>
           {jobs.length === 0 ? (
             <p style={shell.emptyText}>No active assigned jobs right now.</p>
