@@ -375,7 +375,7 @@ export default function PaymentReceivedDashboard() {
         </article>
         <article style={statStyle}>
           <p style={shell.statLabel}>Payment Entries</p>
-          <p style={shell.statValue}><IndianRupee size={18} style={{ verticalAlign: 'middle' }} /> {summary.totalEntries}</p>
+          <p style={shell.statValue}>{summary.totalEntries}</p>
         </article>
         <article style={statStyle}>
           <p style={shell.statLabel}>Unpaid Invoices</p>
