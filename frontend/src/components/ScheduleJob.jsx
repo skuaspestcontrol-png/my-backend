@@ -203,7 +203,7 @@ const scheduleColumnWidths = {
   service: 220,
   visit: 118,
   date: 115,
-  window: 122,
+  window: 88,
   site: 230,
   status: 128,
   pdf: 90,
@@ -213,8 +213,8 @@ const scheduleColumnBounds = {
   select: { min: 48, max: 72 },
   service: { min: 180, max: 360 },
   visit: { min: 100, max: 180 },
-  date: { min: 115, max: 115 },
-  window: { min: 110, max: 170 },
+  date: { min: 115, max: 140 },
+  window: { min: 88, max: 88 },
   site: { min: 170, max: 320 },
   status: { min: 100, max: 160 },
   pdf: { min: 82, max: 120 },
@@ -1067,15 +1067,15 @@ export default function ScheduleJob() {
                     <td style={cellStyle('service')}>{row.service}</td>
                     <td style={cellStyle('visit', 'center')}>{row.visit}</td>
                     <td style={cellStyle('date', 'center')}>
-                      <div style={{ width: '115px', maxWidth: '100%', margin: '0 auto' }}>
+                      <div style={{ width: '100%', maxWidth: '100%', margin: '0 auto' }}>
                         <input
                           type="date"
                           value={editableServiceRows.find((entry) => entry.key === row.key)?.editableDate || ''}
                           onChange={(event) => updateEditableRow(row.key, { editableDate: event.target.value })}
                           style={{
                             ...shell.input,
-                            width: '115px',
-                            minWidth: '115px',
+                            width: '100%',
+                            minWidth: 0,
                             maxWidth: '100%',
                             height: '32px',
                             minHeight: '32px',
@@ -1095,7 +1095,7 @@ export default function ScheduleJob() {
                         value={editableServiceRows.find((entry) => entry.key === row.key)?.editableTime || ''}
                         onChange={(event) => updateEditableRow(row.key, { editableTime: event.target.value })}
                         onBlur={(event) => updateEditableRow(row.key, { editableTime: formatTimeForEdit(event.target.value) })}
-                        style={{ ...shell.input, minHeight: '32px', textAlign: 'center' }}
+                        style={{ ...shell.input, width: '100%', minWidth: 0, minHeight: '32px', textAlign: 'center' }}
                       />
                     </td>
                     <td style={cellStyle('site')}>{row.site || '-'}</td>
