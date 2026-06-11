@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import SignatureCanvas from 'react-signature-canvas';
+import trimCanvas from 'trim-canvas';
 import {
   ArrowLeft,
   Camera,
@@ -265,6 +265,240 @@ const buildVisibleJobs = (jobs, serviceSchedules, invoices, customers) => {
     return aTime.localeCompare(bTime);
   });
 };
+
+const SignaturePadBox = forwardRef(function SignaturePadBox(
+  {
+    penColor = '#000000',
+    strokeWidth = 2.25,
+    height = 170,
+    maxWidth = '100%'
+  },
+  ref
+) {
+  const wrapperRef = useRef(null);
+  const canvasRef = useRef(null);
+  const drawingRef = useRef(false);
+  const pointerIdRef = useRef(null);
+  const hasInkRef = useRef(false);
+  const dprRef = useRef(1);
+
+  const getPoint = useCallback((event) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
+  }, []);
+
+  const configureContext = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.strokeStyle = penColor;
+    context.lineWidth = strokeWidth;
+    return context;
+  }, [penColor, strokeWidth]);
+
+  const resizeCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const wrapper = wrapperRef.current;
+    if (!canvas || !wrapper) return;
+
+    const rect = wrapper.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const nextDpr = Math.max(window.devicePixelRatio || 1, 1);
+    const nextWidth = Math.max(1, Math.round(rect.width * nextDpr));
+    const nextHeight = Math.max(1, Math.round(rect.height * nextDpr));
+    if (canvas.width === nextWidth && canvas.height === nextHeight && dprRef.current === nextDpr) {
+      return;
+    }
+
+    const snapshot = hasInkRef.current ? canvas.toDataURL('image/png') : '';
+    dprRef.current = nextDpr;
+    canvas.width = nextWidth;
+    canvas.height = nextHeight;
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+
+    const context = configureContext();
+    if (!context) return;
+    context.setTransform(nextDpr, 0, 0, nextDpr, 0, 0);
+    context.clearRect(0, 0, rect.width, rect.height);
+
+    if (snapshot) {
+      const image = new Image();
+      image.onload = () => {
+        context.clearRect(0, 0, rect.width, rect.height);
+        context.drawImage(image, 0, 0, rect.width, rect.height);
+      };
+      image.src = snapshot;
+    }
+  }, [configureContext]);
+
+  const finishStroke = useCallback((event) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (pointerIdRef.current !== null && canvas.hasPointerCapture?.(pointerIdRef.current)) {
+      try {
+        canvas.releasePointerCapture(pointerIdRef.current);
+      } catch (_error) {
+        // Ignore release issues if the browser already cleared capture.
+      }
+    }
+    drawingRef.current = false;
+    pointerIdRef.current = null;
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, []);
+
+  const handlePointerDown = useCallback((event) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    resizeCanvas();
+
+    const context = configureContext();
+    const point = getPoint(event);
+    if (!context || !point) return;
+
+    drawingRef.current = true;
+    pointerIdRef.current = event.pointerId;
+    hasInkRef.current = true;
+
+    if (canvas.setPointerCapture) {
+      try {
+        canvas.setPointerCapture(event.pointerId);
+      } catch (_error) {
+        // Ignore capture failures on browsers that do not support it fully.
+      }
+    }
+
+    context.beginPath();
+    context.moveTo(point.x, point.y);
+  }, [configureContext, getPoint, resizeCanvas]);
+
+  const handlePointerMove = useCallback((event) => {
+    if (!drawingRef.current || pointerIdRef.current !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const canvas = canvasRef.current;
+    const context = configureContext();
+    const point = getPoint(event);
+    if (!canvas || !context || !point) return;
+    context.lineTo(point.x, point.y);
+    context.stroke();
+  }, [configureContext, getPoint]);
+
+  useEffect(() => {
+    resizeCanvas();
+    const handleResize = () => resizeCanvas();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [resizeCanvas]);
+
+  useImperativeHandle(ref, () => ({
+    clear() {
+      const canvas = canvasRef.current;
+      const context = canvas?.getContext('2d');
+      if (!canvas || !context) return;
+      context.setTransform(dprRef.current, 0, 0, dprRef.current, 0, 0);
+      context.clearRect(0, 0, canvas.clientWidth || canvas.width, canvas.clientHeight || canvas.height);
+      hasInkRef.current = false;
+      drawingRef.current = false;
+      pointerIdRef.current = null;
+    },
+    isEmpty() {
+      return !hasInkRef.current;
+    },
+    getTrimmedCanvas() {
+      const canvas = canvasRef.current;
+      if (!canvas) return document.createElement('canvas');
+      const clone = document.createElement('canvas');
+      clone.width = canvas.width;
+      clone.height = canvas.height;
+      const context = clone.getContext('2d');
+      if (context) {
+        context.drawImage(canvas, 0, 0);
+      }
+      return trimCanvas(clone);
+    },
+    fromDataURL(dataURL) {
+      const canvas = canvasRef.current;
+      const context = canvas?.getContext('2d');
+      if (!canvas || !context || !dataURL) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+          resizeCanvas();
+          const width = canvas.clientWidth || canvas.width / dprRef.current;
+          const height = canvas.clientHeight || canvas.height / dprRef.current;
+          context.setTransform(dprRef.current, 0, 0, dprRef.current, 0, 0);
+          context.clearRect(0, 0, width, height);
+          context.drawImage(image, 0, 0, width, height);
+          hasInkRef.current = true;
+          resolve();
+        };
+        image.onerror = reject;
+        image.src = dataURL;
+      });
+    },
+    toDataURL(type = 'image/png', quality) {
+      const canvas = canvasRef.current;
+      return canvas ? canvas.toDataURL(type, quality) : '';
+    }
+  }), [resizeCanvas]);
+
+  return (
+    <div
+      ref={wrapperRef}
+      style={{
+        position: 'relative',
+        width: '100%',
+        maxWidth,
+        height: `${height}px`,
+        borderRadius: '8px',
+        overflow: 'hidden',
+        background: '#fff',
+        pointerEvents: 'auto'
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={finishStroke}
+        onPointerCancel={finishStroke}
+        onPointerLeave={(event) => {
+          if (drawingRef.current && pointerIdRef.current === event.pointerId) {
+            finishStroke(event);
+          }
+        }}
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '100%',
+          touchAction: 'none',
+          cursor: 'crosshair',
+          pointerEvents: 'auto',
+          background: '#fff'
+        }}
+      />
+    </div>
+  );
+});
 
 const shell = {
   page: {
@@ -1565,7 +1799,11 @@ export default function TechnicianPortal() {
     const nextIndex = Math.max(0, wizardStepIndex - 1);
     const nextDraft = captureSignatureDraft(jobWizard);
     setJobWizard(nextDraft);
-    if (wizardStep !== 'signature') {
+    if (wizardStep === 'signature') {
+      void persistWizardDraft(nextDraft).catch((error) => {
+        console.error('Background signature save failed', error);
+      });
+    } else {
       await persistWizardDraft(nextDraft);
     }
     setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
@@ -1579,7 +1817,11 @@ export default function TechnicianPortal() {
     const nextIndex = Math.min(wizardLastStepIndex, wizardStepIndex + 1);
     const nextDraft = captureSignatureDraft(jobWizard);
     setJobWizard(nextDraft);
-    if (wizardStep !== 'signature') {
+    if (wizardStep === 'signature') {
+      void persistWizardDraft(nextDraft).catch((error) => {
+        console.error('Background signature save failed', error);
+      });
+    } else {
       await persistWizardDraft(nextDraft);
     }
     setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
@@ -1806,20 +2048,20 @@ export default function TechnicianPortal() {
               <div>
                 <p style={shell.label}>Technician Signature</p>
                 <div style={{ ...shell.signatureWrap, maxWidth: '100%' }}>
-                  <SignatureCanvas
+                  <SignaturePadBox
                     ref={technicianSigCanvas}
                     penColor="black"
-                    canvasProps={{ width: signatureWidth, height: 170, style: { borderRadius: '8px', width: '100%', maxWidth: `${signatureWidth}px` } }}
+                    maxWidth={`${signatureWidth}px`}
                   />
                 </div>
               </div>
               <div>
                 <p style={shell.label}>Customer Signature</p>
                 <div style={{ ...shell.signatureWrap, maxWidth: '100%' }}>
-                  <SignatureCanvas
+                  <SignaturePadBox
                     ref={customerSigCanvas}
                     penColor="black"
-                    canvasProps={{ width: signatureWidth, height: 170, style: { borderRadius: '8px', width: '100%', maxWidth: `${signatureWidth}px` } }}
+                    maxWidth={`${signatureWidth}px`}
                   />
                 </div>
               </div>
