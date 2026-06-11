@@ -202,7 +202,7 @@ const scheduleColumnWidths = {
   select: 56,
   service: 220,
   visit: 118,
-  date: 140,
+  date: 108,
   window: 88,
   site: 180,
   status: 128,
@@ -213,7 +213,7 @@ const scheduleColumnBounds = {
   select: { min: 48, max: 72 },
   service: { min: 180, max: 360 },
   visit: { min: 100, max: 180 },
-  date: { min: 130, max: 160 },
+  date: { min: 108, max: 108 },
   window: { min: 88, max: 88 },
   site: { min: 150, max: 220 },
   status: { min: 100, max: 160 },
@@ -649,7 +649,7 @@ export default function ScheduleJob() {
   };
   const cellStyle = (key, align = 'left') => {
     const width = getColumnWidth(key) || scheduleColumnWidths[key] || 80;
-    const compactPadding = key === 'date' ? '8px 6px' : shell.td.padding;
+    const compactPadding = key === 'date' ? '0' : shell.td.padding;
     return { ...shell.td, width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`, textAlign: align, padding: compactPadding };
   };
   const techRowStyle = isMobile ? { ...shell.techRow, gridTemplateColumns: '1fr' } : shell.techRow;
@@ -1067,18 +1067,18 @@ export default function ScheduleJob() {
                     <td style={cellStyle('service')}>{row.service}</td>
                     <td style={cellStyle('visit', 'center')}>{row.visit}</td>
                     <td style={cellStyle('date', 'center')}>
-                      <div style={{ width: '100%', maxWidth: '100%', margin: '0 auto' }}>
+                      <div style={{ width: '108px', maxWidth: '108px', margin: '0 auto' }}>
                         <input
                           type="date"
                           value={editableServiceRows.find((entry) => entry.key === row.key)?.editableDate || ''}
                           onChange={(event) => updateEditableRow(row.key, { editableDate: event.target.value })}
                           style={{
                             ...shell.input,
-                            width: '100%',
-                            minWidth: 0,
-                            maxWidth: '100%',
-                            height: '32px',
-                            minHeight: '32px',
+                            width: '108px',
+                            minWidth: '108px',
+                            maxWidth: '108px',
+                            height: '33px',
+                            minHeight: '33px',
                             textAlign: 'left',
                             padding: '0 18px 0 8px',
                             fontSize: '11px',
