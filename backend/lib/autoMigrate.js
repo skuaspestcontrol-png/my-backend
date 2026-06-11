@@ -485,6 +485,7 @@ const tableDefinitions = [
       'customer_name VARCHAR(255) NULL',
       'payment_date DATE NULL',
       'payment_mode VARCHAR(80) NULL',
+      'deposit_to VARCHAR(120) NULL',
       'reference_number VARCHAR(255) NULL',
       'amount DECIMAL(18,2) NULL',
       'notes TEXT NULL',

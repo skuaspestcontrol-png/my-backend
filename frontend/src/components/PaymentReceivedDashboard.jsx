@@ -88,6 +88,16 @@ const toNum = (v) => {
 
 const formatINR = (value) => `₹${toNum(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
+const normalizeDepositTo = (value, invoiceType = 'GST') => {
+  const raw = String(value || '').trim().toLowerCase();
+  const defaultValue = String(invoiceType || '').trim().toUpperCase() === 'NON GST' ? 'Saving Account' : 'Current Account';
+  if (!raw) return defaultValue;
+  if (['cash', 'billing', 'undeposited funds', 'undeposited fund'].includes(raw)) return 'Cash';
+  if (['current account', 'current', 'bank', 'bank transfer'].includes(raw)) return 'Current Account';
+  if (['saving account', 'savings account', 'saving', 'savings'].includes(raw)) return 'Saving Account';
+  return defaultValue;
+};
+
 const formatDate = (value) => {
   if (!value) return '-';
   const raw = String(value).trim();
@@ -101,20 +111,22 @@ const formatDate = (value) => {
   return `${day}/${month}/${year}`;
 };
 
-const paymentColumns = ['date', 'invoice', 'customer', 'mode', 'amount', 'action'];
+const paymentColumns = ['date', 'invoice', 'customer', 'mode', 'depositTo', 'amount', 'action'];
 const paymentColumnWidths = {
   date: 120,
   invoice: 160,
-  customer: 240,
+  customer: 130,
   mode: 140,
+  depositTo: 110,
   amount: 130,
   action: 110
 };
 const paymentColumnBounds = {
   date: { min: 100, max: 180 },
   invoice: { min: 120, max: 240 },
-  customer: { min: 180, max: 360 },
+  customer: { min: 120, max: 240 },
   mode: { min: 100, max: 180 },
+  depositTo: { min: 100, max: 150 },
   amount: { min: 100, max: 180 },
   action: { min: 100, max: 150 }
 };
@@ -168,6 +180,7 @@ const normalizePayments = (paymentsRaw, invoicesRaw) => {
       ''
     ).trim().toLowerCase();
     const invoice = invoiceMap.get(linkedInvoiceKey);
+    const invoiceType = String(invoice?.invoiceType || (toNum(invoice?.totalTax || 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
     paymentRows.push({
       id: payment._id || payment.id || payment.external_id || `pay-${idx}`,
       sourceType: 'payment_received',
@@ -176,6 +189,10 @@ const normalizePayments = (paymentsRaw, invoicesRaw) => {
       invoiceNo: payment.invoiceNumber || payment.invoice_no || payment.invoiceNo || invoice?.invoiceNumber || invoice?.invoice_no || '-',
       customerName: payment.customerName || payment.customer_name || invoice?.customerName || invoice?.customer_name || '-',
       mode: payment.mode || payment.paymentMode || payment.payment_mode || '-',
+      depositTo: normalizeDepositTo(
+        payment.depositTo || payment.deposit_to || payment.paymentDepositTo || payment.payment_deposit_to || invoice?.depositTo || invoice?.deposit_to || '',
+        invoiceType
+      ),
       amount: toNum(payment.amount),
       note: payment.note || payment.notes || payment.reference || payment.reference_number || '-',
       rowSource: payment
@@ -187,6 +204,7 @@ const normalizePayments = (paymentsRaw, invoicesRaw) => {
     invoices.forEach((invoice) => {
       const splits = Array.isArray(invoice.paymentSplits) ? invoice.paymentSplits : [];
       splits.forEach((split, idx) => {
+        const invoiceType = String(invoice?.invoiceType || (toNum(invoice?.totalTax || 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
         paymentRows.push({
           id: `${invoice._id || invoice.invoiceNumber || 'inv'}-split-${idx}`,
           sourceType: 'legacy_payments',
@@ -195,6 +213,7 @@ const normalizePayments = (paymentsRaw, invoicesRaw) => {
           invoiceNo: invoice.invoiceNumber || '-',
           customerName: invoice.customerName || '-',
           mode: split.mode || '-',
+          depositTo: normalizeDepositTo(split.depositTo || split.deposit_to || '', invoiceType),
           amount: toNum(split.amount),
           note: split.reference || split.note || '-',
           rowSource: split
@@ -391,8 +410,11 @@ export default function PaymentReceivedDashboard() {
                   <tr key={row.id}>
                     <td style={cellStyle('date')}>{formatDate(row.date)}</td>
                     <td style={cellStyle('invoice')}>{row.invoiceNo}</td>
-                    <td style={cellStyle('customer')}>{row.customerName}</td>
+                    <td style={cellStyle('customer')} title={row.customerName}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.customerName}</div>
+                    </td>
                     <td style={cellStyle('mode', 'center')}>{row.mode}</td>
+                    <td style={cellStyle('depositTo', 'center')}>{row.depositTo || '-'}</td>
                     <td style={{ ...cellStyle('amount', 'center'), fontWeight: 800, color: '#111827' }}>{formatINR(row.amount)}</td>
                     <td style={cellStyle('action', 'center')}>
                       <button type="button" style={shell.actionButton} onClick={() => deletePayment(row.id)}>

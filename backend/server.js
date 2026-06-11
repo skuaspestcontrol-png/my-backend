@@ -7800,6 +7800,33 @@ const normalizePaymentDepositTo = (value, invoiceType = 'GST') => {
   return getDefaultPaymentDepositTo(invoiceType);
 };
 
+const resolvePaymentDepositTo = async (payment = {}) => {
+  const explicit = String(payment.depositTo || payment.deposit_to || '').trim();
+  if (explicit) {
+    const invoiceTypeHint = String(payment.invoiceType || payment.invoice_type || (toNumber(payment.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
+    return normalizePaymentDepositTo(explicit, invoiceTypeHint);
+  }
+
+  const linkedInvoiceId = String(
+    payment.linkedInvoiceId ||
+    payment.linkedInvoiceExternalId ||
+    payment.linked_invoice_external_id ||
+    payment.invoiceId ||
+    payment.invoiceNumber ||
+    payment.invoiceNo ||
+    ''
+  ).trim();
+  if (!linkedInvoiceId) return getDefaultPaymentDepositTo('GST');
+
+  const invoices = await loadInvoicesForContext().catch(() => []);
+  const linkedInvoice = (Array.isArray(invoices) ? invoices : []).find((invoice) =>
+    String(invoice?._id || '').trim() === linkedInvoiceId ||
+    String(invoice?.invoiceNumber || '').trim() === linkedInvoiceId
+  ) || null;
+  const invoiceType = String(linkedInvoice?.invoiceType || (toNumber(linkedInvoice?.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
+  return getDefaultPaymentDepositTo(invoiceType);
+};
+
 const summarizePaymentDepositBalances = (rawSplits, invoiceType = 'GST') => {
   return (Array.isArray(rawSplits) ? rawSplits : []).reduce((totals, split) => {
     const amount = toNumber(split?.amount, 0);
@@ -9743,6 +9770,7 @@ const ensureVendorFinanceTables = async (conn) => {
       customer_name VARCHAR(255) NULL,
       payment_date DATE NULL,
       payment_mode VARCHAR(120) NULL,
+      deposit_to VARCHAR(120) NULL,
       reference_number VARCHAR(255) NULL,
       amount DECIMAL(12,2) NOT NULL DEFAULT 0,
       notes TEXT NULL,
@@ -9754,6 +9782,9 @@ const ensureVendorFinanceTables = async (conn) => {
       UNIQUE KEY uk_payment_received_external_id (external_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+  await ensureColumnsIfMissing(conn, 'payment_received', [
+    { name: 'deposit_to', definition: 'VARCHAR(120) NULL' }
+  ]);
 };
 
 const readMysqlPayload = (rawPayload) => parseMysqlJsonPayload(rawPayload) || {};
@@ -10281,6 +10312,7 @@ app.get('/api/payment-received', async (req, res) => {
           customerName: String(row.customer_name ?? payload.customerName ?? '').trim(),
           paymentDate: String(row.payment_date ?? payload.paymentDate ?? '').trim(),
           mode: String(row.payment_mode ?? payload.mode ?? payload.paymentMode ?? '').trim(),
+          depositTo: String(row.deposit_to ?? payload.depositTo ?? payload.deposit_to ?? '').trim(),
           reference: String(row.reference_number ?? payload.reference ?? payload.referenceNumber ?? '').trim(),
           amount: toNumber(row.amount ?? payload.amount, 0),
           notes: String(row.notes ?? payload.notes ?? '').trim(),
@@ -10301,17 +10333,20 @@ app.post('/api/payment-received', async (req, res) => {
     const payment = req.body && typeof req.body === 'object' ? { ...req.body } : {};
     const externalId = String(payment._id || `PR-${Date.now()}`).trim();
     const payload = { ...payment, _id: externalId };
+    const depositTo = await resolvePaymentDepositTo(payload);
+    payload.depositTo = depositTo;
     await withMysqlConnection(async (conn) => {
       await ensureVendorFinanceTables(conn);
       await conn.query(
         `INSERT INTO payment_received (
-          external_id, customer_external_id, customer_name, payment_date, payment_mode, reference_number, amount, notes, linked_invoice_external_id, payload
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          external_id, customer_external_id, customer_name, payment_date, payment_mode, deposit_to, reference_number, amount, notes, linked_invoice_external_id, payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           customer_external_id=VALUES(customer_external_id),
           customer_name=VALUES(customer_name),
           payment_date=VALUES(payment_date),
           payment_mode=VALUES(payment_mode),
+          deposit_to=VALUES(deposit_to),
           reference_number=VALUES(reference_number),
           amount=VALUES(amount),
           notes=VALUES(notes),
@@ -10323,6 +10358,7 @@ app.post('/api/payment-received', async (req, res) => {
           String(payload.customerName || '').trim(),
           String(payload.paymentDate || '').trim() || null,
           String(payload.mode || payload.paymentMode || '').trim(),
+          String(depositTo || '').trim(),
           String(payload.reference || payload.referenceNumber || '').trim(),
           toNumber(payload.amount, 0),
           String(payload.notes || '').trim(),
@@ -10344,13 +10380,15 @@ app.put('/api/payment-received/:id', async (req, res) => {
     const paymentId = String(req.params.id || '').trim();
     const payment = req.body && typeof req.body === 'object' ? { ...req.body } : {};
     const payload = { ...payment, _id: String(payment._id || paymentId).trim() };
+    const depositTo = await resolvePaymentDepositTo(payload);
+    payload.depositTo = depositTo;
     const numericId = Number(paymentId);
     const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
     const affectedRows = await withMysqlConnection(async (conn) => {
       await ensureVendorFinanceTables(conn);
       const [result] = await conn.query(
         `UPDATE payment_received SET
-          external_id=?, customer_external_id=?, customer_name=?, payment_date=?, payment_mode=?, reference_number=?, amount=?, notes=?, linked_invoice_external_id=?, payload=?
+          external_id=?, customer_external_id=?, customer_name=?, payment_date=?, payment_mode=?, deposit_to=?, reference_number=?, amount=?, notes=?, linked_invoice_external_id=?, payload=?
          WHERE external_id = ? OR id = ?`,
         [
           payload._id,
@@ -10358,6 +10396,7 @@ app.put('/api/payment-received/:id', async (req, res) => {
           String(payload.customerName || '').trim(),
           String(payload.paymentDate || '').trim() || null,
           String(payload.mode || payload.paymentMode || '').trim(),
+          String(depositTo || '').trim(),
           String(payload.reference || payload.referenceNumber || '').trim(),
           toNumber(payload.amount, 0),
           String(payload.notes || '').trim(),
