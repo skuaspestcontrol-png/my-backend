@@ -1565,7 +1565,9 @@ export default function TechnicianPortal() {
     const nextIndex = Math.max(0, wizardStepIndex - 1);
     const nextDraft = captureSignatureDraft(jobWizard);
     setJobWizard(nextDraft);
-    await persistWizardDraft(nextDraft);
+    if (wizardStep !== 'signature') {
+      await persistWizardDraft(nextDraft);
+    }
     setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
   };
 
@@ -1577,7 +1579,9 @@ export default function TechnicianPortal() {
     const nextIndex = Math.min(wizardLastStepIndex, wizardStepIndex + 1);
     const nextDraft = captureSignatureDraft(jobWizard);
     setJobWizard(nextDraft);
-    await persistWizardDraft(nextDraft);
+    if (wizardStep !== 'signature') {
+      await persistWizardDraft(nextDraft);
+    }
     setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
   };
 
