@@ -1131,11 +1131,16 @@ export default function TechnicianPortal() {
     let cancelled = false;
     const loadStockItemsCatalog = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/items`);
+        const response = await axios.get(`${API_BASE_URL}/api/stock/items`);
         if (cancelled) return;
-        const nextCatalog = Array.isArray(response.data)
+        const rawItems = Array.isArray(response.data?.items)
+          ? response.data.items
+          : Array.isArray(response.data)
+            ? response.data
+            : [];
+        const nextCatalog = Array.isArray(rawItems)
           ? Array.from(
-            response.data.reduce((acc, item) => {
+            rawItems.reduce((acc, item) => {
               const name = getStockItemName(item);
               const id = getStockItemId(item);
               const key = normalizeLookupKey(id || name);
@@ -1143,7 +1148,8 @@ export default function TechnicianPortal() {
               acc.set(key, {
                 _id: id,
                 name,
-                itemName: String(item?.itemName || '').trim()
+                itemName: String(item?.itemName || name || '').trim(),
+                category: String(item?.category || '').trim()
               });
               return acc;
             }, new Map()).values()
