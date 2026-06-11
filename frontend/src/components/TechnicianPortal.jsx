@@ -1299,6 +1299,21 @@ export default function TechnicianPortal() {
     }
   }, [activeJob, isSavingWizard, normalizeDraftForSave, syncLocalJob, jobWizard]);
 
+  const persistWizardDraftInBackground = useCallback(async (draft = jobWizard) => {
+    if (!activeJob?._id) return null;
+    const savePayload = normalizeDraftForSave(draft);
+    try {
+      const response = await axios.put(`${API_BASE_URL}/api/jobs/${activeJob._id}`, savePayload, { timeout: 30000 });
+      const savedJob = response?.data || { ...activeJob, ...savePayload };
+      syncLocalJob(savedJob);
+      triggerDashboardRefresh();
+      return savedJob;
+    } catch (error) {
+      console.error('Failed to save technician wizard draft in background', error);
+      return null;
+    }
+  }, [activeJob, normalizeDraftForSave, syncLocalJob]);
+
   const openJob = (job) => {
     if (isCompletedJob(job)) {
       setActiveJob(null);
@@ -1558,7 +1573,11 @@ export default function TechnicianPortal() {
     if (!nextStep || nextStep === wizardStep) return;
     const nextDraft = captureSignatureDraft(jobWizard);
     setJobWizard(nextDraft);
-    await persistWizardDraft(nextDraft);
+    if (wizardStep === 'signature') {
+      void persistWizardDraftInBackground(nextDraft);
+    } else {
+      await persistWizardDraft(nextDraft);
+    }
     setWizardStep(nextStep);
   };
 
@@ -1813,9 +1832,7 @@ export default function TechnicianPortal() {
     const nextDraft = captureSignatureDraft(jobWizard);
     setJobWizard(nextDraft);
     if (wizardStep === 'signature') {
-      void persistWizardDraft(nextDraft).catch((error) => {
-        console.error('Background signature save failed', error);
-      });
+      void persistWizardDraftInBackground(nextDraft);
     } else {
       await persistWizardDraft(nextDraft);
     }
@@ -1831,9 +1848,7 @@ export default function TechnicianPortal() {
     const nextDraft = captureSignatureDraft(jobWizard);
     setJobWizard(nextDraft);
     if (wizardStep === 'signature') {
-      void persistWizardDraft(nextDraft).catch((error) => {
-        console.error('Background signature save failed', error);
-      });
+      void persistWizardDraftInBackground(nextDraft);
     } else {
       await persistWizardDraft(nextDraft);
     }
@@ -2211,6 +2226,10 @@ export default function TechnicianPortal() {
                 <p style={shell.completionLabel}>Customer Signature</p>
                 {completionCard.customerSignature ? <img src={completionCard.customerSignature} alt="Customer signature" style={shell.completionMediaImg} /> : <p style={shell.completionValue}>-</p>}
               </div>
+              <div>
+                <p style={shell.completionLabel}>Technician Signature</p>
+                {completionCard.technicianSignature ? <img src={completionCard.technicianSignature} alt="Technician signature" style={shell.completionMediaImg} /> : <p style={shell.completionValue}>-</p>}
+              </div>
             </div>
             <div style={shell.completionActions}>
               <button
@@ -2503,7 +2522,7 @@ export default function TechnicianPortal() {
                 type="button"
                 style={{ ...shell.workflowTab, ...(isActiveStep ? shell.workflowTabActive : {}) }}
                 onClick={() => handleWizardStepChange(step.key)}
-                disabled={isSavingWizard || isCompleting}
+                disabled={isCompleting || (isSavingWizard && wizardStep !== 'signature')}
               >
                 <span style={shell.workflowTabIcon}><StepIcon size={18} /></span>
                 <p style={shell.workflowTabLabel}>{step.label}</p>
@@ -2519,7 +2538,7 @@ export default function TechnicianPortal() {
             type="button"
             style={shell.wizardBackBtn}
             onClick={handleWizardBack}
-            disabled={isSavingWizard || isCompleting}
+            disabled={isCompleting || (isSavingWizard && wizardStep !== 'signature')}
           >
             Back
           </button>
@@ -2527,7 +2546,7 @@ export default function TechnicianPortal() {
             type="button"
             style={shell.wizardNextBtn}
             onClick={handleWizardNext}
-            disabled={isSavingWizard || isCompleting}
+            disabled={isCompleting || (isSavingWizard && wizardStep !== 'signature')}
           >
             {wizardStep === 'review' ? (isCompleting ? 'Saving...' : 'Complete Service') : (isSavingWizard ? 'Saving...' : 'Next')}
           </button>

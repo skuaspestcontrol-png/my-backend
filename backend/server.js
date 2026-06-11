@@ -2633,6 +2633,15 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     };
     const drawTableRow = (rowY, job, index) => {
       const materials = getMaterialsForJob(job).map((row) => row.materialName).filter(Boolean).join(', ') || '-';
+      const customerSigned = Boolean(job.customerSignature || job.customer_signature || job.customer_signature_url);
+      const technicianSigned = Boolean(job.technicianSignature || job.technician_signature);
+      const signatureStatus = customerSigned && technicianSigned
+        ? 'Customer + Technician'
+        : customerSigned
+          ? 'Customer'
+          : technicianSigned
+            ? 'Technician'
+            : '-';
       const values = [
         getServiceVisitLabel(job, index),
         resolveJobCardNumberForPdf(job, completedJobs),
@@ -2643,7 +2652,7 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
         materials,
         pdfValue(job.infestationLevel || job.infestation_level || '-'),
         pdfValue(job.customerObservation || job.customer_observation || job.technicianRemarks || job.reviewRemarks || job.remarks || '-'),
-        job.customerSignature || job.customer_signature || job.customer_signature_url ? 'Signed' : '-'
+        signatureStatus
       ];
       const heights = values.map((value, idx) => doc.heightOfString(pdfValue(value), { width: cols[idx].width - 6 }));
       const rowHeight = Math.max(24, Math.max(...heights) + 10);
