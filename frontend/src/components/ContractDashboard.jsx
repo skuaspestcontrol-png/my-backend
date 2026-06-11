@@ -1081,25 +1081,23 @@ export default function ContractDashboard() {
     ? { width: '100%', maxWidth: '100%' }
     : { width: 'min(100%, 420px)', justifySelf: 'center' };
   const headerSearchInputStyle = {
-    width: '100%',
-    minHeight: '42px',
-    borderRadius: '12px',
-    border: '1px solid rgba(148,163,184,0.28)',
-    background: '#fff',
-    padding: '0 14px 0 40px',
-    fontSize: '13px',
-    color: '#334155',
-    boxShadow: 'inset 0 1px 2px rgba(15,23,42,0.04)',
-    boxSizing: 'border-box'
+    ...shell.input,
+    height: '36px',
+    minHeight: '36px',
+    paddingLeft: '38px'
   };
   const headerSearchWrapStyle = {
     position: 'relative',
+    display: 'block',
+    alignItems: 'center',
+    minWidth: 0,
     width: '100%',
-    maxWidth: '100%'
+    maxWidth: '100%',
+    justifySelf: 'center'
   };
   const headerSearchIconStyle = {
     position: 'absolute',
-    left: '14px',
+    left: '12px',
     top: '50%',
     transform: 'translateY(-50%)',
     color: '#94a3b8',
