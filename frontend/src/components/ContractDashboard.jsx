@@ -1082,8 +1082,8 @@ export default function ContractDashboard() {
     : { width: 'min(100%, 420px)', justifySelf: 'center' };
   const headerSearchInputStyle = {
     ...shell.input,
-    height: '36px',
-    minHeight: '36px',
+    height: '34px',
+    minHeight: '34px',
     paddingLeft: '38px'
   };
   const headerSearchWrapStyle = {
