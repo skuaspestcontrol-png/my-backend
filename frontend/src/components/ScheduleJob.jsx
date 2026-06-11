@@ -822,6 +822,19 @@ export default function ScheduleJob() {
     try {
       setIsSubmitting(true);
       setSaveError('');
+      const technicianNames = resolvedTechnicians
+        .map((tech) => formatEmployeeName(tech))
+        .map((name) => String(name || '').trim())
+        .filter(Boolean);
+      const technicianIds = resolvedTechnicians
+        .map((tech) => String(tech?._id || '').trim())
+        .filter(Boolean);
+      const technicianEmpCodes = resolvedTechnicians
+        .map((tech) => String(tech?.empCode || '').trim())
+        .filter(Boolean);
+      const technicianMobiles = resolvedTechnicians
+        .map((tech) => String(tech?.mobile || '').trim())
+        .filter(Boolean);
       const basePayload = {
         customerId: selectedCustomer._id,
         customerName: selectedCustomer.displayName || selectedCustomer.name || selectedContract.customerName || '',
@@ -854,22 +867,24 @@ export default function ScheduleJob() {
       resolvedRows.forEach((row) => {
         const scheduledDate = normalizeDateInputValue(row.editableDate || row.date || '');
         const scheduledTime = parseTimeTo24Hour(row.editableTime || row.window || '', row.window || '');
-        resolvedTechnicians.forEach((tech) => {
-          payloads.push({
-            ...basePayload,
-            scheduleKey: row.key,
-            scheduleVisit: row.visit,
-            serviceName: row.service,
-            sourceScheduleStatus: row.status,
-            scheduledDate,
-            scheduledTime,
-            serviceInstructions: String(row.raw?.itemDescription || row.raw?.itemName || row.service || ''),
-            technicianId: tech._id || '',
-            technicianName: formatEmployeeName(tech),
-            technicianEmpCode: tech.empCode || '',
-            technicianMobile: tech.mobile || '',
-            status: 'Scheduled'
-          });
+        payloads.push({
+          ...basePayload,
+          scheduleKey: row.key,
+          scheduleVisit: row.visit,
+          serviceName: row.service,
+          sourceScheduleStatus: row.status,
+          scheduledDate,
+          scheduledTime,
+          serviceInstructions: String(row.raw?.itemDescription || row.raw?.itemName || row.service || ''),
+          technicianId: technicianIds[0] || '',
+          technicianName: technicianNames.join(', '),
+          technicianEmpCode: technicianEmpCodes[0] || '',
+          technicianMobile: technicianMobiles[0] || '',
+          technicianAssignments: technicianNames,
+          technicianIds,
+          technicianEmpCodes,
+          technicianMobiles,
+          status: 'Scheduled'
         });
       });
 

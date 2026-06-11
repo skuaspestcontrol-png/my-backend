@@ -6536,7 +6536,6 @@ app.put('/api/jobs/:id', async (req, res) => {
   const nextStatus = String(req.body?.status || '').trim().toLowerCase();
   if (nextStatus === 'completed') {
     const scheduleKey = String(updatedJob.scheduleKey || '').trim();
-    const technicianId = String(updatedJob.technicianId || '').trim();
     const completionPatch = {
       status: 'Completed',
       punchInTime: req.body?.punchInTime ?? updatedJob.punchInTime,
@@ -6552,9 +6551,8 @@ app.put('/api/jobs/:id', async (req, res) => {
       if (index === jobIndex) return;
       if (String(job.status || '').trim().toLowerCase() === 'completed') return;
       const jobScheduleKey = String(job.scheduleKey || '').trim();
-      const jobTechnicianId = String(job.technicianId || '').trim();
-      if (!scheduleKey || !technicianId) return;
-      if (jobScheduleKey === scheduleKey && jobTechnicianId === technicianId) {
+      if (!scheduleKey) return;
+      if (jobScheduleKey === scheduleKey) {
         jobs[index] = {
           ...job,
           ...completionPatch,
@@ -6573,14 +6571,12 @@ app.put('/api/jobs/:id', async (req, res) => {
     });
     if (nextStatus === 'completed') {
       const scheduleKey = String(updatedJob.scheduleKey || '').trim();
-      const technicianId = String(updatedJob.technicianId || '').trim();
       await Promise.all(
         jobs
           .filter((job) => {
             if (String(job?._id || '') === String(updatedJob._id || '')) return false;
             if (String(job?.status || '').trim().toLowerCase() !== 'completed') return false;
-            return String(job?.scheduleKey || '').trim() === scheduleKey
-              && String(job?.technicianId || '').trim() === technicianId;
+            return String(job?.scheduleKey || '').trim() === scheduleKey;
           })
           .map(async (job) => {
             await syncJobToMysql(job);
@@ -8718,9 +8714,15 @@ const buildRenewalDataset = () => {
       const sameInvoice = String(job?.contractId || '') === invoiceId
         || String(job?.contractNumber || '').trim().toLowerCase() === String(invoice?.invoiceNumber || '').trim().toLowerCase();
       if (!sameInvoice) return;
-      const techName = String(job?.technicianName || '').trim();
-      if (!techName) return;
-      assignedTechMap.set(techName.toLowerCase(), techName);
+      const techNames = Array.isArray(job?.technicianAssignments) && job.technicianAssignments.length > 0
+        ? job.technicianAssignments
+        : [job?.technicianName];
+      techNames
+        .map((techName) => String(techName || '').trim())
+        .filter(Boolean)
+        .forEach((techName) => {
+          assignedTechMap.set(techName.toLowerCase(), techName);
+        });
     });
     const assignedTechnicians = Array.from(assignedTechMap.values());
 
@@ -12650,43 +12652,57 @@ app.post('/api/renewals/:id/assign-technician', async (req, res) => {
   const createdJobs = [];
   let lastGeneratedJobNumber = '';
   selectedRows.forEach((row) => {
-    technicians.forEach((tech) => {
-      const generatedJobNumber = createNextJobNumber([...jobs, ...createdJobs], settings);
-      lastGeneratedJobNumber = generatedJobNumber;
-      const newJob = {
-        _id: createJobId(),
-        jobNumber: generatedJobNumber,
-        customerId: customer?._id || invoice.customerId || '',
-        customerName: customer?.displayName || customer?.name || invoice.customerName || '',
-        mobileNumber: customer?.mobileNumber || customer?.workPhone || '',
-        address: customer?.billingAddress || customer?.shippingAddress || '',
-        areaName: customer?.billingArea || customer?.area || '',
-        city: customer?.city || customer?.billingState || customer?.state || '',
-        state: customer?.billingState || customer?.state || '',
-        pincode: customer?.billingPincode || customer?.pincode || '',
-        contractId: invoice._id,
-        contractNumber: invoice.invoiceNumber || '',
-        priority: String(req.body.priority || 'Normal'),
-        accessInstructions: String(req.body.accessInstructions || ''),
-        latitude: String(req.body.latitude || ''),
-        longitude: String(req.body.longitude || ''),
-        notes: String(req.body.notes || ''),
-        scheduleKey: row.key,
-        scheduleVisit: row.visit,
-        serviceName: row.schedule.itemName || 'Service',
-        sourceScheduleStatus: row.schedule.status || 'Scheduled',
-        scheduledDate: String(req.body.workStartDate || row.schedule.serviceDate || ''),
-        scheduledTime: String(req.body.workStartTime || row.schedule.serviceTime || defaultTime),
-        serviceInstructions: String(req.body.notes || row.schedule.itemDescription || row.schedule.itemName || ''),
-        technicianId: tech._id || '',
-        technicianName: [tech.firstName, tech.lastName].filter(Boolean).join(' ').trim() || tech.empCode || 'Technician',
-        technicianEmpCode: tech.empCode || '',
-        technicianMobile: tech.mobile || '',
-        status: 'Scheduled',
-        createdAt: new Date().toISOString()
-      };
-      createdJobs.push(newJob);
-    });
+    const technicianNames = technicians
+      .map((tech) => [tech.firstName, tech.lastName].filter(Boolean).join(' ').trim() || tech.empCode || 'Technician')
+      .filter(Boolean);
+    const technicianIds = technicians
+      .map((tech) => String(tech._id || '').trim())
+      .filter(Boolean);
+    const technicianEmpCodes = technicians
+      .map((tech) => String(tech.empCode || '').trim())
+      .filter(Boolean);
+    const technicianMobiles = technicians
+      .map((tech) => String(tech.mobile || '').trim())
+      .filter(Boolean);
+    const generatedJobNumber = createNextJobNumber([...jobs, ...createdJobs], settings);
+    lastGeneratedJobNumber = generatedJobNumber;
+    const newJob = {
+      _id: createJobId(),
+      jobNumber: generatedJobNumber,
+      customerId: customer?._id || invoice.customerId || '',
+      customerName: customer?.displayName || customer?.name || invoice.customerName || '',
+      mobileNumber: customer?.mobileNumber || customer?.workPhone || '',
+      address: customer?.billingAddress || customer?.shippingAddress || '',
+      areaName: customer?.billingArea || customer?.area || '',
+      city: customer?.city || customer?.billingState || customer?.state || '',
+      state: customer?.billingState || customer?.state || '',
+      pincode: customer?.billingPincode || customer?.pincode || '',
+      contractId: invoice._id,
+      contractNumber: invoice.invoiceNumber || '',
+      priority: String(req.body.priority || 'Normal'),
+      accessInstructions: String(req.body.accessInstructions || ''),
+      latitude: String(req.body.latitude || ''),
+      longitude: String(req.body.longitude || ''),
+      notes: String(req.body.notes || ''),
+      scheduleKey: row.key,
+      scheduleVisit: row.visit,
+      serviceName: row.schedule.itemName || 'Service',
+      sourceScheduleStatus: row.schedule.status || 'Scheduled',
+      scheduledDate: String(req.body.workStartDate || row.schedule.serviceDate || ''),
+      scheduledTime: String(req.body.workStartTime || row.schedule.serviceTime || defaultTime),
+      serviceInstructions: String(req.body.notes || row.schedule.itemDescription || row.schedule.itemName || ''),
+      technicianId: technicianIds[0] || '',
+      technicianName: technicianNames.join(', '),
+      technicianEmpCode: technicianEmpCodes[0] || '',
+      technicianMobile: technicianMobiles[0] || '',
+      technicianAssignments: technicianNames,
+      technicianIds,
+      technicianEmpCodes,
+      technicianMobiles,
+      status: 'Scheduled',
+      createdAt: new Date().toISOString()
+    };
+    createdJobs.push(newJob);
   });
   await updateSettingsNextJobNumber(lastGeneratedJobNumber, settings);
 
@@ -12697,7 +12713,11 @@ app.post('/api/renewals/:id/assign-technician', async (req, res) => {
   }
   records[recordIndex] = {
     ...renewal,
-    technicianAssignments: technicians.map((tech) => [tech.firstName, tech.lastName].filter(Boolean).join(' ').trim() || tech.empCode || 'Technician'),
+    technicianAssignments: technicianNames,
+    technicianIds,
+    technicianName: technicianNames.join(', '),
+    technicianEmpCodes,
+    technicianMobiles,
     updatedAt: new Date().toISOString()
   };
   saveRenewalRecords(records);

@@ -207,6 +207,49 @@ const isActiveJob = (job) => {
 const isCompletedJob = (job) => String(job?.status || '').trim().toLowerCase() === 'completed';
 const isInProgressJob = (job) => String(job?.status || '').trim().toLowerCase() === 'in progress';
 
+const getTechnicianNames = (job = {}) => {
+  const explicitAssignments = Array.isArray(job?.technicianAssignments) ? job.technicianAssignments : [];
+  const names = explicitAssignments
+    .map((entry) => String(entry || '').trim())
+    .filter(Boolean);
+  if (names.length > 0) return Array.from(new Set(names));
+
+  const fallback = String(job?.technicianName || '').trim();
+  if (!fallback) return [];
+  return Array.from(new Set(
+    fallback
+      .split(',')
+      .map((entry) => String(entry || '').trim())
+      .filter(Boolean)
+  ));
+};
+
+const getTechnicianIds = (job = {}) => {
+  const explicitIds = Array.isArray(job?.technicianIds) ? job.technicianIds : [];
+  const ids = explicitIds
+    .map((entry) => String(entry || '').trim())
+    .filter(Boolean);
+  if (ids.length > 0) return Array.from(new Set(ids));
+
+  const fallback = String(job?.technicianId || '').trim();
+  if (!fallback) return [];
+  return [fallback];
+};
+
+const getJobPriority = (job = {}) => {
+  const status = String(job?.status || '').trim().toLowerCase();
+  if (status === 'completed') return 3;
+  if (status === 'in progress') return 2;
+  if (status === 'scheduled') return 1;
+  return 0;
+};
+
+const getJobSortStamp = (job = {}) => {
+  const stamp = String(job?.updatedAt || job?.sourceUpdatedAt || job?.serviceEndTime || job?.serviceStartTime || job?.createdAt || '').trim();
+  const parsed = new Date(stamp);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+};
+
 const buildVisibleJobs = (jobs, serviceSchedules, invoices, customers) => {
   const safeJobs = Array.isArray(jobs) ? jobs : [];
   const safeSchedules = Array.isArray(serviceSchedules) ? serviceSchedules : [];
@@ -240,20 +283,32 @@ const buildVisibleJobs = (jobs, serviceSchedules, invoices, customers) => {
     // This prevents "Assigned Jobs" from appearing empty/flashing when contracts/customers
     // are still syncing.
 
-    const hasTechnician = Boolean(String(job?.technicianId || '').trim() || String(job?.technicianName || '').trim());
+    const technicianNames = getTechnicianNames(job);
+    const technicianIds = getTechnicianIds(job);
+    const hasTechnician = Boolean(technicianNames.length > 0 || technicianIds.length > 0);
     if (!hasTechnician) return;
 
-    const dedupeKey = scheduleKey
-      ? `${scheduleKey}::${String(job?.technicianId || '').trim()}`
-      : String(job?._id || '').trim();
+    const dedupeKey = scheduleKey || String(job?._id || '').trim();
     if (!dedupeKey) return;
 
     const existing = latestByKey.get(dedupeKey);
-    const existingTs = new Date(existing?.createdAt || 0).getTime();
-    const nextTs = new Date(job?.createdAt || 0).getTime();
-    if (!existing || nextTs >= existingTs) {
-      latestByKey.set(dedupeKey, job);
+    const existingTechnicianNames = getTechnicianNames(existing || {});
+    const existingTechnicianIds = getTechnicianIds(existing || {});
+    const mergedTechnicianNames = Array.from(new Set([...(existingTechnicianNames || []), ...technicianNames]));
+    const mergedTechnicianIds = Array.from(new Set([...(existingTechnicianIds || []), ...technicianIds]));
+    const nextRow = {
+      ...(existing || {}),
+      ...(getJobPriority(job) > getJobPriority(existing || {}) || (getJobPriority(job) === getJobPriority(existing || {}) && getJobSortStamp(job) >= getJobSortStamp(existing || {})) ? job : {}),
+      technicianAssignments: mergedTechnicianNames,
+      technicianIds: mergedTechnicianIds,
+      technicianName: mergedTechnicianNames.join(', '),
+      technicianId: mergedTechnicianIds[0] || String((existing || job)?.technicianId || '').trim() || ''
+    };
+    if (!existing) {
+      latestByKey.set(dedupeKey, nextRow);
+      return;
     }
+    latestByKey.set(dedupeKey, nextRow);
   });
 
   return Array.from(latestByKey.values()).sort((a, b) => {
@@ -1126,9 +1181,10 @@ export default function TechnicianPortal() {
           technicians: new Set()
         });
       }
-      const group = groups.get(key);
-      group.jobs.push(job);
-      if (job.technicianName) group.technicians.add(job.technicianName);
+    const group = groups.get(key);
+    group.jobs.push(job);
+      getTechnicianNames(job).forEach((name) => group.technicians.add(name));
+      if (!getTechnicianNames(job).length && job.technicianName) group.technicians.add(job.technicianName);
       if ((!group.mobileNumber || group.mobileNumber === '-') && job.mobileNumber) group.mobileNumber = job.mobileNumber;
       if ((!group.city || group.city === '-') && job.city) group.city = job.city;
       if ((!group.state || group.state === '-') && job.state) group.state = job.state;
@@ -1811,6 +1867,10 @@ export default function TechnicianPortal() {
         technicianName: chosen.name,
         technicianEmpCode: chosen.empCode || '',
         technicianMobile: chosen.mobile || '',
+        technicianAssignments: [chosen.name],
+        technicianIds: [chosen.id],
+        technicianEmpCodes: chosen.empCode ? [chosen.empCode] : [],
+        technicianMobiles: chosen.mobile ? [chosen.mobile] : [],
         status: 'Scheduled'
       });
       await loadPortalData();
@@ -1835,6 +1895,10 @@ export default function TechnicianPortal() {
         technicianName: '',
         technicianEmpCode: '',
         technicianMobile: '',
+        technicianAssignments: [],
+        technicianIds: [],
+        technicianEmpCodes: [],
+        technicianMobiles: [],
         status: 'Unassigned'
       });
       await loadPortalData();
