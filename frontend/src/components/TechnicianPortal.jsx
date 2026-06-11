@@ -913,7 +913,17 @@ const shell = {
   },
   workflowTabIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   workflowTabLabel: { margin: 0, fontSize: '11px', fontWeight: 800, textAlign: 'center', lineHeight: 1.2 },
-  chemicalMatchText: { margin: '2px 0 0 0', fontSize: '11px', color: '#0f766e', fontWeight: 700, lineHeight: 1.35 },
+  chemicalMatchText: {
+    margin: 0,
+    minHeight: '16px',
+    fontSize: '11px',
+    color: '#0f766e',
+    fontWeight: 700,
+    lineHeight: 1.35,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  },
   workflowCard: {
     position: 'relative',
     isolation: 'isolate',
@@ -1023,7 +1033,17 @@ const shell = {
     alignItems: 'center',
     gap: '6px'
   },
-  chemicalGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' },
+  chemicalGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '8px',
+    alignItems: 'start'
+  },
+  chemicalNameField: {
+    display: 'grid',
+    gap: '6px',
+    minHeight: '68px'
+  },
   addChemicalBtn: {
     width: '100%',
     border: '1px solid rgba(159, 23, 77, 0.2)',
@@ -2230,7 +2250,7 @@ export default function TechnicianPortal() {
                   ) : null}
                 </div>
                 <div style={shell.chemicalGrid}>
-                  <div style={shell.field}>
+                  <div style={shell.chemicalNameField}>
                     <p style={shell.label}>Chemical Name</p>
                     <input
                       type="text"
