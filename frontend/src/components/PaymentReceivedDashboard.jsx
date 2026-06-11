@@ -115,7 +115,7 @@ const paymentColumns = ['date', 'invoice', 'customer', 'mode', 'depositTo', 'amo
 const paymentColumnWidths = {
   date: 120,
   invoice: 160,
-  customer: 130,
+  customer: 120,
   mode: 140,
   depositTo: 110,
   amount: 130,
@@ -396,6 +396,7 @@ export default function PaymentReceivedDashboard() {
                 <th style={headStyle('invoice')}>Invoice</th>
                 <th style={headStyle('customer')}>Customer</th>
                 <th style={headStyle('mode', 'center')}>Mode</th>
+                <th style={headStyle('depositTo', 'center')}>Deposit To</th>
                 <th style={headStyle('amount', 'center')}>Amount</th>
                 <th style={headStyle('action', 'center')}>Action</th>
               </tr>
@@ -403,7 +404,7 @@ export default function PaymentReceivedDashboard() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td style={shell.td} colSpan={6}>No payment records available yet.</td>
+                  <td style={shell.td} colSpan={7}>No payment records available yet.</td>
                 </tr>
               ) : (
                 pagedRows.map((row) => (
