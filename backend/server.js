@@ -7825,6 +7825,46 @@ const normalizePaymentSplits = (rawSplits, invoiceType = 'GST') => {
   }));
 };
 
+const extractInvoicePaymentSplitsForBackfill = (invoice = {}) => {
+  const invoiceType = String(invoice?.invoiceType || (toNumber(invoice?.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
+  const normalizedSplits = normalizePaymentSplits(invoice.paymentSplits, invoiceType);
+  if (normalizedSplits.length > 0) return normalizedSplits;
+
+  const paymentReceivedTotal = toNumber(invoice.paymentReceivedTotal, 0);
+  if (Boolean(invoice.paymentReceivedEnabled) && paymentReceivedTotal > 0) {
+    return [{
+      mode: 'Cheque',
+      depositTo: getDefaultPaymentDepositTo(invoiceType),
+      amount: paymentReceivedTotal
+    }];
+  }
+
+  return [];
+};
+
+const computeBankBalancesFromInvoices = (invoices = [], settings = {}) => {
+  const totals = (Array.isArray(invoices) ? invoices : []).reduce((acc, invoice) => {
+    const splits = extractInvoicePaymentSplitsForBackfill(invoice);
+    splits.forEach((split) => {
+      const amount = toNumber(split.amount, 0);
+      if (!amount) return;
+      const depositTo = normalizePaymentDepositTo(split.depositTo, String(invoice?.invoiceType || 'GST'));
+      if (depositTo === paymentDepositToValues.CURRENT) acc.gstBankCurrentBalance += amount;
+      if (depositTo === paymentDepositToValues.SAVING) acc.nonGstBankCurrentBalance += amount;
+    });
+    return acc;
+  }, {
+    gstBankCurrentBalance: 0,
+    nonGstBankCurrentBalance: 0
+  });
+
+  return sanitizeSettings({
+    ...settings,
+    gstBankCurrentBalance: Number((toNumber(settings?.gstBankOpeningBalance, 0) + totals.gstBankCurrentBalance).toFixed(2)),
+    nonGstBankCurrentBalance: Number((toNumber(settings?.nonGstBankOpeningBalance, 0) + totals.nonGstBankCurrentBalance).toFixed(2))
+  });
+};
+
 const updateSettingsCurrentBalancesFromInvoicePayments = async ({ previousInvoice = null, nextInvoice = null } = {}) => {
   const previousInvoiceType = String(previousInvoice?.invoiceType || (toNumber(previousInvoice?.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
   const nextInvoiceType = String(nextInvoice?.invoiceType || (toNumber(nextInvoice?.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
@@ -7852,6 +7892,31 @@ const updateSettingsCurrentBalancesFromInvoicePayments = async ({ previousInvoic
     fs.writeFileSync(settingsFile, JSON.stringify(nextSettings, null, 2));
   }
   return nextSettings;
+};
+
+const backfillBankBalancesFromInvoices = async ({ force = false } = {}) => {
+  const settings = await loadCurrentSettingsForNumbering();
+  if (!force && String(settings.bankBalancesBackfilledAt || '').trim()) {
+    return { skipped: true, reason: 'already_backfilled', settings };
+  }
+
+  const invoices = await loadInvoicesForContext().catch(() => []);
+  const nextSettings = computeBankBalancesFromInvoices(invoices, {
+    ...settings,
+    bankBalancesBackfilledAt: new Date().toISOString()
+  });
+
+  if (canUseMysql()) {
+    await saveSettingsToMysql(nextSettings);
+  } else {
+    fs.writeFileSync(settingsFile, JSON.stringify(nextSettings, null, 2));
+  }
+
+  return {
+    skipped: false,
+    invoiceCount: Array.isArray(invoices) ? invoices.length : 0,
+    settings: nextSettings
+  };
 };
 
 const serviceFrequencyConfig = {
@@ -12881,6 +12946,12 @@ const startServer = async () => {
     try {
       await runAutoMigrations(pool);
       await cleanupDeprecatedSettingsStorage();
+      const backfillResult = await backfillBankBalancesFromInvoices();
+      if (backfillResult?.skipped) {
+        console.log(`BANK BALANCE BACKFILL SKIPPED: ${backfillResult.reason}`);
+      } else {
+        console.log(`BANK BALANCE BACKFILL COMPLETED: invoices=${backfillResult.invoiceCount || 0}`);
+      }
     } catch (error) {
       console.error('AUTO MIGRATION STARTUP ERROR:', error && error.stack ? error.stack : error);
     }
@@ -12888,6 +12959,12 @@ const startServer = async () => {
     console.warn('AUTO MIGRATION SKIPPED: MySQL is not configured.');
     try {
       await cleanupDeprecatedSettingsStorage();
+      const backfillResult = await backfillBankBalancesFromInvoices();
+      if (backfillResult?.skipped) {
+        console.log(`BANK BALANCE BACKFILL SKIPPED: ${backfillResult.reason}`);
+      } else {
+        console.log(`BANK BALANCE BACKFILL COMPLETED: invoices=${backfillResult.invoiceCount || 0}`);
+      }
     } catch (error) {
       console.error('SETTINGS CLEANUP STARTUP ERROR:', error && error.stack ? error.stack : error);
     }
