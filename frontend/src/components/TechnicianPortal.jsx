@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import trimCanvas from 'trim-canvas';
 import {
@@ -1204,12 +1204,17 @@ export default function TechnicianPortal() {
     }
   }, [activeJob, jobs, routeJobId, pdfPreview.open]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (wizardStep !== 'signature') return;
     const customerSignature = String(jobWizard?.customerSignature || '').trim();
     const technicianSignature = String(jobWizard?.technicianSignature || '').trim();
 
-    const timer = window.setTimeout(() => {
+    let cancelled = false;
+    let frameOne = 0;
+    let frameTwo = 0;
+
+    const restoreSignatures = () => {
+      if (cancelled) return;
       if (customerSigCanvas.current && typeof customerSigCanvas.current.fromDataURL === 'function') {
         customerSigCanvas.current.clear();
         if (customerSignature) customerSigCanvas.current.fromDataURL(customerSignature);
@@ -1218,9 +1223,17 @@ export default function TechnicianPortal() {
         technicianSigCanvas.current.clear();
         if (technicianSignature) technicianSigCanvas.current.fromDataURL(technicianSignature);
       }
-    }, 0);
+    };
 
-    return () => window.clearTimeout(timer);
+    frameOne = window.requestAnimationFrame(() => {
+      frameTwo = window.requestAnimationFrame(restoreSignatures);
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frameOne);
+      window.cancelAnimationFrame(frameTwo);
+    };
   }, [jobWizard?.customerSignature, jobWizard?.technicianSignature, wizardStep]);
 
   const syncLocalJob = useCallback((nextJob) => {
