@@ -1648,6 +1648,8 @@ export default function TechnicianPortal() {
       completePayload.append('chemicalsUsed', JSON.stringify(normalizedDraft.chemicalsUsed || []));
       completePayload.append('checklistItems', JSON.stringify(normalizedDraft.checklistItems || []));
       completePayload.append('infestationLevel', normalizedDraft.infestationLevel || '');
+      completePayload.append('customerRepresentativeName', normalizedDraft.customerRepresentativeName || '');
+      completePayload.append('customerRepresentativeMobile', normalizedDraft.customerRepresentativeMobile || '');
       completePayload.append('reviewRemarks', normalizedDraft.reviewRemarks || '');
       completePayload.append('remarks', normalizedDraft.reviewRemarks || '');
       completePayload.append('customerSignature', customerSig || '');
@@ -1672,6 +1674,8 @@ export default function TechnicianPortal() {
         completedAt,
         customerName: activeJob.customerName || '-',
         mobileNumber: activeJob.mobileNumber || '-',
+        customerRepresentativeName: normalizedDraft.customerRepresentativeName || activeJob.customerRepresentativeName || activeJob.contactPersonName || '-',
+        customerRepresentativeMobile: normalizedDraft.customerRepresentativeMobile || activeJob.customerRepresentativeMobile || activeJob.contactPersonMobile || '-',
         address: formatAddress(activeJob) || '-',
         serviceName: activeJob.serviceName || activeJob.serviceInstructions || '-',
         visit: activeJob.scheduleVisit || '-',
@@ -2392,6 +2396,14 @@ export default function TechnicianPortal() {
               <div>
                 <p style={shell.completionLabel}>Mobile</p>
                 <p style={shell.completionValue}>{completionCard.mobileNumber}</p>
+              </div>
+              <div>
+                <p style={shell.completionLabel}>Customer Representative</p>
+                <p style={shell.completionValue}>{completionCard.customerRepresentativeName || '-'}</p>
+              </div>
+              <div>
+                <p style={shell.completionLabel}>Representative Mobile</p>
+                <p style={shell.completionValue}>{completionCard.customerRepresentativeMobile || '-'}</p>
               </div>
               <div>
                 <p style={shell.completionLabel}>Visit</p>

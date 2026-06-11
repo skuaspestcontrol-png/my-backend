@@ -6748,6 +6748,8 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
       serviceEndTime: String(req.body?.serviceEndTime || '').trim() || toMysqlDateTime(new Date()),
       completionCardNumber: String(req.body?.completionCardNumber || '').trim(),
       completionCardGeneratedAt: String(req.body?.completionCardGeneratedAt || '').trim(),
+      customerRepresentativeName: String(req.body?.customerRepresentativeName || '').trim(),
+      customerRepresentativeMobile: String(req.body?.customerRepresentativeMobile || '').trim(),
       beforePhoto: uploadedBeforeUrl || providedBeforeUrl || '',
       afterPhoto: uploadedAfterUrl || providedAfterUrl || '',
       customerSignature: signature,
