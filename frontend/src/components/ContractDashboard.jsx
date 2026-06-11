@@ -25,6 +25,7 @@ import {
   Receipt,
   RefreshCcw,
   Settings,
+  Search,
   ArrowUpDown,
   TriangleAlert,
   UserRound,
@@ -296,8 +297,10 @@ const getSearchText = (item) => {
     item.mobileNumber,
     item.mobile,
     item.whatsappNumber,
+    item.altNumber,
     item.email,
     item.emailId,
+    item.gstNumber,
     item.billingArea,
     item.area,
     item.areaName,
@@ -836,6 +839,9 @@ export default function ContractDashboard() {
         contractCode: deriveContractCode(contractNo),
         customer: String(invoice.customerName || customer?.displayName || customer?.name || 'Customer'),
         mobile: String(customer?.mobileNumber || customer?.workPhone || '').trim(),
+        altNumber: String(customer?.altNumber || '').trim(),
+        emailId: String(customer?.emailId || customer?.email || '').trim(),
+        gstNumber: String(customer?.gstNumber || '').trim(),
         property: String(customer?.billingArea || customer?.shippingArea || customer?.billingAddress || customer?.shippingAddress || invoice.customerName || '-').trim(),
         city: String(customer?.billingState || customer?.shippingState || '-').trim(),
         startDate: startInputDate,
@@ -1071,6 +1077,34 @@ export default function ContractDashboard() {
   const customizeButtonStyle = compactMobile
     ? { ...shell.customizeButton, width: '32px', height: '32px' }
     : shell.customizeButton;
+  const headerSearchStyle = isMobile
+    ? { width: '100%', maxWidth: '100%' }
+    : { width: 'min(100%, 420px)', justifySelf: 'center' };
+  const headerSearchInputStyle = {
+    width: '100%',
+    minHeight: '42px',
+    borderRadius: '12px',
+    border: '1px solid rgba(148,163,184,0.28)',
+    background: '#fff',
+    padding: '0 14px 0 40px',
+    fontSize: '13px',
+    color: '#334155',
+    boxShadow: 'inset 0 1px 2px rgba(15,23,42,0.04)',
+    boxSizing: 'border-box'
+  };
+  const headerSearchWrapStyle = {
+    position: 'relative',
+    width: '100%',
+    maxWidth: '100%'
+  };
+  const headerSearchIconStyle = {
+    position: 'absolute',
+    left: '14px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#94a3b8',
+    pointerEvents: 'none'
+  };
   const filterGridStyle = isMobile ? { ...shell.filterGrid, gridTemplateColumns: '1fr' } : shell.filterGrid;
   const clearButtonStyle = isMobile ? { ...shell.clearBtn, width: '100%' } : shell.clearBtn;
   const mobileDateInputStyle = isMobile
@@ -1363,6 +1397,18 @@ export default function ContractDashboard() {
           <div style={shell.titleWrap}>
             <h1 style={shell.cardTitle}>All Contracts</h1>
           </div>
+          <div style={headerSearchStyle}>
+            <div style={headerSearchWrapStyle}>
+              <Search size={16} style={headerSearchIconStyle} />
+              <input
+                type="search"
+                style={headerSearchInputStyle}
+                value={filters.search}
+                onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
+                placeholder="Customer, contract #, city, alt no., email, GST..."
+              />
+            </div>
+          </div>
           <div style={headActionsStyle}>
             <button
               type="button"
@@ -1489,15 +1535,6 @@ export default function ContractDashboard() {
             <div style={shell.filterField}>
               <label style={shell.filterLabel}>Start Date To</label>
               <input type="date" style={mobileDateInputStyle} value={filters.to} onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))} />
-            </div>
-            <div style={shell.filterField}>
-              <label style={shell.filterLabel}>Search</label>
-              <input
-                style={shell.input}
-                placeholder="Customer, contract #, city..."
-                value={filters.search}
-                onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
-              />
             </div>
             <div style={{ ...shell.filterField, alignItems: 'flex-end' }}>
               <button
