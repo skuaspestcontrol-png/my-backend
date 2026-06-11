@@ -7781,13 +7781,77 @@ const toNumber = (value, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-const normalizePaymentSplits = (rawSplits) => {
+const paymentDepositToValues = {
+  CASH: 'Cash',
+  CURRENT: 'Current Account',
+  SAVING: 'Saving Account'
+};
+
+const getDefaultPaymentDepositTo = (invoiceType = 'GST') => String(invoiceType || '').trim().toUpperCase() === 'NON GST'
+  ? paymentDepositToValues.SAVING
+  : paymentDepositToValues.CURRENT;
+
+const normalizePaymentDepositTo = (value, invoiceType = 'GST') => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return getDefaultPaymentDepositTo(invoiceType);
+  if (['cash', 'billing', 'undeposited funds', 'undeposited fund'].includes(raw)) return paymentDepositToValues.CASH;
+  if (['current account', 'current', 'bank', 'bank transfer'].includes(raw)) return paymentDepositToValues.CURRENT;
+  if (['saving account', 'savings account', 'saving', 'savings'].includes(raw)) return paymentDepositToValues.SAVING;
+  return getDefaultPaymentDepositTo(invoiceType);
+};
+
+const summarizePaymentDepositBalances = (rawSplits, invoiceType = 'GST') => {
+  return (Array.isArray(rawSplits) ? rawSplits : []).reduce((totals, split) => {
+    const amount = toNumber(split?.amount, 0);
+    const depositTo = normalizePaymentDepositTo(split?.depositTo, invoiceType);
+    if (depositTo === paymentDepositToValues.CURRENT) {
+      totals.gstBankCurrentBalance += amount;
+    } else if (depositTo === paymentDepositToValues.SAVING) {
+      totals.nonGstBankCurrentBalance += amount;
+    }
+    return totals;
+  }, {
+    gstBankCurrentBalance: 0,
+    nonGstBankCurrentBalance: 0
+  });
+};
+
+const normalizePaymentSplits = (rawSplits, invoiceType = 'GST') => {
   if (!Array.isArray(rawSplits)) return [];
   return rawSplits.map((split) => ({
     mode: split?.mode || 'Cheque',
-    depositTo: split?.depositTo || 'Billing',
+    depositTo: normalizePaymentDepositTo(split?.depositTo, invoiceType),
     amount: toNumber(split?.amount, 0)
   }));
+};
+
+const updateSettingsCurrentBalancesFromInvoicePayments = async ({ previousInvoice = null, nextInvoice = null } = {}) => {
+  const previousInvoiceType = String(previousInvoice?.invoiceType || (toNumber(previousInvoice?.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
+  const nextInvoiceType = String(nextInvoice?.invoiceType || (toNumber(nextInvoice?.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
+  const previousTotals = previousInvoice && previousInvoice.paymentReceivedEnabled
+    ? summarizePaymentDepositBalances(normalizePaymentSplits(previousInvoice.paymentSplits, previousInvoiceType), previousInvoiceType)
+    : { gstBankCurrentBalance: 0, nonGstBankCurrentBalance: 0 };
+  const nextTotals = nextInvoice && nextInvoice.paymentReceivedEnabled
+    ? summarizePaymentDepositBalances(normalizePaymentSplits(nextInvoice.paymentSplits, nextInvoiceType), nextInvoiceType)
+    : { gstBankCurrentBalance: 0, nonGstBankCurrentBalance: 0 };
+
+  const gstDelta = Number((nextTotals.gstBankCurrentBalance - previousTotals.gstBankCurrentBalance).toFixed(2));
+  const nonGstDelta = Number((nextTotals.nonGstBankCurrentBalance - previousTotals.nonGstBankCurrentBalance).toFixed(2));
+  if (!gstDelta && !nonGstDelta) return null;
+
+  const settings = await loadCurrentSettingsForNumbering();
+  const nextSettings = sanitizeSettings({
+    ...settings,
+    gstBankCurrentBalance: Number((toNumber(settings.gstBankCurrentBalance, 0) + gstDelta).toFixed(2)),
+    nonGstBankCurrentBalance: Number((toNumber(settings.nonGstBankCurrentBalance, 0) + nonGstDelta).toFixed(2))
+  });
+
+  if (canUseMysql()) {
+    await saveSettingsToMysql(nextSettings);
+  } else {
+    fs.writeFileSync(settingsFile, JSON.stringify(nextSettings, null, 2));
+  }
+  return nextSettings;
 };
 
 const serviceFrequencyConfig = {
@@ -10272,7 +10336,8 @@ app.post('/api/invoices', async (req, res) => {
   const settings = await loadCurrentSettingsForNumbering();
   const amount = toNumber(req.body.amount, 0);
   const paymentReceivedEnabled = Boolean(req.body.paymentReceivedEnabled);
-  const paymentSplits = paymentReceivedEnabled ? normalizePaymentSplits(req.body.paymentSplits) : [];
+  const invoiceType = String(req.body.invoiceType || (toNumber(req.body.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
+  const paymentSplits = paymentReceivedEnabled ? normalizePaymentSplits(req.body.paymentSplits, invoiceType) : [];
   const fallbackPaymentReceivedTotal = paymentSplits.reduce((sum, split) => sum + toNumber(split.amount, 0), 0);
   const paymentReceivedTotal = paymentReceivedEnabled
     ? Number(toNumber(req.body.paymentReceivedTotal, fallbackPaymentReceivedTotal).toFixed(2))
@@ -10310,7 +10375,7 @@ app.post('/api/invoices', async (req, res) => {
     invoiceNumber: req.body.invoiceNumber || createNextInvoiceNumber(invoices, settings),
     orderNumber: req.body.orderNumber || '',
     customerName: req.body.customerName || '',
-    invoiceType: String(req.body.invoiceType || (toNumber(req.body.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST',
+    invoiceType,
     billingAddressSource: req.body.billingAddressSource || 'billing',
     shippingAddressSource: req.body.shippingAddressSource || 'shipping',
     customShippingAddresses: Array.isArray(req.body.customShippingAddresses) ? req.body.customShippingAddresses : [],
@@ -10376,6 +10441,12 @@ app.post('/api/invoices', async (req, res) => {
     await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
   }
 
+  try {
+    await updateSettingsCurrentBalancesFromInvoicePayments({ nextInvoice: newInvoice });
+  } catch (error) {
+    console.error('Failed to update bank balances after invoice create:', error.message);
+  }
+
   invalidateDashboardSummaryCache();
   res.json(newInvoice);
 });
@@ -10395,7 +10466,8 @@ app.put('/api/invoices/:id', async (req, res) => {
     ? Boolean(current.paymentReceivedEnabled)
     : Boolean(req.body.paymentReceivedEnabled);
   const paymentSplitsSource = req.body.paymentSplits == null ? current.paymentSplits : req.body.paymentSplits;
-  const paymentSplits = paymentReceivedEnabled ? normalizePaymentSplits(paymentSplitsSource) : [];
+  const nextInvoiceType = String(req.body.invoiceType ?? current.invoiceType ?? ((toNumber(req.body.totalTax ?? current.totalTax, 0) > 0) ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
+  const paymentSplits = paymentReceivedEnabled ? normalizePaymentSplits(paymentSplitsSource, nextInvoiceType) : [];
   const fallbackPaymentReceivedTotal = paymentSplits.reduce((sum, split) => sum + toNumber(split.amount, 0), 0);
   const paymentReceivedTotal = paymentReceivedEnabled
     ? Number(toNumber(req.body.paymentReceivedTotal, fallbackPaymentReceivedTotal).toFixed(2))
@@ -10483,11 +10555,23 @@ app.put('/api/invoices/:id', async (req, res) => {
     await updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings);
   }
 
+  try {
+    await updateSettingsCurrentBalancesFromInvoicePayments({ previousInvoice: current, nextInvoice: updatedInvoice });
+  } catch (error) {
+    console.error('Failed to update bank balances after invoice update:', error.message);
+  }
+
   invalidateDashboardSummaryCache();
   res.json(updatedInvoice);
 });
 
 app.delete('/api/invoices/:id', async (req, res) => {
+  const invoicesForDelete = canUseMysql() ? await loadInvoicesForContext() : readJsonFile(invoicesFile, []);
+  const invoiceToDelete = invoicesForDelete.find((invoice) => invoice._id === req.params.id) || null;
+  if (!invoiceToDelete) {
+    return res.status(404).json({ error: 'Invoice not found' });
+  }
+
   if (canUseMysql()) {
     try {
       const deletedRows = await withMysqlConnection(async (conn) => {
@@ -10508,12 +10592,14 @@ app.delete('/api/invoices/:id', async (req, res) => {
       console.error('JSON invoice shadow delete failed:', error.message);
     }
   } else {
-    const invoices = readJsonFile(invoicesFile, []);
-    const updatedInvoices = invoices.filter((invoice) => invoice._id !== req.params.id);
-    if (updatedInvoices.length === invoices.length) {
-      return res.status(404).json({ error: 'Invoice not found' });
-    }
+    const updatedInvoices = invoicesForDelete.filter((invoice) => invoice._id !== req.params.id);
     fs.writeFileSync(invoicesFile, JSON.stringify(updatedInvoices, null, 2));
+  }
+
+  try {
+    await updateSettingsCurrentBalancesFromInvoicePayments({ previousInvoice: invoiceToDelete, nextInvoice: null });
+  } catch (error) {
+    console.error('Failed to update bank balances after invoice delete:', error.message);
   }
 
   try {
@@ -12352,7 +12438,8 @@ app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
 
   const amount = toNumber(req.body.amount, toNumber(sourceInvoice.total ?? sourceInvoice.amount, 0));
   const paymentReceivedEnabled = Boolean(req.body.paymentReceivedEnabled);
-  const paymentSplits = paymentReceivedEnabled ? normalizePaymentSplits(req.body.paymentSplits) : [];
+  const invoiceType = String(req.body.invoiceType || (toNumber(req.body.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
+  const paymentSplits = paymentReceivedEnabled ? normalizePaymentSplits(req.body.paymentSplits, invoiceType) : [];
   const paymentReceivedTotal = paymentReceivedEnabled
     ? Number(paymentSplits.reduce((sum, split) => sum + toNumber(split.amount, 0), 0).toFixed(2))
     : 0;
@@ -12371,6 +12458,7 @@ app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
     _id: `INV-${Date.now()}`,
     invoiceNumber: req.body.invoiceNumber || createNextInvoiceNumber(invoices, settings),
     date: nextDate,
+    invoiceType,
     dueDate,
     servicePeriodStart: nextStart,
     servicePeriodEnd: nextEnd,
@@ -12391,6 +12479,12 @@ app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
   invoices.push(newInvoice);
   fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
   await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
+
+  try {
+    await updateSettingsCurrentBalancesFromInvoicePayments({ nextInvoice: newInvoice });
+  } catch (error) {
+    console.error('Failed to update bank balances after renewal invoice conversion:', error.message);
+  }
 
   records[recordIndex] = {
     ...renewal,

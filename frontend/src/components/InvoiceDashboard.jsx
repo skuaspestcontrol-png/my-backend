@@ -126,7 +126,18 @@ const termsOptions = ['Paid', 'Due on Receipt', 'Net 15', 'Net 30', 'Net 45', 'N
 const termsToDays = { Paid: 0, 'Due on Receipt': 0, 'Net 15': 15, 'Net 30': 30, 'Net 45': 45, 'Net 60': 60 };
 const taxOptions = [0, 5, 12, 18];
 const paymentModeOptions = ['Cheque', 'Cash', 'Bank Transfer', 'UPI', 'Card'];
-const paymentDepositOptions = ['Billing', 'Bank', 'Cash', 'Undeposited Funds'];
+const paymentDepositOptions = ['Cash', 'Current Account', 'Saving Account'];
+const getDefaultPaymentDepositTo = (invoiceType = 'GST') => String(invoiceType || '').trim().toUpperCase() === 'NON GST'
+  ? 'Saving Account'
+  : 'Current Account';
+const normalizePaymentDepositTo = (value, invoiceType = 'GST') => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return getDefaultPaymentDepositTo(invoiceType);
+  if (['cash', 'billing', 'undeposited funds', 'undeposited fund'].includes(raw)) return 'Cash';
+  if (['current account', 'current', 'bank', 'bank transfer'].includes(raw)) return 'Current Account';
+  if (['saving account', 'savings account', 'saving', 'savings'].includes(raw)) return 'Saving Account';
+  return getDefaultPaymentDepositTo(invoiceType);
+};
 const contractPeriodOptions = [
   { value: 'single_time', label: 'Single time' },
   { value: 'monthly', label: 'Monthly' },
@@ -259,9 +270,9 @@ const createEmptyLine = (defaults = {}) => ({
   taxRate: '18'
 });
 
-const createEmptyPaymentSplit = () => ({
+const createEmptyPaymentSplit = (depositTo = getDefaultPaymentDepositTo('GST')) => ({
   mode: 'Cheque',
-  depositTo: 'Billing',
+  depositTo,
   amount: '0'
 });
 
@@ -1407,7 +1418,7 @@ export default function InvoiceDashboard() {
     const status = (nextForm.status || 'DRAFT').toUpperCase();
     const paymentSplits = Array.isArray(nextForm.paymentSplits) && nextForm.paymentSplits.length > 0
       ? nextForm.paymentSplits
-      : [createEmptyPaymentSplit()];
+      : [createEmptyPaymentSplit(getDefaultPaymentDepositTo(nextForm.invoiceType))];
     const paymentReceivedTotal = nextForm.paymentReceivedEnabled ? sumPaymentSplits(paymentSplits) : 0;
     const paymentBalance = Number((grandTotal - paymentReceivedTotal).toFixed(2));
     const nextBalance = nextForm.paymentReceivedEnabled
@@ -1908,10 +1919,10 @@ export default function InvoiceDashboard() {
     const mappedPaymentSplits = Array.isArray(invoice.paymentSplits) && invoice.paymentSplits.length > 0
       ? invoice.paymentSplits.map((split) => ({
         mode: split.mode || 'Cheque',
-        depositTo: split.depositTo || 'Billing',
+        depositTo: normalizePaymentDepositTo(split.depositTo, invoiceType),
         amount: String(split.amount ?? 0)
       }))
-      : [createEmptyPaymentSplit()];
+      : [createEmptyPaymentSplit(getDefaultPaymentDepositTo(invoiceType))];
 
     return applyComputedTotals({
       customerId: invoice.customerId || '',
@@ -2173,8 +2184,8 @@ export default function InvoiceDashboard() {
 
   const updatePaymentSplit = (index, patch) => {
     setFormWithTotals((prev) => {
-      const nextSplits = Array.isArray(prev.paymentSplits) ? [...prev.paymentSplits] : [createEmptyPaymentSplit()];
-      if (!nextSplits[index]) nextSplits[index] = createEmptyPaymentSplit();
+      const nextSplits = Array.isArray(prev.paymentSplits) ? [...prev.paymentSplits] : [createEmptyPaymentSplit(getDefaultPaymentDepositTo(prev.invoiceType))];
+      if (!nextSplits[index]) nextSplits[index] = createEmptyPaymentSplit(getDefaultPaymentDepositTo(prev.invoiceType));
       nextSplits[index] = { ...nextSplits[index], ...patch };
       return { ...prev, paymentSplits: nextSplits };
     });
@@ -2183,7 +2194,7 @@ export default function InvoiceDashboard() {
   const addPaymentSplit = () => {
     setFormWithTotals((prev) => ({
       ...prev,
-      paymentSplits: [...(Array.isArray(prev.paymentSplits) ? prev.paymentSplits : []), createEmptyPaymentSplit()]
+      paymentSplits: [...(Array.isArray(prev.paymentSplits) ? prev.paymentSplits : []), createEmptyPaymentSplit(getDefaultPaymentDepositTo(prev.invoiceType))]
     }));
   };
 
@@ -2312,6 +2323,8 @@ export default function InvoiceDashboard() {
 
   const handleInvoiceTypeChange = (invoiceType) => {
     const normalized = normalizeInvoiceType(invoiceType);
+    const previousDefaultDepositTo = getDefaultPaymentDepositTo(form.invoiceType);
+    const nextDefaultDepositTo = getDefaultPaymentDepositTo(normalized);
     setFormWithTotals((prev) => ({
       ...prev,
       invoiceType: normalized,
@@ -2319,6 +2332,14 @@ export default function InvoiceDashboard() {
         ...line,
         taxRate: normalized === 'NON GST' ? '0' : '18'
       })),
+      paymentSplits: Array.isArray(prev.paymentSplits)
+        ? prev.paymentSplits.map((split) => {
+          const normalizedDepositTo = normalizePaymentDepositTo(split?.depositTo, prev.invoiceType);
+          return normalizedDepositTo === previousDefaultDepositTo
+            ? { ...split, depositTo: nextDefaultDepositTo }
+            : split;
+        })
+        : prev.paymentSplits,
       termsAndConditions: getDefaultTermsForInvoiceType(normalized)
     }));
   };
@@ -2616,7 +2637,7 @@ export default function InvoiceDashboard() {
     const invoiceTotal = Number(form.total || totals.total || 0);
     const paymentSplitsSource = Array.isArray(form.paymentSplits) && form.paymentSplits.length > 0
       ? form.paymentSplits
-      : [createEmptyPaymentSplit()];
+      : [createEmptyPaymentSplit(getDefaultPaymentDepositTo(invoiceType))];
     const normalizedPaymentSplits = [];
     for (const split of paymentSplitsSource) {
       const amountValue = Number(split?.amount || 0);
@@ -2626,7 +2647,7 @@ export default function InvoiceDashboard() {
       }
       normalizedPaymentSplits.push({
         mode: split?.mode || 'Cheque',
-        depositTo: split?.depositTo || 'Billing',
+        depositTo: normalizePaymentDepositTo(split?.depositTo, invoiceType),
         amount: Number(amountValue.toFixed(2))
       });
     }
@@ -3962,12 +3983,12 @@ export default function InvoiceDashboard() {
                       onChange={(event) =>
                         setFormWithTotals((prev) => ({
                           ...prev,
-                          paymentReceivedEnabled: event.target.checked,
-                          paymentSplits: event.target.checked
-                            ? (Array.isArray(prev.paymentSplits) && prev.paymentSplits.length > 0 ? prev.paymentSplits : [createEmptyPaymentSplit()])
+                        paymentReceivedEnabled: event.target.checked,
+                        paymentSplits: event.target.checked
+                            ? (Array.isArray(prev.paymentSplits) && prev.paymentSplits.length > 0 ? prev.paymentSplits : [createEmptyPaymentSplit(getDefaultPaymentDepositTo(prev.invoiceType))])
                             : prev.paymentSplits
-                        }))
-                      }
+                      }))
+                    }
                     />
                     I have received the payment
                   </label>
@@ -4000,7 +4021,7 @@ export default function InvoiceDashboard() {
                                 <td style={shell.paymentTd}>
                                   <select
                                     style={shell.paymentInput}
-                                    value={split.depositTo || 'Billing'}
+                                    value={normalizePaymentDepositTo(split.depositTo, form.invoiceType)}
                                     onChange={(event) => updatePaymentSplit(index, { depositTo: event.target.value })}
                                   >
                                     {paymentDepositOptions.map((account) => (
