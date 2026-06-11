@@ -1289,14 +1289,26 @@ export default function CustomerDashboard() {
         customer.displayName,
         customer.name,
         customer.companyName,
-        customer.contactPersonName
+        customer.contactPersonName,
+        customer.emailId,
+        customer.email,
+        customer.gstNumber
       ]
         .map(normalizeText)
         .filter(Boolean);
       const mobileDigits = normalizeSearchDigits(customer.mobileNumber || customer.workPhone || '');
+      const altDigits = normalizeSearchDigits(customer.altNumber || '');
+      const emailMatch = Boolean(searchText && [
+        customer.emailId,
+        customer.email
+      ].map(normalizeText).some((part) => part.includes(searchText)));
+      const gstMatch = Boolean(searchText && [
+        customer.gstNumber
+      ].map(normalizeText).some((part) => part.includes(searchText)));
       const nameMatch = searchText ? nameParts.some((part) => part.includes(searchText)) : false;
       const mobileMatch = Boolean(searchDigits && mobileDigits && mobileDigits.includes(searchDigits));
-      return nameMatch || mobileMatch;
+      const altMatch = Boolean(searchDigits && altDigits && altDigits.includes(searchDigits));
+      return nameMatch || mobileMatch || altMatch || emailMatch || gstMatch;
     });
     return filteredRows.sort((a, b) => {
       const aName = String(a.displayName || a.name || '').trim();
@@ -2726,7 +2738,7 @@ export default function CustomerDashboard() {
                 event.preventDefault();
                 applyCustomerSearch();
               }}
-              placeholder="Search company, contact, display name, or mobile"
+              placeholder="Search company, contact, display name, mobile, alt number, email, or GST"
             />
           </div>
         </div>
