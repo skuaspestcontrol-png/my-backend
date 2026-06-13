@@ -369,7 +369,8 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     penColor = '#000000',
     strokeWidth = 2.25,
     height = '100%',
-    maxWidth = '100%'
+    maxWidth = '100%',
+    onStrokeEnd = null
   },
   ref
 ) {
@@ -418,8 +419,15 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
       }
     }
     syncDebugState();
+    if (typeof onStrokeEnd === 'function') {
+      try {
+        onStrokeEnd();
+      } catch (error) {
+        console.error('Signature stroke callback failed', error);
+      }
+    }
     if (shouldPreventDefault && event?.preventDefault) event.preventDefault();
-  }, [syncDebugState]);
+  }, [onStrokeEnd, syncDebugState]);
 
   const getPoint = useCallback((event) => {
     const canvas = canvasRef.current;
@@ -1639,6 +1647,39 @@ export default function TechnicianPortal() {
     });
   }, [jobWizard, normalizeDraftForSave]);
 
+  const syncSignatureFieldFromPad = useCallback((field, padRef) => {
+    const pad = padRef?.current;
+    if (!pad || typeof pad.isEmpty !== 'function') return;
+    const currentValue = String(jobWizard?.[field] || '').trim();
+    let nextValue = '';
+    try {
+      if (!pad.isEmpty()) {
+        if (typeof pad.getCompactDataURL === 'function') {
+          nextValue = String(pad.getCompactDataURL('image/jpeg', 0.55, 1000) || '').trim();
+        }
+        if (!nextValue && typeof pad.getTrimmedCanvas === 'function') {
+          const trimmedCanvas = pad.getTrimmedCanvas();
+          nextValue = trimmedCanvas && typeof trimmedCanvas.toDataURL === 'function'
+            ? String(trimmedCanvas.toDataURL('image/jpeg', 0.55) || '').trim()
+            : '';
+        }
+        if (!nextValue && typeof pad.toDataURL === 'function') {
+          nextValue = String(pad.toDataURL('image/jpeg', 0.55) || '').trim();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to sync signature field', error);
+      nextValue = currentValue;
+    }
+    if (!nextValue && !pad.isEmpty()) {
+      nextValue = currentValue;
+    }
+    setJobWizard((prev) => normalizeDraftForSave({
+      ...prev,
+      [field]: nextValue
+    }));
+  }, [normalizeDraftForSave]);
+
   const openJob = (job) => {
     if (isCompletedJob(job)) {
       setActiveJob(null);
@@ -2453,6 +2494,7 @@ export default function TechnicianPortal() {
                     ref={technicianSigCanvas}
                     penColor="black"
                     maxWidth={`${signatureWidth}px`}
+                    onStrokeEnd={() => syncSignatureFieldFromPad('technicianSignature', technicianSigCanvas)}
                   />
                 </div>
               </div>
@@ -2463,6 +2505,7 @@ export default function TechnicianPortal() {
                     ref={customerSigCanvas}
                     penColor="black"
                     maxWidth={`${signatureWidth}px`}
+                    onStrokeEnd={() => syncSignatureFieldFromPad('customerSignature', customerSigCanvas)}
                   />
                 </div>
               </div>
