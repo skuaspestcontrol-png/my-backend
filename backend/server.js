@@ -1969,16 +1969,7 @@ const normalizePdfChemicalRowsFromJob = (job = {}) => normalizePdfChemicalRows([
   ...(Array.isArray(job?.serviceMaterials) ? job.serviceMaterials : [])
 ]);
 const buildJobPdfTechnicianRemarks = (job = {}) => {
-  const manualRemarks = String(job.technicianRemarks || job.reviewRemarks || job.remarks || '').trim();
-  const checklistRows = Array.isArray(job.checklistItems) ? job.checklistItems : [];
-  const checkedChecklistLabels = checklistRows
-    .filter((item) => Boolean(item?.done || item?.checked))
-    .map((item) => String(item?.label || '').trim())
-    .filter(Boolean);
-
-  if (!checkedChecklistLabels.length) return manualRemarks;
-  const checklistText = checkedChecklistLabels.map((label) => `- ${label}`).join('\n');
-  return manualRemarks ? `${manualRemarks}\n${checklistText}` : checklistText;
+  return String(job.technicianRemarks || job.reviewRemarks || job.remarks || '').trim();
 };
 
 const resolveJobServiceNameList = (job = {}) => {
