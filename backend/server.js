@@ -2324,9 +2324,6 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   const serviceEnd = pdfValue(formatPdfDateTime(job.serviceEndTime || job.service_end_time || job.punchOutTime));
   const technicianName = pdfValue(job.technicianName || job.assignedTo || job.employeeName);
   const serviceName = pdfValue(job.serviceName || job.service_type || job.serviceType || job.serviceInstructions);
-  const materialRowsMap = await loadServiceMaterialUsageMap([job._id]);
-  const materialRows = normalizePdfChemicalRows(materialRowsMap.get(String(job._id || '').trim()) || []);
-  const resolvedMaterialRows = materialRows.length > 0 ? materialRows : normalizePdfChemicalRowsFromJob(job);
   const rodentService = /rodent/i.test(String(serviceName || ''));
   const technicianRemarksText = buildJobPdfTechnicianRemarks(job);
   const invoices = await loadInvoicesForContext().catch(() => []);
@@ -2474,55 +2471,6 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     for (let i = 0; i < rodentCards.length; i += 2) {
       y = renderCardPair(y, rodentCards.slice(i, i + 2).map(([label, value]) => ({ label, value })));
     }
-  }
-
-  if (resolvedMaterialRows.length > 0) {
-    y += 4;
-    y = renderSectionTitle(y, 'Material / Chemical Used');
-    const tableX = header.left;
-    const tableW = header.width;
-    const cols = [
-      { label: 'Material / Chemical Name', width: 170 },
-      { label: 'Quantity Used', width: 68 },
-      { label: 'Unit', width: 46 },
-      { label: 'Dilution Ratio', width: 88 },
-      { label: 'Area Treated', width: tableW - 372 }
-    ];
-    const drawMaterialHeader = (rowY) => {
-      let cursor = tableX;
-      doc.font('Helvetica-Bold').fontSize(7.8).fillColor('#9F174D');
-      cols.forEach((col) => {
-        doc.roundedRect(cursor, rowY, col.width, 20, 4).lineWidth(0.6).strokeColor('#E2E8F0').stroke();
-        doc.text(col.label, cursor + 4, rowY + 5, { width: col.width - 8, align: 'left' });
-        cursor += col.width;
-      });
-    };
-    const drawMaterialRow = (rowY, row) => {
-      const values = [
-        row.materialName,
-        row.quantityUsed,
-        row.unit,
-        row.dilutionRatio,
-        row.areaTreated
-      ];
-      const heights = values.map((value, index) => doc.heightOfString(pdfValue(value), { width: cols[index].width - 8, align: 'left' }));
-      const rowHeight = Math.max(24, Math.max(...heights) + 10);
-      let cursor = tableX;
-      doc.font('Helvetica').fontSize(8.1).fillColor('#0F172A');
-      values.forEach((value, index) => {
-        const col = cols[index];
-        doc.roundedRect(cursor, rowY, col.width, rowHeight, 4).lineWidth(0.6).strokeColor('#E2E8F0').stroke();
-        doc.text(pdfValue(value), cursor + 4, rowY + 5, { width: col.width - 8, align: 'left' });
-        cursor += col.width;
-      });
-      return rowHeight;
-    };
-    drawMaterialHeader(y);
-    y += 22;
-    resolvedMaterialRows.forEach((row) => {
-      const rowHeight = drawMaterialRow(y, row);
-      y += rowHeight;
-    });
   }
 
   y += 8;
