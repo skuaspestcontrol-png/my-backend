@@ -1654,10 +1654,17 @@ export default function TechnicianPortal() {
       }
     };
 
+    const resolveSignatureField = (field, padRef) => {
+      const liveValue = String(signatureDraftRef.current?.[field] || '').trim();
+      const draftValue = String(draft?.[field] || '').trim();
+      const capturedValue = extractSignature(padRef, liveValue || draftValue);
+      return capturedValue || liveValue || draftValue;
+    };
+
     return normalizeDraftForSave({
       ...draft,
-      customerSignature: extractSignature(customerSigCanvas, signatureDraftRef.current.customerSignature || draft?.customerSignature),
-      technicianSignature: extractSignature(technicianSigCanvas, signatureDraftRef.current.technicianSignature || draft?.technicianSignature)
+      customerSignature: resolveSignatureField('customerSignature', customerSigCanvas),
+      technicianSignature: resolveSignatureField('technicianSignature', technicianSigCanvas)
     });
   }, [jobWizard, normalizeDraftForSave]);
 
@@ -1966,15 +1973,29 @@ export default function TechnicianPortal() {
     if (!nextStep || nextStep === wizardStep) return;
     const nextDraft = captureSignatureDraft(jobWizard);
     if (wizardStep === 'signature') {
+      const customerSignature = String(
+        nextDraft.customerSignature || signatureDraftRef.current.customerSignature || jobWizard?.customerSignature || ''
+      ).trim();
+      const technicianSignature = String(
+        nextDraft.technicianSignature || signatureDraftRef.current.technicianSignature || jobWizard?.technicianSignature || ''
+      ).trim();
       flushSync(() => {
         signatureDraftRef.current = {
-          customerSignature: String(nextDraft.customerSignature || '').trim(),
-          technicianSignature: String(nextDraft.technicianSignature || '').trim()
+          customerSignature,
+          technicianSignature
         };
-        setJobWizard(nextDraft);
+        setJobWizard({
+          ...nextDraft,
+          customerSignature,
+          technicianSignature
+        });
         setWizardStep(nextStep);
       });
-      void persistWizardDraftInBackground(nextDraft);
+      void persistWizardDraftInBackground({
+        ...nextDraft,
+        customerSignature,
+        technicianSignature
+      });
     } else {
       setJobWizard(nextDraft);
       await persistWizardDraft(nextDraft);
@@ -2252,16 +2273,30 @@ export default function TechnicianPortal() {
     const nextIndex = Math.max(0, wizardStepIndex - 1);
     const nextDraft = captureSignatureDraft(jobWizard);
     if (wizardStep === 'signature') {
+      const customerSignature = String(
+        nextDraft.customerSignature || signatureDraftRef.current.customerSignature || jobWizard?.customerSignature || ''
+      ).trim();
+      const technicianSignature = String(
+        nextDraft.technicianSignature || signatureDraftRef.current.technicianSignature || jobWizard?.technicianSignature || ''
+      ).trim();
       flushSync(() => {
         signatureDraftRef.current = {
-          customerSignature: String(nextDraft.customerSignature || '').trim(),
-          technicianSignature: String(nextDraft.technicianSignature || '').trim()
+          customerSignature,
+          technicianSignature
         };
-        setJobWizard(nextDraft);
+        setJobWizard({
+          ...nextDraft,
+          customerSignature,
+          technicianSignature
+        });
         setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
       });
       queueMicrotask(() => {
-        void persistWizardDraftInBackground(nextDraft);
+        void persistWizardDraftInBackground({
+          ...nextDraft,
+          customerSignature,
+          technicianSignature
+        });
       });
     } else {
       setJobWizard(nextDraft);
@@ -2285,16 +2320,30 @@ export default function TechnicianPortal() {
     }
     const nextDraft = captureSignatureDraft(jobWizard);
     if (wizardStep === 'signature') {
+      const customerSignature = String(
+        nextDraft.customerSignature || signatureDraftRef.current.customerSignature || jobWizard?.customerSignature || ''
+      ).trim();
+      const technicianSignature = String(
+        nextDraft.technicianSignature || signatureDraftRef.current.technicianSignature || jobWizard?.technicianSignature || ''
+      ).trim();
       flushSync(() => {
         signatureDraftRef.current = {
-          customerSignature: String(nextDraft.customerSignature || '').trim(),
-          technicianSignature: String(nextDraft.technicianSignature || '').trim()
+          customerSignature,
+          technicianSignature
         };
-        setJobWizard(nextDraft);
+        setJobWizard({
+          ...nextDraft,
+          customerSignature,
+          technicianSignature
+        });
         setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
       });
       queueMicrotask(() => {
-        void persistWizardDraftInBackground(nextDraft);
+        void persistWizardDraftInBackground({
+          ...nextDraft,
+          customerSignature,
+          technicianSignature
+        });
       });
     } else {
       setJobWizard(nextDraft);
