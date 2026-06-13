@@ -2382,22 +2382,32 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     || job.mobileNumber
     || job.mobile
   );
-  const signatureBuffer = await loadJobPdfLogoBuffer(
+  const resolveSignatureSource = (value, fileStem) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(raw)) {
+      return persistDataUrlToUpload(raw, fileStem, req) || raw;
+    }
+    return raw;
+  };
+  const signatureBuffer = await loadJobPdfLogoBuffer(resolveSignatureSource(
     job.customerSignature
     || job.customer_signature
     || job.customer_signature_url
     || job.signature
     || job.signatureUrl
-    || ''
-  );
-  const technicianSignatureBuffer = await loadJobPdfLogoBuffer(
+    || '',
+    `${job._id || 'job'}-customer-signature`
+  ));
+  const technicianSignatureBuffer = await loadJobPdfLogoBuffer(resolveSignatureSource(
     job.technicianSignature
     || job.technician_signature
     || job.technician_signature_url
     || job.technicianSignatureUrl
     || job.technician_signature_url
-    || ''
-  );
+    || '',
+    `${job._id || 'job'}-technician-signature`
+  ));
 
   const sections = [];
   const pushField = (label, value, widthHint = 'half') => sections.push({ label, value: pdfValue(value), widthHint });
@@ -2469,30 +2479,15 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   if (technicianRemarksText) {
     y += 4;
     y = renderSectionTitle(y, 'Observations & Remarks');
-    const remarksHeight = Math.max(
-      56,
-      doc.heightOfString(technicianRemarksText, { width: header.width - 20 }) + 30
-    );
-    y = renderFullCard(y, {
-      label: 'Technician Remarks',
-      value: technicianRemarksText
-    }, remarksHeight);
-  }
-
-  if (rodentService) {
-    y += 4;
-    y = renderSectionTitle(y, 'Rodent Control');
-    const rodentCards = [
-      ['Rat Count', pdfValue(job.ratCount ?? job.rat_count ?? '-')],
-      ['Rodent Box Count', pdfValue(job.rodentBoxCount ?? job.rodent_box_count ?? '-')],
-      ['Rodent Box Location', pdfValue(job.rodentBoxLocation || job.rodent_box_location || '-')],
-      ['Bait Used', pdfValue(job.baitUsed || job.bait_used || '-')],
-      ['Observation', pdfValue(job.observation || job.rodentObservation || '-')],
-      ['Recommendation', pdfValue(job.recommendation || job.technicianRecommendation || '-')],
-    ];
-    for (let i = 0; i < rodentCards.length; i += 2) {
-      y = renderCardPair(y, rodentCards.slice(i, i + 2).map(([label, value]) => ({ label, value })));
-    }
+    const remarksHeight = 72;
+    doc.roundedRect(header.left, y, header.width, remarksHeight, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
+    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text('Technician Remarks', header.left + 10, y + 7, { width: header.width - 20 });
+    doc.font('Helvetica').fontSize(9.3).fillColor('#0F172A').text(technicianRemarksText, header.left + 10, y + 22, {
+      width: header.width - 20,
+      height: 42,
+      ellipsis: true
+    });
+    y += remarksHeight + 8;
   }
 
   y += 8;
