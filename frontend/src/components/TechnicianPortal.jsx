@@ -1160,6 +1160,10 @@ export default function TechnicianPortal() {
   });
   const customerSigCanvas = useRef({});
   const technicianSigCanvas = useRef({});
+  const signatureDraftRef = useRef({
+    customerSignature: '',
+    technicianSignature: ''
+  });
   const workflowTabButtonRefs = useRef([]);
   const wizardBackButtonRef = useRef(null);
   const wizardNextButtonRef = useRef(null);
@@ -1518,6 +1522,13 @@ export default function TechnicianPortal() {
   }, [jobWizard?.customerSignature, jobWizard?.technicianSignature, wizardStep]);
 
   useEffect(() => {
+    signatureDraftRef.current = {
+      customerSignature: String(jobWizard?.customerSignature || '').trim(),
+      technicianSignature: String(jobWizard?.technicianSignature || '').trim()
+    };
+  }, [jobWizard?.customerSignature, jobWizard?.technicianSignature]);
+
+  useEffect(() => {
     if (!import.meta.env.DEV) return undefined;
     const logHitTargets = () => {
       const logPoint = (label, node) => {
@@ -1642,15 +1653,15 @@ export default function TechnicianPortal() {
 
     return normalizeDraftForSave({
       ...draft,
-      customerSignature: extractSignature(customerSigCanvas, draft?.customerSignature),
-      technicianSignature: extractSignature(technicianSigCanvas, draft?.technicianSignature)
+      customerSignature: extractSignature(customerSigCanvas, signatureDraftRef.current.customerSignature || draft?.customerSignature),
+      technicianSignature: extractSignature(technicianSigCanvas, signatureDraftRef.current.technicianSignature || draft?.technicianSignature)
     });
   }, [jobWizard, normalizeDraftForSave]);
 
   const syncSignatureFieldFromPad = useCallback((field, padRef) => {
     const pad = padRef?.current;
     if (!pad || typeof pad.isEmpty !== 'function') return;
-    const currentValue = String(jobWizard?.[field] || '').trim();
+    const currentValue = String(signatureDraftRef.current?.[field] || jobWizard?.[field] || '').trim();
     let nextValue = '';
     try {
       if (!pad.isEmpty()) {
@@ -1674,6 +1685,10 @@ export default function TechnicianPortal() {
     if (!nextValue && !pad.isEmpty()) {
       nextValue = currentValue;
     }
+    signatureDraftRef.current = {
+      ...signatureDraftRef.current,
+      [field]: nextValue
+    };
     setJobWizard((prev) => normalizeDraftForSave({
       ...prev,
       [field]: nextValue
@@ -1690,7 +1705,12 @@ export default function TechnicianPortal() {
     setActiveJob(job);
     setPunchInTime(job.punchInTime || null);
     setWizardStep('photos');
-    setJobWizard(buildWizardDraft(job));
+    const nextDraft = buildWizardDraft(job);
+    signatureDraftRef.current = {
+      customerSignature: String(nextDraft.customerSignature || '').trim(),
+      technicianSignature: String(nextDraft.technicianSignature || '').trim()
+    };
+    setJobWizard(nextDraft);
     if (customerSigCanvas.current && typeof customerSigCanvas.current.clear === 'function') {
       customerSigCanvas.current.clear();
     }
@@ -2449,6 +2469,10 @@ export default function TechnicianPortal() {
                   if (technicianSigCanvas.current && typeof technicianSigCanvas.current.clear === 'function') {
                     technicianSigCanvas.current.clear();
                   }
+                  signatureDraftRef.current = {
+                    customerSignature: '',
+                    technicianSignature: ''
+                  };
                   updateWizardDraft((prev) => ({
                     ...prev,
                     customerSignature: '',
