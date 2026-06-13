@@ -856,6 +856,28 @@ const toDataUrlFromUpload = (file) => {
     return '';
   }
 };
+
+const persistDataUrlToUpload = (dataUrl = '', fileStem = 'signature', req = null) => {
+  const raw = String(dataUrl || '').trim();
+  if (!/^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(raw)) return '';
+  try {
+    const match = raw.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/i);
+    if (!match) return '';
+    const mime = String(match[1] || '').trim().toLowerCase();
+    const base64 = String(match[2] || '').trim();
+    if (!base64) return '';
+    const ext = mime.includes('png') ? '.png' : mime.includes('webp') ? '.webp' : '.jpg';
+    const safeStem = String(fileStem || 'signature').replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '') || 'signature';
+    const fileName = `${safeStem}-${Date.now()}${ext}`;
+    const filePath = path.join(uploadsDir, fileName);
+    fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
+    const origin = req ? resolveServerOrigin(req) : SERVER_ORIGIN;
+    return origin ? `${String(origin).replace(/\/+$/, '')}/uploads/${fileName}` : `/uploads/${fileName}`;
+  } catch (error) {
+    console.error('Failed to persist signature data URL to upload:', error.message);
+    return '';
+  }
+};
 const backendPublicDir = path.join(__dirname, 'public');
 const backendPublicIndexFile = path.join(backendPublicDir, 'index.html');
 const frontendDistDir = path.join(__dirname, '..', 'frontend', 'dist');
@@ -6212,6 +6234,7 @@ const loadJobsFromMysql = async () => {
       customer_signature_url: String(row?.customer_signature_url ?? row?.customer_signature ?? payload.customer_signature_url ?? payload.customerSignature ?? '').trim(),
       technicianSignature: String(row?.technician_signature ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
       technician_signature: String(row?.technician_signature ?? payload.technician_signature ?? payload.technicianSignature ?? '').trim(),
+      technician_signature_url: String(row?.technician_signature_url ?? payload.technician_signature_url ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
       serviceStartTime: String(row?.service_start_time ?? payload.serviceStartTime ?? payload.service_start_time ?? '').trim(),
       serviceEndTime: String(row?.service_end_time ?? payload.serviceEndTime ?? payload.service_end_time ?? '').trim(),
       customerObservation: String(row?.customer_observation ?? payload.customerObservation ?? payload.customer_observation ?? '').trim(),
@@ -6323,6 +6346,7 @@ const loadJobByIdFromMysql = async (jobId) => {
       customer_signature_url: String(row.customer_signature_url ?? row.customer_signature ?? payload.customer_signature_url ?? payload.customerSignature ?? '').trim(),
       technicianSignature: String(row.technician_signature ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
       technician_signature: String(row.technician_signature ?? payload.technician_signature ?? payload.technicianSignature ?? '').trim(),
+      technician_signature_url: String(row.technician_signature_url ?? payload.technician_signature_url ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
       serviceStartTime: String(row.service_start_time ?? payload.serviceStartTime ?? payload.service_start_time ?? '').trim(),
       serviceEndTime: String(row.service_end_time ?? payload.serviceEndTime ?? payload.service_end_time ?? '').trim(),
       customerObservation: String(row.customer_observation ?? payload.customerObservation ?? payload.customer_observation ?? '').trim(),
@@ -6720,8 +6744,14 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
     const uploadedAfterUrl = uploadedAfterFile ? `${resolveServerOrigin(req)}/uploads/${uploadedAfterFile.filename}` : '';
     const uploadedSignatureUrl = uploadedSignatureFile ? `${resolveServerOrigin(req)}/uploads/${uploadedSignatureFile.filename}` : '';
     const uploadedTechnicianSignatureUrl = uploadedTechnicianSignatureFile ? `${resolveServerOrigin(req)}/uploads/${uploadedTechnicianSignatureFile.filename}` : '';
-    const signature = uploadedSignatureUrl || String(req.body?.customerSignature || '').trim();
-    const technicianSignature = uploadedTechnicianSignatureUrl || String(req.body?.technicianSignature || '').trim();
+    const rawCustomerSignature = String(req.body?.customerSignature || '').trim();
+    const rawTechnicianSignature = String(req.body?.technicianSignature || '').trim();
+    const signature = uploadedSignatureUrl
+      || (rawCustomerSignature.startsWith('data:image/') ? persistDataUrlToUpload(rawCustomerSignature, `${targetId}-customer-signature`, req) : '')
+      || rawCustomerSignature;
+    const technicianSignature = uploadedTechnicianSignatureUrl
+      || (rawTechnicianSignature.startsWith('data:image/') ? persistDataUrlToUpload(rawTechnicianSignature, `${targetId}-technician-signature`, req) : '')
+      || rawTechnicianSignature;
     const providedBeforeUrl = String(req.body?.beforePhoto || '').trim();
     const providedAfterUrl = String(req.body?.afterPhoto || '').trim();
     const serviceDateForCard = String(req.body?.serviceDate || req.body?.scheduledDate || req.body?.completionCardGeneratedAt || new Date()).trim();
@@ -6740,7 +6770,9 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
       beforePhoto: uploadedBeforeUrl || providedBeforeUrl || '',
       afterPhoto: uploadedAfterUrl || providedAfterUrl || '',
       customerSignature: signature,
+      customer_signature_url: signature,
       technicianSignature,
+      technician_signature_url: technicianSignature,
       jobCardNumber: String(req.body?.jobCardNumber || '').trim(),
       technicianRemarks: String(req.body?.technicianRemarks || req.body?.reviewRemarks || req.body?.remarks || '').trim(),
       customerObservation: String(req.body?.customerObservation || '').trim(),
@@ -9035,6 +9067,7 @@ const syncJobToMysql = async (job) => {
       customer_signature: job.customerSignature || job.customer_signature || null,
       customer_signature_url: job.customerSignature || null,
       technician_signature: job.technicianSignature || job.technician_signature || null,
+      technician_signature_url: job.technicianSignature || job.technician_signature || null,
       rat_count: Number.isFinite(Number(job.ratCount || job.rat_count)) ? Number(job.ratCount || job.rat_count) : null,
       rodent_box_count: Number.isFinite(Number(job.rodentBoxCount || job.rodent_box_count)) ? Number(job.rodentBoxCount || job.rodent_box_count) : null,
       rodent_box_location: job.rodentBoxLocation || job.rodent_box_location || null,
