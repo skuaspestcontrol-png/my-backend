@@ -625,7 +625,8 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
       output.height = nextHeight;
       const context = output.getContext('2d');
       if (!context) return trimmedCanvas.toDataURL(type, quality);
-      context.clearRect(0, 0, nextWidth, nextHeight);
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, nextWidth, nextHeight);
       context.drawImage(trimmedCanvas, 0, 0, nextWidth, nextHeight);
       return output.toDataURL(type, quality);
     },
