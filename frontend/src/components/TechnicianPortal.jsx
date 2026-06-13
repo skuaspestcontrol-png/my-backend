@@ -1550,22 +1550,6 @@ export default function TechnicianPortal() {
     };
   }, [jobWizard]);
 
-  const captureSignatureDraft = useCallback((draft = jobWizard) => {
-    const customerSignaturePadReady = customerSigCanvas.current && typeof customerSigCanvas.current.isEmpty === 'function' && typeof customerSigCanvas.current.getTrimmedCanvas === 'function';
-    const technicianSignaturePadReady = technicianSigCanvas.current && typeof technicianSigCanvas.current.isEmpty === 'function' && typeof technicianSigCanvas.current.getTrimmedCanvas === 'function';
-    const nextCustomerSignature = customerSignaturePadReady && !customerSigCanvas.current.isEmpty()
-      ? customerSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
-      : String(draft?.customerSignature || '').trim();
-    const nextTechnicianSignature = technicianSignaturePadReady && !technicianSigCanvas.current.isEmpty()
-      ? technicianSigCanvas.current.getTrimmedCanvas().toDataURL('image/jpeg', 0.7)
-      : String(draft?.technicianSignature || '').trim();
-    return normalizeDraftForSave({
-      ...draft,
-      customerSignature: nextCustomerSignature,
-      technicianSignature: nextTechnicianSignature
-    });
-  }, [jobWizard, normalizeDraftForSave]);
-
   const persistWizardDraft = useCallback(async (draft = jobWizard) => {
     if (!activeJob?._id || isSavingWizard) return null;
     const savePayload = normalizeDraftForSave(draft);
@@ -1601,6 +1585,31 @@ export default function TechnicianPortal() {
       return null;
     }
   }, [activeJob, normalizeDraftForSave, syncLocalJob]);
+
+  const captureSignatureDraft = useCallback((draft = jobWizard) => {
+    const extractSignature = (padRef, fallbackValue) => {
+      const pad = padRef.current;
+      const fallback = String(fallbackValue || '').trim();
+      if (!pad || typeof pad.isEmpty !== 'function' || typeof pad.getTrimmedCanvas !== 'function') {
+        return fallback;
+      }
+      try {
+        if (pad.isEmpty()) return fallback;
+        const trimmedCanvas = pad.getTrimmedCanvas();
+        if (!trimmedCanvas || typeof trimmedCanvas.toDataURL !== 'function') return fallback;
+        return trimmedCanvas.toDataURL('image/jpeg', 0.7);
+      } catch (error) {
+        console.error('Failed to capture signature draft', error);
+        return fallback;
+      }
+    };
+
+    return normalizeDraftForSave({
+      ...draft,
+      customerSignature: extractSignature(customerSigCanvas, draft?.customerSignature),
+      technicianSignature: extractSignature(technicianSigCanvas, draft?.technicianSignature)
+    });
+  }, [jobWizard, normalizeDraftForSave]);
 
   const openJob = (job) => {
     if (isCompletedJob(job)) {
@@ -2139,12 +2148,14 @@ export default function TechnicianPortal() {
     const nextIndex = Math.max(0, wizardStepIndex - 1);
     const nextDraft = captureSignatureDraft(jobWizard);
     setJobWizard(nextDraft);
+    setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
     if (wizardStep === 'signature') {
-      void persistWizardDraftInBackground(nextDraft);
+      queueMicrotask(() => {
+        void persistWizardDraftInBackground(nextDraft);
+      });
     } else {
       await persistWizardDraft(nextDraft);
     }
-    setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
   };
 
   const handleWizardNext = async () => {
@@ -2155,12 +2166,14 @@ export default function TechnicianPortal() {
     const nextIndex = Math.min(wizardLastStepIndex, wizardStepIndex + 1);
     const nextDraft = captureSignatureDraft(jobWizard);
     setJobWizard(nextDraft);
+    setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
     if (wizardStep === 'signature') {
-      void persistWizardDraftInBackground(nextDraft);
+      queueMicrotask(() => {
+        void persistWizardDraftInBackground(nextDraft);
+      });
     } else {
       await persistWizardDraft(nextDraft);
     }
-    setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
   };
 
   const renderWizardStepContent = () => {
