@@ -202,9 +202,9 @@ const scheduleColumnWidths = {
   select: 56,
   service: 220,
   visit: 118,
-  date: 108,
-  window: 88,
-  site: 180,
+  date: 144,
+  window: 128,
+  site: 210,
   status: 128,
   pdf: 90,
   action: 170
@@ -213,9 +213,9 @@ const scheduleColumnBounds = {
   select: { min: 48, max: 72 },
   service: { min: 180, max: 360 },
   visit: { min: 100, max: 180 },
-  date: { min: 108, max: 108 },
-  window: { min: 88, max: 88 },
-  site: { min: 150, max: 220 },
+  date: { min: 132, max: 180 },
+  window: { min: 120, max: 180 },
+  site: { min: 180, max: 260 },
   status: { min: 100, max: 160 },
   pdf: { min: 82, max: 120 },
   action: { min: 150, max: 220 }
@@ -628,7 +628,7 @@ export default function ScheduleJob() {
     resetColumns,
     startResize
   } = useColumnResize({
-    storageKey: 'skuas-table-widths-schedule-job-v3',
+    storageKey: 'skuas-table-widths-schedule-job-v4',
     columns: scheduleColumns,
     defaultColumnWidths: scheduleColumnWidths,
     columnBounds: scheduleColumnBounds,
@@ -1053,7 +1053,7 @@ export default function ScheduleJob() {
                   </th>
                   <th style={headStyle('service')}>Service</th>
                   <th style={headStyle('visit', 'center')}>Visit</th>
-                    <th style={headStyle('date', 'center')}>Date</th>
+                  <th style={headStyle('date', 'center')}>Date</th>
                   <th style={headStyle('window', 'center')}>Time</th>
                   <th style={headStyle('site')}>Site</th>
                   <th style={headStyle('status', 'center')}>Status</th>
@@ -1082,25 +1082,23 @@ export default function ScheduleJob() {
                     <td style={cellStyle('service')}>{row.service}</td>
                     <td style={cellStyle('visit', 'center')}>{row.visit}</td>
                     <td style={cellStyle('date', 'center')}>
-                      <div style={{ width: '108px', maxWidth: '108px', margin: '0 auto' }}>
-                        <input
-                          type="date"
-                          value={editableServiceRows.find((entry) => entry.key === row.key)?.editableDate || ''}
-                          onChange={(event) => updateEditableRow(row.key, { editableDate: event.target.value })}
-                          style={{
-                            ...shell.input,
-                            width: '108px',
-                            minWidth: '108px',
-                            maxWidth: '108px',
-                            height: '33px',
-                            minHeight: '33px',
-                            textAlign: 'left',
-                            padding: '0 18px 0 8px',
-                            fontSize: '11px',
-                            fontWeight: 700
-                          }}
-                        />
-                      </div>
+                      <input
+                        type="date"
+                        value={editableServiceRows.find((entry) => entry.key === row.key)?.editableDate || ''}
+                        onChange={(event) => updateEditableRow(row.key, { editableDate: event.target.value })}
+                        style={{
+                          ...shell.input,
+                          width: '100%',
+                          minWidth: 0,
+                          height: '33px',
+                          minHeight: '33px',
+                          textAlign: 'center',
+                          padding: '0 10px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          boxSizing: 'border-box'
+                        }}
+                      />
                     </td>
                     <td style={cellStyle('window', 'center')}>
                       <input
@@ -1110,10 +1108,27 @@ export default function ScheduleJob() {
                         value={editableServiceRows.find((entry) => entry.key === row.key)?.editableTime || ''}
                         onChange={(event) => updateEditableRow(row.key, { editableTime: event.target.value })}
                         onBlur={(event) => updateEditableRow(row.key, { editableTime: formatTimeForEdit(event.target.value) })}
-                        style={{ ...shell.input, width: '100%', minWidth: 0, minHeight: '32px', textAlign: 'center' }}
+                        style={{
+                          ...shell.input,
+                          width: '100%',
+                          minWidth: 0,
+                          minHeight: '32px',
+                          textAlign: 'center',
+                          boxSizing: 'border-box'
+                        }}
                       />
                     </td>
-                    <td style={cellStyle('site')}>{row.site || '-'}</td>
+                    <td
+                      style={{
+                        ...cellStyle('site'),
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                      title={row.site || '-'}
+                    >
+                      {row.site || '-'}
+                    </td>
                     <td style={cellStyle('status', 'center')}>{row.status}</td>
                     <td style={cellStyle('pdf', 'center')}>
                       {row.canViewPdf ? (
