@@ -1,4 +1,5 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import axios from 'axios';
 import trimCanvas from 'trim-canvas';
 import {
@@ -1962,11 +1963,21 @@ export default function TechnicianPortal() {
   const handleWizardStepChange = async (nextStep) => {
     if (!nextStep || nextStep === wizardStep) return;
     const nextDraft = captureSignatureDraft(jobWizard);
-    setJobWizard(nextDraft);
     if (wizardStep === 'signature') {
+      flushSync(() => {
+        signatureDraftRef.current = {
+          customerSignature: String(nextDraft.customerSignature || '').trim(),
+          technicianSignature: String(nextDraft.technicianSignature || '').trim()
+        };
+        setJobWizard(nextDraft);
+        setWizardStep(nextStep);
+      });
       void persistWizardDraftInBackground(nextDraft);
     } else {
+      setJobWizard(nextDraft);
       await persistWizardDraft(nextDraft);
+      setWizardStep(nextStep);
+      return;
     }
     setWizardStep(nextStep);
   };
@@ -2220,6 +2231,8 @@ export default function TechnicianPortal() {
   };
 
   const wizardDraftView = useMemo(() => normalizeDraftForSave(jobWizard), [jobWizard, normalizeDraftForSave]);
+  const liveCustomerSignature = String(signatureDraftRef.current.customerSignature || wizardDraftView.customerSignature || '').trim();
+  const liveTechnicianSignature = String(signatureDraftRef.current.technicianSignature || wizardDraftView.technicianSignature || '').trim();
   const wizardChecklistDoneCount = wizardDraftView.checklistItems.filter((item) => item.done).length;
   const wizardChecklistTotal = wizardDraftView.checklistItems.length;
   const wizardStepIndex = Math.max(0, wizardSteps.findIndex((step) => step.key === wizardStep));
@@ -2236,15 +2249,25 @@ export default function TechnicianPortal() {
     }
     const nextIndex = Math.max(0, wizardStepIndex - 1);
     const nextDraft = captureSignatureDraft(jobWizard);
-    setJobWizard(nextDraft);
-    setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
     if (wizardStep === 'signature') {
+      flushSync(() => {
+        signatureDraftRef.current = {
+          customerSignature: String(nextDraft.customerSignature || '').trim(),
+          technicianSignature: String(nextDraft.technicianSignature || '').trim()
+        };
+        setJobWizard(nextDraft);
+        setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
+      });
       queueMicrotask(() => {
         void persistWizardDraftInBackground(nextDraft);
       });
     } else {
+      setJobWizard(nextDraft);
       await persistWizardDraft(nextDraft);
+      setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
+      return;
     }
+    setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
   };
 
   const handleWizardNext = async () => {
@@ -2253,15 +2276,29 @@ export default function TechnicianPortal() {
       return;
     }
     const nextIndex = Math.min(wizardLastStepIndex, wizardStepIndex + 1);
+    if (wizardStep === 'signature' && typeof window !== 'undefined') {
+      await new Promise((resolve) => {
+        window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
+      });
+    }
     const nextDraft = captureSignatureDraft(jobWizard);
-    setJobWizard(nextDraft);
-    setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
     if (wizardStep === 'signature') {
+      flushSync(() => {
+        signatureDraftRef.current = {
+          customerSignature: String(nextDraft.customerSignature || '').trim(),
+          technicianSignature: String(nextDraft.technicianSignature || '').trim()
+        };
+        setJobWizard(nextDraft);
+        setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
+      });
       queueMicrotask(() => {
         void persistWizardDraftInBackground(nextDraft);
       });
     } else {
+      setJobWizard(nextDraft);
       await persistWizardDraft(nextDraft);
+      setWizardStep(wizardSteps[nextIndex]?.key || 'photos');
+      return;
     }
   };
 
@@ -2567,13 +2604,13 @@ export default function TechnicianPortal() {
               <div style={shell.reviewStat}>
                 <p style={shell.reviewStatLabel}>Customer Signature</p>
                 <p style={shell.reviewStatValue}>
-                  {wizardDraftView.customerSignature ? 'Captured' : 'Missing'}
+                  {liveCustomerSignature ? 'Captured' : 'Missing'}
                 </p>
               </div>
               <div style={shell.reviewStat}>
                 <p style={shell.reviewStatLabel}>Technician Signature</p>
                 <p style={shell.reviewStatValue}>
-                  {wizardDraftView.technicianSignature ? 'Captured' : 'Missing'}
+                  {liveTechnicianSignature ? 'Captured' : 'Missing'}
                 </p>
               </div>
             </div>
