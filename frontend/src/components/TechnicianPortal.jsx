@@ -422,16 +422,12 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     syncDebugState();
     if (typeof onStrokeEnd === 'function') {
       try {
-        const canvas = canvasRef.current;
-        let signatureDataUrl = '';
-        if (canvas) {
-          if (typeof canvas.toDataURL === 'function') {
-            signatureDataUrl = canvas.toDataURL('image/jpeg', 0.55) || '';
-          }
-          if (!signatureDataUrl && typeof this?.getCompactDataURL === 'function') {
-            signatureDataUrl = this.getCompactDataURL('image/jpeg', 0.55, 1000) || '';
-          }
-        }
+        const pad = ref && typeof ref === 'object' ? ref.current : null;
+        const signatureDataUrl = pad && typeof pad.getCompactDataURL === 'function'
+          ? pad.getCompactDataURL('image/png', 1, 1000)
+          : canvasRef.current && typeof canvasRef.current.toDataURL === 'function'
+            ? canvasRef.current.toDataURL('image/png') || ''
+            : '';
         onStrokeEnd(signatureDataUrl);
       } catch (error) {
         console.error('Signature stroke callback failed', error);
@@ -616,7 +612,7 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
       }
       return trimCanvas(clone);
     },
-    getCompactDataURL(type = 'image/jpeg', quality = 0.55, maxDimension = 1200) {
+    getCompactDataURL(type = 'image/png', quality = 0.55, maxDimension = 1200) {
       const trimmedCanvas = this.getTrimmedCanvas();
       if (!trimmedCanvas || !trimmedCanvas.width || !trimmedCanvas.height) return '';
       const sourceWidth = Math.max(1, trimmedCanvas.width);
@@ -1645,17 +1641,17 @@ export default function TechnicianPortal() {
       try {
         if (pad.isEmpty()) return fallback;
         if (typeof pad.getCompactDataURL === 'function') {
-          const compact = pad.getCompactDataURL('image/jpeg', 0.55, 1000);
+          const compact = pad.getCompactDataURL('image/png', 1, 1000);
           if (compact) return compact;
         }
         if (typeof pad.getTrimmedCanvas === 'function') {
           const trimmedCanvas = pad.getTrimmedCanvas();
           if (trimmedCanvas && typeof trimmedCanvas.toDataURL === 'function') {
-            return trimmedCanvas.toDataURL('image/jpeg', 0.55);
+            return trimmedCanvas.toDataURL('image/png');
           }
         }
         if (typeof pad.toDataURL === 'function') {
-          return pad.toDataURL('image/jpeg', 0.55) || fallback;
+          return pad.toDataURL('image/png') || fallback;
         }
         return fallback;
       } catch (error) {
@@ -1682,20 +1678,20 @@ export default function TechnicianPortal() {
     const pad = padRef?.current;
     if (!pad || typeof pad.isEmpty !== 'function') return;
     const currentValue = String(signatureDraftRef.current?.[field] || jobWizard?.[field] || '').trim();
-    let nextValue = String(signatureDataUrl || '').trim();
-    try {
+      let nextValue = String(signatureDataUrl || '').trim();
+      try {
       if (!nextValue && !pad.isEmpty()) {
         if (typeof pad.getCompactDataURL === 'function') {
-          nextValue = String(pad.getCompactDataURL('image/jpeg', 0.55, 1000) || '').trim();
+          nextValue = String(pad.getCompactDataURL('image/png', 1, 1000) || '').trim();
         }
         if (!nextValue && typeof pad.getTrimmedCanvas === 'function') {
           const trimmedCanvas = pad.getTrimmedCanvas();
           nextValue = trimmedCanvas && typeof trimmedCanvas.toDataURL === 'function'
-            ? String(trimmedCanvas.toDataURL('image/jpeg', 0.55) || '').trim()
+            ? String(trimmedCanvas.toDataURL('image/png') || '').trim()
             : '';
         }
         if (!nextValue && typeof pad.toDataURL === 'function') {
-          nextValue = String(pad.toDataURL('image/jpeg', 0.55) || '').trim();
+          nextValue = String(pad.toDataURL('image/png') || '').trim();
         }
       }
     } catch (error) {
