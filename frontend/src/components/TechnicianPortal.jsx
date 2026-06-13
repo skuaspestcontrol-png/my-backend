@@ -422,7 +422,17 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     syncDebugState();
     if (typeof onStrokeEnd === 'function') {
       try {
-        onStrokeEnd();
+        const canvas = canvasRef.current;
+        let signatureDataUrl = '';
+        if (canvas) {
+          if (typeof canvas.toDataURL === 'function') {
+            signatureDataUrl = canvas.toDataURL('image/jpeg', 0.55) || '';
+          }
+          if (!signatureDataUrl && typeof this?.getCompactDataURL === 'function') {
+            signatureDataUrl = this.getCompactDataURL('image/jpeg', 0.55, 1000) || '';
+          }
+        }
+        onStrokeEnd(signatureDataUrl);
       } catch (error) {
         console.error('Signature stroke callback failed', error);
       }
@@ -1668,13 +1678,13 @@ export default function TechnicianPortal() {
     });
   }, [jobWizard, normalizeDraftForSave]);
 
-  const syncSignatureFieldFromPad = useCallback((field, padRef) => {
+  const syncSignatureFieldFromPad = useCallback((field, padRef, signatureDataUrl = '') => {
     const pad = padRef?.current;
     if (!pad || typeof pad.isEmpty !== 'function') return;
     const currentValue = String(signatureDraftRef.current?.[field] || jobWizard?.[field] || '').trim();
-    let nextValue = '';
+    let nextValue = String(signatureDataUrl || '').trim();
     try {
-      if (!pad.isEmpty()) {
+      if (!nextValue && !pad.isEmpty()) {
         if (typeof pad.getCompactDataURL === 'function') {
           nextValue = String(pad.getCompactDataURL('image/jpeg', 0.55, 1000) || '').trim();
         }
@@ -2602,23 +2612,23 @@ export default function TechnicianPortal() {
               <div>
                 <p style={shell.label}>Technician Signature</p>
                 <div style={{ ...shell.signatureWrap, maxWidth: '100%' }}>
-                  <SignaturePadBox
-                    ref={technicianSigCanvas}
-                    penColor="black"
-                    maxWidth={`${signatureWidth}px`}
-                    onStrokeEnd={() => syncSignatureFieldFromPad('technicianSignature', technicianSigCanvas)}
-                  />
+                    <SignaturePadBox
+                      ref={technicianSigCanvas}
+                      penColor="black"
+                      maxWidth={`${signatureWidth}px`}
+                      onStrokeEnd={(signatureDataUrl) => syncSignatureFieldFromPad('technicianSignature', technicianSigCanvas, signatureDataUrl)}
+                    />
                 </div>
               </div>
               <div>
                 <p style={shell.label}>Customer Signature</p>
                 <div style={{ ...shell.signatureWrap, maxWidth: '100%' }}>
-                  <SignaturePadBox
-                    ref={customerSigCanvas}
-                    penColor="black"
-                    maxWidth={`${signatureWidth}px`}
-                    onStrokeEnd={() => syncSignatureFieldFromPad('customerSignature', customerSigCanvas)}
-                  />
+                    <SignaturePadBox
+                      ref={customerSigCanvas}
+                      penColor="black"
+                      maxWidth={`${signatureWidth}px`}
+                      onStrokeEnd={(signatureDataUrl) => syncSignatureFieldFromPad('customerSignature', customerSigCanvas, signatureDataUrl)}
+                    />
                 </div>
               </div>
             </div>
