@@ -1940,7 +1940,12 @@ const normalizePdfChemicalRows = (rows = []) => (Array.isArray(rows) ? rows : []
   areaTreated: String(row?.area_treated ?? row?.areaTreated ?? row?.area ?? '').trim()
 })).filter((row) => row.materialName || row.quantityUsed || row.unit || row.dilutionRatio || row.areaTreated);
 
-const normalizePdfChemicalRowsFromJob = (job = {}) => normalizePdfChemicalRows(parseJobChemicals(job));
+const normalizePdfChemicalRowsFromJob = (job = {}) => normalizePdfChemicalRows([
+  ...parseJobChemicals(job),
+  ...(Array.isArray(job?.materialRows) ? job.materialRows : []),
+  ...(Array.isArray(job?.materialsUsed) ? job.materialsUsed : []),
+  ...(Array.isArray(job?.serviceMaterials) ? job.serviceMaterials : [])
+]);
 const buildJobPdfTechnicianRemarks = (job = {}) => {
   const manualRemarks = String(job.technicianRemarks || job.reviewRemarks || job.remarks || '').trim();
   const checklistRows = Array.isArray(job.checklistItems) ? job.checklistItems : [];
@@ -2358,8 +2363,22 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     || job.mobileNumber
     || job.mobile
   );
-  const signatureBuffer = await loadJobPdfLogoBuffer(job.customerSignature || job.customer_signature || job.customer_signature_url || '');
-  const technicianSignatureBuffer = await loadJobPdfLogoBuffer(job.technicianSignature || job.technician_signature || '');
+  const signatureBuffer = await loadJobPdfLogoBuffer(
+    job.customerSignature
+    || job.customer_signature
+    || job.customer_signature_url
+    || job.signature
+    || job.signatureUrl
+    || ''
+  );
+  const technicianSignatureBuffer = await loadJobPdfLogoBuffer(
+    job.technicianSignature
+    || job.technician_signature
+    || job.technician_signature_url
+    || job.technicianSignatureUrl
+    || job.technician_signature_url
+    || ''
+  );
 
   const sections = [];
   const pushField = (label, value, widthHint = 'half') => sections.push({ label, value: pdfValue(value), widthHint });
@@ -2580,8 +2599,21 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
       const tableRows = normalizePdfChemicalRows(fromTable);
       return tableRows.length > 0 ? tableRows : normalizePdfChemicalRowsFromJob(job);
     };
-    const signatureBufferForJob = async (job) => loadJobPdfLogoBuffer(job.customerSignature || job.customer_signature || job.customer_signature_url || '');
-    const technicianSignatureBufferForJob = async (job) => loadJobPdfLogoBuffer(job.technicianSignature || job.technician_signature || '');
+    const signatureBufferForJob = async (job) => loadJobPdfLogoBuffer(
+      job.customerSignature
+      || job.customer_signature
+      || job.customer_signature_url
+      || job.signature
+      || job.signatureUrl
+      || ''
+    );
+    const technicianSignatureBufferForJob = async (job) => loadJobPdfLogoBuffer(
+      job.technicianSignature
+      || job.technician_signature
+      || job.technician_signature_url
+      || job.technicianSignatureUrl
+      || ''
+    );
 
     const renderSectionTitle = (y, text) => {
       doc.font('Helvetica-Bold').fontSize(11).fillColor('#9F174D').text(text, header.left, y, { width: header.width, align: 'left' });
@@ -3504,6 +3536,13 @@ const ensureColumnsIfMissing = async (conn, tableName, requiredColumns = []) => 
       await conn.query(`ALTER TABLE ${tableName} ADD COLUMN ${col.name} ${col.definition}`);
     }
   }
+};
+
+const setPdfNoCacheHeaders = (res) => {
+  if (!res || typeof res.setHeader !== 'function') return;
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 };
 
 let leadsPlaceColumnsEnsured = false;
@@ -6859,6 +6898,7 @@ const handleServiceVisitJobCardPdf = async (req, res) => {
     const fileNameBase = String(job.jobCardNumber || job.job_card_number || job.jobNumber || job._id || `JOB_${Date.now()}`).replace(/[^\w.-]+/g, '_');
     const fileName = `${fileNameBase}.pdf`;
 
+    setPdfNoCacheHeaders(res);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `${asAttachment ? 'attachment' : 'inline'}; filename="${fileName}"`);
     res.send(pdfBuffer);
@@ -6901,6 +6941,7 @@ const handleContractJobCardSummaryPdf = async (req, res) => {
     const pdfBuffer = await buildContractJobCardSummaryPdfBuffer({ invoice, jobs: relatedJobs, settings });
     const fileName = `${String(invoice.invoiceNumber || invoice._id || 'contract').replace(/[^\w.-]+/g, '_')}_job_card_summary.pdf`;
 
+    setPdfNoCacheHeaders(res);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename=\"${fileName}\"`);
     res.send(pdfBuffer);

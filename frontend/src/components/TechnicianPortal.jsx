@@ -1742,13 +1742,14 @@ export default function TechnicianPortal() {
   const openJobPdfPreview = (job) => {
     if (!job?._id) return;
     const jobNumber = String(job.jobNumber || job.job_no || job.jobNo || job.scheduleVisit || job.visit || job._id || 'Job').trim();
-    const pdfUrl = `${API_BASE_URL}/api/service-visits/${job._id}/job-card-pdf`;
+    const basePdfUrl = `${API_BASE_URL}/api/service-visits/${job._id}/job-card-pdf`;
+    const pdfUrl = `${basePdfUrl}?_ts=${Date.now()}`;
     setPdfPreview({
       open: true,
       title: `Job Card - ${jobNumber}`,
       pdfUrl,
       downloadFileName: `${jobNumber.replace(/[^\w.-]+/g, '_')}.pdf`,
-      publicShareUrl: pdfUrl,
+      publicShareUrl: basePdfUrl,
       shareContext: {
         jobNumber,
         customerName: String(job.customerName || '-').trim() || '-',
