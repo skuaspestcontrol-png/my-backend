@@ -597,6 +597,23 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
       }
       return trimCanvas(clone);
     },
+    getCompactDataURL(type = 'image/jpeg', quality = 0.55, maxDimension = 1200) {
+      const trimmedCanvas = this.getTrimmedCanvas();
+      if (!trimmedCanvas || !trimmedCanvas.width || !trimmedCanvas.height) return '';
+      const sourceWidth = Math.max(1, trimmedCanvas.width);
+      const sourceHeight = Math.max(1, trimmedCanvas.height);
+      const scale = Math.min(1, Number(maxDimension) > 0 ? Number(maxDimension) / Math.max(sourceWidth, sourceHeight) : 1);
+      const nextWidth = Math.max(1, Math.round(sourceWidth * scale));
+      const nextHeight = Math.max(1, Math.round(sourceHeight * scale));
+      const output = document.createElement('canvas');
+      output.width = nextWidth;
+      output.height = nextHeight;
+      const context = output.getContext('2d');
+      if (!context) return trimmedCanvas.toDataURL(type, quality);
+      context.clearRect(0, 0, nextWidth, nextHeight);
+      context.drawImage(trimmedCanvas, 0, 0, nextWidth, nextHeight);
+      return output.toDataURL(type, quality);
+    },
     fromDataURL(dataURL) {
       const canvas = canvasRef.current;
       const context = canvas?.getContext('2d');
@@ -1590,14 +1607,25 @@ export default function TechnicianPortal() {
     const extractSignature = (padRef, fallbackValue) => {
       const pad = padRef.current;
       const fallback = String(fallbackValue || '').trim();
-      if (!pad || typeof pad.isEmpty !== 'function' || typeof pad.getTrimmedCanvas !== 'function') {
+      if (!pad || typeof pad.isEmpty !== 'function') {
         return fallback;
       }
       try {
         if (pad.isEmpty()) return fallback;
-        const trimmedCanvas = pad.getTrimmedCanvas();
-        if (!trimmedCanvas || typeof trimmedCanvas.toDataURL !== 'function') return fallback;
-        return trimmedCanvas.toDataURL('image/jpeg', 0.7);
+        if (typeof pad.getCompactDataURL === 'function') {
+          const compact = pad.getCompactDataURL('image/jpeg', 0.55, 1000);
+          if (compact) return compact;
+        }
+        if (typeof pad.getTrimmedCanvas === 'function') {
+          const trimmedCanvas = pad.getTrimmedCanvas();
+          if (trimmedCanvas && typeof trimmedCanvas.toDataURL === 'function') {
+            return trimmedCanvas.toDataURL('image/jpeg', 0.55);
+          }
+        }
+        if (typeof pad.toDataURL === 'function') {
+          return pad.toDataURL('image/jpeg', 0.55) || fallback;
+        }
+        return fallback;
       } catch (error) {
         console.error('Failed to capture signature draft', error);
         return fallback;
