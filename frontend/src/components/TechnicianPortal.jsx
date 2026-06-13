@@ -1523,9 +1523,11 @@ export default function TechnicianPortal() {
   }, [jobWizard?.customerSignature, jobWizard?.technicianSignature, wizardStep]);
 
   useEffect(() => {
+    const currentCustomerSignature = String(jobWizard?.customerSignature || '').trim();
+    const currentTechnicianSignature = String(jobWizard?.technicianSignature || '').trim();
     signatureDraftRef.current = {
-      customerSignature: String(jobWizard?.customerSignature || '').trim(),
-      technicianSignature: String(jobWizard?.technicianSignature || '').trim()
+      customerSignature: currentCustomerSignature || signatureDraftRef.current.customerSignature || '',
+      technicianSignature: currentTechnicianSignature || signatureDraftRef.current.technicianSignature || ''
     };
   }, [jobWizard?.customerSignature, jobWizard?.technicianSignature]);
 
