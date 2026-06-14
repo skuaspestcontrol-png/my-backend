@@ -2550,16 +2550,23 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
       y += photoBoxHeight + 8;
     }
   }
-  if (technicianRemarksText) {
+  const pestInfestationLevelText = `Pest Infestation Level-${pdfValue(job.infestationLevel || job.infestation_level || '-')}`;
+  if (technicianRemarksText || pestInfestationLevelText) {
     y += 4;
     y = renderSectionTitle(y, 'Observations & Remarks');
-    const remarksHeight = 72;
+    const remarksHeight = 84;
     doc.roundedRect(header.left, y, header.width, remarksHeight, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
     doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text('Technician Remarks', header.left + 10, y + 7, { width: header.width - 20 });
-    doc.font('Helvetica').fontSize(9.3).fillColor('#0F172A').text(technicianRemarksText, header.left + 10, y + 22, {
+    if (technicianRemarksText) {
+      doc.font('Helvetica').fontSize(9.3).fillColor('#0F172A').text(technicianRemarksText, header.left + 10, y + 22, {
+        width: header.width - 20,
+        height: 32,
+        ellipsis: true
+      });
+    }
+    doc.font('Helvetica-Bold').fontSize(8.6).fillColor('#0F172A').text(pestInfestationLevelText, header.left + 10, y + 60, {
       width: header.width - 20,
-      height: 42,
-      ellipsis: true
+      align: 'left'
     });
     y += remarksHeight + 8;
   }
