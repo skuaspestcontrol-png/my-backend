@@ -1843,12 +1843,8 @@ export default function TechnicianPortal() {
     }
     const customerSig = String(normalizedDraft.customerSignature || '').trim();
     const technicianSig = String(normalizedDraft.technicianSignature || '').trim();
-    if (!customerSig) {
-      window.alert('Customer signature is required before completing the job.');
-      return;
-    }
-    if (!technicianSig) {
-      window.alert('Technician signature is required before completing the job.');
+    if (!customerSig || !technicianSig) {
+      window.alert('Please sign the document before completing the job.');
       return;
     }
     const resolvedPunchInTime = punchInTime || activeJob.punchInTime || new Date().toLocaleString();
@@ -2658,6 +2654,8 @@ export default function TechnicianPortal() {
                 style={shell.textArea}
                 value={wizardDraftView.reviewRemarks}
                 onChange={(event) => handleReviewRemarksChange(event.target.value)}
+                onKeyDownCapture={(event) => event.stopPropagation()}
+                onKeyUpCapture={(event) => event.stopPropagation()}
                 placeholder="Enter service remarks..."
               />
             </div>
