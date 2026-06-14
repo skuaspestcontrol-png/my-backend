@@ -2475,16 +2475,26 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     const valueFontSize = 9.8;
     const valueText = String(item.value ?? '').trim();
     const hasValue = valueText && valueText !== '-';
+    if (item.label === 'Address') {
+      const labelHeight = doc.heightOfString(item.label, { width, lineBreak: false });
+      const valueHeight = doc.heightOfString(hasValue ? valueText : '-', { width, lineBreak: true });
+      doc.font('Helvetica-Bold').fontSize(labelFontSize).fillColor('#9F174D')
+        .text(item.label, x, rowY, { width, align: 'left' });
+      doc.font('Helvetica').fontSize(valueFontSize).fillColor('#0F172A')
+        .text(hasValue ? valueText : '-', x, rowY + labelHeight + 2, { width, align: 'left' });
+      return labelHeight + 2 + valueHeight;
+    }
     const combinedText = hasValue ? `${item.label}-${valueText}` : item.label;
     const totalHeight = Math.max(
       doc.heightOfString(combinedText, { width }),
       doc.heightOfString('Ag', { width })
     );
+    const labelWidth = doc.widthOfString(item.label);
 
     doc.font('Helvetica-Bold').fontSize(labelFontSize).fillColor('#9F174D')
-      .text(item.label, x, rowY, { width, continued: true, lineBreak: false });
+      .text(item.label, x, rowY, { width, lineBreak: false });
     doc.font('Helvetica').fontSize(valueFontSize).fillColor('#0F172A')
-      .text(hasValue ? `-${valueText}` : '', { width, lineBreak: true });
+      .text(hasValue ? `-${valueText}` : '', x + labelWidth - 1, rowY, { width: Math.max(0, width - labelWidth + 1), lineBreak: true });
     return totalHeight;
   };
 
