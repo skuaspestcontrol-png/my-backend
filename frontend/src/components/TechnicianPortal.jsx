@@ -7,7 +7,6 @@ import {
   Camera,
   ChevronLeft,
   ChevronRight,
-  ClipboardList,
   FileCheck2,
   FlaskConical,
   PenLine,
@@ -97,14 +96,6 @@ const formatDisplayTime = (value) => {
 
 const createCompletionCardNumber = () => `JC-${Date.now().toString().slice(-8)}`;
 
-const DEFAULT_CHECKLIST_ITEMS = [
-  'Customer issue confirmed',
-  'Site inspected',
-  'Treatment completed',
-  'Safety explained to customer',
-  'Before / during / after photos uploaded',
-  'Customer signature taken'
-];
 const PEST_INFESTATION_LEVEL_OPTIONS = ['Low', 'Medium', 'High', 'Severe'];
 
 const createDraftId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -139,13 +130,6 @@ const createDefaultChemical = (label = '') => ({
   areaTreated: '',
   safetyFollowed: false
 });
-
-const createDefaultChecklistItems = () =>
-  DEFAULT_CHECKLIST_ITEMS.map((label) => ({
-    id: createDraftId('check'),
-    label,
-    done: false
-  }));
 
 const normalizePhotoArray = (value, fallbackSingle = '') => {
   if (Array.isArray(value)) {
@@ -182,24 +166,10 @@ const normalizeChemicals = (value) => {
   return normalized.length > 0 ? normalized.slice(0, 12) : [createDefaultChemical()];
 };
 
-const normalizeChecklist = (value) => {
-  const rows = Array.isArray(value) ? value : [];
-  const normalized = rows.map((row, index) => ({
-    id: String(row?.id || '').trim() || createDraftId(`check-${index}`),
-    label: String(row?.label || DEFAULT_CHECKLIST_ITEMS[index] || `Checklist ${index + 1}`).trim(),
-    done: Boolean(row?.done || row?.checked || false)
-  }));
-  if (normalized.length > 0) {
-    return normalized;
-  }
-  return createDefaultChecklistItems();
-};
-
 const buildWizardDraft = (job = {}) => ({
   beforePhotos: normalizePhotoArray(job.beforePhotos, job.beforePhoto),
   afterPhotos: normalizePhotoArray(job.afterPhotos, job.afterPhoto),
   chemicalsUsed: normalizeChemicals(job.chemicalsUsed),
-  checklistItems: normalizeChecklist(job.checklistItems),
   infestationLevel: String(job.infestationLevel || job.infestation_level || '').trim(),
   customerRepresentativeName: String(
     job.customerRepresentativeName
@@ -229,9 +199,8 @@ const buildWizardDraft = (job = {}) => ({
 const wizardSteps = [
   { key: 'photos', label: 'Photos', icon: Camera, countLabel: '1' },
   { key: 'chemicals', label: 'Chemicals', icon: FlaskConical, countLabel: '2' },
-  { key: 'checklist', label: 'Checklist', icon: ClipboardList, countLabel: '3' },
-  { key: 'signature', label: 'Signature', icon: PenLine, countLabel: '4' },
-  { key: 'review', label: 'Review', icon: FileCheck2, countLabel: '5' }
+  { key: 'signature', label: 'Signature', icon: PenLine, countLabel: '3' },
+  { key: 'review', label: 'Review', icon: FileCheck2, countLabel: '4' }
 ];
 
 const formatAddress = (job) => {
@@ -1575,7 +1544,6 @@ export default function TechnicianPortal() {
       beforePhotos: draft.beforePhotos,
       afterPhotos: draft.afterPhotos,
       chemicalsUsed: draft.chemicalsUsed,
-      checklistItems: draft.checklistItems,
       infestationLevel: draft.infestationLevel,
       customerRepresentativeName: draft.customerRepresentativeName,
       customerRepresentativeMobile: draft.customerRepresentativeMobile,
@@ -1881,7 +1849,6 @@ export default function TechnicianPortal() {
       completePayload.append('beforePhotos', JSON.stringify(normalizedDraft.beforePhotos || []));
       completePayload.append('afterPhotos', JSON.stringify(normalizedDraft.afterPhotos || []));
       completePayload.append('chemicalsUsed', JSON.stringify(normalizedDraft.chemicalsUsed || []));
-      completePayload.append('checklistItems', JSON.stringify(normalizedDraft.checklistItems || []));
       completePayload.append('infestationLevel', normalizedDraft.infestationLevel || '');
       completePayload.append('customerRepresentativeName', normalizedDraft.customerRepresentativeName || '');
       completePayload.append('customerRepresentativeMobile', normalizedDraft.customerRepresentativeMobile || '');
@@ -2050,15 +2017,6 @@ export default function TechnicianPortal() {
         return nextRow;
       });
       return { ...prev, chemicalsUsed: nextRows };
-    });
-  };
-
-  const handleChecklistToggle = (index) => {
-    updateWizardDraft((prev) => {
-      const nextRows = normalizeChecklist(prev.checklistItems).map((row, rowIndex) =>
-        rowIndex === index ? { ...row, done: !row.done } : row
-      );
-      return { ...prev, checklistItems: nextRows };
     });
   };
 
@@ -2264,8 +2222,6 @@ export default function TechnicianPortal() {
   const wizardDraftView = useMemo(() => normalizeDraftForSave(jobWizard), [jobWizard, normalizeDraftForSave]);
   const liveCustomerSignature = String(signatureDraftRef.current.customerSignature || wizardDraftView.customerSignature || '').trim();
   const liveTechnicianSignature = String(signatureDraftRef.current.technicianSignature || wizardDraftView.technicianSignature || '').trim();
-  const wizardChecklistDoneCount = wizardDraftView.checklistItems.filter((item) => item.done).length;
-  const wizardChecklistTotal = wizardDraftView.checklistItems.length;
   const wizardStepIndex = Math.max(0, wizardSteps.findIndex((step) => step.key === wizardStep));
   const wizardLastStepIndex = wizardSteps.length - 1;
   const chemicalNameDatalistId = 'technician-chemical-name-options';
@@ -2522,30 +2478,6 @@ export default function TechnicianPortal() {
             </button>
           </div>
         );
-      case 'checklist':
-        return (
-          <div style={shell.sectionCard}>
-            <div style={shell.sectionTitleRow}>
-              <div>
-                <p style={shell.sectionTitle}><ClipboardList size={16} /> Checklist ({wizardChecklistDoneCount}/{wizardChecklistTotal})</p>
-                <p style={shell.sectionSub}>Confirm job completion points before submitting.</p>
-              </div>
-            </div>
-            <div style={shell.checkboxList}>
-              {wizardDraftView.checklistItems.map((item, index) => (
-                <label key={item.id || index} style={shell.checkboxItem}>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(item.done)}
-                    onChange={() => handleChecklistToggle(index)}
-                    style={shell.checkbox}
-                  />
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>{item.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        );
       case 'signature':
         return (
           <div style={shell.sectionCard}>
@@ -2651,10 +2583,6 @@ export default function TechnicianPortal() {
               <div style={shell.reviewStat}>
                 <p style={shell.reviewStatLabel}>Chemicals Logged</p>
                 <p style={shell.reviewStatValue}>{wizardDraftView.chemicalsUsed.length} entries</p>
-              </div>
-              <div style={shell.reviewStat}>
-                <p style={shell.reviewStatLabel}>Checklist</p>
-                <p style={shell.reviewStatValue}>{wizardChecklistDoneCount} of {wizardChecklistTotal} done</p>
               </div>
               <div style={shell.reviewStat}>
                 <p style={shell.reviewStatLabel}>Pest Infestation Level</p>

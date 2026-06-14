@@ -6482,7 +6482,6 @@ app.put('/api/jobs/:id', async (req, res) => {
         ...mysqlJob,
         ...req.body,
         chemicalsUsed: safeJsonArray(req.body?.chemicalsUsed ?? mysqlJob.chemicalsUsed ?? []),
-        checklistItems: safeJsonArray(req.body?.checklistItems ?? mysqlJob.checklistItems ?? []),
         reviewRemarks: String(req.body?.reviewRemarks ?? req.body?.remarks ?? mysqlJob.reviewRemarks ?? '').trim(),
         technicianRemarks: String(req.body?.technicianRemarks ?? req.body?.reviewRemarks ?? req.body?.remarks ?? mysqlJob.technicianRemarks ?? '').trim(),
         customerObservation: String(req.body?.customerObservation ?? mysqlJob.customerObservation ?? '').trim(),
@@ -6547,7 +6546,6 @@ app.put('/api/jobs/:id', async (req, res) => {
     ...jobs[jobIndex],
     ...req.body,
     chemicalsUsed: safeJsonArray(req.body?.chemicalsUsed ?? jobs[jobIndex].chemicalsUsed ?? []),
-    checklistItems: safeJsonArray(req.body?.checklistItems ?? jobs[jobIndex].checklistItems ?? []),
     reviewRemarks: String(req.body?.reviewRemarks ?? req.body?.remarks ?? jobs[jobIndex].reviewRemarks ?? '').trim(),
     technicianRemarks: String(req.body?.technicianRemarks ?? req.body?.reviewRemarks ?? req.body?.remarks ?? jobs[jobIndex].technicianRemarks ?? '').trim(),
     customerObservation: String(req.body?.customerObservation ?? jobs[jobIndex].customerObservation ?? '').trim(),
@@ -6768,7 +6766,6 @@ app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
       baitUsed: String(req.body?.baitUsed || '').trim(),
       recommendation: String(req.body?.recommendation || req.body?.technicianRecommendation || '').trim(),
       chemicalsUsed: safeJsonArray(req.body?.chemicalsUsed || []),
-      checklistItems: safeJsonArray(req.body?.checklistItems || []),
       reviewRemarks: String(req.body?.reviewRemarks || req.body?.remarks || '').trim()
     };
 
