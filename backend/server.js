@@ -2408,16 +2408,27 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
 
   const sections = [];
   const pushField = (label, value, widthHint = 'half') => sections.push({ label, value: pdfValue(value), widthHint });
+  const formatVisitOrdinalLabel = (value) => {
+    const text = String(value || '').trim().replace(/^#/, '');
+    const numeric = Number(text);
+    if (!Number.isFinite(numeric) || numeric <= 0) return pdfValue(text || '-');
+    const mod100 = numeric % 100;
+    const suffix = mod100 >= 11 && mod100 <= 13
+      ? 'th'
+      : (numeric % 10 === 1 ? 'st' : numeric % 10 === 2 ? 'nd' : numeric % 10 === 3 ? 'rd' : 'th');
+    return `${numeric}${suffix} Visit`;
+  };
 
+  pushField('Contract Number', job.contractNumber || job.invoiceNumber || job.contractId || job.invoiceId);
+  pushField('Contract Period', contractRange);
   pushField('Job Number', jobCardNumber);
+  pushField('Visit No.', formatVisitOrdinalLabel(job.scheduleVisit || job.serviceNumber || job.visitNumber || job.visitNo || job.visit || ''));
   pushField('Service Date', formatPdfDate(job.scheduledDate || job.serviceDate || job.createdAt));
   pushField('Service Start Time', serviceStart);
   pushField('Service End Time', serviceEnd);
   pushField('Customer Name', job.customerName);
   pushField('Address', joinPdfAddress(job.shippingAddress, job.serviceAddress, job.premiseAddress, job.address, job.areaName, job.city, job.state, job.pincode), 'full');
   pushField('Service Name', serviceName);
-  pushField('Contract Number', job.contractNumber || job.invoiceNumber || job.contractId || job.invoiceId);
-  pushField('Contract', contractRange);
   pushField('Technician Name', technicianName);
   pushField('Pest Infestation Level', job.infestationLevel || job.infestation_level || '-');
   pushField('Customer Representative', formatRepresentativeDisplay(customerRepresentativeName, customerRepresentativeMobile));
@@ -2428,29 +2439,29 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   };
 
   const renderCardPair = (y, items) => {
-    const gap = 12;
+    const gap = 10;
     const cardWidth = (header.width - gap) / 2;
-    const renderCard = (x, item, height = 44) => {
+    const renderCard = (x, item, height = 38) => {
       if (!item) return;
       doc.roundedRect(x, y, item.widthHint === 'full' ? header.width : cardWidth, height, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
-      doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text(item.label, x + 10, y + 7, { width: (item.widthHint === 'full' ? header.width : cardWidth) - 20 });
-      doc.font('Helvetica').fontSize(9.8).fillColor('#0F172A').text(item.value, x + 10, y + 20, { width: (item.widthHint === 'full' ? header.width : cardWidth) - 20 });
+      doc.font('Helvetica-Bold').fontSize(8.1).fillColor('#9F174D').text(item.label, x + 10, y + 6, { width: (item.widthHint === 'full' ? header.width : cardWidth) - 20 });
+      doc.font('Helvetica').fontSize(9.4).fillColor('#0F172A').text(item.value, x + 10, y + 17, { width: (item.widthHint === 'full' ? header.width : cardWidth) - 20 });
     };
     const leftItem = items[0];
     const rightItem = items[1];
     if (leftItem?.widthHint === 'full') {
-      renderCard(header.left, leftItem, 48);
-      return y + 56;
+      renderCard(header.left, leftItem, 46);
+      return y + 54;
     }
     renderCard(header.left, leftItem);
     renderCard(header.left + ((header.width - gap) / 2) + gap, rightItem);
-    return y + 52;
+    return y + 46;
   };
 
-  const renderFullCard = (y, item, height = 56) => {
+  const renderFullCard = (y, item, height = 48) => {
     doc.roundedRect(header.left, y, header.width, height, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
-    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text(item.label, header.left + 10, y + 7, { width: header.width - 20 });
-    doc.font('Helvetica').fontSize(9.6).fillColor('#0F172A').text(item.value, header.left + 10, y + 20, { width: header.width - 20 });
+    doc.font('Helvetica-Bold').fontSize(8.1).fillColor('#9F174D').text(item.label, header.left + 10, y + 6, { width: header.width - 20 });
+    doc.font('Helvetica').fontSize(9.4).fillColor('#0F172A').text(item.value, header.left + 10, y + 17, { width: header.width - 20 });
     return y + height + 8;
   };
 
