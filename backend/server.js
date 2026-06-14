@@ -2463,16 +2463,17 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     if (!item) return 0;
     const labelFontSize = 8.6;
     const valueFontSize = 9.8;
-    const labelTopGap = 0;
-    const valueGap = 2;
-    const labelHeight = doc.heightOfString(item.label, { width, lineBreak: false });
-    const valueHeight = doc.heightOfString(item.value || '-', { width, lineBreak: true });
-    const totalHeight = labelTopGap + labelHeight + valueGap + valueHeight;
+    const valueText = String(item.value || '-').trim() || '-';
+    const combinedText = `${item.label}-${valueText}`;
+    const totalHeight = Math.max(
+      doc.heightOfString(combinedText, { width }),
+      doc.heightOfString('Ag', { width })
+    );
 
     doc.font('Helvetica-Bold').fontSize(labelFontSize).fillColor('#9F174D')
-      .text(item.label, x, rowY, { width, align: 'left' });
+      .text(item.label, x, rowY, { width, continued: true, lineBreak: false });
     doc.font('Helvetica').fontSize(valueFontSize).fillColor('#0F172A')
-      .text(item.value || '-', x, rowY + labelHeight + valueGap, { width, align: 'left' });
+      .text(`-${valueText}`, { width, lineBreak: true });
     return totalHeight;
   };
 
@@ -2482,11 +2483,11 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     if (leftItem?.widthHint === 'full' || rightItem?.widthHint === 'full') {
       const item = leftItem?.widthHint === 'full' ? leftItem : rightItem;
       const height = renderDetailItem(header.left, rowY, header.width, item);
-      return rowY + height + 10;
+      return rowY + height + 6;
     }
     const leftHeight = renderDetailItem(header.left, rowY, pairWidth, leftItem);
     const rightHeight = renderDetailItem(header.left + pairWidth + gap, rowY, pairWidth, rightItem);
-    return rowY + Math.max(leftHeight, rightHeight) + 12;
+    return rowY + Math.max(leftHeight, rightHeight) + 6;
   };
 
   let y = header.bodyTop;
