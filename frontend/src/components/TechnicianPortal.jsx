@@ -392,8 +392,8 @@ const SignaturePadBox = forwardRef(function SignaturePadBox(
     if (typeof onStrokeEnd === 'function') {
       try {
         const pad = ref && typeof ref === 'object' ? ref.current : null;
-        const signatureDataUrl = pad && typeof pad.getCompactDataURL === 'function'
-          ? pad.getCompactDataURL('image/png', 1, 1000)
+        const signatureDataUrl = pad && typeof pad.toDataURL === 'function'
+          ? pad.toDataURL('image/png') || ''
           : canvasRef.current && typeof canvasRef.current.toDataURL === 'function'
             ? canvasRef.current.toDataURL('image/png') || ''
             : '';
@@ -1609,6 +1609,10 @@ export default function TechnicianPortal() {
       }
       try {
         if (pad.isEmpty()) return fallback;
+        if (typeof pad.toDataURL === 'function') {
+          const raw = String(pad.toDataURL('image/png') || '').trim();
+          if (raw) return raw;
+        }
         if (typeof pad.getCompactDataURL === 'function') {
           const compact = pad.getCompactDataURL('image/png', 1, 1000);
           if (compact) return compact;
@@ -1650,8 +1654,11 @@ export default function TechnicianPortal() {
       let nextValue = String(signatureDataUrl || '').trim();
       try {
       if (!nextValue && !pad.isEmpty()) {
+        if (typeof pad.toDataURL === 'function') {
+          nextValue = String(pad.toDataURL('image/png') || '').trim();
+        }
         if (typeof pad.getCompactDataURL === 'function') {
-          nextValue = String(pad.getCompactDataURL('image/png', 1, 1000) || '').trim();
+          nextValue = nextValue || String(pad.getCompactDataURL('image/png', 1, 1000) || '').trim();
         }
         if (!nextValue && typeof pad.getTrimmedCanvas === 'function') {
           const trimmedCanvas = pad.getTrimmedCanvas();
