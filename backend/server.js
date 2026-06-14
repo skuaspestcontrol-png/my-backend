@@ -2383,8 +2383,8 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   };
   const signatureBuffer = await loadJobPdfLogoBuffer(resolveSignatureSource(
     job.customerSignature
-    || job.customer_signature
     || job.customer_signature_url
+    || job.customer_signature
     || job.signature
     || job.signatureUrl
     || '',
@@ -2392,10 +2392,9 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   ));
   const technicianSignatureBuffer = await loadJobPdfLogoBuffer(resolveSignatureSource(
     job.technicianSignature
+    || job.technician_signature_url
     || job.technician_signature
-    || job.technician_signature_url
     || job.technicianSignatureUrl
-    || job.technician_signature_url
     || '',
     `${job._id || 'job'}-technician-signature`
   ));
@@ -2557,16 +2556,16 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     };
     const signatureBufferForJob = async (job) => loadJobPdfLogoBuffer(
       job.customerSignature
-      || job.customer_signature
       || job.customer_signature_url
+      || job.customer_signature
       || job.signature
       || job.signatureUrl
       || ''
     );
     const technicianSignatureBufferForJob = async (job) => loadJobPdfLogoBuffer(
       job.technicianSignature
-      || job.technician_signature
       || job.technician_signature_url
+      || job.technician_signature
       || job.technicianSignatureUrl
       || ''
     );
@@ -2663,7 +2662,7 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     const drawTableRow = (rowY, job, index) => {
       const materials = getMaterialsForJob(job).map((row) => row.materialName).filter(Boolean).join(', ') || '-';
       const customerSigned = Boolean(job.customerSignature || job.customer_signature || job.customer_signature_url);
-      const technicianSigned = Boolean(job.technicianSignature || job.technician_signature);
+      const technicianSigned = Boolean(job.technicianSignature || job.technician_signature || job.technician_signature_url);
       const signatureStatus = customerSigned && technicianSigned
         ? 'Customer + Technician'
         : customerSigned
@@ -2717,7 +2716,7 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
 
     const hasProofRows = completedJobs.some((job) => (
       Boolean(job.customerSignature || job.customer_signature || job.customer_signature_url)
-      || Boolean(job.technicianSignature || job.technician_signature)
+      || Boolean(job.technicianSignature || job.technician_signature || job.technician_signature_url)
     ));
 
     if (hasProofRows) {
@@ -6218,9 +6217,9 @@ const loadJobsFromMysql = async () => {
       customerSignature: String(row?.customer_signature_url ?? row?.customer_signature ?? payload.customerSignature ?? payload.customer_signature ?? payload.customer_signature_url ?? '').trim(),
       customer_signature: String(row?.customer_signature ?? payload.customer_signature ?? payload.customerSignature ?? '').trim(),
       customer_signature_url: String(row?.customer_signature_url ?? row?.customer_signature ?? payload.customer_signature_url ?? payload.customerSignature ?? '').trim(),
-      technicianSignature: String(row?.technician_signature ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
+      technicianSignature: String(row?.technician_signature_url ?? row?.technician_signature ?? payload.technician_signature_url ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
       technician_signature: String(row?.technician_signature ?? payload.technician_signature ?? payload.technicianSignature ?? '').trim(),
-      technician_signature_url: String(row?.technician_signature_url ?? payload.technician_signature_url ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
+      technician_signature_url: String(row?.technician_signature_url ?? row?.technician_signature ?? payload.technician_signature_url ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
       serviceStartTime: String(row?.service_start_time ?? payload.serviceStartTime ?? payload.service_start_time ?? '').trim(),
       serviceEndTime: String(row?.service_end_time ?? payload.serviceEndTime ?? payload.service_end_time ?? '').trim(),
       customerObservation: String(row?.customer_observation ?? payload.customerObservation ?? payload.customer_observation ?? '').trim(),
@@ -6233,7 +6232,7 @@ const loadJobsFromMysql = async () => {
     const [rows] = await conn.query(`
       SELECT
         id, external_id, status, customer_representative_name, customer_representative_mobile, before_photo_url, after_photo_url,
-        customer_signature, customer_signature_url, technician_signature,
+        customer_signature, customer_signature_url, technician_signature, technician_signature_url,
         service_start_time, service_end_time, customer_observation,
         technician_remarks, infestation_level, job_card_number, payload
       FROM jobs
@@ -6307,7 +6306,7 @@ const loadJobByIdFromMysql = async (jobId) => {
     const selectSql = `
       SELECT
         id, external_id, status, before_photo_url, after_photo_url,
-        customer_signature, customer_signature_url, technician_signature,
+        customer_signature, customer_signature_url, technician_signature, technician_signature_url,
         service_start_time, service_end_time, customer_observation,
         technician_remarks, infestation_level, job_card_number, payload
       FROM jobs
@@ -6330,9 +6329,9 @@ const loadJobByIdFromMysql = async (jobId) => {
       customerSignature: String(row.customer_signature_url ?? row.customer_signature ?? payload.customerSignature ?? payload.customer_signature ?? payload.customer_signature_url ?? '').trim(),
       customer_signature: String(row.customer_signature ?? payload.customer_signature ?? payload.customerSignature ?? '').trim(),
       customer_signature_url: String(row.customer_signature_url ?? row.customer_signature ?? payload.customer_signature_url ?? payload.customerSignature ?? '').trim(),
-      technicianSignature: String(row.technician_signature ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
+      technicianSignature: String(row.technician_signature_url ?? row.technician_signature ?? payload.technician_signature_url ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
       technician_signature: String(row.technician_signature ?? payload.technician_signature ?? payload.technicianSignature ?? '').trim(),
-      technician_signature_url: String(row.technician_signature_url ?? payload.technician_signature_url ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
+      technician_signature_url: String(row.technician_signature_url ?? row.technician_signature ?? payload.technician_signature_url ?? payload.technicianSignature ?? payload.technician_signature ?? '').trim(),
       serviceStartTime: String(row.service_start_time ?? payload.serviceStartTime ?? payload.service_start_time ?? '').trim(),
       serviceEndTime: String(row.service_end_time ?? payload.serviceEndTime ?? payload.service_end_time ?? '').trim(),
       customerObservation: String(row.customer_observation ?? payload.customerObservation ?? payload.customer_observation ?? '').trim(),
@@ -8994,6 +8993,7 @@ const syncJobToMysql = async (job) => {
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS before_photo_url TEXT NULL');
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS after_photo_url TEXT NULL');
       await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS customer_signature_url LONGTEXT NULL');
+      await conn.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS technician_signature_url LONGTEXT NULL');
     } catch (_error) {
       const [cols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='jobs'");
       const names = new Set((cols || []).map((c) => String(c.COLUMN_NAME || '')));
@@ -9012,6 +9012,7 @@ const syncJobToMysql = async (job) => {
       if (!names.has('before_photo_url')) await conn.query('ALTER TABLE jobs ADD COLUMN before_photo_url TEXT NULL');
       if (!names.has('after_photo_url')) await conn.query('ALTER TABLE jobs ADD COLUMN after_photo_url TEXT NULL');
       if (!names.has('customer_signature_url')) await conn.query('ALTER TABLE jobs ADD COLUMN customer_signature_url LONGTEXT NULL');
+      if (!names.has('technician_signature_url')) await conn.query('ALTER TABLE jobs ADD COLUMN technician_signature_url LONGTEXT NULL');
     }
     const [existingCols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='jobs'");
     const columnSet = new Set((existingCols || []).map((c) => String(c.COLUMN_NAME || '').trim()).filter(Boolean));
@@ -9050,10 +9051,10 @@ const syncJobToMysql = async (job) => {
       infestation_level: job.infestationLevel || job.infestation_level || null,
       before_photo_url: job.beforePhoto || null,
       after_photo_url: job.afterPhoto || null,
-      customer_signature: job.customerSignature || job.customer_signature || null,
-      customer_signature_url: job.customerSignature || null,
-      technician_signature: job.technicianSignature || job.technician_signature || null,
-      technician_signature_url: job.technicianSignature || job.technician_signature || null,
+      customer_signature: job.customerSignature || job.customer_signature || job.customer_signature_url || null,
+      customer_signature_url: job.customerSignature || job.customer_signature_url || job.customer_signature || null,
+      technician_signature: job.technicianSignature || job.technician_signature || job.technician_signature_url || null,
+      technician_signature_url: job.technicianSignature || job.technician_signature_url || job.technician_signature || null,
       rat_count: Number.isFinite(Number(job.ratCount || job.rat_count)) ? Number(job.ratCount || job.rat_count) : null,
       rodent_box_count: Number.isFinite(Number(job.rodentBoxCount || job.rodent_box_count)) ? Number(job.rodentBoxCount || job.rodent_box_count) : null,
       rodent_box_location: job.rodentBoxLocation || job.rodent_box_location || null,
