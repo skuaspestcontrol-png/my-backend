@@ -2459,31 +2459,34 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     return 48;
   };
 
-  const renderCardPair = (y, items) => {
-    const gap = 10;
-    const cardWidth = (header.width - gap) / 2;
-    const renderCard = (x, item, height = 38) => {
-      if (!item) return;
-      doc.roundedRect(x, y, item.widthHint === 'full' ? header.width : cardWidth, height, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
-      doc.font('Helvetica-Bold').fontSize(8.1).fillColor('#9F174D').text(item.label, x + 10, y + 6, { width: (item.widthHint === 'full' ? header.width : cardWidth) - 20 });
-      doc.font('Helvetica').fontSize(9.4).fillColor('#0F172A').text(item.value, x + 10, y + 17, { width: (item.widthHint === 'full' ? header.width : cardWidth) - 20 });
-    };
-    const leftItem = items[0];
-    const rightItem = items[1];
-    if (leftItem?.widthHint === 'full') {
-      renderCard(header.left, leftItem, 46);
-      return y + 54;
-    }
-    renderCard(header.left, leftItem);
-    renderCard(header.left + ((header.width - gap) / 2) + gap, rightItem);
-    return y + 46;
+  const renderDetailItem = (x, rowY, width, item) => {
+    if (!item) return 0;
+    const labelFontSize = 8.6;
+    const valueFontSize = 9.8;
+    const labelTopGap = 0;
+    const valueGap = 2;
+    const labelHeight = doc.heightOfString(item.label, { width, lineBreak: false });
+    const valueHeight = doc.heightOfString(item.value || '-', { width, lineBreak: true });
+    const totalHeight = labelTopGap + labelHeight + valueGap + valueHeight;
+
+    doc.font('Helvetica-Bold').fontSize(labelFontSize).fillColor('#9F174D')
+      .text(item.label, x, rowY, { width, align: 'left' });
+    doc.font('Helvetica').fontSize(valueFontSize).fillColor('#0F172A')
+      .text(item.value || '-', x, rowY + labelHeight + valueGap, { width, align: 'left' });
+    return totalHeight;
   };
 
-  const renderFullCard = (y, item, height = 48) => {
-    doc.roundedRect(header.left, y, header.width, height, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
-    doc.font('Helvetica-Bold').fontSize(8.1).fillColor('#9F174D').text(item.label, header.left + 10, y + 6, { width: header.width - 20 });
-    doc.font('Helvetica').fontSize(9.4).fillColor('#0F172A').text(item.value, header.left + 10, y + 17, { width: header.width - 20 });
-    return y + height + 8;
+  const renderDetailRow = (rowY, leftItem, rightItem) => {
+    const gap = 14;
+    const pairWidth = (header.width - gap) / 2;
+    if (leftItem?.widthHint === 'full' || rightItem?.widthHint === 'full') {
+      const item = leftItem?.widthHint === 'full' ? leftItem : rightItem;
+      const height = renderDetailItem(header.left, rowY, header.width, item);
+      return rowY + height + 10;
+    }
+    const leftHeight = renderDetailItem(header.left, rowY, pairWidth, leftItem);
+    const rightHeight = renderDetailItem(header.left + pairWidth + gap, rowY, pairWidth, rightItem);
+    return rowY + Math.max(leftHeight, rightHeight) + 12;
   };
 
   let y = header.bodyTop;
@@ -2491,16 +2494,7 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     const leftItem = sections[i];
     const rightItem = sections[i + 1];
     if (!leftItem) break;
-    if (leftItem.widthHint === 'full') {
-      y = renderFullCard(y, leftItem, 56);
-      continue;
-    }
-    if (rightItem?.widthHint === 'full') {
-      y = renderFullCard(y, leftItem, 48);
-      y = renderFullCard(y, rightItem, 56);
-      continue;
-    }
-    y = renderCardPair(y, [leftItem, rightItem]);
+    y = renderDetailRow(y, leftItem, rightItem);
   }
 
   const sitePhotoSources = [
