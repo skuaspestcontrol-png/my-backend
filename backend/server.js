@@ -823,11 +823,11 @@ const toSafeUploadBaseName = (rawName = '') => {
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '') || 'file';
 };
-const allowedImageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp']);
-const allowedImageMimeTypes = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
-const allowedDocumentExtensions = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp']);
+const allowedImageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif']);
+const allowedImageMimeTypes = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+const allowedDocumentExtensions = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif']);
 const allowedDocumentMimeTypes = new Set(['application/pdf', ...allowedImageMimeTypes]);
-const allowedAttachmentExtensions = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.csv', '.xls', '.xlsx']);
+const allowedAttachmentExtensions = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.csv', '.xls', '.xlsx']);
 const allowedAttachmentMimeTypes = new Set([
   'application/pdf',
   'text/csv',
@@ -839,7 +839,9 @@ const allowedAttachmentMimeTypes = new Set([
 const isAllowedUploadFile = (file, allowedExtensions, allowedMimeTypes) => {
   const ext = path.extname(String(file?.originalname || '')).toLowerCase();
   const mime = String(file?.mimetype || '').toLowerCase();
-  return allowedExtensions.has(ext) && allowedMimeTypes.has(mime);
+  const extensionAllowed = allowedExtensions.has(ext);
+  const mimeAllowed = allowedMimeTypes.has(mime) || mime.startsWith('image/') || mime === '' || mime === 'application/octet-stream';
+  return extensionAllowed && mimeAllowed;
 };
 const createUploadFileFilter = (allowedExtensions, allowedMimeTypes, message) => (_req, file, cb) => {
   if (isAllowedUploadFile(file, allowedExtensions, allowedMimeTypes)) return cb(null, true);

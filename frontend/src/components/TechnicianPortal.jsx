@@ -2367,7 +2367,7 @@ export default function TechnicianPortal() {
               <input
                 ref={beforePhotoInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 multiple
                 style={{ display: 'none' }}
                 onChange={(event) => handlePhotoSelection('before', event)}
@@ -2399,7 +2399,7 @@ export default function TechnicianPortal() {
               <input
                 ref={afterPhotoInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 multiple
                 style={{ display: 'none' }}
                 onChange={(event) => handlePhotoSelection('after', event)}
