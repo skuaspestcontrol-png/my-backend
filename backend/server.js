@@ -824,7 +824,7 @@ const toSafeUploadBaseName = (rawName = '') => {
     .replace(/^-+|-+$/g, '') || 'file';
 };
 const allowedImageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif']);
-const allowedImageMimeTypes = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+const allowedImageMimeTypes = new Set(['image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/x-png', 'image/webp', 'image/heic', 'image/heif']);
 const allowedDocumentExtensions = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif']);
 const allowedDocumentMimeTypes = new Set(['application/pdf', ...allowedImageMimeTypes]);
 const allowedAttachmentExtensions = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.csv', '.xls', '.xlsx']);
@@ -845,6 +845,17 @@ const isAllowedUploadFile = (file, allowedExtensions, allowedMimeTypes) => {
 };
 const createUploadFileFilter = (allowedExtensions, allowedMimeTypes, message) => (_req, file, cb) => {
   if (isAllowedUploadFile(file, allowedExtensions, allowedMimeTypes)) return cb(null, true);
+  return cb(new Error(message));
+};
+const isAllowedFlexibleImageUploadFile = (file) => {
+  const ext = path.extname(String(file?.originalname || '')).toLowerCase();
+  const mime = String(file?.mimetype || '').toLowerCase();
+  const extensionAllowed = allowedImageExtensions.has(ext);
+  const mimeAllowed = allowedImageMimeTypes.has(mime) || mime.startsWith('image/') || mime === '' || mime === 'application/octet-stream';
+  return extensionAllowed || mimeAllowed;
+};
+const createFlexibleImageUploadFileFilter = (message) => (_req, file, cb) => {
+  if (isAllowedFlexibleImageUploadFile(file)) return cb(null, true);
   return cb(new Error(message));
 };
 const toDataUrlFromUpload = (file) => {
@@ -979,9 +990,7 @@ const employeeDocumentStorage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: 8 * 1024 * 1024 },
-  fileFilter: createUploadFileFilter(
-    allowedImageExtensions,
-    allowedImageMimeTypes,
+  fileFilter: createFlexibleImageUploadFileFilter(
     'Only image files (jpg, jpeg, png, webp) are allowed'
   )
 });
@@ -1009,9 +1018,7 @@ const customerImportUpload = multer({
 const employeePhotoUpload = multer({
   storage: employeePhotoStorage,
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: createUploadFileFilter(
-    allowedImageExtensions,
-    allowedImageMimeTypes,
+  fileFilter: createFlexibleImageUploadFileFilter(
     'Only image files (jpg, jpeg, png, webp) are allowed'
   )
 });
@@ -1024,7 +1031,13 @@ const employeeDocumentUpload = multer({
     'Only PDF or image documents are allowed'
   )
 });
-const jobCompletionUpload = upload.fields([
+const jobCompletionUpload = multer({
+  storage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: createFlexibleImageUploadFileFilter(
+    'Only image files (jpg, jpeg, png, webp) are allowed'
+  )
+}).fields([
   { name: 'beforePhotoFile', maxCount: 1 },
   { name: 'afterPhotoFile', maxCount: 1 },
   { name: 'customerSignatureFile', maxCount: 1 },
