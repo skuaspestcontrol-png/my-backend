@@ -1845,7 +1845,6 @@ export default function TechnicianPortal() {
     const technicianSig = String(normalizedDraft.technicianSignature || '').trim();
     if (!customerSig || !technicianSig) {
       window.alert('Please sign the document before completing the job.');
-      return;
     }
     const resolvedPunchInTime = punchInTime || activeJob.punchInTime || new Date().toLocaleString();
     const completedAt = new Date().toISOString();
