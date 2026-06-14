@@ -2587,7 +2587,8 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     .filter(({ buffer }) => Boolean(buffer));
   const hasSitePhotos = validSitePhotos.length > 0;
   if (hasSitePhotos) {
-    y = ensureJobCardSpace(y + 4, 112);
+    y += 10;
+    y = ensureJobCardSpace(y, 112);
     y = renderSectionTitle(y, 'Site Photos');
     const photoGap = 12;
     const singlePhotoWidth = header.width;
