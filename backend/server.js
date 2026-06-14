@@ -2626,31 +2626,31 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
       : 'Technician Remarks-';
     const technicianRemarksLineHeight = Math.max(
       doc.heightOfString(technicianRemarksLine, { width: remarksInnerWidth }),
-      14
+      13
     );
     const pestLevelLineHeight = Math.max(
       doc.heightOfString(pestInfestationLevelText, { width: remarksInnerWidth }),
-      12
+      11
     );
     const remarksHeight = technicianRemarksLineHeight + pestLevelLineHeight + 20;
     doc.roundedRect(header.left, y, header.width, remarksHeight, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
-    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#0F172A').text('Technician Remarks-', header.left + 10, y + 7, {
+    doc.font('Helvetica-Bold').fontSize(8.2).fillColor('#0F172A').text('Technician Remarks-', header.left + 10, y + 6, {
       width: remarksInnerWidth,
       continued: Boolean(technicianRemarksText),
       lineBreak: false
     });
     if (technicianRemarksText) {
-      doc.font('Helvetica').fontSize(9.3).fillColor('#0F172A').text(technicianRemarksText, {
+      doc.font('Helvetica').fontSize(9).fillColor('#0F172A').text(technicianRemarksText, {
         width: remarksInnerWidth,
         lineBreak: true
       });
     }
-    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#0F172A').text('Pest Infestation Level-', header.left + 10, y + technicianRemarksLineHeight + 11, {
+    doc.font('Helvetica-Bold').fontSize(8.2).fillColor('#0F172A').text('Pest Infestation Level-', header.left + 10, y + technicianRemarksLineHeight + 10, {
       width: remarksInnerWidth,
       continued: true,
       lineBreak: false
     });
-    doc.font('Helvetica').fontSize(9.3).fillColor('#0F172A').text(pdfValue(job.infestationLevel || job.infestation_level || '-'), {
+    doc.font('Helvetica').fontSize(9).fillColor('#0F172A').text(pdfValue(job.infestationLevel || job.infestation_level || '-'), {
       width: remarksInnerWidth,
       lineBreak: true
     });
