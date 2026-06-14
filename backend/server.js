@@ -2494,7 +2494,8 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     const paddingY = 3;
     const textHeight = Math.max(doc.heightOfString(fullText, { width: innerWidth }), doc.heightOfString('Ag', { width: innerWidth }));
     const cellHeight = Math.max(minHeight, textHeight + (paddingY * 2));
-    const textY = y + Math.max(0, (cellHeight - textHeight) / 2);
+    const verticalOffset = options.verticalOffset || 0;
+    const textY = y + Math.max(0, (cellHeight - textHeight) / 2) + verticalOffset;
 
     doc.rect(x, y, width, cellHeight).lineWidth(0.8).strokeColor('#111111').stroke();
     doc.font('Helvetica-Bold').fontSize(options.labelFontSize || 8).fillColor('#9F174D')
@@ -2564,7 +2565,12 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   for (const row of tableRows) {
     const rowTop = y;
     if (row.length === 1) {
-      const cellHeight = renderTableCell(header.left, rowTop, header.width, row[0], { minHeight: 30, labelFontSize: 8, valueFontSize: 9.1 });
+      const cellHeight = renderTableCell(header.left, rowTop, header.width, row[0], {
+        minHeight: 30,
+        labelFontSize: 8,
+        valueFontSize: 9.1,
+        verticalOffset: -1
+      });
       y = rowTop + cellHeight + rowGap;
       continue;
     }
