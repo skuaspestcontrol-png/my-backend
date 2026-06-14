@@ -2487,7 +2487,6 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   };
 
   let y = header.bodyTop;
-  y = renderSectionTitle(y, 'Visit Details');
   for (let i = 0; i < sections.length; i += 2) {
     const leftItem = sections[i];
     const rightItem = sections[i + 1];
@@ -2559,8 +2558,6 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     y += remarksHeight + 8;
   }
 
-  y += 8;
-  y = renderSectionTitle(y, 'Signatures');
   const sigBoxHeight = 92;
   const sigGap = 12;
   const sigBoxWidth = (header.width - sigGap) / 2;
@@ -2579,6 +2576,8 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   };
   const hasSignatures = Boolean(signatureBuffer || technicianSignatureBuffer);
   if (hasSignatures) {
+    y += 8;
+    y = renderSectionTitle(y, 'Signatures');
     renderSignatureBox(header.left, 'Customer Signature', signatureBuffer);
     renderSignatureBox(header.left + sigBoxWidth + sigGap, 'Technician Signature', technicianSignatureBuffer);
     y += sigBoxHeight + 14;
