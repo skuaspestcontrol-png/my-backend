@@ -2471,11 +2471,11 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     const labelWidth = doc.widthOfString(labelText);
     const lineHeight = Math.max(
       doc.heightOfString(`${labelText} ${value}`, { width: header.width }),
-      15
+      13
     );
-    doc.font('Helvetica-Bold').fontSize(11).fillColor('#0F172A')
+    doc.font('Helvetica-Bold').fontSize(10.5).fillColor('#0F172A')
       .text(labelText, header.left, y, { width: header.width, continued: true, lineBreak: false });
-    doc.font('Helvetica').fontSize(11).fillColor('#0F172A')
+    doc.font('Helvetica').fontSize(10.5).fillColor('#0F172A')
       .text(` ${value}`, {
         width: Math.max(0, header.width - labelWidth),
         lineBreak: true
@@ -2489,9 +2489,9 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     const hasValue = Boolean(valueText && valueText !== '-');
     const fullText = hasValue ? `${label}-${valueText}` : label;
     const innerWidth = Math.max(0, width - 20);
-    const minHeight = options.minHeight || 40;
-    const paddingX = 10;
-    const paddingY = 8;
+    const minHeight = options.minHeight || 34;
+    const paddingX = 8;
+    const paddingY = 6;
     const textHeight = Math.max(
       doc.heightOfString(fullText, { width: innerWidth }),
       doc.heightOfString('Ag', { width: innerWidth })
@@ -2499,14 +2499,14 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     const cellHeight = Math.max(minHeight, textHeight + (paddingY * 2));
 
     doc.rect(x, y, width, cellHeight).lineWidth(0.8).strokeColor('#111111').stroke();
-    doc.font('Helvetica-Bold').fontSize(options.labelFontSize || 8.8).fillColor('#9F174D')
+    doc.font('Helvetica-Bold').fontSize(options.labelFontSize || 8.4).fillColor('#9F174D')
       .text(label, x + paddingX, y + paddingY, {
         width: innerWidth,
         continued: hasValue,
         lineBreak: false
       });
     if (hasValue) {
-      doc.font('Helvetica').fontSize(options.valueFontSize || 10.1).fillColor('#0F172A')
+      doc.font('Helvetica').fontSize(options.valueFontSize || 9.7).fillColor('#0F172A')
         .text(`-${valueText}`, {
           width: innerWidth,
           lineBreak: true
@@ -2519,10 +2519,10 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     const labelText = `${label} :`;
     const labelWidth = doc.widthOfString(labelText);
     const textWidth = Math.max(0, header.width - labelWidth);
-    const textHeight = Math.max(doc.heightOfString(`${labelText} ${value}`, { width: header.width }), 15);
-    doc.font('Helvetica-Bold').fontSize(11).fillColor('#0F172A')
+    const textHeight = Math.max(doc.heightOfString(`${labelText} ${value}`, { width: header.width }), 13);
+    doc.font('Helvetica-Bold').fontSize(10.5).fillColor('#0F172A')
       .text(labelText, header.left, y, { width: header.width, continued: true, lineBreak: false });
-    doc.font('Helvetica').fontSize(11).fillColor('#0F172A')
+    doc.font('Helvetica').fontSize(10.5).fillColor('#0F172A')
       .text(` ${value}`, {
         width: textWidth,
         align: 'left',
@@ -2532,8 +2532,8 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   };
 
   let y = header.bodyTop;
-  y += renderTopLine(y, 'Customer Name', customerNameText) + 6;
-  y += renderAddressLine(y, 'Customer Address', customerAddressText) + 12;
+  y += renderTopLine(y, 'Customer Name', customerNameText) + 4;
+  y += renderAddressLine(y, 'Customer Address', customerAddressText) + 8;
 
   const tableRows = [
     [
@@ -2566,12 +2566,12 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   for (const row of tableRows) {
     const rowTop = y;
     if (row.length === 1) {
-      const cellHeight = renderTableCell(header.left, rowTop, header.width, row[0], { minHeight: 44, labelFontSize: 8.7, valueFontSize: 10 });
+      const cellHeight = renderTableCell(header.left, rowTop, header.width, row[0], { minHeight: 38, labelFontSize: 8.4, valueFontSize: 9.7 });
       y = rowTop + cellHeight + rowGap;
       continue;
     }
-    const leftHeight = renderTableCell(header.left, rowTop, colWidth - colGap / 2, row[0], { minHeight: 40 });
-    const rightHeight = renderTableCell(header.left + colWidth + colGap / 2, rowTop, colWidth - colGap / 2, row[1], { minHeight: 40 });
+    const leftHeight = renderTableCell(header.left, rowTop, colWidth - colGap / 2, row[0], { minHeight: 34 });
+    const rightHeight = renderTableCell(header.left + colWidth + colGap / 2, rowTop, colWidth - colGap / 2, row[1], { minHeight: 34 });
     y = rowTop + Math.max(leftHeight, rightHeight) + rowGap;
   }
 
