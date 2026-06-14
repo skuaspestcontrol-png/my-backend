@@ -2620,19 +2620,39 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   if (technicianRemarksText || pestInfestationLevelText) {
     y += 4;
     y = renderSectionTitle(y, 'Observations & Remarks');
-    const remarksHeight = 84;
+    const remarksInnerWidth = header.width - 20;
+    const technicianRemarksLine = technicianRemarksText
+      ? `Technician Remarks-${technicianRemarksText}`
+      : 'Technician Remarks-';
+    const technicianRemarksLineHeight = Math.max(
+      doc.heightOfString(technicianRemarksLine, { width: remarksInnerWidth }),
+      14
+    );
+    const pestLevelLineHeight = Math.max(
+      doc.heightOfString(pestInfestationLevelText, { width: remarksInnerWidth }),
+      12
+    );
+    const remarksHeight = technicianRemarksLineHeight + pestLevelLineHeight + 20;
     doc.roundedRect(header.left, y, header.width, remarksHeight, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
-    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text('Technician Remarks', header.left + 10, y + 7, { width: header.width - 20 });
+    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text('Technician Remarks-', header.left + 10, y + 7, {
+      width: remarksInnerWidth,
+      continued: Boolean(technicianRemarksText),
+      lineBreak: false
+    });
     if (technicianRemarksText) {
-      doc.font('Helvetica').fontSize(9.3).fillColor('#0F172A').text(technicianRemarksText, header.left + 10, y + 22, {
-        width: header.width - 20,
-        height: 32,
-        ellipsis: true
+      doc.font('Helvetica').fontSize(9.3).fillColor('#0F172A').text(technicianRemarksText, {
+        width: remarksInnerWidth,
+        lineBreak: true
       });
     }
-    doc.font('Helvetica-Bold').fontSize(8.6).fillColor('#0F172A').text(pestInfestationLevelText, header.left + 10, y + 60, {
-      width: header.width - 20,
-      align: 'left'
+    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text('Pest Infestation Level-', header.left + 10, y + technicianRemarksLineHeight + 11, {
+      width: remarksInnerWidth,
+      continued: true,
+      lineBreak: false
+    });
+    doc.font('Helvetica').fontSize(9.3).fillColor('#0F172A').text(pdfValue(job.infestationLevel || job.infestation_level || '-'), {
+      width: remarksInnerWidth,
+      lineBreak: true
     });
     y += remarksHeight + 8;
   }
