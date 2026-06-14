@@ -94,6 +94,13 @@ const formatDisplayTime = (value) => {
   return raw;
 };
 
+const formatRepresentativeDisplay = (name, mobile) => {
+  const cleanName = String(name || '').trim();
+  const cleanMobile = String(mobile || '').trim();
+  if (cleanName && cleanMobile) return `${cleanName} / ${cleanMobile}`;
+  return cleanName || cleanMobile || '-';
+};
+
 const createCompletionCardNumber = () => `JC-${Date.now().toString().slice(-8)}`;
 
 const PEST_INFESTATION_LEVEL_OPTIONS = ['Low', 'Medium', 'High', 'Severe'];
@@ -2607,6 +2614,15 @@ export default function TechnicianPortal() {
                 <p style={shell.reviewStatValue}>{wizardDraftView.infestationLevel || 'Missing'}</p>
               </div>
               <div style={shell.reviewStat}>
+                <p style={shell.reviewStatLabel}>Customer Representative</p>
+                <p style={shell.reviewStatValue}>
+                  {formatRepresentativeDisplay(
+                    wizardDraftView.customerRepresentativeName,
+                    wizardDraftView.customerRepresentativeMobile
+                  )}
+                </p>
+              </div>
+              <div style={shell.reviewStat}>
                 <p style={shell.reviewStatLabel}>Customer Signature</p>
                 <p style={shell.reviewStatValue}>
                   {liveCustomerSignature ? 'Captured' : 'Missing'}
@@ -2686,11 +2702,12 @@ export default function TechnicianPortal() {
               </div>
               <div>
                 <p style={shell.completionLabel}>Customer Representative</p>
-                <p style={shell.completionValue}>{completionCard.customerRepresentativeName || '-'}</p>
-              </div>
-              <div>
-                <p style={shell.completionLabel}>Representative Mobile</p>
-                <p style={shell.completionValue}>{completionCard.customerRepresentativeMobile || '-'}</p>
+                <p style={shell.completionValue}>
+                  {formatRepresentativeDisplay(
+                    completionCard.customerRepresentativeName,
+                    completionCard.customerRepresentativeMobile
+                  )}
+                </p>
               </div>
               <div>
                 <p style={shell.completionLabel}>Visit</p>
