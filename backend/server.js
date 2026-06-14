@@ -2431,8 +2431,6 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     `${job._id || 'job'}-technician-signature`
   ));
 
-  const sections = [];
-  const pushField = (label, value, widthHint = 'half') => sections.push({ label, value: pdfValue(value), widthHint });
   const formatVisitOrdinalLabel = (value) => {
     const text = String(value || '').trim().replace(/^#/, '');
     const numeric = Number(text);
@@ -2443,19 +2441,6 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
       : (numeric % 10 === 1 ? 'st' : numeric % 10 === 2 ? 'nd' : numeric % 10 === 3 ? 'rd' : 'th');
     return `${numeric}${suffix} Visit`;
   };
-
-  pushField('Contract Number', job.contractNumber || job.invoiceNumber || job.contractId || job.invoiceId);
-  pushField('Contract Period', contractRange);
-  pushField('Job Number', jobCardNumber);
-  pushField('Visit No.', formatVisitOrdinalLabel(job.scheduleVisit || job.serviceNumber || job.visitNumber || job.visitNo || job.visit || ''));
-  pushField('Service Start Time', serviceStart);
-  pushField('Service End Time', serviceEnd);
-  pushField('Customer Name', job.customerName);
-  pushField('Address', joinPdfAddress(job.shippingAddress, job.serviceAddress, job.premiseAddress, job.address, job.areaName, job.city, job.state, job.pincode), 'full');
-  pushField('Service Name', serviceName);
-  pushField('Technician Name', technicianName);
-  pushField('Pest Infestation Level', job.infestationLevel || job.infestation_level || '-');
-  pushField('Customer Representative(at the time of Service)', formatRepresentativeDisplay(customerRepresentativeName, customerRepresentativeMobile));
 
   const renderSectionTitle = (y, text) => {
     doc.font('Helvetica-Bold').fontSize(11).fillColor('#9F174D').text(text, header.left, y, { width: header.width, align: 'left' });
@@ -2469,44 +2454,125 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     return 48;
   };
 
-  const renderDetailItem = (x, rowY, width, item) => {
-    if (!item) return 0;
-    const labelFontSize = 8.6;
-    const valueFontSize = 9.8;
-    const valueText = String(item.value ?? '').trim();
-    const hasValue = valueText && valueText !== '-';
-    const combinedText = hasValue ? `${item.label}-${valueText}` : item.label;
-    const totalHeight = Math.max(
-      doc.heightOfString(combinedText, { width }),
-      doc.heightOfString('Ag', { width })
-    );
+  const customerNameText = pdfValue(job.customerName || '-');
+  const customerAddressText = joinPdfAddress(
+    job.shippingAddress,
+    job.serviceAddress,
+    job.premiseAddress,
+    job.address,
+    job.areaName,
+    job.city,
+    job.state,
+    job.pincode
+  );
 
-    doc.font('Helvetica-Bold').fontSize(labelFontSize).fillColor('#9F174D')
-      .text(item.label, x, rowY, { width, continued: true, lineBreak: false });
-    doc.font('Helvetica').fontSize(valueFontSize).fillColor('#0F172A')
-      .text(hasValue ? `-${valueText}` : '', { width, lineBreak: true });
-    return totalHeight;
+  const renderTopLine = (y, label, value) => {
+    const labelText = `${label} :`;
+    const labelWidth = doc.widthOfString(labelText);
+    const lineHeight = Math.max(
+      doc.heightOfString(`${labelText} ${value}`, { width: header.width }),
+      15
+    );
+    doc.font('Helvetica-Bold').fontSize(11).fillColor('#0F172A')
+      .text(labelText, header.left, y, { width: header.width, continued: true, lineBreak: false });
+    doc.font('Helvetica').fontSize(11).fillColor('#0F172A')
+      .text(` ${value}`, {
+        width: Math.max(0, header.width - labelWidth),
+        lineBreak: true
+      });
+    return lineHeight;
   };
 
-  const renderDetailRow = (rowY, leftItem, rightItem) => {
-    const gap = 8;
-    const pairWidth = (header.width - gap) / 2;
-    if (leftItem?.widthHint === 'full' || rightItem?.widthHint === 'full') {
-      const item = leftItem?.widthHint === 'full' ? leftItem : rightItem;
-      const height = renderDetailItem(header.left, rowY, header.width, item);
-      return rowY + height + 2;
+  const renderTableCell = (x, y, width, item, options = {}) => {
+    const label = String(item?.label || '').trim();
+    const valueText = String(item?.value ?? '').trim();
+    const hasValue = Boolean(valueText && valueText !== '-');
+    const fullText = hasValue ? `${label}-${valueText}` : label;
+    const innerWidth = Math.max(0, width - 20);
+    const minHeight = options.minHeight || 40;
+    const paddingX = 10;
+    const paddingY = 8;
+    const textHeight = Math.max(
+      doc.heightOfString(fullText, { width: innerWidth }),
+      doc.heightOfString('Ag', { width: innerWidth })
+    );
+    const cellHeight = Math.max(minHeight, textHeight + (paddingY * 2));
+
+    doc.rect(x, y, width, cellHeight).lineWidth(0.8).strokeColor('#111111').stroke();
+    doc.font('Helvetica-Bold').fontSize(options.labelFontSize || 8.8).fillColor('#9F174D')
+      .text(label, x + paddingX, y + paddingY, {
+        width: innerWidth,
+        continued: hasValue,
+        lineBreak: false
+      });
+    if (hasValue) {
+      doc.font('Helvetica').fontSize(options.valueFontSize || 10.1).fillColor('#0F172A')
+        .text(`-${valueText}`, {
+          width: innerWidth,
+          lineBreak: true
+        });
     }
-    const leftHeight = renderDetailItem(header.left, rowY, pairWidth, leftItem);
-    const rightHeight = renderDetailItem(header.left + pairWidth + gap, rowY, pairWidth, rightItem);
-    return rowY + Math.max(leftHeight, rightHeight) + 2;
+    return cellHeight;
+  };
+
+  const renderAddressLine = (y, label, value) => {
+    const labelText = `${label} :`;
+    const labelWidth = doc.widthOfString(labelText);
+    const textWidth = Math.max(0, header.width - labelWidth);
+    const textHeight = Math.max(doc.heightOfString(`${labelText} ${value}`, { width: header.width }), 15);
+    doc.font('Helvetica-Bold').fontSize(11).fillColor('#0F172A')
+      .text(labelText, header.left, y, { width: header.width, continued: true, lineBreak: false });
+    doc.font('Helvetica').fontSize(11).fillColor('#0F172A')
+      .text(` ${value}`, {
+        width: textWidth,
+        align: 'left',
+        lineBreak: true
+      });
+    return textHeight;
   };
 
   let y = header.bodyTop;
-  for (let i = 0; i < sections.length; i += 2) {
-    const leftItem = sections[i];
-    const rightItem = sections[i + 1];
-    if (!leftItem) break;
-    y = renderDetailRow(y, leftItem, rightItem);
+  y += renderTopLine(y, 'Customer Name', customerNameText) + 6;
+  y += renderAddressLine(y, 'Customer Address', customerAddressText) + 12;
+
+  const tableRows = [
+    [
+      { label: 'Contract Number', value: job.contractNumber || job.invoiceNumber || job.contractId || job.invoiceId },
+      { label: 'Contract Period', value: contractRange }
+    ],
+    [
+      { label: 'Job Number', value: jobCardNumber },
+      { label: 'Visit No.', value: formatVisitOrdinalLabel(job.scheduleVisit || job.serviceNumber || job.visitNumber || job.visitNo || job.visit || '') }
+    ],
+    [
+      { label: 'Service Start Time', value: serviceStart },
+      { label: 'Service End Time', value: serviceEnd }
+    ],
+    [
+      { label: 'Service Name', value: serviceName },
+      { label: 'Technician Name', value: technicianName }
+    ],
+    [
+      {
+        label: 'Customer Representative(at the time of Service)',
+        value: formatRepresentativeDisplay(customerRepresentativeName, customerRepresentativeMobile)
+      }
+    ]
+  ];
+
+  const rowGap = 0;
+  const colGap = 0;
+  const colWidth = header.width / 2;
+  for (const row of tableRows) {
+    const rowTop = y;
+    if (row.length === 1) {
+      const cellHeight = renderTableCell(header.left, rowTop, header.width, row[0], { minHeight: 44, labelFontSize: 8.7, valueFontSize: 10 });
+      y = rowTop + cellHeight + rowGap;
+      continue;
+    }
+    const leftHeight = renderTableCell(header.left, rowTop, colWidth - colGap / 2, row[0], { minHeight: 40 });
+    const rightHeight = renderTableCell(header.left + colWidth + colGap / 2, rowTop, colWidth - colGap / 2, row[1], { minHeight: 40 });
+    y = rowTop + Math.max(leftHeight, rightHeight) + rowGap;
   }
 
   const sitePhotoSources = [
