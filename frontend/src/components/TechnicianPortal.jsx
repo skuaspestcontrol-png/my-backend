@@ -1712,9 +1712,20 @@ export default function TechnicianPortal() {
   };
 
   const openJobPdfPreview = (job) => {
-    if (!job?._id) return;
-    const jobNumber = String(job.jobNumber || job.job_no || job.jobNo || job.scheduleVisit || job.visit || job._id || 'Job').trim();
-    const basePdfUrl = `${API_BASE_URL}/api/service-visits/${job._id}/job-card-pdf`;
+    const jobReference = String(
+      job?._id
+      || job?.jobId
+      || job?.jobNumber
+      || job?.job_number
+      || job?.jobCardNumber
+      || job?.job_card_number
+      || job?.scheduleVisit
+      || job?.visit
+      || ''
+    ).trim();
+    if (!jobReference) return;
+    const jobNumber = String(job.jobNumber || job.job_no || job.jobNo || job.scheduleVisit || job.visit || jobReference || 'Job').trim();
+    const basePdfUrl = `${API_BASE_URL}/api/service-visits/${encodeURIComponent(jobReference)}/job-card-pdf`;
     const pdfUrl = `${basePdfUrl}?_ts=${Date.now()}`;
     setPdfPreview({
       open: true,
@@ -2728,7 +2739,13 @@ export default function TechnicianPortal() {
               <button
                 type="button"
                 style={shell.completionDownloadBtn}
-                onClick={() => openJobPdfPreview({ ...completionCard, _id: completionCard.jobId })}
+                onClick={() => openJobPdfPreview({
+                  ...completionCard,
+                  _id: completionCard.jobId,
+                  jobId: completionCard.jobId,
+                  jobNumber: completionCard.jobNumber,
+                  jobCardNumber: completionCard.jobNumber
+                })}
               >
                 View Job PDF
               </button>
