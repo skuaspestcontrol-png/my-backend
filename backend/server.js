@@ -2634,7 +2634,7 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     );
     const remarksHeight = technicianRemarksLineHeight + pestLevelLineHeight + 20;
     doc.roundedRect(header.left, y, header.width, remarksHeight, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
-    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text('Technician Remarks-', header.left + 10, y + 7, {
+    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#0F172A').text('Technician Remarks-', header.left + 10, y + 7, {
       width: remarksInnerWidth,
       continued: Boolean(technicianRemarksText),
       lineBreak: false
@@ -2645,7 +2645,7 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
         lineBreak: true
       });
     }
-    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text('Pest Infestation Level-', header.left + 10, y + technicianRemarksLineHeight + 11, {
+    doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#0F172A').text('Pest Infestation Level-', header.left + 10, y + technicianRemarksLineHeight + 11, {
       width: remarksInnerWidth,
       continued: true,
       lineBreak: false
