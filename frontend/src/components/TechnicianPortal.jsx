@@ -2651,7 +2651,7 @@ export default function TechnicianPortal() {
               <p style={shell.label}>Remarks</p>
               <textarea
                 style={shell.textArea}
-                value={wizardDraftView.reviewRemarks}
+                value={jobWizard.reviewRemarks}
                 onChange={(event) => handleReviewRemarksChange(event.target.value)}
                 onKeyDownCapture={(event) => event.stopPropagation()}
                 onKeyUpCapture={(event) => event.stopPropagation()}
