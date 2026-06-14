@@ -1972,7 +1972,17 @@ const formatRepresentativeDisplay = (name, mobile) => {
 };
 
 const joinPdfAddress = (...parts) => {
-  const text = parts.flatMap((part) => String(part || '').split(',')).map((part) => String(part || '').trim()).filter(Boolean).join(', ');
+  const seen = new Set();
+  const tokens = [];
+  parts.flatMap((part) => String(part || '').split(',')).forEach((part) => {
+    const token = String(part || '').trim().replace(/\s+/g, ' ');
+    if (!token) return;
+    const key = token.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    tokens.push(token);
+  });
+  const text = tokens.join(', ');
   return text || '-';
 };
 
@@ -2463,8 +2473,9 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     if (!item) return 0;
     const labelFontSize = 8.6;
     const valueFontSize = 9.8;
-    const valueText = String(item.value || '-').trim() || '-';
-    const combinedText = `${item.label}-${valueText}`;
+    const valueText = String(item.value ?? '').trim();
+    const hasValue = valueText && valueText !== '-';
+    const combinedText = hasValue ? `${item.label}-${valueText}` : item.label;
     const totalHeight = Math.max(
       doc.heightOfString(combinedText, { width }),
       doc.heightOfString('Ag', { width })
@@ -2473,21 +2484,21 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     doc.font('Helvetica-Bold').fontSize(labelFontSize).fillColor('#9F174D')
       .text(item.label, x, rowY, { width, continued: true, lineBreak: false });
     doc.font('Helvetica').fontSize(valueFontSize).fillColor('#0F172A')
-      .text(`-${valueText}`, { width, lineBreak: true });
+      .text(hasValue ? `-${valueText}` : '', { width, lineBreak: true });
     return totalHeight;
   };
 
   const renderDetailRow = (rowY, leftItem, rightItem) => {
-    const gap = 14;
+    const gap = 8;
     const pairWidth = (header.width - gap) / 2;
     if (leftItem?.widthHint === 'full' || rightItem?.widthHint === 'full') {
       const item = leftItem?.widthHint === 'full' ? leftItem : rightItem;
       const height = renderDetailItem(header.left, rowY, header.width, item);
-      return rowY + height + 6;
+      return rowY + height + 2;
     }
     const leftHeight = renderDetailItem(header.left, rowY, pairWidth, leftItem);
     const rightHeight = renderDetailItem(header.left + pairWidth + gap, rowY, pairWidth, rightItem);
-    return rowY + Math.max(leftHeight, rightHeight) + 6;
+    return rowY + Math.max(leftHeight, rightHeight) + 2;
   };
 
   let y = header.bodyTop;
