@@ -2423,7 +2423,6 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   pushField('Contract Period', contractRange);
   pushField('Job Number', jobCardNumber);
   pushField('Visit No.', formatVisitOrdinalLabel(job.scheduleVisit || job.serviceNumber || job.visitNumber || job.visitNo || job.visit || ''));
-  pushField('Service Date', formatPdfDate(job.scheduledDate || job.serviceDate || job.createdAt));
   pushField('Service Start Time', serviceStart);
   pushField('Service End Time', serviceEnd);
   pushField('Customer Name', job.customerName);
@@ -2431,11 +2430,18 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   pushField('Service Name', serviceName);
   pushField('Technician Name', technicianName);
   pushField('Pest Infestation Level', job.infestationLevel || job.infestation_level || '-');
-  pushField('Customer Representative', formatRepresentativeDisplay(customerRepresentativeName, customerRepresentativeMobile));
+  pushField('Customer Representative(at the time of Service)', formatRepresentativeDisplay(customerRepresentativeName, customerRepresentativeMobile));
 
   const renderSectionTitle = (y, text) => {
     doc.font('Helvetica-Bold').fontSize(11).fillColor('#9F174D').text(text, header.left, y, { width: header.width, align: 'left' });
     return y + 15;
+  };
+
+  const pageBottom = doc.page.height - doc.page.margins.bottom - 20;
+  const ensureJobCardSpace = (y, requiredHeight) => {
+    if (y + requiredHeight <= pageBottom) return y;
+    doc.addPage();
+    return 48;
   };
 
   const renderCardPair = (y, items) => {
@@ -2483,6 +2489,47 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
     y = renderCardPair(y, [leftItem, rightItem]);
   }
 
+  const sitePhotoSources = [
+    job.beforePhoto || job.before_photo_url || '',
+    job.afterPhoto || job.after_photo_url || ''
+  ].map((value) => String(value || '').trim());
+  const sitePhotos = await Promise.all(sitePhotoSources.map((source) => (
+    source ? loadJobPdfLogoBuffer(source) : Promise.resolve('')
+  )));
+  const validSitePhotos = sitePhotos
+    .map((buffer, index) => ({ buffer, index }))
+    .filter(({ buffer }) => Boolean(buffer));
+  const hasSitePhotos = validSitePhotos.length > 0;
+  if (hasSitePhotos) {
+    y = ensureJobCardSpace(y + 4, 112);
+    y = renderSectionTitle(y, 'Site Photos');
+    const photoGap = 12;
+    const singlePhotoWidth = header.width;
+    const photoBoxHeight = 84;
+    const renderPhotoBox = (x, width, label, buffer) => {
+      doc.roundedRect(x, y, width, photoBoxHeight, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
+      doc.font('Helvetica-Bold').fontSize(8.4).fillColor('#9F174D').text(label, x + 10, y + 8, { width: width - 20 });
+      if (buffer) {
+        try {
+          doc.image(buffer, x + 10, y + 24, { fit: [width - 20, 46], align: 'center', valign: 'center' });
+        } catch (_error) {
+          doc.font('Helvetica').fontSize(8.8).fillColor('#64748B').text('-', x + 10, y + 40, { width: width - 20, align: 'center' });
+        }
+      } else {
+        doc.font('Helvetica').fontSize(8.8).fillColor('#64748B').text('-', x + 10, y + 40, { width: width - 20, align: 'center' });
+      }
+    };
+    if (validSitePhotos.length === 1) {
+      const photo = validSitePhotos[0];
+      renderPhotoBox(header.left, singlePhotoWidth, photo.index === 0 ? 'Before Service Photo' : 'After Service Photo', photo.buffer);
+      y += photoBoxHeight + 8;
+    } else {
+      const photoWidth = (header.width - photoGap) / 2;
+      renderPhotoBox(header.left, photoWidth, 'Before Service Photo', sitePhotos[0]);
+      renderPhotoBox(header.left + photoWidth + photoGap, photoWidth, 'After Service Photo', sitePhotos[1]);
+      y += photoBoxHeight + 8;
+    }
+  }
   if (technicianRemarksText) {
     y += 4;
     y = renderSectionTitle(y, 'Observations & Remarks');
