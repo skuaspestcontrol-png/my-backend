@@ -1949,6 +1949,13 @@ const pdfValue = (value) => {
   return text || '-';
 };
 
+const formatRepresentativeDisplay = (name, mobile) => {
+  const cleanName = String(name ?? '').trim();
+  const cleanMobile = String(mobile ?? '').trim();
+  if (cleanName && cleanMobile) return `${cleanName} / ${cleanMobile}`;
+  return cleanName || cleanMobile || '-';
+};
+
 const joinPdfAddress = (...parts) => {
   const text = parts.flatMap((part) => String(part || '').split(',')).map((part) => String(part || '').trim()).filter(Boolean).join(', ');
   return text || '-';
@@ -2407,14 +2414,13 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   pushField('Service Start Time', serviceStart);
   pushField('Service End Time', serviceEnd);
   pushField('Customer Name', job.customerName);
-  pushField('Customer Representative', customerRepresentativeName);
-  pushField('Representative Mobile', customerRepresentativeMobile);
   pushField('Address', joinPdfAddress(job.shippingAddress, job.serviceAddress, job.premiseAddress, job.address, job.areaName, job.city, job.state, job.pincode), 'full');
   pushField('Service Name', serviceName);
   pushField('Contract Number', job.contractNumber || job.invoiceNumber || job.contractId || job.invoiceId);
   pushField('Contract', contractRange);
   pushField('Technician Name', technicianName);
   pushField('Pest Infestation Level', job.infestationLevel || job.infestation_level || '-');
+  pushField('Customer Representative', formatRepresentativeDisplay(customerRepresentativeName, customerRepresentativeMobile));
 
   const renderSectionTitle = (y, text) => {
     doc.font('Helvetica-Bold').fontSize(11).fillColor('#9F174D').text(text, header.left, y, { width: header.width, align: 'left' });
