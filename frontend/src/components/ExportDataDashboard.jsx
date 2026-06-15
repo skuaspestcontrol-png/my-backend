@@ -124,6 +124,133 @@ const deriveContractCode = (contractNo) => {
   return `${bits.slice(0, -1).join('/')}/C`;
 };
 
+const buildAddressExport = (source = {}, prefix = 'billing') => {
+  const attention = cleanText(firstValue(source, [`${prefix}Attention`, `${prefix}AttentionName`], ''));
+  const street1 = cleanText(firstValue(source, [
+    `${prefix}Street1`,
+    `${prefix}AddressLine1`,
+    `${prefix}Address`,
+    `${prefix}AddressText`,
+    `${prefix}Address1`
+  ], ''));
+  const street2 = cleanText(firstValue(source, [
+    `${prefix}Street2`,
+    `${prefix}AddressLine2`,
+    `${prefix}Address2`
+  ], ''));
+  const area = cleanText(firstValue(source, [
+    `${prefix}Area`,
+    `${prefix}AreaName`
+  ], ''));
+  const city = cleanText(firstValue(source, [
+    `${prefix}City`,
+    'billingCity',
+    'shippingCity',
+    'city'
+  ], ''));
+  const state = cleanText(firstValue(source, [
+    `${prefix}State`,
+    'billingState',
+    'shippingState',
+    'state'
+  ], ''));
+  const pincode = cleanText(firstValue(source, [
+    `${prefix}Pincode`,
+    'billingPincode',
+    'shippingPincode',
+    'pincode'
+  ], ''));
+  const fullAddress = [attention, street1, street2, area, city, state, pincode].filter(Boolean).join(', ');
+  return {
+    attention,
+    street1,
+    street2,
+    area,
+    city,
+    state,
+    pincode,
+    fullAddress
+  };
+};
+
+const buildInvoiceExportRow = ({ invoice = {}, customer = null, index = 0, contractPrefix = 'CONTRACT', serviceMeta = null } = {}) => {
+  const merged = customer ? { ...customer, ...invoice } : { ...invoice };
+  const billing = buildAddressExport(merged, 'billing');
+  const shipping = buildAddressExport(merged, 'shipping');
+  const total = Number(invoice.total ?? invoice.amount ?? 0);
+  const gstTotal = Number(invoice.gstTotal ?? invoice.gst_total ?? invoice.totalTax ?? invoice.taxTotal ?? 0);
+  const subtotalWithoutGst = Number(
+    invoice.subtotalWithoutGst
+    ?? invoice.subtotal_without_gst
+    ?? invoice.subtotal
+    ?? (Number.isFinite(total) ? total - gstTotal : 0)
+  );
+  const due = Math.max(0, Number(invoice.balanceDue ?? invoice.balance_due ?? total ?? 0));
+  const paid = Math.max(0, total - due);
+  const amountWithoutGst = Number.isFinite(subtotalWithoutGst) ? subtotalWithoutGst : 0;
+  const grandTotal = Number.isFinite(total) ? total : 0;
+  const contractNo = String(invoice.invoiceNumber || '').trim() || `${contractPrefix}-${index + 1}`;
+  return {
+    id: String(invoice._id || contractNo || index),
+    invoiceId: invoice._id,
+    contractNo,
+    contractCode: deriveContractCode(contractNo),
+    customer: String(invoice.customerName || customer?.displayName || customer?.name || 'Customer'),
+    customerId: String(invoice.customerId || customer?._id || customer?.id || '').trim(),
+    invoiceDate: formatDate(firstValue(invoice, ['date', 'invoiceDate', 'createdAt'])),
+    invoiceNumber: cleanText(firstValue(invoice, ['invoiceNumber', 'invoiceNo', 'invoice_no', '_id'])),
+    invoiceType: cleanText(firstValue(invoice, ['invoiceType', 'invoice_type'])),
+    billingAddressSource: cleanText(firstValue(invoice, ['billingAddressSource', 'billing_address_source'])),
+    shippingAddressSource: cleanText(firstValue(invoice, ['shippingAddressSource', 'shipping_address_source'])),
+    billingAttention: billing.attention,
+    billingAddressLine1: billing.street1,
+    billingAddressLine2: billing.street2,
+    billingArea: billing.area,
+    billingCity: billing.city,
+    billingState: billing.state,
+    billingPincode: billing.pincode,
+    billingFullAddress: billing.fullAddress,
+    shippingAttention: shipping.attention,
+    shippingAddressLine1: shipping.street1,
+    shippingAddressLine2: shipping.street2,
+    shippingArea: shipping.area,
+    shippingCity: shipping.city,
+    shippingState: shipping.state,
+    shippingPincode: shipping.pincode,
+    shippingFullAddress: shipping.fullAddress,
+    billingAddressText: cleanText(firstValue(invoice, ['billingAddressText', 'billing_address_text'])),
+    shippingAddressText: cleanText(firstValue(invoice, ['shippingAddressText', 'shipping_address_text'])),
+    customerPremise: cleanText(firstValue(invoice, ['customerPremiseId', 'customer_premise_id'])),
+    premiseLabel: cleanText(firstValue(invoice, ['premiseLabel', 'premise_label'])),
+    premiseAddress: cleanText(firstValue(invoice, ['premiseAddress', 'premise_address'])),
+    premiseAreaName: cleanText(firstValue(invoice, ['premiseAreaName', 'premise_area_name'])),
+    premiseCity: cleanText(firstValue(invoice, ['premiseCity', 'premise_city'])),
+    premiseState: cleanText(firstValue(invoice, ['premiseState', 'premise_state'])),
+    premisePincode: cleanText(firstValue(invoice, ['premisePincode', 'premise_pincode'])),
+    servicePeriodStart: formatDate(firstValue(invoice, ['servicePeriodStart', 'contractStartDate', 'service_start_date'])),
+    servicePeriodEnd: formatDate(firstValue(invoice, ['servicePeriodEnd', 'contractEndDate', 'service_end_date', 'dueDate'])),
+    salesperson: cleanText(firstValue(invoice, ['salesperson', 'salesPerson', 'preparedBy'])),
+    subject: cleanText(firstValue(invoice, ['subject'])),
+    terms: cleanText(firstValue(invoice, ['terms'])),
+    customerNotes: cleanText(firstValue(invoice, ['customerNotes'])),
+    termsAndConditions: cleanText(firstValue(invoice, ['termsAndConditions'])),
+    status: cleanText(firstValue(invoice, ['status', 'invoiceStatus'])),
+    subtotalWithoutGst: cleanText(formatCurrency(amountWithoutGst), '-'),
+    gstTotal: cleanText(formatCurrency(gstTotal), '-'),
+    total: cleanText(formatCurrency(grandTotal), '-'),
+    amount: cleanText(formatCurrency(grandTotal), '-'),
+    balanceDue: cleanText(formatCurrency(due), '-'),
+    paid: cleanText(formatCurrency(paid), '-'),
+    withholdingType: cleanText(firstValue(invoice, ['withholdingType', 'withholding_type'])),
+    withholdingRate: cleanText(firstValue(invoice, ['withholdingRate', 'withholding_rate']), '-'),
+    withholdingAmount: cleanText(formatCurrency(firstValue(invoice, ['withholdingAmount', 'withholding_amount'])), '-'),
+    discount: cleanText(formatCurrency(firstValue(invoice, ['discount'])), '-'),
+    serviceScheduleDefaultTime: cleanText(firstValue(invoice, ['serviceScheduleDefaultTime'])),
+    paymentReceivedEnabled: String(Boolean(firstValue(invoice, ['paymentReceivedEnabled']))),
+    notes: cleanText(firstValue(invoice, ['notes', 'customerNotes', 'termsAndConditions']))
+  };
+};
+
 const getContractExportRows = async () => {
   const [invoicesResponse, customersResponse, schedulesResponse] = await Promise.all([
     axios.get(`${API_BASE_URL}/api/invoices`),
@@ -174,9 +301,6 @@ const getContractExportRows = async () => {
     const customerByName = customerIndex.byName.get(normalizeName(invoice.customerName));
     const customer = customerById || customerByName || null;
 
-    const total = Number(invoice.total ?? invoice.amount ?? 0);
-    const due = Math.max(0, Number(invoice.balanceDue ?? invoice.balance_due ?? total ?? 0));
-    const paid = Math.max(0, total - due);
     const normalizedInvoiceType = String(invoice.invoiceType || '').trim().toUpperCase();
     const type = normalizedInvoiceType === 'NON GST' ? 'Non GST' : (Number(invoice.totalTax || 0) > 0 ? 'GST' : 'Non GST');
     const startInputDate = toInputDate(startDate);
@@ -185,13 +309,8 @@ const getContractExportRows = async () => {
     const serviceMeta = scheduleIndex.byInvoiceId.get(String(invoice._id || ''))
       || scheduleIndex.byInvoiceNumber.get(normalizeName(contractNo))
       || { total: lines.length, completed: 0, nextServiceDate: '', nextServiceTime: '' };
-
     return {
-      id: String(invoice._id || contractNo || index),
-      invoiceId: invoice._id,
-      contractNo,
-      contractCode: deriveContractCode(contractNo),
-      customer: String(invoice.customerName || customer?.displayName || customer?.name || 'Customer'),
+      ...buildInvoiceExportRow({ invoice, customer, index, contractPrefix: 'CONTRACT', serviceMeta }),
       mobile: String(customer?.mobileNumber || customer?.workPhone || '').trim(),
       altNumber: String(customer?.altNumber || '').trim(),
       emailId: String(customer?.emailId || customer?.email || '').trim(),
@@ -205,11 +324,40 @@ const getContractExportRows = async () => {
       nextServiceDate: serviceMeta.nextServiceDate || '',
       nextServiceTime: serviceMeta.nextServiceTime || '',
       status: deriveContractStatus(invoice.status, startInputDate, endInputDate),
-      type,
-      total,
-      paid,
-      due
+      type
     };
+  });
+};
+
+const getInvoiceExportRows = async () => {
+  const [invoicesResponse, customersResponse] = await Promise.all([
+    axios.get(`${API_BASE_URL}/api/invoices`),
+    axios.get(`${API_BASE_URL}/api/customers`)
+  ]);
+
+  const invoices = extractRows(invoicesResponse.data);
+  const customers = extractRows(customersResponse.data);
+  const customerIndex = {
+    byId: new Map(),
+    byName: new Map()
+  };
+  customers.forEach((customer) => {
+    const id = String(customer?._id || customer?.id || '').trim();
+    const name = normalizeName(customer?.displayName || customer?.name);
+    if (id) customerIndex.byId.set(id, customer);
+    if (name) customerIndex.byName.set(name, customer);
+  });
+
+  return invoices.map((invoice, index) => {
+    const customerById = invoice.customerId ? customerIndex.byId.get(String(invoice.customerId)) : null;
+    const customerByName = customerIndex.byName.get(normalizeName(invoice.customerName));
+    const customer = customerById || customerByName || null;
+    return buildInvoiceExportRow({
+      invoice,
+      customer,
+      index,
+      contractPrefix: 'INVOICE'
+    });
   });
 };
 
@@ -349,7 +497,23 @@ const moduleDefinitions = [
       { key: 'invoiceType', label: 'Invoice Type' },
       { key: 'billingAddressSource', label: 'Billing Source' },
       { key: 'shippingAddressSource', label: 'Shipping Source' },
+      { key: 'billingAttention', label: 'Billing Attention' },
+      { key: 'billingAddressLine1', label: 'Billing Street 1' },
+      { key: 'billingAddressLine2', label: 'Billing Street 2' },
+      { key: 'billingArea', label: 'Billing Area' },
+      { key: 'billingCity', label: 'Billing City' },
+      { key: 'billingState', label: 'Billing State' },
+      { key: 'billingPincode', label: 'Billing Pincode' },
+      { key: 'billingFullAddress', label: 'Billing Full Address' },
       { key: 'billingAddressText', label: 'Billing Address' },
+      { key: 'shippingAttention', label: 'Shipping Attention' },
+      { key: 'shippingAddressLine1', label: 'Shipping Street 1' },
+      { key: 'shippingAddressLine2', label: 'Shipping Street 2' },
+      { key: 'shippingArea', label: 'Shipping Area' },
+      { key: 'shippingCity', label: 'Shipping City' },
+      { key: 'shippingState', label: 'Shipping State' },
+      { key: 'shippingPincode', label: 'Shipping Pincode' },
+      { key: 'shippingFullAddress', label: 'Shipping Full Address' },
       { key: 'shippingAddressText', label: 'Shipping Address' },
       { key: 'customerPremise', label: 'Customer Premise' },
       { key: 'premiseLabel', label: 'Premise Label' },
@@ -366,6 +530,8 @@ const moduleDefinitions = [
       { key: 'customerNotes', label: 'Customer Notes' },
       { key: 'termsAndConditions', label: 'Terms & Conditions' },
       { key: 'status', label: 'Status' },
+      { key: 'subtotalWithoutGst', label: 'Amount Without GST' },
+      { key: 'gstTotal', label: 'GST Total' },
       { key: 'total', label: 'Total' },
       { key: 'balanceDue', label: 'Balance Due' },
       { key: 'withholdingType', label: 'Withholding Type' },
@@ -374,40 +540,8 @@ const moduleDefinitions = [
       { key: 'discount', label: 'Discount' },
       { key: 'notes', label: 'Notes' }
     ],
-    loadRows: async () => extractRows((await axios.get(`${API_BASE_URL}/api/invoices`)).data),
-    mapRow: (row) => ({
-      invoiceDate: formatDate(firstValue(row, ['date', 'invoiceDate', 'createdAt'])),
-      contractNo: cleanText(firstValue(row, ['invoiceNumber', 'contractNo', 'contractNumber', '_id'])),
-      customerName: cleanText(firstValue(row, ['customerName', 'displayName'])),
-      customerId: cleanText(firstValue(row, ['customerId', 'customer_id'])),
-      invoiceType: cleanText(firstValue(row, ['invoiceType', 'invoice_type'])),
-      billingAddressSource: cleanText(firstValue(row, ['billingAddressSource', 'billing_address_source'])),
-      shippingAddressSource: cleanText(firstValue(row, ['shippingAddressSource', 'shipping_address_source'])),
-      billingAddressText: cleanText(firstValue(row, ['billingAddressText', 'billing_address_text'])),
-      shippingAddressText: cleanText(firstValue(row, ['shippingAddressText', 'shipping_address_text'])),
-      customerPremise: cleanText(firstValue(row, ['customerPremiseId', 'customer_premise_id'])),
-      premiseLabel: cleanText(firstValue(row, ['premiseLabel', 'premise_label'])),
-      premiseAddress: cleanText(firstValue(row, ['premiseAddress', 'premise_address'])),
-      premiseAreaName: cleanText(firstValue(row, ['premiseAreaName', 'premise_area_name'])),
-      premiseCity: cleanText(firstValue(row, ['premiseCity', 'premise_city'])),
-      premiseState: cleanText(firstValue(row, ['premiseState', 'premise_state'])),
-      premisePincode: cleanText(firstValue(row, ['premisePincode', 'premise_pincode'])),
-      servicePeriodStart: formatDate(firstValue(row, ['servicePeriodStart', 'contractStartDate', 'service_start_date'])),
-      servicePeriodEnd: formatDate(firstValue(row, ['servicePeriodEnd', 'contractEndDate', 'service_end_date', 'dueDate'])),
-      salesperson: cleanText(firstValue(row, ['salesperson', 'salesPerson', 'preparedBy'])),
-      subject: cleanText(firstValue(row, ['subject'])),
-      terms: cleanText(firstValue(row, ['terms'])),
-      customerNotes: cleanText(firstValue(row, ['customerNotes'])),
-      termsAndConditions: cleanText(firstValue(row, ['termsAndConditions'])),
-      status: cleanText(firstValue(row, ['status'])),
-      total: cleanText(formatCurrency(firstValue(row, ['total', 'amount'])), '-'),
-      balanceDue: cleanText(formatCurrency(firstValue(row, ['balanceDue', 'balance_due'])), '-'),
-      withholdingType: cleanText(firstValue(row, ['withholdingType', 'withholding_type'])),
-      withholdingRate: cleanText(firstValue(row, ['withholdingRate', 'withholding_rate']), '-'),
-      withholdingAmount: cleanText(formatCurrency(firstValue(row, ['withholdingAmount', 'withholding_amount'])), '-'),
-      discount: cleanText(formatCurrency(firstValue(row, ['discount'])), '-'),
-      notes: cleanText(firstValue(row, ['notes', 'customerNotes', 'termsAndConditions']))
-    })
+    loadRows: getContractExportRows,
+    mapRow: (row) => row
   },
   {
     key: 'invoices',
@@ -424,7 +558,23 @@ const moduleDefinitions = [
       { key: 'invoiceType', label: 'Invoice Type' },
       { key: 'billingAddressSource', label: 'Billing Source' },
       { key: 'shippingAddressSource', label: 'Shipping Source' },
+      { key: 'billingAttention', label: 'Billing Attention' },
+      { key: 'billingAddressLine1', label: 'Billing Street 1' },
+      { key: 'billingAddressLine2', label: 'Billing Street 2' },
+      { key: 'billingArea', label: 'Billing Area' },
+      { key: 'billingCity', label: 'Billing City' },
+      { key: 'billingState', label: 'Billing State' },
+      { key: 'billingPincode', label: 'Billing Pincode' },
+      { key: 'billingFullAddress', label: 'Billing Full Address' },
       { key: 'billingAddressText', label: 'Billing Address' },
+      { key: 'shippingAttention', label: 'Shipping Attention' },
+      { key: 'shippingAddressLine1', label: 'Shipping Street 1' },
+      { key: 'shippingAddressLine2', label: 'Shipping Street 2' },
+      { key: 'shippingArea', label: 'Shipping Area' },
+      { key: 'shippingCity', label: 'Shipping City' },
+      { key: 'shippingState', label: 'Shipping State' },
+      { key: 'shippingPincode', label: 'Shipping Pincode' },
+      { key: 'shippingFullAddress', label: 'Shipping Full Address' },
       { key: 'shippingAddressText', label: 'Shipping Address' },
       { key: 'customerPremiseId', label: 'Customer Premise' },
       { key: 'premiseLabel', label: 'Premise Label' },
@@ -440,6 +590,8 @@ const moduleDefinitions = [
       { key: 'customerNotes', label: 'Customer Notes' },
       { key: 'termsAndConditions', label: 'Terms & Conditions' },
       { key: 'status', label: 'Status' },
+      { key: 'subtotalWithoutGst', label: 'Amount Without GST' },
+      { key: 'gstTotal', label: 'GST Total' },
       { key: 'amount', label: 'Amount' },
       { key: 'balanceDue', label: 'Balance Due' },
       { key: 'withholdingType', label: 'Withholding Type' },
@@ -450,41 +602,8 @@ const moduleDefinitions = [
       { key: 'paymentReceivedEnabled', label: 'Payment Received Enabled' },
       { key: 'notes', label: 'Notes' }
     ],
-    mapRow: (row) => ({
-      invoiceDate: formatDate(firstValue(row, ['invoiceDate', 'date', 'createdAt'])),
-      invoiceNumber: cleanText(firstValue(row, ['invoiceNumber', 'invoiceNo', 'invoice_no', '_id'])),
-      customerName: cleanText(firstValue(row, ['customerName', 'displayName'])),
-      customerId: cleanText(firstValue(row, ['customerId', 'customer_id'])),
-      invoiceType: cleanText(firstValue(row, ['invoiceType', 'invoice_type'])),
-      billingAddressSource: cleanText(firstValue(row, ['billingAddressSource', 'billing_address_source'])),
-      shippingAddressSource: cleanText(firstValue(row, ['shippingAddressSource', 'shipping_address_source'])),
-      billingAddressText: cleanText(firstValue(row, ['billingAddressText', 'billing_address_text'])),
-      shippingAddressText: cleanText(firstValue(row, ['shippingAddressText', 'shipping_address_text'])),
-      customerPremiseId: cleanText(firstValue(row, ['customerPremiseId', 'customer_premise_id'])),
-      premiseLabel: cleanText(firstValue(row, ['premiseLabel', 'premise_label'])),
-      premiseAddress: cleanText(firstValue(row, ['premiseAddress', 'premise_address'])),
-      premiseAreaName: cleanText(firstValue(row, ['premiseAreaName', 'premise_area_name'])),
-      premiseCity: cleanText(firstValue(row, ['premiseCity', 'premise_city'])),
-      premiseState: cleanText(firstValue(row, ['premiseState', 'premise_state'])),
-      premisePincode: cleanText(firstValue(row, ['premisePincode', 'premise_pincode'])),
-      servicePeriodStart: formatDate(firstValue(row, ['servicePeriodStart', 'contractStartDate', 'service_start_date'])),
-      servicePeriodEnd: formatDate(firstValue(row, ['servicePeriodEnd', 'contractEndDate', 'service_end_date', 'dueDate'])),
-      salesperson: cleanText(firstValue(row, ['salesperson', 'salesPerson', 'preparedBy'])),
-      subject: cleanText(firstValue(row, ['subject'])),
-      customerNotes: cleanText(firstValue(row, ['customerNotes'])),
-      termsAndConditions: cleanText(firstValue(row, ['termsAndConditions'])),
-      dueDate: formatDate(firstValue(row, ['dueDate', 'due_date'])),
-      amount: cleanText(formatCurrency(firstValue(row, ['totalAmount', 'grandTotal', 'total', 'amount'])), '-'),
-      balanceDue: cleanText(formatCurrency(firstValue(row, ['balanceDue', 'dueAmount'])), '-'),
-      withholdingType: cleanText(firstValue(row, ['withholdingType', 'withholding_type'])),
-      withholdingRate: cleanText(firstValue(row, ['withholdingRate', 'withholding_rate']), '-'),
-      withholdingAmount: cleanText(formatCurrency(firstValue(row, ['withholdingAmount', 'withholding_amount'])), '-'),
-      discount: cleanText(formatCurrency(firstValue(row, ['discount'])), '-'),
-      status: cleanText(firstValue(row, ['status', 'invoiceStatus'])),
-      serviceScheduleDefaultTime: cleanText(firstValue(row, ['serviceScheduleDefaultTime'])),
-      paymentReceivedEnabled: String(Boolean(firstValue(row, ['paymentReceivedEnabled']))),
-      notes: cleanText(firstValue(row, ['notes', 'customerNotes', 'termsAndConditions']))
-    })
+    loadRows: getInvoiceExportRows,
+    mapRow: (row) => row
   },
   {
     key: 'quotations',
