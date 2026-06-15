@@ -380,7 +380,7 @@ const shell = {
   panelStatus: { margin: '3px 0 0 0', fontSize: '12px', fontWeight: 700, color: 'var(--muted)' },
   validation: { fontSize: '14px', fontWeight: 800, color: 'var(--sky-deep)', textAlign: 'right' },
   topButton: {
-    minHeight: '42px',
+    minHeight: '34px',
     borderRadius: '10px',
     border: '1px solid rgba(17, 17, 17, 0.2)',
     background: '#fff',

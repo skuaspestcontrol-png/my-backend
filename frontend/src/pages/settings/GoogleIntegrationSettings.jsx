@@ -78,10 +78,10 @@ export default function GoogleIntegrationSettings() {
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              minHeight: '38px',
+              minHeight: '34px',
               minWidth: '210px',
               borderRadius: '10px',
-              padding: '0 14px',
+              padding: '0 12px',
               textDecoration: 'none',
               color: '#fff',
               background: 'var(--color-primary)'
@@ -89,7 +89,7 @@ export default function GoogleIntegrationSettings() {
           >
             Connect Google Account
           </a>
-          <button type="button" onClick={load} disabled={loading} style={{ minHeight: '38px', minWidth: '120px' }}>
+          <button type="button" onClick={load} disabled={loading} style={{ minHeight: '34px', minWidth: '120px', padding: '0 12px' }}>
             {loading ? 'Refreshing...' : 'Refresh Status'}
           </button>
         </div>
