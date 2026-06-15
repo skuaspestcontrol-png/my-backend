@@ -2638,8 +2638,9 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
       11
     );
     const remarksHeight = technicianRemarksLineHeight + pestLevelLineHeight + 20;
+    const remarksPaddingTop = 5;
     doc.roundedRect(header.left, y, header.width, remarksHeight, 8).lineWidth(0.8).strokeColor('#E2E8F0').stroke();
-    doc.font('Helvetica-Bold').fontSize(8.2).fillColor('#9F174D').text('Technician Remarks-', header.left + 10, y + 6, {
+    doc.font('Helvetica-Bold').fontSize(8.2).fillColor('#9F174D').text('Technician Remarks-', header.left + 10, y + remarksPaddingTop, {
       width: remarksInnerWidth,
       continued: Boolean(technicianRemarksText),
       lineBreak: false
