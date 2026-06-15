@@ -539,10 +539,11 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   doc.moveDown(sectionSpacing.beforeHeading);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('What We Do?', left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(sectionSpacing.afterHeading);
-  const whatWeDo = items
-    .map((item) => clean(item.what_we_do))
-    .filter(Boolean)
-    .join('\n\n');
+  const whatWeDo = Array.from(new Set(
+    items
+      .map((item) => clean(item.what_we_do))
+      .filter(Boolean)
+  )).join('\n\n');
   drawParagraphBlock(doc, whatWeDo || '-', left, doc.y, right - left, { align: 'justify', lineGap: 1.2 });
   doc.moveDown(sectionSpacing.afterContent);
 
