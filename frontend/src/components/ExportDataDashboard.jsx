@@ -16,7 +16,7 @@ const formatDate = (value) => {
 const formatCurrency = (value) => {
   const parsed = Number(value || 0);
   if (!Number.isFinite(parsed)) return '';
-  return `₹${parsed.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+  return String(Number(parsed.toFixed(2)));
 };
 
 const cleanText = (value, fallback = '-') => {
@@ -77,6 +77,140 @@ const extractRows = (payload) => {
     if (Array.isArray(candidate)) return candidate;
   }
   return [];
+};
+
+const normalizeName = (value) => String(value || '').trim().toLowerCase();
+
+const parseDateOnly = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const toInputDate = (value) => {
+  const date = parseDateOnly(value);
+  if (!date) return '';
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+};
+
+const deriveContractStatus = (invoiceStatus, startDate, endDate) => {
+  const statusText = String(invoiceStatus || '').trim().toLowerCase();
+  if (statusText.includes('renew')) return 'Renewed';
+
+  const today = parseDateOnly(new Date());
+  const start = parseDateOnly(startDate);
+  const end = parseDateOnly(endDate);
+
+  if (start && today && start > today) return 'Upcoming';
+  if (end && today && end < today) return 'Expired';
+  if (end && today) {
+    const diffDays = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays >= 0 && diffDays <= 30) return 'Expiring Soon';
+  }
+  return 'Active';
+};
+
+const deriveContractCode = (contractNo) => {
+  const raw = String(contractNo || '').trim();
+  if (!raw) return '-';
+  const swapped = raw.replace(/\/(?:C?INV)\/\d+$/i, '/C');
+  if (swapped !== raw) return swapped;
+  const bits = raw.split('/').filter(Boolean);
+  if (bits.length <= 1) return raw;
+  return `${bits.slice(0, -1).join('/')}/C`;
+};
+
+const getContractExportRows = async () => {
+  const [invoicesResponse, customersResponse, schedulesResponse] = await Promise.all([
+    axios.get(`${API_BASE_URL}/api/invoices`),
+    axios.get(`${API_BASE_URL}/api/customers`),
+    axios.get(`${API_BASE_URL}/api/service-schedules`)
+  ]);
+
+  const invoices = extractRows(invoicesResponse.data);
+  const customers = extractRows(customersResponse.data);
+  const schedules = extractRows(schedulesResponse.data);
+  const customerIndex = {
+    byId: new Map(),
+    byName: new Map()
+  };
+  customers.forEach((customer) => {
+    const id = String(customer?._id || customer?.id || '').trim();
+    const name = normalizeName(customer?.displayName || customer?.name);
+    if (id) customerIndex.byId.set(id, customer);
+    if (name) customerIndex.byName.set(name, customer);
+  });
+  const scheduleIndex = {
+    byInvoiceId: new Map(),
+    byInvoiceNumber: new Map()
+  };
+  schedules.forEach((schedule) => {
+    const invoiceId = String(schedule?.invoiceId || schedule?.contractId || schedule?.sourceInvoiceId || '').trim();
+    const invoiceNumber = normalizeName(schedule?.invoiceNumber || schedule?.contractNumber || '');
+    if (invoiceId) scheduleIndex.byInvoiceId.set(invoiceId, schedule);
+    if (invoiceNumber) scheduleIndex.byInvoiceNumber.set(invoiceNumber, schedule);
+  });
+
+  return invoices.map((invoice, index) => {
+    const lines = Array.isArray(invoice.items) && invoice.items.length > 0 ? invoice.items : [{}];
+    const startCandidates = lines
+      .map((line) => line.contractStartDate || line.serviceStartDate || invoice.servicePeriodStart || invoice.date)
+      .filter(Boolean);
+    const endCandidates = lines
+      .map((line) => line.contractEndDate || line.serviceEndDate || line.renewalDate || invoice.servicePeriodEnd)
+      .filter(Boolean);
+
+    const parsedStarts = startCandidates.map(parseDateOnly).filter(Boolean);
+    const parsedEnds = endCandidates.map(parseDateOnly).filter(Boolean);
+
+    const startDate = parsedStarts.length > 0 ? new Date(Math.min(...parsedStarts.map((date) => date.getTime()))) : parseDateOnly(invoice.date);
+    const endDate = parsedEnds.length > 0 ? new Date(Math.max(...parsedEnds.map((date) => date.getTime()))) : startDate;
+
+    const customerById = invoice.customerId ? customerIndex.byId.get(String(invoice.customerId)) : null;
+    const customerByName = customerIndex.byName.get(normalizeName(invoice.customerName));
+    const customer = customerById || customerByName || null;
+
+    const total = Number(invoice.total ?? invoice.amount ?? 0);
+    const due = Math.max(0, Number(invoice.balanceDue ?? invoice.balance_due ?? total ?? 0));
+    const paid = Math.max(0, total - due);
+    const normalizedInvoiceType = String(invoice.invoiceType || '').trim().toUpperCase();
+    const type = normalizedInvoiceType === 'NON GST' ? 'Non GST' : (Number(invoice.totalTax || 0) > 0 ? 'GST' : 'Non GST');
+    const startInputDate = toInputDate(startDate);
+    const endInputDate = toInputDate(endDate || startDate);
+    const contractNo = String(invoice.invoiceNumber || '').trim() || `CONTRACT-${index + 1}`;
+    const serviceMeta = scheduleIndex.byInvoiceId.get(String(invoice._id || ''))
+      || scheduleIndex.byInvoiceNumber.get(normalizeName(contractNo))
+      || { total: lines.length, completed: 0, nextServiceDate: '', nextServiceTime: '' };
+
+    return {
+      id: String(invoice._id || contractNo || index),
+      invoiceId: invoice._id,
+      contractNo,
+      contractCode: deriveContractCode(contractNo),
+      customer: String(invoice.customerName || customer?.displayName || customer?.name || 'Customer'),
+      mobile: String(customer?.mobileNumber || customer?.workPhone || '').trim(),
+      altNumber: String(customer?.altNumber || '').trim(),
+      emailId: String(customer?.emailId || customer?.email || '').trim(),
+      gstNumber: String(customer?.gstNumber || '').trim(),
+      property: String(customer?.billingArea || customer?.shippingArea || customer?.billingAddress || customer?.shippingAddress || invoice.premiseLabel || invoice.premiseAddress || invoice.billingAddressText || invoice.shippingAddressText || '-').trim(),
+      city: String(customer?.billingState || customer?.shippingState || invoice.premiseCity || invoice.premiseState || '-').trim(),
+      startDate: startInputDate,
+      endDate: endInputDate,
+      services: Math.max(0, Number(serviceMeta.total || lines.length)),
+      servicesDone: Math.max(0, Number(serviceMeta.completed || 0)),
+      nextServiceDate: serviceMeta.nextServiceDate || '',
+      nextServiceTime: serviceMeta.nextServiceTime || '',
+      status: deriveContractStatus(invoice.status, startInputDate, endInputDate),
+      type,
+      total,
+      paid,
+      due
+    };
+  });
 };
 
 const moduleDefinitions = [
@@ -161,17 +295,18 @@ const moduleDefinitions = [
       { key: 'paid', label: 'Paid' },
       { key: 'due', label: 'Due' }
     ],
+    loadRows: getContractExportRows,
     mapRow: (row) => ({
-      contractNo: cleanText(firstValue(row, ['contractNo', 'invoiceNumber', 'invoice_no', '_id'])),
-      customerName: cleanText(firstValue(row, ['customerName', 'displayName'])),
-      property: cleanText(firstValue(row, ['premiseLabel', 'propertyName', 'premiseAddress', 'billingAddressText'])),
-      duration: cleanText(firstValue(row, ['duration', 'serviceDuration'])),
-      invoiceType: cleanText(firstValue(row, ['invoiceType', 'invoice_type'])),
-      services: cleanText(firstValue(row, ['services', 'serviceName', 'subject'])),
-      status: cleanText(firstValue(row, ['status', 'invoiceStatus'])),
-      total: cleanText(formatCurrency(firstValue(row, ['totalAmount', 'grandTotal', 'total', 'amount'])), '-'),
-      paid: cleanText(formatCurrency(firstValue(row, ['paidAmount', 'paid'])), '-'),
-      due: cleanText(formatCurrency(firstValue(row, ['balanceDue', 'due', 'dueAmount'])), '-')
+      contractNo: cleanText(row.contractCode || row.contractNo),
+      customerName: cleanText(row.customer),
+      property: cleanText(row.property),
+      duration: cleanText(row.startDate && row.endDate ? `${formatDate(row.startDate)} to ${formatDate(row.endDate)}` : '-'),
+      invoiceType: cleanText(row.type),
+      services: cleanText(String(row.services || 0)),
+      status: cleanText(row.status),
+      total: cleanText(formatCurrency(row.total), '-'),
+      paid: cleanText(formatCurrency(row.paid), '-'),
+      due: cleanText(formatCurrency(row.due), '-')
     })
   },
   {
@@ -475,8 +610,10 @@ export default function ExportDataDashboard() {
     }));
 
     try {
-      const response = await axios.get(`${API_BASE_URL}${moduleDef.endpoint}`);
-      const rows = extractRows(response.data).map((row) => moduleDef.mapRow(row));
+      const rawRows = moduleDef.loadRows
+        ? await moduleDef.loadRows()
+        : extractRows((await axios.get(`${API_BASE_URL}${moduleDef.endpoint}`)).data);
+      const rows = rawRows.map((row) => moduleDef.mapRow(row));
       setModuleState((current) => ({
         ...current,
         [moduleDef.key]: { rows, loading: false, error: '' }
