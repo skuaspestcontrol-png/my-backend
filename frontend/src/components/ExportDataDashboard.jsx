@@ -1034,14 +1034,6 @@ export default function ExportDataDashboard() {
                 >
                   Download CSV
                 </AppButton>
-                <AppButton
-                  variant="outline"
-                  iconLeft={<RefreshCcw size={16} />}
-                  onClick={() => loadModule(moduleDef)}
-                  style={{ minHeight: 36, height: 36 }}
-                >
-                  Retry
-                </AppButton>
               </div>
 
               {state.error ? (
