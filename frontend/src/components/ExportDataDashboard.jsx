@@ -1053,63 +1053,6 @@ export default function ExportDataDashboard() {
 
   return (
     <div style={shell.page}>
-      <section style={shell.hero}>
-        <div>
-          <div style={shell.badge}>
-            <Download size={14} />
-            Administration
-          </div>
-          <h1 style={shell.title}>Export Data</h1>
-          <p style={shell.subtitle}>
-            Download module data as Excel-ready CSV files from one compact place. The exports are organized for quick sharing, reporting, and offline review.
-          </p>
-          <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <AppButton variant="secondary" iconLeft={<RefreshCcw size={16} />} onClick={refreshAll} style={{ minHeight: 36, height: 36 }}>
-              Refresh All
-            </AppButton>
-            <AppButton variant="outline" iconLeft={<FileSpreadsheet size={16} />} onClick={() => window.print()} style={{ minHeight: 36, height: 36 }}>
-              Print View
-            </AppButton>
-          </div>
-        </div>
-        <div style={shell.heroPanel}>
-          <div style={shell.heroStatGrid}>
-            <div style={shell.heroStat}>
-              <div style={shell.heroStatLabel}>Modules</div>
-              <div style={shell.heroStatValue}>{moduleDefinitions.length}</div>
-              <div style={shell.heroStatNote}>Core business masters and ledgers ready for export.</div>
-            </div>
-            <div style={shell.heroStat}>
-              <div style={shell.heroStatLabel}>Ready</div>
-              <div style={shell.heroStatValue}>{readyCount}</div>
-              <div style={shell.heroStatNote}>Modules currently loaded and available to download.</div>
-            </div>
-            <div style={shell.heroStat}>
-              <div style={shell.heroStatLabel}>Rows</div>
-              <div style={shell.heroStatValue}>{totalRows}</div>
-              <div style={shell.heroStatNote}>Total rows captured across the loaded datasets.</div>
-            </div>
-            <div style={shell.heroStat}>
-              <div style={shell.heroStatLabel}>Errors</div>
-              <div style={shell.heroStatValue}>{errorCount}</div>
-              <div style={shell.heroStatNote}>Modules that need a retry or backend check.</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div style={shell.toolbar}>
-        <div style={shell.searchWrap}>
-          <Search size={16} color="#64748b" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search modules to export..."
-            style={shell.searchInput}
-          />
-        </div>
-      </div>
-
       <section style={shell.cardsGrid}>
         {filteredModules.map((moduleDef) => {
           const state = moduleState[moduleDef.key] || { rows: [], loading: true, error: '' };
