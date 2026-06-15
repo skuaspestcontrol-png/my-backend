@@ -4,7 +4,10 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+require('dotenv').config({
+  path: path.join(__dirname, '.env'),
+  override: false
+});
 const crypto = require('crypto');
 const multer = require('multer');
 const { execFile } = require('child_process');
@@ -5251,11 +5254,12 @@ const saveWebsiteLead = async (body = {}) => {
 app.post('/api/website-leads', async (req, res) => {
   try {
     console.log('[Website Leads API] received');
-    console.log('[Website Leads API] env key exists:', !!process.env.WEBSITE_LEAD_API_KEY);
-    console.log('[Website Leads API] env key length:', (process.env.WEBSITE_LEAD_API_KEY || '').length);
-    const expectedKey = String(process.env.WEBSITE_LEAD_API_KEY || '').trim();
+    const expectedApiKey = process.env.WEBSITE_LEAD_API_KEY || '';
+    if (!expectedApiKey) {
+      console.log('[Website Leads API] WEBSITE_LEAD_API_KEY missing');
+    }
+    const expectedKey = String(expectedApiKey).trim();
     const suppliedKey = String(req.get('X-API-Key') || '').trim();
-    console.log('[Website Leads API] incoming key length:', suppliedKey.length);
     if (!expectedKey || suppliedKey !== expectedKey) {
       console.error('[Website Leads API] invalid api key');
       return res.status(401).json({ success: false, error: 'Unauthorized' });
@@ -5300,7 +5304,11 @@ app.post('/api/website-leads', async (req, res) => {
 
 app.post('/api/public/website-lead', async (req, res) => {
   try {
-    const expectedKey = String(process.env.WEBSITE_LEAD_API_KEY || '').trim();
+    const expectedApiKey = process.env.WEBSITE_LEAD_API_KEY || '';
+    if (!expectedApiKey) {
+      console.log('[Website Leads API] WEBSITE_LEAD_API_KEY missing');
+    }
+    const expectedKey = String(expectedApiKey).trim();
     const suppliedKey = getWebsiteLeadAuthKey(req);
     if (expectedKey && suppliedKey && suppliedKey !== expectedKey) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
