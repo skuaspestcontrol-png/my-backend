@@ -342,7 +342,7 @@ const s = {
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   headLabelWithSort: { display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, maxWidth: '100%' },
-  dateSortButton: {
+  sortButton: {
     border: 'none',
     background: 'transparent',
     color: '#111827',
@@ -354,6 +354,7 @@ const s = {
     flexShrink: 0,
     lineHeight: 0
   },
+  sortIcon: { flexShrink: 0 },
   headActionCell: { background: 'var(--color-primary-light)' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 6px', fontSize: '10px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.15 },
@@ -661,6 +662,7 @@ export default function LeadCapture() {
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [overviewFilters, setOverviewFilters] = useState(defaultOverviewFilters);
   const [overviewDraftFilters, setOverviewDraftFilters] = useState(defaultOverviewFilters);
+  const [leadSortKey, setLeadSortKey] = useState('date');
   const [leadSortDirection, setLeadSortDirection] = useState('desc');
   const [leadPage, setLeadPage] = useState(1);
   const [visibleColumns, setVisibleColumns] = useState(() => {
@@ -832,14 +834,55 @@ export default function LeadCapture() {
     return leads.filter(matchesOverviewFilters);
   }, [leads, overviewFilters]);
 
+  const getLeadSortValue = (lead, key) => {
+    if (key === 'date') return getLeadDateValue(lead)?.getTime() || 0;
+    if (key === 'quotationValue') {
+      const value = lead.quotationValue ?? lead.quotation_value ?? '';
+      const numeric = Number(String(value).replace(/,/g, ''));
+      return Number.isFinite(numeric) ? numeric : String(value || '').toLowerCase();
+    }
+    if (key === 'customerName') return String(lead.customerName || lead.displayName || '').trim().toLowerCase();
+    if (key === 'mobile') return String(normalizePhoneNumber(getLeadMobile(lead)) || '').trim().toLowerCase();
+    if (key === 'whatsappNumber') return String(normalizePhoneNumber(lead.whatsappNumber || getLeadMobile(lead)) || '').trim().toLowerCase();
+    if (key === 'emailId') return String(lead.emailId || '').trim().toLowerCase();
+    if (key === 'address') return String(lead.address || '').trim().toLowerCase();
+    if (key === 'areaName') return String(lead.areaName || '').trim().toLowerCase();
+    if (key === 'city') return String(lead.city || '').trim().toLowerCase();
+    if (key === 'state') return String(lead.state || '').trim().toLowerCase();
+    if (key === 'pincode') return String(lead.pincode || lead.pinCode || lead.postalCode || lead.postal_code || lead.zip || '').trim().toLowerCase();
+    if (key === 'pestIssue') return String(lead.pestIssue || '').trim().toLowerCase();
+    if (key === 'leadSource') return String(lead.leadSource || '').trim().toLowerCase();
+    if (key === 'propertyType') return String(lead.propertyType || lead.customerSegment || '').trim().toLowerCase();
+    if (key === 'status') return String(getLeadStatus(lead) || '').trim().toLowerCase();
+    if (key === 'followupDate') return toDateOnly(lead.followupDate)?.getTime() || 0;
+    if (key === 'assignedTo') return String(lead.assignedTo || 'Unassigned').trim().toLowerCase();
+    if (key === 'referenceCustomerName') return String(lead.referenceCustomerName || lead.referredByCustomerName || '').trim().toLowerCase();
+    if (key === 'referenceCustomerDate') return toDateOnly(lead.referenceCustomerDate || lead.referredByCustomerDate)?.getTime() || 0;
+    if (key === 'remarks') return String(lead.remarks || lead.notes || '').trim().toLowerCase();
+    return String(lead[key] || '').trim().toLowerCase();
+  };
+
+  const toggleLeadSort = (columnKey) => {
+    if (leadSortKey === columnKey) {
+      setLeadSortDirection((currentDirection) => (currentDirection === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setLeadSortKey(columnKey);
+    setLeadSortDirection(columnKey === 'date' ? 'desc' : 'asc');
+  };
+
   const sortedLeads = useMemo(() => {
     const direction = leadSortDirection === 'asc' ? 1 : -1;
     return [...filteredLeads].sort((a, b) => {
-      const aTime = getLeadDateValue(a)?.getTime() || 0;
-      const bTime = getLeadDateValue(b)?.getTime() || 0;
-      return (aTime - bTime) * direction;
+      const left = getLeadSortValue(a, leadSortKey);
+      const right = getLeadSortValue(b, leadSortKey);
+      if (left == null && right == null) return 0;
+      if (left == null) return 1 * direction;
+      if (right == null) return -1 * direction;
+      if (typeof left === 'number' && typeof right === 'number') return (left - right) * direction;
+      return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' }) * direction;
     });
-  }, [filteredLeads, leadSortDirection]);
+  }, [filteredLeads, leadSortDirection, leadSortKey]);
 
   const totalLeadPages = Math.max(1, Math.ceil(sortedLeads.length / LEAD_PAGE_SIZE));
   const safeLeadPage = Math.min(leadPage, totalLeadPages);
@@ -852,7 +895,7 @@ export default function LeadCapture() {
 
   useEffect(() => {
     setLeadPage(1);
-  }, [overviewFilters, leadSortDirection]);
+  }, [overviewFilters, leadSortDirection, leadSortKey]);
 
   useEffect(() => {
     setLeadPage((current) => Math.min(current, totalLeadPages));
@@ -2533,22 +2576,20 @@ export default function LeadCapture() {
                 </th>
                 {visibleColumnDefs.map((column) => (
                   <th key={column.key} style={{ ...s.headCell, ...s.headCellResizable, ...getColumnStyle(column.key) }}>
-                    {column.key === 'date' ? (
-                      <span style={s.headLabelWithSort}>
-                        <span style={s.headLabelWrap}>{column.label}</span>
-                        <button
-                          type="button"
-                          style={s.dateSortButton}
-                          onClick={() => setLeadSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'))}
-                          title={leadSortDirection === 'desc' ? 'Newest leads first' : 'Oldest leads first'}
-                          aria-label={leadSortDirection === 'desc' ? 'Sort lead date oldest first' : 'Sort lead date newest first'}
-                        >
-                          <SortChevronIcon size={13} color="#111827" />
-                        </button>
-                      </span>
-                    ) : (
+                    <button
+                      type="button"
+                      style={s.sortButton}
+                      onClick={() => toggleLeadSort(column.key)}
+                      title={`Sort by ${column.label}`}
+                      aria-label={`Sort by ${column.label}`}
+                    >
                       <span style={s.headLabelWrap}>{column.label}</span>
-                    )}
+                      <SortChevronIcon
+                        size={13}
+                        color="#111827"
+                        style={{ ...s.sortIcon, opacity: leadSortKey === column.key ? 1 : 0.72 }}
+                      />
+                    </button>
                   </th>
                 ))}
                 <th style={{ ...s.headCell, ...s.headActionCell, ...actionColumnStyle, textAlign: 'center' }}>Action</th>
