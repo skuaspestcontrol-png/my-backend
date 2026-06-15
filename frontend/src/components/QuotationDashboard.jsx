@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, RefreshCw, Trash2 } 
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
+import SortChevronIcon from './ui/SortChevronIcon';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const QUOTATION_DASHBOARD_CACHE_KEY = 'quotation_dashboard_cache_v1';
@@ -494,31 +495,52 @@ function QuotationDashboardInner() {
             <thead>
               <tr>
                 <th style={{ ...shell.th, width: `${getColumnWidth('srNo')}px`, minWidth: `${getColumnWidth('srNo')}px` }}>
-                  Sr No
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    Sr No
+                    <SortChevronIcon size={12} color="#111827" />
+                  </span>
                   
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('quotationNumber')}px`, minWidth: `${getColumnWidth('quotationNumber')}px` }}>
-                  Quotation #
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    Quotation #
+                    <SortChevronIcon size={12} color="#111827" />
+                  </span>
                   
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('date')}px`, minWidth: `${getColumnWidth('date')}px` }}>
-                  Date
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    Date
+                    <SortChevronIcon size={12} color="#111827" />
+                  </span>
                   
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('customer')}px`, minWidth: `${getColumnWidth('customer')}px` }}>
-                  Customer
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    Customer
+                    <SortChevronIcon size={12} color="#111827" />
+                  </span>
                   
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('salesPerson')}px`, minWidth: `${getColumnWidth('salesPerson')}px` }}>
-                  Sales Person
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    Sales Person
+                    <SortChevronIcon size={12} color="#111827" />
+                  </span>
                   
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('status')}px`, minWidth: `${getColumnWidth('status')}px` }}>
-                  Status
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    Status
+                    <SortChevronIcon size={12} color="#111827" />
+                  </span>
                   
                 </th>
                 <th style={{ ...shell.th, width: `${getColumnWidth('grandTotal')}px`, minWidth: `${getColumnWidth('grandTotal')}px` }}>
-                  Grand Total
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    Grand Total
+                    <SortChevronIcon size={12} color="#111827" />
+                  </span>
                   
                 </th>
                 <th style={{ ...shell.th, ...actionColumnStyle, width: `${getColumnWidth('action')}px`, minWidth: `${getColumnWidth('action')}px` }}>

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, IndianRupee, WalletCards } from 'lucide-reac
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useColumnResize } from './table/useColumnResize';
 import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
+import SortChevronIcon from './ui/SortChevronIcon';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const PAYMENT_PAGE_SIZE = 20;
@@ -392,12 +393,12 @@ export default function PaymentReceivedDashboard() {
             <colgroup>{paymentColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || paymentColumnWidths[key] || 100}px` }} />)}</colgroup>
             <thead>
               <tr>
-                <th style={headStyle('date')}>Date</th>
-                <th style={headStyle('invoice')}>Invoice</th>
-                <th style={headStyle('customer')}>Customer</th>
-                <th style={headStyle('mode', 'center')}>Mode</th>
-                <th style={headStyle('depositTo', 'center')}>Deposit To</th>
-                <th style={headStyle('amount', 'center')}>Amount</th>
+                <th style={headStyle('date')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Date <SortChevronIcon size={12} color="#111827" /></span></th>
+                <th style={headStyle('invoice')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Invoice <SortChevronIcon size={12} color="#111827" /></span></th>
+                <th style={headStyle('customer')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Customer <SortChevronIcon size={12} color="#111827" /></span></th>
+                <th style={headStyle('mode', 'center')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Mode <SortChevronIcon size={12} color="#111827" /></span></th>
+                <th style={headStyle('depositTo', 'center')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Deposit To <SortChevronIcon size={12} color="#111827" /></span></th>
+                <th style={headStyle('amount', 'center')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Amount <SortChevronIcon size={12} color="#111827" /></span></th>
                 <th style={headStyle('action', 'center')}>Action</th>
               </tr>
             </thead>

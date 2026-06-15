@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { ChevronLeft, ChevronRight, FileText, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
+import SortChevronIcon from './ui/SortChevronIcon';
 import {
   defaultInvoiceVisibleColumns,
   invoiceColumns as columns,
@@ -3384,7 +3385,10 @@ export default function InvoiceDashboard() {
                     ...(isMobile ? {} : shell.resizableHeadCell)
                   }}
                 >
-                  <span style={{ display: 'block', width: '100%', textAlign: 'inherit' }}>{column.label}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', width: '100%', textAlign: 'inherit' }}>
+                    <span>{column.label}</span>
+                    {column.key !== 'action' ? <SortChevronIcon size={12} color="#111827" /> : null}
+                  </span>
                 </th>
               ))}
               <th

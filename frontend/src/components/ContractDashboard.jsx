@@ -1041,7 +1041,12 @@ export default function ContractDashboard() {
   };
   const renderResizableHeader = (columnKey, label, extraStyle = {}) => (
     <th style={{ ...shell.th, width: `${getColumnWidth(columnKey)}px`, minWidth: `${getColumnWidth(columnKey)}px`, ...extraStyle }}>
-      {label}
+      {typeof label === 'string' ? (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          {label}
+          <SortChevronIcon size={13} color="#111827" />
+        </span>
+      ) : label}
       
     </th>
   );

@@ -2905,7 +2905,10 @@ export default function CustomerDashboard() {
                       <SortChevronIcon size={12} color="#111827" />
                     </button>
                   ) : (
-                    <span>{column.label}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      {column.label}
+                      <SortChevronIcon size={12} color="#111827" />
+                    </span>
                   )}
                 </th>
               ))}
