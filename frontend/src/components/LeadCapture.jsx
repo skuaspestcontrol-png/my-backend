@@ -348,7 +348,7 @@ const s = {
     whiteSpace: 'nowrap',
     textAlign: 'left'
   },
-  headLabelWithSort: { display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, maxWidth: '100%' },
+  headLabelWithSort: { display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, maxWidth: '100%', flex: '1 1 auto' },
   sortButton: {
     width: '100%',
     border: 'none',
@@ -367,6 +367,16 @@ const s = {
     lineHeight: 1.1
   },
   sortIcon: { flexShrink: 0 },
+  resizeHandle: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: '10px',
+    height: '100%',
+    cursor: 'col-resize',
+    touchAction: 'none',
+    userSelect: 'none'
+  },
   headActionCell: { background: 'var(--color-primary-light)' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 6px', fontSize: '10px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.15 },
@@ -2595,13 +2605,21 @@ export default function LeadCapture() {
                       title={`Sort by ${column.label}`}
                       aria-label={`Sort by ${column.label}`}
                     >
-                      <span style={s.headLabelWrap}>{column.label}</span>
-                      <SortChevronIcon
-                        size={13}
-                        color="#111827"
-                        style={{ ...s.sortIcon, opacity: leadSortKey === column.key ? 1 : 0.72 }}
-                      />
+                      <span style={s.headLabelWithSort}>
+                        <span style={s.headLabelWrap}>{column.label}</span>
+                        <SortChevronIcon
+                          size={13}
+                          color="#111827"
+                          style={{ ...s.sortIcon, opacity: leadSortKey === column.key ? 1 : 0.72 }}
+                        />
+                      </span>
                     </button>
+                    <span
+                      role="presentation"
+                      aria-hidden="true"
+                      style={s.resizeHandle}
+                      onPointerDown={(event) => startColumnResize(column.key, event)}
+                    />
                   </th>
                 ))}
                 <th style={{ ...s.headCell, ...s.headActionCell, ...actionColumnStyle, textAlign: 'center' }}>Action</th>
