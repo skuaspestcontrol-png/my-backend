@@ -160,7 +160,7 @@ const shell = {
   th: {
     textAlign: 'left',
     padding: '10px 12px',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 800,
     color: 'var(--color-muted)',
     borderBottom: '1px solid var(--color-border)',

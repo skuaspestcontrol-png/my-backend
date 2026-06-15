@@ -11,7 +11,7 @@ import { apiGet, exportUrl, formatCurrentStockDisplay, money, number, reportType
 
 const tableStyle = { width: '100%', borderCollapse: 'separate', borderSpacing: 0 };
 const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
-const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const headerCellStyle = { ...cellStyle, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280', fontWeight: 800 };
 const greenColor = '#16A34A';
 const redColor = '#DC2626';
 const blackColor = '#111827';

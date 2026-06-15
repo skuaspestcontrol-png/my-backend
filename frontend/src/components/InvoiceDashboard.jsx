@@ -374,7 +374,7 @@ const shell = {
   summaryAccent: { color: '#d97706' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', backgroundClip: 'padding-box' },
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '10px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  headCell: { textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#6b7280', padding: '10px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '10px 10px', fontSize: '8px', fontWeight: 400, color: '#111827', verticalAlign: 'top', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   invoiceCell: { color: 'var(--color-primary)', fontWeight: 400, textDecoration: 'underline dotted rgba(159,23,77,0.4)' },

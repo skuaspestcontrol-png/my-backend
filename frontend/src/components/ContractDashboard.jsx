@@ -186,7 +186,7 @@ const shell = {
   clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', maxWidth: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--color-border)', background: '#fff', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: '#6b7280', padding: '8px 12px 8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', position: 'relative' },
+  th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '11px', fontWeight: 800, color: '#6b7280', padding: '8px 12px 8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap', background: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', position: 'relative' },
   td: { textAlign: 'left', verticalAlign: 'middle', padding: '8px 6px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#fff' },
   selectedRow: { background: 'transparent' },
   selectedCell: { background: '#fff' },
@@ -281,7 +281,7 @@ const shell = {
   detailSection: { border: '1px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden' },
   detailHead: { padding: '8px 10px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', borderBottom: '1px solid var(--color-border)', fontSize: '11px', fontWeight: 800, color: 'var(--text)' , textTransform: 'uppercase' },
   detailTable: { width: '100%', borderCollapse: 'separate', borderSpacing: 0 },
-  detailTh: { fontSize: '10px', fontWeight: 800, color: '#64748b', textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', textTransform: 'uppercase' },
+  detailTh: { fontSize: '11px', fontWeight: 800, color: '#64748b', textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', textTransform: 'uppercase', letterSpacing: '0.03em' },
   detailTd: { fontSize: '12px', color: 'var(--text)', padding: '8px 10px', borderBottom: '1px solid #f1f5f9', background: '#fff' },
   detailBtn: { border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', borderRadius: '7px', minHeight: '26px', padding: '0 8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' },
   suggestionBox: { border: '1px dashed rgba(159,23,77,0.26)', borderRadius: '12px', background: 'linear-gradient(180deg, #fff 0%, #fdf2f8 100%)', padding: '8px 10px', fontSize: '12px', color: '#334155', textAlign: 'left' }

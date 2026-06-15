@@ -54,7 +54,18 @@ export default function WhatsAppLogs() {
   const tableKeys = ['dateTime', 'sentBy', 'recipient', 'phone', 'type', 'module', 'message', 'attachment', 'status', 'response', 'action'];
   const tableMinWidth = tableKeys.reduce((sum, key) => sum + (getColumnWidth(key) || 90), 0);
   const tableStyle = { width: '100%', borderCollapse: 'collapse', minWidth: `${Math.max(1300, tableMinWidth)}px`, tableLayout: 'fixed' };
-  const headStyle = (key, align = 'left') => ({ textAlign: align, padding: '10px', fontSize: '12px', position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px` });
+  const headStyle = (key, align = 'left') => ({
+    textAlign: align,
+    padding: '10px',
+    fontSize: '11px',
+    fontWeight: 800,
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+    position: 'relative',
+    width: `${getColumnWidth(key)}px`,
+    minWidth: `${getColumnWidth(key)}px`,
+    maxWidth: `${getColumnWidth(key)}px`
+  });
   const cellStyle = (key, align = 'left') => ({ padding: '10px', borderTop: '1px solid #f1f5f9', position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px`, textAlign: align });
 
   const load = async () => {

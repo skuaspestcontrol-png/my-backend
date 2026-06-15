@@ -36,7 +36,7 @@ const tableStyle = { width: '100%', borderCollapse: 'separate', borderSpacing: 0
 const cellStyle = { padding: '10px 12px', borderBottom: `1px solid ${theme.colors.borderSoft}`, fontSize: 13, verticalAlign: 'middle', color: theme.colors.text, background: theme.colors.surface };
 const headerCellStyle = {
   ...cellStyle,
-  fontSize: 12,
+  fontSize: 11,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   color: theme.colors.muted,
