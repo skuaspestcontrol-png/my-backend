@@ -5250,16 +5250,42 @@ const saveWebsiteLead = async (body = {}) => {
 
 app.post('/api/website-leads', async (req, res) => {
   try {
+    console.log('[Website Leads API] received');
     const expectedKey = String(process.env.WEBSITE_LEAD_API_KEY || '').trim();
-    const suppliedKey = getWebsiteLeadAuthKey(req);
-    if (expectedKey && suppliedKey && suppliedKey !== expectedKey) {
+    const suppliedKey = String(req.headers?.['x-api-key'] || '').trim();
+    if (!expectedKey || suppliedKey !== expectedKey) {
+      console.error('[Website Leads API] invalid api key');
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    const { lead } = await saveWebsiteLead(req.body || {});
+    const body = req.body || {};
+    const name = String(body.name || body.customerName || '').trim();
+    const mobile = normalizeOptionalIndianMobileNumber(body.phone || body.mobile || body.mobileNumber || '');
+    if (!name) {
+      return res.status(400).json({ success: false, error: 'Name is required' });
+    }
+    if (!mobile) {
+      return res.status(400).json({ success: false, error: 'Phone is required' });
+    }
+    if (!/^\d{10}$/.test(mobile)) {
+      return res.status(400).json({ success: false, error: PHONE_VALIDATION_ERROR });
+    }
+    if (await hasRecentWebsiteLeadByMobile(mobile)) {
+      return res.status(429).json({ success: false, error: 'Lead already submitted recently' });
+    }
+
+    const lead = buildWebsiteLead({ ...body, name, phone: mobile });
+    if (!canUseMysql()) {
+      throw new Error('MySQL is not configured for website leads');
+    }
+    await withMysqlConnection(async (conn) => {
+      await upsertLeadToMysql(conn, lead);
+    });
+    invalidateDashboardSummaryCache();
+    console.log('[Website Leads API] inserted lead id', lead._id);
     return res.status(201).json({ success: true, message: 'Lead created', leadId: lead._id });
   } catch (error) {
-    console.error('Website lead create failed:', error.message);
+    console.error('[Website Leads API] error', error);
     const status = Number(error.statusCode || 500);
     return res.status(status).json({
       success: false,
