@@ -71,6 +71,7 @@ const Attendance = lazy(() => import('./components/Attendance'));
 const PayrollModule = lazy(() => import('./components/PayrollModule'));
 const InvoiceDashboard = lazy(() => import('./components/InvoiceDashboard'));
 const ItemsDashboard = lazy(() => import('./components/ItemsDashboard'));
+const ExportDataDashboard = lazy(() => import('./components/ExportDataDashboard'));
 const LeadCapture = lazyWithRetry(() => import('./components/LeadCapture'), 'leads-capture');
 const LeadFollowups = lazy(() => import('./components/LeadFollowups'));
 const QuotationDashboard = lazy(() => import('./components/QuotationDashboard'));
@@ -313,6 +314,7 @@ function App() {
             <Route path="/attendance" element={<AppRoute element={<Attendance />} />} />
             <Route path="/payroll" element={<AppRoute element={<PayrollModule />} />} />
             <Route path="/items" element={<AppRoute element={<ItemsDashboard />} />} />
+            <Route path="/admin/export-data" element={<AppRoute element={<ExportDataDashboard />} />} />
             <Route path="/settings" element={<AppRoute element={<Settings />} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

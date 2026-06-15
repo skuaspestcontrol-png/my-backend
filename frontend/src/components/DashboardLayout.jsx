@@ -748,6 +748,7 @@ export default function DashboardLayout({ children }) {
 
           <SidebarSection title="Administration" collapsed={isSidebarCollapsed}>
             <Link to="/items" className={isActive('/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/items')} title="Items" aria-label="Items" onClick={closeDrawerOnMobile}><Package size={18} /> {!isSidebarCollapsed ? 'Items' : null}</Link>
+            <Link to="/admin/export-data" className={isActive('/admin/export-data') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/admin/export-data')} title="Export Data" aria-label="Export Data" onClick={closeDrawerOnMobile}><FileDown size={18} /> {!isSidebarCollapsed ? 'Export Data' : null}</Link>
           </SidebarSection>
         </nav>
       </aside>
