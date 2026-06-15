@@ -346,7 +346,8 @@ const s = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    textAlign: 'left'
+    textAlign: 'left',
+    fontSize: '11px'
   },
   headLabelWithSort: { display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, maxWidth: '100%', flex: '1 1 auto' },
   sortButton: {
@@ -367,16 +368,6 @@ const s = {
     lineHeight: 1.1
   },
   sortIcon: { flexShrink: 0 },
-  resizeHandle: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: '10px',
-    height: '100%',
-    cursor: 'col-resize',
-    touchAction: 'none',
-    userSelect: 'none'
-  },
   headActionCell: { background: 'var(--color-primary-light)' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 6px', fontSize: '10px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.15 },
@@ -709,8 +700,7 @@ export default function LeadCapture() {
   });
   const {
     getColumnStyle: getResizableColumnStyle,
-    resetColumns: resetLeadColumns,
-    startResize: startColumnResize
+    resetColumns: resetLeadColumns
   } = useColumnResize({
     storageKey: 'leads_column_widths',
     columns: leadColumns.map((column) => column.key),
@@ -2614,12 +2604,6 @@ export default function LeadCapture() {
                         />
                       </span>
                     </button>
-                    <span
-                      role="presentation"
-                      aria-hidden="true"
-                      style={s.resizeHandle}
-                      onPointerDown={(event) => startColumnResize(column.key, event)}
-                    />
                   </th>
                 ))}
                 <th style={{ ...s.headCell, ...s.headActionCell, ...actionColumnStyle, textAlign: 'center' }}>Action</th>
