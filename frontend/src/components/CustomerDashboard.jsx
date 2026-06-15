@@ -2860,24 +2860,6 @@ export default function CustomerDashboard() {
                 </button>
                 <button
                   type="button"
-                  style={getMoreMenuButtonStyle('delete-duplicate-report')}
-                  onMouseEnter={() => setHoveredMoreMenuItem('delete-duplicate-report')}
-                  onMouseLeave={() => setHoveredMoreMenuItem('')}
-                  onClick={deleteDuplicateReportCustomers}
-                >
-                  Delete Duplicate Report Customers ({duplicateRows.length})
-                </button>
-                <button
-                  type="button"
-                  style={getMoreMenuButtonStyle('delete-all')}
-                  onMouseEnter={() => setHoveredMoreMenuItem('delete-all')}
-                  onMouseLeave={() => setHoveredMoreMenuItem('')}
-                  onClick={deleteAllCustomers}
-                >
-                  Delete All Customers ({customers.length})
-                </button>
-                <button
-                  type="button"
                   style={getMoreMenuButtonStyle('merge-selected', selectedIds.length !== 2)}
                   onMouseEnter={() => setHoveredMoreMenuItem('merge-selected')}
                   onMouseLeave={() => setHoveredMoreMenuItem('')}
