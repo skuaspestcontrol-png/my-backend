@@ -72,6 +72,7 @@ const shell = {
   leadTh: { paddingLeft: '8px', paddingRight: '8px' },
   sortBtn: { width: '100%', minWidth: 0, border: 'none', background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', font: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit', cursor: 'pointer' },
   sortLabel: { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  sortIconWrap: { width: '26px', height: '26px', border: '1px solid rgba(107,114,128,0.30)', borderRadius: '8px', background: '#fff', color: '#111827', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   sortIcon: { flexShrink: 0, opacity: 0.72 },
   td: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '13px', fontWeight: 650 },
   leadTd: { paddingLeft: '8px', paddingRight: '8px' },
@@ -340,7 +341,11 @@ export default function LeadFollowups() {
     }));
   };
   const renderSortIcon = (columnKey) => {
-    return <SortChevronIcon size={13} color="#111827" style={{ ...shell.sortIcon, opacity: sortConfig.key === columnKey ? 0.95 : 0.72 }} />;
+    return (
+      <span style={{ ...shell.sortIconWrap, opacity: sortConfig.key === columnKey ? 1 : 0.84 }}>
+        <SortChevronIcon size={13} color="#111827" style={shell.sortIcon} />
+      </span>
+    );
   };
   const renderResizableHeader = (column) => {
     const isSorted = sortConfig.key === column.key;

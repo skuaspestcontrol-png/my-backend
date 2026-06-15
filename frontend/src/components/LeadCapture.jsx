@@ -343,7 +343,7 @@ const s = {
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   headLabelWithSort: { display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, maxWidth: '100%' },
-  dateSortButton: { width: '18px', height: '18px', border: '1px solid rgba(107,114,128,0.28)', borderRadius: '6px', background: '#fff', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer', flexShrink: 0 },
+  dateSortButton: { width: '26px', height: '26px', border: '1px solid rgba(107,114,128,0.30)', borderRadius: '8px', background: '#fff', color: '#111827', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer', flexShrink: 0 },
   headActionCell: { background: 'var(--color-primary-light)' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 6px', fontSize: '10px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.15 },
@@ -2534,7 +2534,7 @@ export default function LeadCapture() {
                           title={leadSortDirection === 'desc' ? 'Newest leads first' : 'Oldest leads first'}
                           aria-label={leadSortDirection === 'desc' ? 'Sort lead date oldest first' : 'Sort lead date newest first'}
                         >
-                          <SortChevronIcon size={12} color="#111827" />
+                          <SortChevronIcon size={13} color="#111827" />
                         </button>
                       </span>
                     ) : (
