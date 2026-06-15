@@ -350,7 +350,9 @@ main > * {
 
 table th {
   padding: var(--crm-table-cell-y) var(--crm-table-cell-x);
-  font-size: 12px;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
 }
 
 table td {

@@ -211,6 +211,9 @@ body {
 }
 
 .table-header-cell {
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
   white-space: normal;
   word-break: keep-all;
   overflow-wrap: anywhere;
