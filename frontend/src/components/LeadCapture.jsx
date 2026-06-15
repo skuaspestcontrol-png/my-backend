@@ -281,16 +281,15 @@ const s = {
   registerTitleWrap: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px',
-    minHeight: '34px',
-    height: '34px',
-    padding: '0 10px',
-    borderRadius: '8px',
-    background: 'var(--color-primary-light)',
-    border: '1px solid var(--color-primary-soft)',
+    gap: '8px',
+    minHeight: 0,
+    height: 'auto',
+    padding: 0,
+    border: 'none',
+    background: 'transparent',
     boxSizing: 'border-box'
   },
-  registerTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
+  registerTitle: { margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#4b5563' },
   registerActions: { display: 'flex', alignItems: 'center', gap: '8px' },
   buttonPrimary: {
     display: 'inline-flex',
@@ -343,7 +342,21 @@ const s = {
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   headLabelWithSort: { display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, maxWidth: '100%' },
-  dateSortButton: { width: '26px', height: '26px', border: '1px solid rgba(107,114,128,0.30)', borderRadius: '8px', background: '#fff', color: '#111827', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer', flexShrink: 0 },
+  dateSortButton: {
+    width: '30px',
+    height: '30px',
+    border: '1px solid rgba(107,114,128,0.34)',
+    borderRadius: '10px',
+    background: '#fff',
+    color: '#111827',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+    cursor: 'pointer',
+    flexShrink: 0,
+    boxShadow: '0 1px 2px rgba(15,23,42,0.04)'
+  },
   headActionCell: { background: 'var(--color-primary-light)' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 6px', fontSize: '10px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.15 },
@@ -2427,7 +2440,6 @@ export default function LeadCapture() {
         <div style={registerHeadStyle}>
           <div style={s.registerTitleWrap}>
             <h2 style={registerTitleStyle}>Lead Master</h2>
-            <ChevronDown size={16} color="var(--color-primary)" />
           </div>
           <div style={registerActionsStyle}>
             <button type="button" style={buttonPrimaryStyle} onClick={openLeadModal}>
@@ -2534,7 +2546,7 @@ export default function LeadCapture() {
                           title={leadSortDirection === 'desc' ? 'Newest leads first' : 'Oldest leads first'}
                           aria-label={leadSortDirection === 'desc' ? 'Sort lead date oldest first' : 'Sort lead date newest first'}
                         >
-                          <SortChevronIcon size={13} color="#111827" />
+                          <SortChevronIcon size={14} color="#111827" />
                         </button>
                       </span>
                     ) : (
