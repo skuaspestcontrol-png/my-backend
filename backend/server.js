@@ -1318,6 +1318,10 @@ const defaultSettings = {
   brandingAppearance: 'light',
   brandingAccentColor: '#9F174D',
   invoiceNumberMode: 'auto',
+  gstInvoicePrefix: 'SPC-',
+  gstInvoiceNextNumber: 66,
+  nonGstInvoicePrefix: 'SPC-NG-',
+  nonGstInvoiceNextNumber: 1,
   invoicePrefix: 'SPC-',
   invoiceNextNumber: 66,
   invoiceNumberPadding: 4,
@@ -1606,8 +1610,12 @@ const sanitizeSettings = (raw = {}) => {
     brandingAppearance: String(source.brandingAppearance || defaultSettings.brandingAppearance).trim().toLowerCase() === 'dark' ? 'dark' : 'light',
     brandingAccentColor: normalizeSettingsText(source.brandingAccentColor ?? defaultSettings.brandingAccentColor) || defaultSettings.brandingAccentColor,
     invoiceNumberMode: source.invoiceNumberMode === 'manual' ? 'manual' : 'auto',
-    invoicePrefix: String(source.invoicePrefix ?? defaultSettings.invoicePrefix),
-    invoiceNextNumber: Math.max(1, Number(source.invoiceNextNumber ?? defaultSettings.invoiceNextNumber) || defaultSettings.invoiceNextNumber),
+    gstInvoicePrefix: String(source.gstInvoicePrefix ?? source.invoicePrefix ?? defaultSettings.gstInvoicePrefix),
+    gstInvoiceNextNumber: Math.max(1, Number(source.gstInvoiceNextNumber ?? source.invoiceNextNumber ?? defaultSettings.gstInvoiceNextNumber) || defaultSettings.gstInvoiceNextNumber),
+    nonGstInvoicePrefix: String(source.nonGstInvoicePrefix ?? defaultSettings.nonGstInvoicePrefix),
+    nonGstInvoiceNextNumber: Math.max(1, Number(source.nonGstInvoiceNextNumber ?? defaultSettings.nonGstInvoiceNextNumber) || defaultSettings.nonGstInvoiceNextNumber),
+    invoicePrefix: String(source.invoicePrefix ?? source.gstInvoicePrefix ?? defaultSettings.invoicePrefix),
+    invoiceNextNumber: Math.max(1, Number(source.invoiceNextNumber ?? source.gstInvoiceNextNumber ?? defaultSettings.invoiceNextNumber) || defaultSettings.invoiceNextNumber),
     invoiceNumberPadding: Math.max(1, Number(source.invoiceNumberPadding ?? defaultSettings.invoiceNumberPadding) || defaultSettings.invoiceNumberPadding),
     renewalPrefix: String(source.renewalPrefix ?? defaultSettings.renewalPrefix),
     renewalNextNumber: Math.max(1, Number(source.renewalNextNumber ?? defaultSettings.renewalNextNumber) || defaultSettings.renewalNextNumber),
@@ -8550,11 +8558,28 @@ const extractInvoiceSequence = (invoiceNumber, prefix = '') => {
   return match ? Number(match[1]) : null;
 };
 
-const createNextInvoiceNumber = (invoices, settings) => {
-  const prefix = String(settings?.invoicePrefix ?? defaultSettings.invoicePrefix);
-  const padding = Math.max(1, Number(settings?.invoiceNumberPadding ?? defaultSettings.invoiceNumberPadding) || defaultSettings.invoiceNumberPadding);
-  const configuredNext = Math.max(1, Number(settings?.invoiceNextNumber ?? defaultSettings.invoiceNextNumber) || defaultSettings.invoiceNextNumber);
+const getInvoiceNumberConfig = (settings = {}, invoiceType = 'GST') => {
+  const normalizedType = String(invoiceType || '').trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
+  const prefix = normalizedType === 'NON GST'
+    ? String(settings?.nonGstInvoicePrefix ?? defaultSettings.nonGstInvoicePrefix)
+    : String(settings?.gstInvoicePrefix ?? settings?.invoicePrefix ?? defaultSettings.gstInvoicePrefix);
+  const nextNumber = normalizedType === 'NON GST'
+    ? Math.max(1, Number(settings?.nonGstInvoiceNextNumber ?? defaultSettings.nonGstInvoiceNextNumber) || defaultSettings.nonGstInvoiceNextNumber)
+    : Math.max(1, Number(settings?.gstInvoiceNextNumber ?? settings?.invoiceNextNumber ?? defaultSettings.gstInvoiceNextNumber) || defaultSettings.gstInvoiceNextNumber);
+  return {
+    invoiceType: normalizedType,
+    prefix,
+    nextNumber,
+    padding: Math.max(1, Number(settings?.invoiceNumberPadding ?? defaultSettings.invoiceNumberPadding) || defaultSettings.invoiceNumberPadding)
+  };
+};
+
+const createNextInvoiceNumber = (invoices, settings, invoiceType = 'GST') => {
+  const { prefix, nextNumber, padding, invoiceType: normalizedType } = getInvoiceNumberConfig(settings, invoiceType);
+  const configuredNext = nextNumber;
   const max = invoices.reduce((acc, invoice) => {
+    const itemType = String(invoice?.invoiceType || (toNumber(invoice?.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
+    if (itemType !== normalizedType) return acc;
     const seq = extractInvoiceSequence(invoice.invoiceNumber, prefix);
     if (!Number.isFinite(seq)) return acc;
     return Math.max(acc, seq);
@@ -8600,14 +8625,22 @@ const loadRuntimeEmailSettings = async () => {
   return normalizeEmailSettings(readSettings());
 };
 
-const updateSettingsNextInvoiceNumber = async (usedInvoiceNumber, settings) => {
-  const seq = extractInvoiceSequence(usedInvoiceNumber, settings.invoicePrefix);
+const updateSettingsNextInvoiceNumber = async (usedInvoiceNumber, settings, invoiceType = 'GST') => {
+  const { prefix, invoiceType: normalizedType } = getInvoiceNumberConfig(settings, invoiceType);
+  const seq = extractInvoiceSequence(usedInvoiceNumber, prefix);
   if (!Number.isFinite(seq)) return;
-  const nextValue = Math.max(1, Number(settings.invoiceNextNumber || defaultSettings.invoiceNextNumber));
+  const nextValue = normalizedType === 'NON GST'
+    ? Math.max(1, Number(settings.nonGstInvoiceNextNumber || defaultSettings.nonGstInvoiceNextNumber))
+    : Math.max(1, Number(settings.gstInvoiceNextNumber || settings.invoiceNextNumber || defaultSettings.gstInvoiceNextNumber));
   if (seq >= nextValue) {
     const updated = {
       ...settings,
-      invoiceNextNumber: seq + 1
+      ...(normalizedType === 'NON GST'
+        ? { nonGstInvoiceNextNumber: seq + 1 }
+        : {
+            gstInvoiceNextNumber: seq + 1,
+            invoiceNextNumber: seq + 1
+          })
     };
     if (canUseMysql()) {
       await saveSettingsToMysql(updated);
@@ -10744,7 +10777,7 @@ app.post('/api/invoices', async (req, res) => {
     ? Number(Math.max(amount - paymentReceivedTotal, 0).toFixed(2))
     : status === 'PAID'
       ? 0
-      : toNumber(req.body.balanceDue, amount);
+      : amount;
   const invoiceDate = req.body.date || new Date().toISOString().slice(0, 10);
   const dueDate = req.body.dueDate || invoiceDate;
   const serviceScheduleDefaultTime = normalizeServiceScheduleTime(req.body.serviceScheduleDefaultTime, '10:00');
@@ -10757,7 +10790,7 @@ app.post('/api/invoices', async (req, res) => {
     _id: `INV-${Date.now()}`,
     customerId: req.body.customerId || '',
     date: invoiceDate,
-    invoiceNumber: req.body.invoiceNumber || createNextInvoiceNumber(invoices, settings),
+    invoiceNumber: req.body.invoiceNumber || createNextInvoiceNumber(invoices, settings, invoiceType),
     orderNumber: req.body.orderNumber || '',
     customerName: req.body.customerName || '',
     invoiceType,
@@ -10808,7 +10841,7 @@ app.post('/api/invoices', async (req, res) => {
   if (canUseMysql()) {
     try {
       await syncInvoiceToMysql(newInvoice);
-      await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
+      await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings, invoiceType);
     } catch (error) {
       console.error('MySQL invoice write failed:', error.message);
       return res.status(500).json({ error: error.message || 'Failed to create invoice in MySQL' });
@@ -10823,7 +10856,7 @@ app.post('/api/invoices', async (req, res) => {
   } else {
     invoices.push(newInvoice);
     fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
-    await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
+    await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings, invoiceType);
   }
 
   try {
@@ -10874,7 +10907,7 @@ app.put('/api/invoices/:id', async (req, res) => {
     ? Number(Math.max(amount - paymentReceivedTotal, 0).toFixed(2))
     : status === 'PAID'
       ? 0
-      : toNumber(req.body.balanceDue ?? current.balanceDue, amount);
+      : amount;
   const serviceScheduleDefaultTime = normalizeServiceScheduleTime(
     req.body.serviceScheduleDefaultTime ?? current.serviceScheduleDefaultTime,
     '10:00'
@@ -10891,7 +10924,7 @@ app.put('/api/invoices/:id', async (req, res) => {
     ...req.body,
     _id: current._id,
     date: req.body.date ?? current.date ?? new Date().toISOString().slice(0, 10),
-    invoiceNumber: req.body.invoiceNumber ?? current.invoiceNumber ?? createNextInvoiceNumber(invoices, settings),
+    invoiceNumber: req.body.invoiceNumber ?? current.invoiceNumber ?? createNextInvoiceNumber(invoices, settings, invoiceType),
     orderNumber: req.body.orderNumber ?? current.orderNumber ?? '',
     customerName: req.body.customerName ?? current.customerName ?? '',
     invoiceType: String(req.body.invoiceType ?? current.invoiceType ?? ((toNumber(req.body.totalTax ?? current.totalTax, 0) > 0) ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST',
@@ -10920,7 +10953,7 @@ app.put('/api/invoices/:id', async (req, res) => {
   if (canUseMysql()) {
     try {
       await syncInvoiceToMysql(updatedInvoice);
-      await updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings);
+      await updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings, updatedInvoice.invoiceType);
     } catch (error) {
       console.error('MySQL invoice update failed:', error.message);
       return res.status(500).json({ error: error.message || 'Failed to update invoice in MySQL' });
@@ -10937,7 +10970,7 @@ app.put('/api/invoices/:id', async (req, res) => {
   } else {
     invoices[invoiceIndex] = updatedInvoice;
     fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
-    await updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings);
+    await updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings, updatedInvoice.invoiceType);
   }
 
   try {
@@ -12450,7 +12483,7 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
       _id: `INV-${Date.now()}`,
       customerId: sourceInvoice.customerId || renewal.customerId || '',
       customerName: renewal.customerName,
-      invoiceNumber: req.body.invoiceNumber || createNextInvoiceNumber(invoices, settings),
+      invoiceNumber: req.body.invoiceNumber || createNextInvoiceNumber(invoices, settings, invoiceType),
       date: renewalSqlDate(req.body.date || new Date()),
       dueDate: renewalSqlDate(req.body.dueDate || new Date()),
       salesperson: req.body.salesPersonName || renewal.renewedBySalesPersonName || renewal.assignedSalesPersonName || sourceInvoice.salesperson || '',
@@ -12466,7 +12499,7 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
       createdAt: new Date().toISOString()
     };
     await syncInvoiceToMysql(newInvoice);
-    await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
+    await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings, newInvoice.invoiceType);
     try {
       const shadowInvoices = readJsonFile(invoicesFile, []);
       shadowInvoices.push(newInvoice);
@@ -12841,7 +12874,7 @@ app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
     ...sourceInvoice,
     ...req.body,
     _id: `INV-${Date.now()}`,
-    invoiceNumber: req.body.invoiceNumber || createNextInvoiceNumber(invoices, settings),
+    invoiceNumber: req.body.invoiceNumber || createNextInvoiceNumber(invoices, settings, invoiceType),
     date: nextDate,
     invoiceType,
     dueDate,
@@ -12863,7 +12896,7 @@ app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
 
   invoices.push(newInvoice);
   fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
-  await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings);
+  await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings, invoiceType);
 
   try {
     await updateSettingsCurrentBalancesFromInvoicePayments({ nextInvoice: newInvoice });

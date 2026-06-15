@@ -325,15 +325,19 @@ const emptyForm = {
 
 const defaultInvoiceNumberPrefs = {
   mode: 'auto',
-  prefix: 'SPC-',
-  nextNumber: 66,
+  gstPrefix: 'SPC-',
+  gstNextNumber: 66,
+  nonGstPrefix: 'SPC-NG-',
+  nonGstNextNumber: 1,
   padding: 4
 };
 
 const sanitizeInvoiceNumberPrefs = (raw = {}) => ({
   mode: raw.mode === 'manual' ? 'manual' : 'auto',
-  prefix: String(raw.prefix ?? defaultInvoiceNumberPrefs.prefix),
-  nextNumber: Math.max(1, Number(raw.nextNumber ?? defaultInvoiceNumberPrefs.nextNumber) || defaultInvoiceNumberPrefs.nextNumber),
+  gstPrefix: String(raw.gstPrefix ?? raw.prefix ?? defaultInvoiceNumberPrefs.gstPrefix),
+  gstNextNumber: Math.max(1, Number(raw.gstNextNumber ?? raw.nextNumber ?? defaultInvoiceNumberPrefs.gstNextNumber) || defaultInvoiceNumberPrefs.gstNextNumber),
+  nonGstPrefix: String(raw.nonGstPrefix ?? defaultInvoiceNumberPrefs.nonGstPrefix),
+  nonGstNextNumber: Math.max(1, Number(raw.nonGstNextNumber ?? defaultInvoiceNumberPrefs.nonGstNextNumber) || defaultInvoiceNumberPrefs.nonGstNextNumber),
   padding: Math.max(1, Number(raw.padding ?? defaultInvoiceNumberPrefs.padding) || defaultInvoiceNumberPrefs.padding)
 });
 
@@ -1425,7 +1429,7 @@ export default function InvoiceDashboard() {
       ? Number(Math.max(paymentBalance, 0).toFixed(2))
       : status === 'PAID'
         ? 0
-        : Number(nextForm.balanceDue || grandTotal || 0);
+        : Number(grandTotal || 0);
     const nextStatus = nextForm.paymentReceivedEnabled
       ? nextBalance === 0 && grandTotal > 0
         ? 'PAID'
@@ -1448,15 +1452,20 @@ export default function InvoiceDashboard() {
     };
   };
 
-  const createNextInvoiceNumber = (prefs = invoiceNumberPrefs) => {
+  const createNextInvoiceNumber = (prefs = invoiceNumberPrefs, invoiceType = form?.invoiceType || 'GST') => {
     const safePrefs = sanitizeInvoiceNumberPrefs(prefs);
+    const normalizedType = normalizeInvoiceType(invoiceType);
+    const prefix = normalizedType === 'NON GST' ? safePrefs.nonGstPrefix : safePrefs.gstPrefix;
+    const nextNumber = normalizedType === 'NON GST' ? safePrefs.nonGstNextNumber : safePrefs.gstNextNumber;
     const max = invoices.reduce((acc, invoice) => {
-      const seq = extractInvoiceSeq(invoice.invoiceNumber, safePrefs.prefix);
+      const currentType = normalizeInvoiceType(invoice.invoiceType || (Number(invoice.totalTax || 0) > 0 ? 'GST' : 'NON GST'));
+      if (currentType !== normalizedType) return acc;
+      const seq = extractInvoiceSeq(invoice.invoiceNumber, prefix);
       if (!Number.isFinite(seq)) return acc;
       return Math.max(acc, seq);
     }, 0);
-    const next = Math.max(safePrefs.nextNumber, max + 1);
-    return `${safePrefs.prefix}${String(next).padStart(safePrefs.padding, '0')}`;
+    const next = Math.max(nextNumber, max + 1);
+    return `${prefix}${String(next).padStart(safePrefs.padding, '0')}`;
   };
 
   const addPdfCacheBust = (url, stamp = Date.now()) => {
@@ -1522,8 +1531,10 @@ export default function InvoiceDashboard() {
       const settingsData = settingsRes.data || {};
       const prefs = sanitizeInvoiceNumberPrefs({
         mode: settingsData.invoiceNumberMode || 'auto',
-        prefix: settingsData.invoicePrefix || 'SPC-',
-        nextNumber: settingsData.invoiceNextNumber ?? 66,
+        gstPrefix: settingsData.gstInvoicePrefix || settingsData.invoicePrefix || 'SPC-',
+        gstNextNumber: settingsData.gstInvoiceNextNumber ?? settingsData.invoiceNextNumber ?? 66,
+        nonGstPrefix: settingsData.nonGstInvoicePrefix || 'SPC-NG-',
+        nonGstNextNumber: settingsData.nonGstInvoiceNextNumber ?? 1,
         padding: settingsData.invoiceNumberPadding ?? 4
       });
       setCustomers(nextCustomers);
@@ -1821,8 +1832,8 @@ export default function InvoiceDashboard() {
   const openNewForm = () => {
     setEditingId(null);
     setSaveError('');
-    const invoiceNumber = invoiceNumberPrefs.mode === 'auto' ? createNextInvoiceNumber(invoiceNumberPrefs) : '';
     const invoiceType = 'GST';
+    const invoiceNumber = invoiceNumberPrefs.mode === 'auto' ? createNextInvoiceNumber(invoiceNumberPrefs, invoiceType) : '';
     const invoiceDate = new Date().toISOString().slice(0, 10);
     const nextForm = applyComputedTotals({
       ...emptyForm,
@@ -1863,10 +1874,7 @@ export default function InvoiceDashboard() {
   };
 
   const openInvoiceNumberPrefs = () => {
-    const nextInvoiceNumber = createNextInvoiceNumber(invoiceNumberPrefs);
-    const nextSeq = extractInvoiceSeq(nextInvoiceNumber, invoiceNumberPrefs.prefix) || invoiceNumberPrefs.nextNumber;
-    const draft = sanitizeInvoiceNumberPrefs({ ...invoiceNumberPrefs, nextNumber: nextSeq });
-    setInvoiceNumberPrefsDraft(draft);
+    setInvoiceNumberPrefsDraft(sanitizeInvoiceNumberPrefs(invoiceNumberPrefs));
     setShowInvoiceNumberPrefs(true);
   };
 
@@ -1875,14 +1883,18 @@ export default function InvoiceDashboard() {
     try {
       await axios.post(`${API_BASE_URL}/api/settings/save`, {
         invoiceNumberMode: clean.mode,
-        invoicePrefix: clean.prefix,
-        invoiceNextNumber: clean.nextNumber,
+        gstInvoicePrefix: clean.gstPrefix,
+        gstInvoiceNextNumber: clean.gstNextNumber,
+        nonGstInvoicePrefix: clean.nonGstPrefix,
+        nonGstInvoiceNextNumber: clean.nonGstNextNumber,
+        invoicePrefix: clean.gstPrefix,
+        invoiceNextNumber: clean.gstNextNumber,
         invoiceNumberPadding: clean.padding
       });
       setInvoiceNumberPrefs(clean);
       setShowInvoiceNumberPrefs(false);
       if (!editingId && showModal && clean.mode === 'auto') {
-        const nextNumber = createNextInvoiceNumber(clean);
+        const nextNumber = createNextInvoiceNumber(clean, form.invoiceType);
         setFormWithTotals((prev) => ({ ...prev, invoiceNumber: nextNumber }));
       }
     } catch (error) {
@@ -2327,6 +2339,9 @@ export default function InvoiceDashboard() {
     const nextDefaultDepositTo = getDefaultPaymentDepositTo(normalized);
     setFormWithTotals((prev) => ({
       ...prev,
+      invoiceNumber: !editingId && invoiceNumberPrefs.mode === 'auto'
+        ? createNextInvoiceNumber(invoiceNumberPrefs, normalized)
+        : prev.invoiceNumber,
       invoiceType: normalized,
       items: (prev.items || []).map((line) => ({
         ...line,
@@ -2718,7 +2733,7 @@ export default function InvoiceDashboard() {
       premiseState: selectedShippingAddress?.state || form.premiseState || '',
       premisePincode: selectedShippingAddress?.pincode || form.premisePincode || '',
       premiseGoogleMapUrl: selectedShippingAddress?.googleMapUrl || form.premiseGoogleMapUrl || '',
-      invoiceNumber: form.invoiceNumber.trim() || createNextInvoiceNumber(),
+      invoiceNumber: form.invoiceNumber.trim() || createNextInvoiceNumber(invoiceNumberPrefs, invoiceType),
       date: form.date,
       terms: form.terms,
       dueDate: form.dueDate,
@@ -4124,30 +4139,58 @@ export default function InvoiceDashboard() {
                 />
                 Continue auto-generating invoice numbers
               </label>
-              <div style={miniPrefsGridStyle}>
-                <div>
-                  <label style={shell.label}>Prefix</label>
-                  <input
-                    style={shell.input}
-                    value={invoiceNumberPrefsDraft.prefix}
-                    onChange={(event) =>
-                      setInvoiceNumberPrefsDraft((prev) => ({ ...prev, prefix: event.target.value }))
-                    }
-                  />
+              <div style={{ display: 'grid', gap: 10 }}>
+                <div style={miniPrefsGridStyle}>
+                  <div>
+                    <label style={shell.label}>GST Prefix</label>
+                    <input
+                      style={shell.input}
+                      value={invoiceNumberPrefsDraft.gstPrefix}
+                      onChange={(event) =>
+                        setInvoiceNumberPrefsDraft((prev) => ({ ...prev, gstPrefix: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label style={shell.label}>GST Next Number</label>
+                    <input
+                      style={shell.input}
+                      inputMode="numeric"
+                      value={String(invoiceNumberPrefsDraft.gstNextNumber)}
+                      onChange={(event) =>
+                        setInvoiceNumberPrefsDraft((prev) => ({
+                          ...prev,
+                          gstNextNumber: Math.max(1, Number(event.target.value.replace(/\D/g, '')) || 1)
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label style={shell.label}>Next Number</label>
-                  <input
-                    style={shell.input}
-                    inputMode="numeric"
-                    value={String(invoiceNumberPrefsDraft.nextNumber)}
-                    onChange={(event) =>
-                      setInvoiceNumberPrefsDraft((prev) => ({
-                        ...prev,
-                        nextNumber: Math.max(1, Number(event.target.value.replace(/\D/g, '')) || 1)
-                      }))
-                    }
-                  />
+                <div style={miniPrefsGridStyle}>
+                  <div>
+                    <label style={shell.label}>NON GST Prefix</label>
+                    <input
+                      style={shell.input}
+                      value={invoiceNumberPrefsDraft.nonGstPrefix}
+                      onChange={(event) =>
+                        setInvoiceNumberPrefsDraft((prev) => ({ ...prev, nonGstPrefix: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label style={shell.label}>NON GST Next Number</label>
+                    <input
+                      style={shell.input}
+                      inputMode="numeric"
+                      value={String(invoiceNumberPrefsDraft.nonGstNextNumber)}
+                      onChange={(event) =>
+                        setInvoiceNumberPrefsDraft((prev) => ({
+                          ...prev,
+                          nonGstNextNumber: Math.max(1, Number(event.target.value.replace(/\D/g, '')) || 1)
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
               </div>
               <label style={shell.miniRadioRow}>

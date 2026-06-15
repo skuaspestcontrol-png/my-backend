@@ -216,6 +216,10 @@ const defaultForm = {
   customerNotesDefault: '',
   settingsAccessPin: '',
   invoiceNumberMode: 'auto',
+  gstInvoicePrefix: 'SPC-',
+  gstInvoiceNextNumber: '66',
+  nonGstInvoicePrefix: 'SPC-NG-',
+  nonGstInvoiceNextNumber: '1',
   invoicePrefix: 'SPC-',
   invoiceNextNumber: '66',
   invoiceNumberPadding: '4',
@@ -685,6 +689,10 @@ const getSectionCompletion = (form, securityForm) => {
     nonGstCompany: [form.nonGstCompanyName, form.nonGstBillingAddress, form.nonGstCity, form.nonGstState, form.nonGstPincode].every(isFilled),
     bankAccounts: [form.gstBankName, form.gstBankAccountNumber, form.gstBankIfsc, form.nonGstBankName, form.nonGstBankAccountNumber, form.nonGstBankIfsc].every(isFilled),
     documentPrefixes: [
+      form.gstInvoicePrefix,
+      form.gstInvoiceNextNumber,
+      form.nonGstInvoicePrefix,
+      form.nonGstInvoiceNextNumber,
       form.invoicePrefix,
       form.invoiceNextNumber,
       form.invoiceNumberPadding,
@@ -880,8 +888,12 @@ export default function Settings({ modalMode = false }) {
           termsAndConditionsDefault: data.termsAndConditionsDefault || data.gstTermsAndConditions || '',
           settingsAccessPin: data.settingsAccessPin || '',
           invoiceNumberMode: data.invoiceNumberMode === 'manual' ? 'manual' : 'auto',
-          invoicePrefix: data.invoicePrefix || 'SPC-',
-          invoiceNextNumber: String(data.invoiceNextNumber ?? 66),
+          gstInvoicePrefix: data.gstInvoicePrefix || data.invoicePrefix || 'SPC-',
+          gstInvoiceNextNumber: String(data.gstInvoiceNextNumber ?? data.invoiceNextNumber ?? 66),
+          nonGstInvoicePrefix: data.nonGstInvoicePrefix || 'SPC-NG-',
+          nonGstInvoiceNextNumber: String(data.nonGstInvoiceNextNumber ?? 1),
+          invoicePrefix: data.invoicePrefix || data.gstInvoicePrefix || 'SPC-',
+          invoiceNextNumber: String(data.invoiceNextNumber ?? data.gstInvoiceNextNumber ?? 66),
           invoiceNumberPadding: String(data.invoiceNumberPadding ?? 4),
           quotationPrefix: quotationPrefix.prefix || data.quotationPrefix || 'SPC/',
           quotationFinancialYear: quotationPrefix.financial_year || data.quotationFinancialYear || String(new Date().getFullYear()),
@@ -1169,7 +1181,7 @@ export default function Settings({ modalMode = false }) {
     const nextAdminPassword = hasPasswordAttempt ? securityForm.newPassword : String(form.adminPassword || currentStoredPassword || 'admin123');
     const encryption = String(form.smtpEncryption || 'TLS').toUpperCase();
 
-    const payload = {
+      const payload = {
       gstCompanyName,
       gstPanNumber: normalizePanDisplay(form.gstPanNumber),
       gstLicenseNumber: String(form.gstLicenseNumber || '').trim(),
@@ -1237,8 +1249,12 @@ export default function Settings({ modalMode = false }) {
       termsAndConditionsDefault: String(form.gstTermsAndConditions || form.termsAndConditionsDefault || '').trim(),
       settingsAccessPin: String(form.settingsAccessPin || initialForm.settingsAccessPin || '').trim(),
       invoiceNumberMode: form.invoiceNumberMode === 'manual' ? 'manual' : 'auto',
-      invoicePrefix: String(form.invoicePrefix || '').trim() || 'SPC-',
-      invoiceNextNumber: Math.max(1, Number(form.invoiceNextNumber) || 1),
+      gstInvoicePrefix: String(form.gstInvoicePrefix || form.invoicePrefix || '').trim() || 'SPC-',
+      gstInvoiceNextNumber: Math.max(1, Number(form.gstInvoiceNextNumber || form.invoiceNextNumber) || 1),
+      nonGstInvoicePrefix: String(form.nonGstInvoicePrefix || '').trim() || 'SPC-NG-',
+      nonGstInvoiceNextNumber: Math.max(1, Number(form.nonGstInvoiceNextNumber) || 1),
+      invoicePrefix: String(form.gstInvoicePrefix || form.invoicePrefix || '').trim() || 'SPC-',
+      invoiceNextNumber: Math.max(1, Number(form.gstInvoiceNextNumber || form.invoiceNextNumber) || 1),
       invoiceNumberPadding: Math.max(1, Number(form.invoiceNumberPadding) || 4),
       quotationPrefix: String(form.quotationPrefix || '').trim() || 'SPC/',
       quotationFinancialYear: String(form.quotationFinancialYear || '').trim() || String(new Date().getFullYear()),
@@ -1313,6 +1329,10 @@ export default function Settings({ modalMode = false }) {
         companyGstNumber: normalizeGstinDisplay(payload.companyGstNumber),
         invoiceNextNumber: String(savedRaw.invoiceNextNumber ?? payload.invoiceNextNumber),
         invoiceNumberPadding: String(savedRaw.invoiceNumberPadding ?? payload.invoiceNumberPadding),
+        gstInvoicePrefix: String(savedRaw.gstInvoicePrefix ?? payload.gstInvoicePrefix ?? payload.invoicePrefix),
+        gstInvoiceNextNumber: String(savedRaw.gstInvoiceNextNumber ?? payload.gstInvoiceNextNumber ?? payload.invoiceNextNumber),
+        nonGstInvoicePrefix: String(savedRaw.nonGstInvoicePrefix ?? payload.nonGstInvoicePrefix),
+        nonGstInvoiceNextNumber: String(savedRaw.nonGstInvoiceNextNumber ?? payload.nonGstInvoiceNextNumber),
         quotationNextNumber: String(payload.quotationNextNumber),
         quotationNumberPadding: String(payload.quotationNumberPadding),
         jobNextNumber: String(savedRaw.jobNextNumber ?? payload.jobNextNumber),
@@ -1946,21 +1966,6 @@ export default function Settings({ modalMode = false }) {
           </select>
         </div>
         <div style={shell.field}>
-          <p style={shell.fieldLabel}>Invoice Prefix</p>
-          <input style={shell.input} value={form.invoicePrefix} onChange={(event) => updateField('invoicePrefix', event.target.value)} />
-        </div>
-      </div>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Next Number</p>
-          <input
-            style={shell.input}
-            inputMode="numeric"
-            value={form.invoiceNextNumber}
-            onChange={(event) => updateField('invoiceNextNumber', event.target.value.replace(/\D/g, ''))}
-          />
-        </div>
-        <div style={shell.field}>
           <p style={shell.fieldLabel}>Number Padding</p>
           <input
             style={shell.input}
@@ -1970,6 +1975,37 @@ export default function Settings({ modalMode = false }) {
           />
         </div>
       </div>
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>GST Invoice Prefix</p>
+          <input style={shell.input} value={form.gstInvoicePrefix} onChange={(event) => updateField('gstInvoicePrefix', event.target.value)} />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>GST Next Number</p>
+          <input
+            style={shell.input}
+            inputMode="numeric"
+            value={form.gstInvoiceNextNumber}
+            onChange={(event) => updateField('gstInvoiceNextNumber', event.target.value.replace(/\D/g, ''))}
+          />
+        </div>
+      </div>
+      <div style={shell.twoCol}>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>NON GST Invoice Prefix</p>
+          <input style={shell.input} value={form.nonGstInvoicePrefix} onChange={(event) => updateField('nonGstInvoicePrefix', event.target.value)} />
+        </div>
+        <div style={shell.field}>
+          <p style={shell.fieldLabel}>NON GST Next Number</p>
+          <input
+            style={shell.input}
+            inputMode="numeric"
+            value={form.nonGstInvoiceNextNumber}
+            onChange={(event) => updateField('nonGstInvoiceNextNumber', event.target.value.replace(/\D/g, ''))}
+          />
+        </div>
+      </div>
+      <p style={shell.hint}>Legacy invoice prefix fields are kept in sync automatically for older invoice data.</p>
 
       <div style={shell.divider} />
       <p style={{ ...shell.sectionHeading, marginTop: '2px' }}>Quotation Numbering</p>

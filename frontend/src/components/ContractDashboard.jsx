@@ -798,6 +798,14 @@ export default function ContractDashboard() {
     return { byInvoiceId, byInvoiceNumber };
   }, [serviceSchedules]);
 
+  const resolveInvoiceBalanceDue = (invoice, total = Number(invoice?.total ?? invoice?.amount ?? 0)) => {
+    const normalizedStatus = String(invoice?.status || '').trim().toUpperCase();
+    if (Boolean(invoice?.paymentReceivedEnabled)) {
+      return Math.max(0, Number(invoice?.balanceDue ?? total ?? 0));
+    }
+    return normalizedStatus === 'PAID' ? 0 : Math.max(0, Number(total || 0));
+  };
+
   const allContracts = useMemo(() => {
     return invoices.map((invoice, index) => {
       const lines = Array.isArray(invoice.items) && invoice.items.length > 0 ? invoice.items : [{}];
@@ -819,7 +827,7 @@ export default function ContractDashboard() {
       const customer = customerById || customerByName || null;
 
       const total = Number(invoice.total ?? invoice.amount ?? 0);
-      const due = Math.max(0, Number(invoice.balanceDue ?? 0));
+      const due = resolveInvoiceBalanceDue(invoice, total);
       const paid = Math.max(0, total - due);
 
       const normalizedInvoiceType = String(invoice.invoiceType || '').trim().toUpperCase();
@@ -945,7 +953,7 @@ export default function ContractDashboard() {
 
     const totalInvoiced = relatedInvoices.reduce((sum, entry) => sum + Number(entry?.total || entry?.amount || 0), 0);
     const totalPaid = relatedPayments.reduce((sum, entry) => sum + Number(entry?.amount || 0), 0);
-    const balanceDue = Math.max(0, relatedInvoices.reduce((sum, entry) => sum + Number(entry?.balanceDue || 0), 0));
+    const balanceDue = Math.max(0, relatedInvoices.reduce((sum, entry) => sum + resolveInvoiceBalanceDue(entry), 0));
     const transactionCount = relatedPayments.length;
     const complaintsCount = 0;
 
