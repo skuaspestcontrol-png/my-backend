@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { subscribeContractsRefresh, triggerRenewalsRefresh, triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import useColumnResize from './table/useColumnResize';
+import SortChevronIcon from './ui/SortChevronIcon';
 import { getPortalUserName } from '../utils/portalAuth';
 import {
   AlertCircle,
@@ -26,7 +27,6 @@ import {
   RefreshCcw,
   Settings,
   Search,
-  ArrowUpDown,
   TriangleAlert,
   UserRound,
   Wallet,
@@ -62,6 +62,7 @@ const defaultColumnWidths = {
   customer: 220,
   property: 140,
   duration: 138,
+  type: 112,
   services: 100,
   status: 104,
   total: 112,
@@ -76,6 +77,7 @@ const mobileColumnWidths = {
   customer: 150,
   property: 128,
   duration: 120,
+  type: 96,
   services: 96,
   status: 92,
   total: 100,
@@ -89,6 +91,7 @@ const contractColumnResizeBounds = {
   customer: { min: 200, max: 380 },
   property: { min: 130, max: 240 },
   duration: { min: 110, max: 170 },
+  type: { min: 92, max: 160 },
   services: { min: 140, max: 280 },
   status: { min: 92, max: 150 },
   total: { min: 100, max: 160 },
@@ -518,6 +521,7 @@ export default function ContractDashboard() {
     customer: true,
     property: true,
     duration: true,
+    type: true,
     services: true,
     status: true,
     total: true,
@@ -553,7 +557,7 @@ export default function ContractDashboard() {
     resetColumns: resetContractColumns
   } = useColumnResize({
     storageKey: 'contracts_column_widths',
-    columns: ['rowNumber', 'contractNo', 'customer', 'property', 'duration', 'services', 'status', 'total', 'paid', 'due', 'actions'],
+    columns: ['rowNumber', 'contractNo', 'customer', 'property', 'duration', 'type', 'services', 'status', 'total', 'paid', 'due', 'actions'],
     defaultColumnWidths,
     columnBounds: contractColumnResizeBounds,
     minWidth: 80,
@@ -1017,6 +1021,7 @@ export default function ContractDashboard() {
     { key: 'customer', label: 'Customer' },
     { key: 'property', label: 'Property' },
     { key: 'duration', label: 'Duration' },
+    { key: 'type', label: 'Invoice Type' },
     { key: 'services', label: 'Services' },
     { key: 'status', label: 'Status' },
     { key: 'total', label: 'Total' },
@@ -1049,6 +1054,7 @@ export default function ContractDashboard() {
     visibleColumns.customer ? `${getColumnWidth('customer')}px` : null,
     visibleColumns.property ? `${getColumnWidth('property')}px` : null,
     visibleColumns.duration ? `${getColumnWidth('duration')}px` : null,
+    visibleColumns.type ? `${getColumnWidth('type')}px` : null,
     visibleColumns.services ? `${getColumnWidth('services')}px` : null,
     visibleColumns.status ? `${getColumnWidth('status')}px` : null,
     visibleColumns.total ? `${getColumnWidth('total')}px` : null,
@@ -1241,6 +1247,7 @@ export default function ContractDashboard() {
           {visibleColumns.customer ? <col style={{ width: isMobile ? `${getColumnWidth('customer')}px` : contractColumnPercent('customer') }} /> : null}
           {visibleColumns.property ? <col style={{ width: isMobile ? `${getColumnWidth('property')}px` : contractColumnPercent('property') }} /> : null}
           {visibleColumns.duration ? <col style={{ width: isMobile ? `${getColumnWidth('duration')}px` : contractColumnPercent('duration') }} /> : null}
+          {visibleColumns.type ? <col style={{ width: isMobile ? `${getColumnWidth('type')}px` : contractColumnPercent('type') }} /> : null}
           {visibleColumns.services ? <col style={{ width: isMobile ? `${getColumnWidth('services')}px` : contractColumnPercent('services') }} /> : null}
           {visibleColumns.status ? <col style={{ width: isMobile ? `${getColumnWidth('status')}px` : contractColumnPercent('status') }} /> : null}
           {visibleColumns.total ? <col style={{ width: isMobile ? `${getColumnWidth('total')}px` : contractColumnPercent('total') }} /> : null}
@@ -1271,9 +1278,9 @@ export default function ContractDashboard() {
                   }}
                   aria-label={`Sort Contract ${contractSortDirection === 'asc' ? 'descending' : 'ascending'}`}
                   title={`Sort Contract ${contractSortDirection === 'asc' ? 'descending' : 'ascending'}`}
-                >
+                  >
                   <span>Contract</span>
-                  <ArrowUpDown size={13} strokeWidth={2.2} style={{ color: '#64748b' }} />
+                  <SortChevronIcon size={13} color="#111827" />
                 </button>
               ))
             ) : null}
@@ -1282,6 +1289,7 @@ export default function ContractDashboard() {
             ) : null}
             {visibleColumns.property ? renderResizableHeader('property', 'Property') : null}
             {visibleColumns.duration ? renderResizableHeader('duration', 'Duration') : null}
+            {visibleColumns.type ? renderResizableHeader('type', 'Invoice Type') : null}
             {visibleColumns.services ? renderResizableHeader('services', 'Services', { textAlign: 'center', paddingLeft: '0', paddingRight: '0' }) : null}
             {visibleColumns.status ? renderResizableHeader('status', 'Status') : null}
             {visibleColumns.total ? renderResizableHeader('total', 'Total') : null}
@@ -1341,6 +1349,11 @@ export default function ContractDashboard() {
                 {visibleColumns.duration ? <td style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700 }}>{formatDate(row.startDate)}</div>
                   <div style={{ ...shell.subText }}>{`to ${formatDate(row.endDate)}`}</div>
+                </td> : null}
+                {visibleColumns.type ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                  <span style={{ ...shell.typePill, background: row.type === 'GST' ? 'rgba(22,163,74,0.16)' : 'rgba(59,130,246,0.16)', color: row.type === 'GST' ? '#166534' : '#1d4ed8' }}>
+                    {row.type || '-'}
+                  </span>
                 </td> : null}
                 {visibleColumns.services ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
@@ -1483,6 +1496,7 @@ export default function ContractDashboard() {
                           customer: true,
                           property: true,
                           duration: true,
+                          type: true,
                           services: true,
                           status: true,
                           total: true,

@@ -20,12 +20,11 @@ import {
 import useColumnResize from './table/useColumnResize';
 import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
+import SortChevronIcon from './ui/SortChevronIcon';
 import { getPortalUserName } from '../utils/portalAuth';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import {
-  ArrowDown,
-  ArrowUp,
   AlertTriangle,
   CalendarDays,
   ChevronDown,
@@ -2535,7 +2534,7 @@ export default function LeadCapture() {
                           title={leadSortDirection === 'desc' ? 'Newest leads first' : 'Oldest leads first'}
                           aria-label={leadSortDirection === 'desc' ? 'Sort lead date oldest first' : 'Sort lead date newest first'}
                         >
-                          {leadSortDirection === 'desc' ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
+                          <SortChevronIcon size={12} color="#111827" />
                         </button>
                       </span>
                     ) : (

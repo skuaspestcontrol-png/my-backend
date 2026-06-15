@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Settings, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Settings, X } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
+import SortChevronIcon from './ui/SortChevronIcon';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ITEMS_PER_PAGE = 20;
@@ -882,7 +883,7 @@ export default function ItemsDashboard() {
                         aria-label={`Sort name ${nameSortDirection === 'asc' ? 'descending' : 'ascending'}`}
                       >
                         <span>{column.label}</span>
-                        {nameSortDirection === 'asc' ? <ArrowDownAZ size={14} /> : <ArrowUpAZ size={14} />}
+                        <SortChevronIcon size={14} color="#111827" />
                       </button>
                     ) : (
                       <span>{column.label}</span>

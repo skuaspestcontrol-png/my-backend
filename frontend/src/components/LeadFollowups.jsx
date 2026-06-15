@@ -5,9 +5,6 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import {
   AlertTriangle,
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   CalendarCheck,
   CalendarClock,
   CalendarDays,
@@ -19,6 +16,7 @@ import {
   Smile,
   X
 } from 'lucide-react';
+import SortChevronIcon from './ui/SortChevronIcon';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ALL_VALUE = '__all__';
@@ -342,9 +340,7 @@ export default function LeadFollowups() {
     }));
   };
   const renderSortIcon = (columnKey) => {
-    if (sortConfig.key !== columnKey) return <ArrowUpDown size={13} style={shell.sortIcon} aria-hidden="true" />;
-    if (sortConfig.direction === 'asc') return <ArrowUp size={13} style={shell.sortIcon} aria-hidden="true" />;
-    return <ArrowDown size={13} style={shell.sortIcon} aria-hidden="true" />;
+    return <SortChevronIcon size={13} color="#111827" style={{ ...shell.sortIcon, opacity: sortConfig.key === columnKey ? 0.95 : 0.72 }} />;
   };
   const renderResizableHeader = (column) => {
     const isSorted = sortConfig.key === column.key;

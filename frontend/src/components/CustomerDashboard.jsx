@@ -3,10 +3,11 @@ import axios from 'axios';
 import useColumnResize from './table/useColumnResize';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import SortChevronIcon from './ui/SortChevronIcon';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import {
   attachPlacesAutocomplete,
@@ -2901,7 +2902,7 @@ export default function CustomerDashboard() {
                   {column.key === 'name' ? (
                     <button type="button" className="crm-readable-header-button" style={{ ...shell.headSortButton, ...shell.headLabelWrap }} onClick={toggleNameSort} title="Sort by customer name">
                       <span>{column.label}</span>
-                      <ArrowUpDown size={12} />
+                      <SortChevronIcon size={12} color="#111827" />
                     </button>
                   ) : (
                     <span>{column.label}</span>
