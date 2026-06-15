@@ -2532,7 +2532,7 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
 
   let y = header.bodyTop;
   y += renderTopLine(y, 'Customer Name', customerNameText) + 1;
-  y += renderAddressLine(y, 'Customer Address', customerAddressText) + 2;
+  y += renderAddressLine(y, 'Customer Address', customerAddressText) + 10;
 
   const tableRows = [
     [
