@@ -11,7 +11,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const QUOTATION_DASHBOARD_CACHE_KEY = 'quotation_dashboard_cache_v1';
 const quotationColumns = [
   { key: 'srNo', label: 'Sr No' },
-  { key: 'quotationNumber', label: 'Quotation #' },
+  { key: 'quotationNumber', label: 'Quotation' },
   { key: 'date', label: 'Date' },
   { key: 'customer', label: 'Customer' },
   { key: 'salesPerson', label: 'Sales Person' },
