@@ -4,7 +4,7 @@ export default function SortChevronIcon({ size = 14, color = 'currentColor', cla
   return (
     <svg
       aria-hidden="true"
-      viewBox="0 0 18 18"
+      viewBox="0 0 16 16"
       width={size}
       height={size}
       className={className}
@@ -12,25 +12,15 @@ export default function SortChevronIcon({ size = 14, color = 'currentColor', cla
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect
-        x="0.75"
-        y="0.75"
-        width="16.5"
-        height="16.5"
-        rx="5"
-        stroke="currentColor"
-        strokeOpacity="0.28"
-        strokeWidth="1.5"
-      />
       <path
-        d="M5.25 7.25L9 3.5L12.75 7.25"
+        d="M3.25 6.5L8 1.75L12.75 6.5"
         stroke="currentColor"
         strokeWidth="1.9"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
-        d="M5.25 10.75L9 14.5L12.75 10.75"
+        d="M3.25 9.5L8 14.25L12.75 9.5"
         stroke="currentColor"
         strokeWidth="1.9"
         strokeLinecap="round"
