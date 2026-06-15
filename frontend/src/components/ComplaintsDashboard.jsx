@@ -72,6 +72,8 @@ export default function ComplaintsDashboard() {
   const [activeInvoices, setActiveInvoices] = useState(() => Array.isArray(cachedDashboard?.activeInvoices) ? cachedDashboard.activeInvoices : []);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState(emptyComplaint);
+  const [editingComplaintId, setEditingComplaintId] = useState('');
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const [customerFilter, setCustomerFilter] = useState('');
   const [technicianSearch, setTechnicianSearch] = useState('');
@@ -208,11 +210,53 @@ export default function ComplaintsDashboard() {
         .filter((entry) => form.technicians.includes(String(entry._id || '')))
         .map((entry) => formatEmployeeName(entry))
     };
-    await axios.post(`${API_BASE}/api/complaints`, payload);
+    if (editingComplaintId) {
+      await axios.put(`${API_BASE}/api/complaints/${editingComplaintId}`, payload);
+    } else {
+      await axios.post(`${API_BASE}/api/complaints`, payload);
+    }
     setShowNew(false);
     setForm(emptyComplaint);
+    setEditingComplaintId('');
     setTechnicianSearch('');
     await loadData({ silent: true });
+  };
+
+  const openComplaintActions = (complaint) => {
+    setSelectedComplaint(complaint);
+  };
+
+  const closeComplaintActions = () => setSelectedComplaint(null);
+
+  const startEditingComplaint = (complaint) => {
+    setForm({
+      customerId: complaint.customerId || '',
+      customerName: complaint.customerName || '',
+      mobileNumber: complaint.mobileNumber || '',
+      property: complaint.property || '',
+      contractId: complaint.contractId || '',
+      contractNumber: complaint.contractNumber || '',
+      type: complaint.type || '',
+      priority: complaint.priority || 'Normal',
+      status: complaint.status || 'Open',
+      subject: complaint.subject || '',
+      description: complaint.description || '',
+      reportedBy: complaint.reportedBy || '',
+      reportedVia: complaint.reportedVia || '',
+      dueDate: complaint.dueDate || '',
+      technicians: Array.isArray(complaint.technicians) ? complaint.technicians : []
+    });
+    setEditingComplaintId(complaint._id || '');
+    setTechnicianSearch('');
+    setShowNew(true);
+    setSelectedComplaint(null);
+  };
+
+  const cancelComplaintEditor = () => {
+    setShowNew(false);
+    setEditingComplaintId('');
+    setForm(emptyComplaint);
+    setTechnicianSearch('');
   };
 
   return (
@@ -224,7 +268,7 @@ export default function ComplaintsDashboard() {
               <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: '#0f172a' }}>Manage Complaints</h2>
               <p style={{ margin: 0, color: '#64748b', fontWeight: 600, fontSize: 14 }}>View and manage all customer complaints</p>
             </div>
-            <button type="button" onClick={() => setShowNew(true)} style={{ border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#fff', borderRadius: 8, minHeight: 36, padding: '0 14px', fontWeight: 800 }}><Plus size={14} /> New Complaint</button>
+            <button type="button" onClick={() => { setEditingComplaintId(''); setForm(emptyComplaint); setShowNew(true); }} style={{ border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#fff', borderRadius: 8, minHeight: 36, padding: '0 14px', fontWeight: 800 }}><Plus size={14} /> New Complaint</button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,minmax(0,1fr))' : 'repeat(4,minmax(0,1fr))', gap: 10 }}>
@@ -278,7 +322,17 @@ export default function ComplaintsDashboard() {
                         return `${day}/${month}/${year}`;
                       })() : '-'}
                     </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }} data-label="Actions"><button type="button" style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 8, minHeight: 30, padding: '0 9px' }}><List size={14} /></button></td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }} data-label="Actions">
+                      <button
+                        type="button"
+                        onClick={() => openComplaintActions(entry)}
+                        style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 8, minHeight: 30, padding: '0 9px', cursor: 'pointer' }}
+                        aria-label={`Open actions for complaint ${entry.ticketNumber || entry._id || ''}`}
+                        title="Complaint actions"
+                      >
+                        <List size={14} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {filteredComplaints.length === 0 ? (
@@ -296,7 +350,7 @@ export default function ComplaintsDashboard() {
               <p style={{ margin: 0, color: '#64748b', fontWeight: 600, fontSize: 15 }}>Register a new customer complaint and assign technicians</p>
             </div>
             <div style={{ display: 'inline-flex', gap: 10, width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => setShowNew(false)} style={{ border: '1px solid var(--color-primary-soft)', background: '#fff', color: 'var(--color-primary)', borderRadius: 8, minHeight: 44, padding: '0 14px', fontWeight: 800, fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}><List size={15} /> View All Complaints</button>
+              <button type="button" onClick={cancelComplaintEditor} style={{ border: '1px solid var(--color-primary-soft)', background: '#fff', color: 'var(--color-primary)', borderRadius: 8, minHeight: 44, padding: '0 14px', fontWeight: 800, fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}><List size={15} /> View All Complaints</button>
               <button type="button" onClick={() => createComplaint(false)} style={{ border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#fff', borderRadius: 8, minHeight: 44, padding: '0 14px', fontWeight: 800, fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}><Save size={15} /> Save Complaint</button>
             </div>
           </div>
@@ -431,6 +485,52 @@ export default function ComplaintsDashboard() {
           </div>
         </>
       )}
+
+      {selectedComplaint ? (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 50 }}>
+          <div style={{ width: 'min(720px, 100%)', background: '#fff', borderRadius: 16, border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 24px 80px rgba(15,23,42,0.22)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '16px 18px', borderBottom: '1px solid #e5e7eb' }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Complaint Actions</p>
+                <h3 style={{ margin: '4px 0 0', fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{selectedComplaint.ticketNumber || 'Complaint'}</h3>
+              </div>
+              <button type="button" onClick={closeComplaintActions} style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 10, minHeight: 36, padding: '0 12px', fontWeight: 800, cursor: 'pointer' }}>Close</button>
+            </div>
+            <div style={{ padding: 18, display: 'grid', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                <div style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 12, background: '#f8fafc' }}>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Customer</p>
+                  <p style={{ margin: '6px 0 0', fontSize: 15, fontWeight: 800, color: '#0f172a' }}>{selectedComplaint.customerName || '-'}</p>
+                </div>
+                <div style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 12, background: '#f8fafc' }}>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Mobile</p>
+                  <p style={{ margin: '6px 0 0', fontSize: 15, fontWeight: 800, color: '#0f172a' }}>{selectedComplaint.mobileNumber || '-'}</p>
+                </div>
+                <div style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 12, background: '#f8fafc' }}>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Status</p>
+                  <p style={{ margin: '6px 0 0', fontSize: 15, fontWeight: 800, color: '#0f172a' }}>{selectedComplaint.status || '-'}</p>
+                </div>
+                <div style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 12, background: '#f8fafc' }}>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Priority</p>
+                  <p style={{ margin: '6px 0 0', fontSize: 15, fontWeight: 800, color: '#0f172a' }}>{selectedComplaint.priority || '-'}</p>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Subject</p>
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, color: '#0f172a', fontWeight: 600 }}>{selectedComplaint.subject || '-'}</div>
+              </div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Description</p>
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, color: '#0f172a', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{selectedComplaint.description || '-'}</div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => startEditingComplaint(selectedComplaint)} style={{ minHeight: 40, borderRadius: 10, border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 800, cursor: 'pointer' }}>Edit Complaint</button>
+                <button type="button" onClick={closeComplaintActions} style={{ minHeight: 40, borderRadius: 10, border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 14px', fontWeight: 800, cursor: 'pointer' }}>Done</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

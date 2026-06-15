@@ -7138,6 +7138,42 @@ app.post('/api/complaints', (req, res) => {
   res.status(201).json(next);
 });
 
+app.put('/api/complaints/:id', (req, res) => {
+  const records = readJsonFile(complaintsFile, []);
+  const complaintId = String(req.params.id || '').trim();
+  const index = records.findIndex((entry) => String(entry?._id || '') === complaintId);
+  if (index < 0) {
+    return res.status(404).json({ error: 'Complaint not found' });
+  }
+
+  const existing = records[index] || {};
+  const updated = {
+    ...existing,
+    customerId: String(req.body.customerId || existing.customerId || ''),
+    customerName: String(req.body.customerName || existing.customerName || ''),
+    mobileNumber: normalizeOptionalIndianMobileNumber(req.body.mobileNumber || req.body.phone || existing.mobileNumber || ''),
+    property: String(req.body.property || existing.property || ''),
+    contractId: String(req.body.contractId || existing.contractId || ''),
+    contractNumber: String(req.body.contractNumber || existing.contractNumber || ''),
+    type: String(req.body.type || existing.type || 'Service Issue'),
+    priority: String(req.body.priority || existing.priority || 'Normal'),
+    status: String(req.body.status || existing.status || 'Open'),
+    subject: String(req.body.subject || existing.subject || ''),
+    description: String(req.body.description || existing.description || ''),
+    reportedBy: String(req.body.reportedBy || existing.reportedBy || ''),
+    reportedVia: String(req.body.reportedVia || existing.reportedVia || ''),
+    dueDate: String(req.body.dueDate || existing.dueDate || ''),
+    technicians: Array.isArray(req.body.technicians) ? req.body.technicians.map((entry) => String(entry || '')).filter(Boolean) : (Array.isArray(existing.technicians) ? existing.technicians : []),
+    technicianNames: Array.isArray(req.body.technicianNames) ? req.body.technicianNames.map((entry) => String(entry || '')).filter(Boolean) : (Array.isArray(existing.technicianNames) ? existing.technicianNames : []),
+    createdAt: existing.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  records[index] = updated;
+  fs.writeFileSync(complaintsFile, JSON.stringify(records, null, 2));
+  res.json(updated);
+});
+
 const parseMysqlJsonPayload = (rawPayload) => {
   if (!rawPayload) return null;
   if (typeof rawPayload === 'string') {
