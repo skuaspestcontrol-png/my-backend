@@ -159,7 +159,7 @@ const shell = {
   table: { width: '100%', borderCollapse: 'collapse', minWidth: 900 },
   th: {
     textAlign: 'left',
-    padding: '10px 12px',
+    padding: '13px 12px',
     fontSize: 11,
     fontWeight: 800,
     color: 'var(--color-muted)',
@@ -169,9 +169,9 @@ const shell = {
     whiteSpace: 'normal',
     overflow: 'visible',
     textOverflow: 'clip',
-    minHeight: '42px',
+    minHeight: '39px',
     height: 'auto',
-    lineHeight: 1.25
+    lineHeight: 1.2
   },
   td: {
     padding: '11px 12px',

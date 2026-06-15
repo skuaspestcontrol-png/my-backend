@@ -369,7 +369,7 @@ const s = {
     lineHeight: 1.1
   },
   sortIcon: { flexShrink: 0 },
-  headActionCell: { background: 'var(--color-primary-light)' },
+  headActionCell: { background: 'var(--color-primary-light)', fontWeight: 800, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.03em' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 6px', fontSize: '10px', fontWeight: 400, color: '#334155', verticalAlign: 'middle', lineHeight: 1.15 },
   actionCell: { background: '#ffffff' },

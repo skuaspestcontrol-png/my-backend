@@ -1257,7 +1257,7 @@ export default function ContractDashboard() {
         </colgroup>
         <thead>
           <tr>
-            {renderResizableHeader('rowNumber', '#')}
+            {renderResizableHeader('rowNumber', 'Sr No')}
             {visibleColumns.contractNo ? (
               renderResizableHeader('contractNo', (
                 <button
@@ -1279,7 +1279,7 @@ export default function ContractDashboard() {
                   aria-label={`Sort Contract ${contractSortDirection === 'asc' ? 'descending' : 'ascending'}`}
                   title={`Sort Contract ${contractSortDirection === 'asc' ? 'descending' : 'ascending'}`}
                   >
-                  <span>Contract</span>
+                  <span style={{ textTransform: 'uppercase' }}>Contract</span>
                   <SortChevronIcon size={13} color="#111827" />
                 </button>
               ))
