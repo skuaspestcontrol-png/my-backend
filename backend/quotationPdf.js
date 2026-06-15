@@ -527,10 +527,11 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   doc.moveDown(sectionSpacing.beforeHeading);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('About Pest', left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(sectionSpacing.afterHeading);
-  const aboutPest = items
-    .map((item) => clean(item.about_pest))
-    .filter(Boolean)
-    .join('\n\n');
+  const aboutPest = Array.from(new Set(
+    items
+      .map((item) => clean(item.about_pest))
+      .filter(Boolean)
+  )).join('\n\n');
   drawParagraphBlock(doc, aboutPest || '-', left, doc.y, right - left, { align: 'justify', lineGap: 1.2 });
   doc.moveDown(sectionSpacing.afterContent);
 
