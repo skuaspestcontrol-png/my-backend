@@ -68,11 +68,10 @@ const shell = {
   tableTitle: { padding: '12px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '15px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' },
   tableWrap: { overflowX: 'auto' },
   table: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
-  th: { background: 'var(--color-primary-light)', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 800, textAlign: 'left', padding: '11px 14px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', position: 'relative', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  th: { background: 'var(--color-primary-light)', color: 'var(--color-muted)', fontSize: '11px', fontWeight: 800, textAlign: 'left', padding: '11px 14px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', position: 'relative', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   leadTh: { paddingLeft: '8px', paddingRight: '8px' },
   sortBtn: { width: '100%', minWidth: 0, border: 'none', background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', font: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit', cursor: 'pointer' },
-  sortLabel: { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  sortIconWrap: { width: '26px', height: '26px', border: '1px solid rgba(107,114,128,0.30)', borderRadius: '8px', background: '#fff', color: '#111827', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  sortLabel: { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '11px' },
   sortIcon: { flexShrink: 0, opacity: 0.72 },
   td: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '13px', fontWeight: 650 },
   leadTd: { paddingLeft: '8px', paddingRight: '8px' },
@@ -342,19 +341,24 @@ export default function LeadFollowups() {
   };
   const renderSortIcon = (columnKey) => {
     return (
-      <span style={{ ...shell.sortIconWrap, opacity: sortConfig.key === columnKey ? 1 : 0.84 }}>
-        <SortChevronIcon size={13} color="#111827" style={shell.sortIcon} />
-      </span>
+      <SortChevronIcon size={13} color="#111827" style={{ ...shell.sortIcon, opacity: sortConfig.key === columnKey ? 1 : 0.84 }} />
     );
   };
   const renderResizableHeader = (column) => {
     const isSorted = sortConfig.key === column.key;
     const sortDirectionLabel = sortConfig.direction === 'asc' ? 'ascending' : 'descending';
+    const isActionColumn = column.key === 'actions';
     return (
       <th key={column.key} style={{ ...shell.th, ...(column.key === 'lead' ? shell.leadTh : {}), width: `${getColumnWidth(column.key)}px`, minWidth: `${getColumnWidth(column.key)}px` }} aria-sort={isSorted ? sortDirectionLabel : 'none'}>
-        <button type="button" style={shell.sortBtn} onClick={() => updateSort(column.key)} title={`Sort by ${column.label}`}>
+        <button
+          type="button"
+          style={shell.sortBtn}
+          onClick={isActionColumn ? undefined : () => updateSort(column.key)}
+          title={isActionColumn ? column.label : `Sort by ${column.label}`}
+          aria-label={isActionColumn ? column.label : `Sort by ${column.label}`}
+        >
           <span style={shell.sortLabel}>{column.label}</span>
-          {renderSortIcon(column.key)}
+          {isActionColumn ? null : renderSortIcon(column.key)}
         </button>
       </th>
     );
