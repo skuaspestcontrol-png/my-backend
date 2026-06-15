@@ -777,11 +777,7 @@ export default function ExportDataDashboard() {
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#b91c1c', lineHeight: 1.5 }}>
                   {state.error}
                 </div>
-              ) : (
-                <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.6, fontWeight: 600 }}>
-                  Files are CSV formatted so they open cleanly in Excel, Google Sheets, and similar spreadsheet tools.
-                </div>
-              )}
+              ) : null}
             </AppCard>
           );
         })}
