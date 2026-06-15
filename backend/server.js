@@ -5251,8 +5251,11 @@ const saveWebsiteLead = async (body = {}) => {
 app.post('/api/website-leads', async (req, res) => {
   try {
     console.log('[Website Leads API] received');
+    console.log('[Website Leads API] env key exists:', !!process.env.WEBSITE_LEAD_API_KEY);
+    console.log('[Website Leads API] env key length:', (process.env.WEBSITE_LEAD_API_KEY || '').length);
     const expectedKey = String(process.env.WEBSITE_LEAD_API_KEY || '').trim();
-    const suppliedKey = String(req.headers?.['x-api-key'] || '').trim();
+    const suppliedKey = String(req.get('X-API-Key') || '').trim();
+    console.log('[Website Leads API] incoming key length:', suppliedKey.length);
     if (!expectedKey || suppliedKey !== expectedKey) {
       console.error('[Website Leads API] invalid api key');
       return res.status(401).json({ success: false, error: 'Unauthorized' });
