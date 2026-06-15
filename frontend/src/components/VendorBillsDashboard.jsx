@@ -84,7 +84,7 @@ const shell = {
   summaryValue: { color: '#111827', fontSize: '30px', fontWeight: 800 },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', borderTop: '1px solid #eef2f7', borderRadius: '14px', border: '1px solid var(--color-border)' },
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', minWidth: '900px' },
-  th: { textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase' },
+  th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
   td: { padding: '12px 10px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1180px)', borderRadius: '24px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', height: '92vh', display: 'flex', flexDirection: 'column' },

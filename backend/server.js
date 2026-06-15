@@ -1898,7 +1898,7 @@ const createNextJobNumber = (jobs, settings) => {
     return Math.max(acc, seq);
   }, 0);
   const next = Math.max(configuredNext, max + 1);
-  return `${prefix}${String(next).padStart(padding, '0')}`;
+  return `${prefix}${next}`;
 };
 
 const extractJobCardSequence = (jobCardNumber, year) => {
@@ -8612,7 +8612,7 @@ const getInvoiceNumberConfig = (settings = {}, invoiceType = 'GST') => {
 };
 
 const createNextInvoiceNumber = (invoices, settings, invoiceType = 'GST') => {
-  const { prefix, nextNumber, padding, invoiceType: normalizedType } = getInvoiceNumberConfig(settings, invoiceType);
+  const { prefix, nextNumber, invoiceType: normalizedType } = getInvoiceNumberConfig(settings, invoiceType);
   const configuredNext = nextNumber;
   const max = invoices.reduce((acc, invoice) => {
     const itemType = String(invoice?.invoiceType || (toNumber(invoice?.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
@@ -8622,7 +8622,7 @@ const createNextInvoiceNumber = (invoices, settings, invoiceType = 'GST') => {
     return Math.max(acc, seq);
   }, 0);
   const next = Math.max(configuredNext, max + 1);
-  return `${prefix}${String(next).padStart(padding, '0')}`;
+  return `${prefix}${next}`;
 };
 
 const loadCurrentSettingsForNumbering = async () => {

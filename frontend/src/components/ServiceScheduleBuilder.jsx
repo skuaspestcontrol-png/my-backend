@@ -51,12 +51,19 @@ const styles = {
     borderRight: '1px solid #d9e1ea',
     background: '#f8fafc',
     color: '#55657a',
-    fontSize: '8px',
+    fontSize: '11px',
     fontWeight: 800,
     textTransform: 'uppercase',
-    letterSpacing: '0.02em',
-    padding: '3px 8px',
-    textAlign: 'left'
+    letterSpacing: '0.03em',
+    padding: '6px 8px',
+    textAlign: 'left',
+    whiteSpace: 'normal',
+    overflow: 'visible',
+    textOverflow: 'clip',
+    lineHeight: 1.2,
+    minHeight: '42px',
+    height: 'auto',
+    verticalAlign: 'middle'
   },
   td: {
     borderBottom: '1px solid #d9e1ea',

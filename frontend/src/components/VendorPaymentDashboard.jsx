@@ -53,7 +53,13 @@ const shell = {
     color: 'var(--color-primary-dark)',
     fontSize: '11px',
     textTransform: 'uppercase',
-    letterSpacing: '0.06em'
+    letterSpacing: '0.03em',
+    whiteSpace: 'normal',
+    overflow: 'visible',
+    textOverflow: 'clip',
+    lineHeight: 1.25,
+    minHeight: '42px',
+    height: 'auto'
   },
   td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#334155', fontSize: '13px', verticalAlign: 'top' },
   actionButton: {

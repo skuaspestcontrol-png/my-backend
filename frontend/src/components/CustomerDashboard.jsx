@@ -380,10 +380,10 @@ const shell = {
   duplicateFilterButton: { display: 'inline-flex', alignItems: 'center', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '999px', padding: '4px 8px', minHeight: '24px', fontSize: '11px', lineHeight: 1.2, fontWeight: 800, cursor: 'pointer' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', maxWidth: '100%', backgroundClip: 'padding-box' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  headCell: { textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#6b7280', padding: '3px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', lineHeight: 1.05 },
+  headCell: { textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#6b7280', padding: '6px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', lineHeight: 1.2, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', minHeight: '42px', height: 'auto', verticalAlign: 'middle' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
-  headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  headSortButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', background: 'transparent', padding: 0, color: '#6b7280', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer' },
+  headLabelWrap: { display: 'inline-flex', alignItems: 'center', gap: '6px', minWidth: 0, maxWidth: '100%', overflow: 'visible', textOverflow: 'clip', whiteSpace: 'normal', flexWrap: 'wrap', lineHeight: 1.15 },
+  headSortButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', background: 'transparent', padding: 0, color: '#6b7280', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', maxWidth: '100%' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 500, color: '#334155', verticalAlign: 'middle', lineHeight: 1.25 },
   cellClamp: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
@@ -493,7 +493,7 @@ const shell = {
   historyBreakdownValue: { margin: '4px 0 0', fontSize: '15px', color: '#0f172a', fontWeight: 800 },
   historySectionTitleSmall: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' },
   historyTableCompact: { width: '100%', minWidth: '880px', borderCollapse: 'separate', borderSpacing: 0 },
-  historyHeadCellCompact: { textAlign: 'left', fontSize: '10px', fontWeight: 800, color: '#6b7280', padding: '9px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', background: '#f8fafc' },
+  historyHeadCellCompact: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#6b7280', padding: '9px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', background: '#f8fafc', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.2, minHeight: '42px', height: 'auto' },
   historyCellCompact: { padding: '9px 10px', fontSize: '12px', color: '#111827', verticalAlign: 'top', borderBottom: '1px solid #eef2f7', background: '#fff' },
   historyProfitNote: { margin: 0, padding: '10px 12px', borderRadius: '12px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', border: '1px solid rgba(148,163,184,0.18)', fontSize: '12px', color: '#475569', fontWeight: 600, lineHeight: 1.5 },
   historyGrid: { display: 'grid', gridTemplateColumns: '1fr', gap: '12px' },
@@ -2901,7 +2901,7 @@ export default function CustomerDashboard() {
                 <th key={column.key} style={{ ...shell.headCell, ...shell.headCellResizable, ...getColumnStyle(column.key) }}>
                   {column.key === 'name' ? (
                     <button type="button" className="crm-readable-header-button" style={{ ...shell.headSortButton, ...shell.headLabelWrap }} onClick={toggleNameSort} title="Sort by customer name">
-                      <span>{column.label}</span>
+                      <span style={{ display: 'block', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{column.label}</span>
                       <SortChevronIcon size={12} color="#111827" />
                     </button>
                   ) : (

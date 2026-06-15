@@ -186,7 +186,7 @@ const shell = {
     overflowX: 'auto'
   },
   table: { width: '100%', minWidth: '1200px', borderCollapse: 'collapse', tableLayout: 'auto' },
-  th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', lineHeight: 1.3 },
+  th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'normal', lineHeight: 1.3, minHeight: '42px', height: 'auto', overflow: 'visible', textOverflow: 'clip' },
   td: { padding: '10px', borderBottom: '1px solid #eef2f7', fontSize: '13px', color: '#0f172a', verticalAlign: 'middle', wordBreak: 'break-word' },
   nameCell: { display: 'grid', gap: '2px' },
   empName: { fontWeight: 700, color: '#0f172a' },

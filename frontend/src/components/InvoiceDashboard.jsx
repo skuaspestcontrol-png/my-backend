@@ -374,7 +374,7 @@ const shell = {
   summaryAccent: { color: '#d97706' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', backgroundClip: 'padding-box' },
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  headCell: { textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#6b7280', padding: '10px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  headCell: { textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#6b7280', padding: '10px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
   row: { borderBottom: '1px solid #eef2f7' },
   cell: { padding: '10px 10px', fontSize: '8px', fontWeight: 400, color: '#111827', verticalAlign: 'top', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   invoiceCell: { color: 'var(--color-primary)', fontWeight: 400, textDecoration: 'underline dotted rgba(159,23,77,0.4)' },
@@ -487,7 +487,7 @@ const shell = {
   serviceScheduleTimeControl: { display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155', fontWeight: 700 },
   serviceScheduleTableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '8px', background: '#fff', overflow: 'auto' },
   serviceScheduleTable: { width: '100%', minWidth: '640px', borderCollapse: 'collapse' },
-  serviceScheduleTh: { padding: '8px 10px', fontSize: '11px', color: '#64748b', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', textAlign: 'left' },
+  serviceScheduleTh: { padding: '8px 10px', fontSize: '11px', color: '#64748b', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.2, minHeight: '42px', height: 'auto' },
   serviceScheduleTd: { padding: '8px 10px', fontSize: '12px', color: '#0f172a', borderBottom: '1px solid #eef2f7', verticalAlign: 'top' },
   serviceScheduleEmpty: { fontSize: '12px', color: '#64748b' },
   paymentBlock: { borderTop: '1px solid var(--color-border)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' },
@@ -1465,7 +1465,7 @@ export default function InvoiceDashboard() {
       return Math.max(acc, seq);
     }, 0);
     const next = Math.max(nextNumber, max + 1);
-    return `${prefix}${String(next).padStart(safePrefs.padding, '0')}`;
+    return `${prefix}${next}`;
   };
 
   const addPdfCacheBust = (url, stamp = Date.now()) => {
@@ -3133,7 +3133,7 @@ export default function InvoiceDashboard() {
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' } : { ...shell.itemTable, minWidth: '0', width: '100%', tableLayout: 'fixed' };
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
   const serviceScheduleTableStyle = isMobile ? { ...shell.serviceScheduleTable, minWidth: '100%', tableLayout: 'fixed' } : shell.serviceScheduleTable;
-  const serviceScheduleThStyle = isMobile ? { ...shell.serviceScheduleTh, fontSize: '10px', padding: '7px 6px' } : shell.serviceScheduleTh;
+  const serviceScheduleThStyle = isMobile ? { ...shell.serviceScheduleTh, fontSize: '11px', padding: '7px 6px' } : shell.serviceScheduleTh;
   const serviceScheduleTdStyle = isMobile ? { ...shell.serviceScheduleTd, fontSize: '11px', padding: '7px 6px', wordBreak: 'break-word' } : shell.serviceScheduleTd;
   const itemMetaDateInputStyle = {
     ...shell.itemMetaInput,

@@ -102,7 +102,7 @@ const shell = {
   activeTab: { background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderColor: 'var(--color-primary-soft)' },
   tableWrap: { width: '100%', overflowX: 'auto', overflowY: 'hidden' },
   table: { width: '100%', minWidth: 1080, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  th: { textAlign: 'left', padding: '8px 7px', fontSize: 10, color: '#64748b', fontWeight: 850, textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', background: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: 0 },
+  th: { textAlign: 'left', padding: '8px 7px', fontSize: 11, color: '#64748b', fontWeight: 850, textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', background: '#f8fafc', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', letterSpacing: '0.03em', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
   td: { padding: '7px', fontSize: 11.5, color: '#1f2937', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.25 },
   rowActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 5, flexWrap: 'nowrap' },
   iconBtn: { width: 30, height: 30, minWidth: 30, minHeight: 30, padding: 0, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },

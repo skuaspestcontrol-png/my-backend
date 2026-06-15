@@ -92,7 +92,7 @@ const shell = {
   cardTitle: { margin: 0, fontSize: '13px', color: '#0f172a', fontWeight: 800 },
   tableWrap: { borderRadius: '12px', border: '1px solid var(--color-primary-soft)', overflowX: 'auto', background: '#fff' },
   table: { width: '100%', minWidth: '760px', borderCollapse: 'collapse' },
-  th: { textAlign: 'left', padding: '8px 9px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
+  th: { textAlign: 'left', padding: '8px 9px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
   td: { padding: '8px 9px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 600, verticalAlign: 'top' },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.46)', display: 'grid', placeItems: 'center', zIndex: 99, padding: '14px' },
   modal: { width: 'min(860px, 100%)', maxHeight: '92vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.2)', background: '#fff', padding: '14px', display: 'grid', gap: '10px' },

@@ -210,7 +210,7 @@ export default function SalesPerformanceReports() {
     textOverflow: 'ellipsis'
   };
   const firstHeadCellStyle = viewportWidth <= 640
-    ? { ...headCellStyle, textAlign: 'left', whiteSpace: 'nowrap', fontSize: 11, padding: '9px 10px' }
+    ? { ...headCellStyle, textAlign: 'left', whiteSpace: 'normal', overflowWrap: 'anywhere', wordBreak: 'break-word', fontSize: 11, padding: '9px 10px' }
     : headCellStyle;
   const mobileHeaderLabelStyle = viewportWidth <= 640
     ? {
@@ -226,8 +226,10 @@ export default function SalesPerformanceReports() {
   const mobileFirstHeaderLabelStyle = viewportWidth <= 640
     ? {
         display: 'block',
-        whiteSpace: 'nowrap',
-        textAlign: 'left'
+        whiteSpace: 'normal',
+        textAlign: 'left',
+        overflowWrap: 'anywhere',
+        wordBreak: 'break-word'
       }
     : undefined;
 

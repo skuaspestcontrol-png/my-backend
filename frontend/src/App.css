@@ -353,6 +353,8 @@ table th {
   font-size: 11px !important;
   text-transform: uppercase !important;
   letter-spacing: 0.03em !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 table td {
@@ -361,7 +363,8 @@ table td {
 }
 
 thead th {
-  height: 42px;
+  height: auto;
+  min-height: 42px;
 }
 
 tbody td {

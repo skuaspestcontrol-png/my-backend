@@ -338,16 +338,17 @@ const s = {
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
   tableWrap: { overflowX: 'hidden', overflowY: 'hidden', background: '#fff', position: 'relative', borderTop: '1px solid var(--color-border)', backgroundClip: 'padding-box' },
   table: { width: '100%', minWidth: 0, borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left', tableLayout: 'fixed' },
-  headCell: { textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#6b7280', padding: '0 6px', height: '38px', minHeight: '38px', lineHeight: 1.1, borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'middle' },
+  headCell: { textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#6b7280', padding: '4px 6px', minHeight: '38px', height: 'auto', lineHeight: 1.25, borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', verticalAlign: 'middle' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: {
     flex: '1 1 auto',
     minWidth: 0,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    whiteSpace: 'normal',
     textAlign: 'left',
-    fontSize: '11px'
+    fontSize: '11px',
+    lineHeight: 1.2
   },
   headLabelWithSort: { display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, maxWidth: '100%', flex: '1 1 auto' },
   sortButton: {

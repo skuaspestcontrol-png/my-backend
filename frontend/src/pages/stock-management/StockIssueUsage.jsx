@@ -25,7 +25,7 @@ const tabStyle = (active) => ({
 
 const tableStyle = { width: '100%', borderCollapse: 'collapse' };
 const cellStyle = { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' };
-const headerCellStyle = { ...cellStyle, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280' };
+const headerCellStyle = { ...cellStyle, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6B7280', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.2, minHeight: '42px', height: 'auto' };
 
 const balanceColumns = [
   { key: 'technician', label: 'Technician' },

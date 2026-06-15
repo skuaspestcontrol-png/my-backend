@@ -105,7 +105,7 @@ const shell = {
   input: { width: '100%', minHeight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '5px 8px', fontSize: '12px', color: '#111827', background: '#fff' },
   tableWrap: { overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '880px' },
-  th: { textAlign: 'left', padding: '9px', fontSize: '10px', color: '#64748b', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase', fontWeight: 900 },
+  th: { textAlign: 'left', padding: '9px', fontSize: '11px', color: '#64748b', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase', fontWeight: 900, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.2, minHeight: '42px', height: 'auto' },
   td: { padding: '9px', fontSize: '12px', color: '#334155', borderBottom: '1px solid #eef2f7', verticalAlign: 'top', fontWeight: 650 },
   footer: { borderTop: '1px solid #e5e7eb', padding: '10px 12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' },
   actions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },

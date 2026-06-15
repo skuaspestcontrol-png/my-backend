@@ -87,16 +87,19 @@ const shell = {
   table: { width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' },
   th: {
     textAlign: 'left',
-    fontSize: '10px',
+    fontSize: '11px',
     fontWeight: 700,
     color: '#64748b',
     padding: '7px 5px',
     borderBottom: '1px solid var(--color-border)',
     textTransform: 'uppercase',
     letterSpacing: '0.03em',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis'
+    whiteSpace: 'normal',
+    overflow: 'visible',
+    textOverflow: 'clip',
+    lineHeight: 1.25,
+    minHeight: '42px',
+    height: 'auto'
   },
   td: {
     padding: '7px 5px',

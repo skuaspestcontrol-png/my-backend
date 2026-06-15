@@ -166,7 +166,12 @@ const shell = {
     borderBottom: '1px solid var(--color-border)',
     textTransform: 'uppercase',
     letterSpacing: '0.03em',
-    whiteSpace: 'nowrap'
+    whiteSpace: 'normal',
+    overflow: 'visible',
+    textOverflow: 'clip',
+    minHeight: '42px',
+    height: 'auto',
+    lineHeight: 1.25
   },
   td: {
     padding: '11px 12px',

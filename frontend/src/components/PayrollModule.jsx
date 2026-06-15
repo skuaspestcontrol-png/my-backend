@@ -223,7 +223,7 @@ const shell = {
   },
   tableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', overflowX: 'auto', background: '#fff' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '920px' },
-  th: { textAlign: 'left', padding: '6px 7px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.2 },
+  th: { textAlign: 'left', padding: '6px 7px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.25, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', minHeight: '38px', height: 'auto' },
   td: { padding: '6px 7px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#334155', fontWeight: 600, verticalAlign: 'top', lineHeight: 1.25 },
   badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '3px 7px', fontSize: '10px', fontWeight: 700 },
   footer: { margin: 0, fontSize: '12px', color: '#475569', fontWeight: 700 },

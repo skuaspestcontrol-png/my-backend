@@ -41,7 +41,13 @@ const headerCellStyle = {
   letterSpacing: '0.05em',
   color: theme.colors.muted,
   fontWeight: 800,
-  background: 'color-mix(in srgb, var(--color-surface-soft) 92%, var(--color-surface))'
+  background: 'color-mix(in srgb, var(--color-surface-soft) 92%, var(--color-surface))',
+  whiteSpace: 'normal',
+  overflow: 'visible',
+  textOverflow: 'clip',
+  lineHeight: 1.2,
+  minHeight: '42px',
+  height: 'auto'
 };
 const actionIconButtonStyle = {
   border: '1px solid #d1d5db',
