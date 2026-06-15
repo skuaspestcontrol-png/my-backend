@@ -343,11 +343,8 @@ const s = {
   headLabelWrap: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   headLabelWithSort: { display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, maxWidth: '100%' },
   dateSortButton: {
-    width: '30px',
-    height: '30px',
-    border: '1px solid rgba(107,114,128,0.34)',
-    borderRadius: '10px',
-    background: '#fff',
+    border: 'none',
+    background: 'transparent',
     color: '#111827',
     display: 'inline-flex',
     alignItems: 'center',
@@ -355,7 +352,7 @@ const s = {
     padding: 0,
     cursor: 'pointer',
     flexShrink: 0,
-    boxShadow: '0 1px 2px rgba(15,23,42,0.04)'
+    lineHeight: 0
   },
   headActionCell: { background: 'var(--color-primary-light)' },
   row: { borderBottom: '1px solid #eef2f7' },
@@ -2546,7 +2543,7 @@ export default function LeadCapture() {
                           title={leadSortDirection === 'desc' ? 'Newest leads first' : 'Oldest leads first'}
                           aria-label={leadSortDirection === 'desc' ? 'Sort lead date oldest first' : 'Sort lead date newest first'}
                         >
-                          <SortChevronIcon size={14} color="#111827" />
+                          <SortChevronIcon size={13} color="#111827" />
                         </button>
                       </span>
                     ) : (
