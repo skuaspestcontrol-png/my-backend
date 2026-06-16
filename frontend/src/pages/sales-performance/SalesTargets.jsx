@@ -73,28 +73,22 @@ const neutralTextColor = '#111827';
 const yearlyColumns = [
   { key: 'salesPerson', label: 'Sales Person' },
   { key: 'year', label: 'Year' },
-  { key: 'monthlyRevenue', label: 'Monthly Revenue' },
-  { key: 'monthlyCollection', label: 'Monthly Collection' },
-  { key: 'yearlyRevenue', label: 'Yearly Revenue' },
-  { key: 'yearlyCollection', label: 'Yearly Collection' },
-  { key: 'monthlyRows', label: 'Monthly Rows' },
-  { key: 'yearlyRows', label: 'Yearly Rows' }
+  { key: 'yearlyRevenue', label: 'Yearly Revenue Target' },
+  { key: 'yearlyCollection', label: 'Yearly Collection Target' },
+  { key: 'monthlyRows', label: 'Monthly Target Rows' },
+  { key: 'yearlyRows', label: 'Yearly Target Rows' }
 ];
 const yearlyWidths = {
   salesPerson: 220,
   year: 90,
-  monthlyRevenue: 160,
-  monthlyCollection: 170,
-  yearlyRevenue: 160,
-  yearlyCollection: 170,
+  yearlyRevenue: 170,
+  yearlyCollection: 180,
   monthlyRows: 110,
   yearlyRows: 110
 };
 const yearlyBounds = {
   salesPerson: { min: 180, max: 280 },
   year: { min: 80, max: 120 },
-  monthlyRevenue: { min: 140, max: 220 },
-  monthlyCollection: { min: 150, max: 230 },
   yearlyRevenue: { min: 140, max: 220 },
   yearlyCollection: { min: 150, max: 230 },
   monthlyRows: { min: 90, max: 140 },
@@ -183,8 +177,6 @@ export default function SalesTargets() {
   const yearlyCellWidths = {
     salesPerson: viewportWidth <= 768 ? 132 : getYearlyWidth('salesPerson'),
     year: viewportWidth <= 768 ? 72 : getYearlyWidth('year'),
-    monthlyRevenue: viewportWidth <= 768 ? 102 : getYearlyWidth('monthlyRevenue'),
-    monthlyCollection: viewportWidth <= 768 ? 102 : getYearlyWidth('monthlyCollection'),
     yearlyRevenue: viewportWidth <= 768 ? 102 : getYearlyWidth('yearlyRevenue'),
     yearlyCollection: viewportWidth <= 768 ? 102 : getYearlyWidth('yearlyCollection'),
     monthlyRows: viewportWidth <= 768 ? 72 : getYearlyWidth('monthlyRows'),
@@ -298,8 +290,6 @@ export default function SalesTargets() {
         map.set(key, {
           salesPersonName: displaySalesPersonName(row),
           year,
-          monthlyRevenueTarget: 0,
-          monthlyCollectionTarget: 0,
           yearlyRevenueTarget: 0,
           yearlyCollectionTarget: 0,
           monthlyCount: 0,
@@ -315,8 +305,8 @@ export default function SalesTargets() {
         entry.yearlyCollectionTarget += collectionTarget;
         entry.yearlyCount += 1;
       } else {
-        entry.monthlyRevenueTarget += revenueTarget;
-        entry.monthlyCollectionTarget += collectionTarget;
+        entry.yearlyRevenueTarget += revenueTarget;
+        entry.yearlyCollectionTarget += collectionTarget;
         entry.monthlyCount += 1;
       }
     });
@@ -480,8 +470,6 @@ export default function SalesTargets() {
                   <tr key={`${row.salesPersonName}-${row.year}`} style={{ height: 48 }}>
                     <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...yearlyBody('salesPerson'), background: '#fff' }}>{row.salesPersonName}</td>
                     <td className="table-number-cell" style={yearlyBody('year', 'center')}>{row.year}</td>
-                    <td className="table-number-cell" style={yearlyBody('monthlyRevenue', 'center')}>{money(row.monthlyRevenueTarget)}</td>
-                    <td className="table-number-cell" style={yearlyBody('monthlyCollection', 'center')}>{money(row.monthlyCollectionTarget)}</td>
                     <td className="table-number-cell" style={yearlyBody('yearlyRevenue', 'center')}>{money(row.yearlyRevenueTarget)}</td>
                     <td className="table-number-cell" style={yearlyBody('yearlyCollection', 'center')}>{money(row.yearlyCollectionTarget)}</td>
                     <td className="table-number-cell" style={yearlyBody('monthlyRows', 'center')}>{row.monthlyCount}</td>

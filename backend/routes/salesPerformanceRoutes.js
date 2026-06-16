@@ -43,6 +43,7 @@ const currentMonth = new Date().getMonth() + 1;
 const defaultYears = [currentYear - 1, currentYear, currentYear + 1];
 const monthList = Array.from({ length: 12 }, (_, index) => index + 1);
 const monthKey = (year, month) => `${Number(year)}-${String(Number(month)).padStart(2, '0')}`;
+const isValidSalesYear = (year) => Number.isInteger(year) && year >= 2000 && year <= currentYear + 1;
 const getSafeTargetMonth = (value) => {
   const month = Number(value);
   return Number.isFinite(month) && month > 0 ? month : null;
@@ -559,11 +560,15 @@ const normalizeSource = (kind, row = {}, lookup = null, relatedLookup = null) =>
           : ['quotation_value', 'value', 'amount', 'estimated_value']);
   const status = text(source.lead_status || source.status || source.leadStatus || '');
   const converted = /converted|booked|won|closed/i.test(status);
+  const resolvedDate = dateValue ? new Date(dateValue) : null;
+  const safeDate = resolvedDate && !Number.isNaN(resolvedDate.getTime()) && isValidSalesYear(resolvedDate.getFullYear())
+    ? resolvedDate
+    : null;
   return {
     kind,
     employeeId: employee?.id || text(employeeRaw || employeeNameRaw || ''),
     employeeName: employee?.name || text(employeeNameRaw || ''),
-    date: dateValue ? new Date(dateValue) : null,
+    date: safeDate,
     amount: num(amountValue, 0),
     converted,
     status,
@@ -784,10 +789,11 @@ const buildYearMatrix = (context, years = []) => years.map((year) => ({
 const parseYearList = async (context) => {
   const years = new Set(defaultYears);
   context.targets.forEach((row) => {
-    if (row.targetYear) years.add(Number(row.targetYear));
+    const year = Number(row.targetYear);
+    if (isValidSalesYear(year)) years.add(year);
   });
   context.records.forEach((row) => {
-    if (row.date) years.add(row.date.getFullYear());
+    if (row.date && isValidSalesYear(row.date.getFullYear())) years.add(row.date.getFullYear());
   });
   return Array.from(years).filter(Boolean).sort((a, b) => a - b);
 };
@@ -1152,7 +1158,10 @@ router.get('/team-performance', async (req, res) => {
 router.get('/year-month-matrix', async (req, res) => {
   try {
     const context = await loadSalesContext();
-    const years = (req.query.years ? String(req.query.years).split(',').map((value) => Number(value.trim())).filter(Boolean) : await parseYearList(context)).slice(-4);
+    const years = (req.query.years
+      ? String(req.query.years).split(',').map((value) => Number(value.trim()))
+      : await parseYearList(context)
+    ).filter(isValidSalesYear).slice(-4);
     const matrix = buildYearMatrix(context, years);
     return res.json({ success: true, years, matrix, employees: context.employees, debug: getSalesPerformanceDebugInfo() });
   } catch (error) {
