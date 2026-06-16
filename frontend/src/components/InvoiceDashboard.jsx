@@ -234,6 +234,10 @@ const gstStateOptions = [
 ];
 const getGstStateLabel = (option) => `[${option.code}] - ${option.name}`;
 const gstStateLabels = gstStateOptions.map(getGstStateLabel);
+const gstStateOptionsWithDelhiFirst = [
+  ...gstStateOptions.filter((state) => state.name === 'Delhi'),
+  ...gstStateOptions.filter((state) => state.name !== 'Delhi')
+];
 const normalizeGstState = (value) => {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -813,10 +817,9 @@ const buildAddressText = (customer, source, fallbackText = '') => {
   const prefix = source === 'shipping' ? 'shipping' : 'billing';
   const displayName = customer.displayName || customer.name || '';
   const street1 = customer[`${prefix}Street1`] || customer[`${prefix}Address`] || '';
-  const street2 = customer[`${prefix}Street2`] || '';
   const area = customer[`${prefix}Area`] || '';
   const statePin = [customer[`${prefix}State`], customer[`${prefix}Pincode`]].filter(Boolean).join(' ');
-  const resolved = [displayName, street1, street2, area, statePin].filter(Boolean).join('\n');
+  const resolved = [displayName, street1, area, statePin].filter(Boolean).join('\n');
   return resolved || fallback || 'No address selected';
 };
 
@@ -832,7 +835,6 @@ const buildAddressOption = (id, label, customer, prefix) => {
       || customer?.[`${fallbackPrefix}Street1`]
       || customer?.[`${fallbackPrefix}Address`]
       || '',
-    street2: customer?.[`${prefix}Street2`] || customer?.[`${fallbackPrefix}Street2`] || '',
     line1:
       customer?.[`${prefix}Address`]
       || customer?.[`${prefix}Street1`]
@@ -858,7 +860,6 @@ const premiseToAddressOption = (premise = {}) => ({
   label: premise.premiseLabel || premise.premise_label || 'Premise',
   company: premise.contactPerson || '',
   street1: premise.address || '',
-  street2: '',
   line1: premise.address || '',
   area: premise.areaName || premise.area_name || '',
   city: premise.city || '',
@@ -877,10 +878,9 @@ const addressOptionText = (option) => {
   if (!option) return 'No address selected';
   const displayName = option.company || '';
   const street1 = option.street1 || option.line1 || '';
-  const street2 = option.street2 || '';
   const area = option.area || '';
   const statePin = [option.state, option.pincode].filter(Boolean).join(' ');
-  return [displayName, street1, street2, area, statePin].filter(Boolean).join('\n');
+  return [displayName, street1, area, statePin].filter(Boolean).join('\n');
 };
 
 const displayAddressLabel = (option) => {
@@ -982,12 +982,11 @@ const emptyAddressDraft = {
   label: 'Additional Address',
   company: '',
   line1: '',
-  line2: '',
+  city: '',
   area: '',
-  state: '',
+  state: 'Delhi',
   pincode: '',
   gstin: '',
-  placeOfSupply: ''
 };
 
 const normalizeRouteReference = (value) => String(value || '').trim().toLowerCase();
@@ -1312,8 +1311,7 @@ export default function InvoiceDashboard() {
     const custom = (form.customShippingAddresses || []).map((address, idx) => ({
       ...address,
       street1: address.street1 || address.line1 || '',
-      street2: address.street2 || address.line2 || '',
-      placeOfSupply: normalizeGstState(address.placeOfSupply || address.state || ''),
+      placeOfSupply: normalizeGstState(address.state || ''),
       id: `custom-${idx}`
     }));
     return dedupeAddressOptions([...base, ...shippingPremises, ...custom]);
@@ -2514,11 +2512,10 @@ export default function InvoiceDashboard() {
       label: address.label || 'Additional Address',
       company: address.company || '',
       line1: address.line1 || address.street1 || '',
-      line2: address.line2 || address.street2 || '',
+      city: address.city || '',
       area: address.area || '',
-      state: address.state || '',
+      state: address.state || 'Delhi',
       pincode: toSixDigitPincode(address.pincode || ''),
-      placeOfSupply: normalizeGstState(address.placeOfSupply || address.state || '')
     });
   };
 
@@ -2538,13 +2535,12 @@ export default function InvoiceDashboard() {
         premiseLabel: shippingAddressDraft.label || (addressDraftTarget === 'billing' ? 'Additional Billing Address' : 'Additional Shipping Address'),
         premiseType: addressDraftTarget === 'billing' ? 'Billing' : 'Shipping',
         contactPerson: shippingAddressDraft.company || selectedCustomer.displayName || selectedCustomer.name || '',
-        address: [shippingAddressDraft.line1, shippingAddressDraft.line2].filter(Boolean).join(', '),
+        address: shippingAddressDraft.line1,
         areaName: shippingAddressDraft.area || '',
-        city: '',
+        city: shippingAddressDraft.city || '',
         state: shippingAddressDraft.state || '',
         pincode,
         country: 'India',
-        placeOfSupply: normalizeGstState(shippingAddressDraft.placeOfSupply || shippingAddressDraft.state || ''),
         isBilling: addressDraftTarget === 'billing',
         isShipping: addressDraftTarget === 'shipping',
         isDefault: false
@@ -2562,7 +2558,7 @@ export default function InvoiceDashboard() {
               ...prev,
               ...(addressDraftTarget === 'billing' ? { billingAddressSource: source } : { shippingAddressSource: source }),
               placeOfSupply: addressDraftTarget === 'shipping'
-                ? normalizeGstState(payload.placeOfSupply || prev.placeOfSupply)
+                ? normalizeGstState(payload.state || prev.placeOfSupply)
                 : prev.placeOfSupply
             }));
           }
@@ -2584,8 +2580,7 @@ export default function InvoiceDashboard() {
         ...shippingAddressDraft,
         pincode,
         street1: shippingAddressDraft.line1 || '',
-        street2: shippingAddressDraft.line2 || '',
-        placeOfSupply: normalizeGstState(shippingAddressDraft.placeOfSupply || shippingAddressDraft.state || '')
+        placeOfSupply: normalizeGstState(shippingAddressDraft.state || '')
       };
       if (editingShippingAddressId.startsWith('custom-')) {
         const index = Number(editingShippingAddressId.split('-')[1] || 0);
@@ -2616,12 +2611,11 @@ export default function InvoiceDashboard() {
       ...prev,
       company: selectedCustomer.displayName || selectedCustomer.name || prev.company,
       line1: selectedCustomer.billingStreet1 || selectedCustomer.billingAddress || '',
-      line2: selectedCustomer.billingStreet2 || '',
+      city: selectedCustomer.billingCity || selectedCustomer.city || prev.city || '',
       area: selectedCustomer.billingArea || '',
-      state: selectedCustomer.billingState || selectedCustomer.state || '',
+      state: selectedCustomer.billingState || selectedCustomer.state || 'Delhi',
       pincode: selectedCustomer.billingPincode || '',
       gstin: selectedCustomer.gstNumber || '',
-      placeOfSupply: normalizeGstState(selectedCustomer.billingState || selectedCustomer.state || '')
     }));
   };
 
@@ -4354,38 +4348,31 @@ export default function InvoiceDashboard() {
                 value={shippingAddressDraft.company}
                 onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, company: event.target.value }))}
               />
-              <label style={shell.label}>Address Street 1</label>
+              <label style={shell.label}>Address</label>
               <input
                 style={shell.input}
                 value={shippingAddressDraft.line1}
                 onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, line1: event.target.value }))}
               />
-              <label style={shell.label}>Address Street 2</label>
-              <input
-                style={shell.input}
-                value={shippingAddressDraft.line2}
-                onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, line2: event.target.value }))}
-              />
-              <label style={shell.label}>Area</label>
+              <label style={shell.label}>Area Name</label>
               <input
                 style={shell.input}
                 value={shippingAddressDraft.area}
                 onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, area: event.target.value }))}
               />
+              <label style={shell.label}>City</label>
+              <input
+                style={shell.input}
+                value={shippingAddressDraft.city}
+                onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, city: event.target.value }))}
+              />
               <label style={shell.label}>State</label>
               <select
                 style={shell.input}
                 value={shippingAddressDraft.state}
-                onChange={(event) =>
-                  setShippingAddressDraft((prev) => ({
-                    ...prev,
-                    state: event.target.value,
-                    placeOfSupply: normalizeGstState(event.target.value)
-                  }))
-                }
+                onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, state: event.target.value }))}
               >
-                <option value="">Select GST state</option>
-                {gstStateOptions.map((state) => (
+                {gstStateOptionsWithDelhiFirst.map((state) => (
                   <option key={state.code} value={state.name}>{state.name}</option>
                 ))}
               </select>
@@ -4398,20 +4385,6 @@ export default function InvoiceDashboard() {
                 pattern="[0-9]{6}"
                 onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, pincode: toSixDigitPincode(event.target.value) }))}
               />
-              <label style={shell.label}>Place of Supply</label>
-              <select
-                style={shell.input}
-                value={shippingAddressDraft.placeOfSupply}
-                onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, placeOfSupply: event.target.value }))}
-              >
-                <option value="">Select GST state</option>
-                {gstStateOptions.map((state) => {
-                  const label = getGstStateLabel(state);
-                  return (
-                    <option key={state.code} value={label}>{label}</option>
-                  );
-                })}
-              </select>
             </div>
             <div style={shell.miniFooter}>
               <button type="button" style={shell.saveButton} onClick={saveShippingAddressDraft}>

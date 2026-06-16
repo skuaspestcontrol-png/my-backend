@@ -4603,7 +4603,6 @@ const customerPremiseModernColumns = [
   { name: 'alt_mobile', definition: 'VARCHAR(50) NULL' },
   { name: 'gst_number', definition: 'VARCHAR(50) NULL' },
   { name: 'address_line_1', definition: 'TEXT NULL' },
-  { name: 'address_line_2', definition: 'TEXT NULL' },
   { name: 'area', definition: 'VARCHAR(255) NULL' },
   { name: 'landmark', definition: 'VARCHAR(255) NULL' }
 ];
@@ -4639,7 +4638,6 @@ const normalizePremisePayload = (body = {}, customer = {}, fallbackId = '') => {
     email: String(body.email || customer.emailId || customer.email || '').trim(),
     address,
     addressLine1: String(body.addressLine1 || body.address_line_1 || body.address || body.premiseAddress || '').trim(),
-    addressLine2: String(body.addressLine2 || body.address_line_2 || '').trim(),
     areaName: String(body.areaName || body.area_name || '').trim(),
     area: String(body.area || body.areaName || body.area_name || '').trim(),
     city: String(body.city || '').trim(),
@@ -4676,7 +4674,6 @@ const mapPremiseRow = (row = {}) => ({
   email: row.email || '',
   address: row.address || '',
   addressLine1: row.address_line_1 || row.address || '',
-  addressLine2: row.address_line_2 || '',
   areaName: row.area_name || '',
   area_name: row.area_name || '',
   area: row.area || row.area_name || '',
@@ -4712,7 +4709,6 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
       email VARCHAR(255) NULL,
       gst_number VARCHAR(50) NULL,
       address_line_1 TEXT NULL,
-      address_line_2 TEXT NULL,
       address TEXT NULL,
       area VARCHAR(255) NULL,
       area_name VARCHAR(255) NULL,
@@ -4798,6 +4794,13 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
   } catch (error) {
     if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
       console.warn('[MySQL] customer_premises premise_name drop failed:', error.message);
+    }
+  }
+  try {
+    await conn.query('ALTER TABLE customer_premises DROP COLUMN address_line_2');
+  } catch (error) {
+    if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
+      console.warn('[MySQL] customer_premises address_line_2 drop failed:', error.message);
     }
   }
   await ensureColumnsIfMissing(conn, 'jobs', premiseSnapshotColumns);
@@ -4890,8 +4893,8 @@ const fetchCustomerRecordForPremise = async (conn, customerId) => {
 };
 
 const legacyCustomerToPremise = (customer = {}, rowId) => {
-  const billingAddress = String(customer.billingAddress || [customer.billingStreet1, customer.billingStreet2].filter(Boolean).join(', ')).trim();
-  const shippingAddress = String(customer.shippingAddress || [customer.shippingStreet1, customer.shippingStreet2].filter(Boolean).join(', ')).trim();
+  const billingAddress = String(customer.billingAddress || customer.billingStreet1 || '').trim();
+  const shippingAddress = String(customer.shippingAddress || customer.shippingStreet1 || '').trim();
   return normalizePremisePayload({
     premiseId: `PREM-${customer._id || rowId}-MAIN`,
     premiseLabel: 'Billing Address',
@@ -4925,16 +4928,16 @@ const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
     `INSERT INTO customer_premises (
       premise_id, customer_id, premise_code, premise_label, premise_type,
       attention_name, contact_person, mobile, alt_mobile, phone, email,
-      address_line_1, address_line_2, address, area, area_name, city, state, pincode, landmark,
+      address_line_1, address, area, area_name, city, state, pincode, landmark,
       google_place_id, google_place_name, google_map_url, gst_number, is_default, is_billing, is_shipping, is_active, payload
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       premise_code=VALUES(premise_code),
       premise_label=VALUES(premise_label), premise_type=VALUES(premise_type),
       attention_name=VALUES(attention_name), contact_person=VALUES(contact_person),
       mobile=VALUES(mobile), alt_mobile=VALUES(alt_mobile), phone=VALUES(phone),
       email=VALUES(email), gst_number=VALUES(gst_number),
-      address_line_1=VALUES(address_line_1), address_line_2=VALUES(address_line_2),
+      address_line_1=VALUES(address_line_1),
       address=VALUES(address), area=VALUES(area), area_name=VALUES(area_name),
       city=VALUES(city), state=VALUES(state), pincode=VALUES(pincode),
       landmark=VALUES(landmark),
@@ -4946,7 +4949,7 @@ const insertOrUpdatePremise = async (conn, customerRowId, premise) => {
       premise.premiseLabel, premise.premiseType,
       premise.attentionName || premise.contactPerson, premise.contactPerson,
       premise.mobile || premise.phone, premise.altMobile || '', premise.phone, premise.email,
-      premise.addressLine1 || premise.address, premise.addressLine2 || '', premise.address,
+      premise.addressLine1 || premise.address, premise.address,
       premise.area || premise.areaName, premise.areaName, premise.city, premise.state,
       premise.pincode, premise.landmark || '', premise.googlePlaceId, premise.googlePlaceName,
       premise.googleMapUrl, premise.gstNumber || '', premise.isDefault,
