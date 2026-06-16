@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS employees (
   portal_password VARCHAR(255) NULL,
   city VARCHAR(255) NULL,
   pincode VARCHAR(20) NULL,
+  app_access_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  web_portal_access_enabled TINYINT(1) NOT NULL DEFAULT 0,
   payload JSON NOT NULL,
   source_created_at DATETIME NULL,
   source_updated_at DATETIME NULL,

@@ -1098,6 +1098,7 @@ const parseMysqlEmployeeRow = (row = {}) => {
   if (typeof rawPayload === 'string') {
     try { payload = JSON.parse(rawPayload); } catch { payload = {}; }
   }
+  const toBooleanDbValue = (value) => ['1', 'true', 'yes', 'enabled', 'active', 'on'].includes(String(value ?? '').trim().toLowerCase());
   const firstName = String(payload.firstName ?? row?.first_name ?? '').trim();
   const lastName = String(payload.lastName ?? row?.last_name ?? '').trim();
   const rawStatus = row?.status ?? payload?.status ?? '';
@@ -1105,7 +1106,7 @@ const parseMysqlEmployeeRow = (row = {}) => {
     ? payload.portalAccess
     : (typeof payload?.webPortalAccessEnabled === 'boolean'
       ? payload.webPortalAccessEnabled
-      : ['1', 'true', 'yes', 'enabled', 'active', 'on'].includes(String(rawStatus).trim().toLowerCase()));
+      : toBooleanDbValue(rawStatus));
   const salary = Number(row?.salary ?? payload.salary ?? payload.salaryPerMonth ?? 0) || 0;
   const profilePhoto = String(row?.profile_photo ?? payload.profile_photo ?? payload.employeePhotoUrl ?? '').trim();
   return {
@@ -1129,10 +1130,14 @@ const parseMysqlEmployeeRow = (row = {}) => {
     employeePhotoUrl: profilePhoto,
     profile_photo: profilePhoto,
     present_address: String(row?.present_address ?? payload.present_address ?? '').trim(),
+    appAccessEnabled: Boolean(row?.app_access_enabled ?? payload.appAccessEnabled ?? false),
+    webPortalAccessEnabled: Boolean(row?.web_portal_access_enabled ?? payload.webPortalAccessEnabled ?? payload.portalAccess ?? false),
     portalAccess,
     portalPassword: String(row?.password ?? row?.portal_password ?? payload?.portalPassword ?? '').trim()
   };
 };
+
+const toBooleanFlag = (value) => ['1', 'true', 'yes', 'y', 'enabled', 'active', 'on'].includes(String(value ?? '').trim().toLowerCase());
 
 const writeJsonFile = (filePath, value) => {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
@@ -1162,7 +1167,7 @@ const syncEmployeesJsonFromMysql = async () => {
     const mysqlRows = await withMysqlConnection(async (conn) => {
       await ensureEmployeeAuthColumns(conn);
       const [rows] = await conn.query(
-        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, status, payload
+        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, status, app_access_enabled, web_portal_access_enabled, payload
          FROM employees
          ORDER BY id DESC`
       );
@@ -4983,7 +4988,9 @@ const ensureEmployeeAuthColumns = async (conn) => {
     { name: 'password', definition: 'VARCHAR(255) NULL' },
     { name: 'portal_password', definition: 'VARCHAR(255) NULL' },
     { name: 'employment_status', definition: 'VARCHAR(40) NULL' },
-    { name: 'resignation_date', definition: 'DATE NULL' }
+    { name: 'resignation_date', definition: 'DATE NULL' },
+    { name: 'app_access_enabled', definition: 'TINYINT(1) NOT NULL DEFAULT 0' },
+    { name: 'web_portal_access_enabled', definition: 'TINYINT(1) NOT NULL DEFAULT 0' }
   ]);
   employeeAuthColumnsEnsured = true;
 };
@@ -5836,8 +5843,10 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
           pincode,
           profile_photo,
           present_address,
+          app_access_enabled,
+          web_portal_access_enabled,
           payload
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           emp_code = VALUES(emp_code),
           first_name = VALUES(first_name),
@@ -5857,6 +5866,8 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
           pincode = VALUES(pincode),
           profile_photo = VALUES(profile_photo),
           present_address = VALUES(present_address),
+          app_access_enabled = VALUES(app_access_enabled),
+          web_portal_access_enabled = VALUES(web_portal_access_enabled),
           payload = VALUES(payload)
         `,
         [
@@ -5879,6 +5890,8 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
           emp.pincode || "",
           emp.profile_photo || "",
           emp.present_address || "",
+          toBooleanFlag(emp.appAccessEnabled || emp.app_access_enabled),
+          toBooleanFlag(emp.webPortalAccessEnabled || emp.web_portal_access_enabled || emp.portalAccess),
           JSON.stringify(emp),
         ]
       );
@@ -5912,10 +5925,10 @@ const fetchEmployeeByAnyId = async (employeeId) => {
       await ensureEmployeeAuthColumns(conn);
       const isNumeric = /^\d+$/.test(target);
       const query = isNumeric
-        ? `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, payload
+        ? `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, app_access_enabled, web_portal_access_enabled, payload
            FROM employees
            WHERE external_id = ? OR id = ? LIMIT 1`
-        : `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, payload
+        : `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, app_access_enabled, web_portal_access_enabled, payload
            FROM employees
            WHERE external_id = ? LIMIT 1`;
       const params = isNumeric ? [target, Number(target)] : [target];
@@ -6005,6 +6018,8 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
     pincode: String(incoming.pincode || '').trim(),
     employeePhotoUrl: normalizedProfilePhoto,
     profile_photo: normalizedProfilePhoto,
+    appAccessEnabled: toBooleanFlag(incoming.appAccessEnabled || incoming.app_access_enabled),
+    webPortalAccessEnabled: toBooleanFlag(incoming.webPortalAccessEnabled || incoming.web_portal_access_enabled || incoming.portalAccess),
     portalAccess: Boolean(portalEnabled)
   };
   const payloadToSave = {
@@ -6014,6 +6029,9 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
     resignationDate: updatedEmployee.resignationDate,
     employeePhotoUrl: normalizedProfilePhoto,
     profile_photo: normalizedProfilePhoto,
+    appAccessEnabled: updatedEmployee.appAccessEnabled,
+    webPortalAccessEnabled: updatedEmployee.webPortalAccessEnabled,
+    portalAccess: updatedEmployee.portalAccess,
     _id: updatedEmployee._id
   };
 
@@ -6039,7 +6057,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
       const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
       const [result] = await conn.query(
         `UPDATE employees
-         SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, password = ?, email = ?, portal_password = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, employment_status = ?, resignation_date = ?, city = ?, pincode = ?, profile_photo = ?, present_address = ?, status = ?, payload = ?
+         SET external_id = ?, emp_code = ?, first_name = ?, last_name = ?, full_name = ?, mobile = ?, password = ?, email = ?, portal_password = ?, role = ?, role_name = ?, salary = ?, joining_date = ?, employment_status = ?, resignation_date = ?, city = ?, pincode = ?, profile_photo = ?, present_address = ?, app_access_enabled = ?, web_portal_access_enabled = ?, status = ?, payload = ?
          WHERE external_id = ? OR id = ?`,
         [
           updatedEmployee._id,
@@ -6061,6 +6079,8 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
           updatedEmployee.pincode || '',
           normalizedProfilePhoto,
           String(incoming.present_address || '').trim(),
+          toBooleanFlag(incoming.appAccessEnabled || incoming.app_access_enabled),
+          toBooleanFlag(incoming.webPortalAccessEnabled || incoming.web_portal_access_enabled || incoming.portalAccess),
           normalizedStatus || null,
           JSON.stringify(payloadToSave),
           employeeId,

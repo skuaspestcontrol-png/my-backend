@@ -286,6 +286,8 @@ const tableDefinitions = [
       'pincode VARCHAR(30) NULL',
       'profile_photo TEXT NULL',
       'present_address TEXT NULL',
+      'app_access_enabled TINYINT(1) NOT NULL DEFAULT 0',
+      'web_portal_access_enabled TINYINT(1) NOT NULL DEFAULT 0',
       'status VARCHAR(80) NULL'
     ], [
       'KEY idx_employees_emp_code (emp_code)',
@@ -1036,7 +1038,9 @@ const collectColumns = () => {
     mobile: 'VARCHAR(30) NULL', password: 'VARCHAR(255) NULL', email: 'VARCHAR(255) NULL', portal_password: 'VARCHAR(255) NULL',
     role: 'VARCHAR(120) NULL', role_name: 'VARCHAR(255) NULL', salary: 'DECIMAL(18,2) NULL', joining_date: 'DATE NULL',
     employment_status: 'VARCHAR(40) NULL', resignation_date: 'DATE NULL',
-    city: 'VARCHAR(255) NULL', pincode: 'VARCHAR(30) NULL', profile_photo: 'TEXT NULL', present_address: 'TEXT NULL', status: 'VARCHAR(80) NULL'
+    city: 'VARCHAR(255) NULL', pincode: 'VARCHAR(30) NULL', profile_photo: 'TEXT NULL', present_address: 'TEXT NULL',
+    app_access_enabled: 'TINYINT(1) NOT NULL DEFAULT 0', web_portal_access_enabled: 'TINYINT(1) NOT NULL DEFAULT 0',
+    status: 'VARCHAR(80) NULL'
   });
   add('jobs', {
     customer_external_id: 'VARCHAR(120) NULL', customer_id: 'VARCHAR(120) NULL', invoice_external_id: 'VARCHAR(120) NULL', invoice_id: 'VARCHAR(120) NULL',

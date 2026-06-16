@@ -101,6 +101,7 @@ const stripDeletedItemFields = (item = {}) => {
 };
 
 const toJson = (v) => JSON.stringify(v || {});
+const asBool = (v) => ['1', 'true', 'yes', 'y', 'enabled', 'active', 'on'].includes(String(v ?? '').trim().toLowerCase()) ? 1 : 0;
 
 const upsertEmployees = async (conn) => {
   const rows = readJsonArray('employees.json');
@@ -108,8 +109,8 @@ const upsertEmployees = async (conn) => {
     await conn.query(
       `INSERT INTO employees (
         external_id, emp_code, first_name, last_name, role, role_name, mobile, email, city, pincode,
-        payload
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        app_access_enabled, web_portal_access_enabled, payload
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         emp_code=VALUES(emp_code),
         first_name=VALUES(first_name),
@@ -120,6 +121,8 @@ const upsertEmployees = async (conn) => {
         email=VALUES(email),
         city=VALUES(city),
         pincode=VALUES(pincode),
+        app_access_enabled=VALUES(app_access_enabled),
+        web_portal_access_enabled=VALUES(web_portal_access_enabled),
         payload=VALUES(payload)
       `,
       [
@@ -133,6 +136,8 @@ const upsertEmployees = async (conn) => {
         text(emp.email || emp.emailId),
         text(emp.city),
         text(emp.pincode),
+        asBool(emp.appAccessEnabled || emp.app_access_enabled),
+        asBool(emp.webPortalAccessEnabled || emp.web_portal_access_enabled || emp.portalAccess),
         toJson(emp)
       ]
     );
