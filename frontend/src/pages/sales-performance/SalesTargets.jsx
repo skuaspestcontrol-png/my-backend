@@ -79,20 +79,20 @@ const yearlyColumns = [
   { key: 'yearlyRows', label: 'Yearly Target Rows' }
 ];
 const yearlyWidths = {
-  salesPerson: 220,
-  year: 90,
-  yearlyRevenue: 170,
-  yearlyCollection: 180,
-  monthlyRows: 110,
-  yearlyRows: 110
+  salesPerson: 170,
+  year: 72,
+  yearlyRevenue: 130,
+  yearlyCollection: 130,
+  monthlyRows: 90,
+  yearlyRows: 90
 };
 const yearlyBounds = {
-  salesPerson: { min: 180, max: 280 },
-  year: { min: 80, max: 120 },
-  yearlyRevenue: { min: 140, max: 220 },
-  yearlyCollection: { min: 150, max: 230 },
-  monthlyRows: { min: 90, max: 140 },
-  yearlyRows: { min: 90, max: 140 }
+  salesPerson: { min: 120, max: 220 },
+  year: { min: 64, max: 96 },
+  yearlyRevenue: { min: 110, max: 170 },
+  yearlyCollection: { min: 110, max: 170 },
+  monthlyRows: { min: 72, max: 120 },
+  yearlyRows: { min: 72, max: 120 }
 };
 
 const targetColumns = [
@@ -175,10 +175,10 @@ export default function SalesTargets() {
     enabled: true
   });
   const yearlyCellWidths = {
-    salesPerson: viewportWidth <= 768 ? 132 : getYearlyWidth('salesPerson'),
-    year: viewportWidth <= 768 ? 72 : getYearlyWidth('year'),
-    yearlyRevenue: viewportWidth <= 768 ? 102 : getYearlyWidth('yearlyRevenue'),
-    yearlyCollection: viewportWidth <= 768 ? 102 : getYearlyWidth('yearlyCollection'),
+    salesPerson: viewportWidth <= 768 ? 120 : getYearlyWidth('salesPerson'),
+    year: viewportWidth <= 768 ? 64 : getYearlyWidth('year'),
+    yearlyRevenue: viewportWidth <= 768 ? 110 : getYearlyWidth('yearlyRevenue'),
+    yearlyCollection: viewportWidth <= 768 ? 110 : getYearlyWidth('yearlyCollection'),
     monthlyRows: viewportWidth <= 768 ? 72 : getYearlyWidth('monthlyRows'),
     yearlyRows: viewportWidth <= 768 ? 72 : getYearlyWidth('yearlyRows')
   };
@@ -199,7 +199,7 @@ export default function SalesTargets() {
   };
   const yearlyMinWidth = yearlyColumns.reduce((sum, column) => sum + (yearlyCellWidths[column.key] || yearlyWidths[column.key] || 80), 0);
   const targetMinWidth = targetColumns.reduce((sum, column) => sum + (targetCellWidths[column.key] || targetWidths[column.key] || 80), 0);
-  const yearlyTableStyle = { ...tableStyle, minWidth: Math.max(viewportWidth <= 768 ? 792 : 1660, yearlyMinWidth), tableLayout: 'fixed' };
+  const yearlyTableStyle = { ...tableStyle, minWidth: Math.max(viewportWidth <= 768 ? 640 : 960, yearlyMinWidth), tableLayout: 'fixed' };
   const targetTableStyle = { ...tableStyle, minWidth: Math.max(viewportWidth <= 768 ? 1200 : 1660, targetMinWidth), tableLayout: 'fixed' };
   const mobileHeaderLabelStyle = viewportWidth <= 768 ? {
     ...headerLabelStyle,
