@@ -2297,8 +2297,16 @@ export default function CustomerDashboard() {
     }
   };
 
-  const csvEscape = (value) => {
+  const csvSafeValue = (value) => {
     const text = String(value ?? '');
+    if (/^\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?$/.test(text)) {
+      return `'${text}`;
+    }
+    return text;
+  };
+
+  const csvEscape = (value) => {
+    const text = csvSafeValue(value);
     if (text.includes(',') || text.includes('"') || text.includes('\n')) {
       return `"${text.replace(/"/g, '""')}"`;
     }

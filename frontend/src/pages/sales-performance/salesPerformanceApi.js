@@ -135,8 +135,9 @@ export const subscribeRenewalsRefresh = (handler) => {
 export const buildCsv = (rows = [], columns = []) => {
   const safeValue = (value) => {
     const text = String(value ?? '');
-    if (/[,"\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
-    return text;
+    const excelSafeText = /^\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?$/.test(text) ? `'${text}` : text;
+    if (/[,"\n]/.test(excelSafeText)) return `"${excelSafeText.replace(/"/g, '""')}"`;
+    return excelSafeText;
   };
   const headers = columns.length ? columns : rows.length ? Object.keys(rows[0]) : [];
   return [

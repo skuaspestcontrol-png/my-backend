@@ -81,9 +81,17 @@ const diceSimilarity = (a, b) => {
 
 const combinedSimilarity = (a, b) => round2(((jaccardSimilarity(a, b) * 0.55) + (diceSimilarity(a, b) * 0.45)) * 100);
 
+const csvSafeValue = (value) => {
+  const text = String(value ?? '');
+  if (/^\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?$/.test(text)) {
+    return `'${text}`;
+  }
+  return text;
+};
+
 const toCsv = (rows) => {
   const esc = (value) => {
-    const text = String(value ?? '');
+    const text = csvSafeValue(value);
     if (text.includes(',') || text.includes('"') || text.includes('\n')) {
       return `"${text.replace(/"/g, '""')}"`;
     }

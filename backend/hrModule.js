@@ -513,9 +513,17 @@ const buildPerformanceRows = ({ employees, jobs, invoices, performanceStored }) 
   });
 };
 
+const csvSafeValue = (value) => {
+  const text = String(value ?? '');
+  if (/^\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?$/.test(text)) {
+    return `'${text}`;
+  }
+  return text;
+};
+
 const buildCsv = (rows) => {
   const escape = (value) => {
-    const text = String(value ?? '');
+    const text = csvSafeValue(value);
     if (text.includes(',') || text.includes('"') || text.includes('\n')) return `"${text.replace(/"/g, '""')}"`;
     return text;
   };
