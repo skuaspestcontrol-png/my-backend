@@ -312,7 +312,7 @@ const emptyForm = {
   customerNotes: '',
   termsAndConditions: '',
   serviceScheduleDefaultTime: '10:00',
-  paymentReceivedEnabled: false,
+  paymentReceivedEnabled: true,
   paymentSplits: [createEmptyPaymentSplit()],
   paymentReceivedTotal: '0',
   attachments: [],
@@ -4003,7 +4003,7 @@ export default function InvoiceDashboard() {
                       }))
                     }
                     />
-                    I have received the payment
+                    Show payment details in PDF
                   </label>
 
                   {form.paymentReceivedEnabled ? (

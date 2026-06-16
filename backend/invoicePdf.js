@@ -752,13 +752,19 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       : [''];
 
     const termsText = company.terms || '';
-    const leftPreviewLines = [
-      'PAYMENT DETAILS:',
-      ...bankLines,
-      '',
-      'TERMS & CONDITIONS:',
-      termsText
-    ];
+    const showPaymentDetails = Boolean(invoice.paymentReceivedEnabled);
+    const leftPreviewLines = showPaymentDetails
+      ? [
+          'PAYMENT DETAILS:',
+          ...bankLines,
+          '',
+          'TERMS & CONDITIONS:',
+          termsText
+        ]
+      : [
+          'TERMS & CONDITIONS:',
+          termsText
+        ];
     const leftH = Math.max(118, doc.heightOfString(leftPreviewLines.join('\n'), { width: leftW - 10, lineGap: 1 }) + 10);
     const rightH = leftH;
     ensureSpace(Math.max(leftH, rightH) + 8);
@@ -775,9 +781,11 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       doc.font(style.font).fontSize(style.size).fillColor(style.color).text(text, sumLeftX + 5, ly, { width: leftW - 10, lineGap: 1 });
       ly = doc.y + 1;
     };
-    drawLine('PAYMENT DETAILS:', headingStyle);
-    bankLines.forEach((line) => drawLine(line, bodyStyle));
-    drawLine('', bodyStyle);
+    if (showPaymentDetails) {
+      drawLine('PAYMENT DETAILS:', headingStyle);
+      bankLines.forEach((line) => drawLine(line, bodyStyle));
+      drawLine('', bodyStyle);
+    }
     drawLine('TERMS & CONDITIONS:', headingStyle);
     drawLine(termsText, bodyStyle);
 
