@@ -2762,7 +2762,7 @@ export default function TechnicianPortal() {
         ) : null}
 
         <div style={shell.panel}>
-          <h3 style={shell.panelTitle}><FileCheck2 size={16} /> Assign Pest Service</h3>
+          <h3 style={shell.panelTitle}><FileCheck2 size={16} /> Assigned Jobs</h3>
           {jobs.length === 0 ? (
             <p style={shell.emptyText}>No active assigned jobs right now.</p>
           ) : (
