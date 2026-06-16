@@ -177,6 +177,22 @@ const buildInvoiceExportRow = ({ invoice = {}, customer = null, index = 0, contr
   const merged = customer ? { ...customer, ...invoice } : { ...invoice };
   const billing = buildAddressExport(merged, 'billing');
   const shipping = buildAddressExport(merged, 'shipping');
+  const lineItems = Array.isArray(invoice.items) ? invoice.items : [];
+  const startCandidates = [
+    invoice.servicePeriodStart,
+    invoice.contractStartDate,
+    invoice.service_start_date,
+    ...lineItems.map((line) => line?.contractStartDate || line?.serviceStartDate || line?.service_start_date || line?.startDate)
+  ].filter(Boolean);
+  const endCandidates = [
+    invoice.servicePeriodEnd,
+    invoice.contractEndDate,
+    invoice.service_end_date,
+    invoice.dueDate,
+    ...lineItems.map((line) => line?.contractEndDate || line?.serviceEndDate || line?.service_end_date || line?.renewalDate || line?.endDate)
+  ].filter(Boolean);
+  const startDate = formatDate(startCandidates[0] || '');
+  const endDate = formatDate(endCandidates[0] || '');
   const total = Number(invoice.total ?? invoice.amount ?? 0);
   const gstTotal = Number(invoice.gstTotal ?? invoice.gst_total ?? invoice.totalTax ?? invoice.taxTotal ?? 0);
   const subtotalWithoutGst = Number(
@@ -198,6 +214,16 @@ const buildInvoiceExportRow = ({ invoice = {}, customer = null, index = 0, contr
     customerName: String(invoice.customerName || customer?.displayName || customer?.name || 'Customer'),
     customer: String(invoice.customerName || customer?.displayName || customer?.name || 'Customer'),
     customerId: String(invoice.customerId || customer?._id || customer?.id || '').trim(),
+    segment: cleanText(firstValue(merged, ['segment', 'customerSegment'])),
+    companyName: cleanText(firstValue(merged, ['companyName'])),
+    contactPersonName: cleanText(firstValue(merged, ['contactPersonName'])),
+    position: cleanText(firstValue(merged, ['position', 'positionCustom'])),
+    mobileNumber: cleanText(firstValue(merged, ['mobileNumber', 'workPhone', 'mobile'])),
+    altNumber: cleanText(firstValue(merged, ['altNumber', 'alternateNumber'])),
+    whatsappNumber: cleanText(firstValue(merged, ['whatsappNumber'])),
+    emailId: cleanText(firstValue(merged, ['emailId', 'email'])),
+    gstNumber: cleanText(firstValue(merged, ['gstNumber'])),
+    areaSqft: cleanText(firstValue(merged, ['areaSqft'])),
     invoiceDate: formatDate(firstValue(invoice, ['date', 'invoiceDate', 'createdAt'])),
     invoiceNumber: cleanText(firstValue(invoice, ['invoiceNumber', 'invoiceNo', 'invoice_no', '_id'])),
     invoiceType: cleanText(firstValue(invoice, ['invoiceType', 'invoice_type'])),
@@ -228,8 +254,8 @@ const buildInvoiceExportRow = ({ invoice = {}, customer = null, index = 0, contr
     premiseCity: cleanText(firstValue(invoice, ['premiseCity', 'premise_city'])),
     premiseState: cleanText(firstValue(invoice, ['premiseState', 'premise_state'])),
     premisePincode: cleanText(firstValue(invoice, ['premisePincode', 'premise_pincode'])),
-    servicePeriodStart: formatDate(firstValue(invoice, ['servicePeriodStart', 'contractStartDate', 'service_start_date'])),
-    servicePeriodEnd: formatDate(firstValue(invoice, ['servicePeriodEnd', 'contractEndDate', 'service_end_date', 'dueDate'])),
+    servicePeriodStart: startDate,
+    servicePeriodEnd: endDate,
     salesperson: cleanText(firstValue(invoice, ['salesperson', 'salesPerson', 'preparedBy'])),
     subject: cleanText(firstValue(invoice, ['subject'])),
     terms: cleanText(firstValue(invoice, ['terms'])),
@@ -494,13 +520,23 @@ const moduleDefinitions = [
       { key: 'invoiceDate', label: 'Invoice Date' },
       { key: 'contractNo', label: 'Contract #' },
       { key: 'customerName', label: 'Customer Name' },
+      { key: 'segment', label: 'Segment' },
+      { key: 'companyName', label: 'Company Name' },
+      { key: 'contactPersonName', label: 'Contact Person Name' },
+      { key: 'position', label: 'Position' },
+      { key: 'mobileNumber', label: 'Mobile Number' },
+      { key: 'altNumber', label: 'Alt Number' },
+      { key: 'whatsappNumber', label: 'WhatsApp Number' },
+      { key: 'emailId', label: 'Email Id' },
+      { key: 'gstNumber', label: 'GST Number' },
+      { key: 'areaSqft', label: 'Area Sqft' },
       { key: 'invoiceType', label: 'Invoice Type' },
       { key: 'billingAddressLine1', label: 'Billing Street 1' },
       { key: 'billingFullAddress', label: 'Billing Full Address' },
       { key: 'shippingAddressLine1', label: 'Shipping Street 1' },
       { key: 'shippingFullAddress', label: 'Shipping Full Address' },
-      { key: 'servicePeriodStart', label: 'Service Start' },
-      { key: 'servicePeriodEnd', label: 'Service End' },
+      { key: 'servicePeriodStart', label: 'Service Start Date' },
+      { key: 'servicePeriodEnd', label: 'Service End Date' },
       { key: 'salesperson', label: 'Sales Person' },
       { key: 'terms', label: 'Terms' },
       { key: 'termsAndConditions', label: 'Terms & Conditions' },
