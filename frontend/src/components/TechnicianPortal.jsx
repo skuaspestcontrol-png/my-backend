@@ -289,7 +289,7 @@ const buildVisibleJobs = (jobs, serviceSchedules, invoices, customers) => {
 
   const latestByKey = new Map();
   safeJobs.forEach((job) => {
-    if (!isActiveJob(job)) return;
+    if (!isActiveJob(job) || isCompletedJob(job)) return;
 
     const scheduleKey = String(job?.scheduleKey || '').trim();
     const contractId = String(job?.contractId || '').trim();
@@ -1910,8 +1910,7 @@ export default function TechnicianPortal() {
         customerSignature: customerSig,
         technicianSignature: technicianSig
       });
-      // Keep the completed row visible so the technician can review the PDF and completion state.
-      setJobs((prev) => prev.map((job) => (job._id === completedJobId ? { ...job, ...statusPayload } : job)));
+      setJobs((prev) => prev.filter((job) => job._id !== completedJobId));
       setActiveJob(null);
       setPunchInTime(null);
       if (customerSigCanvas.current && typeof customerSigCanvas.current.clear === 'function') {
@@ -2668,11 +2667,6 @@ export default function TechnicianPortal() {
   if (!activeJob) {
     return (
       <section style={pageStyle}>
-        <div style={shell.hero}>
-          <p style={shell.subtitle}>
-            Track upcoming services, start assigned jobs, capture photos, and close work with customer signature in one themed workspace.
-          </p>
-        </div>
         {completionCard ? (
           <div style={shell.completionCard}>
             <h3 style={shell.panelTitle}><FileCheck2 size={16} /> Job Completion Card</h3>
@@ -2769,7 +2763,6 @@ export default function TechnicianPortal() {
 
         <div style={shell.panel}>
           <h3 style={shell.panelTitle}><FileCheck2 size={16} /> Assigned Jobs</h3>
-          <p style={shell.panelSub}>Open any job to begin execution workflow.</p>
           {jobs.length === 0 ? (
             <p style={shell.emptyText}>No active assigned jobs right now.</p>
           ) : (
