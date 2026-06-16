@@ -10845,6 +10845,9 @@ app.post('/api/invoices', async (req, res) => {
   const serviceSchedules = manualServiceSchedules.length > 0
     ? manualServiceSchedules
     : buildServiceScheduleEntries({ ...req.body, serviceScheduleDefaultTime });
+  const showPaymentDetailsInPdf = req.body.showPaymentDetailsInPdf == null
+    ? true
+    : Boolean(req.body.showPaymentDetailsInPdf);
 
   const newInvoice = {
     _id: `INV-${Date.now()}`,
@@ -10886,6 +10889,7 @@ app.post('/api/invoices', async (req, res) => {
     termsAndConditions: req.body.termsAndConditions || '',
     serviceScheduleDefaultTime,
     serviceSchedules,
+    showPaymentDetailsInPdf,
     paymentReceivedEnabled,
     paymentSplits,
     paymentReceivedTotal,
@@ -10943,6 +10947,9 @@ app.put('/api/invoices/:id', async (req, res) => {
   const paymentReceivedEnabled = req.body.paymentReceivedEnabled == null
     ? Boolean(current.paymentReceivedEnabled)
     : Boolean(req.body.paymentReceivedEnabled);
+  const showPaymentDetailsInPdf = req.body.showPaymentDetailsInPdf == null
+    ? (current.showPaymentDetailsInPdf == null ? true : Boolean(current.showPaymentDetailsInPdf))
+    : Boolean(req.body.showPaymentDetailsInPdf);
   const paymentSplitsSource = req.body.paymentSplits == null ? current.paymentSplits : req.body.paymentSplits;
   const nextInvoiceType = String(req.body.invoiceType ?? current.invoiceType ?? ((toNumber(req.body.totalTax ?? current.totalTax, 0) > 0) ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
   const paymentSplits = paymentReceivedEnabled ? normalizePaymentSplits(paymentSplitsSource, nextInvoiceType) : [];
@@ -10992,6 +10999,7 @@ app.put('/api/invoices/:id', async (req, res) => {
     servicePeriodEnd: req.body.servicePeriodEnd ?? current.servicePeriodEnd ?? '',
     serviceScheduleDefaultTime,
     serviceSchedules,
+    showPaymentDetailsInPdf,
     status,
     dueDate: req.body.dueDate ?? current.dueDate ?? current.date,
     amount,
@@ -12929,6 +12937,9 @@ app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
     items,
     serviceScheduleDefaultTime
   });
+  const showPaymentDetailsInPdf = req.body.showPaymentDetailsInPdf == null
+    ? (sourceInvoice.showPaymentDetailsInPdf == null ? true : Boolean(sourceInvoice.showPaymentDetailsInPdf))
+    : Boolean(req.body.showPaymentDetailsInPdf);
 
   const newInvoice = {
     ...sourceInvoice,
@@ -12945,6 +12956,7 @@ app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
     total: amount,
     balanceDue,
     status,
+    showPaymentDetailsInPdf,
     paymentReceivedEnabled,
     paymentSplits,
     paymentReceivedTotal,

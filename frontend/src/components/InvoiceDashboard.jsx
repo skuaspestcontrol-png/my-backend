@@ -312,6 +312,7 @@ const emptyForm = {
   customerNotes: '',
   termsAndConditions: '',
   serviceScheduleDefaultTime: '10:00',
+  showPaymentDetailsInPdf: true,
   paymentReceivedEnabled: true,
   paymentSplits: [createEmptyPaymentSplit()],
   paymentReceivedTotal: '0',
@@ -1977,6 +1978,7 @@ export default function InvoiceDashboard() {
       customerNotes: invoice.customerNotes || '',
       termsAndConditions: invoice.termsAndConditions || getDefaultTermsForInvoiceType(invoiceType),
       serviceScheduleDefaultTime: normalizeTimeInput(invoice.serviceScheduleDefaultTime || '', '10:00'),
+      showPaymentDetailsInPdf: invoice.showPaymentDetailsInPdf == null ? true : Boolean(invoice.showPaymentDetailsInPdf),
       paymentReceivedEnabled: Boolean(invoice.paymentReceivedEnabled),
       paymentSplits: mappedPaymentSplits,
       paymentReceivedTotal: String(invoice.paymentReceivedTotal ?? 0),
@@ -2742,6 +2744,7 @@ export default function InvoiceDashboard() {
       termsAndConditions: form.termsAndConditions.trim(),
       serviceScheduleDefaultTime: serviceScheduleTime,
       serviceSchedules: normalizedServiceSchedules,
+      showPaymentDetailsInPdf: Boolean(form.showPaymentDetailsInPdf),
       paymentReceivedEnabled: Boolean(form.paymentReceivedEnabled),
       paymentSplits: form.paymentReceivedEnabled ? normalizedPaymentSplits : [],
       paymentReceivedTotal: form.paymentReceivedEnabled ? paymentReceivedTotal : 0,
@@ -3992,18 +3995,33 @@ export default function InvoiceDashboard() {
                     <input
                       type="checkbox"
                       style={shell.checkbox}
+                      checked={Boolean(form.showPaymentDetailsInPdf)}
+                      onChange={(event) =>
+                        setFormWithTotals((prev) => ({
+                          ...prev,
+                          showPaymentDetailsInPdf: event.target.checked
+                        }))
+                      }
+                    />
+                    Show payment details in PDF
+                  </label>
+
+                  <label style={shell.paymentToggle}>
+                    <input
+                      type="checkbox"
+                      style={shell.checkbox}
                       checked={Boolean(form.paymentReceivedEnabled)}
                       onChange={(event) =>
                         setFormWithTotals((prev) => ({
                           ...prev,
-                        paymentReceivedEnabled: event.target.checked,
-                        paymentSplits: event.target.checked
+                          paymentReceivedEnabled: event.target.checked,
+                          paymentSplits: event.target.checked
                             ? (Array.isArray(prev.paymentSplits) && prev.paymentSplits.length > 0 ? prev.paymentSplits : [createEmptyPaymentSplit(getDefaultPaymentDepositTo(prev.invoiceType))])
                             : prev.paymentSplits
-                      }))
-                    }
+                        }))
+                      }
                     />
-                    Show payment details in PDF
+                    I have received the payment
                   </label>
 
                   {form.paymentReceivedEnabled ? (

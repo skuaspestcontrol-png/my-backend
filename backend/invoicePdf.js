@@ -752,7 +752,9 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
       : [''];
 
     const termsText = company.terms || '';
-    const showPaymentDetails = Boolean(invoice.paymentReceivedEnabled);
+    const showPaymentDetails = invoice.showPaymentDetailsInPdf == null
+      ? true
+      : Boolean(invoice.showPaymentDetailsInPdf);
     const leftPreviewLines = showPaymentDetails
       ? [
           'PAYMENT DETAILS:',
