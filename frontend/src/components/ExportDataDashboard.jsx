@@ -519,7 +519,6 @@ const moduleDefinitions = [
     columns: [
       { key: 'invoiceDate', label: 'Invoice Date' },
       { key: 'contractNo', label: 'Contract #' },
-      { key: 'customerName', label: 'Customer Name' },
       { key: 'segment', label: 'Segment' },
       { key: 'companyName', label: 'Company Name' },
       { key: 'contactPersonName', label: 'Contact Person Name' },
@@ -532,9 +531,7 @@ const moduleDefinitions = [
       { key: 'areaSqft', label: 'Area Sqft' },
       { key: 'invoiceType', label: 'Invoice Type' },
       { key: 'billingAddressLine1', label: 'Billing Street 1' },
-      { key: 'billingFullAddress', label: 'Billing Full Address' },
       { key: 'shippingAddressLine1', label: 'Shipping Street 1' },
-      { key: 'shippingFullAddress', label: 'Shipping Full Address' },
       { key: 'servicePeriodStart', label: 'Service Start Date' },
       { key: 'servicePeriodEnd', label: 'Service End Date' },
       { key: 'salesperson', label: 'Sales Person' },
