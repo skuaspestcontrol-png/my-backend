@@ -40,6 +40,38 @@
   line-height: 1.2;
 }
 
+.sales-performance-page .sp-btn-refresh {
+  min-width: 92px;
+}
+
+.sales-performance-page .sp-btn-apply {
+  min-width: 124px;
+}
+
+.sales-performance-page .sp-btn-csv {
+  min-width: 118px;
+}
+
+.sales-performance-page .sp-btn-new {
+  min-width: 104px;
+}
+
+.sales-performance-page .sp-btn-save {
+  min-width: 124px;
+}
+
+.sales-performance-page .sp-btn-cancel {
+  min-width: 112px;
+}
+
+.sales-performance-page .sp-btn-square {
+  min-width: 34px;
+  width: 34px;
+  min-height: 34px;
+  height: 34px;
+  padding: 0;
+}
+
 .sales-performance-page .crm-page-header-copy {
   min-width: 0;
 }

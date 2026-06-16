@@ -44,6 +44,7 @@ const currencyTooltipLabel = {
   monthlyCollectionTarget: 'Collection Target',
   monthlyCollectionAchieved: 'Collection Achieved'
 };
+const button34Style = { minHeight: '34px', height: '34px' };
 
 export default function SalesTeamPerformance() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
@@ -253,7 +254,8 @@ export default function SalesTeamPerformance() {
               iconLeft={<RefreshCcw size={16} />}
               onClick={() => load(filters)}
               loading={loading}
-              style={{ minHeight: '34px', height: '34px' }}
+              className="sp-btn-refresh"
+              style={button34Style}
             >
               Refresh
             </AppButton>
@@ -276,7 +278,7 @@ export default function SalesTeamPerformance() {
           {!isMobile ? <AppInput label="Team View" value="Monthly + Yearly comparison" readOnly /> : null}
         </div>
         <div style={{ display: 'flex', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', marginTop: 12 }}>
-          <AppButton onClick={() => load(filters)} fullWidth={viewportWidth <= 480} style={viewportWidth <= 480 ? { width: '100%' } : undefined}>Apply Filters</AppButton>
+          <AppButton onClick={() => load(filters)} className="sp-btn-apply" fullWidth={viewportWidth <= 480} style={{ ...(viewportWidth <= 480 ? { width: '100%' } : {}), ...button34Style }}>Apply Filters</AppButton>
         </div>
       </AppCard>
 

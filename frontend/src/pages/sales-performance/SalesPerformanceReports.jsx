@@ -49,6 +49,7 @@ const currencyTooltipLabel = {
   yearlyTarget: 'Yearly Target',
   yearlyAchieved: 'Yearly Achieved'
 };
+const button34Style = { minHeight: '34px', height: '34px' };
 const reportTableColumns = [
   { key: 'salesPerson' },
   { key: 'monthlyTarget' },
@@ -397,7 +398,8 @@ export default function SalesPerformanceReports() {
                 iconLeft={<RefreshCcw size={16} />}
                 onClick={() => load(filters)}
                 loading={loading}
-                style={{ ...(mobileButtonStyle || {}), minHeight: '34px', height: '34px' }}
+                className="sp-btn-refresh"
+                style={{ ...(mobileButtonStyle || {}), ...button34Style }}
               >
                 Refresh
               </AppButton>
@@ -406,7 +408,8 @@ export default function SalesPerformanceReports() {
                 iconLeft={<Download size={16} />}
                 onClick={exportCsv}
                 disabled={!rows.length}
-                style={{ ...(mobileButtonStyle || {}), minHeight: '34px', height: '34px' }}
+                className="sp-btn-csv"
+                style={{ ...(mobileButtonStyle || {}), ...button34Style }}
               >
                 CSV Export
               </AppButton>
@@ -440,7 +443,7 @@ export default function SalesPerformanceReports() {
           </AppSelect>
         </div>
         <div style={{ display: 'flex', justifyContent: viewportWidth <= 480 ? 'stretch' : 'flex-end', marginTop: 12 }}>
-          <AppButton onClick={() => load(filters)} style={viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : undefined}>Apply Filters</AppButton>
+          <AppButton onClick={() => load(filters)} className="sp-btn-apply" style={{ ...(viewportWidth <= 480 ? { width: '100%', justifyContent: 'center' } : {}), ...button34Style }}>Apply Filters</AppButton>
         </div>
       </AppCard>
 

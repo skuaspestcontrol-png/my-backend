@@ -4,7 +4,6 @@ import AppButton from '../../components/ui/AppButton';
 import AppCard from '../../components/ui/AppCard';
 import AppInput from '../../components/ui/AppInput';
 import AppSelect from '../../components/ui/AppSelect';
-import AppTextarea from '../../components/ui/AppTextarea';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
@@ -20,8 +19,7 @@ const initialForm = {
   targetMonth: currentMonth,
   targetYear: currentYear,
   revenueTarget: '',
-  collectionTarget: '',
-  notes: ''
+  collectionTarget: ''
 };
 
 const tableStyle = { width: '100%', minWidth: 1660, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' };
@@ -58,14 +56,16 @@ const headerLabelStyle = {
   textAlign: 'center'
 };
 const actionButtonStyle = {
-  minWidth: 38,
-  width: 38,
-  height: 38,
+  minWidth: 34,
+  width: 34,
+  minHeight: 34,
+  height: 34,
   padding: 0,
   gap: 0,
-  borderRadius: 12,
+  borderRadius: 10,
   boxShadow: '0 10px 24px rgba(15, 23, 42, 0.08)'
 };
+const button34Style = { minHeight: '34px', height: '34px' };
 const firstHeaderLabelStyle = { ...headerLabelStyle, textAlign: 'left' };
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
@@ -347,8 +347,7 @@ export default function SalesTargets() {
       targetMonth: row.targetMonth || currentMonth,
       targetYear: row.targetYear,
       revenueTarget: String(row.revenueTarget || 0),
-      collectionTarget: String(row.collectionTarget || 0),
-      notes: row.notes || ''
+      collectionTarget: String(row.collectionTarget || 0)
     });
   };
 
@@ -363,8 +362,7 @@ export default function SalesTargets() {
         targetMonth: form.targetType === 'monthly' ? Number(form.targetMonth) : null,
         targetYear: Number(form.targetYear),
         revenueTarget: Number(form.revenueTarget || 0),
-        collectionTarget: Number(form.collectionTarget || 0),
-        notes: form.notes
+        collectionTarget: Number(form.collectionTarget || 0)
       };
       if (form.id) await apiPut(`/api/sales-performance/targets/${form.id}`, payload);
       else await apiPost('/api/sales-performance/targets', payload);
@@ -408,14 +406,16 @@ export default function SalesTargets() {
               iconLeft={<RefreshCcw size={16} />}
               onClick={() => load(filters)}
               loading={loading}
-              style={{ minHeight: '34px', height: '34px' }}
+              className="sp-btn-refresh"
+              style={button34Style}
             >
               Refresh
             </AppButton>
             <AppButton
               iconLeft={<Plus size={16} />}
               onClick={resetForm}
-              style={{ minHeight: '34px', height: '34px' }}
+              className="sp-btn-new"
+              style={button34Style}
             >
               New Target
             </AppButton>
@@ -438,7 +438,7 @@ export default function SalesTargets() {
             {employeeOptions.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
           </AppSelect>
           <div style={{ display: 'flex', alignItems: 'end', minWidth: 0 }}>
-            <AppButton onClick={() => load(filters)}>Apply Filters</AppButton>
+          <AppButton onClick={() => load(filters)} className="sp-btn-apply" style={button34Style}>Apply Filters</AppButton>
           </div>
         </div>
       </AppCard>
@@ -504,10 +504,9 @@ export default function SalesTargets() {
             <AppInput type="number" min="0" step="0.01" label="Revenue Target" value={form.revenueTarget} onChange={(e) => setForm({ ...form, revenueTarget: e.target.value })} required />
             <AppInput type="number" min="0" step="0.01" label="Collection Target" value={form.collectionTarget} onChange={(e) => setForm({ ...form, collectionTarget: e.target.value })} required />
           </div>
-          <AppTextarea label="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-            {form.id ? <AppButton variant="outline" type="button" onClick={resetForm}>Cancel Edit</AppButton> : null}
-            <AppButton type="submit" loading={saving}>{form.id ? 'Update Target' : 'Save Target'}</AppButton>
+            {form.id ? <AppButton variant="outline" type="button" onClick={resetForm} className="sp-btn-cancel" style={button34Style}>Cancel Edit</AppButton> : null}
+            <AppButton type="submit" loading={saving} className="sp-btn-save" style={button34Style}>{form.id ? 'Update Target' : 'Save Target'}</AppButton>
           </div>
         </form>
       </AppCard>
@@ -596,7 +595,7 @@ export default function SalesTargets() {
                           aria-label="Edit target"
                           title="Edit target"
                           className="sales-targets-action-btn"
-                          style={actionButtonStyle}
+                          style={{ ...actionButtonStyle }}
                         />
                         <AppButton
                           variant="danger"
@@ -607,7 +606,7 @@ export default function SalesTargets() {
                           aria-label="Delete target"
                           title="Delete target"
                           className="sales-targets-action-btn"
-                          style={actionButtonStyle}
+                          style={{ ...actionButtonStyle }}
                         />
                       </div>
                     </td>

@@ -42,6 +42,7 @@ const currencyTooltipLabel = {
   target: 'Target',
   achieved: 'Achieved'
 };
+const button34Style = { minHeight: '34px', height: '34px' };
 
 const summaryCards = [
   { key: 'totalMonthlyTarget', title: 'Total Monthly Target' },
@@ -255,7 +256,8 @@ export default function SalesPerformanceDashboard() {
               iconLeft={<RefreshCcw size={16} />}
               onClick={() => load(filters)}
               loading={loading}
-              style={{ minHeight: '34px', height: '34px' }}
+              className="sp-btn-refresh"
+              style={button34Style}
             >
               Refresh
             </AppButton>
@@ -283,7 +285,8 @@ export default function SalesPerformanceDashboard() {
           <AppButton
             onClick={() => load(filters)}
             fullWidth={viewportWidth <= 480}
-            style={viewportWidth <= 480 ? { width: '100%' } : undefined}
+            className="sp-btn-apply"
+            style={{ ...(viewportWidth <= 480 ? { width: '100%' } : {}), ...button34Style }}
           >
             Apply Filters
           </AppButton>
