@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   total_amount DECIMAL(18,2) NULL,
   balance_due DECIMAL(18,2) NULL,
   customer_type VARCHAR(80) NULL DEFAULT 'New',
+  lead_source VARCHAR(120) NULL,
   billing_address_source VARCHAR(100) NULL,
   shipping_address_source VARCHAR(100) NULL,
   billing_address_text TEXT NULL,

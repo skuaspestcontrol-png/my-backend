@@ -8843,6 +8843,7 @@ const hydrateInvoiceMysqlRow = (row = {}) => {
     customerId: String(row?.customer_external_id ?? payload.customerId ?? payload.customer_external_id ?? '').trim(),
     customerName: String(row?.customer_name ?? payload.customerName ?? payload.customer_name ?? '').trim(),
     customerType: String(row?.customer_type ?? payload.customerType ?? payload.customer_type ?? 'New').trim() || 'New',
+    leadSource: String(row?.lead_source ?? payload.leadSource ?? payload.lead_source ?? '').trim(),
     invoiceNumber: String(row?.invoice_number ?? payload.invoiceNumber ?? payload.invoice_number ?? '').trim(),
     invoiceType: String(row?.invoice_type ?? payload.invoiceType ?? payload.invoice_type ?? '').trim(),
     status: String(row?.invoice_status ?? payload.status ?? payload.invoice_status ?? '').trim(),
@@ -8876,7 +8877,7 @@ const loadInvoicesForContext = async () => {
       const [rows] = await conn.query(`
         SELECT
           external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
-          invoice_date, due_date, total_amount, balance_due, customer_type, service_schedule_default_time, service_schedules, discount,
+          invoice_date, due_date, total_amount, balance_due, customer_type, lead_source, service_schedule_default_time, service_schedules, discount,
           billing_address_source, shipping_address_source,
           billing_address_text, shipping_address_text, custom_shipping_addresses, customer_premise_id,
           premise_label, premise_address, premise_area_name, premise_city, premise_state, premise_pincode,
@@ -9259,6 +9260,7 @@ const syncInvoiceToMysql = async (invoice) => {
       await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_schedules JSON NULL');
       await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS discount DECIMAL(12,2) NULL DEFAULT 0');
       await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS customer_type VARCHAR(80) NULL DEFAULT \'New\'');
+      await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS lead_source VARCHAR(120) NULL');
     } catch (_error) {
       const [cols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='invoices'");
       const names = new Set((cols || []).map((c) => String(c.COLUMN_NAME || '')));
@@ -9266,15 +9268,16 @@ const syncInvoiceToMysql = async (invoice) => {
       if (!names.has('service_schedules')) await conn.query('ALTER TABLE invoices ADD COLUMN service_schedules JSON NULL');
       if (!names.has('discount')) await conn.query('ALTER TABLE invoices ADD COLUMN discount DECIMAL(12,2) NULL DEFAULT 0');
       if (!names.has('customer_type')) await conn.query('ALTER TABLE invoices ADD COLUMN customer_type VARCHAR(80) NULL DEFAULT \'New\'');
+      if (!names.has('lead_source')) await conn.query('ALTER TABLE invoices ADD COLUMN lead_source VARCHAR(120) NULL');
     }
     await conn.query(
       `INSERT INTO invoices (
         external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
-        invoice_date, due_date, total_amount, balance_due, customer_type, billing_address_source, shipping_address_source,
+        invoice_date, due_date, total_amount, balance_due, customer_type, lead_source, billing_address_source, shipping_address_source,
         billing_address_text, shipping_address_text, custom_shipping_addresses,
         customer_premise_id, premise_label, premise_address, premise_area_name, premise_city, premise_state,
         premise_pincode, premise_google_map_url, service_schedule_default_time, service_schedules, discount, payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         customer_external_id=VALUES(customer_external_id),
         customer_name=VALUES(customer_name),
@@ -9286,6 +9289,7 @@ const syncInvoiceToMysql = async (invoice) => {
         total_amount=VALUES(total_amount),
         balance_due=VALUES(balance_due),
         customer_type=VALUES(customer_type),
+        lead_source=VALUES(lead_source),
         billing_address_source=VALUES(billing_address_source),
         shipping_address_source=VALUES(shipping_address_source),
         billing_address_text=VALUES(billing_address_text),
@@ -9317,6 +9321,7 @@ const syncInvoiceToMysql = async (invoice) => {
         toNumber(invoice.total ?? invoice.amount, 0),
         toNumber(invoice.balanceDue, 0),
         invoice.customerType || 'New',
+        invoice.leadSource || null,
         invoice.billingAddressSource || null,
         invoice.shippingAddressSource || null,
         invoice.billingAddressText || null,
