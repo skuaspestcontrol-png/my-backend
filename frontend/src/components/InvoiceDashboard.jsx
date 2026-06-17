@@ -330,6 +330,7 @@ const emptyForm = {
   withholdingRate: '0',
   withholdingAmount: '0',
   discount: '0',
+  roundOff: '0',
   total: '0'
 };
 
@@ -358,6 +359,16 @@ const sanitizeDecimalInput = (value) => {
   const fraction = fractionParts.join('').slice(0, 2);
   const normalizedInteger = integerPart === '' ? '0' : integerPart;
   return `${normalizedInteger}.${fraction}`;
+};
+
+const sanitizeSignedDecimalInput = (value) => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  const sign = raw.startsWith('-') ? '-' : raw.startsWith('+') ? '+' : '';
+  const unsigned = raw.replace(/^[+-]/, '');
+  const cleaned = sanitizeDecimalInput(unsigned);
+  if (!cleaned) return sign;
+  return `${sign}${cleaned}`;
 };
 
 const normalizeConfiguredInvoicePrefix = (value, fallback = '', invoiceType = 'GST') => {
@@ -1459,7 +1470,8 @@ export default function InvoiceDashboard() {
     const withholdingRate = Number(nextForm.withholdingRate || 0);
     const withholdingAmount = Number(((totals.subtotal * withholdingRate) / 100).toFixed(2));
     const discount = Number(nextForm.discount || 0);
-    const grandTotal = Number((totals.total - withholdingAmount - discount).toFixed(2));
+    const roundOff = Number(nextForm.roundOff || 0);
+    const grandTotal = Number((totals.total - withholdingAmount - discount + roundOff).toFixed(2));
     const status = (nextForm.status || 'DRAFT').toUpperCase();
     const paymentSplits = Array.isArray(nextForm.paymentSplits) && nextForm.paymentSplits.length > 0
       ? nextForm.paymentSplits
@@ -1486,6 +1498,7 @@ export default function InvoiceDashboard() {
       total: String(grandTotal),
       withholdingAmount: String(withholdingAmount),
       discount: String(nextForm.discount ?? ''),
+      roundOff: String(nextForm.roundOff ?? ''),
       paymentSplits,
       paymentReceivedTotal: String(paymentReceivedTotal),
       status: nextStatus,
@@ -2067,6 +2080,7 @@ export default function InvoiceDashboard() {
       withholdingRate: String(invoice.withholdingRate ?? 0),
       withholdingAmount: String(invoice.withholdingAmount ?? 0),
       discount: String(invoice.discount ?? invoice.roundOff ?? 0),
+      roundOff: String(invoice.roundOff ?? invoice.round_off ?? 0),
       total: String(invoice.total ?? invoice.amount ?? 0)
     });
   };
@@ -2832,6 +2846,7 @@ export default function InvoiceDashboard() {
       withholdingRate: Number(form.withholdingRate || 0),
       withholdingAmount: Number(form.withholdingAmount || 0),
       discount: Number(form.discount || 0),
+      roundOff: Number(form.roundOff || 0),
       total: Number(form.total || invoiceTotal),
       balanceDue: computedBalance,
       notes: form.customerNotes.trim()
@@ -4026,6 +4041,17 @@ export default function InvoiceDashboard() {
                     pattern="[0-9]*[.,]?[0-9]*"
                     value={form.discount}
                     onChange={(event) => setFormWithTotals((prev) => ({ ...prev, discount: sanitizeDecimalInput(event.target.value) }))}
+                  />
+                </div>
+                <div style={shell.totalRow}>
+                  <span>Round Off</span>
+                  <input
+                    style={{ ...shell.input, width: '88px', minHeight: '39px', height: '39px', textAlign: 'right', ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[+-]?[0-9]*[.,]?[0-9]*"
+                    value={form.roundOff}
+                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, roundOff: sanitizeSignedDecimalInput(event.target.value) }))}
                   />
                 </div>
                 <div style={shell.totalSummaryRow}>
