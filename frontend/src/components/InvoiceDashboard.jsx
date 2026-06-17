@@ -3118,7 +3118,8 @@ export default function InvoiceDashboard() {
     width: '28px',
     padding: 0
   };
-  const customerTypeRowStyle = isMobile
+  const customerTypeRowStyle = customerRowStyle;
+  const customerTypeOptionsWrapStyle = isMobile
     ? {
       display: 'grid',
       gridTemplateColumns: '1fr',
@@ -3126,7 +3127,7 @@ export default function InvoiceDashboard() {
     }
     : {
       display: 'grid',
-      gridTemplateColumns: '190px repeat(3, minmax(0, 1fr))',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
       gap: '8px',
       alignItems: 'center'
     };
@@ -3635,20 +3636,22 @@ export default function InvoiceDashboard() {
             <div className="crm-modal-surface-body" style={formBodyStyle}>
               <div style={customerTypeRowStyle}>
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Type*</label>
-                {contractCustomerTypeOptions.map((option) => {
-                  const selected = form.customerType === option;
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      style={customerTypeOptionStyle(selected)}
-                      onClick={() => setFormWithTotals((prev) => ({ ...prev, customerType: option }))}
-                    >
-                      <Check size={14} style={{ opacity: selected ? 1 : 0, flexShrink: 0 }} />
-                      <span>{option}</span>
-                    </button>
-                  );
-                })}
+                <div style={customerTypeOptionsWrapStyle}>
+                  {contractCustomerTypeOptions.map((option) => {
+                    const selected = form.customerType === option;
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        style={customerTypeOptionStyle(selected)}
+                        onClick={() => setFormWithTotals((prev) => ({ ...prev, customerType: option }))}
+                      >
+                        <Check size={14} style={{ opacity: selected ? 1 : 0, flexShrink: 0 }} />
+                        <span>{option}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div style={customerRowStyle}>
