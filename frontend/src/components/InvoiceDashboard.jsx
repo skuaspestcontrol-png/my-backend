@@ -375,6 +375,13 @@ const sanitizeSignedDecimalInput = (value) => {
   return `${sign}${cleaned}`;
 };
 
+const parseDecimalNumber = (value, fallback = 0) => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return fallback;
+  const parsed = Number(raw.replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
 const normalizeConfiguredInvoicePrefix = (value, fallback = '', invoiceType = 'GST') => {
   const raw = normalizeLegacyInvoicePrefix(value, fallback);
   if (!raw) return String(fallback || '').trim();
@@ -1449,15 +1456,32 @@ export default function InvoiceDashboard() {
     }, serviceScheduleTime),
     [form, serviceScheduleTime]
   );
+  const liveMultiItemScheduleRows = useMemo(
+    () => buildServiceScheduleEntries(Array.isArray(form.items) ? form.items : [], serviceScheduleTime).map((row, index) => ({
+      serviceNumber: index + 1,
+      baseServiceDate: row.serviceDate || '',
+      preferredDay: '',
+      preferredDayLabel: 'Normal dates',
+      serviceDate: row.serviceDate || '',
+      finalServiceDate: row.serviceDate || '',
+      serviceTime: row.serviceTime || serviceScheduleTime,
+      itemId: row.itemId || '',
+      itemName: row.itemName || '',
+      itemDescription: row.itemDescription || '',
+      scheduleRuleLabel: '',
+      status: 'Scheduled'
+    })),
+    [form.items, serviceScheduleTime]
+  );
 
   const computeTotals = (lines, invoiceType = 'GST') => {
     const nonGst = normalizeInvoiceType(invoiceType) === 'NON GST';
     let subtotal = 0;
     let totalTax = 0;
     lines.forEach((line) => {
-      const qty = Number(line.quantity || 0);
-      const rate = Number(line.rate || 0);
-      const taxRate = Number(line.taxRate || 0);
+      const qty = parseDecimalNumber(line.quantity, 0);
+      const rate = parseDecimalNumber(line.rate, 0);
+      const taxRate = parseDecimalNumber(line.taxRate, 0);
       if (!Number.isFinite(qty) || !Number.isFinite(rate) || qty <= 0 || rate < 0) return;
       const lineBase = qty * rate;
       const lineTax = nonGst ? 0 : (lineBase * taxRate) / 100;
@@ -2378,7 +2402,7 @@ export default function InvoiceDashboard() {
           serviceStartDate: prev.servicePeriodStart || '',
           serviceEndDate: prev.servicePeriodEnd || '',
           quantity: '1',
-          rate: String(Number(match.sellingPrice || match.rate || 0)),
+          rate: String(parseDecimalNumber(match.sellingPrice || match.rate || 0, 0)),
           taxRate: prev.invoiceType === 'NON GST' ? '0' : String(parsePercent(match.intraTaxRate || '18%'))
         }
       ]
@@ -2418,7 +2442,7 @@ export default function InvoiceDashboard() {
       });
       return;
     }
-    const rate = Number(selected.sellingPrice || selected.rate || 0);
+    const rate = parseDecimalNumber(selected.sellingPrice || selected.rate || 0, 0);
     const taxRate = form.invoiceType === 'NON GST' ? 0 : parsePercent(selected.intraTaxRate || '18%');
     updateLine(index, {
       itemId: selected._id,
@@ -3881,8 +3905,8 @@ export default function InvoiceDashboard() {
                     </thead>
                     <tbody>
                       {form.items.map((line, index) => {
-                        const qty = Number(line.quantity || 0);
-                        const rate = Number(line.rate || 0);
+                        const qty = parseDecimalNumber(line.quantity, 0);
+                        const rate = parseDecimalNumber(line.rate, 0);
                         const base = qty * rate;
                         const amount = base;
                         return (
@@ -3994,7 +4018,7 @@ export default function InvoiceDashboard() {
                                           inputMode="decimal"
                                           pattern="[0-9]*[.,]?[0-9]*"
                                           value={line.quantity}
-                                          onChange={(event) => updateLine(index, { quantity: event.target.value })}
+                                          onChange={(event) => updateLine(index, { quantity: sanitizeDecimalInput(event.target.value) })}
                                         />
                                       </div>
                                       <div style={itemMetaFieldStyle}>
@@ -4005,7 +4029,7 @@ export default function InvoiceDashboard() {
                                           inputMode="decimal"
                                           pattern="[0-9]*[.,]?[0-9]*"
                                           value={line.rate}
-                                          onChange={(event) => updateLine(index, { rate: event.target.value })}
+                                          onChange={(event) => updateLine(index, { rate: sanitizeDecimalInput(event.target.value) })}
                                         />
                                       </div>
                                     </div>
@@ -4048,7 +4072,7 @@ export default function InvoiceDashboard() {
                                     inputMode="decimal"
                                     pattern="[0-9]*[.,]?[0-9]*"
                                     value={line.quantity}
-                                    onChange={(event) => updateLine(index, { quantity: event.target.value })}
+                                    onChange={(event) => updateLine(index, { quantity: sanitizeDecimalInput(event.target.value) })}
                                   />
                                 </td>
                                 <td style={numericItemCellStyle}>
@@ -4058,7 +4082,7 @@ export default function InvoiceDashboard() {
                                     inputMode="decimal"
                                     pattern="[0-9]*[.,]?[0-9]*"
                                     value={line.rate}
-                                    onChange={(event) => updateLine(index, { rate: event.target.value })}
+                                    onChange={(event) => updateLine(index, { rate: sanitizeDecimalInput(event.target.value) })}
                                   />
                                 </td>
                                 <td style={numericItemCellStyle}>
@@ -4161,7 +4185,7 @@ export default function InvoiceDashboard() {
                     draft={liveServiceScheduleDraft}
                     time={serviceScheduleTime}
                     defaultItemMeta={serviceScheduleItemMeta}
-                    scheduleRows={serviceScheduleRows}
+                    scheduleRows={Array.isArray(serviceScheduleRows) && serviceScheduleRows.length > 0 ? serviceScheduleRows : liveMultiItemScheduleRows}
                     onDraftChange={setServiceScheduleDraft}
                     onTimeChange={(nextTime) =>
                       setFormWithTotals((prev) => ({
