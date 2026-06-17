@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios';
 import {
   Activity,
-  BadgeIndianRupee,
   CalendarCheck,
   RefreshCw,
   Users,
@@ -12,6 +11,7 @@ import useColumnResize from './table/useColumnResize';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { buildPortalAuthHeaders, getPortalUserRole } from '../utils/portalAuth';
 import { formatIndiaDateTime } from '../utils/indiaTime';
+import RupeeSymbol from './ui/RupeeSymbol';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const now = new Date();
@@ -705,7 +705,7 @@ export default function HRDashboard() {
 
       <section style={chartGridStyle}>
         <div style={shell.panel}>
-          <h3 style={shell.panelTitle}><BadgeIndianRupee size={16} /> Payroll Quick View</h3>
+          <h3 style={shell.panelTitle}><RupeeSymbol size={16} /> Payroll Quick View</h3>
           <div style={shell.statGrid}>
             <div style={shell.statCard}><p style={shell.statLabel}>Processed</p><p style={shell.statValue}>{payrollQuick?.salaryProcessedThisMonth || 0}</p></div>
             <div style={shell.statCard}><p style={shell.statLabel}>Paid Amount</p><p style={shell.statValue}>₹{money(payrollQuick?.paidSalaryAmount || 0)}</p></div>

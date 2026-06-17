@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { ChevronLeft, ChevronRight, IndianRupee, WalletCards } from 'lucide-react';
+import { ChevronLeft, ChevronRight, WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useColumnResize } from './table/useColumnResize';
 import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import SortChevronIcon from './ui/SortChevronIcon';
+import RupeeSymbol from './ui/RupeeSymbol';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const PAYMENT_PAGE_SIZE = 20;
@@ -372,7 +373,7 @@ export default function PaymentReceivedDashboard() {
       <div style={statsStyle}>
         <article style={statStyle}>
           <p style={shell.statLabel}>Total Received</p>
-          <p style={shell.statValue}><IndianRupee size={18} style={{ verticalAlign: 'middle' }} /> {formatINR(summary.totalReceived).replace('₹', '')}</p>
+          <p style={shell.statValue}><RupeeSymbol size={18} style={{ verticalAlign: 'middle' }} /> {formatINR(summary.totalReceived).replace('₹', '')}</p>
         </article>
         <article style={statStyle}>
           <p style={shell.statLabel}>Payment Entries</p>

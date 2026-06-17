@@ -18,7 +18,6 @@ import {
   MessageSquare,
   Package,
   BarChart3,
-  IndianRupee,
   Target,
   LogOut,
   Settings,
@@ -29,6 +28,7 @@ import {
   UserCheck,
   Users
 } from 'lucide-react';
+import RupeeSymbol from './ui/RupeeSymbol';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const INACTIVITY_LOGOUT_MS = 5 * 60 * 1000;
@@ -743,7 +743,7 @@ export default function DashboardLayout({ children }) {
             <Link to="/hr-dashboard" className={isActive('/hr-dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/hr-dashboard')} title="HR Dashboard" aria-label="HR Dashboard" onClick={closeDrawerOnMobile}><LayoutDashboard size={18} /> {!isSidebarCollapsed ? 'HR Dashboard' : null}</Link>
             <Link to="/employees" className={isActive('/employees') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/employees')} title="Employee Master" aria-label="Employee Master" onClick={closeDrawerOnMobile}><UserCheck size={18} /> {!isSidebarCollapsed ? 'Employee Master' : null}</Link>
             <Link to="/attendance" className={isActive('/attendance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/attendance')} title="Attendance" aria-label="Attendance" onClick={closeDrawerOnMobile}><CalendarClock size={18} /> {!isSidebarCollapsed ? 'Attendance' : null}</Link>
-            <Link to="/payroll" className={isActive('/payroll') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/payroll')} title="Payroll" aria-label="Payroll" onClick={closeDrawerOnMobile}><IndianRupee size={18} /> {!isSidebarCollapsed ? 'Payroll' : null}</Link>
+            <Link to="/payroll" className={isActive('/payroll') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/payroll')} title="Payroll" aria-label="Payroll" onClick={closeDrawerOnMobile}><RupeeSymbol size={18} /> {!isSidebarCollapsed ? 'Payroll' : null}</Link>
           </SidebarSection>
 
           <SidebarSection title="Administration" collapsed={isSidebarCollapsed}>

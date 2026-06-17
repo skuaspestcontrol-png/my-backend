@@ -9,7 +9,6 @@ import SortChevronIcon from './ui/SortChevronIcon';
 import { getPortalUserName } from '../utils/portalAuth';
 import {
   AlertCircle,
-  BadgeIndianRupee,
   CalendarDays,
   CalendarRange,
   CheckCircle2,
@@ -34,6 +33,7 @@ import {
   XCircle
 } from 'lucide-react';
 import PdfPreviewModal from './PdfPreviewModal';
+import RupeeSymbol from './ui/RupeeSymbol';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const CONTRACT_PAGE_SIZE = 20;
@@ -1002,7 +1002,7 @@ export default function ContractDashboard() {
   const tabs = [
     { label: 'Overview', icon: LayoutGrid },
     { label: 'Schedules', icon: CalendarRange },
-    { label: 'Payments', icon: BadgeIndianRupee },
+    { label: 'Payments', icon: RupeeSymbol },
     { label: 'Invoices', icon: Receipt },
     { label: 'Material Usage', icon: Package },
     { label: 'Site Media', icon: MapPin }
@@ -1722,11 +1722,11 @@ export default function ContractDashboard() {
                   <div style={shell.summaryValue}>{customerSummaryData?.transactionCount || 0}</div>
                 </div>
                 <div style={shell.summaryCard}>
-                  <div style={shell.summaryLabel}><BadgeIndianRupee size={12} /> Paid</div>
+                  <div style={shell.summaryLabel}><RupeeSymbol size={12} /> Paid</div>
                   <div style={shell.summaryValue}>{formatINR(customerSummaryData?.totalPaid || 0)}</div>
                 </div>
                 <div style={shell.summaryCard}>
-                  <div style={shell.summaryLabel}><BadgeIndianRupee size={12} /> Due</div>
+                  <div style={shell.summaryLabel}><RupeeSymbol size={12} /> Due</div>
                   <div style={shell.summaryValue}>{formatINR(customerSummaryData?.balanceDue || 0)}</div>
                 </div>
                 <div style={shell.summaryCard}>

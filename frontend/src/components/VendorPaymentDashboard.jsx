@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { IndianRupee, WalletCards } from 'lucide-react';
+import { WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useColumnResize } from './table/useColumnResize';
+import RupeeSymbol from './ui/RupeeSymbol';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const VENDOR_PAYMENT_CACHE_KEY = 'vendor_payment_dashboard_cache_v1';
@@ -315,7 +316,7 @@ export default function VendorPaymentDashboard() {
       <div style={statsStyle}>
         <article style={shell.stat}>
           <p style={shell.statLabel}>Total Paid to Vendors</p>
-          <p style={shell.statValue}><IndianRupee size={18} style={{ verticalAlign: 'middle' }} /> {formatINR(summary.totalPaid).replace('₹', '')}</p>
+          <p style={shell.statValue}><RupeeSymbol size={18} style={{ verticalAlign: 'middle' }} /> {formatINR(summary.totalPaid).replace('₹', '')}</p>
         </article>
         <article style={shell.stat}>
           <p style={shell.statLabel}>Outstanding Vendor Due</p>
@@ -323,7 +324,7 @@ export default function VendorPaymentDashboard() {
         </article>
         <article style={shell.stat}>
           <p style={shell.statLabel}>Payment Entries</p>
-          <p style={shell.statValue}><IndianRupee size={18} style={{ verticalAlign: 'middle' }} /> {summary.paymentEntries}</p>
+          <p style={shell.statValue}><RupeeSymbol size={18} style={{ verticalAlign: 'middle' }} /> {summary.paymentEntries}</p>
         </article>
       </div>
 
