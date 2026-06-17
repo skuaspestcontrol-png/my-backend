@@ -10,6 +10,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ITEMS_PER_PAGE = 20;
 const VISIBLE_COLUMNS_STORAGE_KEY = 'items_visible_columns_v2';
 const ITEMS_DASHBOARD_CACHE_KEY = 'items_dashboard_cache_v1';
+const ITEMS_SORT_STORAGE_KEY = 'items_sort_direction_v1';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -468,7 +469,14 @@ export default function ItemsDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [nameSortDirection, setNameSortDirection] = useState('asc');
+  const [nameSortDirection, setNameSortDirection] = useState(() => {
+    try {
+      const saved = localStorage.getItem(ITEMS_SORT_STORAGE_KEY);
+      return saved === 'desc' ? 'desc' : 'asc';
+    } catch {
+      return 'asc';
+    }
+  });
   const [visibleColumns, setVisibleColumns] = useState(() => {
     const saved = localStorage.getItem(VISIBLE_COLUMNS_STORAGE_KEY);
     if (!saved) return defaultVisibleColumns;
@@ -504,6 +512,14 @@ export default function ItemsDashboard() {
     () => columns.filter((column) => visibleColumns.includes(column.key)),
     [visibleColumns]
   );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ITEMS_SORT_STORAGE_KEY, nameSortDirection);
+    } catch {
+      // ignore storage persistence issues
+    }
+  }, [nameSortDirection]);
   const sortedItems = useMemo(() => {
     const direction = nameSortDirection === 'desc' ? -1 : 1;
     return [...items].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }) * direction);

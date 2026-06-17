@@ -382,6 +382,32 @@ const parseDecimalNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const parseInvoiceLikeDate = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+  if (isoMatch) {
+    const parsed = new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+    if (!Number.isNaN(parsed.getTime())) {
+      parsed.setHours(0, 0, 0, 0);
+      return parsed;
+    }
+  }
+  const dmyMatch = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (dmyMatch) {
+    const year = dmyMatch[3].length === 2 ? `20${dmyMatch[3]}` : dmyMatch[3];
+    const parsed = new Date(Number(year), Number(dmyMatch[2]) - 1, Number(dmyMatch[1]));
+    if (!Number.isNaN(parsed.getTime())) {
+      parsed.setHours(0, 0, 0, 0);
+      return parsed;
+    }
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+};
+
 const normalizeConfiguredInvoicePrefix = (value, fallback = '', invoiceType = 'GST') => {
   const raw = normalizeLegacyInvoicePrefix(value, fallback);
   if (!raw) return String(fallback || '').trim();
@@ -405,7 +431,9 @@ const sanitizeInvoiceNumberPrefs = (raw = {}) => ({
   gstNextNumber: Math.max(1, Number(raw.gstNextNumber ?? raw.nextNumber ?? defaultInvoiceNumberPrefs.gstNextNumber) || defaultInvoiceNumberPrefs.gstNextNumber),
   nonGstPrefix: normalizeConfiguredInvoicePrefix(raw.nonGstPrefix, defaultInvoiceNumberPrefs.nonGstPrefix, 'NON GST'),
   nonGstNextNumber: Math.max(1, Number(raw.nonGstNextNumber ?? defaultInvoiceNumberPrefs.nonGstNextNumber) || defaultInvoiceNumberPrefs.nonGstNextNumber),
-  padding: Math.max(1, Number(raw.padding ?? defaultInvoiceNumberPrefs.padding) || defaultInvoiceNumberPrefs.padding)
+  padding: Math.max(1, Number(raw.padding ?? defaultInvoiceNumberPrefs.padding) || defaultInvoiceNumberPrefs.padding),
+  gstNumberWidth: Math.max(0, Number(raw.gstNumberWidth ?? raw.gstInvoiceNumberWidth) || 0),
+  nonGstNumberWidth: Math.max(0, Number(raw.nonGstNumberWidth ?? raw.nonGstInvoiceNumberWidth) || 0)
 });
 
 const toInvoiceNumberPrefsDraft = (raw = {}) => {
@@ -428,6 +456,15 @@ const extractInvoiceSeq = (invoiceNumber, prefix) => {
   const match = raw.match(/(\d+)$/);
   return match ? Number(match[1]) : null;
 };
+
+const formatInvoiceSequence = (value, width = 0) => {
+  const safeNumber = Math.max(1, Number(value) || 1);
+  const digits = String(safeNumber);
+  const minWidth = Math.max(0, Number(width) || 0);
+  return minWidth > digits.length ? digits.padStart(minWidth, '0') : digits;
+};
+
+const normalizeInvoiceNumberKey = (value) => String(value || '').trim().toLowerCase();
 
 const shell = {
   page: { background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,251,0.94) 100%)', border: '1px solid var(--color-border)', borderRadius: '20px', boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)', overflow: 'visible', position: 'relative', backgroundClip: 'padding-box' },
@@ -1333,9 +1370,25 @@ export default function InvoiceDashboard() {
   };
 
   const customerOptions = useMemo(
-    () => customers
-      .map((customer) => ({ id: customer._id, name: customer.displayName || customer.name || '' }))
-      .sort((left, right) => {
+    () => {
+      const options = [];
+      const seen = new Set();
+      customers.forEach((customer) => {
+        const aliases = [
+          customer?.displayName,
+          customer?.name,
+          customer?.companyName
+        ];
+        aliases.forEach((alias) => {
+          const value = String(alias || '').trim();
+          if (!value) return;
+          const signature = `${String(customer?._id || '').trim()}::${value.toLowerCase()}`;
+          if (seen.has(signature)) return;
+          seen.add(signature);
+          options.push({ id: customer._id, name: value });
+        });
+      });
+      return options.sort((left, right) => {
         const leftName = String(left.name || '').trim().toLowerCase();
         const rightName = String(right.name || '').trim().toLowerCase();
         if (!leftName && !rightName) return 0;
@@ -1344,7 +1397,8 @@ export default function InvoiceDashboard() {
         const nameCompare = leftName.localeCompare(rightName, undefined, { sensitivity: 'base' });
         if (nameCompare !== 0) return nameCompare;
         return String(left.name || '').localeCompare(String(right.name || ''), undefined, { sensitivity: 'variant' });
-      }),
+      });
+    },
     [customers]
   );
   const customerNameDatalistId = 'invoice-customer-name-options';
@@ -1552,15 +1606,21 @@ export default function InvoiceDashboard() {
     const normalizedType = normalizeInvoiceType(invoiceType);
     const prefix = normalizedType === 'NON GST' ? safePrefs.nonGstPrefix : safePrefs.gstPrefix;
     const nextNumber = normalizedType === 'NON GST' ? safePrefs.nonGstNextNumber : safePrefs.gstNextNumber;
-    const max = invoices.reduce((acc, invoice) => {
-      const currentType = normalizeInvoiceType(invoice.invoiceType || (Number(invoice.totalTax || 0) > 0 ? 'GST' : 'NON GST'));
-      if (currentType !== normalizedType) return acc;
-      const seq = extractInvoiceSeq(invoice.invoiceNumber, prefix);
-      if (!Number.isFinite(seq)) return acc;
-      return Math.max(acc, seq);
-    }, 0);
-    const next = Math.max(nextNumber, max + 1);
-    return `${prefix}${next}`;
+    const numberWidth = normalizedType === 'NON GST' ? safePrefs.nonGstNumberWidth : safePrefs.gstNumberWidth;
+    const usedNumbers = new Set(
+      invoices
+        .map((invoice) => normalizeInvoiceNumberKey(invoice?.invoiceNumber))
+        .filter(Boolean)
+    );
+    let candidate = Math.max(1, Number(nextNumber) || 1);
+    let guard = 0;
+    while (guard < 100000) {
+      const invoiceNumber = `${prefix}${formatInvoiceSequence(candidate, numberWidth)}`;
+      if (!usedNumbers.has(normalizeInvoiceNumberKey(invoiceNumber))) return invoiceNumber;
+      candidate += 1;
+      guard += 1;
+    }
+    return `${prefix}${formatInvoiceSequence(candidate, numberWidth)}`;
   };
 
   const addPdfCacheBust = (url, stamp = Date.now()) => {
@@ -1638,14 +1698,16 @@ export default function InvoiceDashboard() {
         gstNextNumber: settingsData.gstInvoiceNextNumber ?? settingsData.invoiceNextNumber ?? 66,
         nonGstPrefix: normalizeConfiguredInvoicePrefix(settingsData.nonGstInvoicePrefix, defaultNonGstInvoicePrefix, 'NON GST'),
         nonGstNextNumber: settingsData.nonGstInvoiceNextNumber ?? 1,
-        padding: settingsData.invoiceNumberPadding ?? 4
+        padding: settingsData.invoiceNumberPadding ?? 4,
+        gstNumberWidth: settingsData.gstInvoiceNumberWidth ?? 0,
+        nonGstNumberWidth: settingsData.nonGstInvoiceNumberWidth ?? 0
       });
       setCustomers(nextCustomers);
       setItemsCatalog(nextItemsCatalog);
       setEmployees(nextEmployees);
       setLeadSourceOptions(nextLeadSources);
       setInvoiceNumberPrefs(prefs);
-      setInvoiceNumberPrefsDraft(prefs);
+      setInvoiceNumberPrefsDraft(toInvoiceNumberPrefsDraft(prefs));
       const nextVisibleColumns = normalizeInvoiceVisibleColumns(settingsData.invoiceVisibleColumns);
       setVisibleColumns(nextVisibleColumns);
       const nextCompanySettings = {
@@ -2018,21 +2080,30 @@ export default function InvoiceDashboard() {
 
   const saveInvoiceNumberPrefs = async () => {
     const clean = sanitizeInvoiceNumberPrefs(invoiceNumberPrefsDraft);
+    const gstDraftDigits = String(invoiceNumberPrefsDraft.gstNextNumber || '').replace(/\D/g, '');
+    const nonGstDraftDigits = String(invoiceNumberPrefsDraft.nonGstNextNumber || '').replace(/\D/g, '');
+    const nextPrefs = {
+      ...clean,
+      gstNumberWidth: gstDraftDigits.length,
+      nonGstNumberWidth: nonGstDraftDigits.length
+    };
     try {
       await axios.post(`${API_BASE_URL}/api/settings/save`, {
-        invoiceNumberMode: clean.mode,
-        gstInvoicePrefix: clean.gstPrefix,
-        gstInvoiceNextNumber: clean.gstNextNumber,
-        nonGstInvoicePrefix: clean.nonGstPrefix,
-        nonGstInvoiceNextNumber: clean.nonGstNextNumber,
-        invoicePrefix: clean.gstPrefix,
-        invoiceNextNumber: clean.gstNextNumber,
-        invoiceNumberPadding: clean.padding
+        invoiceNumberMode: nextPrefs.mode,
+        gstInvoicePrefix: nextPrefs.gstPrefix,
+        gstInvoiceNextNumber: nextPrefs.gstNextNumber,
+        nonGstInvoicePrefix: nextPrefs.nonGstPrefix,
+        nonGstInvoiceNextNumber: nextPrefs.nonGstNextNumber,
+        gstInvoiceNumberWidth: nextPrefs.gstNumberWidth,
+        nonGstInvoiceNumberWidth: nextPrefs.nonGstNumberWidth,
+        invoicePrefix: nextPrefs.gstPrefix,
+        invoiceNextNumber: nextPrefs.gstNextNumber,
+        invoiceNumberPadding: nextPrefs.padding
       });
-      setInvoiceNumberPrefs(clean);
+      setInvoiceNumberPrefs(nextPrefs);
       setShowInvoiceNumberPrefs(false);
-      if (!editingId && showModal && clean.mode === 'auto') {
-        const nextNumber = createNextInvoiceNumber(clean, form.invoiceType);
+      if (!editingId && showModal && nextPrefs.mode === 'auto') {
+        const nextNumber = createNextInvoiceNumber(nextPrefs, form.invoiceType);
         setFormWithTotals((prev) => ({ ...prev, invoiceNumber: nextNumber }));
       }
     } catch (error) {
@@ -2527,7 +2598,12 @@ export default function InvoiceDashboard() {
     return customers.find((entry) => {
       const entryId = String(entry?._id || '').trim();
       const entryName = String(entry?.displayName || entry?.name || '').trim();
-      return entryId === raw || entryName.toLowerCase() === normalized;
+      const entryCompanyName = String(entry?.companyName || '').trim();
+      return (
+        entryId === raw
+        || entryName.toLowerCase() === normalized
+        || entryCompanyName.toLowerCase() === normalized
+      );
     }) || null;
   };
 
@@ -2909,6 +2985,16 @@ export default function InvoiceDashboard() {
       notes: form.customerNotes.trim()
     };
 
+    const invoiceNumberKey = normalizeInvoiceNumberKey(payload.invoiceNumber);
+    const duplicateInvoice = invoices.find((invoice) => {
+      if (editingId && String(invoice?._id || '') === String(editingId)) return false;
+      return normalizeInvoiceNumberKey(invoice?.invoiceNumber) === invoiceNumberKey;
+    });
+    if (duplicateInvoice) {
+      setSaveError('Invoice number already exists. Please use a unique invoice number.');
+      return;
+    }
+
     try {
       setIsSaving(true);
       setSaveError('');
@@ -2989,9 +3075,17 @@ export default function InvoiceDashboard() {
     };
 
     const headers = columns.map((column) => column.key);
+    const sortedRows = [...sourceRows].sort((left, right) => {
+      const leftDate = parseInvoiceLikeDate(left?.date || left?.invoiceDate || left?.createdAt);
+      const rightDate = parseInvoiceLikeDate(right?.date || right?.invoiceDate || right?.createdAt);
+      if (leftDate && rightDate) return rightDate.getTime() - leftDate.getTime();
+      if (leftDate) return -1;
+      if (rightDate) return 1;
+      return 0;
+    });
     const rows = [
       headers.join(','),
-      ...sourceRows.map((invoice) => headers.map((key) => escapeCsv(invoice[key] ?? '')).join(','))
+      ...sortedRows.map((invoice) => headers.map((key) => escapeCsv(invoice[key] ?? '')).join(','))
     ];
 
     const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });

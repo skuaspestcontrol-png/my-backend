@@ -41,6 +41,7 @@ const normalizeApiBase = (value = '') => {
 
 const API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL);
 const CUSTOMER_DASHBOARD_CACHE_KEY = 'skuasmaster-customer-dashboard-cache-v1';
+const CUSTOMERS_SORT_STORAGE_KEY = 'customers_sort_direction_v1';
 
 const readCustomerDashboardCache = () => {
   if (typeof window === 'undefined') return null;
@@ -692,7 +693,14 @@ export default function CustomerDashboard() {
     const saved = localStorage.getItem('customers_visible_columns');
     return saved ? JSON.parse(saved) : defaultVisibleColumns;
   });
-  const [nameSortDirection, setNameSortDirection] = useState('asc');
+  const [nameSortDirection, setNameSortDirection] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOMERS_SORT_STORAGE_KEY);
+      return saved === 'desc' ? 'desc' : 'asc';
+    } catch {
+      return 'asc';
+    }
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const customersLoadRef = useRef(false);
   const transactionsLoadRef = useRef(false);
@@ -724,6 +732,14 @@ export default function CustomerDashboard() {
     () => allColumns.filter((column) => visibleColumns.includes(column.key)),
     [visibleColumns]
   );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CUSTOMERS_SORT_STORAGE_KEY, nameSortDirection);
+    } catch {
+      // ignore storage persistence issues
+    }
+  }, [nameSortDirection]);
   const rowsPerPage = 20;
   const toTenDigitNumber = normalizeIndianMobileNumber;
   const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);

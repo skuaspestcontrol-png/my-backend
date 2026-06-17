@@ -24,6 +24,8 @@ const cleanText = (value, fallback = '-') => {
   return text || fallback;
 };
 
+const cleanOptionalText = (value) => String(value ?? '').trim();
+
 const csvSafeValue = (value) => {
   const text = String(value ?? '');
   if (/^\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?$/.test(text)) {
@@ -97,6 +99,34 @@ const parseDateOnly = (value) => {
   return date;
 };
 
+const parseSortableDate = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw || raw === '-') return null;
+  const dmyMatch = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (dmyMatch) {
+    const year = dmyMatch[3].length === 2 ? `20${dmyMatch[3]}` : dmyMatch[3];
+    const parsed = new Date(Number(year), Number(dmyMatch[2]) - 1, Number(dmyMatch[1]));
+    if (!Number.isNaN(parsed.getTime())) {
+      parsed.setHours(0, 0, 0, 0);
+      return parsed;
+    }
+  }
+  return parseDateOnly(raw);
+};
+
+const sortRowsByDateKeys = (rows = [], keys = []) => {
+  const dateKeys = Array.isArray(keys) ? keys.filter(Boolean) : [keys].filter(Boolean);
+  if (dateKeys.length === 0) return rows;
+  return [...rows].sort((left, right) => {
+    const leftDate = dateKeys.map((key) => parseSortableDate(left?.[key])).find(Boolean);
+    const rightDate = dateKeys.map((key) => parseSortableDate(right?.[key])).find(Boolean);
+    if (leftDate && rightDate) return rightDate.getTime() - leftDate.getTime();
+    if (leftDate) return -1;
+    if (rightDate) return 1;
+    return 0;
+  });
+};
+
 const toInputDate = (value) => {
   const date = parseDateOnly(value);
   if (!date) return '';
@@ -132,42 +162,91 @@ const deriveContractCode = (contractNo) => {
   return `${bits.slice(0, -1).join('/')}/C`;
 };
 
-const buildAddressExport = (source = {}, prefix = 'billing') => {
-  const attention = cleanText(firstValue(source, [`${prefix}Attention`, `${prefix}AttentionName`], ''));
+const parseAddressTextExport = (value = '') => {
+  const lines = String(value || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length === 0) {
+    return {
+      attention: '',
+      street1: '',
+      street2: '',
+      area: '',
+      city: '',
+      state: '',
+      pincode: ''
+    };
+  }
+
+  const attention = lines[0] || '';
+  const body = lines.slice(1);
+  let street1 = '';
+  let street2 = '';
+  let area = '';
+  let city = '';
+  let state = '';
+  let pincode = '';
+
+  if (body.length > 0) {
+    const lastLine = body[body.length - 1];
+    const statePinMatch = lastLine.match(/^(.*?)(\d{5,6})$/);
+    if (statePinMatch) {
+      state = statePinMatch[1].trim().replace(/[, -]+$/, '');
+      pincode = statePinMatch[2].trim();
+      body.pop();
+    }
+  }
+
+  street1 = body[0] || '';
+  if (body.length >= 3) {
+    street2 = body.slice(1, -1).join(', ');
+    area = body[body.length - 1] || '';
+  } else if (body.length === 2) {
+    area = body[1] || '';
+  }
+
+  if (area && !city) city = area;
+
+  return { attention, street1, street2, area, city, state, pincode };
+};
+
+const buildAddressExport = (source = {}, prefix = 'billing', explicitText = '') => {
+  const parsedText = parseAddressTextExport(
+    cleanOptionalText(explicitText)
+    || firstValue(source, [
+      `${prefix}AddressText`,
+      `${prefix}Address`,
+      `${prefix}AddressLine1`
+    ], '')
+  );
+  const attention = cleanText(firstValue(source, [`${prefix}Attention`, `${prefix}AttentionName`], parsedText.attention), '');
   const street1 = cleanText(firstValue(source, [
     `${prefix}Street1`,
     `${prefix}AddressLine1`,
-    `${prefix}Address`,
-    `${prefix}AddressText`,
     `${prefix}Address1`
-  ], ''));
+  ], parsedText.street1), '');
   const street2 = cleanText(firstValue(source, [
     `${prefix}Street2`,
     `${prefix}AddressLine2`,
     `${prefix}Address2`
-  ], ''));
+  ], parsedText.street2), '');
   const area = cleanText(firstValue(source, [
     `${prefix}Area`,
     `${prefix}AreaName`
-  ], ''));
+  ], parsedText.area), '');
   const city = cleanText(firstValue(source, [
     `${prefix}City`,
-    'billingCity',
-    'shippingCity',
     'city'
-  ], ''));
+  ], parsedText.city), '');
   const state = cleanText(firstValue(source, [
     `${prefix}State`,
-    'billingState',
-    'shippingState',
     'state'
-  ], ''));
+  ], parsedText.state), '');
   const pincode = cleanText(firstValue(source, [
     `${prefix}Pincode`,
-    'billingPincode',
-    'shippingPincode',
     'pincode'
-  ], ''));
+  ], parsedText.pincode), '');
   const fullAddress = [street1, street2, area, city, state, pincode].filter(Boolean).join(', ');
   return {
     attention,
@@ -183,8 +262,12 @@ const buildAddressExport = (source = {}, prefix = 'billing') => {
 
 const buildInvoiceExportRow = ({ invoice = {}, customer = null, index = 0, contractPrefix = 'CONTRACT', serviceMeta = null } = {}) => {
   const merged = customer ? { ...customer, ...invoice } : { ...invoice };
-  const billing = buildAddressExport(merged, 'billing');
-  const shipping = buildAddressExport(merged, 'shipping');
+  const billing = buildAddressExport(merged, 'billing', firstValue(invoice, ['billingAddressText', 'billing_address_text']));
+  const shipping = buildAddressExport(
+    merged,
+    'shipping',
+    firstValue(invoice, ['shippingAddressText', 'shipping_address_text', 'premiseAddress', 'premise_address'])
+  );
   const lineItems = Array.isArray(invoice.items) ? invoice.items : [];
   const serviceName = cleanText(
     [
@@ -508,6 +591,7 @@ const moduleDefinitions = [
       { key: 'referenceCustomerDate', label: 'Reference Date' },
       { key: 'remarks', label: 'Remarks' }
     ],
+    sortKeys: ['leadDate', 'followupDate', 'referenceCustomerDate'],
     mapRow: (row) => ({
       leadDate: formatDate(firstValue(row, ['leadDate', 'date', 'createdAt'])),
       customerName: cleanText(firstValue(row, ['customerName', 'displayName'])),
@@ -579,6 +663,7 @@ const moduleDefinitions = [
       { key: 'notes', label: 'Notes' }
     ],
     loadRows: getContractExportRows,
+    sortKeys: ['invoiceDate', 'startDate', 'servicePeriodStart'],
     mapRow: (row) => row
   },
   {
@@ -613,6 +698,7 @@ const moduleDefinitions = [
       { key: 'notes', label: 'Notes' }
     ],
     loadRows: getInvoiceExportRows,
+    sortKeys: ['invoiceDate', 'servicePeriodStart', 'servicePeriodEnd'],
     mapRow: (row) => row
   },
   {
@@ -631,6 +717,7 @@ const moduleDefinitions = [
       { key: 'subtotalWithoutGst', label: 'Amount Without GST' },
       { key: 'amountWithGst', label: 'Amount With GST' }
     ],
+    sortKeys: ['quotationDate'],
     mapRow: (row) => ({
       quotationDate: formatDate(firstValue(row, ['quotationDate', 'date', 'createdAt'])),
       customerName: cleanText(firstValue(row, ['customerName', 'displayName'])),
@@ -710,6 +797,7 @@ const moduleDefinitions = [
       { key: 'balanceDue', label: 'Balance Due' },
       { key: 'status', label: 'Status' }
     ],
+    sortKeys: ['billDate', 'dueDate'],
     mapRow: (row) => ({
       billDate: formatDate(firstValue(row, ['billDate', 'date', 'createdAt'])),
       billNumber: cleanText(firstValue(row, ['billNumber', 'bill_no', '_id'])),
@@ -740,6 +828,7 @@ const moduleDefinitions = [
       { key: 'amount', label: 'Amount' },
       { key: 'notes', label: 'Notes' }
     ],
+    sortKeys: ['paymentDate'],
     mapRow: (row) => ({
       paymentDate: formatDate(firstValue(row, ['paymentDate', 'date', 'createdAt'])),
       customerName: cleanText(firstValue(row, ['customerName', 'displayName'])),
@@ -776,6 +865,7 @@ const moduleDefinitions = [
       { key: 'renewedBySalesPersonName', label: 'Renewed By' },
       { key: 'lastFollowupNote', label: 'Last Follow-up Note' }
     ],
+    sortKeys: ['renewalDueDate', 'previousContractEnd', 'previousContractStart'],
     mapRow: (row) => ({
       renewalId: cleanText(firstValue(row, ['renewalDisplayId', 'renewalId', '_id'])),
       customerName: cleanText(firstValue(row, ['customerName', 'displayName'])),
@@ -961,7 +1051,8 @@ export default function ExportDataDashboard() {
       const rawRows = moduleDef.loadRows
         ? await moduleDef.loadRows()
         : extractRows((await axios.get(`${API_BASE_URL}${moduleDef.endpoint}`)).data);
-      const rows = rawRows.map((row) => moduleDef.mapRow(row));
+      const mappedRows = rawRows.map((row) => moduleDef.mapRow(row));
+      const rows = sortRowsByDateKeys(mappedRows, moduleDef.sortKeys);
       setModuleState((current) => ({
         ...current,
         [moduleDef.key]: { rows, loading: false, error: '' }

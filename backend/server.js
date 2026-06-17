@@ -1329,8 +1329,10 @@ const defaultSettings = {
   invoiceNumberMode: 'auto',
   gstInvoicePrefix: `SPC/${new Date().getFullYear()}/`,
   gstInvoiceNextNumber: 66,
+  gstInvoiceNumberWidth: 0,
   nonGstInvoicePrefix: `SPC/N-${String(new Date().getFullYear()).slice(-2)}/`,
   nonGstInvoiceNextNumber: 1,
+  nonGstInvoiceNumberWidth: 0,
   invoicePrefix: `SPC/${new Date().getFullYear()}/`,
   invoiceNextNumber: 66,
   invoiceNumberPadding: 4,
@@ -1645,8 +1647,10 @@ const sanitizeSettings = (raw = {}) => {
     invoiceNumberMode: source.invoiceNumberMode === 'manual' ? 'manual' : 'auto',
     gstInvoicePrefix: normalizeConfiguredInvoicePrefix(source.gstInvoicePrefix ?? source.invoicePrefix, defaultSettings.gstInvoicePrefix, 'GST'),
     gstInvoiceNextNumber: Math.max(1, Number(source.gstInvoiceNextNumber ?? source.invoiceNextNumber ?? defaultSettings.gstInvoiceNextNumber) || defaultSettings.gstInvoiceNextNumber),
+    gstInvoiceNumberWidth: Math.max(0, Number(source.gstInvoiceNumberWidth ?? defaultSettings.gstInvoiceNumberWidth) || 0),
     nonGstInvoicePrefix: normalizeConfiguredInvoicePrefix(source.nonGstInvoicePrefix, defaultSettings.nonGstInvoicePrefix, 'NON GST'),
     nonGstInvoiceNextNumber: Math.max(1, Number(source.nonGstInvoiceNextNumber ?? defaultSettings.nonGstInvoiceNextNumber) || defaultSettings.nonGstInvoiceNextNumber),
+    nonGstInvoiceNumberWidth: Math.max(0, Number(source.nonGstInvoiceNumberWidth ?? defaultSettings.nonGstInvoiceNumberWidth) || 0),
     invoicePrefix: normalizeConfiguredInvoicePrefix(source.invoicePrefix ?? source.gstInvoicePrefix, defaultSettings.invoicePrefix, 'GST'),
     invoiceNextNumber: Math.max(1, Number(source.invoiceNextNumber ?? source.gstInvoiceNextNumber ?? defaultSettings.invoiceNextNumber) || defaultSettings.invoiceNextNumber),
     invoiceNumberPadding: Math.max(1, Number(source.invoiceNumberPadding ?? defaultSettings.invoiceNumberPadding) || defaultSettings.invoiceNumberPadding),
@@ -8708,26 +8712,52 @@ const getInvoiceNumberConfig = (settings = {}, invoiceType = 'GST') => {
   const nextNumber = normalizedType === 'NON GST'
     ? Math.max(1, Number(settings?.nonGstInvoiceNextNumber ?? defaultSettings.nonGstInvoiceNextNumber) || defaultSettings.nonGstInvoiceNextNumber)
     : Math.max(1, Number(settings?.gstInvoiceNextNumber ?? settings?.invoiceNextNumber ?? defaultSettings.gstInvoiceNextNumber) || defaultSettings.gstInvoiceNextNumber);
+  const numberWidth = normalizedType === 'NON GST'
+    ? Math.max(0, Number(settings?.nonGstInvoiceNumberWidth ?? defaultSettings.nonGstInvoiceNumberWidth) || 0)
+    : Math.max(0, Number(settings?.gstInvoiceNumberWidth ?? defaultSettings.gstInvoiceNumberWidth) || 0);
   return {
     invoiceType: normalizedType,
     prefix,
     nextNumber,
+    numberWidth,
     padding: Math.max(1, Number(settings?.invoiceNumberPadding ?? defaultSettings.invoiceNumberPadding) || defaultSettings.invoiceNumberPadding)
   };
 };
 
+const formatInvoiceSequence = (value, width = 0) => {
+  const safeNumber = Math.max(1, Number(value) || 1);
+  const digits = String(safeNumber);
+  const minWidth = Math.max(0, Number(width) || 0);
+  return minWidth > digits.length ? digits.padStart(minWidth, '0') : digits;
+};
+
+const normalizeInvoiceNumberKey = (value) => String(value || '').trim().toLowerCase();
+
 const createNextInvoiceNumber = (invoices, settings, invoiceType = 'GST') => {
-  const { prefix, nextNumber, invoiceType: normalizedType } = getInvoiceNumberConfig(settings, invoiceType);
-  const configuredNext = nextNumber;
-  const max = invoices.reduce((acc, invoice) => {
-    const itemType = String(invoice?.invoiceType || (toNumber(invoice?.totalTax, 0) > 0 ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
-    if (itemType !== normalizedType) return acc;
-    const seq = extractInvoiceSequence(invoice.invoiceNumber, prefix);
-    if (!Number.isFinite(seq)) return acc;
-    return Math.max(acc, seq);
-  }, 0);
-  const next = Math.max(configuredNext, max + 1);
-  return `${prefix}${next}`;
+  const { prefix, nextNumber, numberWidth } = getInvoiceNumberConfig(settings, invoiceType);
+  const usedNumbers = new Set(
+    (Array.isArray(invoices) ? invoices : [])
+      .map((invoice) => normalizeInvoiceNumberKey(invoice?.invoiceNumber))
+      .filter(Boolean)
+  );
+  let candidate = Math.max(1, Number(nextNumber) || 1);
+  let guard = 0;
+  while (guard < 100000) {
+    const invoiceNumber = `${prefix}${formatInvoiceSequence(candidate, numberWidth)}`;
+    if (!usedNumbers.has(normalizeInvoiceNumberKey(invoiceNumber))) return invoiceNumber;
+    candidate += 1;
+    guard += 1;
+  }
+  return `${prefix}${formatInvoiceSequence(candidate, numberWidth)}`;
+};
+
+const findDuplicateInvoiceNumber = (invoices, invoiceNumber, excludeId = '') => {
+  const normalizedInvoiceNumber = normalizeInvoiceNumberKey(invoiceNumber);
+  if (!normalizedInvoiceNumber) return null;
+  return (Array.isArray(invoices) ? invoices : []).find((invoice) => {
+    if (excludeId && String(invoice?._id || '') === String(excludeId)) return false;
+    return normalizeInvoiceNumberKey(invoice?.invoiceNumber) === normalizedInvoiceNumber;
+  }) || null;
 };
 
 const loadCurrentSettingsForNumbering = async () => {
@@ -11008,6 +11038,10 @@ app.post('/api/invoices', async (req, res) => {
     createdAt: new Date().toISOString()
   };
 
+  if (findDuplicateInvoiceNumber(invoices, newInvoice.invoiceNumber)) {
+    return res.status(400).json({ error: 'Invoice number already exists. Please use a unique invoice number.' });
+  }
+
   if (canUseMysql()) {
     try {
       await syncInvoiceToMysql(newInvoice);
@@ -11127,6 +11161,10 @@ app.put('/api/invoices/:id', async (req, res) => {
     premiseGoogleMapUrl: req.body.premiseGoogleMapUrl ?? req.body.premise_google_map_url ?? current.premiseGoogleMapUrl ?? current.premise_google_map_url ?? '',
     notes: req.body.notes ?? current.notes ?? ''
   };
+
+  if (findDuplicateInvoiceNumber(invoices, updatedInvoice.invoiceNumber, current._id)) {
+    return res.status(400).json({ error: 'Invoice number already exists. Please use a unique invoice number.' });
+  }
 
   if (canUseMysql()) {
     try {

@@ -103,6 +103,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const ALL_FILTER_VALUE = '__all__';
 const LEAD_PAGE_SIZE = 20;
 const LEADS_DASHBOARD_CACHE_KEY = 'leads_dashboard_cache_v1';
+const LEADS_SORT_STORAGE_KEY = 'leads_sort_state_v1';
 const MONTH_FILTER_OPTIONS = [
   { value: '1', label: 'January' },
   { value: '2', label: 'February' },
@@ -677,8 +678,22 @@ export default function LeadCapture() {
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [overviewFilters, setOverviewFilters] = useState(defaultOverviewFilters);
   const [overviewDraftFilters, setOverviewDraftFilters] = useState(defaultOverviewFilters);
-  const [leadSortKey, setLeadSortKey] = useState('date');
-  const [leadSortDirection, setLeadSortDirection] = useState('desc');
+  const [leadSortKey, setLeadSortKey] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LEADS_SORT_STORAGE_KEY) || '{}');
+      return String(saved?.key || '').trim() || 'date';
+    } catch {
+      return 'date';
+    }
+  });
+  const [leadSortDirection, setLeadSortDirection] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LEADS_SORT_STORAGE_KEY) || '{}');
+      return saved?.direction === 'asc' ? 'asc' : 'desc';
+    } catch {
+      return 'desc';
+    }
+  });
   const [leadPage, setLeadPage] = useState(1);
   const [visibleColumns, setVisibleColumns] = useState(() => {
     let saved = null;
@@ -727,6 +742,17 @@ export default function LeadCapture() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LEADS_SORT_STORAGE_KEY, JSON.stringify({
+        key: leadSortKey,
+        direction: leadSortDirection
+      }));
+    } catch {
+      // ignore storage persistence issues
+    }
+  }, [leadSortDirection, leadSortKey]);
 
   const salesEmployees = useMemo(
     () =>

@@ -81,7 +81,7 @@ const shell = {
   sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '15px 22px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0' },
   sourceHeaderTitle: { margin: 0, color: '#475569', fontSize: '19px', fontWeight: 700 },
   sourceHeaderBadge: { color: '#111827', fontWeight: 700, background: '#f1f5f9', borderRadius: '10px', padding: '6px 10px', fontSize: '13px', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.10)' },
-  sourceBody: { padding: '18px 18px 18px', display: 'grid', gap: '14px', justifyItems: 'center' },
+  sourceBody: { padding: '18px 18px 18px', display: 'grid', gap: '14px', alignItems: 'center' },
   panelHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' },
   panelTitle: { margin: 0, color: '#475569', fontSize: '19px', fontWeight: 700 },
   panelSub: { margin: 0, color: '#64748b', fontSize: '14px', fontWeight: 600 },
@@ -96,8 +96,8 @@ const shell = {
   donutWrap: { display: 'grid', gridTemplateColumns: '1fr', gap: '14px', justifyItems: 'center', marginTop: '2px' },
   donut: { width: '268px', height: '268px', borderRadius: '50%', position: 'relative' },
   donutInner: { position: 'absolute', inset: '30%', borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px' },
-  sourceLegend: { display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 12px', maxWidth: '840px' },
-  sourceLegendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 },
+  sourceLegend: { display: 'grid', gap: '10px', width: '100%', alignContent: 'start' },
+  sourceLegendItem: { display: 'grid', gridTemplateColumns: '13px minmax(0, 1fr) auto', alignItems: 'center', gap: '10px', color: '#475569', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 },
   sourceLegendDot: { width: '13px', height: '13px', borderRadius: '999px', display: 'inline-block', flexShrink: 0 }
 };
 
@@ -148,6 +148,13 @@ const mapLeadSourceLabel = (value) => {
   if (['call', 'phone', 'telecall', 'telephone'].includes(compact)) return 'Call';
   if (['referral', 'reference', 'rpci', 'refer', 'ref'].includes(compact)) return 'Referral';
   return raw || 'Unknown';
+};
+
+const mapLeadSourceDisplayLabel = (value) => {
+  const raw = String(value || '').trim();
+  if (raw === 'Google Business Profile') return 'GMB';
+  if (raw === 'Existing Customer') return 'Existing';
+  return raw;
 };
 
 export default function Dashboard() {
@@ -427,6 +434,15 @@ export default function Dashboard() {
   const graphGridStyle = viewportWidth >= 1200
     ? shell.graphGrid
     : { ...shell.graphGrid, gridTemplateColumns: '1fr' };
+  const sourceBodyStyle = isMobile
+    ? { ...shell.sourceBody, justifyItems: 'center' }
+    : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch' };
+  const sourceLegendStyle = isMobile
+    ? { ...shell.sourceLegend, justifyItems: 'center', textAlign: 'center', maxWidth: '100%' }
+    : { ...shell.sourceLegend, justifyItems: 'stretch', textAlign: 'left', maxWidth: '280px' };
+  const sourceLegendItemStyle = isMobile
+    ? { ...shell.sourceLegendItem, gridTemplateColumns: '13px auto auto', justifyContent: 'center' }
+    : shell.sourceLegendItem;
 
   const incomeExpenseMax = Math.max(
     ...analytics.incomeSeries.map((x) => x.value),
@@ -566,10 +582,11 @@ export default function Dashboard() {
             <h2 style={shell.sourceHeaderTitle}>Lead Sources</h2>
             <span style={shell.sourceHeaderBadge}>{leadPipeline.sourceTotal} total</span>
           </div>
-          <div style={shell.sourceBody}>
+          <div style={sourceBodyStyle}>
             <div
               style={{
                 ...shell.donut,
+                justifySelf: 'center',
                 background: `conic-gradient(${leadPipeline.sourceSeries.reduce((segments, item, index, list) => {
                   const entryColor = leadSourcePalette[item.name] || leadSourcePalette.Other;
                   const start = list.slice(0, index).reduce((sum, e) => sum + e.count, 0);
@@ -588,16 +605,16 @@ export default function Dashboard() {
             {leadPipeline.sourceSeries.length === 0 ? (
               <div style={{ color: '#64748b', fontWeight: 700 }}>No lead source data available.</div>
             ) : (
-              <div style={shell.sourceLegend}>
+              <div style={sourceLegendStyle}>
                 {leadPipeline.sourceSeries.map((entry) => (
-                  <span key={entry.name} style={shell.sourceLegendItem}>
+                  <span key={entry.name} style={sourceLegendItemStyle}>
                     <span
                       style={{
                         ...shell.sourceLegendDot,
                         background: leadSourcePalette[entry.name] || leadSourcePalette.Other
                       }}
                     />
-                    <span>{entry.name}</span>
+                    <span>{mapLeadSourceDisplayLabel(entry.name)}</span>
                     <span style={{ color: '#64748b', fontWeight: 700 }}>{entry.count}</span>
                   </span>
                 ))}

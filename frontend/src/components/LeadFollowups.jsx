@@ -23,6 +23,7 @@ const ALL_VALUE = '__all__';
 const FOLLOWUP_PAGE_SIZE = 20;
 const FOLLOWUP_COLUMN_WIDTHS_KEY = 'lead_followups_column_widths';
 const LEAD_FOLLOWUPS_CACHE_KEY = 'lead_followups_cache_v1';
+const LEAD_FOLLOWUPS_SORT_STORAGE_KEY = 'lead_followups_sort_state_v1';
 
 const defaultColumnWidths = {
   lead: 72,
@@ -160,7 +161,17 @@ export default function LeadFollowups() {
   const [filters, setFilters] = useState(draftFilters);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [page, setPage] = useState(1);
-  const [sortConfig, setSortConfig] = useState({ key: 'nextFollowup', direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LEAD_FOLLOWUPS_SORT_STORAGE_KEY) || '{}');
+      return {
+        key: String(saved?.key || '').trim() || 'nextFollowup',
+        direction: saved?.direction === 'desc' ? 'desc' : 'asc'
+      };
+    } catch {
+      return { key: 'nextFollowup', direction: 'asc' };
+    }
+  });
   const loadRequestRef = useRef(null);
   const {
     getColumnWidth,
@@ -219,6 +230,14 @@ export default function LeadFollowups() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LEAD_FOLLOWUPS_SORT_STORAGE_KEY, JSON.stringify(sortConfig));
+    } catch {
+      // ignore storage persistence issues
+    }
+  }, [sortConfig]);
 
   const today = useMemo(() => {
     const next = new Date();

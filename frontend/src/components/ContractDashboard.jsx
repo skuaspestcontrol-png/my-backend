@@ -38,6 +38,7 @@ import RupeeSymbol from './ui/RupeeSymbol';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const CONTRACT_PAGE_SIZE = 20;
 const CONTRACTS_DASHBOARD_CACHE_KEY = 'contracts_dashboard_cache_v1';
+const CONTRACTS_SORT_STORAGE_KEY = 'contracts_sort_direction_v1';
 
 const statusStyles = {
   Active: { background: 'rgba(22,163,74,0.16)', color: '#166534' },
@@ -505,7 +506,14 @@ export default function ContractDashboard() {
   const [cachedDashboard] = useState(() => readContractsDashboardCache());
   const hasCachedDashboard = Boolean(cachedDashboard);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [contractSortDirection, setContractSortDirection] = useState('asc');
+  const [contractSortDirection, setContractSortDirection] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CONTRACTS_SORT_STORAGE_KEY);
+      return saved === 'desc' ? 'desc' : 'asc';
+    } catch {
+      return 'asc';
+    }
+  });
   const [quickFilter, setQuickFilter] = useState('All');
   const [filters, setFilters] = useState({ status: 'All Status', type: 'All Type', from: '', to: '', search: '' });
   const [activeTab, setActiveTab] = useState('Overview');
@@ -694,6 +702,14 @@ export default function ContractDashboard() {
   useEffect(() => {
     mergeContractsDashboardCache({ visibleColumns });
   }, [visibleColumns]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CONTRACTS_SORT_STORAGE_KEY, contractSortDirection);
+    } catch {
+      // ignore storage persistence issues
+    }
+  }, [contractSortDirection]);
 
   useEffect(() => {
     const handleContractsRefresh = () => {
