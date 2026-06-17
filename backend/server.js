@@ -8192,7 +8192,8 @@ app.delete('/api/customers/:id', async (req, res) => {
 });
 
 const toNumber = (value, fallback = 0) => {
-  const n = Number(value);
+  const normalizedValue = typeof value === 'string' ? value.replace(/,/g, '').trim() : value;
+  const n = Number(normalizedValue);
   return Number.isFinite(n) ? n : fallback;
 };
 

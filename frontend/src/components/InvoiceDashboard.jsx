@@ -2768,9 +2768,9 @@ export default function InvoiceDashboard() {
         ...line,
         description: String(line.frequency || line.description || '').trim(),
         frequency: String(line.frequency || line.description || '').trim(),
-        quantity: Number(line.quantity || 0),
-        rate: Number(line.rate || 0),
-        taxRate: invoiceType === 'NON GST' ? 0 : Number(line.taxRate || 0)
+        quantity: parseDecimalNumber(line.quantity, 0),
+        rate: parseDecimalNumber(line.rate, 0),
+        taxRate: invoiceType === 'NON GST' ? 0 : parseDecimalNumber(line.taxRate, 0)
       }))
       .filter((line) => line.itemName && line.quantity > 0);
 
