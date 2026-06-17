@@ -138,6 +138,13 @@ const parseTimeTo24Hour = (value, fallback = '') => {
   return fallback;
 };
 
+const sanitizeManualTimeInput = (value) =>
+  String(value || '')
+    .toUpperCase()
+    .replace(/[^0-9APM:\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trimStart();
+
 const formatTimeForEdit = (value) => {
   const normalized = parseTimeTo24Hour(value, '');
   return normalized ? formatServiceScheduleTime(normalized) : '';
@@ -1103,10 +1110,10 @@ export default function ScheduleJob() {
                     <td style={cellStyle('window', 'center')}>
                       <input
                         type="text"
-                        inputMode="text"
+                        inputMode="numeric"
                         placeholder="1:00 PM"
                         value={editableServiceRows.find((entry) => entry.key === row.key)?.editableTime || ''}
-                        onChange={(event) => updateEditableRow(row.key, { editableTime: event.target.value })}
+                        onChange={(event) => updateEditableRow(row.key, { editableTime: sanitizeManualTimeInput(event.target.value) })}
                         onBlur={(event) => updateEditableRow(row.key, { editableTime: formatTimeForEdit(event.target.value) })}
                         style={{
                           ...shell.input,
