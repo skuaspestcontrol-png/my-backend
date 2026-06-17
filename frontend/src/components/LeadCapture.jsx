@@ -435,15 +435,15 @@ const s = {
   viewItemValue: { fontSize: '13px', color: '#111827', fontWeight: 600, lineHeight: 1.35, wordBreak: 'break-word' },
   followupOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 2600, display: 'grid', placeItems: 'center', padding: '16px' },
   followupModal: { width: 'min(640px, 96vw)', background: 'rgba(255,255,255,0.98)', border: '1px solid var(--color-border)', borderRadius: '16px', boxShadow: '0 24px 54px rgba(15,23,42,0.25)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
-  followupHead: { padding: '14px 16px', borderBottom: '1px solid var(--brand-border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-primary)' },
-  followupTitle: { margin: 0, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.01em', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  followupHead: { minHeight: '64px', padding: '16px 22px', borderBottom: '1px solid var(--brand-border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-primary)' },
+  followupTitle: { margin: 0, fontSize: '24px', lineHeight: 1.2, fontWeight: 800, letterSpacing: 0, color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '8px' },
   followupBody: { padding: '14px 16px', display: 'grid', gap: '12px', background: '#ffffff', overflowY: 'auto' },
   followupLeadBadge: { border: '1px solid var(--color-border)', borderRadius: '10px', background: '#F3F4F6', padding: '10px 12px', color: '#334155', fontSize: '14px', fontWeight: 700, lineHeight: 1.35, wordBreak: 'break-word' },
   followupGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', alignItems: 'start' },
   followupField: { minWidth: 0, display: 'grid', gap: '6px' },
   followupInput: { width: '100%', minWidth: 0, boxSizing: 'border-box', minHeight: '40px' },
   followupTextarea: { width: '100%', minWidth: 0, boxSizing: 'border-box', minHeight: '86px' },
-  followupActions: { padding: '12px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: 'var(--color-primary-light)' },
+  followupActions: { minHeight: '64px', padding: '12px 24px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: '#fff' },
   followupCancelBtn: { minHeight: '42px', padding: '0 20px', borderRadius: '10px', border: '1px solid var(--color-border)', background: '#fff', color: '#334155', fontWeight: 700, cursor: 'pointer' },
   followupSaveBtn: { minHeight: '42px', padding: '0 20px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.35)', background: 'var(--color-primary)', color: '#fff', fontWeight: 800, cursor: 'pointer' }
 };
@@ -2285,7 +2285,7 @@ export default function LeadCapture() {
   const leadModalStyle = isMobile
     ? { ...s.cn, width: '100%', maxWidth: 'calc(100vw - 20px)', maxHeight: '92vh', boxSizing: 'border-box' }
     : s.cn;
-  const leadModalHeadStyle = isMobile ? { ...s.hd, minHeight: '60px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', fontSize: '22px', padding: '14px 16px' } : s.hd;
+  const leadModalHeadStyle = isMobile ? { ...s.hd, minHeight: '64px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', fontSize: '22px', padding: '14px 16px' } : s.hd;
   const leadModalBodyStyle = isMobile ? { ...s.body, padding: '14px', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } : s.body;
   const leadGridStyle = isTablet || isMobile ? { ...s.gd, gridTemplateColumns: '1fr' } : s.gd;
   const leadFieldHalfStyle = isTablet || isMobile ? { ...s.fieldHalf, gridColumn: '1 / -1' } : s.fieldHalf;

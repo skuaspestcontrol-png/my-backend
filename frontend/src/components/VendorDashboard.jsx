@@ -128,6 +128,7 @@ const shell = {
   addressCopy: { fontSize: '12px', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', border: 'none', background: 'transparent', padding: 0, lineHeight: 1.2 },
   addressGrid: { display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', rowGap: '8px', columnGap: '10px', alignItems: 'center' },
   footer: { padding: '12px 18px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#fff' },
+  footer: { minHeight: '64px', padding: '12px 24px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', background: '#fff' },
   cancelButton: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '18px', padding: '10px 18px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' },
   saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '18px', padding: '10px 20px', fontSize: '16px', fontWeight: 800, cursor: 'pointer' }
 };
@@ -391,7 +392,7 @@ export default function VendorDashboard() {
   const modalStyle = isMobile
     ? { ...shell.modal, width: '96vw', maxHeight: '92dvh', height: '92dvh', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)' }
     : shell.modal;
-  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '60px', fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
+  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '64px', fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
   const bodyStyle = isMobile ? { ...shell.body, padding: '12px 14px', paddingBottom: 'calc(130px + env(safe-area-inset-bottom))' } : shell.body;
   const gridStyle = isMobile ? { ...shell.grid, gridTemplateColumns: '1fr' } : shell.grid;
   const addressSplitStyle = isMobile ? { ...shell.addressSplit, gridTemplateColumns: '1fr', gap: '10px' } : shell.addressSplit;

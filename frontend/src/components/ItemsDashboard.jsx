@@ -272,9 +272,9 @@ const shell = {
   },
   modalHeader: {
     flexShrink: 0,
-    padding: '9px 14px',
+    padding: '16px 22px',
     borderBottom: '1px solid rgba(255,255,255,0.10)',
-    fontSize: '16px',
+    fontSize: '24px',
     fontWeight: 800,
     color: '#fff',
     background: 'linear-gradient(180deg, rgba(12, 12, 12, 0.98) 0%, rgba(4, 4, 4, 1) 100%)',
@@ -282,7 +282,8 @@ const shell = {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '10px',
-    minHeight: '52px'
+    minHeight: '64px',
+    lineHeight: 1.2
   },
   modalHeaderTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
   modalCloseButton: {
@@ -365,12 +366,14 @@ const shell = {
   },
   modalFooter: {
     flexShrink: 0,
-    padding: '8px 10px',
+    minHeight: '64px',
+    padding: '12px 24px',
     borderTop: '1px solid rgba(15, 23, 42, 0.08)',
     display: 'flex',
+    alignItems: 'center',
     justifyContent: 'flex-end',
     gap: '8px',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,1) 100%)'
+    background: '#fff'
   },
   cancelButton: {
     border: '1px solid #D1D5DB',
@@ -778,7 +781,7 @@ export default function ItemsDashboard() {
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const buttonPrimaryStyle = isTiny ? { ...shell.buttonPrimary, padding: '8px 12px', fontSize: '13px' } : shell.buttonPrimary;
   const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton, width: '34px', height: '34px', minWidth: '34px', minHeight: '34px' } : shell.customizeButton;
-  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
+  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '64px', fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
   const paginationStyle = isMobile ? { ...shell.pagination, flexDirection: 'column', alignItems: 'stretch' } : shell.pagination;
   const paginationActionsStyle = isMobile ? { display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' } : { display: 'inline-flex', alignItems: 'center', gap: '8px' };
 
