@@ -817,6 +817,13 @@ export default function ContractDashboard() {
   const allContracts = useMemo(() => {
     return invoices.map((invoice, index) => {
       const lines = Array.isArray(invoice.items) && invoice.items.length > 0 ? invoice.items : [{}];
+      const lineServicesTotal = lines.reduce((sum, line) => {
+        const requestedServices = Number(line?.totalServices || 0);
+        if (Number.isFinite(requestedServices) && requestedServices > 0) {
+          return sum + requestedServices;
+        }
+        return sum + (line?.itemName ? 1 : 0);
+      }, 0);
       const startCandidates = lines
         .map((line) => line.contractStartDate || line.serviceStartDate || invoice.servicePeriodStart || invoice.date)
         .filter(Boolean);
@@ -862,7 +869,12 @@ export default function ContractDashboard() {
         city: String(customer?.billingState || customer?.shippingState || '-').trim(),
         startDate: startInputDate,
         endDate: endInputDate,
-        services: Math.max(0, Number(serviceMeta.total || lines.length)),
+        services: Math.max(
+          0,
+          Number(serviceMeta.total || 0),
+          Number(lineServicesTotal || 0),
+          Number(lines.length || 0)
+        ),
         servicesDone: Math.max(0, Number(serviceMeta.completed || 0)),
         nextServiceDate: serviceMeta.nextServiceDate || '',
         nextServiceTime: serviceMeta.nextServiceTime || '',
