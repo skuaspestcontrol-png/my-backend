@@ -1153,6 +1153,7 @@ export default function InvoiceDashboard() {
   const [companySettings, setCompanySettings] = useState({});
   const [settingsHydrated, setSettingsHydrated] = useState(Boolean(cachedInvoiceState));
   const [invoicesHydrated, setInvoicesHydrated] = useState(Boolean(cachedInvoiceState));
+  const [invoicesLoadedFromApi, setInvoicesLoadedFromApi] = useState(false);
   const [form, setForm] = useState(() => (canRestoreNewContractDraft && savedNewContractDraft?.form ? savedNewContractDraft.form : emptyForm));
   const [serviceScheduleDraft, setServiceScheduleDraft] = useState(() => (
     canRestoreNewContractDraft && savedNewContractDraft?.serviceScheduleDraft
@@ -1567,6 +1568,7 @@ export default function InvoiceDashboard() {
         invoices: nextInvoices,
         payments: nextPayments
       });
+      setInvoicesLoadedFromApi(true);
     } catch (error) {
       console.error('Failed to load invoices', error);
     } finally {
@@ -2234,6 +2236,7 @@ export default function InvoiceDashboard() {
     const targetId = routeOpenInvoiceId;
     const targetNumber = routeOpenInvoiceNumber;
     if (!targetId && !targetNumber) return;
+    if (routeFromContract && !invoicesLoadedFromApi) return;
     if (!invoicesHydrated) return;
     if (!Array.isArray(invoices) || invoices.length === 0) return;
 
@@ -2265,6 +2268,7 @@ export default function InvoiceDashboard() {
     routeEditContract,
     routeFromContract,
     routeViewContract,
+    invoicesLoadedFromApi,
     routeOpenInvoiceId,
     routeOpenInvoiceNumber,
     routeOpenInvoiceNumberPrefs,

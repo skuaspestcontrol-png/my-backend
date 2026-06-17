@@ -696,7 +696,8 @@ export default function ContractDashboard() {
   }, [visibleColumns]);
 
   useEffect(() => {
-    const refreshOpenPdf = () => {
+    const handleContractsRefresh = () => {
+      loadContractsData({ silent: true });
       setPdfPreview((prev) => {
         if (!prev.open || !prev.invoiceId || !prev.pdfUrl) return prev;
         const invoiceId = String(prev.invoiceId || '').trim();
@@ -712,8 +713,8 @@ export default function ContractDashboard() {
       });
     };
 
-    return subscribeContractsRefresh(refreshOpenPdf);
-  }, []);
+    return subscribeContractsRefresh(handleContractsRefresh);
+  }, [loadContractsData]);
 
   useEffect(() => {
     const onDocClick = (event) => {
