@@ -3715,6 +3715,7 @@ const DEFAULT_LEAD_SOURCES = [
   'GMB',
   'Website',
   'Reference',
+  'Existing Customer',
   'RPCI',
   'Hometriangle',
   'Justdial',
