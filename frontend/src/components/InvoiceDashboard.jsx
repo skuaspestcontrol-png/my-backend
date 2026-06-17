@@ -16,6 +16,7 @@ import { triggerContractsRefresh } from '../pages/sales-performance/salesPerform
 import { subscribeDashboardRefresh, triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import PdfPreviewModal from './PdfPreviewModal';
 import ServiceScheduleBuilder from './ServiceScheduleBuilder';
+import { DEFAULT_LEAD_SOURCES, mergeLeadSourceOptions } from '../utils/leadSources';
 import {
   buildContractWindow,
   buildServiceScheduleDraftFromInvoice,
@@ -303,6 +304,7 @@ const emptyForm = {
   premiseGoogleMapUrl: '',
   customShippingAddresses: [],
   placeOfSupply: '',
+  leadSource: '',
   invoiceNumber: '',
   date: new Date().toISOString().slice(0, 10),
   terms: 'Paid',
@@ -1124,6 +1126,7 @@ export default function InvoiceDashboard() {
   const [customerPremises, setCustomerPremises] = useState({});
   const [itemsCatalog, setItemsCatalog] = useState(() => cachedInvoiceState?.itemsCatalog || []);
   const [employees, setEmployees] = useState(() => cachedInvoiceState?.employees || []);
+  const [leadSourceOptions, setLeadSourceOptions] = useState(() => [...DEFAULT_LEAD_SOURCES]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [page, setPage] = useState(1);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -1580,6 +1583,13 @@ export default function InvoiceDashboard() {
         axios.get(`${API_BASE_URL}/api/employees`),
         axios.get(`${API_BASE_URL}/api/settings`)
       ]);
+      let nextLeadSources = [...DEFAULT_LEAD_SOURCES];
+      try {
+        const leadSourceRes = await axios.get(`${API_BASE_URL}/api/leads/sources`);
+        nextLeadSources = mergeLeadSourceOptions(leadSourceRes.data, DEFAULT_LEAD_SOURCES);
+      } catch (error) {
+        console.error('Lead sources fetch failed', error);
+      }
       const nextCustomers = Array.isArray(customersRes.data) ? customersRes.data : [];
       const nextItemsCatalog = Array.isArray(itemsRes.data) ? itemsRes.data : [];
       const nextEmployees = Array.isArray(employeesRes.data) ? employeesRes.data : [];
@@ -1595,6 +1605,7 @@ export default function InvoiceDashboard() {
       setCustomers(nextCustomers);
       setItemsCatalog(nextItemsCatalog);
       setEmployees(nextEmployees);
+      setLeadSourceOptions(nextLeadSources);
       setInvoiceNumberPrefs(prefs);
       setInvoiceNumberPrefsDraft(prefs);
       const nextVisibleColumns = normalizeInvoiceVisibleColumns(settingsData.invoiceVisibleColumns);
@@ -2048,6 +2059,7 @@ export default function InvoiceDashboard() {
         }))
         : [],
       placeOfSupply: normalizeGstState(invoice.placeOfSupply || ''),
+      leadSource: String(invoice.leadSource || invoice.lead_source || '').trim(),
       invoiceNumber: invoice.invoiceNumber || '',
       date: normalizeDateInput(
         invoice.date
@@ -2820,6 +2832,7 @@ export default function InvoiceDashboard() {
       premiseState: selectedShippingAddress?.state || form.premiseState || '',
       premisePincode: selectedShippingAddress?.pincode || form.premisePincode || '',
       premiseGoogleMapUrl: selectedShippingAddress?.googleMapUrl || form.premiseGoogleMapUrl || '',
+      leadSource: String(form.leadSource || '').trim(),
       invoiceNumber: form.invoiceNumber.trim() || createNextInvoiceNumber(invoiceNumberPrefs, invoiceType),
       date: form.date,
       terms: form.terms,
@@ -3690,6 +3703,22 @@ export default function InvoiceDashboard() {
                       <option key={state.code} value={label}>{label}</option>
                     );
                   })}
+                </select>
+                <div />
+                <div />
+              </div>
+
+              <div style={supplyRowStyle}>
+                <label style={shell.label}>Lead Source</label>
+                <select
+                  style={compactContractControlStyle}
+                  value={form.leadSource}
+                  onChange={(event) => setFormWithTotals((prev) => ({ ...prev, leadSource: event.target.value }))}
+                >
+                  <option value="">Select lead source</option>
+                  {leadSourceOptions.map((source) => (
+                    <option key={source} value={source}>{source}</option>
+                  ))}
                 </select>
                 <div />
                 <div />

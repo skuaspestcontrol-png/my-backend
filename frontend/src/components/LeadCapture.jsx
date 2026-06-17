@@ -24,6 +24,7 @@ import SortChevronIcon from './ui/SortChevronIcon';
 import { getPortalUserName } from '../utils/portalAuth';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
+import { DEFAULT_LEAD_SOURCES, mergeLeadSourceOptions } from '../utils/leadSources';
 import {
   AlertTriangle,
   CalendarDays,
@@ -40,7 +41,6 @@ import {
   X
 } from 'lucide-react';
 
-const LEAD_SOURCES = ['Call', 'GoogleAds', 'GMB', 'Website', 'Reference', 'RPCI', 'Hometriangle', 'Justdial', 'Indiamart', 'Walkin'];
 const PEST_ISSUES = [
   'Cockroach Control',
   'Rodent Control',
@@ -647,6 +647,7 @@ export default function LeadCapture() {
   const [leads, setLeads] = useState(() => Array.isArray(cachedDashboard?.leads) ? cachedDashboard.leads : []);
   const [customers, setCustomers] = useState(() => Array.isArray(cachedDashboard?.customers) ? cachedDashboard.customers : []);
   const [employees, setEmployees] = useState(() => Array.isArray(cachedDashboard?.employees) ? cachedDashboard.employees : []);
+  const [leadSourceOptions, setLeadSourceOptions] = useState(() => [...DEFAULT_LEAD_SOURCES]);
   const [show, setShow] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [sameAsMobile, setSameAsMobile] = useState(false);
@@ -800,13 +801,9 @@ export default function LeadCapture() {
   }, [leads]);
 
   const leadSourceFilterOptions = useMemo(() => {
-    const values = new Set(LEAD_SOURCES);
-    leads.forEach((lead) => {
-      const raw = String(lead.leadSource || '').trim();
-      if (raw) values.add(raw);
-    });
-    return Array.from(values).sort((a, b) => a.localeCompare(b));
-  }, [leads]);
+    const values = leads.map((lead) => lead.leadSource || '');
+    return mergeLeadSourceOptions(leadSourceOptions, values);
+  }, [leadSourceOptions, leads]);
 
   const statusFilterOptions = useMemo(() => {
     const values = new Set(LEAD_STATUSES);
@@ -991,20 +988,25 @@ export default function LeadCapture() {
     const requestId = dashboardLoadRef.current + 1;
     dashboardLoadRef.current = requestId;
 
-    const [leadRes, employeeRes, customerRes] = await Promise.allSettled([
+    const [leadRes, employeeRes, customerRes, leadSourceRes] = await Promise.allSettled([
       axios.get(`${API_BASE_URL}/api/leads`),
       axios.get(`${API_BASE_URL}/api/employees`),
-      axios.get(`${API_BASE_URL}/api/customers`)
+      axios.get(`${API_BASE_URL}/api/customers`),
+      axios.get(`${API_BASE_URL}/api/leads/sources`)
     ]);
     if (dashboardLoadRef.current !== requestId) return;
 
     const nextLeads = leadRes.status === 'fulfilled' ? toObjectList(leadRes.value?.data) : [];
     const nextEmployees = employeeRes.status === 'fulfilled' ? toObjectList(employeeRes.value?.data) : [];
     const nextCustomers = customerRes.status === 'fulfilled' ? toObjectList(customerRes.value?.data) : [];
+    const nextLeadSources = leadSourceRes.status === 'fulfilled'
+      ? mergeLeadSourceOptions(leadSourceRes.value?.data, DEFAULT_LEAD_SOURCES)
+      : [...DEFAULT_LEAD_SOURCES];
 
     setLeads(nextLeads);
     setEmployees(nextEmployees);
     setCustomers(nextCustomers);
+    setLeadSourceOptions(nextLeadSources);
 
     if (leadRes.status !== 'fulfilled') {
       console.error('Leads fetch failed', leadRes.reason);
@@ -1014,6 +1016,9 @@ export default function LeadCapture() {
     }
     if (customerRes.status !== 'fulfilled') {
       console.error('Customers fetch failed', customerRes.reason);
+    }
+    if (leadSourceRes.status !== 'fulfilled') {
+      console.error('Lead sources fetch failed', leadSourceRes.reason);
     }
 
     mergeLeadsDashboardCache({
@@ -3229,7 +3234,7 @@ export default function LeadCapture() {
                   <div>
                     <label style={s.lb}>Lead Source</label>
                     <select value={form.leadSource} style={s.in} onChange={(e) => handleLeadSourceChange(e.target.value)}>
-                      {LEAD_SOURCES.map((source) => <option key={source}>{source}</option>)}
+                      {leadSourceOptions.map((source) => <option key={source} value={source}>{source}</option>)}
                     </select>
                   </div>
                   {form.leadSource === 'Reference' ? (

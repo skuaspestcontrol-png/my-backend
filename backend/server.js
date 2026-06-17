@@ -3709,6 +3709,19 @@ const normalizeLeadShape = (input = {}, fallbackId = '') => {
   };
 };
 
+const DEFAULT_LEAD_SOURCES = [
+  'Call',
+  'GoogleAds',
+  'GMB',
+  'Website',
+  'Reference',
+  'RPCI',
+  'Hometriangle',
+  'Justdial',
+  'Indiamart',
+  'Walkin'
+];
+
 const toMysqlDateTime = (value) => {
   if (!value) return null;
   const parsed = new Date(value);
@@ -5395,6 +5408,36 @@ app.get('/api/leads', async (req, res) => {
   } catch (error) {
     console.error('Failed to fetch leads from MySQL:', error.message);
     return res.status(500).json({ error: error.message || 'Failed to fetch leads from MySQL' });
+  }
+});
+
+app.get('/api/leads/sources', async (_req, res) => {
+  if (!canUseMysql()) {
+    return res.json(DEFAULT_LEAD_SOURCES);
+  }
+
+  try {
+    const mysqlRows = await withMysqlConnection(async (conn) => {
+      await ensureLeadPlaceColumns(conn);
+      const [rows] = await conn.query(
+        `SELECT DISTINCT TRIM(lead_source) AS lead_source
+         FROM leads
+         WHERE lead_source IS NOT NULL AND TRIM(lead_source) <> ''
+         ORDER BY lead_source ASC`
+      );
+      return Array.isArray(rows) ? rows : [];
+    });
+
+    const sourceSet = new Set(DEFAULT_LEAD_SOURCES);
+    (Array.isArray(mysqlRows) ? mysqlRows : []).forEach((row) => {
+      const raw = String(row?.lead_source || '').trim();
+      if (raw) sourceSet.add(raw);
+    });
+
+    return res.json(Array.from(sourceSet));
+  } catch (error) {
+    console.error('Failed to fetch lead sources from MySQL:', error.message);
+    return res.json(DEFAULT_LEAD_SOURCES);
   }
 });
 
