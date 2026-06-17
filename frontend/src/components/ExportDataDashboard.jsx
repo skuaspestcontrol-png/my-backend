@@ -293,6 +293,7 @@ const buildInvoiceExportRow = ({ invoice = {}, customer = null, index = 0, contr
     withholdingRate: cleanText(firstValue(invoice, ['withholdingRate', 'withholding_rate']), '-'),
     withholdingAmount: cleanText(formatCurrency(firstValue(invoice, ['withholdingAmount', 'withholding_amount'])), '-'),
     discount: cleanText(formatCurrency(firstValue(invoice, ['discount'])), '-'),
+    roundOff: cleanText(formatCurrency(firstValue(invoice, ['roundOff', 'round_off'])), '-'),
     serviceScheduleDefaultTime: cleanText(firstValue(invoice, ['serviceScheduleDefaultTime'])),
     paymentReceivedEnabled: String(Boolean(firstValue(invoice, ['paymentReceivedEnabled']))),
     notes: cleanText(firstValue(invoice, ['notes', 'customerNotes', 'termsAndConditions']))
@@ -574,6 +575,7 @@ const moduleDefinitions = [
       { key: 'total', label: 'Total' },
       { key: 'balanceDue', label: 'Balance Due' },
       { key: 'discount', label: 'Discount' },
+      { key: 'roundOff', label: 'Round Off' },
       { key: 'notes', label: 'Notes' }
     ],
     loadRows: getContractExportRows,
@@ -605,6 +607,7 @@ const moduleDefinitions = [
       { key: 'amount', label: 'Amount' },
       { key: 'balanceDue', label: 'Balance Due' },
       { key: 'discount', label: 'Discount' },
+      { key: 'roundOff', label: 'Round Off' },
       { key: 'serviceScheduleDefaultTime', label: 'Service Time' },
       { key: 'paymentReceivedEnabled', label: 'Payment Received Enabled' },
       { key: 'notes', label: 'Notes' }
