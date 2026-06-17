@@ -339,6 +339,12 @@ export default function Dashboard() {
       const key = mapLeadSourceLabel(lead.leadSource);
       sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1);
     });
+    invoices.forEach((invoice) => {
+      const rawSource = String(invoice?.leadSource || invoice?.lead_source || '').trim();
+      if (!rawSource) return;
+      const key = mapLeadSourceLabel(rawSource);
+      sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1);
+    });
     const orderedSources = [
       ...leadSourceOrder,
       ...Array.from(sourceCounts.keys()).filter((name) => !leadSourceOrder.includes(name) && name !== 'Unknown').sort((a, b) => a.localeCompare(b))
@@ -359,7 +365,7 @@ export default function Dashboard() {
       sourceSeries,
       sourceTotal
     };
-  }, [leads, analytics.totalReceivables]);
+  }, [leads, invoices, analytics.totalReceivables]);
 
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim();
   const aboutTagline = String(settings.aboutTagline || 'Professional in Pest Control').trim();
@@ -558,7 +564,7 @@ export default function Dashboard() {
         <article style={shell.sourcePanel}>
           <div style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Lead Sources</h2>
-            <span style={shell.sourceHeaderBadge}>{leadPipeline.totalLeads} total</span>
+            <span style={shell.sourceHeaderBadge}>{leadPipeline.sourceTotal} total</span>
           </div>
           <div style={shell.sourceBody}>
             <div
@@ -567,8 +573,8 @@ export default function Dashboard() {
                 background: `conic-gradient(${leadPipeline.sourceSeries.reduce((segments, item, index, list) => {
                   const entryColor = leadSourcePalette[item.name] || leadSourcePalette.Other;
                   const start = list.slice(0, index).reduce((sum, e) => sum + e.count, 0);
-                  const startPct = leadPipeline.totalLeads > 0 ? (start / leadPipeline.totalLeads) * 100 : 0;
-                  const endPct = leadPipeline.totalLeads > 0 ? ((start + item.count) / leadPipeline.totalLeads) * 100 : startPct;
+                  const startPct = leadPipeline.sourceTotal > 0 ? (start / leadPipeline.sourceTotal) * 100 : 0;
+                  const endPct = leadPipeline.sourceTotal > 0 ? ((start + item.count) / leadPipeline.sourceTotal) * 100 : startPct;
                   segments.push(`${entryColor} ${startPct}% ${endPct}%`);
                   return segments;
                 }, []).join(', ') || '#e5e7eb 0 100%'})`
@@ -576,7 +582,7 @@ export default function Dashboard() {
             >
               <div style={shell.donutInner}>
                 <div style={{ color: '#64748b', fontWeight: 700, fontSize: '14px' }}>Lead Sources</div>
-                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800, lineHeight: 1 }}>{leadPipeline.totalLeads}</div>
+                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800, lineHeight: 1 }}>{leadPipeline.sourceTotal}</div>
               </div>
             </div>
             {leadPipeline.sourceSeries.length === 0 ? (
@@ -584,23 +590,16 @@ export default function Dashboard() {
             ) : (
               <div style={shell.sourceLegend}>
                 {leadPipeline.sourceSeries.map((entry) => (
-                  <button
-                    key={entry.name}
-                    type="button"
-                    onClick={() => navigate('/leads')}
-                    style={{ border: 'none', background: 'transparent', padding: 0, textAlign: 'left', cursor: 'pointer' }}
-                  >
-                    <span style={shell.sourceLegendItem}>
-                      <span
-                        style={{
-                          ...shell.sourceLegendDot,
-                          background: leadSourcePalette[entry.name] || leadSourcePalette.Other
-                        }}
-                      />
-                      <span>{entry.name}</span>
-                      <span style={{ color: '#64748b', fontWeight: 700 }}>{entry.count}</span>
-                    </span>
-                  </button>
+                  <span key={entry.name} style={shell.sourceLegendItem}>
+                    <span
+                      style={{
+                        ...shell.sourceLegendDot,
+                        background: leadSourcePalette[entry.name] || leadSourcePalette.Other
+                      }}
+                    />
+                    <span>{entry.name}</span>
+                    <span style={{ color: '#64748b', fontWeight: 700 }}>{entry.count}</span>
+                  </span>
                 ))}
               </div>
             )}
