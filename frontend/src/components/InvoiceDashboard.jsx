@@ -3,7 +3,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { ChevronLeft, ChevronRight, FileText, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, FileText, MoreHorizontal, Pencil, PlusCircle, Settings, Trash2, X } from 'lucide-react';
 import SortChevronIcon from './ui/SortChevronIcon';
 import {
   defaultInvoiceVisibleColumns,
@@ -133,6 +133,7 @@ const termsToDays = { Paid: 0, 'Due on Receipt': 0, 'Net 15': 15, 'Net 30': 30, 
 const taxOptions = [0, 5, 12, 18];
 const paymentModeOptions = ['Cheque', 'Cash', 'Bank Transfer', 'UPI', 'Card'];
 const paymentDepositOptions = ['Cash', 'Current Account', 'Saving Account'];
+const contractCustomerTypeOptions = ['New', 'Existing', 'Renewal'];
 const getDefaultPaymentDepositTo = (invoiceType = 'GST') => String(invoiceType || '').trim().toUpperCase() === 'NON GST'
   ? 'Saving Account'
   : 'Current Account';
@@ -294,6 +295,7 @@ const emptyForm = {
   shippingAddressSource: 'shipping',
   billingAddressText: '',
   shippingAddressText: '',
+  customerType: 'New',
   customerPremiseId: '',
   premiseLabel: '',
   premiseAddress: '',
@@ -2044,6 +2046,7 @@ export default function InvoiceDashboard() {
       shippingAddressSource: invoice.shippingAddressSource || 'shipping',
       billingAddressText: invoice.billingAddressText || '',
       shippingAddressText: invoice.shippingAddressText || '',
+      customerType: String(invoice.customerType || invoice.customer_type || 'New').trim() || 'New',
       customerPremiseId: invoice.customerPremiseId || '',
       premiseLabel: invoice.premiseLabel || '',
       premiseAddress: invoice.premiseAddress || '',
@@ -2814,6 +2817,7 @@ export default function InvoiceDashboard() {
       customerId: form.customerId,
       customerName: form.customerName.trim(),
       invoiceType,
+      customerType: String(form.customerType || 'New').trim() || 'New',
       billingAddressSource: form.billingAddressSource,
       shippingAddressSource: form.shippingAddressSource,
       customShippingAddresses: form.customShippingAddresses || [],
@@ -3114,6 +3118,35 @@ export default function InvoiceDashboard() {
     width: '28px',
     padding: 0
   };
+  const customerTypeRowStyle = isMobile
+    ? {
+      display: 'grid',
+      gridTemplateColumns: '1fr',
+      gap: '6px'
+    }
+    : {
+      display: 'grid',
+      gridTemplateColumns: '190px repeat(3, minmax(0, 1fr))',
+      gap: '8px',
+      alignItems: 'center'
+    };
+  const customerTypeOptionStyle = (selected) => ({
+    minHeight: '28px',
+    height: '28px',
+    borderRadius: '10px',
+    border: selected ? '1px solid var(--color-primary)' : '1px solid #d1d5db',
+    background: selected ? 'rgba(215, 34, 74, 0.08)' : '#fff',
+    color: selected ? 'var(--color-primary-dark)' : '#334155',
+    padding: '0 10px',
+    fontSize: '12px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    boxShadow: selected ? 'inset 0 0 0 1px rgba(215, 34, 74, 0.12)' : 'none'
+  });
   const topGridStyle = isMobile ? { ...shell.topGrid, gridTemplateColumns: '1fr' } : shell.topGrid;
   const secondGridStyle = isMobile ? { ...shell.secondGrid, gridTemplateColumns: '1fr' } : shell.secondGrid;
   const subjectRowStyle = isMobile ? { ...shell.subjectRow, gridTemplateColumns: '1fr' } : shell.subjectRow;
@@ -3600,6 +3633,24 @@ export default function InvoiceDashboard() {
               }}
             >
             <div className="crm-modal-surface-body" style={formBodyStyle}>
+              <div style={customerTypeRowStyle}>
+                <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Type*</label>
+                {contractCustomerTypeOptions.map((option) => {
+                  const selected = form.customerType === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      style={customerTypeOptionStyle(selected)}
+                      onClick={() => setFormWithTotals((prev) => ({ ...prev, customerType: option }))}
+                    >
+                      <Check size={14} style={{ opacity: selected ? 1 : 0, flexShrink: 0 }} />
+                      <span>{option}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <div style={customerRowStyle}>
                 <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Name*</label>
                 <input
