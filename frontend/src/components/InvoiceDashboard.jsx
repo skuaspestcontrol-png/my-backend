@@ -349,6 +349,17 @@ const normalizeLegacyInvoicePrefix = (value, fallback = '') => {
   return legacyMatch ? legacyMatch[1] : raw;
 };
 
+const sanitizeDecimalInput = (value) => {
+  const raw = String(value ?? '');
+  if (!raw) return '';
+  const cleaned = raw.replace(/[^0-9.]/g, '');
+  const [integerPart = '', ...fractionParts] = cleaned.split('.');
+  if (fractionParts.length === 0) return integerPart;
+  const fraction = fractionParts.join('').slice(0, 2);
+  const normalizedInteger = integerPart === '' ? '0' : integerPart;
+  return `${normalizedInteger}.${fraction}`;
+};
+
 const normalizeConfiguredInvoicePrefix = (value, fallback = '', invoiceType = 'GST') => {
   const raw = normalizeLegacyInvoicePrefix(value, fallback);
   if (!raw) return String(fallback || '').trim();
@@ -542,7 +553,7 @@ const shell = {
   saveButton: { minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }
 };
 
-const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const formatDisplayDate = (value) => {
   if (!value) return '';
@@ -1474,7 +1485,7 @@ export default function InvoiceDashboard() {
       amount: String(grandTotal),
       total: String(grandTotal),
       withholdingAmount: String(withholdingAmount),
-      discount: String(discount),
+      discount: String(nextForm.discount ?? ''),
       paymentSplits,
       paymentReceivedTotal: String(paymentReceivedTotal),
       status: nextStatus,
@@ -4014,7 +4025,7 @@ export default function InvoiceDashboard() {
                     inputMode="decimal"
                     pattern="[0-9]*[.,]?[0-9]*"
                     value={form.discount}
-                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, discount: event.target.value }))}
+                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, discount: sanitizeDecimalInput(event.target.value) }))}
                   />
                 </div>
                 <div style={shell.totalSummaryRow}>
