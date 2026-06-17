@@ -3755,11 +3755,6 @@ export default function InvoiceDashboard() {
                     );
                   })}
                 </select>
-                <div />
-                <div />
-              </div>
-
-              <div style={supplyRowStyle}>
                 <label style={shell.label}>Lead Source</label>
                 <select
                   style={compactContractControlStyle}
@@ -3771,8 +3766,6 @@ export default function InvoiceDashboard() {
                     <option key={source} value={source}>{source}</option>
                   ))}
                 </select>
-                <div />
-                <div />
               </div>
 
               <div style={topGridStyle}>
