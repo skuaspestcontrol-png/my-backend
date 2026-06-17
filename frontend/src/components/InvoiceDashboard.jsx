@@ -548,6 +548,7 @@ const shell = {
   serviceScheduleEmpty: { fontSize: '12px', color: '#64748b' },
   paymentBlock: { borderTop: '1px solid var(--color-border)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' },
   paymentToggle: { display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: '15px', color: '#1f2937', fontWeight: 700 },
+  paymentToggleGroup: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', alignItems: 'center' },
   paymentTableWrap: { border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden', background: '#fff' },
   paymentTable: { width: '100%', borderCollapse: 'collapse' },
   paymentTh: { padding: '10px 12px', fontSize: '11px', fontWeight: 800, color: '#667085', textTransform: 'uppercase', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', textAlign: 'left' },
@@ -3106,6 +3107,7 @@ export default function InvoiceDashboard() {
   const supplyRowStyle = isMobile ? { ...shell.supplyRow, gridTemplateColumns: '1fr' } : shell.supplyRow;
   const totalsWrapStyle = isMobile ? { ...shell.totalsWrap, width: '100%', marginLeft: 0 } : shell.totalsWrap;
   const paymentTotalsStyle = isMobile ? { ...shell.paymentTotals, minWidth: '100%', marginLeft: 0 } : shell.paymentTotals;
+  const paymentToggleGroupStyle = isMobile ? { ...shell.paymentToggleGroup, gridTemplateColumns: '1fr', gap: '10px' } : shell.paymentToggleGroup;
   const modalOverlayStyle = isMobile ? { ...shell.modalOverlay, padding: '16px 10px' } : shell.modalOverlay;
   const modalOverlayLockedStyle = {
     ...modalOverlayStyle,
@@ -4035,7 +4037,7 @@ export default function InvoiceDashboard() {
                 <div style={shell.totalRow}>
                   <span>Discount</span>
                   <input
-                    style={{ ...shell.input, width: '88px', minHeight: '39px', height: '39px', textAlign: 'right', ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
+                    style={{ ...shell.input, width: '88px', minHeight: '32px', height: '32px', textAlign: 'right', ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
                     type="text"
                     inputMode="decimal"
                     pattern="[0-9]*[.,]?[0-9]*"
@@ -4046,7 +4048,7 @@ export default function InvoiceDashboard() {
                 <div style={shell.totalRow}>
                   <span>Round Off</span>
                   <input
-                    style={{ ...shell.input, width: '88px', minHeight: '39px', height: '39px', textAlign: 'right', ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
+                    style={{ ...shell.input, width: '88px', minHeight: '32px', height: '32px', textAlign: 'right', ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
                     type="text"
                     inputMode="decimal"
                     pattern="[+-]?[0-9]*[.,]?[0-9]*"
@@ -4095,38 +4097,40 @@ export default function InvoiceDashboard() {
                   />
                 </div>
                 <div style={shell.paymentBlock}>
-                  <label style={shell.paymentToggle}>
-                    <input
-                      type="checkbox"
-                      style={shell.checkbox}
-                      checked={Boolean(form.showPaymentDetailsInPdf)}
-                      onChange={(event) =>
-                        setFormWithTotals((prev) => ({
-                          ...prev,
-                          showPaymentDetailsInPdf: event.target.checked
-                        }))
-                      }
-                    />
-                    Show payment details in PDF
-                  </label>
+                  <div style={paymentToggleGroupStyle}>
+                    <label style={shell.paymentToggle}>
+                      <input
+                        type="checkbox"
+                        style={shell.checkbox}
+                        checked={Boolean(form.showPaymentDetailsInPdf)}
+                        onChange={(event) =>
+                          setFormWithTotals((prev) => ({
+                            ...prev,
+                            showPaymentDetailsInPdf: event.target.checked
+                          }))
+                        }
+                      />
+                      Show payment details in PDF
+                    </label>
 
-                  <label style={shell.paymentToggle}>
-                    <input
-                      type="checkbox"
-                      style={shell.checkbox}
-                      checked={Boolean(form.paymentReceivedEnabled)}
-                      onChange={(event) =>
-                        setFormWithTotals((prev) => ({
-                          ...prev,
-                          paymentReceivedEnabled: event.target.checked,
-                          paymentSplits: event.target.checked
-                            ? (Array.isArray(prev.paymentSplits) && prev.paymentSplits.length > 0 ? prev.paymentSplits : [createEmptyPaymentSplit(getDefaultPaymentDepositTo(prev.invoiceType))])
-                            : prev.paymentSplits
-                        }))
-                      }
-                    />
-                    I have received the payment
-                  </label>
+                    <label style={shell.paymentToggle}>
+                      <input
+                        type="checkbox"
+                        style={shell.checkbox}
+                        checked={Boolean(form.paymentReceivedEnabled)}
+                        onChange={(event) =>
+                          setFormWithTotals((prev) => ({
+                            ...prev,
+                            paymentReceivedEnabled: event.target.checked,
+                            paymentSplits: event.target.checked
+                              ? (Array.isArray(prev.paymentSplits) && prev.paymentSplits.length > 0 ? prev.paymentSplits : [createEmptyPaymentSplit(getDefaultPaymentDepositTo(prev.invoiceType))])
+                              : prev.paymentSplits
+                          }))
+                        }
+                      />
+                      I have received the payment
+                    </label>
+                  </div>
 
                   {form.paymentReceivedEnabled ? (
                     <>
