@@ -428,10 +428,10 @@ export default function Dashboard() {
     1
   );
 
-  const successGreen = '#56B881';
-  const dangerRed = '#D45D79';
+  const successGreen = '#16A34A';
+  const dangerRed = '#DC2626';
   const neutralBlack = '#111827';
-  const expenseColors = ['#56B881', '#D45D79', '#111827', '#8B5CF6', '#0F766E'];
+  const expenseColors = ['#16A34A', '#DC2626', '#111827', '#8B5CF6', '#0F766E'];
   const leadFunnelRows = [
     { label: 'Total Leads', value: leadPipeline.totalLeads, color: '#4965dd' },
     { label: 'Interested', value: leadPipeline.interested, color: '#12abc4' },
@@ -545,7 +545,7 @@ export default function Dashboard() {
               <span style={{ fontSize: '12px', color: '#64748b' }}>Conversion Rate</span>
             </span>
             <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
-              <strong style={{ color: '#58b381', fontSize: '22px' }}>{formatCurrency(leadPipeline.pipelineValue)}</strong>
+              <strong style={{ color: '#16A34A', fontSize: '22px' }}>{formatCurrency(leadPipeline.pipelineValue)}</strong>
               <span style={{ fontSize: '12px', color: '#64748b' }}>Pipeline Value</span>
             </span>
             <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
