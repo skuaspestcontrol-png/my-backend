@@ -246,12 +246,50 @@ const parseStatePincodeLine = (value = '') => {
   return { state: text, pincode: '' };
 };
 
+const parseCityStatePincodeLine = (value = '') => {
+  const text = clean(value);
+  if (!text) return { city: '', state: '', pincode: '' };
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  const commaParts = normalized.split(',').map(clean).filter(Boolean);
+  const tail = commaParts.pop() || normalized;
+  const tailParts = parseStatePincodeLine(tail);
+
+  if (commaParts.length >= 1) {
+    return {
+      city: clean(commaParts.join(', ')),
+      state: tailParts.state,
+      pincode: tailParts.pincode
+    };
+  }
+
+  const stateMatch = normalized.match(/^(.*?)(?:[\s,-]+([A-Za-z][A-Za-z\s.&-]*))(?:[\s,-]+(\d{6}))$/);
+  if (stateMatch) {
+    return {
+      city: clean(stateMatch[1]),
+      state: clean(stateMatch[2]),
+      pincode: clean(stateMatch[3])
+    };
+  }
+
+  return {
+    city: '',
+    state: tailParts.state,
+    pincode: tailParts.pincode
+  };
+};
+
 const resolveAddressParts = ({ invoiceText = '', customer = {}, prefix = 'billing', fallbackAddress = '', invoiceFields = {} }) => {
   const hasInvoiceText = Boolean(clean(invoiceText));
   const sourceParts = splitAddressText(invoiceText);
   const fallbackParts = splitAddressText(fallbackAddress || '');
   const lineParts = hasInvoiceText ? sourceParts : fallbackParts;
-  const lastLineParts = parseStatePincodeLine(lineParts[lineParts.length - 1] || '');
+  const sourceId = clean(invoiceFields.source);
+  const selectedPremise = sourceId.startsWith('premise:')
+    ? (Array.isArray(customer?.premises)
+      ? customer.premises.find((entry) => `premise:${clean(entry?.premiseId || entry?.premise_id)}` === sourceId)
+      : null)
+    : null;
+  const lastLineParts = parseCityStatePincodeLine(lineParts[lineParts.length - 1] || '');
   const usesNamedLine = lineParts.length > 0 && (clean(customer[`${prefix}Attention`]) || clean(invoiceFields.attention)) === clean(lineParts[0]);
   const dataAttention = clean(invoiceFields.attention || customer[`${prefix}Attention`] || lineParts[0]);
   const invoiceStreet1 = lineParts[usesNamedLine ? 1 : 0];
@@ -269,15 +307,34 @@ const resolveAddressParts = ({ invoiceText = '', customer = {}, prefix = 'billin
     invoiceFields.area
       || (hasInvoiceText ? invoiceArea : customer[`${prefix}Area`] || invoiceArea)
   );
+  const city = clean(
+    invoiceFields.city
+      || (hasInvoiceText
+        ? lastLineParts.city || selectedPremise?.city || customer[`${prefix}City`] || customer.city
+        : selectedPremise?.city
+          || customer[`${prefix}City`]
+          || customer.city
+          || lastLineParts.city)
+  );
   const state = clean(
     invoiceFields.state
-      || (hasInvoiceText ? lastLineParts.state : customer[`${prefix}State`] || lastLineParts.state || customer.state)
+      || (hasInvoiceText
+        ? lastLineParts.state || selectedPremise?.state || customer[`${prefix}State`] || customer.state
+        : selectedPremise?.state
+          || customer[`${prefix}State`]
+          || lastLineParts.state
+          || customer.state)
   );
   const pincode = clean(
     invoiceFields.pincode
-      || (hasInvoiceText ? lastLineParts.pincode : customer[`${prefix}Pincode`] || lastLineParts.pincode || customer.pincode)
+      || (hasInvoiceText
+        ? lastLineParts.pincode || selectedPremise?.pincode || customer[`${prefix}Pincode`] || customer.pincode
+        : selectedPremise?.pincode
+          || customer[`${prefix}Pincode`]
+          || lastLineParts.pincode
+          || customer.pincode)
   );
-  return { attention: dataAttention, street1, street2, area, state, pincode };
+  return { attention: dataAttention, street1, street2, area, city, state, pincode };
 };
 
 const resolveBillTo = (invoice = {}, customer = {}) => {
@@ -285,7 +342,10 @@ const resolveBillTo = (invoice = {}, customer = {}) => {
     invoiceText: invoice.billingAddressText,
     customer,
     prefix: 'billing',
-    fallbackAddress: customer.billingAddress
+    fallbackAddress: customer.billingAddress,
+    invoiceFields: {
+      source: invoice.billingAddressSource || invoice.billing_address_source || ''
+    }
   });
   const title = clean(customer.billingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
   return {
@@ -294,6 +354,7 @@ const resolveBillTo = (invoice = {}, customer = {}) => {
     street1: parts.street1,
     street2: parts.street2,
     area: parts.area,
+    city: parts.city,
     state: parts.state,
     pincode: parts.pincode,
     gstin: pickFirstText(
@@ -312,10 +373,12 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
     prefix: 'shipping',
     fallbackAddress: customer.shippingAddress || customer.billingAddress,
     invoiceFields: {
+      source: invoice.shippingAddressSource || invoice.shipping_address_source || '',
       attention: '',
       street1: '',
       street2: '',
       area: invoice.premiseAreaName || '',
+      city: invoice.premiseCity || '',
       state: invoice.premiseState || '',
       pincode: invoice.premisePincode || ''
     }
@@ -331,6 +394,7 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
     street1: parts.street1,
     street2: parts.street2,
     area: parts.area,
+    city: parts.city,
     state: parts.state,
     pincode: parts.pincode,
     gstin: pickFirstText(
@@ -395,11 +459,9 @@ const deriveContractRange = (invoice = {}) => {
 };
 
 const addressLinesForInvoiceParty = (party = {}) => [
-  party.street1,
-  [
-    party.area,
-    [party.state, party.pincode].map(clean).filter(Boolean).join('-')
-  ].map(clean).filter(Boolean).join(', '),
+  [party.street1, party.street2].map(clean).filter(Boolean).join(', '),
+  party.area,
+  [party.city, party.state, party.pincode].map(clean).filter(Boolean).join(', '),
   party.gstin ? `GSTIN: ${party.gstin}` : ''
 ].map(clean).filter(Boolean);
 
