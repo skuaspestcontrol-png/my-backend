@@ -4170,12 +4170,12 @@ export default function InvoiceDashboard() {
                                 </td>
                                 <td style={shell.paymentTd}>
                                   <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
+                                    type="text"
+                                    inputMode="decimal"
+                                    pattern="[0-9]*[.,]?[0-9]*"
                                     style={{ ...shell.paymentInput, textAlign: 'right' }}
                                     value={split.amount ?? '0'}
-                                    onChange={(event) => updatePaymentSplit(index, { amount: event.target.value })}
+                                    onChange={(event) => updatePaymentSplit(index, { amount: sanitizeDecimalInput(event.target.value) })}
                                   />
                                 </td>
                               </tr>
