@@ -312,10 +312,13 @@ const getSearchText = (item) => {
     item.pincode,
     item.billingAddress,
     item.shippingAddress,
-    item.customer,
-    item.contractNo,
-    item.contractCode,
-    item.property
+  item.customer,
+  item.contractNo,
+  item.contractNumber,
+  item.contract_number,
+  item.invoiceNumber,
+  item.contractCode,
+  item.property
   ]
     .map(normalize)
     .join(' ');
@@ -1429,7 +1432,7 @@ export default function ContractDashboard() {
                 style={headerSearchInputStyle}
                 value={filters.search}
                 onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
-                placeholder="Customer, contract #, city, alt no., email, GST..."
+                placeholder="Customer, contract number, city, alt no., email, GST..."
               />
             </div>
           </div>
