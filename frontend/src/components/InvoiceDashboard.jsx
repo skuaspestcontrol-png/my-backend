@@ -2097,7 +2097,7 @@ export default function InvoiceDashboard() {
       withholdingType: invoice.withholdingType || 'TDS',
       withholdingRate: String(invoice.withholdingRate ?? 0),
       withholdingAmount: String(invoice.withholdingAmount ?? 0),
-      discount: String(invoice.discount ?? invoice.roundOff ?? 0),
+      discount: String(invoice.discount ?? 0),
       roundOff: String(invoice.roundOff ?? invoice.round_off ?? 0),
       total: String(invoice.total ?? invoice.amount ?? 0)
     });

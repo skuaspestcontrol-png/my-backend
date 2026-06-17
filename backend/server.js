@@ -8867,7 +8867,8 @@ const hydrateInvoiceMysqlRow = (row = {}) => {
     premiseState: String(row?.premise_state ?? payload.premiseState ?? payload.premise_state ?? '').trim(),
     premisePincode: String(row?.premise_pincode ?? payload.premisePincode ?? payload.premise_pincode ?? '').trim(),
     premiseGoogleMapUrl: String(row?.premise_google_map_url ?? payload.premiseGoogleMapUrl ?? payload.premise_google_map_url ?? '').trim(),
-    discount: toNumber(payload.discount ?? row?.discount ?? payload.roundOff ?? row?.round_off, 0)
+    discount: toNumber(payload.discount ?? row?.discount, 0),
+    roundOff: toNumber(payload.roundOff ?? row?.round_off, 0)
   };
 };
 
@@ -8876,6 +8877,7 @@ const ensureInvoiceMysqlColumns = async (conn) => {
     await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_schedule_default_time VARCHAR(10) NULL DEFAULT \'10:00\'');
     await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_schedules JSON NULL');
     await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS discount DECIMAL(12,2) NULL DEFAULT 0');
+    await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS round_off DECIMAL(12,2) NULL DEFAULT 0');
     await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS customer_type VARCHAR(80) NULL DEFAULT \'New\'');
     await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS lead_source VARCHAR(120) NULL');
   } catch (_error) {
@@ -8884,6 +8886,7 @@ const ensureInvoiceMysqlColumns = async (conn) => {
     if (!names.has('service_schedule_default_time')) await conn.query('ALTER TABLE invoices ADD COLUMN service_schedule_default_time VARCHAR(10) NULL DEFAULT \'10:00\'');
     if (!names.has('service_schedules')) await conn.query('ALTER TABLE invoices ADD COLUMN service_schedules JSON NULL');
     if (!names.has('discount')) await conn.query('ALTER TABLE invoices ADD COLUMN discount DECIMAL(12,2) NULL DEFAULT 0');
+    if (!names.has('round_off')) await conn.query('ALTER TABLE invoices ADD COLUMN round_off DECIMAL(12,2) NULL DEFAULT 0');
     if (!names.has('customer_type')) await conn.query('ALTER TABLE invoices ADD COLUMN customer_type VARCHAR(80) NULL DEFAULT \'New\'');
     if (!names.has('lead_source')) await conn.query('ALTER TABLE invoices ADD COLUMN lead_source VARCHAR(120) NULL');
   }
@@ -8896,7 +8899,7 @@ const loadInvoicesForContext = async () => {
       const [rows] = await conn.query(`
         SELECT
           external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
-          invoice_date, due_date, total_amount, balance_due, customer_type, lead_source, service_schedule_default_time, service_schedules, discount,
+          invoice_date, due_date, total_amount, balance_due, customer_type, lead_source, service_schedule_default_time, service_schedules, discount, round_off,
           billing_address_source, shipping_address_source,
           billing_address_text, shipping_address_text, custom_shipping_addresses, customer_premise_id,
           premise_label, premise_address, premise_area_name, premise_city, premise_state, premise_pincode,
@@ -9281,8 +9284,8 @@ const syncInvoiceToMysql = async (invoice) => {
         invoice_date, due_date, total_amount, balance_due, customer_type, lead_source, billing_address_source, shipping_address_source,
         billing_address_text, shipping_address_text, custom_shipping_addresses,
         customer_premise_id, premise_label, premise_address, premise_area_name, premise_city, premise_state,
-        premise_pincode, premise_google_map_url, service_schedule_default_time, service_schedules, discount, payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        premise_pincode, premise_google_map_url, service_schedule_default_time, service_schedules, discount, round_off, payload, source_created_at, source_updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         customer_external_id=VALUES(customer_external_id),
         customer_name=VALUES(customer_name),
@@ -9311,6 +9314,7 @@ const syncInvoiceToMysql = async (invoice) => {
         service_schedule_default_time=VALUES(service_schedule_default_time),
         service_schedules=VALUES(service_schedules),
         discount=VALUES(discount),
+        round_off=VALUES(round_off),
         payload=VALUES(payload),
         source_created_at=VALUES(source_created_at),
         source_updated_at=VALUES(source_updated_at)`,
@@ -9342,7 +9346,8 @@ const syncInvoiceToMysql = async (invoice) => {
         invoice.premiseGoogleMapUrl || invoice.premise_google_map_url || null,
         String(invoice.serviceScheduleDefaultTime || '10:00').trim() || '10:00',
         JSON.stringify(Array.isArray(invoice.serviceSchedules) ? invoice.serviceSchedules : []),
-        toNumber(invoice.discount, toNumber(invoice.roundOff, 0)),
+        toNumber(invoice.discount, 0),
+        toNumber(invoice.roundOff, 0),
         JSON.stringify(invoice),
         invoice.createdAt ? new Date(invoice.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
         new Date().toISOString().slice(0, 19).replace('T', ' ')
@@ -10133,7 +10138,7 @@ app.get('/api/invoices', async (req, res) => {
             invoice_date, due_date, total_amount, balance_due, customer_type, lead_source, billing_address_source, shipping_address_source,
             billing_address_text, shipping_address_text, custom_shipping_addresses, customer_premise_id,
             premise_label, premise_address, premise_area_name, premise_city, premise_state, premise_pincode,
-            premise_google_map_url, payload
+            premise_google_map_url, discount, round_off, payload
           FROM invoices
           ORDER BY id DESC
         `);
@@ -10982,7 +10987,8 @@ app.post('/api/invoices', async (req, res) => {
     withholdingType: req.body.withholdingType || 'TDS',
     withholdingRate: toNumber(req.body.withholdingRate, 0),
     withholdingAmount: toNumber(req.body.withholdingAmount, 0),
-    discount: toNumber(req.body.discount, toNumber(req.body.roundOff, 0)),
+    discount: toNumber(req.body.discount, 0),
+    roundOff: toNumber(req.body.roundOff, 0),
     total: toNumber(req.body.total, amount),
     customerNotes: req.body.customerNotes || '',
     termsAndConditions: req.body.termsAndConditions || '',
@@ -11096,6 +11102,8 @@ app.put('/api/invoices/:id', async (req, res) => {
     invoiceType: String(req.body.invoiceType ?? current.invoiceType ?? ((toNumber(req.body.totalTax ?? current.totalTax, 0) > 0) ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST',
     customerType: String(req.body.customerType ?? req.body.customer_type ?? current.customerType ?? current.customer_type ?? 'New').trim() || 'New',
     leadSource: String(req.body.leadSource ?? req.body.lead_source ?? current.leadSource ?? current.lead_source ?? '').trim(),
+    discount: toNumber(req.body.discount ?? current.discount, 0),
+    roundOff: toNumber(req.body.roundOff ?? req.body.round_off ?? current.roundOff ?? current.round_off, 0),
     servicePeriodStart: req.body.servicePeriodStart ?? current.servicePeriodStart ?? '',
     servicePeriodEnd: req.body.servicePeriodEnd ?? current.servicePeriodEnd ?? '',
     serviceScheduleDefaultTime,
