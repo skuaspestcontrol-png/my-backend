@@ -430,7 +430,7 @@ const shell = {
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto', backdropFilter: 'blur(12px)' },
   modal: { background: '#fff', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
-  modalHeader: { minHeight: '64px', padding: '16px 22px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
+  modalHeader: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 22px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
   modalHeaderTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
   modalCloseButton: { border: 'none', background: 'transparent', color: '#fff', width: '36px', height: '36px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   modalBody: { padding: '20px 24px', display: 'grid', gridTemplateColumns: '160px minmax(0, 1fr)', columnGap: '16px', rowGap: '12px', alignItems: 'center', overflowY: 'auto', background: '#fff' },
@@ -463,7 +463,7 @@ const shell = {
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   },
-  modalFooter: { minHeight: '64px', padding: '12px 24px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: '#fff' },
+  modalFooter: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: '#fff' },
   cancelButton: { minHeight: '40px', border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' },
   saveButton: { minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' },
   historyOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.52)', zIndex: 3000, display: 'grid', placeItems: 'center', padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },

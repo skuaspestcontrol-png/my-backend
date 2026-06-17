@@ -157,8 +157,10 @@ const shell = {
   modalHeader: {
     background: 'var(--color-primary)',
     color: '#fff',
+    height: '64px',
     minHeight: '64px',
-    padding: '16px 22px',
+    boxSizing: 'border-box',
+    padding: '0 22px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -196,7 +198,7 @@ const shell = {
     gap: '6px'
   },
   helper: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 700 },
-  footer: { minHeight: '64px', padding: '12px 24px', borderTop: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', background: '#fff', position: 'sticky', bottom: 0 },
+  footer: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', background: '#fff', position: 'sticky', bottom: 0 },
   footerActions: { display: 'flex', alignItems: 'center', gap: '8px' },
   cancelBtn: { minHeight: '40px', borderRadius: '10px', border: '1px solid #D1D5DB', background: '#fff', color: '#334155', cursor: 'pointer', fontSize: '13px', fontWeight: 700, padding: '0 14px' },
   saveBtn: { minHeight: '40px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.32)', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 800, padding: '0 16px' }

@@ -272,7 +272,10 @@ const shell = {
   },
   modalHeader: {
     flexShrink: 0,
-    padding: '16px 22px',
+    height: '64px',
+    minHeight: '64px',
+    boxSizing: 'border-box',
+    padding: '0 22px',
     borderBottom: '1px solid rgba(255,255,255,0.10)',
     fontSize: '24px',
     fontWeight: 800,
@@ -282,7 +285,6 @@ const shell = {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '10px',
-    minHeight: '64px',
     lineHeight: 1.2
   },
   modalHeaderTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
@@ -366,8 +368,10 @@ const shell = {
   },
   modalFooter: {
     flexShrink: 0,
+    height: '64px',
     minHeight: '64px',
-    padding: '12px 24px',
+    boxSizing: 'border-box',
+    padding: '0 24px',
     borderTop: '1px solid rgba(15, 23, 42, 0.08)',
     display: 'flex',
     alignItems: 'center',
