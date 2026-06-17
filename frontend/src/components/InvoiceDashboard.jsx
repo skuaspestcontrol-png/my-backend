@@ -30,6 +30,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const INVOICE_PAGE_SIZE = 20;
 const INVOICE_DASHBOARD_CACHE_KEY = 'skuasmaster-invoice-dashboard-cache-v1';
 const INVOICE_NEW_CONTRACT_DRAFT_CACHE_KEY = 'skuasmaster-invoice-new-contract-draft-v1';
+const currentInvoiceYear = new Date().getFullYear();
+const currentInvoiceYearShort = String(currentInvoiceYear).slice(-2);
+const defaultGstInvoicePrefix = `SPC/${currentInvoiceYear}/`;
+const defaultNonGstInvoicePrefix = `SPC/N-${currentInvoiceYearShort}/`;
 
 const readInvoiceDashboardCache = () => {
   if (typeof window === 'undefined') return null;
@@ -331,9 +335,9 @@ const emptyForm = {
 
 const defaultInvoiceNumberPrefs = {
   mode: 'auto',
-  gstPrefix: 'SPC-',
+  gstPrefix: defaultGstInvoicePrefix,
   gstNextNumber: 66,
-  nonGstPrefix: 'SPC-NG-',
+  nonGstPrefix: defaultNonGstInvoicePrefix,
   nonGstNextNumber: 1,
   padding: 4
 };
@@ -345,11 +349,28 @@ const normalizeLegacyInvoicePrefix = (value, fallback = '') => {
   return legacyMatch ? legacyMatch[1] : raw;
 };
 
+const normalizeConfiguredInvoicePrefix = (value, fallback = '', invoiceType = 'GST') => {
+  const raw = normalizeLegacyInvoicePrefix(value, fallback);
+  if (!raw) return String(fallback || '').trim();
+
+  if (normalizeInvoiceType(invoiceType) === 'NON GST') {
+    if (/^SPC\/N-\d{2}\/$/.test(raw) || raw === 'SPC-NG-' || raw === 'SPC/N-' || raw === 'SPC-') {
+      return defaultNonGstInvoicePrefix;
+    }
+    return raw;
+  }
+
+  if (/^SPC\/\d{4}\/$/.test(raw) || raw === 'SPC-NG-' || raw === 'SPC/' || raw === 'SPC-' || raw === 'SPC') {
+    return defaultGstInvoicePrefix;
+  }
+  return raw;
+};
+
 const sanitizeInvoiceNumberPrefs = (raw = {}) => ({
   mode: raw.mode === 'manual' ? 'manual' : 'auto',
-  gstPrefix: normalizeLegacyInvoicePrefix(raw.gstPrefix ?? raw.prefix, defaultInvoiceNumberPrefs.gstPrefix),
+  gstPrefix: normalizeConfiguredInvoicePrefix(raw.gstPrefix ?? raw.prefix, defaultInvoiceNumberPrefs.gstPrefix, 'GST'),
   gstNextNumber: Math.max(1, Number(raw.gstNextNumber ?? raw.nextNumber ?? defaultInvoiceNumberPrefs.gstNextNumber) || defaultInvoiceNumberPrefs.gstNextNumber),
-  nonGstPrefix: normalizeLegacyInvoicePrefix(raw.nonGstPrefix, defaultInvoiceNumberPrefs.nonGstPrefix),
+  nonGstPrefix: normalizeConfiguredInvoicePrefix(raw.nonGstPrefix, defaultInvoiceNumberPrefs.nonGstPrefix, 'NON GST'),
   nonGstNextNumber: Math.max(1, Number(raw.nonGstNextNumber ?? defaultInvoiceNumberPrefs.nonGstNextNumber) || defaultInvoiceNumberPrefs.nonGstNextNumber),
   padding: Math.max(1, Number(raw.padding ?? defaultInvoiceNumberPrefs.padding) || defaultInvoiceNumberPrefs.padding)
 });
@@ -1154,6 +1175,8 @@ export default function InvoiceDashboard() {
   const invoicesLoadRef = useRef(false);
   const masterDataLoadRef = useRef(false);
   const termsAutoSeededRef = useRef(false);
+  const invoiceNumberAutoSeededRef = useRef(false);
+  const invoiceNumberManuallyEditedRef = useRef(false);
 
   const visibleColumnDefs = useMemo(
     () => columns.filter((column) => visibleColumns.includes(column.key)),
@@ -1538,9 +1561,9 @@ export default function InvoiceDashboard() {
       const settingsData = settingsRes.data || {};
       const prefs = sanitizeInvoiceNumberPrefs({
         mode: settingsData.invoiceNumberMode || 'auto',
-        gstPrefix: normalizeLegacyInvoicePrefix(settingsData.gstInvoicePrefix ?? settingsData.invoicePrefix, 'SPC-'),
+        gstPrefix: normalizeConfiguredInvoicePrefix(settingsData.gstInvoicePrefix ?? settingsData.invoicePrefix, defaultGstInvoicePrefix, 'GST'),
         gstNextNumber: settingsData.gstInvoiceNextNumber ?? settingsData.invoiceNextNumber ?? 66,
-        nonGstPrefix: normalizeLegacyInvoicePrefix(settingsData.nonGstInvoicePrefix, 'SPC-NG-'),
+        nonGstPrefix: normalizeConfiguredInvoicePrefix(settingsData.nonGstInvoicePrefix, defaultNonGstInvoicePrefix, 'NON GST'),
         nonGstNextNumber: settingsData.nonGstInvoiceNextNumber ?? 1,
         padding: settingsData.invoiceNumberPadding ?? 4
       });
@@ -1586,6 +1609,7 @@ export default function InvoiceDashboard() {
   useEffect(() => {
     if (!showModal || editingId) {
       termsAutoSeededRef.current = false;
+      invoiceNumberAutoSeededRef.current = false;
       return;
     }
     if (!settingsHydrated) return;
@@ -1605,6 +1629,35 @@ export default function InvoiceDashboard() {
       return { ...prev, termsAndConditions: nextTerms };
     });
   }, [editingId, form.invoiceType, form.termsAndConditions, getDefaultTermsForInvoiceType, settingsHydrated, showModal]);
+
+  useEffect(() => {
+    if (!showModal || editingId) {
+      invoiceNumberAutoSeededRef.current = false;
+      return;
+    }
+    if (!settingsHydrated || invoiceNumberPrefs.mode !== 'auto') return;
+    if (invoiceNumberAutoSeededRef.current) return;
+
+    const normalizedType = normalizeInvoiceType(form.invoiceType);
+    const expectedPrefix = normalizedType === 'NON GST' ? invoiceNumberPrefs.nonGstPrefix : invoiceNumberPrefs.gstPrefix;
+    const currentInvoiceNumber = String(form.invoiceNumber || '').trim();
+    if (currentInvoiceNumber && currentInvoiceNumber.startsWith(expectedPrefix)) {
+      invoiceNumberAutoSeededRef.current = true;
+      return;
+    }
+    if (invoiceNumberManuallyEditedRef.current) {
+      invoiceNumberAutoSeededRef.current = true;
+      return;
+    }
+
+    const nextInvoiceNumber = createNextInvoiceNumber(invoiceNumberPrefs, normalizedType);
+    invoiceNumberAutoSeededRef.current = true;
+    setFormWithTotals((prev) => {
+      const currentValue = String(prev.invoiceNumber || '').trim();
+      if (currentValue === nextInvoiceNumber || currentValue.startsWith(expectedPrefix)) return prev;
+      return { ...prev, invoiceNumber: nextInvoiceNumber };
+    });
+  }, [editingId, form.invoiceNumber, form.invoiceType, invoiceNumberPrefs, settingsHydrated, showModal]);
 
   useEffect(() => {
     loadInvoices();
@@ -1839,6 +1892,8 @@ export default function InvoiceDashboard() {
   const openNewForm = () => {
     setEditingId(null);
     setSaveError('');
+    invoiceNumberAutoSeededRef.current = false;
+    invoiceNumberManuallyEditedRef.current = false;
     const invoiceType = 'GST';
     const invoiceNumber = invoiceNumberPrefs.mode === 'auto' ? createNextInvoiceNumber(invoiceNumberPrefs, invoiceType) : '';
     const invoiceDate = new Date().toISOString().slice(0, 10);
@@ -1859,6 +1914,8 @@ export default function InvoiceDashboard() {
 
   const closeInvoiceModal = () => {
     clearInvoiceDraftCache();
+    invoiceNumberAutoSeededRef.current = false;
+    invoiceNumberManuallyEditedRef.current = false;
     setShowBillingAddressPicker(false);
     setShowShippingAddressPicker(false);
     setEditingShippingAddressId('');
@@ -3616,7 +3673,10 @@ export default function InvoiceDashboard() {
                   <input
                     style={{ ...compactContractControlStyle, ...shell.inputMainWithButton }}
                     value={form.invoiceNumber}
-                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, invoiceNumber: event.target.value }))}
+                    onChange={(event) => {
+                      invoiceNumberManuallyEditedRef.current = true;
+                      setFormWithTotals((prev) => ({ ...prev, invoiceNumber: event.target.value }));
+                    }}
                   />
                   <button
                     type="button"

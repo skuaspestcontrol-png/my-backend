@@ -27,6 +27,10 @@ import { buildPortalAuthHeaders } from '../utils/portalAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const SETTINGS_CACHE_KEY = 'settings_page_cache_v1';
+const currentInvoiceYear = new Date().getFullYear();
+const currentInvoiceYearShort = String(currentInvoiceYear).slice(-2);
+const defaultGstInvoicePrefix = `SPC/${currentInvoiceYear}/`;
+const defaultNonGstInvoicePrefix = `SPC/N-${currentInvoiceYearShort}/`;
 
 const stateOptions = [
   'Andhra Pradesh',
@@ -130,6 +134,23 @@ const normalizeLegacyInvoicePrefix = (value, fallback = '') => {
   return legacyMatch ? legacyMatch[1] : raw;
 };
 
+const normalizeConfiguredInvoicePrefix = (value, fallback = '', invoiceType = 'GST') => {
+  const raw = normalizeLegacyInvoicePrefix(value, fallback);
+  if (!raw) return String(fallback || '').trim();
+
+  if (String(invoiceType || '').trim().toUpperCase() === 'NON GST') {
+    if (/^SPC\/N-\d{2}\/$/.test(raw) || raw === 'SPC-NG-' || raw === 'SPC/N-' || raw === 'SPC-') {
+      return defaultNonGstInvoicePrefix;
+    }
+    return raw;
+  }
+
+  if (/^SPC\/\d{4}\/$/.test(raw) || raw === 'SPC-NG-' || raw === 'SPC/' || raw === 'SPC-' || raw === 'SPC') {
+    return defaultGstInvoicePrefix;
+  }
+  return raw;
+};
+
 const sectionGroups = [
   {
     key: 'general',
@@ -223,11 +244,11 @@ const defaultForm = {
   customerNotesDefault: '',
   settingsAccessPin: '',
   invoiceNumberMode: 'auto',
-  gstInvoicePrefix: 'SPC-',
+  gstInvoicePrefix: defaultGstInvoicePrefix,
   gstInvoiceNextNumber: '66',
-  nonGstInvoicePrefix: 'SPC-NG-',
+  nonGstInvoicePrefix: defaultNonGstInvoicePrefix,
   nonGstInvoiceNextNumber: '1',
-  invoicePrefix: 'SPC-',
+  invoicePrefix: defaultGstInvoicePrefix,
   invoiceNextNumber: '66',
   invoiceNumberPadding: '4',
   quotationPrefix: 'SPC/',
@@ -895,11 +916,11 @@ export default function Settings({ modalMode = false }) {
           termsAndConditionsDefault: data.termsAndConditionsDefault || data.gstTermsAndConditions || '',
           settingsAccessPin: data.settingsAccessPin || '',
           invoiceNumberMode: data.invoiceNumberMode === 'manual' ? 'manual' : 'auto',
-          gstInvoicePrefix: normalizeLegacyInvoicePrefix(data.gstInvoicePrefix ?? data.invoicePrefix, 'SPC-'),
+          gstInvoicePrefix: normalizeConfiguredInvoicePrefix(data.gstInvoicePrefix ?? data.invoicePrefix, defaultGstInvoicePrefix, 'GST'),
           gstInvoiceNextNumber: String(data.gstInvoiceNextNumber ?? data.invoiceNextNumber ?? 66),
-          nonGstInvoicePrefix: normalizeLegacyInvoicePrefix(data.nonGstInvoicePrefix, 'SPC-NG-'),
+          nonGstInvoicePrefix: normalizeConfiguredInvoicePrefix(data.nonGstInvoicePrefix, defaultNonGstInvoicePrefix, 'NON GST'),
           nonGstInvoiceNextNumber: String(data.nonGstInvoiceNextNumber ?? 1),
-          invoicePrefix: normalizeLegacyInvoicePrefix(data.invoicePrefix ?? data.gstInvoicePrefix, 'SPC-'),
+          invoicePrefix: normalizeConfiguredInvoicePrefix(data.invoicePrefix ?? data.gstInvoicePrefix, defaultGstInvoicePrefix, 'GST'),
           invoiceNextNumber: String(data.invoiceNextNumber ?? data.gstInvoiceNextNumber ?? 66),
           invoiceNumberPadding: String(data.invoiceNumberPadding ?? 4),
           quotationPrefix: quotationPrefix.prefix || data.quotationPrefix || 'SPC/',
@@ -1256,11 +1277,11 @@ export default function Settings({ modalMode = false }) {
       termsAndConditionsDefault: String(form.gstTermsAndConditions || form.termsAndConditionsDefault || '').trim(),
       settingsAccessPin: String(form.settingsAccessPin || initialForm.settingsAccessPin || '').trim(),
       invoiceNumberMode: form.invoiceNumberMode === 'manual' ? 'manual' : 'auto',
-      gstInvoicePrefix: normalizeLegacyInvoicePrefix(form.gstInvoicePrefix || form.invoicePrefix, 'SPC-'),
+      gstInvoicePrefix: normalizeConfiguredInvoicePrefix(form.gstInvoicePrefix || form.invoicePrefix, defaultGstInvoicePrefix, 'GST'),
       gstInvoiceNextNumber: Math.max(1, Number(form.gstInvoiceNextNumber || form.invoiceNextNumber) || 1),
-      nonGstInvoicePrefix: normalizeLegacyInvoicePrefix(form.nonGstInvoicePrefix, 'SPC-NG-'),
+      nonGstInvoicePrefix: normalizeConfiguredInvoicePrefix(form.nonGstInvoicePrefix, defaultNonGstInvoicePrefix, 'NON GST'),
       nonGstInvoiceNextNumber: Math.max(1, Number(form.nonGstInvoiceNextNumber) || 1),
-      invoicePrefix: normalizeLegacyInvoicePrefix(form.invoicePrefix || form.gstInvoicePrefix, 'SPC-'),
+      invoicePrefix: normalizeConfiguredInvoicePrefix(form.invoicePrefix || form.gstInvoicePrefix, defaultGstInvoicePrefix, 'GST'),
       invoiceNextNumber: Math.max(1, Number(form.gstInvoiceNextNumber || form.invoiceNextNumber) || 1),
       invoiceNumberPadding: Math.max(1, Number(form.invoiceNumberPadding) || 4),
       quotationPrefix: String(form.quotationPrefix || '').trim() || 'SPC/',

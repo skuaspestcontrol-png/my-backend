@@ -1327,11 +1327,11 @@ const defaultSettings = {
   brandingAppearance: 'light',
   brandingAccentColor: '#9F174D',
   invoiceNumberMode: 'auto',
-  gstInvoicePrefix: 'SPC-',
+  gstInvoicePrefix: `SPC/${new Date().getFullYear()}/`,
   gstInvoiceNextNumber: 66,
-  nonGstInvoicePrefix: 'SPC-NG-',
+  nonGstInvoicePrefix: `SPC/N-${String(new Date().getFullYear()).slice(-2)}/`,
   nonGstInvoiceNextNumber: 1,
-  invoicePrefix: 'SPC-',
+  invoicePrefix: `SPC/${new Date().getFullYear()}/`,
   invoiceNextNumber: 66,
   invoiceNumberPadding: 4,
   renewalPrefix: 'SPC/REN/',
@@ -1355,6 +1355,24 @@ const normalizeLegacyInvoicePrefix = (value, fallback = '') => {
   if (!raw) return String(fallback || '').trim();
   const legacyMatch = raw.match(/^(.*[\/\-_ ])(\d+)$/);
   return legacyMatch ? legacyMatch[1] : raw;
+};
+const currentInvoiceYear = new Date().getFullYear();
+const currentInvoiceYearShort = String(currentInvoiceYear).slice(-2);
+const defaultGstInvoicePrefix = `SPC/${currentInvoiceYear}/`;
+const defaultNonGstInvoicePrefix = `SPC/N-${currentInvoiceYearShort}/`;
+const normalizeConfiguredInvoicePrefix = (value, fallback = '', invoiceType = 'GST') => {
+  const raw = normalizeLegacyInvoicePrefix(value, fallback);
+  if (!raw) return String(fallback || '').trim();
+  if (String(invoiceType || '').trim().toUpperCase() === 'NON GST') {
+    if (/^SPC\/N-\d{2}\/$/.test(raw) || raw === 'SPC-NG-' || raw === 'SPC/N-' || raw === 'SPC-') {
+      return defaultNonGstInvoicePrefix;
+    }
+    return raw;
+  }
+  if (/^SPC\/\d{4}\/$/.test(raw) || raw === 'SPC-NG-' || raw === 'SPC/' || raw === 'SPC-' || raw === 'SPC') {
+    return defaultGstInvoicePrefix;
+  }
+  return raw;
 };
 const normalizeDateOnly = (value) => {
   const raw = String(value || '').trim();
@@ -1625,11 +1643,11 @@ const sanitizeSettings = (raw = {}) => {
     brandingAppearance: String(source.brandingAppearance || defaultSettings.brandingAppearance).trim().toLowerCase() === 'dark' ? 'dark' : 'light',
     brandingAccentColor: normalizeSettingsText(source.brandingAccentColor ?? defaultSettings.brandingAccentColor) || defaultSettings.brandingAccentColor,
     invoiceNumberMode: source.invoiceNumberMode === 'manual' ? 'manual' : 'auto',
-    gstInvoicePrefix: normalizeLegacyInvoicePrefix(source.gstInvoicePrefix ?? source.invoicePrefix, defaultSettings.gstInvoicePrefix),
+    gstInvoicePrefix: normalizeConfiguredInvoicePrefix(source.gstInvoicePrefix ?? source.invoicePrefix, defaultSettings.gstInvoicePrefix, 'GST'),
     gstInvoiceNextNumber: Math.max(1, Number(source.gstInvoiceNextNumber ?? source.invoiceNextNumber ?? defaultSettings.gstInvoiceNextNumber) || defaultSettings.gstInvoiceNextNumber),
-    nonGstInvoicePrefix: normalizeLegacyInvoicePrefix(source.nonGstInvoicePrefix, defaultSettings.nonGstInvoicePrefix),
+    nonGstInvoicePrefix: normalizeConfiguredInvoicePrefix(source.nonGstInvoicePrefix, defaultSettings.nonGstInvoicePrefix, 'NON GST'),
     nonGstInvoiceNextNumber: Math.max(1, Number(source.nonGstInvoiceNextNumber ?? defaultSettings.nonGstInvoiceNextNumber) || defaultSettings.nonGstInvoiceNextNumber),
-    invoicePrefix: normalizeLegacyInvoicePrefix(source.invoicePrefix ?? source.gstInvoicePrefix, defaultSettings.invoicePrefix),
+    invoicePrefix: normalizeConfiguredInvoicePrefix(source.invoicePrefix ?? source.gstInvoicePrefix, defaultSettings.invoicePrefix, 'GST'),
     invoiceNextNumber: Math.max(1, Number(source.invoiceNextNumber ?? source.gstInvoiceNextNumber ?? defaultSettings.invoiceNextNumber) || defaultSettings.invoiceNextNumber),
     invoiceNumberPadding: Math.max(1, Number(source.invoiceNumberPadding ?? defaultSettings.invoiceNumberPadding) || defaultSettings.invoiceNumberPadding),
     renewalPrefix: String(source.renewalPrefix ?? defaultSettings.renewalPrefix),
@@ -1786,9 +1804,9 @@ const cleanupDeprecatedSettingsStorage = async () => {
     const nextSettings = sanitizeSettings(rawSettings);
     const needsDeprecatedCleanup = deprecatedSettingsKeys.some((key) => Object.prototype.hasOwnProperty.call(rawSettings, key));
     const needsInvoicePrefixCleanup =
-      normalizeLegacyInvoicePrefix(rawSettings.gstInvoicePrefix ?? rawSettings.invoicePrefix, defaultSettings.gstInvoicePrefix) !== String(rawSettings.gstInvoicePrefix ?? rawSettings.invoicePrefix ?? '').trim()
-      || normalizeLegacyInvoicePrefix(rawSettings.nonGstInvoicePrefix, defaultSettings.nonGstInvoicePrefix) !== String(rawSettings.nonGstInvoicePrefix ?? '').trim()
-      || normalizeLegacyInvoicePrefix(rawSettings.invoicePrefix ?? rawSettings.gstInvoicePrefix, defaultSettings.invoicePrefix) !== String(rawSettings.invoicePrefix ?? rawSettings.gstInvoicePrefix ?? '').trim();
+      normalizeConfiguredInvoicePrefix(rawSettings.gstInvoicePrefix ?? rawSettings.invoicePrefix, defaultSettings.gstInvoicePrefix, 'GST') !== String(rawSettings.gstInvoicePrefix ?? rawSettings.invoicePrefix ?? '').trim()
+      || normalizeConfiguredInvoicePrefix(rawSettings.nonGstInvoicePrefix, defaultSettings.nonGstInvoicePrefix, 'NON GST') !== String(rawSettings.nonGstInvoicePrefix ?? '').trim()
+      || normalizeConfiguredInvoicePrefix(rawSettings.invoicePrefix ?? rawSettings.gstInvoicePrefix, defaultSettings.invoicePrefix, 'GST') !== String(rawSettings.invoicePrefix ?? rawSettings.gstInvoicePrefix ?? '').trim();
 
     if (!needsDeprecatedCleanup && !needsInvoicePrefixCleanup) return;
 
@@ -8639,8 +8657,8 @@ const extractInvoiceSequence = (invoiceNumber, prefix = '') => {
 const getInvoiceNumberConfig = (settings = {}, invoiceType = 'GST') => {
   const normalizedType = String(invoiceType || '').trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
   const prefix = normalizedType === 'NON GST'
-    ? normalizeLegacyInvoicePrefix(settings?.nonGstInvoicePrefix, defaultSettings.nonGstInvoicePrefix)
-    : normalizeLegacyInvoicePrefix(settings?.gstInvoicePrefix ?? settings?.invoicePrefix, defaultSettings.gstInvoicePrefix);
+    ? normalizeConfiguredInvoicePrefix(settings?.nonGstInvoicePrefix, defaultSettings.nonGstInvoicePrefix, 'NON GST')
+    : normalizeConfiguredInvoicePrefix(settings?.gstInvoicePrefix ?? settings?.invoicePrefix, defaultSettings.gstInvoicePrefix, 'GST');
   const nextNumber = normalizedType === 'NON GST'
     ? Math.max(1, Number(settings?.nonGstInvoiceNextNumber ?? defaultSettings.nonGstInvoiceNextNumber) || defaultSettings.nonGstInvoiceNextNumber)
     : Math.max(1, Number(settings?.gstInvoiceNextNumber ?? settings?.invoiceNextNumber ?? defaultSettings.gstInvoiceNextNumber) || defaultSettings.gstInvoiceNextNumber);
