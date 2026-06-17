@@ -8871,9 +8871,28 @@ const hydrateInvoiceMysqlRow = (row = {}) => {
   };
 };
 
+const ensureInvoiceMysqlColumns = async (conn) => {
+  try {
+    await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_schedule_default_time VARCHAR(10) NULL DEFAULT \'10:00\'');
+    await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_schedules JSON NULL');
+    await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS discount DECIMAL(12,2) NULL DEFAULT 0');
+    await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS customer_type VARCHAR(80) NULL DEFAULT \'New\'');
+    await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS lead_source VARCHAR(120) NULL');
+  } catch (_error) {
+    const [cols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='invoices'");
+    const names = new Set((cols || []).map((c) => String(c.COLUMN_NAME || '')));
+    if (!names.has('service_schedule_default_time')) await conn.query('ALTER TABLE invoices ADD COLUMN service_schedule_default_time VARCHAR(10) NULL DEFAULT \'10:00\'');
+    if (!names.has('service_schedules')) await conn.query('ALTER TABLE invoices ADD COLUMN service_schedules JSON NULL');
+    if (!names.has('discount')) await conn.query('ALTER TABLE invoices ADD COLUMN discount DECIMAL(12,2) NULL DEFAULT 0');
+    if (!names.has('customer_type')) await conn.query('ALTER TABLE invoices ADD COLUMN customer_type VARCHAR(80) NULL DEFAULT \'New\'');
+    if (!names.has('lead_source')) await conn.query('ALTER TABLE invoices ADD COLUMN lead_source VARCHAR(120) NULL');
+  }
+};
+
 const loadInvoicesForContext = async () => {
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
+      await ensureInvoiceMysqlColumns(conn);
       const [rows] = await conn.query(`
         SELECT
           external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
@@ -9255,21 +9274,7 @@ const syncInvoiceToMysql = async (invoice) => {
   if (!invoice || !invoice._id) return;
   await withMysqlConnection(async (conn) => {
     await ensureCustomerPremisesInfrastructure(conn);
-    try {
-      await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_schedule_default_time VARCHAR(10) NULL DEFAULT \'10:00\'');
-      await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_schedules JSON NULL');
-      await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS discount DECIMAL(12,2) NULL DEFAULT 0');
-      await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS customer_type VARCHAR(80) NULL DEFAULT \'New\'');
-      await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS lead_source VARCHAR(120) NULL');
-    } catch (_error) {
-      const [cols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='invoices'");
-      const names = new Set((cols || []).map((c) => String(c.COLUMN_NAME || '')));
-      if (!names.has('service_schedule_default_time')) await conn.query('ALTER TABLE invoices ADD COLUMN service_schedule_default_time VARCHAR(10) NULL DEFAULT \'10:00\'');
-      if (!names.has('service_schedules')) await conn.query('ALTER TABLE invoices ADD COLUMN service_schedules JSON NULL');
-      if (!names.has('discount')) await conn.query('ALTER TABLE invoices ADD COLUMN discount DECIMAL(12,2) NULL DEFAULT 0');
-      if (!names.has('customer_type')) await conn.query('ALTER TABLE invoices ADD COLUMN customer_type VARCHAR(80) NULL DEFAULT \'New\'');
-      if (!names.has('lead_source')) await conn.query('ALTER TABLE invoices ADD COLUMN lead_source VARCHAR(120) NULL');
-    }
+    await ensureInvoiceMysqlColumns(conn);
     await conn.query(
       `INSERT INTO invoices (
         external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
@@ -10121,10 +10126,11 @@ app.get('/api/invoices', async (req, res) => {
   if (canUseMysql()) {
     try {
       const mysqlRows = await withMysqlConnection(async (conn) => {
+        await ensureInvoiceMysqlColumns(conn);
         const [rows] = await conn.query(`
           SELECT
             external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
-            invoice_date, due_date, total_amount, balance_due, billing_address_source, shipping_address_source,
+            invoice_date, due_date, total_amount, balance_due, customer_type, lead_source, billing_address_source, shipping_address_source,
             billing_address_text, shipping_address_text, custom_shipping_addresses, customer_premise_id,
             premise_label, premise_address, premise_area_name, premise_city, premise_state, premise_pincode,
             premise_google_map_url, payload
