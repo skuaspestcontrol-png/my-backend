@@ -784,8 +784,15 @@ export default function ContractDashboard() {
       if (!serviceDate) return;
 
       const applyTo = (target) => {
-        const current = target || { total: 0, completed: 0, nextServiceDate: '', nextServiceTime: '' };
+        const current = target || { total: 0, completed: 0, nextServiceDate: '', nextServiceTime: '', highestServiceCount: 0, itemCounts: {} };
+        const serviceKey = String(schedule?.itemId || schedule?.itemName || schedule?.itemDescription || 'service').trim() || 'service';
         current.total += 1;
+        current.itemCounts = { ...(current.itemCounts || {}) };
+        current.itemCounts[serviceKey] = Number(current.itemCounts[serviceKey] || 0) + 1;
+        current.highestServiceCount = Math.max(
+          Number(current.highestServiceCount || 0),
+          Number(current.itemCounts[serviceKey] || 0)
+        );
         if (status.includes('complete')) current.completed += 1;
 
         const isClosed = status.includes('complete') || status.includes('cancel');
@@ -817,12 +824,12 @@ export default function ContractDashboard() {
   const allContracts = useMemo(() => {
     return invoices.map((invoice, index) => {
       const lines = Array.isArray(invoice.items) && invoice.items.length > 0 ? invoice.items : [{}];
-      const lineServicesTotal = lines.reduce((sum, line) => {
+      const lineHighestServices = lines.reduce((maxCount, line) => {
         const requestedServices = Number(line?.totalServices || 0);
         if (Number.isFinite(requestedServices) && requestedServices > 0) {
-          return sum + requestedServices;
+          return Math.max(maxCount, requestedServices);
         }
-        return sum + (line?.itemName ? 1 : 0);
+        return Math.max(maxCount, line?.itemName ? 1 : 0);
       }, 0);
       const startCandidates = lines
         .map((line) => line.contractStartDate || line.serviceStartDate || invoice.servicePeriodStart || invoice.date)
@@ -871,8 +878,8 @@ export default function ContractDashboard() {
         endDate: endInputDate,
         services: Math.max(
           0,
-          Number(serviceMeta.total || 0),
-          Number(lineServicesTotal || 0),
+          Number(serviceMeta.highestServiceCount || 0),
+          Number(lineHighestServices || 0),
           Number(lines.length || 0)
         ),
         servicesDone: Math.max(0, Number(serviceMeta.completed || 0)),
