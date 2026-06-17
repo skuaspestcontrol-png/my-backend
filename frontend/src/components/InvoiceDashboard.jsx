@@ -408,6 +408,16 @@ const sanitizeInvoiceNumberPrefs = (raw = {}) => ({
   padding: Math.max(1, Number(raw.padding ?? defaultInvoiceNumberPrefs.padding) || defaultInvoiceNumberPrefs.padding)
 });
 
+const toInvoiceNumberPrefsDraft = (raw = {}) => {
+  const clean = sanitizeInvoiceNumberPrefs(raw);
+  return {
+    ...clean,
+    gstNextNumber: String(raw.gstNextNumber ?? raw.nextNumber ?? clean.gstNextNumber ?? ''),
+    nonGstNextNumber: String(raw.nonGstNextNumber ?? clean.nonGstNextNumber ?? ''),
+    padding: String(raw.padding ?? clean.padding ?? '')
+  };
+};
+
 const extractInvoiceSeq = (invoiceNumber, prefix) => {
   const raw = String(invoiceNumber || '').trim();
   if (!raw) return null;
@@ -1156,7 +1166,7 @@ export default function InvoiceDashboard() {
   const [saveError, setSaveError] = useState('');
   const [showInvoiceNumberPrefs, setShowInvoiceNumberPrefs] = useState(false);
   const [invoiceNumberPrefs, setInvoiceNumberPrefs] = useState(defaultInvoiceNumberPrefs);
-  const [invoiceNumberPrefsDraft, setInvoiceNumberPrefsDraft] = useState(defaultInvoiceNumberPrefs);
+  const [invoiceNumberPrefsDraft, setInvoiceNumberPrefsDraft] = useState(() => toInvoiceNumberPrefsDraft(defaultInvoiceNumberPrefs));
   const [companySettings, setCompanySettings] = useState({});
   const [settingsHydrated, setSettingsHydrated] = useState(Boolean(cachedInvoiceState));
   const [invoicesHydrated, setInvoicesHydrated] = useState(Boolean(cachedInvoiceState));
@@ -2002,7 +2012,7 @@ export default function InvoiceDashboard() {
   };
 
   const openInvoiceNumberPrefs = () => {
-    setInvoiceNumberPrefsDraft(sanitizeInvoiceNumberPrefs(invoiceNumberPrefs));
+    setInvoiceNumberPrefsDraft(toInvoiceNumberPrefsDraft(invoiceNumberPrefs));
     setShowInvoiceNumberPrefs(true);
   };
 
@@ -4385,11 +4395,11 @@ export default function InvoiceDashboard() {
                     <input
                       style={shell.input}
                       inputMode="numeric"
-                      value={String(invoiceNumberPrefsDraft.gstNextNumber)}
+                      value={String(invoiceNumberPrefsDraft.gstNextNumber ?? '')}
                       onChange={(event) =>
                         setInvoiceNumberPrefsDraft((prev) => ({
                           ...prev,
-                          gstNextNumber: Math.max(1, Number(event.target.value.replace(/\D/g, '')) || 1)
+                          gstNextNumber: event.target.value.replace(/\D/g, '')
                         }))
                       }
                     />
@@ -4411,11 +4421,11 @@ export default function InvoiceDashboard() {
                     <input
                       style={shell.input}
                       inputMode="numeric"
-                      value={String(invoiceNumberPrefsDraft.nonGstNextNumber)}
+                      value={String(invoiceNumberPrefsDraft.nonGstNextNumber ?? '')}
                       onChange={(event) =>
                         setInvoiceNumberPrefsDraft((prev) => ({
                           ...prev,
-                          nonGstNextNumber: Math.max(1, Number(event.target.value.replace(/\D/g, '')) || 1)
+                          nonGstNextNumber: event.target.value.replace(/\D/g, '')
                         }))
                       }
                     />
