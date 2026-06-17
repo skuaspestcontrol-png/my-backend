@@ -1,6 +1,7 @@
 const fs = require('fs');
 const zlib = require('zlib');
 const PDFDocument = require('pdfkit');
+const { formatIndiaDateTime } = require('./lib/indiaTime');
 const { normalizeIndianMobileNumber } = require('./lib/phone');
 
 const normalizeText = (value) => String(value || '').trim();
@@ -2257,7 +2258,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
         });
 
         doc.font('Helvetica-Bold').fontSize(16).text('SKUAS Pest Control - Duplicate Customer Report', 36, 36);
-        doc.font('Helvetica').fontSize(10).text(`Generated: ${new Date().toLocaleString('en-IN')}`, 36, 58);
+        doc.font('Helvetica').fontSize(10).text(`Generated: ${formatIndiaDateTime(new Date())}`, 36, 58);
         doc.text(`Data Health Score: ${report.summary.customerDataHealthScore}`, 36, 72);
         doc.moveTo(36, 88).lineTo(559, 88).strokeColor('#cbd5e1').stroke();
 

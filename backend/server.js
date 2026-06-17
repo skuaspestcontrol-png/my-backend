@@ -13,6 +13,7 @@ const multer = require('multer');
 const { execFile } = require('child_process');
 const PDFDocument = require('pdfkit');
 const { generateInvoicePdfBuffer, formatINR, formatDate, amountToWords } = require('./invoicePdf');
+const { formatIndiaDateTime, formatIndiaDate, formatIndiaTime } = require('./lib/indiaTime');
 const { resolveUploadAsset } = require('./quotationPdf');
 const { pool, query: dbQuery, getConnection } = require('./lib/db');
 const { runAutoMigrations, getLastMigrationStatus } = require('./lib/autoMigrate');
@@ -1349,6 +1350,12 @@ const defaultSettings = {
 };
 
 const normalizeSettingsText = (value) => String(value ?? '').trim();
+const normalizeLegacyInvoicePrefix = (value, fallback = '') => {
+  const raw = String(value || '').trim();
+  if (!raw) return String(fallback || '').trim();
+  const legacyMatch = raw.match(/^(.*[\/\-_ ])(\d+)$/);
+  return legacyMatch ? legacyMatch[1] : raw;
+};
 const normalizeDateOnly = (value) => {
   const raw = String(value || '').trim();
   if (!raw || raw === '0000-00-00') return '';
@@ -1618,11 +1625,11 @@ const sanitizeSettings = (raw = {}) => {
     brandingAppearance: String(source.brandingAppearance || defaultSettings.brandingAppearance).trim().toLowerCase() === 'dark' ? 'dark' : 'light',
     brandingAccentColor: normalizeSettingsText(source.brandingAccentColor ?? defaultSettings.brandingAccentColor) || defaultSettings.brandingAccentColor,
     invoiceNumberMode: source.invoiceNumberMode === 'manual' ? 'manual' : 'auto',
-    gstInvoicePrefix: String(source.gstInvoicePrefix ?? source.invoicePrefix ?? defaultSettings.gstInvoicePrefix),
+    gstInvoicePrefix: normalizeLegacyInvoicePrefix(source.gstInvoicePrefix ?? source.invoicePrefix, defaultSettings.gstInvoicePrefix),
     gstInvoiceNextNumber: Math.max(1, Number(source.gstInvoiceNextNumber ?? source.invoiceNextNumber ?? defaultSettings.gstInvoiceNextNumber) || defaultSettings.gstInvoiceNextNumber),
-    nonGstInvoicePrefix: String(source.nonGstInvoicePrefix ?? defaultSettings.nonGstInvoicePrefix),
+    nonGstInvoicePrefix: normalizeLegacyInvoicePrefix(source.nonGstInvoicePrefix, defaultSettings.nonGstInvoicePrefix),
     nonGstInvoiceNextNumber: Math.max(1, Number(source.nonGstInvoiceNextNumber ?? defaultSettings.nonGstInvoiceNextNumber) || defaultSettings.nonGstInvoiceNextNumber),
-    invoicePrefix: String(source.invoicePrefix ?? source.gstInvoicePrefix ?? defaultSettings.invoicePrefix),
+    invoicePrefix: normalizeLegacyInvoicePrefix(source.invoicePrefix ?? source.gstInvoicePrefix, defaultSettings.invoicePrefix),
     invoiceNextNumber: Math.max(1, Number(source.invoiceNextNumber ?? source.gstInvoiceNextNumber ?? defaultSettings.invoiceNextNumber) || defaultSettings.invoiceNextNumber),
     invoiceNumberPadding: Math.max(1, Number(source.invoiceNumberPadding ?? defaultSettings.invoiceNumberPadding) || defaultSettings.invoiceNumberPadding),
     renewalPrefix: String(source.renewalPrefix ?? defaultSettings.renewalPrefix),
@@ -1731,42 +1738,61 @@ const saveSettingsToMysql = async (payload = {}) => {
 
 const deprecatedSettingsKeys = ['googleReviewLink', 'showGoogleReviewLink'];
 
+const persistSettingsSnapshot = async (snapshot = {}) => {
+  const nextSettings = sanitizeSettings(snapshot);
+  if (canUseMysql()) {
+    await withMysqlConnection(async (conn) => {
+      await ensureAppSettingsTable(conn);
+      await conn.query(
+        `INSERT INTO app_settings (setting_key, setting_value)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+        [APP_SETTINGS_KEY_MAIN, JSON.stringify(nextSettings)]
+      );
+    });
+  } else {
+    fs.writeFileSync(settingsFile, JSON.stringify(nextSettings, null, 2));
+  }
+  clearSettingsCache();
+  return nextSettings;
+};
+
 const cleanupDeprecatedSettingsStorage = async () => {
   try {
-    if (canUseMysql()) {
-      const rawSettings = await withMysqlConnection(async (conn) => {
-        await ensureAppSettingsTable(conn);
-        const [rows] = await conn.query(
-          'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
-          [APP_SETTINGS_KEY_MAIN]
-        );
-        const row = Array.isArray(rows) ? rows[0] : null;
-        if (!row) return null;
-        const raw = row.setting_value;
-        if (!raw) return {};
-        if (typeof raw === 'string') {
-          try {
-            return JSON.parse(raw);
-          } catch {
-            return {};
+    const rawSettings = canUseMysql()
+      ? await withMysqlConnection(async (conn) => {
+          await ensureAppSettingsTable(conn);
+          const [rows] = await conn.query(
+            'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
+            [APP_SETTINGS_KEY_MAIN]
+          );
+          const row = Array.isArray(rows) ? rows[0] : null;
+          if (!row) return null;
+          const raw = row.setting_value;
+          if (!raw) return {};
+          if (typeof raw === 'string') {
+            try {
+              return JSON.parse(raw);
+            } catch {
+              return {};
+            }
           }
-        }
-        if (typeof raw === 'object') return raw;
-        return {};
-      });
+          if (typeof raw === 'object') return raw;
+          return {};
+        })
+      : readJsonFile(settingsFile, {});
 
-      if (!rawSettings || typeof rawSettings !== 'object') return;
-      if (!deprecatedSettingsKeys.some((key) => Object.prototype.hasOwnProperty.call(rawSettings, key))) return;
-
-      await saveSettingsToMysql(sanitizeSettings(rawSettings));
-      return;
-    }
-
-    const rawSettings = readJsonFile(settingsFile, {});
     if (!rawSettings || typeof rawSettings !== 'object') return;
-    if (!deprecatedSettingsKeys.some((key) => Object.prototype.hasOwnProperty.call(rawSettings, key))) return;
+    const nextSettings = sanitizeSettings(rawSettings);
+    const needsDeprecatedCleanup = deprecatedSettingsKeys.some((key) => Object.prototype.hasOwnProperty.call(rawSettings, key));
+    const needsInvoicePrefixCleanup =
+      normalizeLegacyInvoicePrefix(rawSettings.gstInvoicePrefix ?? rawSettings.invoicePrefix, defaultSettings.gstInvoicePrefix) !== String(rawSettings.gstInvoicePrefix ?? rawSettings.invoicePrefix ?? '').trim()
+      || normalizeLegacyInvoicePrefix(rawSettings.nonGstInvoicePrefix, defaultSettings.nonGstInvoicePrefix) !== String(rawSettings.nonGstInvoicePrefix ?? '').trim()
+      || normalizeLegacyInvoicePrefix(rawSettings.invoicePrefix ?? rawSettings.gstInvoicePrefix, defaultSettings.invoicePrefix) !== String(rawSettings.invoicePrefix ?? rawSettings.gstInvoicePrefix ?? '').trim();
 
-    fs.writeFileSync(settingsFile, JSON.stringify(sanitizeSettings(rawSettings), null, 2));
+    if (!needsDeprecatedCleanup && !needsInvoicePrefixCleanup) return;
+
+    await persistSettingsSnapshot(nextSettings);
   } catch (error) {
     console.error('Failed to clean up deprecated settings:', error.message);
   }
@@ -1950,29 +1976,21 @@ const formatPdfDateTime = (value) => {
     const raw = String(value || '').trim();
     return raw || '-';
   }
-  return parsed.toLocaleString('en-IN');
+  return formatIndiaDateTime(parsed);
 };
 
 const formatPdfDate = (value) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
+  return formatIndiaDate(date);
 };
 
 const formatPdfTime = (value) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleTimeString('en-IN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
+  return formatIndiaTime(date);
 };
 
 const pdfValue = (value) => {
@@ -2705,7 +2723,7 @@ const buildJobPdfBuffer = async ({ job = {}, settings = {}, req = null, allJobs 
   }
   const footerTop = doc.page.height - doc.page.margins.bottom - 28;
   doc.font('Helvetica').fontSize(8.4).fillColor('#64748B').text(`Generated by SKUAS CRM`, header.left, footerTop, { width: header.width, align: 'left' });
-  doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, header.left, footerTop + 10, { width: header.width, align: 'left' });
+  doc.text(`Generated on: ${formatIndiaDateTime(new Date())}`, header.left, footerTop + 10, { width: header.width, align: 'left' });
 
   doc.end();
   } catch (error) {
@@ -8621,8 +8639,8 @@ const extractInvoiceSequence = (invoiceNumber, prefix = '') => {
 const getInvoiceNumberConfig = (settings = {}, invoiceType = 'GST') => {
   const normalizedType = String(invoiceType || '').trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
   const prefix = normalizedType === 'NON GST'
-    ? String(settings?.nonGstInvoicePrefix ?? defaultSettings.nonGstInvoicePrefix)
-    : String(settings?.gstInvoicePrefix ?? settings?.invoicePrefix ?? defaultSettings.gstInvoicePrefix);
+    ? normalizeLegacyInvoicePrefix(settings?.nonGstInvoicePrefix, defaultSettings.nonGstInvoicePrefix)
+    : normalizeLegacyInvoicePrefix(settings?.gstInvoicePrefix ?? settings?.invoicePrefix, defaultSettings.gstInvoicePrefix);
   const nextNumber = normalizedType === 'NON GST'
     ? Math.max(1, Number(settings?.nonGstInvoiceNextNumber ?? defaultSettings.nonGstInvoiceNextNumber) || defaultSettings.nonGstInvoiceNextNumber)
     : Math.max(1, Number(settings?.gstInvoiceNextNumber ?? settings?.invoiceNextNumber ?? defaultSettings.gstInvoiceNextNumber) || defaultSettings.gstInvoiceNextNumber);
@@ -9635,7 +9653,7 @@ const pullGoogleTaskUpdatesToCrmSafely = async () => {
           const crmStatus = String(job.status || '').trim().toLowerCase();
           if (taskStatus === 'completed' && crmStatus !== 'completed') {
             job.status = 'Completed';
-            job.punchOutTime = job.punchOutTime || new Date().toLocaleString();
+            job.punchOutTime = job.punchOutTime || new Date().toISOString();
             jobChanged = true;
           } else if (taskStatus === 'needsaction' && crmStatus === 'completed') {
             // Optional reopen behavior when Google task is reopened.

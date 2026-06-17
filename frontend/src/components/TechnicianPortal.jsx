@@ -19,6 +19,7 @@ import PdfPreviewModal from './PdfPreviewModal';
 import { useLocation, useParams } from 'react-router-dom';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import { getPortalUserName } from '../utils/portalAuth';
+import { formatIndiaDateTime } from '../utils/indiaTime';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const TECHNICIAN_PORTAL_CACHE_KEY = 'skuasmaster-technician-portal-cache-v1';
@@ -1814,7 +1815,7 @@ export default function TechnicianPortal() {
   const handlePunchIn = async () => {
     if (!activeJob || isPunchingIn || isCompleting) return;
     setActionStatus('');
-    const time = new Date().toLocaleString();
+    const time = new Date().toISOString();
     const serviceStartTime = new Date().toISOString();
     setPunchInTime(time);
 
@@ -1846,13 +1847,13 @@ export default function TechnicianPortal() {
     if (!customerSig || !technicianSig) {
       window.alert('Please sign the document before completing the job.');
     }
-    const resolvedPunchInTime = punchInTime || activeJob.punchInTime || new Date().toLocaleString();
+    const resolvedPunchInTime = punchInTime || activeJob.punchInTime || new Date().toISOString();
     const completedAt = new Date().toISOString();
     const completionCardNumber = createCompletionCardNumber();
     const statusPayload = {
       status: 'Completed',
       punchInTime: resolvedPunchInTime,
-      punchOutTime: new Date(completedAt).toLocaleString(),
+      punchOutTime: completedAt,
       serviceStartTime: activeJob.serviceStartTime || activeJob.service_start_time || new Date().toISOString(),
       serviceEndTime: completedAt,
       completionCardNumber,
@@ -2681,7 +2682,7 @@ export default function TechnicianPortal() {
               </div>
               <div>
                 <p style={shell.completionLabel}>Completed On</p>
-                <p style={shell.completionValue}>{new Date(completionCard.completedAt).toLocaleString()}</p>
+                <p style={shell.completionValue}>{formatIndiaDateTime(completionCard.completedAt)}</p>
               </div>
               <div>
                 <p style={shell.completionLabel}>Customer</p>

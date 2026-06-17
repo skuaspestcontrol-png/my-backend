@@ -11,6 +11,7 @@ import {
 import useColumnResize from './table/useColumnResize';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { buildPortalAuthHeaders, getPortalUserRole } from '../utils/portalAuth';
+import { formatIndiaDateTime } from '../utils/indiaTime';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const now = new Date();
@@ -504,12 +505,7 @@ export default function HRDashboard() {
   const leaveTableStyle = { ...shell.table, minWidth: `${Math.max(920, leaveTableMinWidth)}px` };
   const balanceTableStyle = { ...shell.table, minWidth: `${Math.max(920, balanceTableMinWidth)}px` };
   const payrollTableStyle = { ...shell.table, minWidth: `${Math.max(920, payrollTableMinWidth)}px` };
-  const lastUpdatedLabel = lastUpdatedAt
-    ? new Intl.DateTimeFormat('en-IN', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    }).format(new Date(lastUpdatedAt))
-    : 'Not updated yet';
+  const lastUpdatedLabel = lastUpdatedAt ? formatIndiaDateTime(lastUpdatedAt, {}, 'Not updated yet') : 'Not updated yet';
   const headStyle = (getWidth, key, align = 'left') => ({
     ...shell.th,
     position: 'relative',

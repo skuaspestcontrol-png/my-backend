@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
+const { formatIndiaDateTime } = require('./lib/indiaTime');
 const { syncPayrollJsonFilesToMysql } = require('./lib/autoMigrate');
 const { normalizeIndianMobileNumber } = require('./lib/phone');
 const { renderQuotationPdfHeader } = require('./quotationPdf');
@@ -3005,7 +3006,7 @@ function registerPayrollModule({
         res.send(Buffer.concat(chunks));
       });
       doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a').text('SKUAS Pest Control - Payroll Report');
-      doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`Type: ${type} | Month: ${month || 'All'} | Year: ${year || 'All'} | Generated: ${new Date().toLocaleString()}`);
+      doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`Type: ${type} | Month: ${month || 'All'} | Year: ${year || 'All'} | Generated: ${formatIndiaDateTime(new Date())}`);
       doc.moveDown(0.6);
       const columns = getPayrollExportColumns(type);
       const headers = columns.map(([, label]) => label);

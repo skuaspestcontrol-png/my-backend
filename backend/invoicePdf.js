@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
+const { formatIndiaDate } = require('./lib/indiaTime');
 
 const COLORS = {
   label: '#333333',
@@ -48,10 +49,7 @@ const formatDate = (value) => {
   if (!raw) return '-';
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return raw;
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const yyyy = date.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
+  return formatIndiaDate(date);
 };
 
 const toWordsBelowThousand = (num) => {

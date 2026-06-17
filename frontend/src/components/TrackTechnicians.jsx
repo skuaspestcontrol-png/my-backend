@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { MapPin, Navigation, Route, ShieldAlert, ShieldCheck, Users } from 'lucide-react';
+import { formatIndiaDateTime } from '../utils/indiaTime';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const EARTH_RADIUS_KM = 6371;
@@ -49,9 +50,7 @@ const haversineKm = (lat1, lng1, lat2, lng2) => {
 };
 
 const formatDateTime = (value) => {
-  const date = new Date(value || '');
-  if (Number.isNaN(date.getTime())) return 'Unknown time';
-  return date.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+  return formatIndiaDateTime(value, {}, 'Unknown time');
 };
 
 const readTrackTechniciansCache = () => {

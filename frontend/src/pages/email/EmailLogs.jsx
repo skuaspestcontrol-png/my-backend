@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { getPortalUserName } from '../../utils/portalAuth';
 import useColumnResize from '../../components/table/useColumnResize';
+import { formatIndiaDateTime } from '../../utils/indiaTime';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const formatDateTime = (value) => {
-  const date = new Date(value || '');
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+  return formatIndiaDateTime(value);
 };
 
 export default function EmailLogs() {

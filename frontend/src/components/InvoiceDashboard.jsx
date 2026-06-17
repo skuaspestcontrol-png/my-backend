@@ -338,11 +338,18 @@ const defaultInvoiceNumberPrefs = {
   padding: 4
 };
 
+const normalizeLegacyInvoicePrefix = (value, fallback = '') => {
+  const raw = String(value || '').trim();
+  if (!raw) return String(fallback || '').trim();
+  const legacyMatch = raw.match(/^(.*[\/\-_ ])(\d+)$/);
+  return legacyMatch ? legacyMatch[1] : raw;
+};
+
 const sanitizeInvoiceNumberPrefs = (raw = {}) => ({
   mode: raw.mode === 'manual' ? 'manual' : 'auto',
-  gstPrefix: String(raw.gstPrefix ?? raw.prefix ?? defaultInvoiceNumberPrefs.gstPrefix),
+  gstPrefix: normalizeLegacyInvoicePrefix(raw.gstPrefix ?? raw.prefix, defaultInvoiceNumberPrefs.gstPrefix),
   gstNextNumber: Math.max(1, Number(raw.gstNextNumber ?? raw.nextNumber ?? defaultInvoiceNumberPrefs.gstNextNumber) || defaultInvoiceNumberPrefs.gstNextNumber),
-  nonGstPrefix: String(raw.nonGstPrefix ?? defaultInvoiceNumberPrefs.nonGstPrefix),
+  nonGstPrefix: normalizeLegacyInvoicePrefix(raw.nonGstPrefix, defaultInvoiceNumberPrefs.nonGstPrefix),
   nonGstNextNumber: Math.max(1, Number(raw.nonGstNextNumber ?? defaultInvoiceNumberPrefs.nonGstNextNumber) || defaultInvoiceNumberPrefs.nonGstNextNumber),
   padding: Math.max(1, Number(raw.padding ?? defaultInvoiceNumberPrefs.padding) || defaultInvoiceNumberPrefs.padding)
 });
@@ -1531,9 +1538,9 @@ export default function InvoiceDashboard() {
       const settingsData = settingsRes.data || {};
       const prefs = sanitizeInvoiceNumberPrefs({
         mode: settingsData.invoiceNumberMode || 'auto',
-        gstPrefix: settingsData.gstInvoicePrefix || settingsData.invoicePrefix || 'SPC-',
+        gstPrefix: normalizeLegacyInvoicePrefix(settingsData.gstInvoicePrefix ?? settingsData.invoicePrefix, 'SPC-'),
         gstNextNumber: settingsData.gstInvoiceNextNumber ?? settingsData.invoiceNextNumber ?? 66,
-        nonGstPrefix: settingsData.nonGstInvoicePrefix || 'SPC-NG-',
+        nonGstPrefix: normalizeLegacyInvoicePrefix(settingsData.nonGstInvoicePrefix, 'SPC-NG-'),
         nonGstNextNumber: settingsData.nonGstInvoiceNextNumber ?? 1,
         padding: settingsData.invoiceNumberPadding ?? 4
       });
