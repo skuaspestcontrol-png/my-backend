@@ -2136,6 +2136,7 @@ export default function InvoiceDashboard() {
 
   const mapInvoiceToForm = (invoice) => {
     const invoiceType = normalizeInvoiceType(invoice.invoiceType || (Number(invoice.totalTax || 0) > 0 ? 'GST' : 'NON GST'));
+    const invoiceDate = normalizeDateInput(invoice.date || invoice.invoiceDate || invoice.createdAt);
     const mappedItems = Array.isArray(invoice.items) && invoice.items.length > 0
       ? invoice.items.map((line) => withContractSchedule({
         itemId: line.itemId || '',
@@ -2146,7 +2147,9 @@ export default function InvoiceDashboard() {
         itemType: line.itemType || 'service',
         contractPeriod: line.contractPeriod || '',
         contractStartDate: line.contractStartDate || '',
-        contractStartDateSource: line.contractStartDate ? 'manual' : 'invoice-date',
+        contractStartDateSource: line.contractStartDate && invoiceDate && normalizeDateInput(line.contractStartDate) !== invoiceDate
+          ? 'manual'
+          : 'invoice-date',
         serviceWeekday: line.serviceWeekday || '',
         contractEndDate: line.contractEndDate || '',
         renewalDate: line.renewalDate || '',
