@@ -86,6 +86,20 @@ const mobileColumnWidths = {
   due: 92,
   actions: 96
 };
+const monthOptions = [
+  { value: '01', label: 'January' },
+  { value: '02', label: 'February' },
+  { value: '03', label: 'March' },
+  { value: '04', label: 'April' },
+  { value: '05', label: 'May' },
+  { value: '06', label: 'June' },
+  { value: '07', label: 'July' },
+  { value: '08', label: 'August' },
+  { value: '09', label: 'September' },
+  { value: '10', label: 'October' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'December' }
+];
 const contractColumnResizeBounds = {
   rowNumber: { min: 36, max: 56 },
   contractNo: { min: 96, max: 180 },
@@ -515,7 +529,16 @@ export default function ContractDashboard() {
     }
   });
   const [quickFilter, setQuickFilter] = useState('All');
-  const [filters, setFilters] = useState({ status: 'All Status', type: 'All Type', from: '', to: '', search: '' });
+  const [filters, setFilters] = useState({
+    status: 'All Status',
+    type: 'All Type',
+    month: '',
+    year: '',
+    salesperson: '',
+    from: '',
+    to: '',
+    search: ''
+  });
   const [activeTab, setActiveTab] = useState('Overview');
   const [invoices, setInvoices] = useState(() => Array.isArray(cachedDashboard?.invoices) ? cachedDashboard.invoices : []);
   const [customers, setCustomers] = useState(() => Array.isArray(cachedDashboard?.customers) ? cachedDashboard.customers : []);
@@ -867,11 +890,23 @@ export default function ContractDashboard() {
       const total = Number(invoice.total ?? invoice.amount ?? 0);
       const due = resolveInvoiceBalanceDue(invoice, total);
       const paid = Math.max(0, total - due);
+      const salesperson = String(
+        invoice.salesperson
+        || invoice.salesPerson
+        || invoice.preparedBy
+        || invoice.prepared_by
+        || customer?.assignedTo
+        || customer?.assignedToName
+        || ''
+      ).trim();
 
       const normalizedInvoiceType = String(invoice.invoiceType || '').trim().toUpperCase();
       const type = normalizedInvoiceType === 'NON GST' ? 'Non GST' : (Number(invoice.totalTax || 0) > 0 ? 'GST' : 'Non GST');
       const startInputDate = toInputDate(startDate);
       const endInputDate = toInputDate(endDate || startDate);
+      const parsedStartDate = parseDateOnly(startDate);
+      const month = parsedStartDate ? String(parsedStartDate.getMonth() + 1).padStart(2, '0') : '';
+      const year = parsedStartDate ? String(parsedStartDate.getFullYear()) : '';
 
       const contractNo = String(invoice.invoiceNumber || '').trim() || `CONTRACT-${index + 1}`;
       const serviceMeta = scheduleIndex.byInvoiceId.get(String(invoice._id || ''))
@@ -903,6 +938,9 @@ export default function ContractDashboard() {
         nextServiceTime: serviceMeta.nextServiceTime || '',
         status: deriveContractStatus(invoice.status, startInputDate, endInputDate),
         type,
+        salesperson,
+        month,
+        year,
         total,
         paid,
         due
@@ -925,11 +963,31 @@ export default function ContractDashboard() {
     return ['All Type', ...uniqueTypes];
   }, [allContracts]);
 
+  const salespersonOptions = useMemo(() => {
+    const uniqueSalespeople = new Map();
+    allContracts.forEach((row) => {
+      const name = String(row.salesperson || '').trim();
+      if (!name) return;
+      const key = normalizeName(name);
+      if (!uniqueSalespeople.has(key)) uniqueSalespeople.set(key, name);
+    });
+    return ['All Sales Person', ...Array.from(uniqueSalespeople.values()).sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }))];
+  }, [allContracts]);
+
+  const yearOptions = useMemo(() => {
+    const uniqueYears = Array.from(new Set(allContracts.map((row) => row.year).filter(Boolean)));
+    uniqueYears.sort((left, right) => Number(right) - Number(left));
+    return ['All Year', ...uniqueYears];
+  }, [allContracts]);
+
   const filteredContracts = useMemo(() => {
     return allContracts.filter((row) => {
       if (quickFilter !== 'All' && row.status !== quickFilter) return false;
       if (filters.status !== 'All Status' && row.status !== filters.status) return false;
       if (filters.type !== 'All Type' && row.type !== filters.type) return false;
+      if (filters.month && row.month !== filters.month) return false;
+      if (filters.year && row.year !== filters.year) return false;
+      if (filters.salesperson && normalizeName(row.salesperson) !== normalizeName(filters.salesperson)) return false;
       if (filters.from && row.startDate && row.startDate < filters.from) return false;
       if (filters.to && row.startDate && row.startDate > filters.to) return false;
 
@@ -1199,6 +1257,19 @@ export default function ContractDashboard() {
   const cardTopStyle = isMobile ? { ...shell.cardTop, flexDirection: 'column', alignItems: 'stretch' } : shell.cardTop;
   const headActionsStyle = isMobile ? { ...shell.headActions, justifyContent: 'stretch', width: '100%' } : shell.headActions;
   const newButtonStyle = isMobile ? { ...shell.newBtn, width: 'fit-content', minHeight: '32px', height: '32px', padding: '0 10px' } : shell.newBtn;
+  const clearFilters = () => {
+    setQuickFilter('All');
+    setFilters({
+      status: 'All Status',
+      type: 'All Type',
+      month: '',
+      year: '',
+      salesperson: '',
+      from: '',
+      to: '',
+      search: ''
+    });
+  };
 
   const openCustomerSummary = (row) => {
     setCustomerSummary({ open: true, row, showHistory: false });
@@ -1586,15 +1657,42 @@ export default function ContractDashboard() {
                 <option>Renewed</option>
               </select>
             </div>
-            <div style={shell.filterField}>
-              <label style={shell.filterLabel}>Type</label>
-              <select style={shell.input} value={filters.type} onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value }))}>
-                {typeOptions.map((option) => <option key={option}>{option}</option>)}
-              </select>
-            </div>
-            <div style={shell.filterField}>
-              <label style={shell.filterLabel}>Start Date From</label>
-              <input type="date" style={mobileDateInputStyle} value={filters.from} onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))} />
+          <div style={shell.filterField}>
+            <label style={shell.filterLabel}>Type</label>
+            <select style={shell.input} value={filters.type} onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value }))}>
+              {typeOptions.map((option) => <option key={option}>{option}</option>)}
+            </select>
+          </div>
+          <div style={shell.filterField}>
+            <label style={shell.filterLabel}>Month Wise</label>
+            <select style={shell.input} value={filters.month} onChange={(event) => setFilters((prev) => ({ ...prev, month: event.target.value }))}>
+              <option value="">All Month</option>
+              {monthOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+          <div style={shell.filterField}>
+            <label style={shell.filterLabel}>Year Wise</label>
+            <select style={shell.input} value={filters.year} onChange={(event) => setFilters((prev) => ({ ...prev, year: event.target.value }))}>
+              <option value="">All Year</option>
+              {yearOptions.slice(1).map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+          <div style={shell.filterField}>
+            <label style={shell.filterLabel}>Sales Person Wise</label>
+            <select style={shell.input} value={filters.salesperson} onChange={(event) => setFilters((prev) => ({ ...prev, salesperson: event.target.value }))}>
+              <option value="">All Sales Person</option>
+              {salespersonOptions.slice(1).map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+          <div style={shell.filterField}>
+            <label style={shell.filterLabel}>Start Date From</label>
+            <input type="date" style={mobileDateInputStyle} value={filters.from} onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))} />
             </div>
             <div style={shell.filterField}>
               <label style={shell.filterLabel}>Start Date To</label>
@@ -1604,10 +1702,7 @@ export default function ContractDashboard() {
               <button
                 type="button"
                 style={clearButtonStyle}
-                onClick={() => {
-                  setQuickFilter('All');
-                  setFilters({ status: 'All Status', type: 'All Type', from: '', to: '', search: '' });
-                }}
+                onClick={clearFilters}
               >
                 <RefreshCcw size={13} /> Clear Filters
               </button>
