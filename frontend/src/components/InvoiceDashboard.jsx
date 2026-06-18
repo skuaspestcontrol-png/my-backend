@@ -817,9 +817,28 @@ const buildServiceScheduleEntries = (items = [], defaultTime = '10:00') => {
   const schedule = [];
 
   items.forEach((line, lineIndex) => {
+    const lineStartDate = line.contractStartDate || line.serviceStartDate;
+    const lineEndDate = line.contractEndDate || line.serviceEndDate;
+    const contractPeriod = String(line.contractPeriod || '').trim();
+
+    if (['single_time_plus_7', 'single_time_plus_10'].includes(contractPeriod)) {
+      [lineStartDate, lineEndDate].filter(Boolean).forEach((serviceDate, serviceIndex) => {
+        schedule.push({
+          key: `${lineIndex}-${line.itemId || line.itemName || 'line'}-${serviceIndex + 1}`,
+          itemId: line.itemId || '',
+          itemName: line.itemName || `Item ${lineIndex + 1}`,
+          itemDescription: line.frequency || line.description || '',
+          serviceNumber: serviceIndex + 1,
+          serviceDate,
+          serviceTime: normalizedTime
+        });
+      });
+      return;
+    }
+
     const baseDates = buildServiceDatesByFrequency(
-      line.contractStartDate || line.serviceStartDate,
-      line.contractEndDate || line.serviceEndDate,
+      lineStartDate,
+      lineEndDate,
       line.serviceFrequency,
       line.serviceWeekday
     );
@@ -868,6 +887,7 @@ const withContractSchedule = (line) => {
     draft: {
       startDate: window.contractStartDate,
       endDate: window.contractEndDate,
+      contractPeriod: line.contractPeriod,
       frequency: line.serviceFrequency,
       preferredDay: line.serviceWeekday
     },

@@ -8665,6 +8665,28 @@ const buildServiceScheduleEntries = (invoiceLike) => {
       line?.serviceEndDate ||
       buildContractEndDate(line?.contractStartDate || '', line?.contractPeriod || '');
     const preferredDay = normalizeServiceSchedulePreferredDay(line?.serviceWeekday || '');
+    const contractPeriod = String(line?.contractPeriod || '').trim();
+
+    if (['single_time_plus_7', 'single_time_plus_10'].includes(contractPeriod)) {
+      [lineStartDate, lineEndDate].filter(Boolean).forEach((serviceDate, serviceIndex) => {
+        schedules.push({
+          serviceNumber: serviceIndex + 1,
+          baseServiceDate: serviceDate,
+          preferredDay,
+          preferredDayLabel: getServiceSchedulePreferredDayLabel(preferredDay),
+          serviceDate,
+          finalServiceDate: serviceDate,
+          serviceTime: defaultTime,
+          itemId: line?.itemId || '',
+          itemName: line?.itemName || `Item ${lineIndex + 1}`,
+          itemDescription: line?.description || '',
+          scheduleRuleLabel: '',
+          status: 'Scheduled'
+        });
+      });
+      return;
+    }
+
     const baseDates = buildServiceDatesByFrequency(lineStartDate, lineEndDate, line?.serviceFrequency || '', '', 500);
     if (baseDates.length === 0) return;
 
