@@ -107,6 +107,27 @@ const StockPurchase = lazy(() => import('./pages/stock-management/StockPurchase'
 const StockIssueUsage = lazy(() => import('./pages/stock-management/StockIssueUsage'));
 const StockReports = lazy(() => import('./pages/stock-management/StockReports'));
 
+const normalizePastedDate = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  const dmyMatch = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:[T\s].*)?$/);
+  if (dmyMatch) {
+    return `${dmyMatch[3]}-${String(dmyMatch[2]).padStart(2, '0')}-${String(dmyMatch[1]).padStart(2, '0')}`;
+  }
+  const shortYearMatch = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2})(?:[T\s].*)?$/);
+  if (shortYearMatch) {
+    return `20${shortYearMatch[3]}-${String(shortYearMatch[2]).padStart(2, '0')}-${String(shortYearMatch[1]).padStart(2, '0')}`;
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const ProtectedRoute = ({ children }) => {
   const [authState, setAuthState] = useState({ loading: true, authenticated: false });
 
@@ -236,6 +257,30 @@ const hrPage = (
 );
 
 function App() {
+  useEffect(() => {
+    const handlePaste = (event) => {
+      const target = event.target;
+      if (!target || target.tagName !== 'INPUT' || target.type !== 'date' || target.readOnly || target.disabled) return;
+
+      const pasted = String(event.clipboardData?.getData('text') || '').trim();
+      const normalized = normalizePastedDate(pasted);
+      if (!normalized) return;
+
+      event.preventDefault();
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+      if (setter) {
+        setter.call(target, normalized);
+      } else {
+        target.value = normalized;
+      }
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      target.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    document.addEventListener('paste', handlePaste, true);
+    return () => document.removeEventListener('paste', handlePaste, true);
+  }, []);
+
   return (
     <Router>
       <RouteErrorBoundary>
