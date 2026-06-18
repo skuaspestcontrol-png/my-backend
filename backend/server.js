@@ -8387,7 +8387,9 @@ const parseWeekdayValue = (value) => {
 };
 
 const contractPeriodConfig = {
-  single_time: { unit: 'days', value: 1 },
+  single_time: { unit: 'days', value: 1, endOffset: 1 },
+  single_time_plus_7: { unit: 'days', value: 7, endOffset: 0 },
+  single_time_plus_10: { unit: 'days', value: 10, endOffset: 0 },
   weekly: { unit: 'days', value: 7 },
   fortnightly_visits: { unit: 'days', value: 14 },
   monthly: { unit: 'months', value: 1 },
@@ -8486,7 +8488,8 @@ const buildContractEndDate = (contractStartDate, contractPeriod) => {
 
   let end = new Date(start);
   if (cfg.unit === 'days') {
-    end.setDate(end.getDate() + cfg.value - 1);
+    const offset = Number.isFinite(Number(cfg.endOffset)) ? Number(cfg.endOffset) : 1;
+    end.setDate(end.getDate() + cfg.value - offset);
   } else {
     end = addMonthsClamped(start, cfg.value);
     end.setDate(end.getDate() - 1);

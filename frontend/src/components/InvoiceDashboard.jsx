@@ -147,6 +147,8 @@ const normalizePaymentDepositTo = (value, invoiceType = 'GST') => {
 };
 const contractPeriodOptions = [
   { value: 'single_time', label: 'Single time' },
+  { value: 'single_time_plus_7', label: 'Single time +7 days' },
+  { value: 'single_time_plus_10', label: 'Single time +10 days' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'three_months', label: '3 months' },
   { value: 'half_yearly', label: 'Half Yearly' },
