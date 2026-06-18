@@ -51,6 +51,8 @@ const CONTRACT_PERIOD_CONFIG = {
   ten_years: { unit: 'months', value: 120 }
 };
 
+const SPECIAL_SINGLE_VISIT_PERIODS = new Set(['single_time_plus_7', 'single_time_plus_10']);
+
 const SERVICE_FREQUENCY_ALIASES = {
   fortnightly_visits: { frequency: 'fortnightly' },
   quarterly_visits: { frequency: 'quarterly' },
@@ -479,6 +481,26 @@ export const buildServiceScheduleRows = ({
   const scheduleRuleLabel = getServiceScheduleRuleLabel(draft);
   const normalized = normalizeServiceScheduleFrequencyConfig(draft.frequency, draft.repeatEvery, draft.repeatUnit);
   const preferredDay = normalizeServiceSchedulePreferredDay(draft.preferredDay || (Array.isArray(draft.weekdays) && draft.weekdays.length > 0 ? draft.weekdays[0] : ''));
+  const contractPeriod = String(draft.contractPeriod || '').trim();
+
+  if (SPECIAL_SINGLE_VISIT_PERIODS.has(contractPeriod)) {
+    const dates = [formatDateInput(start), formatDateInput(end)].filter(Boolean);
+    return dates.map((serviceDate, index) => ({
+      serviceNumber: index + 1,
+      baseServiceDate: serviceDate,
+      preferredDay,
+      preferredDayLabel: getServiceSchedulePreferredDayLabel(preferredDay),
+      serviceDate,
+      finalServiceDate: serviceDate,
+      serviceTime: normalizedTime,
+      itemId: String(itemMeta.itemId || '').trim(),
+      itemName: String(itemMeta.itemName || 'Service Visit').trim() || 'Service Visit',
+      itemDescription: String(itemMeta.itemDescription || '').trim(),
+      scheduleRuleLabel,
+      status: 'Scheduled'
+    }));
+  }
+
   const baseDates = buildBaseServiceDates({
     start,
     end,
@@ -554,6 +576,7 @@ export const buildServiceScheduleDraftFromInvoice = (invoice = {}, fallbackTime 
       || invoice.servicePeriodEnd
       || lastSchedule?.serviceDate
     ),
+    contractPeriod: String(firstLine.contractPeriod || '').trim(),
     frequency: serviceFrequencyConfig.frequency,
     weekdays: normalizeServiceScheduleWeekdays(
       firstLine.serviceWeekday != null && firstLine.serviceWeekday !== ''
