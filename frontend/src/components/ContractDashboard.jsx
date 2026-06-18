@@ -879,6 +879,7 @@ export default function ContractDashboard() {
 
       const parsedStarts = startCandidates.map(parseDateOnly).filter(Boolean);
       const parsedEnds = endCandidates.map(parseDateOnly).filter(Boolean);
+      const invoiceDate = parseDateOnly(invoice.date || invoice.invoiceDate || invoice.createdAt);
 
       const startDate = parsedStarts.length > 0 ? new Date(Math.min(...parsedStarts.map((date) => date.getTime()))) : parseDateOnly(invoice.date);
       const endDate = parsedEnds.length > 0 ? new Date(Math.max(...parsedEnds.map((date) => date.getTime()))) : startDate;
@@ -904,9 +905,9 @@ export default function ContractDashboard() {
       const type = normalizedInvoiceType === 'NON GST' ? 'Non GST' : (Number(invoice.totalTax || 0) > 0 ? 'GST' : 'Non GST');
       const startInputDate = toInputDate(startDate);
       const endInputDate = toInputDate(endDate || startDate);
-      const parsedStartDate = parseDateOnly(startDate);
-      const month = parsedStartDate ? String(parsedStartDate.getMonth() + 1).padStart(2, '0') : '';
-      const year = parsedStartDate ? String(parsedStartDate.getFullYear()) : '';
+      const parsedInvoiceDate = invoiceDate || parseDateOnly(startDate);
+      const month = parsedInvoiceDate ? String(parsedInvoiceDate.getMonth() + 1).padStart(2, '0') : '';
+      const year = parsedInvoiceDate ? String(parsedInvoiceDate.getFullYear()) : '';
 
       const contractNo = String(invoice.invoiceNumber || '').trim() || `CONTRACT-${index + 1}`;
       const serviceMeta = scheduleIndex.byInvoiceId.get(String(invoice._id || ''))
