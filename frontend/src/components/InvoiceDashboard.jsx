@@ -2123,11 +2123,13 @@ export default function InvoiceDashboard() {
         invoiceNumberPadding: nextPrefs.padding
       });
       setInvoiceNumberPrefs(nextPrefs);
-      setShowInvoiceNumberPrefs(false);
+      invoiceNumberAutoSeededRef.current = false;
+      invoiceNumberManuallyEditedRef.current = false;
       if (!editingId && showModal && nextPrefs.mode === 'auto') {
         const nextNumber = createNextInvoiceNumber(nextPrefs, form.invoiceType);
         setFormWithTotals((prev) => ({ ...prev, invoiceNumber: nextNumber }));
       }
+      setShowInvoiceNumberPrefs(false);
     } catch (error) {
       console.error('Failed to save invoice number preferences', error);
       window.alert('Could not save invoice number preferences.');
