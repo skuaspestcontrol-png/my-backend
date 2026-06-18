@@ -3981,15 +3981,17 @@ export default function InvoiceDashboard() {
                 </select>
               </div>
 
-              <div style={subjectRowStyle}>
-                <label style={shell.label}>Subject</label>
-                <input
-                  style={compactContractControlStyle}
-                  placeholder="Let your customer know what this Invoice is for"
-                  value={form.subject}
-                  onChange={(event) => setFormWithTotals((prev) => ({ ...prev, subject: event.target.value }))}
-                />
-              </div>
+              {!modalOpenedFromContract ? (
+                <div style={subjectRowStyle}>
+                  <label style={shell.label}>Subject</label>
+                  <input
+                    style={compactContractControlStyle}
+                    placeholder="Let your customer know what this Invoice is for"
+                    value={form.subject}
+                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, subject: event.target.value }))}
+                  />
+                </div>
+              ) : null}
 
               <div style={shell.itemSection}>
                 <div style={itemTableWrapStyle}>
