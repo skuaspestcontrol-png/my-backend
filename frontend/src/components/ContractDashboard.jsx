@@ -928,6 +928,7 @@ export default function ContractDashboard() {
         city: String(customer?.billingState || customer?.shippingState || '-').trim(),
         startDate: startInputDate,
         endDate: endInputDate,
+        invoiceDate: invoiceDate ? toInputDate(invoiceDate) : startInputDate,
         services: Math.max(
           0,
           Number(serviceMeta.highestServiceCount || 0),
@@ -989,8 +990,8 @@ export default function ContractDashboard() {
       if (filters.month && row.month !== filters.month) return false;
       if (filters.year && row.year !== filters.year) return false;
       if (filters.salesperson && normalizeName(row.salesperson) !== normalizeName(filters.salesperson)) return false;
-      if (filters.from && row.startDate && row.startDate < filters.from) return false;
-      if (filters.to && row.startDate && row.startDate > filters.to) return false;
+      if (filters.from && row.invoiceDate && row.invoiceDate < filters.from) return false;
+      if (filters.to && row.invoiceDate && row.invoiceDate > filters.to) return false;
 
       const search = normalize(filters.search);
       if (search && !getSearchText(row).includes(search)) return false;
