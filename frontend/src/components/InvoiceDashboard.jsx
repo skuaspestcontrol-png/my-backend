@@ -659,6 +659,10 @@ const normalizeDateInput = (value) => {
   if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
   const dmyMatch = raw.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
   if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
+  const shortYearMatch = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2})(?:[T\s].*)?$/);
+  if (shortYearMatch) {
+    return `20${shortYearMatch[3]}-${String(shortYearMatch[2]).padStart(2, '0')}-${String(shortYearMatch[1]).padStart(2, '0')}`;
+  }
   const parsed = parseDateOnly(raw);
   return parsed ? formatDateInput(parsed) : '';
 };
@@ -1137,12 +1141,23 @@ const matchesInvoiceReference = (invoice, reference) => {
 };
 
 function CompactCalendarDateInput({ value, onChange, style, ariaLabel, readOnly = false }) {
+  const handlePaste = (event) => {
+    if (readOnly || typeof onChange !== 'function') return;
+    const pasted = String(event.clipboardData?.getData('text') || '').trim();
+    if (!pasted) return;
+    const normalized = normalizeDateInput(pasted);
+    if (!normalized) return;
+    event.preventDefault();
+    onChange({ target: { value: normalized } });
+  };
+
   return (
     <input
       type="date"
       style={style}
       value={value || ''}
       onChange={onChange}
+      onPaste={handlePaste}
       readOnly={readOnly}
       aria-label={ariaLabel}
     />
