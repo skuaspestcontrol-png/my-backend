@@ -458,11 +458,11 @@ const deriveContractRange = (invoice = {}) => {
   return `${formatDate(start)} to ${formatDate(end)}`;
 };
 
-const addressLinesForInvoiceParty = (party = {}) => [
+const addressLinesForInvoiceParty = (party = {}, options = {}) => [
   [party.street1, party.street2].map(clean).filter(Boolean).join(', '),
   party.area,
   [party.city, party.state, party.pincode].map(clean).filter(Boolean).join(', '),
-  party.gstin ? `GSTIN: ${party.gstin}` : ''
+  options.showGstin && party.gstin ? `GSTIN: ${party.gstin}` : ''
 ].map(clean).filter(Boolean);
 
 const drawCell = (doc, text, x, y, w, h, { bold = false, align = 'left', bg = null, border = COLORS.border, color = COLORS.text, size = BASE_FONT_SIZE, padX = 3, padY = 2 } = {}) => {
@@ -563,6 +563,9 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
   const billTo = resolveBillTo(invoice, customer);
   const shipTo = resolveShipTo(invoice, customer);
   const rows = invoiceItems(invoice);
+  const showGstNumberInPdf = invoice.showGstNumberInPdf == null
+    ? true
+    : Boolean(invoice.showGstNumberInPdf);
 
   const subtotal = toNumber(invoice.subtotal, rows.reduce((sum, r) => sum + (r.amount - r.taxAmount), 0));
   const totalTax = toNumber(invoice.totalTax, rows.reduce((sum, r) => sum + r.taxAmount, 0));
@@ -717,14 +720,14 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     drawCell(doc, '', left, y + 14, cardW, cardH - 14, { border: 'none' });
     doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(billTo.attention || billTo.title, left + 5, y + 16, { width: cardW - 10, lineGap: 1 });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
-      .text(addressLinesForInvoiceParty(billTo).join('\n'), left + 5, y + 28, { width: cardW - 10, lineGap: 1 });
+      .text(addressLinesForInvoiceParty(billTo, { showGstin: showGstNumberInPdf }).join('\n'), left + 5, y + 28, { width: cardW - 10, lineGap: 1 });
 
     const shipX = left + cardW + cardGap;
     drawCell(doc, 'Ship To', shipX + 5, y, cardW - 5, 14, { bold: true, color: company.primaryColor, size: 9.8, border: 'none', padX: 0, padY: 1 });
     drawCell(doc, '', shipX, y + 14, cardW, cardH - 14, { border: 'none' });
     doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(shipTo.attention || shipTo.title, shipX + 5, y + 16, { width: cardW - 10, lineGap: 1 });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
-      .text(addressLinesForInvoiceParty(shipTo).join('\n'), shipX + 5, y + 28, { width: cardW - 10, lineGap: 1 });
+      .text(addressLinesForInvoiceParty(shipTo, { showGstin: showGstNumberInPdf }).join('\n'), shipX + 5, y + 28, { width: cardW - 10, lineGap: 1 });
 
     y += cardH + 2;
 
