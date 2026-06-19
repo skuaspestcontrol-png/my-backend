@@ -12851,7 +12851,7 @@ app.get('/api/renewals/letters', async (req, res) => {
     const letters = await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
       const [rows] = await conn.query(`
-        SELECT rl.*, COALESCE(r.previous_contract_end, r.renewal_due_date, r.contractEndDate) AS conclude_date
+        SELECT rl.*, COALESCE(r.previous_contract_end, r.renewal_due_date) AS conclude_date
         FROM renewal_letters rl
         LEFT JOIN renewals r ON r.renewal_id = rl.renewal_id
         INNER JOIN (
