@@ -14,6 +14,7 @@ import { normalizeIndianMobileNumber } from '../utils/phone';
 import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { triggerContractsRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { subscribeDashboardRefresh, triggerDashboardRefresh } from '../utils/dashboardRefresh';
+import { clearPortalUser } from '../utils/portalAuth';
 import PdfPreviewModal from './PdfPreviewModal';
 import ServiceScheduleBuilder from './ServiceScheduleBuilder';
 import { DEFAULT_LEAD_SOURCES, mergeLeadSourceOptions } from '../utils/leadSources';
@@ -1290,6 +1291,20 @@ export default function InvoiceDashboard() {
       return [...defaultInvoiceVisibleColumns];
     }
   });
+
+  const handleInvoiceActionError = (error, fallbackMessage) => {
+    const responseMessage = String(error?.response?.data?.error || error?.message || '').trim();
+    const isUnauthorized = error?.response?.status === 401 || responseMessage.toLowerCase() === 'unauthorized';
+
+    if (isUnauthorized) {
+      clearPortalUser();
+      setSaveError('Session expired. Please sign in again to continue.');
+      navigate('/', { replace: true });
+      return;
+    }
+
+    setSaveError(responseMessage || fallbackMessage);
+  };
   const preventRateStepper = (event) => {
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       event.preventDefault();
@@ -2861,7 +2876,7 @@ export default function InvoiceDashboard() {
         })
         .catch((error) => {
           console.error('Failed to save customer address', error);
-          setSaveError(error?.response?.data?.error || 'Unable to save customer address.');
+          handleInvoiceActionError(error, 'Unable to save customer address.');
         });
       return;
     }
@@ -3106,7 +3121,7 @@ export default function InvoiceDashboard() {
       }
     } catch (error) {
       console.error('Failed to save invoice', error);
-      setSaveError(error?.response?.data?.error || 'Unable to save invoice. Please ensure backend server is running on port 5000.');
+      handleInvoiceActionError(error, 'Unable to save invoice. Please ensure backend server is running on port 5000.');
     } finally {
       setIsSaving(false);
     }
