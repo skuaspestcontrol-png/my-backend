@@ -12790,6 +12790,7 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
     const invoices = await loadInvoicesForContext();
     const sourceInvoice = invoices.find((entry) => String(entry?._id || '') === String(renewal.contractId || '')) || {};
     const settings = await loadCurrentSettingsForNumbering();
+    const invoiceType = String(req.body.invoiceType || sourceInvoice.invoiceType || 'GST').trim() || 'GST';
     const startBase = parseDateOnly(req.body.contractStartDate || renewal.previousContractEnd || new Date()) || new Date();
     const nextStart = renewalSqlDate(req.body.contractStartDate || addMonthsClamped(startBase, 0));
     const nextEnd = renewalSqlDate(req.body.contractEndDate || addMonthsClamped(parseDateOnly(nextStart) || new Date(), 12));
@@ -12822,6 +12823,8 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
       _id: `INV-${Date.now()}`,
       customerId: sourceInvoice.customerId || renewal.customerId || '',
       customerName: renewal.customerName,
+      customerType: String(req.body.customerType || 'Renewal').trim() || 'Renewal',
+      invoiceType,
       invoiceNumber: req.body.invoiceNumber || createNextInvoiceNumber(invoices, settings, invoiceType),
       date: renewalSqlDate(req.body.date || new Date()),
       dueDate: renewalSqlDate(req.body.dueDate || new Date()),
