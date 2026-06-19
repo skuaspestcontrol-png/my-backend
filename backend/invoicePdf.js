@@ -349,6 +349,7 @@ const resolveBillTo = (invoice = {}, customer = {}) => {
   });
   const title = clean(customer.billingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
   return {
+    source: clean(invoice.billingAddressSource || invoice.billing_address_source || ''),
     title,
     attention: clean(parts.attention || title),
     street1: parts.street1,
@@ -389,6 +390,7 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
     || clean(customer.name)
     || 'Customer';
   return {
+    source: clean(invoice.shippingAddressSource || invoice.shipping_address_source || ''),
     title,
     attention: title,
     street1: parts.street1,
@@ -405,6 +407,34 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
     )
   };
 };
+
+const mergeInvoicePartyAddress = (primary = {}, secondary = {}) => {
+  const choose = (left, right) => {
+    const a = clean(left);
+    const b = clean(right);
+    if (!a) return b;
+    if (!b) return a;
+    if (a === b) return a;
+    if (b.length > a.length) return b;
+    return a;
+  };
+
+  return {
+    street1: choose(primary.street1, secondary.street1),
+    street2: choose(primary.street2, secondary.street2),
+    area: choose(primary.area, secondary.area),
+    city: choose(primary.city, secondary.city),
+    state: choose(primary.state, secondary.state),
+    pincode: choose(primary.pincode, secondary.pincode),
+    gstin: choose(primary.gstin, secondary.gstin)
+  };
+};
+
+const invoicePartyCoreSignature = (party = {}) => normalizeAddressLineKey([
+  party.street1,
+  party.street2,
+  party.area
+].filter(Boolean).join('|'));
 
 const invoiceItems = (invoice = {}) => {
   const items = Array.isArray(invoice.items) ? invoice.items : [];
@@ -591,12 +621,23 @@ const drawCenteredRichCell = (doc, segments = [], x, y, w, h, options = {}) => {
 
 const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings = {} }) => {
   const company = resolveCompany(settings, invoice);
-  const billTo = resolveBillTo(invoice, customer);
-  const shipTo = resolveShipTo(invoice, customer);
+  let billTo = resolveBillTo(invoice, customer);
+  let shipTo = resolveShipTo(invoice, customer);
   const rows = invoiceItems(invoice);
   const showGstNumberInPdf = invoice.showGstNumberInPdf == null
     ? true
     : Boolean(invoice.showGstNumberInPdf);
+  if (
+    (billTo.source && billTo.source === shipTo.source)
+    || (
+      invoicePartyCoreSignature(billTo) &&
+      invoicePartyCoreSignature(billTo) === invoicePartyCoreSignature(shipTo)
+    )
+  ) {
+    const sharedAddress = mergeInvoicePartyAddress(billTo, shipTo);
+    billTo = { ...billTo, ...sharedAddress };
+    shipTo = { ...shipTo, ...sharedAddress };
+  }
 
   const subtotal = toNumber(invoice.subtotal, rows.reduce((sum, r) => sum + (r.amount - r.taxAmount), 0));
   const totalTax = toNumber(invoice.totalTax, rows.reduce((sum, r) => sum + r.taxAmount, 0));
