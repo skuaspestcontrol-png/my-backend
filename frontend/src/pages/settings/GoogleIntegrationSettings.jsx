@@ -124,7 +124,7 @@ export default function GoogleIntegrationSettings() {
               cursor: integration.connected ? 'pointer' : 'not-allowed'
             }}
           >
-            {disconnecting ? 'Removing...' : 'Remove Google Account'}
+            {disconnecting ? 'Removing...' : 'Disconnect Google'}
           </button>
           <button type="button" onClick={load} disabled={loading} style={{ minHeight: '34px', minWidth: '120px', padding: '0 12px' }}>
             {loading ? 'Refreshing...' : 'Refresh Status'}
