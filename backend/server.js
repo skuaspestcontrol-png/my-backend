@@ -12851,7 +12851,21 @@ app.get('/api/renewals/letters', async (req, res) => {
     const letters = await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
       const [rows] = await conn.query(`
-        SELECT rl.*, COALESCE(r.previous_contract_end, r.renewal_due_date) AS conclude_date
+        SELECT
+          rl.id,
+          rl.external_id,
+          rl.renewal_id,
+          rl.pdf_url,
+          rl.customer_name,
+          rl.generated_at,
+          COALESCE(r.previous_contract_end, r.renewal_due_date) AS conclude_date,
+          r.customer_name AS renewal_customer_name,
+          r.mobile AS renewal_mobile,
+          r.area_name AS renewal_area_name,
+          r.service_type AS renewal_service_type,
+          r.status AS renewal_status,
+          r.assigned_sales_person_id AS renewal_assigned_sales_person_id,
+          r.assigned_sales_person_name AS renewal_assigned_sales_person_name
         FROM renewal_letters rl
         LEFT JOIN renewals r ON r.renewal_id = rl.renewal_id
         INNER JOIN (
@@ -12862,7 +12876,19 @@ app.get('/api/renewals/letters', async (req, res) => {
         ORDER BY conclude_date ASC, rl.generated_at ASC, rl.id ASC
         LIMIT 200
       `);
-      return rows || [];
+      const normalized = (Array.isArray(rows) ? rows : []).map((row) => ({
+        ...row,
+        customerName: row.renewal_customer_name || row.customer_name || '',
+        mobile: row.renewal_mobile || '',
+        areaName: row.renewal_area_name || '',
+        serviceType: row.renewal_service_type || '',
+        status: row.renewal_status || 'Pending',
+        assignedSalesPersonId: row.renewal_assigned_sales_person_id || '',
+        assignedSalesPersonName: row.renewal_assigned_sales_person_name || '',
+        renewalDueDate: row.conclude_date || '',
+        concludeDate: row.conclude_date || ''
+      }));
+      return applyRenewalFilters(normalized, req.query);
     });
     return res.json(letters);
   } catch (error) {

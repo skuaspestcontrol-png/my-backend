@@ -252,7 +252,7 @@ export default function RenewalDashboard() {
         axios.get(`${API_BASE}/api/renewals`, { params }),
         axios.get(`${API_BASE}/api/renewals/summary`, { params }),
         axios.get(`${API_BASE}/api/employees`, { params: { t: Date.now() } }),
-        axios.get(`${API_BASE}/api/renewals/letters`, { params: { t: Date.now() } }).catch(() => ({ data: [] }))
+        axios.get(`${API_BASE}/api/renewals/letters`, { params: { ...params, t: Date.now() } }).catch(() => ({ data: [] }))
       ]);
       if (loadRequestRef.current !== requestId) return;
       const renewalRows = Array.isArray(renewalRes.data) ? renewalRes.data : [];
@@ -293,7 +293,7 @@ export default function RenewalDashboard() {
           if (results.some((result) => result.status === 'fulfilled')) {
             const [renewalRefresh, letterRefresh] = await Promise.all([
               axios.get(`${API_BASE}/api/renewals`, { params: { ...overrideFilters, t: Date.now() } }),
-              axios.get(`${API_BASE}/api/renewals/letters`, { params: { t: Date.now() } }).catch(() => ({ data: [] }))
+              axios.get(`${API_BASE}/api/renewals/letters`, { params: { ...overrideFilters, t: Date.now() } }).catch(() => ({ data: [] }))
             ]);
             if (loadRequestRef.current !== requestId) return;
             setRows(Array.isArray(renewalRefresh.data) ? renewalRefresh.data : renewalRows);
