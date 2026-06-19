@@ -770,7 +770,7 @@ export default function RenewalDashboard() {
     if (!modal.type || !modal.row) return null;
     const row = modal.row;
     const displayRenewalId = row.renewalDisplayId || row.renewal_display_id || row.renewalId || row.renewal_id || '';
-    const titleMap = { view: 'Renewal Details', edit: 'Edit Renewal', assign: 'Assign Sales Person', followup: 'Log Follow-up', done: 'Mark Renewal Done', decline: 'Decline Renewal', convert: 'Convert to Contract' };
+    const titleMap = { view: 'Renewal Details', edit: 'Edit Renewal', assign: 'Assign Sales Person', followup: 'Log Follow-up', done: row.status === 'Done' ? 'Renewal Done' : 'Mark Renewal Done', decline: 'Decline Renewal', convert: 'Convert to Contract' };
     return (
       <div style={shell.modalOverlay}>
         <div style={shell.modal}>
@@ -816,11 +816,24 @@ export default function RenewalDashboard() {
               </>
             )}
             {modal.type === 'done' && (
-              <>
-                <label style={shell.field}><span style={shell.label}>Final Amount</span><input style={shell.input} value={form.finalAmount} onChange={(e) => setForm((p) => ({ ...p, finalAmount: e.target.value }))} /></label>
-                <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 76, paddingTop: 8 }} value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value, notes: e.target.value }))} /></label>
-                <button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Renewal marked done', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/mark-done`, form))}>Mark Done</button>
-              </>
+              row.status === 'Done' ? (
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <div style={{ padding: '14px 16px', borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', fontWeight: 800, fontSize: 16 }}>
+                    Renewal Done
+                  </div>
+                  <div style={{ display: 'grid', gap: 6, fontSize: 13, color: '#334155' }}>
+                    <span><strong>Final Amount:</strong> {formatINR(row.finalRenewalAmount || row.finalAmount || row.proposedAmount)}</span>
+                    <span><strong>Notes:</strong> {String(row.renewalNotes || row.notes || row.lastNote || '-')}</span>
+                  </div>
+                  <button style={shell.ghostBtn} onClick={closeModal}>Close</button>
+                </div>
+              ) : (
+                <>
+                  <label style={shell.field}><span style={shell.label}>Final Amount</span><input style={shell.input} value={form.finalAmount} onChange={(e) => setForm((p) => ({ ...p, finalAmount: e.target.value }))} /></label>
+                  <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 76, paddingTop: 8 }} value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value, notes: e.target.value }))} /></label>
+                  <button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Renewal marked done', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/mark-done`, form))}>Mark Done</button>
+                </>
+              )
             )}
             {modal.type === 'decline' && (
               <>
