@@ -448,15 +448,19 @@ export default function Dashboard() {
   }), [summary, invoices, leads.length]);
 
   const leadPipeline = useMemo(() => {
-    const totalLeads = leads.length;
-    const interested = leads.filter((lead) => ['interested', 'warm', 'hot'].includes(normalizeLeadStatus(lead.status || lead.leadStatus))).length;
-    const converted = leads.filter((lead) => ['converted', 'booked'].includes(normalizeLeadStatus(lead.status || lead.leadStatus))).length;
-    const cancelled = leads.filter((lead) => normalizeLeadStatus(lead.status || lead.leadStatus) === 'cancelled').length;
+    const selectedYearLeads = leads.filter((lead) => {
+      const leadDate = toDate(lead.date || lead.createdAt);
+      return leadDate ? leadDate.getFullYear() === selectedYearNumber : false;
+    });
+    const totalLeads = selectedYearLeads.length;
+    const interested = selectedYearLeads.filter((lead) => ['interested', 'warm', 'hot'].includes(normalizeLeadStatus(lead.status || lead.leadStatus))).length;
+    const converted = selectedYearLeads.filter((lead) => ['converted', 'booked'].includes(normalizeLeadStatus(lead.status || lead.leadStatus))).length;
+    const cancelled = selectedYearLeads.filter((lead) => normalizeLeadStatus(lead.status || lead.leadStatus) === 'cancelled').length;
     const conversionRate = totalLeads > 0 ? (converted / totalLeads) * 100 : 0;
     const avgDealValue = converted > 0 ? analytics.totalReceivables / converted : 0;
 
     const sourceCounts = new Map();
-    leads.forEach((lead) => {
+    selectedYearLeads.forEach((lead) => {
       const key = mapLeadSourceLabel(lead.leadSource);
       sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1);
     });
@@ -486,7 +490,7 @@ export default function Dashboard() {
       sourceSeries,
       sourceTotal
     };
-  }, [leads, invoices, analytics.totalReceivables]);
+  }, [leads, invoices, analytics.totalReceivables, selectedYearNumber]);
 
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim();
   const aboutTagline = String(settings.aboutTagline || 'Professional in Pest Control').trim();
@@ -627,7 +631,26 @@ export default function Dashboard() {
         <article style={shell.panel}>
           <div style={shell.panelHead}>
             <h2 style={shell.panelTitle}>Lead Pipeline</h2>
-            <span style={{ color: '#475569', fontWeight: 700 }}>This FY</span>
+            <select
+              value={selectedContractYear}
+              onChange={(event) => setSelectedContractYear(event.target.value)}
+              style={{
+                border: '1px solid #dbe4f0',
+                background: '#f8fafc',
+                color: '#334155',
+                fontWeight: 700,
+                borderRadius: '12px',
+                padding: '8px 12px',
+                fontSize: '12px',
+                outline: 'none',
+                minWidth: '110px'
+              }}
+              aria-label="Select lead pipeline year"
+            >
+              {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
+                <option key={year} value={String(year)}>{year}</option>
+              ))}
+            </select>
           </div>
           <div style={{ display: 'grid', gap: '14px', marginTop: '18px' }}>
             {leadFunnelRows.map((row) => (
