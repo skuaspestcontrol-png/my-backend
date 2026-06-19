@@ -1828,7 +1828,7 @@ export default function InvoiceDashboard() {
   }, [editingId, form.invoiceType, form.termsAndConditions, getDefaultTermsForInvoiceType, settingsHydrated, showModal]);
 
   useEffect(() => {
-    if (!showModal || editingId) {
+    if (!showModal || editingId || contractViewOnly) {
       invoiceNumberAutoSeededRef.current = false;
       return;
     }
@@ -1854,7 +1854,7 @@ export default function InvoiceDashboard() {
       if (currentValue === nextInvoiceNumber || currentValue.startsWith(expectedPrefix)) return prev;
       return { ...prev, invoiceNumber: nextInvoiceNumber };
     });
-  }, [editingId, form.invoiceNumber, form.invoiceType, invoiceNumberPrefs, settingsHydrated, showModal]);
+  }, [contractViewOnly, editingId, form.invoiceNumber, form.invoiceType, invoiceNumberPrefs, settingsHydrated, showModal]);
 
   useEffect(() => {
     loadInvoices();
