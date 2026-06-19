@@ -12016,7 +12016,10 @@ const findEmployeeForRenewalSalesPerson = async (renewal = {}) => {
 const applyRenewalFilters = (rows, query = {}) => {
   const now = parseDateOnly(new Date());
   const year = Number(query.year || now.getFullYear());
-  const month = Number(query.month || now.getMonth() + 1);
+  const rawMonth = String(query.month || '').trim().toLowerCase();
+  const month = rawMonth === 'all' || rawMonth === ''
+    ? null
+    : Number(query.month || now.getMonth() + 1);
   let from = query.fromDate ? parseDateOnly(query.fromDate) : null;
   let to = query.toDate ? parseDateOnly(query.toDate) : null;
   if (!from && !to) {
@@ -12030,8 +12033,8 @@ const applyRenewalFilters = (rows, query = {}) => {
       from = now;
       to = addMonthsClamped(now, 3);
     } else if (query.range === 'custom') {
-      from = new Date(year, month - 1, 1);
-      to = new Date(year, month, 0);
+      from = month === null ? new Date(year, 0, 1) : new Date(year, month - 1, 1);
+      to = month === null ? new Date(year, 11, 31) : new Date(year, month, 0);
     } else if (query.range === 'year') {
       from = new Date(year, 0, 1);
       to = new Date(year, 11, 31);

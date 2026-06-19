@@ -170,7 +170,10 @@ const statusStyle = (status) => {
 };
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 7 }, (_, i) => currentYear - 2 + i);
-const months = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: new Date(2026, i, 1).toLocaleString('en-IN', { month: 'short' }) }));
+const months = [
+  { value: 'all', label: 'All' },
+  ...Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: new Date(2026, i, 1).toLocaleString('en-IN', { month: 'short' }) }))
+];
 
 const readRenewalDashboardCache = () => {
   try {
@@ -568,7 +571,7 @@ export default function RenewalDashboard() {
                 <span style={statusStyle(row.status)}>{row.status}</span>
               </div>
               <div style={shell.mobileMeta}>
-                <span>{formatDate(row.renewalDueDate)}</span>
+                <span>Renewal Date: {formatDate(row.renewalDueDate)}</span>
                 <span style={{ textAlign: 'center', justifySelf: 'center', width: '100%' }} title={row.serviceType}>{serviceShort(row.serviceType)}</span>
                 <span>{formatINR(row.proposedAmount)}</span>
               </div>
@@ -600,7 +603,7 @@ export default function RenewalDashboard() {
               <th style={renewalHeadCellStyle('svc', 'center')}>Svc</th>
               <th style={renewalHeadCellStyle('start', 'center')}>Start</th>
               <th style={renewalHeadCellStyle('end', 'center')}>End</th>
-              <th style={renewalHeadCellStyle('due', 'center')}>Due</th>
+              <th style={renewalHeadCellStyle('due', 'center')}>Renewal Date</th>
               <th style={renewalHeadCellStyle('previousAmount', 'center')}>Prev Amt</th>
               <th style={renewalHeadCellStyle('proposedAmount', 'center')}>Proposed</th>
               <th style={renewalHeadCellStyle('salesPerson')}>Sales</th>
@@ -697,7 +700,7 @@ export default function RenewalDashboard() {
                 <span>Renewal ID: {displayRenewalId || '-'}</span>
                 <span>Mobile: {row.mobile || '-'}</span>
                 <span>Service: {row.serviceType || '-'}</span>
-                <span>Due Date: {formatDate(row.renewalDueDate)}</span>
+                <span>Renewal Date: {formatDate(row.renewalDueDate)}</span>
                 <span>Proposed Amount: {formatINR(row.proposedAmount)}</span>
                 <span>Sales Person: {row.assignedSalesPersonName || '-'}</span>
                 {row.renewalLetterUrl ? <a href={`${API_BASE}${row.renewalLetterUrl}`} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(row); }} rel="noreferrer">Open renewal letter</a> : null}
