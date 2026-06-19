@@ -672,7 +672,7 @@ export default function Dashboard() {
                   minHeight: '56px'
                 }}
               >
-                <span style={{ color: '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '15px', textAlign: 'right' }}>{row.label}</span>
+                <span style={{ color: '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '15px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
                 <span style={{ display: 'block', width: '100%', minWidth: 0 }}>
                   <span
                     style={{
