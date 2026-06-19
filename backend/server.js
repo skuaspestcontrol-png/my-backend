@@ -12851,14 +12851,15 @@ app.get('/api/renewals/letters', async (req, res) => {
     const letters = await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
       const [rows] = await conn.query(`
-        SELECT rl.*
+        SELECT rl.*, COALESCE(r.previous_contract_end, r.renewal_due_date, r.contractEndDate) AS conclude_date
         FROM renewal_letters rl
+        LEFT JOIN renewals r ON r.renewal_id = rl.renewal_id
         INNER JOIN (
           SELECT renewal_id, MAX(id) AS latest_id
           FROM renewal_letters
           GROUP BY renewal_id
         ) latest ON latest.latest_id = rl.id
-        ORDER BY rl.generated_at DESC, rl.id DESC
+        ORDER BY conclude_date ASC, rl.generated_at ASC, rl.id ASC
         LIMIT 200
       `);
       return rows || [];

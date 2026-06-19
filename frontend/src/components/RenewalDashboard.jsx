@@ -222,6 +222,19 @@ export default function RenewalDashboard() {
     search: ''
   });
   const loadRequestRef = useRef(0);
+  const sortedLetters = useMemo(() => {
+    const toLetterDateValue = (letter) => {
+      const raw = letter?.conclude_date || letter?.concludeDate || letter?.generated_at || letter?.generatedAt || '';
+      const date = raw ? new Date(raw) : null;
+      return date && !Number.isNaN(date.getTime()) ? date.getTime() : Number.MAX_SAFE_INTEGER;
+    };
+    return [...(letters || [])].sort((a, b) => {
+      const left = toLetterDateValue(a);
+      const right = toLetterDateValue(b);
+      if (left === right) return String(a.customer_name || '').localeCompare(String(b.customer_name || ''));
+      return left - right;
+    });
+  }, [letters]);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 760);
@@ -801,10 +814,10 @@ export default function RenewalDashboard() {
         {!loading && activeTab === 'Sales Person Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.salespersonWiseSummary, 'name', 'total')}</div> : null}
         {!loading && activeTab === 'Renewal Letters' ? (
           <div style={shell.panelPad}>
-            {(letters || []).length === 0 ? <p style={{ margin: 0, color: '#64748b' }}>No renewal letters generated yet.</p> : letters.map((letter) => (
+            {(sortedLetters || []).length === 0 ? <p style={{ margin: 0, color: '#64748b' }}>No renewal letters generated yet.</p> : sortedLetters.map((letter) => (
               <div key={letter.id || letter.pdf_url} style={shell.miniRow}>
                 <strong>{letter.customer_name || '-'}</strong>
-                <span>{formatDate(letter.generated_at)}</span>
+                <span>{formatDate(letter.conclude_date || letter.concludeDate || letter.generated_at)}</span>
                 <a href={`${API_BASE}${letter.pdf_url}`} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(letter); }} rel="noreferrer">Open PDF</a>
               </div>
             ))}
