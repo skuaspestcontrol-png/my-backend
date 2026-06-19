@@ -46,6 +46,7 @@ const {
   normalizePhoneFields
 } = require('./lib/phone');
 const {
+  INTEGRATION_KEY,
   encrypt,
   normalizeKey,
   buildOAuthClient,
