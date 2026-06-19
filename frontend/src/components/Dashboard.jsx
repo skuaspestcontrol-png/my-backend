@@ -559,7 +559,7 @@ export default function Dashboard() {
     ? { ...shell.sourceLegend, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 14px', justifyItems: 'center', textAlign: 'center', maxWidth: '100%' }
     : { ...shell.sourceLegend, justifyItems: 'stretch', textAlign: 'left', maxWidth: '280px' };
   const sourceLegendItemStyle = isMobile
-    ? { ...shell.sourceLegendItem, gridTemplateColumns: '13px auto auto', justifyContent: 'center' }
+    ? { ...shell.sourceLegendItem, gridTemplateColumns: '11px auto auto', gap: '7px', fontSize: '11px', justifyContent: 'center' }
     : shell.sourceLegendItem;
 
   const incomeExpenseMax = Math.max(
