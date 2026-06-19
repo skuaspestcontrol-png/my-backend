@@ -446,12 +446,10 @@ export const normalizeServiceScheduleRows = (rows = [], defaultTime = '10:00') =
   const normalizedTime = normalizeServiceScheduleTime(defaultTime, '10:00');
   return (Array.isArray(rows) ? rows : [])
     .map((row, index) => ({
+      preferredDay: normalizeServiceSchedulePreferredDay(row?.preferredDay || row?.serviceWeekday || ''),
       serviceNumber: Number.isFinite(Number(row?.serviceNumber)) && Number(row.serviceNumber) > 0
         ? Number(row.serviceNumber)
         : index + 1,
-      baseServiceDate: toDateStamp(row?.baseServiceDate || row?.baseDate || row?.serviceDate),
-      preferredDay: normalizeServiceSchedulePreferredDay(row?.preferredDay || row?.serviceWeekday || ''),
-      preferredDayLabel: String(row?.preferredDayLabel || getServiceSchedulePreferredDayLabel(row?.preferredDay || row?.serviceWeekday || '')).trim(),
       serviceDate: toDateStamp(row?.finalServiceDate || row?.serviceDate),
       finalServiceDate: toDateStamp(row?.finalServiceDate || row?.serviceDate),
       serviceTime: normalizeServiceScheduleTime(row?.serviceTime, normalizedTime),
@@ -462,10 +460,17 @@ export const normalizeServiceScheduleRows = (rows = [], defaultTime = '10:00') =
       status: String(row?.status || 'Scheduled').trim() || 'Scheduled'
     }))
     .filter((row) => Boolean(row.serviceDate))
-    .map((row, index) => ({
-      ...row,
-      serviceNumber: index + 1
-    }));
+    .map((row, index) => {
+      const baseServiceDate = row.preferredDay === ''
+        ? row.finalServiceDate || row.serviceDate
+        : toDateStamp(row?.baseServiceDate || row?.baseDate || row?.serviceDate);
+      return {
+        ...row,
+        baseServiceDate,
+        preferredDayLabel: String(row?.preferredDayLabel || getServiceSchedulePreferredDayLabel(row?.preferredDay || '')).trim(),
+        serviceNumber: index + 1
+      };
+    });
 };
 
 export const buildServiceScheduleRows = ({
