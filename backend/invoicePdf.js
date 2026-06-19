@@ -310,7 +310,7 @@ const resolveAddressParts = ({ invoiceText = '', customer = {}, prefix = 'billin
   const city = clean(
     invoiceFields.city
       || (hasInvoiceText
-        ? lastLineParts.city || selectedPremise?.city || customer[`${prefix}City`] || customer.city
+        ? lastLineParts.city
         : selectedPremise?.city
           || customer[`${prefix}City`]
           || customer.city
@@ -319,7 +319,7 @@ const resolveAddressParts = ({ invoiceText = '', customer = {}, prefix = 'billin
   const state = clean(
     invoiceFields.state
       || (hasInvoiceText
-        ? lastLineParts.state || selectedPremise?.state || customer[`${prefix}State`] || customer.state
+        ? lastLineParts.state
         : selectedPremise?.state
           || customer[`${prefix}State`]
           || lastLineParts.state
@@ -328,7 +328,7 @@ const resolveAddressParts = ({ invoiceText = '', customer = {}, prefix = 'billin
   const pincode = clean(
     invoiceFields.pincode
       || (hasInvoiceText
-        ? lastLineParts.pincode || selectedPremise?.pincode || customer[`${prefix}Pincode`] || customer.pincode
+        ? lastLineParts.pincode
         : selectedPremise?.pincode
           || customer[`${prefix}Pincode`]
           || lastLineParts.pincode
@@ -504,21 +504,18 @@ const appendUniqueAddressLine = (lines, value) => {
   lines.push(line);
 };
 
-const splitAddressFragment = (value = '') => clean(value)
-  .split(/\r?\n|,/)
-  .map(clean)
-  .filter(Boolean);
-
 const addressLinesForInvoiceParty = (party = {}, options = {}) => {
   const lines = [];
-  const street1Parts = splitAddressFragment(party.street1);
-  const street2Parts = splitAddressFragment(party.street2);
-  const area = clean(party.area);
-  const cityStatePincode = [party.city, party.state, party.pincode].map(clean).filter(Boolean).join(', ');
 
-  street1Parts.forEach((part) => appendUniqueAddressLine(lines, part));
-  street2Parts.forEach((part) => appendUniqueAddressLine(lines, part));
-  appendUniqueAddressLine(lines, area);
+  appendUniqueAddressLine(lines, party.street1);
+  appendUniqueAddressLine(lines, party.street2);
+  appendUniqueAddressLine(lines, party.area);
+  const city = clean(party.city);
+  const state = clean(party.state);
+  const pincode = clean(party.pincode);
+  const cityStatePincode = city
+    ? [city, state, pincode].filter(Boolean).join(', ')
+    : [state, pincode].filter(Boolean).join(' ');
   appendUniqueAddressLine(lines, cityStatePincode);
   if (options.showGstin && party.gstin) {
     appendUniqueAddressLine(lines, `GSTIN: ${party.gstin}`);
