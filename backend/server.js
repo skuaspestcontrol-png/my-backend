@@ -8221,6 +8221,14 @@ const normalizePaymentDepositTo = (value, invoiceType = 'GST') => {
   return getDefaultPaymentDepositTo(invoiceType);
 };
 
+const getDefaultPaymentModeForDepositTo = (depositTo, invoiceType = 'GST') => {
+  const normalizedDepositTo = normalizePaymentDepositTo(depositTo, invoiceType);
+  if (normalizedDepositTo === paymentDepositToValues.SAVING) return 'UPI';
+  if (normalizedDepositTo === paymentDepositToValues.CURRENT) return 'Bank Transfer';
+  if (normalizedDepositTo === paymentDepositToValues.CASH) return 'Cash';
+  return 'Cheque';
+};
+
 const resolvePaymentDepositTo = async (payment = {}) => {
   const explicit = String(payment.depositTo || payment.deposit_to || '').trim();
   if (explicit) {
@@ -8267,7 +8275,7 @@ const summarizePaymentDepositBalances = (rawSplits, invoiceType = 'GST') => {
 const normalizePaymentSplits = (rawSplits, invoiceType = 'GST') => {
   if (!Array.isArray(rawSplits)) return [];
   return rawSplits.map((split) => ({
-    mode: split?.mode || 'Cheque',
+    mode: split?.mode || getDefaultPaymentModeForDepositTo(split?.depositTo, invoiceType),
     depositTo: normalizePaymentDepositTo(split?.depositTo, invoiceType),
     amount: toNumber(split?.amount, 0)
   }));

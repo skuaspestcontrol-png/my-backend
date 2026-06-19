@@ -137,6 +137,13 @@ const contractCustomerTypeOptions = ['New', 'Existing', 'Renewal'];
 const getDefaultPaymentDepositTo = (invoiceType = 'GST') => String(invoiceType || '').trim().toUpperCase() === 'NON GST'
   ? 'Saving Account'
   : 'Current Account';
+const getDefaultPaymentModeForDepositTo = (depositTo, invoiceType = 'GST') => {
+  const normalizedDepositTo = normalizePaymentDepositTo(depositTo, invoiceType);
+  if (normalizedDepositTo === 'Saving Account') return 'UPI';
+  if (normalizedDepositTo === 'Current Account') return 'Bank Transfer';
+  if (normalizedDepositTo === 'Cash') return 'Cash';
+  return 'Cheque';
+};
 const normalizePaymentDepositTo = (value, invoiceType = 'GST') => {
   const raw = String(value || '').trim().toLowerCase();
   if (!raw) return getDefaultPaymentDepositTo(invoiceType);
@@ -284,8 +291,8 @@ const createEmptyLine = (defaults = {}) => ({
 });
 
 const createEmptyPaymentSplit = (depositTo = getDefaultPaymentDepositTo('GST')) => ({
-  mode: 'Cheque',
-  depositTo,
+  mode: getDefaultPaymentModeForDepositTo(depositTo),
+  depositTo: normalizePaymentDepositTo(depositTo),
   amount: '0'
 });
 
@@ -2183,7 +2190,7 @@ export default function InvoiceDashboard() {
       : [createEmptyLine()];
     const mappedPaymentSplits = Array.isArray(invoice.paymentSplits) && invoice.paymentSplits.length > 0
       ? invoice.paymentSplits.map((split) => ({
-        mode: split.mode || 'Cheque',
+        mode: split.mode || getDefaultPaymentModeForDepositTo(split.depositTo, invoiceType),
         depositTo: normalizePaymentDepositTo(split.depositTo, invoiceType),
         amount: String(split.amount ?? 0)
       }))
@@ -2459,7 +2466,11 @@ export default function InvoiceDashboard() {
     setFormWithTotals((prev) => {
       const nextSplits = Array.isArray(prev.paymentSplits) ? [...prev.paymentSplits] : [createEmptyPaymentSplit(getDefaultPaymentDepositTo(prev.invoiceType))];
       if (!nextSplits[index]) nextSplits[index] = createEmptyPaymentSplit(getDefaultPaymentDepositTo(prev.invoiceType));
-      nextSplits[index] = { ...nextSplits[index], ...patch };
+      const nextSplit = { ...nextSplits[index], ...patch };
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'depositTo') && !Object.prototype.hasOwnProperty.call(patch || {}, 'mode')) {
+        nextSplit.mode = getDefaultPaymentModeForDepositTo(nextSplit.depositTo, prev.invoiceType);
+      }
+      nextSplits[index] = nextSplit;
       return { ...prev, paymentSplits: nextSplits };
     });
   };
