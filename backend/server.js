@@ -12051,7 +12051,7 @@ const applyRenewalFilters = (rows, query = {}) => {
     if (from && due && due < from) return false;
     if (to && due && due > to) return false;
     if (status && status !== 'All' && row.status !== status) return false;
-    if (assigned && String(row.assignedSalesPersonId || '') !== assigned) return false;
+    if (assigned && String(row.assignedSalesPersonId || '') !== assigned && String(row.assignedSalesPersonName || '') !== assigned) return false;
     if (search) {
       const hay = `${row.customerName} ${row.mobile} ${row.serviceType} ${row.areaName}`.toLowerCase();
       if (!hay.includes(search)) return false;
@@ -12065,8 +12065,17 @@ const summarizeRenewals = (rows = []) => {
   const byMonth = new Map();
   const byYear = new Map();
   rows.forEach((row) => {
-    const salesKey = row.assignedSalesPersonName || 'Unassigned';
-    const sales = bySales.get(salesKey) || { name: salesKey, total: 0, done: 0, pending: 0, amount: 0 };
+    const salesKey = String(row.assignedSalesPersonId || row.assignedSalesPersonName || 'Unassigned').trim() || 'Unassigned';
+    const sales = bySales.get(salesKey) || {
+      id: String(row.assignedSalesPersonId || '').trim(),
+      name: String(row.assignedSalesPersonName || 'Unassigned').trim() || 'Unassigned',
+      total: 0,
+      done: 0,
+      pending: 0,
+      amount: 0
+    };
+    if (!sales.id && row.assignedSalesPersonId) sales.id = String(row.assignedSalesPersonId || '').trim();
+    if (!sales.name || sales.name === 'Unassigned') sales.name = String(row.assignedSalesPersonName || salesKey || 'Unassigned').trim() || 'Unassigned';
     sales.total += 1;
     if (row.status === 'Done') sales.done += 1;
     if (row.status !== 'Done' && row.status !== 'Declined') sales.pending += 1;

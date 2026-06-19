@@ -580,6 +580,15 @@ export default function RenewalDashboard() {
     setPage(1);
     loadData();
   };
+  const drillDownBySalesPerson = (item) => {
+    const salesPersonId = String(item?.id || item?.assignedSalesPersonId || item?.name || item?.assignedSalesPersonName || '').trim();
+    if (!salesPersonId) return;
+    const next = { ...filters, assignedSalesPersonId: salesPersonId };
+    setFilters(next);
+    setPage(1);
+    setActiveTab('Renewal List');
+    loadData(next);
+  };
   const resetFilters = () => {
     const next = { range: 'custom', month: 'all', year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', search: '' };
     setPage(1);
@@ -728,13 +737,28 @@ export default function RenewalDashboard() {
     );
   };
 
-  const renderSummaryList = (items, labelKey, valueKey = 'count') => (
+  const renderSummaryList = (items, labelKey, valueKey = 'count', options = {}) => (
     <div style={shell.panel}>
       <div style={shell.panelPad}>
         {(items || []).length === 0 ? <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>No records.</p> : items.map((item) => (
           <div key={item[labelKey] || item.name} style={shell.miniRow}>
             <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item[labelKey] || item.name}</strong>
-            <span>{item[valueKey] ?? item.total ?? 0}</span>
+            <button
+              type="button"
+              onClick={() => options.onCountClick?.(item)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                padding: 0,
+                color: options.onCountClick ? 'var(--color-primary-dark)' : '#111827',
+                fontWeight: 800,
+                textAlign: 'right',
+                cursor: options.onCountClick ? 'pointer' : 'default',
+                justifySelf: 'end'
+              }}
+            >
+              {item[valueKey] ?? item.total ?? 0}
+            </button>
             <span>{formatINR(item.amount || 0)}</span>
           </div>
         ))}
@@ -860,7 +884,7 @@ export default function RenewalDashboard() {
         {!loading && (activeTab === 'Renewal Dashboard' || activeTab === 'Renewal List') ? renderRows() : null}
         {!loading && activeTab === 'Month Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.monthWiseSummary, 'period')}</div> : null}
         {!loading && activeTab === 'Year Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.yearWiseSummary, 'year')}</div> : null}
-        {!loading && activeTab === 'Sales Person Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.salespersonWiseSummary, 'name', 'total')}</div> : null}
+        {!loading && activeTab === 'Sales Person Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.salespersonWiseSummary, 'name', 'total', { onCountClick: drillDownBySalesPerson })}</div> : null}
         {!loading && activeTab === 'Renewal Letters' ? (
           <div style={shell.panelPad}>
             {(visibleLetterRows || []).length === 0 ? <p style={{ margin: 0, color: '#64748b' }}>No renewal letters generated yet.</p> : visibleLetterRows.map((letter) => (
