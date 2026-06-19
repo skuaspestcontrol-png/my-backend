@@ -323,6 +323,7 @@ const emptyForm = {
   termsAndConditions: '',
   serviceScheduleDefaultTime: '10:00',
   showPaymentDetailsInPdf: true,
+  showGstNumberInPdf: true,
   paymentReceivedEnabled: true,
   paymentSplits: [createEmptyPaymentSplit()],
   paymentReceivedTotal: '0',
@@ -608,7 +609,7 @@ const shell = {
   serviceScheduleEmpty: { fontSize: '12px', color: '#64748b' },
   paymentBlock: { borderTop: '1px solid var(--color-border)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' },
   paymentToggle: { display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: '15px', color: '#1f2937', fontWeight: 700 },
-  paymentToggleGroup: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', alignItems: 'center' },
+  paymentToggleGroup: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', alignItems: 'center' },
   paymentTableWrap: { border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden', background: '#fff' },
   paymentTable: { width: '100%', borderCollapse: 'collapse' },
   paymentTh: { padding: '10px 12px', fontSize: '11px', fontWeight: 800, color: '#667085', textTransform: 'uppercase', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', textAlign: 'left' },
@@ -2232,6 +2233,7 @@ export default function InvoiceDashboard() {
       termsAndConditions: invoice.termsAndConditions || getDefaultTermsForInvoiceType(invoiceType),
       serviceScheduleDefaultTime: normalizeTimeInput(invoice.serviceScheduleDefaultTime || '', '10:00'),
       showPaymentDetailsInPdf: invoice.showPaymentDetailsInPdf == null ? true : Boolean(invoice.showPaymentDetailsInPdf),
+      showGstNumberInPdf: invoice.showGstNumberInPdf == null ? true : Boolean(invoice.showGstNumberInPdf),
       paymentReceivedEnabled: Boolean(invoice.paymentReceivedEnabled),
       paymentSplits: mappedPaymentSplits,
       paymentReceivedTotal: String(invoice.paymentReceivedTotal ?? 0),
@@ -3009,6 +3011,7 @@ export default function InvoiceDashboard() {
       serviceScheduleDefaultTime: serviceScheduleTime,
       serviceSchedules: normalizedServiceSchedules,
       showPaymentDetailsInPdf: Boolean(form.showPaymentDetailsInPdf),
+      showGstNumberInPdf: Boolean(form.showGstNumberInPdf),
       paymentReceivedEnabled: Boolean(form.paymentReceivedEnabled),
       paymentSplits: form.paymentReceivedEnabled ? normalizedPaymentSplits : [],
       paymentReceivedTotal: form.paymentReceivedEnabled ? paymentReceivedTotal : 0,
@@ -4364,6 +4367,21 @@ export default function InvoiceDashboard() {
                         }
                       />
                       Show payment details in PDF
+                    </label>
+
+                    <label style={shell.paymentToggle}>
+                      <input
+                        type="checkbox"
+                        style={shell.checkbox}
+                        checked={Boolean(form.showGstNumberInPdf)}
+                        onChange={(event) =>
+                          setFormWithTotals((prev) => ({
+                            ...prev,
+                            showGstNumberInPdf: event.target.checked
+                          }))
+                        }
+                      />
+                      Show GST in PDF
                     </label>
 
                     <label style={shell.paymentToggle}>

@@ -653,15 +653,24 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text).text(company.tagline || '', companyX, y + 20, { width: companyW });
 
     doc.font('Helvetica').fontSize(8).fillColor(COLORS.text);
+    const showGstNumberInPdf = invoice.showGstNumberInPdf == null
+      ? true
+      : Boolean(invoice.showGstNumberInPdf);
     const addressLines = [
       company.address1,
       company.address2,
       [company.city, company.state, company.pincode].filter(Boolean).join(', '),
       formatCompanyPhoneLine(company.phone, company.alternatePhone) ? `Mobile: ${formatCompanyPhoneLine(company.phone, company.alternatePhone)}` : '',
       `E Mail Id: ${company.email || 'info@skuaspestcontrol.com'}`,
-      `Visit Us: ${company.website || '-'}`,
-      !company.isNonGst ? (company.gstin ? `GST Details: ${company.gstin}` : 'GST Details: ') : ''
+      `Visit Us: ${company.website || '-'}`
     ].filter((line) => line !== '');
+    if (!company.isNonGst && showGstNumberInPdf && company.gstin) {
+      if (addressLines.length > 0) {
+        addressLines[addressLines.length - 1] = `${addressLines[addressLines.length - 1]} | GST Details: ${company.gstin}`;
+      } else {
+        addressLines.push(`GST Details: ${company.gstin}`);
+      }
+    }
 
     let ay = y + 32;
     addressLines.forEach((line) => {

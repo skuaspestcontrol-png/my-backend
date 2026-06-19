@@ -11006,6 +11006,9 @@ app.post('/api/invoices', async (req, res) => {
   const showPaymentDetailsInPdf = req.body.showPaymentDetailsInPdf == null
     ? true
     : Boolean(req.body.showPaymentDetailsInPdf);
+  const showGstNumberInPdf = req.body.showGstNumberInPdf == null
+    ? true
+    : Boolean(req.body.showGstNumberInPdf);
 
   const newInvoice = {
     _id: `INV-${Date.now()}`,
@@ -11051,6 +11054,7 @@ app.post('/api/invoices', async (req, res) => {
     serviceScheduleDefaultTime,
     serviceSchedules,
     showPaymentDetailsInPdf,
+    showGstNumberInPdf,
     paymentReceivedEnabled,
     paymentSplits,
     paymentReceivedTotal,
@@ -11150,6 +11154,9 @@ app.put('/api/invoices/:id', async (req, res) => {
   const serviceSchedules = manualServiceSchedules.length > 0
     ? manualServiceSchedules
     : buildServiceScheduleEntries({ ...current, ...req.body, serviceScheduleDefaultTime });
+  const showGstNumberInPdf = req.body.showGstNumberInPdf == null
+    ? (current.showGstNumberInPdf == null ? true : Boolean(current.showGstNumberInPdf))
+    : Boolean(req.body.showGstNumberInPdf);
 
   const updatedInvoice = {
     ...current,
@@ -11169,6 +11176,7 @@ app.put('/api/invoices/:id', async (req, res) => {
     serviceScheduleDefaultTime,
     serviceSchedules,
     showPaymentDetailsInPdf,
+    showGstNumberInPdf,
     status,
     dueDate: req.body.dueDate ?? current.dueDate ?? current.date,
     amount,
