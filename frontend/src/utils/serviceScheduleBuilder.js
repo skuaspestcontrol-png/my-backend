@@ -535,7 +535,18 @@ export const buildServiceScheduleRows = ({
         status: 'Scheduled'
       };
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((row, index) => {
+      if (index !== 0) return row;
+      const anchoredStartDate = formatDateInput(start);
+      if (!anchoredStartDate) return row;
+      return {
+        ...row,
+        baseServiceDate: anchoredStartDate,
+        serviceDate: anchoredStartDate,
+        finalServiceDate: anchoredStartDate
+      };
+    });
 };
 
 export const buildServiceSchedulePlan = ({

@@ -853,6 +853,7 @@ const buildServiceScheduleEntries = (items = [], defaultTime = '10:00') => {
     const dates = Number.isFinite(requestedServices) && requestedServices > 0
       ? baseDates.slice(0, requestedServices)
       : baseDates;
+    const anchoredStartDate = String(lineStartDate || '').trim();
 
     dates.forEach((serviceDate, serviceIndex) => {
       schedule.push({
@@ -861,7 +862,7 @@ const buildServiceScheduleEntries = (items = [], defaultTime = '10:00') => {
         itemName: line.itemName || `Item ${lineIndex + 1}`,
         itemDescription: line.frequency || line.description || '',
         serviceNumber: serviceIndex + 1,
-        serviceDate,
+        serviceDate: serviceIndex === 0 && anchoredStartDate ? anchoredStartDate : serviceDate,
         serviceTime: normalizedTime
       });
     });
