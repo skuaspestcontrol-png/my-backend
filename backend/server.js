@@ -12023,7 +12023,10 @@ const applyRenewalFilters = (rows, query = {}) => {
   let from = query.fromDate ? parseDateOnly(query.fromDate) : null;
   let to = query.toDate ? parseDateOnly(query.toDate) : null;
   if (!from && !to) {
-    if (query.range === 'thisMonth') {
+    if (month !== null) {
+      from = new Date(year, month - 1, 1);
+      to = new Date(year, month, 0);
+    } else if (query.range === 'thisMonth') {
       from = new Date(now.getFullYear(), now.getMonth(), 1);
       to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     } else if (query.range === 'nextMonth') {
@@ -12033,8 +12036,8 @@ const applyRenewalFilters = (rows, query = {}) => {
       from = now;
       to = addMonthsClamped(now, 3);
     } else if (query.range === 'custom') {
-      from = month === null ? new Date(year, 0, 1) : new Date(year, month - 1, 1);
-      to = month === null ? new Date(year, 11, 31) : new Date(year, month, 0);
+      from = new Date(year, 0, 1);
+      to = new Date(year, 11, 31);
     } else if (query.range === 'year') {
       from = new Date(year, 0, 1);
       to = new Date(year, 11, 31);
