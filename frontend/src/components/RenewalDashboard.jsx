@@ -770,7 +770,15 @@ export default function RenewalDashboard() {
     if (!modal.type || !modal.row) return null;
     const row = modal.row;
     const displayRenewalId = row.renewalDisplayId || row.renewal_display_id || row.renewalId || row.renewal_id || '';
-    const titleMap = { view: 'Renewal Details', edit: 'Edit Renewal', assign: 'Assign Sales Person', followup: 'Log Follow-up', done: row.status === 'Done' ? 'Renewal Done' : 'Mark Renewal Done', decline: 'Decline Renewal', convert: 'Convert to Contract' };
+    const titleMap = {
+      view: 'Renewal Details',
+      edit: 'Edit Renewal',
+      assign: 'Assign Sales Person',
+      followup: 'Log Follow-up',
+      done: row.status === 'Done' ? 'Renewal Done' : 'Mark Renewal Done',
+      decline: row.status === 'Declined' ? 'Renewal Declined' : 'Decline Renewal',
+      convert: 'Convert to Contract'
+    };
     return (
       <div style={shell.modalOverlay}>
         <div style={shell.modal}>
@@ -836,10 +844,22 @@ export default function RenewalDashboard() {
               )
             )}
             {modal.type === 'decline' && (
-              <>
-                <label style={shell.field}><span style={shell.label}>Decline Reason</span><textarea style={{ ...shell.input, height: 86, paddingTop: 8 }} value={form.reason} onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))} /></label>
-                <button style={shell.dangerBtn} disabled={busy} onClick={() => runAction('Renewal declined', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/decline`, form))}>Mark Declined</button>
-              </>
+              row.status === 'Declined' ? (
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <div style={{ padding: '14px 16px', borderRadius: 12, background: '#fff1f2', border: '1px solid #fecaca', color: '#991b1b', fontWeight: 800, fontSize: 16 }}>
+                    Renewal Declined
+                  </div>
+                  <div style={{ display: 'grid', gap: 6, fontSize: 13, color: '#334155' }}>
+                    <span><strong>Reason:</strong> {String(row.declineReason || row.reason || row.remarks || '-')}</span>
+                  </div>
+                  <button style={shell.ghostBtn} onClick={closeModal}>Close</button>
+                </div>
+              ) : (
+                <>
+                  <label style={shell.field}><span style={shell.label}>Decline Reason</span><textarea style={{ ...shell.input, height: 86, paddingTop: 8 }} value={form.reason} onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))} /></label>
+                  <button style={shell.dangerBtn} disabled={busy} onClick={() => runAction('Renewal declined', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/decline`, form))}>Mark Declined</button>
+                </>
+              )
             )}
             {modal.type === 'convert' && (
               <>
