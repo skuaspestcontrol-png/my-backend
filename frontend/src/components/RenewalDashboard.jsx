@@ -572,7 +572,7 @@ export default function RenewalDashboard() {
       await loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false });
       triggerContractsRefresh();
       if (contract?._id) {
-        navigate(`/sales/contracts?openInvoiceId=${encodeURIComponent(contract._id)}&fromContract=1&editContract=1`, {
+        navigate(`/sales/contracts?openInvoiceId=${encodeURIComponent(contract._id)}&fromContract=1&viewContract=1`, {
           replace: true
         });
       }

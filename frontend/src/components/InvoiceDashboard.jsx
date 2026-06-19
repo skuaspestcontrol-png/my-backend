@@ -2647,6 +2647,19 @@ export default function InvoiceDashboard() {
     setServiceScheduleRows(null);
   };
 
+  const openContractForEditing = () => {
+    if (!routeOpenInvoiceId && !editingId) return;
+    const targetId = String(routeOpenInvoiceId || editingId || '').trim();
+    if (!targetId) return;
+    const nextParams = new URLSearchParams(location.search);
+    nextParams.set('openInvoiceId', targetId);
+    nextParams.set('fromContract', '1');
+    nextParams.set('editContract', '1');
+    nextParams.delete('viewContract');
+    navigate(`${location.pathname}?${nextParams.toString()}`, { replace: true });
+    setShowModal(false);
+  };
+
   const resolveCustomerMatch = (value) => {
     const raw = String(value || '').trim();
     if (!raw) return null;
@@ -4509,6 +4522,15 @@ export default function InvoiceDashboard() {
               >
                 {contractViewOnly ? 'Close' : 'Cancel'}
               </button>
+              {contractViewOnly ? (
+                <button
+                  type="button"
+                  style={modalFooterButtonStyle ? { ...shell.saveButton, ...modalFooterButtonStyle } : shell.saveButton}
+                  onClick={openContractForEditing}
+                >
+                  Edit Contract
+                </button>
+              ) : null}
               {contractViewOnly ? null : (
                 <button type="submit" style={modalFooterButtonStyle ? { ...shell.saveButton, ...modalFooterButtonStyle } : shell.saveButton} disabled={isSaving}>
                   {isSaving ? 'Saving...' : editingId ? 'Update Contract' : 'Save Contract'}
