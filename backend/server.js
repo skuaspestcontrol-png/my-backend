@@ -8692,6 +8692,7 @@ const buildServiceScheduleEntries = (invoiceLike) => {
 
     const requestedServices = toNumber(line?.totalServices, 0);
     const dates = requestedServices > 0 ? baseDates.slice(0, requestedServices) : baseDates;
+    const anchoredStartDate = String(lineStartDate || '').trim();
 
     dates.forEach((baseServiceDate, serviceIndex) => {
       const finalServiceDate = preferredDay === ''
@@ -8700,11 +8701,11 @@ const buildServiceScheduleEntries = (invoiceLike) => {
       if (!finalServiceDate) return;
       schedules.push({
         serviceNumber: serviceIndex + 1,
-        baseServiceDate,
+        baseServiceDate: serviceIndex === 0 && anchoredStartDate ? anchoredStartDate : baseServiceDate,
         preferredDay,
         preferredDayLabel: getServiceSchedulePreferredDayLabel(preferredDay),
-        serviceDate: finalServiceDate,
-        finalServiceDate,
+        serviceDate: serviceIndex === 0 && anchoredStartDate ? anchoredStartDate : finalServiceDate,
+        finalServiceDate: serviceIndex === 0 && anchoredStartDate ? anchoredStartDate : finalServiceDate,
         serviceTime: defaultTime,
         itemId: line?.itemId || '',
         itemName: line?.itemName || `Item ${lineIndex + 1}`,
