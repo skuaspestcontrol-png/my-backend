@@ -169,6 +169,7 @@ export default function Dashboard() {
   const [vendorBills, setVendorBills] = useState(() => cachedDashboardState?.vendorBills || []);
   const [leads, setLeads] = useState(() => cachedDashboardState?.leads || []);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [selectedContractYear, setSelectedContractYear] = useState(() => String(new Date().getFullYear()));
 
   useEffect(() => {
     if (hasLoadedRef.current) return undefined;
@@ -249,6 +250,41 @@ export default function Dashboard() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  const contractYears = useMemo(() => {
+    const years = new Set();
+    const collectYear = (value) => {
+      const date = toDate(value);
+      if (date) years.add(date.getFullYear());
+    };
+
+    invoices.forEach((invoice) => {
+      collectYear(invoice.contractStartDate);
+      collectYear(invoice.contractEndDate);
+      collectYear(invoice.servicePeriodStart);
+      collectYear(invoice.servicePeriodEnd);
+      collectYear(invoice.date);
+      collectYear(invoice.createdAt);
+    });
+
+    vendorBills.forEach((bill) => {
+      collectYear(bill.date);
+      collectYear(bill.dueDate);
+      collectYear(bill.createdAt);
+    });
+
+    return Array.from(years).sort((a, b) => a - b);
+  }, [invoices, vendorBills]);
+
+  useEffect(() => {
+    if (contractYears.length === 0) return;
+    setSelectedContractYear((current) => {
+      if (contractYears.some((year) => String(year) === String(current))) return String(current);
+      return String(contractYears[contractYears.length - 1]);
+    });
+  }, [contractYears]);
+
+  const selectedYearNumber = Number(selectedContractYear) || new Date().getFullYear();
+
   const analytics = useMemo(() => {
     const totalReceivables = invoices.reduce((sum, invoice) => sum + toNum(invoice.balanceDue), 0);
     const receivableCurrent = invoices.reduce((sum, invoice) => sum + (isOverdue(invoice.dueDate) ? 0 : toNum(invoice.balanceDue)), 0);
@@ -323,6 +359,84 @@ export default function Dashboard() {
       totalExpenseAmount
     };
   }, [invoices, vendorBills]);
+
+  const selectedYearAnalytics = useMemo(() => {
+    const months = Array.from({ length: 12 }, (_, idx) => {
+      const date = new Date(selectedYearNumber, idx, 1);
+      return { key: monthKey(date), label: monthLabel(date) };
+    });
+
+    const incomeMap = new Map(months.map((month) => [month.key, 0]));
+    const expenseMap = new Map(months.map((month) => [month.key, 0]));
+
+    const getIncomeDate = (invoice) => (
+      toDate(invoice.contractStartDate)
+      || toDate(invoice.contractEndDate)
+      || toDate(invoice.servicePeriodStart)
+      || toDate(invoice.servicePeriodEnd)
+      || toDate(invoice.date)
+      || toDate(invoice.createdAt)
+    );
+
+    const getExpenseDate = (bill) => (
+      toDate(bill.date)
+      || toDate(bill.dueDate)
+      || toDate(bill.createdAt)
+    );
+
+    invoices.forEach((invoice) => {
+      const date = getIncomeDate(invoice);
+      if (!date || date.getFullYear() !== selectedYearNumber) return;
+      const key = monthKey(date);
+      if (!incomeMap.has(key)) return;
+      incomeMap.set(key, incomeMap.get(key) + toNum(invoice.total || invoice.amount || invoice.totalAmount));
+    });
+
+    vendorBills.forEach((bill) => {
+      const date = getExpenseDate(bill);
+      if (!date || date.getFullYear() !== selectedYearNumber) return;
+      const key = monthKey(date);
+      if (!expenseMap.has(key)) return;
+      expenseMap.set(key, expenseMap.get(key) + toNum(bill.total || bill.amount || bill.balanceDue));
+    });
+
+    const incomeSeries = months.map((month) => ({ label: month.label, value: incomeMap.get(month.key) || 0 }));
+    const expenseSeries = months.map((month) => ({ label: month.label, value: expenseMap.get(month.key) || 0 }));
+
+    const expenseBuckets = new Map();
+    vendorBills.forEach((bill) => {
+      const date = getExpenseDate(bill);
+      if (!date || date.getFullYear() !== selectedYearNumber) return;
+      const lines = Array.isArray(bill.items) ? bill.items : [];
+      if (lines.length === 0) {
+        const key = String(bill.vendorName || 'General').trim() || 'General';
+        expenseBuckets.set(key, (expenseBuckets.get(key) || 0) + toNum(bill.total || bill.amount || bill.balanceDue));
+        return;
+      }
+      lines.forEach((line) => {
+        const key = String(line.itemName || line.name || 'General').trim() || 'General';
+        const amount = toNum(line.amount, toNum(line.quantity, 0) * toNum(line.rate, 0));
+        expenseBuckets.set(key, (expenseBuckets.get(key) || 0) + amount);
+      });
+    });
+
+    const topExpenses = Array.from(expenseBuckets.entries())
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+
+    const totalExpenseAmount = topExpenses.reduce((sum, x) => sum + x.amount, 0);
+
+    return {
+      months,
+      incomeSeries,
+      expenseSeries,
+      topExpenses,
+      totalIncome: incomeSeries.reduce((sum, x) => sum + x.value, 0),
+      totalExpenses: expenseSeries.reduce((sum, x) => sum + x.value, 0),
+      totalExpenseAmount
+    };
+  }, [invoices, vendorBills, selectedYearNumber]);
 
   const topCards = useMemo(() => ({
     leadsCount: leads.length || Number(summary?.leadsCount || 0),
@@ -445,8 +559,8 @@ export default function Dashboard() {
     : shell.sourceLegendItem;
 
   const incomeExpenseMax = Math.max(
-    ...analytics.incomeSeries.map((x) => x.value),
-    ...analytics.expenseSeries.map((x) => x.value),
+    ...selectedYearAnalytics.incomeSeries.map((x) => x.value),
+    ...selectedYearAnalytics.expenseSeries.map((x) => x.value),
     1
   );
 
@@ -662,17 +776,36 @@ export default function Dashboard() {
         <article style={shell.panel}>
           <div style={shell.panelHead}>
             <h2 style={shell.panelTitle}>Income and Expense</h2>
-            <span style={{ color: '#475569', fontWeight: 700 }}>This Fiscal Year</span>
+            <select
+              value={selectedContractYear}
+              onChange={(event) => setSelectedContractYear(event.target.value)}
+              style={{
+                border: '1px solid #dbe4f0',
+                background: '#f8fafc',
+                color: '#334155',
+                fontWeight: 700,
+                borderRadius: '12px',
+                padding: '8px 12px',
+                fontSize: '12px',
+                outline: 'none',
+                minWidth: '110px'
+              }}
+              aria-label="Select contract year"
+            >
+              {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
+                <option key={year} value={String(year)}>{year}</option>
+              ))}
+            </select>
           </div>
           <div style={shell.legendRow}>
-            <span style={{ ...shell.legendItem, color: '#166534' }}><span style={{ ...shell.dot, background: successGreen }} />Total Income: {formatCurrency(analytics.totalIncome)}</span>
-            <span style={{ ...shell.legendItem, color: '#9f1239' }}><span style={{ ...shell.dot, background: dangerRed }} />Total Expense: {formatCurrency(analytics.totalExpenses)}</span>
+            <span style={{ ...shell.legendItem, color: '#166534' }}><span style={{ ...shell.dot, background: successGreen }} />Total Income: {formatCurrency(selectedYearAnalytics.totalIncome)}</span>
+            <span style={{ ...shell.legendItem, color: '#9f1239' }}><span style={{ ...shell.dot, background: dangerRed }} />Total Expense: {formatCurrency(selectedYearAnalytics.totalExpenses)}</span>
           </div>
           <div style={shell.barWrap}>
             <div style={shell.bars}>
-              {analytics.incomeSeries.map((m, index) => {
+              {selectedYearAnalytics.incomeSeries.map((m, index) => {
                 const income = m.value;
-                const expense = analytics.expenseSeries[index]?.value || 0;
+                const expense = selectedYearAnalytics.expenseSeries[index]?.value || 0;
                 return (
                   <div key={m.label} style={shell.barRow}>
                     <span style={{ color: '#64748b', fontWeight: 700 }}>{m.label}</span>
@@ -692,29 +825,29 @@ export default function Dashboard() {
         <article style={shell.panel}>
           <div style={shell.panelHead}>
             <h2 style={shell.panelTitle}>Top Expenses</h2>
-            <span style={{ color: '#475569', fontWeight: 700 }}>This Fiscal Year</span>
+            <span style={{ color: '#475569', fontWeight: 700 }}>{selectedYearNumber}</span>
           </div>
           <div style={shell.donutWrap}>
             <div
               style={{
                 ...shell.donut,
-                background: `conic-gradient(${analytics.topExpenses.map((item, idx) => {
-                  const start = analytics.topExpenses.slice(0, idx).reduce((sum, e) => sum + e.amount, 0);
-                  const startPct = analytics.totalExpenseAmount > 0 ? (start / analytics.totalExpenseAmount) * 100 : 0;
-                  const endPct = analytics.totalExpenseAmount > 0 ? ((start + item.amount) / analytics.totalExpenseAmount) * 100 : startPct;
+                background: `conic-gradient(${selectedYearAnalytics.topExpenses.map((item, idx) => {
+                  const start = selectedYearAnalytics.topExpenses.slice(0, idx).reduce((sum, e) => sum + e.amount, 0);
+                  const startPct = selectedYearAnalytics.totalExpenseAmount > 0 ? (start / selectedYearAnalytics.totalExpenseAmount) * 100 : 0;
+                  const endPct = selectedYearAnalytics.totalExpenseAmount > 0 ? ((start + item.amount) / selectedYearAnalytics.totalExpenseAmount) * 100 : startPct;
                   return `${expenseColors[idx % expenseColors.length]} ${startPct}% ${endPct}%`;
                 }).join(', ') || '#e5e7eb 0 100%'})`
               }}
             >
               <div style={shell.donutInner}>
                 <div style={{ color: '#64748b', fontWeight: 700 }}>All Expenses</div>
-                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800 }}>{formatCurrency(analytics.totalExpenseAmount)}</div>
+                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800 }}>{formatCurrency(selectedYearAnalytics.totalExpenseAmount)}</div>
               </div>
             </div>
             <div style={{ display: 'grid', gap: '10px' }}>
-              {analytics.topExpenses.length === 0 ? (
+              {selectedYearAnalytics.topExpenses.length === 0 ? (
                 <div style={{ color: '#64748b', fontWeight: 700 }}>No expense data available.</div>
-              ) : analytics.topExpenses.map((entry, idx) => (
+              ) : selectedYearAnalytics.topExpenses.map((entry, idx) => (
                 <div key={`${entry.name}-${idx}`} style={{ display: 'grid', gridTemplateColumns: '16px 1fr auto', gap: '10px', alignItems: 'center' }}>
                   <span style={{ ...shell.dot, width: '16px', height: '16px', borderRadius: '5px', background: expenseColors[idx % expenseColors.length] }} />
                   <span style={{ color: '#334155', fontWeight: 700 }}>{entry.name}</span>
