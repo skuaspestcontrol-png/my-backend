@@ -23,8 +23,8 @@ const RENEWAL_PAGE_SIZE = 20;
 const RENEWAL_DASHBOARD_CACHE_KEY = 'renewal_dashboard_cache_v1';
 const statuses = ['All', 'Pending', 'Follow-up', 'Done', 'Declined', 'Overdue'];
 const ranges = [
-  { value: 'threeMonths', label: 'Coming 3 Months' },
   { value: 'thisMonth', label: 'This Month' },
+  { value: 'threeMonths', label: 'Coming 3 Months' },
   { value: 'nextMonth', label: 'Next Month' },
   { value: 'custom', label: 'Custom Month' },
   { value: 'year', label: 'Year Wise' }
@@ -212,7 +212,7 @@ export default function RenewalDashboard() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 760);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
-    range: 'threeMonths',
+    range: 'thisMonth',
     month: new Date().getMonth() + 1,
     year: currentYear,
     fromDate: '',
@@ -532,7 +532,7 @@ export default function RenewalDashboard() {
     loadData();
   };
   const resetFilters = () => {
-    const next = { range: 'threeMonths', month: new Date().getMonth() + 1, year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', search: '' };
+    const next = { range: 'thisMonth', month: new Date().getMonth() + 1, year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', search: '' };
     setPage(1);
     setFilters(next);
     loadData(next);
