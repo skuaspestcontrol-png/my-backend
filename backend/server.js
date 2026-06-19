@@ -12613,6 +12613,28 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
           ellipsis: true
         });
     };
+    const drawWrappedTableCell = (x, y, w, h, text, options = {}) => {
+      const fontSize = options.fontSize || 8.4;
+      const align = options.align || 'left';
+      const textWidth = Math.max(0, w - 10);
+      doc.rect(x, y, w, h).lineWidth(0.8).strokeColor('#111827').stroke();
+      doc
+        .font(options.bold ? pdfFont.bold : pdfFont.regular)
+        .fontSize(fontSize)
+        .fillColor(options.color || '#111827');
+      const textHeight = doc.heightOfString(String(text), {
+        width: textWidth,
+        align,
+        lineGap: options.lineGap ?? 1
+      });
+      const textY = y + Math.max(4, (h - textHeight) / 2);
+      doc.text(String(text), x + 5, textY, {
+        width: textWidth,
+        align,
+        lineGap: options.lineGap ?? 1,
+        ellipsis: false
+      });
+    };
     const headerY = tableY;
     let cursorX = tableX;
     ['Sn', 'Service Name', 'Amount without GST', 'Amount with GST'].forEach((heading, index) => {
@@ -12640,9 +12662,16 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const leftTotalWidth = colWidths[0] + colWidths[1];
     const rightTotalWidth = colWidths[2] + colWidths[3];
     const totalY = tableY + headerHeight + (serviceLines.length * itemRowHeight);
-    drawTableCell(tableX, totalY, leftTotalWidth, totalRowHeight, `Total Price with GST (In Words) = ${formatTableAmount(amountWithGst)}`, { bold: true, fontSize: 8.8, align: 'left' });
-    drawTableCell(tableX + leftTotalWidth, totalY, rightTotalWidth, totalRowHeight, formatTableAmountWords(amountWithGst), { bold: true, fontSize: 8.8, align: 'center' });
-    doc.y = totalY + totalRowHeight + 12;
+    const leftTotalText = `Total Price with GST (In Words) = ${formatTableAmount(amountWithGst)}`;
+    const rightTotalText = formatTableAmountWords(amountWithGst);
+    const totalTextFontSize = 8.4;
+    doc.font(pdfFont.bold).fontSize(totalTextFontSize);
+    const leftTotalTextHeight = doc.heightOfString(leftTotalText, { width: Math.max(0, leftTotalWidth - 10), align: 'left', lineGap: 1 });
+    const rightTotalTextHeight = doc.heightOfString(rightTotalText, { width: Math.max(0, rightTotalWidth - 10), align: 'center', lineGap: 1 });
+    const mergedTotalRowHeight = Math.max(30, Math.ceil(Math.max(leftTotalTextHeight, rightTotalTextHeight) + 10));
+    drawWrappedTableCell(tableX, totalY, leftTotalWidth, mergedTotalRowHeight, leftTotalText, { bold: true, fontSize: totalTextFontSize, align: 'left' });
+    drawWrappedTableCell(tableX + leftTotalWidth, totalY, rightTotalWidth, mergedTotalRowHeight, rightTotalText, { bold: true, fontSize: totalTextFontSize, align: 'center' });
+    doc.y = totalY + mergedTotalRowHeight + 12;
     const terms = [
       '100% Advance along with your confirmation order.',
       'All payments should be payable to Skuas Pest Control Private Limited.',

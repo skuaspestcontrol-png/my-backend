@@ -572,7 +572,7 @@ export default function RenewalDashboard() {
                 <span style={statusStyle(row.status)}>{row.status}</span>
               </div>
               <div style={shell.mobileMeta}>
-                <span>Renewal Date: {formatDate(row.renewalDueDate)}</span>
+                <span>Conclude Date: {formatDate(row.previousContractEnd || row.renewalDueDate)}</span>
                 <span style={{ textAlign: 'center', justifySelf: 'center', width: '100%' }} title={row.serviceType}>{serviceShort(row.serviceType)}</span>
                 <span>{formatINR(row.proposedAmount)}</span>
               </div>
@@ -604,7 +604,7 @@ export default function RenewalDashboard() {
               <th style={renewalHeadCellStyle('svc', 'center')}>Svc</th>
               <th style={renewalHeadCellStyle('start', 'center')}>Start</th>
               <th style={renewalHeadCellStyle('end', 'center')}>End</th>
-              <th style={renewalHeadCellStyle('due', 'center')}>Renewal Date</th>
+              <th style={renewalHeadCellStyle('due', 'center')}>Conclude Date</th>
               <th style={renewalHeadCellStyle('previousAmount', 'center')}>Prev Amt</th>
               <th style={renewalHeadCellStyle('proposedAmount', 'center')}>Proposed</th>
               <th style={renewalHeadCellStyle('salesPerson')}>Sales</th>
@@ -622,7 +622,7 @@ export default function RenewalDashboard() {
                 <td style={renewalBodyCellStyle('svc', 'center')} title={row.serviceType}>{serviceShort(row.serviceType)}</td>
                 <td style={renewalBodyCellStyle('start', 'center')}>{formatDate(row.previousContractStart)}</td>
                 <td style={renewalBodyCellStyle('end', 'center')}>{formatDate(row.previousContractEnd)}</td>
-                <td style={renewalBodyCellStyle('due', 'center')}>{formatDate(row.renewalDueDate)}</td>
+                <td style={renewalBodyCellStyle('due', 'center')}>{formatDate(row.previousContractEnd || row.renewalDueDate)}</td>
                 <td style={renewalBodyCellStyle('previousAmount', 'center')}>{formatINR(row.previousAmount)}</td>
                 <td style={renewalBodyCellStyle('proposedAmount', 'center')}>{formatINR(row.proposedAmount)}</td>
                 <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
@@ -701,7 +701,7 @@ export default function RenewalDashboard() {
                 <span>Renewal ID: {displayRenewalId || '-'}</span>
                 <span>Mobile: {row.mobile || '-'}</span>
                 <span>Service: {row.serviceType || '-'}</span>
-                <span>Renewal Date: {formatDate(row.renewalDueDate)}</span>
+                <span>Conclude Date: {formatDate(row.previousContractEnd || row.renewalDueDate)}</span>
                 <span>Proposed Amount: {formatINR(row.proposedAmount)}</span>
                 <span>Sales Person: {row.assignedSalesPersonName || '-'}</span>
                 {row.renewalLetterUrl ? <a href={`${API_BASE}${row.renewalLetterUrl}`} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(row); }} rel="noreferrer">Open renewal letter</a> : null}
