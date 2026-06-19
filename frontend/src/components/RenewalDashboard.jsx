@@ -235,6 +235,55 @@ export default function RenewalDashboard() {
       return left - right;
     });
   }, [letters]);
+  const visibleLetterRows = useMemo(() => {
+    const merged = new Map();
+    const addRow = (row) => {
+      const renewalId = String(row?.renewalId || row?.renewal_id || row?.renewal_id || row?.id || '').trim();
+      if (!renewalId) return;
+      const pdfUrl = String(row?.pdf_url || row?.renewalLetterUrl || '').trim();
+      const concludeDate = row?.conclude_date || row?.concludeDate || row?.previousContractEnd || row?.renewalDueDate || '';
+      const next = {
+        ...row,
+        renewalId,
+        renewal_id: renewalId,
+        pdf_url: pdfUrl,
+        conclude_date: concludeDate,
+        concludeDate,
+        customer_name: String(row?.customer_name || row?.customerName || '').trim(),
+        customerName: String(row?.customerName || row?.customer_name || '').trim(),
+        mobile: String(row?.mobile || '').trim(),
+        serviceType: String(row?.serviceType || row?.service_type || '').trim()
+      };
+      const existing = merged.get(renewalId);
+      if (!existing) {
+        merged.set(renewalId, next);
+        return;
+      }
+      merged.set(renewalId, {
+        ...existing,
+        ...next,
+        pdf_url: next.pdf_url || existing.pdf_url,
+        conclude_date: next.conclude_date || existing.conclude_date,
+        concludeDate: next.concludeDate || existing.concludeDate,
+        customerName: next.customerName || existing.customerName,
+        customer_name: next.customer_name || existing.customer_name,
+        mobile: next.mobile || existing.mobile,
+        serviceType: next.serviceType || existing.serviceType
+      });
+    };
+
+    (sortedLetters || []).forEach(addRow);
+    (rows || []).forEach((row) => {
+      if (!row?.renewalLetterUrl && !row?.pdf_url) return;
+      addRow(row);
+    });
+
+    return Array.from(merged.values()).sort((a, b) => {
+      const left = String(a.conclude_date || a.concludeDate || a.generated_at || '').slice(0, 10);
+      const right = String(b.conclude_date || b.concludeDate || b.generated_at || '').slice(0, 10);
+      return left.localeCompare(right);
+    });
+  }, [sortedLetters, rows]);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 760);
@@ -814,7 +863,7 @@ export default function RenewalDashboard() {
         {!loading && activeTab === 'Sales Person Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.salespersonWiseSummary, 'name', 'total')}</div> : null}
         {!loading && activeTab === 'Renewal Letters' ? (
           <div style={shell.panelPad}>
-            {(sortedLetters || []).length === 0 ? <p style={{ margin: 0, color: '#64748b' }}>No renewal letters generated yet.</p> : sortedLetters.map((letter) => (
+            {(visibleLetterRows || []).length === 0 ? <p style={{ margin: 0, color: '#64748b' }}>No renewal letters generated yet.</p> : visibleLetterRows.map((letter) => (
               <div key={letter.id || letter.pdf_url} style={shell.miniRow}>
                 <strong>{letter.customer_name || '-'}</strong>
                 <span>{formatDate(letter.conclude_date || letter.concludeDate || letter.generated_at)}</span>
