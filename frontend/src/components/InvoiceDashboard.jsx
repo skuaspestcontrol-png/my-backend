@@ -4381,7 +4381,7 @@ export default function InvoiceDashboard() {
                           }))
                         }
                       />
-                      Show GST in PDF
+                      Customer GST in PDF only
                     </label>
 
                     <label style={shell.paymentToggle}>
