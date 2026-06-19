@@ -11716,12 +11716,12 @@ const renewalCleanStatus = (status) => renewalStatusesNew.has(String(status || '
   : 'Pending';
 const computeRenewalStatus = (row = {}) => {
   const stored = renewalCleanStatus(row.status);
-  if (stored === 'Done' || stored === 'Declined') return stored;
+  if (stored === 'Done' || stored === 'Declined' || stored === 'Follow-up') return stored;
   if (row.followup_date || row.followupDate) return 'Follow-up';
   const due = parseDateOnly(row.renewal_due_date || row.renewalDueDate || row.previous_contract_end || row.contractEndDate);
   const today = parseDateOnly(new Date());
   if (due && today && due < today) return 'Overdue';
-  return stored === 'Overdue' ? 'Pending' : stored;
+  return stored === 'Overdue' ? 'Overdue' : stored;
 };
 const renewalPublicRow = (row = {}) => {
   const payload = parseMysqlPayloadObject(row.payload) || {};
