@@ -9836,6 +9836,42 @@ app.get('/api/google/integration/status', async (req, res) => {
   }
 });
 
+app.delete('/api/google/integration', async (req, res) => {
+  if (!canUseMysql()) return res.status(500).json({ error: 'MySQL is not configured' });
+
+  try {
+    await withMysqlConnection(async (conn) => {
+      const row = await getIntegrationRow(conn);
+      if (!row) return;
+
+      if (row.encrypted_refresh_token) {
+        try {
+          const key = normalizeKey(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY);
+          if (key) {
+            const { decrypt } = require('./lib/googleTasks');
+            const refreshToken = decrypt(row.encrypted_refresh_token, key);
+            if (refreshToken) {
+              await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(refreshToken)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+              }).catch(() => null);
+            }
+          }
+        } catch (revokeError) {
+          console.error('Google integration revoke failed:', revokeError.message);
+        }
+      }
+
+      await conn.query('DELETE FROM google_integrations WHERE integration_key = ?', [INTEGRATION_KEY]);
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Google integration disconnect failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to remove Google integration' });
+  }
+});
+
 app.get('/api/google/oauth/start', async (req, res) => {
   try {
     const oauth = buildOAuthClient();

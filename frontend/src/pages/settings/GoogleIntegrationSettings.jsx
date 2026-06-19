@@ -14,6 +14,7 @@ const card = {
 
 export default function GoogleIntegrationSettings() {
   const [loading, setLoading] = useState(true);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [status, setStatus] = useState('');
   const [integration, setIntegration] = useState({
     connected: false,
@@ -56,6 +57,24 @@ export default function GoogleIntegrationSettings() {
     return `${API_BASE_URL}/api/google/oauth/start?redirect=${redirect}`;
   }, []);
 
+  const removeConnection = async () => {
+    if (!integration.connected) return;
+    const confirmed = window.confirm('Remove the connected Google account and stop Google sync?');
+    if (!confirmed) return;
+
+    setDisconnecting(true);
+    setStatus('');
+    try {
+      await axios.delete(`${API_BASE_URL}/api/google/integration`);
+      setStatus('Google account removed successfully.');
+      await load();
+    } catch (error) {
+      setStatus(error?.response?.data?.error || 'Could not remove Google account');
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   return (
     <div style={{ display: 'grid', gap: '14px' }}>
       <div style={card}>
@@ -89,6 +108,24 @@ export default function GoogleIntegrationSettings() {
           >
             Connect Google Account
           </a>
+          <button
+            type="button"
+            onClick={removeConnection}
+            disabled={loading || disconnecting || !integration.connected}
+            style={{
+              minHeight: '34px',
+              minWidth: '150px',
+              padding: '0 12px',
+              borderRadius: '10px',
+              border: '1px solid rgba(220, 38, 38, 0.24)',
+              background: integration.connected ? '#fff' : '#f8fafc',
+              color: integration.connected ? '#dc2626' : '#94a3b8',
+              fontWeight: 700,
+              cursor: integration.connected ? 'pointer' : 'not-allowed'
+            }}
+          >
+            {disconnecting ? 'Removing...' : 'Remove Google Account'}
+          </button>
           <button type="button" onClick={load} disabled={loading} style={{ minHeight: '34px', minWidth: '120px', padding: '0 12px' }}>
             {loading ? 'Refreshing...' : 'Refresh Status'}
           </button>
