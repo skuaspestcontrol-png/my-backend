@@ -458,12 +458,43 @@ const deriveContractRange = (invoice = {}) => {
   return `${formatDate(start)} to ${formatDate(end)}`;
 };
 
-const addressLinesForInvoiceParty = (party = {}, options = {}) => [
-  [party.street1, party.street2].map(clean).filter(Boolean).join(', '),
-  party.area,
-  [party.city, party.state, party.pincode].map(clean).filter(Boolean).join(', '),
-  options.showGstin && party.gstin ? `GSTIN: ${party.gstin}` : ''
-].map(clean).filter(Boolean);
+const normalizeAddressLineKey = (value = '') => clean(value).toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+const appendUniqueAddressLine = (lines, value) => {
+  const line = clean(value);
+  if (!line) return;
+  const key = normalizeAddressLineKey(line);
+  if (!key) return;
+  if (lines.some((existing) => {
+    const existingKey = normalizeAddressLineKey(existing);
+    return existingKey === key || existingKey.includes(key) || key.includes(existingKey);
+  })) {
+    return;
+  }
+  lines.push(line);
+};
+
+const splitAddressFragment = (value = '') => clean(value)
+  .split(/\r?\n|,/)
+  .map(clean)
+  .filter(Boolean);
+
+const addressLinesForInvoiceParty = (party = {}, options = {}) => {
+  const lines = [];
+  const street1Parts = splitAddressFragment(party.street1);
+  const street2Parts = splitAddressFragment(party.street2);
+  const area = clean(party.area);
+  const cityStatePincode = [party.city, party.state, party.pincode].map(clean).filter(Boolean).join(', ');
+
+  street1Parts.forEach((part) => appendUniqueAddressLine(lines, part));
+  street2Parts.forEach((part) => appendUniqueAddressLine(lines, part));
+  appendUniqueAddressLine(lines, area);
+  appendUniqueAddressLine(lines, cityStatePincode);
+  if (options.showGstin && party.gstin) {
+    appendUniqueAddressLine(lines, `GSTIN: ${party.gstin}`);
+  }
+  return lines;
+};
 
 const drawCell = (doc, text, x, y, w, h, { bold = false, align = 'left', bg = null, border = COLORS.border, color = COLORS.text, size = BASE_FONT_SIZE, padX = 3, padY = 2 } = {}) => {
   if (bg) {
