@@ -309,12 +309,13 @@ export default function RenewalDashboard() {
     const titleName = String(row?.customerName || row?.customer_name || 'Customer').trim();
     const pdfUrl = String(row?.renewalLetterUrl ? `${API_BASE}${row.renewalLetterUrl}` : row?.pdf_url ? `${API_BASE}${row.pdf_url}` : '').trim();
     if (!pdfUrl) return;
-    const fileLabel = String(row?.renewalDisplayId || row?.renewal_display_id || row?.renewalId || row?.renewal_id || titleName || 'renewal-letter').trim();
+    const fileLabel = String(row?.renewalDisplayId || row?.renewal_display_id || titleName || row?.renewalId || row?.renewal_id || 'renewal-letter').trim();
+    const downloadName = `REN-${titleName || fileLabel || 'Renewal'}.pdf`;
     setPdfPreview({
       open: true,
       title: `Renewal Letter - ${titleName}`,
       pdfUrl,
-      downloadFileName: `${fileLabel.replace(/[^\w.-]+/g, '_')}.pdf`,
+      downloadFileName: downloadName,
       publicShareUrl: pdfUrl,
       renewalId: String(row?.renewalId || row?.renewal_id || row?.id || '').trim(),
       shareContext: {
@@ -359,7 +360,7 @@ export default function RenewalDashboard() {
         subject,
         body,
         attachmentUrl: shareUrl,
-        attachmentName: `${renewalDisplayId.replace(/[^\w.-]+/g, '_')}.pdf`,
+        attachmentName: `REN-${String(context.customerName || renewalDisplayId || 'Renewal').trim()}.pdf`,
         contextData: {
           customer_name: customerName,
           customer_email: recipientEmail,

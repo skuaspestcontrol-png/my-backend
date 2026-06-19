@@ -124,7 +124,7 @@ const shell = {
 
 const normalizeFileName = (value) => {
   const text = String(value || 'document.pdf').trim();
-  return text.replace(/[^\w.-]+/g, '_') || 'document.pdf';
+  return text.replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim() || 'document.pdf';
 };
 
 const downloadBlob = (blobUrl, fileName) => {

@@ -12424,7 +12424,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const salespersonEmployee = await findEmployeeForRenewalSalesPerson(renewal);
     const lettersDir = path.join(uploadsDir, 'renewal-letters');
     fs.mkdirSync(lettersDir, { recursive: true });
-    const fileName = `${String(renewalDisplayId || renewal.renewalId).replace(/[^\w.-]+/g, '_')}-${Date.now()}.pdf`;
+    const fileName = `REN-${String(renewalDisplayId || renewal.customerName || renewal.renewalId || 'Renewal').replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim()}.pdf`;
     const relativePath = `renewal-letters/${fileName}`;
     const fullPath = path.join(lettersDir, fileName);
     const doc = new PDFDocument({ size: 'A4', margins: { top: 45, bottom: 45, left: 55, right: 55 } });
