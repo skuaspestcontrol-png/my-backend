@@ -556,10 +556,10 @@ export default function Dashboard() {
     ? { ...shell.sourceBody, justifyItems: 'center' }
     : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch' };
   const sourceLegendStyle = isMobile
-    ? { ...shell.sourceLegend, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 14px', justifyItems: 'center', textAlign: 'center', maxWidth: '100%' }
+    ? { ...shell.sourceLegend, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px', justifyItems: 'stretch', textAlign: 'left', maxWidth: '100%' }
     : { ...shell.sourceLegend, justifyItems: 'stretch', textAlign: 'left', maxWidth: '280px' };
   const sourceLegendItemStyle = isMobile
-    ? { ...shell.sourceLegendItem, gridTemplateColumns: '11px auto auto', gap: '7px', fontSize: '11px', justifyContent: 'center' }
+    ? { ...shell.sourceLegendItem, gridTemplateColumns: '11px minmax(0, 1fr) auto', gap: '6px', fontSize: '11px', width: '100%', justifyContent: 'start' }
     : shell.sourceLegendItem;
 
   const incomeExpenseMax = Math.max(
