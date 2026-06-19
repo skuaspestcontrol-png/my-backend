@@ -37,7 +37,6 @@ const renewalColumns = [
   { key: 'svc', label: 'Svc' },
   { key: 'start', label: 'Start' },
   { key: 'end', label: 'End' },
-  { key: 'due', label: 'Due' },
   { key: 'previousAmount', label: 'Prev Amt' },
   { key: 'proposedAmount', label: 'Proposed' },
   { key: 'salesPerson', label: 'Sales' },
@@ -52,7 +51,6 @@ const renewalDefaultWidths = {
   svc: 90,
   start: 110,
   end: 110,
-  due: 110,
   previousAmount: 110,
   proposedAmount: 120,
   salesPerson: 120,
@@ -67,7 +65,6 @@ const renewalColumnBounds = {
   svc: { min: 80, max: 120 },
   start: { min: 90, max: 140 },
   end: { min: 90, max: 140 },
-  due: { min: 90, max: 140 },
   previousAmount: { min: 100, max: 160 },
   proposedAmount: { min: 100, max: 170 },
   salesPerson: { min: 110, max: 180 },
@@ -604,7 +601,6 @@ export default function RenewalDashboard() {
               <th style={renewalHeadCellStyle('svc', 'center')}>Svc</th>
               <th style={renewalHeadCellStyle('start', 'center')}>Start</th>
               <th style={renewalHeadCellStyle('end', 'center')}>End</th>
-              <th style={renewalHeadCellStyle('due', 'center')}>Conclude Date</th>
               <th style={renewalHeadCellStyle('previousAmount', 'center')}>Prev Amt</th>
               <th style={renewalHeadCellStyle('proposedAmount', 'center')}>Proposed</th>
               <th style={renewalHeadCellStyle('salesPerson')}>Sales</th>
@@ -622,7 +618,6 @@ export default function RenewalDashboard() {
                 <td style={renewalBodyCellStyle('svc', 'center')} title={row.serviceType}>{serviceShort(row.serviceType)}</td>
                 <td style={renewalBodyCellStyle('start', 'center')}>{formatDate(row.previousContractStart)}</td>
                 <td style={renewalBodyCellStyle('end', 'center')}>{formatDate(row.previousContractEnd)}</td>
-                <td style={renewalBodyCellStyle('due', 'center')}>{formatDate(row.previousContractEnd || row.renewalDueDate)}</td>
                 <td style={renewalBodyCellStyle('previousAmount', 'center')}>{formatINR(row.previousAmount)}</td>
                 <td style={renewalBodyCellStyle('proposedAmount', 'center')}>{formatINR(row.proposedAmount)}</td>
                 <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
