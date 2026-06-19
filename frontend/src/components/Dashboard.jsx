@@ -96,7 +96,7 @@ const shell = {
   donutWrap: { display: 'grid', gridTemplateColumns: '1fr', gap: '14px', justifyItems: 'center', marginTop: '2px' },
   donut: { width: '268px', height: '268px', borderRadius: '50%', position: 'relative' },
   donutInner: { position: 'absolute', inset: '30%', borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px' },
-  sourceLegend: { display: 'grid', gap: '10px', width: '100%', alignContent: 'start' },
+  sourceLegend: { display: 'grid', gridTemplateColumns: '1fr', gap: '10px', width: '100%', alignContent: 'start' },
   sourceLegendItem: { display: 'grid', gridTemplateColumns: '13px minmax(0, 1fr) auto', alignItems: 'center', gap: '10px', color: '#475569', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 },
   sourceLegendDot: { width: '13px', height: '13px', borderRadius: '999px', display: 'inline-block', flexShrink: 0 }
 };
@@ -556,7 +556,7 @@ export default function Dashboard() {
     ? { ...shell.sourceBody, justifyItems: 'center' }
     : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch' };
   const sourceLegendStyle = isMobile
-    ? { ...shell.sourceLegend, justifyItems: 'center', textAlign: 'center', maxWidth: '100%' }
+    ? { ...shell.sourceLegend, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 14px', justifyItems: 'center', textAlign: 'center', maxWidth: '100%' }
     : { ...shell.sourceLegend, justifyItems: 'stretch', textAlign: 'left', maxWidth: '280px' };
   const sourceLegendItemStyle = isMobile
     ? { ...shell.sourceLegendItem, gridTemplateColumns: '13px auto auto', justifyContent: 'center' }
