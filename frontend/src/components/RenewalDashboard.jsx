@@ -213,7 +213,7 @@ export default function RenewalDashboard() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     range: 'thisMonth',
-    month: new Date().getMonth() + 1,
+    month: 'all',
     year: currentYear,
     fromDate: '',
     toDate: '',
@@ -532,7 +532,7 @@ export default function RenewalDashboard() {
     loadData();
   };
   const resetFilters = () => {
-    const next = { range: 'thisMonth', month: new Date().getMonth() + 1, year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', search: '' };
+    const next = { range: 'thisMonth', month: 'all', year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', search: '' };
     setPage(1);
     setFilters(next);
     loadData(next);
