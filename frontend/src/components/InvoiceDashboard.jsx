@@ -132,7 +132,7 @@ const termsOptions = ['Paid', 'Due on Receipt', 'Net 15', 'Net 30', 'Net 45', 'N
 const termsToDays = { Paid: 0, 'Due on Receipt': 0, 'Net 15': 15, 'Net 30': 30, 'Net 45': 45, 'Net 60': 60 };
 const taxOptions = [0, 5, 12, 18];
 const paymentModeOptions = ['Cheque', 'Cash', 'Bank Transfer', 'UPI', 'Card', 'Razorpay'];
-const paymentDepositOptions = ['Cash', 'Current Account', 'Saving Account'];
+const paymentDepositOptions = ['Current Account', 'Saving Account'];
 const contractCustomerTypeOptions = ['New', 'Existing', 'Renewal'];
 const getDefaultPaymentDepositTo = (invoiceType = 'GST') => String(invoiceType || '').trim().toUpperCase() === 'NON GST'
   ? 'Saving Account'
