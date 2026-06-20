@@ -162,23 +162,6 @@ const isOverdue = (dueDate) => {
 
 const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 const monthLabel = (date) => date.toLocaleString('en-IN', { month: 'short' });
-const buildFiscalMonths = (startYear) => Array.from({ length: 12 }, (_, idx) => {
-  const monthIndex = (3 + idx) % 12;
-  const year = idx < 9 ? startYear : startYear + 1;
-  const date = new Date(year, monthIndex, 1);
-  return {
-    key: monthKey(date),
-    label: monthLabel(date),
-    year: date.getFullYear(),
-    monthIndex: date.getMonth()
-  };
-});
-const isInFiscalYear = (date, startYear) => {
-  if (!date) return false;
-  const fiscalStart = new Date(startYear, 3, 1);
-  const fiscalEnd = new Date(startYear + 1, 3, 1);
-  return date >= fiscalStart && date < fiscalEnd;
-};
 const normalizeLeadStatus = (value) => String(value || '').trim().toLowerCase();
 const normalizeLeadSource = (value) => String(value || '').trim();
 const leadSourceOrder = ['Website', 'Google Ads', 'Google Business Profile', 'Facebook', 'WhatsApp', 'Call', 'Referral'];
@@ -224,12 +207,10 @@ export default function Dashboard() {
   const [invoices, setInvoices] = useState(() => cachedDashboardState?.invoices || []);
   const [vendorBills, setVendorBills] = useState(() => cachedDashboardState?.vendorBills || []);
   const [leads, setLeads] = useState(() => cachedDashboardState?.leads || []);
-  const [paymentReceiveds, setPaymentReceiveds] = useState(() => cachedDashboardState?.paymentReceiveds || []);
   const [salesPerformanceSummary, setSalesPerformanceSummary] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [selectedContractYear, setSelectedContractYear] = useState(() => String(new Date().getFullYear()));
   const [selectedTargetYear, setSelectedTargetYear] = useState(() => String(new Date().getFullYear()));
-  const [selectedIncomeExpenseMode, setSelectedIncomeExpenseMode] = useState('accrual');
 
   useEffect(() => {
     if (hasLoadedRef.current) return undefined;
@@ -246,8 +227,7 @@ export default function Dashboard() {
         const supportPromise = Promise.all([
           axios.get(`${API_BASE_URL}/api/invoices`, { params: { _: stamp } }).catch(() => ({ data: [] })),
           axios.get(`${API_BASE_URL}/api/vendor-bills`, { params: { _: stamp } }).catch(() => ({ data: [] })),
-          axios.get(`${API_BASE_URL}/api/leads`, { params: { _: stamp } }).catch(() => ({ data: [] })),
-          axios.get(`${API_BASE_URL}/api/payment-received`, { params: { _: stamp } }).catch(() => ({ data: [] }))
+          axios.get(`${API_BASE_URL}/api/leads`, { params: { _: stamp } }).catch(() => ({ data: [] }))
         ]);
 
         const [summaryRes, settingsRes] = await Promise.all([summaryPromise, settingsPromise]);
@@ -256,23 +236,20 @@ export default function Dashboard() {
         setSummary(summaryRes?.data || null);
         setSettings(settingsRes.data || {});
 
-        const [invoicesRes, vendorBillsRes, leadsRes, paymentReceivedRes] = await supportPromise;
+        const [invoicesRes, vendorBillsRes, leadsRes] = await supportPromise;
         if (!active) return;
         const nextInvoices = Array.isArray(invoicesRes.data) ? invoicesRes.data : [];
         const nextVendorBills = Array.isArray(vendorBillsRes.data) ? vendorBillsRes.data : [];
         const nextLeads = Array.isArray(leadsRes.data) ? leadsRes.data : [];
-        const nextPaymentReceiveds = Array.isArray(paymentReceivedRes.data) ? paymentReceivedRes.data : [];
         setInvoices(nextInvoices);
         setVendorBills(nextVendorBills);
         setLeads(nextLeads);
-        setPaymentReceiveds(nextPaymentReceiveds);
         writeDashboardCache({
           summary: summaryRes?.data || null,
           settings: settingsRes.data || {},
           invoices: nextInvoices,
           vendorBills: nextVendorBills,
-          leads: nextLeads,
-          paymentReceiveds: nextPaymentReceiveds
+          leads: nextLeads
         });
       } catch (error) {
         if (!active) return;
@@ -535,74 +512,6 @@ export default function Dashboard() {
     };
   }, [invoices, vendorBills, selectedYearNumber]);
 
-  const incomeExpenseAnalytics = useMemo(() => {
-    const months = buildFiscalMonths(selectedYearNumber);
-    const incomeMap = new Map(months.map((month) => [month.key, 0]));
-    const expenseMap = new Map(months.map((month) => [month.key, 0]));
-
-    const addToMap = (map, date, amount) => {
-      const resolvedDate = toDate(date);
-      if (!resolvedDate || !isInFiscalYear(resolvedDate, selectedYearNumber)) return;
-      const key = monthKey(resolvedDate);
-      if (!map.has(key)) return;
-      map.set(key, map.get(key) + toNum(amount));
-    };
-
-    if (selectedIncomeExpenseMode === 'cash') {
-      paymentReceiveds.forEach((payment) => {
-        addToMap(incomeMap, payment.paymentDate || payment.payment_date || payment.date || payment.createdAt, payment.amount);
-      });
-      vendorBills.forEach((bill) => {
-        const paidAmount = toNum(
-          bill.paymentMadeTotal,
-          Math.max(0, toNum(bill.total || bill.amount || bill.balanceDue) - toNum(bill.balanceDue))
-        );
-        addToMap(expenseMap, bill.paymentDate || bill.payment_date || bill.date || bill.createdAt || bill.updatedAt, paidAmount);
-      });
-    } else {
-      const getIncomeDate = (invoice) => (
-        toDate(invoice.contractStartDate)
-        || toDate(invoice.contractEndDate)
-        || toDate(invoice.servicePeriodStart)
-        || toDate(invoice.servicePeriodEnd)
-        || toDate(invoice.date)
-        || toDate(invoice.createdAt)
-      );
-      const getExpenseDate = (bill) => (
-        toDate(bill.date)
-        || toDate(bill.dueDate)
-        || toDate(bill.createdAt)
-      );
-
-      invoices.forEach((invoice) => {
-        const date = getIncomeDate(invoice);
-        if (!date || !isInFiscalYear(date, selectedYearNumber)) return;
-        addToMap(incomeMap, date, invoice.total || invoice.amount || invoice.totalAmount);
-      });
-
-      vendorBills.forEach((bill) => {
-        const date = getExpenseDate(bill);
-        if (!date || !isInFiscalYear(date, selectedYearNumber)) return;
-        addToMap(expenseMap, date, bill.total || bill.amount || bill.balanceDue);
-      });
-    }
-
-    const incomeSeries = months.map((month) => ({ label: `${month.label}\n${month.year}`, value: incomeMap.get(month.key) || 0 }));
-    const expenseSeries = months.map((month) => ({ label: `${month.label}\n${month.year}`, value: expenseMap.get(month.key) || 0 }));
-    const totalIncome = incomeSeries.reduce((sum, row) => sum + row.value, 0);
-    const totalExpenses = expenseSeries.reduce((sum, row) => sum + row.value, 0);
-    const maxValue = Math.max(totalIncome, totalExpenses, ...incomeSeries.map((row) => row.value), ...expenseSeries.map((row) => row.value), 1);
-
-    return {
-      months,
-      incomeSeries,
-      expenseSeries,
-      totalIncome,
-      totalExpenses,
-      maxValue
-    };
-  }, [invoices, vendorBills, paymentReceiveds, selectedIncomeExpenseMode, selectedYearNumber]);
-
   const topCards = useMemo(() => ({
     leadsCount: leads.length || Number(summary?.leadsCount || 0),
     customersCount: Number(summary?.customersCount || 0),
@@ -799,7 +708,14 @@ export default function Dashboard() {
     { label: 'Converted', value: leadPipeline.converted, color: '#18b985' }
   ];
   const maxLeadFunnel = Math.max(...leadFunnelRows.map((row) => row.value), 1);
-  const incomeExpenseYAxisStep = Math.max(20000, Math.ceil((incomeExpenseAnalytics.maxValue || 1) / 5 / 10000) * 10000);
+  const incomeExpenseMaxValue = Math.max(
+    selectedYearAnalytics.totalIncome,
+    selectedYearAnalytics.totalExpenses,
+    ...selectedYearAnalytics.incomeSeries.map((row) => row.value),
+    ...selectedYearAnalytics.expenseSeries.map((row) => row.value),
+    1
+  );
+  const incomeExpenseYAxisStep = Math.max(20000, Math.ceil((incomeExpenseMaxValue || 1) / 5 / 10000) * 10000);
   const incomeExpenseYAxisMax = incomeExpenseYAxisStep * 5;
   const incomeExpenseYAxisValues = Array.from({ length: 6 }, (_, idx) => idx * incomeExpenseYAxisStep);
   const incomeExpenseChartHeight = isMobile ? 220 : 260;
@@ -817,9 +733,6 @@ export default function Dashboard() {
   const incomeExpenseLegendLabelStyle = isMobile
     ? { ...shell.incomeLegendLabel, fontSize: '15px' }
     : shell.incomeLegendLabel;
-  const modeToggleBtnStyle = (active) => (active
-    ? { ...shell.modeToggleBtn, ...shell.modeToggleBtnActive }
-    : shell.modeToggleBtn);
 
   return (
     <div style={shell.page}>
@@ -1038,54 +951,37 @@ export default function Dashboard() {
             <div style={shell.incomeLegend}>
               <div style={shell.incomeLegendItem}>
                 <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: incomeGreen }} />Total Income</div>
-                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(incomeExpenseAnalytics.totalIncome)}</p>
+                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</p>
               </div>
               <div style={shell.incomeLegendItem}>
                 <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: dangerRed }} />Total Expenses</div>
-                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(incomeExpenseAnalytics.totalExpenses)}</p>
+                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</p>
               </div>
             </div>
-            <div style={{ display: 'grid', gap: '10px', justifyItems: 'end' }}>
-              <div style={shell.modeToggle}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedIncomeExpenseMode('accrual')}
-                  style={modeToggleBtnStyle(selectedIncomeExpenseMode === 'accrual')}
-                >
-                  Accrual
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedIncomeExpenseMode('cash')}
-                  style={modeToggleBtnStyle(selectedIncomeExpenseMode === 'cash')}
-                >
-                  Cash
-                </button>
-              </div>
-              <select
-                value={selectedContractYear}
-                onChange={(event) => setSelectedContractYear(event.target.value)}
-                style={{
-                  border: '1px solid #dbe4f0',
-                  background: '#f8fafc',
-                  color: '#334155',
-                  fontWeight: 700,
-                  borderRadius: '12px',
-                  padding: '8px 12px',
-                  fontSize: '12px',
-                  outline: 'none',
-                  minWidth: '110px'
-                }}
-                aria-label="Select contract year"
-              >
-                {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
-                  <option key={year} value={String(year)}>{year}</option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={selectedContractYear}
+              onChange={(event) => setSelectedContractYear(event.target.value)}
+              style={{
+                border: '1px solid #dbe4f0',
+                background: '#f8fafc',
+                color: '#334155',
+                fontWeight: 700,
+                borderRadius: '12px',
+                padding: '8px 12px',
+                fontSize: '12px',
+                outline: 'none',
+                minWidth: '110px',
+                alignSelf: 'flex-start'
+              }}
+              aria-label="Select contract year"
+            >
+              {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
+                <option key={year} value={String(year)}>{year}</option>
+              ))}
+            </select>
           </div>
 
-          <div style={shell.incomeChartWrap}>
+          <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', marginTop: '18px' }}>
             <div style={incomeExpenseYAxisStyle}>
               {incomeExpenseYAxisValues.slice().reverse().map((value) => (
                 <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? '#64748b' : axisGray }}>
@@ -1111,13 +1007,13 @@ export default function Dashboard() {
                     inset: '10px 10px 8px 10px',
                     display: 'grid',
                     gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-                    gap: isMobile ? '6px' : '8px',
+                    gap: isMobile ? '6px' : '10px',
                     alignItems: 'end'
                   }}
                 >
-                  {incomeExpenseAnalytics.months.map((month, index) => {
-                    const income = incomeExpenseAnalytics.incomeSeries[index]?.value || 0;
-                    const expense = incomeExpenseAnalytics.expenseSeries[index]?.value || 0;
+                  {selectedYearAnalytics.months.map((month, index) => {
+                    const income = selectedYearAnalytics.incomeSeries[index]?.value || 0;
+                    const expense = selectedYearAnalytics.expenseSeries[index]?.value || 0;
                     const incomeHeight = Math.max(income * incomeExpenseScale, income > 0 ? 6 : 0);
                     const expenseHeight = Math.max(expense * incomeExpenseScale, expense > 0 ? 6 : 0);
 
@@ -1131,7 +1027,6 @@ export default function Dashboard() {
                         </div>
                         <div style={shell.incomeMonthLabel}>
                           <span>{month.label}</span>
-                          <span>{month.year}</span>
                         </div>
                       </div>
                     );
