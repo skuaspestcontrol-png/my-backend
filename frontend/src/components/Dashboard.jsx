@@ -72,6 +72,10 @@ const shell = {
   heroCard: { background: 'rgba(255,255,255,0.66)', border: '1px solid rgba(159, 23, 77, 0.22)', borderRadius: '20px', padding: '18px', backdropFilter: 'blur(10px)' },
   metrics: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px' },
   metric: { background: 'rgba(255,255,255,0.86)', border: '1px solid rgba(159, 23, 77, 0.18)', borderRadius: '18px', padding: '18px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)' },
+  targetSection: { display: 'grid', gap: '14px' },
+  targetSectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '0 4px' },
+  targetSectionTitle: { margin: 0, color: '#0f172a', fontSize: '14px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' },
+  targetSectionHint: { margin: 0, color: '#64748b', fontSize: '12px', fontWeight: 600 },
   targetMetrics: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px' },
   targetMetric: { background: 'rgba(255,255,255,0.92)', border: '1px solid rgba(148, 163, 184, 0.28)', borderRadius: '18px', padding: '18px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)', minHeight: '132px' },
   metricLabel: { margin: 0, color: 'var(--color-primary-dark)', fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' },
@@ -173,6 +177,7 @@ export default function Dashboard() {
   const [salesPerformanceSummary, setSalesPerformanceSummary] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [selectedContractYear, setSelectedContractYear] = useState(() => String(new Date().getFullYear()));
+  const [selectedTargetYear, setSelectedTargetYear] = useState(() => String(new Date().getFullYear()));
 
   useEffect(() => {
     if (hasLoadedRef.current) return undefined;
@@ -254,6 +259,7 @@ export default function Dashboard() {
   }, []);
 
   const selectedYearNumber = Number(selectedContractYear) || new Date().getFullYear();
+  const selectedTargetYearNumber = Number(selectedTargetYear) || new Date().getFullYear();
 
   useEffect(() => {
     let active = true;
@@ -262,7 +268,7 @@ export default function Dashboard() {
       try {
         const stamp = Date.now();
         const res = await axios.get(`${API_BASE_URL}/api/sales-performance/dashboard`, {
-          params: { year: selectedYearNumber, _: stamp }
+          params: { year: selectedTargetYearNumber, _: stamp }
         });
         if (!active) return;
         setSalesPerformanceSummary(res?.data?.summary || null);
@@ -277,7 +283,7 @@ export default function Dashboard() {
     return () => {
       active = false;
     };
-  }, [selectedYearNumber]);
+  }, [selectedTargetYearNumber]);
 
   const contractYears = useMemo(() => {
     const years = new Set();
@@ -307,6 +313,14 @@ export default function Dashboard() {
   useEffect(() => {
     if (contractYears.length === 0) return;
     setSelectedContractYear((current) => {
+      if (contractYears.some((year) => String(year) === String(current))) return String(current);
+      return String(contractYears[contractYears.length - 1]);
+    });
+  }, [contractYears]);
+
+  useEffect(() => {
+    if (contractYears.length === 0) return;
+    setSelectedTargetYear((current) => {
       if (contractYears.some((year) => String(year) === String(current))) return String(current);
       return String(contractYears[contractYears.length - 1]);
     });
@@ -531,7 +545,7 @@ export default function Dashboard() {
     {
       label: 'TOTAL YEARLY TARGET',
       value: formatCurrency(yearlyTargetSummary.target),
-      sub: `FY ${selectedYearNumber}`
+      sub: `FY ${selectedTargetYearNumber}`
     },
     {
       label: 'TOTAL YEARLY ACHIEVED',
@@ -548,7 +562,7 @@ export default function Dashboard() {
       value: `${Math.round(yearlyTargetSummary.achievementPercent)}%`,
       sub: 'Target completion'
     }
-  ]), [selectedYearNumber, yearlyTargetSummary]);
+  ]), [selectedTargetYearNumber, yearlyTargetSummary]);
 
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim();
   const aboutTagline = String(settings.aboutTagline || 'Professional in Pest Control').trim();
@@ -624,6 +638,24 @@ export default function Dashboard() {
     : isTablet
       ? { ...shell.targetMetrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
       : shell.targetMetrics;
+  const targetSectionHeadStyle = isMobile
+    ? { ...shell.targetSectionHead, flexDirection: 'column', alignItems: 'stretch' }
+    : shell.targetSectionHead;
+  const targetSectionHintStyle = isMobile
+    ? { ...shell.targetSectionHint, maxWidth: '100%' }
+    : shell.targetSectionHint;
+  const targetYearSelectStyle = {
+    border: '1px solid #dbe4f0',
+    background: '#fff',
+    color: '#334155',
+    fontWeight: 700,
+    borderRadius: '12px',
+    padding: '8px 12px',
+    fontSize: '12px',
+    outline: 'none',
+    minWidth: isMobile ? '100%' : '120px',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)'
+  };
 
   const incomeExpenseMax = Math.max(
     ...selectedYearAnalytics.incomeSeries.map((x) => x.value),
@@ -690,14 +722,33 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section style={yearlySummaryGridStyle}>
-        {yearlyTargetCards.map((card) => (
-          <article key={card.label} style={shell.targetMetric}>
-            <p style={shell.metricLabel}>{card.label}</p>
-            <p style={shell.metricValue}>{card.value}</p>
-            <p style={shell.metricSub}>{card.sub}</p>
-          </article>
-        ))}
+      <section style={shell.targetSection}>
+        <div style={targetSectionHeadStyle}>
+          <div>
+            <h2 style={shell.targetSectionTitle}>Yearly Target vs Achievement</h2>
+            <p style={targetSectionHintStyle}>Choose a year to review sales targets and progress.</p>
+          </div>
+          <select
+            value={selectedTargetYear}
+            onChange={(event) => setSelectedTargetYear(event.target.value)}
+            style={targetYearSelectStyle}
+            aria-label="Select yearly target year"
+          >
+            {contractYears.length === 0 ? <option value={String(selectedTargetYearNumber)}>{selectedTargetYearNumber}</option> : contractYears.map((year) => (
+              <option key={year} value={String(year)}>{year}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={yearlySummaryGridStyle}>
+          {yearlyTargetCards.map((card) => (
+            <article key={card.label} style={shell.targetMetric}>
+              <p style={shell.metricLabel}>{card.label}</p>
+              <p style={shell.metricValue}>{card.value}</p>
+              <p style={shell.metricSub}>{card.sub}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section style={graphGridStyle}>
