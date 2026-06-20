@@ -656,8 +656,14 @@ export default function Dashboard() {
     : shell.metricSub;
 
   const graphGridStyle = viewportWidth >= 1200
-    ? shell.graphGrid
+    ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(2, 485px)', justifyContent: 'center' }
     : { ...shell.graphGrid, gridTemplateColumns: '1fr' };
+  const graphCardStyle = viewportWidth >= 1200
+    ? { minHeight: '425px', boxSizing: 'border-box' }
+    : {};
+  const graphSourceCardStyle = viewportWidth >= 1200
+    ? { ...shell.sourcePanel, minHeight: '425px', boxSizing: 'border-box' }
+    : shell.sourcePanel;
   const sourceBodyStyle = isMobile
     ? { ...shell.sourceBody, justifyItems: 'center' }
     : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch' };
@@ -817,7 +823,7 @@ export default function Dashboard() {
       </section>
 
       <section style={graphGridStyle}>
-        <article style={shell.panel}>
+        <article style={{ ...shell.panel, ...graphCardStyle }}>
           <div style={shell.panelHead}>
             <h2 style={shell.panelTitle}>Lead Pipeline</h2>
             <select
@@ -903,7 +909,7 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={shell.sourcePanel}>
+        <article style={graphSourceCardStyle}>
           <div style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Lead Sources</h2>
             <span style={shell.sourceHeaderBadge}>{leadPipeline.sourceTotal} total</span>
@@ -951,7 +957,7 @@ export default function Dashboard() {
       </section>
 
       <section style={graphGridStyle}>
-        <article style={{ ...shell.panel, padding: isMobile ? '16px' : '18px 18px 20px' }}>
+        <article style={{ ...shell.panel, ...graphCardStyle, padding: isMobile ? '16px' : '18px 18px 20px' }}>
           <div style={shell.incomePanelHead}>
             <div style={shell.incomeLegend}>
               <div style={shell.incomeLegendItem}>
@@ -1133,7 +1139,7 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={shell.panel}>
+        <article style={{ ...shell.panel, ...graphCardStyle }}>
           <div style={shell.panelHead}>
             <h2 style={shell.panelTitle}>Top Expenses</h2>
             <span style={{ color: '#475569', fontWeight: 700 }}>{selectedYearNumber}</span>
