@@ -1033,24 +1033,6 @@ export default function Dashboard() {
       </section>
 
       <section style={graphGridStyle}>
-        <article style={shell.panel}>
-          <div style={shell.panelHead}>
-            <h2 style={shell.panelTitle}>Total Receivables</h2>
-          </div>
-          <p style={shell.panelSub}>Total Unpaid Invoices</p>
-          <p style={shell.total}>{formatCurrency(analytics.totalReceivables)}</p>
-        </article>
-
-        <article style={shell.panel}>
-          <div style={shell.panelHead}>
-            <h2 style={shell.panelTitle}>Total Payables</h2>
-          </div>
-          <p style={shell.panelSub}>Total Unpaid Bills</p>
-          <p style={shell.total}>{formatCurrency(analytics.totalPayables)}</p>
-        </article>
-      </section>
-
-      <section style={graphGridStyle}>
         <article style={{ ...shell.panel, padding: isMobile ? '16px' : '18px 18px 20px' }}>
           <div style={shell.incomePanelHead}>
             <div style={shell.incomeLegend}>
