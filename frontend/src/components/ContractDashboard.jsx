@@ -172,9 +172,9 @@ const shell = {
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
   summaryStrip: {
-    padding: '12px',
+    padding: '8px 12px 4px',
     display: 'grid',
-    gap: '10px',
+    gap: '8px',
     width: '100%',
     maxWidth: '100%',
     minWidth: 0,
@@ -184,23 +184,23 @@ const shell = {
     position: 'relative',
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: '16px',
-    minHeight: '108px',
-    padding: '16px 16px 14px 18px',
-    borderRadius: '16px',
+    alignItems: 'center',
+    gap: '10px',
+    minHeight: '72px',
+    padding: '10px 12px 10px 14px',
+    borderRadius: '14px',
     border: '1px solid rgba(148,163,184,0.36)',
     background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
     boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
     boxSizing: 'border-box',
     overflow: 'hidden'
   },
-  summaryCardAccent: { position: 'absolute', inset: '0 auto 0 0', width: '4px', borderTopLeftRadius: '16px', borderBottomLeftRadius: '16px' },
-  summaryCopy: { display: 'grid', gap: '8px', minWidth: 0, paddingTop: '2px' },
-  summaryLabel: { margin: 0, fontSize: '11px', fontWeight: 800, letterSpacing: '0.04em', color: '#64748b', textTransform: 'uppercase', lineHeight: 1.25 },
-  summarySubLabel: { margin: 0, fontSize: '12px', fontWeight: 700, letterSpacing: '-0.01em', color: '#475569', lineHeight: 1.25 },
-  summaryValue: { margin: 0, fontSize: '28px', fontWeight: 800, lineHeight: 1.05, color: '#111827', letterSpacing: '-0.03em', whiteSpace: 'nowrap' },
-  summaryValueCurrency: { fontSize: '25px' },
+  summaryCardAccent: { position: 'absolute', inset: '0 auto 0 0', width: '4px', borderTopLeftRadius: '14px', borderBottomLeftRadius: '14px' },
+  summaryCopy: { display: 'grid', gap: '2px', minWidth: 0, paddingTop: 0 },
+  summaryLabel: { margin: 0, fontSize: '10px', fontWeight: 800, letterSpacing: '0.03em', color: '#64748b', textTransform: 'uppercase', lineHeight: 1.1 },
+  summarySubLabel: { margin: 0, fontSize: '11px', fontWeight: 700, letterSpacing: '-0.01em', color: '#475569', lineHeight: 1.1 },
+  summaryValue: { margin: 0, fontSize: '22px', fontWeight: 800, lineHeight: 1, color: '#111827', letterSpacing: '-0.03em', whiteSpace: 'nowrap', flexShrink: 0 },
+  summaryValueCurrency: { fontSize: '21px' },
   summaryMeta: { margin: 0, fontSize: '11px', fontWeight: 700, color: '#94a3b8' },
   chip: {
     border: '1px solid transparent',
@@ -1128,12 +1128,6 @@ export default function ContractDashboard() {
   const contractSummaryCards = useMemo(() => {
     const totalContractAmount = filteredContracts.reduce((sum, row) => sum + Number(row.total || 0), 0);
     const totalPaymentDue = filteredContracts.reduce((sum, row) => sum + Number(row.due || 0), 0);
-    const uniqueCustomers = new Set(
-      filteredContracts
-        .map((row) => String(row.customerId || row.customer || '').trim())
-        .filter(Boolean)
-        .map((value) => normalizeName(value))
-    ).size;
 
     return [
       { key: 'totalContracts', label: 'TOTAL CONTRACT', value: filteredContracts.length, sublabel: 'No. of Contract', tone: '#475569' },
