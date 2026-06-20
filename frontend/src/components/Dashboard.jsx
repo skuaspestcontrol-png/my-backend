@@ -15,12 +15,13 @@ const readDashboardCache = () => {
     if (!parsed || typeof parsed !== 'object') return null;
     return {
       summary: parsed.summary || null,
-      settings: parsed.settings || {},
-      invoices: Array.isArray(parsed.invoices) ? parsed.invoices : [],
-      vendorBills: Array.isArray(parsed.vendorBills) ? parsed.vendorBills : [],
-      leads: Array.isArray(parsed.leads) ? parsed.leads : [],
-      updatedAt: Number(parsed.updatedAt || 0) || 0
-    };
+    settings: parsed.settings || {},
+    invoices: Array.isArray(parsed.invoices) ? parsed.invoices : [],
+    vendorBills: Array.isArray(parsed.vendorBills) ? parsed.vendorBills : [],
+    leads: Array.isArray(parsed.leads) ? parsed.leads : [],
+    paymentReceiveds: Array.isArray(parsed.paymentReceiveds) ? parsed.paymentReceiveds : [],
+    updatedAt: Number(parsed.updatedAt || 0) || 0
+  };
   } catch (_error) {
     return null;
   }
@@ -35,6 +36,7 @@ const writeDashboardCache = (snapshot = {}) => {
       invoices: Array.isArray(snapshot.invoices) ? snapshot.invoices : [],
       vendorBills: Array.isArray(snapshot.vendorBills) ? snapshot.vendorBills : [],
       leads: Array.isArray(snapshot.leads) ? snapshot.leads : [],
+      paymentReceiveds: Array.isArray(snapshot.paymentReceiveds) ? snapshot.paymentReceiveds : [],
       updatedAt: Date.now()
     }));
   } catch (_error) {
@@ -105,6 +107,24 @@ const shell = {
   panelTitle: { margin: 0, color: '#475569', fontSize: '19px', fontWeight: 700 },
   panelSub: { margin: 0, color: '#64748b', fontSize: '14px', fontWeight: 600 },
   total: { margin: '8px 0 12px 0', color: '#111827', fontSize: '40px', fontWeight: 800, letterSpacing: '-0.03em' },
+  incomePanelHead: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' },
+  incomeLegend: { display: 'flex', alignItems: 'flex-start', gap: '28px', flexWrap: 'wrap' },
+  incomeLegendItem: { display: 'grid', gap: '4px' },
+  incomeLegendLabel: { display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#64748b', fontSize: '18px', fontWeight: 500, lineHeight: 1.1 },
+  incomeLegendValue: { margin: 0, color: '#111827', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1 },
+  modeToggle: { display: 'inline-flex', alignItems: 'center', border: '1px solid #d1d5db', borderRadius: '10px', overflow: 'hidden', background: '#fff', flexShrink: 0 },
+  modeToggleBtn: { border: 'none', background: '#fff', color: '#111827', minHeight: '42px', height: '42px', padding: '0 14px', fontSize: '16px', fontWeight: 500, cursor: 'pointer' },
+  modeToggleBtnActive: { background: '#e5e7eb', color: '#111827' },
+  incomeChartWrap: { display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', marginTop: '18px' },
+  incomeYAxis: { display: 'grid', alignContent: 'space-between', padding: '8px 0 30px 0' },
+  incomeYAxisLabel: { color: '#64748b', fontSize: '13px', fontWeight: 700, lineHeight: 1 },
+  incomeChart: { position: 'relative', minHeight: '280px', borderLeft: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', padding: '12px 12px 8px 12px', background: '#fff' },
+  incomeGridLine: { position: 'absolute', left: 0, right: 0, borderTop: '1px dashed #dbe4f0' },
+  incomeBars: { position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '8px', alignItems: 'end', height: '100%' },
+  incomeMonth: { display: 'grid', gridTemplateRows: '1fr auto', gap: '10px', alignItems: 'end', minHeight: 0 },
+  incomeBarCluster: { display: 'flex', alignItems: 'end', justifyContent: 'center', gap: '4px', minHeight: 0, height: '100%' },
+  incomeBarItem: { width: '18px', borderRadius: '4px 4px 0 0', minHeight: '1px' },
+  incomeMonthLabel: { display: 'grid', gap: '2px', justifyItems: 'center', color: '#64748b', fontSize: '11px', fontWeight: 700, lineHeight: 1.05, textAlign: 'center' },
   progressTrack: { width: '100%', height: '20px', background: '#e5e7eb', borderRadius: '999px', overflow: 'hidden', display: 'flex' },
   legendRow: { display: 'flex', gap: '18px', flexWrap: 'wrap', marginTop: '14px' },
   legendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#334155', fontSize: '13px', fontWeight: 600 },
@@ -142,6 +162,23 @@ const isOverdue = (dueDate) => {
 
 const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 const monthLabel = (date) => date.toLocaleString('en-IN', { month: 'short' });
+const buildFiscalMonths = (startYear) => Array.from({ length: 12 }, (_, idx) => {
+  const monthIndex = (3 + idx) % 12;
+  const year = idx < 9 ? startYear : startYear + 1;
+  const date = new Date(year, monthIndex, 1);
+  return {
+    key: monthKey(date),
+    label: monthLabel(date),
+    year: date.getFullYear(),
+    monthIndex: date.getMonth()
+  };
+});
+const isInFiscalYear = (date, startYear) => {
+  if (!date) return false;
+  const fiscalStart = new Date(startYear, 3, 1);
+  const fiscalEnd = new Date(startYear + 1, 3, 1);
+  return date >= fiscalStart && date < fiscalEnd;
+};
 const normalizeLeadStatus = (value) => String(value || '').trim().toLowerCase();
 const normalizeLeadSource = (value) => String(value || '').trim();
 const leadSourceOrder = ['Website', 'Google Ads', 'Google Business Profile', 'Facebook', 'WhatsApp', 'Call', 'Referral'];
@@ -187,10 +224,12 @@ export default function Dashboard() {
   const [invoices, setInvoices] = useState(() => cachedDashboardState?.invoices || []);
   const [vendorBills, setVendorBills] = useState(() => cachedDashboardState?.vendorBills || []);
   const [leads, setLeads] = useState(() => cachedDashboardState?.leads || []);
+  const [paymentReceiveds, setPaymentReceiveds] = useState(() => cachedDashboardState?.paymentReceiveds || []);
   const [salesPerformanceSummary, setSalesPerformanceSummary] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [selectedContractYear, setSelectedContractYear] = useState(() => String(new Date().getFullYear()));
   const [selectedTargetYear, setSelectedTargetYear] = useState(() => String(new Date().getFullYear()));
+  const [selectedIncomeExpenseMode, setSelectedIncomeExpenseMode] = useState('accrual');
 
   useEffect(() => {
     if (hasLoadedRef.current) return undefined;
@@ -207,7 +246,8 @@ export default function Dashboard() {
         const supportPromise = Promise.all([
           axios.get(`${API_BASE_URL}/api/invoices`, { params: { _: stamp } }).catch(() => ({ data: [] })),
           axios.get(`${API_BASE_URL}/api/vendor-bills`, { params: { _: stamp } }).catch(() => ({ data: [] })),
-          axios.get(`${API_BASE_URL}/api/leads`, { params: { _: stamp } }).catch(() => ({ data: [] }))
+          axios.get(`${API_BASE_URL}/api/leads`, { params: { _: stamp } }).catch(() => ({ data: [] })),
+          axios.get(`${API_BASE_URL}/api/payment-received`, { params: { _: stamp } }).catch(() => ({ data: [] }))
         ]);
 
         const [summaryRes, settingsRes] = await Promise.all([summaryPromise, settingsPromise]);
@@ -216,20 +256,23 @@ export default function Dashboard() {
         setSummary(summaryRes?.data || null);
         setSettings(settingsRes.data || {});
 
-        const [invoicesRes, vendorBillsRes, leadsRes] = await supportPromise;
+        const [invoicesRes, vendorBillsRes, leadsRes, paymentReceivedRes] = await supportPromise;
         if (!active) return;
         const nextInvoices = Array.isArray(invoicesRes.data) ? invoicesRes.data : [];
         const nextVendorBills = Array.isArray(vendorBillsRes.data) ? vendorBillsRes.data : [];
         const nextLeads = Array.isArray(leadsRes.data) ? leadsRes.data : [];
+        const nextPaymentReceiveds = Array.isArray(paymentReceivedRes.data) ? paymentReceivedRes.data : [];
         setInvoices(nextInvoices);
         setVendorBills(nextVendorBills);
         setLeads(nextLeads);
+        setPaymentReceiveds(nextPaymentReceiveds);
         writeDashboardCache({
           summary: summaryRes?.data || null,
           settings: settingsRes.data || {},
           invoices: nextInvoices,
           vendorBills: nextVendorBills,
-          leads: nextLeads
+          leads: nextLeads,
+          paymentReceiveds: nextPaymentReceiveds
         });
       } catch (error) {
         if (!active) return;
@@ -492,6 +535,74 @@ export default function Dashboard() {
     };
   }, [invoices, vendorBills, selectedYearNumber]);
 
+  const incomeExpenseAnalytics = useMemo(() => {
+    const months = buildFiscalMonths(selectedYearNumber);
+    const incomeMap = new Map(months.map((month) => [month.key, 0]));
+    const expenseMap = new Map(months.map((month) => [month.key, 0]));
+
+    const addToMap = (map, date, amount) => {
+      const resolvedDate = toDate(date);
+      if (!resolvedDate || !isInFiscalYear(resolvedDate, selectedYearNumber)) return;
+      const key = monthKey(resolvedDate);
+      if (!map.has(key)) return;
+      map.set(key, map.get(key) + toNum(amount));
+    };
+
+    if (selectedIncomeExpenseMode === 'cash') {
+      paymentReceiveds.forEach((payment) => {
+        addToMap(incomeMap, payment.paymentDate || payment.payment_date || payment.date || payment.createdAt, payment.amount);
+      });
+      vendorBills.forEach((bill) => {
+        const paidAmount = toNum(
+          bill.paymentMadeTotal,
+          Math.max(0, toNum(bill.total || bill.amount || bill.balanceDue) - toNum(bill.balanceDue))
+        );
+        addToMap(expenseMap, bill.paymentDate || bill.payment_date || bill.date || bill.createdAt || bill.updatedAt, paidAmount);
+      });
+    } else {
+      const getIncomeDate = (invoice) => (
+        toDate(invoice.contractStartDate)
+        || toDate(invoice.contractEndDate)
+        || toDate(invoice.servicePeriodStart)
+        || toDate(invoice.servicePeriodEnd)
+        || toDate(invoice.date)
+        || toDate(invoice.createdAt)
+      );
+      const getExpenseDate = (bill) => (
+        toDate(bill.date)
+        || toDate(bill.dueDate)
+        || toDate(bill.createdAt)
+      );
+
+      invoices.forEach((invoice) => {
+        const date = getIncomeDate(invoice);
+        if (!date || !isInFiscalYear(date, selectedYearNumber)) return;
+        addToMap(incomeMap, date, invoice.total || invoice.amount || invoice.totalAmount);
+      });
+
+      vendorBills.forEach((bill) => {
+        const date = getExpenseDate(bill);
+        if (!date || !isInFiscalYear(date, selectedYearNumber)) return;
+        addToMap(expenseMap, date, bill.total || bill.amount || bill.balanceDue);
+      });
+    }
+
+    const incomeSeries = months.map((month) => ({ label: `${month.label}\n${month.year}`, value: incomeMap.get(month.key) || 0 }));
+    const expenseSeries = months.map((month) => ({ label: `${month.label}\n${month.year}`, value: expenseMap.get(month.key) || 0 }));
+    const totalIncome = incomeSeries.reduce((sum, row) => sum + row.value, 0);
+    const totalExpenses = expenseSeries.reduce((sum, row) => sum + row.value, 0);
+    const maxValue = Math.max(totalIncome, totalExpenses, ...incomeSeries.map((row) => row.value), ...expenseSeries.map((row) => row.value), 1);
+
+    return {
+      months,
+      incomeSeries,
+      expenseSeries,
+      totalIncome,
+      totalExpenses,
+      maxValue
+    };
+  }, [invoices, vendorBills, paymentReceiveds, selectedIncomeExpenseMode, selectedYearNumber]);
+
   const topCards = useMemo(() => ({
     leadsCount: leads.length || Number(summary?.leadsCount || 0),
     customersCount: Number(summary?.customersCount || 0),
@@ -676,15 +787,11 @@ export default function Dashboard() {
     ? { ...shell.targetMetricSub, fontSize: '11px' }
     : shell.targetMetricSub;
 
-  const incomeExpenseMax = Math.max(
-    ...selectedYearAnalytics.incomeSeries.map((x) => x.value),
-    ...selectedYearAnalytics.expenseSeries.map((x) => x.value),
-    1
-  );
-
   const successGreen = '#16A34A';
+  const incomeGreen = '#24c17f';
   const dangerRed = '#DC2626';
-  const neutralBlack = '#111827';
+  const axisGray = '#94a3b8';
+  const gridGray = '#dbe4f0';
   const expenseColors = ['#16A34A', '#DC2626', '#111827', '#8B5CF6', '#0F766E'];
   const leadFunnelRows = [
     { label: 'Total Leads', value: leadPipeline.totalLeads, color: '#4965dd' },
@@ -692,6 +799,27 @@ export default function Dashboard() {
     { label: 'Converted', value: leadPipeline.converted, color: '#18b985' }
   ];
   const maxLeadFunnel = Math.max(...leadFunnelRows.map((row) => row.value), 1);
+  const incomeExpenseYAxisStep = Math.max(20000, Math.ceil((incomeExpenseAnalytics.maxValue || 1) / 5 / 10000) * 10000);
+  const incomeExpenseYAxisMax = incomeExpenseYAxisStep * 5;
+  const incomeExpenseYAxisValues = Array.from({ length: 6 }, (_, idx) => idx * incomeExpenseYAxisStep);
+  const incomeExpenseChartHeight = isMobile ? 220 : 260;
+  const incomeExpenseScale = incomeExpenseYAxisMax > 0 ? incomeExpenseChartHeight / incomeExpenseYAxisMax : 1;
+  const currencyLabel = (value) => (value >= 1000 ? `${Math.round(value / 1000)} K` : `${Math.round(value)}`);
+  const incomeExpenseChartStyle = isMobile
+    ? { ...shell.incomeChart, minHeight: '250px', padding: '10px 8px 8px 8px' }
+    : shell.incomeChart;
+  const incomeExpenseYAxisStyle = isMobile
+    ? { ...shell.incomeYAxis, padding: '8px 0 24px 0' }
+    : shell.incomeYAxis;
+  const incomeExpenseLegendValueStyle = isMobile
+    ? { ...shell.incomeLegendValue, fontSize: '22px' }
+    : shell.incomeLegendValue;
+  const incomeExpenseLegendLabelStyle = isMobile
+    ? { ...shell.incomeLegendLabel, fontSize: '15px' }
+    : shell.incomeLegendLabel;
+  const modeToggleBtnStyle = (active) => (active
+    ? { ...shell.modeToggleBtn, ...shell.modeToggleBtnActive }
+    : shell.modeToggleBtn);
 
   return (
     <div style={shell.page}>
@@ -923,51 +1051,111 @@ export default function Dashboard() {
       </section>
 
       <section style={graphGridStyle}>
-        <article style={shell.panel}>
-          <div style={shell.panelHead}>
-            <h2 style={shell.panelTitle}>Income VS Expense</h2>
-            <select
-              value={selectedContractYear}
-              onChange={(event) => setSelectedContractYear(event.target.value)}
-              style={{
-                border: '1px solid #dbe4f0',
-                background: '#f8fafc',
-                color: '#334155',
-                fontWeight: 700,
-                borderRadius: '12px',
-                padding: '8px 12px',
-                fontSize: '12px',
-                outline: 'none',
-                minWidth: '110px'
-              }}
-              aria-label="Select contract year"
-            >
-              {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
-                <option key={year} value={String(year)}>{year}</option>
+        <article style={{ ...shell.panel, padding: isMobile ? '16px' : '18px 18px 20px' }}>
+          <div style={shell.incomePanelHead}>
+            <div style={shell.incomeLegend}>
+              <div style={shell.incomeLegendItem}>
+                <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: incomeGreen }} />Total Income</div>
+                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(incomeExpenseAnalytics.totalIncome)}</p>
+              </div>
+              <div style={shell.incomeLegendItem}>
+                <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: dangerRed }} />Total Expenses</div>
+                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(incomeExpenseAnalytics.totalExpenses)}</p>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gap: '10px', justifyItems: 'end' }}>
+              <div style={shell.modeToggle}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIncomeExpenseMode('accrual')}
+                  style={modeToggleBtnStyle(selectedIncomeExpenseMode === 'accrual')}
+                >
+                  Accrual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIncomeExpenseMode('cash')}
+                  style={modeToggleBtnStyle(selectedIncomeExpenseMode === 'cash')}
+                >
+                  Cash
+                </button>
+              </div>
+              <select
+                value={selectedContractYear}
+                onChange={(event) => setSelectedContractYear(event.target.value)}
+                style={{
+                  border: '1px solid #dbe4f0',
+                  background: '#f8fafc',
+                  color: '#334155',
+                  fontWeight: 700,
+                  borderRadius: '12px',
+                  padding: '8px 12px',
+                  fontSize: '12px',
+                  outline: 'none',
+                  minWidth: '110px'
+                }}
+                aria-label="Select contract year"
+              >
+                {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
+                  <option key={year} value={String(year)}>{year}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={shell.incomeChartWrap}>
+            <div style={incomeExpenseYAxisStyle}>
+              {incomeExpenseYAxisValues.slice().reverse().map((value) => (
+                <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? '#64748b' : axisGray }}>
+                  {value === 0 ? '0' : currencyLabel(value)}
+                </span>
               ))}
-            </select>
-          </div>
-          <div style={shell.legendRow}>
-            <span style={{ ...shell.legendItem, color: '#166534' }}><span style={{ ...shell.dot, background: successGreen }} />Total Income: {formatCurrency(selectedYearAnalytics.totalIncome)}</span>
-            <span style={{ ...shell.legendItem, color: '#9f1239' }}><span style={{ ...shell.dot, background: dangerRed }} />Total Expense: {formatCurrency(selectedYearAnalytics.totalExpenses)}</span>
-          </div>
-          <div style={shell.barWrap}>
-            <div style={shell.bars}>
-              {selectedYearAnalytics.incomeSeries.map((m, index) => {
-                const income = m.value;
-                const expense = selectedYearAnalytics.expenseSeries[index]?.value || 0;
-                return (
-                  <div key={m.label} style={shell.barRow}>
-                    <span style={{ color: '#64748b', fontWeight: 700 }}>{m.label}</span>
-                    <div style={{ position: 'relative', height: '16px', background: '#f1f5f9', borderRadius: '10px', overflow: 'hidden' }}>
-                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(income / incomeExpenseMax) * 100}%`, background: successGreen }} />
-                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(expense / incomeExpenseMax) * 100}%`, background: dangerRed, opacity: 0.72 }} />
-                    </div>
-                    <span style={{ color: '#166534', fontWeight: 700, fontSize: '12px' }}>{formatCurrency(income)}</span>
-                    <span style={{ color: '#9f1239', fontWeight: 700, fontSize: '12px' }}>{formatCurrency(expense)}</span>
-                  </div>
-                );
-              })}
+            </div>
+
+            <div style={{ position: 'relative', minWidth: 0 }}>
+              <div style={{ ...incomeExpenseChartStyle, height: `${incomeExpenseChartHeight + 42}px` }}>
+                {incomeExpenseYAxisValues.slice(1).map((value) => (
+                  <div
+                    key={value}
+                    style={{
+                      ...shell.incomeGridLine,
+                      bottom: `${(value / incomeExpenseYAxisMax) * 100}%`
+                    }}
+                  />
+                ))}
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: '10px 10px 8px 10px',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                    gap: isMobile ? '6px' : '8px',
+                    alignItems: 'end'
+                  }}
+                >
+                  {incomeExpenseAnalytics.months.map((month, index) => {
+                    const income = incomeExpenseAnalytics.incomeSeries[index]?.value || 0;
+                    const expense = incomeExpenseAnalytics.expenseSeries[index]?.value || 0;
+                    const incomeHeight = Math.max(income * incomeExpenseScale, income > 0 ? 6 : 0);
+                    const expenseHeight = Math.max(expense * incomeExpenseScale, expense > 0 ? 6 : 0);
+
+                    return (
+                      <div key={month.key} style={shell.incomeMonth}>
+                        <div style={shell.incomeBarCluster}>
+                          <div style={{ display: 'flex', alignItems: 'end', gap: '4px', height: '100%' }}>
+                            <span style={{ ...shell.incomeBarItem, height: `${incomeHeight}px`, background: incomeGreen }} />
+                            <span style={{ ...shell.incomeBarItem, height: `${expenseHeight}px`, background: dangerRed, opacity: 0.78 }} />
+                          </div>
+                        </div>
+                        <div style={shell.incomeMonthLabel}>
+                          <span>{month.label}</span>
+                          <span>{month.year}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </article>
