@@ -659,7 +659,7 @@ export default function Dashboard() {
     ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', alignItems: 'start' }
     : { ...shell.graphGrid, gridTemplateColumns: '1fr' };
   const graphPanelStyle = viewportWidth >= 1200
-    ? { ...shell.sourcePanel, minHeight: '390px', boxSizing: 'border-box' }
+    ? { ...shell.sourcePanel, height: '390px', minHeight: '390px', boxSizing: 'border-box', overflow: 'hidden' }
     : shell.sourcePanel;
   const sourceBodyStyle = isMobile
     ? { ...shell.sourceBody, justifyItems: 'center' }
@@ -737,12 +737,25 @@ export default function Dashboard() {
     : viewportWidth >= 1200
       ? { ...shell.incomeYAxis, padding: '6px 0 18px 0' }
     : shell.incomeYAxis;
-  const incomeExpenseLegendValueStyle = isMobile
-    ? { ...shell.incomeLegendValue, fontSize: '16px' }
-    : { ...shell.incomeLegendValue, fontSize: '15px' };
-  const incomeExpenseLegendLabelStyle = isMobile
-    ? { ...shell.incomeLegendLabel, fontSize: '13px' }
-    : { ...shell.incomeLegendLabel, fontSize: '11px' };
+  const incomeExpenseSummaryItemStyle = {
+    display: 'inline-flex',
+    alignItems: 'baseline',
+    gap: '6px',
+    flexWrap: 'wrap'
+  };
+  const incomeExpenseSummaryValueStyle = {
+    color: '#111827',
+    fontSize: '16px',
+    fontWeight: 800,
+    letterSpacing: '-0.03em',
+    lineHeight: 1.1
+  };
+  const incomeExpenseSummaryLabelStyle = {
+    color: '#64748b',
+    fontSize: '12px',
+    fontWeight: 600,
+    lineHeight: 1.1
+  };
   const formatCurrencyPrecise = (value) => Number(value || 0).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -980,19 +993,23 @@ export default function Dashboard() {
             </select>
           </div>
 
-          <div style={{ padding: isMobile ? '12px 14px 14px' : '14px 18px 18px', display: 'grid', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '28px', flexWrap: 'wrap' }}>
+          <div style={{ padding: isMobile ? '12px 14px 12px' : '12px 18px 14px', display: 'grid', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', flexWrap: 'wrap' }}>
               <div style={shell.incomeLegendItem}>
-                <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: incomeGreen }} />Total Income</div>
-                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</p>
+                <div style={incomeExpenseSummaryItemStyle}>
+                  <span style={incomeExpenseSummaryValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</span>
+                  <span style={incomeExpenseSummaryLabelStyle}>Total Income</span>
+                </div>
               </div>
               <div style={shell.incomeLegendItem}>
-                <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: dangerRed }} />Total Expenses</div>
-                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</p>
+                <div style={incomeExpenseSummaryItemStyle}>
+                  <span style={incomeExpenseSummaryValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</span>
+                  <span style={incomeExpenseSummaryLabelStyle}>Total Expenses</span>
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', minHeight: 0 }}>
               <div style={incomeExpenseYAxisStyle}>
                 {incomeExpenseYAxisValues.slice().reverse().map((value) => (
                   <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? '#64748b' : axisGray }}>
