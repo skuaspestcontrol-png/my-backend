@@ -253,6 +253,8 @@ export default function Dashboard() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  const selectedYearNumber = Number(selectedContractYear) || new Date().getFullYear();
+
   useEffect(() => {
     let active = true;
 
@@ -309,8 +311,6 @@ export default function Dashboard() {
       return String(contractYears[contractYears.length - 1]);
     });
   }, [contractYears]);
-
-  const selectedYearNumber = Number(selectedContractYear) || new Date().getFullYear();
 
   const analytics = useMemo(() => {
     const totalReceivables = invoices.reduce((sum, invoice) => sum + toNum(invoice.balanceDue), 0);
