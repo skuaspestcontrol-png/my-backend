@@ -968,18 +968,9 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={{ ...shell.panel, ...graphCardStyle, padding: isMobile ? '16px' : '18px 18px 20px' }}>
+        <article style={shell.sourcePanel}>
           <div style={shell.sourceHeader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-              <div style={shell.incomeLegendItem}>
-                <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: incomeGreen }} />Total Income</div>
-                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</p>
-              </div>
-              <div style={shell.incomeLegendItem}>
-                <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: dangerRed }} />Total Expenses</div>
-                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</p>
-              </div>
-            </div>
+            <h2 style={shell.sourceHeaderTitle}>Income Vs Expense</h2>
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
@@ -992,147 +983,160 @@ export default function Dashboard() {
             </select>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', marginTop: '18px' }}>
-            <div style={incomeExpenseYAxisStyle}>
-              {incomeExpenseYAxisValues.slice().reverse().map((value) => (
-                <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? '#64748b' : axisGray }}>
-                  {value === 0 ? '0' : currencyLabel(value)}
-                </span>
-              ))}
+          <div style={{ padding: isMobile ? '12px 14px 14px' : '14px 18px 18px', display: 'grid', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '28px', flexWrap: 'wrap' }}>
+              <div style={shell.incomeLegendItem}>
+                <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: incomeGreen }} />Total Income</div>
+                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</p>
+              </div>
+              <div style={shell.incomeLegendItem}>
+                <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: dangerRed }} />Total Expenses</div>
+                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</p>
+              </div>
             </div>
 
-            <div style={{ position: 'relative', minWidth: 0 }}>
-              <div style={{ ...incomeExpenseChartStyle, height: `${incomeExpenseChartHeight + 42}px` }}>
-                {incomeExpenseYAxisValues.slice(1).map((value) => (
-                  <div
-                    key={value}
-                    style={{
-                      ...shell.incomeGridLine,
-                      bottom: `${(value / incomeExpenseYAxisMax) * 100}%`
-                    }}
-                  />
+            <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch' }}>
+              <div style={incomeExpenseYAxisStyle}>
+                {incomeExpenseYAxisValues.slice().reverse().map((value) => (
+                  <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? '#64748b' : axisGray }}>
+                    {value === 0 ? '0' : currencyLabel(value)}
+                  </span>
                 ))}
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: '8px 10px 6px 10px',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-                    gap: isMobile ? '6px' : '8px',
-                    alignItems: 'end',
-                    overflow: 'visible'
-                  }}
-                >
-                  {selectedYearAnalytics.months.map((month, index) => {
-                    const income = selectedYearAnalytics.incomeSeries[index]?.value || 0;
-                    const expense = selectedYearAnalytics.expenseSeries[index]?.value || 0;
-                    const incomeHeight = Math.max(income * incomeExpenseScale, income > 0 ? 6 : 0);
-                    const expenseHeight = Math.max(expense * incomeExpenseScale, expense > 0 ? 6 : 0);
+              </div>
 
-                    return (
-                      <div
-                        key={month.key}
-                        style={{ ...shell.incomeMonth, position: 'relative' }}
-                        onMouseLeave={() => setHoveredIncomeBar(null)}
-                      >
-                        <div style={shell.incomeBarCluster}>
-                          <div style={{ display: 'flex', alignItems: 'end', gap: '4px', height: '100%' }}>
-                            <button
-                              type="button"
-                              aria-label={`${month.label} income ${formatCurrencyPrecise(income)}`}
-                              onMouseEnter={() => setHoveredIncomeBar({
-                                monthKey: month.key,
-                                monthLabel: month.label,
-                                year: selectedYearNumber,
-                                value: income
-                              })}
-                              onFocus={() => setHoveredIncomeBar({
-                                monthKey: month.key,
-                                monthLabel: month.label,
-                                year: selectedYearNumber,
-                                value: income
-                              })}
-                              style={{
-                                ...shell.incomeBarItem,
-                                height: `${incomeHeight}px`,
-                                background: incomeGreen,
-                                border: 'none',
-                                padding: 0,
-                                cursor: 'pointer'
-                              }}
-                            />
-                            <button
-                              type="button"
-                              aria-label={`${month.label} expense ${formatCurrencyPrecise(expense)}`}
-                              onMouseEnter={() => setHoveredIncomeBar({
-                                monthKey: month.key,
-                                monthLabel: month.label,
-                                year: selectedYearNumber,
-                                value: expense
-                              })}
-                              onFocus={() => setHoveredIncomeBar({
-                                monthKey: month.key,
-                                monthLabel: month.label,
-                                year: selectedYearNumber,
-                                value: expense
-                              })}
-                              style={{
-                                ...shell.incomeBarItem,
-                                height: `${expenseHeight}px`,
-                                background: dangerRed,
-                                opacity: 0.78,
-                                border: 'none',
-                                padding: 0,
-                                cursor: 'pointer'
-                              }}
-                            />
+              <div style={{ position: 'relative', minWidth: 0 }}>
+                <div style={{ ...incomeExpenseChartStyle, height: `${incomeExpenseChartHeight + 42}px` }}>
+                  {incomeExpenseYAxisValues.slice(1).map((value) => (
+                    <div
+                      key={value}
+                      style={{
+                        ...shell.incomeGridLine,
+                        bottom: `${(value / incomeExpenseYAxisMax) * 100}%`
+                      }}
+                    />
+                  ))}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: '8px 10px 6px 10px',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                      gap: isMobile ? '6px' : '8px',
+                      alignItems: 'end',
+                      overflow: 'visible'
+                    }}
+                  >
+                    {selectedYearAnalytics.months.map((month, index) => {
+                      const income = selectedYearAnalytics.incomeSeries[index]?.value || 0;
+                      const expense = selectedYearAnalytics.expenseSeries[index]?.value || 0;
+                      const incomeHeight = Math.max(income * incomeExpenseScale, income > 0 ? 6 : 0);
+                      const expenseHeight = Math.max(expense * incomeExpenseScale, expense > 0 ? 6 : 0);
+
+                      return (
+                        <div
+                          key={month.key}
+                          style={{ ...shell.incomeMonth, position: 'relative' }}
+                          onMouseLeave={() => setHoveredIncomeBar(null)}
+                        >
+                          <div style={shell.incomeBarCluster}>
+                            <div style={{ display: 'flex', alignItems: 'end', gap: '4px', height: '100%' }}>
+                              <button
+                                type="button"
+                                aria-label={`${month.label} income ${formatCurrencyPrecise(income)}`}
+                                onMouseEnter={() => setHoveredIncomeBar({
+                                  monthKey: month.key,
+                                  monthLabel: month.label,
+                                  year: selectedYearNumber,
+                                  value: income
+                                })}
+                                onFocus={() => setHoveredIncomeBar({
+                                  monthKey: month.key,
+                                  monthLabel: month.label,
+                                  year: selectedYearNumber,
+                                  value: income
+                                })}
+                                style={{
+                                  ...shell.incomeBarItem,
+                                  height: `${incomeHeight}px`,
+                                  background: incomeGreen,
+                                  border: 'none',
+                                  padding: 0,
+                                  cursor: 'pointer'
+                                }}
+                              />
+                              <button
+                                type="button"
+                                aria-label={`${month.label} expense ${formatCurrencyPrecise(expense)}`}
+                                onMouseEnter={() => setHoveredIncomeBar({
+                                  monthKey: month.key,
+                                  monthLabel: month.label,
+                                  year: selectedYearNumber,
+                                  value: expense
+                                })}
+                                onFocus={() => setHoveredIncomeBar({
+                                  monthKey: month.key,
+                                  monthLabel: month.label,
+                                  year: selectedYearNumber,
+                                  value: expense
+                                })}
+                                style={{
+                                  ...shell.incomeBarItem,
+                                  height: `${expenseHeight}px`,
+                                  background: dangerRed,
+                                  opacity: 0.78,
+                                  border: 'none',
+                                  padding: 0,
+                                  cursor: 'pointer'
+                                }}
+                              />
+                            </div>
                           </div>
-                        </div>
-                        <div style={shell.incomeMonthLabel}>
-                          <span>{month.label}</span>
-                        </div>
-                        {hoveredIncomeBar?.monthKey === month.key ? (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              left: '50%',
-                              bottom: 'calc(100% + 14px)',
-                              transform: 'translateX(-50%)',
-                              background: '#fff',
-                              border: '1px solid #dbe4f0',
-                              borderRadius: '18px',
-                              boxShadow: '0 16px 34px rgba(15, 23, 42, 0.12)',
-                              padding: '14px 16px 12px',
-                              minWidth: '168px',
-                              pointerEvents: 'none',
-                              textAlign: 'left',
-                              zIndex: 20
-                            }}
-                          >
-                            <div style={{ color: '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1.08 }}>
-                              {formatCurrencyPrecise(hoveredIncomeBar.value)}
-                            </div>
-                            <div style={{ marginTop: '10px', color: '#334155', fontSize: '16px', fontWeight: 500, lineHeight: 1.1 }}>
-                              {`${hoveredIncomeBar.monthLabel} ${hoveredIncomeBar.year}`}
-                            </div>
+                          <div style={shell.incomeMonthLabel}>
+                            <span>{month.label}</span>
+                          </div>
+                          {hoveredIncomeBar?.monthKey === month.key ? (
                             <div
                               style={{
                                 position: 'absolute',
                                 left: '50%',
-                                bottom: '-7px',
-                                width: '14px',
-                                height: '14px',
+                                bottom: 'calc(100% + 14px)',
+                                transform: 'translateX(-50%)',
                                 background: '#fff',
-                                borderRight: '1px solid #dbe4f0',
-                                borderBottom: '1px solid #dbe4f0',
-                                transform: 'translateX(-50%) rotate(45deg)'
+                                border: '1px solid #dbe4f0',
+                                borderRadius: '18px',
+                                boxShadow: '0 16px 34px rgba(15, 23, 42, 0.12)',
+                                padding: '14px 16px 12px',
+                                minWidth: '168px',
+                                pointerEvents: 'none',
+                                textAlign: 'left',
+                                zIndex: 20
                               }}
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
+                            >
+                              <div style={{ color: '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1.08 }}>
+                                {formatCurrencyPrecise(hoveredIncomeBar.value)}
+                              </div>
+                              <div style={{ marginTop: '10px', color: '#334155', fontSize: '16px', fontWeight: 500, lineHeight: 1.1 }}>
+                                {`${hoveredIncomeBar.monthLabel} ${hoveredIncomeBar.year}`}
+                              </div>
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  left: '50%',
+                                  bottom: '-7px',
+                                  width: '14px',
+                                  height: '14px',
+                                  background: '#fff',
+                                  borderRight: '1px solid #dbe4f0',
+                                  borderBottom: '1px solid #dbe4f0',
+                                  transform: 'translateX(-50%) rotate(45deg)'
+                                }}
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
