@@ -658,10 +658,7 @@ export default function Dashboard() {
   const graphGridStyle = viewportWidth >= 1200
     ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', alignItems: 'start' }
     : { ...shell.graphGrid, gridTemplateColumns: '1fr' };
-  const graphCardStyle = viewportWidth >= 1200
-    ? { minHeight: '390px', boxSizing: 'border-box' }
-    : {};
-  const graphSourceCardStyle = viewportWidth >= 1200
+  const graphPanelStyle = viewportWidth >= 1200
     ? { ...shell.sourcePanel, minHeight: '390px', boxSizing: 'border-box' }
     : shell.sourcePanel;
   const sourceBodyStyle = isMobile
@@ -846,7 +843,7 @@ export default function Dashboard() {
       </section>
 
       <section style={graphGridStyle}>
-        <article style={{ ...shell.panel, ...graphCardStyle }}>
+        <article style={graphPanelStyle}>
           <div style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Lead Pipeline</h2>
             <select
@@ -860,7 +857,7 @@ export default function Dashboard() {
               ))}
             </select>
           </div>
-          <div style={{ display: 'grid', gap: '14px', marginTop: '18px' }}>
+          <div style={{ padding: isMobile ? '12px 14px 14px' : '14px 18px 18px', display: 'grid', gap: '14px' }}>
             {leadFunnelRows.map((row) => (
               <button
                 key={row.label}
@@ -906,7 +903,7 @@ export default function Dashboard() {
               </button>
             ))}
           </div>
-          <div style={{ ...shell.legendRow, marginTop: '14px', justifyContent: 'space-between' }}>
+          <div style={{ ...shell.legendRow, marginTop: '2px', justifyContent: 'space-between', padding: isMobile ? '0 14px 14px' : '0 18px 18px' }}>
             <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
               <strong style={{ color: '#4965dd', fontSize: '19px' }}>{`${leadPipeline.conversionRate.toFixed(0)}%`}</strong>
               <span style={{ fontSize: '12px', color: '#64748b' }}>Conversion Rate</span>
@@ -922,7 +919,7 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={graphSourceCardStyle}>
+        <article style={graphPanelStyle}>
           <div style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Lead Sources</h2>
             <span style={shell.sourceHeaderBadge}>{leadPipeline.sourceTotal} total</span>
@@ -968,7 +965,7 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={shell.sourcePanel}>
+        <article style={graphPanelStyle}>
           <div style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Income Vs Expense</h2>
             <select
@@ -1143,12 +1140,12 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={{ ...shell.panel, ...graphCardStyle }}>
+        <article style={graphPanelStyle}>
           <div style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Top Expenses</h2>
             <span style={shell.sourceHeaderBadge}>{selectedYearNumber}</span>
           </div>
-          <div style={shell.donutWrap}>
+          <div style={{ ...shell.donutWrap, padding: isMobile ? '12px 14px 14px' : '14px 18px 18px' }}>
             <div
               style={{
                 ...shell.donut,
