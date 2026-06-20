@@ -730,12 +730,12 @@ export default function Dashboard() {
   const incomeExpenseChartStyle = isMobile
     ? { ...shell.incomeChart, minHeight: '250px', padding: '10px 8px 8px 8px' }
     : viewportWidth >= 1200
-      ? { ...shell.incomeChart, minHeight: '180px', padding: '6px 6px 4px 6px' }
+      ? { ...shell.incomeChart, minHeight: '180px', padding: '4px 4px 4px 4px' }
     : shell.incomeChart;
   const incomeExpenseYAxisStyle = isMobile
     ? { ...shell.incomeYAxis, padding: '8px 0 24px 0' }
     : viewportWidth >= 1200
-      ? { ...shell.incomeYAxis, padding: '4px 0 12px 0' }
+      ? { ...shell.incomeYAxis, padding: '2px 0 10px 0' }
     : shell.incomeYAxis;
   const incomeExpenseSummaryItemStyle = {
     display: 'inline-flex',
@@ -1012,7 +1012,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: viewportWidth >= 1200 ? '34px minmax(0, 1fr)' : '44px minmax(0, 1fr)', gap: viewportWidth >= 1200 ? '8px' : '12px', alignItems: 'stretch', minHeight: 0, flex: 1, width: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: viewportWidth >= 1200 ? '28px minmax(0, 1fr)' : '44px minmax(0, 1fr)', gap: viewportWidth >= 1200 ? '6px' : '12px', alignItems: 'stretch', minHeight: 0, flex: 1, width: '100%' }}>
                 <div style={incomeExpenseYAxisStyle}>
                   {incomeExpenseYAxisValues.slice().reverse().map((value) => (
                     <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? '#64748b' : axisGray }}>
@@ -1035,10 +1035,10 @@ export default function Dashboard() {
                     <div
                       style={{
                         position: 'absolute',
-                        inset: '6px 6px 4px 6px',
+                        inset: '4px 4px 4px 4px',
                         display: 'grid',
                         gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-                        gap: isMobile ? '6px' : '7px',
+                        gap: isMobile ? '6px' : '6px',
                         alignItems: 'end',
                         overflow: 'visible'
                       }}
