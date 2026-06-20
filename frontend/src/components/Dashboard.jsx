@@ -656,7 +656,7 @@ export default function Dashboard() {
     : shell.metricSub;
 
   const graphGridStyle = viewportWidth >= 1200
-    ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', alignItems: 'start' }
+    ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', alignItems: 'start' }
     : { ...shell.graphGrid, gridTemplateColumns: '1fr' };
   const graphCardStyle = viewportWidth >= 1200
     ? { minHeight: '390px', boxSizing: 'border-box' }
@@ -664,7 +664,6 @@ export default function Dashboard() {
   const graphSourceCardStyle = viewportWidth >= 1200
     ? { ...shell.sourcePanel, minHeight: '390px', boxSizing: 'border-box' }
     : shell.sourcePanel;
-  const graphSpanStyle = viewportWidth >= 1200 ? { gridColumn: '1 / -1' } : {};
   const sourceBodyStyle = isMobile
     ? { ...shell.sourceBody, justifyItems: 'center' }
     : viewportWidth >= 1200
@@ -919,54 +918,6 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={graphSourceCardStyle}>
-          <div style={shell.sourceHeader}>
-            <h2 style={shell.sourceHeaderTitle}>Lead Sources</h2>
-            <span style={shell.sourceHeaderBadge}>{leadPipeline.sourceTotal} total</span>
-          </div>
-          <div style={sourceBodyStyle}>
-            <div
-              style={{
-                ...leadSourcesDonutStyle,
-                justifySelf: 'center',
-                background: `conic-gradient(${leadPipeline.sourceSeries.reduce((segments, item, index, list) => {
-                  const entryColor = leadSourcePalette[item.name] || leadSourcePalette.Other;
-                  const start = list.slice(0, index).reduce((sum, e) => sum + e.count, 0);
-                  const startPct = leadPipeline.sourceTotal > 0 ? (start / leadPipeline.sourceTotal) * 100 : 0;
-                  const endPct = leadPipeline.sourceTotal > 0 ? ((start + item.count) / leadPipeline.sourceTotal) * 100 : startPct;
-                  segments.push(`${entryColor} ${startPct}% ${endPct}%`);
-                  return segments;
-                }, []).join(', ') || '#e5e7eb 0 100%'})`
-              }}
-            >
-              <div style={shell.donutInner}>
-                <div style={{ color: '#64748b', fontWeight: 700, fontSize: '13px' }}>Lead Sources</div>
-                <div style={{ color: '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1 }}>{leadPipeline.sourceTotal}</div>
-              </div>
-            </div>
-            {leadPipeline.sourceSeries.length === 0 ? (
-              <div style={{ color: '#64748b', fontWeight: 700 }}>No lead source data available.</div>
-            ) : (
-              <div style={sourceLegendStyle}>
-                {leadPipeline.sourceSeries.map((entry) => (
-                  <span key={entry.name} style={sourceLegendItemStyle}>
-                    <span
-                      style={{
-                        ...shell.sourceLegendDot,
-                        background: leadSourcePalette[entry.name] || leadSourcePalette.Other
-                      }}
-                    />
-                    <span>{mapLeadSourceDisplayLabel(entry.name)}</span>
-                    <span style={{ color: '#64748b', fontWeight: 700 }}>{entry.count}</span>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </article>
-      </section>
-
-      <section style={graphGridStyle}>
         <article style={{ ...shell.panel, ...graphCardStyle, padding: isMobile ? '16px' : '18px 18px 20px' }}>
           <div style={shell.incomePanelHead}>
             <div style={shell.incomeLegend}>
@@ -1149,7 +1100,53 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={{ ...shell.panel, ...graphCardStyle, ...graphSpanStyle }}>
+        <article style={graphSourceCardStyle}>
+          <div style={shell.sourceHeader}>
+            <h2 style={shell.sourceHeaderTitle}>Lead Sources</h2>
+            <span style={shell.sourceHeaderBadge}>{leadPipeline.sourceTotal} total</span>
+          </div>
+          <div style={sourceBodyStyle}>
+            <div
+              style={{
+                ...leadSourcesDonutStyle,
+                justifySelf: 'center',
+                background: `conic-gradient(${leadPipeline.sourceSeries.reduce((segments, item, index, list) => {
+                  const entryColor = leadSourcePalette[item.name] || leadSourcePalette.Other;
+                  const start = list.slice(0, index).reduce((sum, e) => sum + e.count, 0);
+                  const startPct = leadPipeline.sourceTotal > 0 ? (start / leadPipeline.sourceTotal) * 100 : 0;
+                  const endPct = leadPipeline.sourceTotal > 0 ? ((start + item.count) / leadPipeline.sourceTotal) * 100 : startPct;
+                  segments.push(`${entryColor} ${startPct}% ${endPct}%`);
+                  return segments;
+                }, []).join(', ') || '#e5e7eb 0 100%'})`
+              }}
+            >
+              <div style={shell.donutInner}>
+                <div style={{ color: '#64748b', fontWeight: 700, fontSize: '13px' }}>Lead Sources</div>
+                <div style={{ color: '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1 }}>{leadPipeline.sourceTotal}</div>
+              </div>
+            </div>
+            {leadPipeline.sourceSeries.length === 0 ? (
+              <div style={{ color: '#64748b', fontWeight: 700 }}>No lead source data available.</div>
+            ) : (
+              <div style={sourceLegendStyle}>
+                {leadPipeline.sourceSeries.map((entry) => (
+                  <span key={entry.name} style={sourceLegendItemStyle}>
+                    <span
+                      style={{
+                        ...shell.sourceLegendDot,
+                        background: leadSourcePalette[entry.name] || leadSourcePalette.Other
+                      }}
+                    />
+                    <span>{mapLeadSourceDisplayLabel(entry.name)}</span>
+                    <span style={{ color: '#64748b', fontWeight: 700 }}>{entry.count}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </article>
+
+        <article style={{ ...shell.panel, ...graphCardStyle }}>
           <div style={shell.panelHead}>
             <h2 style={shell.panelTitle}>Top Expenses</h2>
             <span style={{ color: '#475569', fontWeight: 700 }}>{selectedYearNumber}</span>
