@@ -995,9 +995,9 @@ export default function Dashboard() {
             </select>
           </div>
 
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: isMobile ? '10px 14px 12px' : '10px 18px 14px' }}>
-            <div style={{ display: 'grid', gap: '10px', flex: 1, justifyContent: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '18px', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: isMobile ? '10px 14px 12px' : '10px 18px 14px', width: '100%' }}>
+            <div style={{ display: 'grid', gap: '10px', flex: 1, width: '100%', justifyContent: 'flex-start', alignContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '18px', flexWrap: 'wrap', justifyContent: 'flex-start', width: '100%' }}>
                 <div style={shell.incomeLegendItem}>
                   <div style={incomeExpenseSummaryItemStyle}>
                     <span style={incomeExpenseSummaryLabelStyle}>Total Income</span>
@@ -1012,7 +1012,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', minHeight: 0, flex: 1 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', minHeight: 0, flex: 1, width: '100%' }}>
                 <div style={incomeExpenseYAxisStyle}>
                   {incomeExpenseYAxisValues.slice().reverse().map((value) => (
                     <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? '#64748b' : axisGray }}>
@@ -1021,8 +1021,8 @@ export default function Dashboard() {
                   ))}
                 </div>
 
-                <div style={{ position: 'relative', minWidth: 0 }}>
-                  <div style={{ ...incomeExpenseChartStyle, height: `${incomeExpenseChartHeight + 42}px` }}>
+                <div style={{ position: 'relative', minWidth: 0, width: '100%' }}>
+                  <div style={{ ...incomeExpenseChartStyle, height: `${incomeExpenseChartHeight + 42}px`, width: '100%' }}>
                     {incomeExpenseYAxisValues.slice(1).map((value) => (
                       <div
                         key={value}
@@ -1035,7 +1035,7 @@ export default function Dashboard() {
                     <div
                       style={{
                         position: 'absolute',
-                        inset: '6px 8px 4px 8px',
+                        inset: '6px 6px 4px 6px',
                         display: 'grid',
                         gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
                         gap: isMobile ? '6px' : '7px',
