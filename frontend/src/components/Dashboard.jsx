@@ -72,6 +72,8 @@ const shell = {
   heroCard: { background: 'rgba(255,255,255,0.66)', border: '1px solid rgba(159, 23, 77, 0.22)', borderRadius: '20px', padding: '18px', backdropFilter: 'blur(10px)' },
   metrics: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px' },
   metric: { background: 'rgba(255,255,255,0.86)', border: '1px solid rgba(159, 23, 77, 0.18)', borderRadius: '18px', padding: '18px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)' },
+  targetMetrics: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px' },
+  targetMetric: { background: 'rgba(255,255,255,0.92)', border: '1px solid rgba(148, 163, 184, 0.28)', borderRadius: '18px', padding: '18px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)', minHeight: '132px' },
   metricLabel: { margin: 0, color: 'var(--color-primary-dark)', fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' },
   metricValue: { margin: '10px 0 0 0', color: '#0f172a', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.04em' },
   metricSub: { margin: '6px 0 0 0', color: '#475569', fontSize: '13px' },
@@ -168,6 +170,7 @@ export default function Dashboard() {
   const [invoices, setInvoices] = useState(() => cachedDashboardState?.invoices || []);
   const [vendorBills, setVendorBills] = useState(() => cachedDashboardState?.vendorBills || []);
   const [leads, setLeads] = useState(() => cachedDashboardState?.leads || []);
+  const [salesPerformanceSummary, setSalesPerformanceSummary] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [selectedContractYear, setSelectedContractYear] = useState(() => String(new Date().getFullYear()));
 
@@ -249,6 +252,30 @@ export default function Dashboard() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadSalesPerformanceSummary = async () => {
+      try {
+        const stamp = Date.now();
+        const res = await axios.get(`${API_BASE_URL}/api/sales-performance/dashboard`, {
+          params: { year: selectedYearNumber, _: stamp }
+        });
+        if (!active) return;
+        setSalesPerformanceSummary(res?.data?.summary || null);
+      } catch (error) {
+        if (!active) return;
+        console.error('Sales performance summary load failed', error);
+        setSalesPerformanceSummary(null);
+      }
+    };
+
+    loadSalesPerformanceSummary();
+    return () => {
+      active = false;
+    };
+  }, [selectedYearNumber]);
 
   const contractYears = useMemo(() => {
     const years = new Set();
@@ -492,6 +519,37 @@ export default function Dashboard() {
     };
   }, [leads, invoices, analytics.totalReceivables, selectedYearNumber]);
 
+  const yearlyTargetSummary = useMemo(() => {
+    const target = Number(salesPerformanceSummary?.totalYearlyTarget || 0);
+    const achieved = Number(salesPerformanceSummary?.totalYearlyAchieved || 0);
+    const pending = Number(salesPerformanceSummary?.yearlyPending || Math.max(target - achieved, 0));
+    const achievementPercent = Number(salesPerformanceSummary?.yearlyAchievementPercent || (target > 0 ? (achieved / target) * 100 : 0));
+    return { target, achieved, pending, achievementPercent };
+  }, [salesPerformanceSummary]);
+
+  const yearlyTargetCards = useMemo(() => ([
+    {
+      label: 'TOTAL YEARLY TARGET',
+      value: formatCurrency(yearlyTargetSummary.target),
+      sub: `FY ${selectedYearNumber}`
+    },
+    {
+      label: 'TOTAL YEARLY ACHIEVED',
+      value: formatCurrency(yearlyTargetSummary.achieved),
+      sub: 'Actual achievement'
+    },
+    {
+      label: 'TOTAL YEARLY PENDING',
+      value: formatCurrency(yearlyTargetSummary.pending),
+      sub: 'Target remaining'
+    },
+    {
+      label: 'ACHIEVEMENT',
+      value: `${Math.round(yearlyTargetSummary.achievementPercent)}%`,
+      sub: 'Target completion'
+    }
+  ]), [selectedYearNumber, yearlyTargetSummary]);
+
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim();
   const aboutTagline = String(settings.aboutTagline || 'Professional in Pest Control').trim();
   const isMobile = viewportWidth < 768;
@@ -561,6 +619,11 @@ export default function Dashboard() {
   const sourceLegendItemStyle = isMobile
     ? { ...shell.sourceLegendItem, gridTemplateColumns: '11px minmax(0, 1fr) auto', gap: '6px', fontSize: '11px', width: '100%', justifyContent: 'start' }
     : shell.sourceLegendItem;
+  const yearlySummaryGridStyle = isMobile
+    ? { ...shell.targetMetrics, gridTemplateColumns: '1fr' }
+    : isTablet
+      ? { ...shell.targetMetrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : shell.targetMetrics;
 
   const incomeExpenseMax = Math.max(
     ...selectedYearAnalytics.incomeSeries.map((x) => x.value),
@@ -625,6 +688,16 @@ export default function Dashboard() {
           <p style={metricValueStyle}>{topCards.invoicesCount}</p>
           <p style={metricSubStyle}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
         </div>
+      </section>
+
+      <section style={yearlySummaryGridStyle}>
+        {yearlyTargetCards.map((card) => (
+          <article key={card.label} style={shell.targetMetric}>
+            <p style={shell.metricLabel}>{card.label}</p>
+            <p style={shell.metricValue}>{card.value}</p>
+            <p style={shell.metricSub}>{card.sub}</p>
+          </article>
+        ))}
       </section>
 
       <section style={graphGridStyle}>
@@ -798,7 +871,7 @@ export default function Dashboard() {
       <section style={graphGridStyle}>
         <article style={shell.panel}>
           <div style={shell.panelHead}>
-            <h2 style={shell.panelTitle}>Income and Expense</h2>
+            <h2 style={shell.panelTitle}>Income VS Expense</h2>
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
