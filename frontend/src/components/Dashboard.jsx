@@ -656,17 +656,20 @@ export default function Dashboard() {
     : shell.metricSub;
 
   const graphGridStyle = viewportWidth >= 1200
-    ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(2, 485px)', justifyContent: 'center' }
+    ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', alignItems: 'start' }
     : { ...shell.graphGrid, gridTemplateColumns: '1fr' };
   const graphCardStyle = viewportWidth >= 1200
-    ? { minHeight: '425px', boxSizing: 'border-box' }
+    ? { minHeight: '405px', boxSizing: 'border-box' }
     : {};
   const graphSourceCardStyle = viewportWidth >= 1200
-    ? { ...shell.sourcePanel, minHeight: '425px', boxSizing: 'border-box' }
+    ? { ...shell.sourcePanel, minHeight: '405px', boxSizing: 'border-box' }
     : shell.sourcePanel;
+  const graphSpanStyle = viewportWidth >= 1200 ? { gridColumn: '1 / -1' } : {};
   const sourceBodyStyle = isMobile
     ? { ...shell.sourceBody, justifyItems: 'center' }
-    : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch' };
+    : viewportWidth >= 1200
+      ? { ...shell.sourceBody, gridTemplateColumns: 'minmax(210px, 1fr) minmax(160px, 0.9fr)', justifyItems: 'stretch', gap: '10px' }
+      : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch' };
   const sourceLegendStyle = isMobile
     ? { ...shell.sourceLegend, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px', justifyItems: 'stretch', textAlign: 'left', maxWidth: '100%' }
     : { ...shell.sourceLegend, justifyItems: 'stretch', textAlign: 'left', maxWidth: '280px' };
@@ -730,9 +733,13 @@ export default function Dashboard() {
   const currencyLabel = (value) => (value >= 1000 ? `${Math.round(value / 1000)} K` : `${Math.round(value)}`);
   const incomeExpenseChartStyle = isMobile
     ? { ...shell.incomeChart, minHeight: '250px', padding: '10px 8px 8px 8px' }
+    : viewportWidth >= 1200
+      ? { ...shell.incomeChart, minHeight: '220px', padding: '10px 10px 6px 10px' }
     : shell.incomeChart;
   const incomeExpenseYAxisStyle = isMobile
     ? { ...shell.incomeYAxis, padding: '8px 0 24px 0' }
+    : viewportWidth >= 1200
+      ? { ...shell.incomeYAxis, padding: '8px 0 20px 0' }
     : shell.incomeYAxis;
   const incomeExpenseLegendValueStyle = isMobile
     ? { ...shell.incomeLegendValue, fontSize: '16px' }
@@ -1139,7 +1146,7 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={{ ...shell.panel, ...graphCardStyle }}>
+        <article style={{ ...shell.panel, ...graphCardStyle, ...graphSpanStyle }}>
           <div style={shell.panelHead}>
             <h2 style={shell.panelTitle}>Top Expenses</h2>
             <span style={{ color: '#475569', fontWeight: 700 }}>{selectedYearNumber}</span>
