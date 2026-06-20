@@ -99,7 +99,7 @@ const shell = {
   graphGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '18px' },
   panel: { background: '#fff', borderRadius: '22px', border: '1px solid #dbe4f0', padding: '18px 18px 20px', boxShadow: 'none' },
   sourcePanel: { background: '#fff', borderRadius: '22px', border: '1px solid #dbe4f0', padding: 0, overflow: 'hidden', boxShadow: 'none' },
-  sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '13px 18px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0' },
+  sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', minHeight: '55px', padding: '0 18px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0', boxSizing: 'border-box' },
   sourceHeaderTitle: { margin: 0, color: '#475569', fontSize: '17px', fontWeight: 700 },
   sourceHeaderBadge: { color: '#111827', fontWeight: 700, background: '#f1f5f9', borderRadius: '10px', padding: '5px 9px', fontSize: '12px', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.10)' },
   sourceBody: { padding: '14px 14px 14px', display: 'grid', gap: '12px', alignItems: 'center' },
