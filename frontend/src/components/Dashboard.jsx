@@ -72,12 +72,25 @@ const shell = {
   heroCard: { background: 'rgba(255,255,255,0.66)', border: '1px solid rgba(159, 23, 77, 0.22)', borderRadius: '20px', padding: '18px', backdropFilter: 'blur(10px)' },
   metrics: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px' },
   metric: { background: 'rgba(255,255,255,0.86)', border: '1px solid rgba(159, 23, 77, 0.18)', borderRadius: '18px', padding: '18px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)' },
-  targetSection: { display: 'grid', gap: '14px' },
-  targetSectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '0 4px' },
-  targetSectionTitle: { margin: 0, color: '#0f172a', fontSize: '14px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' },
-  targetSectionHint: { margin: 0, color: '#64748b', fontSize: '12px', fontWeight: 600 },
-  targetMetrics: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px' },
-  targetMetric: { background: 'rgba(255,255,255,0.92)', border: '1px solid rgba(148, 163, 184, 0.28)', borderRadius: '18px', padding: '18px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)', minHeight: '132px' },
+  targetSection: { display: 'grid', gap: '12px', padding: '2px 0 0' },
+  targetSectionHead: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    padding: '14px 16px',
+    background: 'rgba(255,255,255,0.84)',
+    border: '1px solid #dbe4f0',
+    borderRadius: '18px',
+    boxShadow: 'var(--shadow-soft)',
+    backdropFilter: 'blur(10px)'
+  },
+  targetSectionTitle: { margin: 0, color: '#0f172a', fontSize: '13px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' },
+  targetSectionHint: { margin: '4px 0 0 0', color: '#64748b', fontSize: '12px', fontWeight: 600, lineHeight: 1.35 },
+  targetMetrics: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' },
+  targetMetric: { background: 'rgba(255,255,255,0.92)', border: '1px solid rgba(148, 163, 184, 0.26)', borderRadius: '16px', padding: '16px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)', minHeight: '120px' },
+  targetMetricValue: { margin: '8px 0 0 0', color: '#0f172a', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.04em' },
+  targetMetricSub: { margin: '6px 0 0 0', color: '#64748b', fontSize: '12px', fontWeight: 600 },
   metricLabel: { margin: 0, color: 'var(--color-primary-dark)', fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' },
   metricValue: { margin: '10px 0 0 0', color: '#0f172a', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.04em' },
   metricSub: { margin: '6px 0 0 0', color: '#475569', fontSize: '13px' },
@@ -639,7 +652,7 @@ export default function Dashboard() {
       ? { ...shell.targetMetrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
       : shell.targetMetrics;
   const targetSectionHeadStyle = isMobile
-    ? { ...shell.targetSectionHead, flexDirection: 'column', alignItems: 'stretch' }
+    ? { ...shell.targetSectionHead, flexDirection: 'column', alignItems: 'stretch', padding: '14px' }
     : shell.targetSectionHead;
   const targetSectionHintStyle = isMobile
     ? { ...shell.targetSectionHint, maxWidth: '100%' }
@@ -656,6 +669,12 @@ export default function Dashboard() {
     minWidth: isMobile ? '100%' : '120px',
     boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)'
   };
+  const targetMetricValueStyle = isMobile
+    ? { ...shell.targetMetricValue, fontSize: '22px' }
+    : shell.targetMetricValue;
+  const targetMetricSubStyle = isMobile
+    ? { ...shell.targetMetricSub, fontSize: '11px' }
+    : shell.targetMetricSub;
 
   const incomeExpenseMax = Math.max(
     ...selectedYearAnalytics.incomeSeries.map((x) => x.value),
@@ -744,8 +763,8 @@ export default function Dashboard() {
           {yearlyTargetCards.map((card) => (
             <article key={card.label} style={shell.targetMetric}>
               <p style={shell.metricLabel}>{card.label}</p>
-              <p style={shell.metricValue}>{card.value}</p>
-              <p style={shell.metricSub}>{card.sub}</p>
+              <p style={targetMetricValueStyle}>{card.value}</p>
+              <p style={targetMetricSubStyle}>{card.sub}</p>
             </article>
           ))}
         </div>
