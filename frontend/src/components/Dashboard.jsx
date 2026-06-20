@@ -659,23 +659,23 @@ export default function Dashboard() {
     ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', alignItems: 'start' }
     : { ...shell.graphGrid, gridTemplateColumns: '1fr' };
   const graphCardStyle = viewportWidth >= 1200
-    ? { minHeight: '405px', boxSizing: 'border-box' }
+    ? { minHeight: '390px', boxSizing: 'border-box' }
     : {};
   const graphSourceCardStyle = viewportWidth >= 1200
-    ? { ...shell.sourcePanel, minHeight: '405px', boxSizing: 'border-box' }
+    ? { ...shell.sourcePanel, minHeight: '390px', boxSizing: 'border-box' }
     : shell.sourcePanel;
   const graphSpanStyle = viewportWidth >= 1200 ? { gridColumn: '1 / -1' } : {};
   const sourceBodyStyle = isMobile
     ? { ...shell.sourceBody, justifyItems: 'center' }
     : viewportWidth >= 1200
-      ? { ...shell.sourceBody, gridTemplateColumns: 'minmax(210px, 1fr) minmax(160px, 0.9fr)', justifyItems: 'stretch', gap: '10px' }
+      ? { ...shell.sourceBody, gridTemplateColumns: 'minmax(180px, 0.92fr) minmax(130px, 0.78fr)', justifyItems: 'stretch', gap: '8px' }
       : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch' };
   const sourceLegendStyle = isMobile
     ? { ...shell.sourceLegend, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px', justifyItems: 'stretch', textAlign: 'left', maxWidth: '100%' }
-    : { ...shell.sourceLegend, justifyItems: 'stretch', textAlign: 'left', maxWidth: '280px' };
+    : { ...shell.sourceLegend, justifyItems: 'stretch', textAlign: 'left', maxWidth: '250px' };
   const sourceLegendItemStyle = isMobile
     ? { ...shell.sourceLegendItem, gridTemplateColumns: '11px minmax(0, 1fr) auto', gap: '6px', fontSize: '11px', width: '100%', justifyContent: 'start' }
-    : shell.sourceLegendItem;
+    : { ...shell.sourceLegendItem, fontSize: '11px', gap: '8px' };
   const yearlySummaryGridStyle = isMobile
     ? { ...shell.targetMetrics, gridTemplateColumns: '1fr' }
     : isTablet
@@ -734,23 +734,26 @@ export default function Dashboard() {
   const incomeExpenseChartStyle = isMobile
     ? { ...shell.incomeChart, minHeight: '250px', padding: '10px 8px 8px 8px' }
     : viewportWidth >= 1200
-      ? { ...shell.incomeChart, minHeight: '220px', padding: '10px 10px 6px 10px' }
+      ? { ...shell.incomeChart, minHeight: '200px', padding: '8px 10px 6px 10px' }
     : shell.incomeChart;
   const incomeExpenseYAxisStyle = isMobile
     ? { ...shell.incomeYAxis, padding: '8px 0 24px 0' }
     : viewportWidth >= 1200
-      ? { ...shell.incomeYAxis, padding: '8px 0 20px 0' }
+      ? { ...shell.incomeYAxis, padding: '6px 0 18px 0' }
     : shell.incomeYAxis;
   const incomeExpenseLegendValueStyle = isMobile
     ? { ...shell.incomeLegendValue, fontSize: '16px' }
-    : shell.incomeLegendValue;
+    : { ...shell.incomeLegendValue, fontSize: '15px' };
   const incomeExpenseLegendLabelStyle = isMobile
     ? { ...shell.incomeLegendLabel, fontSize: '13px' }
-    : shell.incomeLegendLabel;
+    : { ...shell.incomeLegendLabel, fontSize: '11px' };
   const formatCurrencyPrecise = (value) => Number(value || 0).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
+  const leadSourcesDonutStyle = viewportWidth >= 1200
+    ? { ...shell.donut, width: '220px', height: '220px' }
+    : shell.donut;
 
   return (
     <div style={shell.page}>
@@ -866,51 +869,51 @@ export default function Dashboard() {
                   padding: 0,
                   cursor: 'pointer',
                   display: 'grid',
-                  gridTemplateColumns: isMobile ? '92px minmax(0, 1fr) 44px' : '126px minmax(0, 1fr) 56px',
+                  gridTemplateColumns: isMobile ? '92px minmax(0, 1fr) 44px' : '110px minmax(0, 1fr) 48px',
                   alignItems: 'center',
-                  gap: isMobile ? '10px' : '14px',
+                  gap: isMobile ? '10px' : '10px',
                   width: '100%',
                   textAlign: 'left',
-                  minHeight: '56px'
+                  minHeight: '48px'
                 }}
               >
-                <span style={{ color: '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '15px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
+                <span style={{ color: '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '13px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
                 <span style={{ display: 'block', width: '100%', minWidth: 0 }}>
                   <span
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      height: isMobile ? '42px' : '48px',
+                      height: isMobile ? '42px' : '42px',
                       width: `${Math.max(row.value > 0 ? 12 : 0, (row.value / maxLeadFunnel) * 100)}%`,
                       minWidth: row.value > 0 ? (isMobile ? '54px' : '70px') : '0',
                       borderRadius: '7px',
                       background: row.color,
                       color: '#fff',
-                      padding: row.value > 0 ? '0 14px' : 0,
+                      padding: row.value > 0 ? '0 12px' : 0,
                       boxSizing: 'border-box',
                       overflow: 'hidden'
                     }}
                   >
-                    <strong style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: 1 }}>{row.value}</strong>
+                    <strong style={{ fontSize: isMobile ? '16px' : '16px', lineHeight: 1 }}>{row.value}</strong>
                   </span>
                 </span>
-                <span style={{ color: '#64748b', fontWeight: 700, fontSize: isMobile ? '13px' : '15px', textAlign: 'left' }}>
+                <span style={{ color: '#64748b', fontWeight: 700, fontSize: isMobile ? '13px' : '13px', textAlign: 'left' }}>
                   {`${leadPipeline.totalLeads > 0 ? Math.round((row.value / leadPipeline.totalLeads) * 100) : 0}%`}
                 </span>
               </button>
             ))}
           </div>
-          <div style={{ ...shell.legendRow, marginTop: '18px', justifyContent: 'space-between' }}>
+          <div style={{ ...shell.legendRow, marginTop: '14px', justifyContent: 'space-between' }}>
             <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
-              <strong style={{ color: '#4965dd', fontSize: '22px' }}>{`${leadPipeline.conversionRate.toFixed(0)}%`}</strong>
+              <strong style={{ color: '#4965dd', fontSize: '19px' }}>{`${leadPipeline.conversionRate.toFixed(0)}%`}</strong>
               <span style={{ fontSize: '12px', color: '#64748b' }}>Conversion Rate</span>
             </span>
             <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
-              <strong style={{ color: '#16A34A', fontSize: '22px' }}>{formatCurrency(leadPipeline.pipelineValue)}</strong>
+              <strong style={{ color: '#16A34A', fontSize: '19px' }}>{formatCurrency(leadPipeline.pipelineValue)}</strong>
               <span style={{ fontSize: '12px', color: '#64748b' }}>Pipeline Value</span>
             </span>
             <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
-              <strong style={{ color: '#45ABC8', fontSize: '22px' }}>{formatCurrency(leadPipeline.avgDealValue)}</strong>
+              <strong style={{ color: '#45ABC8', fontSize: '19px' }}>{formatCurrency(leadPipeline.avgDealValue)}</strong>
               <span style={{ fontSize: '12px', color: '#64748b' }}>Avg Deal Value</span>
             </span>
           </div>
@@ -924,7 +927,7 @@ export default function Dashboard() {
           <div style={sourceBodyStyle}>
             <div
               style={{
-                ...shell.donut,
+                ...leadSourcesDonutStyle,
                 justifySelf: 'center',
                 background: `conic-gradient(${leadPipeline.sourceSeries.reduce((segments, item, index, list) => {
                   const entryColor = leadSourcePalette[item.name] || leadSourcePalette.Other;
@@ -937,8 +940,8 @@ export default function Dashboard() {
               }}
             >
               <div style={shell.donutInner}>
-                <div style={{ color: '#64748b', fontWeight: 700, fontSize: '14px' }}>Lead Sources</div>
-                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800, lineHeight: 1 }}>{leadPipeline.sourceTotal}</div>
+                <div style={{ color: '#64748b', fontWeight: 700, fontSize: '13px' }}>Lead Sources</div>
+                <div style={{ color: '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1 }}>{leadPipeline.sourceTotal}</div>
               </div>
             </div>
             {leadPipeline.sourceSeries.length === 0 ? (
@@ -985,10 +988,10 @@ export default function Dashboard() {
                 color: '#334155',
                 fontWeight: 700,
                 borderRadius: '12px',
-                padding: '8px 12px',
+                padding: '7px 11px',
                 fontSize: '12px',
                 outline: 'none',
-                minWidth: '110px',
+                minWidth: '102px',
                 alignSelf: 'flex-start'
               }}
               aria-label="Select contract year"
@@ -1022,10 +1025,10 @@ export default function Dashboard() {
                 <div
                   style={{
                     position: 'absolute',
-                    inset: '10px 10px 8px 10px',
+                    inset: '8px 10px 6px 10px',
                     display: 'grid',
                     gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-                    gap: isMobile ? '6px' : '10px',
+                    gap: isMobile ? '6px' : '8px',
                     alignItems: 'end',
                     overflow: 'visible'
                   }}
