@@ -659,13 +659,13 @@ export default function Dashboard() {
     ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', alignItems: 'start' }
     : { ...shell.graphGrid, gridTemplateColumns: '1fr' };
   const graphPanelStyle = viewportWidth >= 1200
-    ? { ...shell.sourcePanel, height: '390px', minHeight: '390px', boxSizing: 'border-box', overflow: 'hidden' }
+    ? { ...shell.sourcePanel, height: '390px', minHeight: '390px', boxSizing: 'border-box', overflow: 'hidden', display: 'flex', flexDirection: 'column' }
     : shell.sourcePanel;
   const sourceBodyStyle = isMobile
-    ? { ...shell.sourceBody, justifyItems: 'center' }
+    ? { ...shell.sourceBody, justifyItems: 'center', flex: 1, alignContent: 'center' }
     : viewportWidth >= 1200
-      ? { ...shell.sourceBody, gridTemplateColumns: 'minmax(180px, 0.92fr) minmax(130px, 0.78fr)', justifyItems: 'stretch', gap: '8px' }
-      : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch' };
+      ? { ...shell.sourceBody, gridTemplateColumns: 'minmax(180px, 0.92fr) minmax(130px, 0.78fr)', justifyItems: 'stretch', gap: '8px', flex: 1, alignContent: 'center' }
+      : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch', flex: 1, alignContent: 'center' };
   const sourceLegendStyle = isMobile
     ? { ...shell.sourceLegend, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px', justifyItems: 'stretch', textAlign: 'left', maxWidth: '100%' }
     : { ...shell.sourceLegend, justifyItems: 'stretch', textAlign: 'left', maxWidth: '250px' };
@@ -870,53 +870,55 @@ export default function Dashboard() {
               ))}
             </select>
           </div>
-          <div style={{ padding: isMobile ? '12px 14px 14px' : '14px 18px 18px', display: 'grid', gap: '14px' }}>
-            {leadFunnelRows.map((row) => (
-              <button
-                key={row.label}
-                type="button"
-                onClick={() => navigate('/leads')}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  padding: 0,
-                  cursor: 'pointer',
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '92px minmax(0, 1fr) 44px' : '110px minmax(0, 1fr) 48px',
-                  alignItems: 'center',
-                  gap: isMobile ? '10px' : '10px',
-                  width: '100%',
-                  textAlign: 'left',
-                  minHeight: '48px'
-                }}
-              >
-                <span style={{ color: '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '13px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
-                <span style={{ display: 'block', width: '100%', minWidth: 0 }}>
-                  <span
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      height: isMobile ? '42px' : '42px',
-                      width: `${Math.max(row.value > 0 ? 12 : 0, (row.value / maxLeadFunnel) * 100)}%`,
-                      minWidth: row.value > 0 ? (isMobile ? '54px' : '70px') : '0',
-                      borderRadius: '7px',
-                      background: row.color,
-                      color: '#fff',
-                      padding: row.value > 0 ? '0 12px' : 0,
-                      boxSizing: 'border-box',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <strong style={{ fontSize: isMobile ? '16px' : '16px', lineHeight: 1 }}>{row.value}</strong>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: isMobile ? '10px 14px 12px' : '10px 18px 14px' }}>
+            <div style={{ display: 'grid', gap: '14px' }}>
+              {leadFunnelRows.map((row) => (
+                <button
+                  key={row.label}
+                  type="button"
+                  onClick={() => navigate('/leads')}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    padding: 0,
+                    cursor: 'pointer',
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '92px minmax(0, 1fr) 44px' : '110px minmax(0, 1fr) 48px',
+                    alignItems: 'center',
+                    gap: isMobile ? '10px' : '10px',
+                    width: '100%',
+                    textAlign: 'left',
+                    minHeight: '48px'
+                  }}
+                >
+                  <span style={{ color: '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '13px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
+                  <span style={{ display: 'block', width: '100%', minWidth: 0 }}>
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        height: isMobile ? '42px' : '42px',
+                        width: `${Math.max(row.value > 0 ? 12 : 0, (row.value / maxLeadFunnel) * 100)}%`,
+                        minWidth: row.value > 0 ? (isMobile ? '54px' : '70px') : '0',
+                        borderRadius: '7px',
+                        background: row.color,
+                        color: '#fff',
+                        padding: row.value > 0 ? '0 12px' : 0,
+                        boxSizing: 'border-box',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <strong style={{ fontSize: isMobile ? '16px' : '16px', lineHeight: 1 }}>{row.value}</strong>
+                    </span>
                   </span>
-                </span>
-                <span style={{ color: '#64748b', fontWeight: 700, fontSize: isMobile ? '13px' : '13px', textAlign: 'left' }}>
-                  {`${leadPipeline.totalLeads > 0 ? Math.round((row.value / leadPipeline.totalLeads) * 100) : 0}%`}
-                </span>
-              </button>
-            ))}
+                  <span style={{ color: '#64748b', fontWeight: 700, fontSize: isMobile ? '13px' : '13px', textAlign: 'left' }}>
+                    {`${leadPipeline.totalLeads > 0 ? Math.round((row.value / leadPipeline.totalLeads) * 100) : 0}%`}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div style={{ ...shell.legendRow, marginTop: '2px', justifyContent: 'space-between', padding: isMobile ? '0 14px 14px' : '0 18px 18px' }}>
+          <div style={{ ...shell.legendRow, marginTop: '0', justifyContent: 'space-between', padding: isMobile ? '0 14px 14px' : '0 18px 18px' }}>
             <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
               <strong style={{ color: '#4965dd', fontSize: '19px' }}>{`${leadPipeline.conversionRate.toFixed(0)}%`}</strong>
               <span style={{ fontSize: '12px', color: '#64748b' }}>Conversion Rate</span>
@@ -993,163 +995,165 @@ export default function Dashboard() {
             </select>
           </div>
 
-          <div style={{ padding: isMobile ? '12px 14px 12px' : '12px 18px 14px', display: 'grid', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '18px', flexWrap: 'wrap' }}>
-              <div style={shell.incomeLegendItem}>
-                <div style={incomeExpenseSummaryItemStyle}>
-                  <span style={incomeExpenseSummaryLabelStyle}>Total Income</span>
-                  <span style={incomeExpenseSummaryValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</span>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: isMobile ? '10px 14px 12px' : '10px 18px 14px' }}>
+            <div style={{ display: 'grid', gap: '10px', flex: 1, justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '18px', flexWrap: 'wrap' }}>
+                <div style={shell.incomeLegendItem}>
+                  <div style={incomeExpenseSummaryItemStyle}>
+                    <span style={incomeExpenseSummaryLabelStyle}>Total Income</span>
+                    <span style={incomeExpenseSummaryValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</span>
+                  </div>
+                </div>
+                <div style={shell.incomeLegendItem}>
+                  <div style={incomeExpenseSummaryItemStyle}>
+                    <span style={incomeExpenseSummaryLabelStyle}>Total Expenses</span>
+                    <span style={incomeExpenseSummaryValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</span>
+                  </div>
                 </div>
               </div>
-              <div style={shell.incomeLegendItem}>
-                <div style={incomeExpenseSummaryItemStyle}>
-                  <span style={incomeExpenseSummaryLabelStyle}>Total Expenses</span>
-                  <span style={incomeExpenseSummaryValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</span>
-                </div>
-              </div>
-            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', minHeight: 0 }}>
-              <div style={incomeExpenseYAxisStyle}>
-                {incomeExpenseYAxisValues.slice().reverse().map((value) => (
-                  <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? '#64748b' : axisGray }}>
-                    {value === 0 ? '0' : currencyLabel(value)}
-                  </span>
-                ))}
-              </div>
-
-              <div style={{ position: 'relative', minWidth: 0 }}>
-                <div style={{ ...incomeExpenseChartStyle, height: `${incomeExpenseChartHeight + 42}px` }}>
-                  {incomeExpenseYAxisValues.slice(1).map((value) => (
-                    <div
-                      key={value}
-                      style={{
-                        ...shell.incomeGridLine,
-                        bottom: `${(value / incomeExpenseYAxisMax) * 100}%`
-                      }}
-                    />
+              <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', minHeight: 0, flex: 1 }}>
+                <div style={incomeExpenseYAxisStyle}>
+                  {incomeExpenseYAxisValues.slice().reverse().map((value) => (
+                    <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? '#64748b' : axisGray }}>
+                      {value === 0 ? '0' : currencyLabel(value)}
+                    </span>
                   ))}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: '6px 8px 4px 8px',
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-                      gap: isMobile ? '6px' : '7px',
-                      alignItems: 'end',
-                      overflow: 'visible'
-                    }}
-                  >
-                    {selectedYearAnalytics.months.map((month, index) => {
-                      const income = selectedYearAnalytics.incomeSeries[index]?.value || 0;
-                      const expense = selectedYearAnalytics.expenseSeries[index]?.value || 0;
-                      const incomeHeight = Math.max(income * incomeExpenseScale, income > 0 ? 6 : 0);
-                      const expenseHeight = Math.max(expense * incomeExpenseScale, expense > 0 ? 6 : 0);
+                </div>
 
-                      return (
-                        <div
-                          key={month.key}
-                          style={{ ...shell.incomeMonth, position: 'relative' }}
-                          onMouseLeave={() => setHoveredIncomeBar(null)}
-                        >
-                          <div style={shell.incomeBarCluster}>
-                            <div style={{ display: 'flex', alignItems: 'end', gap: '4px', height: '100%' }}>
-                              <button
-                                type="button"
-                                aria-label={`${month.label} income ${formatCurrencyPrecise(income)}`}
-                                onMouseEnter={() => setHoveredIncomeBar({
-                                  monthKey: month.key,
-                                  monthLabel: month.label,
-                                  year: selectedYearNumber,
-                                  value: income
-                                })}
-                                onFocus={() => setHoveredIncomeBar({
-                                  monthKey: month.key,
-                                  monthLabel: month.label,
-                                  year: selectedYearNumber,
-                                  value: income
-                                })}
-                                style={{
-                                  ...shell.incomeBarItem,
-                                  height: `${incomeHeight}px`,
-                                  background: incomeGreen,
-                                  border: 'none',
-                                  padding: 0,
-                                  cursor: 'pointer'
-                                }}
-                              />
-                              <button
-                                type="button"
-                                aria-label={`${month.label} expense ${formatCurrencyPrecise(expense)}`}
-                                onMouseEnter={() => setHoveredIncomeBar({
-                                  monthKey: month.key,
-                                  monthLabel: month.label,
-                                  year: selectedYearNumber,
-                                  value: expense
-                                })}
-                                onFocus={() => setHoveredIncomeBar({
-                                  monthKey: month.key,
-                                  monthLabel: month.label,
-                                  year: selectedYearNumber,
-                                  value: expense
-                                })}
-                                style={{
-                                  ...shell.incomeBarItem,
-                                  height: `${expenseHeight}px`,
-                                  background: dangerRed,
-                                  opacity: 0.78,
-                                  border: 'none',
-                                  padding: 0,
-                                  cursor: 'pointer'
-                                }}
-                              />
+                <div style={{ position: 'relative', minWidth: 0 }}>
+                  <div style={{ ...incomeExpenseChartStyle, height: `${incomeExpenseChartHeight + 42}px` }}>
+                    {incomeExpenseYAxisValues.slice(1).map((value) => (
+                      <div
+                        key={value}
+                        style={{
+                          ...shell.incomeGridLine,
+                          bottom: `${(value / incomeExpenseYAxisMax) * 100}%`
+                        }}
+                      />
+                    ))}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: '6px 8px 4px 8px',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                        gap: isMobile ? '6px' : '7px',
+                        alignItems: 'end',
+                        overflow: 'visible'
+                      }}
+                    >
+                      {selectedYearAnalytics.months.map((month, index) => {
+                        const income = selectedYearAnalytics.incomeSeries[index]?.value || 0;
+                        const expense = selectedYearAnalytics.expenseSeries[index]?.value || 0;
+                        const incomeHeight = Math.max(income * incomeExpenseScale, income > 0 ? 6 : 0);
+                        const expenseHeight = Math.max(expense * incomeExpenseScale, expense > 0 ? 6 : 0);
+
+                        return (
+                          <div
+                            key={month.key}
+                            style={{ ...shell.incomeMonth, position: 'relative' }}
+                            onMouseLeave={() => setHoveredIncomeBar(null)}
+                          >
+                            <div style={shell.incomeBarCluster}>
+                              <div style={{ display: 'flex', alignItems: 'end', gap: '4px', height: '100%' }}>
+                                <button
+                                  type="button"
+                                  aria-label={`${month.label} income ${formatCurrencyPrecise(income)}`}
+                                  onMouseEnter={() => setHoveredIncomeBar({
+                                    monthKey: month.key,
+                                    monthLabel: month.label,
+                                    year: selectedYearNumber,
+                                    value: income
+                                  })}
+                                  onFocus={() => setHoveredIncomeBar({
+                                    monthKey: month.key,
+                                    monthLabel: month.label,
+                                    year: selectedYearNumber,
+                                    value: income
+                                  })}
+                                  style={{
+                                    ...shell.incomeBarItem,
+                                    height: `${incomeHeight}px`,
+                                    background: incomeGreen,
+                                    border: 'none',
+                                    padding: 0,
+                                    cursor: 'pointer'
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  aria-label={`${month.label} expense ${formatCurrencyPrecise(expense)}`}
+                                  onMouseEnter={() => setHoveredIncomeBar({
+                                    monthKey: month.key,
+                                    monthLabel: month.label,
+                                    year: selectedYearNumber,
+                                    value: expense
+                                  })}
+                                  onFocus={() => setHoveredIncomeBar({
+                                    monthKey: month.key,
+                                    monthLabel: month.label,
+                                    year: selectedYearNumber,
+                                    value: expense
+                                  })}
+                                  style={{
+                                    ...shell.incomeBarItem,
+                                    height: `${expenseHeight}px`,
+                                    background: dangerRed,
+                                    opacity: 0.78,
+                                    border: 'none',
+                                    padding: 0,
+                                    cursor: 'pointer'
+                                  }}
+                                />
+                              </div>
                             </div>
-                          </div>
-                          <div style={shell.incomeMonthLabel}>
-                            <span>{month.label}</span>
-                          </div>
-                          {hoveredIncomeBar?.monthKey === month.key ? (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                left: '50%',
-                                bottom: 'calc(100% + 14px)',
-                                transform: 'translateX(-50%)',
-                                background: '#fff',
-                                border: '1px solid #dbe4f0',
-                                borderRadius: '18px',
-                                boxShadow: '0 16px 34px rgba(15, 23, 42, 0.12)',
-                                padding: '14px 16px 12px',
-                                minWidth: '168px',
-                                pointerEvents: 'none',
-                                textAlign: 'left',
-                                zIndex: 20
-                              }}
-                            >
-                              <div style={{ color: '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1.08 }}>
-                                {formatCurrencyPrecise(hoveredIncomeBar.value)}
-                              </div>
-                              <div style={{ marginTop: '10px', color: '#334155', fontSize: '16px', fontWeight: 500, lineHeight: 1.1 }}>
-                                {`${hoveredIncomeBar.monthLabel} ${hoveredIncomeBar.year}`}
-                              </div>
+                            <div style={shell.incomeMonthLabel}>
+                              <span>{month.label}</span>
+                            </div>
+                            {hoveredIncomeBar?.monthKey === month.key ? (
                               <div
                                 style={{
                                   position: 'absolute',
                                   left: '50%',
-                                  bottom: '-7px',
-                                  width: '14px',
-                                  height: '14px',
+                                  bottom: 'calc(100% + 14px)',
+                                  transform: 'translateX(-50%)',
                                   background: '#fff',
-                                  borderRight: '1px solid #dbe4f0',
-                                  borderBottom: '1px solid #dbe4f0',
-                                  transform: 'translateX(-50%) rotate(45deg)'
+                                  border: '1px solid #dbe4f0',
+                                  borderRadius: '18px',
+                                  boxShadow: '0 16px 34px rgba(15, 23, 42, 0.12)',
+                                  padding: '14px 16px 12px',
+                                  minWidth: '168px',
+                                  pointerEvents: 'none',
+                                  textAlign: 'left',
+                                  zIndex: 20
                                 }}
-                              />
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
+                              >
+                                <div style={{ color: '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1.08 }}>
+                                  {formatCurrencyPrecise(hoveredIncomeBar.value)}
+                                </div>
+                                <div style={{ marginTop: '10px', color: '#334155', fontSize: '16px', fontWeight: 500, lineHeight: 1.1 }}>
+                                  {`${hoveredIncomeBar.monthLabel} ${hoveredIncomeBar.year}`}
+                                </div>
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    left: '50%',
+                                    bottom: '-7px',
+                                    width: '14px',
+                                    height: '14px',
+                                    background: '#fff',
+                                    borderRight: '1px solid #dbe4f0',
+                                    borderBottom: '1px solid #dbe4f0',
+                                    transform: 'translateX(-50%) rotate(45deg)'
+                                  }}
+                                />
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1162,7 +1166,7 @@ export default function Dashboard() {
             <h2 style={shell.sourceHeaderTitle}>Top Expenses</h2>
             <span style={shell.sourceHeaderBadge}>{selectedYearNumber}</span>
           </div>
-          <div style={{ ...shell.donutWrap, padding: isMobile ? '12px 14px 14px' : '14px 18px 18px' }}>
+          <div style={{ ...shell.donutWrap, flex: 1, justifyContent: 'center', padding: isMobile ? '12px 14px 14px' : '14px 18px 18px' }}>
             <div
               style={{
                 ...shell.donut,
