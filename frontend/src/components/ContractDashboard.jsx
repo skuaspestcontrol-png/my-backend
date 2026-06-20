@@ -957,7 +957,7 @@ export default function ContractDashboard() {
         emailId: String(customer?.emailId || customer?.email || '').trim(),
         gstNumber: String(customer?.gstNumber || '').trim(),
         property: String(customer?.shippingArea || customer?.shippingAddress || customer?.billingArea || customer?.billingAddress || invoice.customerName || '-').trim(),
-        city: String(customer?.billingState || '-').trim(),
+        city: String(customer?.shippingCity || customer?.shippingState || customer?.billingCity || customer?.billingState || '-').trim(),
         customerId: String(invoice.customerId || customer?._id || '').trim(),
         startDate: startInputDate,
         endDate: endInputDate,
