@@ -1096,32 +1096,32 @@ export default function Dashboard() {
                             style={{
                               position: 'absolute',
                               left: '50%',
-                              bottom: 'calc(100% + 18px)',
+                              bottom: 'calc(100% + 14px)',
                               transform: 'translateX(-50%)',
                               background: '#fff',
                               border: '1px solid #dbe4f0',
-                              borderRadius: '16px',
-                              boxShadow: '0 18px 40px rgba(15, 23, 42, 0.14)',
-                              padding: '16px 18px',
-                              minWidth: '150px',
+                              borderRadius: '18px',
+                              boxShadow: '0 16px 34px rgba(15, 23, 42, 0.12)',
+                              padding: '14px 16px 12px',
+                              minWidth: '168px',
                               pointerEvents: 'none',
                               textAlign: 'left',
                               zIndex: 20
                             }}
                           >
-                            <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800, lineHeight: 1.1 }}>
+                            <div style={{ color: '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1.08 }}>
                               {formatCurrencyPrecise(hoveredIncomeBar.value)}
                             </div>
-                            <div style={{ marginTop: '12px', color: '#334155', fontSize: '20px', fontWeight: 500, lineHeight: 1.1 }}>
+                            <div style={{ marginTop: '10px', color: '#334155', fontSize: '16px', fontWeight: 500, lineHeight: 1.1 }}>
                               {`${hoveredIncomeBar.monthLabel} ${hoveredIncomeBar.year}`}
                             </div>
                             <div
                               style={{
                                 position: 'absolute',
                                 left: '50%',
-                                bottom: '-8px',
-                                width: '16px',
-                                height: '16px',
+                                bottom: '-7px',
+                                width: '14px',
+                                height: '14px',
                                 background: '#fff',
                                 borderRight: '1px solid #dbe4f0',
                                 borderBottom: '1px solid #dbe4f0',
