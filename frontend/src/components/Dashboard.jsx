@@ -724,23 +724,23 @@ export default function Dashboard() {
   const incomeExpenseYAxisStep = Math.max(20000, Math.ceil((incomeExpenseMaxValue || 1) / 5 / 10000) * 10000);
   const incomeExpenseYAxisMax = incomeExpenseYAxisStep * 5;
   const incomeExpenseYAxisValues = Array.from({ length: 6 }, (_, idx) => idx * incomeExpenseYAxisStep);
-  const incomeExpenseChartHeight = isMobile ? 220 : 260;
+  const incomeExpenseChartHeight = isMobile ? 220 : 232;
   const incomeExpenseScale = incomeExpenseYAxisMax > 0 ? incomeExpenseChartHeight / incomeExpenseYAxisMax : 1;
   const currencyLabel = (value) => (value >= 1000 ? `${Math.round(value / 1000)} K` : `${Math.round(value)}`);
   const incomeExpenseChartStyle = isMobile
     ? { ...shell.incomeChart, minHeight: '250px', padding: '10px 8px 8px 8px' }
     : viewportWidth >= 1200
-      ? { ...shell.incomeChart, minHeight: '200px', padding: '8px 10px 6px 10px' }
+      ? { ...shell.incomeChart, minHeight: '180px', padding: '6px 10px 4px 10px' }
     : shell.incomeChart;
   const incomeExpenseYAxisStyle = isMobile
     ? { ...shell.incomeYAxis, padding: '8px 0 24px 0' }
     : viewportWidth >= 1200
-      ? { ...shell.incomeYAxis, padding: '6px 0 18px 0' }
+      ? { ...shell.incomeYAxis, padding: '4px 0 12px 0' }
     : shell.incomeYAxis;
   const incomeExpenseSummaryItemStyle = {
     display: 'inline-flex',
     alignItems: 'baseline',
-    gap: '6px',
+    gap: '8px',
     flexWrap: 'wrap'
   };
   const incomeExpenseSummaryValueStyle = {
@@ -752,7 +752,7 @@ export default function Dashboard() {
   };
   const incomeExpenseSummaryLabelStyle = {
     color: '#64748b',
-    fontSize: '12px',
+    fontSize: '13px',
     fontWeight: 600,
     lineHeight: 1.1
   };
@@ -994,17 +994,17 @@ export default function Dashboard() {
           </div>
 
           <div style={{ padding: isMobile ? '12px 14px 12px' : '12px 18px 14px', display: 'grid', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '18px', flexWrap: 'wrap' }}>
               <div style={shell.incomeLegendItem}>
                 <div style={incomeExpenseSummaryItemStyle}>
-                  <span style={incomeExpenseSummaryValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</span>
                   <span style={incomeExpenseSummaryLabelStyle}>Total Income</span>
+                  <span style={incomeExpenseSummaryValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</span>
                 </div>
               </div>
               <div style={shell.incomeLegendItem}>
                 <div style={incomeExpenseSummaryItemStyle}>
-                  <span style={incomeExpenseSummaryValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</span>
                   <span style={incomeExpenseSummaryLabelStyle}>Total Expenses</span>
+                  <span style={incomeExpenseSummaryValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</span>
                 </div>
               </div>
             </div>
@@ -1032,10 +1032,10 @@ export default function Dashboard() {
                   <div
                     style={{
                       position: 'absolute',
-                      inset: '8px 10px 6px 10px',
+                      inset: '6px 8px 4px 8px',
                       display: 'grid',
                       gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-                      gap: isMobile ? '6px' : '8px',
+                      gap: isMobile ? '6px' : '7px',
                       alignItems: 'end',
                       overflow: 'visible'
                     }}
