@@ -753,6 +753,20 @@ export default function Dashboard() {
   const leadSourcesDonutStyle = viewportWidth >= 1200
     ? { ...shell.donut, width: '220px', height: '220px' }
     : shell.donut;
+  const sourceHeaderSelectStyle = {
+    ...shell.sourceHeaderBadge,
+    border: '1px solid #e2e8f0',
+    appearance: 'none',
+    outline: 'none',
+    cursor: 'pointer',
+    padding: '6px 28px 6px 10px',
+    backgroundImage: 'linear-gradient(45deg, transparent 50%, #64748b 50%), linear-gradient(135deg, #64748b 50%, transparent 50%)',
+    backgroundPosition: 'calc(100% - 14px) calc(50% - 2px), calc(100% - 8px) calc(50% - 2px)',
+    backgroundSize: '6px 6px, 6px 6px',
+    backgroundRepeat: 'no-repeat',
+    minWidth: '110px',
+    textAlign: 'left'
+  };
 
   return (
     <div style={shell.page}>
@@ -833,22 +847,12 @@ export default function Dashboard() {
 
       <section style={graphGridStyle}>
         <article style={{ ...shell.panel, ...graphCardStyle }}>
-          <div style={shell.panelHead}>
-            <h2 style={shell.panelTitle}>Lead Pipeline</h2>
+          <div style={shell.sourceHeader}>
+            <h2 style={shell.sourceHeaderTitle}>Lead Pipeline</h2>
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
-              style={{
-                border: '1px solid #dbe4f0',
-                background: '#f8fafc',
-                color: '#334155',
-                fontWeight: 700,
-                borderRadius: '12px',
-                padding: '8px 12px',
-                fontSize: '12px',
-                outline: 'none',
-                minWidth: '110px'
-              }}
+              style={sourceHeaderSelectStyle}
               aria-label="Select lead pipeline year"
             >
               {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
@@ -965,8 +969,8 @@ export default function Dashboard() {
         </article>
 
         <article style={{ ...shell.panel, ...graphCardStyle, padding: isMobile ? '16px' : '18px 18px 20px' }}>
-          <div style={shell.incomePanelHead}>
-            <div style={shell.incomeLegend}>
+          <div style={shell.sourceHeader}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
               <div style={shell.incomeLegendItem}>
                 <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: incomeGreen }} />Total Income</div>
                 <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</p>
@@ -979,18 +983,7 @@ export default function Dashboard() {
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
-              style={{
-                border: '1px solid #dbe4f0',
-                background: '#f8fafc',
-                color: '#334155',
-                fontWeight: 700,
-                borderRadius: '12px',
-                padding: '7px 11px',
-                fontSize: '12px',
-                outline: 'none',
-                minWidth: '102px',
-                alignSelf: 'flex-start'
-              }}
+              style={{ ...sourceHeaderSelectStyle, minWidth: '102px' }}
               aria-label="Select contract year"
             >
               {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
@@ -1147,9 +1140,9 @@ export default function Dashboard() {
         </article>
 
         <article style={{ ...shell.panel, ...graphCardStyle }}>
-          <div style={shell.panelHead}>
-            <h2 style={shell.panelTitle}>Top Expenses</h2>
-            <span style={{ color: '#475569', fontWeight: 700 }}>{selectedYearNumber}</span>
+          <div style={shell.sourceHeader}>
+            <h2 style={shell.sourceHeaderTitle}>Top Expenses</h2>
+            <span style={shell.sourceHeaderBadge}>{selectedYearNumber}</span>
           </div>
           <div style={shell.donutWrap}>
             <div
