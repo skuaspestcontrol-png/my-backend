@@ -1232,6 +1232,7 @@ export default function InvoiceDashboard() {
   const [leadSourceOptions, setLeadSourceOptions] = useState(() => [...DEFAULT_LEAD_SOURCES]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [page, setPage] = useState(1);
+  const [invoiceSort, setInvoiceSort] = useState({ key: 'date', direction: 'desc' });
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
   const [showBillingAddressPicker, setShowBillingAddressPicker] = useState(false);
@@ -1958,19 +1959,62 @@ export default function InvoiceDashboard() {
     serviceScheduleTime
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(invoices.length / INVOICE_PAGE_SIZE));
+  const sortedInvoices = useMemo(() => {
+    const list = [...invoices];
+    list.sort((left, right) => {
+      const leftValue = (() => {
+        switch (invoiceSort.key) {
+          case 'date': return new Date(left.date || left.invoiceDate || left.createdAt || 0).getTime() || 0;
+          case 'invoiceNumber': return String(left.invoiceNumber || '');
+          case 'customerName': return String(left.customerName || '');
+          case 'dueDate': return new Date(left.dueDate || left.renewalDate || 0).getTime() || 0;
+          case 'amount': return Number(left.amount || left.total || 0);
+          case 'balanceDue': return Number(left.balanceDue || 0);
+          case 'status': return String(left.status || '');
+          default: return String(left[invoiceSort.key] || '');
+        }
+      })();
+      const rightValue = (() => {
+        switch (invoiceSort.key) {
+          case 'date': return new Date(right.date || right.invoiceDate || right.createdAt || 0).getTime() || 0;
+          case 'invoiceNumber': return String(right.invoiceNumber || '');
+          case 'customerName': return String(right.customerName || '');
+          case 'dueDate': return new Date(right.dueDate || right.renewalDate || 0).getTime() || 0;
+          case 'amount': return Number(right.amount || right.total || 0);
+          case 'balanceDue': return Number(right.balanceDue || 0);
+          case 'status': return String(right.status || '');
+          default: return String(right[invoiceSort.key] || '');
+        }
+      })();
+      if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+        return invoiceSort.direction === 'asc' ? leftValue - rightValue : rightValue - leftValue;
+      }
+      const comparison = String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' });
+      return invoiceSort.direction === 'asc' ? comparison : -comparison;
+    });
+    return list;
+  }, [invoices, invoiceSort]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedInvoices.length / INVOICE_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pagedInvoices = useMemo(() => {
     const start = (safePage - 1) * INVOICE_PAGE_SIZE;
-    return invoices.slice(start, start + INVOICE_PAGE_SIZE);
-  }, [invoices, safePage]);
-  const firstRecord = invoices.length ? ((safePage - 1) * INVOICE_PAGE_SIZE) + 1 : 0;
-  const lastRecord = Math.min(safePage * INVOICE_PAGE_SIZE, invoices.length);
+    return sortedInvoices.slice(start, start + INVOICE_PAGE_SIZE);
+  }, [sortedInvoices, safePage]);
+  const firstRecord = sortedInvoices.length ? ((safePage - 1) * INVOICE_PAGE_SIZE) + 1 : 0;
+  const lastRecord = Math.min(safePage * INVOICE_PAGE_SIZE, sortedInvoices.length);
   const visibleInvoiceIds = pagedInvoices.map((invoice) => invoice._id).filter(Boolean);
 
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
+
+  const toggleInvoiceSort = (key) => {
+    setInvoiceSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
 
   const isAllSelected = visibleInvoiceIds.length > 0 && visibleInvoiceIds.every((id) => selectedIds.includes(id));
 
@@ -3738,11 +3782,32 @@ export default function InvoiceDashboard() {
                     ...getColumnStyle(column.key),
                     ...(isMobile ? {} : shell.resizableHeadCell)
                   }}
+                  aria-sort={invoiceSort.key === column.key ? (invoiceSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', width: '100%', textAlign: 'inherit' }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleInvoiceSort(column.key)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      width: '100%',
+                      textAlign: 'inherit',
+                      border: 'none',
+                      background: 'transparent',
+                      padding: 0,
+                      margin: 0,
+                      color: 'inherit',
+                      font: 'inherit',
+                      fontWeight: 'inherit',
+                      cursor: 'pointer'
+                    }}
+                    aria-label={`Sort ${column.label} ${invoiceSort.key === column.key && invoiceSort.direction === 'asc' ? 'descending' : 'ascending'}`}
+                    title={`Sort ${column.label} ${invoiceSort.key === column.key && invoiceSort.direction === 'asc' ? 'descending' : 'ascending'}`}
+                  >
                     <span>{column.label}</span>
                     {column.key !== 'action' ? <SortChevronIcon size={12} color="#111827" /> : null}
-                  </span>
+                  </button>
                 </th>
               ))}
               <th

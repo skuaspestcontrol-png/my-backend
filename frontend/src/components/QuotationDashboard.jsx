@@ -276,6 +276,7 @@ function QuotationDashboardInner() {
   const [page, setPage] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', quotationId: null });
+  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const perPage = 20;
   const loadRequestRef = useRef(null);
 
@@ -371,9 +372,45 @@ function QuotationDashboardInner() {
     return { total, draft, final, totalValue };
   }, [rows]);
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
+  const sortedRows = useMemo(() => {
+    const list = [...rows];
+    list.sort((left, right) => {
+      const leftValue = (() => {
+        switch (sortConfig.key) {
+          case 'srNo': return Number(left.srNo || left.sr_no || 0);
+          case 'quotationNumber': return String(left.quotation_number || left.quotationNumber || left.quotationNo || '');
+          case 'date': return new Date(left.date || left.created_at || 0).getTime() || 0;
+          case 'customer': return String(left.customer || left.customerName || '');
+          case 'salesPerson': return String(left.salesPerson || left.salesperson || '');
+          case 'status': return String(left.status || '');
+          case 'grandTotal': return Number(left.grand_total || left.grandTotal || 0);
+          default: return String(left[sortConfig.key] || '');
+        }
+      })();
+      const rightValue = (() => {
+        switch (sortConfig.key) {
+          case 'srNo': return Number(right.srNo || right.sr_no || 0);
+          case 'quotationNumber': return String(right.quotation_number || right.quotationNumber || right.quotationNo || '');
+          case 'date': return new Date(right.date || right.created_at || 0).getTime() || 0;
+          case 'customer': return String(right.customer || right.customerName || '');
+          case 'salesPerson': return String(right.salesPerson || right.salesperson || '');
+          case 'status': return String(right.status || '');
+          case 'grandTotal': return Number(right.grand_total || right.grandTotal || 0);
+          default: return String(right[sortConfig.key] || '');
+        }
+      })();
+      if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+        return sortConfig.direction === 'asc' ? leftValue - rightValue : rightValue - leftValue;
+      }
+      const comparison = String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+    return list;
+  }, [rows, sortConfig]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / perPage));
   const safePage = Math.min(page, totalPages);
-  const pagedRows = rows.slice((safePage - 1) * perPage, safePage * perPage);
+  const pagedRows = sortedRows.slice((safePage - 1) * perPage, safePage * perPage);
   const isMobile = viewportWidth <= 900;
   const isTiny = viewportWidth <= 420;
   const {
@@ -423,6 +460,12 @@ function QuotationDashboardInner() {
   const rowActionWrapStyle = isMobile
     ? { display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-start' }
     : { display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-end' };
+  const toggleSort = (key) => {
+    setSortConfig((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
   const quotationMobileColumns = quotationColumns.map((column) => `${getColumnWidth(column.key)}px`).join(' ');
   const quotationTableMinWidth = quotationColumns.reduce((sum, column) => sum + getColumnWidth(column.key), 0);
   const tableStyle = {
@@ -494,55 +537,38 @@ function QuotationDashboardInner() {
             </colgroup>
             <thead>
               <tr>
-                <th style={{ ...shell.th, width: `${getColumnWidth('srNo')}px`, minWidth: `${getColumnWidth('srNo')}px` }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    Sr No
-                    <SortChevronIcon size={12} color="#111827" />
-                  </span>
-                  
-                </th>
-                <th style={{ ...shell.th, width: `${getColumnWidth('quotationNumber')}px`, minWidth: `${getColumnWidth('quotationNumber')}px` }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    Quotation #
-                    <SortChevronIcon size={12} color="#111827" />
-                  </span>
-                  
-                </th>
-                <th style={{ ...shell.th, width: `${getColumnWidth('date')}px`, minWidth: `${getColumnWidth('date')}px` }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    Date
-                    <SortChevronIcon size={12} color="#111827" />
-                  </span>
-                  
-                </th>
-                <th style={{ ...shell.th, width: `${getColumnWidth('customer')}px`, minWidth: `${getColumnWidth('customer')}px` }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    Customer
-                    <SortChevronIcon size={12} color="#111827" />
-                  </span>
-                  
-                </th>
-                <th style={{ ...shell.th, width: `${getColumnWidth('salesPerson')}px`, minWidth: `${getColumnWidth('salesPerson')}px` }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    Sales Person
-                    <SortChevronIcon size={12} color="#111827" />
-                  </span>
-                  
-                </th>
-                <th style={{ ...shell.th, width: `${getColumnWidth('status')}px`, minWidth: `${getColumnWidth('status')}px` }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    Status
-                    <SortChevronIcon size={12} color="#111827" />
-                  </span>
-                  
-                </th>
-                <th style={{ ...shell.th, width: `${getColumnWidth('grandTotal')}px`, minWidth: `${getColumnWidth('grandTotal')}px` }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    Grand Total
-                    <SortChevronIcon size={12} color="#111827" />
-                  </span>
-                  
-                </th>
+                {quotationColumns.filter((column) => column.key !== 'action').map((column) => (
+                  <th
+                    key={column.key}
+                    style={{ ...shell.th, width: `${getColumnWidth(column.key)}px`, minWidth: `${getColumnWidth(column.key)}px` }}
+                    aria-sort={sortConfig.key === column.key ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(column.key)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        border: 'none',
+                        background: 'transparent',
+                        padding: 0,
+                        margin: 0,
+                        color: 'inherit',
+                        font: 'inherit',
+                        fontWeight: 'inherit',
+                        cursor: 'pointer'
+                      }}
+                      aria-label={`Sort ${column.label} ${sortConfig.key === column.key && sortConfig.direction === 'asc' ? 'descending' : 'ascending'}`}
+                      title={`Sort ${column.label} ${sortConfig.key === column.key && sortConfig.direction === 'asc' ? 'descending' : 'ascending'}`}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        {column.label}
+                        <SortChevronIcon size={12} color="#111827" />
+                      </span>
+                    </button>
+                  </th>
+                ))}
                 <th style={{ ...shell.th, ...actionColumnStyle, width: `${getColumnWidth('action')}px`, minWidth: `${getColumnWidth('action')}px` }}>
                   Action
                   

@@ -234,6 +234,7 @@ export default function PaymentReceivedDashboard() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [status, setStatus] = useState(() => (cachedDashboard ? 'Live payment data' : 'Loading payments...'));
   const [page, setPage] = useState(1);
+  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const loadRequestRef = useRef(null);
 
   const loadPaymentsData = async (options = {}) => {
@@ -310,19 +311,59 @@ export default function PaymentReceivedDashboard() {
   };
 
   const rows = useMemo(() => normalizePayments(payments, invoices), [payments, invoices]);
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAYMENT_PAGE_SIZE));
+  const sortedRows = useMemo(() => {
+    const list = [...rows];
+    list.sort((left, right) => {
+      const leftValue = (() => {
+        switch (sortConfig.key) {
+          case 'date': return new Date(left.date || 0).getTime() || 0;
+          case 'invoice': return String(left.invoiceNo || '');
+          case 'customer': return String(left.customerName || '');
+          case 'mode': return String(left.mode || '');
+          case 'depositTo': return String(left.depositTo || '');
+          case 'amount': return Number(left.amount || 0);
+          default: return String(left[sortConfig.key] || '');
+        }
+      })();
+      const rightValue = (() => {
+        switch (sortConfig.key) {
+          case 'date': return new Date(right.date || 0).getTime() || 0;
+          case 'invoice': return String(right.invoiceNo || '');
+          case 'customer': return String(right.customerName || '');
+          case 'mode': return String(right.mode || '');
+          case 'depositTo': return String(right.depositTo || '');
+          case 'amount': return Number(right.amount || 0);
+          default: return String(right[sortConfig.key] || '');
+        }
+      })();
+      if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+        return sortConfig.direction === 'asc' ? leftValue - rightValue : rightValue - leftValue;
+      }
+      const comparison = String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+    return list;
+  }, [rows, sortConfig]);
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAYMENT_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pagedRows = useMemo(() => {
     const start = (safePage - 1) * PAYMENT_PAGE_SIZE;
-    return rows.slice(start, start + PAYMENT_PAGE_SIZE);
-  }, [rows, safePage]);
-  const firstRecord = rows.length ? ((safePage - 1) * PAYMENT_PAGE_SIZE) + 1 : 0;
-  const lastRecord = Math.min(safePage * PAYMENT_PAGE_SIZE, rows.length);
-  const paginationText = rows.length ? `${firstRecord}-${lastRecord} of ${rows.length} records` : '0 records';
+    return sortedRows.slice(start, start + PAYMENT_PAGE_SIZE);
+  }, [sortedRows, safePage]);
+  const firstRecord = sortedRows.length ? ((safePage - 1) * PAYMENT_PAGE_SIZE) + 1 : 0;
+  const lastRecord = Math.min(safePage * PAYMENT_PAGE_SIZE, sortedRows.length);
+  const paginationText = sortedRows.length ? `${firstRecord}-${lastRecord} of ${sortedRows.length} records` : '0 records';
 
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
+
+  const toggleSort = (key) => {
+    setSortConfig((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
 
   const summary = useMemo(() => {
     const totalReceived = rows.reduce((sum, row) => sum + toNum(row.amount), 0);
@@ -394,12 +435,38 @@ export default function PaymentReceivedDashboard() {
             <colgroup>{paymentColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || paymentColumnWidths[key] || 100}px` }} />)}</colgroup>
             <thead>
               <tr>
-                <th style={headStyle('date')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Date <SortChevronIcon size={12} color="#111827" /></span></th>
-                <th style={headStyle('invoice')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Invoice <SortChevronIcon size={12} color="#111827" /></span></th>
-                <th style={headStyle('customer')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Customer <SortChevronIcon size={12} color="#111827" /></span></th>
-                <th style={headStyle('mode', 'center')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Mode <SortChevronIcon size={12} color="#111827" /></span></th>
-                <th style={headStyle('depositTo', 'center')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Deposit To <SortChevronIcon size={12} color="#111827" /></span></th>
-                <th style={headStyle('amount', 'center')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Amount <SortChevronIcon size={12} color="#111827" /></span></th>
+                {['date', 'invoice', 'customer', 'mode', 'depositTo', 'amount'].map((key) => {
+                  const labels = { date: 'Date', invoice: 'Invoice', customer: 'Customer', mode: 'Mode', depositTo: 'Deposit To', amount: 'Amount' };
+                  const centerKeys = new Set(['mode', 'depositTo', 'amount']);
+                  const active = sortConfig.key === key;
+                  return (
+                    <th key={key} style={headStyle(key, centerKeys.has(key) ? 'center' : 'left')} aria-sort={active ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(key)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          border: 'none',
+                          background: 'transparent',
+                          padding: 0,
+                          margin: 0,
+                          color: 'inherit',
+                          font: 'inherit',
+                          fontWeight: 'inherit',
+                          cursor: 'pointer'
+                        }}
+                        aria-label={`Sort ${labels[key]} ${active && sortConfig.direction === 'asc' ? 'descending' : 'ascending'}`}
+                        title={`Sort ${labels[key]} ${active && sortConfig.direction === 'asc' ? 'descending' : 'ascending'}`}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          {labels[key]} <SortChevronIcon size={12} color="#111827" />
+                        </span>
+                      </button>
+                    </th>
+                  );
+                })}
                 <th style={headStyle('action', 'center')}>Action</th>
               </tr>
             </thead>

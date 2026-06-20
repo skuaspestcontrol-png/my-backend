@@ -551,12 +551,12 @@ export default function ContractDashboard() {
   const [cachedDashboard] = useState(() => readContractsDashboardCache());
   const hasCachedDashboard = Boolean(cachedDashboard);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [contractSortDirection, setContractSortDirection] = useState(() => {
+  const [contractSort, setContractSort] = useState(() => {
     try {
       const saved = localStorage.getItem(CONTRACTS_SORT_STORAGE_KEY);
-      return saved === 'desc' ? 'desc' : 'asc';
+      return { key: 'contractNo', direction: saved === 'desc' ? 'desc' : 'asc' };
     } catch {
-      return 'asc';
+      return { key: 'contractNo', direction: 'asc' };
     }
   });
   const [quickFilter, setQuickFilter] = useState('All');
@@ -759,11 +759,11 @@ export default function ContractDashboard() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(CONTRACTS_SORT_STORAGE_KEY, contractSortDirection);
+      localStorage.setItem(CONTRACTS_SORT_STORAGE_KEY, contractSort.direction);
     } catch {
       // ignore storage persistence issues
     }
-  }, [contractSortDirection]);
+  }, [contractSort.direction]);
 
   useEffect(() => {
     const handleContractsRefresh = () => {
@@ -1032,15 +1032,49 @@ export default function ContractDashboard() {
   }, [allContracts, filters, quickFilter]);
 
   const sortedContracts = useMemo(() => {
+    const statusOrder = { Active: 0, Upcoming: 1, 'Expiring Soon': 2, Expired: 3, Renewed: 4 };
     const list = [...filteredContracts];
     list.sort((leftRow, rightRow) => {
-      const left = String(leftRow.contractNo || '').trim();
-      const right = String(rightRow.contractNo || '').trim();
-      const comparison = left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
-      return contractSortDirection === 'asc' ? comparison : -comparison;
+      const leftValue = (() => {
+        switch (contractSort.key) {
+          case 'contractNo': return String(leftRow.contractNo || '');
+          case 'customer': return String(leftRow.customer || '');
+          case 'property': return String(leftRow.property || '');
+          case 'duration': return parseDateOnly(leftRow.endDate)?.getTime() || 0;
+          case 'type': return String(leftRow.type || '');
+          case 'services': return Number(leftRow.services || 0);
+          case 'status': return Number(statusOrder[leftRow.status] ?? 99);
+          case 'total': return Number(leftRow.total || 0);
+          case 'paid': return Number(leftRow.paid || 0);
+          case 'due': return Number(leftRow.due || 0);
+          default: return String(leftRow[contractSort.key] || '');
+        }
+      })();
+      const rightValue = (() => {
+        switch (contractSort.key) {
+          case 'contractNo': return String(rightRow.contractNo || '');
+          case 'customer': return String(rightRow.customer || '');
+          case 'property': return String(rightRow.property || '');
+          case 'duration': return parseDateOnly(rightRow.endDate)?.getTime() || 0;
+          case 'type': return String(rightRow.type || '');
+          case 'services': return Number(rightRow.services || 0);
+          case 'status': return Number(statusOrder[rightRow.status] ?? 99);
+          case 'total': return Number(rightRow.total || 0);
+          case 'paid': return Number(rightRow.paid || 0);
+          case 'due': return Number(rightRow.due || 0);
+          default: return String(rightRow[contractSort.key] || '');
+        }
+      })();
+
+      if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+        return contractSort.direction === 'asc' ? leftValue - rightValue : rightValue - leftValue;
+      }
+
+      const comparison = String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' });
+      return contractSort.direction === 'asc' ? comparison : -comparison;
     });
     return list;
-  }, [filteredContracts, contractSortDirection]);
+  }, [filteredContracts, contractSort]);
   const totalPages = Math.max(1, Math.ceil(sortedContracts.length / CONTRACT_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const paginatedContracts = useMemo(() => {
@@ -1181,19 +1215,51 @@ export default function ContractDashboard() {
     if (!isMobile && columnKey === 'status') return Math.min(baseWidth, 96);
     return baseWidth;
   };
-  const renderResizableHeader = (columnKey, label, extraStyle = {}) => (
-    <th style={{ ...shell.th, width: `${getColumnWidth(columnKey)}px`, minWidth: `${getColumnWidth(columnKey)}px`, ...extraStyle }}>
-      {typeof label === 'string' ? (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-          {label}
-          <SortChevronIcon size={13} color="#111827" />
-        </span>
-      ) : label}
-      
-    </th>
-  );
-  const toggleContractSort = () => {
-    setContractSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+  const contractSortableColumns = new Set(['contractNo', 'customer', 'property', 'duration', 'type', 'services', 'status', 'total', 'paid', 'due']);
+  const toggleContractSort = (columnKey) => {
+    setContractSort((current) => ({
+      key: columnKey,
+      direction: current.key === columnKey && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+  const renderResizableHeader = (columnKey, label, extraStyle = {}) => {
+    const sortable = contractSortableColumns.has(columnKey);
+    const active = contractSort.key === columnKey;
+    const ariaSort = sortable ? (active ? (contractSort.direction === 'asc' ? 'ascending' : 'descending') : 'none') : undefined;
+    return (
+      <th style={{ ...shell.th, width: `${getColumnWidth(columnKey)}px`, minWidth: `${getColumnWidth(columnKey)}px`, ...extraStyle }} aria-sort={ariaSort}>
+        {typeof label === 'string' ? (
+          sortable ? (
+            <button
+              type="button"
+              onClick={() => toggleContractSort(columnKey)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                border: 'none',
+                background: 'transparent',
+                padding: 0,
+                margin: 0,
+                color: 'inherit',
+                font: 'inherit',
+                fontWeight: 'inherit',
+                cursor: 'pointer'
+              }}
+              aria-label={`Sort ${label} ${active && contractSort.direction === 'asc' ? 'descending' : 'ascending'}`}
+              title={`Sort ${label} ${active && contractSort.direction === 'asc' ? 'descending' : 'ascending'}`}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                {label}
+                <SortChevronIcon size={13} color="#111827" />
+              </span>
+            </button>
+          ) : (
+            <span>{label}</span>
+          )
+        ) : label}
+      </th>
+    );
   };
   const contractColumnList = [
     `${getColumnWidth('rowNumber')}px`,
@@ -1421,32 +1487,7 @@ export default function ContractDashboard() {
         <thead>
           <tr>
             {renderResizableHeader('rowNumber', <span>Sr No</span>)}
-            {visibleColumns.contractNo ? (
-              renderResizableHeader('contractNo', (
-                <button
-                  type="button"
-                  onClick={toggleContractSort}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    border: 'none',
-                    background: 'transparent',
-                    padding: 0,
-                    margin: 0,
-                    color: 'inherit',
-                    font: 'inherit',
-                    fontWeight: 'inherit',
-                    cursor: 'pointer'
-                  }}
-                  aria-label={`Sort Contract ${contractSortDirection === 'asc' ? 'descending' : 'ascending'}`}
-                  title={`Sort Contract ${contractSortDirection === 'asc' ? 'descending' : 'ascending'}`}
-                  >
-                  <span style={{ textTransform: 'uppercase', fontSize: '11px' }}>Contract</span>
-                  <SortChevronIcon size={13} color="#111827" />
-                </button>
-              ))
-            ) : null}
+            {visibleColumns.contractNo ? renderResizableHeader('contractNo', 'Contract') : null}
             {visibleColumns.customer ? (
               renderResizableHeader('customer', 'Customer', { textAlign: 'left' })
             ) : null}
