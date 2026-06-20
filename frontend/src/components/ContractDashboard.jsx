@@ -174,21 +174,20 @@ const shell = {
   summaryStrip: {
     padding: '12px',
     display: 'grid',
-    gridAutoFlow: 'column',
-    gridAutoColumns: 'minmax(168px, 1fr)',
     gap: '10px',
     width: '100%',
     maxWidth: '100%',
     minWidth: 0,
-    boxSizing: 'border-box',
-    overflowX: 'auto'
+    boxSizing: 'border-box'
   },
   summaryCard: {
     position: 'relative',
-    display: 'grid',
-    gap: '8px',
-    minHeight: '96px',
-    padding: '14px 14px 12px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '16px',
+    minHeight: '108px',
+    padding: '16px 16px 14px 18px',
     borderRadius: '16px',
     border: '1px solid rgba(148,163,184,0.36)',
     background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
@@ -197,9 +196,11 @@ const shell = {
     overflow: 'hidden'
   },
   summaryCardAccent: { position: 'absolute', inset: '0 auto 0 0', width: '4px', borderTopLeftRadius: '16px', borderBottomLeftRadius: '16px' },
-  summaryLabel: { margin: 0, fontSize: '11px', fontWeight: 800, letterSpacing: '0.04em', color: '#64748b', textTransform: 'uppercase' },
-  summaryValue: { margin: 0, fontSize: '26px', fontWeight: 800, lineHeight: 1.05, color: '#111827', letterSpacing: '-0.03em', whiteSpace: 'nowrap' },
-  summaryValueCurrency: { fontSize: '24px' },
+  summaryCopy: { display: 'grid', gap: '8px', minWidth: 0, paddingTop: '2px' },
+  summaryLabel: { margin: 0, fontSize: '11px', fontWeight: 800, letterSpacing: '0.04em', color: '#64748b', textTransform: 'uppercase', lineHeight: 1.25 },
+  summarySubLabel: { margin: 0, fontSize: '12px', fontWeight: 700, letterSpacing: '-0.01em', color: '#475569', lineHeight: 1.25 },
+  summaryValue: { margin: 0, fontSize: '28px', fontWeight: 800, lineHeight: 1.05, color: '#111827', letterSpacing: '-0.03em', whiteSpace: 'nowrap' },
+  summaryValueCurrency: { fontSize: '25px' },
   summaryMeta: { margin: 0, fontSize: '11px', fontWeight: 700, color: '#94a3b8' },
   chip: {
     border: '1px solid transparent',
@@ -1126,36 +1127,20 @@ export default function ContractDashboard() {
 
   const contractSummaryCards = useMemo(() => {
     const totalContractAmount = filteredContracts.reduce((sum, row) => sum + Number(row.total || 0), 0);
+    const totalPaymentDue = filteredContracts.reduce((sum, row) => sum + Number(row.due || 0), 0);
     const uniqueCustomers = new Set(
       filteredContracts
         .map((row) => String(row.customerId || row.customer || '').trim())
         .filter(Boolean)
         .map((value) => normalizeName(value))
     ).size;
-    const uniqueSalesPeople = new Set(
-      filteredContracts
-        .map((row) => String(row.salesperson || '').trim())
-        .filter(Boolean)
-        .map((value) => normalizeName(value))
-    ).size;
 
     return [
-      { key: 'totalContracts', label: 'TOTAL CONTRACTS', value: filteredContracts.length, tone: '#475569', filter: 'All' },
-      { key: 'totalAmount', label: 'TOTAL CONTRACT AMOUNT', value: formatINR(totalContractAmount), tone: '#0f766e', compact: true, currency: true, filter: 'All' },
-      { key: 'customers', label: 'NO. OF CUSTOMERS', value: uniqueCustomers, tone: '#2563eb', filter: 'All' },
-      { key: 'active', label: 'ACTIVE CONTRACTS', value: filteredContracts.filter((row) => row.status === 'Active').length, tone: '#16a34a', filter: 'Active' },
-      { key: 'upcoming', label: 'UPCOMING CONTRACTS', value: filteredContracts.filter((row) => row.status === 'Upcoming').length, tone: '#be185d', filter: 'Upcoming' },
-      { key: 'expiringSoon', label: 'EXPIRING SOON', value: filteredContracts.filter((row) => row.status === 'Expiring Soon').length, tone: '#d97706', filter: 'Expiring Soon' },
-      { key: 'expired', label: 'EXPIRED CONTRACTS', value: filteredContracts.filter((row) => row.status === 'Expired').length, tone: '#dc2626', filter: 'Expired' },
-      { key: 'renewed', label: 'RENEWED CONTRACTS', value: filteredContracts.filter((row) => row.status === 'Renewed').length, tone: '#0e7490', filter: 'Renewed' },
-      { key: 'sales', label: 'ASSIGNED SALES PERSON', value: uniqueSalesPeople, tone: '#334155', filter: 'All' }
+      { key: 'totalContracts', label: 'TOTAL CONTRACT', value: filteredContracts.length, sublabel: 'No. of Contract', tone: '#475569' },
+      { key: 'totalAmount', label: 'TOTAL CONTRACT AMOUNT', value: formatINR(totalContractAmount), sublabel: 'Sum of Total Contract', tone: '#0f766e', compact: true },
+      { key: 'paymentDue', label: 'TOTAL PAYMENT DUE', value: formatINR(totalPaymentDue), sublabel: 'Sum of Total Payment Due', tone: '#dc2626', compact: true }
     ];
   }, [filteredContracts]);
-
-  const handleSummaryCardClick = (card) => {
-    setQuickFilter(String(card?.filter || 'All'));
-    setPage(1);
-  };
 
   const selectedContract = useMemo(
     () => allContracts.find((row) => row.id === selectedContractId) || sortedContracts[0] || allContracts[0] || null,
@@ -1323,6 +1308,9 @@ export default function ContractDashboard() {
   const cardTopStyle = isMobile ? { ...shell.cardTop, flexDirection: 'column', alignItems: 'stretch' } : shell.cardTop;
   const headActionsStyle = isMobile ? { ...shell.headActions, justifyContent: 'stretch', width: '100%' } : shell.headActions;
   const newButtonStyle = isMobile ? { ...shell.newBtn, width: 'fit-content', minHeight: '32px', height: '32px', padding: '0 10px' } : shell.newBtn;
+  const summaryStripStyle = isMobile
+    ? { ...shell.summaryStrip, gridTemplateColumns: '1fr' }
+    : { ...shell.summaryStrip, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' };
   const clearFilters = () => {
     setQuickFilter('All');
     setFilters({
@@ -1621,21 +1609,20 @@ export default function ContractDashboard() {
           </div>
         </div>
 
-        <div style={shell.summaryStrip}>
+        <div style={summaryStripStyle}>
           {contractSummaryCards.map((card) => (
-            <button
+            <div
               key={card.key}
-              type="button"
-              onClick={() => handleSummaryCardClick(card)}
               style={{
                 ...shell.summaryCard,
-                cursor: 'pointer',
-                textAlign: 'left',
                 width: '100%'
               }}
             >
               <span style={{ ...shell.summaryCardAccent, background: card.tone }} />
-              <p style={shell.summaryLabel}>{card.label}</p>
+              <div style={shell.summaryCopy}>
+                <p style={shell.summaryLabel}>{card.label}</p>
+                <p style={shell.summarySubLabel}>{card.sublabel}</p>
+              </div>
               <p
                 style={{
                   ...shell.summaryValue,
@@ -1644,7 +1631,7 @@ export default function ContractDashboard() {
               >
                 {card.value}
               </p>
-            </button>
+            </div>
           ))}
         </div>
 
