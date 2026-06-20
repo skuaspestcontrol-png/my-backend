@@ -171,6 +171,36 @@ const shell = {
   shownPill: { border: '1px solid var(--color-border)', background: '#f8fafc', color: '#334155', borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 },
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
+  summaryStrip: {
+    padding: '12px',
+    display: 'grid',
+    gridAutoFlow: 'column',
+    gridAutoColumns: 'minmax(168px, 1fr)',
+    gap: '10px',
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
+    overflowX: 'auto'
+  },
+  summaryCard: {
+    position: 'relative',
+    display: 'grid',
+    gap: '8px',
+    minHeight: '96px',
+    padding: '14px 14px 12px',
+    borderRadius: '16px',
+    border: '1px solid rgba(148,163,184,0.36)',
+    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+    boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
+    boxSizing: 'border-box',
+    overflow: 'hidden'
+  },
+  summaryCardAccent: { position: 'absolute', inset: '0 auto 0 0', width: '4px', borderTopLeftRadius: '16px', borderBottomLeftRadius: '16px' },
+  summaryLabel: { margin: 0, fontSize: '11px', fontWeight: 800, letterSpacing: '0.04em', color: '#64748b', textTransform: 'uppercase' },
+  summaryValue: { margin: 0, fontSize: '26px', fontWeight: 800, lineHeight: 1.05, color: '#111827', letterSpacing: '-0.03em', whiteSpace: 'nowrap' },
+  summaryValueCurrency: { fontSize: '24px' },
+  summaryMeta: { margin: 0, fontSize: '11px', fontWeight: 700, color: '#94a3b8' },
   chip: {
     border: '1px solid transparent',
     borderRadius: '999px',
@@ -926,6 +956,7 @@ export default function ContractDashboard() {
         gstNumber: String(customer?.gstNumber || '').trim(),
         property: String(customer?.billingArea || customer?.shippingArea || customer?.billingAddress || customer?.shippingAddress || invoice.customerName || '-').trim(),
         city: String(customer?.billingState || customer?.shippingState || '-').trim(),
+        customerId: String(invoice.customerId || customer?._id || '').trim(),
         startDate: startInputDate,
         endDate: endInputDate,
         invoiceDate: invoiceDate ? toInputDate(invoiceDate) : startInputDate,
@@ -1092,6 +1123,39 @@ export default function ContractDashboard() {
     });
     return counts;
   }, [allContracts]);
+
+  const contractSummaryCards = useMemo(() => {
+    const totalContractAmount = filteredContracts.reduce((sum, row) => sum + Number(row.total || 0), 0);
+    const uniqueCustomers = new Set(
+      filteredContracts
+        .map((row) => String(row.customerId || row.customer || '').trim())
+        .filter(Boolean)
+        .map((value) => normalizeName(value))
+    ).size;
+    const uniqueSalesPeople = new Set(
+      filteredContracts
+        .map((row) => String(row.salesperson || '').trim())
+        .filter(Boolean)
+        .map((value) => normalizeName(value))
+    ).size;
+
+    return [
+      { key: 'totalContracts', label: 'TOTAL CONTRACTS', value: filteredContracts.length, tone: '#475569', filter: 'All' },
+      { key: 'totalAmount', label: 'TOTAL CONTRACT AMOUNT', value: formatINR(totalContractAmount), tone: '#0f766e', compact: true, currency: true, filter: 'All' },
+      { key: 'customers', label: 'NO. OF CUSTOMERS', value: uniqueCustomers, tone: '#2563eb', filter: 'All' },
+      { key: 'active', label: 'ACTIVE CONTRACTS', value: filteredContracts.filter((row) => row.status === 'Active').length, tone: '#16a34a', filter: 'Active' },
+      { key: 'upcoming', label: 'UPCOMING CONTRACTS', value: filteredContracts.filter((row) => row.status === 'Upcoming').length, tone: '#be185d', filter: 'Upcoming' },
+      { key: 'expiringSoon', label: 'EXPIRING SOON', value: filteredContracts.filter((row) => row.status === 'Expiring Soon').length, tone: '#d97706', filter: 'Expiring Soon' },
+      { key: 'expired', label: 'EXPIRED CONTRACTS', value: filteredContracts.filter((row) => row.status === 'Expired').length, tone: '#dc2626', filter: 'Expired' },
+      { key: 'renewed', label: 'RENEWED CONTRACTS', value: filteredContracts.filter((row) => row.status === 'Renewed').length, tone: '#0e7490', filter: 'Renewed' },
+      { key: 'sales', label: 'ASSIGNED SALES PERSON', value: uniqueSalesPeople, tone: '#334155', filter: 'All' }
+    ];
+  }, [filteredContracts]);
+
+  const handleSummaryCardClick = (card) => {
+    setQuickFilter(String(card?.filter || 'All'));
+    setPage(1);
+  };
 
   const selectedContract = useMemo(
     () => allContracts.find((row) => row.id === selectedContractId) || sortedContracts[0] || allContracts[0] || null,
@@ -1555,6 +1619,33 @@ export default function ContractDashboard() {
               New Contract
             </button>
           </div>
+        </div>
+
+        <div style={shell.summaryStrip}>
+          {contractSummaryCards.map((card) => (
+            <button
+              key={card.key}
+              type="button"
+              onClick={() => handleSummaryCardClick(card)}
+              style={{
+                ...shell.summaryCard,
+                cursor: 'pointer',
+                textAlign: 'left',
+                width: '100%'
+              }}
+            >
+              <span style={{ ...shell.summaryCardAccent, background: card.tone }} />
+              <p style={shell.summaryLabel}>{card.label}</p>
+              <p
+                style={{
+                  ...shell.summaryValue,
+                  ...(card.compact ? shell.summaryValueCurrency : {})
+                }}
+              >
+                {card.value}
+              </p>
+            </button>
+          ))}
         </div>
 
         <div style={quickWrapStyle}>
