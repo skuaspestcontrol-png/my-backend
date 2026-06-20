@@ -110,8 +110,8 @@ const shell = {
   incomePanelHead: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' },
   incomeLegend: { display: 'flex', alignItems: 'flex-start', gap: '28px', flexWrap: 'wrap' },
   incomeLegendItem: { display: 'grid', gap: '4px' },
-  incomeLegendLabel: { display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#64748b', fontSize: '18px', fontWeight: 500, lineHeight: 1.1 },
-  incomeLegendValue: { margin: 0, color: '#111827', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1 },
+  incomeLegendLabel: { display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#64748b', fontSize: '13px', fontWeight: 600, lineHeight: 1.1 },
+  incomeLegendValue: { margin: 0, color: '#111827', fontSize: '16px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1 },
   modeToggle: { display: 'inline-flex', alignItems: 'center', border: '1px solid #d1d5db', borderRadius: '10px', overflow: 'hidden', background: '#fff', flexShrink: 0 },
   modeToggleBtn: { border: 'none', background: '#fff', color: '#111827', minHeight: '42px', height: '42px', padding: '0 14px', fontSize: '16px', fontWeight: 500, cursor: 'pointer' },
   modeToggleBtnActive: { background: '#e5e7eb', color: '#111827' },
@@ -211,6 +211,7 @@ export default function Dashboard() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [selectedContractYear, setSelectedContractYear] = useState(() => String(new Date().getFullYear()));
   const [selectedTargetYear, setSelectedTargetYear] = useState(() => String(new Date().getFullYear()));
+  const [hoveredIncomeBar, setHoveredIncomeBar] = useState(null);
 
   useEffect(() => {
     if (hasLoadedRef.current) return undefined;
@@ -728,11 +729,15 @@ export default function Dashboard() {
     ? { ...shell.incomeYAxis, padding: '8px 0 24px 0' }
     : shell.incomeYAxis;
   const incomeExpenseLegendValueStyle = isMobile
-    ? { ...shell.incomeLegendValue, fontSize: '22px' }
+    ? { ...shell.incomeLegendValue, fontSize: '16px' }
     : shell.incomeLegendValue;
   const incomeExpenseLegendLabelStyle = isMobile
-    ? { ...shell.incomeLegendLabel, fontSize: '15px' }
+    ? { ...shell.incomeLegendLabel, fontSize: '13px' }
     : shell.incomeLegendLabel;
+  const formatCurrencyPrecise = (value) => Number(value || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 
   return (
     <div style={shell.page}>
@@ -1008,7 +1013,8 @@ export default function Dashboard() {
                     display: 'grid',
                     gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
                     gap: isMobile ? '6px' : '10px',
-                    alignItems: 'end'
+                    alignItems: 'end',
+                    overflow: 'visible'
                   }}
                 >
                   {selectedYearAnalytics.months.map((month, index) => {
@@ -1018,16 +1024,106 @@ export default function Dashboard() {
                     const expenseHeight = Math.max(expense * incomeExpenseScale, expense > 0 ? 6 : 0);
 
                     return (
-                      <div key={month.key} style={shell.incomeMonth}>
+                      <div
+                        key={month.key}
+                        style={{ ...shell.incomeMonth, position: 'relative' }}
+                        onMouseLeave={() => setHoveredIncomeBar(null)}
+                      >
                         <div style={shell.incomeBarCluster}>
                           <div style={{ display: 'flex', alignItems: 'end', gap: '4px', height: '100%' }}>
-                            <span style={{ ...shell.incomeBarItem, height: `${incomeHeight}px`, background: incomeGreen }} />
-                            <span style={{ ...shell.incomeBarItem, height: `${expenseHeight}px`, background: dangerRed, opacity: 0.78 }} />
+                            <button
+                              type="button"
+                              aria-label={`${month.label} income ${formatCurrencyPrecise(income)}`}
+                              onMouseEnter={() => setHoveredIncomeBar({
+                                monthKey: month.key,
+                                monthLabel: month.label,
+                                year: selectedYearNumber,
+                                value: income
+                              })}
+                              onFocus={() => setHoveredIncomeBar({
+                                monthKey: month.key,
+                                monthLabel: month.label,
+                                year: selectedYearNumber,
+                                value: income
+                              })}
+                              style={{
+                                ...shell.incomeBarItem,
+                                height: `${incomeHeight}px`,
+                                background: incomeGreen,
+                                border: 'none',
+                                padding: 0,
+                                cursor: 'pointer'
+                              }}
+                            />
+                            <button
+                              type="button"
+                              aria-label={`${month.label} expense ${formatCurrencyPrecise(expense)}`}
+                              onMouseEnter={() => setHoveredIncomeBar({
+                                monthKey: month.key,
+                                monthLabel: month.label,
+                                year: selectedYearNumber,
+                                value: expense
+                              })}
+                              onFocus={() => setHoveredIncomeBar({
+                                monthKey: month.key,
+                                monthLabel: month.label,
+                                year: selectedYearNumber,
+                                value: expense
+                              })}
+                              style={{
+                                ...shell.incomeBarItem,
+                                height: `${expenseHeight}px`,
+                                background: dangerRed,
+                                opacity: 0.78,
+                                border: 'none',
+                                padding: 0,
+                                cursor: 'pointer'
+                              }}
+                            />
                           </div>
                         </div>
                         <div style={shell.incomeMonthLabel}>
                           <span>{month.label}</span>
                         </div>
+                        {hoveredIncomeBar?.monthKey === month.key ? (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: '50%',
+                              bottom: 'calc(100% + 18px)',
+                              transform: 'translateX(-50%)',
+                              background: '#fff',
+                              border: '1px solid #dbe4f0',
+                              borderRadius: '16px',
+                              boxShadow: '0 18px 40px rgba(15, 23, 42, 0.14)',
+                              padding: '16px 18px',
+                              minWidth: '150px',
+                              pointerEvents: 'none',
+                              textAlign: 'left',
+                              zIndex: 20
+                            }}
+                          >
+                            <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800, lineHeight: 1.1 }}>
+                              {formatCurrencyPrecise(hoveredIncomeBar.value)}
+                            </div>
+                            <div style={{ marginTop: '12px', color: '#334155', fontSize: '20px', fontWeight: 500, lineHeight: 1.1 }}>
+                              {`${hoveredIncomeBar.monthLabel} ${hoveredIncomeBar.year}`}
+                            </div>
+                            <div
+                              style={{
+                                position: 'absolute',
+                                left: '50%',
+                                bottom: '-8px',
+                                width: '16px',
+                                height: '16px',
+                                background: '#fff',
+                                borderRight: '1px solid #dbe4f0',
+                                borderBottom: '1px solid #dbe4f0',
+                                transform: 'translateX(-50%) rotate(45deg)'
+                              }}
+                            />
+                          </div>
+                        ) : null}
                       </div>
                     );
                   })}
