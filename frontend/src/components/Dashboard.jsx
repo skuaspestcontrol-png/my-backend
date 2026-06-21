@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { subscribeDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -100,7 +99,7 @@ const shell = {
   graphGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '18px' },
   panel: { background: '#fff', borderRadius: '22px', border: '1px solid #dbe4f0', padding: '18px 18px 20px', boxShadow: 'none' },
   sourcePanel: { background: '#fff', borderRadius: '22px', border: '1px solid #dbe4f0', padding: 0, overflow: 'hidden', boxShadow: 'none' },
-  sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', minHeight: '55px', padding: '0 18px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0', boxSizing: 'border-box' },
+  sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '13px 18px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0' },
   sourceHeaderTitle: { margin: 0, color: '#475569', fontSize: '17px', fontWeight: 700 },
   sourceHeaderBadge: { color: '#111827', fontWeight: 700, background: '#f1f5f9', borderRadius: '10px', padding: '5px 9px', fontSize: '12px', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.10)' },
   sourceBody: { padding: '14px 14px 14px', display: 'grid', gap: '12px', alignItems: 'center' },
@@ -119,13 +118,13 @@ const shell = {
   incomeChartWrap: { display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', marginTop: '18px' },
   incomeYAxis: { display: 'grid', alignContent: 'space-between', padding: '8px 0 30px 0' },
   incomeYAxisLabel: { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1 },
-  incomeChart: { position: 'relative', minHeight: '280px', borderLeft: '1px solid rgba(148, 163, 184, 0.32)', borderBottom: '1px solid rgba(148, 163, 184, 0.32)', padding: '10px 12px 8px 12px', background: '#fff' },
-  incomeGridLine: { position: 'absolute', left: 0, right: 0, borderTop: '1px dashed rgba(148, 163, 184, 0.18)' },
-  incomeBars: { position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '6px', alignItems: 'end', height: '100%' },
-  incomeMonth: { display: 'grid', gridTemplateRows: '1fr auto', gap: '6px', alignItems: 'end', minHeight: 0, minWidth: 0 },
-  incomeBarCluster: { display: 'flex', alignItems: 'end', justifyContent: 'center', gap: '3px', minHeight: 0, height: '100%' },
-  incomeBarItem: { width: '14px', borderRadius: '4px 4px 0 0', minHeight: '1px' },
-  incomeMonthLabel: { display: 'grid', gap: '2px', justifyItems: 'center', color: '#64748b', fontSize: '10px', fontWeight: 700, lineHeight: 1, textAlign: 'center', letterSpacing: '0.01em', whiteSpace: 'nowrap', minWidth: 0 },
+  incomeChart: { position: 'relative', minHeight: '280px', borderLeft: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', padding: '10px 12px 8px 12px', background: '#fff' },
+  incomeGridLine: { position: 'absolute', left: 0, right: 0, borderTop: '1px dashed #dbe4f0' },
+  incomeBars: { position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '8px', alignItems: 'end', height: '100%' },
+  incomeMonth: { display: 'grid', gridTemplateRows: '1fr auto', gap: '10px', alignItems: 'end', minHeight: 0 },
+  incomeBarCluster: { display: 'flex', alignItems: 'end', justifyContent: 'center', gap: '4px', minHeight: 0, height: '100%' },
+  incomeBarItem: { width: '18px', borderRadius: '4px 4px 0 0', minHeight: '1px' },
+  incomeMonthLabel: { display: 'grid', gap: '2px', justifyItems: 'center', color: '#64748b', fontSize: '10px', fontWeight: 700, lineHeight: 1.05, textAlign: 'center' },
   progressTrack: { width: '100%', height: '20px', background: '#e5e7eb', borderRadius: '999px', overflow: 'hidden', display: 'flex' },
   legendRow: { display: 'flex', gap: '18px', flexWrap: 'wrap', marginTop: '14px' },
   legendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#334155', fontSize: '13px', fontWeight: 600 },
@@ -163,7 +162,6 @@ const isOverdue = (dueDate) => {
 
 const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 const monthLabel = (date) => date.toLocaleString('en-IN', { month: 'short' });
-const monthYearLabel = (date) => String(date.getFullYear());
 const normalizeLeadStatus = (value) => String(value || '').trim().toLowerCase();
 const normalizeLeadSource = (value) => String(value || '').trim();
 const leadSourceOrder = ['Website', 'Google Ads', 'Google Business Profile', 'Facebook', 'WhatsApp', 'Call', 'Referral'];
@@ -198,18 +196,6 @@ const mapLeadSourceDisplayLabel = (value) => {
   return raw;
 };
 
-function FiscalMonthTick({ x, y, payload }) {
-  const [month, year] = String(payload?.value || '').split('|');
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <text x={0} y={0} textAnchor="middle" fill="#64748b" fontSize="12" fontWeight={700}>
-        <tspan x={0} dy={0}>{month}</tspan>
-        <tspan x={0} dy={14}>{year}</tspan>
-      </text>
-    </g>
-  );
-}
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const hasLoadedRef = useRef(false);
@@ -225,7 +211,6 @@ export default function Dashboard() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [selectedContractYear, setSelectedContractYear] = useState(() => String(new Date().getFullYear()));
   const [selectedTargetYear, setSelectedTargetYear] = useState(() => String(new Date().getFullYear()));
-  const [selectedIncomeMode, setSelectedIncomeMode] = useState('Accrual');
   const [hoveredIncomeBar, setHoveredIncomeBar] = useState(null);
 
   useEffect(() => {
@@ -451,18 +436,10 @@ export default function Dashboard() {
   }, [invoices, vendorBills]);
 
   const selectedYearAnalytics = useMemo(() => {
-    const fiscalStartMonth = 3;
     const months = Array.from({ length: 12 }, (_, idx) => {
-      const date = new Date(selectedYearNumber, fiscalStartMonth + idx, 1);
-      return {
-        key: monthKey(date),
-        label: monthLabel(date),
-        year: monthYearLabel(date),
-        displayLabel: `${monthLabel(date)}|${monthYearLabel(date)}`
-      };
+      const date = new Date(selectedYearNumber, idx, 1);
+      return { key: monthKey(date), label: monthLabel(date) };
     });
-    const fiscalStartDate = new Date(selectedYearNumber, fiscalStartMonth, 1);
-    const fiscalEndDate = new Date(selectedYearNumber + 1, 2, 31, 23, 59, 59, 999);
 
     const incomeMap = new Map(months.map((month) => [month.key, 0]));
     const expenseMap = new Map(months.map((month) => [month.key, 0]));
@@ -484,7 +461,7 @@ export default function Dashboard() {
 
     invoices.forEach((invoice) => {
       const date = getIncomeDate(invoice);
-      if (!date || date < fiscalStartDate || date > fiscalEndDate) return;
+      if (!date || date.getFullYear() !== selectedYearNumber) return;
       const key = monthKey(date);
       if (!incomeMap.has(key)) return;
       incomeMap.set(key, incomeMap.get(key) + toNum(invoice.total || invoice.amount || invoice.totalAmount));
@@ -492,14 +469,14 @@ export default function Dashboard() {
 
     vendorBills.forEach((bill) => {
       const date = getExpenseDate(bill);
-      if (!date || date < fiscalStartDate || date > fiscalEndDate) return;
+      if (!date || date.getFullYear() !== selectedYearNumber) return;
       const key = monthKey(date);
       if (!expenseMap.has(key)) return;
       expenseMap.set(key, expenseMap.get(key) + toNum(bill.total || bill.amount || bill.balanceDue));
     });
 
-    const incomeSeries = months.map((month) => ({ label: month.label, year: month.year, displayLabel: month.displayLabel, value: incomeMap.get(month.key) || 0 }));
-    const expenseSeries = months.map((month) => ({ label: month.label, year: month.year, displayLabel: month.displayLabel, value: expenseMap.get(month.key) || 0 }));
+    const incomeSeries = months.map((month) => ({ label: month.label, value: incomeMap.get(month.key) || 0 }));
+    const expenseSeries = months.map((month) => ({ label: month.label, value: expenseMap.get(month.key) || 0 }));
 
     const expenseBuckets = new Map();
     vendorBills.forEach((bill) => {
@@ -529,21 +506,12 @@ export default function Dashboard() {
       months,
       incomeSeries,
       expenseSeries,
-      fiscalStartYear: selectedYearNumber,
       topExpenses,
       totalIncome: incomeSeries.reduce((sum, x) => sum + x.value, 0),
       totalExpenses: expenseSeries.reduce((sum, x) => sum + x.value, 0),
       totalExpenseAmount
     };
   }, [invoices, vendorBills, selectedYearNumber]);
-
-  const incomeExpenseChartData = useMemo(() => (
-    selectedYearAnalytics.months.map((month, index) => ({
-      ...month,
-      income: selectedYearAnalytics.incomeSeries[index]?.value || 0,
-      expense: selectedYearAnalytics.expenseSeries[index]?.value || 0
-    }))
-  ), [selectedYearAnalytics]);
 
   const topCards = useMemo(() => ({
     leadsCount: leads.length || Number(summary?.leadsCount || 0),
@@ -636,10 +604,6 @@ export default function Dashboard() {
   const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
   const isLaptop = viewportWidth >= 992 && viewportWidth <= 1199;
   const isSmallMobile = viewportWidth < 420;
-  const currentFiscalYearStart = new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1;
-  const selectedFiscalYearLabel = selectedYearNumber === currentFiscalYearStart
-    ? 'This Fiscal Year'
-    : `FY ${selectedYearNumber}-${String(selectedYearNumber + 1).slice(-2)}`;
 
   const heroStyle = isMobile
     ? { ...shell.hero, gridTemplateColumns: '1fr', padding: isSmallMobile ? '16px' : '20px' }
@@ -694,14 +658,17 @@ export default function Dashboard() {
   const graphGridStyle = viewportWidth >= 1200
     ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', alignItems: 'start' }
     : { ...shell.graphGrid, gridTemplateColumns: '1fr' };
-  const graphPanelStyle = viewportWidth >= 1200
-    ? { ...shell.sourcePanel, height: '390px', minHeight: '390px', boxSizing: 'border-box', overflow: 'hidden', display: 'flex', flexDirection: 'column' }
+  const graphCardStyle = viewportWidth >= 1200
+    ? { minHeight: '390px', boxSizing: 'border-box' }
+    : {};
+  const graphSourceCardStyle = viewportWidth >= 1200
+    ? { ...shell.sourcePanel, minHeight: '390px', boxSizing: 'border-box' }
     : shell.sourcePanel;
   const sourceBodyStyle = isMobile
-    ? { ...shell.sourceBody, justifyItems: 'center', flex: 1, alignContent: 'center' }
+    ? { ...shell.sourceBody, justifyItems: 'center' }
     : viewportWidth >= 1200
-      ? { ...shell.sourceBody, gridTemplateColumns: 'minmax(180px, 0.92fr) minmax(130px, 0.78fr)', justifyItems: 'stretch', gap: '8px', flex: 1, alignContent: 'center' }
-      : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch', flex: 1, alignContent: 'center' };
+      ? { ...shell.sourceBody, gridTemplateColumns: 'minmax(180px, 0.92fr) minmax(130px, 0.78fr)', justifyItems: 'stretch', gap: '8px' }
+      : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch' };
   const sourceLegendStyle = isMobile
     ? { ...shell.sourceLegend, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px', justifyItems: 'stretch', textAlign: 'left', maxWidth: '100%' }
     : { ...shell.sourceLegend, justifyItems: 'stretch', textAlign: 'left', maxWidth: '250px' };
@@ -760,8 +727,25 @@ export default function Dashboard() {
   const incomeExpenseYAxisStep = Math.max(20000, Math.ceil((incomeExpenseMaxValue || 1) / 5 / 10000) * 10000);
   const incomeExpenseYAxisMax = incomeExpenseYAxisStep * 5;
   const incomeExpenseYAxisValues = Array.from({ length: 6 }, (_, idx) => idx * incomeExpenseYAxisStep);
-  const incomeExpenseChartHeight = isMobile ? 170 : 190;
+  const incomeExpenseChartHeight = isMobile ? 220 : 260;
+  const incomeExpenseScale = incomeExpenseYAxisMax > 0 ? incomeExpenseChartHeight / incomeExpenseYAxisMax : 1;
   const currencyLabel = (value) => (value >= 1000 ? `${Math.round(value / 1000)} K` : `${Math.round(value)}`);
+  const incomeExpenseChartStyle = isMobile
+    ? { ...shell.incomeChart, minHeight: '250px', padding: '10px 8px 8px 8px' }
+    : viewportWidth >= 1200
+      ? { ...shell.incomeChart, minHeight: '200px', padding: '8px 10px 6px 10px' }
+    : shell.incomeChart;
+  const incomeExpenseYAxisStyle = isMobile
+    ? { ...shell.incomeYAxis, padding: '8px 0 24px 0' }
+    : viewportWidth >= 1200
+      ? { ...shell.incomeYAxis, padding: '6px 0 18px 0' }
+    : shell.incomeYAxis;
+  const incomeExpenseLegendValueStyle = isMobile
+    ? { ...shell.incomeLegendValue, fontSize: '16px' }
+    : { ...shell.incomeLegendValue, fontSize: '15px' };
+  const incomeExpenseLegendLabelStyle = isMobile
+    ? { ...shell.incomeLegendLabel, fontSize: '13px' }
+    : { ...shell.incomeLegendLabel, fontSize: '11px' };
   const formatCurrencyPrecise = (value) => Number(value || 0).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -769,50 +753,6 @@ export default function Dashboard() {
   const leadSourcesDonutStyle = viewportWidth >= 1200
     ? { ...shell.donut, width: '220px', height: '220px' }
     : shell.donut;
-  const sourceHeaderSelectStyle = {
-    ...shell.sourceHeaderBadge,
-    border: '1px solid #e2e8f0',
-    appearance: 'none',
-    outline: 'none',
-    cursor: 'pointer',
-    padding: '6px 28px 6px 10px',
-    backgroundImage: 'linear-gradient(45deg, transparent 50%, #64748b 50%), linear-gradient(135deg, #64748b 50%, transparent 50%)',
-    backgroundPosition: 'calc(100% - 14px) calc(50% - 2px), calc(100% - 8px) calc(50% - 2px)',
-    backgroundSize: '6px 6px, 6px 6px',
-    backgroundRepeat: 'no-repeat',
-    minWidth: '110px',
-    textAlign: 'left'
-  };
-  const incomeHeaderSelectStyle = {
-    ...sourceHeaderSelectStyle,
-    minWidth: isMobile ? '100%' : '202px',
-    fontSize: isMobile ? '12px' : '14px',
-    borderRadius: '12px',
-    backgroundColor: '#fff',
-    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)'
-  };
-  const incomeModeToggleStyle = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0',
-    border: '1px solid #f2c8cd',
-    background: '#fff',
-    borderRadius: '16px',
-    padding: '4px',
-    boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)',
-    flexShrink: 0
-  };
-  const incomeModeButtonStyle = (active) => ({
-    border: 'none',
-    background: active ? '#f4f4f8' : '#fff',
-    color: '#111827',
-    fontSize: '14px',
-    fontWeight: 500,
-    padding: '8px 14px',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    minHeight: '36px'
-  });
 
   return (
     <div style={shell.page}>
@@ -892,13 +832,23 @@ export default function Dashboard() {
       </section>
 
       <section style={graphGridStyle}>
-        <article style={graphPanelStyle}>
-          <div style={shell.sourceHeader}>
-            <h2 style={shell.sourceHeaderTitle}>Lead Pipeline</h2>
+        <article style={{ ...shell.panel, ...graphCardStyle }}>
+          <div style={shell.panelHead}>
+            <h2 style={shell.panelTitle}>Lead Pipeline</h2>
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
-              style={sourceHeaderSelectStyle}
+              style={{
+                border: '1px solid #dbe4f0',
+                background: '#f8fafc',
+                color: '#334155',
+                fontWeight: 700,
+                borderRadius: '12px',
+                padding: '8px 12px',
+                fontSize: '12px',
+                outline: 'none',
+                minWidth: '110px'
+              }}
               aria-label="Select lead pipeline year"
             >
               {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
@@ -906,55 +856,53 @@ export default function Dashboard() {
               ))}
             </select>
           </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: isMobile ? '10px 14px 12px' : '10px 18px 14px' }}>
-            <div style={{ display: 'grid', gap: '14px' }}>
-              {leadFunnelRows.map((row) => (
-                <button
-                  key={row.label}
-                  type="button"
-                  onClick={() => navigate('/leads')}
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    padding: 0,
-                    cursor: 'pointer',
-                    display: 'grid',
-                    gridTemplateColumns: isMobile ? '92px minmax(0, 1fr) 44px' : '110px minmax(0, 1fr) 48px',
-                    alignItems: 'center',
-                    gap: isMobile ? '10px' : '10px',
-                    width: '100%',
-                    textAlign: 'left',
-                    minHeight: '48px'
-                  }}
-                >
-                  <span style={{ color: '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '13px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
-                  <span style={{ display: 'block', width: '100%', minWidth: 0 }}>
-                    <span
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        height: isMobile ? '42px' : '42px',
-                        width: `${Math.max(row.value > 0 ? 12 : 0, (row.value / maxLeadFunnel) * 100)}%`,
-                        minWidth: row.value > 0 ? (isMobile ? '54px' : '70px') : '0',
-                        borderRadius: '7px',
-                        background: row.color,
-                        color: '#fff',
-                        padding: row.value > 0 ? '0 12px' : 0,
-                        boxSizing: 'border-box',
-                        overflow: 'hidden'
-                      }}
-                    >
-                      <strong style={{ fontSize: isMobile ? '16px' : '16px', lineHeight: 1 }}>{row.value}</strong>
-                    </span>
+          <div style={{ display: 'grid', gap: '14px', marginTop: '18px' }}>
+            {leadFunnelRows.map((row) => (
+              <button
+                key={row.label}
+                type="button"
+                onClick={() => navigate('/leads')}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  padding: 0,
+                  cursor: 'pointer',
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '92px minmax(0, 1fr) 44px' : '110px minmax(0, 1fr) 48px',
+                  alignItems: 'center',
+                  gap: isMobile ? '10px' : '10px',
+                  width: '100%',
+                  textAlign: 'left',
+                  minHeight: '48px'
+                }}
+              >
+                <span style={{ color: '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '13px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
+                <span style={{ display: 'block', width: '100%', minWidth: 0 }}>
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      height: isMobile ? '42px' : '42px',
+                      width: `${Math.max(row.value > 0 ? 12 : 0, (row.value / maxLeadFunnel) * 100)}%`,
+                      minWidth: row.value > 0 ? (isMobile ? '54px' : '70px') : '0',
+                      borderRadius: '7px',
+                      background: row.color,
+                      color: '#fff',
+                      padding: row.value > 0 ? '0 12px' : 0,
+                      boxSizing: 'border-box',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <strong style={{ fontSize: isMobile ? '16px' : '16px', lineHeight: 1 }}>{row.value}</strong>
                   </span>
-                  <span style={{ color: '#64748b', fontWeight: 700, fontSize: isMobile ? '13px' : '13px', textAlign: 'left' }}>
-                    {`${leadPipeline.totalLeads > 0 ? Math.round((row.value / leadPipeline.totalLeads) * 100) : 0}%`}
-                  </span>
-                </button>
-              ))}
-            </div>
+                </span>
+                <span style={{ color: '#64748b', fontWeight: 700, fontSize: isMobile ? '13px' : '13px', textAlign: 'left' }}>
+                  {`${leadPipeline.totalLeads > 0 ? Math.round((row.value / leadPipeline.totalLeads) * 100) : 0}%`}
+                </span>
+              </button>
+            ))}
           </div>
-          <div style={{ ...shell.legendRow, marginTop: '0', justifyContent: 'space-between', padding: isMobile ? '0 14px 14px' : '0 18px 18px' }}>
+          <div style={{ ...shell.legendRow, marginTop: '14px', justifyContent: 'space-between' }}>
             <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
               <strong style={{ color: '#4965dd', fontSize: '19px' }}>{`${leadPipeline.conversionRate.toFixed(0)}%`}</strong>
               <span style={{ fontSize: '12px', color: '#64748b' }}>Conversion Rate</span>
@@ -970,7 +918,189 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={graphPanelStyle}>
+        <article style={{ ...shell.panel, ...graphCardStyle, padding: isMobile ? '16px' : '18px 18px 20px' }}>
+          <div style={shell.incomePanelHead}>
+            <div style={shell.incomeLegend}>
+              <div style={shell.incomeLegendItem}>
+                <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: incomeGreen }} />Total Income</div>
+                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</p>
+              </div>
+              <div style={shell.incomeLegendItem}>
+                <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: dangerRed }} />Total Expenses</div>
+                <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</p>
+              </div>
+            </div>
+            <select
+              value={selectedContractYear}
+              onChange={(event) => setSelectedContractYear(event.target.value)}
+              style={{
+                border: '1px solid #dbe4f0',
+                background: '#f8fafc',
+                color: '#334155',
+                fontWeight: 700,
+                borderRadius: '12px',
+                padding: '7px 11px',
+                fontSize: '12px',
+                outline: 'none',
+                minWidth: '102px',
+                alignSelf: 'flex-start'
+              }}
+              aria-label="Select contract year"
+            >
+              {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
+                <option key={year} value={String(year)}>{year}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', marginTop: '18px' }}>
+            <div style={incomeExpenseYAxisStyle}>
+              {incomeExpenseYAxisValues.slice().reverse().map((value) => (
+                <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? '#64748b' : axisGray }}>
+                  {value === 0 ? '0' : currencyLabel(value)}
+                </span>
+              ))}
+            </div>
+
+            <div style={{ position: 'relative', minWidth: 0 }}>
+              <div style={{ ...incomeExpenseChartStyle, height: `${incomeExpenseChartHeight + 42}px` }}>
+                {incomeExpenseYAxisValues.slice(1).map((value) => (
+                  <div
+                    key={value}
+                    style={{
+                      ...shell.incomeGridLine,
+                      bottom: `${(value / incomeExpenseYAxisMax) * 100}%`
+                    }}
+                  />
+                ))}
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: '8px 10px 6px 10px',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                    gap: isMobile ? '6px' : '8px',
+                    alignItems: 'end',
+                    overflow: 'visible'
+                  }}
+                >
+                  {selectedYearAnalytics.months.map((month, index) => {
+                    const income = selectedYearAnalytics.incomeSeries[index]?.value || 0;
+                    const expense = selectedYearAnalytics.expenseSeries[index]?.value || 0;
+                    const incomeHeight = Math.max(income * incomeExpenseScale, income > 0 ? 6 : 0);
+                    const expenseHeight = Math.max(expense * incomeExpenseScale, expense > 0 ? 6 : 0);
+
+                    return (
+                      <div
+                        key={month.key}
+                        style={{ ...shell.incomeMonth, position: 'relative' }}
+                        onMouseLeave={() => setHoveredIncomeBar(null)}
+                      >
+                        <div style={shell.incomeBarCluster}>
+                          <div style={{ display: 'flex', alignItems: 'end', gap: '4px', height: '100%' }}>
+                            <button
+                              type="button"
+                              aria-label={`${month.label} income ${formatCurrencyPrecise(income)}`}
+                              onMouseEnter={() => setHoveredIncomeBar({
+                                monthKey: month.key,
+                                monthLabel: month.label,
+                                year: selectedYearNumber,
+                                value: income
+                              })}
+                              onFocus={() => setHoveredIncomeBar({
+                                monthKey: month.key,
+                                monthLabel: month.label,
+                                year: selectedYearNumber,
+                                value: income
+                              })}
+                              style={{
+                                ...shell.incomeBarItem,
+                                height: `${incomeHeight}px`,
+                                background: incomeGreen,
+                                border: 'none',
+                                padding: 0,
+                                cursor: 'pointer'
+                              }}
+                            />
+                            <button
+                              type="button"
+                              aria-label={`${month.label} expense ${formatCurrencyPrecise(expense)}`}
+                              onMouseEnter={() => setHoveredIncomeBar({
+                                monthKey: month.key,
+                                monthLabel: month.label,
+                                year: selectedYearNumber,
+                                value: expense
+                              })}
+                              onFocus={() => setHoveredIncomeBar({
+                                monthKey: month.key,
+                                monthLabel: month.label,
+                                year: selectedYearNumber,
+                                value: expense
+                              })}
+                              style={{
+                                ...shell.incomeBarItem,
+                                height: `${expenseHeight}px`,
+                                background: dangerRed,
+                                opacity: 0.78,
+                                border: 'none',
+                                padding: 0,
+                                cursor: 'pointer'
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div style={shell.incomeMonthLabel}>
+                          <span>{month.label}</span>
+                        </div>
+                        {hoveredIncomeBar?.monthKey === month.key ? (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: '50%',
+                              bottom: 'calc(100% + 14px)',
+                              transform: 'translateX(-50%)',
+                              background: '#fff',
+                              border: '1px solid #dbe4f0',
+                              borderRadius: '18px',
+                              boxShadow: '0 16px 34px rgba(15, 23, 42, 0.12)',
+                              padding: '14px 16px 12px',
+                              minWidth: '168px',
+                              pointerEvents: 'none',
+                              textAlign: 'left',
+                              zIndex: 20
+                            }}
+                          >
+                            <div style={{ color: '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1.08 }}>
+                              {formatCurrencyPrecise(hoveredIncomeBar.value)}
+                            </div>
+                            <div style={{ marginTop: '10px', color: '#334155', fontSize: '16px', fontWeight: 500, lineHeight: 1.1 }}>
+                              {`${hoveredIncomeBar.monthLabel} ${hoveredIncomeBar.year}`}
+                            </div>
+                            <div
+                              style={{
+                                position: 'absolute',
+                                left: '50%',
+                                bottom: '-7px',
+                                width: '14px',
+                                height: '14px',
+                                background: '#fff',
+                                borderRight: '1px solid #dbe4f0',
+                                borderBottom: '1px solid #dbe4f0',
+                                transform: 'translateX(-50%) rotate(45deg)'
+                              }}
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article style={graphSourceCardStyle}>
           <div style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Lead Sources</h2>
             <span style={shell.sourceHeaderBadge}>{leadPipeline.sourceTotal} total</span>
@@ -1016,211 +1146,12 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={graphPanelStyle}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: '16px',
-            flexWrap: 'wrap',
-            padding: isMobile ? '12px 14px 10px' : '14px 18px 10px'
-          }}>
-            <div style={{ minWidth: 0 }}>
-              <h2 style={{
-                margin: 0,
-                color: '#1f2937',
-                fontSize: isMobile ? '21px' : '28px',
-                fontWeight: 800,
-                lineHeight: 1.04,
-                letterSpacing: '-0.04em'
-              }}>
-                Income and Expense
-              </h2>
-              <div style={{
-                marginTop: '4px',
-                width: isMobile ? '165px' : '260px',
-                borderBottom: '2px dashed rgba(156, 163, 175, 0.8)'
-              }} />
-            </div>
-            <select
-              value={selectedContractYear}
-              onChange={(event) => setSelectedContractYear(event.target.value)}
-              style={incomeHeaderSelectStyle}
-              aria-label="Select fiscal year"
-            >
-              {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedFiscalYearLabel}</option> : contractYears.map((year) => (
-                <option key={year} value={String(year)}>
-                  {year === currentFiscalYearStart ? 'This Fiscal Year' : `FY ${year}-${String(year + 1).slice(-2)}`}
-                </option>
-              ))}
-            </select>
+        <article style={{ ...shell.panel, ...graphCardStyle }}>
+          <div style={shell.panelHead}>
+            <h2 style={shell.panelTitle}>Top Expenses</h2>
+            <span style={{ color: '#475569', fontWeight: 700 }}>{selectedYearNumber}</span>
           </div>
-
-          <div style={{
-            display: 'grid',
-            gap: '12px',
-            padding: isMobile ? '0 14px 12px' : '0 18px 14px',
-            flex: 1,
-            boxSizing: 'border-box'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              gap: '12px',
-              flexWrap: 'wrap'
-            }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
-                border: '1px solid rgba(244, 114, 128, 0.35)',
-                borderRadius: '14px',
-                overflow: 'hidden',
-                background: '#fff',
-                width: isMobile ? '100%' : 'min(100%, 520px)'
-              }}>
-                {[
-                  {
-                    label: 'Total Income',
-                    value: `₹${formatCurrencyPrecise(selectedYearAnalytics.totalIncome)}`,
-                    dot: incomeGreen
-                  },
-                  {
-                    label: 'Total Expenses',
-                    value: `₹${formatCurrencyPrecise(selectedYearAnalytics.totalExpenses)}`,
-                    dot: '#e2535f'
-                  }
-                ].map((item, index) => (
-                  <div
-                    key={item.label}
-                    style={{
-                      padding: isMobile ? '10px 12px' : '11px 14px',
-                      borderRight: !isMobile && index === 0 ? '1px solid rgba(244, 114, 128, 0.35)' : 'none',
-                      borderBottom: isMobile && index === 0 ? '1px solid rgba(244, 114, 128, 0.35)' : 'none',
-                      display: 'grid',
-                      gap: '4px'
-                    }}
-                  >
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', color: '#667085', fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
-                      <span style={{ width: '16px', height: '16px', borderRadius: '5px', background: item.dot, display: 'inline-block' }} />
-                      {item.label}
-                    </div>
-                    <div style={{ color: '#1f2937', fontSize: isMobile ? '20px' : '24px', fontWeight: 700, lineHeight: 1.08 }}>
-                      {item.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={incomeModeToggleStyle}>
-                {['Accrual', 'Cash'].map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setSelectedIncomeMode(mode)}
-                    style={incomeModeButtonStyle(selectedIncomeMode === mode)}
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{
-              border: '1px solid rgba(248, 113, 113, 0.22)',
-              borderRadius: '16px',
-              padding: isMobile ? '8px 8px 6px' : '10px 12px 8px',
-              background: '#fff'
-            }}>
-              <div style={{ height: isMobile ? '210px' : '240px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={incomeExpenseChartData}
-                    margin={{ top: 6, right: 10, left: 0, bottom: 0 }}
-                    barCategoryGap={isMobile ? '20%' : '26%'}
-                    barGap={3}
-                  >
-                    <CartesianGrid stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
-                    <XAxis
-                      dataKey="displayLabel"
-                      interval={0}
-                      height={42}
-                      tickLine={false}
-                      axisLine={{ stroke: 'rgba(148, 163, 184, 0.35)' }}
-                      tick={<FiscalMonthTick />}
-                    />
-                    <YAxis
-                      width={48}
-                      tickLine={false}
-                      axisLine={{ stroke: 'rgba(148, 163, 184, 0.35)' }}
-                      tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }}
-                      tickFormatter={(value) => (value === 0 ? '0' : currencyLabel(value))}
-                      domain={[0, incomeExpenseYAxisMax]}
-                      ticks={incomeExpenseYAxisValues}
-                    />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(15, 23, 42, 0.04)' }}
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload?.length) return null;
-                        return (
-                          <div style={{
-                            border: '1px solid rgba(15, 23, 42, 0.08)',
-                            background: '#fff',
-                            borderRadius: '14px',
-                            boxShadow: '0 14px 28px rgba(15, 23, 42, 0.08)',
-                            padding: '10px 12px',
-                            display: 'grid',
-                            gap: '6px',
-                            minWidth: '150px'
-                          }}>
-                            <div style={{ fontSize: '11px', fontWeight: 800, color: '#334155' }}>{String(label || '').replace('|', ' ')}</div>
-                            {payload.map((entry) => (
-                              <div key={entry.dataKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '12px', fontWeight: 700 }}>
-                                  <span style={{ width: '8px', height: '8px', borderRadius: '999px', background: entry.color || '#111827' }} />
-                                  {entry.name}
-                                </span>
-                                <span style={{ color: '#0f172a', fontSize: '12px', fontWeight: 800 }}>
-                                  ₹{formatCurrencyPrecise(entry.value)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      }}
-                    />
-                    <Bar dataKey="income" name="Income" fill={incomeGreen} radius={[8, 8, 0, 0]} maxBarSize={18} />
-                    <Bar dataKey="expense" name="Expense" fill="#e2535f" radius={[8, 8, 0, 0]} maxBarSize={18} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              border: '1px solid rgba(148, 163, 184, 0.25)',
-              borderRadius: '12px',
-              background: '#fff',
-              color: '#667085',
-              fontSize: '12px',
-              fontWeight: 600,
-              width: 'fit-content'
-            }}>
-              <span style={{ fontWeight: 800 }}>*</span>
-              <span>Income and expense values displayed are exclusive of taxes.</span>
-            </div>
-          </div>
-        </article>
-
-        <article style={graphPanelStyle}>
-          <div style={shell.sourceHeader}>
-            <h2 style={shell.sourceHeaderTitle}>Top Expenses</h2>
-            <span style={shell.sourceHeaderBadge}>{selectedYearNumber}</span>
-          </div>
-          <div style={{ ...shell.donutWrap, flex: 1, justifyContent: 'center', padding: isMobile ? '12px 14px 14px' : '14px 18px 18px' }}>
+          <div style={shell.donutWrap}>
             <div
               style={{
                 ...shell.donut,
