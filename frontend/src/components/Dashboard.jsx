@@ -120,11 +120,11 @@ const shell = {
   incomeYAxisLabel: { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1 },
   incomeChart: { position: 'relative', minHeight: '280px', borderLeft: '1px solid rgba(148, 163, 184, 0.32)', borderBottom: '1px solid rgba(148, 163, 184, 0.32)', padding: '10px 12px 8px 12px', background: '#fff' },
   incomeGridLine: { position: 'absolute', left: 0, right: 0, borderTop: '1px dashed rgba(148, 163, 184, 0.18)' },
-  incomeBars: { position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(58px, 1fr))', gap: '16px', alignItems: 'end', height: '100%' },
-  incomeMonth: { display: 'grid', gridTemplateRows: '1fr auto', gap: '8px', alignItems: 'end', minHeight: 0 },
+  incomeBars: { position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '6px', alignItems: 'end', height: '100%' },
+  incomeMonth: { display: 'grid', gridTemplateRows: '1fr auto', gap: '6px', alignItems: 'end', minHeight: 0, minWidth: 0 },
   incomeBarCluster: { display: 'flex', alignItems: 'end', justifyContent: 'center', gap: '2px', minHeight: 0, height: '100%' },
-  incomeBarItem: { width: '14px', borderRadius: '4px 4px 0 0', minHeight: '1px' },
-  incomeMonthLabel: { display: 'grid', gap: '2px', justifyItems: 'center', color: '#64748b', fontSize: '10px', fontWeight: 700, lineHeight: 1, textAlign: 'center', letterSpacing: '0.02em', whiteSpace: 'nowrap' },
+  incomeBarItem: { width: '12px', borderRadius: '4px 4px 0 0', minHeight: '1px' },
+  incomeMonthLabel: { display: 'grid', gap: '2px', justifyItems: 'center', color: '#64748b', fontSize: '10px', fontWeight: 700, lineHeight: 1, textAlign: 'center', letterSpacing: '0.01em', whiteSpace: 'nowrap', minWidth: 0 },
   progressTrack: { width: '100%', height: '20px', background: '#e5e7eb', borderRadius: '999px', overflow: 'hidden', display: 'flex' },
   legendRow: { display: 'flex', gap: '18px', flexWrap: 'wrap', marginTop: '14px' },
   legendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#334155', fontSize: '13px', fontWeight: 600 },
@@ -1037,9 +1037,9 @@ export default function Dashboard() {
                         position: 'absolute',
                         inset: '4px 4px 4px 4px',
                         display: 'grid',
-                        gridTemplateColumns: isMobile ? 'repeat(12, minmax(44px, 1fr))' : 'repeat(12, minmax(58px, 1fr))',
-                        gap: isMobile ? '12px' : '16px',
-                        paddingInline: isMobile ? '2px' : '4px',
+                        gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                        gap: isMobile ? '4px' : '6px',
+                        paddingInline: isMobile ? '0' : '2px',
                         alignItems: 'end',
                         overflow: 'visible'
                       }}
@@ -1057,8 +1057,8 @@ export default function Dashboard() {
                             style={{
                               ...shell.incomeMonth,
                               position: 'relative',
-                              padding: hasActivity ? '0' : '4px 0 0',
-                              borderRadius: '12px',
+                              padding: '0',
+                              borderRadius: '0',
                               background: hasActivity ? 'transparent' : 'linear-gradient(180deg, rgba(148, 163, 184, 0.03), rgba(248, 250, 252, 0.01))',
                               border: 'none'
                             }}
@@ -1118,7 +1118,7 @@ export default function Dashboard() {
                               </div>
                             </div>
                             <div style={shell.incomeMonthLabel}>
-                              <span style={{ fontSize: isMobile ? '10px' : '9px', lineHeight: 1, letterSpacing: '0.02em' }}>{month.label}</span>
+                              <span style={{ fontSize: isMobile ? '10px' : '9px', lineHeight: 1, letterSpacing: '0.01em' }}>{month.label}</span>
                             </div>
                             {hoveredIncomeBar?.monthKey === month.key ? (
                               <div
