@@ -102,6 +102,7 @@ const shell = {
   sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '13px 18px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0' },
   sourceHeaderTitle: { margin: 0, color: '#475569', fontSize: '17px', fontWeight: 700 },
   sourceHeaderBadge: { color: '#111827', fontWeight: 700, background: '#f1f5f9', borderRadius: '10px', padding: '5px 9px', fontSize: '12px', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.10)' },
+  sourceHeaderSelect: { color: '#111827', fontWeight: 700, background: '#f1f5f9', borderRadius: '10px', padding: '5px 9px', fontSize: '12px', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.10)', border: 'none', outline: 'none', appearance: 'none' },
   sourceBody: { padding: '14px 14px 14px', display: 'grid', gap: '12px', alignItems: 'center' },
   panelHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' },
   panelTitle: { margin: 0, color: '#475569', fontSize: '17px', fontWeight: 700 },
@@ -833,22 +834,12 @@ export default function Dashboard() {
 
       <section style={graphGridStyle}>
         <article style={{ ...shell.panel, ...graphCardStyle }}>
-          <div style={shell.panelHead}>
-            <h2 style={shell.panelTitle}>Lead Pipeline</h2>
+          <div style={shell.sourceHeader}>
+            <h2 style={shell.sourceHeaderTitle}>Lead Pipeline</h2>
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
-              style={{
-                border: '1px solid #dbe4f0',
-                background: '#f8fafc',
-                color: '#334155',
-                fontWeight: 700,
-                borderRadius: '12px',
-                padding: '8px 12px',
-                fontSize: '12px',
-                outline: 'none',
-                minWidth: '110px'
-              }}
+              style={{ ...shell.sourceHeaderSelect, minWidth: '110px' }}
               aria-label="Select lead pipeline year"
             >
               {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
@@ -919,7 +910,21 @@ export default function Dashboard() {
         </article>
 
         <article style={{ ...shell.panel, ...graphCardStyle, padding: isMobile ? '16px' : '18px 18px 20px' }}>
-          <div style={shell.incomePanelHead}>
+          <div style={shell.sourceHeader}>
+            <h2 style={shell.sourceHeaderTitle}>Income and Expense</h2>
+            <select
+              value={selectedContractYear}
+              onChange={(event) => setSelectedContractYear(event.target.value)}
+              style={{ ...shell.sourceHeaderSelect, minWidth: '102px' }}
+              aria-label="Select contract year"
+              >
+              {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
+                <option key={year} value={String(year)}>{year}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', marginTop: '14px' }}>
             <div style={shell.incomeLegend}>
               <div style={shell.incomeLegendItem}>
                 <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: incomeGreen }} />Total Income</div>
@@ -930,27 +935,6 @@ export default function Dashboard() {
                 <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</p>
               </div>
             </div>
-            <select
-              value={selectedContractYear}
-              onChange={(event) => setSelectedContractYear(event.target.value)}
-              style={{
-                border: '1px solid #dbe4f0',
-                background: '#f8fafc',
-                color: '#334155',
-                fontWeight: 700,
-                borderRadius: '12px',
-                padding: '7px 11px',
-                fontSize: '12px',
-                outline: 'none',
-                minWidth: '102px',
-                alignSelf: 'flex-start'
-              }}
-              aria-label="Select contract year"
-            >
-              {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
-                <option key={year} value={String(year)}>{year}</option>
-              ))}
-            </select>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', marginTop: '18px' }}>
@@ -1147,9 +1131,9 @@ export default function Dashboard() {
         </article>
 
         <article style={{ ...shell.panel, ...graphCardStyle }}>
-          <div style={shell.panelHead}>
-            <h2 style={shell.panelTitle}>Top Expenses</h2>
-            <span style={{ color: '#475569', fontWeight: 700 }}>{selectedYearNumber}</span>
+          <div style={shell.sourceHeader}>
+            <h2 style={shell.sourceHeaderTitle}>Top Expenses</h2>
+            <span style={shell.sourceHeaderBadge}>{selectedYearNumber}</span>
           </div>
           <div style={shell.donutWrap}>
             <div
