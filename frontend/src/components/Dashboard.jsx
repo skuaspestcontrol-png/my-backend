@@ -100,7 +100,7 @@ const shell = {
   panel: { background: '#fff', borderRadius: '22px', border: '1px solid #dbe4f0', padding: '18px 18px 20px', boxShadow: 'none' },
   sourcePanel: { background: '#fff', borderRadius: '22px', border: '1px solid #dbe4f0', padding: 0, overflow: 'hidden', boxShadow: 'none' },
   sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '11px 16px', background: '#f8fafc', borderBottom: '1px solid #dbe4f0' },
-  sourceHeaderTitle: { margin: 0, color: '#475569', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 },
+  sourceHeaderTitle: { margin: 0, color: '#334155', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 },
   sourceHeaderBadge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '84px', color: '#111827', fontWeight: 700, background: '#f1f5f9', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.10)', textAlign: 'center' },
   sourceHeaderSelect: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '92px', color: '#111827', fontWeight: 700, background: '#f1f5f9', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.10)', border: 'none', outline: 'none', appearance: 'none', textAlign: 'center' },
   sourceBody: { padding: '14px 14px 14px', display: 'grid', gap: '12px', alignItems: 'center' },
