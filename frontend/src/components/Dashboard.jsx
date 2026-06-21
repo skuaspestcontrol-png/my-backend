@@ -122,8 +122,8 @@ const shell = {
   incomeGridLine: { position: 'absolute', left: 0, right: 0, borderTop: '1px dashed rgba(148, 163, 184, 0.18)' },
   incomeBars: { position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '6px', alignItems: 'end', height: '100%' },
   incomeMonth: { display: 'grid', gridTemplateRows: '1fr auto', gap: '6px', alignItems: 'end', minHeight: 0, minWidth: 0 },
-  incomeBarCluster: { display: 'flex', alignItems: 'end', justifyContent: 'center', gap: '2px', minHeight: 0, height: '100%' },
-  incomeBarItem: { width: '12px', borderRadius: '4px 4px 0 0', minHeight: '1px' },
+  incomeBarCluster: { display: 'flex', alignItems: 'end', justifyContent: 'center', gap: '3px', minHeight: 0, height: '100%' },
+  incomeBarItem: { width: '14px', borderRadius: '4px 4px 0 0', minHeight: '1px' },
   incomeMonthLabel: { display: 'grid', gap: '2px', justifyItems: 'center', color: '#64748b', fontSize: '10px', fontWeight: 700, lineHeight: 1, textAlign: 'center', letterSpacing: '0.01em', whiteSpace: 'nowrap', minWidth: 0 },
   progressTrack: { width: '100%', height: '20px', background: '#e5e7eb', borderRadius: '999px', overflow: 'hidden', display: 'flex' },
   legendRow: { display: 'flex', gap: '18px', flexWrap: 'wrap', marginTop: '14px' },
@@ -1065,7 +1065,7 @@ export default function Dashboard() {
                             onMouseLeave={() => setHoveredIncomeBar(null)}
                           >
                             <div style={shell.incomeBarCluster}>
-                              <div style={{ display: 'flex', alignItems: 'end', gap: '4px', height: '100%' }}>
+                              <div style={{ display: 'flex', alignItems: 'end', gap: '3px', height: '100%' }}>
                                 <button
                                   type="button"
                                   aria-label={`${month.label} income ${formatCurrencyPrecise(income)}`}
