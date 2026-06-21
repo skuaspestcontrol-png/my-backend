@@ -741,12 +741,8 @@ export default function Dashboard() {
     : viewportWidth >= 1200
       ? { ...shell.incomeYAxis, padding: '6px 0 18px 0' }
     : shell.incomeYAxis;
-  const incomeExpenseLegendValueStyle = isMobile
-    ? { ...shell.incomeLegendValue, fontSize: '16px' }
-    : { ...shell.incomeLegendValue, fontSize: '15px' };
-  const incomeExpenseLegendLabelStyle = isMobile
-    ? { ...shell.incomeLegendLabel, fontSize: '13px' }
-    : { ...shell.incomeLegendLabel, fontSize: '11px' };
+  const incomeExpenseLegendValueStyle = { ...shell.incomeLegendValue, fontSize: '13px', lineHeight: 1.1 };
+  const incomeExpenseLegendLabelStyle = { ...shell.incomeLegendLabel, fontSize: '13px', lineHeight: 1.1 };
   const formatCurrencyPrecise = (value) => Number(value || 0).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -928,15 +924,17 @@ export default function Dashboard() {
 
           <div style={{ padding: '18px 18px 20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
-              <div style={shell.incomeLegend}>
-                <div style={shell.incomeLegendItem}>
-                  <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: incomeGreen }} />Total Income</div>
-                  <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalIncome)}</p>
-                </div>
-                <div style={shell.incomeLegendItem}>
-                  <div style={incomeExpenseLegendLabelStyle}><span style={{ ...shell.dot, background: dangerRed }} />Total Expenses</div>
-                  <p style={incomeExpenseLegendValueStyle}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</p>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap', color: '#64748b', fontSize: '13px', fontWeight: 700, lineHeight: 1.1 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ ...shell.dot, width: '10px', height: '10px', background: incomeGreen }} />
+                  <span style={incomeExpenseLegendLabelStyle}>Total Income-</span>
+                  <span style={{ ...incomeExpenseLegendValueStyle, color: '#111827' }}>{formatCurrency(selectedYearAnalytics.totalIncome)}</span>
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ ...shell.dot, width: '10px', height: '10px', background: dangerRed }} />
+                  <span style={incomeExpenseLegendLabelStyle}>Total Expenses-</span>
+                  <span style={{ ...incomeExpenseLegendValueStyle, color: '#111827' }}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</span>
+                </span>
               </div>
             </div>
 
