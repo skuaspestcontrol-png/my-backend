@@ -839,7 +839,7 @@ export default function Dashboard() {
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
-              style={{ ...shell.sourceHeaderSelect, minWidth: '110px' }}
+              style={{ ...shell.sourceHeaderSelect, width: '84px', minWidth: '84px' }}
               aria-label="Select lead pipeline year"
             >
               {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
@@ -917,7 +917,7 @@ export default function Dashboard() {
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
-              style={{ ...shell.sourceHeaderSelect, minWidth: '102px' }}
+              style={{ ...shell.sourceHeaderSelect, width: '84px', minWidth: '84px' }}
               aria-label="Select contract year"
               >
               {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
