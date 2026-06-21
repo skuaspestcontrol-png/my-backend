@@ -225,6 +225,7 @@ export default function Dashboard() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [selectedContractYear, setSelectedContractYear] = useState(() => String(new Date().getFullYear()));
   const [selectedTargetYear, setSelectedTargetYear] = useState(() => String(new Date().getFullYear()));
+  const [selectedIncomeMode, setSelectedIncomeMode] = useState('Accrual');
   const [hoveredIncomeBar, setHoveredIncomeBar] = useState(null);
 
   useEffect(() => {
@@ -635,6 +636,10 @@ export default function Dashboard() {
   const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
   const isLaptop = viewportWidth >= 992 && viewportWidth <= 1199;
   const isSmallMobile = viewportWidth < 420;
+  const currentFiscalYearStart = new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1;
+  const selectedFiscalYearLabel = selectedYearNumber === currentFiscalYearStart
+    ? 'This Fiscal Year'
+    : `FY ${selectedYearNumber}-${String(selectedYearNumber + 1).slice(-2)}`;
 
   const heroStyle = isMobile
     ? { ...shell.hero, gridTemplateColumns: '1fr', padding: isSmallMobile ? '16px' : '20px' }
@@ -755,6 +760,7 @@ export default function Dashboard() {
   const incomeExpenseYAxisStep = Math.max(20000, Math.ceil((incomeExpenseMaxValue || 1) / 5 / 10000) * 10000);
   const incomeExpenseYAxisMax = incomeExpenseYAxisStep * 5;
   const incomeExpenseYAxisValues = Array.from({ length: 6 }, (_, idx) => idx * incomeExpenseYAxisStep);
+  const incomeExpenseChartHeight = isMobile ? 170 : 190;
   const currencyLabel = (value) => (value >= 1000 ? `${Math.round(value / 1000)} K` : `${Math.round(value)}`);
   const formatCurrencyPrecise = (value) => Number(value || 0).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
@@ -777,6 +783,36 @@ export default function Dashboard() {
     minWidth: '110px',
     textAlign: 'left'
   };
+  const incomeHeaderSelectStyle = {
+    ...sourceHeaderSelectStyle,
+    minWidth: isMobile ? '100%' : '202px',
+    fontSize: isMobile ? '12px' : '14px',
+    borderRadius: '12px',
+    backgroundColor: '#fff',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)'
+  };
+  const incomeModeToggleStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0',
+    border: '1px solid #f2c8cd',
+    background: '#fff',
+    borderRadius: '16px',
+    padding: '4px',
+    boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)',
+    flexShrink: 0
+  };
+  const incomeModeButtonStyle = (active) => ({
+    border: 'none',
+    background: active ? '#f4f4f8' : '#fff',
+    color: '#111827',
+    fontSize: '14px',
+    fontWeight: 500,
+    padding: '8px 14px',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    minHeight: '36px'
+  });
 
   return (
     <div style={shell.page}>
@@ -981,68 +1017,200 @@ export default function Dashboard() {
         </article>
 
         <article style={graphPanelStyle}>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: isMobile ? '10px 14px 12px' : '10px 18px 14px', width: '100%' }}>
-            <div style={{ height: isMobile ? '300px' : '340px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={incomeExpenseChartData}
-                  margin={{ top: 10, right: 12, left: 0, bottom: 0 }}
-                  barCategoryGap={isMobile ? '18%' : '28%'}
-                  barGap={3}
-                >
-                  <CartesianGrid stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
-                  <XAxis
-                    dataKey="displayLabel"
-                    interval={0}
-                    height={44}
-                    tickLine={false}
-                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.35)' }}
-                    tick={<FiscalMonthTick />}
-                  />
-                  <YAxis
-                    width={52}
-                    tickLine={false}
-                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.35)' }}
-                    tick={{ fontSize: 12, fontWeight: 700, fill: '#64748b' }}
-                    tickFormatter={(value) => (value === 0 ? '0' : currencyLabel(value))}
-                    domain={[0, incomeExpenseYAxisMax]}
-                    ticks={incomeExpenseYAxisValues}
-                  />
-                  <Tooltip
-                    cursor={{ fill: 'rgba(15, 23, 42, 0.04)' }}
-                    content={({ active, payload, label }) => {
-                      if (!active || !payload?.length) return null;
-                      return (
-                        <div style={{
-                          border: '1px solid rgba(15, 23, 42, 0.08)',
-                          background: '#fff',
-                          borderRadius: '14px',
-                          boxShadow: '0 14px 28px rgba(15, 23, 42, 0.08)',
-                          padding: '10px 12px',
-                          display: 'grid',
-                          gap: '6px',
-                          minWidth: '150px'
-                        }}>
-                          <div style={{ fontSize: '11px', fontWeight: 800, color: '#334155' }}>{String(label || '').replace('|', ' ')}</div>
-                          {payload.map((entry) => (
-                            <div key={entry.dataKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '12px', fontWeight: 700 }}>
-                                <span style={{ width: '8px', height: '8px', borderRadius: '999px', background: entry.color || '#111827' }} />
-                                {entry.name}
-                              </span>
-                              <span style={{ color: '#0f172a', fontSize: '12px', fontWeight: 800 }}>
-                                ₹{formatCurrencyPrecise(entry.value)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      );
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: '16px',
+            flexWrap: 'wrap',
+            padding: isMobile ? '12px 14px 10px' : '14px 18px 10px'
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <h2 style={{
+                margin: 0,
+                color: '#1f2937',
+                fontSize: isMobile ? '21px' : '28px',
+                fontWeight: 800,
+                lineHeight: 1.04,
+                letterSpacing: '-0.04em'
+              }}>
+                Income and Expense
+              </h2>
+              <div style={{
+                marginTop: '4px',
+                width: isMobile ? '165px' : '260px',
+                borderBottom: '2px dashed rgba(156, 163, 175, 0.8)'
+              }} />
+            </div>
+            <select
+              value={selectedContractYear}
+              onChange={(event) => setSelectedContractYear(event.target.value)}
+              style={incomeHeaderSelectStyle}
+              aria-label="Select fiscal year"
+            >
+              {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedFiscalYearLabel}</option> : contractYears.map((year) => (
+                <option key={year} value={String(year)}>
+                  {year === currentFiscalYearStart ? 'This Fiscal Year' : `FY ${year}-${String(year + 1).slice(-2)}`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gap: '12px',
+            padding: isMobile ? '0 14px 12px' : '0 18px 14px',
+            flex: 1,
+            boxSizing: 'border-box'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
+                border: '1px solid rgba(244, 114, 128, 0.35)',
+                borderRadius: '14px',
+                overflow: 'hidden',
+                background: '#fff',
+                width: isMobile ? '100%' : 'min(100%, 520px)'
+              }}>
+                {[
+                  {
+                    label: 'Total Income',
+                    value: `₹${formatCurrencyPrecise(selectedYearAnalytics.totalIncome)}`,
+                    dot: incomeGreen
+                  },
+                  {
+                    label: 'Total Expenses',
+                    value: `₹${formatCurrencyPrecise(selectedYearAnalytics.totalExpenses)}`,
+                    dot: '#e2535f'
+                  }
+                ].map((item, index) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      padding: isMobile ? '10px 12px' : '11px 14px',
+                      borderRight: !isMobile && index === 0 ? '1px solid rgba(244, 114, 128, 0.35)' : 'none',
+                      borderBottom: isMobile && index === 0 ? '1px solid rgba(244, 114, 128, 0.35)' : 'none',
+                      display: 'grid',
+                      gap: '4px'
                     }}
-                  />
-                  <Bar dataKey="income" name="Income" fill={incomeGreen} radius={[8, 8, 0, 0]} maxBarSize={18} />
-                  <Bar dataKey="expense" name="Expense" fill="#e2535f" radius={[8, 8, 0, 0]} maxBarSize={18} />
-                </BarChart>
-              </ResponsiveContainer>
+                  >
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', color: '#667085', fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
+                      <span style={{ width: '16px', height: '16px', borderRadius: '5px', background: item.dot, display: 'inline-block' }} />
+                      {item.label}
+                    </div>
+                    <div style={{ color: '#1f2937', fontSize: isMobile ? '20px' : '24px', fontWeight: 700, lineHeight: 1.08 }}>
+                      {item.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={incomeModeToggleStyle}>
+                {['Accrual', 'Cash'].map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setSelectedIncomeMode(mode)}
+                    style={incomeModeButtonStyle(selectedIncomeMode === mode)}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{
+              border: '1px solid rgba(248, 113, 113, 0.22)',
+              borderRadius: '16px',
+              padding: isMobile ? '8px 8px 6px' : '10px 12px 8px',
+              background: '#fff'
+            }}>
+              <div style={{ height: isMobile ? '210px' : '240px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={incomeExpenseChartData}
+                    margin={{ top: 6, right: 10, left: 0, bottom: 0 }}
+                    barCategoryGap={isMobile ? '20%' : '26%'}
+                    barGap={3}
+                  >
+                    <CartesianGrid stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
+                    <XAxis
+                      dataKey="displayLabel"
+                      interval={0}
+                      height={42}
+                      tickLine={false}
+                      axisLine={{ stroke: 'rgba(148, 163, 184, 0.35)' }}
+                      tick={<FiscalMonthTick />}
+                    />
+                    <YAxis
+                      width={48}
+                      tickLine={false}
+                      axisLine={{ stroke: 'rgba(148, 163, 184, 0.35)' }}
+                      tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }}
+                      tickFormatter={(value) => (value === 0 ? '0' : currencyLabel(value))}
+                      domain={[0, incomeExpenseYAxisMax]}
+                      ticks={incomeExpenseYAxisValues}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(15, 23, 42, 0.04)' }}
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        return (
+                          <div style={{
+                            border: '1px solid rgba(15, 23, 42, 0.08)',
+                            background: '#fff',
+                            borderRadius: '14px',
+                            boxShadow: '0 14px 28px rgba(15, 23, 42, 0.08)',
+                            padding: '10px 12px',
+                            display: 'grid',
+                            gap: '6px',
+                            minWidth: '150px'
+                          }}>
+                            <div style={{ fontSize: '11px', fontWeight: 800, color: '#334155' }}>{String(label || '').replace('|', ' ')}</div>
+                            {payload.map((entry) => (
+                              <div key={entry.dataKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '12px', fontWeight: 700 }}>
+                                  <span style={{ width: '8px', height: '8px', borderRadius: '999px', background: entry.color || '#111827' }} />
+                                  {entry.name}
+                                </span>
+                                <span style={{ color: '#0f172a', fontSize: '12px', fontWeight: 800 }}>
+                                  ₹{formatCurrencyPrecise(entry.value)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="income" name="Income" fill={incomeGreen} radius={[8, 8, 0, 0]} maxBarSize={18} />
+                    <Bar dataKey="expense" name="Expense" fill="#e2535f" radius={[8, 8, 0, 0]} maxBarSize={18} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 12px',
+              border: '1px solid rgba(148, 163, 184, 0.25)',
+              borderRadius: '12px',
+              background: '#fff',
+              color: '#667085',
+              fontSize: '12px',
+              fontWeight: 600,
+              width: 'fit-content'
+            }}>
+              <span style={{ fontWeight: 800 }}>*</span>
+              <span>Income and expense values displayed are exclusive of taxes.</span>
             </div>
           </div>
         </article>
