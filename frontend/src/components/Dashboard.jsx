@@ -1137,7 +1137,7 @@ export default function Dashboard() {
             <h2 style={shell.sourceHeaderTitle}>Top Expenses</h2>
             <span style={shell.sourceHeaderBadge}>{selectedYearNumber}</span>
           </div>
-          <div style={{ ...shell.donutWrap, padding: '18px 18px 20px' }}>
+          <div style={{ ...shell.donutWrap, padding: '18px 18px 14px' }}>
             <div
               style={{
                 ...shell.donut,
