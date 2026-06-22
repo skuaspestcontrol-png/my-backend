@@ -728,7 +728,7 @@ export default function Dashboard() {
   const incomeExpenseYAxisStep = Math.max(20000, Math.ceil((incomeExpenseMaxValue || 1) / 5 / 10000) * 10000);
   const incomeExpenseYAxisMax = incomeExpenseYAxisStep * 5;
   const incomeExpenseYAxisValues = Array.from({ length: 6 }, (_, idx) => idx * incomeExpenseYAxisStep);
-  const incomeExpenseChartHeight = isMobile ? 220 : 260;
+  const incomeExpenseChartHeight = isMobile ? 220 : 225;
   const incomeExpenseScale = incomeExpenseYAxisMax > 0 ? incomeExpenseChartHeight / incomeExpenseYAxisMax : 1;
   const currencyLabel = (value) => (value >= 1000 ? `${Math.round(value / 1000)} K` : `${Math.round(value)}`);
   const incomeExpenseChartStyle = isMobile
