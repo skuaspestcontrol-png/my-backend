@@ -299,8 +299,8 @@ const shell = {
   mobileMetaValue: { fontSize: '12px', color: '#1f2937', fontWeight: 700 },
   mobileActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   customerSummaryBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '999px', minWidth: '24px', width: '24px', height: '24px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' },
-  modalCard: { width: 'min(860px, 100%)', maxHeight: '90vh', overflow: 'auto', background: '#fff', borderRadius: '14px', border: '1px solid var(--color-primary-soft)', boxShadow: '0 22px 54px rgba(15,23,42,0.2)' },
+  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 6000, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', padding: 0 },
+  modalCard: { width: 'min(520px, 100%)', maxHeight: '100vh', height: '100vh', overflow: 'auto', background: '#fff', borderRadius: '18px 0 0 18px', border: '1px solid var(--color-primary-soft)', boxShadow: '-22px 0 54px rgba(15,23,42,0.2)' },
   modalHead: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' },
   modalTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '8px' },
   modalSub: { margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: 600 },
@@ -1870,7 +1870,7 @@ export default function ContractDashboard() {
             className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
-              navigateToInvoiceEditor({ openInvoiceNumber: actionMenu.row.contractNo, fromContract: 1, viewContract: 1 });
+              openCustomerSummary(actionMenu.row);
               setActionMenu(null);
             }}
           >
