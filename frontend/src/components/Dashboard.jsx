@@ -663,12 +663,12 @@ export default function Dashboard() {
     ? { minHeight: '390px', boxSizing: 'border-box' }
     : {};
   const graphSourceCardStyle = viewportWidth >= 1200
-    ? { ...shell.sourcePanel, minHeight: '390px', boxSizing: 'border-box' }
+    ? { ...shell.sourcePanel, minHeight: '390px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }
     : shell.sourcePanel;
   const sourceBodyStyle = isMobile
     ? { ...shell.sourceBody, justifyItems: 'center' }
     : viewportWidth >= 1200
-      ? { ...shell.sourceBody, gridTemplateColumns: 'minmax(180px, 0.92fr) minmax(130px, 0.78fr)', justifyItems: 'stretch', gap: '8px' }
+      ? { ...shell.sourceBody, gridTemplateColumns: 'minmax(180px, 0.92fr) minmax(130px, 0.78fr)', justifyItems: 'stretch', alignContent: 'center', gap: '8px', flex: 1 }
       : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch' };
   const sourceLegendStyle = isMobile
     ? { ...shell.sourceLegend, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px', justifyItems: 'stretch', textAlign: 'left', maxWidth: '100%' }
@@ -779,7 +779,8 @@ export default function Dashboard() {
             strokeWidth={strokeWidth}
           />
           {segments.map((segment, idx) => {
-            const portion = total > 0 ? segment.value / total : 0;
+            const segmentValue = Number(segment.value ?? segment.count ?? 0);
+            const portion = total > 0 ? segmentValue / total : 0;
             const dashLength = Math.max(circumference * portion - gap, 0);
             const dashOffset = circumference * offset + gap / 2;
             offset += portion;
