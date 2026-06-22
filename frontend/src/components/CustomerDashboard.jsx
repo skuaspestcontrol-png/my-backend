@@ -381,7 +381,7 @@ const shell = {
   duplicateFilterButton: { display: 'inline-flex', alignItems: 'center', border: '1px solid #c7d2fe', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '999px', padding: '4px 8px', minHeight: '24px', fontSize: '11px', lineHeight: 1.2, fontWeight: 800, cursor: 'pointer' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', maxWidth: '100%', backgroundClip: 'padding-box' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  headCell: { textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#6b7280', padding: '6px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', lineHeight: 1.2, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', minHeight: '42px', height: 'auto', verticalAlign: 'middle' },
+  headCell: { textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#6b7280', padding: '2px 10px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', lineHeight: 1.2, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', minHeight: '38px', height: 'auto', verticalAlign: 'middle' },
   headCellResizable: { position: 'relative', paddingRight: '16px' },
   headLabelWrap: { display: 'inline-flex', alignItems: 'center', gap: '6px', minWidth: 0, maxWidth: '100%', overflow: 'visible', textOverflow: 'clip', whiteSpace: 'normal', flexWrap: 'wrap', lineHeight: 1.15 },
   headSortButton: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', background: 'transparent', padding: 0, color: '#6b7280', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', maxWidth: '100%' },
@@ -701,6 +701,10 @@ export default function CustomerDashboard() {
       return 'asc';
     }
   });
+  const [sortConfig, setSortConfig] = useState(() => ({
+    key: 'name',
+    direction: 'asc'
+  }));
   const [currentPage, setCurrentPage] = useState(1);
   const customersLoadRef = useRef(false);
   const transactionsLoadRef = useRef(false);
@@ -1293,7 +1297,6 @@ export default function CustomerDashboard() {
   }, [showMoreMenu]);
 
   const sortedCustomers = useMemo(() => {
-    const multiplier = nameSortDirection === 'asc' ? 1 : -1;
     const searchQuery = String(customerSearchQuery || '').trim();
     const searchDigits = normalizeSearchDigits(searchQuery);
     const searchText = normalizeText(searchQuery);
@@ -1327,12 +1330,17 @@ export default function CustomerDashboard() {
       const altMatch = Boolean(searchDigits && altDigits && altDigits.includes(searchDigits));
       return nameMatch || mobileMatch || altMatch || emailMatch || gstMatch;
     });
+    const sortKey = sortConfig.key || 'name';
+    const multiplier = sortConfig.direction === 'asc' ? 1 : -1;
     return filteredRows.sort((a, b) => {
-      const aName = String(a.displayName || a.name || '').trim();
-      const bName = String(b.displayName || b.name || '').trim();
-      return aName.localeCompare(bName, 'en', { sensitivity: 'base', numeric: true }) * multiplier;
+      const aValue = getCustomerSortValue(a, sortKey);
+      const bValue = getCustomerSortValue(b, sortKey);
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return (aValue - bValue) * multiplier;
+      }
+      return String(aValue).localeCompare(String(bValue), 'en', { sensitivity: 'base', numeric: true }) * multiplier;
     });
-  }, [customers, customerSearchQuery, nameSortDirection, possibleDuplicateIds, showPossibleDuplicatesOnly]);
+  }, [customers, customerSearchQuery, possibleDuplicateIds, showPossibleDuplicatesOnly, sortConfig]);
 
   const totalPages = Math.max(1, Math.ceil(sortedCustomers.length / rowsPerPage));
   const paginatedCustomers = useMemo(() => {
@@ -2511,8 +2519,37 @@ export default function CustomerDashboard() {
     return customer[key] || '';
   };
 
+  const getCustomerSortValue = (customer, key) => {
+    const rawValue = handleCellValue(customer, key);
+    if (key === 'hasGst') return customer.hasGst || customer.gstRegistered ? 1 : 0;
+    if (key === 'whatsappSameAsMobile' || key === 'shippingSameAsBilling') return String(rawValue || '').toLowerCase() === 'yes' ? 1 : 0;
+    if (key === 'areaSqft') return Number(String(rawValue || '').replace(/,/g, '')) || 0;
+    if (key === 'mobileNumber' || key === 'whatsappNumber' || key === 'altNumber' || key === 'billingPincode' || key === 'shippingPincode') {
+      return normalizeSearchDigits(rawValue);
+    }
+    return normalizeComparisonText(rawValue);
+  };
+
   const toggleNameSort = () => {
     setNameSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    setSortConfig((prev) => ({
+      key: 'name',
+      direction: prev.key === 'name' && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+    setCurrentPage(1);
+  };
+
+  const toggleColumnSort = (columnKey) => {
+    setSortConfig((prev) => {
+      const nextDirection = prev.key === columnKey && prev.direction === 'asc' ? 'desc' : 'asc';
+      if (columnKey === 'name') {
+        setNameSortDirection(nextDirection);
+      }
+      return { key: columnKey, direction: nextDirection };
+    });
+    if (columnKey !== 'name') {
+      setNameSortDirection('asc');
+    }
     setCurrentPage(1);
   };
 
@@ -2905,17 +2942,22 @@ export default function CustomerDashboard() {
               </th>
               {visibleColumnDefs.map((column) => (
                 <th key={column.key} style={{ ...shell.headCell, ...shell.headCellResizable, ...getColumnStyle(column.key) }}>
-                  {column.key === 'name' ? (
-                    <button type="button" className="crm-readable-header-button" style={{ ...shell.headSortButton, ...shell.headLabelWrap }} onClick={toggleNameSort} title="Sort by customer name">
-                      <span style={{ display: 'block', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{column.label}</span>
-                      <SortChevronIcon size={12} color="#111827" />
-                    </button>
-                  ) : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      {column.label}
-                      <SortChevronIcon size={12} color="#111827" />
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    className="crm-readable-header-button"
+                    style={{
+                      ...shell.headSortButton,
+                      ...shell.headLabelWrap,
+                      width: '100%',
+                      justifyContent: 'space-between'
+                    }}
+                    onClick={() => toggleColumnSort(column.key)}
+                    title={`Sort by ${column.label}`}
+                    aria-label={`Sort by ${column.label}`}
+                  >
+                    <span style={{ display: 'block', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{column.label}</span>
+                    <SortChevronIcon size={12} color="#111827" style={{ opacity: sortConfig.key === column.key ? 1 : 0.72 }} />
+                  </button>
                 </th>
               ))}
               <th style={{ ...shell.headCell, width: '150px', minWidth: '150px' }}>Actions</th>
