@@ -747,10 +747,81 @@ export default function Dashboard() {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
-  const leadSourcesDonutStyle = viewportWidth >= 1200
-    ? { ...shell.donut, width: '220px', height: '220px' }
-    : shell.donut;
+  const renderRoundedDonut = (segments, total, colors, size, strokeWidth, label, value, labelSize = '13px', valueSize = '22px') => {
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const gap = circumference * 0.012;
+    let offset = 0;
 
+    return (
+      <div
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          position: 'relative',
+          flexShrink: 0
+        }}
+      >
+        <svg
+          viewBox={`0 0 ${size} ${size}`}
+          width={size}
+          height={size}
+          aria-label={label}
+          role="img"
+          style={{ display: 'block' }}
+        >
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="#e5e7eb"
+            strokeWidth={strokeWidth}
+          />
+          {segments.map((segment, idx) => {
+            const portion = total > 0 ? segment.value / total : 0;
+            const dashLength = Math.max(circumference * portion - gap, 0);
+            const dashOffset = circumference * offset + gap / 2;
+            offset += portion;
+            return (
+              <circle
+                key={`${segment.name}-${idx}`}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke={colors[idx % colors.length]}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeDasharray={`${dashLength} ${circumference - dashLength}`}
+                strokeDashoffset={-dashOffset}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              />
+            );
+          })}
+        </svg>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            pointerEvents: 'none'
+          }}
+        >
+          <div
+            style={{ color: '#64748b', fontWeight: 700, fontSize: labelSize, lineHeight: 1.15 }}
+          >
+            {label}
+          </div>
+          <div style={{ color: '#0f172a', fontSize: valueSize, fontWeight: 800, lineHeight: 1.1 }}>{value}</div>
+        </div>
+      </div>
+    );
+  };
   return (
     <div style={shell.page}>
       <section className="hero-section command-center" style={heroStyle}>
@@ -1092,25 +1163,17 @@ export default function Dashboard() {
             <span style={shell.sourceHeaderBadge}>{leadPipeline.sourceTotal} total</span>
           </div>
           <div style={sourceBodyStyle}>
-            <div
-              style={{
-                ...leadSourcesDonutStyle,
-                justifySelf: 'center',
-                background: `conic-gradient(${leadPipeline.sourceSeries.reduce((segments, item, index, list) => {
-                  const entryColor = leadSourcePalette[item.name] || leadSourcePalette.Other;
-                  const start = list.slice(0, index).reduce((sum, e) => sum + e.count, 0);
-                  const startPct = leadPipeline.sourceTotal > 0 ? (start / leadPipeline.sourceTotal) * 100 : 0;
-                  const endPct = leadPipeline.sourceTotal > 0 ? ((start + item.count) / leadPipeline.sourceTotal) * 100 : startPct;
-                  segments.push(`${entryColor} ${startPct}% ${endPct}%`);
-                  return segments;
-                }, []).join(', ') || '#e5e7eb 0 100%'})`
-              }}
-            >
-              <div style={shell.donutInner}>
-                <div style={{ color: '#64748b', fontWeight: 700, fontSize: '13px' }}>Lead Sources</div>
-                <div style={{ color: '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1 }}>{leadPipeline.sourceTotal}</div>
-              </div>
-            </div>
+            {renderRoundedDonut(
+              leadPipeline.sourceSeries,
+              leadPipeline.sourceTotal,
+              leadPipeline.sourceSeries.map((entry) => leadSourcePalette[entry.name] || leadSourcePalette.Other),
+              viewportWidth >= 1200 ? 220 : 268,
+              22,
+              'Lead Sources',
+              leadPipeline.sourceTotal,
+              '13px',
+              '22px'
+            )}
             {leadPipeline.sourceSeries.length === 0 ? (
               <div style={{ color: '#64748b', fontWeight: 700 }}>No lead source data available.</div>
             ) : (
@@ -1138,22 +1201,17 @@ export default function Dashboard() {
             <span style={shell.sourceHeaderBadge}>{selectedYearNumber}</span>
           </div>
           <div style={{ ...shell.donutWrap, padding: '18px 18px 14px' }}>
-            <div
-              style={{
-                ...shell.donut,
-                background: `conic-gradient(${selectedYearAnalytics.topExpenses.map((item, idx) => {
-                  const start = selectedYearAnalytics.topExpenses.slice(0, idx).reduce((sum, e) => sum + e.amount, 0);
-                  const startPct = selectedYearAnalytics.totalExpenseAmount > 0 ? (start / selectedYearAnalytics.totalExpenseAmount) * 100 : 0;
-                  const endPct = selectedYearAnalytics.totalExpenseAmount > 0 ? ((start + item.amount) / selectedYearAnalytics.totalExpenseAmount) * 100 : startPct;
-                  return `${expenseColors[idx % expenseColors.length]} ${startPct}% ${endPct}%`;
-                }).join(', ') || '#e5e7eb 0 100%'})`
-              }}
-            >
-              <div style={shell.donutInner}>
-                <div style={{ color: '#64748b', fontWeight: 700 }}>All Expenses</div>
-                <div style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800 }}>{formatCurrency(selectedYearAnalytics.totalExpenseAmount)}</div>
-              </div>
-            </div>
+            {renderRoundedDonut(
+              selectedYearAnalytics.topExpenses.map((entry) => ({ name: entry.name, value: entry.amount })),
+              selectedYearAnalytics.totalExpenseAmount,
+              expenseColors,
+              viewportWidth >= 1200 ? 220 : 268,
+              22,
+              'All Expenses',
+              formatCurrency(selectedYearAnalytics.totalExpenseAmount),
+              '13px',
+              '24px'
+            )}
             <div style={{ display: 'grid', gap: '10px' }}>
               {selectedYearAnalytics.topExpenses.length === 0 ? (
                 <div style={{ color: '#64748b', fontWeight: 700 }}>No expense data available.</div>
