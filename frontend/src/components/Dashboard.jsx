@@ -915,7 +915,7 @@ export default function Dashboard() {
               ))}
             </select>
           </div>
-          <div style={{ padding: '18px 18px 20px' }}>
+          <div style={{ padding: '18px 18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
             <div style={{ display: 'grid', gap: '14px' }}>
             {leadFunnelRows.map((row) => (
               <button
