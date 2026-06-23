@@ -99,15 +99,15 @@ export function getPercentAxisProps({ mobile = false } = {}) {
 
 export function getBarChartProps(count = 0, { mobile = false } = {}) {
   if (count <= 1) {
-    return { barCategoryGap: '52%', barGap: 6, maxBarSize: mobile ? 36 : 46 };
+    return { barCategoryGap: '52%', barGap: 6, maxBarSize: mobile ? 40 : 52 };
   }
   if (count <= 3) {
-    return { barCategoryGap: '30%', barGap: 4, maxBarSize: mobile ? 32 : 38 };
+    return { barCategoryGap: '30%', barGap: 4, maxBarSize: mobile ? 36 : 44 };
   }
   if (count <= 6) {
-    return { barCategoryGap: '18%', barGap: 4, maxBarSize: mobile ? 28 : 34 };
+    return { barCategoryGap: '18%', barGap: 4, maxBarSize: mobile ? 32 : 38 };
   }
-  return { barCategoryGap: mobile ? '15%' : '12%', barGap: 3, maxBarSize: mobile ? 24 : 30 };
+  return { barCategoryGap: mobile ? '15%' : '12%', barGap: 3, maxBarSize: mobile ? 28 : 34 };
 }
 
 export function SalesChartTooltip({ active, payload, label, valueFormatter = formatCompactIndianCurrency }) {
