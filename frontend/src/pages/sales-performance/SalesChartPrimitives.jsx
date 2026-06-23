@@ -69,9 +69,9 @@ export function getChartAxisProps({ mobile = false, angledMobile = true } = {}) 
 export function getChartMargin({ mobile = false } = {}) {
   return {
     top: 4,
-    right: mobile ? 6 : 8,
-    left: mobile ? -18 : -12,
-    bottom: mobile ? 10 : 2
+    right: mobile ? 4 : 6,
+    left: mobile ? -14 : -8,
+    bottom: mobile ? 4 : 0
   };
 }
 
