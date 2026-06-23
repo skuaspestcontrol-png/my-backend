@@ -3286,32 +3286,6 @@ export default function CustomerDashboard() {
                     </div>
                   </div>
 
-                  <div style={shell.historyMetaBox}>
-                    <div>
-                      <p style={shell.historyMetaLabel}>Contact Person</p>
-                      <p style={shell.historyMetaValue}>{selectedHistoryCustomer?.contactPersonName || '-'}</p>
-                    </div>
-                    <div>
-                      <p style={shell.historyMetaLabel}>Mobile Number</p>
-                      <p style={shell.historyMetaValue}>{selectedHistoryCustomer?.mobileNumber || selectedHistoryCustomer?.workPhone || '-'}</p>
-                    </div>
-                    <div>
-                      <p style={shell.historyMetaLabel}>Email</p>
-                      <p style={shell.historyMetaValue}>{selectedHistoryCustomer?.emailId || selectedHistoryCustomer?.email || '-'}</p>
-                    </div>
-                    <div>
-                      <p style={shell.historyMetaLabel}>GST Number</p>
-                      <p style={shell.historyMetaValue}>{selectedHistoryCustomer?.gstNumber || '-'}</p>
-                    </div>
-                    <div>
-                      <p style={shell.historyMetaLabel}>Billing State</p>
-                      <p style={shell.historyMetaValue}>{selectedHistoryCustomer?.billingState || selectedHistoryCustomer?.state || '-'}</p>
-                    </div>
-                    <div>
-                      <p style={shell.historyMetaLabel}>Billing Area</p>
-                      <p style={shell.historyMetaValue}>{selectedHistoryCustomer?.billingArea || selectedHistoryCustomer?.area || '-'}</p>
-                    </div>
-                  </div>
                 </>
               ) : (
                 <div style={shell.historyGrid}>
