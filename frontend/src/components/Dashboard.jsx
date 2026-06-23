@@ -657,6 +657,10 @@ export default function Dashboard() {
       sub: 'Target completion'
     }
   ]), [selectedTargetYearNumber, yearlyTargetSummary]);
+  const isMobile = viewportWidth < 768;
+  const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
+  const isLaptop = viewportWidth >= 992 && viewportWidth <= 1199;
+  const isSmallMobile = viewportWidth < 420;
   const salesPerformanceEmployees = safeRows(salesPerformanceData?.employees);
   const salesPerformanceTrend = safeRows(salesPerformanceData?.monthlyTrend);
   const salesPerformanceChartHeight = isMobile ? 220 : 248;
@@ -675,10 +679,6 @@ export default function Dashboard() {
 
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim();
   const aboutTagline = String(settings.aboutTagline || 'Professional in Pest Control').trim();
-  const isMobile = viewportWidth < 768;
-  const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
-  const isLaptop = viewportWidth >= 992 && viewportWidth <= 1199;
-  const isSmallMobile = viewportWidth < 420;
 
   const heroStyle = isMobile
     ? { ...shell.hero, gridTemplateColumns: '1fr', padding: isSmallMobile ? '16px' : '20px' }
