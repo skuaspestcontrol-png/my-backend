@@ -663,7 +663,7 @@ export default function Dashboard() {
   const isSmallMobile = viewportWidth < 420;
   const salesPerformanceEmployees = safeRows(salesPerformanceData?.employees);
   const salesPerformanceTrend = safeRows(salesPerformanceData?.monthlyTrend);
-  const salesPerformanceChartHeight = isMobile ? 220 : 248;
+  const salesPerformanceChartHeight = getChartHeight({ mobile: isMobile });
   const salesPerformanceChartProps = getBarChartProps(salesPerformanceTrend.length, { mobile: isMobile });
   const salesPerformanceAxisProps = getChartAxisProps({ mobile: isMobile });
   const salesPerformanceCurrencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });

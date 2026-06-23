@@ -45,8 +45,8 @@ export function ChartSurface({ height, minWidth, children }) {
 }
 
 export function getChartHeight({ mobile = false, fullWidth = false } = {}) {
-  if (mobile) return fullWidth ? 220 : 190;
-  return fullWidth ? 300 : 248;
+  if (mobile) return fullWidth ? 236 : 208;
+  return fullWidth ? 332 : 280;
 }
 
 export function getChartGridStyle(viewportWidth) {
