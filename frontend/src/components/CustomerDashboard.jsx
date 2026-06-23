@@ -831,6 +831,17 @@ export default function CustomerDashboard() {
     }
   };
 
+  const getCustomerSortValue = (customer, key) => {
+    const rawValue = handleCellValue(customer, key);
+    if (key === 'hasGst') return customer.hasGst || customer.gstRegistered ? 1 : 0;
+    if (key === 'whatsappSameAsMobile' || key === 'shippingSameAsBilling') return String(rawValue || '').toLowerCase() === 'yes' ? 1 : 0;
+    if (key === 'areaSqft') return Number(String(rawValue || '').replace(/,/g, '')) || 0;
+    if (key === 'mobileNumber' || key === 'whatsappNumber' || key === 'altNumber' || key === 'billingPincode' || key === 'shippingPincode') {
+      return normalizeSearchDigits(rawValue);
+    }
+    return normalizeComparisonText(rawValue);
+  };
+
   const closeMoreMenu = () => {
     setShowMoreMenu(false);
     setMoreMenuPosition(null);
@@ -2517,17 +2528,6 @@ export default function CustomerDashboard() {
     if (key === 'billingPhoneCode') return customer.billingPhoneCode || '+91';
     if (key === 'shippingPhoneCode') return customer.shippingPhoneCode || '+91';
     return customer[key] || '';
-  };
-
-  const getCustomerSortValue = (customer, key) => {
-    const rawValue = handleCellValue(customer, key);
-    if (key === 'hasGst') return customer.hasGst || customer.gstRegistered ? 1 : 0;
-    if (key === 'whatsappSameAsMobile' || key === 'shippingSameAsBilling') return String(rawValue || '').toLowerCase() === 'yes' ? 1 : 0;
-    if (key === 'areaSqft') return Number(String(rawValue || '').replace(/,/g, '')) || 0;
-    if (key === 'mobileNumber' || key === 'whatsappNumber' || key === 'altNumber' || key === 'billingPincode' || key === 'shippingPincode') {
-      return normalizeSearchDigits(rawValue);
-    }
-    return normalizeComparisonText(rawValue);
   };
 
   const toggleNameSort = () => {
