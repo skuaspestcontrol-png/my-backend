@@ -1,6 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  ChartSurface,
+  getBarChartProps,
+  getChartAxisProps,
+  getChartHeight,
+  getChartMargin,
+  getCurrencyAxisProps,
+  SalesChartTooltip,
+  salesChartTheme
+} from '../pages/sales-performance/SalesChartPrimitives';
+import { apiGet, currentYear, money, safeRows, subscribeSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { subscribeDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -201,6 +213,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const hasLoadedRef = useRef(false);
   const loadDashboardRef = useRef(() => {});
+  const loadSalesPerformanceSummaryRef = useRef(() => {});
+  const loadSalesPerformanceRef = useRef(() => {});
   const dashboardLoadingRef = useRef(false);
   const cachedDashboardState = useMemo(() => readDashboardCache(), []);
   const [summary, setSummary] = useState(() => cachedDashboardState?.summary || null);
@@ -209,9 +223,13 @@ export default function Dashboard() {
   const [vendorBills, setVendorBills] = useState(() => cachedDashboardState?.vendorBills || []);
   const [leads, setLeads] = useState(() => cachedDashboardState?.leads || []);
   const [salesPerformanceSummary, setSalesPerformanceSummary] = useState(null);
+  const [salesPerformanceData, setSalesPerformanceData] = useState(null);
+  const [salesPerformanceLoading, setSalesPerformanceLoading] = useState(true);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [selectedContractYear, setSelectedContractYear] = useState(() => String(new Date().getFullYear()));
   const [selectedTargetYear, setSelectedTargetYear] = useState(() => String(new Date().getFullYear()));
+  const [selectedSalesPerformanceYear, setSelectedSalesPerformanceYear] = useState(() => String(new Date().getFullYear()));
+  const [selectedSalesPersonId, setSelectedSalesPersonId] = useState('');
   const [hoveredIncomeBar, setHoveredIncomeBar] = useState(null);
 
   useEffect(() => {
@@ -288,6 +306,14 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = subscribeSalesPerformanceRefresh(() => {
+      loadSalesPerformanceSummaryRef.current();
+      loadSalesPerformanceRef.current();
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -295,6 +321,7 @@ export default function Dashboard() {
 
   const selectedYearNumber = Number(selectedContractYear) || new Date().getFullYear();
   const selectedTargetYearNumber = Number(selectedTargetYear) || new Date().getFullYear();
+  const selectedSalesPerformanceYearNumber = Number(selectedSalesPerformanceYear) || new Date().getFullYear();
 
   useEffect(() => {
     let active = true;
@@ -302,11 +329,12 @@ export default function Dashboard() {
     const loadSalesPerformanceSummary = async () => {
       try {
         const stamp = Date.now();
-        const res = await axios.get(`${API_BASE_URL}/api/sales-performance/dashboard`, {
-          params: { year: selectedTargetYearNumber, _: stamp }
+        const res = await apiGet('/api/sales-performance/dashboard', {
+          year: selectedTargetYearNumber,
+          _: stamp
         });
         if (!active) return;
-        setSalesPerformanceSummary(res?.data?.summary || null);
+        setSalesPerformanceSummary(res?.summary || null);
       } catch (error) {
         if (!active) return;
         console.error('Sales performance summary load failed', error);
@@ -314,11 +342,42 @@ export default function Dashboard() {
       }
     };
 
+    loadSalesPerformanceSummaryRef.current = loadSalesPerformanceSummary;
     loadSalesPerformanceSummary();
     return () => {
       active = false;
     };
   }, [selectedTargetYearNumber]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadSalesPerformanceData = async () => {
+      setSalesPerformanceLoading(true);
+      try {
+        const stamp = Date.now();
+        const res = await apiGet('/api/sales-performance/dashboard', {
+          year: selectedSalesPerformanceYearNumber,
+          employeeId: selectedSalesPersonId,
+          _: stamp
+        });
+        if (!active) return;
+        setSalesPerformanceData(res || null);
+      } catch (error) {
+        if (!active) return;
+        console.error('Sales performance load failed', error);
+        setSalesPerformanceData(null);
+      } finally {
+        if (active) setSalesPerformanceLoading(false);
+      }
+    };
+
+    loadSalesPerformanceRef.current = loadSalesPerformanceData;
+    loadSalesPerformanceData();
+    return () => {
+      active = false;
+    };
+  }, [selectedSalesPerformanceYearNumber, selectedSalesPersonId]);
 
   const contractYears = useMemo(() => {
     const years = new Set();
@@ -598,6 +657,21 @@ export default function Dashboard() {
       sub: 'Target completion'
     }
   ]), [selectedTargetYearNumber, yearlyTargetSummary]);
+  const salesPerformanceEmployees = safeRows(salesPerformanceData?.employees);
+  const salesPerformanceTrend = safeRows(salesPerformanceData?.monthlyTrend);
+  const salesPerformanceChartHeight = isMobile ? 220 : 248;
+  const salesPerformanceChartProps = getBarChartProps(salesPerformanceTrend.length, { mobile: isMobile });
+  const salesPerformanceAxisProps = getChartAxisProps({ mobile: isMobile });
+  const salesPerformanceCurrencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
+  const salesPerformanceMargin = getChartMargin({ mobile: isMobile });
+  const salesPerformanceMonthlyTarget = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.target), 0);
+  const salesPerformanceMonthlyAchieved = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.achieved), 0);
+  const selectedSalesPersonLabel = selectedSalesPersonId
+    ? salesPerformanceEmployees.find((person) => String(person.id) === String(selectedSalesPersonId))?.name || 'Selected Sales Person'
+    : 'All Team';
+  const salesPerformanceYearOptions = contractYears.length > 0
+    ? contractYears
+    : Array.from({ length: 5 }, (_, index) => currentYear - 2 + index);
 
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim();
   const aboutTagline = String(settings.aboutTagline || 'Professional in Pest Control').trim();
@@ -676,6 +750,83 @@ export default function Dashboard() {
   const sourceLegendItemStyle = isMobile
     ? { ...shell.sourceLegendItem, gridTemplateColumns: '11px minmax(0, 1fr) auto', gap: '6px', fontSize: '11px', width: '100%', justifyContent: 'start' }
     : { ...shell.sourceLegendItem, fontSize: '11px', gap: '8px' };
+  const salesChartSectionStyle = {
+    display: 'grid',
+    gap: '12px',
+    width: '100%',
+    minWidth: 0,
+    marginTop: '2px'
+  };
+  const salesChartCardStyle = {
+    background: '#fff',
+    border: '1px solid #dbe4f0',
+    borderRadius: '22px',
+    overflow: 'hidden',
+    boxShadow: 'none',
+    minHeight: isMobile ? 'auto' : '390px',
+    display: 'flex',
+    flexDirection: 'column'
+  };
+  const salesChartCardHeaderStyle = {
+    padding: '11px 16px',
+    background: '#f8fafc',
+    borderBottom: '1px solid #dbe4f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '10px',
+    flexWrap: 'wrap'
+  };
+  const salesChartTitleStyle = { margin: 0, color: '#334155', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 };
+  const salesChartSubtitleStyle = { margin: '4px 0 0 0', color: '#64748b', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 };
+  const salesChartHeaderControlsStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap',
+    marginLeft: 'auto'
+  };
+  const salesChartSelectStyle = {
+    ...shell.sourceHeaderSelect,
+    minWidth: '98px',
+    height: '32px',
+    minHeight: '32px',
+    padding: '0 10px',
+    background: '#fff'
+  };
+  const salesChartBodyStyle = {
+    padding: '14px 16px 16px',
+    display: 'grid',
+    gap: '12px',
+    flex: 1
+  };
+  const salesChartLegendStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    flexWrap: 'wrap'
+  };
+  const salesChartLegendItemStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    color: '#334155',
+    fontSize: '12px',
+    fontWeight: 700
+  };
+  const salesChartChartWrapStyle = {
+    display: 'grid',
+    gridTemplateColumns: '44px minmax(0, 1fr)',
+    gap: '12px',
+    alignItems: 'stretch'
+  };
+  const salesChartYAxisStyle = {
+    display: 'grid',
+    alignContent: 'space-between',
+    padding: '8px 0 26px 0'
+  };
+  const salesChartYAxisLabelStyle = { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1 };
   const yearlySummaryGridStyle = isMobile
     ? { ...shell.targetMetrics, gridTemplateColumns: '1fr' }
     : isTablet
@@ -1226,6 +1377,114 @@ export default function Dashboard() {
             </div>
           </div>
         </article>
+      </section>
+
+      <section style={salesChartSectionStyle}>
+        <div style={salesChartCardStyle}>
+          <div style={salesChartCardHeaderStyle}>
+            <div>
+              <h2 style={salesChartTitleStyle}>Sales Team Performance</h2>
+              <p style={salesChartSubtitleStyle}>Month-wise target vs achievement for the selected year and salesperson.</p>
+            </div>
+            <div style={salesChartHeaderControlsStyle}>
+              <select
+                value={selectedSalesPerformanceYear}
+                onChange={(event) => setSelectedSalesPerformanceYear(event.target.value)}
+                style={salesChartSelectStyle}
+                aria-label="Select sales performance year"
+              >
+                {salesPerformanceYearOptions.map((year) => (
+                  <option key={year} value={String(year)}>{year}</option>
+                ))}
+              </select>
+              <select
+                value={selectedSalesPersonId}
+                onChange={(event) => setSelectedSalesPersonId(event.target.value)}
+                style={{ ...salesChartSelectStyle, minWidth: isMobile ? '100%' : '150px' }}
+                aria-label="Select sales person"
+              >
+                <option value="">All Team</option>
+                {salesPerformanceEmployees.map((person) => (
+                  <option key={person.id} value={String(person.id)}>{person.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div style={salesChartBodyStyle}>
+            <div style={salesChartLegendStyle}>
+              <span style={salesChartLegendItemStyle}>
+                <span style={{ ...shell.dot, width: '10px', height: '10px', background: '#111827' }} />
+                <span>Target</span>
+                <strong style={{ color: '#111827' }}>{formatCurrency(salesPerformanceMonthlyTarget)}</strong>
+              </span>
+              <span style={salesChartLegendItemStyle}>
+                <span style={{ ...shell.dot, width: '10px', height: '10px', background: '#16A34A' }} />
+                <span>Achieved</span>
+                <strong style={{ color: '#16A34A' }}>{formatCurrency(salesPerformanceMonthlyAchieved)}</strong>
+              </span>
+              <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>
+                {selectedSalesPersonLabel}
+              </span>
+            </div>
+
+            {salesPerformanceLoading ? (
+              <div style={{ display: 'grid', placeItems: 'center', minHeight: salesPerformanceChartHeight }}>
+                <div style={{ color: '#64748b', fontWeight: 700 }}>Loading sales performance...</div>
+              </div>
+            ) : salesPerformanceTrend.length ? (
+              <div style={salesChartChartWrapStyle}>
+                <div style={salesChartYAxisStyle}>
+                  {(() => {
+                    const maxValue = Math.max(
+                      salesPerformanceMonthlyTarget,
+                      salesPerformanceMonthlyAchieved,
+                      ...salesPerformanceTrend.map((row) => Math.max(toNum(row.target), toNum(row.achieved))),
+                      1
+                    );
+                    return Array.from({ length: 6 }, (_, index) => 5 - index).map((step) => {
+                      const value = (maxValue / 5) * step;
+                      return (
+                        <span key={step} style={salesChartYAxisLabelStyle}>
+                          {step === 0 ? '0' : money(value)}
+                        </span>
+                      );
+                    });
+                  })()}
+                </div>
+                <div style={{ position: 'relative', minWidth: 0 }}>
+                  <ChartSurface height={salesPerformanceChartHeight} minWidth={isMobile ? 560 : 0}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={salesPerformanceTrend}
+                        margin={salesPerformanceMargin}
+                        barCategoryGap={salesPerformanceChartProps.barCategoryGap}
+                        barGap={salesPerformanceChartProps.barGap}
+                      >
+                        <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
+                        <XAxis dataKey="label" {...salesPerformanceAxisProps} />
+                        <YAxis {...salesPerformanceCurrencyAxisProps} />
+                        <Tooltip
+                          cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                          content={<SalesChartTooltip valueFormatter={(value) => money(value || 0)} />}
+                        />
+                        <Bar dataKey="target" name="Target" fill="#111827" radius={[8, 8, 0, 0]} maxBarSize={salesPerformanceChartProps.maxBarSize} />
+                        <Bar dataKey="achieved" name="Achieved" radius={[8, 8, 0, 0]} maxBarSize={salesPerformanceChartProps.maxBarSize}>
+                          {salesPerformanceTrend.map((entry) => (
+                            <Cell key={entry.month} fill={Number(entry.achieved || 0) >= Number(entry.target || 0) ? '#16A34A' : '#DC2626'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartSurface>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', placeItems: 'center', minHeight: salesPerformanceChartHeight, color: '#64748b', fontWeight: 700 }}>
+                No sales performance data available.
+              </div>
+            )}
+          </div>
+        </div>
       </section>
     </div>
   );

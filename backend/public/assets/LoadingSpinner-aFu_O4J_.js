@@ -1,0 +1,1 @@
+import{t as e}from"./react-vendor-DIgtcLXv.js";import{t}from"./theme-DKqqCD8B.js";var n=e();function r({size:e=18,color:r=t.colors.primary}){return(0,n.jsx)(`span`,{"aria-hidden":`true`,style:{width:e,height:e,borderRadius:`999px`,border:`2px solid ${r}33`,borderTopColor:r,display:`inline-block`,animation:`crm-spin 0.8s linear infinite`}})}export{r as t};

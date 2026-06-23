@@ -765,9 +765,18 @@ const getEmployeeTargetTotals = (context, employee, year, month) => {
     yearlyCollectionTarget: sumTargetValues(yearlyCollectionRows, 'collectionTarget')
   };
 };
-const buildMonthlyTrend = (context, year) => monthList.map((month) => {
-  const monthlyTargetRows = context.targets.filter((row) => row.isActive && text(row.targetType) === 'monthly' && Number(row.targetYear) === Number(year) && Number(row.targetMonth) === Number(month));
-  const monthlyRecords = context.records.filter((record) => matchesDate(record.date, year, month));
+const buildMonthlyTrend = (context, year, employee = null) => monthList.map((month) => {
+  const monthlyTargetRows = context.targets.filter((row) => {
+    if (!row.isActive || text(row.targetType) !== 'monthly') return false;
+    if (Number(row.targetYear) !== Number(year) || Number(row.targetMonth) !== Number(month)) return false;
+    if (!employee) return true;
+    return matchesTargetEmployee(row, employee);
+  });
+  const monthlyRecords = context.records.filter((record) => {
+    if (!matchesDate(record.date, year, month)) return false;
+    if (!employee) return true;
+    return employeeHasValue(employee, record.employeeId) || employeeHasValue(employee, record.employeeName);
+  });
   const monthlyInvoices = monthlyRecords.filter((record) => record.kind === 'invoices').reduce((sum, record) => sum + num(record.amount), 0);
   const target = monthlyTargetRows.reduce((sum, row) => sum + num(row.revenueTarget), 0);
   const achieved = monthlyInvoices;
@@ -906,6 +915,9 @@ router.get('/dashboard', async (req, res) => {
     const year = Number(req.query.year || currentYear);
     const month = Number(req.query.month || currentMonth);
     const employeeId = text(req.query.employeeId || '');
+    const selectedEmployee = employeeId
+      ? context.employees.find((employee) => employeeHasValue(employee, employeeId)) || null
+      : null;
     const teamRows = buildTeamRows(context, { year, month, salesPersonId: employeeId });
     const monthlyRows = teamRows.map((row) => row);
     const yearlyRows = teamRows;
@@ -914,7 +926,7 @@ router.get('/dashboard', async (req, res) => {
     const totalYearlyTarget = teamRows.reduce((sum, row) => sum + num(row.yearlyTarget), 0);
     const totalYearlyAchieved = teamRows.reduce((sum, row) => sum + num(row.yearlyAchieved), 0);
     const bestPerformer = findBestPerformer(yearlyRows);
-    const monthlyTrend = buildMonthlyTrend(context, year);
+    const monthlyTrend = buildMonthlyTrend(context, year, selectedEmployee);
     const years = await parseYearList(context);
     const matrix = buildYearMatrix(context, years.slice(-4));
     return res.json({
