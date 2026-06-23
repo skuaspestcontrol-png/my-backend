@@ -145,7 +145,7 @@ export default function StockDashboard() {
                       <XAxis dataKey="category" tickFormatter={stockCategoryDisplayLabel} />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="currentStock" radius={[8, 8, 0, 0]}>
+                      <Bar dataKey="currentStock" radius={0}>
                         {safeRows(data?.categoryWise).map((entry) => (
                           <Cell key={entry.category} fill={neutralColor} />
                         ))}
@@ -182,7 +182,7 @@ export default function StockDashboard() {
                       <XAxis dataKey="itemName" hide />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="currentStock" radius={[8, 8, 0, 0]}>
+                      <Bar dataKey="currentStock" radius={0}>
                         {safeRows(data?.lowStockItems).map((entry) => (
                           <Cell key={entry.itemName} fill={dangerColor} />
                         ))}
@@ -202,7 +202,7 @@ export default function StockDashboard() {
                       <XAxis dataKey="technicianName" hide />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="currentBalance" radius={[8, 8, 0, 0]}>
+                      <Bar dataKey="currentBalance" radius={0}>
                         {safeRows(data?.technicianWise).map((entry) => (
                           <Cell key={entry.technicianName} fill={isHealthyStock(entry.currentBalance) ? successColor : dangerColor} />
                         ))}

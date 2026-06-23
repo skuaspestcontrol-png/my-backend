@@ -476,8 +476,8 @@ export default function SalesPerformanceReports() {
                         cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
                         content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
                       />
-                      <Bar dataKey="monthlyTarget" name={currencyTooltipLabel.monthlyTarget} fill={targetColor} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize} />
-                      <Bar dataKey="monthlyAchieved" name={currencyTooltipLabel.monthlyAchieved} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize}>
+                      <Bar dataKey="monthlyTarget" name={currencyTooltipLabel.monthlyTarget} fill={targetColor} radius={0} maxBarSize={barChartProps.maxBarSize} />
+                      <Bar dataKey="monthlyAchieved" name={currencyTooltipLabel.monthlyAchieved} radius={0} maxBarSize={barChartProps.maxBarSize}>
                         {chartData.map((entry) => (
                           <Cell
                             key={`${entry.employeeName}-monthly`}
@@ -505,8 +505,8 @@ export default function SalesPerformanceReports() {
                         cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
                         content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
                       />
-                      <Bar dataKey="yearlyTarget" name={currencyTooltipLabel.yearlyTarget} fill={targetColor} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize} />
-                      <Bar dataKey="yearlyAchieved" name={currencyTooltipLabel.yearlyAchieved} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize}>
+                      <Bar dataKey="yearlyTarget" name={currencyTooltipLabel.yearlyTarget} fill={targetColor} radius={0} maxBarSize={barChartProps.maxBarSize} />
+                      <Bar dataKey="yearlyAchieved" name={currencyTooltipLabel.yearlyAchieved} radius={0} maxBarSize={barChartProps.maxBarSize}>
                         {chartData.map((entry) => (
                           <Cell
                             key={`${entry.employeeName}-yearly`}

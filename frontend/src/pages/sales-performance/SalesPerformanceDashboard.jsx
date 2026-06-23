@@ -365,7 +365,7 @@ export default function SalesPerformanceDashboard() {
                           cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
                           content={<SalesChartTooltip valueFormatter={(value) => percent(value || 0)} />}
                         />
-                        <Bar dataKey="yearlyAchievementPercent" name="Achievement %" radius={[8, 8, 0, 0]} maxBarSize={salesPersonBarChartProps.maxBarSize}>
+                        <Bar dataKey="yearlyAchievementPercent" name="Achievement %" radius={0} maxBarSize={salesPersonBarChartProps.maxBarSize}>
                           {salesPersonRows.map((entry) => (
                             <Cell
                               key={entry.employeeId}
