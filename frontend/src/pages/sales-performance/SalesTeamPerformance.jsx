@@ -293,7 +293,7 @@ export default function SalesTeamPerformance() {
               {rows.length ? (
                 <ChartSurface height={chartHeight}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={rows} margin={getChartMargin({ mobile: isMobile })} barCategoryGap={barChartProps.barCategoryGap} barGap={barChartProps.barGap}>
+                    <BarChart data={rows} margin={getChartMargin({ mobile: isMobile })} barCategoryGap={barChartProps.barCategoryGap} barGap={0}>
                       <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
                       <XAxis dataKey="employeeName" {...chartAxisProps} />
                       <YAxis {...currencyAxisProps} />
@@ -301,8 +301,8 @@ export default function SalesTeamPerformance() {
                         cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
                         content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
                       />
-                      <Bar dataKey="monthlyTarget" name={currencyTooltipLabel.monthlyTarget} fill={targetColor} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize} />
-                      <Bar dataKey="monthlyAchieved" name={currencyTooltipLabel.monthlyAchieved} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize}>
+                      <Bar dataKey="monthlyTarget" name={currencyTooltipLabel.monthlyTarget} fill={targetColor} radius={0} maxBarSize={barChartProps.maxBarSize} />
+                      <Bar dataKey="monthlyAchieved" name={currencyTooltipLabel.monthlyAchieved} radius={0} maxBarSize={barChartProps.maxBarSize}>
                         {rows.map((entry) => (
                           <Cell
                             key={entry.employeeId}
@@ -320,7 +320,7 @@ export default function SalesTeamPerformance() {
               {rows.length ? (
                 <ChartSurface height={chartHeight}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={rows} margin={getChartMargin({ mobile: isMobile })} barCategoryGap={barChartProps.barCategoryGap} barGap={barChartProps.barGap}>
+                    <BarChart data={rows} margin={getChartMargin({ mobile: isMobile })} barCategoryGap={barChartProps.barCategoryGap} barGap={0}>
                       <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
                       <XAxis dataKey="employeeName" {...chartAxisProps} />
                       <YAxis {...currencyAxisProps} />
@@ -328,8 +328,8 @@ export default function SalesTeamPerformance() {
                         cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
                         content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
                       />
-                      <Bar dataKey="monthlyCollectionTarget" name={currencyTooltipLabel.monthlyCollectionTarget} fill={targetColor} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize} />
-                      <Bar dataKey="monthlyCollectionAchieved" name={currencyTooltipLabel.monthlyCollectionAchieved} radius={[8, 8, 0, 0]} maxBarSize={barChartProps.maxBarSize}>
+                      <Bar dataKey="monthlyCollectionTarget" name={currencyTooltipLabel.monthlyCollectionTarget} fill={targetColor} radius={0} maxBarSize={barChartProps.maxBarSize} />
+                      <Bar dataKey="monthlyCollectionAchieved" name={currencyTooltipLabel.monthlyCollectionAchieved} radius={0} maxBarSize={barChartProps.maxBarSize}>
                         {rows.map((entry) => (
                           <Cell
                             key={entry.employeeId}

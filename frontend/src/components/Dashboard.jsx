@@ -1458,7 +1458,7 @@ export default function Dashboard() {
                         data={salesPerformanceTrend}
                         margin={salesPerformanceMargin}
                         barCategoryGap={salesPerformanceChartProps.barCategoryGap}
-                        barGap={salesPerformanceChartProps.barGap}
+                        barGap={0}
                       >
                         <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
                         <XAxis dataKey="label" {...salesPerformanceAxisProps} />
@@ -1467,8 +1467,8 @@ export default function Dashboard() {
                           cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
                           content={<SalesChartTooltip valueFormatter={(value) => money(value || 0)} />}
                         />
-                        <Bar dataKey="target" name="Target" fill="#111827" radius={[8, 8, 0, 0]} maxBarSize={salesPerformanceChartProps.maxBarSize} />
-                        <Bar dataKey="achieved" name="Achieved" radius={[8, 8, 0, 0]} maxBarSize={salesPerformanceChartProps.maxBarSize}>
+                        <Bar dataKey="target" name="Target" fill="#111827" radius={0} maxBarSize={salesPerformanceChartProps.maxBarSize} />
+                        <Bar dataKey="achieved" name="Achieved" radius={0} maxBarSize={salesPerformanceChartProps.maxBarSize}>
                           {salesPerformanceTrend.map((entry) => (
                             <Cell key={entry.month} fill={Number(entry.achieved || 0) >= Number(entry.target || 0) ? '#16A34A' : '#DC2626'} />
                           ))}

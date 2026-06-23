@@ -325,7 +325,7 @@ export default function SalesPerformanceDashboard() {
                         data={monthlyTrendRows}
                         margin={getChartMargin({ mobile: isMobile })}
                         barCategoryGap={monthlyBarChartProps.barCategoryGap}
-                        barGap={monthlyBarChartProps.barGap}
+                        barGap={0}
                       >
                         <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
                         <XAxis dataKey="label" {...axisProps} />
@@ -334,8 +334,8 @@ export default function SalesPerformanceDashboard() {
                           cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
                           content={<SalesChartTooltip valueFormatter={formatCurrencyTooltip} />}
                         />
-                        <Bar dataKey="target" name={currencyTooltipLabel.target} fill={targetColor} radius={[8, 8, 0, 0]} maxBarSize={monthlyBarChartProps.maxBarSize} />
-                        <Bar dataKey="achieved" name={currencyTooltipLabel.achieved} radius={[8, 8, 0, 0]} maxBarSize={monthlyBarChartProps.maxBarSize}>
+                        <Bar dataKey="target" name={currencyTooltipLabel.target} fill={targetColor} radius={0} maxBarSize={monthlyBarChartProps.maxBarSize} />
+                        <Bar dataKey="achieved" name={currencyTooltipLabel.achieved} radius={0} maxBarSize={monthlyBarChartProps.maxBarSize}>
                           {monthlyTrendRows.map((entry) => (
                             <Cell key={entry.month} fill={isTargetMet(entry.achieved, entry.target) ? successColor : dangerColor} />
                           ))}
