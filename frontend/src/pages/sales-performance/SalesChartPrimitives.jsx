@@ -56,7 +56,7 @@ export function getChartGridStyle(viewportWidth) {
 
 export function getChartAxisProps({ mobile = false, angledMobile = true } = {}) {
   return {
-    tick: { fontSize: mobile ? 9 : 10, fill: '#64748B' },
+    tick: { fontSize: mobile ? 9 : 10, fontWeight: 600, fill: '#64748B' },
     tickLine: false,
     axisLine: { stroke: axisStroke },
     height: mobile ? 36 : 22,
