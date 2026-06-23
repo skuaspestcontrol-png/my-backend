@@ -787,7 +787,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
 
     drawCell(doc, 'Bill To', left + 5, y, cardW - 5, 14, { bold: true, color: company.primaryColor, size: 9.8, border: 'none', padX: 0, padY: 1 });
     drawCell(doc, '', left, y + 14, cardW, cardH - 14, { border: 'none' });
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(billTo.attention || billTo.title, left + 5, y + 16, { width: cardW - 10, lineGap: 1 });
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(billTo.title, left + 5, y + 16, { width: cardW - 10, lineGap: 1 });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
       .text(addressLinesForInvoiceParty(billTo, { showGstin: showGstNumberInPdf }).join('\n'), left + 5, y + 28, { width: cardW - 10, lineGap: 1 });
 
