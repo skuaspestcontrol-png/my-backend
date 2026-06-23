@@ -1291,8 +1291,9 @@ export default function ContractDashboard() {
   const chipStyle = compactMobile
     ? {
       ...shell.chip,
-      flex: '1 1 calc(50% - 7px)',
-      maxWidth: 'calc(50% - 4px)',
+      flex: '0 0 auto',
+      width: 'fit-content',
+      maxWidth: '100%',
       minHeight: '31px',
       height: '31px',
       padding: '0 8px',
