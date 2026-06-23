@@ -206,7 +206,7 @@ const shell = {
   chip: {
     border: '1px solid transparent',
     borderRadius: '999px',
-    padding: '0 10px',
+    padding: '0 8px',
     minHeight: '34px',
     height: '34px',
     flex: '0 0 auto',
@@ -215,7 +215,7 @@ const shell = {
     fontSize: '11px',
     fontWeight: 700,
     display: 'inline-flex',
-    gap: '5px',
+    gap: '4px',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
@@ -1299,7 +1299,7 @@ export default function ContractDashboard() {
       maxWidth: '100%',
       minHeight: '31px',
       height: '31px',
-      padding: '0 8px',
+      padding: '0 6px',
       fontSize: '10px'
     }
     : shell.chip;
