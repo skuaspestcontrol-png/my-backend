@@ -1293,8 +1293,8 @@ export default function ContractDashboard() {
       ...shell.chip,
       flex: '1 1 calc(50% - 7px)',
       maxWidth: 'calc(50% - 4px)',
-      minHeight: '34px',
-      height: '34px',
+      minHeight: '31px',
+      height: '31px',
       padding: '0 8px',
       fontSize: '10px'
     }
