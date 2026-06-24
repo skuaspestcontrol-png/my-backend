@@ -2805,27 +2805,6 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
       return y + 15;
     };
 
-    const renderOverviewRow = (rowY, label, value) => {
-      const labelWidth = 185;
-      const valueWidth = header.width - labelWidth;
-      const rowPaddingY = 6;
-      const rowHeight = Math.max(
-        22,
-        doc.heightOfString(String(label || ''), { width: labelWidth - 16 }) + (rowPaddingY * 2),
-        doc.heightOfString(pdfValue(value), { width: valueWidth - 16 }) + (rowPaddingY * 2)
-      );
-      doc.rect(header.left, rowY, header.width, rowHeight).lineWidth(0.55).strokeColor('#D9DEE8').stroke();
-      doc.font('Helvetica-Bold').fontSize(8.6).fillColor('#475569').text(label, header.left + 8, rowY + rowPaddingY, {
-        width: labelWidth - 16,
-        align: 'left'
-      });
-      doc.font('Helvetica').fontSize(9.2).fillColor('#0F172A').text(pdfValue(value), header.left + labelWidth + 8, rowY + rowPaddingY, {
-        width: valueWidth - 16,
-        align: 'left'
-      });
-      return rowHeight;
-    };
-
     let y = header.bodyTop;
     y = renderSectionTitle(y, 'Contract Overview');
     const overviewRows = [
@@ -2842,10 +2821,39 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
       ['Completed Services', pdfValue(totalCompleted)],
       ['Pending Services', pdfValue(pendingServices)]
     ];
-    overviewRows.forEach(([label, value], index) => {
-      const rowHeight = renderOverviewRow(y, label, value);
+    const renderOverviewCell = (cellX, cellY, cellW, label, value) => {
+      const cellPaddingX = 8;
+      const cellPaddingY = 6;
+      const labelText = String(label || '');
+      const valueText = pdfValue(value);
+      const labelHeight = doc.heightOfString(labelText, { width: cellW - (cellPaddingX * 2) });
+      const valueHeight = doc.heightOfString(valueText, { width: cellW - (cellPaddingX * 2) });
+      const cellHeight = Math.max(30, labelHeight + valueHeight + (cellPaddingY * 2) + 2);
+      doc.rect(cellX, cellY, cellW, cellHeight).lineWidth(0.55).strokeColor('#D9DEE8').stroke();
+      doc.font('Helvetica-Bold').fontSize(8.6).fillColor('#475569').text(labelText, cellX + cellPaddingX, cellY + cellPaddingY, {
+        width: cellW - (cellPaddingX * 2),
+        align: 'left'
+      });
+      doc.font('Helvetica').fontSize(9.2).fillColor('#0F172A').text(valueText, cellX + cellPaddingX, cellY + cellPaddingY + labelHeight + 2, {
+        width: cellW - (cellPaddingX * 2),
+        align: 'left'
+      });
+      return cellHeight;
+    };
+    const renderOverviewRow = (rowY, leftField, rightField = null) => {
+      const gap = 0;
+      const leftWidth = rightField ? Math.floor(header.width / 2) : header.width;
+      const rightWidth = rightField ? header.width - leftWidth - gap : 0;
+      const leftHeight = renderOverviewCell(header.left, rowY, leftWidth, leftField[0], leftField[1]);
+      const rightHeight = rightField ? renderOverviewCell(header.left + leftWidth + gap, rowY, rightWidth, rightField[0], rightField[1]) : 0;
+      return Math.max(leftHeight, rightHeight);
+    };
+    for (let index = 0; index < overviewRows.length; index += 2) {
+      const leftField = overviewRows[index];
+      const rightField = overviewRows[index + 1] || null;
+      const rowHeight = renderOverviewRow(y, leftField, rightField);
       y += rowHeight;
-    });
+    }
 
     y += 6;
     y = renderSectionTitle(y, 'Service History');
