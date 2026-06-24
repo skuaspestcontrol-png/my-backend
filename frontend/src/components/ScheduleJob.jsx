@@ -978,7 +978,6 @@ export default function ScheduleJob() {
                 <option value="Expired">Expired</option>
                 <option value="All">All</option>
               </select>
-              <p style={shell.help}>Choose which contract customers to show in the dropdowns below.</p>
             </div>
             <div style={shell.field}>
               <p style={shell.label}>Select Customer</p>
@@ -998,13 +997,6 @@ export default function ScheduleJob() {
                   </option>
                 ))}
               </select>
-              <p style={shell.help}>
-                {contractStatusFilter === 'Active'
-                  ? 'Customers listed only if they have active contracts.'
-                  : contractStatusFilter === 'Expired'
-                    ? 'Customers listed only if they have expired contracts.'
-                    : 'Customers listed from all contract statuses.'}
-              </p>
             </div>
             <div style={shell.field}>
               <p style={shell.label}>Contract</p>
@@ -1030,11 +1022,6 @@ export default function ScheduleJob() {
                   </option>
                 ))}
               </select>
-              <p style={shell.help}>
-                {contractStatusFilter === 'All'
-                  ? 'Pick a contract to load its services/schedules.'
-                  : `Pick a ${contractStatusFilter.toLowerCase()} contract to load its services/schedules.`}
-              </p>
             </div>
           </div>
 
