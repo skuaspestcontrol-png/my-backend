@@ -2823,19 +2823,22 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     ];
     const renderOverviewCell = (cellX, cellY, cellW, label, value) => {
       const cellPaddingX = 8;
-      const cellPaddingY = 4;
+      const cellPaddingY = 5;
       const labelText = String(label || '');
       const valueText = pdfValue(value);
-      const labelHeight = doc.heightOfString(labelText, { width: cellW - (cellPaddingX * 2) });
-      const valueHeight = doc.heightOfString(valueText, { width: cellW - (cellPaddingX * 2) });
-      const cellHeight = Math.max(26, labelHeight + valueHeight + (cellPaddingY * 2) + 1);
+      const labelWidth = Math.max(86, Math.min(128, Math.floor(cellW * 0.45)));
+      const valueWidth = Math.max(0, cellW - (cellPaddingX * 2) - labelWidth - 10);
+      const cellHeight = Math.max(24, Math.max(
+        doc.heightOfString(labelText, { width: labelWidth }),
+        doc.heightOfString(valueText, { width: valueWidth })
+      ) + (cellPaddingY * 2));
       doc.rect(cellX, cellY, cellW, cellHeight).lineWidth(0.55).strokeColor('#D9DEE8').stroke();
       doc.font('Helvetica-Bold').fontSize(8.6).fillColor('#475569').text(labelText, cellX + cellPaddingX, cellY + cellPaddingY, {
-        width: cellW - (cellPaddingX * 2),
+        width: labelWidth,
         align: 'left'
       });
-      doc.font('Helvetica').fontSize(9).fillColor('#0F172A').text(valueText, cellX + cellPaddingX, cellY + cellPaddingY + labelHeight + 1, {
-        width: cellW - (cellPaddingX * 2),
+      doc.font('Helvetica').fontSize(9).fillColor('#0F172A').text(valueText, cellX + cellPaddingX + labelWidth + 10, cellY + cellPaddingY, {
+        width: valueWidth,
         align: 'left'
       });
       return cellHeight;
