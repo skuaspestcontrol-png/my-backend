@@ -1,18 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import {
-  ChartSurface,
-  getBarChartProps,
-  getChartAxisProps,
-  getChartHeight,
-  getChartMargin,
-  getCurrencyAxisProps,
-  SalesChartTooltip,
-  salesChartTheme
-} from '../pages/sales-performance/SalesChartPrimitives';
-import { apiGet, currentYear, money, safeRows, subscribeSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
+import { apiGet, currentYear, safeRows, subscribeSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { subscribeDashboardRefresh } from '../utils/dashboardRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -663,11 +652,7 @@ export default function Dashboard() {
   const isSmallMobile = viewportWidth < 420;
   const salesPerformanceEmployees = safeRows(salesPerformanceData?.employees);
   const salesPerformanceTrend = safeRows(salesPerformanceData?.monthlyTrend);
-  const salesPerformanceChartHeight = getChartHeight({ mobile: isMobile });
-  const salesPerformanceChartProps = getBarChartProps(salesPerformanceTrend.length, { mobile: isMobile });
-  const salesPerformanceAxisProps = getChartAxisProps({ mobile: isMobile });
-  const salesPerformanceCurrencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
-  const salesPerformanceMargin = getChartMargin({ mobile: isMobile });
+  const salesPerformanceChartHeight = isMobile ? 220 : 240;
   const salesPerformanceMonthlyTarget = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.target), 0);
   const salesPerformanceMonthlyAchieved = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.achieved), 0);
   const selectedSalesPersonLabel = selectedSalesPersonId
@@ -800,6 +785,19 @@ export default function Dashboard() {
     gap: '12px',
     flex: 1
   };
+  const salesChartYearBannerStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '10px',
+    flexWrap: 'wrap',
+    padding: '10px 12px',
+    border: '1px solid rgba(148, 163, 184, 0.2)',
+    borderRadius: '14px',
+    background: 'linear-gradient(180deg, rgba(248,250,252,0.96) 0%, rgba(255,255,255,0.98) 100%)'
+  };
+  const salesChartYearLabelStyle = { margin: 0, color: '#0f172a', fontSize: '13px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' };
+  const salesChartYearValueStyle = { margin: 0, color: '#334155', fontSize: '18px', fontWeight: 800, letterSpacing: '-0.03em' };
   const salesChartLegendStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -815,18 +813,57 @@ export default function Dashboard() {
     fontSize: '12px',
     fontWeight: 700
   };
-  const salesChartChartWrapStyle = {
-    display: 'grid',
-    gridTemplateColumns: '44px minmax(0, 1fr)',
-    gap: '12px',
-    alignItems: 'stretch'
+  const salesChartTableWrapStyle = {
+    border: '1px solid rgba(148, 163, 184, 0.2)',
+    borderRadius: '16px',
+    overflow: 'hidden',
+    background: '#fff'
   };
-  const salesChartYAxisStyle = {
-    display: 'grid',
-    alignContent: 'space-between',
-    padding: '8px 0 26px 0'
+  const salesChartTableStyle = {
+    width: '100%',
+    borderCollapse: 'collapse',
+    tableLayout: 'fixed',
+    minWidth: isMobile ? '360px' : '0'
   };
-  const salesChartYAxisLabelStyle = { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1 };
+  const salesChartTableHeadStyle = {
+    background: '#f8fafc',
+    color: '#334155',
+    fontSize: '11px',
+    fontWeight: 800,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    padding: isMobile ? '10px 8px' : '10px 12px',
+    borderBottom: '1px solid rgba(148, 163, 184, 0.18)',
+    textAlign: 'left'
+  };
+  const salesChartTableCellStyle = {
+    padding: isMobile ? '10px 8px' : '10px 12px',
+    borderBottom: '1px solid rgba(226, 232, 240, 0.9)',
+    color: '#334155',
+    fontSize: '12px',
+    fontWeight: 700,
+    textAlign: 'left'
+  };
+  const salesChartTableRowStyle = {
+    background: '#fff'
+  };
+  const salesChartTableRowAltStyle = {
+    background: '#fcfdff'
+  };
+  const salesChartTableMonthStyle = {
+    ...salesChartTableCellStyle,
+    color: '#0f172a',
+    fontWeight: 800
+  };
+  const salesChartTableTargetStyle = {
+    ...salesChartTableCellStyle,
+    color: '#111827',
+    fontVariantNumeric: 'tabular-nums'
+  };
+  const salesChartTableAchievedStyle = {
+    ...salesChartTableCellStyle,
+    fontVariantNumeric: 'tabular-nums'
+  };
   const yearlySummaryGridStyle = isMobile
     ? { ...shell.targetMetrics, gridTemplateColumns: '1fr' }
     : isTablet
@@ -1384,7 +1421,7 @@ export default function Dashboard() {
           <div style={salesChartCardHeaderStyle}>
             <div>
               <h2 style={salesChartTitleStyle}>Sales Team Performance</h2>
-              <p style={salesChartSubtitleStyle}>Month-wise target vs achievement for the selected year and salesperson.</p>
+              <p style={salesChartSubtitleStyle}>Month-wise target vs achievement table for the selected year and salesperson.</p>
             </div>
             <div style={salesChartHeaderControlsStyle}>
               <select
@@ -1432,50 +1469,46 @@ export default function Dashboard() {
                 <div style={{ color: '#64748b', fontWeight: 700 }}>Loading sales performance...</div>
               </div>
             ) : salesPerformanceTrend.length ? (
-              <div style={salesChartChartWrapStyle}>
-                <div style={salesChartYAxisStyle}>
-                  {(() => {
-                    const maxValue = Math.max(
-                      salesPerformanceMonthlyTarget,
-                      salesPerformanceMonthlyAchieved,
-                      ...salesPerformanceTrend.map((row) => Math.max(toNum(row.target), toNum(row.achieved))),
-                      1
-                    );
-                    return Array.from({ length: 6 }, (_, index) => 5 - index).map((step) => {
-                      const value = (maxValue / 5) * step;
-                      return (
-                        <span key={step} style={salesChartYAxisLabelStyle}>
-                          {step === 0 ? '0' : money(value)}
-                        </span>
-                      );
-                    });
-                  })()}
+              <div style={{ display: 'grid', gap: '12px' }}>
+                <div style={salesChartYearBannerStyle}>
+                  <div>
+                    <p style={salesChartYearLabelStyle}>Year</p>
+                    <p style={salesChartYearValueStyle}>{selectedSalesPerformanceYear}</p>
+                  </div>
+                  <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>
+                    Months in rows, `Tgt` and `Ach` in columns
+                  </div>
                 </div>
-                <div style={{ position: 'relative', minWidth: 0 }}>
-                  <ChartSurface height={salesPerformanceChartHeight} minWidth={isMobile ? 560 : 0}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={salesPerformanceTrend}
-                        margin={salesPerformanceMargin}
-                        barCategoryGap={salesPerformanceChartProps.barCategoryGap}
-                        barGap={0}
-                      >
-                        <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
-                        <XAxis dataKey="label" {...salesPerformanceAxisProps} />
-                        <YAxis {...salesPerformanceCurrencyAxisProps} />
-                        <Tooltip
-                          cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
-                          content={<SalesChartTooltip valueFormatter={(value) => money(value || 0)} />}
-                        />
-                        <Bar dataKey="target" name="Target" fill="#111827" radius={0} maxBarSize={salesPerformanceChartProps.maxBarSize} />
-                        <Bar dataKey="achieved" name="Achieved" radius={0} maxBarSize={salesPerformanceChartProps.maxBarSize}>
-                          {salesPerformanceTrend.map((entry) => (
-                            <Cell key={entry.month} fill={Number(entry.achieved || 0) >= Number(entry.target || 0) ? '#16A34A' : '#DC2626'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartSurface>
+                <div style={salesChartTableWrapStyle}>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={salesChartTableStyle}>
+                      <thead>
+                        <tr>
+                          <th style={{ ...salesChartTableHeadStyle, width: '34%' }}>Month</th>
+                          <th style={{ ...salesChartTableHeadStyle, width: '33%' }}>Tgt</th>
+                          <th style={{ ...salesChartTableHeadStyle, width: '33%' }}>Ach</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {salesPerformanceTrend.map((entry, index) => {
+                          const achieved = toNum(entry.achieved);
+                          const target = toNum(entry.target);
+                          return (
+                            <tr key={`${entry.month || entry.label || index}`} style={index % 2 === 0 ? salesChartTableRowStyle : salesChartTableRowAltStyle}>
+                              <td style={salesChartTableMonthStyle}>{entry.label || entry.month || '-'}</td>
+                              <td style={salesChartTableTargetStyle}>{formatCurrency(target)}</td>
+                              <td style={{
+                                ...salesChartTableAchievedStyle,
+                                color: achieved >= target ? '#16A34A' : '#DC2626'
+                              }}>
+                                {formatCurrency(achieved)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             ) : (
