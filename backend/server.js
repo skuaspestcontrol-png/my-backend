@@ -2802,7 +2802,7 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
 
     const renderSectionTitle = (y, text) => {
       doc.font('Helvetica-Bold').fontSize(11).fillColor('#9F174D').text(text, header.left, y, { width: header.width, align: 'left' });
-      return y + 15;
+      return y + 13;
     };
 
     let y = header.bodyTop;
@@ -2823,18 +2823,18 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     ];
     const renderOverviewCell = (cellX, cellY, cellW, label, value) => {
       const cellPaddingX = 8;
-      const cellPaddingY = 6;
+      const cellPaddingY = 4;
       const labelText = String(label || '');
       const valueText = pdfValue(value);
       const labelHeight = doc.heightOfString(labelText, { width: cellW - (cellPaddingX * 2) });
       const valueHeight = doc.heightOfString(valueText, { width: cellW - (cellPaddingX * 2) });
-      const cellHeight = Math.max(30, labelHeight + valueHeight + (cellPaddingY * 2) + 2);
+      const cellHeight = Math.max(26, labelHeight + valueHeight + (cellPaddingY * 2) + 1);
       doc.rect(cellX, cellY, cellW, cellHeight).lineWidth(0.55).strokeColor('#D9DEE8').stroke();
       doc.font('Helvetica-Bold').fontSize(8.6).fillColor('#475569').text(labelText, cellX + cellPaddingX, cellY + cellPaddingY, {
         width: cellW - (cellPaddingX * 2),
         align: 'left'
       });
-      doc.font('Helvetica').fontSize(9.2).fillColor('#0F172A').text(valueText, cellX + cellPaddingX, cellY + cellPaddingY + labelHeight + 2, {
+      doc.font('Helvetica').fontSize(9).fillColor('#0F172A').text(valueText, cellX + cellPaddingX, cellY + cellPaddingY + labelHeight + 1, {
         width: cellW - (cellPaddingX * 2),
         align: 'left'
       });
@@ -2842,7 +2842,7 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     };
     const renderOverviewRow = (rowY, leftField, rightField = null) => {
       const gap = 0;
-      const leftWidth = rightField ? Math.floor(header.width / 2) : header.width;
+      const leftWidth = rightField ? Math.floor(header.width * 0.5) : header.width;
       const rightWidth = rightField ? header.width - leftWidth - gap : 0;
       const leftHeight = renderOverviewCell(header.left, rowY, leftWidth, leftField[0], leftField[1]);
       const rightHeight = rightField ? renderOverviewCell(header.left + leftWidth + gap, rowY, rightWidth, rightField[0], rightField[1]) : 0;
