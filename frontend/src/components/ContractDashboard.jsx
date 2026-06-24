@@ -58,7 +58,7 @@ const quickFilterStyles = {
 };
 
 const defaultColumnWidths = {
-  rowNumber: 36,
+  rowNumber: 50,
   contractNo: 120,
   customer: 220,
   property: 140,
@@ -73,7 +73,7 @@ const defaultColumnWidths = {
 };
 
 const mobileColumnWidths = {
-  rowNumber: 40,
+  rowNumber: 44,
   contractNo: 120,
   customer: 150,
   property: 128,
@@ -101,7 +101,7 @@ const monthOptions = [
   { value: '12', label: 'December' }
 ];
 const contractColumnResizeBounds = {
-  rowNumber: { min: 36, max: 56 },
+  rowNumber: { min: 46, max: 68 },
   contractNo: { min: 96, max: 180 },
   customer: { min: 200, max: 380 },
   property: { min: 130, max: 240 },
@@ -1045,7 +1045,7 @@ export default function ContractDashboard() {
           case 'customer': return String(leftRow.customer || '');
           case 'property': return String(leftRow.property || '');
           case 'duration': return parseDateOnly(leftRow.endDate)?.getTime() || 0;
-          case 'type': return String(leftRow.type || '');
+          case 'type': return parseDateOnly(leftRow.invoiceDate)?.getTime() || 0;
           case 'services': return Number(leftRow.services || 0);
           case 'status': return Number(statusOrder[leftRow.status] ?? 99);
           case 'total': return Number(leftRow.total || 0);
@@ -1060,7 +1060,7 @@ export default function ContractDashboard() {
           case 'customer': return String(rightRow.customer || '');
           case 'property': return String(rightRow.property || '');
           case 'duration': return parseDateOnly(rightRow.endDate)?.getTime() || 0;
-          case 'type': return String(rightRow.type || '');
+          case 'type': return parseDateOnly(rightRow.invoiceDate)?.getTime() || 0;
           case 'services': return Number(rightRow.services || 0);
           case 'status': return Number(statusOrder[rightRow.status] ?? 99);
           case 'total': return Number(rightRow.total || 0);
@@ -1197,11 +1197,11 @@ export default function ContractDashboard() {
     { label: 'Renewed', icon: RefreshCcw }
   ];
   const customColumns = [
+    { key: 'type', label: 'Invoice Date' },
     { key: 'contractNo', label: 'Contract' },
     { key: 'customer', label: 'Customer' },
     { key: 'property', label: 'Property' },
     { key: 'duration', label: 'Duration' },
-    { key: 'type', label: 'Invoice Type' },
     { key: 'services', label: 'Services' },
     { key: 'status', label: 'Status' },
     { key: 'total', label: 'Total' },
@@ -1214,7 +1214,7 @@ export default function ContractDashboard() {
     const width = isMobile
       ? Math.max(Number(mobileColumnWidths[columnKey] || 0), Number(defaultColumnWidths[columnKey] || 0))
       : Number(desktopWidth) || Number(defaultColumnWidths[columnKey] || 0);
-    const baseWidth = Math.max(columnKey === 'rowNumber' ? 42 : 80, width);
+    const baseWidth = Math.max(columnKey === 'rowNumber' ? 50 : 80, width);
     if (!isMobile && columnKey === 'services') return Math.min(baseWidth, 92);
     if (!isMobile && columnKey === 'status') return Math.min(baseWidth, 96);
     return baseWidth;
@@ -1267,11 +1267,11 @@ export default function ContractDashboard() {
   };
   const contractColumnList = [
     `${getColumnWidth('rowNumber')}px`,
+    visibleColumns.type ? `${getColumnWidth('type')}px` : null,
     visibleColumns.contractNo ? `${getColumnWidth('contractNo')}px` : null,
     visibleColumns.customer ? `${getColumnWidth('customer')}px` : null,
     visibleColumns.property ? `${getColumnWidth('property')}px` : null,
     visibleColumns.duration ? `${getColumnWidth('duration')}px` : null,
-    visibleColumns.type ? `${getColumnWidth('type')}px` : null,
     visibleColumns.services ? `${getColumnWidth('services')}px` : null,
     visibleColumns.status ? `${getColumnWidth('status')}px` : null,
     visibleColumns.total ? `${getColumnWidth('total')}px` : null,
@@ -1477,11 +1477,11 @@ export default function ContractDashboard() {
       <table style={tableStyle} className="crm-compact-table">
         <colgroup>
           <col style={{ width: isMobile ? `${getColumnWidth('rowNumber')}px` : contractColumnPercent('rowNumber') }} />
+          {visibleColumns.type ? <col style={{ width: isMobile ? `${getColumnWidth('type')}px` : contractColumnPercent('type') }} /> : null}
           {visibleColumns.contractNo ? <col style={{ width: isMobile ? `${getColumnWidth('contractNo')}px` : contractColumnPercent('contractNo') }} /> : null}
           {visibleColumns.customer ? <col style={{ width: isMobile ? `${getColumnWidth('customer')}px` : contractColumnPercent('customer') }} /> : null}
           {visibleColumns.property ? <col style={{ width: isMobile ? `${getColumnWidth('property')}px` : contractColumnPercent('property') }} /> : null}
           {visibleColumns.duration ? <col style={{ width: isMobile ? `${getColumnWidth('duration')}px` : contractColumnPercent('duration') }} /> : null}
-          {visibleColumns.type ? <col style={{ width: isMobile ? `${getColumnWidth('type')}px` : contractColumnPercent('type') }} /> : null}
           {visibleColumns.services ? <col style={{ width: isMobile ? `${getColumnWidth('services')}px` : contractColumnPercent('services') }} /> : null}
           {visibleColumns.status ? <col style={{ width: isMobile ? `${getColumnWidth('status')}px` : contractColumnPercent('status') }} /> : null}
           {visibleColumns.total ? <col style={{ width: isMobile ? `${getColumnWidth('total')}px` : contractColumnPercent('total') }} /> : null}
@@ -1492,13 +1492,13 @@ export default function ContractDashboard() {
         <thead>
           <tr>
             {renderResizableHeader('rowNumber', <span>Sr No</span>)}
+            {visibleColumns.type ? renderResizableHeader('type', 'Invoice Date') : null}
             {visibleColumns.contractNo ? renderResizableHeader('contractNo', 'Contract') : null}
             {visibleColumns.customer ? (
               renderResizableHeader('customer', 'Customer', { textAlign: 'left' })
             ) : null}
             {visibleColumns.property ? renderResizableHeader('property', 'Property') : null}
             {visibleColumns.duration ? renderResizableHeader('duration', 'Duration') : null}
-            {visibleColumns.type ? renderResizableHeader('type', 'Invoice Type') : null}
             {visibleColumns.services ? renderResizableHeader('services', 'Services', { textAlign: 'center', paddingLeft: '0', paddingRight: '0' }) : null}
             {visibleColumns.status ? renderResizableHeader('status', 'Status') : null}
             {visibleColumns.total ? renderResizableHeader('total', 'Total') : null}
@@ -1515,6 +1515,9 @@ export default function ContractDashboard() {
             return (
               <tr key={row.id} onClick={() => setSelectedContractId(row.id)} style={selected ? shell.selectedRow : undefined}>
                 <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{rowNumber}</td>
+                {visibleColumns.type ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatDisplayDate(row.invoiceDate)}</div>
+                </td> : null}
                 {visibleColumns.contractNo ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
                 </td> : null}
@@ -1558,11 +1561,6 @@ export default function ContractDashboard() {
                 {visibleColumns.duration ? <td style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700 }}>{formatDate(row.startDate)}</div>
                   <div style={{ ...shell.subText }}>{`to ${formatDate(row.endDate)}`}</div>
-                </td> : null}
-                {visibleColumns.type ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
-                  <span style={{ ...shell.typePill, background: row.type === 'GST' ? 'rgba(22,163,74,0.16)' : 'rgba(59,130,246,0.16)', color: row.type === 'GST' ? '#166534' : '#1d4ed8' }}>
-                    {row.type || '-'}
-                  </span>
                 </td> : null}
                 {visibleColumns.services ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
