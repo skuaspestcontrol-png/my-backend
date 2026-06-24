@@ -2824,15 +2824,13 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     const renderOverviewCell = (cellX, cellY, cellW, label, value) => {
       const cellPaddingX = 8;
       const cellPaddingY = 4;
-      const labelText = String(label || '');
+      const labelText = `${String(label || '').trim()}:`;
       const valueText = pdfValue(value);
-      const labelWidth = Math.max(112, Math.min(144, Math.floor(cellW * 0.42)));
-      const dividerX = cellX + labelWidth + 6;
-      const valueWidth = Math.max(0, cellW - (cellPaddingX * 2) - labelWidth - 10);
+      const labelWidth = Math.max(118, Math.min(152, Math.floor(cellW * 0.48)));
+      const valueWidth = Math.max(0, cellW - (cellPaddingX * 2) - labelWidth - 6);
       const cellHeight = 24;
       doc.rect(cellX, cellY, cellW, cellHeight).lineWidth(0.55).strokeColor('#D9DEE8').stroke();
-      doc.moveTo(dividerX, cellY).lineTo(dividerX, cellY + cellHeight).lineWidth(0.55).strokeColor('#D9DEE8').stroke();
-      doc.font('Helvetica-Bold').fontSize(8.6).fillColor('#475569').text(labelText, cellX + cellPaddingX, cellY + cellPaddingY, {
+      doc.font('Helvetica-Bold').fontSize(8.6).fillColor('#9F174D').text(labelText, cellX + cellPaddingX, cellY + cellPaddingY, {
         width: labelWidth,
         ellipsis: true,
         align: 'left'
