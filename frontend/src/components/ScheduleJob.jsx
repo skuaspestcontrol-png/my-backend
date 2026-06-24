@@ -169,6 +169,23 @@ const isContractActive = (invoice) => {
   end.setHours(0, 0, 0, 0);
   return end >= today;
 };
+const isContractExpired = (invoice) => {
+  const items = Array.isArray(invoice?.items) ? invoice.items : [];
+  const first = items[0] || {};
+  const endRaw = first.contractEndDate || invoice.servicePeriodEnd || '';
+  if (!endRaw) return false;
+  const end = new Date(endRaw);
+  if (Number.isNaN(end.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  return end < today;
+};
+const getContractLifecycle = (invoice) => {
+  if (isContractActive(invoice)) return 'active';
+  if (isContractExpired(invoice)) return 'expired';
+  return 'all';
+};
 
 const readScheduleJobCache = () => {
   try {
@@ -251,6 +268,7 @@ export default function ScheduleJob() {
 
   const [customerId, setCustomerId] = useState('');
   const [contractId, setContractId] = useState('');
+  const [contractStatusFilter, setContractStatusFilter] = useState('Active');
   const [scheduleStatusFilter, setScheduleStatusFilter] = useState('All');
   const [selectedScheduleKeys, setSelectedScheduleKeys] = useState([]);
   const [selectedTechnicians, setSelectedTechnicians] = useState([]);
@@ -353,10 +371,18 @@ export default function ScheduleJob() {
     };
   }, [loadPortalData]);
 
+  const filteredInvoicesByStatus = useMemo(() => {
+    if (contractStatusFilter === 'All') return invoices;
+    if (contractStatusFilter === 'Expired') {
+      return invoices.filter((invoice) => getContractLifecycle(invoice) === 'expired');
+    }
+    return invoices.filter((invoice) => getContractLifecycle(invoice) === 'active');
+  }, [contractStatusFilter, invoices]);
+
   const customersWithContracts = useMemo(() => {
-    const activeInvoices = invoices.filter((invoice) => isContractActive(invoice));
-    const ids = new Set(activeInvoices.map((invoice) => String(invoice.customerId || '')).filter(Boolean));
-    const names = new Set(activeInvoices.map((invoice) => normalizeText(invoice.customerName)).filter(Boolean));
+    const filteredInvoices = filteredInvoicesByStatus;
+    const ids = new Set(filteredInvoices.map((invoice) => String(invoice.customerId || '')).filter(Boolean));
+    const names = new Set(filteredInvoices.map((invoice) => normalizeText(invoice.customerName)).filter(Boolean));
     const baseCustomers = customers.filter(
       (customer) => ids.has(String(customer._id || '')) || names.has(normalizeText(customer.displayName || customer.name))
     );
@@ -392,7 +418,7 @@ export default function ScheduleJob() {
         numeric: true
       })
     );
-  }, [customers, invoices]);
+  }, [customers, filteredInvoicesByStatus]);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => String(c._id) === String(customerId)) || null,
@@ -439,12 +465,10 @@ export default function ScheduleJob() {
   const customerContracts = useMemo(() => {
     if (!selectedCustomer) return [];
     const customerName = normalizeText(selectedCustomer.displayName || selectedCustomer.name);
-    return invoices
+    return filteredInvoicesByStatus
       .filter((invoice) => (
-        isContractActive(invoice) && (
         String(invoice.customerId || '') === String(selectedCustomer._id || '')
         || normalizeText(invoice.customerName) === customerName
-        )
       ))
       .map((invoice) => {
         const lines = Array.isArray(invoice.items) ? invoice.items : [];
@@ -458,7 +482,7 @@ export default function ScheduleJob() {
           endDate
         };
       });
-  }, [invoices, selectedCustomer]);
+  }, [filteredInvoicesByStatus, selectedCustomer]);
 
   const selectedContract = useMemo(
     () => customerContracts.find((entry) => String(entry._id) === String(contractId)) || null,
@@ -567,6 +591,19 @@ export default function ScheduleJob() {
       if (match) setCustomerId(String(match._id));
     }
   }, [loading, prefillCustomerName, customerId, customersWithContracts]);
+
+  useEffect(() => {
+    setContractId('');
+    setSelectedPremiseId('');
+  }, [contractStatusFilter]);
+
+  useEffect(() => {
+    if (!customerId) return;
+    if (customersWithContracts.some((entry) => String(entry._id || '') === String(customerId))) return;
+    setCustomerId('');
+    setContractId('');
+    setSelectedPremiseId('');
+  }, [contractStatusFilter, customerId, customersWithContracts]);
 
   useEffect(() => {
     if (!loading && prefillContractNumber && customerContracts.length > 0 && !contractId) {
@@ -929,6 +966,19 @@ export default function ScheduleJob() {
         <div style={shell.sectionBody}>
           <div style={fieldGrid2Style}>
             <div style={shell.field}>
+              <p style={shell.label}>Customer Contract Type</p>
+              <select
+                style={shell.input}
+                value={contractStatusFilter}
+                onChange={(event) => setContractStatusFilter(event.target.value)}
+              >
+                <option value="Active">Active</option>
+                <option value="Expired">Expired</option>
+                <option value="All">All</option>
+              </select>
+              <p style={shell.help}>Choose which contract customers to show in the dropdowns below.</p>
+            </div>
+            <div style={shell.field}>
               <p style={shell.label}>Select Customer</p>
               <select
                 style={shell.input}
@@ -946,7 +996,13 @@ export default function ScheduleJob() {
                   </option>
                 ))}
               </select>
-              <p style={shell.help}>Customers listed only if they have active contracts.</p>
+              <p style={shell.help}>
+                {contractStatusFilter === 'Active'
+                  ? 'Customers listed only if they have active contracts.'
+                  : contractStatusFilter === 'Expired'
+                    ? 'Customers listed only if they have expired contracts.'
+                    : 'Customers listed from all contract statuses.'}
+              </p>
             </div>
             <div style={shell.field}>
               <p style={shell.label}>Contract</p>
@@ -956,7 +1012,7 @@ export default function ScheduleJob() {
                 onChange={(event) => setContractId(event.target.value)}
                 disabled={!customerId}
               >
-                <option value="">Select active contract</option>
+                <option value="">Select contract</option>
                 {customerContracts.map((entry) => (
                   <option key={entry._id} value={entry._id}>
                     {[
@@ -971,7 +1027,11 @@ export default function ScheduleJob() {
                   </option>
                 ))}
               </select>
-              <p style={shell.help}>Pick a contract to load its services/schedules.</p>
+              <p style={shell.help}>
+                {contractStatusFilter === 'All'
+                  ? 'Pick a contract to load its services/schedules.'
+                  : `Pick a ${contractStatusFilter.toLowerCase()} contract to load its services/schedules.`}
+              </p>
             </div>
           </div>
 
