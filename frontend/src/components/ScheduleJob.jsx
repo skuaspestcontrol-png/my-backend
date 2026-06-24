@@ -475,8 +475,10 @@ export default function ScheduleJob() {
         const firstLine = lines[0] || {};
         const startDate = firstLine.contractStartDate || invoice.servicePeriodStart || invoice.date || '';
         const endDate = firstLine.contractEndDate || invoice.servicePeriodEnd || '';
+        const lifecycle = getContractLifecycle(invoice);
         return {
           ...invoice,
+          lifecycle,
           contractNumber: String(invoice.invoiceNumber || invoice._id || 'Contract'),
           startDate,
           endDate
@@ -1016,6 +1018,7 @@ export default function ScheduleJob() {
                 {customerContracts.map((entry) => (
                   <option key={entry._id} value={entry._id}>
                     {[
+                      entry.lifecycle ? `${String(entry.lifecycle).charAt(0).toUpperCase()}${String(entry.lifecycle).slice(1)}` : '',
                       (Array.isArray(entry.items) ? entry.items : [])
                         .map((item) => String(item?.itemName || item?.name || '').trim())
                         .filter(Boolean)
