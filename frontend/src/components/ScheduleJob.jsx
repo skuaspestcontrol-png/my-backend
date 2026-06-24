@@ -57,12 +57,12 @@ const shell = {
     alignItems: 'center',
     gap: '8px'
   },
-  sectionBody: { padding: '10px 12px', display: 'grid', gap: '10px' },
-  fieldGrid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
-  fieldGrid4: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 0.7fr', gap: '10px' },
+  sectionBody: { padding: '8px 10px', display: 'grid', gap: '8px' },
+  fieldGrid2: { display: 'grid', gridTemplateColumns: 'minmax(240px, 0.8fr) minmax(0, 1.2fr)', gap: '8px' },
+  fieldGrid4: { display: 'grid', gridTemplateColumns: '1.8fr 1fr 1fr 0.7fr', gap: '8px' },
   field: { display: 'grid', gap: '4px' },
   label: { margin: 0, fontSize: '11px', color: '#6b7280', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
-  input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff', boxSizing: 'border-box' },
+  input: { width: '100%', minHeight: '28px', borderRadius: '7px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '11px', color: '#334155', background: '#fff', boxSizing: 'border-box' },
   help: { margin: 0, fontSize: '11px', color: '#94a3b8', fontWeight: 600 },
   tinyPill: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', border: '1px solid #F9A8D4', background: 'var(--color-primary-light)', color: 'var(--color-primary)', fontWeight: 800, fontSize: '11px', padding: '3px 8px' },
   chipRow: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
@@ -682,7 +682,7 @@ export default function ScheduleJob() {
     enabled: true
   });
   const scheduleTableMinWidth = scheduleColumns.reduce((sum, key) => sum + (getColumnWidth(key) || scheduleColumnWidths[key] || 80), 0);
-  const pageStyle = isMobile ? { ...shell.page, padding: '0', gap: '10px' } : shell.page;
+  const pageStyle = isMobile ? { ...shell.page, padding: '0', gap: '10px' } : { ...shell.page, maxWidth: '1600px', margin: '0 auto' };
   const titleStyle = isMobile ? { ...shell.title, fontSize: '24px' } : shell.title;
   const fieldGrid2Style = isMobile ? { ...shell.fieldGrid2, gridTemplateColumns: '1fr' } : shell.fieldGrid2;
   const fieldGrid4Style = isMobile ? { ...shell.fieldGrid4, gridTemplateColumns: '1fr' } : shell.fieldGrid4;
