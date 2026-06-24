@@ -2821,7 +2821,7 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
       ['Pending Services', pdfValue(pendingServices)]
     ];
     const renderOverviewRow = (rowY, leftField, rightField = null) => {
-      const rowHeight = 16;
+      const rowHeight = 22;
       const gap = 0;
       const leftWidth = rightField ? Math.floor(header.width * 0.5) : header.width;
       const rightWidth = rightField ? header.width - leftWidth - gap : 0;
@@ -2829,7 +2829,7 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
         const cellPaddingX = 8;
         const labelText = `${String(label || '').trim()}:`;
         const valueText = pdfValue(value);
-        const labelWidth = Math.max(112, Math.min(152, Math.floor(cellW * 0.48)));
+        const labelWidth = Math.max(96, Math.min(120, Math.floor(cellW * 0.38)));
         doc.font('Helvetica-Bold').fontSize(8.6).fillColor('#9F174D').text(labelText, cellX + cellPaddingX, rowY + 2, {
           width: labelWidth,
           ellipsis: true,
@@ -2852,7 +2852,7 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
       y += rowHeight;
     }
 
-    y += 4;
+    y += 10;
     y = renderSectionTitle(y, 'Service History');
     const tableX = header.left;
     const tableW = header.width;
