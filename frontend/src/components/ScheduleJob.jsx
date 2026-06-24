@@ -58,7 +58,7 @@ const shell = {
     gap: '8px'
   },
   sectionBody: { padding: '8px 10px', display: 'grid', gap: '8px' },
-  fieldGrid2: { display: 'grid', gridTemplateColumns: 'minmax(240px, 0.8fr) minmax(0, 1.2fr)', gap: '8px' },
+  fieldGrid2: { display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr) minmax(0, 1fr)', gap: '8px' },
   fieldGrid4: { display: 'grid', gridTemplateColumns: '1.8fr 1fr 1fr 0.7fr', gap: '8px' },
   field: { display: 'grid', gap: '4px' },
   label: { margin: 0, fontSize: '11px', color: '#6b7280', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
@@ -686,7 +686,6 @@ export default function ScheduleJob() {
   const titleStyle = isMobile ? { ...shell.title, fontSize: '24px' } : shell.title;
   const fieldGrid2Style = isMobile ? { ...shell.fieldGrid2, gridTemplateColumns: '1fr' } : shell.fieldGrid2;
   const fieldGrid4Style = isMobile ? { ...shell.fieldGrid4, gridTemplateColumns: '1fr' } : shell.fieldGrid4;
-  const contractTypeSelectStyle = isMobile ? shell.input : { ...shell.input, maxWidth: '280px' };
   const tableWrapStyle = { ...shell.tableWrap, overflowX: 'auto', maxWidth: '100%' };
   const tableStyle = { ...shell.table, minWidth: `${Math.max(720, scheduleTableMinWidth)}px`, tableLayout: 'fixed' };
   const headStyle = (key, align = 'left') => {
@@ -971,7 +970,7 @@ export default function ScheduleJob() {
             <div style={shell.field}>
               <p style={shell.label}>Customer Contract Type</p>
               <select
-                style={contractTypeSelectStyle}
+                style={shell.input}
                 value={contractStatusFilter}
                 onChange={(event) => setContractStatusFilter(event.target.value)}
               >
