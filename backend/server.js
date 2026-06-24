@@ -2750,7 +2750,7 @@ const buildContractJobCardSummaryPdfBuffer = async ({ invoice = {}, jobs = [], s
     doc.on('data', (chunk) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
-    const header = renderJobCardHeader(doc, settings, 'CONTRACT SERVICE HISTORY / JOB CARD SUMMARY', { prefix: 'CONTRACT JOB PDF', logLogo: false });
+    const header = renderJobCardHeader(doc, settings, 'CONTRACT SERVICE HISTORY', { prefix: 'CONTRACT JOB PDF', logLogo: false });
   const completedJobs = (Array.isArray(jobs) ? jobs : []).filter((job) => String(job?.status || '').trim().toLowerCase() === 'completed');
   const contractWindow = deriveInvoiceContractWindow(invoice);
   const uniqueServiceNames = Array.from(new Set(completedJobs.map((job) => String(job.serviceName || job.service_type || job.serviceType || '').trim()).filter(Boolean))).join(', ') || contractWindow.serviceType || '-';
