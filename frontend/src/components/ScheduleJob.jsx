@@ -686,6 +686,7 @@ export default function ScheduleJob() {
   const titleStyle = isMobile ? { ...shell.title, fontSize: '24px' } : shell.title;
   const fieldGrid2Style = isMobile ? { ...shell.fieldGrid2, gridTemplateColumns: '1fr' } : shell.fieldGrid2;
   const fieldGrid4Style = isMobile ? { ...shell.fieldGrid4, gridTemplateColumns: '1fr' } : shell.fieldGrid4;
+  const contractTypeSelectStyle = isMobile ? shell.input : { ...shell.input, maxWidth: '280px' };
   const tableWrapStyle = { ...shell.tableWrap, overflowX: 'auto', maxWidth: '100%' };
   const tableStyle = { ...shell.table, minWidth: `${Math.max(720, scheduleTableMinWidth)}px`, tableLayout: 'fixed' };
   const headStyle = (key, align = 'left') => {
@@ -970,7 +971,7 @@ export default function ScheduleJob() {
             <div style={shell.field}>
               <p style={shell.label}>Customer Contract Type</p>
               <select
-                style={shell.input}
+                style={contractTypeSelectStyle}
                 value={contractStatusFilter}
                 onChange={(event) => setContractStatusFilter(event.target.value)}
               >
