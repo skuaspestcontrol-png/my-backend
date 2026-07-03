@@ -705,25 +705,19 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   ensureSpace(90);
   doc.moveDown(2.2);
-  doc.font(pdfFont.bold).fontSize(pdfTextSize.signature).fillColor('#111827').text('Yours Truly,', left, doc.y, { width: right - left, align: 'left' });
-  doc.moveDown(0.65);
+  doc.font(pdfFont.regular).fontSize(pdfTextSize.signature).fillColor('#111827').text('Thanking you,', left, doc.y, { width: right - left, align: 'left' });
+  doc.moveDown(0.55);
+  doc.font(pdfFont.bold).fontSize(pdfTextSize.signature).text('Yours Truly,', left, doc.y, { width: right - left, align: 'left' });
+  doc.moveDown(0.3);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.signature).text('For Skuas Pest Control Pvt Ltd', left, doc.y, { width: right - left, align: 'left' });
-  doc.moveDown(1.4);
-
-  if (String(templateSettings.show_signature || '1') !== '0') {
-    const signature = resolveUploadAsset(templateSettings.signature_image_url);
-    if (signature) {
-      try { doc.image(signature, left, doc.y + 4, { width: 90, height: 42 }); } catch (_e) {}
-    }
-  }
-
-  doc.moveDown(2.2);
+  doc.moveDown(0.28);
   [
     clean(quotation.sales_person || templateSettings.default_sales_person),
     clean(quotation.designation || templateSettings.default_designation),
     clean(quotation.mobile || templateSettings.default_mobile)
-  ].filter(Boolean).forEach((line) => {
-    doc.font(pdfFont.regular).fontSize(pdfTextSize.signature).text(line, left, doc.y, { width: right - left, align: 'left' });
+  ].filter(Boolean).forEach((line, index) => {
+    const formattedLine = index === 2 ? `Mob: ${line}` : line;
+    doc.font(pdfFont.regular).fontSize(pdfTextSize.signature).text(formattedLine, left, doc.y, { width: right - left, align: 'left' });
   });
 
   doc.end();
