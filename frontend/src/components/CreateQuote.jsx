@@ -224,7 +224,8 @@ export default function CreateQuote() {
     warranty_note: '',
     disclaimer: '',
     closing_paragraph: '',
-    internal_note: ''
+    internal_note: '',
+    show_payment_details_in_pdf: true
   });
 
   const [items, setItems] = useState([makeItem()]);
@@ -816,27 +817,37 @@ export default function CreateQuote() {
         )}
 
         {active === 3 && (
-          <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'auto' }}>
-            <table style={{ width: '100%', minWidth: isMobile ? 680 : '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)', width: 70 }}>Sr No</th>
-                  <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)', width: 180 }}>Service</th>
-                  <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)', width: 150 }}>Infestation Level</th>
-                  <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)' }}>Recommendation/Suggestion</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, idx) => (
-                  <tr key={`rec-${idx}`}>
-                    <td style={{ padding: 8 }}>{idx + 1}</td>
-                    <td style={{ padding: 8 }}>{item.service_name || '-'}</td>
-                    <td style={{ padding: 8 }}>{item.infestation_level || '-'}</td>
-                    <td style={{ padding: 8 }}><textarea style={{ ...input, minHeight: 72, resize: 'vertical' }} value={item.recommendation || ''} onChange={(e) => updateRecommendation(idx, e.target.value)} /></td>
+          <div style={{ display: 'grid', gap: 10 }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+              <input
+                type="checkbox"
+                checked={Boolean(form.show_payment_details_in_pdf)}
+                onChange={(e) => setForm((p) => ({ ...p, show_payment_details_in_pdf: e.target.checked }))}
+              />
+              Show payment details in PDF
+            </label>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'auto' }}>
+              <table style={{ width: '100%', minWidth: isMobile ? 680 : '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)', width: 70 }}>Sr No</th>
+                    <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)', width: 180 }}>Service</th>
+                    <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)', width: 150 }}>Infestation Level</th>
+                    <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)' }}>Recommendation/Suggestion</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {items.map((item, idx) => (
+                    <tr key={`rec-${idx}`}>
+                      <td style={{ padding: 8 }}>{idx + 1}</td>
+                      <td style={{ padding: 8 }}>{item.service_name || '-'}</td>
+                      <td style={{ padding: 8 }}>{item.infestation_level || '-'}</td>
+                      <td style={{ padding: 8 }}><textarea style={{ ...input, minHeight: 72, resize: 'vertical' }} value={item.recommendation || ''} onChange={(e) => updateRecommendation(idx, e.target.value)} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

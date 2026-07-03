@@ -662,6 +662,9 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     : `${baseClosingText}\nFor any clarification, please feel free to contact me.`;
   const paymentTermsText = ownTextOrDefault(quotation, 'payment_terms', commonParagraphs.payment_terms);
   const showGstin = String(templateSettings.show_gstin ?? companySettings.show_gstin ?? '1') !== '0';
+  const showPaymentDetailsInPdf = quotation.show_payment_details_in_pdf == null
+    ? (quotation.showPaymentDetailsInPdf == null ? true : Boolean(quotation.showPaymentDetailsInPdf))
+    : Boolean(quotation.show_payment_details_in_pdf);
   const bankDetails = resolveQuotationBankDetails(companySettings, showGstin);
   const paymentDetailsRows = [
     ['A/C Name', bankDetails.bankAccountName],
@@ -681,7 +684,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     doc.moveDown(0.45);
   }
 
-  if (paymentDetailsRows.length) {
+  if (showPaymentDetailsInPdf && paymentDetailsRows.length) {
     ensureSpace(60);
     doc.moveDown(sectionSpacing.beforeHeading);
     doc.font(pdfFont.bold).fontSize(pdfTextSize.paymentHeading).fillColor(primaryColor).text('Payment Details', left, doc.y, { width: right - left, align: 'left' });

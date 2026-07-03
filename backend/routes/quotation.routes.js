@@ -130,9 +130,14 @@ const normalizeQuotationTemplateSettings = (row = {}) => ({
 
 const normalizeQuotationRow = (row = {}) => {
   const { gstin: _gstin, ...rest } = row || {};
+  const showPaymentDetailsInPdf = row?.show_payment_details_in_pdf == null
+    ? true
+    : boolToTiny(row.show_payment_details_in_pdf, 1) === 1;
   return {
     ...rest,
-    gstNumber: row?.gstNumber || row?.gstin || ''
+    gstNumber: row?.gstNumber || row?.gstin || '',
+    show_payment_details_in_pdf: showPaymentDetailsInPdf,
+    showPaymentDetailsInPdf
   };
 };
 
@@ -300,6 +305,7 @@ const ensureTables = async () => {
     disclaimer TEXT NULL,
     closing_paragraph TEXT NULL,
     internal_note TEXT NULL,
+    show_payment_details_in_pdf TINYINT(1) DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_quotation_number (quotation_number)
@@ -324,6 +330,11 @@ const ensureTables = async () => {
     if (!Number(exists?.count || 0)) {
       await dbQuery(`ALTER TABLE quotations ADD COLUMN ${columnName} ${definition}`);
     }
+  }
+
+  const quotationColumns = await getTableColumns('quotations');
+  if (!quotationColumns.has('show_payment_details_in_pdf')) {
+    await dbQuery('ALTER TABLE quotations ADD COLUMN show_payment_details_in_pdf TINYINT(1) DEFAULT 1');
   }
 
   await dbQuery(`CREATE TABLE IF NOT EXISTS quotation_items (
@@ -686,7 +697,7 @@ router.post('/quotations', async (req, res) => {
       phone,whatsapp,email,gstin,
       quotation_date,validity_days,prepared_by,sales_person,designation,mobile,contract_start_date,contract_end_date,
       subtotal_without_gst,gst_total,round_off,grand_total,amount_in_words,rate_type,status,
-      opening_paragraph,payment_terms,warranty_note,disclaimer,closing_paragraph,internal_note
+      opening_paragraph,payment_terms,warranty_note,disclaimer,closing_paragraph,internal_note,show_payment_details_in_pdf
     ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
       quotationNumber,
       clean(b.source_type || 'Manual'),
@@ -698,7 +709,8 @@ router.post('/quotations', async (req, res) => {
       clean(b.quotation_date) || null, toNumber(b.validity_days, 15), clean(b.prepared_by), clean(b.sales_person), clean(b.designation), normalizeOptionalIndianMobileNumber(b.mobile),
       clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
       toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words), clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'),
-      clean(b.opening_paragraph), clean(b.payment_terms), clean(b.warranty_note), clean(b.disclaimer), clean(b.closing_paragraph), clean(b.internal_note)
+      clean(b.opening_paragraph), clean(b.payment_terms), clean(b.warranty_note), clean(b.disclaimer), clean(b.closing_paragraph), clean(b.internal_note),
+      boolToTiny(b.show_payment_details_in_pdf, 1)
     ]);
 
     const quotationId = insertResult.insertId;
@@ -750,7 +762,7 @@ router.put('/quotations/:id', async (req, res) => {
       phone=?,whatsapp=?,email=?,gstin=?,
       quotation_date=?,validity_days=?,prepared_by=?,sales_person=?,designation=?,mobile=?,contract_start_date=?,contract_end_date=?,
       subtotal_without_gst=?,gst_total=?,round_off=?,grand_total=?,amount_in_words=?,rate_type=?,status=?,
-      opening_paragraph=?,payment_terms=?,warranty_note=?,disclaimer=?,closing_paragraph=?,internal_note=? WHERE id=?`, [
+      opening_paragraph=?,payment_terms=?,warranty_note=?,disclaimer=?,closing_paragraph=?,internal_note=?,show_payment_details_in_pdf=? WHERE id=?`, [
       clean(b.source_type || 'Manual'), clean(b.lead_id), clean(b.customer_id), clean(b.customer_name), clean(b.company_name), clean(b.address),
       clean(b.customer_premise_id || b.customerPremiseId), clean(b.premise_label || b.premiseLabel), clean(b.premise_address || b.premiseAddress),
       clean(b.premise_area_name || b.premiseAreaName), clean(b.premise_city || b.premiseCity), clean(b.premise_state || b.premiseState),
@@ -758,7 +770,7 @@ router.put('/quotations/:id', async (req, res) => {
       normalizeOptionalIndianMobileNumber(b.phone), normalizeOptionalIndianMobileNumber(b.whatsapp), clean(b.email), clean(b.gstNumber || b.gstin), clean(b.quotation_date) || null, toNumber(b.validity_days, 15),
       clean(b.prepared_by), clean(b.sales_person), clean(b.designation), normalizeOptionalIndianMobileNumber(b.mobile), clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
       toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words),
-      clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'), clean(b.opening_paragraph), clean(b.payment_terms), clean(b.warranty_note), clean(b.disclaimer), clean(b.closing_paragraph), clean(b.internal_note), id
+      clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'), clean(b.opening_paragraph), clean(b.payment_terms), clean(b.warranty_note), clean(b.disclaimer), clean(b.closing_paragraph), clean(b.internal_note), boolToTiny(b.show_payment_details_in_pdf, 1), id
     ]);
 
     await conn.execute('DELETE FROM quotation_items WHERE quotation_id=?', [id]);
