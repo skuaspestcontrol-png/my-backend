@@ -429,8 +429,9 @@ const ensureTables = async () => {
 const boolToTiny = (v, fallback = 1) => {
   if (typeof v === 'boolean') return v ? 1 : 0;
   if (v === 0 || v === 1) return v;
-  if (String(v || '').toLowerCase() === 'yes' || String(v || '').toLowerCase() === 'true') return 1;
-  if (String(v || '').toLowerCase() === 'no' || String(v || '').toLowerCase() === 'false') return 0;
+  const normalized = String(v ?? '').trim().toLowerCase();
+  if (normalized === '1' || normalized === 'yes' || normalized === 'true') return 1;
+  if (normalized === '0' || normalized === 'no' || normalized === 'false') return 0;
   return fallback;
 };
 

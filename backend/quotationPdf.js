@@ -7,6 +7,15 @@ const toNumber = (v, d = 0) => {
   return Number.isFinite(n) ? n : d;
 };
 const clean = (v) => String(v ?? '').trim();
+const toBooleanFlag = (value, fallback = true) => {
+  if (typeof value === 'boolean') return value;
+  if (value === 1 || value === '1') return true;
+  if (value === 0 || value === '0') return false;
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (normalized === 'true' || normalized === 'yes') return true;
+  if (normalized === 'false' || normalized === 'no') return false;
+  return fallback;
+};
 const renewalLetterLogoSize = [400, 160];
 const pdfTextSize = {
   title: 12.5,
@@ -663,8 +672,8 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   const paymentTermsText = ownTextOrDefault(quotation, 'payment_terms', commonParagraphs.payment_terms);
   const showGstin = String(templateSettings.show_gstin ?? companySettings.show_gstin ?? '1') !== '0';
   const showPaymentDetailsInPdf = quotation.show_payment_details_in_pdf == null
-    ? (quotation.showPaymentDetailsInPdf == null ? true : Boolean(quotation.showPaymentDetailsInPdf))
-    : Boolean(quotation.show_payment_details_in_pdf);
+    ? (quotation.showPaymentDetailsInPdf == null ? true : toBooleanFlag(quotation.showPaymentDetailsInPdf, true))
+    : toBooleanFlag(quotation.show_payment_details_in_pdf, true);
   const bankDetails = resolveQuotationBankDetails(companySettings, showGstin);
   const paymentDetailsRows = [
     ['A/C Name', bankDetails.bankAccountName],

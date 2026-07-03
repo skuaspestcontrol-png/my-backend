@@ -95,6 +95,16 @@ const getItemField = (item = {}, ...keys) => {
 
 const money = (v) => `₹ ${num(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const isCheckedFlag = (value) => {
+  if (typeof value === 'boolean') return value;
+  if (value === 1 || value === '1') return true;
+  if (value === 0 || value === '0') return false;
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (normalized === 'true' || normalized === 'yes') return true;
+  if (normalized === 'false' || normalized === 'no') return false;
+  return Boolean(value);
+};
+
 const readCreateQuoteCache = () => {
   try {
     const raw = window.sessionStorage.getItem(CREATE_QUOTE_CACHE_KEY);
@@ -821,7 +831,7 @@ export default function CreateQuote() {
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
               <input
                 type="checkbox"
-                checked={Boolean(form.show_payment_details_in_pdf)}
+                checked={isCheckedFlag(form.show_payment_details_in_pdf)}
                 onChange={(e) => setForm((p) => ({ ...p, show_payment_details_in_pdf: e.target.checked }))}
               />
               Show payment details in PDF
