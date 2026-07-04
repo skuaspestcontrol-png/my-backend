@@ -454,27 +454,51 @@ const resolveServiceCode = (prefixSettings, firstItem) => {
   return clean(map[serviceName] || normalizedMatch?.[1] || 'GEN');
 };
 
+const buildQuotationNumberFromSettings = (settings, firstItem, sequence) => {
+  const serviceCode = resolveServiceCode(settings, firstItem) || 'GEN';
+  const digits = Math.max(1, toNumber(settings.padding_digits, 4));
+  const seq = String(Math.max(1, toNumber(sequence, 1))).padStart(digits, '0');
+  const prefix = clean(settings.prefix || 'SPC/');
+  const year = clean(settings.financial_year || String(new Date().getFullYear()));
+  const tpl = clean(settings.format_template || '{{prefix}}{{year}}/{{service_code}}/{{number}}');
+  return tpl
+    .replaceAll('{{prefix}}', prefix)
+    .replaceAll('{{year}}', year)
+    .replaceAll('{{service_code}}', serviceCode)
+    .replaceAll('{{number}}', seq)
+    .replace(/\/+/g, '/');
+};
+
+const isQuotationNumberTaken = async (conn, quotationNumber) => {
+  const [rows] = await conn.execute(
+    'SELECT id FROM quotations WHERE quotation_number=? LIMIT 1',
+    [clean(quotationNumber)]
+  );
+  return Boolean(rows?.[0]);
+};
+
 const generateQuotationNumber = async (conn, firstItem) => {
   const [rows] = await conn.execute('SELECT * FROM quotation_prefix_settings ORDER BY id ASC LIMIT 1 FOR UPDATE');
   const settings = rows[0];
   if (!settings) {
     const year = String(new Date().getFullYear());
-    return { quotationNumber: `SPC/${year}/GEN/0001`, prefixRow: null, nextNumber: 2 };
+    let sequence = 1;
+    let quotationNumber = `SPC/${year}/GEN/${String(sequence).padStart(4, '0')}`;
+    while (await isQuotationNumberTaken(conn, quotationNumber)) {
+      sequence += 1;
+      quotationNumber = `SPC/${year}/GEN/${String(sequence).padStart(4, '0')}`;
+    }
+    return { quotationNumber, prefixRow: null, nextNumber: sequence + 1 };
   }
-  const serviceCode = resolveServiceCode(settings, firstItem) || 'GEN';
   const next = Math.max(1, toNumber(settings.next_number, 1));
-  const digits = Math.max(1, toNumber(settings.padding_digits, 4));
-  const seq = String(next).padStart(digits, '0');
-  const prefix = clean(settings.prefix || 'SPC/');
-  const year = clean(settings.financial_year || String(new Date().getFullYear()));
-  const tpl = clean(settings.format_template || '{{prefix}}{{year}}/{{service_code}}/{{number}}');
-  const quotationNumber = tpl
-    .replaceAll('{{prefix}}', prefix)
-    .replaceAll('{{year}}', year)
-    .replaceAll('{{service_code}}', serviceCode)
-    .replaceAll('{{number}}', seq);
+  let sequence = next;
+  let quotationNumber = buildQuotationNumberFromSettings(settings, firstItem, sequence);
+  while (await isQuotationNumberTaken(conn, quotationNumber)) {
+    sequence += 1;
+    quotationNumber = buildQuotationNumberFromSettings(settings, firstItem, sequence);
+  }
 
-  return { quotationNumber, prefixRow: settings, nextNumber: next + 1 };
+  return { quotationNumber, prefixRow: settings, nextNumber: sequence + 1 };
 };
 
 router.use(async (req, _res, next) => {
@@ -690,7 +714,14 @@ router.post('/quotations', async (req, res) => {
   try {
     await conn.beginTransaction();
     const generated = await generateQuotationNumber(conn, inputItems[0]);
-    const quotationNumber = clean(b.quotation_number) || generated.quotationNumber;
+    const requestedQuotationNumber = clean(b.quotation_number);
+    let quotationNumber = generated.quotationNumber;
+    if (requestedQuotationNumber) {
+      const requestedTaken = await isQuotationNumberTaken(conn, requestedQuotationNumber);
+      if (!requestedTaken) {
+        quotationNumber = requestedQuotationNumber;
+      }
+    }
 
     const [insertResult] = await conn.execute(`INSERT INTO quotations (
       quotation_number,source_type,lead_id,customer_id,customer_name,company_name,address,
@@ -731,7 +762,7 @@ router.post('/quotations', async (req, res) => {
       ]);
     }
 
-    if (generated.prefixRow?.id && !clean(b.quotation_number)) {
+    if (generated.prefixRow?.id && quotationNumber === generated.quotationNumber) {
       await conn.execute('UPDATE quotation_prefix_settings SET next_number=? WHERE id=?', [generated.nextNumber, generated.prefixRow.id]);
     }
 
