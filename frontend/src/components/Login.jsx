@@ -128,6 +128,13 @@ export default function Login() {
 
   const isNarrow = viewportWidth <= 480;
   const hasValidLogo = Boolean(settings.dashboardImageUrl) && !logoBroken;
+  const calendarModalBodyStyle = {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'auto',
+    padding: isNarrow ? '12px' : '16px',
+    background: '#f8fafc'
+  };
 
   const handleChange = (e) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
@@ -139,6 +146,11 @@ export default function Login() {
     if (role.includes('operations')) return '/operations-portal';
     if (role.includes('technician')) return '/operations/assigned-jobs';
     return '/dashboard';
+  };
+
+  const shouldOpenServiceCalendar = (roleValue) => {
+    const role = String(roleValue || '').trim().toLowerCase();
+    return role.includes('operations') || role.includes('technician');
   };
 
   const handleLogin = async (e) => {
@@ -167,7 +179,11 @@ export default function Login() {
       } else {
         sessionStorage.removeItem('portal_remember_username');
       }
-      navigate(getEmployeeLandingPath(user.role), { replace: true });
+      const openServiceCalendar = shouldOpenServiceCalendar(user.role);
+      navigate(getEmployeeLandingPath(user.role), {
+        replace: true,
+        state: openServiceCalendar ? { openServiceCalendar: true } : null
+      });
       setAuthLoading(false);
     } catch (error) {
       setAuthLoading(false);

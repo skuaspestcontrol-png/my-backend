@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, loadBrandingSettings, pickBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
@@ -26,9 +26,12 @@ import {
   Truck,
   TrendingUp,
   UserCheck,
-  Users
+  Users,
+  X
 } from 'lucide-react';
 import RupeeSymbol from './ui/RupeeSymbol';
+
+const ServiceCalendar = lazy(() => import('./ServiceCalendar'));
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const INACTIVITY_LOGOUT_MS = 5 * 60 * 1000;
@@ -196,6 +199,7 @@ export default function DashboardLayout({ children }) {
   const [leadNotifications, setLeadNotifications] = useState(() => cachedNotificationData?.leadNotifications || []);
   const [serviceSchedules, setServiceSchedules] = useState(() => cachedNotificationData?.serviceSchedules || []);
   const [readNotificationIds, setReadNotificationIds] = useState(() => loadReadNotificationIds());
+  const [serviceCalendarOpen, setServiceCalendarOpen] = useState(false);
   const notificationLoadRef = useRef(null);
 
   const syncBrandingFromCache = useCallback(() => {
@@ -372,6 +376,12 @@ export default function DashboardLayout({ children }) {
       setSidebarFocusWithin(false);
     }
   }, [isDrawerMode]);
+
+  useEffect(() => {
+    if (!location.state?.openServiceCalendar) return;
+    setServiceCalendarOpen(true);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   const isActive = (path) => location.pathname === path;
   const isPrefixActive = (prefix) => location.pathname.startsWith(prefix);
@@ -800,6 +810,27 @@ export default function DashboardLayout({ children }) {
             <Menu size={18} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, marginLeft: 'auto' }}>
+            <button
+              type="button"
+              onClick={() => setServiceCalendarOpen(true)}
+              style={{
+                border: '1px solid var(--color-border)',
+                background: '#fff',
+                color: 'var(--color-primary)',
+                width: isMobile ? '38px' : '42px',
+                height: isMobile ? '38px' : '42px',
+                borderRadius: '999px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+              aria-label="Open service calendar"
+              title="Service Calendar"
+            >
+              <CalendarDays size={isMobile ? 18 : 20} />
+            </button>
             <span
               style={{
                 fontSize: '13px',
@@ -1072,6 +1103,85 @@ export default function DashboardLayout({ children }) {
           </div>
         </main>
       </div>
+      {serviceCalendarOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Service Calendar"
+          onClick={() => setServiceCalendarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 7000,
+            background: 'rgba(15, 23, 42, 0.55)',
+            backdropFilter: 'blur(10px)',
+            display: 'grid',
+            placeItems: 'center',
+            padding: isMobile ? '10px' : '20px'
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: 'min(1200px, 100%)',
+              height: 'min(92vh, 960px)',
+              borderRadius: '18px',
+              border: '1px solid rgba(148, 163, 184, 0.28)',
+              background: '#fff',
+              boxShadow: '0 30px 90px rgba(15, 23, 42, 0.32)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div
+              style={{
+                minHeight: '60px',
+                padding: isMobile ? '12px 14px' : '14px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                background: 'linear-gradient(135deg, var(--color-primary) 0%, #7f1d1d 100%)',
+                color: '#fff'
+              }}
+            >
+              <div style={{ display: 'grid', gap: '2px' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: isMobile ? '16px' : '18px' }}>
+                  <CalendarDays size={18} />
+                  Service Calendar
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.9 }}>
+                  Scheduled services after login.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setServiceCalendarOpen(false)}
+                aria-label="Close service calendar"
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(255,255,255,0.24)',
+                  background: 'rgba(255,255,255,0.12)',
+                  color: '#fff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '12px' : '16px', background: '#f8fafc' }}>
+              <Suspense fallback={<div style={{ padding: '20px', color: '#475569', fontWeight: 700 }}>Loading service calendar...</div>}>
+                <ServiceCalendar />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
