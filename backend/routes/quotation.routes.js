@@ -477,6 +477,112 @@ const isQuotationNumberTaken = async (conn, quotationNumber) => {
   return Boolean(rows?.[0]);
 };
 
+const saveQuotationItems = async (conn, quotationId, inputItems = [], body = {}) => {
+  await conn.execute('DELETE FROM quotation_items WHERE quotation_id=?', [quotationId]);
+  for (let i = 0; i < inputItems.length; i += 1) {
+    const item = inputItems[i] || {};
+    await conn.execute(`INSERT INTO quotation_items (
+      quotation_id,service_template_id,service_name,service_code,pest_name,service_title,about_pest,what_we_do,treatment_points,
+      infestation_level,infestation_image_url,frequency,recommendation,area_covered,quantity,rate_without_gst,gst_percentage,
+      gst_amount,rate_with_gst,total_amount,contract_start_date,contract_end_date,sort_order
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
+      quotationId,
+      toNumber(item.service_template_id, null), clean(item.service_name), clean(item.service_code), clean(item.pest_name), clean(item.service_title),
+      clean(item.about_pest), clean(item.what_we_do), clean(item.treatment_points), clean(item.infestation_level), clean(item.infestation_image_url),
+      clean(item.frequency), clean(item.recommendation), clean(item.area_covered), toNumber(item.quantity, 1), toNumber(item.rate_without_gst, 0),
+      toNumber(item.gst_percentage, 18), toNumber(item.gst_amount, 0), toNumber(item.rate_with_gst, 0), toNumber(item.total_amount, 0),
+      clean(item.contract_start_date || body.contract_start_date) || null, clean(item.contract_end_date || body.contract_end_date) || null, i + 1
+    ]);
+  }
+};
+
+const persistQuotationRecord = async ({ conn, body = {}, inputItems = [], quotationId = null }) => {
+  const b = body || {};
+  const existingId = Number(quotationId || 0);
+  const [existingRows] = existingId
+    ? await conn.execute('SELECT * FROM quotations WHERE id=? LIMIT 1', [existingId])
+    : [[]];
+  const existing = existingRows?.[0] || null;
+  const generated = await generateQuotationNumber(conn, inputItems[0]);
+  const requestedQuotationNumber = clean(b.quotation_number);
+  const existingQuotationNumber = clean(existing?.quotation_number);
+
+  let quotationNumber = generated.quotationNumber;
+  let advancePrefix = false;
+  if (existing) {
+    quotationNumber = existingQuotationNumber || generated.quotationNumber;
+    if (requestedQuotationNumber && requestedQuotationNumber !== existingQuotationNumber) {
+      const requestedTaken = await isQuotationNumberTaken(conn, requestedQuotationNumber);
+      if (!requestedTaken) {
+        quotationNumber = requestedQuotationNumber;
+      }
+    }
+  } else if (requestedQuotationNumber) {
+    const requestedTaken = await isQuotationNumberTaken(conn, requestedQuotationNumber);
+    if (!requestedTaken) {
+      quotationNumber = requestedQuotationNumber;
+    }
+    advancePrefix = quotationNumber === generated.quotationNumber;
+  } else {
+    advancePrefix = true;
+  }
+
+  if (existing) {
+    await conn.execute(`UPDATE quotations SET
+      quotation_number=?,source_type=?,lead_id=?,customer_id=?,customer_name=?,company_name=?,address=?,
+      customer_premise_id=?,premise_label=?,premise_address=?,premise_area_name=?,premise_city=?,premise_state=?,premise_pincode=?,premise_google_map_url=?,
+      phone=?,whatsapp=?,email=?,gstin=?,
+      quotation_date=?,validity_days=?,prepared_by=?,sales_person=?,designation=?,mobile=?,contract_start_date=?,contract_end_date=?,
+      subtotal_without_gst=?,gst_total=?,round_off=?,grand_total=?,amount_in_words=?,rate_type=?,status=?,
+      opening_paragraph=?,payment_terms=?,warranty_note=?,disclaimer=?,closing_paragraph=?,internal_note=?,show_payment_details_in_pdf=? WHERE id=?`, [
+      quotationNumber,
+      clean(b.source_type || 'Manual'), clean(b.lead_id), clean(b.customer_id), clean(b.customer_name), clean(b.company_name), clean(b.address),
+      clean(b.customer_premise_id || b.customerPremiseId), clean(b.premise_label || b.premiseLabel), clean(b.premise_address || b.premiseAddress),
+      clean(b.premise_area_name || b.premiseAreaName), clean(b.premise_city || b.premiseCity), clean(b.premise_state || b.premiseState),
+      clean(b.premise_pincode || b.premisePincode), clean(b.premise_google_map_url || b.premiseGoogleMapUrl),
+      normalizeOptionalIndianMobileNumber(b.phone), normalizeOptionalIndianMobileNumber(b.whatsapp), clean(b.email), clean(b.gstNumber || b.gstin),
+      clean(b.quotation_date) || null, toNumber(b.validity_days, 15), clean(b.prepared_by), clean(b.sales_person), clean(b.designation), normalizeOptionalIndianMobileNumber(b.mobile), clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
+      toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words),
+      clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'), clean(b.opening_paragraph), clean(b.payment_terms), clean(b.warranty_note), clean(b.disclaimer), clean(b.closing_paragraph), clean(b.internal_note), boolToTiny(b.show_payment_details_in_pdf, 1), existing.id
+    ]);
+    await saveQuotationItems(conn, existing.id, inputItems, b);
+    return { quotationId: existing.id, quotationNumber, mode: 'update', advancePrefix: false };
+  }
+
+  const [insertResult] = await conn.execute(`INSERT INTO quotations (
+    quotation_number,source_type,lead_id,customer_id,customer_name,company_name,address,
+    customer_premise_id,premise_label,premise_address,premise_area_name,premise_city,premise_state,premise_pincode,premise_google_map_url,
+    phone,whatsapp,email,gstin,
+    quotation_date,validity_days,prepared_by,sales_person,designation,mobile,contract_start_date,contract_end_date,
+    subtotal_without_gst,gst_total,round_off,grand_total,amount_in_words,rate_type,status,
+    opening_paragraph,payment_terms,warranty_note,disclaimer,closing_paragraph,internal_note,show_payment_details_in_pdf
+  ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
+    quotationNumber,
+    clean(b.source_type || 'Manual'),
+    clean(b.lead_id), clean(b.customer_id), clean(b.customer_name), clean(b.company_name), clean(b.address),
+    clean(b.customer_premise_id || b.customerPremiseId), clean(b.premise_label || b.premiseLabel), clean(b.premise_address || b.premiseAddress),
+    clean(b.premise_area_name || b.premiseAreaName), clean(b.premise_city || b.premiseCity), clean(b.premise_state || b.premiseState),
+    clean(b.premise_pincode || b.premisePincode), clean(b.premise_google_map_url || b.premiseGoogleMapUrl),
+    normalizeOptionalIndianMobileNumber(b.phone), normalizeOptionalIndianMobileNumber(b.whatsapp), clean(b.email), clean(b.gstNumber || b.gstin),
+    clean(b.quotation_date) || null, toNumber(b.validity_days, 15), clean(b.prepared_by), clean(b.sales_person), clean(b.designation), normalizeOptionalIndianMobileNumber(b.mobile),
+    clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
+    toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words), clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'),
+    clean(b.opening_paragraph), clean(b.payment_terms), clean(b.warranty_note), clean(b.disclaimer), clean(b.closing_paragraph), clean(b.internal_note),
+    boolToTiny(b.show_payment_details_in_pdf, 1)
+  ]);
+
+  const newQuotationId = insertResult.insertId;
+  await saveQuotationItems(conn, newQuotationId, inputItems, b);
+  return {
+    quotationId: newQuotationId,
+    quotationNumber,
+    mode: 'create',
+    advancePrefix,
+    prefixRow: generated.prefixRow,
+    nextNumber: generated.nextNumber
+  };
+};
+
 const generateQuotationNumber = async (conn, firstItem) => {
   const [rows] = await conn.execute('SELECT * FROM quotation_prefix_settings ORDER BY id ASC LIMIT 1 FOR UPDATE');
   const settings = rows[0];
@@ -713,63 +819,21 @@ router.post('/quotations', async (req, res) => {
   const conn = await getConnection();
   try {
     await conn.beginTransaction();
-    const generated = await generateQuotationNumber(conn, inputItems[0]);
-    const requestedQuotationNumber = clean(b.quotation_number);
-    let quotationNumber = generated.quotationNumber;
-    if (requestedQuotationNumber) {
-      const requestedTaken = await isQuotationNumberTaken(conn, requestedQuotationNumber);
-      if (!requestedTaken) {
-        quotationNumber = requestedQuotationNumber;
-      }
-    }
+    const saved = await persistQuotationRecord({
+      conn,
+      body: b,
+      inputItems,
+      quotationId: b.quotation_id || b.id || null
+    });
 
-    const [insertResult] = await conn.execute(`INSERT INTO quotations (
-      quotation_number,source_type,lead_id,customer_id,customer_name,company_name,address,
-      customer_premise_id,premise_label,premise_address,premise_area_name,premise_city,premise_state,premise_pincode,premise_google_map_url,
-      phone,whatsapp,email,gstin,
-      quotation_date,validity_days,prepared_by,sales_person,designation,mobile,contract_start_date,contract_end_date,
-      subtotal_without_gst,gst_total,round_off,grand_total,amount_in_words,rate_type,status,
-      opening_paragraph,payment_terms,warranty_note,disclaimer,closing_paragraph,internal_note,show_payment_details_in_pdf
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
-      quotationNumber,
-      clean(b.source_type || 'Manual'),
-      clean(b.lead_id), clean(b.customer_id), clean(b.customer_name), clean(b.company_name), clean(b.address),
-      clean(b.customer_premise_id || b.customerPremiseId), clean(b.premise_label || b.premiseLabel), clean(b.premise_address || b.premiseAddress),
-      clean(b.premise_area_name || b.premiseAreaName), clean(b.premise_city || b.premiseCity), clean(b.premise_state || b.premiseState),
-      clean(b.premise_pincode || b.premisePincode), clean(b.premise_google_map_url || b.premiseGoogleMapUrl),
-      normalizeOptionalIndianMobileNumber(b.phone), normalizeOptionalIndianMobileNumber(b.whatsapp), clean(b.email), clean(b.gstNumber || b.gstin),
-      clean(b.quotation_date) || null, toNumber(b.validity_days, 15), clean(b.prepared_by), clean(b.sales_person), clean(b.designation), normalizeOptionalIndianMobileNumber(b.mobile),
-      clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
-      toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words), clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'),
-      clean(b.opening_paragraph), clean(b.payment_terms), clean(b.warranty_note), clean(b.disclaimer), clean(b.closing_paragraph), clean(b.internal_note),
-      boolToTiny(b.show_payment_details_in_pdf, 1)
-    ]);
-
-    const quotationId = insertResult.insertId;
-    for (let i = 0; i < inputItems.length; i += 1) {
-      const item = inputItems[i] || {};
-      await conn.execute(`INSERT INTO quotation_items (
-        quotation_id,service_template_id,service_name,service_code,pest_name,service_title,about_pest,what_we_do,treatment_points,
-        infestation_level,infestation_image_url,frequency,recommendation,area_covered,quantity,rate_without_gst,gst_percentage,
-        gst_amount,rate_with_gst,total_amount,contract_start_date,contract_end_date,sort_order
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
-        quotationId,
-        toNumber(item.service_template_id, null), clean(item.service_name), clean(item.service_code), clean(item.pest_name), clean(item.service_title),
-        clean(item.about_pest), clean(item.what_we_do), clean(item.treatment_points), clean(item.infestation_level), clean(item.infestation_image_url),
-        clean(item.frequency), clean(item.recommendation), clean(item.area_covered), toNumber(item.quantity, 1), toNumber(item.rate_without_gst, 0),
-        toNumber(item.gst_percentage, 18), toNumber(item.gst_amount, 0), toNumber(item.rate_with_gst, 0), toNumber(item.total_amount, 0),
-        clean(item.contract_start_date || b.contract_start_date) || null, clean(item.contract_end_date || b.contract_end_date) || null, i + 1
-      ]);
-    }
-
-    if (generated.prefixRow?.id && quotationNumber === generated.quotationNumber) {
-      await conn.execute('UPDATE quotation_prefix_settings SET next_number=? WHERE id=?', [generated.nextNumber, generated.prefixRow.id]);
+    if (saved.mode === 'create' && saved.advancePrefix && saved.prefixRow?.id) {
+      await conn.execute('UPDATE quotation_prefix_settings SET next_number=? WHERE id=?', [saved.nextNumber, saved.prefixRow.id]);
     }
 
     await conn.commit();
-    const [q] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [quotationId]);
-    const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [quotationId]);
-    res.status(201).json({ ...normalizeQuotationRow(q), items });
+    const [q] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [saved.quotationId]);
+    const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [saved.quotationId]);
+    res.status(saved.mode === 'create' ? 201 : 200).json({ ...normalizeQuotationRow(q), items });
   } catch (error) {
     await conn.rollback();
     console.error('Failed to create quotation:', error.message);
@@ -788,43 +852,16 @@ router.put('/quotations/:id', async (req, res) => {
   const conn = await getConnection();
   try {
     await conn.beginTransaction();
-    await conn.execute(`UPDATE quotations SET
-      source_type=?,lead_id=?,customer_id=?,customer_name=?,company_name=?,address=?,
-      customer_premise_id=?,premise_label=?,premise_address=?,premise_area_name=?,premise_city=?,premise_state=?,premise_pincode=?,premise_google_map_url=?,
-      phone=?,whatsapp=?,email=?,gstin=?,
-      quotation_date=?,validity_days=?,prepared_by=?,sales_person=?,designation=?,mobile=?,contract_start_date=?,contract_end_date=?,
-      subtotal_without_gst=?,gst_total=?,round_off=?,grand_total=?,amount_in_words=?,rate_type=?,status=?,
-      opening_paragraph=?,payment_terms=?,warranty_note=?,disclaimer=?,closing_paragraph=?,internal_note=?,show_payment_details_in_pdf=? WHERE id=?`, [
-      clean(b.source_type || 'Manual'), clean(b.lead_id), clean(b.customer_id), clean(b.customer_name), clean(b.company_name), clean(b.address),
-      clean(b.customer_premise_id || b.customerPremiseId), clean(b.premise_label || b.premiseLabel), clean(b.premise_address || b.premiseAddress),
-      clean(b.premise_area_name || b.premiseAreaName), clean(b.premise_city || b.premiseCity), clean(b.premise_state || b.premiseState),
-      clean(b.premise_pincode || b.premisePincode), clean(b.premise_google_map_url || b.premiseGoogleMapUrl),
-      normalizeOptionalIndianMobileNumber(b.phone), normalizeOptionalIndianMobileNumber(b.whatsapp), clean(b.email), clean(b.gstNumber || b.gstin), clean(b.quotation_date) || null, toNumber(b.validity_days, 15),
-      clean(b.prepared_by), clean(b.sales_person), clean(b.designation), normalizeOptionalIndianMobileNumber(b.mobile), clean(b.contract_start_date) || null, clean(b.contract_end_date) || null,
-      toNumber(b.subtotal_without_gst, 0), toNumber(b.gst_total, 0), toNumber(b.round_off, 0), toNumber(b.grand_total, 0), clean(b.amount_in_words),
-      clean(b.rate_type || 'With GST'), clean(b.status || 'Draft'), clean(b.opening_paragraph), clean(b.payment_terms), clean(b.warranty_note), clean(b.disclaimer), clean(b.closing_paragraph), clean(b.internal_note), boolToTiny(b.show_payment_details_in_pdf, 1), id
-    ]);
-
-    await conn.execute('DELETE FROM quotation_items WHERE quotation_id=?', [id]);
-    for (let i = 0; i < items.length; i += 1) {
-      const item = items[i] || {};
-      await conn.execute(`INSERT INTO quotation_items (
-        quotation_id,service_template_id,service_name,service_code,pest_name,service_title,about_pest,what_we_do,treatment_points,
-        infestation_level,infestation_image_url,frequency,recommendation,area_covered,quantity,rate_without_gst,gst_percentage,
-        gst_amount,rate_with_gst,total_amount,contract_start_date,contract_end_date,sort_order
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
-        id,
-        toNumber(item.service_template_id, null), clean(item.service_name), clean(item.service_code), clean(item.pest_name), clean(item.service_title),
-        clean(item.about_pest), clean(item.what_we_do), clean(item.treatment_points), clean(item.infestation_level), clean(item.infestation_image_url),
-        clean(item.frequency), clean(item.recommendation), clean(item.area_covered), toNumber(item.quantity, 1), toNumber(item.rate_without_gst, 0),
-        toNumber(item.gst_percentage, 18), toNumber(item.gst_amount, 0), toNumber(item.rate_with_gst, 0), toNumber(item.total_amount, 0),
-        clean(item.contract_start_date || b.contract_start_date) || null, clean(item.contract_end_date || b.contract_end_date) || null, i + 1
-      ]);
-    }
+    const saved = await persistQuotationRecord({
+      conn,
+      body: b,
+      inputItems: items,
+      quotationId: id
+    });
 
     await conn.commit();
-    const [q] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [id]);
-    const outItems = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [id]);
+    const [q] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [saved.quotationId]);
+    const outItems = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [saved.quotationId]);
     res.json({ ...normalizeQuotationRow(q), items: outItems });
   } catch (error) {
     await conn.rollback();

@@ -629,6 +629,7 @@ export default function CreateQuote() {
       const payloadItems = items.map(({ contract_start_date: _itemContractStartDate, contract_end_date: _itemContractEndDate, ...item }) => item);
       const payload = {
         ...quotationPayload,
+        quotation_id: savedId || (isEditMode ? Number(editId) : null),
         status: mode,
         quotation_number: form.quotation_number || '',
         subtotal_without_gst: Number(subtotalWithout.toFixed(2)),
