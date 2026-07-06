@@ -27,9 +27,12 @@ const shell = {
   selectedCard: { border: '1px solid var(--color-border)', borderRadius: '12px', background: '#fff', overflow: 'hidden' },
   selectedHead: { padding: '10px 12px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 800, textTransform: 'uppercase' },
   selectedBody: { padding: '10px 12px', display: 'grid', gap: '10px' },
-  eventCard: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', padding: '10px', background: '#FDF2F8', display: 'grid', gap: '6px' },
-  eventLine: { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#334155' },
-  eventMeta: { fontSize: '11px', color: '#64748b' },
+  eventGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' },
+  eventCard: { border: '1px solid rgba(159,23,77,0.14)', borderRadius: '12px', padding: '12px 12px 11px', background: 'linear-gradient(180deg, #fff7fb 0%, #fff 100%)', display: 'grid', gap: '8px', minWidth: 0 },
+  eventTitle: { fontSize: '13px', fontWeight: 800, color: '#0f172a', lineHeight: 1.35 },
+  eventRow: { display: 'flex', flexWrap: 'wrap', gap: '8px 12px', alignItems: 'center' },
+  eventPill: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 8px', borderRadius: '999px', background: '#f8fafc', color: '#334155', fontSize: '11px', fontWeight: 700, lineHeight: 1.2 },
+  eventMeta: { fontSize: '11px', color: '#64748b', lineHeight: 1.45 },
   empty: { padding: '12px', borderRadius: '8px', border: '1px dashed #D1D5DB', color: '#64748b', fontSize: '13px' },
   error: { color: '#b91c1c', fontWeight: 700, fontSize: '12px' }
 };
@@ -373,25 +376,31 @@ export default function ServiceCalendar() {
               {selectedDayEvents.length === 0 ? (
                 <div style={shell.empty}>No services scheduled for this date.</div>
               ) : (
-                selectedDayEvents.map((event) => (
-                  <div key={event._id} style={shell.eventCard}>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                      {event.itemName || 'Service Item'}
+                <div style={shell.eventGrid}>
+                  {selectedDayEvents.map((event) => (
+                    <div key={event._id} style={shell.eventCard}>
+                      <div style={shell.eventTitle}>
+                        {event.itemName || 'Service Item'}
+                      </div>
+                      <div style={shell.eventRow}>
+                        <span style={shell.eventPill}>
+                          <Clock3 size={12} /> {event.serviceTime}
+                        </span>
+                        <span style={shell.eventPill}>
+                          <UserRound size={12} /> {event.customerName || 'Customer not linked'}
+                        </span>
+                      </div>
+                      <div style={shell.eventRow}>
+                        <span style={shell.eventPill}>
+                          <FileText size={12} /> {event.invoiceNumber || 'Invoice not set'}
+                        </span>
+                      </div>
+                      <div style={shell.eventMeta}>
+                        {event.itemDescription || 'No item description'}
+                      </div>
                     </div>
-                    <div style={shell.eventLine}>
-                      <Clock3 size={13} /> {event.serviceTime}
-                    </div>
-                    <div style={shell.eventLine}>
-                      <UserRound size={13} /> {event.customerName || 'Customer not linked'}
-                    </div>
-                    <div style={shell.eventLine}>
-                      <FileText size={13} /> {event.invoiceNumber || 'Invoice not set'}
-                    </div>
-                    <div style={shell.eventMeta}>
-                      {event.itemDescription || 'No item description'}
-                    </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </div>
