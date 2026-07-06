@@ -46,6 +46,44 @@ const formatDate = (value) => {
 };
 
 const formatINR = (value) => `${Math.round(toNumber(value, 0)).toLocaleString('en-IN')}/-`;
+const toWordsBelowThousand = (num) => {
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+  const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  let n = num;
+  const parts = [];
+  if (n >= 100) {
+    parts.push(`${ones[Math.floor(n / 100)]} Hundred`);
+    n %= 100;
+  }
+  if (n >= 20) {
+    parts.push(tens[Math.floor(n / 10)]);
+    n %= 10;
+  } else if (n >= 10) {
+    parts.push(teens[n - 10]);
+    n = 0;
+  }
+  if (n > 0) parts.push(ones[n]);
+  return parts.join(' ').trim();
+};
+
+const numberToIndianWords = (value) => {
+  const num = Math.floor(Math.abs(toNumber(value, 0)));
+  if (num === 0) return 'Zero';
+
+  const crore = Math.floor(num / 10000000);
+  const lakh = Math.floor((num % 10000000) / 100000);
+  const thousand = Math.floor((num % 100000) / 1000);
+  const hundredBlock = num % 1000;
+
+  const parts = [];
+  if (crore) parts.push(`${toWordsBelowThousand(crore)} Crore`);
+  if (lakh) parts.push(`${toWordsBelowThousand(lakh)} Lakh`);
+  if (thousand) parts.push(`${toWordsBelowThousand(thousand)} Thousand`);
+  if (hundredBlock) parts.push(toWordsBelowThousand(hundredBlock));
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
+};
+
 const defaultPaymentTerms = [
   '100% Advance along with your confirmation order.',
   'All payments should be payable to Skuas Pest Control Private Limited.',
@@ -471,6 +509,44 @@ const drawTableRow = (doc, cols, y, values, options = {}) => {
   return h;
 };
 
+const drawMergedSummaryRow = (doc, leftText, rightText, y, widths, options = {}) => {
+  const pdfFont = getPdfFont(doc);
+  const fontSize = options.fontSize || pdfTextSize.table;
+  const borderColor = options.borderColor || '#111827';
+  const paddingY = Number.isFinite(Number(options.paddingY)) ? Number(options.paddingY) : 4;
+  const left = clean(leftText);
+  const right = clean(rightText);
+  const leftHeight = doc.font(options.bold ? pdfFont.bold : pdfFont.regular)
+    .fontSize(fontSize)
+    .heightOfString(left || ' ', { width: Math.max(8, widths.left - 8), lineGap: 0 });
+  const rightHeight = doc.font(options.bold ? pdfFont.bold : pdfFont.regular)
+    .fontSize(fontSize)
+    .heightOfString(right || ' ', { width: Math.max(8, widths.right - 8), lineGap: 0 });
+  const h = Math.max(options.minHeight || 22, Math.ceil(Math.max(leftHeight, rightHeight) + (paddingY * 2)));
+  const fill = options.fillColor || '#ffffff';
+
+  doc.rect(widths.x, y, widths.left, h).fillAndStroke(fill, borderColor);
+  doc.rect(widths.x + widths.left, y, widths.right, h).fillAndStroke(fill, borderColor);
+
+  doc.font(options.bold ? pdfFont.bold : pdfFont.regular)
+    .fontSize(fontSize)
+    .fillColor('#111827')
+    .text(left, widths.x + 4, y + paddingY, {
+      width: Math.max(8, widths.left - 8),
+      align: options.leftAlign || 'left',
+      lineGap: 0
+    });
+  doc.font(options.bold ? pdfFont.bold : pdfFont.regular)
+    .fontSize(fontSize)
+    .fillColor('#111827')
+    .text(right, widths.x + widths.left + 4, y + paddingY, {
+      width: Math.max(8, widths.right - 8),
+      align: options.rightAlign || 'center',
+      lineGap: 0
+    });
+  return h;
+};
+
 const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettings = {}, commonParagraphs = {}, companySettings = {} }) => new Promise((resolve, reject) => {
   const doc = new PDFDocument({ size: 'A4', margins: { top: 30, bottom: 34, left: 44, right: 44 }, bufferPages: true });
   const pdfFont = registerQuotationFonts(doc);
@@ -640,7 +716,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
       minHeight: 28,
       paddingY: 4,
       verticalAlign: 'middle',
-      alignments: ['center', 'left', 'left', 'left', 'left']
+      alignments: ['center', 'left', 'center', 'left', 'center']
     });
     doc.y += h;
   });
@@ -653,21 +729,19 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   const serviceTableWidth = right - left;
   const serviceNumberWidth = 30;
-  const serviceNameWidth = Math.round(serviceTableWidth * 0.26);
-  const frequencyWidth = Math.round(serviceTableWidth * (isGstQuotation ? 0.34 : 0.42));
-  const fourthColumnWidth = Math.round(serviceTableWidth * (isGstQuotation ? 0.22 : 0.14));
-  const amountWidth = serviceTableWidth - serviceNumberWidth - serviceNameWidth - frequencyWidth - fourthColumnWidth;
+  const serviceNameWidth = Math.round(serviceTableWidth * 0.28);
+  const amountWithoutWidth = Math.round(serviceTableWidth * 0.34);
+  const amountWithWidth = serviceTableWidth - serviceNumberWidth - serviceNameWidth - amountWithoutWidth;
   const serviceCols = [
     { x: left, w: serviceNumberWidth },
     { x: left + serviceNumberWidth, w: serviceNameWidth },
-    { x: left + serviceNumberWidth + serviceNameWidth, w: frequencyWidth },
-    { x: left + serviceNumberWidth + serviceNameWidth + frequencyWidth, w: fourthColumnWidth },
-    { x: left + serviceNumberWidth + serviceNameWidth + frequencyWidth + fourthColumnWidth, w: amountWidth }
+    { x: left + serviceNumberWidth + serviceNameWidth, w: amountWithoutWidth },
+    { x: left + serviceNumberWidth + serviceNameWidth + amountWithoutWidth, w: amountWithWidth }
   ];
 
   const serviceHeadings = isGstQuotation
-    ? ['#', 'Service', 'Frequency', 'Amount without GST', 'Amount with GST']
-    : ['#', 'Service', 'Frequency', 'GST %', 'Total Amount'];
+    ? ['#', 'Service', 'Amount without GST', 'Amount with GST']
+    : ['#', 'Service', 'GST %', 'Total Amount'];
   h = drawTableRow(doc, serviceCols, doc.y, serviceHeadings, {
     isHeader: true,
     fontSize: pdfTextSize.table,
@@ -682,13 +756,19 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
     const amountWithoutGst = toNumber(item.quantity, 1) * toNumber(item.rate_without_gst, 0);
     const gstAmount = toNumber(item.gst_amount, amountWithoutGst * (toNumber(item.gst_percentage, 0) / 100));
     const amountWithGst = amountWithoutGst + gstAmount;
-    const rowVals = [
-      String(index + 1),
-      clean(item.service_name || '-'),
-      clean(item.frequency || '-'),
-      isGstQuotation ? formatINR(amountWithoutGst) : '-',
-      formatINR(isGstQuotation ? amountWithGst : item.total_amount)
-    ];
+    const rowVals = isGstQuotation
+      ? [
+          String(index + 1),
+          clean(item.service_name || '-'),
+          formatINR(amountWithoutGst),
+          formatINR(amountWithGst)
+        ]
+      : [
+          String(index + 1),
+          clean(item.service_name || '-'),
+          Number.isFinite(Number(item.gst_percentage)) ? `${Number(item.gst_percentage)}%` : clean(item.gst_percentage || '-'),
+          formatINR(item.total_amount)
+        ];
 
     const rowHeight = getRowHeight(doc, serviceCols, rowVals, pdfTextSize.table, 30, 8);
     ensureSpace(rowHeight + 2);
@@ -698,10 +778,36 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
       minHeight: 30,
       paddingY: 4,
       verticalAlign: 'middle',
-      alignments: ['center', 'left', 'left', 'center', 'center']
+      alignments: ['center', 'left', 'center', 'center']
     });
     doc.y += h;
   });
+
+  if (isGstQuotation && items.length) {
+    const totalAmountWithGst = items.reduce((sum, item) => sum + toNumber(item.total_amount, toNumber(item.quantity, 1) * toNumber(item.rate_without_gst, 0) + toNumber(item.gst_amount, 0)), 0);
+    const summaryTop = doc.y;
+    const summaryHeight = drawMergedSummaryRow(
+      doc,
+      `Total Amount with GST: ${formatINR(totalAmountWithGst)}`,
+      `Rupees ${numberToIndianWords(totalAmountWithGst)} Only/-`,
+      summaryTop,
+      {
+        x: left,
+        left: serviceNumberWidth + serviceNameWidth,
+        right: serviceTableWidth - (serviceNumberWidth + serviceNameWidth)
+      },
+      {
+        fontSize: pdfTextSize.table,
+        borderColor: '#111827',
+        minHeight: 22,
+        paddingY: 4,
+        bold: true,
+        leftAlign: 'left',
+        rightAlign: 'center'
+      }
+    );
+    doc.y = summaryTop + summaryHeight;
+  }
   doc.moveDown(sectionSpacing.afterTable);
 
   ensureSpace(28);
