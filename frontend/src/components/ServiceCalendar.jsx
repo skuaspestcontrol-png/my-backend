@@ -15,20 +15,20 @@ const shell = {
   controls: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
   controlBtn: { border: '1px solid #D1D5DB', background: '#fff', color: '#334155', borderRadius: '10px', height: '36px', minWidth: '36px', padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', fontWeight: 700 },
   monthText: { minWidth: '170px', textAlign: 'center', fontWeight: 700, color: '#0f172a' },
-  body: { padding: '14px 16px 16px', display: 'grid', gap: '14px' },
-  weekRow: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '8px' },
+  body: { padding: '14px 16px 16px', display: 'grid', gap: '12px' },
+  weekRow: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '6px' },
   weekCell: { textAlign: 'center', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '8px' },
-  dayBtn: { border: '1px solid var(--color-border)', borderRadius: '10px', background: '#fff', minHeight: '88px', padding: '8px', textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '6px' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '6px' },
+  dayBtn: { border: '1px solid var(--color-border)', borderRadius: '10px', background: '#fff', minHeight: '76px', padding: '7px', textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px' },
   dayBtnMuted: { opacity: 0.45, background: '#f8fafc' },
   dayBtnSelected: { borderColor: 'var(--color-primary)', boxShadow: '0 0 0 2px rgba(159,23,77,0.2)' },
-  dayNumber: { fontSize: '12px', fontWeight: 700, color: '#0f172a' },
-  dayBadge: { alignSelf: 'flex-start', fontSize: '10px', fontWeight: 800, color: 'var(--color-primary-dark)', background: 'var(--color-primary-soft)', borderRadius: '999px', padding: '2px 7px' },
+  dayNumber: { fontSize: '12px', fontWeight: 700, color: '#0f172a', lineHeight: 1 },
+  dayBadge: { alignSelf: 'flex-start', fontSize: '10px', fontWeight: 800, color: 'var(--color-primary-dark)', background: 'var(--color-primary-soft)', borderRadius: '999px', padding: '2px 7px', lineHeight: 1.15 },
   selectedCard: { border: '1px solid var(--color-border)', borderRadius: '12px', background: '#fff', overflow: 'hidden' },
   selectedHead: { padding: '10px 12px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 800, textTransform: 'uppercase' },
   selectedBody: { padding: '10px 12px', display: 'grid', gap: '10px' },
-  eventGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' },
-  eventCard: { border: '1px solid rgba(159,23,77,0.14)', borderRadius: '12px', padding: '12px 12px 11px', background: 'linear-gradient(180deg, #fff7fb 0%, #fff 100%)', display: 'grid', gap: '8px', minWidth: 0 },
+  eventGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px' },
+  eventCard: { border: '1px solid rgba(159,23,77,0.14)', borderRadius: '12px', padding: '11px 11px 10px', background: 'linear-gradient(180deg, #fff7fb 0%, #fff 100%)', display: 'grid', gap: '7px', minWidth: 0 },
   eventTitle: { fontSize: '13px', fontWeight: 800, color: '#0f172a', lineHeight: 1.35 },
   eventRow: { display: 'flex', flexWrap: 'wrap', gap: '8px 12px', alignItems: 'center' },
   eventPill: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 8px', borderRadius: '999px', background: '#f8fafc', color: '#334155', fontSize: '11px', fontWeight: 700, lineHeight: 1.2 },
@@ -240,10 +240,16 @@ export default function ServiceCalendar() {
   }, [events, today]);
   const isMobile = viewportWidth <= 768;
   const dayBtnStyle = isMobile
-    ? { ...shell.dayBtn, minHeight: '64px', padding: '6px', gap: '4px' }
+    ? { ...shell.dayBtn, minHeight: '58px', padding: '5px', gap: '3px' }
     : shell.dayBtn;
   const dayNumberStyle = isMobile ? { ...shell.dayNumber, fontSize: '11px' } : shell.dayNumber;
-  const dayBadgeStyle = isMobile ? { ...shell.dayBadge, fontSize: '9px', padding: '2px 6px' } : shell.dayBadge;
+  const dayBadgeStyle = isMobile ? { ...shell.dayBadge, fontSize: '9px', padding: '2px 5px' } : shell.dayBadge;
+  const eventGridStyle = isMobile
+    ? { ...shell.eventGrid, gridTemplateColumns: '1fr' }
+    : shell.eventGrid;
+  const eventCardStyle = isMobile
+    ? { ...shell.eventCard, padding: '10px 10px 9px' }
+    : shell.eventCard;
   const summaryCardStyle = isMobile
     ? {
         border: '1px solid rgba(148,163,184,0.22)',
@@ -376,9 +382,9 @@ export default function ServiceCalendar() {
               {selectedDayEvents.length === 0 ? (
                 <div style={shell.empty}>No services scheduled for this date.</div>
               ) : (
-                <div style={shell.eventGrid}>
+                <div style={eventGridStyle}>
                   {selectedDayEvents.map((event) => (
-                    <div key={event._id} style={shell.eventCard}>
+                    <div key={event._id} style={eventCardStyle}>
                       <div style={shell.eventTitle}>
                         {event.itemName || 'Service Item'}
                       </div>
