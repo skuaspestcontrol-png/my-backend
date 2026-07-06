@@ -594,6 +594,58 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   });
   doc.moveDown(sectionSpacing.afterTable);
 
+  ensureSpace(70);
+  doc.moveDown(sectionSpacing.beforeHeading);
+  doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('Scope of Work', left, doc.y, { width: right - left, align: 'left' });
+  doc.moveDown(sectionSpacing.afterHeading);
+
+  const scopeTableWidth = right - left;
+  const scopeNumberWidth = 34;
+  const scopeServiceWidth = Math.round(scopeTableWidth * 0.19);
+  const scopeAreaWidth = Math.round(scopeTableWidth * 0.17);
+  const scopeFrequencyWidth = Math.round(scopeTableWidth * 0.18);
+  const scopeMethodWidth = scopeTableWidth - scopeNumberWidth - scopeServiceWidth - scopeAreaWidth - scopeFrequencyWidth;
+  const scopeCols = [
+    { x: left, w: scopeNumberWidth },
+    { x: left + scopeNumberWidth, w: scopeServiceWidth },
+    { x: left + scopeNumberWidth + scopeServiceWidth, w: scopeAreaWidth },
+    { x: left + scopeNumberWidth + scopeServiceWidth + scopeAreaWidth, w: scopeMethodWidth },
+    { x: left + scopeNumberWidth + scopeServiceWidth + scopeAreaWidth + scopeMethodWidth, w: scopeFrequencyWidth }
+  ];
+
+  h = drawTableRow(doc, scopeCols, doc.y, ['Sr No', 'Service Name', 'Area Cover', 'Treatment Methodology', 'Frequency'], {
+    isHeader: true,
+    fontSize: pdfTextSize.table,
+    borderColor: '#111827',
+    minHeight: 18,
+    paddingY: 4,
+    verticalAlign: 'middle'
+  });
+  doc.y += h;
+
+  items.forEach((item, index) => {
+    const treatmentMethodology = clean(item.treatment_points || item.what_we_do || item.recommendation || '-');
+    const rowVals = [
+      String(index + 1),
+      clean(item.service_name || item.service_title || '-'),
+      clean(item.area_covered || quotation.premise_area_name || quotation.area_name || '-'),
+      treatmentMethodology,
+      clean(item.frequency || '-')
+    ];
+    const rowHeight = getRowHeight(doc, scopeCols, rowVals, pdfTextSize.table, 28, 8);
+    ensureSpace(rowHeight + 2);
+    h = drawTableRow(doc, scopeCols, doc.y, rowVals, {
+      fontSize: pdfTextSize.table,
+      borderColor: '#111827',
+      minHeight: 28,
+      paddingY: 4,
+      verticalAlign: 'middle',
+      alignments: ['center', 'left', 'left', 'left', 'left']
+    });
+    doc.y += h;
+  });
+  doc.moveDown(sectionSpacing.afterTable);
+
   ensureSpace(24);
   doc.moveDown(sectionSpacing.beforeHeading);
   doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text(title, left, doc.y, { width: right - left, align: 'left' });
