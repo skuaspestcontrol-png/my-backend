@@ -596,15 +596,15 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
 
   ensureSpace(70);
   doc.moveDown(sectionSpacing.beforeHeading);
-  doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('Scope of Work', left, doc.y, { width: right - left, align: 'left' });
+  doc.font(pdfFont.bold).fontSize(pdfTextSize.sectionHeading).fillColor(primaryColor).text('Scope of Work:', left, doc.y, { width: right - left, align: 'left' });
   doc.moveDown(sectionSpacing.afterHeading);
 
   const scopeTableWidth = right - left;
   const scopeNumberWidth = 34;
   const scopeServiceWidth = Math.round(scopeTableWidth * 0.19);
   const scopeAreaWidth = Math.round(scopeTableWidth * 0.17);
-  const scopeFrequencyWidth = Math.round(scopeTableWidth * 0.18);
-  const scopeMethodWidth = scopeTableWidth - scopeNumberWidth - scopeServiceWidth - scopeAreaWidth - scopeFrequencyWidth;
+  const scopeMethodWidth = Math.round(scopeTableWidth * 0.29);
+  const scopeFrequencyWidth = scopeTableWidth - scopeNumberWidth - scopeServiceWidth - scopeAreaWidth - scopeMethodWidth;
   const scopeCols = [
     { x: left, w: scopeNumberWidth },
     { x: left + scopeNumberWidth, w: scopeServiceWidth },
