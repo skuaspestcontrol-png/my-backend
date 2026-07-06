@@ -73,6 +73,13 @@ const normalizeTime = (value, fallback = '10:00') => {
   return `${match[1]}:${match[2]}`;
 };
 
+const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
+
+const isCompletedStatus = (value) => {
+  const status = normalizeStatus(value);
+  return status === 'completed' || status === 'done' || status === 'closed';
+};
+
 const SERVICE_CALENDAR_CACHE_KEY = 'service_calendar_cache_v1';
 
 const readServiceCalendarCache = () => {
@@ -203,12 +210,63 @@ export default function ServiceCalendar() {
   }, [currentMonth, eventsByDate]);
 
   const selectedDayEvents = useMemo(() => eventsByDate[selectedDate] || [], [eventsByDate, selectedDate]);
+  const today = useMemo(() => {
+    const current = new Date();
+    current.setHours(0, 0, 0, 0);
+    return current;
+  }, []);
+  const summary = useMemo(() => {
+    const completed = events.filter((event) => isCompletedStatus(event?.status)).length;
+    const upcoming = events.filter((event) => {
+      const serviceDate = parseDateOnly(String(event?.serviceDate || '').slice(0, 10));
+      return serviceDate && serviceDate.getTime() > today.getTime() && !isCompletedStatus(event?.status);
+    }).length;
+    const pending = events.filter((event) => {
+      if (isCompletedStatus(event?.status)) return false;
+      const serviceDate = parseDateOnly(String(event?.serviceDate || '').slice(0, 10));
+      if (!serviceDate) return true;
+      return serviceDate.getTime() <= today.getTime();
+    }).length;
+
+    return {
+      completed,
+      pending,
+      upcoming,
+      total: events.length
+    };
+  }, [events, today]);
   const isMobile = viewportWidth <= 768;
   const dayBtnStyle = isMobile
     ? { ...shell.dayBtn, minHeight: '64px', padding: '6px', gap: '4px' }
     : shell.dayBtn;
   const dayNumberStyle = isMobile ? { ...shell.dayNumber, fontSize: '11px' } : shell.dayNumber;
   const dayBadgeStyle = isMobile ? { ...shell.dayBadge, fontSize: '9px', padding: '2px 6px' } : shell.dayBadge;
+  const summaryCardStyle = isMobile
+    ? {
+        border: '1px solid rgba(148,163,184,0.22)',
+        borderRadius: '14px',
+        background: '#fff',
+        padding: '12px 14px',
+        display: 'grid',
+        gap: '4px',
+        boxShadow: '0 10px 24px rgba(15,23,42,0.05)'
+      }
+    : {
+        border: '1px solid rgba(148,163,184,0.22)',
+        borderRadius: '16px',
+        background: '#fff',
+        padding: '14px 16px',
+        display: 'grid',
+        gap: '6px',
+        boxShadow: '0 12px 28px rgba(15,23,42,0.05)'
+      };
+
+  const summaryItems = [
+    { label: 'Completed Services', value: summary.completed, tone: '#16a34a' },
+    { label: 'Pending Services', value: summary.pending, tone: '#f59e0b' },
+    { label: 'Upcoming Services', value: summary.upcoming, tone: '#2563eb' },
+    { label: 'Total Number of Services', value: summary.total, tone: 'var(--color-primary)' }
+  ];
 
   return (
     <section style={shell.page}>
@@ -262,6 +320,23 @@ export default function ServiceCalendar() {
 
         <div style={shell.body}>
           {error ? <div style={shell.error}>{error}</div> : null}
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, minmax(0, 1fr))',
+            gap: '12px'
+          }}>
+            {summaryItems.map((item) => (
+              <div key={item.label} style={summaryCardStyle}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {item.label}
+                </div>
+                <div style={{ fontSize: isMobile ? '26px' : '30px', lineHeight: 1, fontWeight: 900, color: item.tone }}>
+                  {item.value}
+                </div>
+              </div>
+            ))}
+          </div>
 
           <div style={shell.weekRow}>
             {weekDays.map((day) => (
