@@ -149,11 +149,6 @@ export default function Login() {
     return '/dashboard';
   };
 
-  const shouldOpenServiceCalendar = (roleValue) => {
-    const role = String(roleValue || '').trim().toLowerCase();
-    return role.includes('operations') || role.includes('technician');
-  };
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -180,15 +175,10 @@ export default function Login() {
       } else {
         sessionStorage.removeItem('portal_remember_username');
       }
-      const openServiceCalendar = shouldOpenServiceCalendar(user.role);
-      if (openServiceCalendar) {
-        sessionStorage.setItem(OPEN_SERVICE_CALENDAR_ONCE_KEY, '1');
-      } else {
-        sessionStorage.removeItem(OPEN_SERVICE_CALENDAR_ONCE_KEY);
-      }
+      sessionStorage.setItem(OPEN_SERVICE_CALENDAR_ONCE_KEY, '1');
       navigate(getEmployeeLandingPath(user.role), {
         replace: true,
-        state: openServiceCalendar ? { openServiceCalendar: true } : null
+        state: { openServiceCalendar: true }
       });
       setAuthLoading(false);
     } catch (error) {
