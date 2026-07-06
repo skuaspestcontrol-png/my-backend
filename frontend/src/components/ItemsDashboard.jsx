@@ -58,6 +58,7 @@ const emptyForm = {
   name: '',
   aboutPest: '',
   pestsCovered: '',
+  treatmentMethod: '',
   serviceDescription: '',
   frequency: '',
   whatWeDo: '',
@@ -663,6 +664,7 @@ export default function ItemsDashboard() {
           itemType: value,
           aboutPest: '',
           pestsCovered: '',
+          treatmentMethod: '',
           serviceDescription: '',
           frequency: '',
           whatWeDo: ''
@@ -674,6 +676,7 @@ export default function ItemsDashboard() {
         itemType: value,
         aboutPest: '',
         pestsCovered: '',
+        treatmentMethod: '',
         serviceDescription: '',
         frequency: '',
         whatWeDo: ''
@@ -693,6 +696,7 @@ export default function ItemsDashboard() {
     name: item.name || '',
     aboutPest: item.aboutPest ?? item.about_pest ?? item.serviceDescription ?? item.salesDescription ?? item.description ?? '',
     pestsCovered: item.pestsCovered || '',
+    treatmentMethod: item.treatmentMethod ?? item.treatment_method ?? item.whatWeDo ?? item.what_we_do ?? '',
     serviceDescription: item.serviceDescription ?? item.salesDescription ?? item.description ?? '',
     frequency: item.frequency ?? item.description ?? '',
     whatWeDo: item.whatWeDo ?? item.what_we_do ?? item.treatmentMethod ?? '',
@@ -723,6 +727,7 @@ export default function ItemsDashboard() {
     const isServiceItem = form.itemType === 'service';
     const aboutPest = isServiceItem ? form.aboutPest.trim() : '';
     const pestsCovered = isServiceItem ? form.pestsCovered.trim() : '';
+    const treatmentMethod = isServiceItem ? form.treatmentMethod.trim() : '';
     const serviceDescription = isServiceItem ? form.serviceDescription.trim() : '';
     const frequency = isServiceItem ? form.frequency.trim() : '';
     const whatWeDo = isServiceItem ? form.whatWeDo.trim() : '';
@@ -732,6 +737,7 @@ export default function ItemsDashboard() {
       name: form.name.trim(),
       aboutPest,
       pestsCovered,
+      treatmentMethod,
       serviceDescription,
       frequency,
       whatWeDo,
@@ -1039,6 +1045,13 @@ export default function ItemsDashboard() {
                       style={shell.input}
                       value={form.pestsCovered}
                       onChange={(event) => updateForm('pestsCovered', event.target.value)}
+                    />
+
+                    <label style={shell.label}>Treatment Methodology</label>
+                    <input
+                      style={shell.input}
+                      value={form.treatmentMethod}
+                      onChange={(event) => updateForm('treatmentMethod', event.target.value)}
                     />
 
                     <label style={shell.label}>Service Description</label>
