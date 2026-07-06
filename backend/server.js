@@ -7251,73 +7251,245 @@ const handleContractJobCardSummaryPdf = async (req, res) => {
 app.get('/api/contracts/:id/job-card-summary-pdf', handleContractJobCardSummaryPdf);
 app.get('/api/contracts/:invoiceId/job-card-pdf', handleContractJobCardSummaryPdf);
 
-app.get('/api/complaints', (req, res) => {
-  res.json(readJsonFile(complaintsFile, []));
-});
-
-app.post('/api/complaints', (req, res) => {
-  const records = readJsonFile(complaintsFile, []);
-  const next = {
-    _id: `CMP-${Date.now()}`,
-    ticketNumber: `CMP-${records.length + 1}`,
-    customerId: String(req.body.customerId || ''),
-    customerName: String(req.body.customerName || ''),
-    mobileNumber: normalizeOptionalIndianMobileNumber(req.body.mobileNumber || req.body.phone || ''),
-    property: String(req.body.property || ''),
-    contractId: String(req.body.contractId || ''),
-    contractNumber: String(req.body.contractNumber || ''),
-    type: String(req.body.type || 'Service Issue'),
-    priority: String(req.body.priority || 'Normal'),
-    status: String(req.body.status || 'Open'),
-    subject: String(req.body.subject || ''),
-    description: String(req.body.description || ''),
-    reportedBy: String(req.body.reportedBy || ''),
-    reportedVia: String(req.body.reportedVia || ''),
-    dueDate: String(req.body.dueDate || ''),
-    technicians: Array.isArray(req.body.technicians) ? req.body.technicians.map((entry) => String(entry || '')).filter(Boolean) : [],
-    technicianNames: Array.isArray(req.body.technicianNames) ? req.body.technicianNames.map((entry) => String(entry || '')).filter(Boolean) : [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+const normalizeComplaintRecord = (input = {}, fallback = {}) => {
+  const source = (input && typeof input === 'object') ? input : {};
+  const base = (fallback && typeof fallback === 'object') ? fallback : {};
+  const nowIso = new Date().toISOString();
+  return {
+    _id: String(source._id || base._id || `CMP-${Date.now()}`).trim(),
+    ticketNumber: String(source.ticketNumber || base.ticketNumber || '').trim(),
+    customerId: String(source.customerId || base.customerId || '').trim(),
+    customerName: String(source.customerName || base.customerName || '').trim(),
+    mobileNumber: normalizeOptionalIndianMobileNumber(source.mobileNumber || source.phone || base.mobileNumber || ''),
+    property: String(source.property || base.property || '').trim(),
+    contractId: String(source.contractId || base.contractId || '').trim(),
+    contractNumber: String(source.contractNumber || base.contractNumber || '').trim(),
+    type: String(source.type || base.type || 'Service Issue').trim(),
+    priority: String(source.priority || base.priority || 'Normal').trim(),
+    status: String(source.status || base.status || 'Open').trim(),
+    subject: String(source.subject || base.subject || '').trim(),
+    description: String(source.description || base.description || '').trim(),
+    reportedBy: String(source.reportedBy || base.reportedBy || '').trim(),
+    reportedVia: String(source.reportedVia || base.reportedVia || '').trim(),
+    dueDate: String(source.dueDate || base.dueDate || '').trim(),
+    technicians: Array.isArray(source.technicians)
+      ? source.technicians.map((entry) => String(entry || '').trim()).filter(Boolean)
+      : (Array.isArray(base.technicians) ? base.technicians : []),
+    technicianNames: Array.isArray(source.technicianNames)
+      ? source.technicianNames.map((entry) => String(entry || '').trim()).filter(Boolean)
+      : (Array.isArray(base.technicianNames) ? base.technicianNames : []),
+    createdAt: String(base.createdAt || source.createdAt || nowIso).trim(),
+    updatedAt: nowIso
   };
-  records.unshift(next);
-  fs.writeFileSync(complaintsFile, JSON.stringify(records, null, 2));
-  res.status(201).json(next);
-});
+};
 
-app.put('/api/complaints/:id', (req, res) => {
-  const records = readJsonFile(complaintsFile, []);
-  const complaintId = String(req.params.id || '').trim();
-  const index = records.findIndex((entry) => String(entry?._id || '') === complaintId);
-  if (index < 0) {
-    return res.status(404).json({ error: 'Complaint not found' });
+const ensureComplaintsTable = async (conn) => {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS complaints (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      external_id VARCHAR(120) NOT NULL,
+      ticket_number VARCHAR(120) NULL,
+      customer_external_id VARCHAR(120) NULL,
+      customer_name VARCHAR(255) NULL,
+      mobile_number VARCHAR(50) NULL,
+      property_name TEXT NULL,
+      contract_id VARCHAR(120) NULL,
+      contract_number VARCHAR(120) NULL,
+      complaint_type VARCHAR(120) NULL,
+      priority VARCHAR(80) NULL,
+      status VARCHAR(80) NULL,
+      subject VARCHAR(255) NULL,
+      description TEXT NULL,
+      reported_by VARCHAR(255) NULL,
+      reported_via VARCHAR(120) NULL,
+      due_date DATE NULL,
+      technicians_json JSON NULL,
+      technician_names_json JSON NULL,
+      payload JSON NULL,
+      source_created_at DATETIME NULL,
+      source_updated_at DATETIME NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_complaints_external_id (external_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await ensureColumnsIfMissing(conn, 'complaints', [
+    { name: 'ticket_number', definition: 'VARCHAR(120) NULL' },
+    { name: 'customer_external_id', definition: 'VARCHAR(120) NULL' },
+    { name: 'customer_name', definition: 'VARCHAR(255) NULL' },
+    { name: 'mobile_number', definition: 'VARCHAR(50) NULL' },
+    { name: 'property_name', definition: 'TEXT NULL' },
+    { name: 'contract_id', definition: 'VARCHAR(120) NULL' },
+    { name: 'contract_number', definition: 'VARCHAR(120) NULL' },
+    { name: 'complaint_type', definition: 'VARCHAR(120) NULL' },
+    { name: 'priority', definition: 'VARCHAR(80) NULL' },
+    { name: 'status', definition: 'VARCHAR(80) NULL' },
+    { name: 'subject', definition: 'VARCHAR(255) NULL' },
+    { name: 'description', definition: 'TEXT NULL' },
+    { name: 'reported_by', definition: 'VARCHAR(255) NULL' },
+    { name: 'reported_via', definition: 'VARCHAR(120) NULL' },
+    { name: 'due_date', definition: 'DATE NULL' },
+    { name: 'technicians_json', definition: 'JSON NULL' },
+    { name: 'technician_names_json', definition: 'JSON NULL' },
+    { name: 'payload', definition: 'JSON NULL' },
+    { name: 'source_created_at', definition: 'DATETIME NULL' },
+    { name: 'source_updated_at', definition: 'DATETIME NULL' }
+  ]);
+};
+
+const complaintFromMysqlRow = (row = {}) => {
+  const payload = parseMysqlPayloadObject(row.payload) || {};
+  return normalizeComplaintRecord({
+    ...payload,
+    _id: String(row.external_id || payload._id || '').trim(),
+    ticketNumber: String(row.ticket_number || payload.ticketNumber || '').trim(),
+    customerId: String(row.customer_external_id || payload.customerId || '').trim(),
+    customerName: String(row.customer_name || payload.customerName || '').trim(),
+    mobileNumber: String(row.mobile_number || payload.mobileNumber || '').trim(),
+    property: String(row.property_name || payload.property || '').trim(),
+    contractId: String(row.contract_id || payload.contractId || '').trim(),
+    contractNumber: String(row.contract_number || payload.contractNumber || '').trim(),
+    type: String(row.complaint_type || payload.type || '').trim(),
+    priority: String(row.priority || payload.priority || '').trim(),
+    status: String(row.status || payload.status || '').trim(),
+    subject: String(row.subject || payload.subject || '').trim(),
+    description: String(row.description || payload.description || '').trim(),
+    reportedBy: String(row.reported_by || payload.reportedBy || '').trim(),
+    reportedVia: String(row.reported_via || payload.reportedVia || '').trim(),
+    dueDate: String(row.due_date || payload.dueDate || '').trim(),
+    technicians: safeJsonArray(row.technicians_json ?? payload.technicians ?? []).map((entry) => String(entry || '').trim()).filter(Boolean),
+    technicianNames: safeJsonArray(row.technician_names_json ?? payload.technicianNames ?? []).map((entry) => String(entry || '').trim()).filter(Boolean),
+    createdAt: String(row.source_created_at || payload.createdAt || '').trim(),
+    updatedAt: String(row.source_updated_at || payload.updatedAt || '').trim()
+  });
+};
+
+const syncComplaintToMysql = async (complaint) => {
+  const normalized = normalizeComplaintRecord(complaint);
+  await withMysqlConnection(async (conn) => {
+    await ensureComplaintsTable(conn);
+    await conn.query(
+      `INSERT INTO complaints (
+        external_id, ticket_number, customer_external_id, customer_name, mobile_number, property_name,
+        contract_id, contract_number, complaint_type, priority, status, subject, description,
+        reported_by, reported_via, due_date, technicians_json, technician_names_json, payload,
+        source_created_at, source_updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        ticket_number=VALUES(ticket_number),
+        customer_external_id=VALUES(customer_external_id),
+        customer_name=VALUES(customer_name),
+        mobile_number=VALUES(mobile_number),
+        property_name=VALUES(property_name),
+        contract_id=VALUES(contract_id),
+        contract_number=VALUES(contract_number),
+        complaint_type=VALUES(complaint_type),
+        priority=VALUES(priority),
+        status=VALUES(status),
+        subject=VALUES(subject),
+        description=VALUES(description),
+        reported_by=VALUES(reported_by),
+        reported_via=VALUES(reported_via),
+        due_date=VALUES(due_date),
+        technicians_json=VALUES(technicians_json),
+        technician_names_json=VALUES(technician_names_json),
+        payload=VALUES(payload),
+        source_created_at=VALUES(source_created_at),
+        source_updated_at=VALUES(source_updated_at)`,
+      [
+        normalized._id,
+        normalized.ticketNumber || null,
+        normalized.customerId || null,
+        normalized.customerName || null,
+        normalized.mobileNumber || null,
+        normalized.property || null,
+        normalized.contractId || null,
+        normalized.contractNumber || null,
+        normalized.type || null,
+        normalized.priority || null,
+        normalized.status || null,
+        normalized.subject || null,
+        normalized.description || null,
+        normalized.reportedBy || null,
+        normalized.reportedVia || null,
+        renewalSqlDate(normalized.dueDate),
+        JSON.stringify(normalized.technicians || []),
+        JSON.stringify(normalized.technicianNames || []),
+        JSON.stringify(normalized),
+        renewalSqlDateTime(normalized.createdAt || new Date()),
+        renewalSqlDateTime(normalized.updatedAt || new Date())
+      ]
+    );
+  });
+  return normalized;
+};
+
+const loadComplaintsForContext = async () => {
+  if (!canUseMysql()) return readJsonFile(complaintsFile, []);
+  return withMysqlConnection(async (conn) => {
+    await ensureComplaintsTable(conn);
+    const [rows] = await conn.query('SELECT * FROM complaints ORDER BY created_at DESC, id DESC');
+    return (Array.isArray(rows) ? rows : []).map(complaintFromMysqlRow);
+  });
+};
+
+const syncComplaintJsonShadow = (complaint) => {
+  const normalized = normalizeComplaintRecord(complaint);
+  const rows = readJsonFile(complaintsFile, []);
+  const index = rows.findIndex((entry) => String(entry?._id || '').trim() === normalized._id);
+  if (index >= 0) rows[index] = normalized;
+  else rows.unshift(normalized);
+  fs.writeFileSync(complaintsFile, JSON.stringify(rows, null, 2));
+};
+
+app.get('/api/complaints', async (req, res) => {
+  try {
+    const rows = await loadComplaintsForContext();
+    return res.json(rows);
+  } catch (error) {
+    console.error('Complaints load failed:', error.message);
+    return res.status(500).json({ error: 'Unable to load complaints right now.' });
   }
+});
 
-  const existing = records[index] || {};
-  const updated = {
-    ...existing,
-    customerId: String(req.body.customerId || existing.customerId || ''),
-    customerName: String(req.body.customerName || existing.customerName || ''),
-    mobileNumber: normalizeOptionalIndianMobileNumber(req.body.mobileNumber || req.body.phone || existing.mobileNumber || ''),
-    property: String(req.body.property || existing.property || ''),
-    contractId: String(req.body.contractId || existing.contractId || ''),
-    contractNumber: String(req.body.contractNumber || existing.contractNumber || ''),
-    type: String(req.body.type || existing.type || 'Service Issue'),
-    priority: String(req.body.priority || existing.priority || 'Normal'),
-    status: String(req.body.status || existing.status || 'Open'),
-    subject: String(req.body.subject || existing.subject || ''),
-    description: String(req.body.description || existing.description || ''),
-    reportedBy: String(req.body.reportedBy || existing.reportedBy || ''),
-    reportedVia: String(req.body.reportedVia || existing.reportedVia || ''),
-    dueDate: String(req.body.dueDate || existing.dueDate || ''),
-    technicians: Array.isArray(req.body.technicians) ? req.body.technicians.map((entry) => String(entry || '')).filter(Boolean) : (Array.isArray(existing.technicians) ? existing.technicians : []),
-    technicianNames: Array.isArray(req.body.technicianNames) ? req.body.technicianNames.map((entry) => String(entry || '')).filter(Boolean) : (Array.isArray(existing.technicianNames) ? existing.technicianNames : []),
-    createdAt: existing.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
+app.post('/api/complaints', async (req, res) => {
+  try {
+    const existingRows = await loadComplaintsForContext();
+    const next = normalizeComplaintRecord({
+      ...req.body,
+      _id: req.body?._id || `CMP-${Date.now()}`,
+      ticketNumber: String(req.body?.ticketNumber || `CMP-${existingRows.length + 1}`).trim()
+    });
+    if (canUseMysql()) {
+      await syncComplaintToMysql(next);
+    }
+    syncComplaintJsonShadow(next);
+    return res.status(201).json(next);
+  } catch (error) {
+    console.error('Complaint create failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Unable to save complaint right now.' });
+  }
+});
 
-  records[index] = updated;
-  fs.writeFileSync(complaintsFile, JSON.stringify(records, null, 2));
-  res.json(updated);
+app.put('/api/complaints/:id', async (req, res) => {
+  try {
+    const complaintId = String(req.params.id || '').trim();
+    const rows = await loadComplaintsForContext();
+    const existing = rows.find((entry) => String(entry?._id || '').trim() === complaintId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Complaint not found' });
+    }
+    const updated = normalizeComplaintRecord({ ...existing, ...req.body, _id: existing._id }, existing);
+    if (canUseMysql()) {
+      await syncComplaintToMysql(updated);
+    }
+    syncComplaintJsonShadow(updated);
+    return res.json(updated);
+  } catch (error) {
+    console.error('Complaint update failed:', error.message);
+    return res.status(500).json({ error: error.message || 'Unable to update complaint right now.' });
+  }
 });
 
 const parseMysqlJsonPayload = (rawPayload) => {
@@ -11730,6 +11902,7 @@ const renewalPublicRow = (row = {}) => {
     customerId: merged.customer_id ?? merged.customerId ?? null,
     customerName: merged.customer_name || merged.customerName || '',
     mobile: merged.mobile || merged.mobileNumber || '',
+    mobileNumber: merged.mobile || merged.mobileNumber || '',
     email: merged.email || merged.emailId || '',
     address: merged.address || merged.billingAddressText || merged.shippingAddressText || '',
     areaName: merged.area_name || merged.areaName || merged.billingArea || '',
@@ -11747,12 +11920,27 @@ const renewalPublicRow = (row = {}) => {
     renewedBySalesPersonName: merged.renewed_by_sales_person_name || merged.renewedBySalesPersonName || '',
     status: computeRenewalStatus(merged),
     storedStatus: renewalCleanStatus(merged.status),
+    legacyStatus: merged.legacyStatus || merged.legacy_status || '',
+    paymentStatus: merged.paymentStatus || merged.payment_status || 'Pending',
     followupDate: renewalSqlDate(merged.followup_date || merged.followupDate),
     lastFollowupNote: merged.last_followup_note || merged.lastFollowupNote || '',
     declineReason: merged.decline_reason || merged.declineReason || '',
+    lostReason: merged.lostReason || merged.lost_reason || merged.decline_reason || merged.declineReason || '',
     renewedAt: merged.renewed_at || merged.renewedAt || null,
     convertedContractId: merged.converted_contract_id || merged.convertedContractId || '',
     renewalLetterUrl: merged.renewal_letter_url || merged.renewalLetterUrl || '',
+    quotation: merged.quotation ?? null,
+    technicianAssignments: Array.isArray(merged.technicianAssignments) ? merged.technicianAssignments : [],
+    followUpNotes: normalizeFollowUpNotes(merged.followUpNotes),
+    reminderPlan: merged.reminderPlan && typeof merged.reminderPlan === 'object'
+      ? {
+          autoEnabled: Boolean(merged.reminderPlan.autoEnabled),
+          channels: normalizeReminderChannelList(merged.reminderPlan.channels),
+          nextReminderDate: toDateInputSafe(merged.reminderPlan.nextReminderDate)
+        }
+      : { autoEnabled: false, channels: [], nextReminderDate: '' },
+    reminderLogs: Array.isArray(merged.reminderLogs) ? merged.reminderLogs : [],
+    lastReminderAt: merged.lastReminderAt || merged.last_reminder_at || '',
     sourceInvoiceItems: Array.isArray(payload.sourceInvoice?.items) ? payload.sourceInvoice.items : (Array.isArray(merged.sourceInvoiceItems) ? merged.sourceInvoiceItems : []),
     createdAt: merged.created_at || merged.createdAt || '',
     updatedAt: merged.updated_at || merged.updatedAt || ''
@@ -11950,6 +12138,155 @@ const findRenewalRow = async (id) => {
     const [rows] = await conn.query('SELECT * FROM renewals WHERE renewal_id = ? OR renewal_display_id = ? OR external_id = ? OR id = ? LIMIT 1', [lookup, lookup, lookup, lookup]);
     return rows?.[0] ? renewalPublicRow(rows[0]) : null;
   });
+};
+const mapLegacyRenewalStatusToMysql = (status) => {
+  const normalized = normalizeRenewalStatus(status, 'Upcoming');
+  if (normalized === 'Follow-up') return 'Follow-up';
+  if (normalized === 'Renewed') return 'Done';
+  if (normalized === 'Lost') return 'Declined';
+  return 'Pending';
+};
+const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = null }) => {
+  if (!invoice?._id) throw new Error('Invoice is required for renewal sync');
+  if (!canUseMysql()) throw new Error('MySQL is required for renewal sync');
+
+  const customers = await loadCustomersForContext();
+  const customer = customers.find((entry) => String(entry?._id || '').trim() === String(invoice.customerId || '').trim())
+    || customers.find((entry) => String(entry?.displayName || entry?.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase())
+    || {};
+  const window = deriveInvoiceContractWindow(invoice);
+  const base = existing || {};
+  const nowIso = new Date().toISOString();
+  const nextLegacyStatus = normalizeRenewalStatus(body.status, base.legacyStatus || 'Upcoming');
+  const nextLostReason = String(body.lostReason ?? base.lostReason ?? '').trim();
+  if (nextLegacyStatus === 'Lost' && !nextLostReason) {
+    const error = new Error('Lost reason is required when status is Lost');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const nextFollowUpNotes = body.followUpNote
+    ? appendFollowUpNote({ followUpNotes: normalizeFollowUpNotes(body.followUpNotes ?? base.followUpNotes) }, body.followUpNote, readUserMeta(req)).followUpNotes
+    : normalizeFollowUpNotes(body.followUpNotes ?? base.followUpNotes);
+  const nextReminderPlan = {
+    autoEnabled: Boolean(body.reminderPlan?.autoEnabled ?? base.reminderPlan?.autoEnabled),
+    channels: normalizeReminderChannelList(body.reminderPlan?.channels ?? base.reminderPlan?.channels),
+    nextReminderDate: toDateInputSafe(body.reminderPlan?.nextReminderDate ?? base.reminderPlan?.nextReminderDate)
+  };
+  const nextRecord = {
+    _id: String(base._id || renewalIdFromContract(invoice._id, invoice.customerName || '')).trim(),
+    renewalDisplayId: String(base.renewalDisplayId || base.renewal_display_id || '').trim(),
+    invoiceId: String(invoice._id || '').trim(),
+    invoiceNumber: String(invoice.invoiceNumber || '').trim(),
+    customerId: String(invoice.customerId || '').trim(),
+    customerName: String(invoice.customerName || customer.displayName || customer.name || '').trim(),
+    mobileNumber: String(customer.mobileNumber || customer.workPhone || '').trim(),
+    email: String(customer.emailId || customer.email || '').trim(),
+    address: String(invoice.billingAddressText || invoice.shippingAddressText || customer.billingAddress || customer.shippingAddress || customer.address || '').trim(),
+    areaName: String(customer.billingArea || customer.areaName || customer.area || '').trim(),
+    serviceType: String(body.serviceType || base.serviceType || window.serviceType || 'General Pest Control').trim(),
+    status: mapLegacyRenewalStatusToMysql(nextLegacyStatus),
+    legacyStatus: nextLegacyStatus,
+    paymentStatus: normalizeRenewalPaymentStatus(body.paymentStatus ?? base.paymentStatus, base.paymentStatus || 'Pending'),
+    previousContractStart: toDateInputSafe(base.previousContractStart || window.contractStartDate),
+    previousContractEnd: toDateInputSafe(base.previousContractEnd || window.contractEndDate),
+    renewalDueDate: toDateInputSafe(body.renewalDueDate || base.renewalDueDate || window.contractEndDate),
+    previousAmount: toNumber(base.previousAmount || invoice.total || invoice.amount, 0),
+    proposedAmount: toNumber(body.proposedAmount ?? base.proposedAmount ?? invoice.total ?? invoice.amount, 0),
+    finalRenewalAmount: toNumber(base.finalRenewalAmount, 0),
+    assignedSalesPersonId: String(body.assignedSalesPersonId || body.salesPersonId || base.assignedSalesPersonId || invoice.salespersonId || customer.assignedToId || customer.assignedSalesPersonId || '').trim(),
+    assignedSalesPersonName: String(body.assignedSalesPersonName || body.salesPersonName || base.assignedSalesPersonName || invoice.salesperson || invoice.salesPerson || customer.assignedTo || customer.assignedSalesPersonName || '').trim(),
+    followupDate: toDateInputSafe(body.followupDate || body.followup_date || base.followupDate || nextReminderPlan.nextReminderDate),
+    lastFollowupNote: String(body.lastFollowupNote || body.note || nextFollowUpNotes[nextFollowUpNotes.length - 1]?.note || base.lastFollowupNote || '').trim(),
+    declineReason: nextLegacyStatus === 'Lost' ? nextLostReason : '',
+    quotation: body.quotation ?? base.quotation ?? null,
+    technicianAssignments: Array.isArray(body.technicianAssignments) ? body.technicianAssignments : (Array.isArray(base.technicianAssignments) ? base.technicianAssignments : []),
+    followUpNotes: nextFollowUpNotes,
+    reminderPlan: nextReminderPlan,
+    reminderLogs: Array.isArray(base.reminderLogs) ? base.reminderLogs : [],
+    lastReminderAt: String(body.lastReminderAt ?? base.lastReminderAt ?? '').trim(),
+    convertedInvoiceId: String(base.convertedInvoiceId || '').trim(),
+    createdAt: String(base.createdAt || nowIso).trim(),
+    updatedAt: nowIso
+  };
+
+  await withMysqlConnection(async (conn) => {
+    await ensureRenewalTables(conn);
+    let nextDisplayId = nextRecord.renewalDisplayId;
+    let nextRenewalNumber = null;
+    if (!nextDisplayId) {
+      const settings = await readSettingsFromMysql().catch(() => readSettings());
+      const [existingRows] = await conn.query('SELECT renewal_id, renewal_display_id FROM renewals ORDER BY id ASC');
+      const parsed = createNextRenewalNumber(existingRows, settings);
+      nextDisplayId = parsed.renewalId;
+      nextRenewalNumber = parsed.nextNumber;
+    }
+    nextRecord.renewalDisplayId = nextDisplayId;
+    await conn.query(
+      `INSERT INTO renewals (
+        external_id, renewal_id, renewal_display_id, customer_id, customer_name, mobile, email, address, area_name,
+        service_type, contract_id, previous_contract_start, previous_contract_end, renewal_due_date, previous_amount,
+        proposed_amount, final_renewal_amount, assigned_sales_person_id, assigned_sales_person_name, status,
+        followup_date, last_followup_note, decline_reason, converted_contract_id, payload
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        renewal_display_id=VALUES(renewal_display_id),
+        customer_id=VALUES(customer_id),
+        customer_name=VALUES(customer_name),
+        mobile=VALUES(mobile),
+        email=VALUES(email),
+        address=VALUES(address),
+        area_name=VALUES(area_name),
+        service_type=VALUES(service_type),
+        contract_id=VALUES(contract_id),
+        previous_contract_start=VALUES(previous_contract_start),
+        previous_contract_end=VALUES(previous_contract_end),
+        renewal_due_date=VALUES(renewal_due_date),
+        previous_amount=VALUES(previous_amount),
+        proposed_amount=VALUES(proposed_amount),
+        final_renewal_amount=VALUES(final_renewal_amount),
+        assigned_sales_person_id=VALUES(assigned_sales_person_id),
+        assigned_sales_person_name=VALUES(assigned_sales_person_name),
+        status=VALUES(status),
+        followup_date=VALUES(followup_date),
+        last_followup_note=VALUES(last_followup_note),
+        decline_reason=VALUES(decline_reason),
+        converted_contract_id=VALUES(converted_contract_id),
+        payload=VALUES(payload)`,
+      [
+        nextRecord.invoiceId,
+        nextRecord._id,
+        nextRecord.renewalDisplayId || null,
+        toIntId(nextRecord.customerId),
+        nextRecord.customerName || null,
+        nextRecord.mobileNumber || null,
+        nextRecord.email || null,
+        nextRecord.address || null,
+        nextRecord.areaName || null,
+        nextRecord.serviceType || null,
+        nextRecord.invoiceId || null,
+        renewalSqlDate(nextRecord.previousContractStart),
+        renewalSqlDate(nextRecord.previousContractEnd),
+        renewalSqlDate(nextRecord.renewalDueDate),
+        toNumber(nextRecord.previousAmount, 0),
+        toNumber(nextRecord.proposedAmount, 0),
+        toNumber(nextRecord.finalRenewalAmount, 0),
+        nextRecord.assignedSalesPersonId || null,
+        nextRecord.assignedSalesPersonName || null,
+        nextRecord.status || 'Pending',
+        renewalSqlDate(nextRecord.followupDate),
+        nextRecord.lastFollowupNote || null,
+        nextRecord.declineReason || null,
+        nextRecord.convertedInvoiceId || null,
+        JSON.stringify(nextRecord)
+      ]
+    );
+    if (nextRenewalNumber) {
+      const settings = await readSettingsFromMysql().catch(() => readSettings());
+      await updateSettingsNextRenewalNumber(nextRenewalNumber, settings);
+    }
+  });
+  return findRenewalRow(nextRecord._id);
 };
 const assignRenewalDisplayIdIfMissing = async (conn, renewal = {}, settings = {}) => {
   const existingDisplayId = String(renewal.renewalDisplayId || renewal.renewal_display_id || '').trim();
@@ -12942,146 +13279,192 @@ app.get('/api/renewals/legacy-json', (req, res) => {
   }));
 });
 
-app.post('/api/renewals', (req, res) => {
+app.post('/api/renewals', async (req, res) => {
   const invoiceId = String(req.body.invoiceId || '').trim();
   if (!invoiceId) return res.status(400).json({ error: 'invoiceId is required' });
 
-  const invoices = readJsonFile(invoicesFile, []);
-  const invoice = invoices.find((entry) => String(entry?._id || '') === invoiceId);
-  if (!invoice) return res.status(404).json({ error: 'Invoice not found for renewal' });
+  try {
+    const invoices = await loadInvoicesForContext();
+    const invoice = invoices.find((entry) => String(entry?._id || '').trim() === invoiceId);
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found for renewal' });
 
-  const records = readJsonFile(renewalsFile, []);
-  const existingIndex = records.findIndex((entry) => String(entry?.invoiceId || '') === invoiceId);
-  const nowIso = new Date().toISOString();
-  const base = existingIndex >= 0 ? records[existingIndex] : createRenewalRecordBase(invoice);
-  const nextStatus = normalizeRenewalStatus(req.body.status, base.status || 'Upcoming');
-  const nextLostReason = String(req.body.lostReason || base.lostReason || '').trim();
-  if (nextStatus === 'Lost' && !nextLostReason) {
-    return res.status(400).json({ error: 'Lost reason is required when status is Lost' });
+    if (canUseMysql()) {
+      const existing = await findRenewalRow(renewalIdFromContract(invoiceId, invoice.customerName || ''));
+      const saved = await syncRenewalToMysql({ invoice, existing, body: req.body, req });
+      return res.json(saved);
+    }
+
+    const records = readJsonFile(renewalsFile, []);
+    const existingIndex = records.findIndex((entry) => String(entry?.invoiceId || '') === invoiceId);
+    const nowIso = new Date().toISOString();
+    const base = existingIndex >= 0 ? records[existingIndex] : createRenewalRecordBase(invoice);
+    const nextStatus = normalizeRenewalStatus(req.body.status, base.status || 'Upcoming');
+    const nextLostReason = String(req.body.lostReason || base.lostReason || '').trim();
+    if (nextStatus === 'Lost' && !nextLostReason) {
+      return res.status(400).json({ error: 'Lost reason is required when status is Lost' });
+    }
+
+    let nextRecord = {
+      ...base,
+      invoiceId,
+      invoiceNumber: String(invoice.invoiceNumber || ''),
+      customerId: String(invoice.customerId || ''),
+      customerName: String(invoice.customerName || ''),
+      serviceType: String(req.body.serviceType || base.serviceType || '').trim(),
+      status: nextStatus,
+      paymentStatus: normalizeRenewalPaymentStatus(req.body.paymentStatus, base.paymentStatus || 'Pending'),
+      lostReason: nextStatus === 'Lost' ? nextLostReason : '',
+      reminderPlan: {
+        autoEnabled: Boolean(req.body.reminderPlan?.autoEnabled ?? base.reminderPlan?.autoEnabled),
+        channels: normalizeReminderChannelList(req.body.reminderPlan?.channels ?? base.reminderPlan?.channels),
+        nextReminderDate: toDateInputSafe(req.body.reminderPlan?.nextReminderDate ?? base.reminderPlan?.nextReminderDate)
+      },
+      quotation: req.body.quotation ?? base.quotation ?? null,
+      technicianAssignments: Array.isArray(req.body.technicianAssignments) ? req.body.technicianAssignments : (base.technicianAssignments || []),
+      updatedAt: nowIso
+    };
+
+    if (!base.createdAt) nextRecord.createdAt = nowIso;
+    if (req.body.followUpNote) {
+      nextRecord = appendFollowUpNote(nextRecord, req.body.followUpNote, readUserMeta(req));
+    } else {
+      nextRecord.followUpNotes = normalizeFollowUpNotes(nextRecord.followUpNotes);
+    }
+
+    if (!Array.isArray(nextRecord.reminderLogs)) nextRecord.reminderLogs = [];
+
+    if (existingIndex >= 0) records[existingIndex] = nextRecord;
+    else records.push(nextRecord);
+
+    saveRenewalRecords(records);
+    return res.json(nextRecord);
+  } catch (error) {
+    console.error('Renewal create failed:', error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || 'Unable to save renewal right now.' });
   }
-
-  let nextRecord = {
-    ...base,
-    invoiceId,
-    invoiceNumber: String(invoice.invoiceNumber || ''),
-    customerId: String(invoice.customerId || ''),
-    customerName: String(invoice.customerName || ''),
-    serviceType: String(req.body.serviceType || base.serviceType || '').trim(),
-    status: nextStatus,
-    paymentStatus: normalizeRenewalPaymentStatus(req.body.paymentStatus, base.paymentStatus || 'Pending'),
-    lostReason: nextStatus === 'Lost' ? nextLostReason : '',
-    reminderPlan: {
-      autoEnabled: Boolean(req.body.reminderPlan?.autoEnabled ?? base.reminderPlan?.autoEnabled),
-      channels: normalizeReminderChannelList(req.body.reminderPlan?.channels ?? base.reminderPlan?.channels),
-      nextReminderDate: toDateInputSafe(req.body.reminderPlan?.nextReminderDate ?? base.reminderPlan?.nextReminderDate)
-    },
-    quotation: req.body.quotation ?? base.quotation ?? null,
-    technicianAssignments: Array.isArray(req.body.technicianAssignments) ? req.body.technicianAssignments : (base.technicianAssignments || []),
-    updatedAt: nowIso
-  };
-
-  if (!base.createdAt) nextRecord.createdAt = nowIso;
-  if (req.body.followUpNote) {
-    nextRecord = appendFollowUpNote(nextRecord, req.body.followUpNote, readUserMeta(req));
-  } else {
-    nextRecord.followUpNotes = normalizeFollowUpNotes(nextRecord.followUpNotes);
-  }
-
-  if (!Array.isArray(nextRecord.reminderLogs)) nextRecord.reminderLogs = [];
-
-  if (existingIndex >= 0) {
-    records[existingIndex] = nextRecord;
-  } else {
-    records.push(nextRecord);
-  }
-
-  saveRenewalRecords(records);
-  return res.json(nextRecord);
 });
 
-app.put('/api/renewals/:id', (req, res) => {
-  const records = readJsonFile(renewalsFile, []);
-  const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
-  if (recordIndex < 0) return res.status(404).json({ error: 'Renewal not found' });
+app.put('/api/renewals/:id', async (req, res) => {
+  try {
+    if (canUseMysql()) {
+      const renewal = await findRenewalRow(req.params.id);
+      if (!renewal) return res.status(404).json({ error: 'Renewal not found' });
+      const invoices = await loadInvoicesForContext();
+      const invoice = invoices.find((entry) => String(entry?._id || '').trim() === String(renewal.contractId || '').trim());
+      if (!invoice) return res.status(404).json({ error: 'Invoice not found for renewal' });
+      const saved = await syncRenewalToMysql({
+        invoice,
+        existing: {
+          ...renewal,
+          followUpNotes: Array.isArray(req.body.followUpNotes) ? req.body.followUpNotes : (Array.isArray(renewal.followUpNotes) ? renewal.followUpNotes : []),
+          reminderPlan: renewal.reminderPlan || {},
+          quotation: renewal.quotation ?? null,
+          technicianAssignments: renewal.technicianAssignments || [],
+          createdAt: renewal.createdAt || new Date().toISOString()
+        },
+        body: req.body,
+        req
+      });
+      return res.json(saved);
+    }
 
-  const current = records[recordIndex];
-  const nextStatus = normalizeRenewalStatus(req.body.status, current.status || 'Upcoming');
-  const nextLostReason = String(req.body.lostReason ?? current.lostReason ?? '').trim();
-  if (nextStatus === 'Lost' && !nextLostReason) {
-    return res.status(400).json({ error: 'Lost reason is required when status is Lost' });
+    const records = readJsonFile(renewalsFile, []);
+    const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
+    if (recordIndex < 0) return res.status(404).json({ error: 'Renewal not found' });
+
+    const current = records[recordIndex];
+    const nextStatus = normalizeRenewalStatus(req.body.status, current.status || 'Upcoming');
+    const nextLostReason = String(req.body.lostReason ?? current.lostReason ?? '').trim();
+    if (nextStatus === 'Lost' && !nextLostReason) {
+      return res.status(400).json({ error: 'Lost reason is required when status is Lost' });
+    }
+
+    let updated = {
+      ...current,
+      ...req.body,
+      _id: current._id,
+      status: nextStatus,
+      paymentStatus: normalizeRenewalPaymentStatus(req.body.paymentStatus ?? current.paymentStatus, current.paymentStatus || 'Pending'),
+      lostReason: nextStatus === 'Lost' ? nextLostReason : '',
+      reminderPlan: {
+        autoEnabled: Boolean(req.body.reminderPlan?.autoEnabled ?? current.reminderPlan?.autoEnabled),
+        channels: normalizeReminderChannelList(req.body.reminderPlan?.channels ?? current.reminderPlan?.channels),
+        nextReminderDate: toDateInputSafe(req.body.reminderPlan?.nextReminderDate ?? current.reminderPlan?.nextReminderDate)
+      },
+      followUpNotes: normalizeFollowUpNotes(req.body.followUpNotes ?? current.followUpNotes),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (req.body.followUpNote) {
+      updated = appendFollowUpNote(updated, req.body.followUpNote, readUserMeta(req));
+    }
+
+    records[recordIndex] = updated;
+    saveRenewalRecords(records);
+    return res.json(updated);
+  } catch (error) {
+    console.error('Renewal update failed:', error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || 'Unable to update renewal right now.' });
   }
-
-  let updated = {
-    ...current,
-    ...req.body,
-    _id: current._id,
-    status: nextStatus,
-    paymentStatus: normalizeRenewalPaymentStatus(req.body.paymentStatus ?? current.paymentStatus, current.paymentStatus || 'Pending'),
-    lostReason: nextStatus === 'Lost' ? nextLostReason : '',
-    reminderPlan: {
-      autoEnabled: Boolean(req.body.reminderPlan?.autoEnabled ?? current.reminderPlan?.autoEnabled),
-      channels: normalizeReminderChannelList(req.body.reminderPlan?.channels ?? current.reminderPlan?.channels),
-      nextReminderDate: toDateInputSafe(req.body.reminderPlan?.nextReminderDate ?? current.reminderPlan?.nextReminderDate)
-    },
-    followUpNotes: normalizeFollowUpNotes(req.body.followUpNotes ?? current.followUpNotes),
-    updatedAt: new Date().toISOString()
-  };
-
-  if (req.body.followUpNote) {
-    updated = appendFollowUpNote(updated, req.body.followUpNote, readUserMeta(req));
-  }
-
-  records[recordIndex] = updated;
-  saveRenewalRecords(records);
-  return res.json(updated);
 });
 
-app.get('/api/renewals/:id/history', (req, res) => {
-  const { list, invoices } = buildRenewalDataset();
-  const renewal = list.find((entry) => String(entry._id) === String(req.params.id || ''));
-  if (!renewal) return res.status(404).json({ error: 'Renewal not found' });
+app.get('/api/renewals/:id/history', async (req, res) => {
+  try {
+    const renewal = canUseMysql() ? await findRenewalRow(req.params.id) : null;
+    if (!renewal && canUseMysql()) return res.status(404).json({ error: 'Renewal not found' });
 
-  const customerName = String(renewal.customerName || '').trim().toLowerCase();
-  const customerId = String(renewal.customerId || '').trim();
-  const history = invoices
-    .filter((invoice) => {
-      const sameById = customerId && String(invoice?.customerId || '') === customerId;
-      const sameByName = String(invoice?.customerName || '').trim().toLowerCase() === customerName;
-      return sameById || sameByName;
-    })
-    .map((invoice) => {
-      const window = deriveInvoiceContractWindow(invoice);
-      return {
-        invoiceId: invoice._id,
-        invoiceNumber: invoice.invoiceNumber || '',
-        contractStartDate: window.contractStartDate,
-        contractEndDate: window.contractEndDate,
-        totalAmount: toNumber(invoice.total ?? invoice.amount, 0),
-        balanceDue: toNumber(invoice.balanceDue, toNumber(invoice.total ?? invoice.amount, 0)),
-        status: invoice.status || 'SENT',
-        createdAt: invoice.createdAt || ''
-      };
-    })
-    .sort((a, b) => String(b.contractEndDate || '').localeCompare(String(a.contractEndDate || '')));
+    const fallbackRenewal = !canUseMysql()
+      ? buildRenewalDataset().list.find((entry) => String(entry._id) === String(req.params.id || '')) || null
+      : null;
+    const selectedRenewal = renewal || fallbackRenewal;
+    if (!selectedRenewal) return res.status(404).json({ error: 'Renewal not found' });
 
-  return res.json({
-    renewal,
-    history
-  });
+    const invoices = await loadInvoicesForContext();
+    const customerName = String(selectedRenewal.customerName || '').trim().toLowerCase();
+    const customerId = String(selectedRenewal.customerId || '').trim();
+    const history = invoices
+      .filter((invoice) => {
+        const sameById = customerId && String(invoice?.customerId || '') === customerId;
+        const sameByName = String(invoice?.customerName || '').trim().toLowerCase() === customerName;
+        return sameById || sameByName;
+      })
+      .map((invoice) => {
+        const window = deriveInvoiceContractWindow(invoice);
+        return {
+          invoiceId: invoice._id,
+          invoiceNumber: invoice.invoiceNumber || '',
+          contractStartDate: window.contractStartDate,
+          contractEndDate: window.contractEndDate,
+          totalAmount: toNumber(invoice.total ?? invoice.amount, 0),
+          balanceDue: toNumber(invoice.balanceDue, toNumber(invoice.total ?? invoice.amount, 0)),
+          status: invoice.status || 'SENT',
+          createdAt: invoice.createdAt || ''
+        };
+      })
+      .sort((a, b) => String(b.contractEndDate || '').localeCompare(String(a.contractEndDate || '')));
+
+    return res.json({
+      renewal: selectedRenewal,
+      history
+    });
+  } catch (error) {
+    console.error('Renewal history failed:', error.message);
+    return res.status(500).json({ error: 'Unable to load renewal history right now.' });
+  }
 });
 
 app.post('/api/renewals/:id/send-reminder', async (req, res) => {
-  const records = readJsonFile(renewalsFile, []);
-  const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
-  if (recordIndex < 0) return res.status(404).json({ error: 'Renewal not found' });
+  const record = canUseMysql()
+    ? await findRenewalRow(req.params.id)
+    : (readJsonFile(renewalsFile, []).find((entry) => String(entry?._id || '') === String(req.params.id || '')) || null);
+  if (!record) return res.status(404).json({ error: 'Renewal not found' });
 
-  const record = records[recordIndex];
   const channel = String(req.body.channel || '').trim().toLowerCase();
   if (!renewalReminderChannels.has(channel)) {
     return res.status(400).json({ error: 'channel must be one of whatsapp, email, sms' });
   }
 
-  const customers = readJsonFile(customersFile, []);
+  const customers = await loadCustomersForContext();
   const customer = customers.find((entry) =>
     String(entry?._id || '') === String(record.customerId || '')
     || String(entry?.displayName || entry?.name || '').trim().toLowerCase() === String(record.customerName || '').trim().toLowerCase()
@@ -13148,23 +13531,40 @@ app.post('/api/renewals/:id/send-reminder', async (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  const existingLogs = Array.isArray(record.reminderLogs) ? record.reminderLogs : [];
-  records[recordIndex] = {
-    ...record,
-    reminderLogs: [...existingLogs, log],
-    lastReminderAt: log.createdAt,
-    updatedAt: log.createdAt
-  };
-  saveRenewalRecords(records);
-  return res.json(log);
+  try {
+    const existingLogs = Array.isArray(record.reminderLogs) ? record.reminderLogs : [];
+    const updatedRenewal = {
+      ...record,
+      reminderLogs: [...existingLogs, log],
+      lastReminderAt: log.createdAt,
+      updatedAt: log.createdAt
+    };
+    if (canUseMysql()) {
+      const invoices = await loadInvoicesForContext();
+      const invoice = invoices.find((entry) => String(entry?._id || '').trim() === String(record.contractId || '').trim());
+      if (!invoice) return res.status(404).json({ error: 'Invoice not found for renewal reminder' });
+      await syncRenewalToMysql({ invoice, existing: updatedRenewal, body: { lastReminderAt: log.createdAt }, req });
+    } else {
+      const records = readJsonFile(renewalsFile, []);
+      const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
+      if (recordIndex >= 0) {
+        records[recordIndex] = updatedRenewal;
+        saveRenewalRecords(records);
+      }
+    }
+    return res.json(log);
+  } catch (error) {
+    console.error('Renewal reminder log failed:', error.message);
+    return res.status(500).json({ error: 'Unable to save reminder right now.' });
+  }
 });
 
-app.post('/api/renewals/:id/quotation', (req, res) => {
-  const records = readJsonFile(renewalsFile, []);
-  const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
-  if (recordIndex < 0) return res.status(404).json({ error: 'Renewal not found' });
+app.post('/api/renewals/:id/quotation', async (req, res) => {
+  const record = canUseMysql()
+    ? await findRenewalRow(req.params.id)
+    : (readJsonFile(renewalsFile, []).find((entry) => String(entry?._id || '') === String(req.params.id || '')) || null);
+  if (!record) return res.status(404).json({ error: 'Renewal not found' });
 
-  const record = records[recordIndex];
   const amount = toNumber(req.body.amount, toNumber(record.totalAmount, 0));
   if (amount <= 0) return res.status(400).json({ error: 'Quotation amount must be greater than zero' });
 
@@ -13177,24 +13577,53 @@ app.post('/api/renewals/:id/quotation', (req, res) => {
     generatedAt: new Date().toISOString()
   };
 
-  records[recordIndex] = {
-    ...record,
-    quotation,
-    status: normalizeRenewalStatus(req.body.status, record.status || 'Contacted'),
-    updatedAt: new Date().toISOString()
-  };
-  saveRenewalRecords(records);
-  return res.json(records[recordIndex]);
+  try {
+    const updatedRenewal = {
+      ...record,
+      quotation,
+      legacyStatus: normalizeRenewalStatus(req.body.status, record.legacyStatus || record.status || 'Contacted'),
+      updatedAt: new Date().toISOString()
+    };
+    if (canUseMysql()) {
+      const invoices = await loadInvoicesForContext();
+      const invoice = invoices.find((entry) => String(entry?._id || '').trim() === String(record.contractId || '').trim());
+      if (!invoice) return res.status(404).json({ error: 'Invoice not found for renewal quotation' });
+      const saved = await syncRenewalToMysql({
+        invoice,
+        existing: updatedRenewal,
+        body: {
+          quotation,
+          status: updatedRenewal.legacyStatus
+        },
+        req
+      });
+      return res.json(saved);
+    }
+
+    const records = readJsonFile(renewalsFile, []);
+    const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
+    records[recordIndex] = {
+      ...record,
+      quotation,
+      status: normalizeRenewalStatus(req.body.status, record.status || 'Contacted'),
+      updatedAt: new Date().toISOString()
+    };
+    saveRenewalRecords(records);
+    return res.json(records[recordIndex]);
+  } catch (error) {
+    console.error('Renewal quotation failed:', error.message);
+    return res.status(500).json({ error: 'Unable to save quotation right now.' });
+  }
 });
 
 app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
-  const records = readJsonFile(renewalsFile, []);
-  const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
-  if (recordIndex < 0) return res.status(404).json({ error: 'Renewal not found' });
+  const renewal = canUseMysql()
+    ? await findRenewalRow(req.params.id)
+    : (readJsonFile(renewalsFile, []).find((entry) => String(entry?._id || '') === String(req.params.id || '')) || null);
+  if (!renewal) return res.status(404).json({ error: 'Renewal not found' });
 
-  const renewal = records[recordIndex];
-  const invoices = readJsonFile(invoicesFile, []);
-  const sourceInvoice = invoices.find((entry) => String(entry?._id || '') === String(renewal.invoiceId || ''));
+  const invoices = await loadInvoicesForContext();
+  const sourceInvoice = invoices.find((entry) => String(entry?._id || '') === String((renewal.invoiceId || renewal.contractId) || ''));
   if (!sourceInvoice) return res.status(404).json({ error: 'Source invoice not found for renewal' });
 
   const settings = await loadCurrentSettingsForNumbering();
@@ -13259,9 +13688,15 @@ app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
     notes: String(req.body.notes || sourceInvoice.notes || '').trim()
   };
 
-  invoices.push(newInvoice);
-  fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
+  await syncInvoiceToMysql(newInvoice);
   await updateSettingsNextInvoiceNumber(newInvoice.invoiceNumber, settings, invoiceType);
+  try {
+    const shadowInvoices = readJsonFile(invoicesFile, []);
+    shadowInvoices.push(newInvoice);
+    fs.writeFileSync(invoicesFile, JSON.stringify(shadowInvoices, null, 2));
+  } catch (error) {
+    console.error('Renewal legacy converted invoice JSON shadow failed:', error.message);
+  }
 
   try {
     await updateSettingsCurrentBalancesFromInvoicePayments({ nextInvoice: newInvoice });
@@ -13269,6 +13704,24 @@ app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
     console.error('Failed to update bank balances after renewal invoice conversion:', error.message);
   }
 
+  if (canUseMysql()) {
+    const updatedRenewal = await syncRenewalToMysql({
+      invoice: sourceInvoice,
+      existing: {
+        ...renewal,
+        convertedInvoiceId: newInvoice._id,
+        updatedAt: new Date().toISOString()
+      },
+      body: {
+        status: renewal.legacyStatus || renewal.status || 'Renewed'
+      },
+      req
+    });
+    return res.json({ renewal: updatedRenewal, invoice: newInvoice });
+  }
+
+  const records = readJsonFile(renewalsFile, []);
+  const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
   records[recordIndex] = {
     ...renewal,
     status: 'Renewed',
@@ -13280,29 +13733,27 @@ app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
 });
 
 app.post('/api/renewals/:id/assign-technician', async (req, res) => {
-  const records = readJsonFile(renewalsFile, []);
-  const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
-  if (recordIndex < 0) return res.status(404).json({ error: 'Renewal not found' });
+  const renewal = canUseMysql()
+    ? await findRenewalRow(req.params.id)
+    : (readJsonFile(renewalsFile, []).find((entry) => String(entry?._id || '') === String(req.params.id || '')) || null);
+  if (!renewal) return res.status(404).json({ error: 'Renewal not found' });
 
-  const renewal = records[recordIndex];
-  const invoices = readJsonFile(invoicesFile, []);
-  const targetInvoiceId = renewal.convertedInvoiceId || renewal.invoiceId;
+  const invoices = await loadInvoicesForContext();
+  const targetInvoiceId = renewal.convertedInvoiceId || renewal.invoiceId || renewal.contractId;
   const invoice = invoices.find((entry) => String(entry?._id || '') === String(targetInvoiceId || ''));
   if (!invoice) return res.status(404).json({ error: 'Renewal invoice not found for technician assignment' });
 
-  const employees = readJsonFile(employeesFile, []);
   const technicianIds = Array.isArray(req.body.technicianIds) ? req.body.technicianIds.map((entry) => String(entry || '').trim()).filter(Boolean) : [];
   if (technicianIds.length === 0) return res.status(400).json({ error: 'technicianIds is required' });
 
-  const technicians = technicianIds
-    .map((id) => employees.find((entry) => String(entry?._id || '') === id))
+  const technicians = (await Promise.all(technicianIds.map((id) => fetchEmployeeByAnyId(id))))
     .filter((entry) => entry && String(entry.role || '').trim().toLowerCase() === 'technician');
 
   if (technicians.length === 0) {
     return res.status(400).json({ error: 'No valid technicians found for assignment' });
   }
 
-  const customers = readJsonFile(customersFile, []);
+  const customers = await loadCustomersForContext();
   const customer = customers.find((entry) =>
     String(entry?._id || '') === String(invoice.customerId || '')
     || String(entry?.displayName || entry?.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
@@ -13328,19 +13779,19 @@ app.post('/api/renewals/:id/assign-technician', async (req, res) => {
   const jobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
   const createdJobs = [];
   let lastGeneratedJobNumber = '';
+  const assignedTechnicianNames = technicians
+    .map((tech) => [tech.firstName, tech.lastName].filter(Boolean).join(' ').trim() || tech.empCode || 'Technician')
+    .filter(Boolean);
+  const assignedTechnicianIds = technicians
+    .map((tech) => String(tech._id || '').trim())
+    .filter(Boolean);
+  const assignedTechnicianEmpCodes = technicians
+    .map((tech) => String(tech.empCode || '').trim())
+    .filter(Boolean);
+  const assignedTechnicianMobiles = technicians
+    .map((tech) => String(tech.mobile || '').trim())
+    .filter(Boolean);
   selectedRows.forEach((row) => {
-    const technicianNames = technicians
-      .map((tech) => [tech.firstName, tech.lastName].filter(Boolean).join(' ').trim() || tech.empCode || 'Technician')
-      .filter(Boolean);
-    const technicianIds = technicians
-      .map((tech) => String(tech._id || '').trim())
-      .filter(Boolean);
-    const technicianEmpCodes = technicians
-      .map((tech) => String(tech.empCode || '').trim())
-      .filter(Boolean);
-    const technicianMobiles = technicians
-      .map((tech) => String(tech.mobile || '').trim())
-      .filter(Boolean);
     const customerRepresentativeName = String(
       customer?.contactPersonName
       || customer?.attentionName
@@ -13386,14 +13837,14 @@ app.post('/api/renewals/:id/assign-technician', async (req, res) => {
       scheduledDate: String(req.body.workStartDate || row.schedule.serviceDate || ''),
       scheduledTime: String(req.body.workStartTime || row.schedule.serviceTime || defaultTime),
       serviceInstructions: String(req.body.notes || row.schedule.itemDescription || row.schedule.itemName || ''),
-      technicianId: technicianIds[0] || '',
-      technicianName: technicianNames.join(', '),
-      technicianEmpCode: technicianEmpCodes[0] || '',
-      technicianMobile: technicianMobiles[0] || '',
-      technicianAssignments: technicianNames,
-      technicianIds,
-      technicianEmpCodes,
-      technicianMobiles,
+      technicianId: assignedTechnicianIds[0] || '',
+      technicianName: assignedTechnicianNames.join(', '),
+      technicianEmpCode: assignedTechnicianEmpCodes[0] || '',
+      technicianMobile: assignedTechnicianMobiles[0] || '',
+      technicianAssignments: assignedTechnicianNames,
+      technicianIds: assignedTechnicianIds,
+      technicianEmpCodes: assignedTechnicianEmpCodes,
+      technicianMobiles: assignedTechnicianMobiles,
       status: 'Scheduled',
       createdAt: new Date().toISOString()
     };
@@ -13406,13 +13857,35 @@ app.post('/api/renewals/:id/assign-technician', async (req, res) => {
   } else {
     fs.writeFileSync(jobsFile, JSON.stringify([...jobs, ...createdJobs], null, 2));
   }
+  if (canUseMysql()) {
+    const updatedRenewal = await syncRenewalToMysql({
+      invoice,
+      existing: {
+        ...renewal,
+        technicianAssignments: assignedTechnicianNames,
+        technicianIds: assignedTechnicianIds,
+        technicianName: assignedTechnicianNames.join(', '),
+        technicianEmpCodes: assignedTechnicianEmpCodes,
+        technicianMobiles: assignedTechnicianMobiles,
+        updatedAt: new Date().toISOString()
+      },
+      body: {
+        technicianAssignments: assignedTechnicianNames
+      },
+      req
+    });
+    return res.json({ message: 'Technician assignment created', jobs: createdJobs, renewal: updatedRenewal });
+  }
+
+  const records = readJsonFile(renewalsFile, []);
+  const recordIndex = records.findIndex((entry) => String(entry?._id || '') === String(req.params.id || ''));
   records[recordIndex] = {
     ...renewal,
-    technicianAssignments: technicianNames,
-    technicianIds,
-    technicianName: technicianNames.join(', '),
-    technicianEmpCodes,
-    technicianMobiles,
+    technicianAssignments: assignedTechnicianNames,
+    technicianIds: assignedTechnicianIds,
+    technicianName: assignedTechnicianNames.join(', '),
+    technicianEmpCodes: assignedTechnicianEmpCodes,
+    technicianMobiles: assignedTechnicianMobiles,
     updatedAt: new Date().toISOString()
   };
   saveRenewalRecords(records);
