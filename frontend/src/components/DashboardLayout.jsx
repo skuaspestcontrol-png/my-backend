@@ -1145,7 +1145,7 @@ export default function DashboardLayout({ children }) {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: '12px',
-                background: 'linear-gradient(135deg, var(--color-primary) 0%, #7f1d1d 100%)',
+                background: '#0f172a',
                 color: '#fff'
               }}
             >
@@ -1166,8 +1166,8 @@ export default function DashboardLayout({ children }) {
                   width: '38px',
                   height: '38px',
                   borderRadius: '10px',
-                  border: '1px solid rgba(255,255,255,0.24)',
-                  background: 'rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(255,255,255,0.22)',
+                  background: 'rgba(255,255,255,0.10)',
                   color: '#fff',
                   display: 'grid',
                   placeItems: 'center',

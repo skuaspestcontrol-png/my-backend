@@ -28,7 +28,7 @@ const shell = {
   selectedHead: { padding: '10px 12px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 800, textTransform: 'uppercase' },
   selectedBody: { padding: '10px 12px', display: 'grid', gap: '10px' },
   eventGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px' },
-  eventCard: { border: '1px solid rgba(159,23,77,0.14)', borderRadius: '12px', padding: '11px 11px 10px', background: 'linear-gradient(180deg, #fff7fb 0%, #fff 100%)', display: 'grid', gap: '7px', minWidth: 0 },
+  eventCard: { border: '1px solid #d7dde6', borderRadius: '12px', padding: '11px 11px 10px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', display: 'grid', gap: '7px', minWidth: 0 },
   eventTitle: { fontSize: '13px', fontWeight: 800, color: '#0f172a', lineHeight: 1.35 },
   eventRow: { display: 'flex', flexWrap: 'wrap', gap: '8px 12px', alignItems: 'center' },
   eventPill: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 8px', borderRadius: '999px', background: '#f8fafc', color: '#334155', fontSize: '11px', fontWeight: 700, lineHeight: 1.2 },
