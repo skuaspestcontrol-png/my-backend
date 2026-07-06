@@ -905,12 +905,12 @@ const hasFrontendDistBuild = fs.existsSync(frontendDistDir) && fs.existsSync(fro
 
 let activeFrontendBuildDir = null;
 let activeFrontendIndexFile = null;
-if (hasBackendPublicBuild) {
-  activeFrontendBuildDir = backendPublicDir;
-  activeFrontendIndexFile = backendPublicIndexFile;
-} else if (hasFrontendDistBuild) {
+if (hasFrontendDistBuild) {
   activeFrontendBuildDir = frontendDistDir;
   activeFrontendIndexFile = frontendDistIndexFile;
+} else if (hasBackendPublicBuild) {
+  activeFrontendBuildDir = backendPublicDir;
+  activeFrontendIndexFile = backendPublicIndexFile;
 }
 
 if (activeFrontendBuildDir) {
