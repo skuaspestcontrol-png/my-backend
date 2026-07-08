@@ -151,7 +151,17 @@ export default function SalesPerformanceDashboard() {
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 768
       ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(1, minmax(0, 1fr))' };
+      : {
+          display: 'grid',
+          gap: 12,
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gridTemplateAreas: '"year person" "month month"',
+          alignItems: 'start'
+        };
+  const filterItemStyle = { width: '100%', minWidth: 0 };
+  const mobileYearFilterStyle = isMobile ? { gridArea: 'year' } : undefined;
+  const mobileMonthFilterStyle = isMobile ? { gridArea: 'month' } : undefined;
+  const mobilePersonFilterStyle = isMobile ? { gridArea: 'person' } : undefined;
 
   const summaryGridStyle = viewportWidth >= 1200
     ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
@@ -270,16 +280,22 @@ export default function SalesPerformanceDashboard() {
 
       <AppCard title="Filters" className="crm-filter-card" style={{ width: '100%', minWidth: 0 }}>
         <div className="sales-filters-grid" style={filtersGridStyle}>
-          <AppSelect label="Year" value={filters.year} onChange={(e) => setFilters({ ...filters, year: Number(e.target.value) })}>
-            {Array.from({ length: 5 }, (_, index) => currentYear - 2 + index).map((year) => <option key={year} value={year}>{year}</option>)}
-          </AppSelect>
-          <AppSelect label="Month" value={filters.month} onChange={(e) => setFilters({ ...filters, month: Number(e.target.value) })}>
-            {monthOptions.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}
-          </AppSelect>
-          <AppSelect label="Sales Person" value={filters.employeeId} onChange={(e) => setFilters({ ...filters, employeeId: e.target.value })}>
-            <option value="">All Team</option>
-            {salesPeople.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
-          </AppSelect>
+          <div style={{ ...filterItemStyle, ...mobileYearFilterStyle }}>
+            <AppSelect label="Year" value={filters.year} onChange={(e) => setFilters({ ...filters, year: Number(e.target.value) })}>
+              {Array.from({ length: 5 }, (_, index) => currentYear - 2 + index).map((year) => <option key={year} value={year}>{year}</option>)}
+            </AppSelect>
+          </div>
+          <div style={{ ...filterItemStyle, ...mobileMonthFilterStyle }}>
+            <AppSelect label="Month" value={filters.month} onChange={(e) => setFilters({ ...filters, month: Number(e.target.value) })}>
+              {monthOptions.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}
+            </AppSelect>
+          </div>
+          <div style={{ ...filterItemStyle, ...mobilePersonFilterStyle }}>
+            <AppSelect label="Sales Person" value={filters.employeeId} onChange={(e) => setFilters({ ...filters, employeeId: e.target.value })}>
+              <option value="">All Team</option>
+              {salesPeople.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
+            </AppSelect>
+          </div>
           {!isMobile ? (
             <AppInput label="Selected Team" value={filters.employeeId ? 'Single Sales Person' : 'All Team'} readOnly />
           ) : null}
