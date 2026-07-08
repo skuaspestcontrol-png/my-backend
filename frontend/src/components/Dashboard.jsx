@@ -595,27 +595,21 @@ export default function Dashboard() {
       const leadDate = toDate(lead.date || lead.createdAt);
       return leadDate ? leadDate.getFullYear() === selectedYearNumber : false;
     });
-    const selectedYearInvoices = invoices.filter((invoice) => {
-      const invoiceDate = toDate(invoice.date || invoice.createdAt);
-      return invoiceDate ? invoiceDate.getFullYear() === selectedYearNumber : false;
-    });
     const totalLeads = selectedYearLeads.length;
     const interested = selectedYearLeads.filter((lead) => ['interested', 'warm', 'hot'].includes(normalizeLeadStatus(lead.status || lead.leadStatus))).length;
     const converted = selectedYearLeads.filter((lead) => ['converted', 'booked'].includes(normalizeLeadStatus(lead.status || lead.leadStatus))).length;
     const cancelled = selectedYearLeads.filter((lead) => normalizeLeadStatus(lead.status || lead.leadStatus) === 'cancelled').length;
     const conversionRate = totalLeads > 0 ? (converted / totalLeads) * 100 : 0;
+    const selectedYearInvoices = invoices.filter((invoice) => {
+      const invoiceDate = toDate(invoice.date || invoice.createdAt);
+      return invoiceDate ? invoiceDate.getFullYear() === selectedYearNumber : false;
+    });
     const pipelineValue = selectedYearInvoices.reduce((sum, invoice) => sum + toNum(invoice.total || invoice.amount || invoice.totalAmount), 0);
     const avgDealValue = converted > 0 ? pipelineValue / converted : 0;
 
     const sourceCounts = new Map();
     selectedYearLeads.forEach((lead) => {
       const key = mapLeadSourceLabel(lead.leadSource);
-      sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1);
-    });
-    selectedYearInvoices.forEach((invoice) => {
-      const rawSource = String(invoice?.leadSource || invoice?.lead_source || '').trim();
-      if (!rawSource) return;
-      const key = mapLeadSourceLabel(rawSource);
       sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1);
     });
     const orderedSources = [
