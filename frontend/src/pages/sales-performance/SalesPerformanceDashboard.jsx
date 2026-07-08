@@ -221,6 +221,9 @@ export default function SalesPerformanceDashboard() {
   const salesPersonRows = safeRows(data?.salesPersonPerformance);
   const monthlyBarChartProps = getBarChartProps(monthlyTrendRows.length, { mobile: isMobile });
   const salesPersonBarChartProps = getBarChartProps(salesPersonRows.length, { mobile: isMobile });
+  const monthlyChartMinWidth = isMobile
+    ? Math.max(760, monthlyTrendRows.length * 76)
+    : 0;
 
   const summaryValue = (key) => {
     if (key === 'bestPerformer') return data?.summary?.bestPerformer?.employeeName || '---';
@@ -248,7 +251,7 @@ export default function SalesPerformanceDashboard() {
         title="Sales Performance"
         subtitle="Track monthly and yearly target vs achievement in a simple clean view."
         titleStyle={isMobile ? { fontSize: 24, lineHeight: 1.1 } : undefined}
-        subtitleStyle={isMobile ? { fontSize: 13, lineHeight: 1.3 } : undefined}
+        subtitleStyle={isMobile ? { display: 'none' } : undefined}
         action={(
           viewportWidth <= 640 ? null : (
             <AppButton
@@ -319,7 +322,7 @@ export default function SalesPerformanceDashboard() {
             <CompactChartCard title="Monthly Target vs Achievement" isMobile={isMobile}>
               {monthlyTrendRows.length ? (
                 <div className="sales-chart-scroll">
-                  <ChartSurface height={chartHeight} minWidth={isMobile ? 560 : 0}>
+                  <ChartSurface height={chartHeight} minWidth={monthlyChartMinWidth}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={monthlyTrendRows}

@@ -668,6 +668,9 @@ export default function Dashboard() {
   const salesPerformanceAxisProps = getChartAxisProps({ mobile: isMobile });
   const salesPerformanceCurrencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
   const salesPerformanceMargin = getChartMargin({ mobile: isMobile });
+  const salesPerformanceChartMinWidth = isMobile
+    ? Math.max(760, salesPerformanceTrend.length * 76)
+    : 0;
   const salesPerformanceMonthlyTarget = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.target), 0);
   const salesPerformanceMonthlyAchieved = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.achieved), 0);
   const selectedSalesPersonLabel = selectedSalesPersonId
@@ -1384,7 +1387,7 @@ export default function Dashboard() {
           <div style={salesChartCardHeaderStyle}>
             <div>
               <h2 style={salesChartTitleStyle}>Sales Team Performance</h2>
-              <p style={salesChartSubtitleStyle}>Month-wise target vs achievement for the selected year and salesperson.</p>
+              <p style={isMobile ? { ...salesChartSubtitleStyle, display: 'none' } : salesChartSubtitleStyle}>Month-wise target vs achievement for the selected year and salesperson.</p>
             </div>
             <div style={salesChartHeaderControlsStyle}>
               <select
@@ -1452,7 +1455,7 @@ export default function Dashboard() {
                   })()}
                 </div>
                 <div style={{ position: 'relative', minWidth: 0 }}>
-                  <ChartSurface height={salesPerformanceChartHeight} minWidth={isMobile ? 560 : 0}>
+                  <ChartSurface height={salesPerformanceChartHeight} minWidth={salesPerformanceChartMinWidth}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={salesPerformanceTrend}
