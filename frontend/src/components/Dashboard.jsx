@@ -420,6 +420,14 @@ export default function Dashboard() {
     });
   }, [contractYears]);
 
+  useEffect(() => {
+    if (contractYears.length === 0) return;
+    setSelectedSalesPerformanceYear((current) => {
+      if (contractYears.some((year) => String(year) === String(current))) return String(current);
+      return String(contractYears[contractYears.length - 1]);
+    });
+  }, [contractYears]);
+
   const analytics = useMemo(() => {
     const totalReceivables = invoices.reduce((sum, invoice) => sum + toNum(invoice.balanceDue), 0);
     const receivableCurrent = invoices.reduce((sum, invoice) => sum + (isOverdue(invoice.dueDate) ? 0 : toNum(invoice.balanceDue)), 0);
