@@ -88,7 +88,7 @@ const shell = {
   td: { padding: '12px 10px', fontSize: '14px', color: '#111827', borderBottom: '1px solid #eef2f7' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: '#fff', width: 'min(100%, 1180px)', borderRadius: '24px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', height: '92vh', display: 'flex', flexDirection: 'column' },
-  modalHeader: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 22px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
+  modalHeader: { minHeight: '56px', boxSizing: 'border-box', padding: '0 22px', borderBottom: '1px solid rgba(159, 23, 77, 0.16)', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
   headerTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
   closeBtn: { border: 'none', background: 'transparent', color: '#fff', width: '36px', height: '36px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   formBody: { padding: '18px 22px', overflowY: 'auto', overflowX: 'hidden', display: 'grid', gridAutoRows: 'max-content', alignContent: 'start', gap: '16px', flex: 1, minHeight: 0 },
@@ -324,7 +324,7 @@ export default function VendorBillsDashboard() {
   const formBodyStyle = isMobile ? { ...shell.formBody, padding: '16px 14px', paddingBottom: 'calc(130px + env(safe-area-inset-bottom))' } : shell.formBody;
   const row2Style = isMobile ? { ...shell.row2, gridTemplateColumns: '1fr' } : shell.row2;
   const row4Style = isMobile ? { ...shell.row4, gridTemplateColumns: '1fr' } : shell.row4;
-  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '64px', fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
+  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '56px', fontSize: '22px', padding: '12px 16px' } : shell.modalHeader;
   const itemTableWrapStyle = isMobile ? { ...shell.itemTableWrap, overflowX: 'hidden' } : shell.itemTableWrap;
   const itemTableStyle = isMobile ? { ...shell.itemTable, minWidth: '0', width: '100%' } : shell.itemTable;
   const mobileItemGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' };

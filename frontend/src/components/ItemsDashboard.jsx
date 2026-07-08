@@ -274,8 +274,7 @@ const shell = {
   },
   modalHeader: {
     flexShrink: 0,
-    height: '64px',
-    minHeight: '64px',
+    minHeight: '56px',
     boxSizing: 'border-box',
     padding: '0 22px',
     borderBottom: '1px solid rgba(255,255,255,0.10)',
@@ -370,8 +369,7 @@ const shell = {
   },
   modalFooter: {
     flexShrink: 0,
-    height: '64px',
-    minHeight: '64px',
+    minHeight: '56px',
     boxSizing: 'border-box',
     padding: '0 24px',
     borderTop: '1px solid rgba(15, 23, 42, 0.08)',
@@ -807,7 +805,7 @@ export default function ItemsDashboard() {
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const buttonPrimaryStyle = isTiny ? { ...shell.buttonPrimary, padding: '8px 12px', fontSize: '13px' } : shell.buttonPrimary;
   const toolbarIconButtonStyle = isTiny ? { ...shell.customizeButton, width: '34px', height: '34px', minWidth: '34px', minHeight: '34px' } : shell.customizeButton;
-  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '64px', fontSize: '22px', padding: '14px 16px' } : shell.modalHeader;
+  const modalHeaderStyle = isMobile ? { ...shell.modalHeader, minHeight: '56px', fontSize: '22px', padding: '12px 16px' } : shell.modalHeader;
   const paginationStyle = isMobile ? { ...shell.pagination, flexDirection: 'column', alignItems: 'stretch' } : shell.pagination;
   const paginationActionsStyle = isMobile ? { display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' } : { display: 'inline-flex', alignItems: 'center', gap: '8px' };
 

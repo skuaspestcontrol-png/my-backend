@@ -157,8 +157,7 @@ const shell = {
   modalHeader: {
     background: 'var(--color-primary)',
     color: '#fff',
-    height: '64px',
-    minHeight: '64px',
+    minHeight: '56px',
     boxSizing: 'border-box',
     padding: '0 22px',
     display: 'flex',
