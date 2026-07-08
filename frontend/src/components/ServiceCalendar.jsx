@@ -250,14 +250,26 @@ export default function ServiceCalendar() {
   const eventCardStyle = isMobile
     ? { ...shell.eventCard, padding: '10px 10px 9px' }
     : shell.eventCard;
+  const summaryGridStyle = isMobile
+    ? {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        gap: '8px'
+      }
+    : {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+        gap: '12px'
+      };
   const summaryCardStyle = isMobile
     ? {
         border: '1px solid rgba(148,163,184,0.22)',
-        borderRadius: '14px',
+        borderRadius: '12px',
         background: '#fff',
-        padding: '12px 14px',
+        padding: '10px 11px',
         display: 'grid',
-        gap: '4px',
+        gap: '3px',
+        minWidth: 0,
         boxShadow: '0 10px 24px rgba(15,23,42,0.05)'
       }
     : {
@@ -267,6 +279,7 @@ export default function ServiceCalendar() {
         padding: '14px 16px',
         display: 'grid',
         gap: '6px',
+        minWidth: 0,
         boxShadow: '0 12px 28px rgba(15,23,42,0.05)'
       };
 
@@ -330,17 +343,13 @@ export default function ServiceCalendar() {
         <div style={shell.body}>
           {error ? <div style={shell.error}>{error}</div> : null}
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, minmax(0, 1fr))',
-            gap: '12px'
-          }}>
+          <div style={summaryGridStyle}>
             {summaryItems.map((item) => (
               <div key={item.label} style={summaryCardStyle}>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: isMobile ? '10px' : '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.2 }}>
                   {item.label}
                 </div>
-                <div style={{ fontSize: isMobile ? '26px' : '30px', lineHeight: 1, fontWeight: 900, color: item.tone }}>
+                <div style={{ fontSize: isMobile ? '22px' : '30px', lineHeight: 1, fontWeight: 900, color: item.tone }}>
                   {item.value}
                 </div>
               </div>

@@ -1374,8 +1374,16 @@ export default function ContractDashboard() {
   const headActionsStyle = isMobile ? { ...shell.headActions, justifyContent: 'stretch', width: '100%' } : shell.headActions;
   const newButtonStyle = isMobile ? { ...shell.newBtn, width: 'fit-content', minHeight: '32px', height: '32px', padding: '0 10px' } : shell.newBtn;
   const summaryStripStyle = isMobile
-    ? { ...shell.summaryStrip, gridTemplateColumns: '1fr' }
+    ? { ...shell.summaryStrip, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', padding: '8px 10px 4px' }
     : { ...shell.summaryStrip, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' };
+  const summaryCardStyle = isMobile
+    ? {
+        ...shell.summaryCard,
+        height: '78px',
+        minHeight: '78px',
+        padding: '7px 9px 7px 11px'
+      }
+    : shell.summaryCard;
   const clearFilters = () => {
     setQuickFilter('All');
     setFilters({
@@ -1652,19 +1660,21 @@ export default function ContractDashboard() {
             <div
               key={card.key}
               style={{
-                ...shell.summaryCard,
-                width: '100%'
+                ...summaryCardStyle,
+                width: '100%',
+                ...(isMobile && card.key === 'paymentDue' ? { gridColumn: '1 / -1' } : {})
               }}
             >
               <span style={{ ...shell.summaryCardAccent, background: card.tone }} />
               <div style={shell.summaryCopy}>
-                <p style={shell.summaryLabel}>{card.label}</p>
-                <p style={shell.summarySubLabel}>{card.sublabel}</p>
+                <p style={{ ...shell.summaryLabel, fontSize: isMobile ? '9px' : shell.summaryLabel.fontSize }}>{card.label}</p>
+                {isMobile ? null : <p style={shell.summarySubLabel}>{card.sublabel}</p>}
               </div>
               <p
                 style={{
                   ...shell.summaryValue,
-                  ...(card.compact ? shell.summaryValueCurrency : {})
+                  ...(card.compact ? shell.summaryValueCurrency : {}),
+                  ...(isMobile ? { fontSize: card.compact ? '16px' : '18px' } : {})
                 }}
               >
                 {card.value}
