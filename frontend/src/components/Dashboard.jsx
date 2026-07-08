@@ -824,6 +824,15 @@ export default function Dashboard() {
     gap: '12px',
     alignItems: 'stretch'
   };
+  const salesChartScrollStyle = {
+    width: '100%',
+    maxWidth: '100%',
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    WebkitOverflowScrolling: 'touch',
+    touchAction: 'pan-x',
+    overscrollBehaviorX: 'contain'
+  };
   const salesChartYAxisStyle = {
     display: 'grid',
     alignContent: 'space-between',
@@ -1454,7 +1463,7 @@ export default function Dashboard() {
                     });
                   })()}
                 </div>
-                <div style={{ position: 'relative', minWidth: 0 }}>
+                <div style={salesChartScrollStyle}>
                   <ChartSurface height={salesPerformanceChartHeight} minWidth={salesPerformanceChartMinWidth}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
