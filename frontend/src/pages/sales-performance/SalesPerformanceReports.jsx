@@ -263,6 +263,7 @@ export default function SalesPerformanceReports() {
   const chartHeight = getChartHeight({ mobile: isMobile });
   const currencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
   const barChartProps = getBarChartProps(chartData.length, { mobile: isMobile });
+  const chartMinWidth = isMobile ? Math.max(760, chartData.length * 76) : 0;
   const exportColumns = [
     'SalesPerson',
     'Month',
@@ -466,28 +467,30 @@ export default function SalesPerformanceReports() {
           <div className="sales-analytics-grid" style={chartGridStyle}>
             <CompactChartCard title="Monthly Target vs Achievement" isMobile={isMobile} style={compactCardStyle}>
               {chartData.length ? (
-                <ChartSurface height={chartHeight}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={getChartMargin({ mobile: isMobile })} barCategoryGap={barChartProps.barCategoryGap} barGap={barChartProps.barGap}>
-                      <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
-                      <XAxis dataKey="employeeName" {...chartAxisProps} />
-                      <YAxis {...currencyAxisProps} />
-                      <Tooltip
-                        cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
-                        content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
-                      />
-                      <Bar dataKey="monthlyTarget" name={currencyTooltipLabel.monthlyTarget} fill={targetColor} radius={0} maxBarSize={barChartProps.maxBarSize} />
-                      <Bar dataKey="monthlyAchieved" name={currencyTooltipLabel.monthlyAchieved} radius={0} maxBarSize={barChartProps.maxBarSize}>
-                        {chartData.map((entry) => (
-                          <Cell
-                            key={`${entry.employeeName}-monthly`}
-                            fill={isTargetMet(entry.monthlyAchieved, entry.monthlyTarget) ? successColor : dangerColor}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartSurface>
+                <div className="sales-chart-scroll">
+                  <ChartSurface height={chartHeight} minWidth={chartMinWidth}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} margin={getChartMargin({ mobile: isMobile })} barCategoryGap={barChartProps.barCategoryGap} barGap={barChartProps.barGap}>
+                        <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
+                        <XAxis dataKey="employeeName" {...chartAxisProps} />
+                        <YAxis {...currencyAxisProps} />
+                        <Tooltip
+                          cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                          content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
+                        />
+                        <Bar dataKey="monthlyTarget" name={currencyTooltipLabel.monthlyTarget} fill={targetColor} radius={0} maxBarSize={barChartProps.maxBarSize} />
+                        <Bar dataKey="monthlyAchieved" name={currencyTooltipLabel.monthlyAchieved} radius={0} maxBarSize={barChartProps.maxBarSize}>
+                          {chartData.map((entry) => (
+                            <Cell
+                              key={`${entry.employeeName}-monthly`}
+                              fill={isTargetMet(entry.monthlyAchieved, entry.monthlyTarget) ? successColor : dangerColor}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartSurface>
+                </div>
               ) : (
                 <EmptyState title="No report data" message="Choose filters and load sales rows to see the report." />
               )}
@@ -495,28 +498,30 @@ export default function SalesPerformanceReports() {
 
             <CompactChartCard title="Yearly Target vs Achievement" isMobile={isMobile} style={compactCardStyle}>
               {chartData.length ? (
-                <ChartSurface height={chartHeight}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={getChartMargin({ mobile: isMobile })} barCategoryGap={barChartProps.barCategoryGap} barGap={barChartProps.barGap}>
-                      <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
-                      <XAxis dataKey="employeeName" {...chartAxisProps} />
-                      <YAxis {...currencyAxisProps} />
-                      <Tooltip
-                        cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
-                        content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
-                      />
-                      <Bar dataKey="yearlyTarget" name={currencyTooltipLabel.yearlyTarget} fill={targetColor} radius={0} maxBarSize={barChartProps.maxBarSize} />
-                      <Bar dataKey="yearlyAchieved" name={currencyTooltipLabel.yearlyAchieved} radius={0} maxBarSize={barChartProps.maxBarSize}>
-                        {chartData.map((entry) => (
-                          <Cell
-                            key={`${entry.employeeName}-yearly`}
-                            fill={isTargetMet(entry.yearlyAchieved, entry.yearlyTarget) ? successColor : dangerColor}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartSurface>
+                <div className="sales-chart-scroll">
+                  <ChartSurface height={chartHeight} minWidth={chartMinWidth}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} margin={getChartMargin({ mobile: isMobile })} barCategoryGap={barChartProps.barCategoryGap} barGap={barChartProps.barGap}>
+                        <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
+                        <XAxis dataKey="employeeName" {...chartAxisProps} />
+                        <YAxis {...currencyAxisProps} />
+                        <Tooltip
+                          cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                          content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
+                        />
+                        <Bar dataKey="yearlyTarget" name={currencyTooltipLabel.yearlyTarget} fill={targetColor} radius={0} maxBarSize={barChartProps.maxBarSize} />
+                        <Bar dataKey="yearlyAchieved" name={currencyTooltipLabel.yearlyAchieved} radius={0} maxBarSize={barChartProps.maxBarSize}>
+                          {chartData.map((entry) => (
+                            <Cell
+                              key={`${entry.employeeName}-yearly`}
+                              fill={isTargetMet(entry.yearlyAchieved, entry.yearlyTarget) ? successColor : dangerColor}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartSurface>
+                </div>
               ) : (
                 <EmptyState title="No yearly report data" message="Yearly totals will appear here when data is available." />
               )}
