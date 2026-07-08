@@ -483,7 +483,13 @@ const drawTableRow = (doc, cols, y, values, options = {}) => {
     const text = String(values[i] ?? '');
     const textWidth = Math.max(6, col.w - 8);
     const availableHeight = h - (cellPaddingY * 2);
-    const textY = y + cellPaddingY;
+    const textHeight = doc
+      .font(isHeader || options.bold ? pdfFont.bold : pdfFont.regular)
+      .fontSize(fontSize)
+      .heightOfString(text || ' ', { width: textWidth, lineGap: 0 });
+    const textY = options.verticalAlign === 'middle' && availableHeight > textHeight
+      ? y + cellPaddingY + ((availableHeight - textHeight) / 2)
+      : y + cellPaddingY;
     doc
       .font(isHeader || options.bold ? pdfFont.bold : pdfFont.regular)
       .fontSize(fontSize)
