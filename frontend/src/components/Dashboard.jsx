@@ -794,17 +794,25 @@ export default function Dashboard() {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
+    width: isMobile ? '100%' : 'auto',
     marginLeft: 'auto'
   };
   const salesChartSelectStyle = {
     ...shell.sourceHeaderSelect,
-    minWidth: '98px',
+    minWidth: 0,
     height: '32px',
     minHeight: '32px',
     padding: '0 10px',
-    background: '#fff'
+    background: '#fff',
+    flex: '1 1 0'
   };
+  const salesChartYearSelectStyle = isMobile
+    ? { ...salesChartSelectStyle, flex: '0 0 92px', minWidth: '92px' }
+    : { ...salesChartSelectStyle, flex: '0 0 98px', minWidth: '98px' };
+  const salesChartPersonSelectStyle = isMobile
+    ? { ...salesChartSelectStyle, flex: '1 1 0', minWidth: 0 }
+    : { ...salesChartSelectStyle, flex: '0 0 150px', minWidth: '150px' };
   const salesChartBodyStyle = {
     padding: '14px 16px 16px',
     display: 'grid',
@@ -1410,7 +1418,7 @@ export default function Dashboard() {
               <select
                 value={selectedSalesPerformanceYear}
                 onChange={(event) => setSelectedSalesPerformanceYear(event.target.value)}
-                style={salesChartSelectStyle}
+                style={salesChartYearSelectStyle}
                 aria-label="Select sales performance year"
               >
                 {salesPerformanceYearOptions.map((year) => (
@@ -1420,7 +1428,7 @@ export default function Dashboard() {
               <select
                 value={selectedSalesPersonId}
                 onChange={(event) => setSelectedSalesPersonId(event.target.value)}
-                style={{ ...salesChartSelectStyle, minWidth: isMobile ? '100%' : '150px' }}
+                style={salesChartPersonSelectStyle}
                 aria-label="Select sales person"
               >
                 <option value="">All Team</option>
