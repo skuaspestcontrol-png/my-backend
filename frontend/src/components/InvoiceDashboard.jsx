@@ -3452,14 +3452,18 @@ export default function InvoiceDashboard() {
   const modalFooterStyle = isMobile
     ? {
       ...shell.modalFooter,
+      height: 'auto',
+      minHeight: '0',
       flexWrap: 'wrap',
       position: 'sticky',
       bottom: 0,
+      alignItems: 'stretch',
+      justifyContent: 'flex-end',
       background: '#fff',
-      paddingBottom: 'calc(12px + env(safe-area-inset-bottom))'
+      gap: '8px',
+      padding: '10px 14px calc(10px + env(safe-area-inset-bottom))'
     }
     : shell.modalFooter;
-  const modalFooterButtonStyle = null;
   const miniPrefsGridStyle = isMobile ? { ...shell.miniPrefsGrid, gridTemplateColumns: '1fr', paddingLeft: 0 } : shell.miniPrefsGrid;
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const tinyGhostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
@@ -4586,7 +4590,7 @@ export default function InvoiceDashboard() {
             </div>
             </fieldset>
 
-            <div className="crm-modal-surface-footer" style={modalFooterStyle}>
+            <div className={`crm-modal-surface-footer${isMobile ? ' crm-modal-surface-footer-compact' : ''}`} style={modalFooterStyle}>
               {saveError ? (
                 <div style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
                   {saveError}
@@ -4594,7 +4598,7 @@ export default function InvoiceDashboard() {
               ) : null}
               <button
                 type="button"
-                style={modalFooterButtonStyle ? { ...shell.cancelButton, ...modalFooterButtonStyle } : shell.cancelButton}
+                style={shell.cancelButton}
                 onClick={closeInvoiceModal}
               >
                 {contractViewOnly ? 'Close' : 'Cancel'}
@@ -4602,14 +4606,14 @@ export default function InvoiceDashboard() {
               {contractViewOnly ? (
                 <button
                   type="button"
-                  style={modalFooterButtonStyle ? { ...shell.saveButton, ...modalFooterButtonStyle } : shell.saveButton}
+                  style={shell.saveButton}
                   onClick={openContractForEditing}
                 >
                   Edit Contract
                 </button>
               ) : null}
               {contractViewOnly ? null : (
-                <button type="submit" style={modalFooterButtonStyle ? { ...shell.saveButton, ...modalFooterButtonStyle } : shell.saveButton} disabled={isSaving}>
+                <button type="submit" style={shell.saveButton} disabled={isSaving}>
                   {isSaving ? 'Saving...' : editingId ? 'Update Contract' : 'Save Contract'}
                 </button>
               )}
