@@ -240,10 +240,20 @@ export default function ServiceCalendar() {
   }, [events, today]);
   const isMobile = viewportWidth <= 768;
   const dayBtnStyle = isMobile
-    ? { ...shell.dayBtn, minHeight: '58px', padding: '5px', gap: '3px' }
+    ? { ...shell.dayBtn, minHeight: '54px', padding: '4px 5px', gap: '2px', borderRadius: '9px' }
     : shell.dayBtn;
   const dayNumberStyle = isMobile ? { ...shell.dayNumber, fontSize: '11px' } : shell.dayNumber;
-  const dayBadgeStyle = isMobile ? { ...shell.dayBadge, fontSize: '9px', padding: '2px 5px' } : shell.dayBadge;
+  const dayBadgeStyle = isMobile
+    ? {
+        ...shell.dayBadge,
+        minWidth: '20px',
+        minHeight: '20px',
+        padding: '0 5px',
+        fontSize: '9px',
+        lineHeight: 1,
+        alignSelf: 'flex-start'
+      }
+    : shell.dayBadge;
   const eventGridStyle = isMobile
     ? { ...shell.eventGrid, gridTemplateColumns: '1fr' }
     : shell.eventGrid;
@@ -346,10 +356,10 @@ export default function ServiceCalendar() {
           <div style={summaryGridStyle}>
             {summaryItems.map((item) => (
               <div key={item.label} style={summaryCardStyle}>
-                <div style={{ fontSize: isMobile ? '10px' : '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.2 }}>
+                <div style={{ fontSize: isMobile ? '9px' : '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.15 }}>
                   {item.label}
                 </div>
-                <div style={{ fontSize: isMobile ? '22px' : '30px', lineHeight: 1, fontWeight: 900, color: item.tone }}>
+                <div style={{ fontSize: isMobile ? '20px' : '30px', lineHeight: 1, fontWeight: 900, color: item.tone }}>
                   {item.value}
                 </div>
               </div>
@@ -378,7 +388,9 @@ export default function ServiceCalendar() {
                 >
                   <span style={dayNumberStyle}>{cell.date.getDate()}</span>
                   {cell.events.length > 0 ? (
-                    <span style={dayBadgeStyle}>{cell.events.length} service{cell.events.length > 1 ? 's' : ''}</span>
+                    <span style={dayBadgeStyle} title={`${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}>
+                      {isMobile ? cell.events.length : `${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}
+                    </span>
                   ) : null}
                 </button>
               );
