@@ -13,7 +13,7 @@ const shell = {
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#0f172a' },
   subtitle: { margin: '6px 0 0 0', fontSize: '13px', color: '#64748b' },
   controls: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  controlBtn: { border: '1px solid #D1D5DB', background: '#fff', color: '#334155', borderRadius: '10px', height: '36px', minWidth: '36px', padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', fontWeight: 700 },
+  controlBtn: { border: '1px solid #D1D5DB', background: '#fff', color: '#334155', borderRadius: '10px', height: '34px', minHeight: '34px', minWidth: '34px', padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, lineHeight: 1 },
   monthText: { minWidth: '170px', textAlign: 'center', fontWeight: 700, color: '#0f172a' },
   body: { padding: '14px 16px 16px', display: 'grid', gap: '12px' },
   weekRow: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '6px' },
