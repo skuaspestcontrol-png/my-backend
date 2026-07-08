@@ -322,6 +322,16 @@ export default function Dashboard() {
   const selectedYearNumber = Number(selectedContractYear) || new Date().getFullYear();
   const selectedTargetYearNumber = Number(selectedTargetYear) || new Date().getFullYear();
   const selectedSalesPerformanceYearNumber = Number(selectedSalesPerformanceYear) || new Date().getFullYear();
+  const dashboardYearOptions = useMemo(() => {
+    const years = new Set([
+      ...contractYears,
+      new Date().getFullYear(),
+      selectedYearNumber,
+      selectedTargetYearNumber,
+      selectedSalesPerformanceYearNumber
+    ]);
+    return Array.from(years).filter((year) => Number.isFinite(Number(year))).sort((a, b) => Number(a) - Number(b));
+  }, [contractYears, selectedYearNumber, selectedTargetYearNumber, selectedSalesPerformanceYearNumber]);
 
   useEffect(() => {
     let active = true;
@@ -1061,7 +1071,7 @@ export default function Dashboard() {
             style={targetYearSelectStyle}
             aria-label="Select yearly target year"
           >
-            {contractYears.length === 0 ? <option value={String(selectedTargetYearNumber)}>{selectedTargetYearNumber}</option> : contractYears.map((year) => (
+            {dashboardYearOptions.length === 0 ? <option value={String(selectedTargetYearNumber)}>{selectedTargetYearNumber}</option> : dashboardYearOptions.map((year) => (
               <option key={year} value={String(year)}>{year}</option>
             ))}
           </select>
@@ -1088,7 +1098,7 @@ export default function Dashboard() {
               style={{ ...shell.sourceHeaderSelect, width: '84px', minWidth: '84px' }}
               aria-label="Select lead pipeline year"
             >
-              {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
+              {dashboardYearOptions.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : dashboardYearOptions.map((year) => (
                 <option key={year} value={String(year)}>{year}</option>
               ))}
             </select>
@@ -1166,7 +1176,7 @@ export default function Dashboard() {
               style={{ ...shell.sourceHeaderSelect, width: '84px', minWidth: '84px' }}
               aria-label="Select contract year"
               >
-              {contractYears.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : contractYears.map((year) => (
+              {dashboardYearOptions.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : dashboardYearOptions.map((year) => (
                 <option key={year} value={String(year)}>{year}</option>
               ))}
             </select>
