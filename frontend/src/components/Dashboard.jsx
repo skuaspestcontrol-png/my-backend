@@ -1050,8 +1050,8 @@ export default function Dashboard() {
         </div>
         <div style={metricStyle}>
           <p style={metricLabelStyle}>Invoices Value</p>
-          <p style={metricValueStyle}>{topCards.invoicesCount}</p>
-          <p style={metricSubStyle}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
+          <p style={metricValueStyle}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
+          <p style={metricSubStyle}>{topCards.invoicesCount} invoices</p>
         </div>
       </section>
 
