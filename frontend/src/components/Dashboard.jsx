@@ -1383,12 +1383,12 @@ export default function Dashboard() {
           <div style={{ ...shell.donutWrap, padding: '18px 18px 14px' }}>
             {renderRoundedDonut(
               selectedYearAnalytics.topExpenses.map((entry) => ({ name: entry.name, value: entry.amount })),
-              selectedYearAnalytics.totalExpenseAmount,
+              selectedYearAnalytics.totalExpenses,
               expenseColors,
               viewportWidth >= 1200 ? 220 : 268,
               22,
               'All Expenses',
-              formatCurrency(selectedYearAnalytics.totalExpenseAmount),
+              formatCurrency(selectedYearAnalytics.totalExpenses),
               '13px',
               '24px'
             )}
