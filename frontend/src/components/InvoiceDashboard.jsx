@@ -3454,14 +3454,18 @@ export default function InvoiceDashboard() {
       ...shell.modalFooter,
       flexDirection: 'column',
       alignItems: 'stretch',
+      height: 'auto',
+      minHeight: 'unset',
       position: 'sticky',
       bottom: 0,
       background: '#fff',
-      paddingBottom: 'calc(10px + env(safe-area-inset-bottom))'
+      padding: '10px 12px calc(10px + env(safe-area-inset-bottom))',
+      gap: '8px',
+      justifyContent: 'flex-start'
     }
     : shell.modalFooter;
   const modalFooterButtonStyle = isMobile
-    ? { width: '100%', justifyContent: 'center' }
+    ? { width: '100%', justifyContent: 'center', minHeight: '42px' }
     : null;
   const miniPrefsGridStyle = isMobile ? { ...shell.miniPrefsGrid, gridTemplateColumns: '1fr', paddingLeft: 0 } : shell.miniPrefsGrid;
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
