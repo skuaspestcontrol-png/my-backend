@@ -246,12 +246,19 @@ export default function ServiceCalendar() {
   const dayBadgeStyle = isMobile
     ? {
         ...shell.dayBadge,
-        minWidth: '20px',
-        minHeight: '20px',
-        padding: '0 5px',
-        fontSize: '9px',
+        width: '100%',
+        minWidth: 0,
+        minHeight: '18px',
+        padding: '0 4px',
+        borderRadius: '5px',
+        fontSize: '8px',
         lineHeight: 1,
-        alignSelf: 'flex-start'
+        alignSelf: 'stretch',
+        justifyContent: 'center',
+        textAlign: 'center',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
       }
     : shell.dayBadge;
   const eventGridStyle = isMobile
@@ -389,7 +396,7 @@ export default function ServiceCalendar() {
                   <span style={dayNumberStyle}>{cell.date.getDate()}</span>
                   {cell.events.length > 0 ? (
                     <span style={dayBadgeStyle} title={`${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}>
-                      {isMobile ? cell.events.length : `${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}
+                      {isMobile ? `${cell.events.length} service${cell.events.length > 1 ? 's' : ''}` : `${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}
                     </span>
                   ) : null}
                 </button>
