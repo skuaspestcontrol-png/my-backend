@@ -3452,21 +3452,14 @@ export default function InvoiceDashboard() {
   const modalFooterStyle = isMobile
     ? {
       ...shell.modalFooter,
-      flexDirection: 'column',
-      alignItems: 'stretch',
-      height: 'auto',
-      minHeight: 'unset',
+      flexWrap: 'wrap',
       position: 'sticky',
       bottom: 0,
       background: '#fff',
-      padding: '10px 12px calc(10px + env(safe-area-inset-bottom))',
-      gap: '8px',
-      justifyContent: 'flex-start'
+      paddingBottom: 'calc(12px + env(safe-area-inset-bottom))'
     }
     : shell.modalFooter;
-  const modalFooterButtonStyle = isMobile
-    ? { width: '100%', justifyContent: 'center', minHeight: '42px' }
-    : null;
+  const modalFooterButtonStyle = null;
   const miniPrefsGridStyle = isMobile ? { ...shell.miniPrefsGrid, gridTemplateColumns: '1fr', paddingLeft: 0 } : shell.miniPrefsGrid;
   const titleStyle = isTiny ? { ...shell.title, fontSize: '24px' } : shell.title;
   const tinyGhostButtonStyle = isTiny ? { ...shell.buttonGhost, width: '44px', height: '44px' } : shell.buttonGhost;
