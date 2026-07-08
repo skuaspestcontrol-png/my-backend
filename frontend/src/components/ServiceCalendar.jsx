@@ -240,7 +240,7 @@ export default function ServiceCalendar() {
   }, [events, today]);
   const isMobile = viewportWidth <= 768;
   const dayBtnStyle = isMobile
-    ? { ...shell.dayBtn, minHeight: '54px', padding: '4px 5px', gap: '2px', borderRadius: '9px' }
+    ? { ...shell.dayBtn, minHeight: '48px', padding: '3px 4px', gap: '1px', borderRadius: '9px' }
     : shell.dayBtn;
   const dayNumberStyle = isMobile ? { ...shell.dayNumber, fontSize: '11px' } : shell.dayNumber;
   const dayBadgeStyle = isMobile
@@ -248,10 +248,10 @@ export default function ServiceCalendar() {
         ...shell.dayBadge,
         width: '100%',
         minWidth: 0,
-        minHeight: '18px',
-        padding: '0 4px',
-        borderRadius: '5px',
-        fontSize: '8px',
+        minHeight: '16px',
+        padding: '0 3px',
+        borderRadius: '4px',
+        fontSize: '7px',
         lineHeight: 1,
         alignSelf: 'stretch',
         justifyContent: 'center',
@@ -396,7 +396,7 @@ export default function ServiceCalendar() {
                   <span style={dayNumberStyle}>{cell.date.getDate()}</span>
                   {cell.events.length > 0 ? (
                     <span style={dayBadgeStyle} title={`${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}>
-                      {isMobile ? `${cell.events.length} service${cell.events.length > 1 ? 's' : ''}` : `${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}
+                      {isMobile ? `${cell.events.length} svc` : `${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}
                     </span>
                   ) : null}
                 </button>
