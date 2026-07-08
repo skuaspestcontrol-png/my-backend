@@ -261,6 +261,27 @@ export default function ServiceCalendar() {
         textOverflow: 'ellipsis'
       }
     : shell.dayBadge;
+  const controlBtnStyle = isMobile
+    ? {
+        ...shell.controlBtn,
+        width: '34px',
+        minWidth: '34px',
+        height: '34px',
+        minHeight: '34px',
+        padding: 0,
+        borderRadius: '9px',
+        gap: 0
+      }
+    : shell.controlBtn;
+  const refreshBtnStyle = isMobile
+    ? {
+        ...shell.controlBtn,
+        minHeight: '34px',
+        height: '34px',
+        padding: '0 8px',
+        borderRadius: '10px'
+      }
+    : shell.controlBtn;
   const eventGridStyle = isMobile
     ? { ...shell.eventGrid, gridTemplateColumns: '1fr' }
     : shell.eventGrid;
@@ -323,7 +344,7 @@ export default function ServiceCalendar() {
           <div style={shell.controls}>
             <button
               type="button"
-              style={shell.controlBtn}
+              style={controlBtnStyle}
               onClick={() =>
                 setCurrentMonth((prev) => {
                   const next = new Date(prev);
@@ -338,7 +359,7 @@ export default function ServiceCalendar() {
             <div style={shell.monthText}>{monthLabel(currentMonth)}</div>
             <button
               type="button"
-              style={shell.controlBtn}
+              style={controlBtnStyle}
               onClick={() =>
                 setCurrentMonth((prev) => {
                   const next = new Date(prev);
@@ -350,7 +371,7 @@ export default function ServiceCalendar() {
             >
               <ChevronRight size={16} />
             </button>
-            <button type="button" style={shell.controlBtn} onClick={loadSchedules}>
+            <button type="button" style={refreshBtnStyle} onClick={loadSchedules}>
               <RefreshCw size={14} />
               {loading ? 'Loading...' : 'Refresh'}
             </button>
