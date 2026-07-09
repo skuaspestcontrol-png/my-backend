@@ -686,7 +686,7 @@ export default function Dashboard() {
   const salesPerformanceCurrencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
   const salesPerformanceMargin = getChartMargin({ mobile: isMobile });
   const salesPerformanceChartMinWidth = isMobile
-    ? Math.max(760, salesPerformanceTrend.length * 76)
+    ? Math.max(920, salesPerformanceTrend.length * 84)
     : 0;
   const salesPerformanceMonthlyTarget = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.target), 0);
   const salesPerformanceMonthlyAchieved = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.achieved), 0);
@@ -805,22 +805,25 @@ export default function Dashboard() {
     gap: '8px',
     flexWrap: 'nowrap',
     width: isMobile ? '100%' : 'auto',
-    marginLeft: 'auto'
+    marginLeft: isMobile ? 0 : 'auto',
+    justifyContent: isMobile ? 'flex-end' : 'flex-start',
+    overflowX: isMobile ? 'auto' : 'visible',
+    WebkitOverflowScrolling: 'touch'
   };
   const salesChartSelectStyle = {
     ...shell.sourceHeaderSelect,
     minWidth: 0,
-    height: '32px',
-    minHeight: '32px',
-    padding: '0 10px',
+    height: '34px',
+    minHeight: '34px',
+    padding: '0 8px',
     background: '#fff',
     flex: '1 1 0'
   };
   const salesChartYearSelectStyle = isMobile
-    ? { ...salesChartSelectStyle, flex: '0 0 92px', minWidth: '92px' }
+    ? { ...salesChartSelectStyle, flex: '0 0 76px', minWidth: '76px' }
     : { ...salesChartSelectStyle, flex: '0 0 98px', minWidth: '98px' };
   const salesChartPersonSelectStyle = isMobile
-    ? { ...salesChartSelectStyle, flex: '1 1 0', minWidth: 0 }
+    ? { ...salesChartSelectStyle, flex: '1 1 0', minWidth: '128px' }
     : { ...salesChartSelectStyle, flex: '0 0 150px', minWidth: '150px' };
   const salesChartBodyStyle = {
     padding: '14px 16px 16px',
@@ -845,7 +848,7 @@ export default function Dashboard() {
   };
   const salesChartChartWrapStyle = {
     display: 'grid',
-    gridTemplateColumns: '44px minmax(0, 1fr)',
+    gridTemplateColumns: isMobile ? '36px minmax(0, 1fr)' : '44px minmax(0, 1fr)',
     gap: '12px',
     alignItems: 'stretch'
   };
