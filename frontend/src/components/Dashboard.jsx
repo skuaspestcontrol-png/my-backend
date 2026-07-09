@@ -319,6 +319,31 @@ export default function Dashboard() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  const contractYears = useMemo(() => {
+    const years = new Set();
+    const collectYear = (value) => {
+      const date = toDate(value);
+      if (date) years.add(date.getFullYear());
+    };
+
+    invoices.forEach((invoice) => {
+      collectYear(invoice.contractStartDate);
+      collectYear(invoice.contractEndDate);
+      collectYear(invoice.servicePeriodStart);
+      collectYear(invoice.servicePeriodEnd);
+      collectYear(invoice.date);
+      collectYear(invoice.createdAt);
+    });
+
+    vendorBills.forEach((bill) => {
+      collectYear(bill.date);
+      collectYear(bill.dueDate);
+      collectYear(bill.createdAt);
+    });
+
+    return Array.from(years).sort((a, b) => a - b);
+  }, [invoices, vendorBills]);
+
   const selectedYearNumber = Number(selectedContractYear) || new Date().getFullYear();
   const selectedTargetYearNumber = Number(selectedTargetYear) || new Date().getFullYear();
   const selectedSalesPerformanceYearNumber = Number(selectedSalesPerformanceYear) || new Date().getFullYear();
@@ -388,31 +413,6 @@ export default function Dashboard() {
       active = false;
     };
   }, [selectedSalesPerformanceYearNumber, selectedSalesPersonId]);
-
-  const contractYears = useMemo(() => {
-    const years = new Set();
-    const collectYear = (value) => {
-      const date = toDate(value);
-      if (date) years.add(date.getFullYear());
-    };
-
-    invoices.forEach((invoice) => {
-      collectYear(invoice.contractStartDate);
-      collectYear(invoice.contractEndDate);
-      collectYear(invoice.servicePeriodStart);
-      collectYear(invoice.servicePeriodEnd);
-      collectYear(invoice.date);
-      collectYear(invoice.createdAt);
-    });
-
-    vendorBills.forEach((bill) => {
-      collectYear(bill.date);
-      collectYear(bill.dueDate);
-      collectYear(bill.createdAt);
-    });
-
-    return Array.from(years).sort((a, b) => a - b);
-  }, [invoices, vendorBills]);
 
   useEffect(() => {
     if (contractYears.length === 0) return;
