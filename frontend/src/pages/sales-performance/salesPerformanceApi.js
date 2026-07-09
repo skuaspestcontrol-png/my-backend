@@ -10,7 +10,7 @@ export const currentMonth = new Date().getMonth() + 1;
 
 export const monthOptions = Array.from({ length: 12 }, (_, index) => ({
   value: index + 1,
-  label: new Date(2026, index, 1).toLocaleString('en-IN', { month: 'short' })
+  label: new Date(currentYear, index, 1).toLocaleString('en-IN', { month: 'short' })
 }));
 
 export const safeRows = (value) => (Array.isArray(value) ? value : []);
