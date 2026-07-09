@@ -4788,6 +4788,11 @@ export default function InvoiceDashboard() {
                     ...(form.shippingAddressSource === option.id ? shell.addressChoiceCardActive : {})
                   }}
                   onClick={() => selectShippingAddressOption(option.id)}
+                  onDoubleClick={(event) => {
+                    event.preventDefault();
+                    if (!option.id.startsWith('custom-')) return;
+                    startEditShippingAddress(option.id);
+                  }}
                 >
                   <div>
                     <p style={shell.addressChoiceTitle}>{displayAddressLabel(option)}</p>
