@@ -240,18 +240,18 @@ export default function ServiceCalendar() {
   }, [events, today]);
   const isMobile = viewportWidth <= 768;
   const dayBtnStyle = isMobile
-    ? { ...shell.dayBtn, minHeight: '48px', padding: '3px 4px', gap: '1px', borderRadius: '9px' }
+    ? { ...shell.dayBtn, minHeight: '44px', padding: '3px 4px', gap: '1px', borderRadius: '9px' }
     : shell.dayBtn;
-  const dayNumberStyle = isMobile ? { ...shell.dayNumber, fontSize: '11px' } : shell.dayNumber;
+  const dayNumberStyle = isMobile ? { ...shell.dayNumber, fontSize: '10px', lineHeight: 1 } : shell.dayNumber;
   const dayBadgeStyle = isMobile
     ? {
         ...shell.dayBadge,
         width: '100%',
         minWidth: 0,
-        minHeight: '16px',
-        padding: '0 3px',
-        borderRadius: '4px',
-        fontSize: '7px',
+        minHeight: '14px',
+        padding: '0 2px',
+        borderRadius: '3px',
+        fontSize: '6px',
         lineHeight: 1,
         alignSelf: 'stretch',
         justifyContent: 'center',
