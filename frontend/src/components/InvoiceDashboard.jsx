@@ -3454,11 +3454,12 @@ export default function InvoiceDashboard() {
       ...shell.modalFooter,
       height: 'auto',
       minHeight: '0',
-      flexWrap: 'wrap',
+      flexDirection: 'column',
+      flexWrap: 'nowrap',
       position: 'sticky',
       bottom: 0,
       alignItems: 'stretch',
-      justifyContent: 'flex-end',
+      justifyContent: 'stretch',
       background: '#fff',
       gap: '8px',
       padding: '10px 14px calc(10px + env(safe-area-inset-bottom))'
@@ -4598,7 +4599,7 @@ export default function InvoiceDashboard() {
               ) : null}
               <button
                 type="button"
-                style={shell.cancelButton}
+                style={isMobile ? { ...shell.cancelButton, width: '100%' } : shell.cancelButton}
                 onClick={closeInvoiceModal}
               >
                 {contractViewOnly ? 'Close' : 'Cancel'}
@@ -4606,14 +4607,18 @@ export default function InvoiceDashboard() {
               {contractViewOnly ? (
                 <button
                   type="button"
-                  style={shell.saveButton}
+                  style={isMobile ? { ...shell.saveButton, width: '100%' } : shell.saveButton}
                   onClick={openContractForEditing}
                 >
                   Edit Contract
                 </button>
               ) : null}
               {contractViewOnly ? null : (
-                <button type="submit" style={shell.saveButton} disabled={isSaving}>
+                <button
+                  type="submit"
+                  style={isMobile ? { ...shell.saveButton, width: '100%' } : shell.saveButton}
+                  disabled={isSaving}
+                >
                   {isSaving ? 'Saving...' : editingId ? 'Update Contract' : 'Save Contract'}
                 </button>
               )}
