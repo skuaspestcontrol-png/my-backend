@@ -170,7 +170,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 7 }, (_, i) => currentYear - 2 + i);
 const months = [
   { value: 'all', label: 'All' },
-  ...Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: new Date(2026, i, 1).toLocaleString('en-IN', { month: 'short' }) }))
+  ...Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: new Date(currentYear, i, 1).toLocaleString('en-IN', { month: 'short' }) }))
 ];
 
 const readRenewalDashboardCache = () => {
