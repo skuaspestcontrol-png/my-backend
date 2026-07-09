@@ -1240,7 +1240,6 @@ export default function InvoiceDashboard() {
   const [editingShippingAddressId, setEditingShippingAddressId] = useState('');
   const [addressDraftTarget, setAddressDraftTarget] = useState('shipping');
   const [shippingAddressDraft, setShippingAddressDraft] = useState(emptyAddressDraft);
-  const shippingAddressSelectTimerRef = useRef(null);
   const [showModal, setShowModal] = useState(() => canRestoreNewContractDraft);
   const [modalOpenedFromContract, setModalOpenedFromContract] = useState(() => Boolean(
     canRestoreNewContractDraft
@@ -2835,16 +2834,6 @@ export default function InvoiceDashboard() {
     setShippingAddressDraft(emptyAddressDraft);
   };
 
-  const scheduleShippingAddressSelection = (id) => {
-    if (shippingAddressSelectTimerRef.current) {
-      window.clearTimeout(shippingAddressSelectTimerRef.current);
-    }
-    shippingAddressSelectTimerRef.current = window.setTimeout(() => {
-      shippingAddressSelectTimerRef.current = null;
-      selectShippingAddressOption(id);
-    }, 220);
-  };
-
   const startNewShippingAddress = () => {
     openCustomerAddressDraft('shipping');
   };
@@ -2879,15 +2868,6 @@ export default function InvoiceDashboard() {
       pincode: toSixDigitPincode(address.pincode || ''),
     });
   };
-
-  useEffect(() => {
-    return () => {
-      if (shippingAddressSelectTimerRef.current) {
-        window.clearTimeout(shippingAddressSelectTimerRef.current);
-        shippingAddressSelectTimerRef.current = null;
-      }
-    };
-  }, []);
 
   const saveShippingAddressDraft = () => {
     if (!shippingAddressDraft.line1.trim()) return;
@@ -4808,20 +4788,11 @@ export default function InvoiceDashboard() {
                     ...(form.shippingAddressSource === option.id ? shell.addressChoiceCardActive : {})
                   }}
                   onClick={() => {
-                    if (!option.id.startsWith('custom-')) {
-                      selectShippingAddressOption(option.id);
+                    if (option.id.startsWith('custom-')) {
+                      startEditShippingAddress(option.id);
                       return;
                     }
-                    scheduleShippingAddressSelection(option.id);
-                  }}
-                  onDoubleClick={(event) => {
-                    event.preventDefault();
-                    if (shippingAddressSelectTimerRef.current) {
-                      window.clearTimeout(shippingAddressSelectTimerRef.current);
-                      shippingAddressSelectTimerRef.current = null;
-                    }
-                    if (!option.id.startsWith('custom-')) return;
-                    startEditShippingAddress(option.id);
+                    selectShippingAddressOption(option.id);
                   }}
                 >
                   <div>
