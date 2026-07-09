@@ -37,9 +37,9 @@ const safeJson = (value, fallback = {}) => {
   return fallback;
 };
 const sendError = (res, status, error) => res.status(status).json({ success: false, error });
-const monthLabel = (month) => new Date(2026, Math.max(0, Number(month) - 1), 1).toLocaleString('en-IN', { month: 'short' });
 const currentYear = new Date().getFullYear();
 const currentMonth = new Date().getMonth() + 1;
+const monthLabel = (month) => new Date(currentYear, Math.max(0, Number(month) - 1), 1).toLocaleString('en-IN', { month: 'short' });
 const defaultYears = [currentYear - 1, currentYear, currentYear + 1];
 const monthList = Array.from({ length: 12 }, (_, index) => index + 1);
 const monthKey = (year, month) => `${Number(year)}-${String(Number(month)).padStart(2, '0')}`;
@@ -56,7 +56,7 @@ const percent = (achieved, target) => {
 const monthName = (month) => {
   const value = Number(month);
   if (!value) return '';
-  return new Date(2026, Math.max(0, value - 1), 1).toLocaleString('en-IN', { month: 'short' });
+  return new Date(currentYear, Math.max(0, value - 1), 1).toLocaleString('en-IN', { month: 'short' });
 };
 const displayTargetTypeLabel = (targetType) => {
   const value = text(targetType).toLowerCase();
