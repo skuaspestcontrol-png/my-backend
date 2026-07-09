@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { WalletCards } from 'lucide-react';
+import { ListOrdered, WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useColumnResize } from './table/useColumnResize';
 import RupeeSymbol from './ui/RupeeSymbol';
@@ -324,7 +324,7 @@ export default function VendorPaymentDashboard() {
         </article>
         <article style={shell.stat}>
           <p style={shell.statLabel}>Payment Entries</p>
-          <p style={shell.statValue}><RupeeSymbol size={18} style={{ verticalAlign: 'middle' }} /> {summary.paymentEntries}</p>
+          <p style={shell.statValue}><ListOrdered size={18} style={{ verticalAlign: 'middle' }} /> {summary.paymentEntries}</p>
         </article>
       </div>
 

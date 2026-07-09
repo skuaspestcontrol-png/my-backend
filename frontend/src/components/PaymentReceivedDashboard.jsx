@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { ChevronLeft, ChevronRight, WalletCards } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ListOrdered, WalletCards } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useColumnResize } from './table/useColumnResize';
 import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
@@ -418,7 +418,7 @@ export default function PaymentReceivedDashboard() {
         </article>
         <article style={statStyle}>
           <p style={shell.statLabel}>Payment Entries</p>
-          <p style={shell.statValue}>{summary.totalEntries}</p>
+          <p style={shell.statValue}><ListOrdered size={18} style={{ verticalAlign: 'middle' }} /> {summary.totalEntries}</p>
         </article>
         <article style={statStyle}>
           <p style={shell.statLabel}>Unpaid Invoices</p>
