@@ -1168,9 +1168,9 @@ export default function ContractDashboard() {
     const totalPaymentDue = filteredContracts.reduce((sum, row) => sum + Number(row.due || 0), 0);
 
     return [
-      { key: 'totalContracts', label: 'TOTAL CONTRACT', value: filteredContracts.length, sublabel: 'No. of Contract', tone: '#475569' },
-      { key: 'totalAmount', label: 'TOTAL CONTRACT AMOUNT', value: formatINR(totalContractAmount), sublabel: 'Sum of Total Contract', tone: '#0f766e', compact: true },
-      { key: 'paymentDue', label: 'TOTAL PAYMENT DUE', value: formatINR(totalPaymentDue), sublabel: 'Sum of Total Payment Due', tone: '#dc2626', compact: true }
+      { key: 'totalContracts', label: 'TOTAL CONTRACT', value: filteredContracts.length, tone: '#475569' },
+      { key: 'totalAmount', label: 'TOTAL CONTRACT AMOUNT', value: formatINR(totalContractAmount), tone: '#0f766e', compact: true },
+      { key: 'paymentDue', label: 'TOTAL PAYMENT DUE', value: formatINR(totalPaymentDue), tone: '#dc2626', compact: true }
     ];
   }, [filteredContracts]);
 
@@ -1668,7 +1668,6 @@ export default function ContractDashboard() {
               <span style={{ ...shell.summaryCardAccent, background: card.tone }} />
               <div style={shell.summaryCopy}>
                 <p style={{ ...shell.summaryLabel, fontSize: isMobile ? '9px' : shell.summaryLabel.fontSize }}>{card.label}</p>
-                {isMobile ? null : <p style={shell.summarySubLabel}>{card.sublabel}</p>}
               </div>
               <p
                 style={{
