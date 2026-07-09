@@ -102,7 +102,7 @@ const shell = {
 
 const monthOptions = Array.from({ length: 12 }).map((_, index) => ({
   value: index + 1,
-  label: new Date(2026, index, 1).toLocaleString('en-IN', { month: 'long' })
+  label: new Date(now.getFullYear(), index, 1).toLocaleString('en-IN', { month: 'long' })
 }));
 
 const leaveOptions = [

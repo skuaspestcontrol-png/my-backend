@@ -31,7 +31,7 @@ const tabKeys = [
 
 const monthOptions = Array.from({ length: 12 }).map((_, index) => ({
   value: index + 1,
-  label: new Date(2026, index, 1).toLocaleDateString('en-IN', { month: 'long' })
+  label: new Date(thisDate.getFullYear(), index, 1).toLocaleDateString('en-IN', { month: 'long' })
 }));
 
 const thisDate = new Date();
