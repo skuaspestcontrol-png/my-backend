@@ -4802,7 +4802,15 @@ export default function InvoiceDashboard() {
                   {option.id.startsWith('custom-') ? (
                     <button
                       type="button"
-                      style={shell.iconButton}
+                      style={{
+                        ...shell.iconButton,
+                        width: 'auto',
+                        minWidth: '72px',
+                        padding: '0 10px',
+                        gap: '6px',
+                        fontSize: '12px',
+                        fontWeight: 700
+                      }}
                       onClick={(event) => {
                         event.stopPropagation();
                         startEditShippingAddress(option.id);
@@ -4810,6 +4818,7 @@ export default function InvoiceDashboard() {
                       title="Edit this address"
                     >
                       <Pencil size={14} />
+                      <span>Edit</span>
                     </button>
                   ) : null}
                 </div>
