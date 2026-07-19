@@ -30,6 +30,10 @@ export const formatCompactIndianCurrency = (value = 0) => {
     Number(nextValue).toLocaleString('en-IN', { minimumFractionDigits, maximumFractionDigits })
   );
 
+  if (absolute < 100000) {
+    return `${sign}₹${formatValue(absolute, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  }
+
   if (absolute >= 10000000) {
     return `${sign}₹${formatValue(floorToDecimals(absolute / 10000000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}Cr`;
   }
@@ -37,8 +41,6 @@ export const formatCompactIndianCurrency = (value = 0) => {
   if (absolute >= 100000) {
     return `${sign}₹${formatValue(floorToDecimals(absolute / 100000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L`;
   }
-
-  return `${sign}₹${formatValue(floorToDecimals(absolute / 100000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L`;
 };
 export const money = (value = 0) => formatCompactIndianCurrency(value);
 export const percent = (value = 0) => `${Number(value || 0).toFixed(1)}%`;
