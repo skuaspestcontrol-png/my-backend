@@ -29,14 +29,13 @@ const tabKeys = [
   { key: 'setup', label: 'Settings' }
 ];
 
-const monthOptions = Array.from({ length: 12 }).map((_, index) => ({
-  value: index + 1,
-  label: new Date(thisDate.getFullYear(), index, 1).toLocaleDateString('en-IN', { month: 'long' })
-}));
-
 const thisDate = new Date();
 const defaultMonth = thisDate.getMonth() + 1;
 const defaultYear = thisDate.getFullYear();
+const monthOptions = Array.from({ length: 12 }).map((_, index) => ({
+  value: index + 1,
+  label: new Date(defaultYear, index, 1).toLocaleDateString('en-IN', { month: 'long' })
+}));
 
 const money = (value) => Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const getEmployeeKey = (entry = {}) => String(
