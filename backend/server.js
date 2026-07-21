@@ -12894,6 +12894,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       'Area Sales Manager'
     ).trim() || 'Area Sales Manager';
     const salesMobile = String(salespersonEmployee?.mobile || companyPhone || '').trim();
+    const customerAddress = String(renewal.address || renewal.billingAddressText || renewal.shippingAddressText || '').trim();
 
     const drawParagraph = (text) => {
       doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827').text(text, pageLeft, doc.y, {
@@ -12903,9 +12904,38 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       });
       doc.y += 7;
     };
+    const drawInlineParagraph = (segments) => {
+      const startY = doc.y;
+      const maxHeight = segments.reduce((height, segment) => {
+        const fontName = segment.bold ? pdfFont.bold : pdfFont.regular;
+        doc.font(fontName).fontSize(9.6);
+        return Math.max(height, doc.heightOfString(String(segment.text || ''), {
+          width: contentWidth,
+          align: 'justify',
+          lineGap: 1
+        }));
+      }, 0);
+      let cursorX = pageLeft;
+      let cursorY = startY;
+      segments.forEach((segment, index) => {
+        doc.font(segment.bold ? pdfFont.bold : pdfFont.regular).fontSize(9.6).fillColor('#111827').text(String(segment.text || ''), cursorX, cursorY, {
+          width: contentWidth,
+          align: 'justify',
+          lineGap: 1,
+          continued: index < segments.length - 1
+        });
+        cursorX = doc.x;
+        cursorY = doc.y;
+      });
+      doc.y = startY + maxHeight + 7;
+    };
     doc.font(pdfFont.bold).fontSize(9.6).fillColor('#111827').text(`Dear ${renewal.customerName || 'Customer'},`, pageLeft, doc.y, { width: contentWidth });
     doc.y += 8;
-    drawParagraph('It is our privilege to have been of service to you over the past year. We value our association and trust you have found our services exemplary and to your complete satisfaction.');
+    drawInlineParagraph([
+      { text: 'It is our privilege to have been of service to you over the past year at ', bold: false },
+      { text: customerAddress || '(Mention Customer Address)', bold: true },
+      { text: '. We value our association and trust you have found our services exemplary and to your complete satisfaction.', bold: false }
+    ]);
     drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
     const renewalAmountWithGst = Math.max(0, toNumber(renewal.proposedAmount, 0));
     const buildServiceLine = (item, index) => {
