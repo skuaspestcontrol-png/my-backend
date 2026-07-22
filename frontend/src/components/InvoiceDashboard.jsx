@@ -634,7 +634,12 @@ const shell = {
   saveButton: { minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }
 };
 
-const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatINR = (value) => {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount)) return '₹0';
+  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
+};
 
 const formatDisplayDate = (value) => {
   if (!value) return '';

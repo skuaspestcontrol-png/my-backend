@@ -132,7 +132,12 @@ const formatDate = (value) => {
   if (Number.isNaN(parsed.getTime())) return '-';
   return parsed.toLocaleDateString('en-IN');
 };
-const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+const formatINR = (value) => {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount)) return '₹0';
+  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
+};
 const serviceShort = (value) => {
   const text = String(value || '').trim();
   if (!text) return '-';
