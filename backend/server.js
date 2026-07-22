@@ -12894,7 +12894,45 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       'Area Sales Manager'
     ).trim() || 'Area Sales Manager';
     const salesMobile = String(salespersonEmployee?.mobile || companyPhone || '').trim();
-    const customerAddress = String(renewal.address || renewal.billingAddressText || renewal.shippingAddressText || '').trim();
+    const resolveRenewalAddress = async (row = {}) => {
+      const directAddress = String(
+        row.address ||
+        row.billingAddressText ||
+        row.shippingAddressText ||
+        row.premiseAddress ||
+        row.premise_address ||
+        ''
+      ).trim();
+      if (directAddress) return directAddress;
+
+      const sourceInvoice = row.sourceInvoice || row.payload?.sourceInvoice || {};
+      const invoiceAddress = String(
+        sourceInvoice.billingAddressText ||
+        sourceInvoice.shippingAddressText ||
+        sourceInvoice.premiseAddress ||
+        sourceInvoice.premise_address ||
+        ''
+      ).trim();
+      if (invoiceAddress) return invoiceAddress;
+
+      const customers = await loadCustomersForContext();
+      const customer = (Array.isArray(customers) ? customers : []).find((entry) => {
+        const idMatch = row.customerId && String(entry?._id || entry?.id || entry?.customerId || '').trim() === String(row.customerId).trim();
+        const nameMatch = String(entry?.displayName || entry?.name || entry?.customerName || '').trim().toLowerCase() === String(row.customerName || '').trim().toLowerCase();
+        return idMatch || nameMatch;
+      }) || null;
+
+      return String(
+        customer?.billingAddress ||
+        customer?.shippingAddress ||
+        customer?.address ||
+        [customer?.billingStreet1, customer?.billingStreet2].filter(Boolean).join(', ') ||
+        [customer?.shippingStreet1, customer?.shippingStreet2].filter(Boolean).join(', ') ||
+        [customer?.billingArea, customer?.billingCity, customer?.billingState, customer?.billingPincode].filter(Boolean).join(', ') ||
+        ''
+      ).trim();
+    };
+    const customerAddress = await resolveRenewalAddress(renewal);
 
     const drawParagraph = (text) => {
       doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827').text(text, pageLeft, doc.y, {
