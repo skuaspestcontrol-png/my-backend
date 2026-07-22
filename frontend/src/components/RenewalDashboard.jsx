@@ -287,6 +287,31 @@ export default function RenewalDashboard() {
     });
   }, [sortedLetters, rows]);
 
+  const buildRenewalPdfUrl = (row) => {
+    const rawUrl = String(
+      row?.renewalLetterUrl
+        ? `${API_BASE}${row.renewalLetterUrl}`
+        : row?.pdf_url
+          ? `${API_BASE}${row.pdf_url}`
+          : ''
+    ).trim();
+    if (!rawUrl) return '';
+    const cacheBuster = String(
+      row?.generated_at ||
+      row?.generatedAt ||
+      row?.updatedAt ||
+      row?.updated_at ||
+      row?.conclude_date ||
+      row?.concludeDate ||
+      row?.renewalDisplayId ||
+      row?.renewal_display_id ||
+      row?.renewalId ||
+      row?.renewal_id ||
+      ''
+    ).trim() || String(Date.now());
+    return `${rawUrl}${rawUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(cacheBuster)}`;
+  };
+
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 760);
     window.addEventListener('resize', onResize);
@@ -368,7 +393,7 @@ export default function RenewalDashboard() {
 
   const openRenewalPdfPreview = (row) => {
     const titleName = String(row?.customerName || row?.customer_name || 'Customer').trim();
-    const pdfUrl = String(row?.renewalLetterUrl ? `${API_BASE}${row.renewalLetterUrl}` : row?.pdf_url ? `${API_BASE}${row.pdf_url}` : '').trim();
+    const pdfUrl = buildRenewalPdfUrl(row);
     if (!pdfUrl) return;
     const fileLabel = String(row?.renewalDisplayId || row?.renewal_display_id || titleName || row?.renewalId || row?.renewal_id || 'renewal-letter').trim();
     const downloadName = `REN-${titleName || fileLabel || 'Renewal'}.pdf`;
@@ -951,7 +976,7 @@ export default function RenewalDashboard() {
               <div key={letter.id || letter.pdf_url} style={shell.miniRow}>
                 <strong>{letter.customer_name || '-'}</strong>
                 <span>{formatDate(letter.conclude_date || letter.concludeDate || letter.generated_at)}</span>
-                <a href={`${API_BASE}${letter.pdf_url}`} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(letter); }} rel="noreferrer">Open PDF</a>
+                <a href={buildRenewalPdfUrl(letter)} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(letter); }} rel="noreferrer">Open PDF</a>
               </div>
             ))}
           </div>
