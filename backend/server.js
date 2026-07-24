@@ -12967,7 +12967,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         row.premise_address ||
         ''
       ).trim();
-      if (directAddress) return directAddress;
+      if (directAddress) return { address: directAddress, source: 'renewal.row' };
 
       const sourceInvoice = row.sourceInvoice || row.payload?.sourceInvoice || {};
       const invoiceAddress = String(
@@ -12983,7 +12983,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         sourceInvoice.premise_address ||
         ''
       ).trim();
-      if (invoiceAddress) return invoiceAddress;
+      if (invoiceAddress) return { address: invoiceAddress, source: 'source.invoice' };
 
       const customers = await loadCustomersForContext();
       const customer = (Array.isArray(customers) ? customers : []).find((entry) => {
@@ -13003,8 +13003,20 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         [customer?.billingStreet1, customer?.billingStreet2, customer?.billingArea, customer?.billingCity, customer?.billingState, customer?.billingPincode].filter(Boolean).join(', ') ||
         ''
       ).trim();
+      if (customerAddress) {
+        return { address: customerAddress, source: 'customer.shipping' };
+      }
+
+      return { address: '', source: 'missing' };
     };
-    const customerAddress = await resolveRenewalAddress(renewal);
+    const { address: customerAddress, source: customerAddressSource } = await resolveRenewalAddress(renewal);
+    console.info('[renewal-letter] address source', {
+      renewalId: renewalDisplayId || renewal.renewalId || renewal.renewal_id || renewal._id || '',
+      customerName: renewal.customerName || '',
+      source: customerAddressSource,
+      hasAddress: Boolean(customerAddress),
+      preview: customerAddress ? customerAddress.slice(0, 120) : ''
+    });
 
     const drawParagraph = (text) => {
       doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827').text(text, pageLeft, doc.y, {
