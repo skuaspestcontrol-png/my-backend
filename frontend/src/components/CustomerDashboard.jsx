@@ -528,7 +528,11 @@ const shell = {
   paginationButton: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '8px', width: '34px', minWidth: '34px', minHeight: '32px', padding: 0, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
 };
 
-const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatINR = (value) => {
+  const amount = Number(value || 0);
+  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
+};
 
 const formatDisplayDate = (value) => {
   if (!value) return '-';

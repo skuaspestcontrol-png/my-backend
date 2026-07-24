@@ -93,7 +93,10 @@ const getItemField = (item = {}, ...keys) => {
   return '';
 };
 
-const money = (v) => `₹ ${num(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const money = (v) => {
+  const formatted = num(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `₹ ${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
+};
 
 const isCheckedFlag = (value) => {
   if (typeof value === 'boolean') return value;

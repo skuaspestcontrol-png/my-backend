@@ -95,6 +95,11 @@ const formatDisplayTime = (value) => {
   return raw;
 };
 
+const formatMoney = (value) => {
+  const formatted = Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
+};
+
 const formatRepresentativeDisplay = (name, mobile) => {
   const cleanName = String(name || '').trim();
   const cleanMobile = String(mobile || '').trim();
@@ -3162,7 +3167,7 @@ export default function TechnicianPortal() {
                 <p style={shell.costModalHint}>Manual amounts are allowed. If you have a stock item id, we will keep it linked for reporting.</p>
               </div>
               <div style={shell.costModalPreview}>
-                Total cost preview: {`₹${Number(((Number(costDraft.quantity) || 0) * (Number(costDraft.unitCost) || 0)).toFixed(2)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                Total cost preview: {formatMoney((Number(costDraft.quantity) || 0) * (Number(costDraft.unitCost) || 0))}
               </div>
               {costModalError ? <p style={{ margin: 0, color: '#b91c1c', fontSize: '12px', fontWeight: 700 }}>{costModalError}</p> : null}
             </div>

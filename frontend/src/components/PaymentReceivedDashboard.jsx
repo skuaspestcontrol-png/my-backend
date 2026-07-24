@@ -88,7 +88,11 @@ const toNum = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const formatINR = (value) => `₹${toNum(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+const formatINR = (value) => {
+  const amount = toNum(value);
+  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
+};
 
 const normalizeDepositTo = (value, invoiceType = 'GST') => {
   const raw = String(value || '').trim().toLowerCase();

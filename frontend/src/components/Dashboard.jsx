@@ -934,10 +934,13 @@ export default function Dashboard() {
     : shell.incomeYAxis;
   const incomeExpenseLegendValueStyle = { ...shell.incomeLegendValue, fontSize: '13px', lineHeight: 1.1 };
   const incomeExpenseLegendLabelStyle = { ...shell.incomeLegendLabel, fontSize: '13px', lineHeight: 1.1 };
-  const formatCurrencyPrecise = (value) => Number(value || 0).toLocaleString('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+  const formatCurrencyPrecise = (value) => {
+    const formatted = Number(value || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    return formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted;
+  };
   const renderRoundedDonut = (segments, total, colors, size, strokeWidth, label, value, labelSize = '13px', valueSize = '22px') => {
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;

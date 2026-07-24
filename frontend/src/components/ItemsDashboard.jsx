@@ -432,7 +432,11 @@ const shell = {
   }
 };
 
-const formatINR = (value) => `₹${Number(value || 0).toFixed(2)}`;
+const formatINR = (value) => {
+  const amount = Number(value || 0);
+  const formatted = amount.toFixed(2);
+  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
+};
 
 const readItemsDashboardCache = () => {
   try {

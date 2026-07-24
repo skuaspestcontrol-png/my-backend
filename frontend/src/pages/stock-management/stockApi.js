@@ -160,7 +160,10 @@ export const toNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-export const money = (value = 0) => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const money = (value = 0) => {
+  const formatted = Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
+};
 
 export const number = (value = 0) => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 3 });
 

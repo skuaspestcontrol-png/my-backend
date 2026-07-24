@@ -37,7 +37,11 @@ const monthOptions = Array.from({ length: 12 }).map((_, index) => ({
   label: new Date(defaultYear, index, 1).toLocaleDateString('en-IN', { month: 'long' })
 }));
 
-const money = (value) => Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (value) => {
+  const amount = Number(value || 0);
+  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted;
+};
 const getEmployeeKey = (entry = {}) => String(
   entry?._id
   || entry?.external_id

@@ -29,17 +29,18 @@ export const formatCompactIndianCurrency = (value = 0) => {
   const formatValue = (nextValue, { minimumFractionDigits = 0, maximumFractionDigits = 1 } = {}) => (
     Number(nextValue).toLocaleString('en-IN', { minimumFractionDigits, maximumFractionDigits })
   );
+  const trimTrailingZeros = (formatted) => (formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted);
 
   if (absolute < 100000) {
-    return `${sign}₹${formatValue(absolute, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+    return `${sign}₹${trimTrailingZeros(formatValue(absolute, { minimumFractionDigits: 0, maximumFractionDigits: 2 }))}`;
   }
 
   if (absolute >= 10000000) {
-    return `${sign}₹${formatValue(floorToDecimals(absolute / 10000000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}Cr`;
+    return `${sign}₹${trimTrailingZeros(formatValue(floorToDecimals(absolute / 10000000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}Cr`;
   }
 
   if (absolute >= 100000) {
-    return `${sign}₹${formatValue(floorToDecimals(absolute / 100000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L`;
+    return `${sign}₹${trimTrailingZeros(formatValue(floorToDecimals(absolute / 100000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}L`;
   }
 };
 export const money = (value = 0) => formatCompactIndianCurrency(value);
