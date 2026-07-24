@@ -914,7 +914,23 @@ if (hasFrontendDistBuild) {
 }
 
 if (activeFrontendBuildDir) {
-  app.use(express.static(activeFrontendBuildDir));
+  app.use(express.static(activeFrontendBuildDir, {
+    etag: true,
+    fallthrough: true,
+    maxAge: '1y',
+    immutable: true,
+    setHeaders: (res, filePath) => {
+      const isHtml = path.extname(filePath).toLowerCase() === '.html';
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      if (isHtml) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        return;
+      }
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }));
 }
 
 const storage = multer.diskStorage({
