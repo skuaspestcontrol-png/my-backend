@@ -730,29 +730,6 @@ export default function RenewalDashboard() {
 
   const renderFilters = () => (
     <div style={shell.panel}>
-      <div style={{ ...shell.panelPad, paddingBottom: 10 }}>
-        <div style={shell.searchRow}>
-          <div style={headerSearchStyle}>
-            <div style={headerSearchWrapStyle}>
-              <Search size={16} style={headerSearchIconStyle} />
-              <input
-                type="search"
-                style={headerSearchInputStyle}
-                value={filters.search}
-                onChange={(e) => updateFilter('search', e.target.value)}
-                placeholder="Customer, renewal ID, mobile, area, service..."
-              />
-            </div>
-          </div>
-          <select
-            style={headerSearchScopeStyle}
-            value={filters.searchScope}
-            onChange={(e) => updateFilter('searchScope', e.target.value)}
-          >
-            {searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}
-          </select>
-        </div>
-      </div>
       <div style={{ ...shell.panelPad, ...shell.filters, gridTemplateColumns: isMobile ? '1fr' : shell.filters.gridTemplateColumns, paddingTop: 0 }}>
         <label style={shell.field}><span style={shell.label}>Range</span><select style={shell.input} value={filters.range} onChange={(e) => updateFilter('range', e.target.value)}>{ranges.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Month</span><select style={shell.input} value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>{months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
@@ -1022,6 +999,29 @@ export default function RenewalDashboard() {
       <div style={shell.hero}>
         <div>
           <h1 style={shell.title}>Renewal Dashboard</h1>
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: isMobile ? 'stretch' : 'center' }}>
+          <div style={shell.searchRow}>
+            <div style={headerSearchStyle}>
+              <div style={headerSearchWrapStyle}>
+                <Search size={16} style={headerSearchIconStyle} />
+                <input
+                  type="search"
+                  style={headerSearchInputStyle}
+                  value={filters.search}
+                  onChange={(e) => updateFilter('search', e.target.value)}
+                  placeholder="Customer, renewal ID, mobile, area, service..."
+                />
+              </div>
+            </div>
+            <select
+              style={headerSearchScopeStyle}
+              value={filters.searchScope}
+              onChange={(e) => updateFilter('searchScope', e.target.value)}
+            >
+              {searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}
+            </select>
+          </div>
         </div>
         <div style={shell.actions}>
           <button type="button" style={shell.ghostBtn} onClick={loadData}><RefreshCw size={15} />Refresh</button>
