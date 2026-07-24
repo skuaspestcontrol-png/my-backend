@@ -735,29 +735,34 @@ export default function RenewalDashboard() {
         <label style={shell.field}><span style={shell.label}>Month</span><select style={shell.input} value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>{months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Year</span><select style={shell.input} value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>{statuses.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
-        <label style={shell.field}><span style={shell.label}>Sales Person</span><select style={shell.input} value={filters.assignedSalesPersonId} onChange={(e) => updateFilter('assignedSalesPersonId', e.target.value)}><option value="">All Sales</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
-        <div style={shell.field}>
-          <span style={shell.label}>Search</span>
-          <div style={shell.searchRow}>
-            <div style={headerSearchStyle}>
-              <div style={headerSearchWrapStyle}>
-                <Search size={16} style={headerSearchIconStyle} />
-                <input
-                  type="search"
-                  style={headerSearchInputStyle}
-                  value={filters.search}
-                  onChange={(e) => updateFilter('search', e.target.value)}
-                  placeholder="Customer, renewal ID, mobile, area, service..."
-                />
+        <div style={{ ...shell.field, minWidth: 0 }}>
+          <span style={shell.label}>Sales Person</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8, alignItems: 'start' }}>
+            <select style={shell.input} value={filters.assignedSalesPersonId} onChange={(e) => updateFilter('assignedSalesPersonId', e.target.value)}><option value="">All Sales</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select>
+            <div style={shell.field}>
+              <span style={shell.label}>Search</span>
+              <div style={shell.searchRow}>
+                <div style={headerSearchStyle}>
+                  <div style={headerSearchWrapStyle}>
+                    <Search size={16} style={headerSearchIconStyle} />
+                    <input
+                      type="search"
+                      style={headerSearchInputStyle}
+                      value={filters.search}
+                      onChange={(e) => updateFilter('search', e.target.value)}
+                      placeholder="Customer, renewal ID, mobile, area, service..."
+                    />
+                  </div>
+                </div>
+                <select
+                  style={headerSearchScopeStyle}
+                  value={filters.searchScope}
+                  onChange={(e) => updateFilter('searchScope', e.target.value)}
+                >
+                  {searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}
+                </select>
               </div>
             </div>
-            <select
-              style={headerSearchScopeStyle}
-              value={filters.searchScope}
-              onChange={(e) => updateFilter('searchScope', e.target.value)}
-            >
-              {searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}
-            </select>
           </div>
         </div>
         <div style={headerSearchActionsStyle}>
