@@ -12923,8 +12923,10 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
 
       const sourceInvoice = row.sourceInvoice || row.payload?.sourceInvoice || {};
       const invoiceAddress = String(
-        sourceInvoice.billingAddressText ||
         sourceInvoice.shippingAddressText ||
+        sourceInvoice.shippingAddress ||
+        sourceInvoice.billingAddressText ||
+        sourceInvoice.billingAddress ||
         sourceInvoice.premiseAddress ||
         sourceInvoice.premise_address ||
         ''
@@ -12939,11 +12941,12 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       }) || null;
 
       return String(
-        customer?.billingAddress ||
         customer?.shippingAddress ||
+        customer?.shippingStreet1 ||
+        [customer?.shippingStreet1, customer?.shippingStreet2].filter(Boolean).join(', ') ||
+        customer?.billingAddress ||
         customer?.address ||
         [customer?.billingStreet1, customer?.billingStreet2].filter(Boolean).join(', ') ||
-        [customer?.shippingStreet1, customer?.shippingStreet2].filter(Boolean).join(', ') ||
         [customer?.billingArea, customer?.billingCity, customer?.billingState, customer?.billingPincode].filter(Boolean).join(', ') ||
         ''
       ).trim();
