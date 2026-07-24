@@ -3816,6 +3816,10 @@ const hydrateCustomerMysqlRow = (row = {}) => {
   const idText = row?.id != null ? String(row.id).trim() : '';
   const billingAddress = String(row?.billing_address ?? payload.billingAddress ?? payload.address ?? '').trim();
   const shippingAddress = String(row?.shipping_address ?? payload.shippingAddress ?? '').trim();
+  const billingStreet1 = String(row?.billing_street1 ?? payload.billingStreet1 ?? '').trim();
+  const billingStreet2 = String(row?.billing_street2 ?? payload.billingStreet2 ?? '').trim();
+  const shippingStreet1 = String(row?.shipping_street1 ?? payload.shippingStreet1 ?? '').trim();
+  const shippingStreet2 = String(row?.shipping_street2 ?? payload.shippingStreet2 ?? '').trim();
   const billingArea = String(row?.area_name ?? payload.billingArea ?? payload.area ?? '').trim();
   const billingCity = String(row?.city ?? payload.billingCity ?? payload.city ?? '').trim();
   const shippingCity = String(payload.shippingCity ?? '').trim();
@@ -3829,6 +3833,10 @@ const hydrateCustomerMysqlRow = (row = {}) => {
     billingAddress,
     shippingAddress,
     address: billingAddress,
+    billingStreet1,
+    billingStreet2,
+    shippingStreet1,
+    shippingStreet2,
     billingArea,
     billingCity,
     billingSearchAddress: String(payload.billingSearchAddress ?? payload.searchAddress ?? '').trim(),
@@ -3840,7 +3848,11 @@ const hydrateCustomerMysqlRow = (row = {}) => {
     area: billingArea || String(payload.area || '').trim(),
     city: billingCity,
     state: billingState,
-    pincode: billingPincode
+    pincode: billingPincode,
+    shippingArea: String(payload.shippingArea ?? '').trim(),
+    shippingPincode: String(payload.shippingPincode ?? '').trim(),
+    billingAddressText: String(payload.billingAddressText ?? '').trim(),
+    shippingAddressText: String(payload.shippingAddressText ?? '').trim()
   };
 };
 
@@ -11945,6 +11957,8 @@ const renewalPublicRow = (row = {}) => {
     renewedAt: merged.renewed_at || merged.renewedAt || null,
     convertedContractId: merged.converted_contract_id || merged.convertedContractId || '',
     renewalLetterUrl: merged.renewal_letter_url || merged.renewalLetterUrl || '',
+    payload,
+    sourceInvoice: payload.sourceInvoice || null,
     quotation: merged.quotation ?? null,
     technicianAssignments: Array.isArray(merged.technicianAssignments) ? merged.technicianAssignments : [],
     followUpNotes: normalizeFollowUpNotes(merged.followUpNotes),
@@ -12198,7 +12212,21 @@ const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = n
     customerName: String(invoice.customerName || customer.displayName || customer.name || '').trim(),
     mobileNumber: String(customer.mobileNumber || customer.workPhone || '').trim(),
     email: String(customer.emailId || customer.email || '').trim(),
-    address: String(invoice.billingAddressText || invoice.shippingAddressText || customer.billingAddress || customer.shippingAddress || customer.address || '').trim(),
+    address: String(
+      invoice.shippingAddressText
+      || invoice.shippingAddress
+      || customer.shippingAddressText
+      || customer.shippingAddress
+      || customer.shippingStreet1
+      || [customer.shippingStreet1, customer.shippingStreet2].filter(Boolean).join(', ')
+      || invoice.billingAddressText
+      || invoice.billingAddress
+      || customer.billingAddressText
+      || customer.billingAddress
+      || customer.address
+      || [customer.billingStreet1, customer.billingStreet2].filter(Boolean).join(', ')
+      || ''
+    ).trim(),
     areaName: String(customer.billingArea || customer.areaName || customer.area || '').trim(),
     serviceType: String(body.serviceType || base.serviceType || window.serviceType || 'General Pest Control').trim(),
     status: mapLegacyRenewalStatusToMysql(nextLegacyStatus),
@@ -12472,7 +12500,21 @@ const sourceRenewalCandidates = async () => {
         customerName,
         mobile,
         email: customer.emailId || customer.email || invoice.email || '',
-        address: invoice.billingAddressText || invoice.shippingAddressText || customer.billingAddress || customer.shippingAddress || customer.address || '',
+        address: (
+          invoice.shippingAddressText
+          || invoice.shippingAddress
+          || customer.shippingAddressText
+          || customer.shippingAddress
+          || customer.shippingStreet1
+          || [customer.shippingStreet1, customer.shippingStreet2].filter(Boolean).join(', ')
+          || invoice.billingAddressText
+          || invoice.billingAddress
+          || customer.billingAddressText
+          || customer.billingAddress
+          || customer.address
+          || [customer.billingStreet1, customer.billingStreet2].filter(Boolean).join(', ')
+          || ''
+        ),
         areaName: customer.billingArea || customer.areaName || customer.area || '',
         serviceType: firstItem.itemName || invoice.subject || invoice.serviceType || 'Pest Control Service',
         contractId: invoice._id,
@@ -12915,6 +12957,12 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         row.address ||
         row.billingAddressText ||
         row.shippingAddressText ||
+        row.shippingAddress ||
+        row.billingAddress ||
+        row.shippingStreet1 ||
+        row.shippingStreet2 ||
+        row.billingStreet1 ||
+        row.billingStreet2 ||
         row.premiseAddress ||
         row.premise_address ||
         ''
@@ -12925,8 +12973,12 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       const invoiceAddress = String(
         sourceInvoice.shippingAddressText ||
         sourceInvoice.shippingAddress ||
+        sourceInvoice.shippingStreet1 ||
+        sourceInvoice.shippingStreet2 ||
         sourceInvoice.billingAddressText ||
         sourceInvoice.billingAddress ||
+        sourceInvoice.billingStreet1 ||
+        sourceInvoice.billingStreet2 ||
         sourceInvoice.premiseAddress ||
         sourceInvoice.premise_address ||
         ''
@@ -12942,12 +12994,13 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
 
       return String(
         customer?.shippingAddress ||
+        customer?.shippingAddressText ||
         customer?.shippingStreet1 ||
-        [customer?.shippingStreet1, customer?.shippingStreet2].filter(Boolean).join(', ') ||
+        [customer?.shippingStreet1, customer?.shippingStreet2, customer?.shippingArea, customer?.shippingCity, customer?.shippingState, customer?.shippingPincode].filter(Boolean).join(', ') ||
         customer?.billingAddress ||
+        customer?.billingAddressText ||
         customer?.address ||
-        [customer?.billingStreet1, customer?.billingStreet2].filter(Boolean).join(', ') ||
-        [customer?.billingArea, customer?.billingCity, customer?.billingState, customer?.billingPincode].filter(Boolean).join(', ') ||
+        [customer?.billingStreet1, customer?.billingStreet2, customer?.billingArea, customer?.billingCity, customer?.billingState, customer?.billingPincode].filter(Boolean).join(', ') ||
         ''
       ).trim();
     };
