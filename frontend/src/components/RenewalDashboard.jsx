@@ -937,7 +937,6 @@ export default function RenewalDashboard() {
       <div style={shell.hero}>
         <div>
           <h1 style={shell.title}>Renewal Dashboard</h1>
-          <p style={shell.subtitle}>Expired and expiring customer contracts, follow-ups, renewal letters, and conversion tracking.</p>
         </div>
         <div style={shell.actions}>
           <button type="button" style={shell.ghostBtn} onClick={loadData}><RefreshCw size={15} />Refresh</button>
