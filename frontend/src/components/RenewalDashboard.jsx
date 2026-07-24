@@ -30,6 +30,17 @@ const ranges = [
   { value: 'custom', label: 'Custom Month' },
   { value: 'year', label: 'Year Wise' }
 ];
+const searchScopes = [
+  { value: 'all', label: 'All Fields' },
+  { value: 'customer', label: 'Customer' },
+  { value: 'mobile', label: 'Mobile' },
+  { value: 'area', label: 'Area' },
+  { value: 'service', label: 'Service' },
+  { value: 'salesPerson', label: 'Sales Person' },
+  { value: 'status', label: 'Status' },
+  { value: 'renewalId', label: 'Renewal ID' },
+  { value: 'followup', label: 'Follow-up Note' }
+];
 const tabs = ['Renewal Dashboard', 'Renewal Letters', 'Renewal List', 'Month Wise View', 'Year Wise View', 'Sales Person Wise View'];
 const renewalColumns = [
   { key: 'customer', label: 'Customer' },
@@ -116,6 +127,10 @@ const shell = {
   mobileCustomerStack: { display: 'grid', gap: 2, alignItems: 'start', minWidth: 0 },
   mobileCustomerName: { margin: 0, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' },
   mobileCustomerMobile: { fontSize: 12, color: '#64748b', fontWeight: 700, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  searchRow: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  searchBox: { width: 'min(100%, 420px)', justifySelf: 'center' },
+  searchWrap: { position: 'relative', display: 'block', alignItems: 'center', minWidth: 0, width: '100%', maxWidth: '100%', justifySelf: 'center' },
+  searchIcon: { position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' },
   pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: '#fff' },
   paginationInfo: { color: '#64748b', fontSize: 12, fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: 8 },
@@ -138,6 +153,7 @@ const formatINR = (value) => {
   const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
 };
+const normalizeSearchText = (value) => String(value || '').toLowerCase().trim();
 const serviceShort = (value) => {
   const text = String(value || '').trim();
   if (!text) return '-';
@@ -177,6 +193,19 @@ const months = [
   { value: 'all', label: 'All' },
   ...Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: new Date(currentYear, i, 1).toLocaleString('en-IN', { month: 'short' }) }))
 ];
+const getRenewalSearchText = (row) => [
+  row?.customerName,
+  row?.mobile,
+  row?.areaName,
+  row?.address,
+  row?.serviceType,
+  row?.assignedSalesPersonName,
+  row?.status,
+  row?.renewalId,
+  row?.renewalDisplayId,
+  row?.lastFollowupNote,
+  row?.followupDate
+].map((part) => String(part || '').trim()).filter(Boolean).join(' ').toLowerCase();
 
 const readRenewalDashboardCache = () => {
   try {
@@ -226,6 +255,7 @@ export default function RenewalDashboard() {
     toDate: '',
     status: 'All',
     assignedSalesPersonId: '',
+    searchScope: 'all',
     search: ''
   });
   const loadRequestRef = useRef(0);
@@ -647,7 +677,7 @@ export default function RenewalDashboard() {
     loadData(next);
   };
   const resetFilters = () => {
-    const next = { range: 'custom', month: 'all', year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', search: '' };
+    const next = { range: 'custom', month: 'all', year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', searchScope: 'all', search: '' };
     setPage(1);
     setFilters(next);
     loadData(next);
@@ -665,16 +695,71 @@ export default function RenewalDashboard() {
     ['Assigned Sales Person', summary.assignedSalesPersonCount || 0]
   ];
 
+  const headerSearchStyle = isMobile
+    ? { width: '100%', maxWidth: '100%' }
+    : { width: 'min(100%, 420px)', justifySelf: 'center' };
+  const headerSearchInputStyle = {
+    ...shell.input,
+    height: '36px',
+    minHeight: '36px',
+    paddingLeft: '38px'
+  };
+  const headerSearchWrapStyle = {
+    position: 'relative',
+    display: 'block',
+    alignItems: 'center',
+    minWidth: 0,
+    width: '100%',
+    maxWidth: '100%',
+    justifySelf: 'center'
+  };
+  const headerSearchIconStyle = {
+    position: 'absolute',
+    left: '12px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#94a3b8',
+    pointerEvents: 'none'
+  };
+  const headerSearchScopeStyle = isMobile
+    ? { ...shell.input, height: '36px', minHeight: '36px', width: '100%' }
+    : { ...shell.input, height: '36px', minHeight: '36px', width: '180px', flex: '0 0 180px' };
+  const headerSearchActionsStyle = isMobile
+    ? { ...shell.actions, justifyContent: 'stretch', width: '100%' }
+    : { ...shell.actions, justifyContent: 'flex-end' };
+
   const renderFilters = () => (
     <div style={shell.panel}>
-      <div style={{ ...shell.panelPad, ...shell.filters, gridTemplateColumns: isMobile ? '1fr' : shell.filters.gridTemplateColumns }}>
+      <div style={{ ...shell.panelPad, paddingBottom: 10 }}>
+        <div style={shell.searchRow}>
+          <div style={headerSearchStyle}>
+            <div style={headerSearchWrapStyle}>
+              <Search size={16} style={headerSearchIconStyle} />
+              <input
+                type="search"
+                style={headerSearchInputStyle}
+                value={filters.search}
+                onChange={(e) => updateFilter('search', e.target.value)}
+                placeholder="Customer, renewal ID, mobile, area, service..."
+              />
+            </div>
+          </div>
+          <select
+            style={headerSearchScopeStyle}
+            value={filters.searchScope}
+            onChange={(e) => updateFilter('searchScope', e.target.value)}
+          >
+            {searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={{ ...shell.panelPad, ...shell.filters, gridTemplateColumns: isMobile ? '1fr' : shell.filters.gridTemplateColumns, paddingTop: 0 }}>
         <label style={shell.field}><span style={shell.label}>Range</span><select style={shell.input} value={filters.range} onChange={(e) => updateFilter('range', e.target.value)}>{ranges.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Month</span><select style={shell.input} value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>{months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Year</span><select style={shell.input} value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>{statuses.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Sales Person</span><select style={shell.input} value={filters.assignedSalesPersonId} onChange={(e) => updateFilter('assignedSalesPersonId', e.target.value)}><option value="">All Sales</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
-        <label style={shell.field}><span style={shell.label}>Search</span><span style={{ position: 'relative' }}><Search size={14} style={{ position: 'absolute', left: 8, top: 10, color: '#94a3b8' }} /><input style={{ ...shell.input, paddingLeft: 28 }} value={filters.search} onChange={(e) => updateFilter('search', e.target.value)} placeholder="Customer/mobile/service" /></span></label>
-        <div style={{ ...shell.actions, justifyContent: isMobile ? 'stretch' : 'flex-end' }}>
+        <div style={headerSearchActionsStyle}>
           <button type="button" style={shell.primaryBtn} onClick={applyFilters}>Apply</button>
           <button type="button" style={shell.ghostBtn} onClick={resetFilters}>Reset</button>
         </div>

@@ -12417,6 +12417,11 @@ const applyRenewalFilters = (rows, query = {}) => {
     }
   }
   const search = String(query.search || '').trim().toLowerCase();
+  const searchScope = String(query.searchScope || 'all').trim().toLowerCase();
+  const normalizedSearchScope = ({
+    salesperson: 'salesPerson',
+    renewalid: 'renewalId'
+  })[searchScope] || searchScope;
   const status = String(query.status || '').trim();
   const assigned = String(query.assignedSalesPersonId || '').trim();
   return rows.filter((row) => {
@@ -12426,7 +12431,30 @@ const applyRenewalFilters = (rows, query = {}) => {
     if (status && status !== 'All' && row.status !== status) return false;
     if (assigned && String(row.assignedSalesPersonId || '') !== assigned && String(row.assignedSalesPersonName || '') !== assigned) return false;
     if (search) {
-      const hay = `${row.customerName} ${row.mobile} ${row.serviceType} ${row.areaName}`.toLowerCase();
+      const haystacks = {
+        all: [
+          row.customerName,
+          row.mobile,
+          row.areaName,
+          row.address,
+          row.serviceType,
+          row.assignedSalesPersonName,
+          row.status,
+          row.renewalId,
+          row.renewalDisplayId,
+          row.lastFollowupNote,
+          row.followupDate
+        ],
+        customer: [row.customerName],
+        mobile: [row.mobile],
+        area: [row.areaName, row.address],
+        service: [row.serviceType],
+        salesperson: [row.assignedSalesPersonName],
+        status: [row.status],
+        renewalid: [row.renewalId, row.renewalDisplayId],
+        followup: [row.lastFollowupNote, row.followupDate]
+      };
+      const hay = String((haystacks[normalizedSearchScope] || haystacks.all).filter(Boolean).join(' ')).toLowerCase();
       if (!hay.includes(search)) return false;
     }
     return true;
