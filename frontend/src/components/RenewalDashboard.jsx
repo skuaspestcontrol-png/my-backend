@@ -747,7 +747,7 @@ export default function RenewalDashboard() {
 
   const renderFilters = () => (
     <div style={shell.panel}>
-      <div style={{ ...shell.panelPad, ...shell.filters, gridTemplateColumns: isMobile ? '1fr' : shell.filters.gridTemplateColumns, paddingTop: 0 }}>
+      <div style={{ ...shell.panelPad, ...shell.filters, gridTemplateColumns: isMobile ? '1fr' : shell.filters.gridTemplateColumns, padding: '10px 12px 12px' }}>
         <label style={shell.field}><span style={shell.label}>Range</span><select style={shell.input} value={filters.range} onChange={(e) => updateFilter('range', e.target.value)}>{ranges.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Month</span><select style={shell.input} value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>{months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Year</span><select style={shell.input} value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
