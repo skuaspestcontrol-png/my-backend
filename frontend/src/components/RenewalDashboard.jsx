@@ -697,7 +697,7 @@ export default function RenewalDashboard() {
 
   const headerSearchStyle = isMobile
     ? { width: '100%', maxWidth: '100%' }
-    : { width: 'min(100%, 420px)', justifySelf: 'center' };
+    : { width: '420px', minWidth: '420px', maxWidth: '420px', height: '36px', justifySelf: 'center' };
   const headerSearchInputStyle = {
     ...shell.input,
     height: '36px',
@@ -709,8 +709,9 @@ export default function RenewalDashboard() {
     display: 'block',
     alignItems: 'center',
     minWidth: 0,
-    width: '100%',
-    maxWidth: '100%',
+    width: isMobile ? '100%' : '420px',
+    maxWidth: isMobile ? '100%' : '420px',
+    height: '36px',
     justifySelf: 'center'
   };
   const headerSearchIconStyle = {
@@ -732,10 +733,8 @@ export default function RenewalDashboard() {
         <label style={shell.field}><span style={shell.label}>Month</span><select style={shell.input} value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>{months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Year</span><select style={shell.input} value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>{statuses.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
-        <div style={{ ...shell.field, gap: 8 }}>
-          <label style={shell.field}><span style={shell.label}>Sales Person</span><select style={shell.input} value={filters.assignedSalesPersonId} onChange={(e) => updateFilter('assignedSalesPersonId', e.target.value)}><option value="">All Sales</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
-          <label style={shell.field}><span style={shell.label}>All Fields</span><select style={shell.input} value={filters.searchScope} onChange={(e) => updateFilter('searchScope', e.target.value)}>{searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}</select></label>
-        </div>
+        <label style={shell.field}><span style={shell.label}>Sales Person</span><select style={shell.input} value={filters.assignedSalesPersonId} onChange={(e) => updateFilter('assignedSalesPersonId', e.target.value)}><option value="">All Sales</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>All Fields</span><select style={shell.input} value={filters.searchScope} onChange={(e) => updateFilter('searchScope', e.target.value)}>{searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}</select></label>
         <div style={headerSearchActionsStyle}>
           <button type="button" style={shell.primaryBtn} onClick={applyFilters}>Apply</button>
           <button type="button" style={shell.ghostBtn} onClick={resetFilters}>Reset</button>
