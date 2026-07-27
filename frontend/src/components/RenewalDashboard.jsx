@@ -259,6 +259,8 @@ export default function RenewalDashboard() {
     search: ''
   });
   const loadRequestRef = useRef(0);
+  const initialSearchSyncRef = useRef(true);
+  const skipNextSearchSyncRef = useRef(false);
   const sortedLetters = useMemo(() => {
     const toLetterDateValue = (letter) => {
       const raw = letter?.conclude_date || letter?.concludeDate || letter?.generated_at || letter?.generatedAt || '';
@@ -679,9 +681,26 @@ export default function RenewalDashboard() {
   const resetFilters = () => {
     const next = { range: 'custom', month: 'all', year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', searchScope: 'all', search: '' };
     setPage(1);
+    skipNextSearchSyncRef.current = true;
     setFilters(next);
     loadData(next);
   };
+
+  useEffect(() => {
+    if (initialSearchSyncRef.current) {
+      initialSearchSyncRef.current = false;
+      return;
+    }
+    if (skipNextSearchSyncRef.current) {
+      skipNextSearchSyncRef.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setPage(1);
+      loadData({ ...filters }, { silent: true, autoGenerateLetters: false });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [filters.search, filters.searchScope]);
 
   const stats = [
     ['Total Renewals', summary.totalRenewals || 0],
