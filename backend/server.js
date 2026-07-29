@@ -13241,10 +13241,14 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       .map(buildServiceLine)
       .filter((line) => line.name && (line.amountWithoutGst > 0 || line.amountWithGst > 0));
     const fallbackAmountWithoutGst = renewalAmountWithGst > 0 ? renewalAmountWithGst / 1.18 : 0;
-    const serviceLines = serviceLinesFromInvoice.length > 0
-      ? serviceLinesFromInvoice
-      : [{ serial: 1, name: serviceName, amountWithoutGst: fallbackAmountWithoutGst, amountWithGst: renewalAmountWithGst }];
-    const amountWithGst = serviceLines.reduce((sum, line) => sum + toNumber(line.amountWithGst, 0), 0) || renewalAmountWithGst;
+    const serviceLines = renewalAmountWithGst > 0
+      ? [{ serial: 1, name: serviceName, amountWithoutGst: fallbackAmountWithoutGst, amountWithGst: renewalAmountWithGst }]
+      : (serviceLinesFromInvoice.length > 0
+        ? serviceLinesFromInvoice
+        : [{ serial: 1, name: serviceName, amountWithoutGst: fallbackAmountWithoutGst, amountWithGst: renewalAmountWithGst }]);
+    const amountWithGst = renewalAmountWithGst > 0
+      ? renewalAmountWithGst
+      : (serviceLines.reduce((sum, line) => sum + toNumber(line.amountWithGst, 0), 0) || renewalAmountWithGst);
     const formatTableAmount = (value) => `${Math.round(toNumber(value, 0)).toLocaleString('en-IN')}/-`;
     const formatTableAmountWords = (value) => {
       const words = amountToWords(Math.round(toNumber(value, 0)));
