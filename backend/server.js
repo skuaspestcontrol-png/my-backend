@@ -13058,16 +13058,18 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       doc.y += 5;
     };
     const drawInlineParagraph = (segments) => {
-      let cursorX = pageLeft;
-      const cursorY = doc.y;
       segments.forEach((segment, index) => {
-        doc.font(segment.bold ? pdfFont.bold : pdfFont.regular).fontSize(segment.fontSize || 9.6).fillColor('#111827').text(String(segment.text || ''), cursorX, cursorY, {
+        const textOptions = {
           width: contentWidth,
           align: 'justify',
           lineGap: 1,
           continued: index < segments.length - 1
-        });
-        cursorX = doc.x;
+        };
+        if (index === 0) {
+          doc.font(segment.bold ? pdfFont.bold : pdfFont.regular).fontSize(segment.fontSize || 9.6).fillColor('#111827').text(String(segment.text || ''), pageLeft, doc.y, textOptions);
+        } else {
+          doc.font(segment.bold ? pdfFont.bold : pdfFont.regular).fontSize(segment.fontSize || 9.6).fillColor('#111827').text(String(segment.text || ''), textOptions);
+        }
       });
       doc.y += 5;
     };
