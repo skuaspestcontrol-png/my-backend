@@ -13061,7 +13061,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       const startY = doc.y;
       const maxHeight = segments.reduce((height, segment) => {
         const fontName = segment.bold ? pdfFont.bold : pdfFont.regular;
-        doc.font(fontName).fontSize(9.6);
+        doc.font(fontName).fontSize(segment.fontSize || 9.6);
         return Math.max(height, doc.heightOfString(String(segment.text || ''), {
           width: contentWidth,
           align: 'justify',
@@ -13071,7 +13071,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       let cursorX = pageLeft;
       let cursorY = startY;
       segments.forEach((segment, index) => {
-        doc.font(segment.bold ? pdfFont.bold : pdfFont.regular).fontSize(9.6).fillColor('#111827').text(String(segment.text || ''), cursorX, cursorY, {
+        doc.font(segment.bold ? pdfFont.bold : pdfFont.regular).fontSize(segment.fontSize || 9.6).fillColor('#111827').text(String(segment.text || ''), cursorX, cursorY, {
           width: contentWidth,
           align: 'justify',
           lineGap: 1,
@@ -13082,11 +13082,21 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       });
       doc.y = startY + maxHeight + 7;
     };
+    const fitTextFontSize = (text, fontName, maxWidth, maxSize = 9.6, minSize = 7.2) => {
+      const safeText = String(text || '').trim();
+      if (!safeText) return maxSize;
+      for (let size = maxSize; size >= minSize; size -= 0.1) {
+        doc.font(fontName).fontSize(size);
+        if (doc.widthOfString(safeText) <= maxWidth) return Number(size.toFixed(1));
+      }
+      return minSize;
+    };
     doc.font(pdfFont.bold).fontSize(9.6).fillColor('#111827').text(`Dear ${renewal.customerName || 'Customer'},`, pageLeft, doc.y, { width: contentWidth });
     doc.y += 8;
+    const renewalAddressFontSize = fitTextFontSize(renewalAddressText, pdfFont.bold, Math.max(120, contentWidth * 0.75), 9.4, 7.4);
     drawInlineParagraph([
       { text: 'It is our privilege to have been of service to you over the past year at ', bold: false },
-      { text: renewalAddressText, bold: true }
+      { text: renewalAddressText, bold: true, fontSize: renewalAddressFontSize }
     ]);
     drawParagraph('We value our association and trust you have found our services exemplary and to your complete satisfaction.');
     drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
