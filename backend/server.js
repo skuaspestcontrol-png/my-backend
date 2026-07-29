@@ -13199,7 +13199,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     doc.font(pdfFont.bold).fontSize(totalTextFontSize);
     const leftTotalTextHeight = doc.heightOfString(leftTotalText, { width: Math.max(0, leftTotalWidth - 10), align: 'left', lineGap: 1 });
     const rightTotalTextHeight = doc.heightOfString(rightTotalText, { width: Math.max(0, rightTotalWidth - 10), align: 'center', lineGap: 1 });
-    const mergedTotalRowHeight = Math.max(44, Math.ceil(Math.max(leftTotalTextHeight, rightTotalTextHeight) + 14));
+    const mergedTotalRowHeight = Math.max(56, Math.ceil(Math.max(leftTotalTextHeight, rightTotalTextHeight) + 14));
     drawWrappedTableCell(tableX, totalY, leftTotalWidth, mergedTotalRowHeight, leftTotalText, { bold: true, fontSize: totalTextFontSize, align: 'left', lineGap: 1.2, paddingY: 5 });
     drawWrappedTableCell(tableX + leftTotalWidth, totalY, rightTotalWidth, mergedTotalRowHeight, rightTotalText, { bold: true, fontSize: totalTextFontSize, align: 'center', lineGap: 1.2, paddingY: 5 });
     doc.y = totalY + mergedTotalRowHeight + 12;
