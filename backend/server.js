@@ -2065,6 +2065,39 @@ const sanitizePdfAddress = (value, identities = []) => {
   return text;
 };
 
+const cleanRenewalStoredAddressRecord = (record = {}) => {
+  const payload = record?.payload && typeof record.payload === 'object'
+    ? { ...record.payload }
+    : parseMysqlPayloadObject(record?.payload) || {};
+  const merged = { ...payload, ...record };
+  const identities = [
+    merged.customerName,
+    merged.customer_name,
+    merged.contactPersonName,
+    merged.contact_person_name,
+    merged.attentionName,
+    merged.attention_name
+  ];
+  const originalAddress = String(
+    merged.address ||
+    merged.billingAddressText ||
+    merged.shippingAddressText ||
+    ''
+  ).trim();
+  const cleanedAddress = sanitizePdfAddress(originalAddress, identities);
+  const nextPayload = Object.keys(payload).length > 0
+    ? { ...payload, address: cleanedAddress }
+    : payload;
+  return {
+    changed: cleanedAddress !== originalAddress,
+    record: {
+      ...record,
+      address: cleanedAddress,
+      payload: Object.keys(nextPayload).length > 0 ? nextPayload : record.payload
+    }
+  };
+};
+
 const normalizePdfChemicalRows = (rows = []) => (Array.isArray(rows) ? rows : []).map((row) => ({
   materialName: String(row?.material_name || row?.materialName || row?.chemicalName || row?.name || row?.itemName || '').trim(),
   quantityUsed: String(row?.quantity_used ?? row?.quantityUsed ?? row?.quantity ?? '').trim(),
@@ -9412,6 +9445,14 @@ const buildRenewalDataset = () => {
   const jobs = readJsonFile(jobsFile, []);
   const payments = readJsonFile(paymentsFile, []);
   const storedRecords = readJsonFile(renewalsFile, []);
+  const normalizedStoredRecords = [];
+  let storedRecordsChanged = false;
+  storedRecords.forEach((entry) => {
+    const cleaned = cleanRenewalStoredAddressRecord(entry);
+    normalizedStoredRecords.push(cleaned.record);
+    if (cleaned.changed) storedRecordsChanged = true;
+  });
+  if (storedRecordsChanged) saveRenewalRecords(normalizedStoredRecords);
   const today = parseDateOnly(new Date());
   const customerById = new Map();
   const customerByName = new Map();
@@ -9424,7 +9465,7 @@ const buildRenewalDataset = () => {
   });
 
   const renewalByInvoiceId = new Map();
-  storedRecords.forEach((entry) => {
+  normalizedStoredRecords.forEach((entry) => {
     const invoiceId = String(entry?.invoiceId || '').trim();
     if (!invoiceId) return;
     renewalByInvoiceId.set(invoiceId, entry);
@@ -9527,6 +9568,50 @@ const buildRenewalDataset = () => {
 
 const saveRenewalRecords = (records) => {
   fs.writeFileSync(renewalsFile, JSON.stringify(records, null, 2));
+};
+
+let renewalAddressCleanupPromise = null;
+const cleanupStoredRenewalAddresses = async () => {
+  if (renewalAddressCleanupPromise) return renewalAddressCleanupPromise;
+  renewalAddressCleanupPromise = (async () => {
+    if (canUseMysql()) {
+      await withMysqlConnection(async (conn) => {
+        await ensureRenewalTables(conn);
+        const [rows] = await conn.query('SELECT id, address, customer_name, payload FROM renewals');
+        for (const row of Array.isArray(rows) ? rows : []) {
+          const cleaned = cleanRenewalStoredAddressRecord({
+            ...row,
+            payload: parseMysqlPayloadObject(row.payload) || {}
+          });
+          if (!cleaned.changed) continue;
+          await conn.query(
+            'UPDATE renewals SET address = ?, payload = ? WHERE id = ?',
+            [
+              cleaned.record.address || null,
+              JSON.stringify(cleaned.record.payload || {}),
+              row.id
+            ]
+          );
+        }
+      });
+      return;
+    }
+
+    const records = readJsonFile(renewalsFile, []);
+    const cleanedRecords = [];
+    let changed = false;
+    records.forEach((record) => {
+      const cleaned = cleanRenewalStoredAddressRecord(record);
+      cleanedRecords.push(cleaned.record);
+      if (cleaned.changed) changed = true;
+    });
+    if (changed) saveRenewalRecords(cleanedRecords);
+  })().catch((error) => {
+    console.error('Failed to clean renewal addresses:', error.message);
+  }).finally(() => {
+    renewalAddressCleanupPromise = null;
+  });
+  return renewalAddressCleanupPromise;
 };
 
 const appendFollowUpNote = (record, note, createdBy = 'System') => {
@@ -12146,6 +12231,7 @@ const ensureRenewalTables = async (conn) => {
   await ensureIndex('renewal_letters', 'idx_renewal_letters_renewal_id', 'CREATE INDEX idx_renewal_letters_renewal_id ON renewal_letters (renewal_id)');
 };
 const loadRenewalRows = async () => {
+  await cleanupStoredRenewalAddresses();
   if (!canUseMysql()) {
     const { list } = buildRenewalDataset();
     return list.map((row) => renewalPublicRow({
@@ -12184,6 +12270,7 @@ const loadRenewalRows = async () => {
 const findRenewalRow = async (id) => {
   const lookup = String(id || '').trim();
   if (!lookup) return null;
+  await cleanupStoredRenewalAddresses();
   if (!canUseMysql()) return (await loadRenewalRows()).find((row) => row.renewalId === lookup || String(row.id) === lookup) || null;
   return withMysqlConnection(async (conn) => {
     await ensureRenewalTables(conn);
