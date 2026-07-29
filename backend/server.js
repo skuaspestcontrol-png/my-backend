@@ -13055,7 +13055,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         align: 'justify',
         lineGap: 1
       });
-      doc.y += 7;
+      doc.y += 5;
     };
     const drawInlineParagraph = (segments) => {
       const startY = doc.y;
@@ -13080,7 +13080,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         cursorX = doc.x;
         cursorY = doc.y;
       });
-      doc.y = startY + maxHeight + 7;
+      doc.y = startY + maxHeight + 5;
     };
     const fitTextFontSize = (text, fontName, maxWidth, maxSize = 9.6, minSize = 7.2) => {
       const safeText = String(text || '').trim();
