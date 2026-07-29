@@ -13091,9 +13091,9 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     doc.y += 8;
     drawInlineParagraph([
       { text: 'It is our privilege to have been of service to you over the past year at ', bold: false },
-      { text: renewalAddressLine, bold: true, fontSize: renewalAddressFontSize }
+      { text: renewalAddressLine, bold: true, fontSize: renewalAddressFontSize },
+      { text: ' We value our association and trust you have found our services exemplary and to your complete satisfaction.', bold: false }
     ]);
-    drawParagraph('We value our association and trust you have found our services exemplary and to your complete satisfaction.');
     drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
     const renewalAmountWithGst = Math.max(0, toNumber(renewal.proposedAmount, 0));
     const buildServiceLine = (item, index) => {
