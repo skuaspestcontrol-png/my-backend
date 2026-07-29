@@ -13038,6 +13038,9 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       return { address: '', source: 'missing' };
     };
     const { address: customerAddress, source: customerAddressSource } = await resolveRenewalAddress(renewal);
+    const renewalAddressText = String(customerAddress || '(Mention Customer Shipping Address)')
+      .replace(/\s+/g, ' ')
+      .trim();
     console.info('[renewal-letter] address source', {
       renewalId: renewalDisplayId || renewal.renewalId || renewal.renewal_id || renewal._id || '',
       customerName: renewal.customerName || '',
@@ -13081,13 +13084,10 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     };
     doc.font(pdfFont.bold).fontSize(9.6).fillColor('#111827').text(`Dear ${renewal.customerName || 'Customer'},`, pageLeft, doc.y, { width: contentWidth });
     doc.y += 8;
-    drawParagraph('It is our privilege to have been of service to you over the past year at');
-    doc.font(pdfFont.bold).fontSize(9.6).fillColor('#111827').text(customerAddress || '(Mention Customer Shipping Address)', pageLeft, doc.y, {
-      width: contentWidth,
-      align: 'left',
-      lineGap: 1
-    });
-    doc.y += 4;
+    drawInlineParagraph([
+      { text: 'It is our privilege to have been of service to you over the past year at ', bold: false },
+      { text: renewalAddressText, bold: true }
+    ]);
     drawParagraph('We value our association and trust you have found our services exemplary and to your complete satisfaction.');
     drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
     const renewalAmountWithGst = Math.max(0, toNumber(renewal.proposedAmount, 0));
