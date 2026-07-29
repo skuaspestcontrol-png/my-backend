@@ -13087,7 +13087,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         ? 8.7
         : 9.0;
     const renewalAddressLine = renewalAddressText.endsWith('.') ? renewalAddressText : `${renewalAddressText}.`;
-    doc.font(pdfFont.bold).fontSize(9.6).fillColor('#111827').text(`Dear ${renewal.customerName || 'Customer'},`, pageLeft, doc.y, { width: contentWidth });
+    doc.font(pdfFont.bold).fontSize(9.6).fillColor('#111827').text('Dear Customer,', pageLeft, doc.y, { width: contentWidth });
     doc.y += 8;
     drawInlineParagraph([
       { text: 'It is our privilege to have been of service to you over the past year at ', bold: false },
