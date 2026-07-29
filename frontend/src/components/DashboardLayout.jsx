@@ -1145,7 +1145,7 @@ export default function DashboardLayout({ children }) {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: '12px',
-                background: '#0f172a',
+                background: 'linear-gradient(135deg, var(--color-primary-deep), var(--color-primary))',
                 color: '#fff'
               }}
             >
