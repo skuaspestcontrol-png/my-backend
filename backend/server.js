@@ -2046,6 +2046,25 @@ const joinPdfAddress = (...parts) => {
   return text || '-';
 };
 
+const sanitizePdfAddress = (value, identities = []) => {
+  let text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  const candidateNames = Array.from(new Set((Array.isArray(identities) ? identities : [])
+    .map((entry) => String(entry || '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)))
+    .sort((a, b) => b.length - a.length);
+
+  for (const identity of candidateNames) {
+    const lowerText = text.toLowerCase();
+    const lowerIdentity = identity.toLowerCase();
+    if (!lowerIdentity || !lowerText.startsWith(lowerIdentity)) continue;
+    text = text.slice(identity.length).replace(/^[\s,;:-]+/, '').trim();
+    break;
+  }
+
+  return text;
+};
+
 const normalizePdfChemicalRows = (rows = []) => (Array.isArray(rows) ? rows : []).map((row) => ({
   materialName: String(row?.material_name || row?.materialName || row?.chemicalName || row?.name || row?.itemName || '').trim(),
   quantityUsed: String(row?.quantity_used ?? row?.quantityUsed ?? row?.quantity ?? '').trim(),
@@ -11932,7 +11951,10 @@ const renewalPublicRow = (row = {}) => {
     mobile: merged.mobile || merged.mobileNumber || '',
     mobileNumber: merged.mobile || merged.mobileNumber || '',
     email: merged.email || merged.emailId || '',
-    address: merged.address || merged.billingAddressText || merged.shippingAddressText || '',
+    address: sanitizePdfAddress(
+      merged.address || merged.billingAddressText || merged.shippingAddressText || '',
+      [merged.customerName, merged.contactPersonName, merged.attentionName]
+    ),
     areaName: merged.area_name || merged.areaName || merged.billingArea || '',
     serviceType: merged.service_type || merged.serviceType || '',
     contractId: merged.contract_id || merged.contractId || merged.invoiceId || '',
@@ -12203,7 +12225,7 @@ const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = n
     channels: normalizeReminderChannelList(body.reminderPlan?.channels ?? base.reminderPlan?.channels),
     nextReminderDate: toDateInputSafe(body.reminderPlan?.nextReminderDate ?? base.reminderPlan?.nextReminderDate)
   };
-  const nextRecord = {
+    const nextRecord = {
     _id: String(base._id || renewalIdFromContract(invoice._id, invoice.customerName || '')).trim(),
     renewalDisplayId: String(base.renewalDisplayId || base.renewal_display_id || '').trim(),
     invoiceId: String(invoice._id || '').trim(),
@@ -12212,7 +12234,8 @@ const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = n
     customerName: String(invoice.customerName || customer.displayName || customer.name || '').trim(),
     mobileNumber: String(customer.mobileNumber || customer.workPhone || '').trim(),
     email: String(customer.emailId || customer.email || '').trim(),
-    address: String(
+    address: sanitizePdfAddress(
+      String(
       invoice.shippingAddressText
       || invoice.shippingAddress
       || customer.shippingAddressText
@@ -12226,7 +12249,9 @@ const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = n
       || customer.address
       || [customer.billingStreet1, customer.billingStreet2].filter(Boolean).join(', ')
       || ''
-    ).trim(),
+    ),
+      [invoice.customerName, customer.displayName, customer.name, customer.contactPersonName, customer.attentionName]
+    ),
     areaName: String(customer.billingArea || customer.areaName || customer.area || '').trim(),
     serviceType: String(body.serviceType || base.serviceType || window.serviceType || 'General Pest Control').trim(),
     status: mapLegacyRenewalStatusToMysql(nextLegacyStatus),
@@ -12528,7 +12553,8 @@ const sourceRenewalCandidates = async () => {
         customerName,
         mobile,
         email: customer.emailId || customer.email || invoice.email || '',
-        address: (
+        address: sanitizePdfAddress(
+          (
           invoice.shippingAddressText
           || invoice.shippingAddress
           || customer.shippingAddressText
@@ -12542,6 +12568,8 @@ const sourceRenewalCandidates = async () => {
           || customer.address
           || [customer.billingStreet1, customer.billingStreet2].filter(Boolean).join(', ')
           || ''
+          ),
+          [customerName, customer.displayName, customer.name, customer.contactPersonName, customer.attentionName, invoice.customerName]
         ),
         areaName: customer.billingArea || customer.areaName || customer.area || '',
         serviceType: firstItem.itemName || invoice.subject || invoice.serviceType || 'Pest Control Service',
@@ -12995,7 +13023,12 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         row.premise_address ||
         ''
       ).trim();
-      if (directAddress) return { address: directAddress, source: 'renewal.row' };
+      if (directAddress) {
+        return {
+          address: sanitizePdfAddress(directAddress, [row.customerName, row.contactPersonName, row.attentionName]),
+          source: 'renewal.row'
+        };
+      }
 
       const sourceInvoice = row.sourceInvoice || row.payload?.sourceInvoice || {};
       const invoiceAddress = String(
@@ -13011,7 +13044,12 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         sourceInvoice.premise_address ||
         ''
       ).trim();
-      if (invoiceAddress) return { address: invoiceAddress, source: 'source.invoice' };
+      if (invoiceAddress) {
+        return {
+          address: sanitizePdfAddress(invoiceAddress, [row.customerName, sourceInvoice.customerName, sourceInvoice.contactPersonName, sourceInvoice.attentionName]),
+          source: 'source.invoice'
+        };
+      }
 
       const customers = await loadCustomersForContext();
       const customer = (Array.isArray(customers) ? customers : []).find((entry) => {
@@ -13020,7 +13058,8 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         return idMatch || nameMatch;
       }) || null;
 
-      return String(
+      const customerAddress = sanitizePdfAddress(
+        String(
         customer?.shippingAddress ||
         customer?.shippingAddressText ||
         customer?.shippingStreet1 ||
@@ -13030,7 +13069,9 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         customer?.address ||
         [customer?.billingStreet1, customer?.billingStreet2, customer?.billingArea, customer?.billingCity, customer?.billingState, customer?.billingPincode].filter(Boolean).join(', ') ||
         ''
-      ).trim();
+        ),
+        [row.customerName, customer?.displayName, customer?.name, customer?.contactPersonName, customer?.attentionName]
+      );
       if (customerAddress) {
         return { address: customerAddress, source: 'customer.shipping' };
       }
