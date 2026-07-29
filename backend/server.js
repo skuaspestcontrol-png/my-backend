@@ -13071,11 +13071,16 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       });
       doc.y += 5;
     };
+    const renewalAddressFontSize = renewalAddressText.length > 95
+      ? 8.4
+      : renewalAddressText.length > 72
+        ? 8.7
+        : 9.0;
     doc.font(pdfFont.bold).fontSize(9.6).fillColor('#111827').text(`Dear ${renewal.customerName || 'Customer'},`, pageLeft, doc.y, { width: contentWidth });
     doc.y += 8;
     drawInlineParagraph([
       { text: 'It is our privilege to have been of service to you over the past year at ', bold: false },
-      { text: renewalAddressText, bold: true },
+      { text: renewalAddressText, bold: true, fontSize: renewalAddressFontSize },
       { text: ' We value our association and trust you have found our services exemplary and to your complete satisfaction.', bold: false }
     ]);
     drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
