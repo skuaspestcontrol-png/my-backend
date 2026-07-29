@@ -13058,6 +13058,16 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       doc.y += 5;
     };
     const drawInlineParagraph = (segments) => {
+      const startY = doc.y;
+      const textSize = Math.max(...segments.map((segment) => Number(segment.fontSize || 9.6) || 9.6));
+      const combinedText = segments.map((segment) => String(segment.text || '')).join('');
+      doc.font(pdfFont.regular).fontSize(textSize);
+      const measuredHeight = doc.heightOfString(combinedText, {
+        width: contentWidth,
+        align: 'justify',
+        lineGap: 1
+      });
+
       segments.forEach((segment, index) => {
         const textOptions = {
           width: contentWidth,
@@ -13065,26 +13075,25 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
           lineGap: 1,
           continued: index < segments.length - 1
         };
-        if (index === 0) {
-          doc.font(segment.bold ? pdfFont.bold : pdfFont.regular).fontSize(segment.fontSize || 9.6).fillColor('#111827').text(String(segment.text || ''), pageLeft, doc.y, textOptions);
-        } else {
-          doc.font(segment.bold ? pdfFont.bold : pdfFont.regular).fontSize(segment.fontSize || 9.6).fillColor('#111827').text(String(segment.text || ''), textOptions);
-        }
+        const renderY = index === 0 ? startY : doc.y;
+        doc.font(segment.bold ? pdfFont.bold : pdfFont.regular).fontSize(segment.fontSize || 9.6).fillColor('#111827').text(String(segment.text || ''), pageLeft, renderY, textOptions);
       });
-      doc.y += 5;
+
+      doc.y = startY + measuredHeight + 5;
     };
     const renewalAddressFontSize = renewalAddressText.length > 95
       ? 8.4
       : renewalAddressText.length > 72
         ? 8.7
         : 9.0;
+    const renewalAddressLine = renewalAddressText.endsWith('.') ? renewalAddressText : `${renewalAddressText}.`;
     doc.font(pdfFont.bold).fontSize(9.6).fillColor('#111827').text(`Dear ${renewal.customerName || 'Customer'},`, pageLeft, doc.y, { width: contentWidth });
     doc.y += 8;
     drawInlineParagraph([
       { text: 'It is our privilege to have been of service to you over the past year at ', bold: false },
-      { text: renewalAddressText, bold: true, fontSize: renewalAddressFontSize },
-      { text: ' We value our association and trust you have found our services exemplary and to your complete satisfaction.', bold: false }
+      { text: renewalAddressLine, bold: true, fontSize: renewalAddressFontSize }
     ]);
+    drawParagraph('We value our association and trust you have found our services exemplary and to your complete satisfaction.');
     drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
     const renewalAmountWithGst = Math.max(0, toNumber(renewal.proposedAmount, 0));
     const buildServiceLine = (item, index) => {
