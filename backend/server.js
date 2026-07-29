@@ -12881,7 +12881,7 @@ app.post('/api/renewals/:id/edit', async (req, res) => {
       await ensureRenewalTables(conn);
       await conn.query(
         `UPDATE renewals
-         SET service_type = ?, renewal_due_date = ?, proposed_amount = ?, status = ?, last_followup_note = ?
+         SET service_type = ?, renewal_due_date = ?, proposed_amount = ?, status = ?, last_followup_note = ?, renewal_letter_url = NULL
          WHERE renewal_id = ?`,
         [
           String(req.body.serviceType || renewal.serviceType || '').trim(),

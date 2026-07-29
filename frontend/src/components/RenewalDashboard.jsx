@@ -973,7 +973,19 @@ export default function RenewalDashboard() {
                 <label style={shell.field}><span style={shell.label}>Renewal Due Date</span><input type="date" style={shell.input} value={form.renewalDueDate} onChange={(e) => setForm((p) => ({ ...p, renewalDueDate: e.target.value }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Proposed Amount</span><input style={shell.input} value={form.proposedAmount} onChange={(e) => setForm((p) => ({ ...p, proposedAmount: e.target.value }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>{statuses.filter((s) => s !== 'All').map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
-                <button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Renewal updated', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/edit`, form))}>Save Renewal</button>
+                <button
+                  style={shell.primaryBtn}
+                  disabled={busy}
+                  onClick={() => runAction('Renewal updated', async () => {
+                    const editResponse = await axios.post(`${API_BASE}/api/renewals/${row.renewalId}/edit`, form);
+                    await axios.post(`${API_BASE}/api/renewals/${row.renewalId}/generate-letter`).catch((error) => {
+                      console.error('Failed to regenerate renewal letter after edit', error);
+                    });
+                    return editResponse;
+                  })}
+                >
+                  Save Renewal
+                </button>
               </>
             )}
             {modal.type === 'assign' && (
