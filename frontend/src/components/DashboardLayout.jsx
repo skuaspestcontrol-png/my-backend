@@ -39,6 +39,16 @@ const NOTIFICATION_READ_STORAGE_KEY = 'skuas_read_notification_ids';
 const DASHBOARD_NOTIFICATION_CACHE_KEY = 'dashboard_notifications_cache_v1';
 const OPEN_SERVICE_CALENDAR_ONCE_KEY = 'open_service_calendar_once_v1';
 
+const isLightHex = (value) => {
+  const raw = String(value || '').trim().replace('#', '');
+  if (!/^[0-9A-Fa-f]{6}$/.test(raw)) return false;
+  const red = parseInt(raw.slice(0, 2), 16);
+  const green = parseInt(raw.slice(2, 4), 16);
+  const blue = parseInt(raw.slice(4, 6), 16);
+  const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+  return luminance > 0.62;
+};
+
 const toDateOnly = (value) => {
   if (!value) return null;
   const date = new Date(value);
@@ -348,6 +358,11 @@ export default function DashboardLayout({ children }) {
   const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
   const isLaptop = viewportWidth >= 992 && viewportWidth <= 1199;
   const isDrawerMode = viewportWidth < 992;
+  const headerAccentIsLight = isLightHex(settings.brandingAccentColor);
+  const serviceCalendarHeaderTextColor = headerAccentIsLight ? '#0F172A' : '#FFFFFF';
+  const serviceCalendarHeaderSubtitleColor = headerAccentIsLight ? 'rgba(15, 23, 42, 0.72)' : 'rgba(255, 255, 255, 0.88)';
+  const serviceCalendarHeaderButtonBorder = headerAccentIsLight ? 'rgba(15, 23, 42, 0.14)' : 'rgba(255, 255, 255, 0.22)';
+  const serviceCalendarHeaderButtonBackground = headerAccentIsLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.10)';
   const sidebarWidthPx = isLaptop ? 224 : 250;
   const compactSidebarWidthPx = 74;
   const isSidebarCollapsed = !isDrawerMode && !sidebarPinnedOpen && !sidebarHovering && !sidebarFocusWithin;
@@ -1146,7 +1161,7 @@ export default function DashboardLayout({ children }) {
                 justifyContent: 'space-between',
                 gap: '12px',
                 background: 'linear-gradient(135deg, var(--color-primary-deep), var(--color-primary))',
-                color: '#fff'
+                color: serviceCalendarHeaderTextColor
               }}
             >
               <div style={{ display: 'grid', gap: '2px' }}>
@@ -1154,7 +1169,7 @@ export default function DashboardLayout({ children }) {
                   <CalendarDays size={18} />
                   Service Calendar
                 </div>
-                <div style={{ fontSize: '12px', opacity: 0.9 }}>
+                <div style={{ fontSize: '12px', color: serviceCalendarHeaderSubtitleColor }}>
                   Scheduled services after login.
                 </div>
               </div>
@@ -1166,9 +1181,9 @@ export default function DashboardLayout({ children }) {
                   width: '38px',
                   height: '38px',
                   borderRadius: '10px',
-                  border: '1px solid rgba(255,255,255,0.22)',
-                  background: 'rgba(255,255,255,0.10)',
-                  color: '#fff',
+                  border: `1px solid ${serviceCalendarHeaderButtonBorder}`,
+                  background: serviceCalendarHeaderButtonBackground,
+                  color: serviceCalendarHeaderTextColor,
                   display: 'grid',
                   placeItems: 'center',
                   cursor: 'pointer'
