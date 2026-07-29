@@ -428,28 +428,60 @@ export default function RenewalDashboard() {
     }
   };
 
-  const openRenewalPdfPreview = (row) => {
+  const openRenewalPdfPreview = async (row) => {
     const titleName = String(row?.customerName || row?.customer_name || 'Customer').trim();
-    const pdfUrl = buildRenewalPdfUrl(row);
-    if (!pdfUrl) return;
     const fileLabel = String(row?.renewalDisplayId || row?.renewal_display_id || titleName || row?.renewalId || row?.renewal_id || 'renewal-letter').trim();
-    const downloadName = `REN-${titleName || fileLabel || 'Renewal'}.pdf`;
-    setPdfPreview({
-      open: true,
-      title: `Renewal Letter - ${titleName}`,
-      pdfUrl,
-      downloadFileName: downloadName,
-      publicShareUrl: pdfUrl,
-      renewalId: String(row?.renewalId || row?.renewal_id || row?.id || '').trim(),
-      shareContext: {
-        customerName: titleName,
-        customerEmail: String(row?.email || row?.customerEmail || row?.customer_email || '').trim(),
-        customerPhone: String(row?.mobile || row?.phone || '').trim(),
-        renewalDisplayId: fileLabel,
-        serviceType: String(row?.serviceType || row?.service_type || 'Renewal Letter').trim() || 'Renewal Letter',
-        pdfUrl
-      }
-    });
+    const renewalId = String(row?.renewalId || row?.renewal_id || row?.id || '').trim();
+    if (!renewalId) return;
+    try {
+      const response = await axios.post(`${API_BASE}/api/renewals/${renewalId}/generate-letter`);
+      const nextRow = response?.data?.renewal || row;
+      const pdfUrl = buildRenewalPdfUrl({
+        ...nextRow,
+        renewalLetterUrl: response?.data?.pdfUrl || nextRow?.renewalLetterUrl || row?.renewalLetterUrl,
+        pdf_url: response?.data?.pdfUrl || nextRow?.pdf_url || row?.pdf_url
+      });
+      if (!pdfUrl) return;
+      const downloadName = `REN-${titleName || fileLabel || 'Renewal'}.pdf`;
+      setPdfPreview({
+        open: true,
+        title: `Renewal Letter - ${titleName}`,
+        pdfUrl,
+        downloadFileName: downloadName,
+        publicShareUrl: pdfUrl,
+        renewalId,
+        shareContext: {
+          customerName: titleName,
+          customerEmail: String(nextRow?.email || row?.email || row?.customerEmail || row?.customer_email || '').trim(),
+          customerPhone: String(nextRow?.mobile || row?.mobile || row?.phone || '').trim(),
+          renewalDisplayId: fileLabel,
+          serviceType: String(nextRow?.serviceType || row?.serviceType || row?.service_type || 'Renewal Letter').trim() || 'Renewal Letter',
+          pdfUrl
+        }
+      });
+      void loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false });
+    } catch (error) {
+      console.error('Failed to regenerate renewal letter before preview', error);
+      const pdfUrl = buildRenewalPdfUrl(row);
+      if (!pdfUrl) return;
+      const downloadName = `REN-${titleName || fileLabel || 'Renewal'}.pdf`;
+      setPdfPreview({
+        open: true,
+        title: `Renewal Letter - ${titleName}`,
+        pdfUrl,
+        downloadFileName: downloadName,
+        publicShareUrl: pdfUrl,
+        renewalId,
+        shareContext: {
+          customerName: titleName,
+          customerEmail: String(row?.email || row?.customerEmail || row?.customer_email || '').trim(),
+          customerPhone: String(row?.mobile || row?.phone || '').trim(),
+          renewalDisplayId: fileLabel,
+          serviceType: String(row?.serviceType || row?.service_type || 'Renewal Letter').trim() || 'Renewal Letter',
+          pdfUrl
+        }
+      });
+    }
   };
 
   const shareRenewalLetterByEmail = async () => {
