@@ -427,11 +427,8 @@ const computeAttendanceMetrics = (record = {}) => {
   }
 
   const lateMinutes = Math.max(0, checkInMinutes - shiftStartMinutes);
-  const overtimeEligible = lateMinutes > attendanceShift.lateOvertimeCutoffMinutes;
   const overtimeStartMinutes = shiftEndMinutes + lateMinutes;
-  const overtimeHours = overtimeEligible
-    ? Math.max(0, (checkOutMinutes - overtimeStartMinutes) / 60)
-    : 0;
+  const overtimeHours = Math.max(0, (checkOutMinutes - overtimeStartMinutes) / 60);
 
   if (overtimeHours > 0) {
     return {
@@ -443,7 +440,7 @@ const computeAttendanceMetrics = (record = {}) => {
     };
   }
 
-  if (overtimeEligible) {
+  if (lateMinutes > 0) {
     return {
       workingHours,
       overtimeHours: 0,
@@ -458,7 +455,7 @@ const computeAttendanceMetrics = (record = {}) => {
     overtimeHours: 0,
     overtimeLabel: 'No OT',
     overtimeTone: 'neutral',
-    overtimeTitle: 'Overtime only applies when late arrival crosses the 30-minute cutoff.'
+    overtimeTitle: 'Overtime only applies after the shift end once check-out extends beyond carry-forward time.'
   };
 };
 

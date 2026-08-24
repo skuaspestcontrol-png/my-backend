@@ -707,9 +707,8 @@ const summarizeAttendanceForPayroll = ({
       const isLate = lateMinutes > lateMarkGraceMinutes;
       if (isLate) lateMarks += 1;
 
-      const overtimeEligible = lateMinutes > lateOvertimeCutoffMinutes;
       const overtimeStartMins = shiftEndMins !== null ? shiftEndMins + lateMinutes : null;
-      const overtimeForDay = overtimeEligible && overtimeStartMins !== null
+      const overtimeForDay = overtimeStartMins !== null
         ? Math.max(0, minutesToHours((toMinutes(att.checkOut || '') ?? 0) - overtimeStartMins))
         : 0;
       const shortHoursForDay = Math.max(0, round2(standardDailyHours - rawHours));
@@ -725,8 +724,8 @@ const summarizeAttendanceForPayroll = ({
         lateMinutes: round2(lateMinutes),
         overtimeHours: round2(overtimeForDay),
         shortHours: round2(shortHoursForDay),
-        overtimeEligible,
-        rule: overtimeEligible ? 'carry-forward' : 'standard'
+        overtimeEligible: overtimeForDay > 0,
+        rule: overtimeForDay > 0 ? 'carry-forward' : 'standard'
       });
       return;
     }
@@ -738,9 +737,8 @@ const summarizeAttendanceForPayroll = ({
       const lateMinutes = (inMins !== null && shiftStartMins !== null) ? Math.max(0, inMins - shiftStartMins) : 0;
       const isLate = lateMinutes > lateMarkGraceMinutes;
       if (isLate) lateMarks += 1;
-      const overtimeEligible = lateMinutes > lateOvertimeCutoffMinutes;
       const overtimeStartMins = shiftEndMins !== null ? shiftEndMins + lateMinutes : null;
-      const overtimeForDay = overtimeEligible && overtimeStartMins !== null
+      const overtimeForDay = overtimeStartMins !== null
         ? Math.max(0, minutesToHours((toMinutes(att.checkOut || '') ?? 0) - overtimeStartMins))
         : 0;
       const shortHoursForDay = Math.max(0, round2(halfDayStandardHours - rawHours));
@@ -756,8 +754,8 @@ const summarizeAttendanceForPayroll = ({
         lateMinutes: round2(lateMinutes),
         overtimeHours: round2(overtimeForDay),
         shortHours: round2(shortHoursForDay),
-        overtimeEligible,
-        rule: overtimeEligible ? 'carry-forward' : 'standard'
+        overtimeEligible: overtimeForDay > 0,
+        rule: overtimeForDay > 0 ? 'carry-forward' : 'standard'
       });
       return;
     }

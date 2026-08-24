@@ -327,10 +327,9 @@ const summarizeAttendanceMonth = ({
       const lateMinutesForDay = (inMins !== null && shiftStartMins !== null)
         ? Math.max(0, inMins - shiftStartMins)
         : 0;
-      const overtimeEligible = lateMinutesForDay > lateOvertimeCutoffMinutes;
       const overtimeStartMins = shiftEndMins !== null ? shiftEndMins + lateMinutesForDay : null;
       const outMins = toMinutes(entry.checkOut);
-      const overtimeForDay = overtimeEligible && overtimeStartMins !== null && outMins !== null
+      const overtimeForDay = overtimeStartMins !== null && outMins !== null
         ? Math.max(0, (outMins - overtimeStartMins) / 60)
         : 0;
       const shortHoursForDay = Math.max(0, standardDailyHours - rawHours);
@@ -344,10 +343,9 @@ const summarizeAttendanceMonth = ({
       const lateMinutesForDay = (inMins !== null && shiftStartMins !== null)
         ? Math.max(0, inMins - shiftStartMins)
         : 0;
-      const overtimeEligible = lateMinutesForDay > lateOvertimeCutoffMinutes;
       const overtimeStartMins = shiftEndMins !== null ? shiftEndMins + lateMinutesForDay : null;
       const outMins = toMinutes(entry.checkOut);
-      const overtimeForDay = overtimeEligible && overtimeStartMins !== null && outMins !== null
+      const overtimeForDay = overtimeStartMins !== null && outMins !== null
         ? Math.max(0, (outMins - overtimeStartMins) / 60)
         : 0;
       const halfDayStandardHours = Math.max(0, standardDailyHours / 2);
