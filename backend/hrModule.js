@@ -644,8 +644,10 @@ const buildSimplePdfBuffer = ({ title, rows }) => new Promise((resolve, reject) 
 function registerHrModule({
   app,
   readJsonFile,
-  files
+  files,
+  withMysqlConnection
 }) {
+  const canUseMysql = typeof withMysqlConnection === 'function';
   const {
     employeesFile,
     attendanceFile,
@@ -665,78 +667,158 @@ function registerHrModule({
   ensureFile(workflowFile, []);
   ensureFile(performanceFile, []);
 
-  const getEmployees = () => readJsonFile(employeesFile, []);
-  const getAttendance = () => readJsonFile(attendanceFile, []);
-  const getJobs = () => readJsonFile(jobsFile, []);
-  const getInvoices = () => readJsonFile(invoicesFile, []);
-  const getPayrollItems = () => readJsonFile(payrollItemsFile, []);
-  const getSalaryStructures = () => readJsonFile(salaryStructuresFile, []);
-  const getAdvances = () => readJsonFile(advancesFile, []);
-  const getLeaves = () => readJsonFile(leavesFile, []).map((entry) => normalizeLeave(entry));
-  const getNotifications = () => readJsonFile(notificationsFile, []).map((entry) => normalizeNotification(entry));
-  const getWorkflow = () => readJsonFile(workflowFile, []).map((entry) => normalizeEmployeeWorkflow(entry));
-  const getPerformance = () => readJsonFile(performanceFile, []).map((entry) => normalizePerformance(entry));
-
-  const saveLeaves = (rows) => fs.writeFileSync(leavesFile, JSON.stringify(rows, null, 2));
-  const saveNotifications = (rows) => fs.writeFileSync(notificationsFile, JSON.stringify(rows, null, 2));
-  const saveWorkflow = (rows) => fs.writeFileSync(workflowFile, JSON.stringify(rows, null, 2));
-  const savePerformance = (rows) => fs.writeFileSync(performanceFile, JSON.stringify(rows, null, 2));
-
-  const ensureWorkflowSeed = () => {
-    const employees = getEmployees();
-    const current = getWorkflow();
-    const map = new Map(current.map((entry) => [entry.employeeId, entry]));
-    let changed = false;
-
-    employees.forEach((employee) => {
-      const id = normalizeText(employee._id);
-      if (!id) return;
-      if (map.has(id)) return;
-      const role = normalizeLower(employee.role);
-      const defaultStatus = role.includes('technician') ? 'Active Employees' : 'New Joiners';
-      const createdAt = parseDateForMonth(employee.createdAt);
-      const currentTask = role.includes('technician') ? 'Assigned field service' : 'Back office operations';
-      map.set(id, normalizeEmployeeWorkflow({
-        employeeId: id,
-        status: defaultStatus,
-        priority: 'Normal',
-        lastActivity: createdAt ? createdAt.toISOString() : new Date().toISOString(),
-        currentTask
-      }));
-      changed = true;
-    });
-
-    if (changed) {
-      const next = Array.from(map.values());
-      saveWorkflow(next);
-      return next;
+  const parseJsonValue = (value, fallback = null) => {
+    if (value === null || value === undefined || value === '') return fallback;
+    if (typeof value === 'object') return value;
+    try {
+      return JSON.parse(value);
+    } catch (_error) {
+      return fallback;
     }
-
-    return current;
   };
 
-  const ensurePerformanceSeed = () => {
-    const employees = getEmployees();
-    const jobs = getJobs();
-    const invoices = getInvoices();
-    const current = getPerformance();
-    const currentMap = new Map(current.map((entry) => [entry.employeeId, entry]));
+  const normalizeMysqlPayloadRows = (rows = []) => (Array.isArray(rows) ? rows : [])
+    .map((row) => {
+      const payload = parseJsonValue(row?.payload, {});
+      if (!payload || typeof payload !== 'object') return null;
+      return {
+        ...payload,
+        _id: normalizeText(payload._id || row?.external_id || ''),
+        updatedAt: normalizeText(payload.updatedAt || row?.updated_at || '')
+      };
+    })
+    .filter(Boolean);
 
-    const computed = buildPerformanceRows({
-      employees,
-      jobs,
-      invoices,
-      performanceStored: current
-    });
+  const readMysqlPayloadRows = async (tableName, fallbackRows = []) => {
+    if (!canUseMysql) return fallbackRows;
+    try {
+      return await withMysqlConnection(async (conn) => {
+        const [rows] = await conn.query(`SELECT external_id, payload FROM ${tableName} ORDER BY id DESC`);
+        return normalizeMysqlPayloadRows(rows);
+      });
+    } catch (error) {
+      console.error(`Failed to read ${tableName} from MySQL:`, error.message);
+      return fallbackRows;
+    }
+  };
 
-    const next = computed.map((entry) => {
-      const stored = currentMap.get(entry.employeeId);
-      if (!stored) return normalizePerformance(entry);
-      return normalizePerformance({ ...entry, ...stored, score: entry.score });
-    });
+  const saveMysqlPayloadRows = async (tableName, rows = []) => {
+    if (!canUseMysql) return;
+    try {
+      await withMysqlConnection(async (conn) => {
+        const payloadRows = Array.isArray(rows) ? rows : [];
+        await conn.query(`DELETE FROM ${tableName}`);
+        for (const row of payloadRows) {
+          const normalized = row && typeof row === 'object' ? row : {};
+          const externalId = normalizeText(
+            normalized._id
+            || normalized.external_id
+            || normalized.employeeId
+            || normalized.employee_id
+            || `${tableName}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+          );
+          await conn.query(
+            `INSERT INTO ${tableName} (external_id, payload) VALUES (?, ?)`,
+            [externalId, JSON.stringify({ ...normalized, _id: normalizeText(normalized._id || externalId) })]
+          );
+        }
+      });
+    } catch (error) {
+      console.error(`Failed to save ${tableName} to MySQL:`, error.message);
+      throw error;
+    }
+  };
 
-    savePerformance(next);
-    return next;
+  const getEmployees = () => readJsonFile(employeesFile, []);
+  const getAttendance = async () => readMysqlPayloadRows('attendance', readJsonFile(attendanceFile, []));
+  const getJobs = () => readJsonFile(jobsFile, []);
+  const getInvoices = () => readJsonFile(invoicesFile, []);
+  const getPayrollItems = async () => readMysqlPayloadRows('payroll_items', readJsonFile(payrollItemsFile, []));
+  const getSalaryStructures = () => readJsonFile(salaryStructuresFile, []);
+  const getAdvances = () => readJsonFile(advancesFile, []);
+  const getLeaves = async () => (await readMysqlPayloadRows('hr_leaves', readJsonFile(leavesFile, []))).map((entry) => normalizeLeave(entry));
+  const getNotifications = async () => (await readMysqlPayloadRows('hr_notifications', readJsonFile(notificationsFile, []))).map((entry) => normalizeNotification(entry));
+  const getWorkflow = async () => (await readMysqlPayloadRows('hr_workflow', readJsonFile(workflowFile, []))).map((entry) => normalizeEmployeeWorkflow(entry));
+  const getPerformance = async () => (await readMysqlPayloadRows('hr_performance', readJsonFile(performanceFile, []))).map((entry) => normalizePerformance(entry));
+
+  const saveLeaves = async (rows) => {
+    fs.writeFileSync(leavesFile, JSON.stringify(rows, null, 2));
+    await saveMysqlPayloadRows('hr_leaves', rows);
+  };
+  const saveNotifications = async (rows) => {
+    fs.writeFileSync(notificationsFile, JSON.stringify(rows, null, 2));
+    await saveMysqlPayloadRows('hr_notifications', rows);
+  };
+  const saveWorkflow = async (rows) => {
+    fs.writeFileSync(workflowFile, JSON.stringify(rows, null, 2));
+    await saveMysqlPayloadRows('hr_workflow', rows);
+  };
+  const savePerformance = async (rows) => {
+    fs.writeFileSync(performanceFile, JSON.stringify(rows, null, 2));
+    await saveMysqlPayloadRows('hr_performance', rows);
+  };
+
+  const ensureWorkflowSeed = async () => {
+    const build = async () => {
+      const employees = getEmployees();
+      const current = await getWorkflow();
+      const map = new Map(current.map((entry) => [entry.employeeId, entry]));
+      let changed = false;
+
+      employees.forEach((employee) => {
+        const id = normalizeText(employee._id);
+        if (!id) return;
+        if (map.has(id)) return;
+        const role = normalizeLower(employee.role);
+        const defaultStatus = role.includes('technician') ? 'Active Employees' : 'New Joiners';
+        const createdAt = parseDateForMonth(employee.createdAt);
+        const currentTask = role.includes('technician') ? 'Assigned field service' : 'Back office operations';
+        map.set(id, normalizeEmployeeWorkflow({
+          employeeId: id,
+          status: defaultStatus,
+          priority: 'Normal',
+          lastActivity: createdAt ? createdAt.toISOString() : new Date().toISOString(),
+          currentTask
+        }));
+        changed = true;
+      });
+
+      if (changed) {
+        const next = Array.from(map.values());
+        await saveWorkflow(next);
+        return next;
+      }
+
+      return current;
+    };
+    return build();
+  };
+
+  const ensurePerformanceSeed = async () => {
+    const build = async () => {
+      const employees = getEmployees();
+      const jobs = getJobs();
+      const invoices = getInvoices();
+      const current = await getPerformance();
+      const currentMap = new Map(current.map((entry) => [entry.employeeId, entry]));
+
+      const computed = buildPerformanceRows({
+        employees,
+        jobs,
+        invoices,
+        performanceStored: current
+      });
+
+      const next = computed.map((entry) => {
+        const stored = currentMap.get(entry.employeeId);
+        if (!stored) return normalizePerformance(entry);
+        return normalizePerformance({ ...entry, ...stored, score: entry.score });
+      });
+
+      await savePerformance(next);
+      return next;
+    };
+    return build();
   };
 
   const getEmployeeActivityMap = (jobs) => {
@@ -752,18 +834,18 @@ function registerHrModule({
     return map;
   };
 
-  const buildDashboardPayload = ({ month, year, department, role, location, status, search, date }) => {
+  const buildDashboardPayload = async ({ month, year, department, role, location, status, search, date }) => {
     const serverToday = toDateOnly(new Date());
     const employees = getEmployees();
-    const attendance = getAttendance();
+    const attendance = await getAttendance();
     const jobs = getJobs();
-    const payrollItems = getPayrollItems();
+    const payrollItems = await getPayrollItems();
     const salaryStructures = getSalaryStructures();
-    const leaves = getLeaves();
+    const leaves = await getLeaves();
     const advances = getAdvances();
 
-    const workflow = ensureWorkflowSeed();
-    const performance = ensurePerformanceSeed();
+    const workflow = await ensureWorkflowSeed();
+    const performance = await ensurePerformanceSeed();
     const workflowByEmployee = new Map(workflow.map((entry) => [entry.employeeId, entry]));
     const performanceByEmployee = new Map(performance.map((entry) => [entry.employeeId, entry]));
     const latestActivityByEmployee = getEmployeeActivityMap(jobs);
@@ -1040,9 +1122,9 @@ function registerHrModule({
     return rows.filter((entry) => normalizeText(idSelector(entry)) === normalizeText(scope.employeeId));
   };
 
-  app.get('/api/hr/dashboard-summary', (req, res) => {
+  app.get('/api/hr/dashboard-summary', async (req, res) => {
     try {
-      const payload = buildDashboardPayload({
+      const payload = await buildDashboardPayload({
         month: req.query.month,
         year: req.query.year,
         department: req.query.department,
@@ -1059,15 +1141,15 @@ function registerHrModule({
     }
   });
 
-  app.get('/api/hr/kanban', (req, res) => {
+  app.get('/api/hr/kanban', async (req, res) => {
     try {
       const scope = makeAccessScope(req);
       const employees = getEmployees();
-      const workflow = ensureWorkflowSeed();
+      const workflow = await ensureWorkflowSeed();
       const workflowByEmployee = new Map(workflow.map((entry) => [entry.employeeId, entry]));
-      const attendance = getAttendance();
-      const leaves = getLeaves();
-      const payrollItems = getPayrollItems();
+      const attendance = await getAttendance();
+      const leaves = await getLeaves();
+      const payrollItems = await getPayrollItems();
       const today = toDateOnly(new Date());
       const todayKey = toDateKey(today);
 
@@ -1147,7 +1229,7 @@ function registerHrModule({
     }
   });
 
-  app.put('/api/hr/employees/:id/status', (req, res) => {
+  app.put('/api/hr/employees/:id/status', async (req, res) => {
     const scope = makeAccessScope(req);
     if (!scope.permissions.canManage) return res.status(403).json({ error: 'Only Admin/HR can update employee workflow status' });
 
@@ -1156,7 +1238,7 @@ function registerHrModule({
     const validStatuses = new Set(['New Joiners', 'Active Employees', 'On Probation', 'On Leave', 'Under Review', 'Resigned', 'Terminated']);
     if (!validStatuses.has(status)) return res.status(400).json({ error: 'Invalid workflow status' });
 
-    const rows = ensureWorkflowSeed();
+    const rows = await ensureWorkflowSeed();
     const index = rows.findIndex((entry) => normalizeText(entry.employeeId) === employeeId);
     const payload = normalizeEmployeeWorkflow({
       employeeId,
@@ -1169,11 +1251,11 @@ function registerHrModule({
     if (index >= 0) rows[index] = { ...rows[index], ...payload, updatedAt: new Date().toISOString() };
     else rows.push(payload);
 
-    saveWorkflow(rows);
+    await saveWorkflow(rows);
     res.json({ message: 'Employee workflow status updated', row: payload });
   });
 
-  app.get('/api/hr/attendance', (req, res) => {
+  app.get('/api/hr/attendance', async (req, res) => {
     const scope = makeAccessScope(req);
     const date = normalizeText(req.query.date || '');
     const employeeId = normalizeText(req.query.employeeId || '');
@@ -1181,7 +1263,7 @@ function registerHrModule({
 
     const employees = getEmployees();
     const employeesById = new Map(employees.map((entry) => [normalizeText(entry._id), entry]));
-    const rows = getAttendance().filter((entry) => {
+    const rows = (await getAttendance()).filter((entry) => {
       if (date && normalizeText(entry.date) !== date) return false;
       if (employeeId && normalizeText(entry.employeeId) !== employeeId) return false;
       if (scope.ownOnly && normalizeText(entry.employeeId) !== normalizeText(scope.employeeId)) return false;
@@ -1194,18 +1276,18 @@ function registerHrModule({
     res.json(rows);
   });
 
-  app.get('/api/hr/attendance/today', (req, res) => {
+  app.get('/api/hr/attendance/today', async (req, res) => {
     const scope = makeAccessScope(req);
     const employees = getEmployees();
-    const leaves = getLeaves();
-    const attendance = getAttendance();
+    const leaves = await getLeaves();
+    const attendance = await getAttendance();
     const today = toDateOnly(new Date());
     const payload = computeAttendanceToday({ employees, attendanceRows: attendance, leaves, today });
     const filteredRows = applyScopeFilter(payload.rows, scope, (entry) => entry.employeeId);
     res.json({ summary: payload.summary, rows: filteredRows });
   });
 
-  app.post('/api/hr/attendance/manual', (req, res) => {
+  app.post('/api/hr/attendance/manual', async (req, res) => {
     const scope = makeAccessScope(req);
     if (!scope.permissions.canManage) return res.status(403).json({ error: 'Only Admin/HR can mark attendance manually' });
 
@@ -1217,7 +1299,7 @@ function registerHrModule({
     const employee = employees.find((entry) => normalizeText(entry._id) === employeeId);
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
-    const records = getAttendance();
+    const records = await getAttendance();
     const index = records.findIndex((entry) => normalizeText(entry.employeeId) === employeeId && normalizeText(entry.date) === date);
     const statusRaw = normalizeLower(req.body?.status || 'present');
     const status = ['present', 'absent', 'leave', 'half-day', 'weekly-off'].includes(statusRaw) ? statusRaw : 'present';
@@ -1243,10 +1325,12 @@ function registerHrModule({
     else records.push(next);
 
     fs.writeFileSync(attendanceFile, JSON.stringify(records, null, 2));
+    // Keep the MySQL mirror in sync for Hostinger-hosted data.
+    await saveMysqlPayloadRows('attendance', records);
     res.json(next);
   });
 
-  app.post('/api/hr/attendance/bulk', (req, res) => {
+  app.post('/api/hr/attendance/bulk', async (req, res) => {
     const scope = makeAccessScope(req);
     if (!scope.permissions.canManage) return res.status(403).json({ error: 'Only Admin/HR can bulk upload attendance' });
 
@@ -1255,7 +1339,7 @@ function registerHrModule({
 
     const employees = getEmployees();
     const employeeById = new Map(employees.map((entry) => [normalizeText(entry._id), entry]));
-    const records = getAttendance();
+    const records = await getAttendance();
     let upserted = 0;
 
     payload.forEach((entry) => {
@@ -1288,12 +1372,13 @@ function registerHrModule({
     });
 
     fs.writeFileSync(attendanceFile, JSON.stringify(records, null, 2));
+    await saveMysqlPayloadRows('attendance', records);
     res.json({ message: 'Attendance bulk upload completed', upserted });
   });
 
-  app.get('/api/hr/leaves', (req, res) => {
+  app.get('/api/hr/leaves', async (req, res) => {
     const scope = makeAccessScope(req);
-    const rows = getLeaves();
+    const rows = await getLeaves();
     const filtered = rows.filter((entry) => {
       if (scope.ownOnly && normalizeText(entry.employeeId) !== normalizeText(scope.employeeId)) return false;
       const status = normalizeLower(req.query.status || '');
@@ -1321,13 +1406,13 @@ function registerHrModule({
     })));
   });
 
-  app.get('/api/hr/leaves/calendar', (req, res) => {
+  app.get('/api/hr/leaves/calendar', async (req, res) => {
     const scope = makeAccessScope(req);
     const month = toNumber(req.query.month, new Date().getMonth() + 1);
     const year = toNumber(req.query.year, new Date().getFullYear());
     const { start, end } = monthRange(month, year);
 
-    const rows = getLeaves().filter((entry) => {
+    const rows = (await getLeaves()).filter((entry) => {
       if (scope.ownOnly && normalizeText(entry.employeeId) !== normalizeText(scope.employeeId)) return false;
       const from = toDateOnly(entry.fromDate);
       const to = toDateOnly(entry.toDate);
@@ -1357,10 +1442,10 @@ function registerHrModule({
     res.json(calendar);
   });
 
-  app.get('/api/hr/leaves/balance', (req, res) => {
+  app.get('/api/hr/leaves/balance', async (req, res) => {
     const scope = makeAccessScope(req);
     const employees = getEmployees();
-    const leaves = getLeaves().filter((entry) => entry.status === 'Approved');
+    const leaves = (await getLeaves()).filter((entry) => entry.status === 'Approved');
     const month = toNumber(req.query.month, new Date().getMonth() + 1);
     const year = toNumber(req.query.year, new Date().getFullYear());
 
@@ -1393,7 +1478,7 @@ function registerHrModule({
     res.json(rows);
   });
 
-  app.post('/api/hr/leaves', (req, res) => {
+  app.post('/api/hr/leaves', async (req, res) => {
     const scope = makeAccessScope(req);
     const employeeId = normalizeText(req.body?.employeeId || scope.employeeId);
     if (!employeeId) return res.status(400).json({ error: 'employeeId is required' });
@@ -1416,11 +1501,11 @@ function registerHrModule({
 
     if (!payload.fromDate || !payload.toDate) return res.status(400).json({ error: 'fromDate and toDate are required' });
 
-    const rows = getLeaves();
+    const rows = await getLeaves();
     rows.push(payload);
-    saveLeaves(rows);
+    await saveLeaves(rows);
 
-    const notifications = getNotifications();
+    const notifications = await getNotifications();
     notifications.unshift(normalizeNotification({
       type: 'leave',
       title: 'Leave Request Alert',
@@ -1428,12 +1513,12 @@ function registerHrModule({
       relatedEmployeeId: payload.employeeId,
       level: 'high'
     }));
-    saveNotifications(notifications.slice(0, 500));
+    await saveNotifications(notifications.slice(0, 500));
 
     res.json(payload);
   });
 
-  app.put('/api/hr/leaves/:id/decision', (req, res) => {
+  app.put('/api/hr/leaves/:id/decision', async (req, res) => {
     const scope = makeAccessScope(req);
     if (!scope.permissions.canManage) return res.status(403).json({ error: 'Only Admin/HR can approve/reject leave' });
 
@@ -1442,7 +1527,7 @@ function registerHrModule({
     const status = decision === 'approved' ? 'Approved' : decision === 'rejected' ? 'Rejected' : '';
     if (!status) return res.status(400).json({ error: 'decision must be approved or rejected' });
 
-    const rows = getLeaves();
+    const rows = await getLeaves();
     const index = rows.findIndex((entry) => normalizeText(entry._id) === id);
     if (index < 0) return res.status(404).json({ error: 'Leave request not found' });
 
@@ -1453,9 +1538,9 @@ function registerHrModule({
       reviewedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    saveLeaves(rows);
+    await saveLeaves(rows);
 
-    const notifications = getNotifications();
+    const notifications = await getNotifications();
     notifications.unshift(normalizeNotification({
       type: 'leave',
       title: `Leave ${status}`,
@@ -1463,20 +1548,20 @@ function registerHrModule({
       relatedEmployeeId: rows[index].employeeId,
       level: status === 'Rejected' ? 'high' : 'normal'
     }));
-    saveNotifications(notifications.slice(0, 500));
+    await saveNotifications(notifications.slice(0, 500));
 
     res.json(rows[index]);
   });
 
-  app.get('/api/hr/performance', (req, res) => {
+  app.get('/api/hr/performance', async (req, res) => {
     const scope = makeAccessScope(req);
     const employees = getEmployees();
     const jobs = getJobs();
     const invoices = getInvoices();
-    const stored = getPerformance();
+    const stored = await getPerformance();
 
     const rows = buildPerformanceRows({ employees, jobs, invoices, performanceStored: stored });
-    savePerformance(rows.map((entry) => normalizePerformance(entry)));
+    await savePerformance(rows.map((entry) => normalizePerformance(entry)));
 
     const filtered = applyScopeFilter(rows, scope, (entry) => entry.employeeId)
       .filter((entry) => {
@@ -1505,7 +1590,7 @@ function registerHrModule({
     });
   });
 
-  app.get('/api/hr/payroll-summary', (req, res) => {
+  app.get('/api/hr/payroll-summary', async (req, res) => {
     const scope = makeAccessScope(req);
     const month = toNumber(req.query.month, new Date().getMonth() + 1);
     const year = toNumber(req.query.year, new Date().getFullYear());
@@ -1516,7 +1601,7 @@ function registerHrModule({
     const search = normalizeLower(req.query.search || '');
 
     const employees = getEmployees();
-    const workflow = ensureWorkflowSeed();
+    const workflow = await ensureWorkflowSeed();
     const workflowByEmployee = new Map(workflow.map((entry) => [entry.employeeId, entry]));
     const filteredEmployeeIds = new Set(
       employees
@@ -1542,7 +1627,7 @@ function registerHrModule({
         .map((employee) => normalizeText(employee._id))
     );
 
-    const payrollItems = getPayrollItems();
+    const payrollItems = await getPayrollItems();
     const advances = getAdvances();
 
     const filtered = payrollItems.filter((entry) => {
@@ -1585,16 +1670,16 @@ function registerHrModule({
     });
   });
 
-  app.get('/api/hr/notifications', (req, res) => {
+  app.get('/api/hr/notifications', async (req, res) => {
     const scope = makeAccessScope(req);
-    const saved = getNotifications();
+    const saved = await getNotifications();
 
     const dynamic = [];
     const today = toDateOnly(new Date());
     const attendanceToday = computeAttendanceToday({
       employees: getEmployees(),
-      attendanceRows: getAttendance(),
-      leaves: getLeaves(),
+      attendanceRows: await getAttendance(),
+      leaves: await getLeaves(),
       today
     });
 
@@ -1614,7 +1699,7 @@ function registerHrModule({
         }));
       });
 
-    getLeaves()
+    (await getLeaves())
       .filter((entry) => entry.status === 'Pending')
       .slice(0, 10)
       .forEach((entry) => {
@@ -1638,17 +1723,17 @@ function registerHrModule({
     res.json(rows);
   });
 
-  app.put('/api/hr/notifications/:id/read', (req, res) => {
+  app.put('/api/hr/notifications/:id/read', async (req, res) => {
     const id = normalizeText(req.params.id);
-    const rows = getNotifications();
+    const rows = await getNotifications();
     const index = rows.findIndex((entry) => normalizeText(entry._id) === id);
     if (index < 0) return res.status(404).json({ error: 'Notification not found' });
     rows[index] = { ...rows[index], isRead: true, updatedAt: new Date().toISOString() };
-    saveNotifications(rows);
+    await saveNotifications(rows);
     res.json(rows[index]);
   });
 
-  app.get('/api/hr/employees/:id/profile', (req, res) => {
+  app.get('/api/hr/employees/:id/profile', async (req, res) => {
     const scope = makeAccessScope(req);
     const employeeId = normalizeText(req.params.id);
     if (scope.ownOnly && normalizeText(scope.employeeId) !== employeeId) {
@@ -1659,11 +1744,11 @@ function registerHrModule({
     const employee = employees.find((entry) => normalizeText(entry._id) === employeeId);
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
-    const attendance = getAttendance();
-    const leaves = getLeaves();
-    const payrollItems = getPayrollItems();
+    const attendance = await getAttendance();
+    const leaves = await getLeaves();
+    const payrollItems = await getPayrollItems();
     const jobs = getJobs();
-    const performance = ensurePerformanceSeed().find((entry) => normalizeText(entry.employeeId) === employeeId) || null;
+    const performance = (await ensurePerformanceSeed()).find((entry) => normalizeText(entry.employeeId) === employeeId) || null;
 
     const now = new Date();
     const month = now.getMonth() + 1;
@@ -1676,7 +1761,7 @@ function registerHrModule({
       year
     });
 
-    const leaveBalance = getLeaves()
+    const leaveBalance = (await getLeaves())
       .filter((entry) => normalizeText(entry.employeeId) === employeeId && entry.status === 'Approved')
       .reduce((acc, entry) => {
         const bucket = classifyLeaveRequestBucket(entry.leaveType);
@@ -1775,7 +1860,7 @@ function registerHrModule({
       const year = toNumber(req.query.year, new Date().getFullYear());
       const format = normalizeLower(req.query.format || 'json');
 
-      const rows = getPayrollItems()
+      const rows = (await getPayrollItems())
         .filter((entry) => toNumber(entry.month, 0) === month && toNumber(entry.year, 0) === year)
         .filter((entry) => !scope.ownOnly || normalizeText(entry.employeeId) === normalizeText(scope.employeeId))
         .map((entry) => ({
@@ -1827,7 +1912,7 @@ function registerHrModule({
     try {
       const scope = makeAccessScope(req);
       const format = normalizeLower(req.query.format || 'json');
-      const rows = getPayrollItems()
+      const rows = (await getPayrollItems())
         .filter((entry) => !scope.ownOnly || normalizeText(entry.employeeId) === normalizeText(scope.employeeId))
         .sort((a, b) => `${b.year}-${pad2(b.month)}-${b.employeeName}`.localeCompare(`${a.year}-${pad2(a.month)}-${a.employeeName}`))
         .map((entry) => ({
@@ -1872,7 +1957,7 @@ function registerHrModule({
     try {
       const scope = makeAccessScope(req);
       const format = normalizeLower(req.query.format || 'json');
-      const rows = getPayrollItems()
+      const rows = (await getPayrollItems())
         .filter((entry) => !scope.ownOnly || normalizeText(entry.employeeId) === normalizeText(scope.employeeId))
         .map((entry) => ({
           monthYear: `${pad2(entry.month)}/${entry.year}`,
@@ -1938,9 +2023,9 @@ function registerHrModule({
     }
   });
 
-  app.get('/api/hr/ai-performance-suggestions', (req, res) => {
+  app.get('/api/hr/ai-performance-suggestions', async (req, res) => {
     const scope = makeAccessScope(req);
-    const performance = ensurePerformanceSeed();
+    const performance = await ensurePerformanceSeed();
     const rows = applyScopeFilter(performance, scope, (entry) => entry.employeeId);
 
     const suggestions = rows.slice(0, 20).map((entry) => {

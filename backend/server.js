@@ -14270,6 +14270,7 @@ registerPayrollModule({
 registerHrModule({
   app,
   readJsonFile,
+  withMysqlConnection,
   files: {
     employeesFile,
     attendanceFile,
