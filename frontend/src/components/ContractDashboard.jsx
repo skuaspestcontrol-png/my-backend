@@ -558,9 +558,21 @@ export default function ContractDashboard() {
   const [contractSort, setContractSort] = useState(() => {
     try {
       const saved = localStorage.getItem(CONTRACTS_SORT_STORAGE_KEY);
-      return { key: 'contractNo', direction: saved === 'desc' ? 'desc' : 'asc' };
+      if (saved) {
+        if (saved === 'asc' || saved === 'desc') {
+          return { key: 'type', direction: saved };
+        }
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            key: String(parsed.key || 'type'),
+            direction: parsed.direction === 'asc' ? 'asc' : 'desc'
+          };
+        }
+      }
+      return { key: 'type', direction: 'desc' };
     } catch {
-      return { key: 'contractNo', direction: 'asc' };
+      return { key: 'type', direction: 'desc' };
     }
   });
   const [quickFilter, setQuickFilter] = useState('All');
@@ -763,11 +775,11 @@ export default function ContractDashboard() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(CONTRACTS_SORT_STORAGE_KEY, contractSort.direction);
+      localStorage.setItem(CONTRACTS_SORT_STORAGE_KEY, JSON.stringify(contractSort));
     } catch {
       // ignore storage persistence issues
     }
-  }, [contractSort.direction]);
+  }, [contractSort]);
 
   useEffect(() => {
     const handleContractsRefresh = () => {
