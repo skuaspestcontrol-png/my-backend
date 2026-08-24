@@ -438,8 +438,8 @@ export default function Attendance() {
           const key = String(entry.employeeId || '').trim();
           if (!key) return;
           const normalizedStatus = entry.status === 'half-day' ? 'leave' : (entry.status || 'absent');
-          const normalizedCheckIn = normalizedStatus === 'present' ? (entry.checkIn || '09:00') : '';
-          const normalizedCheckOut = normalizedStatus === 'present' ? (entry.checkOut || '17:00') : '';
+          const normalizedCheckIn = normalizedStatus === 'present' ? (entry.checkIn || '09:30') : '';
+          const normalizedCheckOut = normalizedStatus === 'present' ? (entry.checkOut || '17:30') : '';
           recordMap[key] = {
             _id: entry._id,
             employeeId: key,
@@ -641,10 +641,10 @@ export default function Attendance() {
   const setStatus = (employeeId, status) => {
     const current = records[employeeId] || { employeeId, date, status: 'absent', checkIn: '', checkOut: '', leaveType: '', leaveReason: '', notes: '', source: '' };
     const nextCheckIn = status === 'present'
-      ? (current.checkIn || '09:00')
+      ? (current.checkIn || '09:30')
       : '';
     const nextCheckOut = status === 'present'
-      ? (current.checkOut || '17:00')
+      ? (current.checkOut || '17:30')
       : '';
     const next = {
       ...current,
@@ -663,10 +663,10 @@ export default function Attendance() {
     const nextLeaveType = normalizeLeaveType(leaveType);
     const nextStatus = resolveStatusForLeaveType(nextLeaveType, current.status || 'absent');
     const nextCheckIn = nextStatus === 'present'
-      ? (current.checkIn || '09:00')
+      ? (current.checkIn || '09:30')
       : '';
     const nextCheckOut = nextStatus === 'present'
-      ? (current.checkOut || '17:00')
+      ? (current.checkOut || '17:30')
       : '';
     const next = {
       ...current,
