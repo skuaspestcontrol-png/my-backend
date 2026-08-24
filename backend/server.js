@@ -902,6 +902,18 @@ const frontendDistDir = path.join(__dirname, '..', 'frontend', 'dist');
 const frontendDistIndexFile = path.join(frontendDistDir, 'index.html');
 const hasBackendPublicBuild = fs.existsSync(backendPublicDir) && fs.existsSync(backendPublicIndexFile);
 const hasFrontendDistBuild = fs.existsSync(frontendDistDir) && fs.existsSync(frontendDistIndexFile);
+const shouldServeFrontendShell = (req) => {
+  const method = String(req?.method || 'GET').trim().toUpperCase();
+  if (method !== 'GET' && method !== 'HEAD') return false;
+
+  const url = String(req?.originalUrl || req?.url || '').split('?')[0];
+  if (!url) return false;
+  if (url.startsWith('/api') || url.startsWith('/uploads')) return false;
+  if (path.extname(url)) return false;
+
+  const accept = String(req?.headers?.accept || '').toLowerCase();
+  return accept.includes('text/html') || accept.includes('*/*') || accept === '';
+};
 
 let activeFrontendBuildDir = null;
 let activeFrontendIndexFile = null;
@@ -931,6 +943,17 @@ if (activeFrontendBuildDir) {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     }
   }));
+}
+
+if (activeFrontendBuildDir && activeFrontendIndexFile) {
+  app.use((req, res, next) => {
+    if (!shouldServeFrontendShell(req)) return next();
+
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    return res.sendFile(activeFrontendIndexFile, (error) => {
+      if (error) next(error);
+    });
+  });
 }
 
 const storage = multer.diskStorage({
@@ -14464,13 +14487,6 @@ app.use((error, req, res, next) => {
   console.error('Unhandled request error:', error && error.stack ? error.stack : error);
   return res.status(500).json({ error: 'Internal server error' });
 });
-
-if (activeFrontendBuildDir && activeFrontendIndexFile) {
-  app.get(/^\/(?!api|uploads).*/, (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.sendFile(activeFrontendIndexFile);
-  });
-}
 
 let serverInstance = null;
 
