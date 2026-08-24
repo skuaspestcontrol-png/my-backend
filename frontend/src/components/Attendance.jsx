@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
-import { CalendarDays, Clock3, MapPinned, Users } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPinned, Users } from 'lucide-react';
 import useColumnResize from './table/useColumnResize';
 import { buildPortalAuthHeaders } from '../utils/portalAuth';
 
@@ -122,20 +121,23 @@ const shell = {
   title: { margin: 0, fontSize: '30px', letterSpacing: '-0.02em', color: '#0f172a', fontWeight: 800 },
   subtitle: { margin: 0, fontSize: '13px', color: '#475569', fontWeight: 600 },
   topbarActions: { display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
-  employeeLink: {
+  dateStepper: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px'
+  },
+  dateNavButton: {
     minHeight: '34px',
+    width: '34px',
+    minWidth: '34px',
     borderRadius: '10px',
     border: '1px solid rgba(159, 23, 77, 0.28)',
     background: '#fff',
     color: 'var(--color-primary-dark)',
-    padding: '0 12px',
     display: 'inline-flex',
     alignItems: 'center',
-    textDecoration: 'none',
-    fontSize: '12px',
-    fontWeight: 800,
-    letterSpacing: '0.04em',
-    textTransform: 'uppercase'
+    justifyContent: 'center',
+    cursor: 'pointer'
   },
   dateInput: {
     minHeight: '34px',
@@ -475,6 +477,16 @@ const monthHeading = (value) => {
   const [year, month] = String(value).split('-').map(Number);
   const date = new Date(year, (month || 1) - 1, 1);
   return date.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+};
+
+const shiftDateByDays = (value, deltaDays) => {
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  parsed.setDate(parsed.getDate() + deltaDays);
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const isSundayDate = (value) => {
@@ -885,6 +897,10 @@ export default function Attendance() {
     }
   };
 
+  const shiftSelectedDate = (deltaDays) => {
+    handleDateChange(shiftDateByDays(date, deltaDays));
+  };
+
   const openAudit = async ({ employeeId, employee, record }) => {
     try {
       setAuditModal({ open: true, loading: true, employeeName: getEmployeeName(employee), items: [] });
@@ -911,7 +927,6 @@ export default function Attendance() {
           <p style={shell.subtitle}>Maintain daily attendance, leave records, and working hours in one clean view.</p>
         </div>
         <div style={shell.topbarActions}>
-          <Link to="/employees" style={shell.employeeLink}>Employee Master</Link>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
             <CalendarDays size={16} />
             <input
@@ -921,15 +936,35 @@ export default function Attendance() {
               style={shell.dateInput}
             />
           </label>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
-            <CalendarDays size={16} />
-            <input
-              type="date"
-              value={date}
-              onChange={(event) => handleDateChange(event.target.value)}
-              style={shell.dateInput}
-            />
-          </label>
+          <div style={shell.dateStepper}>
+            <button
+              type="button"
+              onClick={() => shiftSelectedDate(-1)}
+              style={shell.dateNavButton}
+              aria-label="Previous date"
+              title="Previous date"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
+              <CalendarDays size={16} />
+              <input
+                type="date"
+                value={date}
+                onChange={(event) => handleDateChange(event.target.value)}
+                style={shell.dateInput}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => shiftSelectedDate(1)}
+              style={shell.dateNavButton}
+              aria-label="Next date"
+              title="Next date"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
