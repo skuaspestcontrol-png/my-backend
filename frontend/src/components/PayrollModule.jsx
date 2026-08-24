@@ -8,6 +8,15 @@ import { buildPortalAuthHeaders, getPortalUserId, getPortalUserName, getPortalUs
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const PAYROLL_DASHBOARD_CACHE_KEY = 'payroll_dashboard_cache_v1';
+const defaultPayrollMetaConfig = {
+  weeklyOffDay: 0,
+  lateMarkGraceMinutes: 15,
+  lateOvertimeCutoffMinutes: 30,
+  standardDailyHours: 8,
+  overtimeMultiplier: 2,
+  workStartTime: '09:30',
+  workEndTime: '17:30'
+};
 
 const roleFlags = () => {
   const roleRaw = String(getPortalUserRole() || 'Admin').trim().toLowerCase();
@@ -408,7 +417,7 @@ export default function PayrollModule() {
   const [advances, setAdvances] = useState(() => Array.isArray(cachedDashboard?.advances) ? cachedDashboard.advances : []);
   const [dashboard, setDashboard] = useState(() => cachedDashboard?.dashboard || null);
   const [payrollItems, setPayrollItems] = useState(() => Array.isArray(cachedDashboard?.payrollItems) ? cachedDashboard.payrollItems : []);
-  const [meta, setMeta] = useState(() => cachedDashboard?.meta || { config: { weeklyOffDay: 0, lateMarkGraceMinutes: 15, workStartTime: '09:00' } });
+  const [meta, setMeta] = useState(() => cachedDashboard?.meta || { config: { ...defaultPayrollMetaConfig } });
 
   const [filters, setFilters] = useState({ employeeId: '', department: '', paymentStatus: '', payrollStatus: '', search: '' });
   const [salaryForm, setSalaryForm] = useState(salaryFormDefaults);
@@ -626,7 +635,13 @@ export default function PayrollModule() {
             };
           })
           .filter(Boolean);
-        const nextMeta = metaRes.data || {};
+        const nextMeta = {
+          ...(metaRes.data || {}),
+          config: {
+            ...defaultPayrollMetaConfig,
+            ...(metaRes.data?.config || {})
+          }
+        };
         const nextSalaryStructures = Array.isArray(structureRes.data) ? structureRes.data : [];
         const nextHolidays = Array.isArray(holidayRes.data) ? holidayRes.data : [];
         const nextAdvances = Array.isArray(advanceRes.data) ? advanceRes.data : [];
@@ -1553,7 +1568,11 @@ export default function PayrollModule() {
             <div style={{ marginTop: '8px', display: 'grid', gap: '6px', fontSize: '12px', color: '#334155', lineHeight: 1.45 }}>
               <div>Processing: <strong>{selectedGenerateEmployees.length > 0 ? 'Selected employees only' : 'All employees'}</strong></div>
               <div>Late Grace: <strong>{meta?.config?.lateMarkGraceMinutes || 15} min</strong></div>
-              <div>Shift Start: <strong>{meta?.config?.workStartTime || '09:00'}</strong></div>
+              <div>Shift: <strong>{meta?.config?.workStartTime || '09:30'} - {meta?.config?.workEndTime || '17:30'}</strong></div>
+              <div>OT Cutoff: <strong>{meta?.config?.lateOvertimeCutoffMinutes || 30} min</strong></div>
+              <div>OT Rate: <strong>{meta?.config?.overtimeMultiplier || 2}x hourly</strong></div>
+              <div>Salary Basis: <strong>Calendar days in month</strong></div>
+              <div style={{ color: '#64748b', fontSize: '11px', lineHeight: 1.35 }}>Sunday work is paid at the normal hourly rate. Monthly salary uses the selected month’s calendar days.</div>
               <div>Mode: <strong>{role.canGenerate ? 'Ready to generate' : 'Read only'}</strong></div>
             </div>
           </div>
@@ -1765,7 +1784,10 @@ export default function PayrollModule() {
         <div style={shell.row}>
           <div style={shell.field}><p style={shell.label}>Weekly Off Day</p><select style={shell.input} value={meta?.config?.weeklyOffDay ?? 0} onChange={(event) => setMeta((prev) => ({ ...prev, config: { ...(prev.config || {}), weeklyOffDay: Number(event.target.value) } }))}><option value={0}>Sunday</option><option value={1}>Monday</option><option value={2}>Tuesday</option><option value={3}>Wednesday</option><option value={4}>Thursday</option><option value={5}>Friday</option><option value={6}>Saturday</option></select></div>
           <div style={shell.field}><p style={shell.label}>Late Grace (Minutes)</p><input type="number" style={shell.input} value={meta?.config?.lateMarkGraceMinutes ?? 15} onChange={(event) => setMeta((prev) => ({ ...prev, config: { ...(prev.config || {}), lateMarkGraceMinutes: Number(event.target.value || 0) } }))} /></div>
-          <div style={shell.field}><p style={shell.label}>Shift Start Time</p><input style={shell.input} value={meta?.config?.workStartTime ?? '09:00'} onChange={(event) => setMeta((prev) => ({ ...prev, config: { ...(prev.config || {}), workStartTime: event.target.value } }))} /></div>
+          <div style={shell.field}><p style={shell.label}>Shift Start Time</p><input style={shell.input} value={meta?.config?.workStartTime ?? '09:30'} onChange={(event) => setMeta((prev) => ({ ...prev, config: { ...(prev.config || {}), workStartTime: event.target.value } }))} /></div>
+          <div style={shell.field}><p style={shell.label}>Shift End Time</p><input style={shell.input} value={meta?.config?.workEndTime ?? '17:30'} onChange={(event) => setMeta((prev) => ({ ...prev, config: { ...(prev.config || {}), workEndTime: event.target.value } }))} /></div>
+          <div style={shell.field}><p style={shell.label}>OT Cutoff (Minutes)</p><input type="number" style={shell.input} value={meta?.config?.lateOvertimeCutoffMinutes ?? 30} onChange={(event) => setMeta((prev) => ({ ...prev, config: { ...(prev.config || {}), lateOvertimeCutoffMinutes: Number(event.target.value || 0) } }))} /></div>
+          <div style={shell.field}><p style={shell.label}>OT Multiplier</p><input type="number" step="0.1" style={shell.input} value={meta?.config?.overtimeMultiplier ?? 2} onChange={(event) => setMeta((prev) => ({ ...prev, config: { ...(prev.config || {}), overtimeMultiplier: Number(event.target.value || 0) } }))} /></div>
         </div>
       </div>
       <div style={shell.tableWrap}>
@@ -1801,6 +1823,7 @@ export default function PayrollModule() {
     <div style={shell.panel}>
       <h3 style={shell.panelTitle}><FileText size={16} /> Salary Slips</h3>
       <p style={shell.sub}>Open, download, email, or WhatsApp salary slips for the selected month/year. Use the filters above for the current salary cycle.</p>
+      <p style={{ ...shell.sub, marginTop: '-2px', color: '#64748b' }}>Policy note: Monthly salary is divided by calendar days in the month, and Sunday work is paid at the normal hourly rate.</p>
       <div style={shell.actionRow}>
         <button type="button" style={shell.btnLight} onClick={() => exportReport('monthly', 'json')}>Monthly Summary</button>
         <button type="button" style={shell.btnLight} onClick={() => exportReport('employee-wise', 'json')}>Employee-wise</button>
@@ -2015,6 +2038,7 @@ export default function PayrollModule() {
         onShareEmail={() => shareSlip('email')}
         onShareWhatsApp={() => shareSlip('whatsapp')}
         publicShareUrl={slipViewer.url}
+        policyNote="Monthly salary uses calendar days in the selected month. Sunday work is paid at the normal hourly rate."
       />
     </section>
   );

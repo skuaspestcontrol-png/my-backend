@@ -57,6 +57,7 @@ const payrollExportColumns = {
     ['year', 'Year'],
     ['leaveDeduction', 'Leave Deduction'],
     ['lateDeduction', 'Late Deduction'],
+    ['shortHoursDeduction', 'Short Hours Deduction'],
     ['advanceDeduction', 'Advance Deduction'],
     ['loanDeduction', 'Loan Deduction'],
     ['pf', 'PF'],
@@ -110,8 +111,11 @@ const allowedPaymentMode = new Set(['Cash', 'Bank transfer', 'UPI', 'Cheque']);
 const defaultPayrollConfig = {
   weeklyOffDay: 0, // Sunday
   lateMarkGraceMinutes: 15,
+  lateOvertimeCutoffMinutes: 30,
   standardDailyHours: 8,
-  workStartTime: '09:00'
+  overtimeMultiplier: 2,
+  workStartTime: '09:30',
+  workEndTime: '17:30'
 };
 
 const roleToPermissions = (rawRole) => {
@@ -490,6 +494,24 @@ const toMinutes = (value) => {
   return (Number(match[1]) * 60) + Number(match[2]);
 };
 
+const minutesToHours = (value) => round2(Math.max(0, toNumber(value, 0) / 60));
+
+const resolveShiftWindow = ({
+  workStartTime,
+  workEndTime,
+  standardDailyHours
+}) => {
+  const start = toMinutes(workStartTime || defaultPayrollConfig.workStartTime);
+  const fallbackEnd = start !== null
+    ? start + (Math.max(1, toNumber(standardDailyHours, defaultPayrollConfig.standardDailyHours)) * 60)
+    : null;
+  const end = toMinutes(workEndTime || defaultPayrollConfig.workEndTime) ?? fallbackEnd;
+  return {
+    shiftStartMins: start,
+    shiftEndMins: end
+  };
+};
+
 const attendanceStatus = (value) => normalizeRole(value || '');
 const attendanceLeaveTypeAliases = new Map([
   ['cl', 'Casual Leave (CL)'],
@@ -586,7 +608,10 @@ const summarizeAttendanceForPayroll = ({
   holidays,
   weeklyOffDay,
   lateMarkGraceMinutes,
-  workStartTime
+  workStartTime,
+  workEndTime,
+  standardDailyHours = defaultPayrollConfig.standardDailyHours,
+  lateOvertimeCutoffMinutes = defaultPayrollConfig.lateOvertimeCutoffMinutes
 }) => {
   const { start, end } = monthDateRange(month, year);
   const allDates = listDatesInRange(start, end);
@@ -608,8 +633,18 @@ const summarizeAttendanceForPayroll = ({
   let unpaidHolidayDays = 0;
   let lateMarks = 0;
   let overtimeHours = 0;
+  let sundayOvertimeHours = 0;
+  let sundayNormalHours = 0;
+  let sundayNormalEarningHours = 0;
+  let shortHoursDeductionHours = 0;
+  let paidHours = 0;
+  const dailyBreakdown = [];
 
-  const shiftStartMins = toMinutes(workStartTime || defaultPayrollConfig.workStartTime);
+  const { shiftStartMins, shiftEndMins } = resolveShiftWindow({
+    workStartTime,
+    workEndTime,
+    standardDailyHours
+  });
 
   allDates.forEach((dateObj) => {
     const key = toDateKey(dateObj);
@@ -638,24 +673,92 @@ const summarizeAttendanceForPayroll = ({
       weeklyOffDays += 1;
       return;
     }
+    if (isWeeklyOff) {
+      const rawHours = Math.max(0, toNumber(att.workingHours ?? att.hoursWorked ?? 0, 0));
+      if (rawHours > 0) {
+        weeklyOffDays += 1;
+        sundayOvertimeHours += rawHours;
+        sundayNormalHours += rawHours;
+        sundayNormalEarningHours += rawHours;
+        paidHours += round2(rawHours);
+        dailyBreakdown.push({
+          date: key,
+          status: 'weekly-off',
+          checkIn: normalizeText(att.checkIn || ''),
+          checkOut: normalizeText(att.checkOut || ''),
+          workingHours: round2(rawHours),
+          lateMinutes: 0,
+          overtimeHours: 0,
+          sundayHours: round2(rawHours),
+          shortHours: 0,
+          overtimeEligible: false,
+          rule: 'weekly-off-normal'
+        });
+        return;
+      }
+      weeklyOffDays += 1;
+      return;
+    }
     if (status === 'present') {
       presentDays += 1;
       const inMins = toMinutes(att.checkIn || '');
-      if (inMins !== null && shiftStartMins !== null && inMins > (shiftStartMins + lateMarkGraceMinutes)) {
-        lateMarks += 1;
-      }
-      const rawHours = toNumber(att.workingHours ?? att.hoursWorked ?? 0, 0);
-      overtimeHours += Math.max(0, round2(rawHours - defaultPayrollConfig.standardDailyHours));
+      const rawHours = Math.max(0, toNumber(att.workingHours ?? att.hoursWorked ?? 0, 0));
+      const lateMinutes = (inMins !== null && shiftStartMins !== null) ? Math.max(0, inMins - shiftStartMins) : 0;
+      const isLate = lateMinutes > lateMarkGraceMinutes;
+      if (isLate) lateMarks += 1;
+
+      const overtimeEligible = lateMinutes > lateOvertimeCutoffMinutes;
+      const overtimeStartMins = shiftEndMins !== null ? shiftEndMins + lateMinutes : null;
+      const overtimeForDay = overtimeEligible && overtimeStartMins !== null
+        ? Math.max(0, minutesToHours((toMinutes(att.checkOut || '') ?? 0) - overtimeStartMins))
+        : 0;
+      const shortHoursForDay = Math.max(0, round2(standardDailyHours - rawHours));
+      overtimeHours += overtimeForDay;
+      shortHoursDeductionHours += shortHoursForDay;
+      paidHours += round2(Math.min(rawHours, standardDailyHours));
+      dailyBreakdown.push({
+        date: key,
+        status: 'present',
+        checkIn: normalizeText(att.checkIn || ''),
+        checkOut: normalizeText(att.checkOut || ''),
+        workingHours: round2(rawHours),
+        lateMinutes: round2(lateMinutes),
+        overtimeHours: round2(overtimeForDay),
+        shortHours: round2(shortHoursForDay),
+        overtimeEligible,
+        rule: overtimeEligible ? 'carry-forward' : 'standard'
+      });
       return;
     }
     if (status === 'half-day') {
       halfDays += 1;
       const inMins = toMinutes(att.checkIn || '');
-      if (inMins !== null && shiftStartMins !== null && inMins > (shiftStartMins + lateMarkGraceMinutes)) {
-        lateMarks += 1;
-      }
-      const rawHours = toNumber(att.workingHours ?? att.hoursWorked ?? 0, 0);
-      overtimeHours += Math.max(0, round2(rawHours - (defaultPayrollConfig.standardDailyHours / 2)));
+      const rawHours = Math.max(0, toNumber(att.workingHours ?? att.hoursWorked ?? 0, 0));
+      const halfDayStandardHours = Math.max(0, standardDailyHours / 2);
+      const lateMinutes = (inMins !== null && shiftStartMins !== null) ? Math.max(0, inMins - shiftStartMins) : 0;
+      const isLate = lateMinutes > lateMarkGraceMinutes;
+      if (isLate) lateMarks += 1;
+      const overtimeEligible = lateMinutes > lateOvertimeCutoffMinutes;
+      const overtimeStartMins = shiftEndMins !== null ? shiftEndMins + lateMinutes : null;
+      const overtimeForDay = overtimeEligible && overtimeStartMins !== null
+        ? Math.max(0, minutesToHours((toMinutes(att.checkOut || '') ?? 0) - overtimeStartMins))
+        : 0;
+      const shortHoursForDay = Math.max(0, round2(halfDayStandardHours - rawHours));
+      overtimeHours += overtimeForDay;
+      shortHoursDeductionHours += shortHoursForDay;
+      paidHours += round2(Math.min(rawHours, halfDayStandardHours));
+      dailyBreakdown.push({
+        date: key,
+        status: 'half-day',
+        checkIn: normalizeText(att.checkIn || ''),
+        checkOut: normalizeText(att.checkOut || ''),
+        workingHours: round2(rawHours),
+        lateMinutes: round2(lateMinutes),
+        overtimeHours: round2(overtimeForDay),
+        shortHours: round2(shortHoursForDay),
+        overtimeEligible,
+        rule: overtimeEligible ? 'carry-forward' : 'standard'
+      });
       return;
     }
     if (status === 'leave') {
@@ -706,7 +809,13 @@ const summarizeAttendanceForPayroll = ({
     paidHolidayDays: round2(paidHolidayDays),
     unpaidHolidayDays: round2(unpaidHolidayDays),
     lateMarks: round2(lateMarks),
-    overtimeHours: round2(overtimeHours)
+    overtimeHours: round2(overtimeHours),
+    sundayOvertimeHours: round2(sundayOvertimeHours),
+    sundayNormalHours: round2(sundayNormalHours),
+    sundayNormalEarningHours: round2(sundayNormalEarningHours),
+    shortHoursDeductionHours: round2(shortHoursDeductionHours),
+    paidHours: round2(paidHours),
+    dailyBreakdown
   };
 };
 
@@ -752,26 +861,40 @@ const calcPayrollItem = ({
   };
   const allowanceTotal = Object.values(allowances).reduce((sum, value) => sum + toNumber(value, 0), 0);
   const overtimeHours = toNumber(attendanceSummary.overtimeHours, 0);
-  const overtimeRate = Math.max(0, toNumber(structure?.overtimeRate, 0));
+  const calendarDaysInMonth = Math.max(1, toNumber(attendanceSummary.daysInMonth, 30));
+  const monthlyPerDaySalary = round2(baseSalary / calendarDaysInMonth);
+  const derivedHourlyRate = defaultPayrollConfig.standardDailyHours > 0
+    ? round2(monthlyPerDaySalary / defaultPayrollConfig.standardDailyHours)
+    : 0;
+  const overtimeRate = Math.max(0, toNumber(structure?.overtimeRate, derivedHourlyRate * defaultPayrollConfig.overtimeMultiplier));
   const overtimeEarning = round2(overtimeHours * overtimeRate);
+  const shortHoursDeductionHours = Math.max(0, toNumber(attendanceSummary.shortHoursDeductionHours, 0));
+  const sundayNormalHours = Math.max(0, toNumber(attendanceSummary.sundayNormalEarningHours, 0));
+  const sundayWorkEarning = salaryType === 'monthly'
+    ? round2(sundayNormalHours * derivedHourlyRate)
+    : 0;
 
   let baseEarned = baseSalary;
-  const perDaySalary = attendanceSummary.totalWorkingDays > 0
-    ? round2(baseSalary / attendanceSummary.totalWorkingDays)
+  const perDaySalary = salaryType === 'monthly' ? monthlyPerDaySalary : round2(dailyRate || monthlyPerDaySalary);
+  const perHourSalary = defaultPayrollConfig.standardDailyHours > 0
+    ? round2(perDaySalary / defaultPayrollConfig.standardDailyHours)
     : 0;
   const halfDayDeductionDays = round2(attendanceSummary.halfDays * 0.5);
   const leaveDeductionDays = round2(attendanceSummary.unpaidLeaveDays + halfDayDeductionDays);
   let leaveDeduction = round2(leaveDeductionDays * perDaySalary);
+  let shortHoursDeduction = round2(shortHoursDeductionHours * perHourSalary);
 
   if (salaryType === 'daily') {
     const paidDays = attendanceSummary.presentDays + attendanceSummary.paidLeaveDays + attendanceSummary.weeklyOffDays + attendanceSummary.paidHolidayDays + (attendanceSummary.halfDays * 0.5);
     baseEarned = round2((dailyRate || perDaySalary) * paidDays);
     leaveDeduction = 0;
+    shortHoursDeduction = round2(shortHoursDeductionHours * (dailyRate > 0 && defaultPayrollConfig.standardDailyHours > 0 ? (dailyRate / defaultPayrollConfig.standardDailyHours) : perHourSalary));
   }
   if (salaryType === 'hourly') {
-    const paidHours = (attendanceSummary.presentDays * defaultPayrollConfig.standardDailyHours) + (attendanceSummary.halfDays * (defaultPayrollConfig.standardDailyHours / 2));
-    baseEarned = round2((hourlyRate || 0) * paidHours);
+    const payableHours = Math.max(0, toNumber(attendanceSummary.paidHours, 0));
+    baseEarned = round2((hourlyRate || perHourSalary) * payableHours);
     leaveDeduction = 0;
+    shortHoursDeduction = 0;
   }
 
   const lateDeduction = round2(fixedDeductions.late + (attendanceSummary.lateMarks * fixedDeductions.latePerMark));
@@ -801,6 +924,7 @@ const calcPayrollItem = ({
   const deductionTotal = round2(
     leaveDeduction
     + lateDeduction
+    + shortHoursDeduction
     + advanceSalaryDeduction
     + fixedDeductions.loan
     + fixedDeductions.pf
@@ -809,7 +933,8 @@ const calcPayrollItem = ({
   );
 
   const grossSalary = round2(baseEarned + allowanceTotal + overtimeEarning);
-  const defaultNet = round2(grossSalary - deductionTotal);
+  const grossWithSundayWork = round2(grossSalary + sundayWorkEarning);
+  const defaultNet = round2(grossWithSundayWork - deductionTotal);
   const adjustedNet = manual.enabled
     ? round2(toNumber(manual.overrideNetSalary, defaultNet))
     : round2(defaultNet + toNumber(manual.adjustmentAmount, 0));
@@ -831,11 +956,13 @@ const calcPayrollItem = ({
     overtimeHours,
     overtimeRate,
     overtimeEarning,
+    sundayWorkEarning,
     attendanceSummary,
     allowances: { ...allowances, total: round2(allowanceTotal) },
     deductions: {
       leaveDeduction: round2(leaveDeduction),
       lateComingDeduction: round2(lateDeduction),
+      shortHoursDeduction: round2(shortHoursDeduction),
       advanceSalaryDeduction: round2(advanceSalaryDeduction),
       loanDeduction: round2(fixedDeductions.loan),
       pf: round2(fixedDeductions.pf),
@@ -844,7 +971,7 @@ const calcPayrollItem = ({
       fixedLeaveDeduction: round2(fixedDeductions.leave),
       total: round2(deductionTotal)
     },
-    grossSalary,
+    grossSalary: grossWithSundayWork,
     netSalary: adjustedNet,
     computedNetSalary: defaultNet,
     manualAdjustmentAmount: round2(toNumber(manual.adjustmentAmount, 0)),
@@ -912,7 +1039,17 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
   const headerBottomY = dividerY + 26;
   doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a').text('Salary Slip', 42, headerBottomY);
   doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`For ${slipMonthLabel}`, 42, headerBottomY + 18);
-  line(headerBottomY + 40);
+  const policyBoxY = headerBottomY + 30;
+  const policyBoxHeight = 30;
+  doc.save();
+  doc.roundedRect(42, policyBoxY, 511, policyBoxHeight, 8)
+    .fillAndStroke('#f8fafc', '#d0d7e2');
+  doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#0f172a')
+    .text('Policy note', 54, policyBoxY + 7);
+  doc.font('Helvetica').fontSize(8.5).fillColor('#475569')
+    .text('Monthly salary uses calendar days in the selected month. Sunday work is paid at the normal hourly rate.', 118, policyBoxY + 7, { width: 420 });
+  doc.restore();
+  line(policyBoxY + policyBoxHeight + 8);
 
   const infoTopY = headerBottomY + 50;
   textValue('Employee Name:', item.employeeName, 42, infoTopY);
@@ -933,7 +1070,9 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     .text(`Half Day: ${item.attendanceSummary.halfDays}`, 42, attendanceTopY + 36)
     .text(`Late Marks: ${item.attendanceSummary.lateMarks}`, 180, attendanceTopY + 36)
     .text(`Weekly Off: ${item.attendanceSummary.weeklyOffDays}`, 290, attendanceTopY + 36)
-    .text(`Paid Holiday: ${item.attendanceSummary.paidHolidayDays}`, 430, attendanceTopY + 36);
+    .text(`Paid Holiday: ${item.attendanceSummary.paidHolidayDays}`, 430, attendanceTopY + 36)
+    .text(`Overtime Hours: ${round2(item.overtimeHours || item.attendanceSummary.overtimeHours || 0)}`, 42, attendanceTopY + 54)
+    .text(`Short-Hour Deduction: INR ${Number(item.deductions.shortHoursDeduction || 0).toFixed(2)}`, 180, attendanceTopY + 54);
   line(attendanceTopY + 60);
 
   const earningsTopY = attendanceTopY + 70;
@@ -942,6 +1081,8 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
 
   const earningsRows = [
     ['Basic Salary', item.basicSalary],
+    ['Overtime Earnings', item.overtimeEarning],
+    ...(Number(item.sundayWorkEarning || 0) > 0 ? [['Sunday Work', item.sundayWorkEarning]] : []),
     ['HRA', item.allowances.hra],
     ['Conveyance', item.allowances.conveyance],
     ['Mobile Allowance', item.allowances.mobile],
@@ -952,6 +1093,7 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
   const deductionRows = [
     ['Leave Deduction', item.deductions.leaveDeduction],
     ['Late Deduction', item.deductions.lateComingDeduction],
+    ['Short Hours Deduction', item.deductions.shortHoursDeduction],
     ['Advance Deduction', item.deductions.advanceSalaryDeduction],
     ['Loan Deduction', item.deductions.loanDeduction],
     ['PF', item.deductions.pf],
@@ -1980,11 +2122,16 @@ function registerPayrollModule({
     const perms = ensureAccess(req, res, (p) => p.canManageAll, 'Only Admin/HR can update payroll settings');
     if (!perms) return;
     const { config, runs } = getPayrollConfig();
+    const { salaryBasisDays: _legacySalaryBasisDays, ...configWithoutLegacyBasis } = config || {};
     const nextConfig = {
-      ...config,
+      ...configWithoutLegacyBasis,
       weeklyOffDay: Math.min(6, Math.max(0, toNumber(req.body?.weeklyOffDay, config.weeklyOffDay))),
       lateMarkGraceMinutes: Math.max(0, toNumber(req.body?.lateMarkGraceMinutes, config.lateMarkGraceMinutes)),
-      workStartTime: normalizeText(req.body?.workStartTime || config.workStartTime)
+      lateOvertimeCutoffMinutes: Math.max(0, toNumber(req.body?.lateOvertimeCutoffMinutes, config.lateOvertimeCutoffMinutes)),
+      standardDailyHours: Math.max(1, toNumber(req.body?.standardDailyHours, config.standardDailyHours)),
+      overtimeMultiplier: Math.max(1, toNumber(req.body?.overtimeMultiplier, config.overtimeMultiplier || defaultPayrollConfig.overtimeMultiplier)),
+      workStartTime: normalizeText(req.body?.workStartTime || config.workStartTime),
+      workEndTime: normalizeText(req.body?.workEndTime || config.workEndTime)
     };
     savePayrollConfigAndRuns({ config: nextConfig, runs });
     writeAudit({
@@ -2950,6 +3097,7 @@ function registerPayrollModule({
       year: entry.year,
       leaveDeduction: round2(entry.deductions?.leaveDeduction || 0),
       lateDeduction: round2(entry.deductions?.lateComingDeduction || 0),
+      shortHoursDeduction: round2(entry.deductions?.shortHoursDeduction || 0),
       advanceDeduction: round2(entry.deductions?.advanceSalaryDeduction || 0),
       loanDeduction: round2(entry.deductions?.loanDeduction || 0),
       pf: round2(entry.deductions?.pf || 0),

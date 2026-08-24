@@ -244,7 +244,7 @@ const deriveEmployeeBaseSalary = (employee, salaryStructures, endDate) => {
   return Math.max(0, toNumber(employee.salaryPerMonth ?? employee.salary, 0));
 };
 
-const summarizeAttendanceMonth = ({ employeeId, attendanceRows, lateMinutes = 15, shiftStart = '09:00', month, year }) => {
+const summarizeAttendanceMonth = ({ employeeId, attendanceRows, lateMinutes = 15, shiftStart = '09:30', month, year }) => {
   const { start, end } = monthRange(month, year);
   const rows = (Array.isArray(attendanceRows) ? attendanceRows : []).filter((entry) => {
     if (normalizeText(entry.employeeId) !== normalizeText(employeeId)) return false;
@@ -383,7 +383,7 @@ const computeAttendanceToday = ({ employees, attendanceRows, leaves, today }) =>
 
     const status = normalizeLower(attendance.status);
     const inMins = toMinutes(attendance.checkIn);
-    const late = inMins !== null && inMins > (9 * 60) + 15;
+    const late = inMins !== null && inMins > (9 * 60) + 45;
     if (late) lateCheckins += 1;
 
     if (status === 'present' || status === 'half-day') onDuty += 1;

@@ -46,6 +46,20 @@ const shell = {
     gap: '8px',
     lineHeight: 1.15
   },
+  policyNote: {
+    margin: '4px 0 0 0',
+    padding: '6px 10px',
+    borderRadius: '999px',
+    background: 'rgba(252,231,243,0.16)',
+    color: '#ffffff',
+    border: '1px solid rgba(236,72,153,0.55)',
+    fontSize: '12px',
+    fontWeight: 600,
+    lineHeight: 1.35,
+    maxWidth: '100%',
+    display: 'inline-block',
+    boxShadow: '0 0 0 1px rgba(255,255,255,0.08) inset'
+  },
   closeButton: {
     border: 'none',
     background: 'rgba(255,255,255,0.18)',
@@ -145,7 +159,8 @@ export default function PdfPreviewModal({
   onClose,
   onShareEmail,
   onShareWhatsApp,
-  publicShareUrl
+  publicShareUrl,
+  policyNote
 }) {
   const [screenWidth, setScreenWidth] = useState(() => window.innerWidth);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -298,7 +313,10 @@ export default function PdfPreviewModal({
         aria-label={title || 'PDF preview'}
       >
         <div style={shell.header}>
-          <h3 style={shell.title}><FileText size={16} /> {title || 'PDF Preview'}</h3>
+          <div style={{ minWidth: 0 }}>
+            <h3 style={shell.title}><FileText size={16} /> {title || 'PDF Preview'}</h3>
+            {policyNote ? <p style={shell.policyNote}>{policyNote}</p> : null}
+          </div>
           <button type="button" onClick={handleClose} style={shell.closeButton} aria-label="Close">
             <X size={22} />
           </button>
