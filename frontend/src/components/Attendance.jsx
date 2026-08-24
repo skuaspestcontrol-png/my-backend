@@ -259,6 +259,44 @@ const shell = {
     fontSize: '12px',
     fontWeight: 800
   },
+  hoursBadgeStack: {
+    display: 'grid',
+    gap: '4px',
+    justifyItems: 'center'
+  },
+  overtimeBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '74px',
+    minHeight: '24px',
+    padding: '0 10px',
+    borderRadius: '999px',
+    border: '1px solid transparent',
+    fontSize: '10px',
+    fontWeight: 800,
+    letterSpacing: '0.02em'
+  },
+  overtimeBadgePositive: {
+    borderColor: 'rgba(22,163,74,0.34)',
+    background: 'rgba(22,163,74,0.10)',
+    color: '#166534'
+  },
+  overtimeBadgeWarning: {
+    borderColor: 'rgba(245,158,11,0.34)',
+    background: 'rgba(245,158,11,0.12)',
+    color: '#92400e'
+  },
+  overtimeBadgeSunday: {
+    borderColor: 'rgba(14,116,144,0.28)',
+    background: 'rgba(14,116,144,0.10)',
+    color: '#0f766e'
+  },
+  overtimeBadgeNeutral: {
+    borderColor: 'rgba(148,163,184,0.28)',
+    background: 'rgba(148,163,184,0.12)',
+    color: '#475569'
+  },
   mapBtn: {
     minHeight: '30px',
     height: '30px',
@@ -310,6 +348,29 @@ const statusTheme = {
 
 const isValidTime = (value) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(value || '').trim());
 
+const attendanceShift = {
+  start: '09:30',
+  end: '17:30',
+  standardDailyHours: 8,
+  lateOvertimeCutoffMinutes: 30
+};
+
+const timeToMinutes = (value) => {
+  if (!isValidTime(value)) return null;
+  const [hours, minutes] = String(value).split(':').map(Number);
+  return (hours * 60) + minutes;
+};
+
+const formatMinutesAsClock = (minutes) => {
+  if (!Number.isFinite(minutes)) return '';
+  const total = Math.max(0, Math.round(minutes));
+  const hours24 = Math.floor(total / 60) % 24;
+  const mins = total % 60;
+  const period = hours24 >= 12 ? 'PM' : 'AM';
+  const displayHour = hours24 % 12 || 12;
+  return `${String(displayHour).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${period}`;
+};
+
 const computeHours = (status, checkIn, checkOut) => {
   if (status === 'absent' || status === 'weekly-off' || status === 'leave') return 0;
   if (!isValidTime(checkIn) || !isValidTime(checkOut)) return 0;
@@ -321,6 +382,82 @@ const computeHours = (status, checkIn, checkOut) => {
   const rawHours = (outMinutes - inMinutes) / 60;
   const finalHours = status === 'half-day' ? Math.min(rawHours, 4) : rawHours;
   return Number(finalHours.toFixed(2));
+};
+
+const computeAttendanceMetrics = (record = {}) => {
+  const status = String(record.status || 'absent').trim().toLowerCase();
+  const workingHours = computeHours(status, record.checkIn, record.checkOut);
+  const attendanceDate = String(record.date || '').trim();
+  const isSunday = attendanceDate ? isSundayDate(attendanceDate) : false;
+  const checkInMinutes = timeToMinutes(record.checkIn);
+  const checkOutMinutes = timeToMinutes(record.checkOut);
+  const shiftStartMinutes = timeToMinutes(attendanceShift.start);
+  const shiftEndMinutes = timeToMinutes(attendanceShift.end);
+
+  if (!workingHours || status === 'absent' || status === 'weekly-off' || status === 'leave') {
+    return {
+      workingHours,
+      overtimeHours: 0,
+      overtimeLabel: '',
+      overtimeTone: 'neutral',
+      overtimeTitle: ''
+    };
+  }
+
+  if (isSunday) {
+    return {
+      workingHours,
+      overtimeHours: 0,
+      overtimeLabel: `Sunday normal ${workingHours.toFixed(2)} hrs`,
+      overtimeTone: 'sunday',
+      overtimeTitle: 'Sunday work is paid at the normal daily rate, not 2x.'
+    };
+  }
+
+  if (checkInMinutes === null || checkOutMinutes === null || shiftStartMinutes === null || shiftEndMinutes === null) {
+    return {
+      workingHours,
+      overtimeHours: 0,
+      overtimeLabel: 'No OT',
+      overtimeTone: 'neutral',
+      overtimeTitle: 'Overtime is unavailable until both check-in and check-out are valid.'
+    };
+  }
+
+  const lateMinutes = Math.max(0, checkInMinutes - shiftStartMinutes);
+  const overtimeEligible = lateMinutes > attendanceShift.lateOvertimeCutoffMinutes;
+  const overtimeStartMinutes = shiftEndMinutes + lateMinutes;
+  const overtimeHours = overtimeEligible
+    ? Math.max(0, (checkOutMinutes - overtimeStartMinutes) / 60)
+    : 0;
+
+  if (overtimeHours > 0) {
+    return {
+      workingHours,
+      overtimeHours: Number(overtimeHours.toFixed(2)),
+      overtimeLabel: `OT ${overtimeHours.toFixed(2)} hrs`,
+      overtimeTone: 'positive',
+      overtimeTitle: `Carry-forward overtime starts at ${formatMinutesAsClock(overtimeStartMinutes)}.`
+    };
+  }
+
+  if (overtimeEligible) {
+    return {
+      workingHours,
+      overtimeHours: 0,
+      overtimeLabel: 'Late, no OT',
+      overtimeTone: 'warning',
+      overtimeTitle: `Late by ${lateMinutes} minutes. Overtime starts at ${formatMinutesAsClock(overtimeStartMinutes)} if work continues.`
+    };
+  }
+
+  return {
+    workingHours,
+    overtimeHours: 0,
+    overtimeLabel: 'No OT',
+    overtimeTone: 'neutral',
+    overtimeTitle: 'Overtime only applies when late arrival crosses the 30-minute cutoff.'
+  };
 };
 
 const todayDate = () => {
@@ -537,12 +674,13 @@ export default function Attendance() {
         punchOutLongitude: null,
         punchOutMapUrl: ''
       };
-      const workingHours = computeHours(record.status, record.checkIn, record.checkOut);
+      const attendanceMetrics = computeAttendanceMetrics(record);
       return {
         employee,
         employeeId,
         record,
-        workingHours
+        workingHours: attendanceMetrics.workingHours,
+        attendanceMetrics
       };
     }),
     [employees, records, date]
@@ -882,7 +1020,7 @@ export default function Attendance() {
             </tr>
           </thead>
           <tbody>
-            {employeeRows.map(({ employee, employeeId, record, workingHours }) => {
+            {employeeRows.map(({ employee, employeeId, record, workingHours, attendanceMetrics }) => {
               const status = record.status || 'absent';
               const timeDisabled = status !== 'present';
               return (
@@ -947,7 +1085,23 @@ export default function Attendance() {
                   </td>
                   <td style={shell.td}>
                     <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                      <span style={shell.hoursBadge}>{workingHours.toFixed(2)} hrs</span>
+                      <div style={shell.hoursBadgeStack}>
+                        <span style={shell.hoursBadge}>{workingHours.toFixed(2)} hrs</span>
+                        {attendanceMetrics.overtimeLabel ? (
+                          <span
+                            style={{
+                              ...shell.overtimeBadge,
+                              ...(attendanceMetrics.overtimeTone === 'positive' ? shell.overtimeBadgePositive : {}),
+                              ...(attendanceMetrics.overtimeTone === 'warning' ? shell.overtimeBadgeWarning : {}),
+                              ...(attendanceMetrics.overtimeTone === 'sunday' ? shell.overtimeBadgeSunday : {}),
+                              ...(attendanceMetrics.overtimeTone === 'neutral' ? shell.overtimeBadgeNeutral : {})
+                            }}
+                            title={attendanceMetrics.overtimeTitle}
+                          >
+                            {attendanceMetrics.overtimeLabel}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </td>
                   <td style={shell.td}>
@@ -1003,7 +1157,7 @@ export default function Attendance() {
           </tbody>
         </table>
       </div>
-      <p style={shell.footerNote}>{statusMessage || 'Tip: Attendance auto-saves when you change status, leave, or move out of time fields.'}</p>
+      <p style={shell.footerNote}>{statusMessage || 'Tip: Attendance auto-saves when you change status, leave, or move out of time fields. Overtime follows the 9:30 AM - 5:30 PM shift, and Sunday work is paid normally.'}</p>
 
       {auditModal.open ? (
         <div style={shell.modalBg}>

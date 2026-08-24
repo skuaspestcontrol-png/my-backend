@@ -67,6 +67,25 @@ const toMinutes = (value) => {
   return (Number(match[1]) * 60) + Number(match[2]);
 };
 
+const resolveShiftWindow = ({
+  workStartTime = '09:30',
+  workEndTime = '17:30',
+  standardDailyHours = 8
+} = {}) => {
+  let shiftStartMins = toMinutes(workStartTime);
+  let shiftEndMins = toMinutes(workEndTime);
+  if (shiftStartMins !== null && shiftEndMins === null) {
+    shiftEndMins = shiftStartMins + (Math.max(1, toNumber(standardDailyHours, 8)) * 60);
+  }
+  if (shiftStartMins === null && shiftEndMins !== null) {
+    shiftStartMins = shiftEndMins - (Math.max(1, toNumber(standardDailyHours, 8)) * 60);
+  }
+  return {
+    shiftStartMins,
+    shiftEndMins
+  };
+};
+
 const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
 const rolePermissions = (rawRole) => {
@@ -244,7 +263,17 @@ const deriveEmployeeBaseSalary = (employee, salaryStructures, endDate) => {
   return Math.max(0, toNumber(employee.salaryPerMonth ?? employee.salary, 0));
 };
 
-const summarizeAttendanceMonth = ({ employeeId, attendanceRows, lateMinutes = 15, shiftStart = '09:30', month, year }) => {
+const summarizeAttendanceMonth = ({
+  employeeId,
+  attendanceRows,
+  lateMinutes = 15,
+  shiftStart = '09:30',
+  shiftEnd = '17:30',
+  month,
+  year,
+  standardDailyHours = 8,
+  lateOvertimeCutoffMinutes = 30
+}) => {
   const { start, end } = monthRange(month, year);
   const rows = (Array.isArray(attendanceRows) ? attendanceRows : []).filter((entry) => {
     if (normalizeText(entry.employeeId) !== normalizeText(employeeId)) return false;
@@ -259,20 +288,74 @@ const summarizeAttendanceMonth = ({ employeeId, attendanceRows, lateMinutes = 15
   let halfDay = 0;
   let lateMarks = 0;
   let overtimeHours = 0;
-  const startMins = toMinutes(shiftStart);
+  let sundayOvertimeHours = 0;
+  let sundayNormalHours = 0;
+  let sundayNormalEarningHours = 0;
+  let shortHoursDeductionHours = 0;
+  let paidHours = 0;
+  const { shiftStartMins, shiftEndMins } = resolveShiftWindow({
+    workStartTime: shiftStart,
+    workEndTime: shiftEnd,
+    standardDailyHours
+  });
 
   rows.forEach((entry) => {
     const status = normalizeLower(entry.status);
+    const day = toDateOnly(entry.date);
+    const isWeeklyOffDay = day ? day.getDay() === 0 : false;
+    const rawHours = Math.max(0, toNumber(entry.workingHours, 0));
+
+    if (isWeeklyOffDay) {
+      if (rawHours > 0) {
+        sundayOvertimeHours += rawHours;
+        sundayNormalHours += rawHours;
+        sundayNormalEarningHours += rawHours;
+        paidHours += round2(rawHours);
+      }
+      return;
+    }
+
     if (status === 'present') present += 1;
     else if (status === 'half-day') halfDay += 1;
     else if (status === 'leave') leave += 1;
     else if (status === 'absent') absent += 1;
 
     const inMins = toMinutes(entry.checkIn);
-    if (inMins !== null && startMins !== null && inMins > (startMins + lateMinutes)) lateMarks += 1;
+    if (inMins !== null && shiftStartMins !== null && inMins > (shiftStartMins + lateMinutes)) lateMarks += 1;
 
-    const wh = toNumber(entry.workingHours, 0);
-    if (wh > 8) overtimeHours += (wh - 8);
+    if (status === 'present') {
+      const lateMinutesForDay = (inMins !== null && shiftStartMins !== null)
+        ? Math.max(0, inMins - shiftStartMins)
+        : 0;
+      const overtimeEligible = lateMinutesForDay > lateOvertimeCutoffMinutes;
+      const overtimeStartMins = shiftEndMins !== null ? shiftEndMins + lateMinutesForDay : null;
+      const outMins = toMinutes(entry.checkOut);
+      const overtimeForDay = overtimeEligible && overtimeStartMins !== null && outMins !== null
+        ? Math.max(0, (outMins - overtimeStartMins) / 60)
+        : 0;
+      const shortHoursForDay = Math.max(0, standardDailyHours - rawHours);
+      overtimeHours += overtimeForDay;
+      shortHoursDeductionHours += shortHoursForDay;
+      paidHours += round2(Math.min(rawHours, standardDailyHours));
+      return;
+    }
+
+    if (status === 'half-day') {
+      const lateMinutesForDay = (inMins !== null && shiftStartMins !== null)
+        ? Math.max(0, inMins - shiftStartMins)
+        : 0;
+      const overtimeEligible = lateMinutesForDay > lateOvertimeCutoffMinutes;
+      const overtimeStartMins = shiftEndMins !== null ? shiftEndMins + lateMinutesForDay : null;
+      const outMins = toMinutes(entry.checkOut);
+      const overtimeForDay = overtimeEligible && overtimeStartMins !== null && outMins !== null
+        ? Math.max(0, (outMins - overtimeStartMins) / 60)
+        : 0;
+      const halfDayStandardHours = Math.max(0, standardDailyHours / 2);
+      const shortHoursForDay = Math.max(0, halfDayStandardHours - rawHours);
+      overtimeHours += overtimeForDay;
+      shortHoursDeductionHours += shortHoursForDay;
+      paidHours += round2(Math.min(rawHours, halfDayStandardHours));
+    }
   });
 
   return {
@@ -282,6 +365,11 @@ const summarizeAttendanceMonth = ({ employeeId, attendanceRows, lateMinutes = 15
     halfDay,
     lateMarks,
     overtimeHours: round2(overtimeHours),
+    sundayOvertimeHours: round2(sundayOvertimeHours),
+    sundayNormalHours: round2(sundayNormalHours),
+    sundayNormalEarningHours: round2(sundayNormalEarningHours),
+    shortHoursDeductionHours: round2(shortHoursDeductionHours),
+    paidHours: round2(paidHours),
     totalEntries: rows.length
   };
 };
