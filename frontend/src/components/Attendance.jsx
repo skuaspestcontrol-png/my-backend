@@ -928,7 +928,6 @@ export default function Attendance() {
         </div>
         <div style={shell.topbarActions}>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
-            <CalendarDays size={16} />
             <input
               type="month"
               value={month}
@@ -946,15 +945,12 @@ export default function Attendance() {
             >
               <ChevronLeft size={16} />
             </button>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
-              <CalendarDays size={16} />
-              <input
-                type="date"
-                value={date}
-                onChange={(event) => handleDateChange(event.target.value)}
-                style={shell.dateInput}
-              />
-            </label>
+            <input
+              type="date"
+              value={date}
+              onChange={(event) => handleDateChange(event.target.value)}
+              style={shell.dateInput}
+            />
             <button
               type="button"
               onClick={() => shiftSelectedDate(1)}
