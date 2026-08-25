@@ -4,14 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
+import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import { subscribeRenewalsRefresh, triggerContractsRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { getPortalUserName } from '../utils/portalAuth';
+import { normalizeIndianMobileNumber } from '../utils/phone';
 import {
   CalendarClock,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
   FileText,
+  MessageCircleMore,
   RefreshCw,
   Search,
   Trash2,
@@ -245,6 +248,7 @@ export default function RenewalDashboard() {
   const [modal, setModal] = useState({ type: '', row: null });
   const [form, setForm] = useState({});
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', renewalId: '', shareContext: null });
+  const [whatsappComposer, setWhatsappComposer] = useState({ open: false, row: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' });
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 760);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
@@ -347,6 +351,66 @@ export default function RenewalDashboard() {
       ''
     ).trim() || String(Date.now());
     return `${rawUrl}${rawUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(cacheBuster)}`;
+  };
+
+  const openRenewalWhatsAppComposer = async (row) => {
+    const titleName = String(row?.customerName || row?.customer_name || 'Customer').trim() || 'Customer';
+    const renewalId = String(row?.renewalId || row?.renewal_id || row?.id || '').trim();
+    if (!renewalId) return;
+
+    let sourceRow = row;
+    let pdfUrl = buildRenewalPdfUrl(sourceRow);
+    if (!pdfUrl) {
+      try {
+        const response = await axios.post(`${API_BASE}/api/renewals/${renewalId}/generate-letter`);
+        const nextRow = response?.data?.renewal || sourceRow;
+        sourceRow = {
+          ...nextRow,
+          renewalLetterUrl: response?.data?.pdfUrl || nextRow?.renewalLetterUrl || sourceRow?.renewalLetterUrl,
+          pdf_url: response?.data?.pdfUrl || nextRow?.pdf_url || sourceRow?.pdf_url
+        };
+        pdfUrl = buildRenewalPdfUrl(sourceRow);
+        void loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false });
+      } catch (error) {
+        console.error('Failed to generate renewal letter before WhatsApp share', error);
+        pdfUrl = buildRenewalPdfUrl(sourceRow);
+      }
+    }
+
+    if (!pdfUrl) {
+      setMessage('Unable to prepare the renewal letter PDF for WhatsApp.');
+      return;
+    }
+
+    const customerPhone = normalizeIndianMobileNumber(sourceRow?.mobile || row?.mobile || row?.phone || '');
+    const renewalDisplayId = String(sourceRow?.renewalDisplayId || sourceRow?.renewal_display_id || sourceRow?.renewalId || sourceRow?.renewal_id || renewalId).trim() || renewalId;
+    const serviceType = String(sourceRow?.serviceType || sourceRow?.service_type || 'Renewal Letter').trim() || 'Renewal Letter';
+
+    setWhatsappComposer({
+      open: true,
+      row: sourceRow,
+      previewData: {
+        previewMessage: `Dear ${titleName},\n\nPlease find attached your renewal letter for ${renewalDisplayId}.\n\nRegards,\nSKUAS Pest Control`,
+        attachmentOption: 'Renewal Letter PDF',
+        template: {
+          id: 'custom_message',
+          templateType: 'custom_message',
+          templateName: 'Renewal Letter'
+        },
+        contextData: {
+          customer_name: titleName,
+          customer_phone: customerPhone,
+          service_type: serviceType,
+          renewal_display_id: renewalDisplayId,
+          renewal_id: renewalId,
+          pdf_url: pdfUrl,
+          company_name: 'SKUAS Pest Control'
+        }
+      },
+      recipientName: titleName,
+      recipientPhone: customerPhone,
+      recipientType: 'Customer'
+    });
   };
 
   useEffect(() => {
@@ -817,6 +881,7 @@ export default function RenewalDashboard() {
                 <button style={shell.ghostBtn} onClick={() => openModal('view', row)}>View</button>
                 <button style={shell.ghostBtn} onClick={() => openModal('assign', row)}>Assign</button>
                 <button style={shell.ghostBtn} onClick={() => openModal('followup', row)}>Follow-up</button>
+                <button style={shell.ghostBtn} onClick={() => openRenewalWhatsAppComposer(row)}>WhatsApp</button>
                 <button style={shell.primaryBtn} onClick={() => openModal('done', row)}>Done</button>
                 <button style={shell.dangerBtn} onClick={() => deleteRenewal(row)}>Delete</button>
               </div>
@@ -865,6 +930,7 @@ export default function RenewalDashboard() {
                 <td style={renewalBodyCellStyle('followup', 'center')} title={row.lastFollowupNote}>{formatDate(row.followupDate)} {row.lastFollowupNote ? `- ${row.lastFollowupNote}` : ''}</td>
                 <td style={renewalActionCellStyle}>
                   <div style={shell.rowActions}>
+                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="WhatsApp" onClick={() => openRenewalWhatsAppComposer(row)}><MessageCircleMore size={15} /></button>
                     <button className="crm-icon-action-btn" style={shell.iconBtn} title="View" onClick={() => openModal('view', row)}><FileText size={15} /></button>
                     <button className="crm-icon-action-btn" style={shell.iconBtn} title="Assign Sales Person" onClick={() => openModal('assign', row)}><UserCheck size={15} /></button>
                     <button className="crm-icon-action-btn" style={shell.iconBtn} title="Log Follow-up" onClick={() => openModal('followup', row)}><CalendarClock size={15} /></button>
@@ -1134,6 +1200,46 @@ export default function RenewalDashboard() {
         onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', renewalId: '', shareContext: null })}
         onShareEmail={shareRenewalLetterByEmail}
         publicShareUrl={pdfPreview.publicShareUrl}
+      />
+      <WhatsAppPreviewModal
+        open={whatsappComposer.open}
+        onClose={() => setWhatsappComposer({ open: false, row: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' })}
+        previewData={whatsappComposer.previewData}
+        recipientName={whatsappComposer.recipientName}
+        recipientPhone={whatsappComposer.recipientPhone}
+        recipientType={whatsappComposer.recipientType}
+        moduleType="renewal"
+        sentByUser={getPortalUserName() || 'User'}
+        allowRecipientEdit={true}
+        showAttachmentFields={false}
+        attachmentNote="The renewal letter PDF is attached automatically."
+        sendButtonLabel="Send Renewal on WhatsApp"
+        onSend={async ({ recipientPhone, message }) => {
+          const attachmentUrl = buildRenewalPdfUrl(whatsappComposer.row);
+          const renewalId = String(whatsappComposer.row?.renewalId || whatsappComposer.row?.renewal_id || whatsappComposer.row?.id || '').trim();
+          const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
+            moduleType: 'renewal',
+            templateType: 'custom_message',
+            recipientName: whatsappComposer.recipientName,
+            recipientPhone,
+            recipientType: 'Customer',
+            sentByUser: getPortalUserName() || 'User',
+            moduleName: 'Renewal Dashboard',
+            message,
+            attachmentUrl,
+            attachmentName: `REN-${String(whatsappComposer.recipientName || renewalId || 'Renewal').trim()}.pdf`,
+            contextData: {
+              customer_name: whatsappComposer.recipientName,
+              customer_phone: recipientPhone,
+              service_type: whatsappComposer.row?.serviceType || whatsappComposer.row?.service_type || 'Renewal Letter',
+              renewal_display_id: String(whatsappComposer.row?.renewalDisplayId || whatsappComposer.row?.renewal_display_id || renewalId || '').trim(),
+              renewal_id: renewalId,
+              pdf_url: attachmentUrl,
+              company_name: 'SKUAS Pest Control'
+            }
+          });
+          window.alert(response.data?.success ? 'Renewal WhatsApp sent successfully.' : 'Renewal WhatsApp queued.');
+        }}
       />
       {renderModal()}
     </div>

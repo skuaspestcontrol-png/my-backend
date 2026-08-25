@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, RefreshCw, Trash2 } 
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
+import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import SortChevronIcon from './ui/SortChevronIcon';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -277,6 +278,7 @@ function QuotationDashboardInner() {
   const [page, setPage] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', quotationId: null });
+  const [whatsappComposer, setWhatsappComposer] = useState({ open: false, row: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' });
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const perPage = 20;
   const loadRequestRef = useRef(null);
@@ -357,6 +359,35 @@ function QuotationDashboardInner() {
       setStatus(error?.response?.data?.error || 'Could not send quotation email');
       throw error;
     }
+  };
+
+  const openQuotationWhatsAppComposer = (row) => {
+    if (!row?.id) return;
+    const quotationNumber = String(row.quotation_number || row.quotationNumber || row.quotationNo || row.quotation_no || row.id || 'Quotation').trim();
+    const customerName = String(row.customer || row.customerName || 'Customer').trim() || 'Customer';
+    const pdfUrl = `${API_BASE_URL}/api/quotations/${row.id}/pdf`;
+    setWhatsappComposer({
+      open: true,
+      row,
+      previewData: {
+        previewMessage: `Dear ${customerName},\n\nPlease find attached quotation ${quotationNumber} for your review.\n\nRegards,\nSKUAS Pest Control`,
+        attachmentOption: 'Quotation PDF',
+        suggestedAttachmentUrl: pdfUrl,
+        template: {
+          id: 'quotation_send',
+          templateType: 'quotation_send',
+          templateName: 'Quotation Send'
+        },
+        contextData: {
+          customer_name: customerName,
+          quotation_no: quotationNumber,
+          company_name: 'SKUAS Pest Control'
+        }
+      },
+      recipientName: customerName,
+      recipientPhone: String(row.mobile || row.mobileNumber || row.whatsappNumber || '').trim(),
+      recipientType: 'Customer'
+    });
   };
 
   useEffect(() => {
@@ -623,6 +654,16 @@ function QuotationDashboardInner() {
                         >
                           <FileText size={15} />
                         </button>
+                        <button
+                          type="button"
+                          className="crm-icon-action-btn"
+                          style={{ ...shell.rowIconBtn, width: 'auto', padding: '0 10px', color: '#166534', borderColor: '#bbf7d0', background: '#f0fdf4', fontSize: '11px', fontWeight: 800 }}
+                          onClick={() => openQuotationWhatsAppComposer(row)}
+                          aria-label="Send on WhatsApp"
+                          title="Send on WhatsApp"
+                        >
+                          WhatsApp
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -649,6 +690,41 @@ function QuotationDashboardInner() {
         onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', quotationId: null })}
         onShareEmail={handleShareQuotationEmail}
         publicShareUrl={pdfPreview.publicShareUrl}
+      />
+
+      <WhatsAppPreviewModal
+        open={whatsappComposer.open}
+        onClose={() => setWhatsappComposer({ open: false, row: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' })}
+        previewData={whatsappComposer.previewData}
+        recipientName={whatsappComposer.recipientName}
+        recipientPhone={whatsappComposer.recipientPhone}
+        recipientType={whatsappComposer.recipientType}
+        moduleType="quotation"
+        sentByUser="User"
+        allowRecipientEdit={true}
+        showAttachmentFields={false}
+        attachmentNote="The quotation PDF is attached automatically."
+        sendButtonLabel="Send Quotation on WhatsApp"
+        onSend={async ({ recipientPhone, message }) => {
+          const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
+            moduleType: 'quotation',
+            templateType: 'quotation_send',
+            recipientName: whatsappComposer.recipientName,
+            recipientPhone,
+            recipientType: 'Customer',
+            sentByUser: 'User',
+            moduleName: 'Quotation Dashboard',
+            message,
+            attachmentUrl: `${API_BASE_URL}/api/quotations/${whatsappComposer.row.id}/pdf`,
+            attachmentName: `${String(whatsappComposer.previewData?.template?.templateName || 'quotation').replace(/[^\w.-]+/g, '_')}.pdf`,
+            contextData: {
+              customer_name: whatsappComposer.recipientName,
+              quotation_no: String(whatsappComposer.row.quotation_number || whatsappComposer.row.quotationNumber || whatsappComposer.row.quotationNo || whatsappComposer.row.quotation_no || whatsappComposer.row.id || '').trim(),
+              company_name: 'SKUAS Pest Control'
+            }
+          });
+          setStatus(response?.data?.message || 'Quotation WhatsApp sent successfully.');
+        }}
       />
 
       {status ? <p style={{ margin: 0, color: '#dc2626', fontWeight: 700, fontSize: 13 }}>{status}</p> : null}

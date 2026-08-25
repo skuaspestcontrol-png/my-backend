@@ -4,6 +4,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Download, Fi
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
+import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import { buildPortalAuthHeaders, getPortalUserId, getPortalUserName, getPortalUserRole } from '../utils/portalAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -427,6 +428,7 @@ export default function PayrollModule() {
   const [paymentModal, setPaymentModal] = useState({ open: false, item: null, paymentMode: 'Bank transfer', paymentDate: new Date().toISOString().slice(0, 10), transactionRef: '', remarks: '' });
   const [adjustModal, setAdjustModal] = useState({ open: false, item: null, manualAdjustmentAmount: '', manualAdjustmentReason: '', manualOverrideEnabled: false, overrideNetSalary: '', payrollStatus: 'Generated' });
   const [slipViewer, setSlipViewer] = useState({ open: false, url: '', title: '', item: null });
+  const [whatsAppComposer, setWhatsAppComposer] = useState({ open: false, item: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Employee' });
   const [page, setPage] = useState(1);
   const [screenWidth, setScreenWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
   const reloadRef = useRef(null);
@@ -700,7 +702,7 @@ export default function PayrollModule() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useAutoRefresh(() => reloadAll({ silent: true }), { enabled: !paymentModal.open && !adjustModal.open && !slipViewer.open });
+  useAutoRefresh(() => reloadAll({ silent: true }), { enabled: !paymentModal.open && !adjustModal.open && !slipViewer.open && !whatsAppComposer.open });
 
   const employeeMap = useMemo(() => {
     const next = new Map();
@@ -1165,42 +1167,63 @@ export default function PayrollModule() {
       open: true,
       url,
       item,
-      title: `${item.employeeName} - ${monthOptions.find((entry) => entry.value === Number(item.month))?.label || item.month} ${item.year}`
+      title: `${item.employeeName} - ${monthOptions.find((entry) => Number(entry.value) === Number(item.month))?.label || item.month} ${item.year}`
+    });
+  };
+
+  const openSalarySlipWhatsAppComposer = (item) => {
+    const employee = employeeMap.get(String(item?.employeeId || ''));
+    const employeeName = String(item?.employeeName || employee?.name || 'Employee').trim() || 'Employee';
+    const employeePhone = String(employee?.whatsappNumber || employee?.mobile || '').trim();
+    const monthLabel = monthOptions.find((entry) => Number(entry.value) === Number(item?.month))?.label || item?.month;
+    const companyName = 'SKUAS Pest Control';
+    setWhatsAppComposer({
+      open: true,
+      item,
+      previewData: {
+        previewMessage: `Dear ${employeeName},\n\nPlease find attached your salary slip for ${monthLabel} ${item?.year}.\n\n${companyName}`,
+        attachmentOption: 'Salary Slip PDF',
+        template: {
+          id: 'salary_slip',
+          templateType: 'salary_slip',
+          templateName: 'Salary Slip'
+        },
+        contextData: {
+          customer_name: employeeName,
+          customer_phone: employeePhone,
+          company_name: companyName
+        }
+      },
+      recipientName: employeeName,
+      recipientPhone: employeePhone,
+      recipientType: 'Employee'
     });
   };
 
   const shareSlip = async (channel) => {
-    try {
-      if (!slipViewer.item) return;
-      const employee = employeeMap.get(String(slipViewer.item.employeeId || ''));
-      if (channel === 'email') {
-        const toDefault = String(employee?.emailId || employee?.email || '').trim();
-        const to = window.prompt('Recipient email', toDefault);
-        if (!to) return;
-        setBusy(true);
+    if (!slipViewer.item) return;
+    const employee = employeeMap.get(String(slipViewer.item.employeeId || ''));
+    if (channel === 'email') {
+      const toDefault = String(employee?.emailId || employee?.email || '').trim();
+      const to = window.prompt('Recipient email', toDefault);
+      if (!to) return;
+      setBusy(true);
+      try {
         const res = await axios.post(`${API_BASE}/api/payroll/items/${slipViewer.item._id}/share-email`, { to }, { headers });
         setStatus(res?.data?.message || 'Salary slip email queued.');
-      } else {
-        const phoneDefault = String(employee?.mobile || '').trim();
-        const phoneNumber = window.prompt('Recipient WhatsApp number', phoneDefault);
-        if (!phoneNumber) return;
-        setBusy(true);
-        const res = await axios.post(`${API_BASE}/api/payroll/items/${slipViewer.item._id}/share-whatsapp`, { phoneNumber }, { headers });
-        setStatus(res?.data?.message || 'Salary slip sent on WhatsApp.');
+      } catch (error) {
+        console.error('Salary slip email failed', error);
+        window.alert(error?.response?.data?.error || 'Unable to share salary slip.');
+      } finally {
+        setBusy(false);
       }
-    } catch (error) {
-      console.error('Salary slip share failed', error);
-      window.alert(error?.response?.data?.error || 'Unable to share salary slip.');
-    } finally {
-      setBusy(false);
+      return;
     }
+    openSalarySlipWhatsAppComposer(slipViewer.item);
   };
 
   const sendSlipForItem = async (item, channel) => {
     const employee = employeeMap.get(String(item?.employeeId || ''));
-    const userRole = encodeURIComponent(getPortalUserRole() || 'Admin');
-    const userId = encodeURIComponent(getPortalUserId() || '');
-    const userName = encodeURIComponent(getPortalUserName() || 'System');
     if (channel === 'email') {
       const toDefault = String(employee?.emailId || employee?.email || '').trim();
       const to = window.prompt('Recipient email', toDefault);
@@ -1214,16 +1237,7 @@ export default function PayrollModule() {
       }
       return;
     }
-    const phoneDefault = String(employee?.mobile || '').trim();
-    const phoneNumber = window.prompt('Recipient WhatsApp number', phoneDefault);
-    if (!phoneNumber) return;
-    setBusy(true);
-    try {
-      const res = await axios.post(`${API_BASE}/api/payroll/items/${item._id}/share-whatsapp`, { phoneNumber }, { headers });
-      setStatus(res?.data?.message || 'Salary slip sent on WhatsApp.');
-    } finally {
-      setBusy(false);
-    }
+    openSalarySlipWhatsAppComposer(item);
   };
 
   const seedData = async () => {
@@ -2039,6 +2053,28 @@ export default function PayrollModule() {
         onShareWhatsApp={() => shareSlip('whatsapp')}
         publicShareUrl={slipViewer.url}
         policyNote="Monthly salary uses calendar days in the selected month. Sunday work is paid at the normal hourly rate."
+      />
+
+      <WhatsAppPreviewModal
+        open={whatsAppComposer.open}
+        onClose={() => setWhatsAppComposer({ open: false, item: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Employee' })}
+        previewData={whatsAppComposer.previewData}
+        recipientName={whatsAppComposer.recipientName}
+        recipientPhone={whatsAppComposer.recipientPhone}
+        recipientType={whatsAppComposer.recipientType}
+        moduleType="salary_slip"
+        sentByUser={getPortalUserName() || 'User'}
+        showAttachmentFields={false}
+        attachmentNote="The salary slip PDF is generated automatically and attached from the payroll module."
+        sendButtonLabel="Send Salary Slip on WhatsApp"
+        onSend={async ({ recipientPhone, message }) => {
+          if (!whatsAppComposer.item) return;
+          const response = await axios.post(`${API_BASE}/api/payroll/items/${whatsAppComposer.item._id}/share-whatsapp`, {
+            phoneNumber: recipientPhone,
+            message
+          }, { headers });
+          setStatus(response?.data?.message || 'Salary slip sent on WhatsApp.');
+        }}
       />
     </section>
   );

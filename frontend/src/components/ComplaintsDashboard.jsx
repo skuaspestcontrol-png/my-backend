@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { AlertCircle, List, Plus, Save, Send, Users } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { normalizeIndianMobileNumber } from '../utils/phone';
+import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const COMPLAINTS_DASHBOARD_CACHE_KEY = 'complaints_dashboard_cache_v1';
@@ -74,6 +76,7 @@ export default function ComplaintsDashboard() {
   const [form, setForm] = useState(emptyComplaint);
   const [editingComplaintId, setEditingComplaintId] = useState('');
   const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [whatsappComposer, setWhatsappComposer] = useState({ open: false, complaint: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' });
   const [statusFilter, setStatusFilter] = useState('All');
   const [customerFilter, setCustomerFilter] = useState('');
   const [technicianSearch, setTechnicianSearch] = useState('');
@@ -227,6 +230,34 @@ export default function ComplaintsDashboard() {
   };
 
   const closeComplaintActions = () => setSelectedComplaint(null);
+
+  const openComplaintWhatsappComposer = (complaint) => {
+    const customerName = String(complaint?.customerName || 'Customer').trim() || 'Customer';
+    const recipientPhone = normalizeIndianMobileNumber(complaint?.mobileNumber || '');
+    setWhatsappComposer({
+      open: true,
+      complaint,
+      previewData: {
+        previewMessage: `Hello ${customerName}, we have received your complaint${complaint?.ticketNumber ? ` #${complaint.ticketNumber}` : ''}. Our team is reviewing it and will update you shortly.\n\nRegards,\nSKUAS Pest Control`,
+        attachmentOption: 'None',
+        template: {
+          id: 'custom_message',
+          templateType: 'custom_message',
+          templateName: 'Complaint Update'
+        },
+        contextData: {
+          customer_name: customerName,
+          customer_phone: recipientPhone,
+          service_type: complaint?.type || '',
+          address: complaint?.property || '',
+          company_name: 'SKUAS Pest Control'
+        }
+      },
+      recipientName: customerName,
+      recipientPhone,
+      recipientType: 'Customer'
+    });
+  };
 
   const startEditingComplaint = (complaint) => {
     setForm({
@@ -524,6 +555,7 @@ export default function ComplaintsDashboard() {
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, color: '#0f172a', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{selectedComplaint.description || '-'}</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => openComplaintWhatsappComposer(selectedComplaint)} style={{ minHeight: 40, borderRadius: 10, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#166534', padding: '0 14px', fontWeight: 800, cursor: 'pointer' }}>Send WhatsApp</button>
                 <button type="button" onClick={() => startEditingComplaint(selectedComplaint)} style={{ minHeight: 40, borderRadius: 10, border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 800, cursor: 'pointer' }}>Edit Complaint</button>
                 <button type="button" onClick={closeComplaintActions} style={{ minHeight: 40, borderRadius: 10, border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 14px', fontWeight: 800, cursor: 'pointer' }}>Done</button>
               </div>
@@ -531,6 +563,41 @@ export default function ComplaintsDashboard() {
           </div>
         </div>
       ) : null}
+
+      <WhatsAppPreviewModal
+        open={whatsappComposer.open}
+        onClose={() => setWhatsappComposer({ open: false, complaint: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' })}
+        previewData={whatsappComposer.previewData}
+        recipientName={whatsappComposer.recipientName}
+        recipientPhone={whatsappComposer.recipientPhone}
+        recipientType={whatsappComposer.recipientType}
+        moduleType="complaint"
+        sentByUser="User"
+        allowRecipientEdit={true}
+        showAttachmentFields={false}
+        attachmentNote="Complaint updates are sent as text only."
+        sendButtonLabel="Send Complaint WhatsApp"
+        onSend={async ({ recipientPhone, message }) => {
+          const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
+            moduleType: 'complaint',
+            templateType: 'custom_message',
+            recipientName: whatsappComposer.recipientName,
+            recipientPhone,
+            recipientType: 'Customer',
+            sentByUser: 'User',
+            moduleName: 'Complaints Dashboard',
+            message,
+            contextData: {
+              customer_name: whatsappComposer.recipientName,
+              customer_phone: recipientPhone,
+              service_type: whatsappComposer.complaint?.type || '',
+              address: whatsappComposer.complaint?.property || '',
+              company_name: 'SKUAS Pest Control'
+            }
+          });
+          window.alert(response.data?.success ? 'Complaint WhatsApp sent successfully.' : 'Complaint WhatsApp queued.');
+        }}
+      />
     </section>
   );
 }

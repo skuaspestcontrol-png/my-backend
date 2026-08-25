@@ -22,6 +22,7 @@ import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
 import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
 import SortChevronIcon from './ui/SortChevronIcon';
 import { getPortalUserName } from '../utils/portalAuth';
+import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import { DEFAULT_LEAD_SOURCES, mergeLeadSourceOptions } from '../utils/leadSources';
@@ -659,6 +660,7 @@ export default function LeadCapture() {
   const [editingLeadId, setEditingLeadId] = useState(null);
   const [showReferencePicker, setShowReferencePicker] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [whatsappComposer, setWhatsappComposer] = useState({ open: false, lead: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' });
   const [showCustomize, setShowCustomize] = useState(false);
   const [rowActionLeadId, setRowActionLeadId] = useState('');
   const [rowActionMenuPosition, setRowActionMenuPosition] = useState(null);
@@ -1436,17 +1438,37 @@ export default function LeadCapture() {
     navigate('/quotations/new', { state: { lead: mapLeadForWorkflow(lead) } });
   };
 
-  const sendWelcomeMessageToLead = (lead) => {
+  const openLeadWhatsappComposer = (lead) => {
     const whatsappNumber = getLeadWhatsapp(lead);
-    if (whatsappNumber.length !== 10) {
-      window.alert('Valid WhatsApp number is required to send welcome message.');
-      return;
-    }
+    const customerName = String(lead?.customerName || 'Customer').trim() || 'Customer';
+    const message = `Hello ${customerName}, welcome to SKUAS Master ERP. Thank you for your enquiry${lead.pestIssue ? ` for ${lead.pestIssue}` : ''}. Our team will connect with you shortly.`;
+    setWhatsappComposer({
+      open: true,
+      lead,
+      previewData: {
+        previewMessage: message,
+        attachmentOption: 'None',
+        template: {
+          id: 'lead_welcome',
+          templateType: 'lead_welcome',
+          templateName: 'Lead Welcome'
+        },
+        contextData: {
+          customer_name: customerName,
+          customer_phone: whatsappNumber,
+          service_type: lead.pestIssue || '',
+          address: lead.address || '',
+          company_name: 'SKUAS Pest Control'
+        }
+      },
+      recipientName: customerName,
+      recipientPhone: whatsappNumber,
+      recipientType: 'Customer'
+    });
+  };
 
-    const encoded = encodeURIComponent(
-      `Hello ${lead.customerName || 'Customer'}, welcome to SKUAS Master ERP. Thank you for your enquiry${lead.pestIssue ? ` for ${lead.pestIssue}` : ''}. Our team will connect with you shortly.`
-    );
-    window.open(`https://wa.me/91${whatsappNumber}?text=${encoded}`, '_blank', 'noopener,noreferrer');
+  const sendWelcomeMessageToLead = (lead) => {
+    openLeadWhatsappComposer(lead);
   };
 
   const sendWelcomeEmailToLead = async (lead) => {
@@ -3347,6 +3369,41 @@ export default function LeadCapture() {
           </form>
         </div>
       )}
+
+      <WhatsAppPreviewModal
+        open={whatsappComposer.open}
+        onClose={() => setWhatsappComposer({ open: false, lead: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' })}
+        previewData={whatsappComposer.previewData}
+        recipientName={whatsappComposer.recipientName}
+        recipientPhone={whatsappComposer.recipientPhone}
+        recipientType={whatsappComposer.recipientType}
+        moduleType="lead"
+        sentByUser={getPortalUserName() || 'User'}
+        showAttachmentFields={false}
+        allowRecipientEdit={true}
+        attachmentNote="Welcome messages are sent as text only."
+        sendButtonLabel="Send Welcome WhatsApp"
+        onSend={async ({ recipientPhone, message }) => {
+          const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
+            moduleType: 'lead',
+            templateType: 'lead_welcome',
+            recipientName: whatsappComposer.recipientName,
+            recipientPhone,
+            recipientType: 'Customer',
+            sentByUser: getPortalUserName() || 'User',
+            moduleName: 'Lead Master',
+            message,
+            contextData: {
+              customer_name: whatsappComposer.recipientName,
+              customer_phone: recipientPhone,
+              service_type: whatsappComposer.lead?.pestIssue || '',
+              address: whatsappComposer.lead?.address || '',
+              company_name: 'SKUAS Pest Control'
+            }
+          });
+          window.alert(response.data?.success ? 'Welcome WhatsApp sent successfully.' : 'Welcome WhatsApp queued.');
+        }}
+      />
     </div>
   );
 }

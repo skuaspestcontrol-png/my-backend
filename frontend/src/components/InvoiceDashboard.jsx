@@ -16,6 +16,7 @@ import { triggerContractsRefresh } from '../pages/sales-performance/salesPerform
 import { subscribeDashboardRefresh, triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import { clearPortalUser } from '../utils/portalAuth';
 import PdfPreviewModal from './PdfPreviewModal';
+import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import ServiceScheduleBuilder from './ServiceScheduleBuilder';
 import { DEFAULT_LEAD_SOURCES, mergeLeadSourceOptions } from '../utils/leadSources';
 import {
@@ -1275,6 +1276,14 @@ export default function InvoiceDashboard() {
   ));
   const [serviceScheduleErrors, setServiceScheduleErrors] = useState({});
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' });
+  const [whatsAppComposer, setWhatsAppComposer] = useState({
+    open: false,
+    invoiceId: '',
+    previewData: null,
+    recipientName: '',
+    recipientPhone: '',
+    recipientType: 'Customer'
+  });
   const [invoiceColumnWidths, setInvoiceColumnWidths] = useState(() => {
     const saved = localStorage.getItem(invoiceColumnWidthStorageKey);
     if (!saved) return normalizeInvoiceColumnWidths();
@@ -2376,16 +2385,46 @@ export default function InvoiceDashboard() {
     return lines.join('\\n');
   };
 
+  const openInvoiceWhatsAppComposer = (invoice) => {
+    const customer = findCustomerForInvoice(invoice);
+    const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
+    const customerWhatsapp = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
+    setWhatsAppComposer({
+      open: true,
+      invoiceId: String(invoice._id || '').trim(),
+      previewData: {
+        previewMessage: buildShareText(invoice, customer),
+        attachmentOption: 'Invoice PDF',
+        template: {
+          id: 'invoice_send',
+          templateType: 'invoice_send',
+          templateName: 'Invoice Send'
+        },
+        contextData: {
+          customer_name: customerName,
+          customer_phone: customerWhatsapp,
+          invoice_no: String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || '').trim(),
+          invoice_amount: formatINR(invoice.total || invoice.amount || 0),
+          due_date: formatDisplayDate(invoice.dueDate || ''),
+          company_name: companySettings.companyName || 'Service Team',
+          payment_link: '',
+          service_type: String(invoice.subject || invoice.serviceType || '').trim(),
+          address: String(customer?.billingAddress || customer?.shippingAddress || invoice.billingAddressText || '').trim()
+        }
+      },
+      recipientName: customerName,
+      recipientPhone: customerWhatsapp,
+      recipientType: 'Customer'
+    });
+  };
+
   const apiErrorMessage = (error, fallback) =>
     error?.response?.data?.error || fallback;
 
   const runInvoiceAction = async (invoice, action) => {
     if (!invoice) return;
     const customer = findCustomerForInvoice(invoice);
-    const invoiceNumber = String(invoice.invoiceNumber || '').trim() || 'Invoice';
     const customerEmail = String(customer?.emailId || customer?.email || '').trim();
-    const customerWhatsapp = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
-    const shareText = buildShareText(invoice, customer);
 
     if (action === 'download') {
       openInvoicePdfPreview(invoice);
@@ -2403,18 +2442,7 @@ export default function InvoiceDashboard() {
     }
 
     if (action === 'whatsapp') {
-      const targetPhone = customerWhatsapp || normalizeIndianMobileNumber(window.prompt('Enter WhatsApp number with country code', '') || '');
-      if (!targetPhone) return;
-      try {
-        const response = await axios.post(`${API_BASE_URL}/api/invoices/${invoice._id}/send-whatsapp`, {
-          phoneNumber: targetPhone,
-          message: shareText
-        });
-        window.alert(response.data?.message || 'Invoice sent on WhatsApp.');
-      } catch (error) {
-        console.error('Failed to send invoice on WhatsApp', error);
-        window.alert(apiErrorMessage(error, 'Could not send invoice on WhatsApp.'));
-      }
+      openInvoiceWhatsAppComposer(invoice);
       return;
     }
 
@@ -3566,7 +3594,7 @@ export default function InvoiceDashboard() {
   const itemDetailStackStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', gap: '4px' }
     : { display: 'flex', flexDirection: 'column', gap: '6px' };
-  const isAnyOverlayOpen = showModal || showInvoiceNumberPrefs || showBillingAddressPicker || showShippingAddressPicker || Boolean(pdfPreview.open);
+  const isAnyOverlayOpen = showModal || showInvoiceNumberPrefs || showBillingAddressPicker || showShippingAddressPicker || Boolean(pdfPreview.open) || Boolean(whatsAppComposer.open);
 
   useEffect(() => {
     if (!isAnyOverlayOpen) return;
@@ -4957,6 +4985,34 @@ export default function InvoiceDashboard() {
           if (invoice) await runInvoiceAction(invoice, 'whatsapp');
         }}
         publicShareUrl={pdfPreview.publicShareUrl}
+      />
+
+      <WhatsAppPreviewModal
+        open={whatsAppComposer.open}
+        onClose={() => setWhatsAppComposer({
+          open: false,
+          invoiceId: '',
+          previewData: null,
+          recipientName: '',
+          recipientPhone: '',
+          recipientType: 'Customer'
+        })}
+        previewData={whatsAppComposer.previewData}
+        recipientName={whatsAppComposer.recipientName}
+        recipientPhone={whatsAppComposer.recipientPhone}
+        recipientType={whatsAppComposer.recipientType}
+        moduleType="invoice"
+        sentByUser="User"
+        showAttachmentFields={false}
+        attachmentNote="The invoice PDF is generated automatically and attached from the portal."
+        sendButtonLabel="Send Invoice on WhatsApp"
+        onSend={async ({ recipientPhone, message }) => {
+          const response = await axios.post(`${API_BASE_URL}/api/invoices/${whatsAppComposer.invoiceId}/send-whatsapp`, {
+            phoneNumber: recipientPhone,
+            message
+          });
+          window.alert(response.data?.message || 'Invoice sent on WhatsApp.');
+        }}
       />
     </section>
   );

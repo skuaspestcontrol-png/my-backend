@@ -13,9 +13,15 @@ export default function WhatsAppPreviewModal({
   recipientType,
   moduleType,
   sentByUser,
-  onSent
+  onSent,
+  onSend,
+  sendButtonLabel = 'Send WhatsApp',
+  showAttachmentFields = true,
+  attachmentNote = '',
+  allowRecipientEdit = false
 }) {
   const [message, setMessage] = useState('');
+  const [phoneValue, setPhoneValue] = useState(String(recipientPhone || ''));
   const [attachment, setAttachment] = useState(null);
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [busy, setBusy] = useState(false);
@@ -27,10 +33,11 @@ export default function WhatsAppPreviewModal({
   React.useEffect(() => {
     if (!open) return;
     setMessage(initialMessage);
+    setPhoneValue(String(recipientPhone || ''));
     setAttachment(null);
-    setAttachmentUrl(String(previewData?.suggestedAttachmentUrl || ''));
+    setAttachmentUrl(String(previewData?.suggestedAttachmentUrl || previewData?.attachmentUrl || ''));
     setError('');
-  }, [open, initialMessage, previewData]);
+  }, [open, initialMessage, previewData, recipientPhone]);
 
   if (!open) return null;
 
@@ -43,7 +50,7 @@ export default function WhatsAppPreviewModal({
         templateType: previewData?.template?.templateType,
         templateId: previewData?.template?.id,
         recipientName,
-        recipientPhone,
+        recipientPhone: phoneValue,
         recipientType,
         sentByUser,
         moduleName: moduleType,
@@ -51,6 +58,18 @@ export default function WhatsAppPreviewModal({
         attachmentUrl,
         contextData: previewData?.contextData || {}
       };
+
+      if (typeof onSend === 'function') {
+        await onSend({
+          ...payload,
+          attachment,
+          attachmentUrl,
+          message
+        });
+          if (typeof onSent === 'function') onSent();
+          onClose();
+          return;
+        }
 
       if (attachment) {
         const formData = new FormData();
@@ -86,7 +105,19 @@ export default function WhatsAppPreviewModal({
         <div style={{ padding: '16px', overflowY: 'auto', display: 'grid', gap: '12px' }}>
           <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>
             <div><div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>Recipient</div><div style={{ fontSize: '14px', fontWeight: 700 }}>{recipientName || '-'}</div></div>
-            <div><div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>Phone</div><div style={{ fontSize: '14px', fontWeight: 700 }}>{recipientPhone || '-'}</div></div>
+            <div>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>Phone</div>
+              {allowRecipientEdit ? (
+                <input
+                  value={phoneValue}
+                  onChange={(event) => setPhoneValue(event.target.value)}
+                  placeholder="Enter WhatsApp number"
+                  style={{ minHeight: '40px', width: '100%', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px', fontSize: '14px' }}
+                />
+              ) : (
+                <div style={{ fontSize: '14px', fontWeight: 700 }}>{recipientPhone || '-'}</div>
+              )}
+            </div>
           </div>
 
           <div style={{ display: 'grid', gap: '6px' }}>
@@ -96,18 +127,26 @@ export default function WhatsAppPreviewModal({
 
           <div style={{ display: 'grid', gap: '6px' }}>
             <label style={{ fontSize: '12px', fontWeight: 800, color: '#374151', textTransform: 'uppercase' }}>Attachment</label>
-            <input value={attachmentUrl} onChange={(event) => setAttachmentUrl(event.target.value)} placeholder="Attachment URL (optional)" style={{ minHeight: '42px', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px' }} />
-            {allowManualUpload ? (
-              <input type="file" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
-            ) : null}
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Template attachment option: {previewData?.attachmentOption || 'None'}</div>
+            {showAttachmentFields ? (
+              <>
+                <input value={attachmentUrl} onChange={(event) => setAttachmentUrl(event.target.value)} placeholder="Attachment URL (optional)" style={{ minHeight: '42px', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px' }} />
+                {allowManualUpload ? (
+                  <input type="file" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
+                ) : null}
+                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Template attachment option: {previewData?.attachmentOption || 'None'}</div>
+              </>
+            ) : (
+              <div style={{ border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '10px 12px', background: '#f8fafc', color: '#475569', fontSize: '12px', fontWeight: 600, lineHeight: 1.45 }}>
+                {attachmentNote || 'A PDF attachment will be added automatically when you send this message.'}
+              </div>
+            )}
           </div>
 
           {error ? <div style={{ color: '#dc2626', fontSize: '12px', fontWeight: 700 }}>{error}</div> : null}
         </div>
         <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
           <button type="button" onClick={onClose} style={{ minHeight: '40px', borderRadius: '12px', border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 14px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-          <button type="button" onClick={handleSend} disabled={busy || !recipientPhone || !message.trim()} style={{ minHeight: '40px', borderRadius: '12px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 16px', fontWeight: 800, cursor: 'pointer' }}>{busy ? 'Sending...' : 'Send WhatsApp'}</button>
+          <button type="button" onClick={handleSend} disabled={busy || !phoneValue.trim() || !message.trim()} style={{ minHeight: '40px', borderRadius: '12px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 16px', fontWeight: 800, cursor: 'pointer' }}>{busy ? 'Sending...' : sendButtonLabel}</button>
         </div>
       </div>
     </div>

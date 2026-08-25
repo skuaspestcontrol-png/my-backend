@@ -33,6 +33,7 @@ import {
   XCircle
 } from 'lucide-react';
 import PdfPreviewModal from './PdfPreviewModal';
+import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import RupeeSymbol from './ui/RupeeSymbol';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -614,11 +615,74 @@ export default function ContractDashboard() {
   const [customerProfitLoading, setCustomerProfitLoading] = useState(false);
   const [customerProfitError, setCustomerProfitError] = useState('');
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '', previewKind: 'invoice', shareContext: null });
+  const [whatsappComposer, setWhatsappComposer] = useState({ open: false, kind: '', row: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' });
   const [page, setPage] = useState(1);
   const customizeButtonRef = useRef(null);
   const customerNameClickTimerRef = useRef(null);
   const contractsLoadPromiseRef = useRef(null);
   const contractProfitRequestRef = useRef(0);
+
+  const openInvoiceWhatsAppComposer = (invoice) => {
+    const customer = findCustomerForInvoice(invoice);
+    const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
+    const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Invoice';
+    const recipientPhone = String(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '').trim();
+    setWhatsappComposer({
+      open: true,
+      kind: 'invoice',
+      row: invoice,
+      previewData: {
+        previewMessage: `Dear ${customerName},\n\nPlease find attached invoice ${invoiceNumber}.\n\nRegards,\nSKUAS Pest Control`,
+        attachmentOption: 'Invoice PDF',
+        template: {
+          id: 'invoice_send',
+          templateType: 'invoice_send',
+          templateName: 'Invoice Send'
+        },
+        contextData: {
+          customer_name: customerName,
+          customer_phone: recipientPhone,
+          invoice_no: invoiceNumber,
+          company_name: 'SKUAS Pest Control'
+        }
+      },
+      recipientName: customerName,
+      recipientPhone,
+      recipientType: 'Customer'
+    });
+  };
+
+  const openContractJobCardWhatsAppComposer = (invoice) => {
+    const customer = findCustomerForInvoice(invoice);
+    const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
+    const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Contract';
+    const recipientPhone = String(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '').trim();
+    const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(String(invoice._id || invoiceNumber).trim())}/job-card-summary-pdf`);
+    setWhatsappComposer({
+      open: true,
+      kind: 'contract-job-card',
+      row: invoice,
+      previewData: {
+        previewMessage: `Dear ${customerName},\n\nPlease find attached contract service history / job card summary for ${invoiceNumber}.\n\nRegards,\nSKUAS Pest Control`,
+        attachmentOption: 'Job Card PDF',
+        suggestedAttachmentUrl: pdfUrl,
+        template: {
+          id: 'custom_message',
+          templateType: 'custom_message',
+          templateName: 'Contract Job Card Summary'
+        },
+        contextData: {
+          customer_name: customerName,
+          customer_phone: recipientPhone,
+          invoice_no: invoiceNumber,
+          company_name: 'SKUAS Pest Control'
+        }
+      },
+      recipientName: customerName,
+      recipientPhone,
+      recipientType: 'Customer'
+    });
+  };
 
   const navigateToInvoiceEditor = (params = {}) => {
     const searchParams = new URLSearchParams();
@@ -1932,6 +1996,17 @@ export default function ContractDashboard() {
             className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
+              openInvoiceWhatsAppComposer(actionMenu.row);
+              setActionMenu(null);
+            }}
+          >
+            WhatsApp Invoice
+          </button>
+          <button
+            type="button"
+            className="crm-action-menu-item"
+            style={shell.actionMenuItem}
+            onClick={() => {
               openPdfPreview(
                 `Contract Service History - ${String(actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId || 'Contract').trim()}`,
                 openContractJobCardPdf(actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber),
@@ -1948,6 +2023,17 @@ export default function ContractDashboard() {
             }}
           >
             Print Job Card
+          </button>
+          <button
+            type="button"
+            className="crm-action-menu-item"
+            style={shell.actionMenuItem}
+            onClick={() => {
+              openContractJobCardWhatsAppComposer(actionMenu.row);
+              setActionMenu(null);
+            }}
+          >
+            WhatsApp Job Card
           </button>
           <button
             type="button"
@@ -2169,6 +2255,52 @@ export default function ContractDashboard() {
           if (invoice) await sendInvoiceEmail(invoice);
         }}
         publicShareUrl={pdfPreview.publicShareUrl}
+      />
+
+      <WhatsAppPreviewModal
+        open={whatsappComposer.open}
+        onClose={() => setWhatsappComposer({ open: false, kind: '', row: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' })}
+        previewData={whatsappComposer.previewData}
+        recipientName={whatsappComposer.recipientName}
+        recipientPhone={whatsappComposer.recipientPhone}
+        recipientType={whatsappComposer.recipientType}
+        moduleType={whatsappComposer.kind === 'contract-job-card' ? 'contract' : 'invoice'}
+        sentByUser={getPortalUserName() || 'User'}
+        allowRecipientEdit={true}
+        showAttachmentFields={false}
+        attachmentNote={whatsappComposer.kind === 'contract-job-card' ? 'The job card summary PDF is attached automatically.' : 'The invoice PDF is attached automatically.'}
+        sendButtonLabel={whatsappComposer.kind === 'contract-job-card' ? 'Send Job Card on WhatsApp' : 'Send Invoice on WhatsApp'}
+        onSend={async ({ recipientPhone, message }) => {
+          if (whatsappComposer.kind === 'contract-job-card') {
+            const invoiceNumber = String(whatsappComposer.row?.invoiceNumber || whatsappComposer.row?.contractNo || whatsappComposer.row?._id || '').trim() || 'Contract';
+            const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(String(whatsappComposer.row?._id || invoiceNumber).trim())}/job-card-summary-pdf`);
+            const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
+              moduleType: 'contract',
+              templateType: 'custom_message',
+              recipientName: whatsappComposer.recipientName,
+              recipientPhone,
+              recipientType: 'Customer',
+              sentByUser: getPortalUserName() || 'User',
+              moduleName: 'Contract Job Card Summary',
+              message,
+              attachmentUrl: pdfUrl,
+              attachmentName: `${String(invoiceNumber || 'contract_job_card_summary').replace(/[^\w.-]+/g, '_')}.pdf`,
+              contextData: {
+                customer_name: whatsappComposer.recipientName,
+                customer_phone: recipientPhone,
+                invoice_no: invoiceNumber,
+                company_name: 'SKUAS Pest Control'
+              }
+            });
+            window.alert(response.data?.success ? 'Contract job card sent on WhatsApp.' : 'Contract job card queued on WhatsApp.');
+            return;
+          }
+          const response = await axios.post(`${API_BASE}/api/invoices/${whatsappComposer.row?._id}/send-whatsapp`, {
+            phoneNumber: recipientPhone,
+            message
+          });
+          window.alert(response.data?.message || 'Invoice sent on WhatsApp.');
+        }}
       />
     </div>
   );

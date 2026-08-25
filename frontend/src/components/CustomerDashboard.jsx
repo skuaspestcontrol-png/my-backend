@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
+import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import SortChevronIcon from './ui/SortChevronIcon';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
@@ -673,6 +674,7 @@ export default function CustomerDashboard() {
   const [possibleDuplicateIds, setPossibleDuplicateIds] = useState(() => cachedCustomerState?.possibleDuplicateIds || []);
   const [showPossibleDuplicatesOnly, setShowPossibleDuplicatesOnly] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [whatsappComposer, setWhatsappComposer] = useState({ open: false, customer: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' });
   const [showHistory, setShowHistory] = useState(false);
   const [historyCustomerId, setHistoryCustomerId] = useState('');
   const [historyTab, setHistoryTab] = useState('transactions');
@@ -1959,6 +1961,33 @@ export default function CustomerDashboard() {
     setHistoryLoading(false);
   };
 
+  const openCustomerWhatsappComposer = (customer) => {
+    const customerName = String(customer?.displayName || customer?.name || customer?.companyName || customer?.contactPersonName || 'Customer').trim() || 'Customer';
+    const recipientPhone = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
+    const message = `Hello ${customerName}, welcome to SKUAS Pest Control. Thank you for being our customer. If you need any help, please reply to this message.`;
+    setWhatsappComposer({
+      open: true,
+      customer,
+      previewData: {
+        previewMessage: message,
+        attachmentOption: 'None',
+        template: {
+          id: 'custom_message',
+          templateType: 'custom_message',
+          templateName: 'Customer WhatsApp'
+        },
+        contextData: {
+          customer_name: customerName,
+          customer_phone: recipientPhone,
+          company_name: 'SKUAS Pest Control'
+        }
+      },
+      recipientName: customerName,
+      recipientPhone,
+      recipientType: 'Customer'
+    });
+  };
+
   const resetCustomerFormState = () => {
     setShowModal(false);
     setEditingId(null);
@@ -3020,6 +3049,13 @@ export default function CustomerDashboard() {
                 <td style={{ ...shell.cell, whiteSpace: 'nowrap' }}>
                   <button
                     type="button"
+                    style={{ ...shell.rowActionButton, marginRight: '8px', color: '#166534', borderColor: '#bbf7d0', background: '#f0fdf4' }}
+                    onClick={() => openCustomerWhatsappComposer(customer)}
+                  >
+                    WhatsApp
+                  </button>
+                  <button
+                    type="button"
                     style={{ ...shell.rowActionButton, marginRight: '8px' }}
                     onClick={() => {
                       setEditingId(customer._id);
@@ -3901,6 +3937,39 @@ export default function CustomerDashboard() {
         </div>,
         document.body
       ) : null}
+
+      <WhatsAppPreviewModal
+        open={whatsappComposer.open}
+        onClose={() => setWhatsappComposer({ open: false, customer: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' })}
+        previewData={whatsappComposer.previewData}
+        recipientName={whatsappComposer.recipientName}
+        recipientPhone={whatsappComposer.recipientPhone}
+        recipientType={whatsappComposer.recipientType}
+        moduleType="customer"
+        sentByUser={getPortalUserName() || 'User'}
+        showAttachmentFields={false}
+        allowRecipientEdit={true}
+        attachmentNote="Customer welcome messages are sent as text only."
+        sendButtonLabel="Send Customer WhatsApp"
+        onSend={async ({ recipientPhone, message }) => {
+          const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
+            moduleType: 'customer',
+            templateType: 'custom_message',
+            recipientName: whatsappComposer.recipientName,
+            recipientPhone,
+            recipientType: 'Customer',
+            sentByUser: getPortalUserName() || 'User',
+            moduleName: 'Customer Master',
+            message,
+            contextData: {
+              customer_name: whatsappComposer.recipientName,
+              customer_phone: recipientPhone,
+              company_name: 'SKUAS Pest Control'
+            }
+          });
+          window.alert(response.data?.success ? 'Customer WhatsApp sent successfully.' : 'Customer WhatsApp queued.');
+        }}
+      />
     </section>
   );
 }
