@@ -2403,7 +2403,7 @@ export default function InvoiceDashboard() {
     }
 
     if (action === 'whatsapp') {
-      const targetPhone = normalizeIndianMobileNumber(window.prompt('Enter WhatsApp number with country code', customerWhatsapp || ''));
+      const targetPhone = customerWhatsapp || normalizeIndianMobileNumber(window.prompt('Enter WhatsApp number with country code', '') || '');
       if (!targetPhone) return;
       try {
         const response = await axios.post(`${API_BASE_URL}/api/invoices/${invoice._id}/send-whatsapp`, {

@@ -19,6 +19,7 @@ const { pool, query: dbQuery, getConnection } = require('./lib/db');
 const { runAutoMigrations, getLastMigrationStatus } = require('./lib/autoMigrate');
 const { readCachedSettings, clearSettingsCache } = require('./lib/settings-cache');
 const { sendEmailMessage, normalizeEmailSettings } = require('./services/email.service');
+const { sendWhatsAppMessage } = require('./services/whatsapp.service');
 const {
   ensureDefaultEmailTemplates,
   replaceTemplateVariables
@@ -9312,6 +9313,9 @@ const sendPasswordResetOtpEmail = async ({ settings, recipient, otp }) => {
 
 const resolveWhatsappConfig = (settings = {}) => ({
   apiVersion: settings.whatsappApiVersion || process.env.WHATSAPP_API_VERSION || 'v23.0',
+  providerType: String(settings.whatsappProviderType || (settings.whatsappApiBaseUrl ? 'custom' : 'meta')).trim().toLowerCase(),
+  baseUrl: String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim(),
+  phoneNumber: String(settings.whatsappPhoneNumber || settings.phoneNumber || '').trim(),
   phoneNumberId: settings.whatsappInstanceId || settings.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '',
   accessToken: settings.whatsappAccessToken || process.env.WHATSAPP_ACCESS_TOKEN || ''
 });
@@ -10477,18 +10481,48 @@ app.post('/api/invoices/:id/send-whatsapp', async (req, res) => {
     if (!phone) return res.status(400).json({ error: 'Valid WhatsApp phone number is required' });
 
     const waConfig = resolveWhatsappConfig(context.settings);
-    if (!waConfig.phoneNumberId || !waConfig.accessToken) {
-      return res.status(400).json({
-        error: 'WhatsApp API settings are incomplete. Configure Phone Number ID and Access Token in Settings.'
-      });
-    }
-
-    const graphBase = `https://graph.facebook.com/${waConfig.apiVersion}`;
     const pdfBuffer = await generateInvoicePdfBuffer(context);
     const fileName = buildInvoicePdfFileName(context.invoice);
     const defaultMessage = buildDefaultShareMessage(context.invoice, context.settings);
     const message = String(req.body?.message || defaultMessage).trim();
 
+    const useCustomProvider = waConfig.providerType === 'custom' && Boolean(waConfig.baseUrl);
+
+    if (useCustomProvider) {
+      if (!waConfig.baseUrl || !waConfig.instanceId || !waConfig.accessToken) {
+        return res.status(400).json({
+          error: 'WhatsApp API settings are incomplete. Configure API Base URL, Instance ID, and Access Token in WhatsApp Settings.'
+        });
+      }
+
+      const attachmentFileName = `whatsapp-invoice-${Date.now()}-${sanitizeFileName(fileName)}`;
+      const attachmentPath = path.join(uploadsDir, attachmentFileName);
+      fs.writeFileSync(attachmentPath, pdfBuffer);
+
+      const sent = await sendWhatsAppMessage({
+        settings: context.settings,
+        to: phone,
+        message,
+        attachmentUrl: `${resolveServerOrigin(req)}/uploads/${attachmentFileName}`,
+        attachmentName: fileName
+      });
+
+      return res.json({
+        message: 'Invoice sent on WhatsApp successfully',
+        phone,
+        provider: sent.provider,
+        attachmentUrl: `${resolveServerOrigin(req)}/uploads/${attachmentFileName}`,
+        whatsappResponse: sent.response
+      });
+    }
+
+    if (!waConfig.phoneNumberId || !waConfig.accessToken) {
+      return res.status(400).json({
+        error: 'WhatsApp API settings are incomplete. Configure Phone Number ID and Access Token in WhatsApp Settings.'
+      });
+    }
+
+    const graphBase = `https://graph.facebook.com/${waConfig.apiVersion}`;
     const mediaForm = new FormData();
     mediaForm.append('messaging_product', 'whatsapp');
     mediaForm.append('type', 'application/pdf');
