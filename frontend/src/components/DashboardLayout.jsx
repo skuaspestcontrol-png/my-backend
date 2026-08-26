@@ -578,7 +578,7 @@ export default function DashboardLayout({ children }) {
           overflowY: 'hidden',
           overflowX: 'hidden',
           borderRight: '1px solid rgba(148, 163, 184, 0.12)',
-          borderRadius: '28px',
+          borderRadius: '0 0 28px 28px',
           boxShadow: '10px 0 30px rgba(15, 23, 42, 0.05)',
           backdropFilter: 'blur(16px)',
           transition: isDrawerMode ? undefined : 'width 0.2s ease, flex-basis 0.2s ease, min-width 0.2s ease'
