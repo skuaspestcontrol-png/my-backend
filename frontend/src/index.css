@@ -130,22 +130,29 @@ body {
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 22px;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  background-clip: padding-box;
 }
 
 .crm-kpi-card {
   background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,248,252,0.96) 100%);
   border: 1px solid rgba(148, 163, 184, 0.18);
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.75);
+  background-clip: padding-box;
 }
 
 .crm-chart-card {
   background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,252,0.98) 100%);
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 22px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+  background-clip: padding-box;
 }
 
 .crm-filter-card {
   background: linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.97) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 18px;
+  background-clip: padding-box;
 }
 
 .crm-table-card {
@@ -153,6 +160,7 @@ body {
   border-radius: 22px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  background-clip: padding-box;
 }
 
 .crm-scroll-table {
@@ -182,7 +190,7 @@ body {
   min-height: 38px;
   height: auto !important;
   padding: 8px 12px !important;
-  background: #f8fafc !important;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
   color: #4b5563 !important;
   font-size: 11px !important;
   font-weight: 600 !important;
@@ -209,7 +217,14 @@ body {
   line-height: 1.35 !important;
   vertical-align: middle !important;
   border-bottom: 1px solid rgba(241, 245, 249, 0.95) !important;
-  background: #fff !important;
+  background: rgba(255,255,255,0.98) !important;
+}
+
+.table-clean tbody tr:hover td,
+.crm-table-card table tbody tr:hover td,
+.crm-table-shell table tbody tr:hover td,
+.table-scroll-x table tbody tr:hover td {
+  background: rgba(248, 250, 252, 0.98) !important;
 }
 
 .table-clean tbody tr:last-child td,
@@ -1461,10 +1476,11 @@ button[type="submit"]:hover,
 .modal-content,
 .form-card,
 .panel {
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  background-clip: padding-box;
 }
 
 .card:hover,
@@ -1736,6 +1752,11 @@ textarea:focus {
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+  background-clip: padding-box;
 }
 
 .crm-table-shell.crm-table-shell--clipped {
