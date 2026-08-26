@@ -155,10 +155,12 @@ const shell = {
     gap: '10px'
   },
   summaryCard: {
-    border: '1px solid rgba(159, 23, 77, 0.2)',
+    border: '1px solid rgba(148, 163, 184, 0.18)',
     borderRadius: '14px',
     padding: '12px',
-    background: '#fff',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)',
+    boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)',
+    backgroundClip: 'padding-box',
     display: 'grid',
     gap: '8px'
   },
@@ -182,10 +184,12 @@ const shell = {
   summaryLabel: { fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
   summaryValue: { fontSize: '24px', fontWeight: 800, color: '#0f172a', lineHeight: 1 },
   tableWrap: {
-    background: '#fff',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%)',
     borderRadius: '16px',
-    border: '1px solid rgba(159, 23, 77, 0.2)',
-    overflowX: 'auto'
+    border: '1px solid rgba(148, 163, 184, 0.18)',
+    overflowX: 'auto',
+    boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)',
+    backgroundClip: 'padding-box'
   },
   table: { width: '100%', minWidth: '1200px', borderCollapse: 'collapse', tableLayout: 'auto' },
   th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'normal', lineHeight: 1.3, minHeight: '42px', height: 'auto', overflow: 'visible', textOverflow: 'clip' },

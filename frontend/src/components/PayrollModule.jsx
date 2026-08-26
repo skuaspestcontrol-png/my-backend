@@ -165,10 +165,11 @@ const shell = {
     fontSize: '11px'
   },
   panel: {
-    border: '1px solid rgba(159, 23, 77, 0.18)',
-    borderRadius: '14px',
-    background: 'rgba(255,255,255,0.92)',
-    boxShadow: 'var(--shadow-soft)',
+    border: '1px solid rgba(148, 163, 184, 0.18)',
+    borderRadius: '16px',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,252,0.98) 100%)',
+    boxShadow: '0 14px 32px rgba(15, 23, 42, 0.06)',
+    backgroundClip: 'padding-box',
     padding: '14px',
     display: 'grid',
     gap: '12px'
@@ -176,7 +177,7 @@ const shell = {
   panelTitle: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a', display: 'inline-flex', gap: '8px', alignItems: 'center' },
   sub: { margin: 0, fontSize: '12px', color: '#475569' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' },
-  card: { border: '1px solid rgba(159, 23, 77, 0.2)', borderRadius: '12px', padding: '12px', background: '#fff' },
+  card: { border: '1px solid rgba(148, 163, 184, 0.16)', borderRadius: '12px', padding: '12px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)', backgroundClip: 'padding-box' },
   cardLabel: { margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
   cardValue: { margin: '6px 0 0 0', fontSize: '20px', color: '#0f172a', fontWeight: 800 },
   row: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' },
@@ -234,7 +235,7 @@ const shell = {
     alignItems: 'center',
     justifyContent: 'center'
   },
-  tableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', overflowX: 'auto', background: '#fff' },
+  tableWrap: { border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: '14px', overflowX: 'auto', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%)', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)', backgroundClip: 'padding-box' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '920px' },
   th: { textAlign: 'left', padding: '6px 7px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.25, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', minHeight: '38px', height: 'auto' },
   td: { padding: '6px 7px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#334155', fontWeight: 600, verticalAlign: 'top', lineHeight: 1.25 },
