@@ -198,7 +198,7 @@ const shell = {
     gap: '6px'
   },
   helper: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 700 },
-  footer: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid rgba(159, 23, 77, 0.16)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', background: '#fff', position: 'sticky', bottom: 0 },
+  footer: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid rgba(148, 163, 184, 0.18)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', backdropFilter: 'blur(10px)', position: 'sticky', bottom: 0 },
   footerActions: { display: 'flex', alignItems: 'center', gap: '8px' },
   cancelBtn: { minHeight: '40px', borderRadius: '10px', border: '1px solid #D1D5DB', background: '#fff', color: '#334155', cursor: 'pointer', fontSize: '13px', fontWeight: 700, padding: '0 14px' },
   saveBtn: { minHeight: '40px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.32)', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 800, padding: '0 16px' }

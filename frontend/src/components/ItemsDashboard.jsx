@@ -371,12 +371,13 @@ const shell = {
     minHeight: '56px',
     boxSizing: 'border-box',
     padding: '0 24px',
-    borderTop: '1px solid rgba(15, 23, 42, 0.08)',
+    borderTop: '1px solid rgba(148, 163, 184, 0.18)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: '8px',
-    background: '#fff'
+    background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))',
+    backdropFilter: 'blur(10px)'
   },
   cancelButton: {
     border: '1px solid #D1D5DB',

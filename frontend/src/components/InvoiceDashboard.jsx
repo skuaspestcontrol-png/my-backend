@@ -575,12 +575,12 @@ const shell = {
   miniModalOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.35)', display: 'grid', placeItems: 'center', zIndex: 3300, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },
   miniModal: { width: 'min(100%, 680px)', background: '#fff', borderRadius: '20px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden' },
   miniModalHead: { padding: '14px 18px', borderBottom: '1px solid transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, var(--color-primary-deep), var(--color-primary))', color: '#fff' },
-  miniModalTitle: { margin: 0, fontSize: '22px', fontWeight: 700, color: '#ffffff' },
+  miniModalTitle: { margin: 0, fontSize: '18px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.01em' },
   miniModalBody: { padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' },
   miniModalNote: { margin: 0, fontSize: '16px', color: '#1f2937', lineHeight: 1.4 },
   miniRadioRow: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 600, color: '#1f2937' },
   miniPrefsGrid: { display: 'grid', gridTemplateColumns: '200px minmax(0, 1fr)', gap: '12px', alignItems: 'end', paddingLeft: '30px' },
-  miniFooter: { padding: '14px 18px', borderTop: '1px solid var(--color-border)', display: 'flex', gap: '10px' },
+  miniFooter: { padding: '12px 18px', borderTop: '1px solid rgba(148, 163, 184, 0.18)', display: 'flex', gap: '10px', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', backdropFilter: 'blur(10px)' },
   itemSection: { border: '1px solid #d1d5db', borderRadius: '12px', overflow: 'hidden', background: '#fff' },
   itemHead: { padding: '10px 12px', borderBottom: '1px solid #d1d5db', background: '#f8fafc', fontWeight: 800, fontSize: '12px', color: '#334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   itemTableWrap: { width: '100%', overflowX: 'auto', overflowY: 'hidden' },
@@ -630,7 +630,7 @@ const shell = {
   paymentTotalRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#111827', fontSize: '16px', fontWeight: 500 },
   paymentBalanceRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontSize: '16px', fontWeight: 700 },
   paymentWarn: { color: '#dc2626', fontSize: '12px', fontWeight: 700 },
-  modalFooter: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: '#fff' },
+  modalFooter: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid rgba(148, 163, 184, 0.18)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', backdropFilter: 'blur(10px)' },
   cancelButton: { minHeight: '40px', border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' },
   saveButton: { minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }
 };
