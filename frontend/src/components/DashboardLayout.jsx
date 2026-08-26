@@ -175,12 +175,12 @@ const SidebarSection = ({ title, children, collapsed = false }) => (
     {!collapsed ? (
       <div
         style={{
-          padding: '0 18px 6px',
+          padding: '0 22px 8px',
           fontSize: '11px',
           fontWeight: 800,
-          color: 'var(--color-muted)',
+          color: '#6b7280',
           textTransform: 'uppercase',
-          letterSpacing: '1px'
+          letterSpacing: '0.02em'
         }}
       >
         {title}
@@ -415,21 +415,21 @@ export default function DashboardLayout({ children }) {
     display: 'flex',
     alignItems: 'center',
     justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
-    gap: isSidebarCollapsed ? 0 : '12px',
-    width: isSidebarCollapsed ? '46px' : 'calc(100% - 24px)',
-    minHeight: '42px',
-    padding: isSidebarCollapsed ? '9px 0' : '9px 14px',
-    margin: isSidebarCollapsed ? '4px auto' : '2px 12px',
-    borderRadius: '12px',
-    color: active ? 'var(--color-white)' : 'var(--color-text)',
-    backgroundColor: active ? 'var(--color-primary)' : 'transparent',
+    gap: isSidebarCollapsed ? 0 : '14px',
+    width: isSidebarCollapsed ? '46px' : 'calc(100% - 18px)',
+    minHeight: '52px',
+    padding: isSidebarCollapsed ? '10px 0' : '11px 16px',
+    margin: isSidebarCollapsed ? '4px auto' : '4px 9px',
+    borderRadius: '18px',
+    color: active ? '#111827' : '#22252d',
+    backgroundColor: active ? '#ffffff' : 'transparent',
     textDecoration: 'none',
-    fontSize: '13px',
-    fontWeight: active ? 800 : 600,
+    fontSize: '16px',
+    fontWeight: active ? 700 : 500,
     letterSpacing: '0.01em',
     transition: 'all 0.18s ease',
     border: 'none',
-    boxShadow: active ? 'var(--shadow-md)' : 'none'
+    boxShadow: active ? '0 10px 24px rgba(15, 23, 42, 0.08)' : 'none'
   });
 
   const linkStyle = (path) => baseLinkStyle(isActive(path));
@@ -437,18 +437,18 @@ export default function DashboardLayout({ children }) {
   const subLinkStyle = (path, activeOverride) => {
     const active = typeof activeOverride === 'boolean' ? activeOverride : isActive(path);
     return ({
-    ...baseLinkStyle(active),
-    fontSize: '12px',
-    minHeight: '36px',
-    padding: isSidebarCollapsed ? '7px 0' : '7px 14px 7px 38px',
-    width: isSidebarCollapsed ? '46px' : 'calc(100% - 24px)',
-    color: active ? 'var(--color-white)' : 'var(--color-muted)'
-  });
+      ...baseLinkStyle(active),
+      fontSize: '15px',
+      minHeight: '46px',
+      padding: isSidebarCollapsed ? '8px 0' : '10px 16px 10px 24px',
+      width: isSidebarCollapsed ? '46px' : 'calc(100% - 18px)',
+      color: active ? '#111827' : '#2f343d'
+    });
   };
 
   const subLinkActiveStyle = (path) => ({
     ...subLinkStyle(path),
-    color: isActive(path) ? 'var(--color-white)' : 'var(--color-muted)'
+    color: isActive(path) ? '#111827' : '#2f343d'
   });
 
   const groupToggleStyle = (open) => ({
@@ -456,19 +456,26 @@ export default function DashboardLayout({ children }) {
     border: 'none',
     justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
     cursor: 'pointer',
-    background: open ? 'var(--color-primary-light)' : 'var(--color-white)',
-    color: 'var(--color-text)',
+    background: open ? '#ffffff' : 'transparent',
+    color: '#22252d',
     boxShadow: 'none'
   });
 
   const sidebarGroupLabelStyle = {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '14px',
     minWidth: 0,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap'
+    whiteSpace: 'nowrap',
+    fontWeight: 500
+  };
+
+  const submenuWrapStyle = {
+    margin: '0 10px 2px 18px',
+    padding: '6px 0 6px 18px',
+    borderLeft: '1px solid rgba(148, 163, 184, 0.32)'
   };
 
   const toggleGroupMenu = (setMenuOpen) => {
@@ -564,13 +571,14 @@ export default function DashboardLayout({ children }) {
           width: isDrawerMode ? 'min(85vw, 280px)' : sidebarWidth,
           flexBasis: isDrawerMode ? 'min(85vw, 280px)' : sidebarWidth,
           minWidth: isDrawerMode ? 'min(85vw, 280px)' : sidebarWidth,
-          background: 'linear-gradient(180deg, rgba(247, 248, 252, 0.98) 0%, rgba(236, 240, 246, 0.98) 100%)',
+          background: 'linear-gradient(180deg, rgba(245, 246, 250, 0.98) 0%, rgba(236, 239, 245, 0.98) 100%)',
           color: 'var(--color-text)',
           display: 'flex',
           flexDirection: 'column',
           overflowY: 'hidden',
           overflowX: 'hidden',
-          borderRight: '1px solid rgba(148, 163, 184, 0.18)',
+          borderRight: '1px solid rgba(148, 163, 184, 0.12)',
+          borderRadius: '28px',
           boxShadow: '10px 0 30px rgba(15, 23, 42, 0.05)',
           backdropFilter: 'blur(16px)',
           transition: isDrawerMode ? undefined : 'width 0.2s ease, flex-basis 0.2s ease, min-width 0.2s ease'
@@ -579,15 +587,15 @@ export default function DashboardLayout({ children }) {
         <div
           style={{
             minHeight: isDrawerMode ? '88px' : '66px',
-            padding: isDrawerMode ? '10px 12px' : '0 12px',
+            padding: isDrawerMode ? '10px 12px' : '0 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             position: 'sticky',
             top: 0,
             zIndex: 2,
-            borderBottom: '1px solid rgba(148, 163, 184, 0.14)',
-            background: 'linear-gradient(180deg, rgba(247, 248, 252, 0.98) 0%, rgba(239, 242, 248, 0.98) 100%)'
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'linear-gradient(135deg, #160f33 0%, #120d2a 100%)'
           }}
         >
           <Link
@@ -608,17 +616,17 @@ export default function DashboardLayout({ children }) {
                   width: isSidebarCollapsed ? '42px' : isDrawerMode ? '150px' : '170px',
                   height: isSidebarCollapsed ? '42px' : isDrawerMode ? '58px' : '64px',
                   borderRadius: isSidebarCollapsed ? '10px' : '12px',
-                  background: 'transparent',
-                  padding: '0',
+                  background: 'linear-gradient(135deg, #160f33 0%, #120d2a 100%)',
+                  padding: isSidebarCollapsed ? '0' : '4px 8px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: 'none',
+                  boxShadow: '0 14px 28px rgba(15, 23, 42, 0.18)',
                   overflow: 'hidden',
                   flexShrink: 0
                 }}
               >
-                <img src={settings.dashboardImageUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={settings.dashboardImageUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </div>
             ) : (
               <div
@@ -671,10 +679,10 @@ export default function DashboardLayout({ children }) {
               {!isSidebarCollapsed ? leadsMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
             </button>
             {!isSidebarCollapsed && leadsMenuOpen ? (
-              <>
+              <div style={submenuWrapStyle}>
                 <Link to="/leads" className={isActive('/leads') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads')} onClick={closeDrawerOnMobile}>Lead Master</Link>
                 <Link to="/leads/followup" className={isActive('/leads/followup') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads/followup')} onClick={closeDrawerOnMobile}>Followup</Link>
-              </>
+              </div>
             ) : null}
             <button
               type="button"
@@ -690,14 +698,14 @@ export default function DashboardLayout({ children }) {
               {!isSidebarCollapsed ? salesMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
             </button>
             {!isSidebarCollapsed && salesMenuOpen ? (
-              <>
+              <div style={submenuWrapStyle}>
                 <Link to="/sales/customers" className={isActive('/sales/customers') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/customers')} onClick={closeDrawerOnMobile}>Customer</Link>
                 <Link to="/sales/contracts" className={isActive('/sales/contracts') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/contracts')} onClick={closeDrawerOnMobile}>Contract</Link>
                 <Link to="/sales/invoices" className={isActive('/sales/invoices') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/invoices')} onClick={closeDrawerOnMobile}>Invoice</Link>
                 <Link to="/quotations" className={isActive('/quotations') || isActive('/quotations/new') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/quotations', isActive('/quotations') || isActive('/quotations/new'))} onClick={closeDrawerOnMobile}>Quotation</Link>
                 <Link to="/sales/payment-received" className={isActive('/sales/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/payment-received')} onClick={closeDrawerOnMobile}>Payment Received</Link>
                 <Link to="/sales/renewal" className={isActive('/sales/renewal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/renewal')} onClick={closeDrawerOnMobile}>Renewal</Link>
-              </>
+              </div>
             ) : null}
 
             <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setSalesPerformanceMenuOpen)} style={groupToggleStyle(salesPerformanceMenuOpen)} title="Sales Performance" aria-label="Sales Performance">
@@ -707,12 +715,12 @@ export default function DashboardLayout({ children }) {
               {!isSidebarCollapsed ? salesPerformanceMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
             </button>
             {!isSidebarCollapsed && salesPerformanceMenuOpen ? (
-              <>
+              <div style={submenuWrapStyle}>
                 <Link to="/sales-performance/dashboard" className={isActive('/sales-performance/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/dashboard')} onClick={closeDrawerOnMobile}>Dashboard</Link>
                 <Link to="/sales-performance/targets" className={isActive('/sales-performance/targets') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/targets')} onClick={closeDrawerOnMobile}>Targets</Link>
                 <Link to="/sales-performance/team-performance" className={isActive('/sales-performance/team-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/team-performance')} onClick={closeDrawerOnMobile}>Team Performance</Link>
                 <Link to="/sales-performance/reports" className={isActive('/sales-performance/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/reports')} onClick={closeDrawerOnMobile}>Reports</Link>
-              </>
+              </div>
             ) : null}
 
             <button type="button" className="sidebar-nav-item" onClick={() => toggleGroupMenu(setPurchaseMenuOpen)} style={groupToggleStyle(purchaseMenuOpen)} title="Purchase" aria-label="Purchase">
@@ -722,11 +730,11 @@ export default function DashboardLayout({ children }) {
               {!isSidebarCollapsed ? purchaseMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
             </button>
             {!isSidebarCollapsed && purchaseMenuOpen ? (
-              <>
+              <div style={submenuWrapStyle}>
                 <Link to="/purchase/vendors" className={isActive('/purchase/vendors') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/vendors')} onClick={closeDrawerOnMobile}>Vendors</Link>
                 <Link to="/purchase/bills" className={isActive('/purchase/bills') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/bills')} onClick={closeDrawerOnMobile}>Bills</Link>
                 <Link to="/purchase/payment-received" className={isActive('/purchase/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/payment-received')} onClick={closeDrawerOnMobile}>Payment Received</Link>
-              </>
+              </div>
             ) : null}
 
           </SidebarSection>
@@ -739,12 +747,12 @@ export default function DashboardLayout({ children }) {
               {!isSidebarCollapsed ? fieldOpsMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
             </button>
             {!isSidebarCollapsed && fieldOpsMenuOpen ? (
-              <>
+              <div style={submenuWrapStyle}>
                 <Link to="/operations/assign-services" className={isActive('/operations/assign-services') || isActive('/schedule-job') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assign-services')} onClick={closeDrawerOnMobile}>Assign Services</Link>
                 <Link to="/operations/assigned-jobs" className={isActive('/operations/assigned-jobs') || isActive('/technician-portal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assigned-jobs')} onClick={closeDrawerOnMobile}>Assigned Jobs</Link>
                 <Link to="/operations/track-technicians" className={isActive('/operations/track-technicians') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/track-technicians')} onClick={closeDrawerOnMobile}>Track Technicians</Link>
                 <Link to="/service-calendar" className={isActive('/service-calendar') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/service-calendar')} onClick={closeDrawerOnMobile}>Service Calendar</Link>
-              </>
+              </div>
             ) : null}
             <Link to="/complaints" className={isActive('/complaints') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/complaints')} title="Complaints" aria-label="Complaints" onClick={closeDrawerOnMobile}><Bell size={18} /> {!isSidebarCollapsed ? 'Complaints' : null}</Link>
           </SidebarSection>
@@ -757,13 +765,13 @@ export default function DashboardLayout({ children }) {
               {!isSidebarCollapsed ? stockMenuOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} /> : null}
             </button>
             {!isSidebarCollapsed && stockMenuOpen ? (
-              <>
+              <div style={submenuWrapStyle}>
                 <Link to="/stock/dashboard" className={isActive('/stock/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/dashboard')} onClick={closeDrawerOnMobile}>Dashboard</Link>
                 <Link to="/stock/items" className={isActive('/stock/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/items')} onClick={closeDrawerOnMobile}>Items</Link>
                 <Link to="/stock/purchase" className={isActive('/stock/purchase') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/purchase')} onClick={closeDrawerOnMobile}>Stock In / Purchase</Link>
                 <Link to="/stock/issue-usage" className={isActive('/stock/issue-usage') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/issue-usage')} onClick={closeDrawerOnMobile}>Issue &amp; Usage</Link>
                 <Link to="/stock/reports" className={isActive('/stock/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/reports')} onClick={closeDrawerOnMobile}>Reports</Link>
-              </>
+              </div>
             ) : null}
           </SidebarSection>
 
