@@ -8,7 +8,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const shell = {
   page: { display: 'grid', gap: '16px' },
   card: { background: 'rgba(255,255,255,0.9)', border: '1px solid transparent', borderRadius: '16px', boxShadow: 'var(--shadow-soft)', overflow: 'hidden' },
-  head: { padding: '16px 18px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' },
+  head: { padding: '16px 18px', borderBottom: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' },
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '10px' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#0f172a' },
   subtitle: { margin: '6px 0 0 0', fontSize: '13px', color: '#64748b' },
@@ -25,7 +25,7 @@ const shell = {
   dayNumber: { fontSize: '12px', fontWeight: 700, color: '#0f172a', lineHeight: 1 },
   dayBadge: { alignSelf: 'flex-start', fontSize: '10px', fontWeight: 800, color: 'var(--color-primary-dark)', background: 'var(--color-primary-soft)', borderRadius: '999px', padding: '2px 7px', lineHeight: 1.15 },
   selectedCard: { border: '1px solid transparent', borderRadius: '12px', background: '#fff', overflow: 'hidden' },
-  selectedHead: { padding: '10px 12px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 800, textTransform: 'uppercase' },
+  selectedHead: { padding: '10px 12px', borderBottom: '1px solid transparent', fontSize: '12px', color: '#334155', fontWeight: 800, textTransform: 'uppercase' },
   selectedBody: { padding: '10px 12px', display: 'grid', gap: '10px' },
   eventGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px' },
   eventCard: { border: '1px solid transparent', borderRadius: '12px', padding: '11px 11px 10px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', display: 'grid', gap: '7px', minWidth: 0 },
