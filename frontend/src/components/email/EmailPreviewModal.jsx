@@ -78,8 +78,8 @@ export default function EmailPreviewModal({
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.55)', display: 'grid', placeItems: 'center', zIndex: 5600, padding: '16px' }}>
-      <div style={{ width: 'min(820px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: '#fff', borderRadius: '20px', border: '1px solid rgba(59,130,246,0.28)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.50)', backdropFilter: 'blur(16px)', display: 'grid', placeItems: 'center', zIndex: 5600, padding: '16px' }}>
+      <div style={{ width: 'min(820px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: 'rgba(255,255,255,0.64)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.30)', boxShadow: '0 28px 70px rgba(15,23,42,0.22)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ background: '#1d4ed8', color: '#fff', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Email Preview</h3>
           <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}><X size={20} /></button>
