@@ -532,9 +532,14 @@ button {
 }
 
 .crm-modal-surface-header {
-  border-bottom: 1px solid var(--brand-border-color) !important;
+  min-height: 60px !important;
+  padding: 14px 18px !important;
+  gap: 12px !important;
+  border-bottom: 1px solid transparent !important;
   border-top-left-radius: inherit;
   border-top-right-radius: inherit;
+  background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)) !important;
+  color: #fff !important;
 }
 
 .crm-modal-surface-body {

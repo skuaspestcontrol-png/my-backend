@@ -155,7 +155,7 @@ const shell = {
     margin: 'auto'
   },
   modalHeader: {
-    background: 'var(--color-primary)',
+    background: 'linear-gradient(135deg, var(--color-primary-deep), var(--color-primary))',
     color: '#fff',
     minHeight: '56px',
     boxSizing: 'border-box',
@@ -167,7 +167,8 @@ const shell = {
     fontWeight: 800,
     fontSize: '24px',
     lineHeight: 1.2,
-    letterSpacing: 0
+    letterSpacing: 0,
+    borderBottom: '1px solid transparent'
   },
   modalBody: { padding: '20px 24px', overflowY: 'auto', display: 'grid', gap: '14px' },
   section: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '12px', background: '#fff', padding: '14px' },
