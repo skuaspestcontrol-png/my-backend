@@ -84,7 +84,7 @@ export default function EmailPreviewModal({
           <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Email Preview</h3>
           <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}><X size={20} /></button>
         </div>
-        <div style={{ padding: '14px', overflowY: 'auto', display: 'grid', gap: '10px' }}>
+        <div style={{ padding: '14px 16px 16px', overflowY: 'auto', display: 'grid', gap: '12px' }}>
           <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>
             <div><div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>Recipient</div><div style={{ fontSize: '13px', fontWeight: 700 }}>{recipientName || '-'}</div></div>
             <div><div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>Email</div><div style={{ fontSize: '13px', fontWeight: 700 }}>{recipientEmail || '-'}</div></div>
@@ -105,7 +105,7 @@ export default function EmailPreviewModal({
           </div>
           {error ? <div style={{ color: '#dc2626', fontSize: '12px', fontWeight: 700 }}>{error}</div> : null}
         </div>
-        <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 14px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+        <div style={{ borderTop: '1px solid #e5e7eb', padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
           <button type="button" onClick={onClose} style={{ minHeight: '36px', borderRadius: '10px', border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 12px', fontWeight: 700, fontSize: '13px' }}>Cancel</button>
           <button type="button" onClick={handleSend} disabled={busy || !recipientEmail || !subject.trim() || !body.trim()} style={{ minHeight: '36px', borderRadius: '10px', border: 'none', background: '#1d4ed8', color: '#fff', padding: '0 14px', fontWeight: 800, fontSize: '13px' }}>{busy ? 'Sending...' : 'Send Email'}</button>
         </div>
