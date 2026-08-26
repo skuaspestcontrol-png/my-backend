@@ -617,7 +617,7 @@ export default function DashboardLayout({ children }) {
                   height: isSidebarCollapsed ? '42px' : isDrawerMode ? '58px' : '64px',
                   borderRadius: 0,
                   background: 'linear-gradient(135deg, #160f33 0%, #120d2a 100%)',
-                  padding: 0,
+                  padding: isSidebarCollapsed ? '0' : '4px 8px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -626,7 +626,7 @@ export default function DashboardLayout({ children }) {
                   flexShrink: 0
                 }}
               >
-                <img src={settings.dashboardImageUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                <img src={settings.dashboardImageUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
             ) : (
               <div
