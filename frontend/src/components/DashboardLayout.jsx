@@ -1134,16 +1134,16 @@ export default function DashboardLayout({ children }) {
           aria-modal="true"
           aria-label="Service Calendar"
           onClick={() => setServiceCalendarOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 7000,
-            background: 'rgba(15, 23, 42, 0.55)',
-            backdropFilter: 'blur(10px)',
-            display: 'grid',
-            placeItems: 'center',
-            padding: isMobile ? '10px' : '20px'
-          }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 7000,
+              background: 'rgba(15, 23, 42, 0.62)',
+              backdropFilter: 'blur(16px)',
+              display: 'grid',
+              placeItems: 'center',
+              padding: isMobile ? '10px' : '20px'
+            }}
         >
           <div
             onClick={(event) => event.stopPropagation()}
@@ -1152,8 +1152,10 @@ export default function DashboardLayout({ children }) {
               height: 'min(92vh, 960px)',
               borderRadius: '18px',
               border: '1px solid transparent',
-              background: '#fff',
-              boxShadow: '0 30px 90px rgba(15, 23, 42, 0.32)',
+              background: 'rgba(255, 255, 255, 0.58)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              boxShadow: '0 32px 96px rgba(15, 23, 42, 0.34)',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column'
@@ -1199,7 +1201,7 @@ export default function DashboardLayout({ children }) {
                 <X size={18} />
               </button>
             </div>
-            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '12px' : '16px', background: '#f8fafc' }}>
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '12px' : '16px', background: 'rgba(248, 250, 252, 0.58)' }}>
               <Suspense fallback={<div style={{ padding: '20px', color: '#475569', fontWeight: 700 }}>Loading service calendar...</div>}>
                 <ServiceCalendar />
               </Suspense>
