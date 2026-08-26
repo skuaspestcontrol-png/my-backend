@@ -1577,13 +1577,15 @@ textarea:focus {
 }
 
 .login-page {
-  background: linear-gradient(135deg, #B91C1C 0%, #EF4444 50%, #F87171 100%);
+  background: linear-gradient(135deg, #0f0b22 0%, #160f33 50%, #120d2a 100%);
 }
 
 .login-card {
-  background: var(--color-white);
+  background: linear-gradient(135deg, #160f33 0%, #120d2a 100%);
+  color: #ffffff;
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
 }
 
 .calendar .active-date,
