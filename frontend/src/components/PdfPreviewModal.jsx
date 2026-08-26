@@ -77,10 +77,10 @@ const shell = {
     cursor: 'pointer'
   },
   body: {
-    padding: '0 14px 14px',
+    padding: '14px 16px 16px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '12px',
     overflow: 'hidden',
     minHeight: 0,
     flex: 1
@@ -89,7 +89,7 @@ const shell = {
     display: 'flex',
     flexWrap: 'wrap',
     gap: '8px',
-    padding: '10px 0 0 0',
+    padding: '0',
     alignItems: 'center'
   },
   actionButton: {
@@ -116,7 +116,7 @@ const shell = {
   },
   frameShell: {
     border: '1px solid rgba(15,23,42,0.08)',
-    borderRadius: '12px',
+    borderRadius: '16px',
     background: '#fff',
     overflow: 'hidden',
     minHeight: 0,
