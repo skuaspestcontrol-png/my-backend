@@ -424,7 +424,7 @@ export default function DashboardLayout({ children }) {
     color: active ? '#111827' : '#22252d',
     backgroundColor: active ? '#ffffff' : 'transparent',
     textDecoration: 'none',
-    fontSize: '16px',
+    fontSize: '15px',
     fontWeight: active ? 700 : 500,
     letterSpacing: '0.01em',
     transition: 'all 0.18s ease',
@@ -438,7 +438,7 @@ export default function DashboardLayout({ children }) {
     const active = typeof activeOverride === 'boolean' ? activeOverride : isActive(path);
     return ({
       ...baseLinkStyle(active),
-      fontSize: '15px',
+      fontSize: '14px',
       minHeight: '46px',
       padding: isSidebarCollapsed ? '8px 0' : '10px 16px 10px 24px',
       width: isSidebarCollapsed ? '46px' : 'calc(100% - 18px)',
@@ -615,9 +615,9 @@ export default function DashboardLayout({ children }) {
                 style={{
                   width: isSidebarCollapsed ? '42px' : isDrawerMode ? '150px' : '170px',
                   height: isSidebarCollapsed ? '42px' : isDrawerMode ? '58px' : '64px',
-                  borderRadius: isSidebarCollapsed ? '10px' : '12px',
+                  borderRadius: 0,
                   background: 'linear-gradient(135deg, #160f33 0%, #120d2a 100%)',
-                  padding: isSidebarCollapsed ? '0' : '4px 8px',
+                  padding: 0,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
