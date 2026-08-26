@@ -590,11 +590,13 @@ const shell = {
   bankActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   bankCard: {
     borderRadius: '14px',
-    border: '1px solid var(--border)',
-    background: '#fff',
+    border: '1px solid rgba(148, 163, 184, 0.18)',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)',
     padding: '14px',
     display: 'grid',
-    gap: '12px'
+    gap: '12px',
+    boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)',
+    backgroundClip: 'padding-box'
   },
   bankCardTitle: { margin: 0, fontSize: '20px', fontWeight: 800, color: '#334155' },
   bankQrPreview: {
@@ -611,7 +613,7 @@ const shell = {
     fontSize: '12px',
     fontWeight: 700
   },
-  bankTableWrap: { border: '1px solid var(--border)', borderRadius: '14px', background: '#fff', overflowX: 'auto' },
+  bankTableWrap: { border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: '14px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%)', overflowX: 'auto', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)', backgroundClip: 'padding-box' },
   bankTable: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
   bankTh: { textAlign: 'left', padding: '10px 10px', borderBottom: '1px solid var(--border)', fontSize: '12px', color: '#475569', fontWeight: 800, whiteSpace: 'nowrap' },
   bankTd: { padding: '10px 10px', borderBottom: '1px solid var(--color-border)', fontSize: '13px', color: '#0f172a', verticalAlign: 'top' },
