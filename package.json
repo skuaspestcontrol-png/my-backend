@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "npm --prefix frontend install --include=dev && npm --prefix frontend run build",
-    "postinstall": "npm --prefix backend install --omit=dev",
+    "build": "npm --prefix frontend run build",
+    "postinstall": "npm --prefix backend install --omit=dev && npm --prefix frontend install --include=dev",
     "start": "node backend/server.js",
     "db:leads:backfill": "node backend/scripts/backfill-leads.js",
     "db:hostinger:quotation": "node backend/scripts/apply-hostinger-quotation-sql.js",
