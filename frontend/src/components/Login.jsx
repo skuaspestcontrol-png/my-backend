@@ -31,6 +31,15 @@ const writeLoginSettingsCache = (settings) => {
   }
 };
 
+const resolveLoginProfilePictureUrl = (settings = {}) => String(
+  settings.dashboardImageUrl
+  || settings.profilePictureUrl
+  || settings.profilePicture
+  || settings.gstCompanyLogoUrl
+  || settings.companyLogoUrl
+  || ''
+).trim();
+
 export default function Login() {
   const masterResetEmail = 'skuaspestcontrol@gmail.com';
   const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -56,12 +65,17 @@ export default function Login() {
         const cached = loadBrandingSettings() || {};
         const cachedPublic = cachedLoginSettings?.settings || {};
         const settingsRes = await axios.get(`${API_BASE_URL}/api/public/settings`);
+        const profilePictureUrl = resolveLoginProfilePictureUrl({
+          ...cached,
+          ...cachedPublic,
+          ...settingsRes.data
+        });
         const nextSettings = {
           ...cached,
           ...cachedPublic,
           ...settingsRes.data,
           ...pickBrandingSettings({ ...cached, ...cachedPublic, ...settingsRes.data }),
-          dashboardImageUrl: String(settingsRes.data?.dashboardImageUrl || cachedPublic.dashboardImageUrl || cached.dashboardImageUrl || '').trim(),
+          dashboardImageUrl: profilePictureUrl,
           companyName: String(settingsRes.data?.companyName || cachedPublic.companyName || cached.companyName || '').trim(),
           brandingAppearance: String(settingsRes.data?.brandingAppearance || cachedPublic.brandingAppearance || cached.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
           brandingAccentColor: String(settingsRes.data?.brandingAccentColor || cachedPublic.brandingAccentColor || cached.brandingAccentColor || '#EF4444').trim() || '#EF4444'
@@ -77,10 +91,14 @@ export default function Login() {
     };
     if (cachedLoginSettings?.settings) {
       const cached = loadBrandingSettings() || {};
+      const profilePictureUrl = resolveLoginProfilePictureUrl({
+        ...cached,
+        ...cachedLoginSettings.settings
+      });
       const nextSettings = {
         ...cached,
         ...cachedLoginSettings.settings,
-        dashboardImageUrl: String(cachedLoginSettings.settings?.dashboardImageUrl || cached.dashboardImageUrl || '').trim(),
+        dashboardImageUrl: profilePictureUrl,
         companyName: String(cachedLoginSettings.settings?.companyName || cached.companyName || '').trim(),
         brandingAppearance: String(cachedLoginSettings.settings?.brandingAppearance || cached.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
         brandingAccentColor: String(cachedLoginSettings.settings?.brandingAccentColor || cached.brandingAccentColor || '#EF4444').trim() || '#EF4444'
@@ -96,10 +114,14 @@ export default function Login() {
     const syncBranding = () => {
       const cached = loadBrandingSettings();
       if (!cached) return;
+      const profilePictureUrl = resolveLoginProfilePictureUrl({
+        ...cached,
+        ...settings
+      });
       setSettings((prev) => ({
         ...prev,
         ...cached,
-        dashboardImageUrl: String(cached.dashboardImageUrl || prev.dashboardImageUrl || '').trim(),
+        dashboardImageUrl: profilePictureUrl || String(cached.dashboardImageUrl || prev.dashboardImageUrl || '').trim(),
         companyName: String(cached.companyName || prev.companyName || '').trim(),
         brandingAppearance: String(cached.brandingAppearance || prev.brandingAppearance || 'light').toLowerCase() === 'dark' ? 'dark' : 'light',
         brandingAccentColor: String(cached.brandingAccentColor || prev.brandingAccentColor || '#EF4444').trim() || '#EF4444'
@@ -256,8 +278,7 @@ export default function Login() {
                   maxWidth: '95%',
                   height: 'auto',
                   objectFit: 'contain',
-                  background: 'transparent',
-                  mixBlendMode: 'multiply'
+                  background: 'transparent'
                 }}
               />
             ) : (
