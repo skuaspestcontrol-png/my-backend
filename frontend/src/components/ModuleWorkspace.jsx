@@ -14,15 +14,15 @@ const shell = {
     backdropFilter: 'none'
   },
   hero: {
-    background: 'var(--color-primary)',
-    borderRadius: '22px',
+    background: 'linear-gradient(135deg, #1a1237 0%, #2f176d 52%, #6d5be3 100%)',
+    borderRadius: '28px',
     padding: '28px',
     color: '#ffffff',
     display: 'grid',
     gridTemplateColumns: '1.6fr 1fr',
     gap: '18px',
-    boxShadow: 'var(--shadow)',
-    border: '1px solid rgba(159, 23, 77, 0.22)'
+    boxShadow: '0 30px 70px rgba(20, 12, 52, 0.28)',
+    border: '1px solid rgba(255, 255, 255, 0.08)'
   },
   badge: {
     display: 'inline-flex',
@@ -38,21 +38,36 @@ const shell = {
   title: { margin: 0, fontSize: '30px', lineHeight: 1.1, letterSpacing: '-0.03em' },
   description: { margin: '10px 0 0 0', color: 'rgba(255,255,255,0.9)', fontSize: '14px', lineHeight: 1.7, maxWidth: '680px', fontWeight: 600 },
   heroSide: {
-    background: 'rgba(255,255,255,0.58)',
-    border: '1px solid rgba(159, 23, 77, 0.24)',
-    borderRadius: '18px',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(247,248,252,0.92) 100%)',
+    border: '1px solid rgba(255, 255, 255, 0.5)',
+    borderRadius: '20px',
     padding: '18px',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
-    backdropFilter: 'blur(10px)'
+    backdropFilter: 'blur(10px)',
+    boxShadow: '0 16px 34px rgba(20, 12, 52, 0.16)'
   },
   grid: { display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '18px' },
-  panel: { background: 'rgba(255,255,255,0.82)', borderRadius: '20px', border: '1px solid rgba(159, 23, 77, 0.16)', padding: '22px', boxShadow: 'var(--shadow-soft)', backdropFilter: 'blur(12px)' },
+  panel: {
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.97) 100%)',
+    borderRadius: '20px',
+    border: '1px solid rgba(148, 163, 184, 0.16)',
+    padding: '22px',
+    boxShadow: '0 18px 38px rgba(15, 23, 42, 0.08)',
+    backdropFilter: 'blur(12px)'
+  },
   stats: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px', marginTop: '18px' },
-  stat: { background: 'rgba(255,255,255,0.84)', color: '#111111', borderRadius: '16px', padding: '16px', border: '1px solid rgba(159, 23, 77, 0.16)' },
+  stat: {
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,252,0.94) 100%)',
+    color: '#111111',
+    borderRadius: '18px',
+    padding: '16px',
+    border: '1px solid rgba(148, 163, 184, 0.16)',
+    boxShadow: '0 14px 30px rgba(15, 23, 42, 0.07)'
+  },
   statLabel: { fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748b', marginBottom: '8px' },
-  statValue: { fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em' },
+  statValue: { fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em', color: '#0f172a' },
   list: { display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '14px' },
   listItem: {
     display: 'flex',
@@ -61,8 +76,8 @@ const shell = {
     alignItems: 'flex-start',
     padding: '14px',
     borderRadius: '14px',
-    background: 'rgba(255,255,255,0.72)',
-    border: '1px solid rgba(17,17,17,0.08)'
+    background: 'rgba(255,255,255,0.76)',
+    border: '1px solid rgba(148, 163, 184, 0.14)'
   },
   miniTitle: { margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a' },
   miniText: { margin: '4px 0 0 0', fontSize: '13px', lineHeight: 1.6, color: '#64748b' },
@@ -73,12 +88,12 @@ const shell = {
     justifyContent: 'space-between',
     padding: '14px 16px',
     borderRadius: '14px',
-    background: 'var(--color-primary)',
+    background: 'linear-gradient(135deg, #2f176d 0%, #6d5be3 100%)',
     color: '#fff',
     border: 'none',
     textDecoration: 'none',
     fontWeight: 700,
-    boxShadow: '0 14px 26px rgba(159, 23, 77, 0.2)'
+    boxShadow: '0 14px 26px rgba(20, 12, 52, 0.2)'
   }
 };
 
@@ -96,7 +111,7 @@ export default function ModuleWorkspace({
 }) {
   return (
     <div style={shell.page}>
-      <section className="hero-section command-center module-workspace-hero">
+      <section className="hero-section command-center module-workspace-hero" style={shell.hero}>
         <div>
           <div style={shell.badge}>
             <Sparkles size={14} />
@@ -105,7 +120,7 @@ export default function ModuleWorkspace({
           <h1 className="module-workspace-title" style={{ color: '#ffffff' }}>{title}</h1>
           <p style={shell.description}>{description}</p>
 
-          <div className="module-workspace-stats">
+          <div className="module-workspace-stats" style={shell.stats}>
             {stats.map((stat) => (
               <div key={stat.label} style={shell.stat}>
                 <div style={shell.statLabel}>{stat.label}</div>

@@ -564,14 +564,14 @@ export default function DashboardLayout({ children }) {
           width: isDrawerMode ? 'min(85vw, 280px)' : sidebarWidth,
           flexBasis: isDrawerMode ? 'min(85vw, 280px)' : sidebarWidth,
           minWidth: isDrawerMode ? 'min(85vw, 280px)' : sidebarWidth,
-          background: 'var(--color-white)',
+          background: 'linear-gradient(180deg, rgba(247, 248, 252, 0.98) 0%, rgba(236, 240, 246, 0.98) 100%)',
           color: 'var(--color-text)',
           display: 'flex',
           flexDirection: 'column',
           overflowY: 'hidden',
           overflowX: 'hidden',
-          borderRight: '1px solid var(--color-border)',
-          boxShadow: 'var(--shadow-sm)',
+          borderRight: '1px solid rgba(148, 163, 184, 0.18)',
+          boxShadow: '10px 0 30px rgba(15, 23, 42, 0.05)',
           backdropFilter: 'blur(16px)',
           transition: isDrawerMode ? undefined : 'width 0.2s ease, flex-basis 0.2s ease, min-width 0.2s ease'
         }}
@@ -586,8 +586,8 @@ export default function DashboardLayout({ children }) {
             position: 'sticky',
             top: 0,
             zIndex: 2,
-            borderBottom: '1px solid var(--color-border)',
-            background: 'var(--color-white)'
+            borderBottom: '1px solid rgba(148, 163, 184, 0.14)',
+            background: 'linear-gradient(180deg, rgba(247, 248, 252, 0.98) 0%, rgba(239, 242, 248, 0.98) 100%)'
           }}
         >
           <Link
@@ -625,7 +625,7 @@ export default function DashboardLayout({ children }) {
                 style={{
                   width: isSidebarCollapsed ? '42px' : isDrawerMode ? '150px' : '170px',
                   height: isSidebarCollapsed ? '42px' : isDrawerMode ? '58px' : '64px',
-                  background: 'var(--color-primary)',
+                  background: 'linear-gradient(135deg, #140e2f 0%, #7c3aed 60%, #4f46e5 100%)',
                   borderRadius: isSidebarCollapsed ? '10px' : '12px',
                   display: 'flex',
                   justifyContent: 'center',
@@ -634,7 +634,7 @@ export default function DashboardLayout({ children }) {
                   fontSize: isSidebarCollapsed ? '15px' : isDrawerMode ? '20px' : '24px',
                   color: '#fff',
                   letterSpacing: '0.08em',
-                  boxShadow: 'var(--shadow-md)',
+                  boxShadow: '0 14px 28px rgba(15, 23, 42, 0.18)',
                   flexShrink: 0
                 }}
               >
@@ -790,7 +790,10 @@ export default function DashboardLayout({ children }) {
         <header
           className="topbar"
           style={{
-            backdropFilter: 'blur(14px)',
+            backdropFilter: 'blur(16px)',
+            background: 'linear-gradient(135deg, #140e2f 0%, #0d1024 100%)',
+            color: '#fff',
+            boxShadow: '0 14px 32px rgba(15, 23, 42, 0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: isDrawerMode ? 'space-between' : 'flex-end',
@@ -811,9 +814,9 @@ export default function DashboardLayout({ children }) {
             aria-label={isDrawerMode ? sidebarOpen ? 'Hide menu' : 'Show menu' : sidebarPinnedOpen ? 'Auto minimize menu' : 'Keep menu extended'}
             title={isDrawerMode ? sidebarOpen ? 'Hide menu' : 'Show menu' : sidebarPinnedOpen ? 'Auto minimize menu' : 'Keep menu extended'}
             style={{
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-primary-light)',
-              color: 'var(--color-primary)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
+              background: 'rgba(255, 255, 255, 0.06)',
+              color: '#fff',
               width: isMobile ? '38px' : '40px',
               height: isMobile ? '38px' : '40px',
               padding: 0,
@@ -832,17 +835,16 @@ export default function DashboardLayout({ children }) {
               type="button"
               onClick={() => setServiceCalendarOpen(true)}
               style={{
-                border: '1px solid var(--color-border)',
-                background: '#fff',
-                color: 'var(--color-primary)',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                background: 'rgba(255, 255, 255, 0.06)',
+                color: '#fff',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-sm)'
+                cursor: 'pointer'
               }}
               aria-label="Open service calendar"
               title="Service Calendar"
@@ -852,7 +854,7 @@ export default function DashboardLayout({ children }) {
             <span
               style={{
                 fontSize: '13px',
-                color: 'var(--color-text)',
+                color: '#fff',
                 letterSpacing: '0.02em',
                 whiteSpace: 'nowrap',
                 display: isMobile ? 'none' : 'inline-flex',
@@ -870,9 +872,9 @@ export default function DashboardLayout({ children }) {
                 type="button"
                 onClick={() => setNotificationsOpen((prev) => !prev)}
                 style={{
-                  border: '1px solid var(--color-border)',
-                  background: '#fff',
-                  color: 'var(--color-primary)',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  color: '#fff',
                   width: isMobile ? '38px' : '42px',
                   height: isMobile ? '38px' : '42px',
                   borderRadius: '999px',
@@ -880,7 +882,6 @@ export default function DashboardLayout({ children }) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  boxShadow: 'var(--shadow-sm)',
                   position: 'relative'
                 }}
                 aria-label="Open notifications"
@@ -1074,17 +1075,16 @@ export default function DashboardLayout({ children }) {
               type="button"
               onClick={() => navigate('/settings')}
               style={{
-                border: '1px solid var(--color-border)',
-                background: '#fff',
-                color: 'var(--color-primary)',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                background: 'rgba(255, 255, 255, 0.06)',
+                color: '#fff',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-sm)'
+                cursor: 'pointer'
               }}
               aria-label="Open settings"
               title="Settings"
@@ -1095,17 +1095,16 @@ export default function DashboardLayout({ children }) {
               type="button"
               onClick={handleLogout}
               style={{
-                border: '1px solid var(--color-border)',
-                background: '#fff',
-                color: 'var(--color-primary)',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                background: 'rgba(255, 255, 255, 0.06)',
+                color: '#fff',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-sm)'
+                cursor: 'pointer'
               }}
               aria-label="Logout"
               title="Logout"
