@@ -7,28 +7,28 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const shell = {
   page: { display: 'grid', gap: '16px' },
-  card: { background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(148,163,184,0.22)', borderRadius: '16px', boxShadow: 'var(--shadow-soft)', overflow: 'hidden' },
+  card: { background: 'rgba(255,255,255,0.9)', border: '1px solid transparent', borderRadius: '16px', boxShadow: 'var(--shadow-soft)', overflow: 'hidden' },
   head: { padding: '16px 18px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' },
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '10px' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#0f172a' },
   subtitle: { margin: '6px 0 0 0', fontSize: '13px', color: '#64748b' },
   controls: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  controlBtn: { border: '1px solid #D1D5DB', background: '#fff', color: '#334155', borderRadius: '10px', height: '34px', minHeight: '34px', minWidth: '34px', padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, lineHeight: 1 },
+  controlBtn: { border: '1px solid transparent', background: '#fff', color: '#334155', borderRadius: '10px', height: '34px', minHeight: '34px', minWidth: '34px', padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, lineHeight: 1 },
   monthText: { minWidth: '170px', textAlign: 'center', fontWeight: 700, color: '#0f172a' },
   body: { padding: '14px 16px 16px', display: 'grid', gap: '12px' },
   weekRow: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '6px' },
   weekCell: { textAlign: 'center', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '6px' },
-  dayBtn: { border: '1px solid var(--color-border)', borderRadius: '10px', background: '#fff', minHeight: '76px', padding: '7px', textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px' },
+  dayBtn: { border: '1px solid transparent', borderRadius: '10px', background: '#fff', minHeight: '76px', padding: '7px', textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px' },
   dayBtnMuted: { opacity: 0.45, background: '#f8fafc' },
   dayBtnSelected: { borderColor: 'var(--color-primary)', boxShadow: '0 0 0 2px rgba(159,23,77,0.2)' },
   dayNumber: { fontSize: '12px', fontWeight: 700, color: '#0f172a', lineHeight: 1 },
   dayBadge: { alignSelf: 'flex-start', fontSize: '10px', fontWeight: 800, color: 'var(--color-primary-dark)', background: 'var(--color-primary-soft)', borderRadius: '999px', padding: '2px 7px', lineHeight: 1.15 },
-  selectedCard: { border: '1px solid var(--color-border)', borderRadius: '12px', background: '#fff', overflow: 'hidden' },
+  selectedCard: { border: '1px solid transparent', borderRadius: '12px', background: '#fff', overflow: 'hidden' },
   selectedHead: { padding: '10px 12px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 800, textTransform: 'uppercase' },
   selectedBody: { padding: '10px 12px', display: 'grid', gap: '10px' },
   eventGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px' },
-  eventCard: { border: '1px solid #d7dde6', borderRadius: '12px', padding: '11px 11px 10px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', display: 'grid', gap: '7px', minWidth: 0 },
+  eventCard: { border: '1px solid transparent', borderRadius: '12px', padding: '11px 11px 10px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', display: 'grid', gap: '7px', minWidth: 0 },
   eventTitle: { fontSize: '13px', fontWeight: 800, color: '#0f172a', lineHeight: 1.35 },
   eventRow: { display: 'flex', flexWrap: 'wrap', gap: '8px 12px', alignItems: 'center' },
   eventPill: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 8px', borderRadius: '999px', background: '#f8fafc', color: '#334155', fontSize: '11px', fontWeight: 700, lineHeight: 1.2 },
@@ -301,7 +301,7 @@ export default function ServiceCalendar() {
       };
   const summaryCardStyle = isMobile
     ? {
-        border: '1px solid rgba(148,163,184,0.22)',
+        border: '1px solid transparent',
         borderRadius: '12px',
         background: '#fff',
         padding: '10px 11px',
@@ -311,7 +311,7 @@ export default function ServiceCalendar() {
         boxShadow: '0 10px 24px rgba(15,23,42,0.05)'
       }
     : {
-        border: '1px solid rgba(148,163,184,0.22)',
+        border: '1px solid transparent',
         borderRadius: '16px',
         background: '#fff',
         padding: '14px 16px',

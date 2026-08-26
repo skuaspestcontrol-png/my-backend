@@ -1151,7 +1151,7 @@ export default function DashboardLayout({ children }) {
               width: 'min(1200px, 100%)',
               height: 'min(92vh, 960px)',
               borderRadius: '18px',
-              border: '1px solid rgba(148, 163, 184, 0.28)',
+              border: '1px solid transparent',
               background: '#fff',
               boxShadow: '0 30px 90px rgba(15, 23, 42, 0.32)',
               overflow: 'hidden',
