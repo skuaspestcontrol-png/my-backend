@@ -7,6 +7,7 @@ import { subscribeContractsRefresh, triggerRenewalsRefresh, triggerSalesPerforma
 import useColumnResize from './table/useColumnResize';
 import SortChevronIcon from './ui/SortChevronIcon';
 import { getPortalUserName } from '../utils/portalAuth';
+import { normalizeIndianMobileNumber } from '../utils/phone';
 import {
   AlertCircle,
   CalendarDays,
@@ -456,6 +457,8 @@ const openContractJobCardPdf = (invoiceRef) => {
   return addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(ref)}/job-card-summary-pdf`);
 };
 
+const resolveContractWhatsAppTargetId = (row = {}) => String(row?.invoiceId || row?._id || row?.id || '').trim();
+
 const readContractsDashboardCache = () => {
   try {
     if (typeof window === 'undefined') return null;
@@ -626,7 +629,7 @@ export default function ContractDashboard() {
     const customer = findCustomerForInvoice(invoice);
     const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Invoice';
-    const recipientPhone = String(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '').trim();
+    const recipientPhone = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
     setWhatsappComposer({
       open: true,
       kind: 'invoice',
@@ -656,8 +659,9 @@ export default function ContractDashboard() {
     const customer = findCustomerForInvoice(invoice);
     const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Contract';
-    const recipientPhone = String(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '').trim();
-    const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(String(invoice._id || invoiceNumber).trim())}/job-card-summary-pdf`);
+    const recipientPhone = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
+    const contractId = resolveContractWhatsAppTargetId(invoice) || invoiceNumber;
+    const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(contractId)}/job-card-summary-pdf`);
     setWhatsappComposer({
       open: true,
       kind: 'contract-job-card',
@@ -2273,7 +2277,8 @@ export default function ContractDashboard() {
         onSend={async ({ recipientPhone, message }) => {
           if (whatsappComposer.kind === 'contract-job-card') {
             const invoiceNumber = String(whatsappComposer.row?.invoiceNumber || whatsappComposer.row?.contractNo || whatsappComposer.row?._id || '').trim() || 'Contract';
-            const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(String(whatsappComposer.row?._id || invoiceNumber).trim())}/job-card-summary-pdf`);
+            const contractId = resolveContractWhatsAppTargetId(whatsappComposer.row) || invoiceNumber;
+            const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(contractId)}/job-card-summary-pdf`);
             const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
               moduleType: 'contract',
               templateType: 'custom_message',
@@ -2295,7 +2300,8 @@ export default function ContractDashboard() {
             window.alert(response.data?.success ? 'Contract job card sent on WhatsApp.' : 'Contract job card queued on WhatsApp.');
             return;
           }
-          const response = await axios.post(`${API_BASE}/api/invoices/${whatsappComposer.row?._id}/send-whatsapp`, {
+          const invoiceId = String(whatsappComposer.row?.invoiceId || whatsappComposer.row?._id || '').trim();
+          const response = await axios.post(`${API_BASE}/api/invoices/${encodeURIComponent(invoiceId)}/send-whatsapp`, {
             phoneNumber: recipientPhone,
             message
           });
