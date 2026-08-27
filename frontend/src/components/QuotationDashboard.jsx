@@ -460,7 +460,7 @@ function QuotationDashboardInner() {
   const totalValueStyle = isMobile
     ? { ...summaryValueStyle, fontSize: 19, lineHeight: 1.15, wordBreak: 'break-word' }
     : { ...shell.metricValue, fontSize: 22, lineHeight: 1.15, wordBreak: 'break-word' };
-  const actionColumnWidth = isMobile ? Math.max(getColumnWidth('action'), 96) : Math.max(getColumnWidth('action'), 110);
+  const actionColumnWidth = isMobile ? Math.max(getColumnWidth('action'), 96) : Math.max(getColumnWidth('action'), 120);
   const toggleSort = (key) => {
     setSortConfig((current) => ({
       key,
@@ -478,7 +478,15 @@ function QuotationDashboardInner() {
   };
   const actionColumnStyle = isMobile
     ? {}
-    : { width: actionColumnWidth, minWidth: actionColumnWidth, maxWidth: actionColumnWidth, textAlign: 'right', overflow: 'visible' };
+    : {
+        width: actionColumnWidth,
+        minWidth: actionColumnWidth,
+        maxWidth: actionColumnWidth,
+        textAlign: 'center',
+        overflow: 'visible',
+        paddingLeft: 8,
+        paddingRight: 8
+      };
 
   return (
     <section style={shell.page}>
@@ -570,7 +578,19 @@ function QuotationDashboardInner() {
                     </button>
                   </th>
                 ))}
-                <th style={{ ...shell.th, ...actionColumnStyle, width: `${actionColumnWidth}px`, minWidth: `${actionColumnWidth}px`, textTransform: 'none', letterSpacing: '0' }}>
+                <th
+                  style={{
+                    ...shell.th,
+                    ...actionColumnStyle,
+                    width: `${actionColumnWidth}px`,
+                    minWidth: `${actionColumnWidth}px`,
+                    textTransform: 'none',
+                    letterSpacing: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
                   Action
                   
                 </th>
@@ -592,7 +612,7 @@ function QuotationDashboardInner() {
                     <td style={shell.td} data-label="Status"><span style={shell.badge}>{row.status || 'Draft'}</span></td>
                     <td style={shell.td} data-label="Grand Total">{formatINR(row.grand_total || 0)}</td>
                     <td style={{ ...shell.td, ...actionColumnStyle }} data-label="Action">
-                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                         <ActionMenu
                           items={[
                             { label: 'Edit quotation', onClick: () => navigate(`/quotations/new?id=${row.id}`) },
