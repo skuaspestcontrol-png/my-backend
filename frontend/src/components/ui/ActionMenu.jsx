@@ -16,11 +16,11 @@ export default function ActionMenu({ items = [] }) {
         aria-label="Action"
         onClick={() => setOpen((v) => !v)}
         style={{
-          minWidth: 94,
-          height: 34,
-          padding: '0 12px',
-          borderRadius: 10,
-          border: '1px solid #D1D5DB',
+          minWidth: 120,
+          height: 36,
+          padding: '0 14px',
+          borderRadius: 12,
+          border: '1px solid #C7CDD6',
           background: '#fff',
           color: '#1F2937',
           display: 'inline-flex',
@@ -30,16 +30,40 @@ export default function ActionMenu({ items = [] }) {
           cursor: 'pointer',
           fontSize: 12,
           fontWeight: 700,
-          lineHeight: 1
+          lineHeight: 1,
+          position: 'relative',
+          zIndex: 2,
+          pointerEvents: 'auto'
         }}
       >
         <span>Action</span>
         <ChevronDown size={14} />
       </button>
       {open ? (
-        <div style={{ position: 'absolute', right: 0, top: 44, minWidth: 180, border: '1px solid #E5E7EB', borderRadius: 12, background: '#fff', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', overflow: 'hidden', zIndex: 40 }}>
+        <div style={{ position: 'absolute', right: 0, top: 42, minWidth: 200, padding: 6, border: '1px solid #E5E7EB', borderRadius: 14, background: '#fff', boxShadow: '0 16px 34px rgba(15,23,42,0.14)', overflow: 'visible', zIndex: 1200 }}>
           {items.map((item) => (
-            <button key={item.label} type="button" disabled={item.disabled} onClick={() => { item.onClick?.(); setOpen(false); }} style={{ width: '100%', minHeight: 40, border: 'none', background: '#fff', textAlign: 'left', padding: '0 12px', color: item.disabled ? '#9CA3AF' : '#1F2937', fontWeight: 600, cursor: item.disabled ? 'not-allowed' : 'pointer' }}>
+            <button
+              key={item.label}
+              type="button"
+              disabled={item.disabled}
+              onClick={() => { item.onClick?.(); setOpen(false); }}
+              style={{
+                width: '100%',
+                minHeight: 40,
+                border: '1px solid #E5E7EB',
+                borderRadius: 10,
+                background: item.disabled ? '#F8FAFC' : '#fff',
+                textAlign: 'left',
+                padding: '0 12px',
+                marginBottom: 6,
+                color: item.disabled ? '#9CA3AF' : '#1F2937',
+                fontWeight: 700,
+                cursor: item.disabled ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start'
+              }}
+            >
               {item.label}
             </button>
           ))}
