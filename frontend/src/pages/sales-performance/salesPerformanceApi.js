@@ -4,6 +4,7 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const SALES_PERFORMANCE_REFRESH_KEY = 'sales_performance_refresh_at';
 const CONTRACTS_REFRESH_KEY = 'contracts_refresh_at';
 const RENEWALS_REFRESH_KEY = 'renewals_refresh_at';
+const RENEWALS_FOCUS_KEY = 'renewals_focus_row_v1';
 
 export const currentYear = new Date().getFullYear();
 export const currentMonth = new Date().getMonth() + 1;
@@ -133,6 +134,35 @@ export const subscribeRenewalsRefresh = (handler) => {
     window.removeEventListener('renewals:refresh', onCustomRefresh);
     window.removeEventListener('storage', onStorageRefresh);
   };
+};
+
+export const triggerRenewalsFocus = ({ renewalId = '', renewalDisplayId = '', customerName = '' } = {}) => {
+  const payload = {
+    renewalId: String(renewalId || '').trim(),
+    renewalDisplayId: String(renewalDisplayId || '').trim(),
+    customerName: String(customerName || '').trim(),
+    stamp: Date.now()
+  };
+  if (!payload.renewalId && !payload.renewalDisplayId && !payload.customerName) return;
+  try {
+    window.localStorage.setItem(RENEWALS_FOCUS_KEY, JSON.stringify(payload));
+  } catch (_error) {}
+  try {
+    window.dispatchEvent(new CustomEvent('renewals:focus', { detail: payload }));
+  } catch (_error) {}
+};
+
+export const consumeRenewalsFocus = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(RENEWALS_FOCUS_KEY);
+    if (!raw) return null;
+    window.localStorage.removeItem(RENEWALS_FOCUS_KEY);
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_error) {
+    return null;
+  }
 };
 
 export const buildCsv = (rows = [], columns = []) => {

@@ -11492,7 +11492,7 @@ app.post('/api/invoices', async (req, res) => {
   }
 
   try {
-    await markMatchingRenewalCompleteForInvoice(newInvoice);
+    newInvoice.renewalSync = await markMatchingRenewalCompleteForInvoice(newInvoice);
   } catch (error) {
     console.error('Failed to mark renewal complete after invoice create:', error.message);
   }
@@ -11628,7 +11628,7 @@ app.put('/api/invoices/:id', async (req, res) => {
   }
 
   try {
-    await markMatchingRenewalCompleteForInvoice(updatedInvoice);
+    updatedInvoice.renewalSync = await markMatchingRenewalCompleteForInvoice(updatedInvoice);
   } catch (error) {
     console.error('Failed to mark renewal complete after invoice update:', error.message);
   }

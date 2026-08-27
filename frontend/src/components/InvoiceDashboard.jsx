@@ -13,6 +13,7 @@ import {
 import { normalizeIndianMobileNumber } from '../utils/phone';
 import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { triggerContractsRefresh } from '../pages/sales-performance/salesPerformanceApi';
+import { triggerRenewalsRefresh, triggerRenewalsFocus } from '../pages/sales-performance/salesPerformanceApi';
 import { subscribeDashboardRefresh, triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import { clearPortalUser } from '../utils/portalAuth';
 import PdfPreviewModal from './PdfPreviewModal';
@@ -3237,10 +3238,13 @@ export default function InvoiceDashboard() {
     try {
       setIsSaving(true);
       setSaveError('');
+      let savedInvoice = null;
       if (editingId) {
-        await axios.put(`${API_BASE_URL}/api/invoices/${editingId}`, payload);
+        const response = await axios.put(`${API_BASE_URL}/api/invoices/${editingId}`, payload);
+        savedInvoice = response?.data || null;
       } else {
-        await axios.post(`${API_BASE_URL}/api/invoices`, payload);
+        const response = await axios.post(`${API_BASE_URL}/api/invoices`, payload);
+        savedInvoice = response?.data || null;
       }
       setForm(emptyForm);
       setEditingId(null);
@@ -3266,6 +3270,15 @@ export default function InvoiceDashboard() {
       }
       triggerSalesPerformanceRefresh();
       triggerContractsRefresh();
+      triggerRenewalsRefresh();
+      if (String(payload.customerType || '').trim().toLowerCase() === 'renewal') {
+        const renewalSync = savedInvoice?.renewalSync || null;
+        triggerRenewalsFocus({
+          renewalId: renewalSync?.renewalId || '',
+          renewalDisplayId: renewalSync?.renewalDisplayId || '',
+          customerName: renewalSync?.customerName || payload.customerName || ''
+        });
+      }
       triggerDashboardRefresh();
       if (modalOpenedFromContract) {
         setModalOpenedFromContract(false);
