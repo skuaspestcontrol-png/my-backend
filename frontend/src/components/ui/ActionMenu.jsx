@@ -12,7 +12,9 @@ export default function ActionMenu({ items = [] }) {
   }, []);
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <IconButton label="Actions" onClick={() => setOpen((v) => !v)}><MoreHorizontal size={22} /></IconButton>
+      <IconButton size="sm" label="More actions" onClick={() => setOpen((v) => !v)}>
+        <MoreHorizontal size={18} />
+      </IconButton>
       {open ? (
         <div style={{ position: 'absolute', right: 0, top: 44, minWidth: 180, border: '1px solid #E5E7EB', borderRadius: 12, background: '#fff', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', overflow: 'hidden', zIndex: 40 }}>
           {items.map((item) => (

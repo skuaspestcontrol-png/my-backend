@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, RefreshCw } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
+import ActionMenu from './ui/ActionMenu';
 import SortChevronIcon from './ui/SortChevronIcon';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -22,23 +23,23 @@ const quotationColumns = [
 ];
 const quotationDefaultWidths = {
   srNo: 72,
-  quotationNumber: 170,
-  date: 110,
+  quotationNumber: 146,
+  date: 92,
   customer: 190,
   salesPerson: 150,
   status: 110,
   grandTotal: 130,
-  action: 122
+  action: 110
 };
 const quotationColumnBounds = {
   srNo: { min: 64, max: 90 },
-  quotationNumber: { min: 140, max: 240 },
-  date: { min: 96, max: 140 },
+  quotationNumber: { min: 124, max: 220 },
+  date: { min: 84, max: 128 },
   customer: { min: 160, max: 280 },
   salesPerson: { min: 130, max: 220 },
   status: { min: 90, max: 150 },
   grandTotal: { min: 110, max: 180 },
-  action: { min: 110, max: 150 }
+  action: { min: 96, max: 130 }
 };
 
 const shell = {
@@ -88,36 +89,6 @@ const shell = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
-    cursor: 'pointer'
-  },
-  rowIconBtn: {
-    width: 30,
-    height: 30,
-    minWidth: 30,
-    minHeight: 30,
-    padding: 0,
-    borderRadius: 8,
-    border: '1px solid var(--color-border)',
-    background: '#fff',
-    color: '#334155',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer'
-  },
-  rowIconDangerBtn: {
-    width: 30,
-    height: 30,
-    minWidth: 30,
-    minHeight: 30,
-    padding: 0,
-    borderRadius: 8,
-    border: '1px solid #fecaca',
-    background: '#fff1f2',
-    color: '#b91c1c',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
     cursor: 'pointer'
   },
   summaryWrap: {
@@ -489,9 +460,7 @@ function QuotationDashboardInner() {
   const totalValueStyle = isMobile
     ? { ...summaryValueStyle, fontSize: 19, lineHeight: 1.15, wordBreak: 'break-word' }
     : { ...shell.metricValue, fontSize: 22, lineHeight: 1.15, wordBreak: 'break-word' };
-  const rowActionWrapStyle = isMobile
-    ? { display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-start' }
-    : { display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-end' };
+  const actionColumnWidth = isMobile ? Math.max(getColumnWidth('action'), 96) : Math.max(getColumnWidth('action'), 110);
   const toggleSort = (key) => {
     setSortConfig((current) => ({
       key,
@@ -509,7 +478,7 @@ function QuotationDashboardInner() {
   };
   const actionColumnStyle = isMobile
     ? {}
-    : { width: 122, minWidth: 122, maxWidth: 122, textAlign: 'right', overflow: 'visible' };
+    : { width: actionColumnWidth, minWidth: actionColumnWidth, maxWidth: actionColumnWidth, textAlign: 'right', overflow: 'visible' };
 
   return (
     <section style={shell.page}>
@@ -601,7 +570,7 @@ function QuotationDashboardInner() {
                     </button>
                   </th>
                 ))}
-                <th style={{ ...shell.th, ...actionColumnStyle, width: `${getColumnWidth('action')}px`, minWidth: `${getColumnWidth('action')}px` }}>
+                <th style={{ ...shell.th, ...actionColumnStyle, width: `${actionColumnWidth}px`, minWidth: `${actionColumnWidth}px` }}>
                   Action
                   
                 </th>
@@ -623,47 +592,15 @@ function QuotationDashboardInner() {
                     <td style={shell.td} data-label="Status"><span style={shell.badge}>{row.status || 'Draft'}</span></td>
                     <td style={shell.td} data-label="Grand Total">{formatINR(row.grand_total || 0)}</td>
                     <td style={{ ...shell.td, ...actionColumnStyle }} data-label="Action">
-                      <div style={rowActionWrapStyle}>
-                        <button
-                          type="button"
-                          className="crm-icon-action-btn"
-                          style={shell.rowIconBtn}
-                          onClick={() => navigate(`/quotations/new?id=${row.id}`)}
-                          aria-label="Edit quotation"
-                          title="Edit quotation"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          type="button"
-                          className="crm-icon-action-btn"
-                          style={shell.rowIconDangerBtn}
-                          onClick={() => deleteQuotation(row.id)}
-                          aria-label="Delete quotation"
-                          title="Delete quotation"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                        <button
-                          type="button"
-                          className="crm-icon-action-btn"
-                          style={shell.rowIconBtn}
-                          onClick={() => openQuotationPdfPreview(row)}
-                          aria-label="View PDF"
-                          title="View PDF"
-                        >
-                          <FileText size={15} />
-                        </button>
-                        <button
-                          type="button"
-                          className="crm-icon-action-btn"
-                          style={{ ...shell.rowIconBtn, width: 'auto', padding: '0 10px', color: '#166534', borderColor: '#bbf7d0', background: '#f0fdf4', fontSize: '11px', fontWeight: 800 }}
-                          onClick={() => openQuotationWhatsAppComposer(row)}
-                          aria-label="Send on WhatsApp"
-                          title="Send on WhatsApp"
-                        >
-                          WhatsApp
-                        </button>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <ActionMenu
+                          items={[
+                            { label: 'Edit quotation', onClick: () => navigate(`/quotations/new?id=${row.id}`) },
+                            { label: 'View PDF', onClick: () => openQuotationPdfPreview(row) },
+                            { label: 'Send on WhatsApp', onClick: () => openQuotationWhatsAppComposer(row) },
+                            { label: 'Delete quotation', onClick: () => deleteQuotation(row.id) }
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
