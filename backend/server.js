@@ -11492,6 +11492,12 @@ app.post('/api/invoices', async (req, res) => {
   }
 
   try {
+    await markMatchingRenewalCompleteForInvoice(newInvoice);
+  } catch (error) {
+    console.error('Failed to mark renewal complete after invoice create:', error.message);
+  }
+
+  try {
     await updateSettingsCurrentBalancesFromInvoicePayments({ nextInvoice: newInvoice });
   } catch (error) {
     console.error('Failed to update bank balances after invoice create:', error.message);
@@ -11619,6 +11625,12 @@ app.put('/api/invoices/:id', async (req, res) => {
     invoices[invoiceIndex] = updatedInvoice;
     fs.writeFileSync(invoicesFile, JSON.stringify(invoices, null, 2));
     await updateSettingsNextInvoiceNumber(updatedInvoice.invoiceNumber, settings, updatedInvoice.invoiceType);
+  }
+
+  try {
+    await markMatchingRenewalCompleteForInvoice(updatedInvoice);
+  } catch (error) {
+    console.error('Failed to mark renewal complete after invoice update:', error.message);
   }
 
   try {
@@ -12323,6 +12335,73 @@ const loadRenewalRows = async () => {
         return activeContractIds.has(contractId) || activeRenewalIds.has(renewalId);
       });
   });
+};
+const markMatchingRenewalCompleteForInvoice = async (invoice = {}) => {
+  const invoiceId = String(invoice?._id || '').trim();
+  const customerId = String(invoice?.customerId || '').trim();
+  const customerName = String(invoice?.customerName || '').trim().toLowerCase();
+  const customerType = String(invoice?.customerType || invoice?.customer_type || '').trim().toLowerCase();
+  if (!invoiceId || customerType !== 'renewal') return null;
+  if (!customerId && !customerName) return null;
+
+  const isMatch = (row = {}) => {
+    const rowCustomerId = String(row?.customerId || '').trim();
+    const rowCustomerName = String(row?.customerName || '').trim().toLowerCase();
+    const rowStatus = normalizeRenewalStatus(row?.status, 'Upcoming');
+    if (rowStatus === 'Declined') return false;
+    if (String(row?.convertedContractId || '').trim() && rowStatus === 'Done') {
+      return false;
+    }
+    return (customerId && rowCustomerId === customerId) || (customerName && rowCustomerName === customerName);
+  };
+
+  const chooseBestRow = (rows = []) => {
+    const candidates = rows.filter(isMatch);
+    if (candidates.length === 0) return null;
+    candidates.sort((left, right) => {
+      const leftHasCustomerId = String(left?.customerId || '').trim() ? 1 : 0;
+      const rightHasCustomerId = String(right?.customerId || '').trim() ? 1 : 0;
+      if (leftHasCustomerId !== rightHasCustomerId) return rightHasCustomerId - leftHasCustomerId;
+      const leftDate = String(left?.renewalDueDate || left?.previousContractEnd || left?.updatedAt || left?.createdAt || '').trim();
+      const rightDate = String(right?.renewalDueDate || right?.previousContractEnd || right?.updatedAt || right?.createdAt || '').trim();
+      return rightDate.localeCompare(leftDate);
+    });
+    return candidates[0] || null;
+  };
+
+  const nowIso = new Date().toISOString();
+  const finalAmount = toNumber(invoice?.total ?? invoice?.amount, 0);
+
+  if (canUseMysql()) {
+    const renewal = chooseBestRow(await loadRenewalRows());
+    if (!renewal) return null;
+    await withMysqlConnection(async (conn) => {
+      await ensureRenewalTables(conn);
+      await conn.query(
+        `UPDATE renewals
+         SET status = ?, converted_contract_id = ?, renewed_at = COALESCE(renewed_at, ?), final_renewal_amount = CASE WHEN ? > 0 THEN ? ELSE final_renewal_amount END
+         WHERE renewal_id = ?`,
+        ['Done', invoiceId, nowIso, finalAmount, finalAmount, renewal.renewalId]
+      );
+    });
+    return findRenewalRow(renewal.renewalId);
+  }
+
+  const records = readJsonFile(renewalsFile, []);
+  const recordIndex = records.findIndex(isMatch);
+  if (recordIndex < 0) return null;
+  const current = records[recordIndex] || {};
+  const updated = {
+    ...current,
+    status: 'Done',
+    convertedContractId: invoiceId,
+    renewedAt: current.renewedAt || nowIso,
+    finalRenewalAmount: finalAmount > 0 ? finalAmount : toNumber(current.finalRenewalAmount || current.proposedAmount || 0, 0),
+    updatedAt: nowIso
+  };
+  records[recordIndex] = updated;
+  saveRenewalRecords(records);
+  return updated;
 };
 const findRenewalRow = async (id) => {
   const lookup = String(id || '').trim();
