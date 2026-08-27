@@ -1,6 +1,5 @@
-import { MoreHorizontal } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import IconButton from './IconButton';
 
 export default function ActionMenu({ items = [] }) {
   const [open, setOpen] = useState(false);
@@ -12,9 +11,31 @@ export default function ActionMenu({ items = [] }) {
   }, []);
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <IconButton size="sm" label="More actions" onClick={() => setOpen((v) => !v)}>
-        <MoreHorizontal size={18} />
-      </IconButton>
+      <button
+        type="button"
+        aria-label="Options"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          minWidth: 94,
+          height: 34,
+          padding: '0 12px',
+          borderRadius: 10,
+          border: '1px solid #D1D5DB',
+          background: '#fff',
+          color: '#1F2937',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          cursor: 'pointer',
+          fontSize: 12,
+          fontWeight: 700,
+          lineHeight: 1
+        }}
+      >
+        <span>Options</span>
+        <ChevronDown size={14} />
+      </button>
       {open ? (
         <div style={{ position: 'absolute', right: 0, top: 44, minWidth: 180, border: '1px solid #E5E7EB', borderRadius: 12, background: '#fff', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', overflow: 'hidden', zIndex: 40 }}>
           {items.map((item) => (
