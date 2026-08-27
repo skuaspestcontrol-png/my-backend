@@ -328,14 +328,14 @@ main > * {
 .crm-page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .crm-page-header-copy {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
   flex: 1 1 320px;
 }
@@ -343,7 +343,7 @@ main > * {
 .crm-page-header-action {
   display: flex;
   justify-content: flex-end;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   max-width: 100%;
 }
@@ -470,6 +470,7 @@ button.danger {
   .crm-page-header-action {
     width: 100%;
     justify-content: flex-start;
+    align-items: stretch;
   }
 
   .crm-page-header-action > * {

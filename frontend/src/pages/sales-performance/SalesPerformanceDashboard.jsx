@@ -164,24 +164,24 @@ export default function SalesPerformanceDashboard() {
   const mobilePersonFilterStyle = isMobile ? { gridArea: 'person' } : undefined;
 
   const summaryGridStyle = viewportWidth >= 1200
-    ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
+    ? { display: 'grid', gap: 14, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 700
-      ? { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : { display: 'grid', gap: 10, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', width: '100%' };
+      ? { display: 'grid', gap: 14, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', width: '100%' };
   const compactSummaryCardStyle = isMobile
-    ? { width: '100%', minWidth: 0, borderRadius: 18, minHeight: 118 }
-    : { width: '100%', minWidth: 0 };
+    ? { width: '100%', minWidth: 0, borderRadius: 18, minHeight: 108 }
+    : { width: '100%', minWidth: 0, minHeight: 134 };
   const compactSummaryContentStyle = isMobile
-    ? { padding: 12, gap: 6, minHeight: 118, justifyContent: 'space-between' }
-    : { padding: 14, gap: 8 };
+    ? { padding: 12, gap: 5, minHeight: 108, justifyContent: 'space-between' }
+    : { padding: 13, gap: 7, minHeight: 134, justifyContent: 'space-between' };
   const compactSummaryTitleStyle = isMobile
-    ? { fontSize: 9, lineHeight: 1.15, letterSpacing: '0.02em' }
-    : undefined;
+    ? { fontSize: 9, lineHeight: 1.1, letterSpacing: '0.02em', color: '#94a3b8', fontWeight: 500 }
+    : { fontSize: 10, lineHeight: 1.1, letterSpacing: '0.07em', color: '#94a3b8', fontWeight: 500 };
   const compactSummaryValueStyle = (key) => {
-    if (!isMobile) return { fontSize: 26 };
-    if (key === 'bestPerformer') return { fontSize: 12, lineHeight: 1.2, wordBreak: 'break-word' };
-    if (String(key).includes('Percent')) return { fontSize: 16, lineHeight: 1.05 };
-    return { fontSize: 18, lineHeight: 1.05 };
+    if (!isMobile) return { fontSize: 29, lineHeight: 1.04, fontWeight: 900 };
+    if (key === 'bestPerformer') return { fontSize: 13, lineHeight: 1.15, wordBreak: 'break-word', fontWeight: 900 };
+    if (String(key).includes('Percent')) return { fontSize: 18, lineHeight: 1.05, fontWeight: 900 };
+    return { fontSize: 20, lineHeight: 1.05, fontWeight: 900 };
   };
   const matrixScrollStyle = {
     width: '100%',
@@ -249,7 +249,7 @@ export default function SalesPerformanceDashboard() {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: isMobile ? 10 : 12,
+        gap: isMobile ? 8 : 10,
         width: '100%',
         minWidth: 0,
         overflowX: 'hidden',
@@ -334,7 +334,7 @@ export default function SalesPerformanceDashboard() {
             ))}
           </div>
 
-          <div className="sales-analytics-grid" style={chartGridStyle}>
+          <div className="sales-analytics-grid" style={{ ...chartGridStyle, marginTop: isMobile ? 2 : 4 }}>
             <CompactChartCard title="Monthly Target vs Achievement" isMobile={isMobile}>
               {monthlyTrendRows.length ? (
                 <div className="sales-chart-scroll">
