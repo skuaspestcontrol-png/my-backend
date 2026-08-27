@@ -1477,6 +1477,15 @@ export default function InvoiceDashboard() {
     },
     [customers]
   );
+  const renewalCustomerOptions = useMemo(
+    () => customerOptions.filter((customer) => {
+      const source = customers.find((entry) => String(entry?._id || '').trim() === String(customer.id || '').trim()) || null;
+      const customerType = String(source?.customerType || source?.customer_type || source?.type || '').trim().toLowerCase();
+      return customerType.includes('renewal');
+    }),
+    [customerOptions, customers]
+  );
+  const customerNameOptions = form.customerType === 'Renewal' ? renewalCustomerOptions : customerOptions;
   const customerNameDatalistId = 'invoice-customer-name-options';
   const selectedCustomer = useMemo(
     () => {
@@ -2752,14 +2761,17 @@ export default function InvoiceDashboard() {
     setShowModal(false);
   };
 
-  const resolveCustomerMatch = (value) => {
+  const resolveCustomerMatch = (value, customerType = form.customerType) => {
     const raw = String(value || '').trim();
     if (!raw) return null;
     const normalized = raw.toLowerCase();
+    const requiresRenewalOnly = String(customerType || '').trim().toLowerCase() === 'renewal';
     return customers.find((entry) => {
       const entryId = String(entry?._id || '').trim();
       const entryName = String(entry?.displayName || entry?.name || '').trim();
       const entryCompanyName = String(entry?.companyName || '').trim();
+      const entryCustomerType = String(entry?.customerType || entry?.customer_type || entry?.type || '').trim().toLowerCase();
+      if (requiresRenewalOnly && !entryCustomerType.includes('renewal')) return false;
       return (
         entryId === raw
         || entryName.toLowerCase() === normalized
@@ -3982,7 +3994,7 @@ export default function InvoiceDashboard() {
                   onChange={(event) => handleCustomerChange(event.target.value)}
                 />
                 <datalist id={customerNameDatalistId}>
-                  {customerOptions.map((customer) => (
+                  {customerNameOptions.map((customer) => (
                     <option key={customer.id} value={customer.name} />
                   ))}
                 </datalist>
