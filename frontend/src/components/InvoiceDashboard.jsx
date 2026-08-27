@@ -1583,6 +1583,77 @@ export default function InvoiceDashboard() {
     [shippingAddressOptions, form.shippingAddressSource, form.shippingAddressText, form.premiseAddress]
   );
 
+  const getInvoiceSortStamp = (invoice) => {
+    const raw = invoice?.updatedAt || invoice?.createdAt || invoice?.date || invoice?.invoiceDate || invoice?.contractDate || '';
+    const stamp = raw ? new Date(raw).getTime() : 0;
+    return Number.isFinite(stamp) ? stamp : 0;
+  };
+
+  const findLatestContractForCustomer = (customer, fallbackName = '') => {
+    const customerId = String(customer?._id || customer?.customerId || '').trim();
+    const customerName = String(customer?.displayName || customer?.name || fallbackName || '').trim().toLowerCase();
+    if (!customerId && !customerName) return null;
+    const matches = (Array.isArray(invoices) ? invoices : []).filter((invoice) => {
+      const invoiceCustomerId = String(invoice?.customerId || '').trim();
+      const invoiceCustomerName = String(invoice?.customerName || '').trim().toLowerCase();
+      if (customerId && invoiceCustomerId === customerId) return true;
+      if (customerName && invoiceCustomerName === customerName) return true;
+      return false;
+    });
+    if (matches.length === 0) return null;
+    matches.sort((left, right) => {
+      const stampDiff = getInvoiceSortStamp(right) - getInvoiceSortStamp(left);
+      if (stampDiff !== 0) return stampDiff;
+      return String(right?.invoiceNumber || '').localeCompare(String(left?.invoiceNumber || ''));
+    });
+    return matches[0] || null;
+  };
+
+  const buildContractAutofill = (invoice) => {
+    if (!invoice) return null;
+    const snapshot = mapInvoiceToForm(invoice);
+    return {
+      invoiceType: snapshot.invoiceType || 'GST',
+      billingAddressSource: snapshot.billingAddressSource || 'billing',
+      shippingAddressSource: snapshot.shippingAddressSource || 'shipping',
+      billingAddressText: snapshot.billingAddressText || '',
+      shippingAddressText: snapshot.shippingAddressText || '',
+      customShippingAddresses: Array.isArray(snapshot.customShippingAddresses) ? snapshot.customShippingAddresses : [],
+      customerPremiseId: snapshot.customerPremiseId || '',
+      premiseLabel: snapshot.premiseLabel || '',
+      premiseAddress: snapshot.premiseAddress || '',
+      premiseAreaName: snapshot.premiseAreaName || '',
+      premiseCity: snapshot.premiseCity || '',
+      premiseState: snapshot.premiseState || '',
+      premisePincode: snapshot.premisePincode || '',
+      premiseGoogleMapUrl: snapshot.premiseGoogleMapUrl || '',
+      placeOfSupply: snapshot.placeOfSupply || '',
+      leadSource: snapshot.leadSource || '',
+      salesperson: snapshot.salesperson || '',
+      servicePeriod: snapshot.servicePeriod || '',
+      servicePeriodStart: snapshot.servicePeriodStart || '',
+      servicePeriodEnd: snapshot.servicePeriodEnd || '',
+      subject: snapshot.subject || '',
+      items: Array.isArray(snapshot.items) && snapshot.items.length > 0 ? snapshot.items : [createEmptyLine()],
+      customerNotes: snapshot.customerNotes || '',
+      termsAndConditions: snapshot.termsAndConditions || '',
+      serviceScheduleDefaultTime: snapshot.serviceScheduleDefaultTime || '10:00',
+      showPaymentDetailsInPdf: snapshot.showPaymentDetailsInPdf,
+      showGstNumberInPdf: snapshot.showGstNumberInPdf,
+      paymentReceivedEnabled: snapshot.paymentReceivedEnabled,
+      paymentSplits: Array.isArray(snapshot.paymentSplits) && snapshot.paymentSplits.length > 0
+        ? snapshot.paymentSplits
+        : [createEmptyPaymentSplit(getDefaultPaymentDepositTo(snapshot.invoiceType || 'GST'))],
+      paymentReceivedTotal: snapshot.paymentReceivedTotal || '0',
+      attachments: Array.isArray(snapshot.attachments) ? snapshot.attachments : [],
+      withholdingType: snapshot.withholdingType || 'TDS',
+      withholdingRate: snapshot.withholdingRate || '0',
+      withholdingAmount: snapshot.withholdingAmount || '0',
+      discount: snapshot.discount || '0',
+      roundOff: snapshot.roundOff || '0'
+    };
+  };
+
   useEffect(() => {
     const customerId = String(form.customerId || '').trim();
     if (!customerId) return;
@@ -2849,20 +2920,66 @@ export default function InvoiceDashboard() {
   const handleCustomerChange = (value) => {
     const customer = resolveCustomerMatch(value);
     const customerName = String(customer?.displayName || customer?.name || value || '').trim();
-    setFormWithTotals((prev) => ({
-      ...prev,
+    const latestContract = findLatestContractForCustomer(customer, customerName);
+    const autofill = buildContractAutofill(latestContract);
+    const invoiceDate = new Date().toISOString().slice(0, 10);
+    const baseInvoiceType = String(autofill?.invoiceType || form.invoiceType || 'GST').trim() || 'GST';
+    const nextForm = applyComputedTotals({
+      ...form,
       customerId: customer?._id || '',
       customerName,
-      billingAddressSource: 'billing',
-      shippingAddressSource: 'shipping',
-      customShippingAddresses: [],
-      placeOfSupply: customer ? normalizeGstState(customer.billingState || customer.state || '') : ''
-    }));
+      invoiceType: baseInvoiceType,
+      billingAddressSource: autofill?.billingAddressSource || 'billing',
+      shippingAddressSource: autofill?.shippingAddressSource || 'shipping',
+      billingAddressText: autofill?.billingAddressText || '',
+      shippingAddressText: autofill?.shippingAddressText || '',
+      customShippingAddresses: autofill?.customShippingAddresses || [],
+      customerPremiseId: autofill?.customerPremiseId || '',
+      premiseLabel: autofill?.premiseLabel || '',
+      premiseAddress: autofill?.premiseAddress || '',
+      premiseAreaName: autofill?.premiseAreaName || '',
+      premiseCity: autofill?.premiseCity || '',
+      premiseState: autofill?.premiseState || '',
+      premisePincode: autofill?.premisePincode || '',
+      premiseGoogleMapUrl: autofill?.premiseGoogleMapUrl || '',
+      placeOfSupply: autofill?.placeOfSupply || (customer ? normalizeGstState(customer.billingState || customer.state || '') : ''),
+      leadSource: autofill?.leadSource || '',
+      salesperson: autofill?.salesperson || '',
+      servicePeriod: autofill?.servicePeriod || '',
+      servicePeriodStart: autofill?.servicePeriodStart || '',
+      servicePeriodEnd: autofill?.servicePeriodEnd || '',
+      subject: autofill?.subject || '',
+      items: autofill?.items || [createEmptyLine({ contractStartDate: form.date || invoiceDate, contractStartDateSource: 'invoice-date' })],
+      customerNotes: autofill?.customerNotes || '',
+      termsAndConditions: autofill?.termsAndConditions || '',
+      serviceScheduleDefaultTime: autofill?.serviceScheduleDefaultTime || form.serviceScheduleDefaultTime || '10:00',
+      showPaymentDetailsInPdf: autofill?.showPaymentDetailsInPdf ?? form.showPaymentDetailsInPdf ?? true,
+      showGstNumberInPdf: autofill?.showGstNumberInPdf ?? form.showGstNumberInPdf ?? true,
+      paymentReceivedEnabled: autofill?.paymentReceivedEnabled ?? form.paymentReceivedEnabled ?? true,
+      paymentSplits: autofill?.paymentSplits || [createEmptyPaymentSplit(getDefaultPaymentDepositTo(baseInvoiceType))],
+      paymentReceivedTotal: autofill?.paymentReceivedTotal || '0',
+      attachments: autofill?.attachments || [],
+      withholdingType: autofill?.withholdingType || form.withholdingType || 'TDS',
+      withholdingRate: autofill?.withholdingRate || '0',
+      withholdingAmount: autofill?.withholdingAmount || '0',
+      discount: autofill?.discount || '0',
+      roundOff: autofill?.roundOff || '0',
+      status: 'DRAFT',
+      amount: '0',
+      balanceDue: '0',
+      subtotal: '0',
+      totalTax: '0',
+      total: '0'
+    });
+    setForm(nextForm);
+    resetServiceScheduleBuilder(latestContract, nextForm);
+    setSaveError('');
     if (customer?._id) {
       axios.get(`${API_BASE_URL}/api/customers/${customer._id}/premises`)
         .then((res) => {
           const rows = Array.isArray(res.data) ? res.data : [];
           setCustomerPremises((prev) => ({ ...prev, [customer._id]: rows }));
+          if (latestContract) return;
           const defaultPremise = rows.find((row) => row.isDefault || row.is_default) || rows[0];
           if (defaultPremise?.premiseId || defaultPremise?.premise_id) {
             const source = `premise:${defaultPremise.premiseId || defaultPremise.premise_id}`;
