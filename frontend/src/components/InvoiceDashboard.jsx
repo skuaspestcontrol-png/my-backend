@@ -1232,6 +1232,7 @@ export default function InvoiceDashboard() {
   const [invoices, setInvoices] = useState(() => cachedInvoiceState?.invoices || []);
   const [payments, setPayments] = useState(() => cachedInvoiceState?.payments || []);
   const [customers, setCustomers] = useState(() => cachedInvoiceState?.customers || []);
+  const [renewalRows, setRenewalRows] = useState([]);
   const [customerPremises, setCustomerPremises] = useState({});
   const [itemsCatalog, setItemsCatalog] = useState(() => cachedInvoiceState?.itemsCatalog || []);
   const [employees, setEmployees] = useState(() => cachedInvoiceState?.employees || []);
@@ -1478,12 +1479,50 @@ export default function InvoiceDashboard() {
     [customers]
   );
   const renewalCustomerOptions = useMemo(
-    () => customerOptions.filter((customer) => {
-      const source = customers.find((entry) => String(entry?._id || '').trim() === String(customer.id || '').trim()) || null;
-      const customerType = String(source?.customerType || source?.customer_type || source?.type || '').trim().toLowerCase();
-      return customerType.includes('renewal');
-    }),
-    [customerOptions, customers]
+    () => {
+      const options = [];
+      const seen = new Set();
+
+      const addOption = (entry = {}) => {
+        const name = String(entry.customerName || entry.customer_name || entry.displayName || entry.name || '').trim();
+        if (!name) return;
+        const id = String(entry.customerId || entry.customer_id || entry.renewalId || entry.renewal_id || name).trim();
+        const signature = `${id.toLowerCase()}::${name.toLowerCase()}`;
+        if (seen.has(signature)) return;
+        seen.add(signature);
+        options.push({
+          id,
+          customerId: String(entry.customerId || entry.customer_id || '').trim(),
+          name
+        });
+      };
+
+      renewalRows.forEach(addOption);
+
+      if (options.length === 0) {
+        customerOptions.forEach((customer) => {
+          const source = customers.find((entry) => String(entry?._id || '').trim() === String(customer.id || '').trim()) || null;
+          const customerType = String(source?.customerType || source?.customer_type || source?.type || '').trim().toLowerCase();
+          if (!customerType.includes('renewal')) return;
+          addOption({
+            customerId: customer.id,
+            customerName: customer.name
+          });
+        });
+      }
+
+      return options.sort((left, right) => {
+        const leftName = String(left.name || '').trim().toLowerCase();
+        const rightName = String(right.name || '').trim().toLowerCase();
+        if (!leftName && !rightName) return 0;
+        if (!leftName) return 1;
+        if (!rightName) return -1;
+        const nameCompare = leftName.localeCompare(rightName, undefined, { sensitivity: 'base' });
+        if (nameCompare !== 0) return nameCompare;
+        return String(left.name || '').localeCompare(String(right.name || ''), undefined, { sensitivity: 'variant' });
+      });
+    },
+    [customerOptions, customers, renewalRows]
   );
   const customerNameOptions = form.customerType === 'Renewal' ? renewalCustomerOptions : customerOptions;
   const customerNameDatalistId = 'invoice-customer-name-options';
@@ -1760,11 +1799,12 @@ export default function InvoiceDashboard() {
     if (masterDataLoadRef.current) return;
     masterDataLoadRef.current = true;
     try {
-      const [customersRes, itemsRes, employeesRes, settingsRes] = await Promise.all([
+      const [customersRes, itemsRes, employeesRes, settingsRes, renewalsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/customers`),
         axios.get(`${API_BASE_URL}/api/items`),
         axios.get(`${API_BASE_URL}/api/employees`),
-        axios.get(`${API_BASE_URL}/api/settings`)
+        axios.get(`${API_BASE_URL}/api/settings`),
+        axios.get(`${API_BASE_URL}/api/renewals`)
       ]);
       let nextLeadSources = [...DEFAULT_LEAD_SOURCES];
       try {
@@ -1776,6 +1816,7 @@ export default function InvoiceDashboard() {
       const nextCustomers = Array.isArray(customersRes.data) ? customersRes.data : [];
       const nextItemsCatalog = Array.isArray(itemsRes.data) ? itemsRes.data : [];
       const nextEmployees = Array.isArray(employeesRes.data) ? employeesRes.data : [];
+      const nextRenewalRows = Array.isArray(renewalsRes.data) ? renewalsRes.data : [];
       const settingsData = settingsRes.data || {};
       const prefs = sanitizeInvoiceNumberPrefs({
         mode: settingsData.invoiceNumberMode || 'auto',
@@ -1788,6 +1829,7 @@ export default function InvoiceDashboard() {
         nonGstNumberWidth: settingsData.nonGstInvoiceNumberWidth ?? 0
       });
       setCustomers(nextCustomers);
+      setRenewalRows(nextRenewalRows);
       setItemsCatalog(nextItemsCatalog);
       setEmployees(nextEmployees);
       setLeadSourceOptions(nextLeadSources);
@@ -2766,6 +2808,29 @@ export default function InvoiceDashboard() {
     if (!raw) return null;
     const normalized = raw.toLowerCase();
     const requiresRenewalOnly = String(customerType || '').trim().toLowerCase() === 'renewal';
+    if (requiresRenewalOnly) {
+      const renewalMatch = renewalRows.find((entry) => {
+        const entryId = String(entry?.customerId || entry?.customer_id || '').trim();
+        const entryName = String(entry?.customerName || entry?.customer_name || '').trim();
+        return (
+          entryId === raw
+          || entryName.toLowerCase() === normalized
+        );
+      });
+      if (renewalMatch) {
+        const renewalCustomerId = String(renewalMatch.customerId || renewalMatch.customer_id || '').trim();
+        const renewalCustomerName = String(renewalMatch.customerName || renewalMatch.customer_name || '').trim();
+        const linkedCustomer = renewalCustomerId
+          ? customers.find((entry) => String(entry?._id || '').trim() === renewalCustomerId) || null
+          : null;
+        return {
+          _id: renewalCustomerId || linkedCustomer?._id || '',
+          displayName: renewalCustomerName || linkedCustomer?.displayName || linkedCustomer?.name || raw,
+          name: renewalCustomerName || linkedCustomer?.displayName || linkedCustomer?.name || raw,
+          customerType: 'Renewal'
+        };
+      }
+    }
     return customers.find((entry) => {
       const entryId = String(entry?._id || '').trim();
       const entryName = String(entry?.displayName || entry?.name || '').trim();
@@ -2782,7 +2847,7 @@ export default function InvoiceDashboard() {
 
   const handleCustomerChange = (value) => {
     const customer = resolveCustomerMatch(value);
-    const customerName = String(value || '').trim();
+    const customerName = String(customer?.displayName || customer?.name || value || '').trim();
     setFormWithTotals((prev) => ({
       ...prev,
       customerId: customer?._id || '',
