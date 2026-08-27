@@ -178,7 +178,7 @@ const formatDate = (value) => {
 const formatINR = (value) => {
   const n = Number(value);
   if (!Number.isFinite(n)) return '₹ 0';
-  const formatted = n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formatted = n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
   return `₹ ${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
 };
 
