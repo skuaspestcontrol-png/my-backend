@@ -13,7 +13,7 @@ export default function ActionMenu({ items = [] }) {
     <div ref={ref} style={{ position: 'relative' }}>
       <button
         type="button"
-        aria-label="Options"
+        aria-label="Action"
         onClick={() => setOpen((v) => !v)}
         style={{
           minWidth: 94,
@@ -33,7 +33,7 @@ export default function ActionMenu({ items = [] }) {
           lineHeight: 1
         }}
       >
-        <span>Options</span>
+        <span>Action</span>
         <ChevronDown size={14} />
       </button>
       {open ? (

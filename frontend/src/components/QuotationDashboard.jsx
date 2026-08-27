@@ -570,7 +570,7 @@ function QuotationDashboardInner() {
                     </button>
                   </th>
                 ))}
-                <th style={{ ...shell.th, ...actionColumnStyle, width: `${actionColumnWidth}px`, minWidth: `${actionColumnWidth}px` }}>
+                <th style={{ ...shell.th, ...actionColumnStyle, width: `${actionColumnWidth}px`, minWidth: `${actionColumnWidth}px`, textTransform: 'none', letterSpacing: '0' }}>
                   Action
                   
                 </th>
