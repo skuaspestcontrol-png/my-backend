@@ -157,6 +157,27 @@ export default function Login() {
   const textMuted = 'rgba(255, 255, 255, 0.64)';
   const fieldBg = 'rgba(255, 255, 255, 0.08)';
   const fieldBorder = 'rgba(255, 255, 255, 0.16)';
+  const loginInputStyle = isNarrow
+    ? {
+        width: '100%',
+        padding: '12px 13px',
+        borderRadius: '8px',
+        boxSizing: 'border-box',
+        background: 'rgba(255, 255, 255, 0.12)',
+        border: '1px solid rgba(255, 255, 255, 0.18)',
+        color: '#ffffff',
+        caretColor: '#ffffff'
+      }
+    : {
+        width: '100%',
+        padding: '12px 13px',
+        borderRadius: '8px',
+        boxSizing: 'border-box',
+        background: fieldBg,
+        border: `1px solid ${fieldBorder}`,
+        color: '#ffffff',
+        caretColor: '#ffffff'
+      };
   const calendarModalBodyStyle = {
     flex: 1,
     minHeight: 0,
@@ -315,7 +336,7 @@ export default function Login() {
                 name="username"
                 onChange={handleChange}
                 value={credentials.username}
-                style={{ width: '100%', padding: '12px 13px', borderRadius: '8px', boxSizing: 'border-box', background: fieldBg, border: `1px solid ${fieldBorder}`, color: '#ffffff', caretColor: '#ffffff' }}
+                style={loginInputStyle}
                 required
               />
               <p style={{ margin: '6px 0 0', fontSize: '12px', color: textMuted, fontWeight: 600 }}>For employees, use your 10-digit mobile number.</p>
@@ -329,7 +350,7 @@ export default function Login() {
                 name="password"
                 onChange={handleChange}
                 value={credentials.password}
-                style={{ width: '100%', padding: '12px 42px 12px 13px', borderRadius: '8px', boxSizing: 'border-box', background: fieldBg, border: `1px solid ${fieldBorder}`, color: '#ffffff', caretColor: '#ffffff' }}
+                style={{ ...loginInputStyle, padding: '12px 42px 12px 13px' }}
                 required
               />
                 <button
