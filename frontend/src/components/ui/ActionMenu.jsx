@@ -77,18 +77,20 @@ export default function ActionMenu({ items = [] }) {
           setOpen(true);
         }}
         style={{
-          minWidth: 120,
-          height: 36,
-          padding: '0 14px',
-          borderRadius: 12,
-          border: '1px solid #C7CDD6',
+          border: '1px solid rgba(17,17,17,0.16)',
           background: '#fff',
           color: '#1F2937',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 8,
+          gap: 6,
           cursor: 'pointer',
+          boxSizing: 'border-box',
+          minWidth: 86,
+          minHeight: 32,
+          height: 32,
+          padding: '0 8px 0 12px',
+          borderRadius: 10,
           fontSize: 12,
           fontWeight: 700,
           lineHeight: 1,
@@ -98,7 +100,21 @@ export default function ActionMenu({ items = [] }) {
         }}
       >
         <span>Action</span>
-        <ChevronDown size={14} />
+        <span
+          style={{
+            width: 16,
+            height: 16,
+            borderRadius: 5,
+            border: '1px solid #d1d5db',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#f8fafc',
+            flexShrink: 0
+          }}
+        >
+          <ChevronDown size={11} />
+        </span>
       </button>
       {open && menuPosition ? createPortal(
         <div
@@ -107,14 +123,14 @@ export default function ActionMenu({ items = [] }) {
             position: 'fixed',
             left: `${menuPosition.left}px`,
             top: `${menuPosition.top}px`,
-            width: `${menuPosition.width}px`,
+            width: `${Math.max(menuPosition.width, 170)}px`,
             padding: 6,
-            border: '1px solid #E5E7EB',
-            borderRadius: 14,
+            border: '1px solid var(--color-border)',
+            borderRadius: 8,
             background: '#fff',
-            boxShadow: '0 16px 34px rgba(15,23,42,0.14)',
+            boxShadow: '0 8px 18px rgba(15,23,42,0.1)',
             overflow: 'visible',
-            zIndex: 6000
+            zIndex: 5000
           }}
         >
           {menuItems.map((item) => (
@@ -128,19 +144,21 @@ export default function ActionMenu({ items = [] }) {
               }}
               style={{
                 width: '100%',
-                minHeight: 40,
-                border: '1px solid #E5E7EB',
-                borderRadius: 10,
-                background: item.disabled ? '#F8FAFC' : '#fff',
                 textAlign: 'left',
-                padding: '0 12px',
-                marginBottom: 6,
+                border: 'none',
+                background: item.disabled ? '#F8FAFC' : '#fff',
+                padding: '6px 10px',
                 color: item.disabled ? '#9CA3AF' : '#1F2937',
-                fontWeight: 700,
-                cursor: item.disabled ? 'not-allowed' : 'pointer',
+                fontSize: 11,
+                fontWeight: 600,
+                lineHeight: 1.1,
+                minHeight: 30,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'flex-start'
+                justifyContent: 'flex-start',
+                cursor: item.disabled ? 'not-allowed' : 'pointer',
+                marginBottom: 0,
+                borderRadius: 0
               }}
             >
               {item.label}
