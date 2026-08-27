@@ -2,10 +2,13 @@ import { ChevronDown } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+const ACTION_MENU_OPEN_EVENT = 'crm-action-menu-open';
+
 export default function ActionMenu({ items = [] }) {
   const [open, setOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState(null);
   const ref = useRef(null);
+  const menuIdRef = useRef(`action-menu-${Math.random().toString(36).slice(2, 10)}`);
 
   const closeMenu = () => {
     setOpen(false);
@@ -15,7 +18,7 @@ export default function ActionMenu({ items = [] }) {
   const updateMenuPosition = () => {
     if (!ref.current) return;
     const rect = ref.current.getBoundingClientRect();
-    const menuWidth = 220;
+    const menuWidth = 176;
     const menuGap = 6;
     const viewportPadding = 8;
     const left = Math.max(
@@ -34,6 +37,10 @@ export default function ActionMenu({ items = [] }) {
   };
 
   useEffect(() => {
+    const onMenuOpen = (event) => {
+      if (event?.detail === menuIdRef.current) return;
+      closeMenu();
+    };
     const onDoc = (e) => {
       const target = e.target;
       const insideTrigger = target && typeof target.closest === 'function'
@@ -44,8 +51,12 @@ export default function ActionMenu({ items = [] }) {
         : null;
       if (!insideTrigger && !insideMenu) closeMenu();
     };
+    window.addEventListener(ACTION_MENU_OPEN_EVENT, onMenuOpen);
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    return () => {
+      window.removeEventListener(ACTION_MENU_OPEN_EVENT, onMenuOpen);
+      document.removeEventListener('mousedown', onDoc);
+    };
   }, []);
 
   useEffect(() => {
@@ -73,6 +84,7 @@ export default function ActionMenu({ items = [] }) {
             closeMenu();
             return;
           }
+          window.dispatchEvent(new CustomEvent(ACTION_MENU_OPEN_EVENT, { detail: menuIdRef.current }));
           updateMenuPosition();
           setOpen(true);
         }}
@@ -123,10 +135,10 @@ export default function ActionMenu({ items = [] }) {
             position: 'fixed',
             left: `${menuPosition.left}px`,
             top: `${menuPosition.top}px`,
-            width: `${Math.max(menuPosition.width, 170)}px`,
-            padding: 6,
+            width: `${menuPosition.width}px`,
+            padding: 4,
             border: '1px solid var(--color-border)',
-            borderRadius: 8,
+            borderRadius: 10,
             background: '#fff',
             boxShadow: '0 8px 18px rgba(15,23,42,0.1)',
             overflow: 'visible',
