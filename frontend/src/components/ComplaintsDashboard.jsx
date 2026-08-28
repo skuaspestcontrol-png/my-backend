@@ -4,7 +4,7 @@ import { AlertCircle, List, Plus, Save, Send, Users } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import { getPortalUserName } from '../utils/portalAuth';
-import { sendTextWhatsAppMessage } from '../utils/whatsapp';
+import { buildTextWhatsAppPayload, sendTextWhatsAppMessage } from '../utils/whatsapp';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -582,7 +582,7 @@ export default function ComplaintsDashboard() {
         sendButtonLabel="Send Complaint WhatsApp"
         onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
-          const response = await sendTextWhatsAppMessage(API_BASE, {
+          const response = await sendTextWhatsAppMessage(API_BASE, buildTextWhatsAppPayload({
             moduleType: 'complaint',
             templateType: 'custom_message',
             recipientName: whatsappComposer.recipientName,
@@ -598,7 +598,7 @@ export default function ComplaintsDashboard() {
               address: whatsappComposer.complaint?.property || '',
               company_name: 'SKUAS Pest Control'
             }
-          });
+          }));
           window.alert(response.data?.success ? 'Complaint WhatsApp sent successfully.' : 'Complaint WhatsApp queued.');
         }}
       />

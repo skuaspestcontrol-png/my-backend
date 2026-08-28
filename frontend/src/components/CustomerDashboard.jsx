@@ -28,7 +28,7 @@ import {
 } from '../utils/googleMaps';
 import { PHONE_VALIDATION_ERROR, formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import { getPortalUserName } from '../utils/portalAuth';
-import { sendTextWhatsAppMessage } from '../utils/whatsapp';
+import { buildTextWhatsAppPayload, sendTextWhatsAppMessage } from '../utils/whatsapp';
 
 const normalizeApiBase = (value = '') => {
   const raw = String(value || '').trim();
@@ -3955,7 +3955,7 @@ export default function CustomerDashboard() {
         sendButtonLabel="Send Customer WhatsApp"
         onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
-          const response = await sendTextWhatsAppMessage(API_BASE_URL, {
+          const response = await sendTextWhatsAppMessage(API_BASE_URL, buildTextWhatsAppPayload({
             moduleType: 'customer',
             templateType: 'custom_message',
             recipientName: whatsappComposer.recipientName,
@@ -3969,7 +3969,7 @@ export default function CustomerDashboard() {
               customer_phone: phoneNumber,
               company_name: 'SKUAS Pest Control'
             }
-          });
+          }));
           window.alert(response.data?.success ? 'Customer WhatsApp sent successfully.' : 'Customer WhatsApp queued.');
         }}
       />
