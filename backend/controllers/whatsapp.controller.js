@@ -37,7 +37,19 @@ const inferWhatsAppActive = (settings = {}) => {
   const hasAccessToken = Boolean(String(settings.whatsappAccessToken || settings.accessToken || '').trim());
   const hasInstance = Boolean(String(settings.whatsappInstanceId || settings.instanceId || settings.whatsappPhoneNumberId || '').trim());
   const hasPhoneNumber = Boolean(String(settings.whatsappPhoneNumber || settings.phoneNumber || '').trim());
-  return hasBaseUrl && hasAccessToken && (hasInstance || hasPhoneNumber);
+  const providerType = String(settings.whatsappProviderType || settings.providerType || '').trim().toLowerCase();
+
+  if (providerType === 'deropo') {
+    return hasBaseUrl && hasAccessToken;
+  }
+
+  if (providerType === 'meta') {
+    return hasAccessToken && (hasInstance || hasPhoneNumber);
+  }
+
+  if (hasBaseUrl && hasAccessToken && hasInstance) return true;
+  if (hasBaseUrl && hasAccessToken && hasPhoneNumber) return true;
+  return false;
 };
 
 const resolveAttachmentUrl = (rawUrl, req, resolveServerOrigin) => {
@@ -184,11 +196,11 @@ function createWhatsAppController(deps) {
     ).trim().toLowerCase();
     res.json({
       apiBaseUrl: settings.whatsappApiBaseUrl || '',
-      phoneNumber: '',
-      instanceId: '',
-      accessToken: '',
+      phoneNumber: settings.whatsappPhoneNumber || '',
+      instanceId: settings.whatsappInstanceId || settings.whatsappPhoneNumberId || '',
+      accessToken: settings.whatsappAccessToken || '',
       active: inferWhatsAppActive(settings),
-      testNumber: '',
+      testNumber: settings.whatsappTestNumber || '',
       providerType,
       diagnostic: buildWhatsAppCredentialDiagnostics(settings)
     });

@@ -10493,10 +10493,16 @@ app.post('/api/invoices/:id/send-whatsapp', async (req, res) => {
     const defaultMessage = buildDefaultShareMessage(context.invoice, context.settings);
     const message = String(req.body?.message || defaultMessage).trim();
 
-    const useCustomProvider = ['custom', 'deropo'].includes(waConfig.providerType) && Boolean(waConfig.baseUrl);
+    const useProviderApi = ['custom', 'deropo'].includes(waConfig.providerType) && Boolean(waConfig.baseUrl);
 
-    if (useCustomProvider) {
-      if (!waConfig.baseUrl || !waConfig.instanceId || !waConfig.accessToken) {
+    if (useProviderApi) {
+      if (waConfig.providerType === 'deropo') {
+        if (!waConfig.baseUrl || !waConfig.accessToken) {
+          return res.status(400).json({
+            error: 'WhatsApp API settings are incomplete. Configure API Base URL and Access Token in WhatsApp Settings.'
+          });
+        }
+      } else if (!waConfig.baseUrl || !waConfig.instanceId || !waConfig.accessToken) {
         return res.status(400).json({
           error: 'WhatsApp API settings are incomplete. Configure API Base URL, Instance ID, and Access Token in WhatsApp Settings.'
         });
