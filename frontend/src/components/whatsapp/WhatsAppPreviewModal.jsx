@@ -31,6 +31,16 @@ export default function WhatsAppPreviewModal({
 
   const initialMessage = useMemo(() => String(previewData?.previewMessage || ''), [previewData]);
   const allowManualUpload = String(previewData?.attachmentOption || '').toLowerCase() === 'manual upload';
+  const diagnosticRows = useMemo(() => {
+    if (!diagnostic || typeof diagnostic !== 'object') return [];
+    return [
+      { label: 'API Base URL', ok: Boolean(diagnostic.baseUrlPresent), value: diagnostic.baseUrlPresent ? 'Configured' : 'Missing' },
+      { label: 'Instance ID', ok: Boolean(diagnostic.instanceIdPresent), value: diagnostic.instanceIdPresent ? 'Configured' : 'Missing' },
+      { label: 'Access Token', ok: Boolean(diagnostic.accessTokenPresent), value: diagnostic.accessTokenPresent ? 'Configured' : 'Missing' },
+      { label: 'Provider Type', ok: Boolean(diagnostic.providerType), value: diagnostic.providerType || 'Unknown' },
+      { label: 'Active', ok: Boolean(diagnostic.active), value: diagnostic.active ? 'Enabled' : 'Disabled' }
+    ];
+  }, [diagnostic]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -119,9 +129,21 @@ export default function WhatsAppPreviewModal({
               padding: '10px 12px',
               fontSize: '12px',
               fontWeight: 700,
-              lineHeight: 1.45
+              lineHeight: 1.45,
+              display: 'grid',
+              gap: '8px'
             }}>
-              {diagnostic.text}
+              <div>{diagnostic.text}</div>
+              {diagnosticRows.length ? (
+                <div style={{ display: 'grid', gap: '6px' }}>
+                  {diagnosticRows.map((row) => (
+                    <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', padding: '6px 8px', borderRadius: '8px', background: 'rgba(255,255,255,0.52)' }}>
+                      <span style={{ fontWeight: 800 }}>{row.label}</span>
+                      <span style={{ fontWeight: 800, color: row.ok ? '#166534' : '#b91c1c' }}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
           <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>
