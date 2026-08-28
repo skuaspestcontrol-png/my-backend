@@ -5263,12 +5263,20 @@ export default function InvoiceDashboard() {
         downloadFileName={pdfPreview.downloadFileName}
         onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '' })}
         onShareEmail={async () => {
-          const invoice = invoices.find((entry) => String(entry._id) === String(pdfPreview.invoiceId));
-          if (invoice) await runInvoiceAction(invoice, 'email');
+          const invoice = invoices.find((entry) => matchesInvoiceReference(entry, pdfPreview.invoiceId));
+          if (!invoice) {
+            window.alert('Could not find the invoice for email sharing.');
+            return;
+          }
+          await runInvoiceAction(invoice, 'email');
         }}
         onShareWhatsApp={async () => {
-          const invoice = invoices.find((entry) => String(entry._id) === String(pdfPreview.invoiceId));
-          if (invoice) await runInvoiceAction(invoice, 'whatsapp');
+          const invoice = invoices.find((entry) => matchesInvoiceReference(entry, pdfPreview.invoiceId));
+          if (!invoice) {
+            window.alert('Could not find the invoice for WhatsApp sharing.');
+            return;
+          }
+          await runInvoiceAction(invoice, 'whatsapp');
         }}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
