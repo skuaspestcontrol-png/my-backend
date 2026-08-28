@@ -1286,6 +1286,7 @@ export default function InvoiceDashboard() {
     recipientPhone: '',
     recipientType: 'Customer'
   });
+  const [toastMessage, setToastMessage] = useState('');
   const [invoiceColumnWidths, setInvoiceColumnWidths] = useState(() => {
     const saved = localStorage.getItem(invoiceColumnWidthStorageKey);
     if (!saved) return normalizeInvoiceColumnWidths();
@@ -1322,6 +1323,18 @@ export default function InvoiceDashboard() {
 
     setSaveError(responseMessage || fallbackMessage);
   };
+
+  const showToast = (message) => {
+    const text = String(message || '').trim();
+    if (!text) return;
+    setToastMessage(text);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage('');
+      toastTimerRef.current = null;
+    }, 3500);
+  };
+
   const preventRateStepper = (event) => {
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       event.preventDefault();
@@ -1338,6 +1351,7 @@ export default function InvoiceDashboard() {
   const termsAutoSeededRef = useRef(false);
   const invoiceNumberAutoSeededRef = useRef(false);
   const invoiceNumberManuallyEditedRef = useRef(false);
+  const toastTimerRef = useRef(null);
 
   const visibleColumnDefs = useMemo(
     () => columns.filter((column) => visibleColumns.includes(column.key)),
@@ -1999,6 +2013,10 @@ export default function InvoiceDashboard() {
     loadMasterData();
   }, []);
 
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
+
   useEffect(() => {
     const refreshFromDashboard = () => {
       setCustomerPremises({});
@@ -2476,6 +2494,39 @@ export default function InvoiceDashboard() {
       String(customer.displayName || customer.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
     ) || null;
 
+  const resolveInvoiceWhatsAppContact = (invoice = {}) => {
+    const customer = findCustomerForInvoice(invoice);
+    const customerName = String(
+      customer?.displayName
+      || customer?.name
+      || invoice.customerName
+      || invoice.customer
+      || invoice.contactPersonName
+      || 'Customer'
+    ).trim() || 'Customer';
+    const phoneSource = String(
+      customer?.whatsappNumber
+      || customer?.mobileNumber
+      || customer?.workPhone
+      || invoice.whatsappNumber
+      || invoice.mobileNumber
+      || invoice.mobile
+      || invoice.customerPhone
+      || invoice.phoneNumber
+      || invoice.phone
+      || invoice.contactPhone
+      || ''
+    ).trim();
+
+    return {
+      customer,
+      customerName,
+      phoneSource,
+      recipientPhone: normalizeIndianMobileNumber(phoneSource),
+      displayPhone: formatIndianMobileNumber(phoneSource)
+    };
+  };
+
   const openInvoicePdfPreview = (invoice) => {
     const invoiceNumber = String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || 'Invoice').trim();
     const invoiceRef = String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || '').trim();
@@ -2509,10 +2560,12 @@ export default function InvoiceDashboard() {
   };
 
   const openInvoiceWhatsAppComposer = (invoice) => {
-    const customer = findCustomerForInvoice(invoice);
-    const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
-    const customerWhatsapp = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
-    const displayPhone = formatIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
+    const { customer, customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice);
+    const invoiceNumber = String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || '').trim() || 'Invoice';
+    if (!recipientPhone) {
+      showToast(`No WhatsApp number found for ${customerName}.`);
+      return;
+    }
     setWhatsAppComposer({
       open: true,
       invoiceId: String(invoice._id || '').trim(),
@@ -2526,8 +2579,8 @@ export default function InvoiceDashboard() {
         },
         contextData: {
           customer_name: customerName,
-          customer_phone: customerWhatsapp,
-          invoice_no: String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || '').trim(),
+          customer_phone: recipientPhone,
+          invoice_no: invoiceNumber,
           invoice_amount: formatINR(invoice.total || invoice.amount || 0),
           due_date: formatDisplayDate(invoice.dueDate || ''),
           company_name: companySettings.companyName || 'Service Team',
@@ -5223,6 +5276,27 @@ export default function InvoiceDashboard() {
           window.alert(response.data?.message || 'Invoice sent on WhatsApp.');
         }}
       />
+
+      {toastMessage ? (
+        <div style={{
+          position: 'fixed',
+          right: '16px',
+          bottom: '16px',
+          zIndex: 7000,
+          maxWidth: 'min(420px, calc(100vw - 32px))',
+          padding: '12px 14px',
+          borderRadius: '12px',
+          background: 'rgba(254, 226, 226, 0.98)',
+          color: '#991b1b',
+          border: '1px solid rgba(239, 68, 68, 0.24)',
+          boxShadow: '0 12px 30px rgba(15,23,42,0.18)',
+          fontSize: '13px',
+          fontWeight: 700,
+          lineHeight: 1.4
+        }}>
+          {toastMessage}
+        </div>
+      ) : null}
     </section>
   );
 }

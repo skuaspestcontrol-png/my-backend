@@ -20,6 +20,7 @@ import { useLocation, useParams } from 'react-router-dom';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import { getPortalUserName } from '../utils/portalAuth';
 import { formatIndiaDateTime } from '../utils/indiaTime';
+import { formatIndianMobileNumber } from '../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const TECHNICIAN_PORTAL_CACHE_KEY = 'skuasmaster-technician-portal-cache-v1';
@@ -1135,6 +1136,7 @@ export default function TechnicianPortal() {
   const [isSavingAssignment, setIsSavingAssignment] = useState(false);
   const [isSavingWizard, setIsSavingWizard] = useState(false);
   const [actionStatus, setActionStatus] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
   const [stockItemsCatalog, setStockItemsCatalog] = useState([]);
   const [showCostModal, setShowCostModal] = useState(false);
   const [costModalSaving, setCostModalSaving] = useState(false);
@@ -1159,9 +1161,25 @@ export default function TechnicianPortal() {
   const wizardNextButtonRef = useRef(null);
   const signatureClearButtonRef = useRef(null);
   const orphanCleanupNoticeTimerRef = useRef(null);
+  const toastTimerRef = useRef(null);
   const portalDataLoadingRef = useRef(false);
   const beforePhotoInputRef = useRef(null);
   const afterPhotoInputRef = useRef(null);
+
+  const showToast = (message) => {
+    const text = String(message || '').trim();
+    if (!text) return;
+    setToastMessage(text);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage('');
+      toastTimerRef.current = null;
+    }, 3500);
+  };
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1750,7 +1768,7 @@ export default function TechnicianPortal() {
         jobNumber,
         customerName: String(job.customerName || '-').trim() || '-',
         customerEmail: String(job.customerEmail || job.emailId || job.email || job.customer_email || '').trim(),
-        customerPhone: String(job.mobileNumber || job.mobile || job.whatsappNumber || '').trim(),
+        customerPhone: formatIndianMobileNumber(job.mobileNumber || job.mobile || job.whatsappNumber || job.customerPhone || job.phoneNumber || job.phone || ''),
         serviceType: String(job.serviceName || job.serviceInstructions || '').trim(),
         address: String(formatAddress(job) || '').trim(),
         jobDate: String(job.scheduledDate || '').trim(),
@@ -1819,11 +1837,14 @@ export default function TechnicianPortal() {
 
   const shareJobCardByWhatsApp = async () => {
     const context = pdfPreview.shareContext || {};
+    const customerName = String(context.customerName || 'Customer').trim() || 'Customer';
     const defaultPhone = String(context.customerPhone || '').trim();
+    if (!defaultPhone) {
+      showToast(`No WhatsApp number found for ${customerName}.`);
+      return;
+    }
     const recipientPhone = String(window.prompt('Enter recipient WhatsApp number', defaultPhone) || '').trim();
     if (!recipientPhone) return;
-
-    const customerName = String(context.customerName || 'Customer').trim() || 'Customer';
     const jobNumber = String(context.jobNumber || pdfPreview.title.replace(/^Job Card -\s*/i, '') || 'Job').trim();
     const shareUrl = String(pdfPreview.publicShareUrl || pdfPreview.pdfUrl || '').trim();
     const message = `Dear ${customerName},\n\nPlease find attached your service job card for ${jobNumber}.\n\nRegards,\nSKUAS Pest Control`;
@@ -3232,6 +3253,27 @@ export default function TechnicianPortal() {
         onShareWhatsApp={shareJobCardByWhatsApp}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
+
+      {toastMessage ? (
+        <div style={{
+          position: 'fixed',
+          right: '16px',
+          bottom: '16px',
+          zIndex: 7000,
+          maxWidth: 'min(420px, calc(100vw - 32px))',
+          padding: '12px 14px',
+          borderRadius: '12px',
+          background: 'rgba(254, 226, 226, 0.98)',
+          color: '#991b1b',
+          border: '1px solid rgba(239, 68, 68, 0.24)',
+          boxShadow: '0 12px 30px rgba(15,23,42,0.18)',
+          fontSize: '13px',
+          fontWeight: 700,
+          lineHeight: 1.4
+        }}>
+          {toastMessage}
+        </div>
+      ) : null}
     </section>
   );
 }

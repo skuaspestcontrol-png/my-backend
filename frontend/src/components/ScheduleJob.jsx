@@ -7,6 +7,7 @@ import { useColumnResize } from './table/useColumnResize';
 import { subscribeDashboardRefresh, triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import { getPortalUserName } from '../utils/portalAuth';
 import { formatServiceScheduleTime } from '../utils/serviceScheduleBuilder';
+import { formatIndianMobileNumber } from '../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const SCHEDULE_JOB_CACHE_KEY = 'schedule_job_dashboard_cache_v1';
@@ -262,9 +263,11 @@ export default function ScheduleJob() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRowActionSaving, setIsRowActionSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const loadRequestRef = useRef(null);
   const isMountedRef = useRef(true);
+  const toastTimerRef = useRef(null);
 
   const [customerId, setCustomerId] = useState('');
   const [contractId, setContractId] = useState('');
@@ -276,6 +279,21 @@ export default function ScheduleJob() {
   const [selectedPremiseId, setSelectedPremiseId] = useState('');
   const [editableServiceRows, setEditableServiceRows] = useState([]);
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', shareContext: null });
+
+  const showToast = (message) => {
+    const text = String(message || '').trim();
+    if (!text) return;
+    setToastMessage(text);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage('');
+      toastTimerRef.current = null;
+    }, 3500);
+  };
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
 
   const loadPortalData = useCallback(async ({ silent = false } = {}) => {
     if (loadRequestRef.current) return loadRequestRef.current;
@@ -722,7 +740,7 @@ export default function ScheduleJob() {
         jobNumber: String(row?.visit || row?.service || jobId || 'Job').trim(),
         customerName: String(selectedCustomer?.displayName || selectedCustomer?.name || selectedContract?.customerName || 'Customer').trim() || 'Customer',
         customerEmail: selectedCustomerEmail,
-        customerPhone: String(selectedCustomer?.whatsappNumber || selectedCustomer?.mobileNumber || selectedCustomer?.workPhone || '').trim(),
+        customerPhone: formatIndianMobileNumber(selectedCustomer?.whatsappNumber || selectedCustomer?.mobileNumber || selectedCustomer?.workPhone || selectedCustomer?.phoneNumber || selectedCustomer?.phone || ''),
         serviceName: String(row?.service || row?.raw?.itemName || row?.raw?.itemDescription || 'Service').trim() || 'Service',
         visit: String(row?.visit || '').trim(),
         scheduledDate: String(row?.date || '').trim(),
@@ -793,11 +811,15 @@ export default function ScheduleJob() {
 
   const shareCompletedServiceByWhatsApp = async () => {
     const context = pdfPreview.shareContext || {};
+    const customerName = String(context.customerName || 'Customer').trim() || 'Customer';
     const defaultPhone = String(context.customerPhone || '').trim();
+    if (!defaultPhone) {
+      showToast(`No WhatsApp number found for ${customerName}.`);
+      return;
+    }
     const recipientPhone = String(window.prompt('Enter recipient WhatsApp number', defaultPhone) || '').trim();
     if (!recipientPhone) return;
 
-    const customerName = String(context.customerName || 'Customer').trim() || 'Customer';
     const serviceName = String(context.serviceName || 'Service').trim() || 'Service';
     const jobNumber = String(context.jobNumber || pdfPreview.title.replace(/^Job Card -\s*/i, '') || 'Job').trim();
     const shareUrl = String(pdfPreview.publicShareUrl || pdfPreview.pdfUrl || '').trim();
@@ -1337,6 +1359,27 @@ export default function ScheduleJob() {
         onShareWhatsApp={shareCompletedServiceByWhatsApp}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
+
+      {toastMessage ? (
+        <div style={{
+          position: 'fixed',
+          right: '16px',
+          bottom: '16px',
+          zIndex: 7000,
+          maxWidth: 'min(420px, calc(100vw - 32px))',
+          padding: '12px 14px',
+          borderRadius: '12px',
+          background: 'rgba(254, 226, 226, 0.98)',
+          color: '#991b1b',
+          border: '1px solid rgba(239, 68, 68, 0.24)',
+          boxShadow: '0 12px 30px rgba(15,23,42,0.18)',
+          fontSize: '13px',
+          fontWeight: 700,
+          lineHeight: 1.4
+        }}>
+          {toastMessage}
+        </div>
+      ) : null}
     </section>
   );
 }
