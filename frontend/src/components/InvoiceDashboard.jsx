@@ -2591,6 +2591,10 @@ export default function InvoiceDashboard() {
       showToast(`No WhatsApp number found for ${customerName}.`);
       return;
     }
+    setPdfPreview((prev) => ({
+      ...prev,
+      open: false
+    }));
     setWhatsAppComposer({
       open: true,
       invoiceId: String(invoice._id || '').trim(),
