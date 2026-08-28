@@ -14349,6 +14349,62 @@ app.post('/api/renewals/:id/send-reminder', async (req, res) => {
   }
 });
 
+app.post('/api/renewals/:id/send-whatsapp', async (req, res) => {
+  try {
+    const record = canUseMysql()
+      ? await findRenewalRow(req.params.id)
+      : (readJsonFile(renewalsFile, []).find((entry) => String(entry?._id || '') === String(req.params.id || '')) || null);
+    if (!record) return res.status(404).json({ error: 'Renewal not found' });
+
+    const settings = await loadCurrentSettingsForNumbering();
+    const recipientRaw = String(
+      req.body?.phoneNumber
+      || req.body?.recipientPhone
+      || record.mobile
+      || record.mobileNumber
+      || record.whatsappNumber
+      || ''
+    ).trim();
+    const recipient = normalizeWhatsappPhone(recipientRaw);
+    if (!recipient) return res.status(400).json({ error: 'Valid WhatsApp recipient is required' });
+
+    const pdfSource = String(record.renewalLetterUrl || record.pdf_url || '').trim();
+    if (!pdfSource) {
+      return res.status(400).json({ error: 'Renewal letter PDF is not ready. Generate the letter first.' });
+    }
+
+    const attachmentUrl = /^https?:\/\//i.test(pdfSource)
+      ? pdfSource
+      : `${resolveServerOrigin(req)}${pdfSource.startsWith('/') ? '' : '/'}${pdfSource}`;
+    const renewalDisplayId = String(record.renewalDisplayId || record.renewal_display_id || record.renewalId || record._id || '').trim();
+    const attachmentName = `REN-${String(record.customerName || renewalDisplayId || 'Renewal').trim() || 'Renewal'}.pdf`;
+    const defaultMessage = String(
+      req.body?.message
+      || `Dear ${String(record.customerName || 'Customer').trim() || 'Customer'},\n\nPlease find attached your renewal letter for ${renewalDisplayId || 'Renewal'}.\n\nRegards,\n${String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control').trim() || 'SKUAS Pest Control'}`
+    ).trim();
+
+    const sent = await sendWhatsAppMessage({
+      settings,
+      to: recipient,
+      message: defaultMessage,
+      attachmentUrl,
+      attachmentName
+    });
+
+    return res.json({
+      success: true,
+      message: 'Renewal WhatsApp sent successfully',
+      phone: recipient,
+      attachmentUrl,
+      provider: sent.provider,
+      whatsappResponse: sent.response
+    });
+  } catch (error) {
+    console.error('Failed to send renewal WhatsApp message:', error.message);
+    return res.status(500).json({ error: error.message || 'Could not send renewal on WhatsApp' });
+  }
+});
+
 app.post('/api/renewals/:id/quotation', async (req, res) => {
   const record = canUseMysql()
     ? await findRenewalRow(req.params.id)

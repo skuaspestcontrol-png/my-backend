@@ -1346,30 +1346,12 @@ export default function RenewalDashboard() {
         sendButtonLabel="Send Renewal on WhatsApp"
         onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
-          const attachmentUrl = buildRenewalPdfUrl(whatsappComposer.row);
           const renewalId = String(whatsappComposer.row?.renewalId || whatsappComposer.row?.renewal_id || whatsappComposer.row?.id || '').trim();
-          const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
-            moduleType: 'renewal',
-            templateType: 'custom_message',
-            recipientName: whatsappComposer.recipientName,
-            recipientPhone: phoneNumber,
-            recipientType: 'Customer',
-            sentByUser: getPortalUserName() || 'User',
-            moduleName: 'Renewal Letter',
+          const response = await axios.post(`${API_BASE}/api/renewals/${encodeURIComponent(renewalId)}/send-whatsapp`, {
+            phoneNumber,
             message,
-            attachmentUrl,
-            attachmentName: `REN-${String(whatsappComposer.recipientName || renewalId || 'Renewal').trim()}.pdf`,
-            contextData: {
-              customer_name: whatsappComposer.recipientName,
-              customer_phone: phoneNumber,
-              service_type: whatsappComposer.row?.serviceType || whatsappComposer.row?.service_type || 'Renewal Letter',
-              renewal_display_id: String(whatsappComposer.row?.renewalDisplayId || whatsappComposer.row?.renewal_display_id || renewalId || '').trim(),
-              renewal_id: renewalId,
-              pdf_url: attachmentUrl,
-              company_name: 'SKUAS Pest Control'
-            }
           });
-          window.alert(response.data?.success ? 'Renewal WhatsApp sent successfully.' : 'Renewal WhatsApp queued.');
+          window.alert(response.data?.message || 'Renewal WhatsApp sent successfully.');
         }}
       />
       {toastMessage ? (
