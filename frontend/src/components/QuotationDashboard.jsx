@@ -691,22 +691,9 @@ function QuotationDashboardInner() {
         sendButtonLabel="Send Quotation on WhatsApp"
         onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
-          const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
-            moduleType: 'quotation',
-            templateType: 'quotation_send',
-            recipientName: whatsappComposer.recipientName,
-            recipientPhone: phoneNumber,
-            recipientType: 'Customer',
-            sentByUser: 'User',
-            moduleName: 'Quotation',
-            message,
-            attachmentUrl: `${API_BASE_URL}/api/quotations/${whatsappComposer.row.id}/pdf`,
-            attachmentName: `${String(whatsappComposer.previewData?.template?.templateName || 'quotation').replace(/[^\w.-]+/g, '_')}.pdf`,
-            contextData: {
-              customer_name: whatsappComposer.recipientName,
-              quotation_no: String(whatsappComposer.row.quotation_number || whatsappComposer.row.quotationNumber || whatsappComposer.row.quotationNo || whatsappComposer.row.quotation_no || whatsappComposer.row.id || '').trim(),
-              company_name: 'SKUAS Pest Control'
-            }
+          const response = await axios.post(`${API_BASE_URL}/api/quotations/${whatsappComposer.row.id}/send-whatsapp`, {
+            phoneNumber,
+            message
           });
           setStatus(response?.data?.message || 'Quotation WhatsApp sent successfully.');
         }}

@@ -4,6 +4,7 @@ const path = require('path');
 const { query: dbQuery, getConnection } = require('../lib/db');
 const { generateQuotationPdfBuffer } = require('../quotationPdf');
 const { normalizeOptionalIndianMobileNumber } = require('../lib/phone');
+const { sendWhatsAppMessage } = require('../services/whatsapp.service');
 const { sendEmailMessage, normalizeEmailSettings } = require('../services/email.service');
 const {
   ensureDefaultEmailTemplates,
@@ -28,6 +29,13 @@ const toNumber = (v, d = 0) => {
 };
 
 const clean = (v) => String(v ?? '').trim();
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+const resolveServerOrigin = (req) => {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').trim();
+  const proto = forwardedProto || req.protocol || 'http';
+  const host = String(req.get('host') || '').trim();
+  return host ? `${proto}://${host}` : '';
+};
 
 const readJsonFile = (filePath, fallback) => {
   try {
@@ -975,6 +983,73 @@ router.post('/quotations/:id/send-email', async (req, res) => {
   } catch (error) {
     console.error('Failed to send quotation email:', error.message);
     res.status(500).json({ error: error.message || 'Could not send quotation email' });
+  }
+});
+
+router.post('/quotations/:id/send-whatsapp', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
+
+    const [quotation] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [id]);
+    if (!quotation) return res.status(404).json({ error: 'Quotation not found' });
+
+    const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC, id ASC', [id]);
+    const [templateSettings] = await dbQuery('SELECT * FROM quotation_template_settings ORDER BY id ASC LIMIT 1');
+    const [commonParagraphs] = await dbQuery('SELECT * FROM quotation_common_paragraphs ORDER BY id ASC LIMIT 1');
+    const companySettings = await loadMainAppSettings();
+    const settings = companySettings;
+
+    const recipientPhone = String(
+      req.body?.phoneNumber
+      || req.body?.recipientPhone
+      || quotation.phone
+      || quotation.whatsapp
+      || quotation.mobile
+      || ''
+    ).trim();
+
+    if (!recipientPhone) return res.status(400).json({ error: 'Valid WhatsApp phone number is required' });
+
+    const pdfBuffer = await generateQuotationPdfBuffer({
+      quotation,
+      items,
+      templateSettings: templateSettings || {},
+      commonParagraphs: commonParagraphs || {},
+      companySettings
+    });
+
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    const baseName = `${clean(quotation.quotation_number || `quotation-${id}`) || `quotation-${id}`}.pdf`.replace(/[\\/:*?"<>|]+/g, '-');
+    const attachmentFileName = `whatsapp-quotation-${Date.now()}-${baseName}`;
+    const attachmentPath = path.join(uploadsDir, attachmentFileName);
+    fs.writeFileSync(attachmentPath, pdfBuffer);
+
+    const attachmentUrl = `${resolveServerOrigin(req)}/uploads/${attachmentFileName}`;
+    const message = String(
+      req.body?.message
+      || `Dear ${clean(quotation.customer_name) || 'Customer'},\n\nPlease find quotation ${clean(quotation.quotation_number || quotation.quotationNumber || quotation.id || '') || 'details'} attached for your review.\n\nRegards,\n${clean(companySettings.companyName || 'SKUAS Pest Control') || 'SKUAS Pest Control'}`
+    ).trim();
+
+    const sent = await sendWhatsAppMessage({
+      settings,
+      to: recipientPhone,
+      message,
+      attachmentUrl,
+      attachmentName: baseName
+    });
+
+    res.json({
+      success: true,
+      message: 'Quotation sent on WhatsApp successfully',
+      phone: recipientPhone,
+      attachmentUrl,
+      provider: sent.provider,
+      whatsappResponse: sent.response
+    });
+  } catch (error) {
+    console.error('Failed to send quotation on WhatsApp:', error.message);
+    res.status(500).json({ error: error.message || 'Could not send quotation on WhatsApp' });
   }
 });
 
