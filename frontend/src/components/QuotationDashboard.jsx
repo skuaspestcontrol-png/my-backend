@@ -663,12 +663,13 @@ function QuotationDashboardInner() {
         showAttachmentFields={false}
         attachmentNote="The quotation PDF is attached automatically."
         sendButtonLabel="Send Quotation on WhatsApp"
-        onSend={async ({ recipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+          const phoneNumber = normalizedRecipientPhone || recipientPhone;
           const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
             moduleType: 'quotation',
             templateType: 'quotation_send',
             recipientName: whatsappComposer.recipientName,
-            recipientPhone,
+            recipientPhone: phoneNumber,
             recipientType: 'Customer',
             sentByUser: 'User',
             moduleName: 'Quotation Dashboard',

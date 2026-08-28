@@ -578,19 +578,20 @@ export default function ComplaintsDashboard() {
         showAttachmentFields={false}
         attachmentNote="Complaint updates are sent as text only."
         sendButtonLabel="Send Complaint WhatsApp"
-        onSend={async ({ recipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+          const phoneNumber = normalizedRecipientPhone || recipientPhone;
           const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
             moduleType: 'complaint',
             templateType: 'custom_message',
             recipientName: whatsappComposer.recipientName,
-            recipientPhone,
+            recipientPhone: phoneNumber,
             recipientType: 'Customer',
             sentByUser: 'User',
             moduleName: 'Complaints Dashboard',
             message,
             contextData: {
               customer_name: whatsappComposer.recipientName,
-              customer_phone: recipientPhone,
+              customer_phone: phoneNumber,
               service_type: whatsappComposer.complaint?.type || '',
               address: whatsappComposer.complaint?.property || '',
               company_name: 'SKUAS Pest Control'

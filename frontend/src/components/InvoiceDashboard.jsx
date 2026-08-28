@@ -5214,9 +5214,10 @@ export default function InvoiceDashboard() {
         showAttachmentFields={false}
         attachmentNote="The invoice PDF is generated automatically and attached from the portal."
         sendButtonLabel="Send Invoice on WhatsApp"
-        onSend={async ({ recipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+          const phoneNumber = normalizedRecipientPhone || recipientPhone;
           const response = await axios.post(`${API_BASE_URL}/api/invoices/${whatsAppComposer.invoiceId}/send-whatsapp`, {
-            phoneNumber: recipientPhone,
+            phoneNumber,
             message
           });
           window.alert(response.data?.message || 'Invoice sent on WhatsApp.');

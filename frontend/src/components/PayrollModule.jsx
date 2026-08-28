@@ -2070,10 +2070,11 @@ export default function PayrollModule() {
         showAttachmentFields={false}
         attachmentNote="The salary slip PDF is generated automatically and attached from the payroll module."
         sendButtonLabel="Send Salary Slip on WhatsApp"
-        onSend={async ({ recipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+          const phoneNumber = normalizedRecipientPhone || recipientPhone;
           if (!whatsAppComposer.item) return;
           const response = await axios.post(`${API_BASE}/api/payroll/items/${whatsAppComposer.item._id}/share-whatsapp`, {
-            phoneNumber: recipientPhone,
+            phoneNumber,
             message
           }, { headers });
           setStatus(response?.data?.message || 'Salary slip sent on WhatsApp.');

@@ -2276,7 +2276,8 @@ export default function ContractDashboard() {
         showAttachmentFields={false}
         attachmentNote={whatsappComposer.kind === 'contract-job-card' ? 'The job card summary PDF is attached automatically.' : 'The invoice PDF is attached automatically.'}
         sendButtonLabel={whatsappComposer.kind === 'contract-job-card' ? 'Send Job Card on WhatsApp' : 'Send Invoice on WhatsApp'}
-        onSend={async ({ recipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+          const phoneNumber = normalizedRecipientPhone || recipientPhone;
           if (whatsappComposer.kind === 'contract-job-card') {
             const invoiceNumber = String(whatsappComposer.row?.invoiceNumber || whatsappComposer.row?.contractNo || whatsappComposer.row?._id || '').trim() || 'Contract';
             const contractId = resolveContractWhatsAppTargetId(whatsappComposer.row) || invoiceNumber;
@@ -2285,7 +2286,7 @@ export default function ContractDashboard() {
               moduleType: 'contract',
               templateType: 'custom_message',
               recipientName: whatsappComposer.recipientName,
-              recipientPhone,
+              recipientPhone: phoneNumber,
               recipientType: 'Customer',
               sentByUser: getPortalUserName() || 'User',
               moduleName: 'Contract Job Card Summary',
@@ -2294,7 +2295,7 @@ export default function ContractDashboard() {
               attachmentName: `${String(invoiceNumber || 'contract_job_card_summary').replace(/[^\w.-]+/g, '_')}.pdf`,
               contextData: {
                 customer_name: whatsappComposer.recipientName,
-                customer_phone: recipientPhone,
+                customer_phone: phoneNumber,
                 invoice_no: invoiceNumber,
                 company_name: 'SKUAS Pest Control'
               }
@@ -2304,7 +2305,7 @@ export default function ContractDashboard() {
           }
           const invoiceId = String(whatsappComposer.row?.invoiceId || whatsappComposer.row?._id || '').trim();
           const response = await axios.post(`${API_BASE}/api/invoices/${encodeURIComponent(invoiceId)}/send-whatsapp`, {
-            phoneNumber: recipientPhone,
+            phoneNumber,
             message
           });
           window.alert(response.data?.message || 'Invoice sent on WhatsApp.');

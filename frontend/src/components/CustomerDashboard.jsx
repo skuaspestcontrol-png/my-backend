@@ -3952,19 +3952,20 @@ export default function CustomerDashboard() {
         allowRecipientEdit={true}
         attachmentNote="Customer welcome messages are sent as text only."
         sendButtonLabel="Send Customer WhatsApp"
-        onSend={async ({ recipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+          const phoneNumber = normalizedRecipientPhone || recipientPhone;
           const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
             moduleType: 'customer',
             templateType: 'custom_message',
             recipientName: whatsappComposer.recipientName,
-            recipientPhone,
+            recipientPhone: phoneNumber,
             recipientType: 'Customer',
             sentByUser: getPortalUserName() || 'User',
             moduleName: 'Customer Master',
             message,
             contextData: {
               customer_name: whatsappComposer.recipientName,
-              customer_phone: recipientPhone,
+              customer_phone: phoneNumber,
               company_name: 'SKUAS Pest Control'
             }
           });

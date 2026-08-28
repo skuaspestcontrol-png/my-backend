@@ -1295,14 +1295,15 @@ export default function RenewalDashboard() {
         showAttachmentFields={false}
         attachmentNote="The renewal letter PDF is attached automatically."
         sendButtonLabel="Send Renewal on WhatsApp"
-        onSend={async ({ recipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+          const phoneNumber = normalizedRecipientPhone || recipientPhone;
           const attachmentUrl = buildRenewalPdfUrl(whatsappComposer.row);
           const renewalId = String(whatsappComposer.row?.renewalId || whatsappComposer.row?.renewal_id || whatsappComposer.row?.id || '').trim();
           const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
             moduleType: 'renewal',
             templateType: 'custom_message',
             recipientName: whatsappComposer.recipientName,
-            recipientPhone,
+            recipientPhone: phoneNumber,
             recipientType: 'Customer',
             sentByUser: getPortalUserName() || 'User',
             moduleName: 'Renewal Dashboard',
@@ -1311,7 +1312,7 @@ export default function RenewalDashboard() {
             attachmentName: `REN-${String(whatsappComposer.recipientName || renewalId || 'Renewal').trim()}.pdf`,
             contextData: {
               customer_name: whatsappComposer.recipientName,
-              customer_phone: recipientPhone,
+              customer_phone: phoneNumber,
               service_type: whatsappComposer.row?.serviceType || whatsappComposer.row?.service_type || 'Renewal Letter',
               renewal_display_id: String(whatsappComposer.row?.renewalDisplayId || whatsappComposer.row?.renewal_display_id || renewalId || '').trim(),
               renewal_id: renewalId,

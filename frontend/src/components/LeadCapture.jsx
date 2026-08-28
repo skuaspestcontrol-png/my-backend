@@ -3383,19 +3383,20 @@ export default function LeadCapture() {
         allowRecipientEdit={true}
         attachmentNote="Welcome messages are sent as text only."
         sendButtonLabel="Send Welcome WhatsApp"
-        onSend={async ({ recipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+          const phoneNumber = normalizedRecipientPhone || recipientPhone;
           const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
             moduleType: 'lead',
             templateType: 'lead_welcome',
             recipientName: whatsappComposer.recipientName,
-            recipientPhone,
+            recipientPhone: phoneNumber,
             recipientType: 'Customer',
             sentByUser: getPortalUserName() || 'User',
             moduleName: 'Lead Master',
             message,
             contextData: {
               customer_name: whatsappComposer.recipientName,
-              customer_phone: recipientPhone,
+              customer_phone: phoneNumber,
               service_type: whatsappComposer.lead?.pestIssue || '',
               address: whatsappComposer.lead?.address || '',
               company_name: 'SKUAS Pest Control'
