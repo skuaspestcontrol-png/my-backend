@@ -2530,7 +2530,7 @@ export default function CustomerDashboard() {
     }
     if (key === 'position') return customer.positionCustom || customer.position || '';
     if (key === 'emailId') return customer.emailId || customer.email || '';
-    if (key === 'mobileNumber') return customer.mobileNumber || customer.workPhone || '';
+    if (key === 'mobileNumber') return formatIndianMobileNumber(customer.mobileNumber || customer.workPhone || '');
     if (key === 'billingAttention') return customer.billingAttention || '';
     if (key === 'billingStreet1') return customer.billingStreet1 || '';
     if (key === 'billingStreet2') return customer.billingStreet2 || '';
@@ -3040,7 +3040,7 @@ export default function CustomerDashboard() {
                     {column.key === 'name' && isMobile ? (
                       <div style={shell.customerNameStack}>
                         <div style={shell.customerNamePrimary}>{handleCellValue(customer, column.key)}</div>
-                        <div style={shell.customerNameMobile}>{customer.mobileNumber || customer.workPhone || '-'}</div>
+                        <div style={shell.customerNameMobile}>{formatIndianMobileNumber(customer.mobileNumber || customer.workPhone || '') || '-'}</div>
                       </div>
                     ) : (
                       handleCellValue(customer, column.key)
