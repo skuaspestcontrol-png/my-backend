@@ -1873,6 +1873,7 @@ export default function TechnicianPortal() {
     const jobNumber = String(context.jobNumber || pdfPreview.title.replace(/^Job Card -\s*/i, '') || 'Job').trim();
     const shareUrl = String(pdfPreview.publicShareUrl || pdfPreview.pdfUrl || '').trim();
     const message = `Dear ${customerName},\n\nPlease find attached your service job card for ${jobNumber}.\n\nRegards,\nSKUAS Pest Control`;
+    setPdfPreview((prev) => ({ ...prev, open: false }));
 
     try {
       const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {

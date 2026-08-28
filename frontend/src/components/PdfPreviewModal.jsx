@@ -90,7 +90,9 @@ const shell = {
     flexWrap: 'wrap',
     gap: '8px',
     padding: '0',
-    alignItems: 'center'
+    alignItems: 'center',
+    position: 'relative',
+    zIndex: 2
   },
   actionButton: {
     minHeight: '36px',
@@ -115,6 +117,8 @@ const shell = {
     cursor: 'not-allowed'
   },
   frameShell: {
+    position: 'relative',
+    zIndex: 1,
     border: '1px solid rgba(15,23,42,0.08)',
     borderRadius: '16px',
     background: '#fff',
