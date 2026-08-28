@@ -28,6 +28,7 @@ import {
 } from '../utils/googleMaps';
 import { PHONE_VALIDATION_ERROR, formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import { getPortalUserName } from '../utils/portalAuth';
+import { sendTextWhatsAppMessage } from '../utils/whatsapp';
 
 const normalizeApiBase = (value = '') => {
   const raw = String(value || '').trim();
@@ -3954,7 +3955,7 @@ export default function CustomerDashboard() {
         sendButtonLabel="Send Customer WhatsApp"
         onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
-          const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
+          const response = await sendTextWhatsAppMessage(API_BASE_URL, {
             moduleType: 'customer',
             templateType: 'custom_message',
             recipientName: whatsappComposer.recipientName,

@@ -3,6 +3,8 @@ import axios from 'axios';
 import { AlertCircle, List, Plus, Save, Send, Users } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
+import { getPortalUserName } from '../utils/portalAuth';
+import { sendTextWhatsAppMessage } from '../utils/whatsapp';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -580,13 +582,13 @@ export default function ComplaintsDashboard() {
         sendButtonLabel="Send Complaint WhatsApp"
         onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
-          const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
+          const response = await sendTextWhatsAppMessage(API_BASE, {
             moduleType: 'complaint',
             templateType: 'custom_message',
             recipientName: whatsappComposer.recipientName,
             recipientPhone: phoneNumber,
             recipientType: 'Customer',
-            sentByUser: 'User',
+            sentByUser: getPortalUserName() || 'User',
             moduleName: 'Complaint',
             message,
             contextData: {

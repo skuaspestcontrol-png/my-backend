@@ -22,6 +22,7 @@ import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
 import { PHONE_VALIDATION_ERROR, formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import SortChevronIcon from './ui/SortChevronIcon';
 import { getPortalUserName } from '../utils/portalAuth';
+import { sendTextWhatsAppMessage } from '../utils/whatsapp';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
@@ -3385,7 +3386,7 @@ export default function LeadCapture() {
         sendButtonLabel="Send Welcome WhatsApp"
         onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
-          const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
+          const response = await sendTextWhatsAppMessage(API_BASE_URL, {
             moduleType: 'lead',
             templateType: 'lead_welcome',
             recipientName: whatsappComposer.recipientName,
