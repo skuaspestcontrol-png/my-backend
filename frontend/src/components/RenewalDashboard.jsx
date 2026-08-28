@@ -250,6 +250,7 @@ export default function RenewalDashboard() {
   const [message, setMessage] = useState('');
   const [modal, setModal] = useState({ type: '', row: null });
   const [form, setForm] = useState({});
+  const [toastMessage, setToastMessage] = useState('');
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', renewalId: '', shareContext: null });
   const [whatsappComposer, setWhatsappComposer] = useState({ open: false, row: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' });
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 760);
@@ -268,6 +269,18 @@ export default function RenewalDashboard() {
   const loadRequestRef = useRef(0);
   const initialSearchSyncRef = useRef(true);
   const skipNextSearchSyncRef = useRef(false);
+  const toastTimerRef = useRef(null);
+
+  const showToast = (text) => {
+    const messageText = String(text || '').trim();
+    if (!messageText) return;
+    setToastMessage(messageText);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage('');
+      toastTimerRef.current = null;
+    }, 3500);
+  };
 
   const registerRenewalRowRef = (renewalId) => (node) => {
     const key = String(renewalId || '').trim();
@@ -449,8 +462,21 @@ export default function RenewalDashboard() {
       return;
     }
 
-    const customerPhone = normalizeIndianMobileNumber(sourceRow?.mobile || row?.mobile || row?.phone || '');
-    const displayPhone = formatIndianMobileNumber(sourceRow?.mobile || row?.mobile || row?.phone || '');
+    const phoneSource = String(
+      sourceRow?.mobile
+      || row?.mobile
+      || row?.phone
+      || row?.mobileNumber
+      || row?.whatsappNumber
+      || row?.phoneNumber
+      || ''
+    ).trim();
+    if (!phoneSource) {
+      showToast(`No WhatsApp number found for ${titleName}.`);
+      return;
+    }
+    const customerPhone = normalizeIndianMobileNumber(phoneSource);
+    const displayPhone = formatIndianMobileNumber(phoneSource);
     const renewalDisplayId = String(sourceRow?.renewalDisplayId || sourceRow?.renewal_display_id || sourceRow?.renewalId || sourceRow?.renewal_id || renewalId).trim() || renewalId;
     const serviceType = String(sourceRow?.serviceType || sourceRow?.service_type || 'Renewal Letter').trim() || 'Renewal Letter';
 
@@ -485,6 +511,10 @@ export default function RenewalDashboard() {
     const onResize = () => setIsMobile(window.innerWidth <= 760);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
   }, []);
 
   const loadData = async (overrideFilters = filters, options = {}) => {
@@ -1342,6 +1372,26 @@ export default function RenewalDashboard() {
           window.alert(response.data?.success ? 'Renewal WhatsApp sent successfully.' : 'Renewal WhatsApp queued.');
         }}
       />
+      {toastMessage ? (
+        <div style={{
+          position: 'fixed',
+          right: '16px',
+          bottom: '16px',
+          zIndex: 7000,
+          maxWidth: 'min(420px, calc(100vw - 32px))',
+          padding: '12px 14px',
+          borderRadius: '12px',
+          background: 'rgba(254, 226, 226, 0.98)',
+          color: '#991b1b',
+          border: '1px solid rgba(239, 68, 68, 0.24)',
+          boxShadow: '0 12px 30px rgba(15,23,42,0.18)',
+          fontSize: '13px',
+          fontWeight: 700,
+          lineHeight: 1.4
+        }}>
+          {toastMessage}
+        </div>
+      ) : null}
       {renderModal()}
     </div>
   );

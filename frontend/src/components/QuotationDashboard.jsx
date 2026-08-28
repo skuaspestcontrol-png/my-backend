@@ -249,11 +249,24 @@ function QuotationDashboardInner() {
   const [status, setStatus] = useState(() => (cachedDashboard ? '' : ''));
   const [page, setPage] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [toastMessage, setToastMessage] = useState('');
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', quotationId: null });
   const [whatsappComposer, setWhatsappComposer] = useState({ open: false, row: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' });
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const perPage = 20;
   const loadRequestRef = useRef(null);
+  const toastTimerRef = useRef(null);
+
+  const showToast = (message) => {
+    const text = String(message || '').trim();
+    if (!text) return;
+    setToastMessage(text);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage('');
+      toastTimerRef.current = null;
+    }, 3500);
+  };
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -338,6 +351,11 @@ function QuotationDashboardInner() {
     const quotationNumber = String(row.quotation_number || row.quotationNumber || row.quotationNo || row.quotation_no || row.id || 'Quotation').trim();
     const customerName = String(row.customer || row.customerName || 'Customer').trim() || 'Customer';
     const pdfUrl = `${API_BASE_URL}/api/quotations/${row.id}/pdf`;
+    const rawPhone = String(row.mobile || row.mobileNumber || row.whatsappNumber || row.phoneNumber || row.phone || '').trim();
+    if (!rawPhone) {
+      showToast(`No WhatsApp number found for ${customerName}.`);
+      return;
+    }
     setWhatsappComposer({
       open: true,
       row,
@@ -367,6 +385,10 @@ function QuotationDashboardInner() {
   }, [cachedDashboard]);
 
   useAutoRefresh(() => load({ silent: true, preservePage: true }));
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
 
   const summary = useMemo(() => {
     const total = rows.length;
@@ -689,6 +711,27 @@ function QuotationDashboardInner() {
           setStatus(response?.data?.message || 'Quotation WhatsApp sent successfully.');
         }}
       />
+
+      {toastMessage ? (
+        <div style={{
+          position: 'fixed',
+          right: '16px',
+          bottom: '16px',
+          zIndex: 7000,
+          maxWidth: 'min(420px, calc(100vw - 32px))',
+          padding: '12px 14px',
+          borderRadius: '12px',
+          background: 'rgba(254, 226, 226, 0.98)',
+          color: '#991b1b',
+          border: '1px solid rgba(239, 68, 68, 0.24)',
+          boxShadow: '0 12px 30px rgba(15,23,42,0.18)',
+          fontSize: '13px',
+          fontWeight: 700,
+          lineHeight: 1.4
+        }}>
+          {toastMessage}
+        </div>
+      ) : null}
 
       {status ? <p style={{ margin: 0, color: '#dc2626', fontWeight: 700, fontSize: 13 }}>{status}</p> : null}
     </section>
