@@ -10,7 +10,7 @@ import {
   invoiceColumns as columns,
   normalizeInvoiceVisibleColumns
 } from '../utils/invoicePreferences';
-import { normalizeIndianMobileNumber } from '../utils/phone';
+import { formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import { triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { triggerContractsRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { triggerRenewalsRefresh, triggerRenewalsFocus } from '../pages/sales-performance/salesPerformanceApi';
@@ -2512,6 +2512,7 @@ export default function InvoiceDashboard() {
     const customer = findCustomerForInvoice(invoice);
     const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
     const customerWhatsapp = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
+    const displayPhone = formatIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
     setWhatsAppComposer({
       open: true,
       invoiceId: String(invoice._id || '').trim(),
@@ -2536,7 +2537,7 @@ export default function InvoiceDashboard() {
         }
       },
       recipientName: customerName,
-      recipientPhone: customerWhatsapp,
+      recipientPhone: displayPhone,
       recipientType: 'Customer'
     });
   };

@@ -7,7 +7,7 @@ import { subscribeContractsRefresh, triggerRenewalsRefresh, triggerSalesPerforma
 import useColumnResize from './table/useColumnResize';
 import SortChevronIcon from './ui/SortChevronIcon';
 import { getPortalUserName } from '../utils/portalAuth';
-import { normalizeIndianMobileNumber } from '../utils/phone';
+import { formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import {
   AlertCircle,
   CalendarDays,
@@ -630,6 +630,7 @@ export default function ContractDashboard() {
     const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Invoice';
     const recipientPhone = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
+    const displayPhone = formatIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
     setWhatsappComposer({
       open: true,
       kind: 'invoice',
@@ -650,7 +651,7 @@ export default function ContractDashboard() {
         }
       },
       recipientName: customerName,
-      recipientPhone,
+      recipientPhone: displayPhone,
       recipientType: 'Customer'
     });
   };
@@ -660,6 +661,7 @@ export default function ContractDashboard() {
     const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Contract';
     const recipientPhone = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
+    const displayPhone = formatIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
     const contractId = resolveContractWhatsAppTargetId(invoice) || invoiceNumber;
     const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(contractId)}/job-card-summary-pdf`);
     setWhatsappComposer({
@@ -683,7 +685,7 @@ export default function ContractDashboard() {
         }
       },
       recipientName: customerName,
-      recipientPhone,
+      recipientPhone: displayPhone,
       recipientType: 'Customer'
     });
   };

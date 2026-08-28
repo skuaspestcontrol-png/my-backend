@@ -3,6 +3,7 @@ import axios from 'axios';
 import { getPortalUserName } from '../../utils/portalAuth';
 import useColumnResize from '../../components/table/useColumnResize';
 import { formatIndiaDateTime } from '../../utils/indiaTime';
+import { formatIndianMobileNumber } from '../../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -124,7 +125,7 @@ export default function WhatsAppLogs() {
                 <td style={cellStyle('dateTime', 'center')}>{formatDateTime(row.sentAt)}</td>
                 <td style={cellStyle('sentBy')}>{row.sentByUser || '-'}</td>
                 <td style={cellStyle('recipient')}>{row.recipientName || '-'}</td>
-                <td style={cellStyle('phone')}>{row.recipientPhone || '-'}</td>
+                <td style={cellStyle('phone')}>{formatIndianMobileNumber(row.recipientPhone || '') || '-'}</td>
                 <td style={cellStyle('type', 'center')}>{row.recipientType || '-'}</td>
                 <td style={cellStyle('module')}>{row.moduleName || '-'}</td>
                 <td style={{ ...cellStyle('message'), whiteSpace: 'pre-wrap' }}>{row.message || '-'}</td>

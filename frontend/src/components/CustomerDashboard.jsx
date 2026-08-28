@@ -26,7 +26,7 @@ import {
   resolveGoogleMapsUrl,
   resolveGoogleMapsPlaceText
 } from '../utils/googleMaps';
-import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
+import { PHONE_VALIDATION_ERROR, formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import { getPortalUserName } from '../utils/portalAuth';
 
 const normalizeApiBase = (value = '') => {
@@ -1964,6 +1964,7 @@ export default function CustomerDashboard() {
   const openCustomerWhatsappComposer = (customer) => {
     const customerName = String(customer?.displayName || customer?.name || customer?.companyName || customer?.contactPersonName || 'Customer').trim() || 'Customer';
     const recipientPhone = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
+    const displayPhone = formatIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
     const message = `Hello ${customerName}, welcome to SKUAS Pest Control. Thank you for being our customer. If you need any help, please reply to this message.`;
     setWhatsappComposer({
       open: true,
@@ -1983,7 +1984,7 @@ export default function CustomerDashboard() {
         }
       },
       recipientName: customerName,
-      recipientPhone,
+      recipientPhone: displayPhone,
       recipientType: 'Customer'
     });
   };

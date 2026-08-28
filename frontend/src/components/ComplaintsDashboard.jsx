@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { AlertCircle, List, Plus, Save, Send, Users } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { normalizeIndianMobileNumber } from '../utils/phone';
+import { formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -234,6 +234,7 @@ export default function ComplaintsDashboard() {
   const openComplaintWhatsappComposer = (complaint) => {
     const customerName = String(complaint?.customerName || 'Customer').trim() || 'Customer';
     const recipientPhone = normalizeIndianMobileNumber(complaint?.mobileNumber || '');
+    const displayPhone = formatIndianMobileNumber(complaint?.mobileNumber || '');
     setWhatsappComposer({
       open: true,
       complaint,
@@ -254,7 +255,7 @@ export default function ComplaintsDashboard() {
         }
       },
       recipientName: customerName,
-      recipientPhone,
+      recipientPhone: displayPhone,
       recipientType: 'Customer'
     });
   };

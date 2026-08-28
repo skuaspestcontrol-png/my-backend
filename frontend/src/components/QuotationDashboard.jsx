@@ -8,6 +8,7 @@ import PdfPreviewModal from './PdfPreviewModal';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import ActionMenu from './ui/ActionMenu';
 import SortChevronIcon from './ui/SortChevronIcon';
+import { formatIndianMobileNumber } from '../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const QUOTATION_DASHBOARD_CACHE_KEY = 'quotation_dashboard_cache_v1';
@@ -356,7 +357,7 @@ function QuotationDashboardInner() {
         }
       },
       recipientName: customerName,
-      recipientPhone: String(row.mobile || row.mobileNumber || row.whatsappNumber || '').trim(),
+      recipientPhone: formatIndianMobileNumber(row.mobile || row.mobileNumber || row.whatsappNumber || ''),
       recipientType: 'Customer'
     });
   };

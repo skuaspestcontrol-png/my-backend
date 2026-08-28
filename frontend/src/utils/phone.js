@@ -13,3 +13,9 @@ export const normalizeOptionalIndianMobileNumber = (value) => {
   const normalized = normalizeIndianMobileNumber(value);
   return normalized ? normalized : '';
 };
+
+export const formatIndianMobileNumber = (value) => {
+  const normalized = normalizeIndianMobileNumber(value);
+  if (!normalized) return String(value ?? '').trim();
+  return `+91${normalized}`;
+};

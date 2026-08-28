@@ -19,7 +19,7 @@ import {
 } from '../utils/googleMaps';
 import useColumnResize from './table/useColumnResize';
 import { pestIssueLabel, pestIssueShort } from '../utils/pestIssueCodes';
-import { PHONE_VALIDATION_ERROR, normalizeIndianMobileNumber } from '../utils/phone';
+import { PHONE_VALIDATION_ERROR, formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import SortChevronIcon from './ui/SortChevronIcon';
 import { getPortalUserName } from '../utils/portalAuth';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
@@ -1462,7 +1462,7 @@ export default function LeadCapture() {
         }
       },
       recipientName: customerName,
-      recipientPhone: whatsappNumber,
+      recipientPhone: formatIndianMobileNumber(whatsappNumber),
       recipientType: 'Customer'
     });
   };

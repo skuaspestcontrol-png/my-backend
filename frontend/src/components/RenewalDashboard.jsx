@@ -7,7 +7,7 @@ import PdfPreviewModal from './PdfPreviewModal';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import { consumeRenewalsFocus, subscribeRenewalsRefresh, triggerContractsRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { getPortalUserName } from '../utils/portalAuth';
-import { normalizeIndianMobileNumber } from '../utils/phone';
+import { formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import {
   CalendarClock,
   ChevronLeft,
@@ -450,6 +450,7 @@ export default function RenewalDashboard() {
     }
 
     const customerPhone = normalizeIndianMobileNumber(sourceRow?.mobile || row?.mobile || row?.phone || '');
+    const displayPhone = formatIndianMobileNumber(sourceRow?.mobile || row?.mobile || row?.phone || '');
     const renewalDisplayId = String(sourceRow?.renewalDisplayId || sourceRow?.renewal_display_id || sourceRow?.renewalId || sourceRow?.renewal_id || renewalId).trim() || renewalId;
     const serviceType = String(sourceRow?.serviceType || sourceRow?.service_type || 'Renewal Letter').trim() || 'Renewal Letter';
 
@@ -475,7 +476,7 @@ export default function RenewalDashboard() {
         }
       },
       recipientName: titleName,
-      recipientPhone: customerPhone,
+      recipientPhone: displayPhone,
       recipientType: 'Customer'
     });
   };

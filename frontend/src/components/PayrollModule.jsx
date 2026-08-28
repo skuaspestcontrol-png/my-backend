@@ -5,6 +5,7 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
+import { formatIndianMobileNumber } from '../utils/phone';
 import { buildPortalAuthHeaders, getPortalUserId, getPortalUserName, getPortalUserRole } from '../utils/portalAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -1176,6 +1177,7 @@ export default function PayrollModule() {
     const employee = employeeMap.get(String(item?.employeeId || ''));
     const employeeName = String(item?.employeeName || employee?.name || 'Employee').trim() || 'Employee';
     const employeePhone = String(employee?.whatsappNumber || employee?.mobile || '').trim();
+    const displayPhone = formatIndianMobileNumber(employee?.whatsappNumber || employee?.mobile || '');
     const monthLabel = monthOptions.find((entry) => Number(entry.value) === Number(item?.month))?.label || item?.month;
     const companyName = 'SKUAS Pest Control';
     setWhatsAppComposer({
@@ -1196,7 +1198,7 @@ export default function PayrollModule() {
         }
       },
       recipientName: employeeName,
-      recipientPhone: employeePhone,
+      recipientPhone: displayPhone,
       recipientType: 'Employee'
     });
   };
