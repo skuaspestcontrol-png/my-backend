@@ -1836,7 +1836,7 @@ export default function TechnicianPortal() {
         recipientPhone,
         recipientType: 'Customer',
         sentByUser: getPortalUserName() || 'User',
-        moduleName: 'Technician Portal',
+        moduleName: 'Job Card',
         message,
         attachmentUrl: shareUrl,
         attachmentName: `${jobNumber.replace(/[^\w.-]+/g, '_') || 'job-card'}.pdf`,
