@@ -25,6 +25,18 @@ const pad2 = (value) => String(value).padStart(2, '0');
 const toDateKey = (date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 const normalizeText = (value) => String(value || '').trim();
 const normalizeRole = (value) => normalizeText(value).toLowerCase();
+const payrollSettingsFile = path.join(__dirname, 'data', 'settings.json');
+
+const readPayrollSettingsFallback = () => {
+  try {
+    const raw = fs.readFileSync(payrollSettingsFile, 'utf8');
+    if (!String(raw || '').trim()) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
 
 const payrollExportColumns = {
   monthlyPayrollReport: [
@@ -1847,29 +1859,36 @@ function registerPayrollModule({
   const loadPayrollCompanySettings = async () => {
     if (typeof withMysqlConnection === 'function') {
       try {
-        return await withMysqlConnection(async (conn) => {
-          const [rows] = await conn.query(
-            'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
-            ['main']
-          );
-          const row = Array.isArray(rows) ? rows[0] : null;
-          const raw = row?.setting_value;
-          if (!raw) return {};
-          if (typeof raw === 'string') {
-            try {
-              return JSON.parse(raw) || {};
-            } catch (_error) {
-              return {};
+        const [mysqlSettings, fileSettings] = await Promise.all([
+          withMysqlConnection(async (conn) => {
+            const [rows] = await conn.query(
+              'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
+              ['main']
+            );
+            const row = Array.isArray(rows) ? rows[0] : null;
+            const raw = row?.setting_value;
+            if (!raw) return {};
+            if (typeof raw === 'string') {
+              try {
+                return JSON.parse(raw) || {};
+              } catch (_error) {
+                return {};
+              }
             }
-          }
-          if (raw && typeof raw === 'object') return raw;
-          return {};
-        });
+            if (raw && typeof raw === 'object') return raw;
+            return {};
+          }),
+          Promise.resolve(readPayrollSettingsFallback())
+        ]);
+        return {
+          ...(fileSettings || {}),
+          ...(mysqlSettings || {})
+        };
       } catch (error) {
         console.error('Failed to load payroll company settings from MySQL, using JSON fallback:', error.message);
       }
     }
-    return readSettings ? (readSettings() || {}) : {};
+    return readPayrollSettingsFallback();
   };
 
   app.use('/api/payroll', async (_req, _res, next) => {

@@ -9066,7 +9066,14 @@ const findDuplicateInvoiceNumber = (invoices, invoiceNumber, excludeId = '') => 
 const loadCurrentSettingsForNumbering = async () => {
   if (canUseMysql()) {
     try {
-      return await readSettingsFromMysql();
+      const [mysqlSettings, fileSettings] = await Promise.all([
+        readSettingsFromMysql(),
+        Promise.resolve(readSettings())
+      ]);
+      return sanitizeSettings({
+        ...(fileSettings || {}),
+        ...(mysqlSettings || {})
+      });
     } catch (error) {
       console.error('Failed to load settings from MySQL for invoice numbering, using JSON fallback:', error.message);
     }
@@ -13962,34 +13969,34 @@ app.post('/api/renewals/:id/send-reminder', async (req, res) => {
         textBody: defaultMessage
       });
       deliveryStatus = sent?.success ? 'sent' : 'queued';
-  } else if (channel === 'whatsapp') {
-    const waConfig = resolveWhatsappConfig(settings);
-    const useCustomProvider = ['custom', 'deropo'].includes(String(waConfig.providerType || '').trim().toLowerCase()) && Boolean(waConfig.baseUrl);
-    if (useCustomProvider) {
-      const sent = await sendWhatsAppMessage({
-        settings,
-        to: recipient,
-        message: defaultMessage
-      });
-      deliveryStatus = sent?.success ? 'sent' : 'queued';
-      deliveryError = '';
-    } else if (waConfig.phoneNumberId && waConfig.accessToken) {
-      const response = await fetch(`https://graph.facebook.com/${waConfig.apiVersion}/${waConfig.phoneNumberId}/messages`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${waConfig.accessToken}`,
-          'Content-Type': 'application/json'
+    } else if (channel === 'whatsapp') {
+      const waConfig = resolveWhatsappConfig(settings);
+      const useCustomProvider = ['custom', 'deropo'].includes(String(waConfig.providerType || '').trim().toLowerCase()) && Boolean(waConfig.baseUrl);
+      if (useCustomProvider) {
+        const sent = await sendWhatsAppMessage({
+          settings,
+          to: recipient,
+          message: defaultMessage
+        });
+        deliveryStatus = sent?.success ? 'sent' : 'queued';
+        deliveryError = '';
+      } else if (waConfig.phoneNumberId && waConfig.accessToken) {
+        const response = await fetch(`https://graph.facebook.com/${waConfig.apiVersion}/${waConfig.phoneNumberId}/messages`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${waConfig.accessToken}`,
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             messaging_product: 'whatsapp',
             to: recipient,
             type: 'text',
             text: { body: defaultMessage.slice(0, 4000) }
-        })
-      });
-      deliveryStatus = response.ok ? 'sent' : 'queued';
+          })
+        });
+        deliveryStatus = response.ok ? 'sent' : 'queued';
+      }
     }
-  }
   } catch (error) {
     deliveryStatus = 'failed';
     deliveryError = error?.message || 'delivery_error';
