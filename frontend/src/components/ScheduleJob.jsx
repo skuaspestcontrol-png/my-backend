@@ -264,6 +264,7 @@ export default function ScheduleJob() {
   const [isRowActionSaving, setIsRowActionSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [toastMessage, setToastMessage] = useState('');
+  const [whatsAppDiagnostic, setWhatsAppDiagnostic] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const loadRequestRef = useRef(null);
   const isMountedRef = useRef(true);
@@ -293,6 +294,27 @@ export default function ScheduleJob() {
 
   useEffect(() => () => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const loadWhatsAppDiagnostic = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/settings/whatsapp`);
+        if (!active) return;
+        setWhatsAppDiagnostic(response.data?.diagnostic || null);
+      } catch (_error) {
+        if (!active) return;
+        setWhatsAppDiagnostic({
+          tone: 'warning',
+          text: 'WhatsApp settings could not be loaded.'
+        });
+      }
+    };
+    loadWhatsAppDiagnostic();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const loadPortalData = useCallback(async ({ silent = false } = {}) => {
@@ -1358,6 +1380,7 @@ export default function ScheduleJob() {
         onShareEmail={shareCompletedServiceByEmail}
         onShareWhatsApp={shareCompletedServiceByWhatsApp}
         publicShareUrl={pdfPreview.publicShareUrl}
+        diagnostic={whatsAppDiagnostic}
       />
 
       {toastMessage ? (

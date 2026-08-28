@@ -19,7 +19,8 @@ export default function WhatsAppPreviewModal({
   sendButtonLabel = 'Send WhatsApp',
   showAttachmentFields = true,
   attachmentNote = '',
-  allowRecipientEdit = false
+  allowRecipientEdit = false,
+  diagnostic = null
 }) {
   const [message, setMessage] = useState('');
   const [phoneValue, setPhoneValue] = useState(String(recipientPhone || ''));
@@ -109,6 +110,20 @@ export default function WhatsAppPreviewModal({
           <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}><X size={22} /></button>
         </div>
         <div style={{ padding: '14px 16px 16px', overflowY: 'auto', display: 'grid', gap: '12px' }}>
+          {diagnostic?.text ? (
+            <div style={{
+              border: `1px solid ${diagnostic.tone === 'success' ? 'rgba(22,163,74,0.18)' : diagnostic.tone === 'danger' ? 'rgba(220,38,38,0.22)' : 'rgba(245,158,11,0.22)'}`,
+              background: diagnostic.tone === 'success' ? 'rgba(240,253,244,0.95)' : diagnostic.tone === 'danger' ? 'rgba(254,242,242,0.96)' : 'rgba(255,251,235,0.96)',
+              color: diagnostic.tone === 'success' ? '#166534' : diagnostic.tone === 'danger' ? '#b91c1c' : '#92400e',
+              borderRadius: '12px',
+              padding: '10px 12px',
+              fontSize: '12px',
+              fontWeight: 700,
+              lineHeight: 1.45
+            }}>
+              {diagnostic.text}
+            </div>
+          ) : null}
           <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>
             <div><div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>Recipient</div><div style={{ fontSize: '14px', fontWeight: 700 }}>{recipientName || '-'}</div></div>
             <div>
