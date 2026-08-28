@@ -1288,6 +1288,7 @@ export default function InvoiceDashboard() {
   });
   const [toastMessage, setToastMessage] = useState('');
   const [whatsAppDiagnostic, setWhatsAppDiagnostic] = useState(null);
+  const [whatsAppSettings, setWhatsAppSettings] = useState(null);
   const [invoiceColumnWidths, setInvoiceColumnWidths] = useState(() => {
     const saved = localStorage.getItem(invoiceColumnWidthStorageKey);
     if (!saved) return normalizeInvoiceColumnWidths();
@@ -2020,9 +2021,11 @@ export default function InvoiceDashboard() {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/settings/whatsapp`);
         if (!active) return;
+        setWhatsAppSettings(response.data || null);
         setWhatsAppDiagnostic(response.data?.diagnostic || null);
       } catch (_error) {
         if (!active) return;
+        setWhatsAppSettings(null);
         setWhatsAppDiagnostic({
           tone: 'warning',
           text: 'WhatsApp settings could not be loaded.'
@@ -5290,6 +5293,7 @@ export default function InvoiceDashboard() {
         attachmentNote="The invoice PDF is generated automatically and attached from the portal."
         sendButtonLabel="Send Invoice on WhatsApp"
         diagnostic={whatsAppDiagnostic}
+        settingsData={whatsAppSettings}
         onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
           const response = await axios.post(`${API_BASE_URL}/api/invoices/${whatsAppComposer.invoiceId}/send-whatsapp`, {

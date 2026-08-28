@@ -1138,6 +1138,7 @@ export default function TechnicianPortal() {
   const [actionStatus, setActionStatus] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [whatsAppDiagnostic, setWhatsAppDiagnostic] = useState(null);
+  const [whatsAppSettings, setWhatsAppSettings] = useState(null);
   const [stockItemsCatalog, setStockItemsCatalog] = useState([]);
   const [showCostModal, setShowCostModal] = useState(false);
   const [costModalSaving, setCostModalSaving] = useState(false);
@@ -1188,9 +1189,11 @@ export default function TechnicianPortal() {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/settings/whatsapp`);
         if (!active) return;
+        setWhatsAppSettings(response.data || null);
         setWhatsAppDiagnostic(response.data?.diagnostic || null);
       } catch (_error) {
         if (!active) return;
+        setWhatsAppSettings(null);
         setWhatsAppDiagnostic({
           tone: 'warning',
           text: 'WhatsApp settings could not be loaded.'
@@ -3275,6 +3278,7 @@ export default function TechnicianPortal() {
         onShareWhatsApp={shareJobCardByWhatsApp}
         publicShareUrl={pdfPreview.publicShareUrl}
         diagnostic={whatsAppDiagnostic}
+        settingsData={whatsAppSettings}
       />
 
       {toastMessage ? (

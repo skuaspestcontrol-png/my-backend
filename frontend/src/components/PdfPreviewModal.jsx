@@ -163,17 +163,39 @@ export default function PdfPreviewModal({
   onShareEmail,
   onShareWhatsApp,
   publicShareUrl,
-  policyNote
+  policyNote,
+  diagnostic = null,
+  settingsData = null
 }) {
   const [screenWidth, setScreenWidth] = useState(() => window.innerWidth);
   const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showRawSettings, setShowRawSettings] = useState(false);
 
   const sourceUrl = useMemo(() => String(pdfUrl || '').trim(), [pdfUrl]);
   const canShareEmail = typeof onShareEmail === 'function';
   const hasWhatsAppAction = typeof onShareWhatsApp === 'function';
   const iframeSrc = previewUrl;
+  const redactedSettingsData = useMemo(() => {
+    if (!settingsData || typeof settingsData !== 'object') return null;
+
+    const redact = (value) => {
+      if (Array.isArray(value)) return value.map(redact);
+      if (!value || typeof value !== 'object') return value;
+
+      return Object.entries(value).reduce((acc, [key, entry]) => {
+        if (/^(access[_-]?token|token|secret|password|api[_-]?key)$/i.test(key)) {
+          acc[key] = String(entry || '').trim() ? '[redacted]' : entry;
+          return acc;
+        }
+        acc[key] = redact(entry);
+        return acc;
+      }, {});
+    };
+
+    return redact(settingsData);
+  }, [settingsData]);
 
   useEffect(() => {
     const onResize = () => setScreenWidth(window.innerWidth);
@@ -186,6 +208,7 @@ export default function PdfPreviewModal({
       setPreviewUrl('');
       setLoading(false);
       setError('');
+      setShowRawSettings(false);
       return undefined;
     }
 
@@ -346,6 +369,62 @@ export default function PdfPreviewModal({
               Close
             </button>
           </div>
+          {diagnostic?.text || redactedSettingsData ? (
+            <div style={{
+              border: `1px solid ${diagnostic?.tone === 'success' ? 'rgba(22,163,74,0.18)' : diagnostic?.tone === 'danger' ? 'rgba(220,38,38,0.22)' : 'rgba(245,158,11,0.22)'}`,
+              background: diagnostic?.tone === 'success' ? 'rgba(240,253,244,0.95)' : diagnostic?.tone === 'danger' ? 'rgba(254,242,242,0.96)' : 'rgba(255,251,235,0.96)',
+              color: diagnostic?.tone === 'success' ? '#166534' : diagnostic?.tone === 'danger' ? '#b91c1c' : '#92400e',
+              borderRadius: '12px',
+              padding: '10px 12px',
+              fontSize: '12px',
+              fontWeight: 700,
+              lineHeight: 1.45,
+              display: 'grid',
+              gap: '8px'
+            }}>
+              {diagnostic?.text ? <div>{diagnostic.text}</div> : null}
+              {redactedSettingsData ? (
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowRawSettings((prev) => !prev)}
+                    style={{
+                      justifySelf: 'start',
+                      minHeight: '30px',
+                      borderRadius: '999px',
+                      border: '1px solid rgba(15,23,42,0.10)',
+                      background: 'rgba(255,255,255,0.72)',
+                      color: '#0f172a',
+                      padding: '0 10px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {showRawSettings ? 'Hide raw settings JSON' : 'Show raw settings JSON'}
+                  </button>
+                  {showRawSettings ? (
+                    <pre style={{
+                      margin: 0,
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      background: 'rgba(15,23,42,0.08)',
+                      color: '#0f172a',
+                      fontSize: '11px',
+                      lineHeight: 1.5,
+                      overflow: 'auto',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      maxHeight: '260px'
+                    }}>
+                      {JSON.stringify(redactedSettingsData, null, 2)}
+                    </pre>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {error ? <div style={shell.status}>{error}</div> : null}
 
           <div style={{

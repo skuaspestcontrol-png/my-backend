@@ -20,7 +20,8 @@ export default function WhatsAppPreviewModal({
   showAttachmentFields = true,
   attachmentNote = '',
   allowRecipientEdit = false,
-  diagnostic = null
+  diagnostic = null,
+  settingsData = null
 }) {
   const [message, setMessage] = useState('');
   const [phoneValue, setPhoneValue] = useState(String(recipientPhone || ''));
@@ -29,10 +30,30 @@ export default function WhatsAppPreviewModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
+  const [showRawSettings, setShowRawSettings] = useState(false);
   const copyStatusTimerRef = React.useRef(null);
 
   const initialMessage = useMemo(() => String(previewData?.previewMessage || ''), [previewData]);
   const allowManualUpload = String(previewData?.attachmentOption || '').toLowerCase() === 'manual upload';
+  const redactedSettingsData = useMemo(() => {
+    if (!settingsData || typeof settingsData !== 'object') return null;
+
+    const redact = (value) => {
+      if (Array.isArray(value)) return value.map(redact);
+      if (!value || typeof value !== 'object') return value;
+
+      return Object.entries(value).reduce((acc, [key, entry]) => {
+        if (/^(access[_-]?token|token|secret|password|api[_-]?key)$/i.test(key)) {
+          acc[key] = String(entry || '').trim() ? '[redacted]' : entry;
+          return acc;
+        }
+        acc[key] = redact(entry);
+        return acc;
+      }, {});
+    };
+
+    return redact(settingsData);
+  }, [settingsData]);
   const diagnosticRows = useMemo(() => {
     if (!diagnostic || typeof diagnostic !== 'object') return [];
     return [
@@ -60,6 +81,7 @@ export default function WhatsAppPreviewModal({
     setAttachmentUrl(String(previewData?.suggestedAttachmentUrl || previewData?.attachmentUrl || ''));
     setError('');
     setCopyStatus('');
+    setShowRawSettings(false);
     if (copyStatusTimerRef.current) {
       window.clearTimeout(copyStatusTimerRef.current);
       copyStatusTimerRef.current = null;
@@ -204,6 +226,46 @@ export default function WhatsAppPreviewModal({
                       <span style={{ fontWeight: 800, color: row.ok ? '#166534' : '#b91c1c' }}>{row.value}</span>
                     </div>
                   ))}
+                </div>
+              ) : null}
+              {redactedSettingsData ? (
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowRawSettings((prev) => !prev)}
+                    style={{
+                      justifySelf: 'start',
+                      minHeight: '30px',
+                      borderRadius: '999px',
+                      border: '1px solid rgba(15,23,42,0.10)',
+                      background: 'rgba(255,255,255,0.72)',
+                      color: '#0f172a',
+                      padding: '0 10px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {showRawSettings ? 'Hide raw settings JSON' : 'Show raw settings JSON'}
+                  </button>
+                  {showRawSettings ? (
+                    <pre style={{
+                      margin: 0,
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      background: 'rgba(15,23,42,0.08)',
+                      color: '#0f172a',
+                      fontSize: '11px',
+                      lineHeight: 1.5,
+                      overflow: 'auto',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      maxHeight: '260px'
+                    }}>
+                      {JSON.stringify(redactedSettingsData, null, 2)}
+                    </pre>
+                  ) : null}
                 </div>
               ) : null}
             </div>
