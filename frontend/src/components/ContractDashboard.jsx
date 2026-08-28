@@ -2260,6 +2260,15 @@ export default function ContractDashboard() {
           }
           if (invoice) await sendInvoiceEmail(invoice);
         }}
+        onShareWhatsApp={() => {
+          const invoice = invoices.find((entry) => String(entry._id) === String(pdfPreview.invoiceId));
+          if (!invoice) return;
+          if (pdfPreview.previewKind === 'contract-job-card') {
+            openContractJobCardWhatsAppComposer(invoice);
+            return;
+          }
+          openInvoiceWhatsAppComposer(invoice);
+        }}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
 

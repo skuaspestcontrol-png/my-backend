@@ -647,6 +647,10 @@ function QuotationDashboardInner() {
         downloadFileName={pdfPreview.downloadFileName}
         onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', quotationId: null })}
         onShareEmail={handleShareQuotationEmail}
+        onShareWhatsApp={() => {
+          const currentRow = rows.find((row) => String(row.id) === String(pdfPreview.quotationId)) || null;
+          if (currentRow) openQuotationWhatsAppComposer(currentRow);
+        }}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
 

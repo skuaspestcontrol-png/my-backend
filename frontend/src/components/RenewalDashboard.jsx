@@ -1280,6 +1280,25 @@ export default function RenewalDashboard() {
         downloadFileName={pdfPreview.downloadFileName}
         onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', renewalId: '', shareContext: null })}
         onShareEmail={shareRenewalLetterByEmail}
+        onShareWhatsApp={() => {
+          const context = pdfPreview.shareContext || {};
+          const renewalId = String(pdfPreview.renewalId || context.renewalId || context.renewal_id || '').trim();
+          if (!renewalId) return;
+          openRenewalWhatsAppComposer({
+            renewalId,
+            id: renewalId,
+            customerName: context.customerName,
+            customer_name: context.customerName,
+            mobile: context.customerPhone,
+            phone: context.customerPhone,
+            renewalDisplayId: context.renewalDisplayId,
+            renewal_display_id: context.renewalDisplayId,
+            serviceType: context.serviceType,
+            service_type: context.serviceType,
+            pdf_url: context.pdfUrl,
+            renewalLetterUrl: context.pdfUrl
+          });
+        }}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
       <WhatsAppPreviewModal
