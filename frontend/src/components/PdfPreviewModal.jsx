@@ -171,9 +171,8 @@ export default function PdfPreviewModal({
   const [error, setError] = useState('');
 
   const sourceUrl = useMemo(() => String(pdfUrl || '').trim(), [pdfUrl]);
-  const resolvedShareUrl = useMemo(() => String(publicShareUrl || sourceUrl || '').trim(), [publicShareUrl, sourceUrl]);
   const canShareEmail = typeof onShareEmail === 'function';
-  const hasWhatsAppAction = typeof onShareWhatsApp === 'function' || Boolean(resolvedShareUrl);
+  const hasWhatsAppAction = typeof onShareWhatsApp === 'function';
   const iframeSrc = previewUrl;
 
   useEffect(() => {
@@ -286,17 +285,12 @@ export default function PdfPreviewModal({
   };
 
   const handleShareWhatsApp = async () => {
-    if (typeof onShareWhatsApp === 'function') {
-      try {
-        await onShareWhatsApp();
-      } catch (shareError) {
-        console.error('PDF WhatsApp share failed', shareError);
-      }
-      return;
+    if (typeof onShareWhatsApp !== 'function') return;
+    try {
+      await onShareWhatsApp();
+    } catch (shareError) {
+      console.error('PDF WhatsApp share failed', shareError);
     }
-    if (!resolvedShareUrl) return;
-    const shareText = `${String(title || 'PDF').trim()}\n${resolvedShareUrl}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank', 'noopener,noreferrer');
   };
 
   const actionButtonStyle = (active = true) => ({
