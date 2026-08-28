@@ -3961,7 +3961,7 @@ export default function CustomerDashboard() {
             recipientPhone: phoneNumber,
             recipientType: 'Customer',
             sentByUser: getPortalUserName() || 'User',
-            moduleName: 'Customer Master',
+            moduleName: 'Customer',
             message,
             contextData: {
               customer_name: whatsappComposer.recipientName,

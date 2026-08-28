@@ -1481,7 +1481,7 @@ export default function LeadCapture() {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/email/send`, {
         moduleType: 'lead',
-        moduleName: 'Lead Master',
+        moduleName: 'Lead',
         templateType: 'lead_welcome',
         recipientEmail,
         recipientName: lead.customerName || 'Customer',
@@ -3392,7 +3392,7 @@ export default function LeadCapture() {
             recipientPhone: phoneNumber,
             recipientType: 'Customer',
             sentByUser: getPortalUserName() || 'User',
-            moduleName: 'Lead Master',
+            moduleName: 'Lead',
             message,
             contextData: {
               customer_name: whatsappComposer.recipientName,

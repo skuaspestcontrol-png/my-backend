@@ -587,7 +587,7 @@ export default function ComplaintsDashboard() {
             recipientPhone: phoneNumber,
             recipientType: 'Customer',
             sentByUser: 'User',
-            moduleName: 'Complaints Dashboard',
+            moduleName: 'Complaint',
             message,
             contextData: {
               customer_name: whatsappComposer.recipientName,

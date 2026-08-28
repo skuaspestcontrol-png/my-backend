@@ -528,7 +528,7 @@ const mergeContractsDashboardCache = (patch) => {
     try {
       const response = await axios.post(`${API_BASE}/api/email/send`, {
         moduleType: 'contract',
-        moduleName: 'Contract Job Card Summary',
+        moduleName: 'Contract Job Card',
         templateType: 'custom_email',
         recipientEmail: recipient,
         recipientName: customerName,
@@ -2298,7 +2298,7 @@ export default function ContractDashboard() {
               recipientPhone: phoneNumber,
               recipientType: 'Customer',
               sentByUser: getPortalUserName() || 'User',
-              moduleName: 'Contract Job Card Summary',
+              moduleName: 'Contract Job Card',
               message,
               attachmentUrl: pdfUrl,
               attachmentName: `${String(invoiceNumber || 'contract_job_card_summary').replace(/[^\w.-]+/g, '_')}.pdf`,

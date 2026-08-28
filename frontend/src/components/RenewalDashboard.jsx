@@ -1325,7 +1325,7 @@ export default function RenewalDashboard() {
             recipientPhone: phoneNumber,
             recipientType: 'Customer',
             sentByUser: getPortalUserName() || 'User',
-            moduleName: 'Renewal Dashboard',
+            moduleName: 'Renewal Letter',
             message,
             attachmentUrl,
             attachmentName: `REN-${String(whatsappComposer.recipientName || renewalId || 'Renewal').trim()}.pdf`,

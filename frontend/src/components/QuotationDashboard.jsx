@@ -676,7 +676,7 @@ function QuotationDashboardInner() {
             recipientPhone: phoneNumber,
             recipientType: 'Customer',
             sentByUser: 'User',
-            moduleName: 'Quotation Dashboard',
+            moduleName: 'Quotation',
             message,
             attachmentUrl: `${API_BASE_URL}/api/quotations/${whatsappComposer.row.id}/pdf`,
             attachmentName: `${String(whatsappComposer.previewData?.template?.templateName || 'quotation').replace(/[^\w.-]+/g, '_')}.pdf`,
