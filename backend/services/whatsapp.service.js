@@ -67,7 +67,8 @@ const sendWhatsAppMessage = async ({ settings, to, message, attachmentUrl, attac
     const params = {
       number: phoneCheck.normalized,
       message: String(message || ''),
-      access_token: provider.accessToken
+      access_token: provider.accessToken,
+      type: 'text'
     };
 
     if (attachmentUrl) {
