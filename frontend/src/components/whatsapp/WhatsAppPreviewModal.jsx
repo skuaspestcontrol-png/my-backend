@@ -28,6 +28,8 @@ export default function WhatsAppPreviewModal({
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [copyStatus, setCopyStatus] = useState('');
+  const copyStatusTimerRef = React.useRef(null);
 
   const initialMessage = useMemo(() => String(previewData?.previewMessage || ''), [previewData]);
   const allowManualUpload = String(previewData?.attachmentOption || '').toLowerCase() === 'manual upload';
@@ -42,6 +44,14 @@ export default function WhatsAppPreviewModal({
     ];
   }, [diagnostic]);
 
+  const diagnosticText = useMemo(() => {
+    if (!diagnosticRows.length) return '';
+    return [
+      diagnostic?.text || 'WhatsApp diagnostic',
+      ...diagnosticRows.map((row) => `${row.label}: ${row.value}`)
+    ].join('\n');
+  }, [diagnostic?.text, diagnosticRows]);
+
   React.useEffect(() => {
     if (!open) return;
     setMessage(initialMessage);
@@ -49,6 +59,11 @@ export default function WhatsAppPreviewModal({
     setAttachment(null);
     setAttachmentUrl(String(previewData?.suggestedAttachmentUrl || previewData?.attachmentUrl || ''));
     setError('');
+    setCopyStatus('');
+    if (copyStatusTimerRef.current) {
+      window.clearTimeout(copyStatusTimerRef.current);
+      copyStatusTimerRef.current = null;
+    }
   }, [open, initialMessage, previewData, recipientPhone]);
 
   if (!open) return null;
@@ -112,6 +127,33 @@ export default function WhatsAppPreviewModal({
     }
   };
 
+  const handleCopyDiagnostics = async () => {
+    if (!diagnosticText) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(diagnosticText);
+      } else {
+        const fallbackTextarea = document.createElement('textarea');
+        fallbackTextarea.value = diagnosticText;
+        fallbackTextarea.setAttribute('readonly', 'true');
+        fallbackTextarea.style.position = 'absolute';
+        fallbackTextarea.style.left = '-9999px';
+        document.body.appendChild(fallbackTextarea);
+        fallbackTextarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(fallbackTextarea);
+      }
+      setCopyStatus('Copied');
+      if (copyStatusTimerRef.current) window.clearTimeout(copyStatusTimerRef.current);
+      copyStatusTimerRef.current = window.setTimeout(() => {
+        setCopyStatus('');
+        copyStatusTimerRef.current = null;
+      }, 1800);
+    } catch (_error) {
+      setError('Could not copy diagnostics. Please select and copy the text manually.');
+    }
+  };
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.50)', backdropFilter: 'blur(16px)', display: 'grid', placeItems: 'center', zIndex: 5500, padding: '16px' }}>
       <div style={{ width: 'min(760px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: 'rgba(255,255,255,0.64)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.30)', boxShadow: '0 28px 70px rgba(15,23,42,0.22)', display: 'flex', flexDirection: 'column' }}>
@@ -133,7 +175,27 @@ export default function WhatsAppPreviewModal({
               display: 'grid',
               gap: '8px'
             }}>
-              <div>{diagnostic.text}</div>
+              <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                <div>{diagnostic.text}</div>
+                <button
+                  type="button"
+                  onClick={handleCopyDiagnostics}
+                  style={{
+                    minHeight: '30px',
+                    borderRadius: '999px',
+                    border: '1px solid rgba(15,23,42,0.10)',
+                    background: 'rgba(255,255,255,0.72)',
+                    color: '#0f172a',
+                    padding: '0 10px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {copyStatus || 'Copy diagnostics'}
+                </button>
+              </div>
               {diagnosticRows.length ? (
                 <div style={{ display: 'grid', gap: '6px' }}>
                   {diagnosticRows.map((row) => (
