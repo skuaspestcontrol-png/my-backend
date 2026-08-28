@@ -23,7 +23,7 @@ const normalizeLoadedForm = (data = {}) => ({
   accessToken: '',
   active: Boolean(data.active),
   testNumber: '',
-  providerType: String(data.providerType || 'custom').trim() || 'custom'
+  providerType: String(data.providerType || (String(data.apiBaseUrl || '').includes('deropo') ? 'deropo' : 'custom')).trim() || 'custom'
 });
 
 export default function WhatsAppSettings() {
@@ -86,7 +86,7 @@ export default function WhatsAppSettings() {
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Phone Number<input value={form.phoneNumber} autoComplete="off" inputMode="numeric" onChange={(e) => setForm((p) => ({ ...p, phoneNumber: normalizeIndianMobileNumber(e.target.value) }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Instance ID<input value={form.instanceId} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, instanceId: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Access Token<input value={form.accessToken} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, accessToken: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
-          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Provider Type<select value={form.providerType} onChange={(e) => setForm((p) => ({ ...p, providerType: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }}><option value="custom">Custom</option><option value="meta">Meta Graph</option></select></label>
+          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Provider Type<select value={form.providerType} onChange={(e) => setForm((p) => ({ ...p, providerType: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }}><option value="deropo">Deropo</option><option value="custom">Custom</option><option value="meta">Meta Graph</option></select></label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Test Number<input value={form.testNumber} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, testNumber: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
         </div>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '12px' }}><input type="checkbox" checked={form.active} onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))} /> Active</label>

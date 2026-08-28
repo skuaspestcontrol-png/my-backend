@@ -9313,7 +9313,7 @@ const sendPasswordResetOtpEmail = async ({ settings, recipient, otp }) => {
 
 const resolveWhatsappConfig = (settings = {}) => ({
   apiVersion: settings.whatsappApiVersion || process.env.WHATSAPP_API_VERSION || 'v23.0',
-  providerType: String(settings.whatsappProviderType || (settings.whatsappApiBaseUrl ? 'custom' : 'meta')).trim().toLowerCase(),
+  providerType: String(settings.whatsappProviderType || (settings.whatsappApiBaseUrl ? 'deropo' : 'meta')).trim().toLowerCase(),
   baseUrl: String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim(),
   phoneNumber: String(settings.whatsappPhoneNumber || settings.phoneNumber || '').trim(),
   phoneNumberId: settings.whatsappInstanceId || settings.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '',
@@ -10486,7 +10486,7 @@ app.post('/api/invoices/:id/send-whatsapp', async (req, res) => {
     const defaultMessage = buildDefaultShareMessage(context.invoice, context.settings);
     const message = String(req.body?.message || defaultMessage).trim();
 
-    const useCustomProvider = waConfig.providerType === 'custom' && Boolean(waConfig.baseUrl);
+    const useCustomProvider = ['custom', 'deropo'].includes(waConfig.providerType) && Boolean(waConfig.baseUrl);
 
     if (useCustomProvider) {
       if (!waConfig.baseUrl || !waConfig.instanceId || !waConfig.accessToken) {

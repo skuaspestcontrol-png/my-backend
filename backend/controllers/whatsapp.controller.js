@@ -12,6 +12,11 @@ const {
 } = require('../services/whatsapp.service');
 
 const nowIso = () => new Date().toISOString();
+const toBool = (value) => {
+  if (typeof value === 'boolean') return value;
+  const raw = String(value || '').trim().toLowerCase();
+  return ['1', 'true', 'yes', 'on'].includes(raw);
+};
 
 const parseJsonSafe = (raw, fallback) => {
   try {
@@ -151,14 +156,18 @@ function createWhatsAppController(deps) {
 
   const getWhatsAppSettings = (req, res) => {
     const settings = readSettings();
+    const providerType = String(
+      settings.whatsappProviderType
+      || (settings.whatsappApiBaseUrl && /deropo/i.test(String(settings.whatsappApiBaseUrl)) ? 'deropo' : 'custom')
+    ).trim().toLowerCase();
     res.json({
       apiBaseUrl: settings.whatsappApiBaseUrl || '',
       phoneNumber: '',
       instanceId: '',
       accessToken: '',
-      active: Boolean(settings.whatsappApiActive),
+      active: toBool(settings.whatsappApiActive),
       testNumber: '',
-      providerType: settings.whatsappProviderType || 'custom'
+      providerType
     });
   };
 
@@ -172,9 +181,9 @@ function createWhatsAppController(deps) {
       whatsappInstanceId: String(body.instanceId || current.whatsappInstanceId || current.whatsappPhoneNumberId || '').trim(),
       whatsappPhoneNumberId: String(body.instanceId || current.whatsappInstanceId || current.whatsappPhoneNumberId || '').trim(),
       whatsappAccessToken: String(body.accessToken || current.whatsappAccessToken || '').trim(),
-      whatsappApiActive: body.active === undefined ? Boolean(current.whatsappApiActive) : Boolean(body.active),
+      whatsappApiActive: body.active === undefined ? toBool(current.whatsappApiActive) : toBool(body.active),
       whatsappTestNumber: String(body.testNumber || current.whatsappTestNumber || '').trim(),
-      whatsappProviderType: String(body.providerType || current.whatsappProviderType || 'custom').trim().toLowerCase()
+      whatsappProviderType: String(body.providerType || current.whatsappProviderType || (body.apiBaseUrl && /deropo/i.test(String(body.apiBaseUrl)) ? 'deropo' : 'custom')).trim().toLowerCase()
     };
     saveSettings(next);
     res.json({ success: true, settings: next });

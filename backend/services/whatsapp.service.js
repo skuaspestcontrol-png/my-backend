@@ -1,5 +1,34 @@
 const { normalizeIndianMobileNumber } = require('../lib/phone');
 
+const toBool = (value) => {
+  if (typeof value === 'boolean') return value;
+  const raw = String(value || '').trim().toLowerCase();
+  return ['1', 'true', 'yes', 'on'].includes(raw);
+};
+
+const resolveActiveFlag = (settings = {}) => {
+  if (settings.whatsappApiActive !== undefined) return toBool(settings.whatsappApiActive);
+  if (settings.whatsappActive !== undefined) return toBool(settings.whatsappActive);
+  if (settings.active !== undefined) return toBool(settings.active);
+  return false;
+};
+
+const getAttachmentType = (attachmentUrl = '', attachmentName = '') => {
+  const source = String(attachmentName || attachmentUrl || '').toLowerCase();
+  if (/\.(jpe?g|png|webp|gif)$/.test(source)) return 'image';
+  if (/\.(mp3|m4a|wav|ogg)$/.test(source)) return 'audio';
+  return 'document';
+};
+
+const buildDeropoSendUrl = (baseUrl, params = {}) => {
+  const url = new URL(`${String(baseUrl || '').replace(/\/+$/, '')}/send`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || String(value).trim() === '') return;
+    url.searchParams.set(key, String(value));
+  });
+  return url.toString();
+};
+
 const normalizePhoneNumber = (value) => {
   const digits = normalizeIndianMobileNumber(value);
   if (/^\d{10}$/.test(digits)) return `91${digits}`;
@@ -19,7 +48,7 @@ const buildProviderConfig = (settings = {}) => {
     instanceId: String(settings.whatsappInstanceId || settings.instanceId || settings.whatsappPhoneNumberId || '').trim(),
     accessToken: String(settings.whatsappAccessToken || settings.accessToken || '').trim(),
     providerType: String(settings.whatsappProviderType || 'custom').trim().toLowerCase(),
-    active: Boolean(settings.whatsappApiActive)
+    active: resolveActiveFlag(settings)
   };
 };
 
@@ -27,7 +56,52 @@ const sendWhatsAppMessage = async ({ settings, to, message, attachmentUrl, attac
   const provider = buildProviderConfig(settings);
   const phoneCheck = validatePhoneNumber(to);
   if (!phoneCheck.ok) throw new Error(phoneCheck.error);
-  if (!provider.active) throw new Error('WhatsApp API is inactive.');
+  if (!provider.active) throw new Error('WhatsApp API is inactive. Enable it in Settings > WhatsApp API Settings.');
+
+  if (provider.providerType === 'deropo') {
+    if (!provider.baseUrl || !provider.accessToken) {
+      throw new Error('WhatsApp API credentials are incomplete.');
+    }
+
+    const attachmentType = attachmentUrl ? getAttachmentType(attachmentUrl, attachmentName) : '';
+    const params = {
+      number: phoneCheck.normalized,
+      message: String(message || ''),
+      access_token: provider.accessToken
+    };
+
+    if (attachmentUrl) {
+      params.type = attachmentType;
+      if (attachmentType === 'image') params.image_url = attachmentUrl;
+      else if (attachmentType === 'audio') params.audio_url = attachmentUrl;
+      else params.document_url = attachmentUrl;
+      if (attachmentType === 'document' && attachmentName) params.file_name = attachmentName;
+    }
+
+    const response = await fetch(buildDeropoSendUrl(provider.baseUrl, params), { method: 'GET' });
+    const raw = await response.text();
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (error) {
+      parsed = { raw };
+    }
+
+    if (!response.ok) {
+      const error = new Error(parsed?.message || `WhatsApp API failed (${response.status})`);
+      error.response = parsed;
+      error.statusCode = response.status;
+      throw error;
+    }
+
+    return {
+      success: true,
+      provider: provider.providerType,
+      normalizedPhone: phoneCheck.normalized,
+      response: parsed
+    };
+  }
+
   if (!provider.baseUrl || !provider.instanceId || !provider.accessToken) {
     throw new Error('WhatsApp API credentials are incomplete.');
   }
