@@ -2339,28 +2339,12 @@ export default function ContractDashboard() {
         onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
           if (whatsappComposer.kind === 'contract-job-card') {
-            const invoiceNumber = String(whatsappComposer.row?.invoiceNumber || whatsappComposer.row?.contractNo || whatsappComposer.row?._id || '').trim() || 'Contract';
-            const contractId = resolveContractWhatsAppTargetId(whatsappComposer.row) || invoiceNumber;
-            const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(contractId)}/job-card-summary-pdf`);
-            const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
-              moduleType: 'contract',
-              templateType: 'custom_message',
-              recipientName: whatsappComposer.recipientName,
-              recipientPhone: phoneNumber,
-              recipientType: 'Customer',
-              sentByUser: getPortalUserName() || 'User',
-              moduleName: 'Contract Job Card',
-              message,
-              attachmentUrl: pdfUrl,
-              attachmentName: `${String(invoiceNumber || 'contract_job_card_summary').replace(/[^\w.-]+/g, '_')}.pdf`,
-              contextData: {
-                customer_name: whatsappComposer.recipientName,
-                customer_phone: phoneNumber,
-                invoice_no: invoiceNumber,
-                company_name: 'SKUAS Pest Control'
-              }
+            const contractId = resolveContractWhatsAppTargetId(whatsappComposer.row) || String(whatsappComposer.row?.invoiceNumber || whatsappComposer.row?.contractNo || whatsappComposer.row?._id || '').trim();
+            const response = await axios.post(`${API_BASE}/api/contracts/${encodeURIComponent(contractId)}/send-whatsapp`, {
+              phoneNumber,
+              message
             });
-            window.alert(response.data?.success ? 'Contract job card sent on WhatsApp.' : 'Contract job card queued on WhatsApp.');
+            window.alert(response.data?.message || 'Contract job card sent on WhatsApp.');
             return;
           }
           const invoiceId = String(whatsappComposer.row?.invoiceId || whatsappComposer.row?._id || '').trim();

@@ -7474,7 +7474,7 @@ const handleContractJobCardSummaryPdf = async (req, res) => {
       || matchesPdfReference(entry?.invoiceNumber, contractReference)
       || matchesPdfReference(entry?.contractNo, contractReference)
     ));
-    const settings = normalizeJobPdfSettings(await readSettingsFromMysql().catch(() => readSettings()), req);
+    const settings = normalizeJobPdfSettings(await loadCurrentSettingsForNumbering(), req);
     const pdfBuffer = await buildContractJobCardSummaryPdfBuffer({ invoice, jobs: relatedJobs, settings });
     const fileName = `${String(invoice.invoiceNumber || invoice._id || 'contract').replace(/[^\w.-]+/g, '_')}_job_card_summary.pdf`;
 
@@ -7493,6 +7493,168 @@ const handleContractJobCardSummaryPdf = async (req, res) => {
 
 app.get('/api/contracts/:id/job-card-summary-pdf', handleContractJobCardSummaryPdf);
 app.get('/api/contracts/:invoiceId/job-card-pdf', handleContractJobCardSummaryPdf);
+
+app.post(['/api/contracts/:id/send-whatsapp', '/api/contracts/:invoiceId/send-whatsapp'], async (req, res) => {
+  try {
+    const contractRef = normalizePdfReference(req.params.id || req.params.invoiceId || req.params.contractRef || '');
+    const invoices = await loadInvoicesForContext();
+    const jobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
+    const invoice = findInvoiceByPdfReference(invoices, contractRef);
+    if (!invoice) return res.status(404).json({ error: 'Contract not found' });
+
+    const contractReference = normalizePdfReference(
+      invoice._id
+      || invoice.invoiceId
+      || invoice.invoiceNumber
+      || invoice.invoice_no
+      || invoice.contractId
+      || invoice.contractNumber
+    );
+    const relatedJobs = (Array.isArray(jobs) ? jobs : []).filter((entry) => (
+      matchesPdfReference(entry?.contractId, contractReference)
+      || matchesPdfReference(entry?.invoiceId, contractReference)
+      || matchesPdfReference(entry?.contractNumber, contractReference)
+      || matchesPdfReference(entry?.invoiceNumber, contractReference)
+      || matchesPdfReference(entry?.contractNo, contractReference)
+    ));
+
+    const settings = normalizeJobPdfSettings(await loadCurrentSettingsForNumbering(), req);
+    const pdfBuffer = await buildContractJobCardSummaryPdfBuffer({ invoice, jobs: relatedJobs, settings });
+    const phoneRaw = String(
+      req.body?.phoneNumber
+      || req.body?.recipientPhone
+      || invoice.whatsappNumber
+      || invoice.mobileNumber
+      || invoice.mobile
+      || invoice.phoneNumber
+      || invoice.phone
+      || ''
+    ).trim();
+    const phone = normalizeWhatsappPhone(phoneRaw);
+    if (!phone) return res.status(400).json({ error: 'Valid WhatsApp phone number is required' });
+
+    const invoiceNumber = String(invoice.invoiceNumber || invoice._id || contractReference || 'Contract').trim() || 'Contract';
+    const message = String(
+      req.body?.message
+      || `Dear ${String(invoice.customerName || 'Customer').trim() || 'Customer'},\n\nPlease find attached contract service history / job card summary for ${invoiceNumber}.\n\nRegards,\n${String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control').trim() || 'SKUAS Pest Control'}`
+    ).trim();
+    const waConfig = resolveWhatsappConfig(settings);
+    const useProviderApi = ['custom', 'deropo'].includes(String(waConfig.providerType || '').trim().toLowerCase()) && Boolean(waConfig.baseUrl);
+
+    if (useProviderApi) {
+      if (waConfig.providerType === 'deropo') {
+        if (!waConfig.baseUrl || !waConfig.accessToken) {
+          return res.status(400).json({
+            error: 'WhatsApp API settings are incomplete. Configure API Base URL and Access Token in WhatsApp Settings.'
+          });
+        }
+      } else if (!waConfig.baseUrl || !waConfig.instanceId || !waConfig.accessToken) {
+        return res.status(400).json({
+          error: 'WhatsApp API settings are incomplete. Configure API Base URL, Instance ID, and Access Token in WhatsApp Settings.'
+        });
+      }
+
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      const fileNameBase = String(invoice.invoiceNumber || invoice._id || `CONTRACT_${Date.now()}`).replace(/[^\w.-]+/g, '_');
+      const attachmentFileName = `whatsapp-contract-${Date.now()}-${fileNameBase}.pdf`;
+      const attachmentPath = path.join(uploadsDir, attachmentFileName);
+      fs.writeFileSync(attachmentPath, pdfBuffer);
+
+      const sent = await sendWhatsAppMessage({
+        settings,
+        to: phone,
+        message,
+        attachmentUrl: `${resolveServerOrigin(req)}/uploads/${attachmentFileName}`,
+        attachmentName: `${fileNameBase}_job_card_summary.pdf`
+      });
+
+      return res.json({
+        message: 'Contract job card summary sent on WhatsApp successfully',
+        phone,
+        provider: sent.provider,
+        attachmentUrl: `${resolveServerOrigin(req)}/uploads/${attachmentFileName}`,
+        whatsappResponse: sent.response
+      });
+    }
+
+    if (!waConfig.phoneNumberId || !waConfig.accessToken) {
+      return res.status(400).json({
+        error: 'WhatsApp API settings are incomplete. Configure Phone Number ID and Access Token in WhatsApp Settings.'
+      });
+    }
+
+    const graphBase = `https://graph.facebook.com/${waConfig.apiVersion}`;
+    const mediaForm = new FormData();
+    mediaForm.append('messaging_product', 'whatsapp');
+    mediaForm.append('type', 'application/pdf');
+    mediaForm.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }), `${invoiceNumber}_job_card_summary.pdf`);
+
+    const uploadResponse = await fetch(`${graphBase}/${waConfig.phoneNumberId}/media`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${waConfig.accessToken}`
+      },
+      body: mediaForm
+    });
+
+    const uploadRaw = await uploadResponse.text();
+    let uploadJson;
+    try {
+      uploadJson = JSON.parse(uploadRaw);
+    } catch {
+      uploadJson = { raw: uploadRaw };
+    }
+
+    if (!uploadResponse.ok) {
+      return res.status(400).json({
+        error: uploadJson?.error?.message || uploadJson?.message || 'Failed to upload contract PDF to WhatsApp',
+        response: uploadJson
+      });
+    }
+
+    const mediaId = uploadJson.id || uploadJson.media_id || uploadJson.mediaId;
+    const sendDocResponse = await fetch(`${graphBase}/${waConfig.phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${waConfig.accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: phone,
+        type: 'document',
+        document: {
+          id: mediaId,
+          filename: `${invoiceNumber}_job_card_summary.pdf`
+        }
+      })
+    });
+
+    const sendDocRaw = await sendDocResponse.text();
+    let sendDocJson;
+    try {
+      sendDocJson = JSON.parse(sendDocRaw);
+    } catch {
+      sendDocJson = { raw: sendDocRaw };
+    }
+
+    if (!sendDocResponse.ok) {
+      return res.status(400).json({
+        error: sendDocJson?.error?.message || sendDocJson?.message || 'Failed to send contract PDF via WhatsApp',
+        response: sendDocJson
+      });
+    }
+
+    res.json({
+      message: 'Contract job card summary sent on WhatsApp successfully',
+      phone,
+      whatsappResponse: sendDocJson
+    });
+  } catch (error) {
+    console.error('Failed to send contract job card summary WhatsApp message:', error.message);
+    res.status(500).json({ error: 'Could not send contract job card summary on WhatsApp' });
+  }
+});
 
 const normalizeComplaintRecord = (input = {}, fallback = {}) => {
   const source = (input && typeof input === 'object') ? input : {};
