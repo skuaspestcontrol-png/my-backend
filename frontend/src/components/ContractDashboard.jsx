@@ -490,8 +490,41 @@ const mergeContractsDashboardCache = (patch) => {
       String(customer.displayName || customer.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
     ) || null;
 
-  const sendInvoiceEmail = async (invoice) => {
+  const resolveInvoiceWhatsAppContact = (invoice = {}) => {
     const customer = findCustomerForInvoice(invoice);
+    const customerName = String(
+      customer?.displayName
+      || customer?.name
+      || invoice.customerName
+      || invoice.customer
+      || invoice.contactPersonName
+      || 'Customer'
+    ).trim() || 'Customer';
+    const phoneSource = String(
+      customer?.whatsappNumber
+      || customer?.mobileNumber
+      || customer?.workPhone
+      || invoice.whatsappNumber
+      || invoice.mobileNumber
+      || invoice.mobile
+      || invoice.customerPhone
+      || invoice.phoneNumber
+      || invoice.phone
+      || invoice.contactPhone
+      || ''
+    ).trim();
+
+    return {
+      customer,
+      customerName,
+      phoneSource,
+      recipientPhone: normalizeIndianMobileNumber(phoneSource),
+      displayPhone: formatIndianMobileNumber(phoneSource)
+    };
+  };
+
+  const sendInvoiceEmail = async (invoice) => {
+    const { customer, customerName } = resolveInvoiceWhatsAppContact(invoice);
     const invoiceNumber = String(invoice.invoiceNumber || '').trim() || 'Invoice';
     const recipient = window.prompt('Enter recipient email', String(customer?.emailId || customer?.email || '').trim());
     if (!recipient) return;
@@ -508,13 +541,12 @@ const mergeContractsDashboardCache = (patch) => {
   };
 
   const sendContractJobCardEmail = async (invoice) => {
-    const customer = findCustomerForInvoice(invoice);
+    const { customer, customerName } = resolveInvoiceWhatsAppContact(invoice);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Contract';
     const recipient = window.prompt('Enter recipient email', String(customer?.emailId || customer?.email || '').trim());
     if (!recipient) return;
 
     const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(String(invoice._id || invoiceNumber).trim())}/job-card-summary-pdf`);
-    const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
     const subject = `Job Card Summary - ${invoiceNumber} from SKUAS Pest Control`;
     const body = `
       <div style="font-family:Arial,sans-serif;color:#111827;font-size:14px;line-height:1.5">
@@ -626,11 +658,8 @@ export default function ContractDashboard() {
   const contractProfitRequestRef = useRef(0);
 
   const openInvoiceWhatsAppComposer = (invoice) => {
-    const customer = findCustomerForInvoice(invoice);
-    const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
+    const { customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Invoice';
-    const recipientPhone = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
-    const displayPhone = formatIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
     setWhatsappComposer({
       open: true,
       kind: 'invoice',
@@ -657,11 +686,8 @@ export default function ContractDashboard() {
   };
 
   const openContractJobCardWhatsAppComposer = (invoice) => {
-    const customer = findCustomerForInvoice(invoice);
-    const customerName = String(customer?.displayName || customer?.name || invoice.customerName || 'Customer').trim() || 'Customer';
+    const { customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Contract';
-    const recipientPhone = normalizeIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
-    const displayPhone = formatIndianMobileNumber(customer?.whatsappNumber || customer?.mobileNumber || customer?.workPhone || '');
     const contractId = resolveContractWhatsAppTargetId(invoice) || invoiceNumber;
     const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(contractId)}/job-card-summary-pdf`);
     setWhatsappComposer({
