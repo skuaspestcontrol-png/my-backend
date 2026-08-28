@@ -649,6 +649,7 @@ export default function ContractDashboard() {
   const [customerProfitSummary, setCustomerProfitSummary] = useState(null);
   const [customerProfitLoading, setCustomerProfitLoading] = useState(false);
   const [customerProfitError, setCustomerProfitError] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '', previewKind: 'invoice', shareContext: null });
   const [whatsappComposer, setWhatsappComposer] = useState({ open: false, kind: '', row: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' });
   const [page, setPage] = useState(1);
@@ -656,10 +657,26 @@ export default function ContractDashboard() {
   const customerNameClickTimerRef = useRef(null);
   const contractsLoadPromiseRef = useRef(null);
   const contractProfitRequestRef = useRef(0);
+  const toastTimerRef = useRef(null);
+
+  const showToast = (message) => {
+    const text = String(message || '').trim();
+    if (!text) return;
+    setToastMessage(text);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage('');
+      toastTimerRef.current = null;
+    }, 3500);
+  };
 
   const openInvoiceWhatsAppComposer = (invoice) => {
     const { customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Invoice';
+    if (!recipientPhone) {
+      showToast(`No WhatsApp number found for ${customerName}.`);
+      return;
+    }
     setWhatsappComposer({
       open: true,
       kind: 'invoice',
@@ -688,6 +705,10 @@ export default function ContractDashboard() {
   const openContractJobCardWhatsAppComposer = (invoice) => {
     const { customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Contract';
+    if (!recipientPhone) {
+      showToast(`No WhatsApp number found for ${customerName}.`);
+      return;
+    }
     const contractId = resolveContractWhatsAppTargetId(invoice) || invoiceNumber;
     const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(contractId)}/job-card-summary-pdf`);
     setWhatsappComposer({
@@ -862,6 +883,10 @@ export default function ContractDashboard() {
   useEffect(() => {
     loadContractsData({ silent: hasCachedDashboard });
   }, [hasCachedDashboard]);
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
 
   useAutoRefresh(() => loadContractsData({ silent: true }), { enabled: !customerSummary.open });
 
@@ -2346,6 +2371,26 @@ export default function ContractDashboard() {
           window.alert(response.data?.message || 'Invoice sent on WhatsApp.');
         }}
       />
+      {toastMessage ? (
+        <div style={{
+          position: 'fixed',
+          right: '16px',
+          bottom: '16px',
+          zIndex: 7000,
+          maxWidth: 'min(420px, calc(100vw - 32px))',
+          padding: '12px 14px',
+          borderRadius: '12px',
+          background: 'rgba(254, 226, 226, 0.98)',
+          color: '#991b1b',
+          border: '1px solid rgba(239, 68, 68, 0.24)',
+          boxShadow: '0 12px 30px rgba(15,23,42,0.18)',
+          fontSize: '13px',
+          fontWeight: 700,
+          lineHeight: 1.4
+        }}>
+          {toastMessage}
+        </div>
+      ) : null}
     </div>
   );
 }
