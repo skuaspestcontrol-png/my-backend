@@ -13,6 +13,7 @@ const {
 
 const router = express.Router();
 const emailTemplatesFile = path.join(__dirname, '..', 'data', 'email_templates.json');
+const settingsFile = path.join(__dirname, '..', 'data', 'settings.json');
 
 const LEGACY_QUOTATION_DEFAULTS = {
   opening_paragraph: 'Thank you for the kind courtesy extended to us. We are pleased to submit our offer for your pest control requirement.',
@@ -998,7 +999,7 @@ router.post('/quotations/:id/send-whatsapp', async (req, res) => {
     const [templateSettings] = await dbQuery('SELECT * FROM quotation_template_settings ORDER BY id ASC LIMIT 1');
     const [commonParagraphs] = await dbQuery('SELECT * FROM quotation_common_paragraphs ORDER BY id ASC LIMIT 1');
     const companySettings = await loadMainAppSettings();
-    const settings = companySettings;
+    const settings = readJsonFile(settingsFile, {});
 
     const recipientPhone = String(
       req.body?.phoneNumber
