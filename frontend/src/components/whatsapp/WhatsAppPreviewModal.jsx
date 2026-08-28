@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import axios from 'axios';
 import { X } from 'lucide-react';
+import { normalizeIndianMobileNumber } from '../../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -33,7 +34,7 @@ export default function WhatsAppPreviewModal({
   React.useEffect(() => {
     if (!open) return;
     setMessage(initialMessage);
-    setPhoneValue(String(recipientPhone || ''));
+    setPhoneValue(normalizeIndianMobileNumber(recipientPhone || ''));
     setAttachment(null);
     setAttachmentUrl(String(previewData?.suggestedAttachmentUrl || previewData?.attachmentUrl || ''));
     setError('');
@@ -45,12 +46,13 @@ export default function WhatsAppPreviewModal({
     try {
       setBusy(true);
       setError('');
+      const normalizedPhone = normalizeIndianMobileNumber(phoneValue);
       const payload = {
         moduleType,
         templateType: previewData?.template?.templateType,
         templateId: previewData?.template?.id,
         recipientName,
-        recipientPhone: phoneValue,
+        recipientPhone: normalizedPhone,
         recipientType,
         sentByUser,
         moduleName: moduleType,
@@ -69,7 +71,7 @@ export default function WhatsAppPreviewModal({
           if (typeof onSent === 'function') onSent();
           onClose();
           return;
-        }
+      }
 
       if (attachment) {
         const formData = new FormData();
@@ -110,7 +112,7 @@ export default function WhatsAppPreviewModal({
               {allowRecipientEdit ? (
                 <input
                   value={phoneValue}
-                  onChange={(event) => setPhoneValue(event.target.value)}
+                  onChange={(event) => setPhoneValue(normalizeIndianMobileNumber(event.target.value))}
                   placeholder="Enter WhatsApp number"
                   style={{ minHeight: '40px', width: '100%', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px', fontSize: '14px' }}
                 />
