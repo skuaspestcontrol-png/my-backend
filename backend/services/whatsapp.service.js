@@ -28,6 +28,32 @@ const resolveActiveFlag = (settings = {}) => {
   return false;
 };
 
+const buildWhatsAppCredentialDiagnostics = (settings = {}) => {
+  const providerType = String(settings.whatsappProviderType || 'custom').trim().toLowerCase();
+  const baseUrl = String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim();
+  const instanceId = String(settings.whatsappInstanceId || settings.instanceId || settings.whatsappPhoneNumberId || '').trim();
+  const accessToken = String(settings.whatsappAccessToken || settings.accessToken || '').trim();
+  const phoneNumber = String(settings.whatsappPhoneNumber || settings.phoneNumber || '').trim();
+  const missingFields = [];
+
+  if (!baseUrl) missingFields.push('API Base URL');
+  if (providerType !== 'deropo' && !instanceId) missingFields.push('Instance ID');
+  if (!accessToken) missingFields.push('Access Token');
+
+  const active = resolveActiveFlag(settings);
+
+  return {
+    providerType,
+    active,
+    baseUrlPresent: Boolean(baseUrl),
+    instanceIdPresent: Boolean(instanceId),
+    accessTokenPresent: Boolean(accessToken),
+    phoneNumberPresent: Boolean(phoneNumber),
+    missingFields,
+    isConfigured: missingFields.length === 0
+  };
+};
+
 const getAttachmentType = (attachmentUrl = '', attachmentName = '') => {
   const source = String(attachmentName || attachmentUrl || '').toLowerCase();
   if (/\.(jpe?g|png|webp|gif)$/.test(source)) return 'image';
@@ -69,9 +95,21 @@ const buildProviderConfig = (settings = {}) => {
 
 const sendWhatsAppMessage = async ({ settings, to, message, attachmentUrl, attachmentName }) => {
   const provider = buildProviderConfig(settings);
+  const diagnostics = buildWhatsAppCredentialDiagnostics(settings);
   const phoneCheck = validatePhoneNumber(to);
   if (!phoneCheck.ok) throw new Error(phoneCheck.error);
-  if (!provider.active) throw new Error('WhatsApp API is inactive. Enable it in Settings > WhatsApp API Settings.');
+
+  if (!diagnostics.isConfigured) {
+    const error = new Error(`WhatsApp API credentials are incomplete. Missing: ${diagnostics.missingFields.join(', ')}.`);
+    error.details = diagnostics;
+    throw error;
+  }
+
+  if (!provider.active) {
+    const error = new Error('WhatsApp API is inactive. Enable it in Settings > WhatsApp API Settings.');
+    error.details = diagnostics;
+    throw error;
+  }
 
   if (provider.providerType === 'deropo') {
     if (!provider.baseUrl || !provider.accessToken) {
@@ -173,5 +211,6 @@ module.exports = {
   normalizePhoneNumber,
   validatePhoneNumber,
   buildProviderConfig,
+  buildWhatsAppCredentialDiagnostics,
   sendWhatsAppMessage
 };

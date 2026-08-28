@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { PHONE_VALIDATION_ERROR, isValidIndianMobileNumber, normalizeIndianMobileNumber } from '../../utils/phone';
 import { getPortalUserName } from '../../utils/portalAuth';
@@ -26,10 +26,48 @@ const normalizeLoadedForm = (data = {}) => ({
   providerType: String(data.providerType || (String(data.apiBaseUrl || '').includes('deropo') ? 'deropo' : 'custom')).trim() || 'custom'
 });
 
+const getWhatsAppDiagnostic = (form = {}) => {
+  const providerType = String(form.providerType || 'custom').trim().toLowerCase();
+  const baseUrl = String(form.apiBaseUrl || '').trim();
+  const instanceId = String(form.instanceId || '').trim();
+  const accessToken = String(form.accessToken || '').trim();
+  const phoneNumber = String(form.phoneNumber || '').trim();
+  const active = Boolean(form.active);
+  const missing = [];
+
+  if (!baseUrl) missing.push('API Base URL');
+  if (providerType !== 'deropo' && !instanceId) missing.push('Instance ID');
+  if (!accessToken) missing.push('Access Token');
+  if (providerType === 'deropo' && !phoneNumber) missing.push('Phone Number');
+
+  if (!active) {
+    return {
+      tone: 'warning',
+      text: 'WhatsApp API is turned off.',
+      missing
+    };
+  }
+
+  if (missing.length > 0) {
+    return {
+      tone: 'danger',
+      text: `Missing: ${missing.join(', ')}.`,
+      missing
+    };
+  }
+
+  return {
+    tone: 'success',
+    text: `WhatsApp API looks ready for ${providerType === 'deropo' ? 'Deropo' : 'custom'} sends.`,
+    missing
+  };
+};
+
 export default function WhatsAppSettings() {
   const [form, setForm] = useState(empty);
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
+  const diagnostic = useMemo(() => getWhatsAppDiagnostic(form), [form]);
 
   const load = async () => {
     try {
@@ -90,6 +128,19 @@ export default function WhatsAppSettings() {
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Test Number<input value={form.testNumber} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, testNumber: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
         </div>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '12px' }}><input type="checkbox" checked={form.active} onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))} /> Active</label>
+        <p style={{
+          margin: 0,
+          padding: '10px 12px',
+          borderRadius: '10px',
+          border: `1px solid ${diagnostic.tone === 'success' ? 'rgba(22,163,74,0.18)' : diagnostic.tone === 'danger' ? 'rgba(220,38,38,0.22)' : 'rgba(245,158,11,0.22)'}`,
+          background: diagnostic.tone === 'success' ? 'rgba(240,253,244,0.95)' : diagnostic.tone === 'danger' ? 'rgba(254,242,242,0.96)' : 'rgba(255,251,235,0.96)',
+          color: diagnostic.tone === 'success' ? '#166534' : diagnostic.tone === 'danger' ? '#b91c1c' : '#92400e',
+          fontSize: '12px',
+          fontWeight: 700,
+          lineHeight: 1.45
+        }}>
+          {diagnostic.text}
+        </p>
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button type="submit" disabled={busy} style={{ minHeight: '36px', borderRadius: '8px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 700, fontSize: '12px' }}>Save Settings</button>

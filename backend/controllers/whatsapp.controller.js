@@ -8,7 +8,8 @@ const {
 } = require('../services/whatsappTemplate.service');
 const {
   sendWhatsAppMessage,
-  validatePhoneNumber
+  validatePhoneNumber,
+  buildWhatsAppCredentialDiagnostics
 } = require('../services/whatsapp.service');
 
 const nowIso = () => new Date().toISOString();
@@ -188,7 +189,8 @@ function createWhatsAppController(deps) {
       accessToken: '',
       active: inferWhatsAppActive(settings),
       testNumber: '',
-      providerType
+      providerType,
+      diagnostic: buildWhatsAppCredentialDiagnostics(settings)
     });
   };
 
