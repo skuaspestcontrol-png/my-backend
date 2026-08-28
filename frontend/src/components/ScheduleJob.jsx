@@ -847,31 +847,18 @@ export default function ScheduleJob() {
 
     const serviceName = String(context.serviceName || 'Service').trim() || 'Service';
     const jobNumber = String(context.jobNumber || pdfPreview.title.replace(/^Job Card -\s*/i, '') || 'Job').trim();
-    const shareUrl = String(pdfPreview.publicShareUrl || pdfPreview.pdfUrl || '').trim();
     const message = `Dear ${customerName},\n\nPlease find attached your completed service job card for ${jobNumber}.\n\nRegards,\nSKUAS Pest Control`;
     setPdfPreview((prev) => ({ ...prev, open: false }));
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
-        moduleType: 'job',
-        templateType: 'custom_message',
-        recipientName: customerName,
-        recipientPhone,
-        recipientType: 'Customer',
-        sentByUser: getPortalUserName() || 'User',
-        moduleName: 'Job Card',
-        message,
-        attachmentUrl: shareUrl,
-        attachmentName: `${jobNumber.replace(/[^\w.-]+/g, '_') || 'job-card'}.pdf`,
-        contextData: {
-          customer_name: customerName,
-          customer_phone: recipientPhone,
-          service_type: serviceName,
-          address: String(context.address || '').trim(),
-          job_date: String(context.scheduledDate || '').trim(),
-          job_time: String(context.scheduledTime || '').trim(),
-          company_name: 'SKUAS Pest Control'
-        }
+      const jobId = String(context.jobId || '').trim();
+      if (!jobId) {
+        showToast('Job id is missing for WhatsApp sharing.');
+        return;
+      }
+      const response = await axios.post(`${API_BASE_URL}/api/service-visits/${encodeURIComponent(jobId)}/send-whatsapp`, {
+        phoneNumber: recipientPhone,
+        message
       });
       window.alert(response.data?.success ? 'Job card sent on WhatsApp.' : 'Job card queued on WhatsApp.');
     } catch (error) {

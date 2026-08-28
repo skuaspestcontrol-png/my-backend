@@ -1790,6 +1790,7 @@ export default function TechnicianPortal() {
       downloadFileName: `${jobNumber.replace(/[^\w.-]+/g, '_')}.pdf`,
       publicShareUrl: basePdfUrl,
       shareContext: {
+        jobId: jobReference,
         jobNumber,
         customerName: String(job.customerName || '-').trim() || '-',
         customerEmail: String(job.customerEmail || job.emailId || job.email || job.customer_email || '').trim(),
@@ -1871,32 +1872,18 @@ export default function TechnicianPortal() {
     const recipientPhone = String(window.prompt('Enter recipient WhatsApp number', defaultPhone) || '').trim();
     if (!recipientPhone) return;
     const jobNumber = String(context.jobNumber || pdfPreview.title.replace(/^Job Card -\s*/i, '') || 'Job').trim();
-    const shareUrl = String(pdfPreview.publicShareUrl || pdfPreview.pdfUrl || '').trim();
     const message = `Dear ${customerName},\n\nPlease find attached your service job card for ${jobNumber}.\n\nRegards,\nSKUAS Pest Control`;
     setPdfPreview((prev) => ({ ...prev, open: false }));
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
-        moduleType: 'job',
-        templateType: 'custom_message',
-        recipientName: customerName,
-        recipientPhone,
-        recipientType: 'Customer',
-        sentByUser: getPortalUserName() || 'User',
-        moduleName: 'Job Card',
-        message,
-        attachmentUrl: shareUrl,
-        attachmentName: `${jobNumber.replace(/[^\w.-]+/g, '_') || 'job-card'}.pdf`,
-        contextData: {
-          customer_name: customerName,
-          customer_phone: recipientPhone,
-          service_type: String(context.serviceType || '').trim() || 'Service Job Card',
-          address: String(context.address || '').trim(),
-          job_date: String(context.jobDate || '').trim(),
-          job_time: String(context.jobTime || '').trim(),
-          technician_name: String(context.technicianName || '').trim(),
-          company_name: 'SKUAS Pest Control'
-        }
+      const jobId = String(context.jobId || '').trim();
+      if (!jobId) {
+        showToast('Job id is missing for WhatsApp sharing.');
+        return;
+      }
+      const response = await axios.post(`${API_BASE_URL}/api/service-visits/${encodeURIComponent(jobId)}/send-whatsapp`, {
+        phoneNumber: recipientPhone,
+        message
       });
       window.alert(response.data?.success ? 'Job card sent on WhatsApp.' : 'Job card queued on WhatsApp.');
     } catch (error) {
