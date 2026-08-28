@@ -44,7 +44,7 @@ const searchScopes = [
   { value: 'renewalId', label: 'Renewal ID' },
   { value: 'followup', label: 'Follow-up Note' }
 ];
-const tabs = ['Renewal Dashboard', 'Renewal Letters', 'Renewal List', 'Month Wise View', 'Year Wise View', 'Sales Person Wise View'];
+const tabs = ['Renewals', 'Renewal Letters', 'Renewal List', 'Month Wise View', 'Year Wise View', 'Sales Person Wise View'];
 const renewalColumns = [
   { key: 'customer', label: 'Customer' },
   { key: 'mobile', label: 'Mobile' },
@@ -292,7 +292,7 @@ export default function RenewalDashboard() {
       const focusRenewalId = String(focus?.renewalId || '').trim();
       if (!focusRenewalId) return;
       setHighlightedRenewalId(focusRenewalId);
-      setActiveTab('Renewal Dashboard');
+      setActiveTab('Renewals');
     };
 
     const onFocusEvent = () => {
@@ -1207,7 +1207,7 @@ export default function RenewalDashboard() {
     <div style={shell.page}>
       <div style={shell.hero}>
         <div>
-          <h1 style={shell.title}>Renewal Dashboard</h1>
+          <h1 style={shell.title}>Renewals</h1>
         </div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: isMobile ? 'stretch' : 'center' }}>
           <div style={shell.searchRow}>
@@ -1257,7 +1257,7 @@ export default function RenewalDashboard() {
           ))}
         </div>
         {loading ? <div style={shell.panelPad}>Loading renewals...</div> : null}
-        {!loading && (activeTab === 'Renewal Dashboard' || activeTab === 'Renewal List') ? renderRows() : null}
+        {!loading && (activeTab === 'Renewals' || activeTab === 'Renewal List') ? renderRows() : null}
         {!loading && activeTab === 'Month Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.monthWiseSummary, 'period')}</div> : null}
         {!loading && activeTab === 'Year Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.yearWiseSummary, 'year')}</div> : null}
         {!loading && activeTab === 'Sales Person Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.salespersonWiseSummary, 'name', 'total', { onCountClick: drillDownBySalesPerson })}</div> : null}

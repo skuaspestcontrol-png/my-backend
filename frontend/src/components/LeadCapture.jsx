@@ -2411,7 +2411,7 @@ export default function LeadCapture() {
       <div style={s.analyticsWrap}>
         <div style={analyticsHeaderStyle}>
           <div style={s.analyticsTitleWrap}>
-            <h3 style={analyticsTitleStyle}>Lead Master Overview Summary</h3>
+            <h3 style={analyticsTitleStyle}>Lead Overview Summary</h3>
             <p style={s.analyticsSub}>Year-wise, month-wise, pest issue-wise, source-wise, status-wise, and assigned-wise lead analytics.</p>
           </div>
         </div>
@@ -2545,7 +2545,7 @@ export default function LeadCapture() {
       <div style={s.registerCard}>
         <div style={registerHeadStyle}>
           <div style={s.registerTitleWrap}>
-            <h2 style={registerTitleStyle}>Lead Master</h2>
+            <h2 style={registerTitleStyle}>Leads</h2>
           </div>
           <div style={registerActionsStyle}>
             <button type="button" style={buttonPrimaryStyle} onClick={openLeadModal}>
@@ -2860,7 +2860,7 @@ export default function LeadCapture() {
         </div>
         <div style={leadFooterStyle}>
           <div style={toolbarLeftStyle}>
-            <span style={s.toolLabel}>Lead Master</span>
+            <span style={s.toolLabel}>Leads</span>
             <span style={s.toolbarMeta}>
               {sortedLeads.length ? `${firstLeadRecord}-${lastLeadRecord} of ${sortedLeads.length} records` : '0 records'}
             </span>

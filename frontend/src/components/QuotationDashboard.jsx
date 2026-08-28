@@ -493,7 +493,7 @@ function QuotationDashboardInner() {
     <section style={shell.page}>
       <header style={headerStyle}>
         <div>
-          <h1 style={titleStyle}>Quotation Dashboard</h1>
+          <h1 style={titleStyle}>Quotation</h1>
           <p style={subtitleStyle}>Professional proposal tracking with settings-based numbering, content, and PDF style.</p>
         </div>
         <div style={actionsStyle}>
