@@ -6,6 +6,7 @@ const { syncPayrollJsonFilesToMysql } = require('./lib/autoMigrate');
 const { normalizeIndianMobileNumber } = require('./lib/phone');
 const { renderQuotationPdfHeader } = require('./quotationPdf');
 const { sendEmailMessage, normalizeEmailSettings } = require('./services/email.service');
+const { sendWhatsAppMessage } = require('./services/whatsapp.service');
 
 const round2 = (value) => Number((Number(value) || 0).toFixed(2));
 const toNumber = (value, fallback = 0) => {
@@ -147,6 +148,8 @@ const normalizeWhatsappPhone = (raw) => {
 };
 const resolveWhatsappConfig = (settings = {}) => ({
   apiVersion: settings.whatsappApiVersion || process.env.WHATSAPP_API_VERSION || 'v23.0',
+  providerType: String(settings.whatsappProviderType || (settings.whatsappApiBaseUrl ? 'deropo' : 'meta')).trim().toLowerCase(),
+  baseUrl: String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim(),
   phoneNumberId: settings.whatsappInstanceId || settings.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '',
   accessToken: settings.whatsappAccessToken || process.env.WHATSAPP_ACCESS_TOKEN || ''
 });
@@ -2938,62 +2941,73 @@ function registerPayrollModule({
 
       const settings = await loadPayrollCompanySettings();
       const waConfig = resolveWhatsappConfig(settings);
-      if (!waConfig.phoneNumberId || !waConfig.accessToken) {
-        return res.status(400).json({ error: 'WhatsApp API settings are incomplete. Configure Phone Number ID and Access Token in Settings.' });
-      }
-
       const company = resolveCompanyDetails(settings);
       const { absolutePath } = await ensureSalarySlipStored({ item, company, branding: settings, withMysqlConnection });
       const fileName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
-      const graphBase = `https://graph.facebook.com/${waConfig.apiVersion}`;
       const shareOrigin = serverOrigin || 'https://crm.skuaspestcontrol.com';
       const shareLink = `${shareOrigin}/api/payroll/items/${item._id}/slip/pdf?download=1&role=Employee&userId=${encodeURIComponent(item.employeeId || '')}&userName=${encodeURIComponent(item.employeeName || '')}&_ts=${Date.now()}`;
       const caption = String(req.body?.message || `Salary slip for ${pad2(item.month)}/${item.year}\n${company.companyName}\n${shareLink}`).trim().slice(0, 1024);
-
-      const mediaForm = new FormData();
-      mediaForm.append('messaging_product', 'whatsapp');
-      mediaForm.append('type', 'application/pdf');
-      mediaForm.append('file', new Blob([fs.readFileSync(absolutePath)], { type: 'application/pdf' }), fileName);
-
-      const uploadResponse = await fetch(`${graphBase}/${waConfig.phoneNumberId}/media`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${waConfig.accessToken}`
-        },
-        body: mediaForm
-      });
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('WhatsApp payroll media upload failed:', errorText);
-        return res.status(502).json({ error: 'Could not upload salary slip to WhatsApp API' });
-      }
-      const uploadJson = await uploadResponse.json();
-      const mediaId = uploadJson?.id;
-      if (!mediaId) return res.status(502).json({ error: 'WhatsApp media upload did not return media id' });
-
-      const sendDocResponse = await fetch(`${graphBase}/${waConfig.phoneNumberId}/messages`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${waConfig.accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
+      const useCustomProvider = ['custom', 'deropo'].includes(waConfig.providerType) && Boolean(waConfig.baseUrl);
+      let sendDocJson;
+      if (useCustomProvider) {
+        const sent = await sendWhatsAppMessage({
+          settings,
           to: phone,
-          type: 'document',
-          document: {
-            id: mediaId,
-            filename: fileName,
-            caption
-          }
-        })
-      });
-      if (!sendDocResponse.ok) {
-        const errorText = await sendDocResponse.text();
-        console.error('WhatsApp payroll document send failed:', errorText);
-        return res.status(502).json({ error: 'Could not send salary slip on WhatsApp' });
+          message: caption,
+          attachmentUrl: shareLink,
+          attachmentName: fileName
+        });
+        sendDocJson = sent.response;
+      } else {
+        if (!waConfig.phoneNumberId || !waConfig.accessToken) {
+          return res.status(400).json({ error: 'WhatsApp API settings are incomplete. Configure Phone Number ID and Access Token in Settings.' });
+        }
+        const graphBase = `https://graph.facebook.com/${waConfig.apiVersion}`;
+        const mediaForm = new FormData();
+        mediaForm.append('messaging_product', 'whatsapp');
+        mediaForm.append('type', 'application/pdf');
+        mediaForm.append('file', new Blob([fs.readFileSync(absolutePath)], { type: 'application/pdf' }), fileName);
+
+        const uploadResponse = await fetch(`${graphBase}/${waConfig.phoneNumberId}/media`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${waConfig.accessToken}`
+          },
+          body: mediaForm
+        });
+        if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          console.error('WhatsApp payroll media upload failed:', errorText);
+          return res.status(502).json({ error: 'Could not upload salary slip to WhatsApp API' });
+        }
+        const uploadJson = await uploadResponse.json();
+        const mediaId = uploadJson?.id;
+        if (!mediaId) return res.status(502).json({ error: 'WhatsApp media upload did not return media id' });
+
+        const sendDocResponse = await fetch(`${graphBase}/${waConfig.phoneNumberId}/messages`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${waConfig.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: phone,
+            type: 'document',
+            document: {
+              id: mediaId,
+              filename: fileName,
+              caption
+            }
+          })
+        });
+        if (!sendDocResponse.ok) {
+          const errorText = await sendDocResponse.text();
+          console.error('WhatsApp payroll document send failed:', errorText);
+          return res.status(502).json({ error: 'Could not send salary slip on WhatsApp' });
+        }
+        sendDocJson = await sendDocResponse.json();
       }
-      const sendDocJson = await sendDocResponse.json();
 
       writeAudit({
         auditFile: payrollAuditFile,
