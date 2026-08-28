@@ -7290,7 +7290,7 @@ const handleServiceVisitJobCardPdf = async (req, res) => {
       return res.status(409).json({ error: 'Service job card PDF is available only for completed services' });
     }
 
-    const settings = normalizeJobPdfSettings(await readSettingsFromMysql().catch(() => readSettings()), req);
+    const settings = normalizeJobPdfSettings(await loadCurrentSettingsForNumbering(), req);
     const pdfBuffer = await buildJobPdfBuffer({ job, settings, req, allJobs });
     const asAttachment = String(req.query.download || '').trim() === '1';
     const fileNameBase = String(job.jobCardNumber || job.job_card_number || job.jobNumber || job._id || `JOB_${Date.now()}`).replace(/[^\w.-]+/g, '_');
@@ -7323,7 +7323,7 @@ app.post(['/api/service-visits/:id/send-whatsapp', '/api/jobs/:id/send-whatsapp'
       return res.status(409).json({ error: 'Service job card WhatsApp sharing is available only for completed services' });
     }
 
-    const settings = normalizeJobPdfSettings(await readSettingsFromMysql().catch(() => readSettings()), req);
+    const settings = normalizeJobPdfSettings(await loadCurrentSettingsForNumbering(), req);
     const pdfBuffer = await buildJobPdfBuffer({ job, settings, req, allJobs });
     const fileNameBase = String(job.jobCardNumber || job.job_card_number || job.jobNumber || job._id || `JOB_${Date.now()}`).replace(/[^\w.-]+/g, '_');
     const fileName = `${fileNameBase}.pdf`;
@@ -9203,21 +9203,27 @@ const findDuplicateInvoiceNumber = (invoices, invoiceNumber, excludeId = '') => 
 };
 
 const loadCurrentSettingsForNumbering = async () => {
+  const fileSettings = readSettings();
   if (canUseMysql()) {
     try {
-      const [mysqlSettings, fileSettings] = await Promise.all([
-        readSettingsFromMysql(),
-        Promise.resolve(readSettings())
-      ]);
+      const mysqlSettings = await readSettingsFromMysql();
       return sanitizeSettings({
         ...(fileSettings || {}),
-        ...(mysqlSettings || {})
+        ...(mysqlSettings || {}),
+        whatsappApiBaseUrl: String(fileSettings.whatsappApiBaseUrl || mysqlSettings?.whatsappApiBaseUrl || mysqlSettings?.apiBaseUrl || '').trim(),
+        whatsappPhoneNumber: String(fileSettings.whatsappPhoneNumber || mysqlSettings?.whatsappPhoneNumber || mysqlSettings?.phoneNumber || '').trim(),
+        whatsappInstanceId: String(fileSettings.whatsappInstanceId || fileSettings.whatsappPhoneNumberId || mysqlSettings?.whatsappInstanceId || mysqlSettings?.whatsappPhoneNumberId || mysqlSettings?.instanceId || '').trim(),
+        whatsappPhoneNumberId: String(fileSettings.whatsappPhoneNumberId || fileSettings.whatsappInstanceId || mysqlSettings?.whatsappPhoneNumberId || mysqlSettings?.whatsappInstanceId || mysqlSettings?.instanceId || '').trim(),
+        whatsappAccessToken: String(fileSettings.whatsappAccessToken || mysqlSettings?.whatsappAccessToken || mysqlSettings?.accessToken || '').trim(),
+        whatsappProviderType: String(fileSettings.whatsappProviderType || mysqlSettings?.whatsappProviderType || mysqlSettings?.providerType || '').trim().toLowerCase(),
+        whatsappApiActive: fileSettings.whatsappApiActive ?? mysqlSettings?.whatsappApiActive ?? mysqlSettings?.whatsappActive ?? mysqlSettings?.active,
+        whatsappTestNumber: String(fileSettings.whatsappTestNumber || mysqlSettings?.whatsappTestNumber || '').trim()
       });
     } catch (error) {
       console.error('Failed to load settings from MySQL for invoice numbering, using JSON fallback:', error.message);
     }
   }
-  return readSettings();
+  return fileSettings;
 };
 
 const loadRuntimeEmailSettings = async () => {
@@ -9427,12 +9433,7 @@ const resolveInvoiceContext = async (invoiceId) => {
     String(entry?.displayName || entry?.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
   ) || null;
 
-  let settings = readSettings();
-  try {
-    settings = await readSettingsFromMysql();
-  } catch (error) {
-    console.error('Settings context MySQL load failed, using fallback:', error.message);
-  }
+  const settings = await loadCurrentSettingsForNumbering();
 
   return {
     invoice,
