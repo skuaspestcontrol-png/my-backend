@@ -28,6 +28,16 @@ const parseJsonSafe = (raw, fallback) => {
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
 
+const resolveAttachmentUrl = (rawUrl, req, resolveServerOrigin) => {
+  const value = String(rawUrl || '').trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith('//')) return `https:${value}`;
+  const origin = typeof resolveServerOrigin === 'function' ? String(resolveServerOrigin(req) || '').trim() : '';
+  if (!origin) return value;
+  return `${origin.replace(/\/+$/, '')}/${value.replace(/^\/+/, '')}`;
+};
+
 function createWhatsAppController(deps) {
   const {
     dataDir,
@@ -291,6 +301,7 @@ function createWhatsAppController(deps) {
     const contextData = buildContextPayload(body.contextData || {}, settings);
     const message = String(body.message || replaceVariables(template?.messageBody || '', contextData)).trim();
     const recipientPhone = String(body.recipientPhone || contextData.customer_phone || '').trim();
+    const attachmentUrl = resolveAttachmentUrl(body.attachmentUrl, req, resolveServerOrigin);
 
     if (!message) return res.status(400).json({ error: 'Message body is required.' });
 
@@ -302,7 +313,7 @@ function createWhatsAppController(deps) {
       moduleName: String(body.moduleName || moduleType || 'custom').trim(),
       templateId: String(template?.id || body.templateId || '').trim(),
       message,
-      attachmentUrl: String(body.attachmentUrl || '').trim(),
+      attachmentUrl,
       attachmentName: String(body.attachmentName || '').trim(),
       originalPayload: body
     };
@@ -312,7 +323,7 @@ function createWhatsAppController(deps) {
         settings,
         to: recipientPhone,
         message,
-        attachmentUrl: logPayload.attachmentUrl,
+        attachmentUrl,
         attachmentName: logPayload.attachmentName
       });
 
