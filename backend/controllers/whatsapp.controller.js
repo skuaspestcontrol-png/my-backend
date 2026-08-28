@@ -28,6 +28,17 @@ const parseJsonSafe = (raw, fallback) => {
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
 
+const inferWhatsAppActive = (settings = {}) => {
+  if (settings.whatsappApiActive !== undefined) return toBool(settings.whatsappApiActive);
+  if (settings.whatsappActive !== undefined) return toBool(settings.whatsappActive);
+  if (settings.active !== undefined) return toBool(settings.active);
+  const hasBaseUrl = Boolean(String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim());
+  const hasAccessToken = Boolean(String(settings.whatsappAccessToken || settings.accessToken || '').trim());
+  const hasInstance = Boolean(String(settings.whatsappInstanceId || settings.instanceId || settings.whatsappPhoneNumberId || '').trim());
+  const hasPhoneNumber = Boolean(String(settings.whatsappPhoneNumber || settings.phoneNumber || '').trim());
+  return hasBaseUrl && hasAccessToken && (hasInstance || hasPhoneNumber);
+};
+
 const resolveAttachmentUrl = (rawUrl, req, resolveServerOrigin) => {
   const value = String(rawUrl || '').trim();
   if (!value) return '';
@@ -175,7 +186,7 @@ function createWhatsAppController(deps) {
       phoneNumber: '',
       instanceId: '',
       accessToken: '',
-      active: toBool(settings.whatsappApiActive),
+      active: inferWhatsAppActive(settings),
       testNumber: '',
       providerType
     });

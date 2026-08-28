@@ -10,6 +10,21 @@ const resolveActiveFlag = (settings = {}) => {
   if (settings.whatsappApiActive !== undefined) return toBool(settings.whatsappApiActive);
   if (settings.whatsappActive !== undefined) return toBool(settings.whatsappActive);
   if (settings.active !== undefined) return toBool(settings.active);
+  const hasDeropoCredentials = Boolean(
+    String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim()
+    && String(settings.whatsappAccessToken || settings.accessToken || '').trim()
+  );
+  const hasCustomCredentials = Boolean(
+    String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim()
+    && String(settings.whatsappInstanceId || settings.instanceId || settings.whatsappPhoneNumberId || '').trim()
+    && String(settings.whatsappAccessToken || settings.accessToken || '').trim()
+  );
+  const hasStoredIntegration = Boolean(
+    String(settings.whatsappProviderType || '').trim()
+    || String(settings.whatsappPhoneNumber || settings.phoneNumber || '').trim()
+  );
+
+  if (hasDeropoCredentials || hasCustomCredentials || hasStoredIntegration) return true;
   return false;
 };
 
