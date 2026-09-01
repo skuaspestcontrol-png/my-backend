@@ -365,6 +365,7 @@ const salaryFormDefaults = {
   bonus: '',
   incentive: '',
   otherAllowance: '',
+  food: '',
   bankName: '',
   accountNumber: '',
   ifsc: '',
@@ -807,6 +808,7 @@ export default function PayrollModule() {
         bonus: String(latest.allowances?.bonus ?? ''),
         incentive: String(latest.allowances?.incentive ?? ''),
         otherAllowance: String(latest.allowances?.other ?? ''),
+        food: String(latest.allowances?.food ?? ''),
         bankName: String(latest.bankName ?? ''),
         accountNumber: String(latest.accountNumber ?? ''),
         ifsc: String(latest.ifsc ?? ''),
@@ -885,7 +887,8 @@ export default function PayrollModule() {
           mobile: Number(salaryForm.mobile || 0),
           bonus: Number(salaryForm.bonus || 0),
           incentive: Number(salaryForm.incentive || 0),
-          other: Number(salaryForm.otherAllowance || 0)
+          other: Number(salaryForm.otherAllowance || 0),
+          food: Number(salaryForm.food || 0)
         },
         deductions: {
           leave: Number(salaryForm.leaveDeduction || 0),
@@ -1477,6 +1480,7 @@ export default function PayrollModule() {
           <div style={shell.field}><p style={shell.label}>Bonus</p><input type="number" style={shell.input} value={salaryForm.bonus} onChange={(event) => setSalaryForm((prev) => ({ ...prev, bonus: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Incentive</p><input type="number" style={shell.input} value={salaryForm.incentive} onChange={(event) => setSalaryForm((prev) => ({ ...prev, incentive: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Other Allowance</p><input type="number" style={shell.input} value={salaryForm.otherAllowance} onChange={(event) => setSalaryForm((prev) => ({ ...prev, otherAllowance: event.target.value }))} /></div>
+          <div style={shell.field}><p style={shell.label}>Food</p><input type="number" style={shell.input} value={salaryForm.food} onChange={(event) => setSalaryForm((prev) => ({ ...prev, food: event.target.value }))} /></div>
         </div>
         <div style={shell.setupSection}>
           <p style={shell.setupSectionTitle}>Deductions</p>

@@ -418,7 +418,8 @@ const normalizeSalaryStructure = (raw = {}) => {
     mobile: toNumber(raw.allowances?.mobile ?? raw.mobile, 0),
     bonus: toNumber(raw.allowances?.bonus ?? raw.bonus, 0),
     incentive: toNumber(raw.allowances?.incentive ?? raw.incentive, 0),
-    other: toNumber(raw.allowances?.other ?? raw.other, 0)
+    other: toNumber(raw.allowances?.other ?? raw.other, 0),
+    food: toNumber(raw.allowances?.food ?? raw.food, 0)
   };
   const deductions = {
     leave: toNumber(raw.deductions?.leave ?? raw.leave, 0),
@@ -871,7 +872,8 @@ const calcPayrollItem = ({
     mobile: toNumber(structure?.allowances?.mobile, 0),
     bonus: toNumber(structure?.allowances?.bonus, 0),
     incentive: toNumber(structure?.allowances?.incentive, 0),
-    other: toNumber(structure?.allowances?.other, 0)
+    other: toNumber(structure?.allowances?.other, 0),
+    food: toNumber(structure?.allowances?.food, 0)
   };
   const fixedDeductions = {
     leave: toNumber(structure?.deductions?.leave, 0),
@@ -1127,7 +1129,8 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     ['Mobile Allowance', item.allowances.mobile],
     ['Bonus', item.allowances.bonus],
     ['Incentive', item.allowances.incentive],
-    ['Other Allowance', item.allowances.other]
+    ['Other Allowance', item.allowances.other],
+    ['Food', item.allowances.food]
   ];
   const deductionRows = [
     ['Leave Deduction', item.deductions.leaveDeduction],
