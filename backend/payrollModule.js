@@ -491,6 +491,9 @@ const normalizePayrollRecord = (raw = {}) => {
     basicSalary: round2(toNumber(raw.basicSalary ?? raw.basic_salary, 0)),
     salaryType: normalizeText(raw.salaryType || raw.salary_type || 'monthly'),
     perDaySalary: round2(toNumber(raw.perDaySalary ?? raw.per_day_salary, 0)),
+    overtimeRate: round2(toNumber(raw.overtimeRate ?? raw.overtime_rate, 0)),
+    overtimeEarning: round2(toNumber(raw.overtimeEarning ?? raw.overtime_earning, 0)),
+    sundayWorkEarning: round2(toNumber(raw.sundayWorkEarning ?? raw.sunday_work_earning, 0)),
     attendanceSummary: raw.attendanceSummary || raw.attendance_summary || {},
     allowances: raw.allowances || {},
     deductions: raw.deductions || {},
@@ -644,6 +647,7 @@ const summarizeAttendanceForPayroll = ({
   let unpaidLeaveDays = 0;
   let halfDays = 0;
   let weeklyOffDays = 0;
+  let sundayPresentDays = 0;
   let paidHolidayDays = 0;
   let unpaidHolidayDays = 0;
   let lateMarks = 0;
@@ -689,7 +693,13 @@ const summarizeAttendanceForPayroll = ({
       return;
     }
     if (isWeeklyOff) {
-      const rawHours = Math.max(0, toNumber(att.workingHours ?? att.hoursWorked ?? 0, 0));
+      const checkInMins = toMinutes(att.checkIn || '');
+      const checkOutMins = toMinutes(att.checkOut || '');
+      const calculatedHours = checkInMins !== null && checkOutMins !== null && checkOutMins > checkInMins
+        ? minutesToHours(checkOutMins - checkInMins)
+        : 0;
+      const rawHours = Math.max(0, toNumber(att.workingHours ?? att.hoursWorked ?? calculatedHours, 0));
+      if (dateObj.getDay() === 0 && status === 'present') sundayPresentDays += 1;
       if (rawHours > 0) {
         weeklyOffDays += 1;
         sundayOvertimeHours += rawHours;
@@ -819,6 +829,7 @@ const summarizeAttendanceForPayroll = ({
     unpaidLeaveDays: round2(unpaidLeaveDays),
     halfDays: round2(halfDays),
     weeklyOffDays: round2(weeklyOffDays),
+    sundayPresentDays: round2(sundayPresentDays),
     paidHolidayDays: round2(paidHolidayDays),
     unpaidHolidayDays: round2(unpaidHolidayDays),
     lateMarks: round2(lateMarks),
@@ -1050,52 +1061,67 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
 
   const dividerY = Math.max(doc.y + 8, 118);
   const headerBottomY = dividerY + 26;
-  doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a').text('Salary Slip', 42, headerBottomY);
-  doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`For ${slipMonthLabel}`, 42, headerBottomY + 18);
-  const policyBoxY = headerBottomY + 30;
-  const policyBoxHeight = 30;
-  doc.save();
-  doc.roundedRect(42, policyBoxY, 511, policyBoxHeight, 8)
-    .fillAndStroke('#f8fafc', '#d0d7e2');
-  doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#0f172a')
-    .text('Policy note', 54, policyBoxY + 7);
-  doc.font('Helvetica').fontSize(8.5).fillColor('#475569')
-    .text('Monthly salary uses calendar days in the selected month. Sunday work is paid at the normal hourly rate.', 118, policyBoxY + 7, { width: 420 });
-  doc.restore();
-  line(policyBoxY + policyBoxHeight + 8);
+  doc.font('Helvetica-Bold').fontSize(16).fillColor('#0f172a').text('Salary Slip', 42, headerBottomY);
+  doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`For ${slipMonthLabel}`, 42, headerBottomY + 21);
 
-  const infoTopY = headerBottomY + 50;
-  textValue('Employee Name:', item.employeeName, 42, infoTopY);
-  textValue('Employee ID:', item.employeeCode, 310, infoTopY);
-  textValue('Designation:', item.designation || '-', 42, infoTopY + 18);
-  textValue('Department:', item.department || '-', 310, infoTopY + 18);
-  textValue('Payment Status:', item.paymentStatus || 'Pending', 42, infoTopY + 36);
-  textValue('Payroll Status:', item.payrollStatus || '-', 310, infoTopY + 36);
-  line(infoTopY + 60);
+  const infoTopY = headerBottomY + 43;
+  const infoBottomY = infoTopY + 57;
+  doc.roundedRect(42, infoTopY - 7, 511, 64, 7).fillAndStroke('#ffffff', '#d0d7e2');
+  textValue('Employee Name:', item.employeeName, 54, infoTopY + 4);
+  textValue('Employee ID:', item.employeeCode, 310, infoTopY + 4);
+  textValue('Designation:', item.designation || '-', 54, infoTopY + 22);
+  textValue('Department:', item.department || '-', 310, infoTopY + 22);
+  textValue('Payment Status:', item.paymentStatus || 'Pending', 54, infoTopY + 40);
+  textValue('Payroll Status:', item.payrollStatus || '-', 310, infoTopY + 40);
+  line(infoBottomY + 10);
 
-  const attendanceTopY = infoTopY + 70;
+  const summary = item.attendanceSummary || {};
+  const attendanceTopY = infoBottomY + 23;
   doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('Attendance Summary', 42, attendanceTopY);
-  doc.font('Helvetica').fontSize(10).fillColor('#111827')
-    .text(`Working Days: ${item.attendanceSummary.totalWorkingDays}`, 42, attendanceTopY + 18)
-    .text(`Present: ${item.attendanceSummary.presentDays}`, 180, attendanceTopY + 18)
-    .text(`Paid Leave: ${item.attendanceSummary.paidLeaveDays}`, 290, attendanceTopY + 18)
-    .text(`Unpaid Leave: ${item.attendanceSummary.unpaidLeaveDays}`, 430, attendanceTopY + 18)
-    .text(`Half Day: ${item.attendanceSummary.halfDays}`, 42, attendanceTopY + 36)
-    .text(`Late Marks: ${item.attendanceSummary.lateMarks}`, 180, attendanceTopY + 36)
-    .text(`Weekly Off: ${item.attendanceSummary.weeklyOffDays}`, 290, attendanceTopY + 36)
-    .text(`Paid Holiday: ${item.attendanceSummary.paidHolidayDays}`, 430, attendanceTopY + 36)
-    .text(`Overtime Hours: ${round2(item.overtimeHours || item.attendanceSummary.overtimeHours || 0)}`, 42, attendanceTopY + 54)
-    .text(`Short-Hour Deduction: INR ${Number(item.deductions.shortHoursDeduction || 0).toFixed(2)}`, 180, attendanceTopY + 54);
-  line(attendanceTopY + 60);
+  const attendanceRows = [
+    [
+      ['Working Days', summary.totalWorkingDays],
+      ['Present', summary.presentDays],
+      ['Sunday Present', summary.sundayPresentDays],
+      ['Paid Leave', summary.paidLeaveDays]
+    ],
+    [
+      ['Unpaid Leave', summary.unpaidLeaveDays],
+      ['Half Day', summary.halfDays],
+      ['Late Marks', summary.lateMarks],
+      ['Weekly Off', summary.weeklyOffDays]
+    ],
+    [
+      ['Paid Holiday', summary.paidHolidayDays],
+      ['Overtime Hours', round2(item.overtimeHours || summary.overtimeHours || 0)],
+      ['Short-Hour Deduction', `INR ${amount(item.deductions?.shortHoursDeduction || 0)}`],
+      ['', '']
+    ]
+  ];
+  attendanceRows.forEach((row, rowIndex) => row.forEach(([label, value], columnIndex) => {
+    if (!label) return;
+    const x = [42, 170, 298, 426][columnIndex];
+    doc.font('Helvetica').fontSize(9.5).fillColor('#111827').text(`${label}: ${value ?? 0}`, x, attendanceTopY + 19 + (rowIndex * 17));
+  }));
+  line(attendanceTopY + 76);
 
-  const earningsTopY = attendanceTopY + 70;
+  const earningsTopY = attendanceTopY + 91;
+  const overtimeRate = Number(item.overtimeRate || 0);
+  const overtimeHours = Number(item.overtimeHours || summary.overtimeHours || 0);
+  const fallbackOvertimeRate = summary.daysInMonth > 0
+    ? (Number(item.basicSalary || 0) / Number(summary.daysInMonth) / defaultPayrollConfig.standardDailyHours) * defaultPayrollConfig.overtimeMultiplier
+    : 0;
+  const overtimeEarning = Number(item.overtimeEarning || 0)
+    || round2(overtimeHours * (overtimeRate || fallbackOvertimeRate));
+  const sundayWorkEarning = Number(item.sundayWorkEarning || 0)
+    || round2(Number(summary.sundayNormalEarningHours || 0) * (Number(item.basicSalary || 0) / Number(summary.daysInMonth || 30) / defaultPayrollConfig.standardDailyHours));
   doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('Earnings', 42, earningsTopY);
   doc.font('Helvetica-Bold').text('Deductions', 310, earningsTopY);
 
   const earningsRows = [
     ['Basic Salary', item.basicSalary],
-    ['Overtime Earnings', item.overtimeEarning],
-    ...(Number(item.sundayWorkEarning || 0) > 0 ? [['Sunday Work', item.sundayWorkEarning]] : []),
+    ['Overtime Earnings', overtimeEarning],
+    ...(sundayWorkEarning > 0 ? [['Sunday Work', sundayWorkEarning]] : []),
     ['HRA', item.allowances.hra],
     ['Conveyance', item.allowances.conveyance],
     ['Mobile Allowance', item.allowances.mobile],
@@ -1114,8 +1140,14 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     ['Other Deduction', item.deductions.otherDeduction]
   ];
   const rowHeight = 18;
+  doc.roundedRect(42, earningsTopY + 18, 241, 18, 4).fill('#f1f5f9');
+  doc.roundedRect(310, earningsTopY + 18, 243, 18, 4).fill('#f1f5f9');
+  doc.font('Helvetica-Bold').fontSize(8).fillColor('#64748b').text('EARNING', 50, earningsTopY + 24);
+  doc.text('AMOUNT (INR)', 225, earningsTopY + 24, { width: 70, align: 'right' });
+  doc.text('DEDUCTION', 318, earningsTopY + 24);
+  doc.text('AMOUNT (INR)', 493, earningsTopY + 24, { width: 60, align: 'right' });
   for (let i = 0; i < Math.max(earningsRows.length, deductionRows.length); i += 1) {
-    const y = earningsTopY + 22 + (i * rowHeight);
+    const y = earningsTopY + 42 + (i * rowHeight);
     const left = earningsRows[i];
     const right = deductionRows[i];
     if (left) {
@@ -1128,7 +1160,7 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     }
   }
 
-  const totalY = earningsTopY + 22 + (Math.max(earningsRows.length, deductionRows.length) * rowHeight) + 8;
+  const totalY = earningsTopY + 42 + (Math.max(earningsRows.length, deductionRows.length) * rowHeight) + 8;
   line(totalY);
   doc.font('Helvetica-Bold').fontSize(10).text('Gross Salary', 42, totalY + 8);
   doc.text(amount(item.grossSalary), 225, totalY + 8, { width: 70, align: 'right' });
@@ -1142,8 +1174,18 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
 
   const wordsY = netY + 50;
   doc.font('Helvetica').fontSize(9).fillColor('#334155').text(`In Words: ${item.salaryInWords}`, 42, wordsY, { width: 511 });
-  doc.font('Helvetica').text('Authorized Signature', 430, wordsY + 60);
-  doc.moveTo(425, wordsY + 76).lineTo(552, wordsY + 76).strokeColor('#94a3b8').stroke();
+  const policyBoxY = wordsY + 25;
+  const policyBoxHeight = 31;
+  doc.roundedRect(42, policyBoxY, 511, policyBoxHeight, 8).fillAndStroke('#f8fafc', '#d0d7e2');
+  doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#0f172a').text('Policy note', 54, policyBoxY + 9);
+  doc.font('Helvetica').fontSize(8.5).fillColor('#475569').text(
+    'Monthly salary uses calendar days in the selected month. Sunday work is paid at the normal hourly rate.',
+    118,
+    policyBoxY + 9,
+    { width: 420 }
+  );
+  doc.font('Helvetica').fontSize(9).fillColor('#334155').text('Authorized Signature', 430, policyBoxY + 53);
+  doc.moveTo(425, policyBoxY + 69).lineTo(552, policyBoxY + 69).strokeColor('#94a3b8').stroke();
 
   doc.end();
 });
