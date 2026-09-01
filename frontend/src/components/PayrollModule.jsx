@@ -2103,7 +2103,6 @@ export default function PayrollModule() {
         onShareEmail={() => shareSlip('email')}
         onShareWhatsApp={() => shareSlip('whatsapp')}
         publicShareUrl={slipViewer.url}
-        policyNote="Monthly salary uses calendar days in the selected month. Sunday work is paid at the normal hourly rate."
       />
 
       <WhatsAppPreviewModal
