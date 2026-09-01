@@ -394,7 +394,8 @@ const computeAttendanceMetrics = (record = {}) => {
   const status = String(record.status || 'absent').trim().toLowerCase();
   const workingHours = computeHours(status, record.checkIn, record.checkOut);
   const attendanceDate = String(record.date || '').trim();
-  const isSunday = attendanceDate ? isSundayDate(attendanceDate) : false;
+  const weekdayName = attendanceDate ? getWeekdayName(attendanceDate) : '';
+  const isSunday = weekdayName === 'Sunday';
   const checkInMinutes = timeToMinutes(record.checkIn);
   const checkOutMinutes = timeToMinutes(record.checkOut);
   const shiftStartMinutes = timeToMinutes(attendanceShift.start);
@@ -414,7 +415,7 @@ const computeAttendanceMetrics = (record = {}) => {
     return {
       workingHours,
       overtimeHours: 0,
-      overtimeLabel: `Sunday normal ${workingHours.toFixed(2)} hrs`,
+      overtimeLabel: `${weekdayName} normal ${workingHours.toFixed(2)} hrs`,
       overtimeTone: 'sunday',
       overtimeTitle: 'Sunday work is paid at the normal daily rate, not 2x.'
     };
@@ -438,7 +439,7 @@ const computeAttendanceMetrics = (record = {}) => {
     return {
       workingHours,
       overtimeHours: Number(overtimeHours.toFixed(2)),
-      overtimeLabel: `OT ${overtimeHours.toFixed(2)} hrs`,
+      overtimeLabel: `${weekdayName ? `${weekdayName} ` : ''}OT ${overtimeHours.toFixed(2)} hrs`,
       overtimeTone: 'positive',
       overtimeTitle: `Carry-forward overtime starts at ${formatMinutesAsClock(overtimeStartMinutes)}.`
     };
@@ -448,7 +449,7 @@ const computeAttendanceMetrics = (record = {}) => {
     return {
       workingHours,
       overtimeHours: 0,
-      overtimeLabel: 'Late, no OT',
+      overtimeLabel: `${weekdayName ? `${weekdayName} ` : ''}Late, no OT`,
       overtimeTone: 'warning',
       overtimeTitle: `Late by ${lateMinutes} minutes. Overtime starts at ${formatMinutesAsClock(overtimeStartMinutes)} if work continues.`
     };
@@ -457,7 +458,7 @@ const computeAttendanceMetrics = (record = {}) => {
   return {
     workingHours,
     overtimeHours: 0,
-    overtimeLabel: 'No OT',
+    overtimeLabel: `${weekdayName ? `${weekdayName} ` : ''}No OT`,
     overtimeTone: 'neutral',
     overtimeTitle: 'Overtime only applies after the shift end once check-out extends beyond carry-forward time.'
   };
@@ -490,10 +491,12 @@ const shiftDateByDays = (value, deltaDays) => {
   return `${year}-${month}-${day}`;
 };
 
-const isSundayDate = (value) => {
+const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const getWeekdayName = (value) => {
   const parsed = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return false;
-  return parsed.getDay() === 0;
+  if (Number.isNaN(parsed.getTime())) return '';
+  return weekdayNames[parsed.getDay()] || '';
 };
 
 const readAttendanceCache = () => {
@@ -564,7 +567,8 @@ export default function Attendance() {
       const attendanceMonth = monthFromDate(attendanceDate) || month;
       const cachedSelection = readAttendanceCache();
       const shouldSilenceLoad = silent || Boolean(cachedSelection && cachedSelection.date === attendanceDate && cachedSelection.month === attendanceMonth);
-      const sunday = isSundayDate(attendanceDate);
+      const weekdayName = getWeekdayName(attendanceDate);
+      const sunday = weekdayName === 'Sunday';
       try {
         const [employeesRes, attendanceRes, monthAttendanceRes] = await Promise.allSettled([
           axios.get(`${API_BASE}/api/employees`),
