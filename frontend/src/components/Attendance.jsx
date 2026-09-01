@@ -121,6 +121,8 @@ const shell = {
   title: { margin: 0, fontSize: '30px', letterSpacing: '-0.02em', color: '#0f172a', fontWeight: 800 },
   subtitle: { margin: 0, fontSize: '13px', color: '#475569', fontWeight: 600 },
   topbarActions: { display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+  dateControls: { display: 'grid', justifyItems: 'end', gap: '4px' },
+  weekdayLabel: { color: '#475569', fontSize: '12px', fontWeight: 800, letterSpacing: '0.04em' },
   dateStepper: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -415,7 +417,7 @@ const computeAttendanceMetrics = (record = {}) => {
     return {
       workingHours,
       overtimeHours: 0,
-      overtimeLabel: `${weekdayName} normal ${workingHours.toFixed(2)} hrs`,
+      overtimeLabel: `normal ${workingHours.toFixed(2)} hrs`,
       overtimeTone: 'sunday',
       overtimeTitle: 'Sunday work is paid at the normal daily rate, not 2x.'
     };
@@ -439,7 +441,7 @@ const computeAttendanceMetrics = (record = {}) => {
     return {
       workingHours,
       overtimeHours: Number(overtimeHours.toFixed(2)),
-      overtimeLabel: `${weekdayName ? `${weekdayName} ` : ''}OT ${overtimeHours.toFixed(2)} hrs`,
+      overtimeLabel: `OT ${overtimeHours.toFixed(2)} hrs`,
       overtimeTone: 'positive',
       overtimeTitle: `Carry-forward overtime starts at ${formatMinutesAsClock(overtimeStartMinutes)}.`
     };
@@ -449,7 +451,7 @@ const computeAttendanceMetrics = (record = {}) => {
     return {
       workingHours,
       overtimeHours: 0,
-      overtimeLabel: `${weekdayName ? `${weekdayName} ` : ''}Late, no OT`,
+      overtimeLabel: 'Late, no OT',
       overtimeTone: 'warning',
       overtimeTitle: `Late by ${lateMinutes} minutes. Overtime starts at ${formatMinutesAsClock(overtimeStartMinutes)} if work continues.`
     };
@@ -458,7 +460,7 @@ const computeAttendanceMetrics = (record = {}) => {
   return {
     workingHours,
     overtimeHours: 0,
-    overtimeLabel: `${weekdayName ? `${weekdayName} ` : ''}No OT`,
+    overtimeLabel: 'No OT',
     overtimeTone: 'neutral',
     overtimeTitle: 'Overtime only applies after the shift end once check-out extends beyond carry-forward time.'
   };
@@ -931,7 +933,8 @@ export default function Attendance() {
           <h2 style={shell.title}>Attendance</h2>
           <p style={shell.subtitle}>Maintain daily attendance, leave records, and working hours in one clean view.</p>
         </div>
-        <div style={shell.topbarActions}>
+        <div style={shell.dateControls}>
+          <div style={shell.topbarActions}>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
             <input
               type="month"
@@ -967,6 +970,8 @@ export default function Attendance() {
             </button>
           </div>
         </div>
+        <span style={shell.weekdayLabel}>{getWeekdayName(date)}</span>
+      </div>
       </div>
 
       <h3 style={shell.sectionTitle}>Month Wise Summary ({monthHeading(month)})</h3>
