@@ -431,6 +431,12 @@ const normalizeSalaryStructure = (raw = {}) => {
     other: toNumber(raw.deductions?.other ?? raw.other, 0),
     latePerMark: toNumber(raw.deductions?.latePerMark ?? raw.latePerMark, 0)
   };
+  const normalizeCustomComponents = (value) => (Array.isArray(value) ? value : [])
+    .map((entry) => ({
+      name: normalizeText(entry?.name || entry?.componentName || ''),
+      amount: Math.max(0, toNumber(entry?.amount, 0))
+    }))
+    .filter((entry) => entry.name);
   return {
     _id: normalizeText(raw._id || `SAL-${Date.now()}`),
     employeeId: normalizeText(raw.employeeId),
@@ -451,6 +457,8 @@ const normalizeSalaryStructure = (raw = {}) => {
     joiningDate: normalizeText(raw.joiningDate || raw.dateOfJoining || ''),
     allowances,
     deductions,
+    customAllowances: normalizeCustomComponents(raw.customAllowances),
+    customDeductions: normalizeCustomComponents(raw.customDeductions),
     notes: normalizeText(raw.notes || ''),
     createdAt: raw.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -885,7 +893,10 @@ const calcPayrollItem = ({
     other: toNumber(structure?.deductions?.other, 0),
     latePerMark: toNumber(structure?.deductions?.latePerMark, 0)
   };
-  const allowanceTotal = Object.values(allowances).reduce((sum, value) => sum + toNumber(value, 0), 0);
+  const customAllowances = Array.isArray(structure?.customAllowances) ? structure.customAllowances : [];
+  const customDeductions = Array.isArray(structure?.customDeductions) ? structure.customDeductions : [];
+  const allowanceTotal = Object.values(allowances).reduce((sum, value) => sum + toNumber(value, 0), 0)
+    + customAllowances.reduce((sum, entry) => sum + toNumber(entry.amount, 0), 0);
   const overtimeHours = toNumber(attendanceSummary.overtimeHours, 0);
   const calendarDaysInMonth = Math.max(1, toNumber(attendanceSummary.daysInMonth, 30));
   const monthlyPerDaySalary = round2(baseSalary / calendarDaysInMonth);
@@ -956,6 +967,7 @@ const calcPayrollItem = ({
     + fixedDeductions.pf
     + fixedDeductions.esi
     + fixedDeductions.other
+    + customDeductions.reduce((sum, entry) => sum + toNumber(entry.amount, 0), 0)
   );
 
   const grossSalary = round2(baseEarned + allowanceTotal + overtimeEarning);
@@ -985,6 +997,7 @@ const calcPayrollItem = ({
     sundayWorkEarning,
     attendanceSummary,
     allowances: { ...allowances, total: round2(allowanceTotal) },
+    customAllowances,
     deductions: {
       leaveDeduction: round2(leaveDeduction),
       lateComingDeduction: round2(lateDeduction),
@@ -994,6 +1007,7 @@ const calcPayrollItem = ({
       pf: round2(fixedDeductions.pf),
       esi: round2(fixedDeductions.esi),
       otherDeduction: round2(fixedDeductions.other),
+      customDeductions,
       fixedLeaveDeduction: round2(fixedDeductions.leave),
       total: round2(deductionTotal)
     },
@@ -1047,7 +1061,7 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     logoUrl: resolvedLogoPath
   };
   const { headerBottomY: quotationHeaderBottomY } = renderQuotationPdfHeader(doc, headerSettings, headerCompanySettings);
-  doc.y = quotationHeaderBottomY + 18;
+  doc.y = quotationHeaderBottomY;
 
   const line = (y) => {
     doc.moveTo(42, y).lineTo(553, y).strokeColor('#d0d7e2').stroke();
@@ -1061,8 +1075,8 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     .toLocaleDateString('en-IN', { month: 'long' })
     .concat(`-${item.year}`);
 
-  const dividerY = Math.max(doc.y + 8, 118);
-  const headerBottomY = dividerY + 26;
+  const dividerY = Math.max(doc.y, 118);
+  const headerBottomY = dividerY + 12;
   doc.font('Helvetica-Bold').fontSize(16).fillColor('#0f172a').text('Salary Slip', 42, headerBottomY);
   doc.font('Helvetica').fontSize(10).fillColor('#334155').text(`For ${slipMonthLabel}`, 42, headerBottomY + 21);
 
@@ -1130,7 +1144,8 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     ['Bonus', item.allowances.bonus],
     ['Incentive', item.allowances.incentive],
     ['Other Allowance', item.allowances.other],
-    ['Food', item.allowances.food]
+    ['Food', item.allowances.food],
+    ...(Array.isArray(item.customAllowances) ? item.customAllowances.map((entry) => [entry.name, entry.amount]) : [])
   ];
   const deductionRows = [
     ['Leave Deduction', item.deductions.leaveDeduction],
@@ -1140,7 +1155,8 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     ['Loan Deduction', item.deductions.loanDeduction],
     ['PF', item.deductions.pf],
     ['ESI', item.deductions.esi],
-    ['Other Deduction', item.deductions.otherDeduction]
+    ['Other Deduction', item.deductions.otherDeduction],
+    ...(Array.isArray(item.deductions.customDeductions) ? item.deductions.customDeductions.map((entry) => [entry.name, entry.amount]) : [])
   ];
   const rowHeight = 18;
   doc.roundedRect(42, earningsTopY + 18, 241, 18, 4).fill('#f1f5f9');
@@ -1735,7 +1751,9 @@ function registerPayrollModule({
         ];
         const allowanceRows = Object.entries(structure.allowances || {}).filter(([name]) => name !== 'total').map(([name, amount]) => [name, 'allowance', Number(amount || 0)]);
         const deductionRows = Object.entries(structure.deductions || {}).filter(([name]) => name !== 'latePerMark').map(([name, amount]) => [name, 'deduction', Number(amount || 0)]);
-        const rowsToInsert = [...baseRows, ...allowanceRows, ...deductionRows];
+        const customAllowanceRows = (structure.customAllowances || []).map((entry) => [entry.name, 'allowance', Number(entry.amount || 0)]);
+        const customDeductionRows = (structure.customDeductions || []).map((entry) => [entry.name, 'deduction', Number(entry.amount || 0)]);
+        const rowsToInsert = [...baseRows, ...allowanceRows, ...deductionRows, ...customAllowanceRows, ...customDeductionRows];
         for (const [componentName, componentType, amount] of rowsToInsert) {
           await conn.query(
             `INSERT INTO ${PAYROLL_TABLES.components}

@@ -366,6 +366,7 @@ const salaryFormDefaults = {
   incentive: '',
   otherAllowance: '',
   food: '',
+  customAllowances: [],
   bankName: '',
   accountNumber: '',
   ifsc: '',
@@ -381,6 +382,7 @@ const salaryFormDefaults = {
   pf: '',
   esi: '',
   otherDeduction: '',
+  customDeductions: [],
   notes: ''
 };
 
@@ -809,6 +811,7 @@ export default function PayrollModule() {
         incentive: String(latest.allowances?.incentive ?? ''),
         otherAllowance: String(latest.allowances?.other ?? ''),
         food: String(latest.allowances?.food ?? ''),
+        customAllowances: Array.isArray(latest.customAllowances) ? latest.customAllowances.map((entry) => ({ name: String(entry.name || ''), amount: String(entry.amount ?? '') })) : [],
         bankName: String(latest.bankName ?? ''),
         accountNumber: String(latest.accountNumber ?? ''),
         ifsc: String(latest.ifsc ?? ''),
@@ -824,6 +827,7 @@ export default function PayrollModule() {
         pf: String(latest.deductions?.pf ?? ''),
         esi: String(latest.deductions?.esi ?? ''),
         otherDeduction: String(latest.deductions?.other ?? ''),
+        customDeductions: Array.isArray(latest.customDeductions || latest.deductions?.customDeductions) ? (latest.customDeductions || latest.deductions.customDeductions).map((entry) => ({ name: String(entry.name || ''), amount: String(entry.amount ?? '') })) : [],
         notes: latest.notes || ''
       });
       return;
@@ -854,6 +858,24 @@ export default function PayrollModule() {
       return true;
     });
   }, [payrollItems, filters, role.canViewOwn]);
+
+  const updateCustomSalaryComponent = (type, index, field, value) => {
+    const key = type === 'allowance' ? 'customAllowances' : 'customDeductions';
+    setSalaryForm((prev) => ({
+      ...prev,
+      [key]: (prev[key] || []).map((entry, entryIndex) => entryIndex === index ? { ...entry, [field]: value } : entry)
+    }));
+  };
+
+  const addCustomSalaryComponent = (type) => {
+    const key = type === 'allowance' ? 'customAllowances' : 'customDeductions';
+    setSalaryForm((prev) => ({ ...prev, [key]: [...(prev[key] || []), { name: '', amount: '' }] }));
+  };
+
+  const removeCustomSalaryComponent = (type, index) => {
+    const key = type === 'allowance' ? 'customAllowances' : 'customDeductions';
+    setSalaryForm((prev) => ({ ...prev, [key]: (prev[key] || []).filter((_, entryIndex) => entryIndex !== index) }));
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredPayrollItems.length / pageSize));
   const pagedPayrollItems = useMemo(() => {
@@ -890,6 +912,9 @@ export default function PayrollModule() {
           other: Number(salaryForm.otherAllowance || 0),
           food: Number(salaryForm.food || 0)
         },
+        customAllowances: (salaryForm.customAllowances || [])
+          .map((entry) => ({ name: String(entry.name || '').trim(), amount: Number(entry.amount || 0) }))
+          .filter((entry) => entry.name),
         deductions: {
           leave: Number(salaryForm.leaveDeduction || 0),
           late: Number(salaryForm.lateDeduction || 0),
@@ -900,6 +925,9 @@ export default function PayrollModule() {
           esi: Number(salaryForm.esi || 0),
           other: Number(salaryForm.otherDeduction || 0)
         },
+        customDeductions: (salaryForm.customDeductions || [])
+          .map((entry) => ({ name: String(entry.name || '').trim(), amount: Number(entry.amount || 0) }))
+          .filter((entry) => entry.name),
         notes: salaryForm.notes
       };
       setBusy(true);
@@ -1482,6 +1510,14 @@ export default function PayrollModule() {
           <div style={shell.field}><p style={shell.label}>Other Allowance</p><input type="number" style={shell.input} value={salaryForm.otherAllowance} onChange={(event) => setSalaryForm((prev) => ({ ...prev, otherAllowance: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Food</p><input type="number" style={shell.input} value={salaryForm.food} onChange={(event) => setSalaryForm((prev) => ({ ...prev, food: event.target.value }))} /></div>
         </div>
+        {(salaryForm.customAllowances || []).map((entry, index) => (
+          <div key={`custom-earning-${index}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(140px, 220px) auto', gap: '8px', alignItems: 'end' }}>
+            <div style={shell.field}><p style={shell.label}>New Earning Name</p><input style={shell.input} placeholder="e.g. Travel Allowance" value={entry.name} onChange={(event) => updateCustomSalaryComponent('allowance', index, 'name', event.target.value)} /></div>
+            <div style={shell.field}><p style={shell.label}>Amount</p><input type="number" style={shell.input} value={entry.amount} onChange={(event) => updateCustomSalaryComponent('allowance', index, 'amount', event.target.value)} /></div>
+            <button type="button" style={shell.btnLight} onClick={() => removeCustomSalaryComponent('allowance', index)}>Remove</button>
+          </div>
+        ))}
+        <div style={shell.setupActionRow}><button type="button" style={{ ...shell.btnLight, ...shell.setupButton }} onClick={() => addCustomSalaryComponent('allowance')}>+ Add Earning</button></div>
         <div style={shell.setupSection}>
           <p style={shell.setupSectionTitle}>Deductions</p>
         </div>
@@ -1495,6 +1531,14 @@ export default function PayrollModule() {
           <div style={shell.field}><p style={shell.label}>ESI</p><input type="number" style={shell.input} value={salaryForm.esi} onChange={(event) => setSalaryForm((prev) => ({ ...prev, esi: event.target.value }))} /></div>
           <div style={shell.field}><p style={shell.label}>Other Deduction</p><input type="number" style={shell.input} value={salaryForm.otherDeduction} onChange={(event) => setSalaryForm((prev) => ({ ...prev, otherDeduction: event.target.value }))} /></div>
         </div>
+        {(salaryForm.customDeductions || []).map((entry, index) => (
+          <div key={`custom-deduction-${index}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(140px, 220px) auto', gap: '8px', alignItems: 'end' }}>
+            <div style={shell.field}><p style={shell.label}>New Deduction Name</p><input style={shell.input} placeholder="e.g. Canteen Deduction" value={entry.name} onChange={(event) => updateCustomSalaryComponent('deduction', index, 'name', event.target.value)} /></div>
+            <div style={shell.field}><p style={shell.label}>Amount</p><input type="number" style={shell.input} value={entry.amount} onChange={(event) => updateCustomSalaryComponent('deduction', index, 'amount', event.target.value)} /></div>
+            <button type="button" style={shell.btnLight} onClick={() => removeCustomSalaryComponent('deduction', index)}>Remove</button>
+          </div>
+        ))}
+        <div style={shell.setupActionRow}><button type="button" style={{ ...shell.btnLight, ...shell.setupButton }} onClick={() => addCustomSalaryComponent('deduction')}>+ Add Deduction</button></div>
         <div style={shell.field}><p style={shell.label}>Notes</p><textarea style={{ ...shell.input, minHeight: '72px' }} value={salaryForm.notes} onChange={(event) => setSalaryForm((prev) => ({ ...prev, notes: event.target.value }))} /></div>
         <div style={shell.setupActionRow}>
           <button type="button" style={{ ...shell.btn, ...shell.setupButton }} onClick={saveSalaryStructure} disabled={!role.canManage || busy}>Save Salary Structure</button>
@@ -1523,8 +1567,8 @@ export default function PayrollModule() {
                 <td style={setupBodyCellStyle('effectiveDate', 'center')}>{entry.effectiveDate}</td>
                 <td style={setupBodyCellStyle('type', 'center')}>{entry.salaryType}</td>
                 <td style={setupBodyCellStyle('basic', 'center')}>INR {money(getVisibleSalaryStructureAmount(entry))}</td>
-                <td style={setupBodyCellStyle('allowances', 'center')}>INR {money(Object.values(entry.allowances || {}).reduce((sum, value) => sum + Number(value || 0), 0))}</td>
-                <td style={setupBodyCellStyle('deductions', 'center')}>INR {money(Object.values(entry.deductions || {}).reduce((sum, value) => sum + Number(value || 0), 0))}</td>
+                <td style={setupBodyCellStyle('allowances', 'center')}>INR {money(Object.values(entry.allowances || {}).reduce((sum, value) => sum + Number(value || 0), 0) + (entry.customAllowances || []).reduce((sum, item) => sum + Number(item.amount || 0), 0))}</td>
+                <td style={setupBodyCellStyle('deductions', 'center')}>INR {money(Object.values(entry.deductions || {}).reduce((sum, value) => sum + Number(value || 0), 0) + (entry.customDeductions || []).reduce((sum, item) => sum + Number(item.amount || 0), 0))}</td>
               </tr>
             ))}
           </tbody>
