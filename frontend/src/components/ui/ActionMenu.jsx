@@ -21,14 +21,15 @@ export default function ActionMenu({ items = [] }) {
     const menuWidth = 176;
     const menuGap = 6;
     const viewportPadding = 8;
+    const menuHeight = Math.max(48, 8 + items.filter(Boolean).length * 30);
     const left = Math.max(
       viewportPadding,
       Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - viewportPadding)
     );
     const belowTop = rect.bottom + menuGap;
-    const aboveTop = rect.top - menuGap - 10;
-    const maxTop = window.innerHeight - viewportPadding - 10;
-    const hasRoomBelow = belowTop + 10 <= window.innerHeight - viewportPadding;
+    const aboveTop = rect.top - menuGap - menuHeight;
+    const maxTop = window.innerHeight - viewportPadding - menuHeight;
+    const hasRoomBelow = belowTop + menuHeight <= window.innerHeight - viewportPadding;
     const top = Math.max(
       viewportPadding,
       Math.min(maxTop, hasRoomBelow ? belowTop : aboveTop)
