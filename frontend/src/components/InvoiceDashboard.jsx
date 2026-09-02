@@ -3025,7 +3025,15 @@ export default function InvoiceDashboard() {
       servicePeriodStart: autofill?.servicePeriodStart || '',
       servicePeriodEnd: autofill?.servicePeriodEnd || '',
       subject: autofill?.subject || '',
-      items: autofill?.items || [createEmptyLine({ contractStartDate: form.date || invoiceDate, contractStartDateSource: 'invoice-date' })],
+      items: [
+        createEmptyLine({
+          contractStartDate: form.date || invoiceDate,
+          contractStartDateSource: 'invoice-date'
+        })
+      ].map((line) => ({
+        ...line,
+        taxRate: baseInvoiceType === 'NON GST' ? '0' : line.taxRate
+      })),
       customerNotes: autofill?.customerNotes || '',
       termsAndConditions: autofill?.termsAndConditions || '',
       serviceScheduleDefaultTime: autofill?.serviceScheduleDefaultTime || form.serviceScheduleDefaultTime || '10:00',
@@ -3048,7 +3056,7 @@ export default function InvoiceDashboard() {
       total: '0'
     });
     setForm(nextForm);
-    resetServiceScheduleBuilder(latestContract, nextForm);
+    resetServiceScheduleBuilder(null, nextForm);
     setSaveError('');
     if (customer?._id) {
       axios.get(`${API_BASE_URL}/api/customers/${customer._id}/premises`)
