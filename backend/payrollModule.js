@@ -517,10 +517,31 @@ const normalizePayrollRecord = (raw = {}) => {
 
 const reconcilePayrollTotals = (record = {}) => {
   const basicSalary = round2(Math.max(0, toNumber(record.basicSalary, 0)));
-  const overtimeEarning = round2(Math.max(0, toNumber(record.overtimeEarning, 0)));
-  const sundayWorkEarning = round2(Math.max(0, toNumber(record.sundayWorkEarning, 0)));
-  const totalAllowances = round2(Math.max(0, toNumber(record.totalAllowances ?? record.allowances?.total, 0)));
-  const totalDeductions = round2(Math.max(0, toNumber(record.totalDeductions ?? record.deductions?.total, 0)));
+  const summary = record.attendanceSummary || {};
+  const daysInMonth = Math.max(1, toNumber(summary.daysInMonth, 30));
+  const standardDailyHours = Math.max(1, toNumber(defaultPayrollConfig.standardDailyHours, 8));
+  const hourlyRate = toNumber(record.overtimeRate, 0) || ((basicSalary / daysInMonth / standardDailyHours) * defaultPayrollConfig.overtimeMultiplier);
+  const derivedOvertimeEarning = toNumber(summary.overtimeHours ?? record.overtimeHours, 0) * hourlyRate;
+  const sundayHourlyRate = basicSalary / daysInMonth / standardDailyHours;
+  const derivedSundayWorkEarning = toNumber(summary.sundayNormalEarningHours, 0) * sundayHourlyRate;
+  const overtimeEarning = round2(Math.max(0, toNumber(record.overtimeEarning, 0) || derivedOvertimeEarning));
+  const sundayWorkEarning = round2(Math.max(0, toNumber(record.sundayWorkEarning, 0) || derivedSundayWorkEarning));
+  const allowanceValues = Object.entries(record.allowances || {})
+    .filter(([key]) => key !== 'total')
+    .reduce((sum, [, value]) => sum + Math.max(0, toNumber(value, 0)), 0);
+  const customAllowanceValues = Array.isArray(record.customAllowances)
+    ? record.customAllowances.reduce((sum, entry) => sum + Math.max(0, toNumber(entry?.amount, 0)), 0)
+    : 0;
+  const deductionValues = Object.entries(record.deductions || {})
+    .filter(([key]) => !['total', 'customDeductions'].includes(key))
+    .reduce((sum, [, value]) => sum + Math.max(0, toNumber(value, 0)), 0);
+  const customDeductionValues = Array.isArray(record.deductions?.customDeductions)
+    ? record.deductions.customDeductions.reduce((sum, entry) => sum + Math.max(0, toNumber(entry?.amount, 0)), 0)
+    : 0;
+  const storedAllowances = toNumber(record.totalAllowances ?? record.allowances?.total, 0);
+  const storedDeductions = toNumber(record.totalDeductions ?? record.deductions?.total, 0);
+  const totalAllowances = round2(Math.max(0, storedAllowances || allowanceValues + customAllowanceValues));
+  const totalDeductions = round2(Math.max(0, storedDeductions || deductionValues + customDeductionValues));
 
   const grossSalary = round2(basicSalary + totalAllowances + overtimeEarning + sundayWorkEarning);
   const computedNetSalary = round2(grossSalary - totalDeductions);
@@ -1212,7 +1233,7 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
   doc.font('Helvetica-Bold').fontSize(10).text('Gross Salary', 42, totalY + 8);
   doc.text(amount(item.grossSalary), 225, totalY + 8, { width: 70, align: 'right' });
   doc.text('Total Deductions', 310, totalY + 8);
-  doc.text(amount(item.deductions.total), 493, totalY + 8, { width: 60, align: 'right' });
+  doc.text(amount(item.totalDeductions ?? item.deductions.total), 493, totalY + 8, { width: 60, align: 'right' });
 
   const netY = totalY + 32;
   line(netY);
