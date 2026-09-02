@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { X } from 'lucide-react';
 import { isValidIndianMobileNumber, normalizeIndianMobileNumber } from '../../utils/phone';
@@ -176,7 +177,7 @@ export default function WhatsAppPreviewModal({
     }
   };
 
-  return (
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.50)', backdropFilter: 'blur(16px)', display: 'grid', placeItems: 'center', zIndex: 7100, padding: '16px' }}>
       <div style={{ width: 'min(760px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: 'rgba(255,255,255,0.64)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.30)', boxShadow: '0 28px 70px rgba(15,23,42,0.22)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ background: 'linear-gradient(135deg, var(--color-primary-deep), var(--color-primary))', color: '#fff', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -317,6 +318,7 @@ export default function WhatsAppPreviewModal({
           <button type="button" onClick={handleSend} disabled={busy || !isValidIndianMobileNumber(phoneValue) || !message.trim()} style={{ minHeight: '40px', borderRadius: '12px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 16px', fontWeight: 800, cursor: 'pointer' }}>{busy ? 'Sending...' : sendButtonLabel}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
