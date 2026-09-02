@@ -459,6 +459,24 @@ const openContractJobCardPdf = (invoiceRef) => {
 
 const resolveContractWhatsAppTargetId = (row = {}) => String(row?.invoiceId || row?._id || row?.id || '').trim();
 
+const resolveInvoiceWhatsAppTargetId = (row = {}) => String(
+  row?.invoiceId || row?._id || row?.invoiceNumber || row?.contractNo || row?.id || ''
+).trim();
+
+const matchesContractInvoiceReference = (invoice, reference) => {
+  const target = String(reference || '').trim().toLowerCase();
+  if (!target) return false;
+  return [
+    invoice?._id,
+    invoice?.id,
+    invoice?.external_id,
+    invoice?.invoiceNumber,
+    invoice?.invoice_number,
+    invoice?.contractNumber,
+    invoice?.contractNo
+  ].some((candidate) => String(candidate || '').trim().toLowerCase() === target);
+};
+
 const readContractsDashboardCache = () => {
   try {
     if (typeof window === 'undefined') return null;
@@ -675,7 +693,6 @@ export default function ContractDashboard() {
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Invoice';
     if (!recipientPhone) {
       showToast(`No WhatsApp number found for ${customerName}.`);
-      return;
     }
     setWhatsappComposer({
       open: true,
@@ -707,7 +724,6 @@ export default function ContractDashboard() {
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Contract';
     if (!recipientPhone) {
       showToast(`No WhatsApp number found for ${customerName}.`);
-      return;
     }
     const contractId = resolveContractWhatsAppTargetId(invoice) || invoiceNumber;
     const pdfUrl = addPdfCacheBust(`${API_BASE}/api/contracts/${encodeURIComponent(contractId)}/job-card-summary-pdf`);
@@ -2304,7 +2320,7 @@ export default function ContractDashboard() {
         downloadFileName={pdfPreview.downloadFileName}
         onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '', previewKind: 'invoice', shareContext: null })}
         onShareEmail={async () => {
-          const invoice = invoices.find((entry) => String(entry._id) === String(pdfPreview.invoiceId));
+          const invoice = invoices.find((entry) => matchesContractInvoiceReference(entry, pdfPreview.invoiceId));
           if (pdfPreview.previewKind === 'contract-job-card') {
             if (invoice) await sendContractJobCardEmail(invoice);
             return;
@@ -2312,8 +2328,11 @@ export default function ContractDashboard() {
           if (invoice) await sendInvoiceEmail(invoice);
         }}
         onShareWhatsApp={() => {
-          const invoice = invoices.find((entry) => String(entry._id) === String(pdfPreview.invoiceId));
-          if (!invoice) return;
+          const invoice = invoices.find((entry) => matchesContractInvoiceReference(entry, pdfPreview.invoiceId));
+          if (!invoice) {
+            showToast('Could not find the invoice for WhatsApp sharing. Please refresh and try again.');
+            return;
+          }
           if (pdfPreview.previewKind === 'contract-job-card') {
             openContractJobCardWhatsAppComposer(invoice);
             return;
@@ -2347,7 +2366,8 @@ export default function ContractDashboard() {
             window.alert(response.data?.message || 'Contract job card sent on WhatsApp.');
             return;
           }
-          const invoiceId = String(whatsappComposer.row?.invoiceId || whatsappComposer.row?._id || '').trim();
+          const invoiceId = resolveInvoiceWhatsAppTargetId(whatsappComposer.row);
+          if (!invoiceId) throw new Error('Invoice reference is missing. Please refresh and try again.');
           const response = await axios.post(`${API_BASE}/api/invoices/${encodeURIComponent(invoiceId)}/send-whatsapp`, {
             phoneNumber,
             message
