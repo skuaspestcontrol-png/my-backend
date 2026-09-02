@@ -7483,6 +7483,11 @@ const handleContractJobCardSummaryPdf = async (req, res) => {
       || invoice.contractId
       || invoice.contractNumber
     );
+    const customers = await loadCustomersForContext();
+    const customer = (Array.isArray(customers) ? customers : []).find((entry) => (
+      (invoice.customerId && String(entry?._id || '') === String(invoice.customerId || ''))
+      || String(entry?.displayName || entry?.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
+    )) || null;
     const relatedJobs = (Array.isArray(jobs) ? jobs : []).filter((entry) => (
       matchesPdfReference(entry?.contractId, contractReference)
       || matchesPdfReference(entry?.invoiceId, contractReference)
@@ -7544,6 +7549,9 @@ app.post(['/api/contracts/:id/send-whatsapp', '/api/contracts/:invoiceId/send-wh
       || invoice.mobile
       || invoice.phoneNumber
       || invoice.phone
+      || customer?.whatsappNumber
+      || customer?.mobileNumber
+      || customer?.workPhone
       || ''
     ).trim();
     const phone = normalizeWhatsappPhone(phoneRaw);
@@ -7668,7 +7676,13 @@ app.post(['/api/contracts/:id/send-whatsapp', '/api/contracts/:invoiceId/send-wh
     });
   } catch (error) {
     console.error('Failed to send contract job card summary WhatsApp message:', error.message);
-    res.status(500).json({ error: 'Could not send contract job card summary on WhatsApp' });
+    const statusCode = Number(error.statusCode) >= 400 && Number(error.statusCode) < 600
+      ? Number(error.statusCode)
+      : 502;
+    res.status(statusCode).json({
+      error: error.message || 'Could not send contract job card summary on WhatsApp',
+      response: error.response || null
+    });
   }
 });
 
