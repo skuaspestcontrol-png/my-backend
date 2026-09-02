@@ -918,12 +918,18 @@ const shouldServeFrontendShell = (req) => {
 
 let activeFrontendBuildDir = null;
 let activeFrontendIndexFile = null;
-if (hasFrontendDistBuild) {
+// Production deployments may retain an old ignored frontend/dist directory.
+// Use the tracked backend/public bundle by default; opt into dist for local work.
+const serveFrontendDist = /^(1|true|yes)$/i.test(String(process.env.SERVE_FRONTEND_DIST || '').trim());
+if (serveFrontendDist && hasFrontendDistBuild) {
   activeFrontendBuildDir = frontendDistDir;
   activeFrontendIndexFile = frontendDistIndexFile;
 } else if (hasBackendPublicBuild) {
   activeFrontendBuildDir = backendPublicDir;
   activeFrontendIndexFile = backendPublicIndexFile;
+} else if (hasFrontendDistBuild) {
+  activeFrontendBuildDir = frontendDistDir;
+  activeFrontendIndexFile = frontendDistIndexFile;
 }
 
 if (activeFrontendBuildDir) {
