@@ -336,6 +336,7 @@ export default function Login() {
                 name="username"
                 onChange={handleChange}
                 value={credentials.username}
+                className="login-credential-input"
                 style={loginInputStyle}
                 required
               />
@@ -350,6 +351,7 @@ export default function Login() {
                 name="password"
                 onChange={handleChange}
                 value={credentials.password}
+                className="login-credential-input"
                 style={{ ...loginInputStyle, padding: '12px 42px 12px 13px' }}
                 required
               />

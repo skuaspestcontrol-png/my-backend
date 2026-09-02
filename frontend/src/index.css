@@ -1228,6 +1228,16 @@ table {
 }
 
 @media (max-width: 420px) {
+  .login-page .login-credential-input,
+  .login-page .login-credential-input:-webkit-autofill,
+  .login-page .login-credential-input:-webkit-autofill:hover,
+  .login-page .login-credential-input:-webkit-autofill:focus,
+  .login-page .login-credential-input:-webkit-autofill:active {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #ffffff !important;
+  }
+
   .main-content {
     padding: 10px;
   }
