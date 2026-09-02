@@ -2587,10 +2587,7 @@ export default function InvoiceDashboard() {
   const openInvoiceWhatsAppComposer = (invoice) => {
     const { customer, customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || '').trim() || 'Invoice';
-    if (!recipientPhone) {
-      showToast(`No WhatsApp number found for ${customerName}.`);
-      return;
-    }
+    if (!recipientPhone) showToast(`No WhatsApp number found for ${customerName}. Enter it in the WhatsApp composer.`);
     setPdfPreview((prev) => ({
       ...prev,
       open: false
@@ -5306,6 +5303,7 @@ export default function InvoiceDashboard() {
         sendButtonLabel="Send Invoice on WhatsApp"
         diagnostic={whatsAppDiagnostic}
         settingsData={whatsAppSettings}
+        allowRecipientEdit
         onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
           const response = await axios.post(`${API_BASE_URL}/api/invoices/${whatsAppComposer.invoiceId}/send-whatsapp`, {

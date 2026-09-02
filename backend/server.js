@@ -1633,10 +1633,20 @@ const sanitizeSettings = (raw = {}) => {
     smtpFromEmail: normalizeSettingsText(source.smtpFromEmail ?? defaultSettings.smtpFromEmail),
     smtpTestTargetEmail: normalizeSettingsText(source.smtpTestTargetEmail ?? defaultSettings.smtpTestTargetEmail),
     whatsappApiVersion: normalizeSettingsText(source.whatsappApiVersion ?? defaultSettings.whatsappApiVersion) || defaultSettings.whatsappApiVersion,
+    whatsappApiBaseUrl: normalizeSettingsText(source.whatsappApiBaseUrl ?? source.apiBaseUrl ?? ''),
+    whatsappProviderType: normalizeSettingsText(
+      source.whatsappProviderType
+      ?? source.providerType
+      ?? (source.whatsappApiBaseUrl && /deropo/i.test(String(source.whatsappApiBaseUrl)) ? 'deropo' : 'custom')
+    ).toLowerCase(),
     whatsappPhoneNumber: normalizeOptionalIndianMobileNumber(source.whatsappPhoneNumber ?? defaultSettings.whatsappPhoneNumber),
     whatsappInstanceId,
     whatsappPhoneNumberId,
     whatsappAccessToken: normalizeSettingsText(source.whatsappAccessToken ?? defaultSettings.whatsappAccessToken),
+    whatsappApiActive: source.whatsappApiActive === undefined
+      ? undefined
+      : normalizeBoolean(source.whatsappApiActive, false),
+    whatsappTestNumber: normalizeOptionalIndianMobileNumber(source.whatsappTestNumber ?? ''),
     whatsappContractExpiryToOwner: normalizeOnOff(
       source.whatsappContractExpiryToOwner ?? defaultSettings.whatsappContractExpiryToOwner,
       defaultSettings.whatsappContractExpiryToOwner
@@ -10892,8 +10902,14 @@ app.post('/api/invoices/:id/send-whatsapp', async (req, res) => {
       whatsappResponse: sendDocJson
     });
   } catch (error) {
-    console.error('Failed to send invoice WhatsApp message:', error.message);
-    res.status(500).json({ error: 'Could not send invoice on WhatsApp' });
+    console.error('Failed to send invoice WhatsApp message:', error.stack || error.message);
+    const statusCode = Number(error.statusCode) >= 400 && Number(error.statusCode) < 600
+      ? Number(error.statusCode)
+      : 502;
+    res.status(statusCode).json({
+      error: error.message || 'Could not send invoice on WhatsApp',
+      response: error.response || null
+    });
   }
 });
 
