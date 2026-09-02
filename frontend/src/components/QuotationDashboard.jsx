@@ -673,7 +673,12 @@ function QuotationDashboardInner() {
           const currentRow = rows.find((row) => String(row.id) === String(pdfPreview.quotationId))
             || pdfPreview.quotationRow
             || null;
-          if (currentRow) openQuotationWhatsAppComposer(currentRow);
+          if (!currentRow) {
+            showToast('Could not find the quotation for WhatsApp sharing. Please refresh and try again.');
+            return;
+          }
+          setPdfPreview((previous) => ({ ...previous, open: false }));
+          openQuotationWhatsAppComposer(currentRow);
         }}
         publicShareUrl={pdfPreview.publicShareUrl}
       />

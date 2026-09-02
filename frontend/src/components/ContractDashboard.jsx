@@ -2338,6 +2338,7 @@ export default function ContractDashboard() {
             showToast('Could not find the invoice for WhatsApp sharing. Please refresh and try again.');
             return;
           }
+          setPdfPreview((previous) => ({ ...previous, open: false }));
           if (pdfPreview.previewKind === 'contract-job-card') {
             openContractJobCardWhatsAppComposer(invoice);
             return;
