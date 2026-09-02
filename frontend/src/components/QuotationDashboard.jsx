@@ -323,7 +323,8 @@ function QuotationDashboardInner() {
       pdfUrl,
       downloadFileName: `${quotationNumber.replace(/[^\w.-]+/g, '_')}.pdf`,
       publicShareUrl: pdfUrl,
-      quotationId: row.id
+      quotationId: row.id,
+      quotationRow: row
     });
   };
 
@@ -351,10 +352,9 @@ function QuotationDashboardInner() {
     const quotationNumber = String(row.quotation_number || row.quotationNumber || row.quotationNo || row.quotation_no || row.id || 'Quotation').trim();
     const customerName = String(row.customer || row.customerName || 'Customer').trim() || 'Customer';
     const pdfUrl = `${API_BASE_URL}/api/quotations/${row.id}/pdf`;
-    const rawPhone = String(row.mobile || row.mobileNumber || row.whatsappNumber || row.phoneNumber || row.phone || '').trim();
+    const rawPhone = String(row.whatsappNumber || row.whatsapp || row.mobile || row.mobileNumber || row.phoneNumber || row.phone || '').trim();
     if (!rawPhone) {
       showToast(`No WhatsApp number found for ${customerName}.`);
-      return;
     }
     setWhatsappComposer({
       open: true,
@@ -375,7 +375,7 @@ function QuotationDashboardInner() {
         }
       },
       recipientName: customerName,
-      recipientPhone: formatIndianMobileNumber(row.mobile || row.mobileNumber || row.whatsappNumber || ''),
+      recipientPhone: formatIndianMobileNumber(rawPhone),
       recipientType: 'Customer'
     });
   };
@@ -670,7 +670,9 @@ function QuotationDashboardInner() {
         onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', quotationId: null })}
         onShareEmail={handleShareQuotationEmail}
         onShareWhatsApp={() => {
-          const currentRow = rows.find((row) => String(row.id) === String(pdfPreview.quotationId)) || null;
+          const currentRow = rows.find((row) => String(row.id) === String(pdfPreview.quotationId))
+            || pdfPreview.quotationRow
+            || null;
           if (currentRow) openQuotationWhatsAppComposer(currentRow);
         }}
         publicShareUrl={pdfPreview.publicShareUrl}

@@ -999,7 +999,10 @@ router.post('/quotations/:id/send-whatsapp', async (req, res) => {
     const [templateSettings] = await dbQuery('SELECT * FROM quotation_template_settings ORDER BY id ASC LIMIT 1');
     const [commonParagraphs] = await dbQuery('SELECT * FROM quotation_common_paragraphs ORDER BY id ASC LIMIT 1');
     const companySettings = await loadMainAppSettings();
-    const settings = readJsonFile(settingsFile, {});
+    const settings = {
+      ...(companySettings || {}),
+      ...readJsonFile(settingsFile, {})
+    };
 
     const recipientPhone = String(
       req.body?.phoneNumber
@@ -1050,7 +1053,13 @@ router.post('/quotations/:id/send-whatsapp', async (req, res) => {
     });
   } catch (error) {
     console.error('Failed to send quotation on WhatsApp:', error.message);
-    res.status(500).json({ error: error.message || 'Could not send quotation on WhatsApp' });
+    const statusCode = Number(error.statusCode) >= 400 && Number(error.statusCode) < 600
+      ? Number(error.statusCode)
+      : 502;
+    res.status(statusCode).json({
+      error: error.message || 'Could not send quotation on WhatsApp',
+      response: error.response || null
+    });
   }
 });
 
