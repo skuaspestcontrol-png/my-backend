@@ -2057,7 +2057,7 @@ export default function ContractDashboard() {
                 openInvoicePdf(actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber),
                 actionMenu.row.contractNo || actionMenu.row.invoiceNumber || actionMenu.row.invoiceId,
                 actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber,
-                { previewKind: 'invoice' }
+                { previewKind: 'invoice', shareContext: { invoice: actionMenu.row } }
               );
               setActionMenu(null);
             }}
@@ -2088,7 +2088,8 @@ export default function ContractDashboard() {
                 {
                   previewKind: 'contract-job-card',
                   shareContext: {
-                    invoiceRef: String(actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber || '').trim()
+                    invoiceRef: String(actionMenu.row.invoiceId || actionMenu.row.contractNo || actionMenu.row.invoiceNumber || '').trim(),
+                    invoice: actionMenu.row
                   }
                 }
               );
@@ -2320,7 +2321,9 @@ export default function ContractDashboard() {
         downloadFileName={pdfPreview.downloadFileName}
         onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', invoiceId: '', previewKind: 'invoice', shareContext: null })}
         onShareEmail={async () => {
-          const invoice = invoices.find((entry) => matchesContractInvoiceReference(entry, pdfPreview.invoiceId));
+          const invoice = invoices.find((entry) => matchesContractInvoiceReference(entry, pdfPreview.invoiceId))
+            || pdfPreview.shareContext?.invoice
+            || null;
           if (pdfPreview.previewKind === 'contract-job-card') {
             if (invoice) await sendContractJobCardEmail(invoice);
             return;
@@ -2328,7 +2331,9 @@ export default function ContractDashboard() {
           if (invoice) await sendInvoiceEmail(invoice);
         }}
         onShareWhatsApp={() => {
-          const invoice = invoices.find((entry) => matchesContractInvoiceReference(entry, pdfPreview.invoiceId));
+          const invoice = invoices.find((entry) => matchesContractInvoiceReference(entry, pdfPreview.invoiceId))
+            || pdfPreview.shareContext?.invoice
+            || null;
           if (!invoice) {
             showToast('Could not find the invoice for WhatsApp sharing. Please refresh and try again.');
             return;
