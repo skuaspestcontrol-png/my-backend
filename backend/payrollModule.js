@@ -469,7 +469,7 @@ const normalizePayrollRecord = (raw = {}) => {
   const month = Math.min(12, Math.max(1, toNumber(raw.month, 0)));
   const year = Math.max(2000, toNumber(raw.year, new Date().getFullYear()));
   const payrollKey = normalizeText(raw.payrollKey || raw.payroll_key || raw._id || `${year}-${pad2(month)}-${raw.employeeId || 'EMP'}`);
-  return {
+  const baseRecord = {
     _id: normalizeText(raw._id || payrollKey),
     payrollKey,
     employeeId: normalizeText(raw.employeeId || raw.employee_id || ''),
@@ -511,6 +511,34 @@ const normalizePayrollRecord = (raw = {}) => {
     slipPath: normalizeText(raw.slipPath || raw.slip_path || ''),
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
     updatedAt: raw.updatedAt || raw.updated_at || new Date().toISOString()
+  };
+  return reconcilePayrollTotals(baseRecord);
+};
+
+const reconcilePayrollTotals = (record = {}) => {
+  const basicSalary = round2(Math.max(0, toNumber(record.basicSalary, 0)));
+  const overtimeEarning = round2(Math.max(0, toNumber(record.overtimeEarning, 0)));
+  const sundayWorkEarning = round2(Math.max(0, toNumber(record.sundayWorkEarning, 0)));
+  const totalAllowances = round2(Math.max(0, toNumber(record.totalAllowances ?? record.allowances?.total, 0)));
+  const totalDeductions = round2(Math.max(0, toNumber(record.totalDeductions ?? record.deductions?.total, 0)));
+
+  const grossSalary = round2(basicSalary + totalAllowances + overtimeEarning + sundayWorkEarning);
+  const computedNetSalary = round2(grossSalary - totalDeductions);
+  const manualAdjustmentAmount = round2(toNumber(record.manualAdjustmentAmount, 0));
+  const manualOverrideEnabled = !!record.manualOverrideEnabled;
+  const overrideNetSalary = record.overrideNetSalary ?? null;
+  const netSalary = manualOverrideEnabled
+    ? round2(toNumber(overrideNetSalary, computedNetSalary))
+    : round2(computedNetSalary + manualAdjustmentAmount);
+
+  return {
+    ...record,
+    totalAllowances,
+    totalDeductions,
+    grossSalary,
+    computedNetSalary,
+    netSalary,
+    salaryInWords: buildMoneyWords(netSalary)
   };
 };
 
@@ -1519,7 +1547,7 @@ function registerPayrollModule({
         payrollCache.runs = Array.isArray(settingsMap.get('runs')) ? settingsMap.get('runs') : [];
 
         const [recordRows] = await conn.query(`SELECT * FROM ${PAYROLL_TABLES.records} ORDER BY year DESC, month DESC, employee_name ASC`);
-        payrollCache.items = (Array.isArray(recordRows) ? recordRows : []).map((row) => normalizePayrollRecord({
+        const normalizedPayrollItems = (Array.isArray(recordRows) ? recordRows : []).map((row) => normalizePayrollRecord({
           ...parseJsonValue(row.payload, {}),
           _id: row.payroll_key || '',
           payrollKey: row.payroll_key || '',
@@ -1558,6 +1586,32 @@ function registerPayrollModule({
           salaryInWords: row.salary_in_words || '',
           slipPath: row.slip_path || ''
         }));
+        payrollCache.items = normalizedPayrollItems;
+
+        // Persist reconciled totals so old rows do not become stale again after reload.
+        for (const item of normalizedPayrollItems) {
+          const source = (Array.isArray(recordRows) ? recordRows : []).find((row) => (
+            normalizeText(row.payroll_key) === normalizeText(item.payrollKey)
+          ));
+          const payload = {
+            ...parseJsonValue(source?.payload, {}),
+            ...item
+          };
+          await conn.query(
+            `UPDATE ${PAYROLL_TABLES.records}
+             SET gross_salary = ?, total_allowances = ?, total_deductions = ?, net_salary = ?, salary_in_words = ?, payload = ?
+             WHERE payroll_key = ?`,
+            [
+              Number(item.grossSalary || 0),
+              Number(item.totalAllowances || 0),
+              Number(item.totalDeductions || 0),
+              Number(item.netSalary || 0),
+              item.salaryInWords || '',
+              jsonColumn(payload),
+              item.payrollKey
+            ]
+          );
+        }
 
         const [componentRows] = await conn.query(`SELECT * FROM ${PAYROLL_TABLES.components} ORDER BY effective_date DESC, employee_id ASC, id ASC`);
         const groupedStructures = new Map();
