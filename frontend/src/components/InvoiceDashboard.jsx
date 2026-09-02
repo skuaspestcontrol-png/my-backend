@@ -2588,10 +2588,6 @@ export default function InvoiceDashboard() {
     const { customer, customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || '').trim() || 'Invoice';
     if (!recipientPhone) showToast(`No WhatsApp number found for ${customerName}. Enter it in the WhatsApp composer.`);
-    setPdfPreview((prev) => ({
-      ...prev,
-      open: false
-    }));
     setWhatsAppComposer({
       open: true,
       invoiceId: String(invoice._id || '').trim(),

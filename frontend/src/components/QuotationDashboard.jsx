@@ -677,7 +677,6 @@ function QuotationDashboardInner() {
             showToast('Could not find the quotation for WhatsApp sharing. Please refresh and try again.');
             return;
           }
-          setPdfPreview((previous) => ({ ...previous, open: false }));
           window.setTimeout(() => openQuotationWhatsAppComposer(currentRow), 0);
         }}
         publicShareUrl={pdfPreview.publicShareUrl}
