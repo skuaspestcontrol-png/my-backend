@@ -1,0 +1,1 @@
+var e=`Please enter a valid 10 digit mobile number.`,t=e=>{let t=String(e??``).replace(/\D+/g,``);return t.length===12&&t.startsWith(`91`)&&(t=t.slice(2)),t.length===11&&t.startsWith(`0`)&&(t=t.slice(1)),t},n=e=>/^\d{10}$/.test(t(e)),r=e=>{let n=t(e);return n?`+91${n}`:String(e??``).trim()};export{t as i,r as n,n as r,e as t};

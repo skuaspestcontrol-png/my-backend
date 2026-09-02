@@ -1,0 +1,1 @@
+var e=`Asia/Kolkata`,t=e=>{if(e==null||e===``)return null;let t=new Date(e);return Number.isNaN(t.getTime())?null:t},n=(n,r,i=`-`)=>{let a=t(n);if(!a)return i;try{return new Intl.DateTimeFormat(`en-IN`,{timeZone:e,...r}).format(a)}catch{return i}},r=(e,t={})=>n(e,{dateStyle:`medium`,timeStyle:`short`,...t});export{r as t};
