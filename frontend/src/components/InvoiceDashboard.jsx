@@ -2581,7 +2581,7 @@ export default function InvoiceDashboard() {
     ];
     if (companySettings.companyWebsite) lines.push(`Website: ${companySettings.companyWebsite}`);
     lines.push('Please find attached invoice PDF.');
-    return lines.join('\\n');
+    return lines.join('\n');
   };
 
   const openInvoiceWhatsAppComposer = (invoice) => {
