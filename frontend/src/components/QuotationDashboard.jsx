@@ -678,7 +678,7 @@ function QuotationDashboardInner() {
             return;
           }
           setPdfPreview((previous) => ({ ...previous, open: false }));
-          openQuotationWhatsAppComposer(currentRow);
+          window.setTimeout(() => openQuotationWhatsAppComposer(currentRow), 0);
         }}
         publicShareUrl={pdfPreview.publicShareUrl}
       />

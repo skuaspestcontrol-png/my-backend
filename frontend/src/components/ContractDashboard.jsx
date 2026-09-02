@@ -2339,11 +2339,13 @@ export default function ContractDashboard() {
             return;
           }
           setPdfPreview((previous) => ({ ...previous, open: false }));
-          if (pdfPreview.previewKind === 'contract-job-card') {
-            openContractJobCardWhatsAppComposer(invoice);
-            return;
-          }
-          openInvoiceWhatsAppComposer(invoice);
+          window.setTimeout(() => {
+            if (pdfPreview.previewKind === 'contract-job-card') {
+              openContractJobCardWhatsAppComposer(invoice);
+              return;
+            }
+            openInvoiceWhatsAppComposer(invoice);
+          }, 0);
         }}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
