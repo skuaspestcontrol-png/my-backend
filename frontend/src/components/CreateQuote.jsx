@@ -445,7 +445,8 @@ export default function CreateQuote() {
     const rate = num(selected.sellingPrice ?? selected.rate ?? 0);
     const description = getItemField(selected, 'serviceDescription', 'salesDescription', 'description');
     const aboutPest = getItemField(selected, 'aboutPest', 'about_pest') || description;
-    const whatWeDo = getItemField(selected, 'whatWeDo', 'what_we_do', 'treatmentMethod') || description;
+    const whatWeDo = getItemField(selected, 'whatWeDo', 'what_we_do') || description;
+    const treatmentMethodology = getItemField(selected, 'treatmentMethod', 'treatment_method') || description;
     const defaultRecommendation = recommendationDefault || getItemField(selected, 'recommendation') || description;
     const serviceName = getItemServiceName(selected);
     updateItem(idx, {
@@ -456,7 +457,7 @@ export default function CreateQuote() {
       service_title: getItemField(selected, 'serviceTitle', 'service_title') || serviceName,
       about_pest: aboutPest,
       what_we_do: whatWeDo,
-      treatment_points: whatWeDo,
+      treatment_points: treatmentMethodology,
       infestation_level: defaultLevel,
       infestation_image_url: level?.image_url || '',
       frequency: getItemField(selected, 'frequency'),

@@ -116,6 +116,41 @@ const loadMainAppSettings = async () => {
   }
 };
 
+const hydrateQuotationItemsWithTemplates = async (items = []) => {
+  const normalizedItems = Array.isArray(items) ? items : [];
+  const templateIds = Array.from(new Set(
+    normalizedItems
+      .map((item) => {
+        const templateId = Number(item?.service_template_id);
+        return Number.isFinite(templateId) && templateId > 0 ? templateId : null;
+      })
+      .filter((value) => value !== null && value !== undefined)
+  ));
+
+  if (!templateIds.length) return normalizedItems;
+
+  const placeholders = templateIds.map(() => '?').join(',');
+  const templates = await dbQuery(`SELECT * FROM quotation_service_templates WHERE id IN (${placeholders})`, templateIds);
+  const templateById = new Map((Array.isArray(templates) ? templates : []).map((template) => [String(template.id), template]));
+
+  return normalizedItems.map((item) => {
+    const template = templateById.get(String(item?.service_template_id || ''));
+    if (!template) return item;
+
+    const itemWhatWeDo = clean(item.what_we_do);
+    const templateWhatWeDo = clean(template.what_we_do);
+    const itemTreatment = clean(item.treatment_points);
+    const templateTreatment = clean(template.treatment_points || templateWhatWeDo);
+
+    return {
+      ...item,
+      what_we_do: itemWhatWeDo || templateWhatWeDo,
+      treatment_points: itemTreatment && itemTreatment !== itemWhatWeDo ? itemTreatment : templateTreatment,
+      treatment_methodology: templateTreatment
+    };
+  });
+};
+
 const getTableColumns = async (tableName) => {
   try {
     const rows = await dbQuery(
@@ -817,7 +852,7 @@ router.get('/quotations/:id', async (req, res) => {
   const [q] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [id]);
   if (!q) return res.status(404).json({ error: 'Not found' });
   const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC, id ASC', [id]);
-  res.json({ ...normalizeQuotationRow(q), items });
+  res.json({ ...normalizeQuotationRow(q), items: await hydrateQuotationItemsWithTemplates(items) });
 });
 
 router.post('/quotations', async (req, res) => {
@@ -841,7 +876,9 @@ router.post('/quotations', async (req, res) => {
 
     await conn.commit();
     const [q] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [saved.quotationId]);
-    const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [saved.quotationId]);
+    const items = await hydrateQuotationItemsWithTemplates(
+      await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [saved.quotationId])
+    );
     res.status(saved.mode === 'create' ? 201 : 200).json({ ...normalizeQuotationRow(q), items });
   } catch (error) {
     await conn.rollback();
@@ -870,7 +907,9 @@ router.put('/quotations/:id', async (req, res) => {
 
     await conn.commit();
     const [q] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [saved.quotationId]);
-    const outItems = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [saved.quotationId]);
+    const outItems = await hydrateQuotationItemsWithTemplates(
+      await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [saved.quotationId])
+    );
     res.json({ ...normalizeQuotationRow(q), items: outItems });
   } catch (error) {
     await conn.rollback();
@@ -894,7 +933,9 @@ router.get('/quotations/:id/pdf', async (req, res) => {
   const [quotation] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [id]);
   if (!quotation) return res.status(404).json({ error: 'Quotation not found' });
 
-  const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [id]);
+  const items = await hydrateQuotationItemsWithTemplates(
+    await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC,id ASC', [id])
+  );
   const [templateSettings] = await dbQuery('SELECT * FROM quotation_template_settings ORDER BY id ASC LIMIT 1');
   const [commonParagraphs] = await dbQuery('SELECT * FROM quotation_common_paragraphs ORDER BY id ASC LIMIT 1');
   const companySettings = await loadMainAppSettings();
@@ -920,7 +961,9 @@ router.post('/quotations/:id/send-email', async (req, res) => {
     const [quotation] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [id]);
     if (!quotation) return res.status(404).json({ error: 'Quotation not found' });
 
-    const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC, id ASC', [id]);
+    const items = await hydrateQuotationItemsWithTemplates(
+      await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC, id ASC', [id])
+    );
     const [templateSettings] = await dbQuery('SELECT * FROM quotation_template_settings ORDER BY id ASC LIMIT 1');
     const [commonParagraphs] = await dbQuery('SELECT * FROM quotation_common_paragraphs ORDER BY id ASC LIMIT 1');
     const companySettings = await loadMainAppSettings();
@@ -995,7 +1038,9 @@ router.post('/quotations/:id/send-whatsapp', async (req, res) => {
     const [quotation] = await dbQuery('SELECT * FROM quotations WHERE id=? LIMIT 1', [id]);
     if (!quotation) return res.status(404).json({ error: 'Quotation not found' });
 
-    const items = await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC, id ASC', [id]);
+    const items = await hydrateQuotationItemsWithTemplates(
+      await dbQuery('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY sort_order ASC, id ASC', [id])
+    );
     const [templateSettings] = await dbQuery('SELECT * FROM quotation_template_settings ORDER BY id ASC LIMIT 1');
     const [commonParagraphs] = await dbQuery('SELECT * FROM quotation_common_paragraphs ORDER BY id ASC LIMIT 1');
     const companySettings = await loadMainAppSettings();

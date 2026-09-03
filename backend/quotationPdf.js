@@ -698,7 +698,7 @@ const generateQuotationPdfBuffer = ({ quotation = {}, items = [], templateSettin
   doc.y += h;
 
   items.forEach((item, index) => {
-    const treatmentMethodology = clean(item.treatment_points || item.what_we_do || item.recommendation || '-');
+    const treatmentMethodology = clean(item.treatment_points || item.treatment_methodology || item.treatment_method || '-');
     const rowVals = [
       String(index + 1),
       clean(item.service_name || item.service_title || '-'),
