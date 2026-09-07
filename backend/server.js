@@ -7520,8 +7520,13 @@ app.post(['/api/contracts/:id/send-whatsapp', '/api/contracts/:invoiceId/send-wh
     const contractRef = normalizePdfReference(req.params.id || req.params.invoiceId || req.params.contractRef || '');
     const invoices = await loadInvoicesForContext();
     const jobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
+    const customers = await loadCustomersForContext();
     const invoice = findInvoiceByPdfReference(invoices, contractRef);
     if (!invoice) return res.status(404).json({ error: 'Contract not found' });
+    const customer = (Array.isArray(customers) ? customers : []).find((entry) => (
+      (invoice.customerId && String(entry?._id || '') === String(invoice.customerId || ''))
+      || String(entry?.displayName || entry?.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
+    )) || null;
 
     const contractReference = normalizePdfReference(
       invoice._id
