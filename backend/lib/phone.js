@@ -7,6 +7,31 @@ const normalizeIndianMobileNumber = (value) => {
   return digits;
 };
 
+const normalizeWhatsAppPhoneNumber = (value) => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+
+  let digits = raw.replace(/\D+/g, '');
+  if (!digits) return '';
+
+  if (digits.startsWith('00')) digits = digits.slice(2);
+
+  if (digits.length === 10) return `91${digits}`;
+  if (digits.length === 11 && digits.startsWith('0')) return `91${digits.slice(1)}`;
+  if (digits.length === 12 && digits.startsWith('91')) return digits;
+  if (digits.length >= 11 && digits.length <= 15) return digits;
+
+  return '';
+};
+
+const isValidWhatsAppPhoneNumber = (value) => Boolean(normalizeWhatsAppPhoneNumber(value));
+
+const formatWhatsAppPhoneNumber = (value) => {
+  const normalized = normalizeWhatsAppPhoneNumber(value);
+  if (!normalized) return String(value ?? '').trim();
+  return `+${normalized}`;
+};
+
 const isValidIndianMobileNumber = (value) => /^\d{10}$/.test(normalizeIndianMobileNumber(value));
 
 const normalizeOptionalIndianMobileNumber = (value) => {
@@ -55,6 +80,9 @@ const normalizePhoneFields = (source = {}, fieldNames = [], requiredFieldNames =
 module.exports = {
   PHONE_VALIDATION_ERROR,
   normalizeIndianMobileNumber,
+  normalizeWhatsAppPhoneNumber,
+  isValidWhatsAppPhoneNumber,
+  formatWhatsAppPhoneNumber,
   isValidIndianMobileNumber,
   normalizeOptionalIndianMobileNumber,
   assertValidIndianMobileNumber,

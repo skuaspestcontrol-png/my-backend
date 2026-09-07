@@ -10,6 +10,8 @@ const empty = {
   phoneNumber: '',
   instanceId: '',
   accessToken: '',
+  accessTokenMasked: '',
+  hasAccessToken: false,
   active: false,
   testNumber: '',
   providerType: 'custom'
@@ -21,6 +23,8 @@ const normalizeLoadedForm = (data = {}) => ({
   phoneNumber: '',
   instanceId: '',
   accessToken: '',
+  accessTokenMasked: String(data.accessTokenMasked || '').trim(),
+  hasAccessToken: Boolean(data.hasAccessToken || String(data.accessTokenMasked || '').trim()),
   active: Boolean(data.active),
   testNumber: '',
   providerType: String(data.providerType || (String(data.apiBaseUrl || '').includes('deropo') ? 'deropo' : 'custom')).trim() || 'custom'
@@ -33,11 +37,12 @@ const getWhatsAppDiagnostic = (form = {}) => {
   const accessToken = String(form.accessToken || '').trim();
   const phoneNumber = String(form.phoneNumber || '').trim();
   const active = Boolean(form.active);
+  const hasSavedToken = Boolean(form.hasAccessToken || String(form.accessTokenMasked || '').trim());
   const missing = [];
 
   if (!baseUrl) missing.push('API Base URL');
   if (providerType !== 'deropo' && !instanceId) missing.push('Instance ID');
-  if (!accessToken) missing.push('Access Token');
+  if (!accessToken && !hasSavedToken) missing.push('Access Token');
   if (providerType === 'deropo' && !phoneNumber) missing.push('Phone Number');
 
   if (!active) {
@@ -102,12 +107,12 @@ export default function WhatsAppSettings() {
   const sendTest = async () => {
     try {
       setBusy(true);
-      setStatus('Sending test message...');
+      setStatus('Testing connection...');
       await axios.post(`${API_BASE_URL}/api/settings/whatsapp/test`, {
         testNumber: form.testNumber,
         sentByUser: getPortalUserName() || 'Admin'
       });
-      setStatus('Test message sent.');
+      setStatus('WhatsApp connection test succeeded.');
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Test send failed.');
     } finally {
@@ -123,7 +128,19 @@ export default function WhatsAppSettings() {
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>API Base URL<input value={form.apiBaseUrl} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, apiBaseUrl: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Phone Number<input value={form.phoneNumber} autoComplete="off" inputMode="numeric" onChange={(e) => setForm((p) => ({ ...p, phoneNumber: normalizeIndianMobileNumber(e.target.value) }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Instance ID<input value={form.instanceId} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, instanceId: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
-          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Access Token<input value={form.accessToken} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, accessToken: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
+          <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>
+            Access Token
+            <input
+              value={form.accessToken}
+              autoComplete="off"
+              placeholder={form.accessTokenMasked ? 'Leave blank to keep the saved token' : 'Enter access token'}
+              onChange={(e) => setForm((p) => ({ ...p, accessToken: e.target.value }))}
+              style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }}
+            />
+            {form.accessTokenMasked ? (
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Current token: {form.accessTokenMasked}</span>
+            ) : null}
+          </label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Provider Type<select value={form.providerType} onChange={(e) => setForm((p) => ({ ...p, providerType: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }}><option value="deropo">Deropo</option><option value="custom">Custom</option><option value="meta">Meta Graph</option></select></label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Test Number<input value={form.testNumber} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, testNumber: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
         </div>
@@ -144,7 +161,7 @@ export default function WhatsAppSettings() {
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button type="submit" disabled={busy} style={{ minHeight: '36px', borderRadius: '8px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 700, fontSize: '12px' }}>Save Settings</button>
-          <button type="button" onClick={sendTest} disabled={busy} style={{ minHeight: '36px', borderRadius: '8px', border: '1px solid #16a34a', background: '#ecfdf5', color: '#166534', padding: '0 14px', fontWeight: 700, fontSize: '12px' }}>Send Test Message</button>
+          <button type="button" onClick={sendTest} disabled={busy} style={{ minHeight: '36px', borderRadius: '8px', border: '1px solid #16a34a', background: '#ecfdf5', color: '#166534', padding: '0 14px', fontWeight: 700, fontSize: '12px' }}>Test Connection</button>
         </div>
         {status ? <p style={{ margin: 0, fontSize: '12px', color: '#334155', fontWeight: 700 }}>{status}</p> : null}
       </form>

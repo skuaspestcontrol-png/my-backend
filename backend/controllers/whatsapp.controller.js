@@ -3,11 +3,15 @@ const path = require('path');
 const {
   ensureDefaultTemplates,
   normalizeTemplate,
-  getTemplateTypeFromModule,
-  replaceVariables
+  getTemplateTypeFromModule
 } = require('../services/whatsappTemplate.service');
 const {
-  sendWhatsAppMessage,
+  buildTemplateContext,
+  getProviderSettings,
+  renderTemplate,
+  sendDocumentMessage,
+  sendTextMessage,
+  testConnection,
   validatePhoneNumber,
   buildWhatsAppCredentialDiagnostics
 } = require('../services/whatsapp.service');
@@ -29,27 +33,20 @@ const parseJsonSafe = (raw, fallback) => {
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
 
-const inferWhatsAppActive = (settings = {}) => {
-  if (settings.whatsappApiActive !== undefined) return toBool(settings.whatsappApiActive);
-  if (settings.whatsappActive !== undefined) return toBool(settings.whatsappActive);
-  if (settings.active !== undefined) return toBool(settings.active);
-  const hasBaseUrl = Boolean(String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim());
-  const hasAccessToken = Boolean(String(settings.whatsappAccessToken || settings.accessToken || '').trim());
-  const hasInstance = Boolean(String(settings.whatsappInstanceId || settings.instanceId || settings.whatsappPhoneNumberId || '').trim());
-  const hasPhoneNumber = Boolean(String(settings.whatsappPhoneNumber || settings.phoneNumber || '').trim());
-  const providerType = String(settings.whatsappProviderType || settings.providerType || '').trim().toLowerCase();
-
-  if (providerType === 'deropo') {
-    return hasBaseUrl && hasAccessToken;
-  }
-
-  if (providerType === 'meta') {
-    return hasAccessToken && (hasInstance || hasPhoneNumber);
-  }
-
-  if (hasBaseUrl && hasAccessToken && hasInstance) return true;
-  if (hasBaseUrl && hasAccessToken && hasPhoneNumber) return true;
-  return false;
+const sanitizeWhatsAppSettingsForResponse = (settings = {}) => {
+  const provider = getProviderSettings(settings);
+  return {
+    apiBaseUrl: provider.baseUrl,
+    phoneNumber: provider.phoneNumber,
+    instanceId: provider.instanceId,
+    accessToken: '',
+    accessTokenMasked: provider.accessTokenMasked,
+    hasAccessToken: Boolean(provider.accessToken),
+    active: provider.active,
+    testNumber: String(settings.whatsappTestNumber || '').trim(),
+    providerType: provider.providerType,
+    diagnostic: buildWhatsAppCredentialDiagnostics(settings)
+  };
 };
 
 const resolveAttachmentUrl = (rawUrl, req, resolveServerOrigin) => {
@@ -167,61 +164,32 @@ function createWhatsAppController(deps) {
     return template;
   };
 
-  const buildContextPayload = (payload = {}, settings = {}) => {
-    const safe = payload && typeof payload === 'object' ? payload : {};
-    return {
-      customer_name: safe.customer_name || safe.customerName || '',
-      customer_phone: safe.customer_phone || safe.customerPhone || safe.phone || '',
-      service_type: safe.service_type || safe.serviceType || '',
-      address: safe.address || '',
-      invoice_no: safe.invoice_no || safe.invoiceNumber || '',
-      invoice_amount: safe.invoice_amount || safe.invoiceAmount || '',
-      due_date: safe.due_date || safe.dueDate || '',
-      quotation_no: safe.quotation_no || safe.quotationNumber || '',
-      technician_name: safe.technician_name || safe.technicianName || '',
-      sales_person_name: safe.sales_person_name || safe.salesPersonName || '',
-      job_date: safe.job_date || safe.jobDate || '',
-      job_time: safe.job_time || safe.jobTime || '',
-      company_name: safe.company_name || settings.companyName || 'SKUAS Pest Control',
-      payment_link: safe.payment_link || safe.paymentLink || '',
-      ...safe
-    };
-  };
+  const buildContextPayload = (payload = {}, settings = {}) => buildTemplateContext(payload, settings);
 
   const getWhatsAppSettings = (req, res) => {
     const settings = readSettings();
-    const providerType = String(
-      settings.whatsappProviderType
-      || (settings.whatsappApiBaseUrl && /deropo/i.test(String(settings.whatsappApiBaseUrl)) ? 'deropo' : 'custom')
-    ).trim().toLowerCase();
-    res.json({
-      apiBaseUrl: settings.whatsappApiBaseUrl || '',
-      phoneNumber: settings.whatsappPhoneNumber || '',
-      instanceId: settings.whatsappInstanceId || settings.whatsappPhoneNumberId || '',
-      accessToken: settings.whatsappAccessToken || '',
-      active: inferWhatsAppActive(settings),
-      testNumber: settings.whatsappTestNumber || '',
-      providerType,
-      diagnostic: buildWhatsAppCredentialDiagnostics(settings)
-    });
+    res.json(sanitizeWhatsAppSettingsForResponse(settings));
   };
 
   const saveWhatsAppSettings = (req, res) => {
     const body = req.body || {};
     const current = readSettings();
+    const accessTokenInput = Object.prototype.hasOwnProperty.call(body, 'accessToken')
+      ? String(body.accessToken || '').trim()
+      : '';
     const next = {
       ...current,
       whatsappApiBaseUrl: String(body.apiBaseUrl ?? current.whatsappApiBaseUrl ?? '').trim(),
       whatsappPhoneNumber: String(body.phoneNumber || current.whatsappPhoneNumber || '').trim(),
       whatsappInstanceId: String(body.instanceId || current.whatsappInstanceId || current.whatsappPhoneNumberId || '').trim(),
       whatsappPhoneNumberId: String(body.instanceId || current.whatsappInstanceId || current.whatsappPhoneNumberId || '').trim(),
-      whatsappAccessToken: String(body.accessToken || current.whatsappAccessToken || '').trim(),
+      whatsappAccessToken: accessTokenInput || String(current.whatsappAccessToken || '').trim(),
       whatsappApiActive: body.active === undefined ? toBool(current.whatsappApiActive) : toBool(body.active),
       whatsappTestNumber: String(body.testNumber || current.whatsappTestNumber || '').trim(),
       whatsappProviderType: String(body.providerType || current.whatsappProviderType || (body.apiBaseUrl && /deropo/i.test(String(body.apiBaseUrl)) ? 'deropo' : 'custom')).trim().toLowerCase()
     };
     saveSettings(next);
-    res.json({ success: true, settings: next });
+    res.json({ success: true, settings: sanitizeWhatsAppSettingsForResponse(next) });
   };
 
   const sendTestMessage = async (req, res) => {
@@ -231,7 +199,7 @@ function createWhatsAppController(deps) {
       const phone = validatePhoneNumber(to);
       if (!phone.ok) return res.status(400).json({ error: phone.error });
       const message = String(req.body?.message || 'WhatsApp API test message from CRM.').trim();
-      const sent = await sendWhatsAppMessage({ settings, to: phone.normalized, message });
+      const sent = await testConnection({ settings, to: phone.normalized, message });
       await saveLog({
         sentByUser: String(req.body?.sentByUser || 'Admin').trim() || 'Admin',
         recipientName: 'Test Number',
@@ -244,7 +212,7 @@ function createWhatsAppController(deps) {
         apiResponse: sent.response,
         originalPayload: { test: true }
       });
-      res.json({ success: true, response: sent.response });
+      res.json({ success: true, message: 'Test connection succeeded.', response: sent.response });
     } catch (error) {
       await saveLog({
         sentByUser: String(req.body?.sentByUser || 'Admin').trim() || 'Admin',
@@ -305,7 +273,7 @@ function createWhatsAppController(deps) {
     const template = resolveTemplate(moduleType, templateType);
     if (!template) return res.status(404).json({ error: 'No WhatsApp template found.' });
 
-    const message = replaceVariables(template.messageBody, contextData);
+    const message = renderTemplate(template.messageBody, contextData, settings);
     res.json({
       moduleType,
       template,
@@ -324,7 +292,7 @@ function createWhatsAppController(deps) {
     const templateType = String(body.templateType || '').trim().toLowerCase();
     const template = resolveTemplate(moduleType, templateType);
     const contextData = buildContextPayload(body.contextData || {}, settings);
-    const message = String(body.message || replaceVariables(template?.messageBody || '', contextData)).trim();
+    const message = String(body.message || renderTemplate(template?.messageBody || '', contextData, settings)).trim();
     const recipientPhone = String(body.recipientPhone || contextData.customer_phone || '').trim();
     const attachmentUrl = resolveAttachmentUrl(body.attachmentUrl, req, resolveServerOrigin);
 
@@ -344,13 +312,21 @@ function createWhatsAppController(deps) {
     };
 
     try {
-      const sent = await sendWhatsAppMessage({
-        settings,
-        to: recipientPhone,
-        message,
-        attachmentUrl,
-        attachmentName: logPayload.attachmentName
-      });
+      const sent = attachmentUrl
+        ? await sendDocumentMessage({
+          settings,
+          to: recipientPhone,
+          message,
+          attachmentUrl,
+          attachmentName: logPayload.attachmentName
+        })
+        : await sendTextMessage({
+          settings,
+          to: recipientPhone,
+          message,
+          attachmentUrl,
+          attachmentName: logPayload.attachmentName
+        });
 
       const log = await saveLog({ ...logPayload, status: 'sent', apiResponse: sent.response });
       res.json({ success: true, log, response: sent.response });

@@ -2,7 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { X } from 'lucide-react';
-import { isValidIndianMobileNumber, normalizeIndianMobileNumber } from '../../utils/phone';
+import {
+  formatWhatsAppPhoneNumber,
+  isValidWhatsAppPhoneNumber,
+  normalizeWhatsAppPhoneNumber
+} from '../../utils/phone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -95,9 +99,9 @@ export default function WhatsAppPreviewModal({
     try {
       setBusy(true);
       setError('');
-      const normalizedPhone = normalizeIndianMobileNumber(phoneValue);
-      if (!isValidIndianMobileNumber(phoneValue)) {
-        throw new Error('Please enter a valid Indian mobile number.');
+      const normalizedPhone = normalizeWhatsAppPhoneNumber(phoneValue);
+      if (!isValidWhatsAppPhoneNumber(phoneValue)) {
+        throw new Error('Please enter a valid WhatsApp number.');
       }
       const payload = {
         moduleType,
@@ -274,17 +278,17 @@ export default function WhatsAppPreviewModal({
           <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>
             <div><div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>Recipient</div><div style={{ fontSize: '14px', fontWeight: 700 }}>{recipientName || '-'}</div></div>
             <div>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>Phone</div>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>WhatsApp Number</div>
               {allowRecipientEdit ? (
                 <input
                   value={phoneValue}
                   onChange={(event) => setPhoneValue(event.target.value)}
-                  placeholder="Enter WhatsApp number (10 digits or +91...)"
+                  placeholder="Enter WhatsApp number"
                   inputMode="tel"
                   style={{ minHeight: '40px', width: '100%', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px', fontSize: '14px' }}
                 />
               ) : (
-                <div style={{ fontSize: '14px', fontWeight: 700 }}>{recipientPhone || '-'}</div>
+                <div style={{ fontSize: '14px', fontWeight: 700 }}>{formatWhatsAppPhoneNumber(recipientPhone || '') || '-'}</div>
               )}
             </div>
           </div>
@@ -315,7 +319,7 @@ export default function WhatsAppPreviewModal({
         </div>
         <div style={{ borderTop: '1px solid rgba(148, 163, 184, 0.18)', padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', backdropFilter: 'blur(10px)' }}>
           <button type="button" onClick={onClose} style={{ minHeight: '40px', borderRadius: '12px', border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 14px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-          <button type="button" onClick={handleSend} disabled={busy || !isValidIndianMobileNumber(phoneValue) || !message.trim()} style={{ minHeight: '40px', borderRadius: '12px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 16px', fontWeight: 800, cursor: 'pointer' }}>{busy ? 'Sending...' : sendButtonLabel}</button>
+          <button type="button" onClick={handleSend} disabled={busy || !isValidWhatsAppPhoneNumber(phoneValue) || !message.trim()} style={{ minHeight: '40px', borderRadius: '12px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 16px', fontWeight: 800, cursor: 'pointer' }}>{busy ? 'Sending...' : sendButtonLabel}</button>
         </div>
       </div>
     </div>,
