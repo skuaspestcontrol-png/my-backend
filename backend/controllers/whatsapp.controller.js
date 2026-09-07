@@ -33,6 +33,34 @@ const parseJsonSafe = (raw, fallback) => {
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
 
+const sanitizeWhatsAppLogRequest = (payload = {}) => {
+  const contextData = payload.contextData && typeof payload.contextData === 'object' ? payload.contextData : {};
+  return {
+    module: String(payload.moduleName || payload.module || '').trim(),
+    recordId: String(payload.recordId || contextData.recordId || contextData.id || '').trim(),
+    recipientName: String(payload.recipientName || '').trim(),
+    recipientPhone: String(payload.recipientPhone || '').trim(),
+    templateKey: String(payload.templateId || payload.templateKey || '').trim(),
+    message: String(payload.message || '').trim(),
+    attachmentUrl: String(payload.attachmentUrl || '').trim(),
+    attachmentName: String(payload.attachmentName || '').trim()
+  };
+
+};
+
+const getProviderLogData = (result = {}) => ({
+  provider: String(result.provider || 'deropo').trim(),
+  httpStatus: Number.isInteger(Number(result.httpStatus)) ? Number(result.httpStatus) : null,
+  ok: result.ok === true,
+  providerMessageId: result.providerMessageId || null,
+  providerResponse: result.providerResponse || result.response || null
+});
+
+const getErrorClientStatus = (error) => {
+  if (error?.isProviderError) return Number(error.statusCode) || 502;
+  return Number(error?.statusCode) >= 400 && Number(error.statusCode) < 600 ? Number(error.statusCode) : 400;
+};
+
 const sanitizeWhatsAppSettingsForResponse = (settings = {}) => {
   const provider = getProviderSettings(settings);
   return {
@@ -145,7 +173,10 @@ function createWhatsAppController(deps) {
       status: String(payload.status || 'pending'),
       apiResponse: payload.apiResponse || null,
       errorMessage: String(payload.errorMessage || ''),
-      originalPayload: payload.originalPayload || {},
+      provider: String(payload.provider || '').trim(),
+      httpStatus: payload.httpStatus ?? null,
+      providerMessageId: payload.providerMessageId || null,
+      originalPayload: sanitizeWhatsAppLogRequest(payload.originalPayload || {}),
       updatedAt: nowIso()
     };
     const logs = getLogs();
@@ -209,11 +240,13 @@ function createWhatsAppController(deps) {
         templateId: 'test_message',
         message,
         status: 'sent',
-        apiResponse: sent.response,
-        originalPayload: { test: true }
+        ...getProviderLogData(sent),
+        apiResponse: sent.providerResponse || sent.response,
+        originalPayload: { moduleName: 'settings-test' }
       });
-      res.json({ success: true, message: 'Test connection succeeded.', response: sent.response });
+      res.json({ success: true, message: 'Test connection succeeded.', response: sent.providerResponse || sent.response });
     } catch (error) {
+      const providerLog = getProviderLogData(error);
       await saveLog({
         sentByUser: String(req.body?.sentByUser || 'Admin').trim() || 'Admin',
         recipientName: 'Test Number',
@@ -223,11 +256,12 @@ function createWhatsAppController(deps) {
         templateId: 'test_message',
         message: String(req.body?.message || ''),
         status: 'failed',
-        apiResponse: error.response || null,
-        errorMessage: error.message,
-        originalPayload: { test: true }
+        ...providerLog,
+        apiResponse: providerLog.providerResponse,
+        errorMessage: error.providerErrorMessage || error.message,
+        originalPayload: { moduleName: 'settings-test' }
       });
-      res.status(400).json({ error: error.message, response: error.response || null });
+      res.status(getErrorClientStatus(error)).json({ error: error.message, response: providerLog.providerResponse });
     }
   };
 
@@ -308,7 +342,7 @@ function createWhatsAppController(deps) {
       message,
       attachmentUrl,
       attachmentName: String(body.attachmentName || '').trim(),
-      originalPayload: body
+      originalPayload: sanitizeWhatsAppLogRequest({ ...body, moduleName: body.moduleName || moduleType, templateId: template?.id || body.templateId })
     };
 
     try {
@@ -328,11 +362,13 @@ function createWhatsAppController(deps) {
           attachmentName: logPayload.attachmentName
         });
 
-      const log = await saveLog({ ...logPayload, status: 'sent', apiResponse: sent.response });
-      res.json({ success: true, log, response: sent.response });
+      const providerLog = getProviderLogData(sent);
+      const log = await saveLog({ ...logPayload, ...providerLog, status: 'sent', apiResponse: providerLog.providerResponse });
+      res.json({ success: true, log, response: providerLog.providerResponse });
     } catch (error) {
-      const log = await saveLog({ ...logPayload, status: 'failed', apiResponse: error.response || null, errorMessage: error.message });
-      res.status(400).json({ error: error.message, log, response: error.response || null });
+      const providerLog = getProviderLogData(error);
+      const log = await saveLog({ ...logPayload, ...providerLog, status: 'failed', apiResponse: providerLog.providerResponse, errorMessage: error.providerErrorMessage || error.message });
+      res.status(getErrorClientStatus(error)).json({ error: error.message, log, response: providerLog.providerResponse });
     }
   };
 

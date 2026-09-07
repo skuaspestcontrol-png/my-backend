@@ -741,7 +741,8 @@ const getSectionCompletion = (form, securityForm) => {
       form.employeeCodeNextNumber,
       form.employeeCodePadding
     ].every(isFilled),
-    whatsappApiSettings: [form.whatsappPhoneNumber, form.whatsappInstanceId, form.whatsappAccessToken].every(isFilled),
+    whatsappApiSettings: [form.whatsappPhoneNumber, form.whatsappInstanceId].every(isFilled)
+      && (isFilled(form.whatsappAccessToken) || Boolean(form.whatsappAccessTokenConfigured)),
     whatsappTemplates: true,
     whatsappLogs: true,
     emailApiSettings: [form.smtpSenderName, form.smtpFromEmail, form.smtpUser, form.smtpHost, form.smtpPort].every(isFilled),
@@ -954,7 +955,9 @@ export default function Settings({ modalMode = false }) {
           whatsappApiVersion: data.whatsappApiVersion || 'v23.0',
           whatsappPhoneNumber: data.whatsappPhoneNumber || '',
           whatsappInstanceId: data.whatsappInstanceId || data.whatsappPhoneNumberId || '',
-          whatsappAccessToken: data.whatsappAccessToken || '',
+          whatsappAccessToken: '',
+          whatsappAccessTokenConfigured: Boolean(data.whatsappAccessTokenConfigured || data.whatsappAccessTokenMasked),
+          whatsappAccessTokenMasked: data.whatsappAccessTokenMasked || '',
           whatsappContractExpiryToOwner: data.whatsappContractExpiryToOwner || 'On',
           whatsappContractExpiryToCustomer: data.whatsappContractExpiryToCustomer || 'Off',
           whatsappLeadFollowupToOwner: data.whatsappLeadFollowupToOwner || 'On',
@@ -2257,7 +2260,8 @@ export default function Settings({ modalMode = false }) {
         </div>
         <div style={shell.field}>
           <p style={shell.fieldLabel}>Access Token</p>
-          <input type="password" style={shell.input} value={form.whatsappAccessToken} onChange={(event) => updateField('whatsappAccessToken', event.target.value)} />
+          <input type="password" style={shell.input} value={form.whatsappAccessToken} placeholder="Leave blank to keep the existing access token" onChange={(event) => updateField('whatsappAccessToken', event.target.value)} />
+          <p style={shell.hint}>Leave blank to keep the existing access token. {form.whatsappAccessTokenConfigured ? 'Saved / Configured' : 'Not configured'}</p>
         </div>
       </div>
 

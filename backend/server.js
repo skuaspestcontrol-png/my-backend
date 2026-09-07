@@ -1873,6 +1873,7 @@ const mergeSettingsForSave = (current = {}, incoming = {}) => {
     'adminPassword',
     'settingsAccessPin',
     'smtpPass',
+    'whatsappAccessToken',
     'gstCompanyName',
     'gstBillingAddress',
     'gstCity',
@@ -2417,11 +2418,18 @@ const normalizeJobPdfSettings = (settings = {}, req = null) => ({
 
 const maskClientSettings = (settings = {}) => {
   const smtpPasswordSet = Boolean(String(settings.smtpPass || '').trim());
+  const whatsappAccessToken = String(settings.whatsappAccessToken || '').trim();
+  const whatsappAccessTokenMasked = whatsappAccessToken.length > 4
+    ? `********${whatsappAccessToken.slice(-4)}`
+    : whatsappAccessToken ? '********' : '';
   return {
     ...settings,
     smtpPass: '',
     smtpPassword: '',
-    smtpPasswordSet
+    smtpPasswordSet,
+    whatsappAccessToken: '',
+    whatsappAccessTokenConfigured: Boolean(whatsappAccessToken),
+    whatsappAccessTokenMasked
   };
 };
 

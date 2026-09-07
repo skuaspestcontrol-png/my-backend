@@ -96,6 +96,65 @@ const getAttachmentType = (attachmentUrl = '', attachmentName = '') => {
   return 'document';
 };
 
+const isPrivateIpv4 = (hostname) => {
+  const parts = String(hostname || '').split('.').map(Number);
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+  return parts[0] === 10
+    || parts[0] === 127
+    || parts[0] === 0
+    || (parts[0] === 192 && parts[1] === 168)
+    || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31);
+};
+
+const validateWhatsAppAttachmentUrl = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return { ok: true, url: '' };
+  if (/^(file:|\/|[A-Za-z]:[\\/]|\\\\)/i.test(raw)) {
+    return { ok: false, url: '', error: 'Public server origin is not configured for WhatsApp attachments.' };
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch (_error) {
+    return { ok: false, url: '', error: 'Public server origin is not configured for WhatsApp attachments.' };
+  }
+
+  const hostname = String(parsed.hostname || '').toLowerCase();
+  const normalizedHostname = hostname.replace(/^\[|\]$/g, '');
+  const isUnsafeHost = parsed.protocol !== 'https:'
+    || !hostname
+    || hostname === 'localhost'
+    || hostname.endsWith('.localhost')
+    || hostname.endsWith('.local')
+    || hostname.endsWith('.internal')
+    || /hostinger/i.test(hostname)
+    || isPrivateIpv4(normalizedHostname)
+    || normalizedHostname === '::1'
+    || normalizedHostname === '0.0.0.0'
+    || /^(fc|fd|fe80:)/i.test(normalizedHostname);
+
+  if (isUnsafeHost || parsed.username || parsed.password) {
+    return { ok: false, url: '', error: 'Public server origin is not configured for WhatsApp attachments.' };
+  }
+  return { ok: true, url: parsed.toString() };
+};
+
+const createAttachmentValidationError = () => {
+  const error = new Error('Public server origin is not configured for WhatsApp attachments.');
+  error.statusCode = 400;
+  return error;
+};
+
+const sanitizeProviderResponse = (value) => {
+  if (Array.isArray(value)) return value.map(sanitizeProviderResponse);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).map(([key, entry]) => {
+    if (/(access.?token|authorization|password|secret|api.?key|credential)/i.test(key)) return [key, '[redacted]'];
+    return [key, sanitizeProviderResponse(entry)];
+  }));
+};
+
 const buildDeropoSendUrl = (baseUrl, params = {}) => {
   const url = new URL(`${String(baseUrl || '').replace(/\/+$/, '')}/send`);
   Object.entries(params).forEach(([key, value]) => {
@@ -103,6 +162,85 @@ const buildDeropoSendUrl = (baseUrl, params = {}) => {
     url.searchParams.set(key, String(value));
   });
   return url.toString();
+};
+
+const extractProviderMessageId = (providerResponse) => {
+  if (!providerResponse || typeof providerResponse !== 'object') return null;
+  const value = providerResponse.messageId;
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+};
+
+const getProviderErrorMessage = (status) => {
+  if (status === 401 || status === 403) return 'WhatsApp provider authentication failed.';
+  if (status >= 400 && status < 500) return 'WhatsApp provider rejected the request.';
+  if (status >= 500) return 'WhatsApp provider server error.';
+  return 'WhatsApp provider request failed.';
+};
+
+const createProviderError = ({ status, parsed, cause } = {}) => {
+  const providerResponse = sanitizeProviderResponse(parsed && typeof parsed === 'object' ? parsed : { raw: String(parsed || '') });
+  const error = new Error(status ? getProviderErrorMessage(status) : 'WhatsApp provider is unreachable.');
+  error.isProviderError = true;
+  error.statusCode = status ? 502 : 503;
+  error.httpStatus = status || null;
+  error.provider = 'deropo';
+  error.ok = false;
+  error.providerMessageId = extractProviderMessageId(providerResponse);
+  error.providerResponse = providerResponse;
+  error.response = providerResponse;
+  error.providerErrorMessage = typeof providerResponse.message === 'string' ? providerResponse.message : '';
+  error.errorMessage = error.providerErrorMessage || error.message;
+  if (cause) error.cause = cause;
+  return error;
+};
+
+const requestDeropo = async (baseUrl, params) => {
+  let response;
+  try {
+    response = await fetch(buildDeropoSendUrl(baseUrl, params), { method: 'GET' });
+  } catch (error) {
+    throw createProviderError({ cause: error });
+  }
+  const raw = await response.text();
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (_error) {
+    parsed = { raw };
+  }
+  if (!response.ok) throw createProviderError({ status: response.status, parsed });
+  const providerResponse = sanitizeProviderResponse(parsed);
+  return {
+    provider: 'deropo',
+    httpStatus: response.status,
+    ok: true,
+    providerMessageId: extractProviderMessageId(parsed),
+    providerResponse,
+    errorMessage: null,
+    response: providerResponse
+  };
+};
+
+const sendDeropoText = async ({ provider, to, message }) => requestDeropo(provider.baseUrl, {
+  number: to,
+  message: String(message || ''),
+  access_token: provider.accessToken,
+  type: 'text'
+});
+
+const sendDeropoDocument = async ({ provider, to, message, attachmentUrl, attachmentName }) => {
+  // Deropo document/media contract requires provider verification before modification.
+  const params = {
+    number: to,
+    message: String(message || ''),
+    access_token: provider.accessToken,
+    type: getAttachmentType(attachmentUrl, attachmentName)
+  };
+  if (params.type === 'image') params.image_url = attachmentUrl;
+  else if (params.type === 'audio') params.audio_url = attachmentUrl;
+  else params.document_url = attachmentUrl;
+  if (params.type === 'document' && attachmentName) params.file_name = attachmentName;
+  return requestDeropo(provider.baseUrl, params);
 };
 
 const normalizePhoneNumber = (value) => {
@@ -187,43 +325,25 @@ const sendWhatsAppMessage = async ({ settings, to, message, attachmentUrl, attac
       throw new Error('WhatsApp API credentials are incomplete.');
     }
 
-    const attachmentType = attachmentUrl ? getAttachmentType(attachmentUrl, attachmentName) : '';
-    const params = {
-      number: phoneCheck.normalized,
-      message: String(message || ''),
-      access_token: provider.accessToken,
-      type: 'text'
-    };
-
     if (attachmentUrl) {
-      params.type = attachmentType;
-      if (attachmentType === 'image') params.image_url = attachmentUrl;
-      else if (attachmentType === 'audio') params.audio_url = attachmentUrl;
-      else params.document_url = attachmentUrl;
-      if (attachmentType === 'document' && attachmentName) params.file_name = attachmentName;
+      const attachmentCheck = validateWhatsAppAttachmentUrl(attachmentUrl);
+      if (!attachmentCheck.ok) throw createAttachmentValidationError();
+      return {
+        success: true,
+        normalizedPhone: phoneCheck.normalized,
+        ...(await sendDeropoDocument({
+          provider,
+          to: phoneCheck.normalized,
+          message,
+          attachmentUrl: attachmentCheck.url,
+          attachmentName
+        }))
+      };
     }
-
-    const response = await fetch(buildDeropoSendUrl(provider.baseUrl, params), { method: 'GET' });
-    const raw = await response.text();
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (error) {
-      parsed = { raw };
-    }
-
-    if (!response.ok) {
-      const error = new Error(parsed?.message || `WhatsApp API failed (${response.status})`);
-      error.response = parsed;
-      error.statusCode = response.status;
-      throw error;
-    }
-
     return {
       success: true,
-      provider: provider.providerType,
       normalizedPhone: phoneCheck.normalized,
-      response: parsed
+      ...(await sendDeropoText({ provider, to: phoneCheck.normalized, message }))
     };
   }
 
@@ -243,6 +363,12 @@ const sendWhatsAppMessage = async ({ settings, to, message, attachmentUrl, attac
     attachmentUrl: attachmentUrl || '',
     attachmentName: attachmentName || ''
   };
+
+  if (attachmentUrl) {
+    const attachmentCheck = validateWhatsAppAttachmentUrl(attachmentUrl);
+    if (!attachmentCheck.ok) throw createAttachmentValidationError();
+    payload.attachmentUrl = attachmentCheck.url;
+  }
 
   const headers = {
     'Content-Type': 'application/json',
@@ -264,17 +390,27 @@ const sendWhatsAppMessage = async ({ settings, to, message, attachmentUrl, attac
   }
 
   if (!response.ok) {
-    const error = new Error(parsed?.message || `WhatsApp API failed (${response.status})`);
-    error.response = parsed;
-    error.statusCode = response.status;
+    const error = new Error(`WhatsApp provider request failed (${response.status}).`);
+    error.response = sanitizeProviderResponse(parsed);
+    error.providerResponse = error.response;
+    error.provider = provider.providerType;
+    error.isProviderError = true;
+    error.httpStatus = response.status;
+    error.statusCode = 502;
+    error.providerMessageId = extractProviderMessageId(error.response);
     throw error;
   }
 
   return {
     success: true,
     provider: provider.providerType,
+    httpStatus: response.status,
+    ok: true,
+    providerMessageId: extractProviderMessageId(parsed),
+    providerResponse: sanitizeProviderResponse(parsed),
+    errorMessage: null,
     normalizedPhone: phoneCheck.normalized,
-    response: parsed
+    response: sanitizeProviderResponse(parsed)
   };
 };
 
@@ -305,6 +441,8 @@ module.exports = {
   buildProviderConfig,
   getProviderSettings,
   buildWhatsAppCredentialDiagnostics,
+  validateWhatsAppAttachmentUrl,
+  extractProviderMessageId,
   buildTemplateContext,
   renderTemplate,
   sendTextMessage,
