@@ -7,7 +7,7 @@ import { subscribeContractsRefresh, triggerRenewalsRefresh, triggerSalesPerforma
 import useColumnResize from './table/useColumnResize';
 import SortChevronIcon from './ui/SortChevronIcon';
 import { getPortalUserName } from '../utils/portalAuth';
-import { formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
+import { formatWhatsAppPhoneNumber, normalizeWhatsAppPhoneNumber } from '../utils/phone';
 import {
   AlertCircle,
   CalendarDays,
@@ -502,14 +502,14 @@ const mergeContractsDashboardCache = (patch) => {
   }
 };
 
-  const findCustomerForInvoice = (invoice) =>
-    customers.find((customer) =>
+  const findCustomerForInvoice = (invoice, customerList = []) =>
+    customerList.find((customer) =>
       (invoice.customerId && String(customer._id) === String(invoice.customerId)) ||
       String(customer.displayName || customer.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
     ) || null;
 
-  const resolveInvoiceWhatsAppContact = (invoice = {}) => {
-    const customer = findCustomerForInvoice(invoice);
+  const resolveInvoiceWhatsAppContact = (invoice = {}, customerList = []) => {
+    const customer = findCustomerForInvoice(invoice, customerList);
     const customerName = String(
       customer?.displayName
       || customer?.name
@@ -536,13 +536,13 @@ const mergeContractsDashboardCache = (patch) => {
       customer,
       customerName,
       phoneSource,
-      recipientPhone: normalizeIndianMobileNumber(phoneSource),
-      displayPhone: formatIndianMobileNumber(phoneSource)
+      recipientPhone: normalizeWhatsAppPhoneNumber(phoneSource),
+      displayPhone: formatWhatsAppPhoneNumber(phoneSource)
     };
   };
 
-  const sendInvoiceEmail = async (invoice) => {
-    const { customer, customerName } = resolveInvoiceWhatsAppContact(invoice);
+  const sendInvoiceEmail = async (invoice, customerList = []) => {
+    const { customer, customerName } = resolveInvoiceWhatsAppContact(invoice, customerList);
     const invoiceNumber = String(invoice.invoiceNumber || '').trim() || 'Invoice';
     const recipient = window.prompt('Enter recipient email', String(customer?.emailId || customer?.email || '').trim());
     if (!recipient) return;
@@ -558,8 +558,8 @@ const mergeContractsDashboardCache = (patch) => {
     }
   };
 
-  const sendContractJobCardEmail = async (invoice) => {
-    const { customer, customerName } = resolveInvoiceWhatsAppContact(invoice);
+  const sendContractJobCardEmail = async (invoice, customerList = []) => {
+    const { customer, customerName } = resolveInvoiceWhatsAppContact(invoice, customerList);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Contract';
     const recipient = window.prompt('Enter recipient email', String(customer?.emailId || customer?.email || '').trim());
     if (!recipient) return;
@@ -689,7 +689,7 @@ export default function ContractDashboard() {
   };
 
   const openInvoiceWhatsAppComposer = (invoice) => {
-    const { customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice);
+    const { customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice, customers);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Invoice';
     if (!recipientPhone) {
       showToast(`No WhatsApp number found for ${customerName}.`);
@@ -720,7 +720,7 @@ export default function ContractDashboard() {
   };
 
   const openContractJobCardWhatsAppComposer = (invoice) => {
-    const { customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice);
+    const { customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice, customers);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.contractNo || invoice._id || '').trim() || 'Contract';
     if (!recipientPhone) {
       showToast(`No WhatsApp number found for ${customerName}.`);
@@ -2325,10 +2325,10 @@ export default function ContractDashboard() {
             || pdfPreview.shareContext?.invoice
             || null;
           if (pdfPreview.previewKind === 'contract-job-card') {
-            if (invoice) await sendContractJobCardEmail(invoice);
+            if (invoice) await sendContractJobCardEmail(invoice, customers);
             return;
           }
-          if (invoice) await sendInvoiceEmail(invoice);
+          if (invoice) await sendInvoiceEmail(invoice, customers);
         }}
         onShareWhatsApp={() => {
           const invoice = invoices.find((entry) => matchesContractInvoiceReference(entry, pdfPreview.invoiceId))
