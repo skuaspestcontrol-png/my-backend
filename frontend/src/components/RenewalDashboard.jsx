@@ -484,12 +484,12 @@ export default function RenewalDashboard() {
       open: true,
       row: sourceRow,
       previewData: {
-        previewMessage: `Dear ${titleName},\n\nPlease find attached your renewal letter for ${renewalDisplayId}.\n\nRegards,\nSKUAS Pest Control`,
+        previewMessage: '',
         attachmentOption: 'Renewal Letter PDF',
         template: {
-          id: 'custom_message',
-          templateType: 'custom_message',
-          templateName: 'Renewal Letter'
+          id: 'renewal_reminder',
+          templateType: 'renewal_reminder',
+          templateName: 'Renewal Reminder'
         },
         contextData: {
           customer_name: titleName,
@@ -497,6 +497,7 @@ export default function RenewalDashboard() {
           service_type: serviceType,
           renewal_display_id: renewalDisplayId,
           renewal_id: renewalId,
+          renewal_date: String(sourceRow?.contractEndDate || sourceRow?.renewalDate || '').trim(),
           pdf_url: pdfUrl,
           company_name: 'SKUAS Pest Control'
         }
@@ -1344,12 +1345,30 @@ export default function RenewalDashboard() {
         showAttachmentFields={false}
         attachmentNote="The renewal letter PDF is attached automatically."
         sendButtonLabel="Send Renewal on WhatsApp"
-        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message, attachmentOption }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
           const renewalId = String(whatsappComposer.row?.renewalId || whatsappComposer.row?.renewal_id || whatsappComposer.row?.id || '').trim();
+          if (attachmentOption !== 'None' && attachmentOption !== 'Renewal Letter PDF') {
+            throw new Error('Renewal WhatsApp template must use Renewal Letter PDF or None.');
+          }
+          if (attachmentOption === 'None') {
+            const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
+              moduleType: 'renewal',
+              templateType: 'renewal_reminder',
+              templateKey: 'renewal_reminder',
+              recipientName: whatsappComposer.recipientName,
+              recipientPhone: phoneNumber,
+              message,
+              moduleName: 'Renewal',
+              contextData: whatsappComposer.previewData?.contextData || {}
+            });
+            window.alert(response.data?.message || 'Renewal WhatsApp sent successfully.');
+            return;
+          }
           const response = await axios.post(`${API_BASE}/api/renewals/${encodeURIComponent(renewalId)}/send-whatsapp`, {
             phoneNumber,
             message,
+            attachmentOption,
           });
           window.alert(response.data?.message || 'Renewal WhatsApp sent successfully.');
         }}

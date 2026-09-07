@@ -40,7 +40,7 @@ const sanitizeWhatsAppLogRequest = (payload = {}) => {
     recordId: String(payload.recordId || contextData.recordId || contextData.id || '').trim(),
     recipientName: String(payload.recipientName || '').trim(),
     recipientPhone: String(payload.recipientPhone || '').trim(),
-    templateKey: String(payload.templateId || payload.templateKey || '').trim(),
+    templateKey: String(payload.templateKey || payload.templateType || payload.templateId || '').trim().toLowerCase(),
     message: String(payload.message || '').trim(),
     attachmentUrl: String(payload.attachmentUrl || '').trim(),
     attachmentName: String(payload.attachmentName || '').trim()
@@ -166,6 +166,7 @@ function createWhatsAppController(deps) {
       recipientPhone: String(payload.recipientPhone || '').trim(),
       recipientType: String(payload.recipientType || '').trim(),
       moduleName: String(payload.moduleName || '').trim(),
+      templateKey: String(payload.templateKey || '').trim().toLowerCase(),
       templateId: String(payload.templateId || '').trim(),
       message: String(payload.message || ''),
       attachmentUrl: String(payload.attachmentUrl || ''),
@@ -189,10 +190,7 @@ function createWhatsAppController(deps) {
   const resolveTemplate = (moduleType, templateType) => {
     const templates = getTemplates();
     const targetType = String(templateType || getTemplateTypeFromModule(moduleType)).trim().toLowerCase();
-    const template = templates.find((entry) => entry.isActive && entry.templateType === targetType)
-      || templates.find((entry) => entry.templateType === 'custom_message')
-      || templates[0];
-    return template;
+    return templates.find((entry) => entry.templateType === targetType) || null;
   };
 
   const buildContextPayload = (payload = {}, settings = {}) => buildTemplateContext(payload, settings);
@@ -306,6 +304,7 @@ function createWhatsAppController(deps) {
     const contextData = buildContextPayload(req.body?.contextData || {}, settings);
     const template = resolveTemplate(moduleType, templateType);
     if (!template) return res.status(404).json({ error: 'No WhatsApp template found.' });
+    if (!template.isActive) return res.status(409).json({ error: `${template.templateName || template.templateType || 'WhatsApp'} template is inactive.` });
 
     const message = renderTemplate(template.messageBody, contextData, settings);
     res.json({
@@ -326,6 +325,8 @@ function createWhatsAppController(deps) {
     const templateType = String(body.templateType || '').trim().toLowerCase();
     const template = resolveTemplate(moduleType, templateType);
     const contextData = buildContextPayload(body.contextData || {}, settings);
+    if (!template) return res.status(404).json({ error: 'No WhatsApp template found.' });
+    if (!template.isActive) return res.status(409).json({ error: `${template.templateName || template.templateType || 'WhatsApp'} template is inactive.` });
     const message = String(body.message || renderTemplate(template?.messageBody || '', contextData, settings)).trim();
     const recipientPhone = String(body.recipientPhone || contextData.customer_phone || '').trim();
     const attachmentUrl = resolveAttachmentUrl(body.attachmentUrl, req, resolveServerOrigin);
@@ -338,6 +339,7 @@ function createWhatsAppController(deps) {
       recipientPhone,
       recipientType: String(body.recipientType || template?.sendToType || 'Customer').trim(),
       moduleName: String(body.moduleName || moduleType || 'custom').trim(),
+      templateKey: String(template?.templateKey || template?.templateType || templateType || '').trim().toLowerCase(),
       templateId: String(template?.id || body.templateId || '').trim(),
       message,
       attachmentUrl,

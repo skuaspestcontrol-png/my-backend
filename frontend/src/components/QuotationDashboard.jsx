@@ -360,7 +360,7 @@ function QuotationDashboardInner() {
       open: true,
       row,
       previewData: {
-        previewMessage: `Dear ${customerName},\n\nPlease find attached quotation ${quotationNumber} for your review.\n\nRegards,\nSKUAS Pest Control`,
+        previewMessage: '',
         attachmentOption: 'Quotation PDF',
         suggestedAttachmentUrl: pdfUrl,
         template: {
@@ -371,6 +371,9 @@ function QuotationDashboardInner() {
         contextData: {
           customer_name: customerName,
           quotation_no: quotationNumber,
+          quotation_number: quotationNumber,
+          quotation_date: String(row.date || row.quotation_date || '').trim(),
+          quotation_amount: String(row.total || row.amount || '').trim(),
           company_name: 'SKUAS Pest Control'
         }
       },
@@ -695,11 +698,29 @@ function QuotationDashboardInner() {
         showAttachmentFields={false}
         attachmentNote="The quotation PDF is attached automatically."
         sendButtonLabel="Send Quotation on WhatsApp"
-        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message, attachmentOption }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
+          if (attachmentOption !== 'None' && attachmentOption !== 'Quotation PDF') {
+            throw new Error('Quotation WhatsApp template must use Quotation PDF or None.');
+          }
+          if (attachmentOption === 'None') {
+            const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
+              moduleType: 'quotation',
+              templateType: 'quotation_send',
+              templateKey: 'quotation_send',
+              recipientName: whatsappComposer.recipientName,
+              recipientPhone: phoneNumber,
+              message,
+              moduleName: 'Quotation',
+              contextData: whatsappComposer.previewData?.contextData || {}
+            });
+            setStatus(response?.data?.message || 'Quotation WhatsApp sent successfully.');
+            return;
+          }
           const response = await axios.post(`${API_BASE_URL}/api/quotations/${whatsappComposer.row.id}/send-whatsapp`, {
             phoneNumber,
-            message
+            message,
+            attachmentOption
           });
           setStatus(response?.data?.message || 'Quotation WhatsApp sent successfully.');
         }}

@@ -125,7 +125,7 @@ export default function WhatsAppTemplates() {
             <option>Customer</option><option>Technician</option><option>Sales</option><option>Admin</option>
           </select>
           <select value={form.attachmentOption} onChange={(e) => setForm((p) => ({ ...p, attachmentOption: e.target.value }))} style={{ minHeight: '40px', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px' }}>
-            <option>None</option><option>Invoice PDF</option><option>Quotation PDF</option><option>Service Report PDF</option><option>Receipt PDF</option><option>Manual Upload</option>
+            <option>None</option><option>Invoice PDF</option><option>Quotation PDF</option><option>Job Card PDF</option><option>Renewal Letter PDF</option><option>Service Report PDF</option><option>Receipt PDF</option><option>Manual Upload</option>
           </select>
         </div>
         <input placeholder="Official template name (optional)" value={form.officialTemplateName} onChange={(e) => setForm((p) => ({ ...p, officialTemplateName: e.target.value }))} style={{ minHeight: '40px', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px' }} />

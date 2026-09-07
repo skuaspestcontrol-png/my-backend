@@ -699,7 +699,7 @@ export default function ContractDashboard() {
       kind: 'invoice',
       row: invoice,
       previewData: {
-        previewMessage: `Dear ${customerName},\n\nPlease find attached invoice ${invoiceNumber}.\n\nRegards,\nSKUAS Pest Control`,
+        previewMessage: '',
         attachmentOption: 'Invoice PDF',
         template: {
           id: 'invoice_send',
@@ -710,6 +710,7 @@ export default function ContractDashboard() {
           customer_name: customerName,
           customer_phone: recipientPhone,
           invoice_no: invoiceNumber,
+          invoice_number: invoiceNumber,
           company_name: 'SKUAS Pest Control'
         }
       },
@@ -732,17 +733,20 @@ export default function ContractDashboard() {
       kind: 'contract-job-card',
       row: invoice,
       previewData: {
-        previewMessage: `Dear ${customerName},\n\nPlease find attached contract service history / job card summary for ${invoiceNumber}.\n\nRegards,\nSKUAS Pest Control`,
+        previewMessage: '',
         attachmentOption: 'Job Card PDF',
         suggestedAttachmentUrl: pdfUrl,
         template: {
-          id: 'custom_message',
-          templateType: 'custom_message',
-          templateName: 'Contract Job Card Summary'
+          id: 'job_confirmation',
+          templateType: 'job_confirmation',
+          templateName: 'Job Confirmation'
         },
         contextData: {
           customer_name: customerName,
           customer_phone: recipientPhone,
+          job_number: invoiceNumber,
+          job_date: String(invoice.serviceDate || invoice.jobDate || '').trim(),
+          service_name: String(invoice.subject || invoice.serviceType || 'Contract service').trim(),
           invoice_no: invoiceNumber,
           company_name: 'SKUAS Pest Control'
         }
@@ -2362,22 +2366,58 @@ export default function ContractDashboard() {
         showAttachmentFields={false}
         attachmentNote={whatsappComposer.kind === 'contract-job-card' ? 'The job card summary PDF is attached automatically.' : 'The invoice PDF is attached automatically.'}
         sendButtonLabel={whatsappComposer.kind === 'contract-job-card' ? 'Send Job Card on WhatsApp' : 'Send Invoice on WhatsApp'}
-        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message, attachmentOption }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
           if (whatsappComposer.kind === 'contract-job-card') {
+            if (attachmentOption !== 'None' && attachmentOption !== 'Job Card PDF') {
+              throw new Error('Job Card WhatsApp template must use Job Card PDF or None.');
+            }
+            if (attachmentOption === 'None') {
+              const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
+                moduleType: 'contract',
+                templateType: 'job_confirmation',
+                templateKey: 'job_confirmation',
+                recipientName: whatsappComposer.recipientName,
+                recipientPhone: phoneNumber,
+                message,
+                moduleName: 'Contract Job Card',
+                contextData: whatsappComposer.previewData?.contextData || {}
+              });
+              window.alert(response.data?.message || 'Contract job card message sent on WhatsApp.');
+              return;
+            }
             const contractId = resolveContractWhatsAppTargetId(whatsappComposer.row) || String(whatsappComposer.row?.invoiceNumber || whatsappComposer.row?.contractNo || whatsappComposer.row?._id || '').trim();
             const response = await axios.post(`${API_BASE}/api/contracts/${encodeURIComponent(contractId)}/send-whatsapp`, {
               phoneNumber,
-              message
+              message,
+              attachmentOption
             });
             window.alert(response.data?.message || 'Contract job card sent on WhatsApp.');
             return;
           }
           const invoiceId = resolveInvoiceWhatsAppTargetId(whatsappComposer.row);
           if (!invoiceId) throw new Error('Invoice reference is missing. Please refresh and try again.');
+          if (attachmentOption !== 'None' && attachmentOption !== 'Invoice PDF') {
+            throw new Error('Invoice WhatsApp template must use Invoice PDF or None.');
+          }
+          if (attachmentOption === 'None') {
+            const response = await axios.post(`${API_BASE}/api/whatsapp/send`, {
+              moduleType: 'invoice',
+              templateType: 'invoice_send',
+              templateKey: 'invoice_send',
+              recipientName: whatsappComposer.recipientName,
+              recipientPhone: phoneNumber,
+              message,
+              moduleName: 'Contract Invoice',
+              contextData: whatsappComposer.previewData?.contextData || {}
+            });
+            window.alert(response.data?.message || 'Invoice sent on WhatsApp.');
+            return;
+          }
           const response = await axios.post(`${API_BASE}/api/invoices/${encodeURIComponent(invoiceId)}/send-whatsapp`, {
             phoneNumber,
-            message
+            message,
+            attachmentOption
           });
           window.alert(response.data?.message || 'Invoice sent on WhatsApp.');
         }}

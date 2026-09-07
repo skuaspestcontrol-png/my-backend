@@ -2568,22 +2568,6 @@ export default function InvoiceDashboard() {
     });
   };
 
-  const buildShareText = (invoice, customer) => {
-    const invoiceNumber = String(invoice.invoiceNumber || '').trim() || 'Invoice';
-    const customerName = String(invoice.customerName || customer?.displayName || customer?.name || '').trim() || 'Customer';
-    const lines = [
-      `${companySettings.companyName || 'Service Team'} Invoice`,
-      `Invoice No: ${invoiceNumber}`,
-      `Customer: ${customerName}`,
-      `Invoice Date: ${formatDisplayDate(invoice.date)}`,
-      `Total Amount: ${formatINR(invoice.total || invoice.amount || 0)}`,
-      `Balance Due: ${formatINR(invoice.balanceDue || 0)}`
-    ];
-    if (companySettings.companyWebsite) lines.push(`Website: ${companySettings.companyWebsite}`);
-    lines.push('Please find attached invoice PDF.');
-    return lines.join('\n');
-  };
-
   const openInvoiceWhatsAppComposer = (invoice) => {
     const { customer, customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || '').trim() || 'Invoice';
@@ -2592,7 +2576,7 @@ export default function InvoiceDashboard() {
       open: true,
       invoiceId: String(invoice._id || '').trim(),
       previewData: {
-        previewMessage: buildShareText(invoice, customer),
+        previewMessage: '',
         attachmentOption: 'Invoice PDF',
         template: {
           id: 'invoice_send',
@@ -2603,9 +2587,14 @@ export default function InvoiceDashboard() {
           customer_name: customerName,
           customer_phone: recipientPhone,
           invoice_no: invoiceNumber,
+          invoice_number: invoiceNumber,
+          invoice_date: formatDisplayDate(invoice.date),
           invoice_amount: formatINR(invoice.total || invoice.amount || 0),
+          total_amount: formatINR(invoice.total || invoice.amount || 0),
+          balance_due: formatINR(invoice.balanceDue || 0),
           due_date: formatDisplayDate(invoice.dueDate || ''),
           company_name: companySettings.companyName || 'Service Team',
+          company_website: companySettings.companyWebsite || '',
           payment_link: '',
           service_type: String(invoice.subject || invoice.serviceType || '').trim(),
           address: String(customer?.billingAddress || customer?.shippingAddress || invoice.billingAddressText || '').trim()
@@ -5308,11 +5297,29 @@ export default function InvoiceDashboard() {
         diagnostic={whatsAppDiagnostic}
         settingsData={whatsAppSettings}
         allowRecipientEdit
-        onSend={async ({ recipientPhone, normalizedRecipientPhone, message }) => {
+        onSend={async ({ recipientPhone, normalizedRecipientPhone, message, attachmentOption }) => {
           const phoneNumber = normalizedRecipientPhone || recipientPhone;
+          if (attachmentOption !== 'None' && attachmentOption !== 'Invoice PDF') {
+            throw new Error('Invoice WhatsApp template must use Invoice PDF or None.');
+          }
+          if (attachmentOption === 'None') {
+            const response = await axios.post(`${API_BASE_URL}/api/whatsapp/send`, {
+              moduleType: 'invoice',
+              templateType: 'invoice_send',
+              templateKey: 'invoice_send',
+              recipientName: whatsAppComposer.recipientName,
+              recipientPhone: phoneNumber,
+              message,
+              moduleName: 'Invoice',
+              contextData: whatsAppComposer.previewData?.contextData || {}
+            });
+            window.alert(response.data?.message || 'Invoice sent on WhatsApp.');
+            return;
+          }
           const response = await axios.post(`${API_BASE_URL}/api/invoices/${whatsAppComposer.invoiceId}/send-whatsapp`, {
             phoneNumber,
-            message
+            message,
+            attachmentOption
           });
           window.alert(response.data?.message || 'Invoice sent on WhatsApp.');
         }}

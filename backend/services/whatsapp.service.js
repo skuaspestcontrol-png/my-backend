@@ -269,31 +269,56 @@ const buildTemplateContext = (payload = {}, settings = {}) => {
     || 'SKUAS Pest Control'
   );
 
+  const customerName = normalizeText(safe.customer_name || safe.customerName || safe.recipientName || safe.name || '');
+  const customerPhone = normalizeText(safe.customer_phone || safe.customerPhone || safe.phone || safe.mobile || '');
+  const companyPhone = normalizeText(safe.company_phone || safe.companyPhone || settings.companyMobile || settings.companyPhone || settings.whatsappPhoneNumber || '');
+  const companyWebsite = normalizeText(safe.company_website || safe.companyWebsite || settings.companyWebsite || '');
+  const quotationNumber = normalizeText(safe.quotation_number || safe.quotationNumber || safe.quotation_no || safe.quotationNo || '');
+  const invoiceNumber = normalizeText(safe.invoice_number || safe.invoiceNumber || safe.invoice_no || safe.invoiceNo || '');
+  const invoiceAmount = normalizeText(safe.invoice_amount || safe.invoiceAmount || safe.total_amount || safe.totalAmount || '');
+  const balanceDue = normalizeText(safe.balance_due || safe.balanceDue || '');
+  const dueDate = normalizeText(safe.due_date || safe.dueDate || '');
+  const serviceName = normalizeText(safe.service_name || safe.serviceName || safe.service_type || safe.serviceType || '');
+  const jobNumber = normalizeText(safe.job_number || safe.jobNumber || safe.job_no || safe.jobNo || '');
+  const jobDate = normalizeText(safe.job_date || safe.jobDate || '');
+  const jobTime = normalizeText(safe.job_time || safe.jobTime || '');
+  const technicianName = normalizeText(safe.technician_name || safe.technicianName || '');
+  const technicianPhone = normalizeText(safe.technician_phone || safe.technicianPhone || '');
+  const salesPerson = normalizeText(safe.sales_person || safe.salesPerson || safe.sales_person_name || safe.salesPersonName || '');
+  const renewalDate = normalizeText(safe.renewal_date || safe.renewalDate || '');
+  const complaintNumber = normalizeText(safe.complaint_number || safe.complaintNumber || safe.ticket_number || safe.ticketNumber || '');
+  const paymentLink = normalizeText(safe.payment_link || safe.paymentLink || '');
+  const invoiceDate = normalizeText(safe.invoice_date || safe.invoiceDate || safe.date || '');
+  const quotationDate = normalizeText(safe.quotation_date || safe.quotationDate || safe.date || '');
   return {
     ...safe,
-    customer_name: normalizeText(safe.customer_name || safe.customerName || safe.recipientName || safe.name || ''),
-    customer_phone: normalizeText(safe.customer_phone || safe.customerPhone || safe.phone || safe.mobile || ''),
+    customer_name: customerName,
+    customer_phone: customerPhone,
     company_name: companyName,
-    company_phone: normalizeText(safe.company_phone || safe.companyPhone || settings.companyMobile || settings.companyPhone || settings.whatsappPhoneNumber || ''),
-    company_website: normalizeText(safe.company_website || safe.companyWebsite || settings.companyWebsite || ''),
+    company_phone: companyPhone,
+    company_website: companyWebsite,
     lead_number: normalizeText(safe.lead_number || safe.leadNumber || safe.lead_no || safe.leadNo || ''),
-    quotation_number: normalizeText(safe.quotation_number || safe.quotationNumber || safe.quotation_no || safe.quotationNo || ''),
-    invoice_number: normalizeText(safe.invoice_number || safe.invoiceNumber || safe.invoice_no || safe.invoiceNo || ''),
-    invoice_amount: normalizeText(safe.invoice_amount || safe.invoiceAmount || ''),
-    balance_due: normalizeText(safe.balance_due || safe.balanceDue || ''),
-    due_date: normalizeText(safe.due_date || safe.dueDate || ''),
-    service_name: normalizeText(safe.service_name || safe.serviceName || safe.service_type || safe.serviceType || ''),
-    job_number: normalizeText(safe.job_number || safe.jobNumber || safe.job_no || safe.jobNo || ''),
-    job_date: normalizeText(safe.job_date || safe.jobDate || ''),
-    job_time: normalizeText(safe.job_time || safe.jobTime || ''),
-    technician_name: normalizeText(safe.technician_name || safe.technicianName || ''),
-    technician_phone: normalizeText(safe.technician_phone || safe.technicianPhone || ''),
-    sales_person: normalizeText(safe.sales_person || safe.salesPerson || safe.sales_person_name || safe.salesPersonName || ''),
-    renewal_date: normalizeText(safe.renewal_date || safe.renewalDate || ''),
-    complaint_number: normalizeText(safe.complaint_number || safe.complaintNumber || safe.ticket_number || safe.ticketNumber || ''),
-    payment_link: normalizeText(safe.payment_link || safe.paymentLink || ''),
-    ...safe,
-    company_name: companyName
+    quotation_number: quotationNumber,
+    quotation_no: quotationNumber,
+    quotation_date: quotationDate,
+    invoice_number: invoiceNumber,
+    invoice_no: invoiceNumber,
+    invoice_date: invoiceDate,
+    invoice_amount: invoiceAmount,
+    total_amount: invoiceAmount,
+    balance_due: balanceDue,
+    due_date: dueDate,
+    service_name: serviceName,
+    service_type: serviceName,
+    job_number: jobNumber,
+    job_date: jobDate,
+    job_time: jobTime,
+    technician_name: technicianName,
+    technician_phone: technicianPhone,
+    sales_person: salesPerson,
+    renewal_date: renewalDate,
+    complaint_number: complaintNumber,
+    payment_link: paymentLink
   };
 };
 

@@ -1442,12 +1442,11 @@ export default function LeadCapture() {
   const openLeadWhatsappComposer = (lead) => {
     const whatsappNumber = getLeadWhatsapp(lead);
     const customerName = String(lead?.customerName || 'Customer').trim() || 'Customer';
-    const message = `Hello ${customerName}, welcome to SKUAS Master ERP. Thank you for your enquiry${lead.pestIssue ? ` for ${lead.pestIssue}` : ''}. Our team will connect with you shortly.`;
     setWhatsappComposer({
       open: true,
       lead,
       previewData: {
-        previewMessage: message,
+        previewMessage: '',
         attachmentOption: 'None',
         template: {
           id: 'lead_welcome',

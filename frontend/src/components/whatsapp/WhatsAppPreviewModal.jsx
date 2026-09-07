@@ -29,6 +29,7 @@ export default function WhatsAppPreviewModal({
   settingsData = null
 }) {
   const [message, setMessage] = useState('');
+  const [resolvedPreviewData, setResolvedPreviewData] = useState(null);
   const [phoneValue, setPhoneValue] = useState(String(recipientPhone || ''));
   const [attachment, setAttachment] = useState(null);
   const [attachmentUrl, setAttachmentUrl] = useState('');
@@ -38,8 +39,9 @@ export default function WhatsAppPreviewModal({
   const [showRawSettings, setShowRawSettings] = useState(false);
   const copyStatusTimerRef = React.useRef(null);
 
-  const initialMessage = useMemo(() => String(previewData?.previewMessage || ''), [previewData]);
-  const allowManualUpload = String(previewData?.attachmentOption || '').toLowerCase() === 'manual upload';
+  const effectivePreviewData = resolvedPreviewData || previewData;
+  const initialMessage = useMemo(() => String(effectivePreviewData?.previewMessage || ''), [effectivePreviewData]);
+  const allowManualUpload = String(effectivePreviewData?.attachmentOption || '').toLowerCase() === 'manual upload';
   const redactedSettingsData = useMemo(() => {
     if (!settingsData || typeof settingsData !== 'object') return null;
 
@@ -80,9 +82,11 @@ export default function WhatsAppPreviewModal({
 
   React.useEffect(() => {
     if (!open) return;
+    let active = true;
     setMessage(initialMessage);
     setPhoneValue(String(recipientPhone || '').trim());
     setAttachment(null);
+    setResolvedPreviewData(null);
     setAttachmentUrl(String(previewData?.suggestedAttachmentUrl || previewData?.attachmentUrl || ''));
     setError('');
     setCopyStatus('');
@@ -91,7 +95,33 @@ export default function WhatsAppPreviewModal({
       window.clearTimeout(copyStatusTimerRef.current);
       copyStatusTimerRef.current = null;
     }
-  }, [open, initialMessage, previewData, recipientPhone]);
+    const templateType = String(previewData?.template?.templateType || '').trim();
+    if (!templateType || !moduleType) return () => { active = false; };
+
+    axios.post(`${API_BASE_URL}/api/whatsapp/preview`, {
+      moduleType,
+      templateType,
+      contextData: previewData?.contextData || {},
+      suggestedAttachmentUrl: previewData?.suggestedAttachmentUrl || previewData?.attachmentUrl || ''
+    }).then((response) => {
+      if (!active) return;
+      const resolved = response.data || {};
+      setResolvedPreviewData({
+        ...previewData,
+        ...resolved,
+        template: resolved.template || previewData.template,
+        contextData: resolved.contextData || previewData.contextData || {}
+      });
+      setMessage(String(resolved.previewMessage || '').trim());
+      setAttachmentUrl(String(resolved.suggestedAttachmentUrl || previewData?.suggestedAttachmentUrl || previewData?.attachmentUrl || ''));
+    }).catch((previewError) => {
+      if (!active) return;
+      setMessage('');
+      setError(previewError?.response?.data?.error || 'Could not load the saved WhatsApp template.');
+    });
+
+    return () => { active = false; };
+  }, [open, previewData, recipientPhone, moduleType]);
 
   if (!open) return null;
 
@@ -105,8 +135,9 @@ export default function WhatsAppPreviewModal({
       }
       const payload = {
         moduleType,
-        templateType: previewData?.template?.templateType,
-        templateId: previewData?.template?.id,
+        templateType: effectivePreviewData?.template?.templateType,
+        templateKey: effectivePreviewData?.template?.templateKey || effectivePreviewData?.template?.templateType,
+        templateId: effectivePreviewData?.template?.id,
         recipientName,
         recipientPhone: String(phoneValue || '').trim(),
         normalizedRecipientPhone: normalizedPhone,
@@ -115,7 +146,7 @@ export default function WhatsAppPreviewModal({
         moduleName: moduleType,
         message,
         attachmentUrl,
-        contextData: previewData?.contextData || {}
+        contextData: effectivePreviewData?.contextData || {}
       };
 
       if (typeof onSend === 'function') {
@@ -123,6 +154,7 @@ export default function WhatsAppPreviewModal({
           ...payload,
           attachment,
           attachmentUrl,
+          attachmentOption: effectivePreviewData?.attachmentOption || 'None',
           message
         });
         if (typeof onSent === 'function') onSent();
@@ -306,7 +338,7 @@ export default function WhatsAppPreviewModal({
                 {allowManualUpload ? (
                   <input type="file" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
                 ) : null}
-                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Template attachment option: {previewData?.attachmentOption || 'None'}</div>
+                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Template attachment option: {effectivePreviewData?.attachmentOption || 'None'}</div>
               </>
             ) : (
               <div style={{ border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '10px 12px', background: '#f8fafc', color: '#475569', fontSize: '12px', fontWeight: 600, lineHeight: 1.45 }}>
