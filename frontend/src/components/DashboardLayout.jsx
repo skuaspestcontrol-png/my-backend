@@ -705,6 +705,7 @@ export default function DashboardLayout({ children }) {
                 <Link to="/quotations" className={isActive('/quotations') || isActive('/quotations/new') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/quotations', isActive('/quotations') || isActive('/quotations/new'))} onClick={closeDrawerOnMobile}>Quotation</Link>
                 <Link to="/sales/payment-received" className={isActive('/sales/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/payment-received')} onClick={closeDrawerOnMobile}>Payment Received</Link>
                 <Link to="/sales/renewal" className={isActive('/sales/renewal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/renewal')} onClick={closeDrawerOnMobile}>Renewal</Link>
+                <Link to="/sales/whatsapp-marketing" className={isActive('/sales/whatsapp-marketing') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/whatsapp-marketing')} onClick={closeDrawerOnMobile}>WhatsApp Marketing</Link>
               </div>
             ) : null}
 

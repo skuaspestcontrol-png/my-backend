@@ -36,6 +36,7 @@ const { registerPayrollModule } = require('./payrollModule');
 const { registerHrModule } = require('./hrModule');
 const { registerCustomerDedupModule } = require('./customerDedupModule');
 const { createWhatsAppRouter } = require('./routes/whatsapp.routes');
+const { createWhatsAppMarketingRouter } = require('./routes/whatsappMarketing.routes');
 const { createEmailRouter } = require('./routes/email.routes');
 const { quotationRouter } = require('./routes/quotation.routes');
 const { salesPerformanceRoutes } = require('./routes/salesPerformanceRoutes');
@@ -14868,6 +14869,11 @@ app.use('/api', createWhatsAppRouter({
   readJsonFile,
   withMysqlConnection,
   resolveServerOrigin
+}));
+
+app.use('/api', createWhatsAppMarketingRouter({
+  dataDir,
+  readJsonFile
 }));
 
 app.use('/api', createEmailRouter({

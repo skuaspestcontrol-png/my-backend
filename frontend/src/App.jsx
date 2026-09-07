@@ -92,6 +92,7 @@ const TrackTechnicians = lazyWithRetry(() => import('./components/TrackTechnicia
 const WhatsAppSettings = lazyWithRetry(() => import('./pages/settings/WhatsAppSettings'), 'whatsapp-settings');
 const WhatsAppTemplates = lazyWithRetry(() => import('./pages/settings/WhatsAppTemplates'), 'whatsapp-templates');
 const WhatsAppLogs = lazyWithRetry(() => import('./pages/whatsapp/WhatsAppLogs'), 'whatsapp-logs');
+const WhatsAppMarketing = lazyWithRetry(() => import('./pages/sales/WhatsAppMarketing'), 'whatsapp-marketing');
 const EmailSettings = lazyWithRetry(() => import('./pages/settings/EmailSettings'), 'email-settings');
 const EmailTemplates = lazyWithRetry(() => import('./pages/settings/EmailTemplates'), 'email-templates');
 const EmailLogs = lazyWithRetry(() => import('./pages/email/EmailLogs'), 'email-logs');
@@ -300,6 +301,7 @@ function App() {
             <Route path="/sales/invoices" element={<AppRoute element={<InvoiceDashboard />} />} />
             <Route path="/sales/payment-received" element={<AppRoute element={<PaymentReceivedDashboard />} />} />
             <Route path="/sales/renewal" element={<AppRoute element={renewalPage} />} />
+            <Route path="/sales/whatsapp-marketing" element={<AppRoute element={<WhatsAppMarketing />} />} />
             <Route path="/sales-performance" element={<Navigate to="/sales-performance/dashboard" replace />} />
             <Route path="/sales-performance/dashboard" element={<AppRoute element={<SalesPerformanceDashboard />} />} />
             <Route path="/sales-performance/targets" element={<AppRoute element={<SalesTargets />} />} />
