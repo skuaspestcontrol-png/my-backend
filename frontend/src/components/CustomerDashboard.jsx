@@ -3051,13 +3051,6 @@ export default function CustomerDashboard() {
                 <td style={{ ...shell.cell, whiteSpace: 'nowrap' }}>
                   <button
                     type="button"
-                    style={{ ...shell.rowActionButton, marginRight: '8px', color: '#166534', borderColor: '#bbf7d0', background: '#f0fdf4' }}
-                    onClick={() => openCustomerWhatsappComposer(customer)}
-                  >
-                    WhatsApp
-                  </button>
-                  <button
-                    type="button"
                     style={{ ...shell.rowActionButton, marginRight: '8px' }}
                     onClick={() => {
                       setEditingId(customer._id);
