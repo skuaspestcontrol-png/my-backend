@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { validateUploadedFiles } = require('./lib/security');
 const zlib = require('zlib');
 const PDFDocument = require('pdfkit');
 const { formatIndiaDateTime } = require('./lib/indiaTime');
@@ -16,6 +17,12 @@ const toNullableNumber = (value) => {
   return Number.isFinite(n) ? n : null;
 };
 const round2 = (value) => Number((toNumber(value, 0)).toFixed(2));
+const IMPORT_LIMITS = Object.freeze({
+  maxRows: Number(process.env.CUSTOMER_IMPORT_MAX_ROWS || 5000),
+  maxColumns: Number(process.env.CUSTOMER_IMPORT_MAX_COLUMNS || 80),
+  maxCellLength: Number(process.env.CUSTOMER_IMPORT_MAX_CELL_LENGTH || 2000),
+  maxXlsxUncompressedBytes: Number(process.env.CUSTOMER_IMPORT_MAX_XLSX_UNCOMPRESSED_BYTES || 30 * 1024 * 1024)
+});
 
 const ensureFile = (filePath, fallback) => {
   if (!fs.existsSync(filePath)) {
@@ -84,6 +91,7 @@ const combinedSimilarity = (a, b) => round2(((jaccardSimilarity(a, b) * 0.55) + 
 
 const csvSafeValue = (value) => {
   const text = String(value ?? '');
+  if (/^[\s]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text)) return `'${text}`;
   if (/^\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?$/.test(text)) {
     return `'${text}`;
   }
@@ -160,6 +168,7 @@ const columnIndexFromRef = (cellRef = '') => {
 
 const readZipEntries = (buffer) => {
   const entries = {};
+  let totalUncompressed = 0;
   const eocdSig = 0x06054b50;
   let eocdOffset = -1;
   if (!Buffer.isBuffer(buffer) || buffer.length < 22) throw new Error('Invalid XLSX file');
@@ -177,6 +186,11 @@ const readZipEntries = (buffer) => {
     if (buffer.readUInt32LE(centralOffset) !== 0x02014b50) break;
     const method = buffer.readUInt16LE(centralOffset + 10);
     const compressedSize = buffer.readUInt32LE(centralOffset + 20);
+    const uncompressedSize = buffer.readUInt32LE(centralOffset + 24);
+    totalUncompressed += uncompressedSize;
+    if (totalUncompressed > IMPORT_LIMITS.maxXlsxUncompressedBytes) {
+      throw new Error(`XLSX expanded content exceeds ${IMPORT_LIMITS.maxXlsxUncompressedBytes} bytes`);
+    }
     const fileNameLength = buffer.readUInt16LE(centralOffset + 28);
     const extraLength = buffer.readUInt16LE(centralOffset + 30);
     const commentLength = buffer.readUInt16LE(centralOffset + 32);
@@ -193,6 +207,23 @@ const readZipEntries = (buffer) => {
     centralOffset += 46 + fileNameLength + extraLength + commentLength;
   }
   return entries;
+};
+
+const assertImportShape = (headers = [], rows = []) => {
+  if (!Array.isArray(headers) || headers.length > IMPORT_LIMITS.maxColumns) {
+    throw new Error(`Customer import supports up to ${IMPORT_LIMITS.maxColumns} columns`);
+  }
+  if (!Array.isArray(rows) || rows.length > IMPORT_LIMITS.maxRows) {
+    throw new Error(`Customer import supports up to ${IMPORT_LIMITS.maxRows} rows`);
+  }
+  const oversizedHeader = headers.find((header) => String(header || '').length > IMPORT_LIMITS.maxCellLength);
+  if (oversizedHeader) throw new Error(`Customer import cells must be ${IMPORT_LIMITS.maxCellLength} characters or less`);
+  for (const row of rows) {
+    const values = row && typeof row === 'object' ? Object.values(row) : [];
+    if (values.some((value) => String(value ?? '').length > IMPORT_LIMITS.maxCellLength)) {
+      throw new Error(`Customer import cells must be ${IMPORT_LIMITS.maxCellLength} characters or less`);
+    }
+  }
 };
 
 const parseXlsxContent = (content, contentEncoding = '') => {
@@ -254,12 +285,15 @@ const parseImportContent = ({ fileName, content, contentEncoding }) => {
   const raw = String(content || '');
   const lower = normalizeLower(fileName);
   if (lower.endsWith('.xlsx')) {
-    return parseXlsxContent(content, contentEncoding);
+    const parsed = parseXlsxContent(content, contentEncoding);
+    assertImportShape(parsed.headers, parsed.rows);
+    return parsed;
   }
   if (lower.endsWith('.json')) {
     const parsed = JSON.parse(raw);
     const rows = Array.isArray(parsed) ? parsed : [parsed];
     const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row || {}))));
+    assertImportShape(headers, rows);
     return { headers, rows };
   }
 
@@ -274,6 +308,7 @@ const parseImportContent = ({ fileName, content, contentEncoding }) => {
     });
     return row;
   });
+  assertImportShape(headers, rows);
   return { headers, rows };
 };
 
@@ -1817,7 +1852,7 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
       }
     : (_req, _res, next) => next();
 
-  app.post('/api/customers/import/upload', importUploadMiddleware, async (req, res) => {
+  app.post('/api/customers/import/upload', importUploadMiddleware, validateUploadedFiles, async (req, res) => {
     try {
       const uploadedFile = req.file || null;
       const fileName = normalizeText(req.body?.fileName || uploadedFile?.originalname || 'customers-import.csv');

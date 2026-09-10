@@ -11,11 +11,11 @@ const parseCookies = (cookieHeader = '') => {
     .reduce((acc, part) => {
       const index = part.indexOf('=');
       if (index < 0) return acc;
-      const key = decodeURIComponent(part.slice(0, index).trim());
-      const value = decodeURIComponent(part.slice(index + 1).trim());
+      let key, value;
+      try { key = decodeURIComponent(part.slice(0, index).trim()); value = decodeURIComponent(part.slice(index + 1).trim()); } catch { return acc; }
       if (key) acc[key] = value;
       return acc;
-    }, {});
+    }, Object.create(null));
 };
 
 const base64Url = (value) => Buffer.from(String(value), 'utf8').toString('base64url');
@@ -31,6 +31,7 @@ const verifyToken = (token, secret) => {
   const rawSecret = String(secret || '').trim();
   if (!rawToken || !rawSecret) return null;
 
+  if (rawToken.length > 8192 || rawToken.split('.').length !== 2) return null;
   const [body, signature] = rawToken.split('.');
   if (!body || !signature) return null;
 
@@ -42,7 +43,7 @@ const verifyToken = (token, secret) => {
   try {
     const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
     if (!payload || typeof payload !== 'object') return null;
-    if (Number.isFinite(Number(payload.exp)) && Date.now() > Number(payload.exp)) return null;
+    if (!Number.isSafeInteger(payload.exp) || payload.exp <= Date.now() || !Number.isSafeInteger(payload.iat) || payload.iat > Date.now() || payload.exp <= payload.iat || !payload.id || !payload.role) return null;
     return payload;
   } catch (_error) {
     return null;
@@ -56,19 +57,23 @@ const buildPortalUser = (source = {}) => ({
   employeeId: String(source.employeeId || source.id || source.sub || '').trim(),
   employeeCode: String(source.employeeCode || '').trim(),
   type: String(source.type || 'employee').trim(),
+  sessionVersion: Number.isSafeInteger(source.sessionVersion) ? source.sessionVersion : Number(source.sessionVersion || 1) || 1,
+  iat: Number.isSafeInteger(source.iat) ? source.iat : undefined,
+  exp: Number.isSafeInteger(source.exp) ? source.exp : undefined,
 });
 
 const createPortalSession = ({ user, secret, ttlMs = DEFAULT_TTL_MS }) => {
   const now = Date.now();
   const payload = {
     ...buildPortalUser(user),
+    sessionVersion: Number.isSafeInteger(user?.sessionVersion) ? user.sessionVersion : Number(user?.sessionVersion || 1) || 1,
     iat: now,
     exp: now + Math.max(60 * 1000, Number(ttlMs) || DEFAULT_TTL_MS)
   };
   return signToken(payload, secret);
 };
 
-const readPortalUserFromRequest = (req, { secret, cookieName = DEFAULT_COOKIE_NAME } = {}) => {
+const readPortalUserFromRequest = (req, { secret, cookieName = DEFAULT_COOKIE_NAME, isRevoked = null } = {}) => {
   const cookies = parseCookies(req?.headers?.cookie || '');
   const token = String(
     cookies[cookieName]
@@ -76,6 +81,7 @@ const readPortalUserFromRequest = (req, { secret, cookieName = DEFAULT_COOKIE_NA
     || ''
   ).trim();
   const payload = verifyToken(token, secret);
+  if (payload && typeof isRevoked === 'function' && isRevoked(payload)) return null;
   return payload ? buildPortalUser(payload) : null;
 };
 

@@ -236,7 +236,7 @@ const defaultForm = {
   nonGstBankQrUrl: '',
   nonGstBankPrimary: false,
   adminUsername: 'admin',
-  adminPassword: 'admin123',
+  adminPassword: '',
   termsAndConditionsDefault: '',
   gstTermsAndConditions: '',
   nonGstTermsAndConditions: '',
@@ -911,7 +911,7 @@ export default function Settings({ modalMode = false }) {
           nonGstBankQrUrl: data.nonGstBankQrUrl || '',
           nonGstBankPrimary: Boolean(data.nonGstBankPrimary),
           adminUsername: data.adminUsername || 'admin',
-          adminPassword: data.adminPassword || 'admin123',
+          adminPassword: '',
           gstTermsAndConditions: data.gstTermsAndConditions || data.termsAndConditionsDefault || '',
           nonGstTermsAndConditions: data.nonGstTermsAndConditions || '',
           renewalLetterTermsAndConditions: data.renewalLetterTermsAndConditions || '',
@@ -1159,19 +1159,14 @@ export default function Settings({ modalMode = false }) {
 
   const saveAll = async () => {
     const hasPasswordAttempt = Object.values(securityForm).some(isFilled);
-    const currentStoredPassword = String(initialForm.adminPassword || form.adminPassword || 'admin123');
 
     if (hasPasswordAttempt) {
       if (!isFilled(securityForm.currentPassword) || !isFilled(securityForm.newPassword) || !isFilled(securityForm.confirmPassword)) {
         setStatus('Please fill Current, New and Confirm password fields.');
         return;
       }
-      if (securityForm.currentPassword !== currentStoredPassword) {
-        setStatus('Current password is incorrect.');
-        return;
-      }
-      if (!isStrongPassword(securityForm.newPassword)) {
-        setStatus('New password must be 8+ characters with letters, numbers, and symbols.');
+      if (securityForm.newPassword.length < 10 || !isStrongPassword(securityForm.newPassword)) {
+        setStatus('New password must be 10+ characters with letters, numbers, and symbols.');
         return;
       }
       if (securityForm.newPassword !== securityForm.confirmPassword) {
@@ -1211,7 +1206,7 @@ export default function Settings({ modalMode = false }) {
       setStatus(PHONE_VALIDATION_ERROR);
       return;
     }
-    const nextAdminPassword = hasPasswordAttempt ? securityForm.newPassword : String(form.adminPassword || currentStoredPassword || 'admin123');
+    const nextAdminPassword = hasPasswordAttempt ? securityForm.newPassword : '';
     const encryption = String(form.smtpEncryption || 'TLS').toUpperCase();
 
       const payload = {
@@ -1274,7 +1269,7 @@ export default function Settings({ modalMode = false }) {
       nonGstBankQrUrl: String(form.nonGstBankQrUrl || '').trim(),
       nonGstBankPrimary: Boolean(form.nonGstBankPrimary),
       adminUsername: String(form.adminUsername || 'admin').trim() || 'admin',
-      ...(hasPasswordAttempt ? { adminPassword: nextAdminPassword } : {}),
+      ...(hasPasswordAttempt ? { adminPassword: nextAdminPassword, currentPassword: securityForm.currentPassword } : {}),
       gstTermsAndConditions: String(form.gstTermsAndConditions || '').trim(),
       nonGstTermsAndConditions: String(form.nonGstTermsAndConditions || '').trim(),
       renewalLetterTermsAndConditions: String(form.renewalLetterTermsAndConditions || '').trim(),

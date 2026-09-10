@@ -1,0 +1,4 @@
+> vite build && node scripts/copy-htaccess.mjs
+✓ built in 616ms
+[copy-htaccess] Copied .htaccess to dist
+[copy-htaccess] Synced frontend bundle to backend/public

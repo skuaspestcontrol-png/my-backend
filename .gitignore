@@ -19,3 +19,8 @@ uploads/*
 generated-pdfs/
 screenshots/
 backend/data/
+
+# Private runtime business data and sanitized configuration examples
+storage/data/
+!.env.example
+!**/.env.example

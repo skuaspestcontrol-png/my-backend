@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { safeLocalFile } = require('./lib/security');
 const PDFDocument = require('pdfkit');
 const { formatIndiaDate } = require('./lib/indiaTime');
 
@@ -119,14 +120,15 @@ const parseLocalAsset = (input = '') => {
     path.join(__dirname, '..', 'public', 'uploads')
   ].filter(Boolean);
   const resolveUploadLocal = (name = '') => {
-    const safeName = decodeURIComponent(String(name || '').trim());
+    let safeName;
+    try { safeName = decodeURIComponent(String(name || '').trim()); } catch { return ''; }
     const normalized = safeName.replace(/\\/g, '/').replace(/^\/?uploads\/?/, '').replace(/^\/+/, '');
     if (!normalized || normalized.includes('..')) return '';
     for (const dir of uploadDirs) {
       const byRelativePath = path.join(dir, normalized);
-      if (fs.existsSync(byRelativePath)) return byRelativePath;
+      if (safeLocalFile(dir, normalized)) return safeLocalFile(dir, normalized);
       const byFileName = path.join(dir, path.basename(normalized));
-      if (fs.existsSync(byFileName)) return byFileName;
+      if (safeLocalFile(dir, path.basename(normalized))) return safeLocalFile(dir, path.basename(normalized));
     }
     return '';
   };
@@ -139,14 +141,14 @@ const parseLocalAsset = (input = '') => {
   }
 
   if (raw.startsWith('/')) {
-    if (fs.existsSync(raw)) return raw;
+    // Absolute and working-directory paths are not trusted assets.
     return resolveUploadLocal(raw);
   }
 
   if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
     const local = resolveUploadLocal(raw);
     if (fs.existsSync(local)) return local;
-    if (fs.existsSync(raw)) return raw;
+    // Absolute and working-directory paths are not trusted assets.
   }
 
   try {
@@ -157,7 +159,7 @@ const parseLocalAsset = (input = '') => {
       if (fs.existsSync(local)) return local;
     }
   } catch (_error) {
-    if (fs.existsSync(raw)) return raw;
+    // Absolute and working-directory paths are not trusted assets.
   }
 
   return '';

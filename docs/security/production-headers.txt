@@ -1,0 +1,7 @@
+HTTP/2 200
+x-content-type-options: nosniff
+x-frame-options: SAMEORIGIN
+referrer-policy: no-referrer
+permissions-policy: camera=(), microphone=(), geolocation=()
+strict-transport-security: max-age=31536000; includeSubDomains
+content-security-policy: upgrade-insecure-requests

@@ -1,3 +1,7 @@
+const fs = require('fs');
+const path = require('path');
+const { safeFetch } = require('../lib/safeFetch');
+const { safeLocalFile } = require('../lib/security');
 const nodemailer = require('nodemailer');
 const {
   decryptSecret,
@@ -16,7 +20,7 @@ const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
 
 const validateEmailAddress = (value) => {
   const email = normalizeEmail(value);
-  if (!email || !EMAIL_RE.test(email)) return { ok: false, email: '', error: 'Valid email address is required.' };
+  if (!email || email.length > 254 || /[\r\n,;<>]/.test(email) || !EMAIL_RE.test(email)) return { ok: false, email: '', error: 'Valid email address is required.' };
   return { ok: true, email };
 };
 
@@ -66,6 +70,8 @@ const getEmailSettings = async ({ settings, loadSettings } = {}) => {
 
 const createTransporter = (config) => {
   return nodemailer.createTransport({
+    disableFileAccess: true,
+    disableUrlAccess: true,
     host: config.smtpHost,
     port: config.smtpPort,
     secure: config.smtpSecure,
@@ -97,11 +103,35 @@ const sendEmailMessage = async ({
 
   const transporter = createTransporter(config);
   const resolvedAttachments = Array.isArray(attachments) ? attachments.filter(Boolean) : [];
+  if (attachmentUrl && !/^https:\/\//i.test(String(attachmentUrl))) throw new Error('Attachment URL must use HTTPS');
   if (attachmentUrl) {
     resolvedAttachments.push({
       filename: attachmentName || 'attachment.pdf',
       path: attachmentUrl
     });
+  }
+  if (resolvedAttachments.length > 10) throw new Error('Too many attachments');
+  const safeAttachments = [];
+  for (const attachment of resolvedAttachments) {
+    let content = attachment.content;
+    if (attachment.path) {
+      if (/^https:\/\//i.test(attachment.path)) {
+        const response = await safeFetch(attachment.path);
+        if (!response.ok) throw new Error('Unable to load attachment');
+        content = Buffer.from(await response.arrayBuffer());
+      } else {
+        const roots = [process.env.UPLOADS_DIR, process.env.UPLOADS_ROOT, process.env.UPLOADS_ROOT_DIR, path.join(process.env.HOME || '', 'uploads-skuas-crm'), path.join(__dirname, '..', '..', 'storage', 'uploads'), path.join(__dirname, '..', 'uploads')].filter(Boolean);
+        const file = roots.map(root => safeLocalFile(root, attachment.path)).find(Boolean);
+        if (!file || fs.statSync(file).size > 8 * 1024 * 1024) throw new Error('Attachment path is not allowed');
+        content = fs.readFileSync(file);
+      }
+    }
+    if (!Buffer.isBuffer(content) && typeof content !== 'string') throw new Error('Invalid attachment content');
+    if (Buffer.byteLength(content) > 8 * 1024 * 1024) throw new Error('Attachment is too large');
+    safeAttachments.push({ filename: path.basename(String(attachment.filename || 'attachment.pdf')), content, contentType: attachment.contentType });
+  }
+  for (const value of [subject, config.fromName, config.fromEmail, config.replyToEmail]) {
+    if (/[\r\n]/.test(String(value || ''))) throw new Error('Invalid email header');
   }
   const message = {
     from: config.fromName ? `${config.fromName} <${config.fromEmail}>` : config.fromEmail,
@@ -110,7 +140,7 @@ const sendEmailMessage = async ({
     html: String(htmlBody || ''),
     text: String(textBody || '').trim() || String(htmlBody || '').replace(/<[^>]+>/g, ' '),
     replyTo: config.replyToEmail || undefined,
-    attachments: resolvedAttachments
+    attachments: safeAttachments
   };
 
   const info = await transporter.sendMail(message);

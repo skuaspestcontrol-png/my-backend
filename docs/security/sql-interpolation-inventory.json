@@ -1,0 +1,381 @@
+[
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1370,
+    "expressions": [
+      "PAYROLL_TABLES.settings"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1382,
+    "expressions": [
+      "PAYROLL_TABLES.records"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1430,
+    "expressions": [
+      "PAYROLL_TABLES.components"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1449,
+    "expressions": [
+      "PAYROLL_TABLES.advances"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1472,
+    "expressions": [
+      "PAYROLL_TABLES.slips"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1499,
+    "expressions": [
+      "PAYROLL_TABLES.settings"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1512,
+    "expressions": [
+      "PAYROLL_TABLES.settings"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1515,
+    "expressions": [
+      "PAYROLL_TABLES.settings"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1525,
+    "expressions": [
+      "table",
+      "orderBy"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1532,
+    "expressions": [
+      "table"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1542,
+    "expressions": [
+      "table"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1568,
+    "expressions": [
+      "PAYROLL_TABLES.settings"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1573,
+    "expressions": [
+      "PAYROLL_TABLES.records"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1625,
+    "expressions": [
+      "PAYROLL_TABLES.records"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1640,
+    "expressions": [
+      "PAYROLL_TABLES.components"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1680,
+    "expressions": [
+      "PAYROLL_TABLES.settings"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1685,
+    "expressions": [
+      "PAYROLL_TABLES.advances"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1702,
+    "expressions": [
+      "PAYROLL_TABLES.payments"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1718,
+    "expressions": [
+      "PAYROLL_TABLES.audit"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1748,
+    "expressions": [
+      "PAYROLL_TABLES.settings"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1750,
+    "expressions": [
+      "PAYROLL_TABLES.settings"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1765,
+    "expressions": [
+      "PAYROLL_TABLES.records"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1768,
+    "expressions": [
+      "PAYROLL_TABLES.records"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1822,
+    "expressions": [
+      "PAYROLL_TABLES.components"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1837,
+    "expressions": [
+      "PAYROLL_TABLES.components"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1864,
+    "expressions": [
+      "PAYROLL_TABLES.settings"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1867,
+    "expressions": [
+      "PAYROLL_TABLES.settings"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1882,
+    "expressions": [
+      "PAYROLL_TABLES.advances"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1885,
+    "expressions": [
+      "PAYROLL_TABLES.advances"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1916,
+    "expressions": [
+      "PAYROLL_TABLES.payments"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1919,
+    "expressions": [
+      "PAYROLL_TABLES.payments"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1945,
+    "expressions": [
+      "PAYROLL_TABLES.audit"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 1948,
+    "expressions": [
+      "PAYROLL_TABLES.audit"
+    ]
+  },
+  {
+    "file": "backend/payrollModule.js",
+    "line": 2060,
+    "expressions": [
+      "PAYROLL_TABLES.audit"
+    ]
+  },
+  {
+    "file": "backend/hrModule.js",
+    "line": 696,
+    "expressions": [
+      "tableName"
+    ]
+  },
+  {
+    "file": "backend/hrModule.js",
+    "line": 710,
+    "expressions": [
+      "tableName"
+    ]
+  },
+  {
+    "file": "backend/hrModule.js",
+    "line": 721,
+    "expressions": [
+      "tableName"
+    ]
+  },
+  {
+    "file": "backend/server.js",
+    "line": 2322,
+    "expressions": [
+      "placeholders"
+    ]
+  },
+  {
+    "file": "backend/server.js",
+    "line": 10335,
+    "expressions": [
+      "columns.join(', ')",
+      "columns.map(() => '?').join(', ')"
+    ]
+  },
+  {
+    "file": "backend/server.js",
+    "line": 13289,
+    "expressions": [
+      "placeholders",
+      "placeholders",
+      "placeholders"
+    ]
+  },
+  {
+    "file": "backend/server.js",
+    "line": 13301,
+    "expressions": [
+      "placeholders",
+      "placeholders"
+    ]
+  },
+  {
+    "file": "backend/server.js",
+    "line": 13311,
+    "expressions": [
+      "placeholders",
+      "placeholders"
+    ]
+  },
+  {
+    "file": "backend/server.js",
+    "line": 13317,
+    "expressions": [
+      "placeholders",
+      "placeholders"
+    ]
+  },
+  {
+    "file": "backend/server.js",
+    "line": 13323,
+    "expressions": [
+      "placeholders",
+      "placeholders",
+      "placeholders"
+    ]
+  },
+  {
+    "file": "backend/lib/autoMigrate.js",
+    "line": 87,
+    "expressions": [
+      "quoteIdent(tableName)",
+      "extraColumns.join(',\\n    ')",
+      "extraColumns.length ? ',' : ''"
+    ]
+  },
+  {
+    "file": "backend/lib/autoMigrate.js",
+    "line": 1331,
+    "expressions": [
+      "quoteIdent(tableName)",
+      "insertColumns.map(quoteIdent).join(', ')",
+      "insertColumns.map(() => '?').join(', ')"
+    ]
+  },
+  {
+    "file": "backend/routes/quotation.routes.js",
+    "line": 690,
+    "expressions": [
+      "new Array(27).fill('?').join(',')"
+    ]
+  },
+  {
+    "file": "backend/routes/stockRoutes.js",
+    "line": 560,
+    "expressions": []
+  },
+  {
+    "file": "backend/routes/salesPerformanceRoutes.js",
+    "line": 463,
+    "expressions": [
+      "updates.join(', ')"
+    ]
+  },
+  {
+    "file": "backend/routes/salesPerformanceRoutes.js",
+    "line": 1039,
+    "expressions": [
+      "targetType === 'monthly' ? 'target_month = ?' : 'target_month IS NULL'"
+    ]
+  },
+  {
+    "file": "backend/routes/salesPerformanceRoutes.js",
+    "line": 1053,
+    "expressions": []
+  },
+  {
+    "file": "backend/routes/salesPerformanceRoutes.js",
+    "line": 1068,
+    "expressions": [
+      "insertFields.join(', ')",
+      "insertFields.map(() => '?').join(', ')"
+    ]
+  },
+  {
+    "file": "backend/routes/salesPerformanceRoutes.js",
+    "line": 1118,
+    "expressions": []
+  }
+]

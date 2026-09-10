@@ -1,4 +1,9 @@
 const express = require('express');
+const security = require('./lib/security');
+const { createDocumentShare, readDocumentShare } = require('./lib/documentShares');
+const { createSessionRevocationStore } = require('./lib/sessionRevocation');
+const { safeFetch } = require('./lib/safeFetch');
+const { hashPassword, verifyPassword } = require('./lib/passwords');
 const cors = require("cors");
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -62,7 +67,7 @@ const {
   syncGoogleCalendarEventForJob,
   getGoogleClient
 } = require('./lib/googleTasks');
-const { resolveGoogleMapsUrl } = require('./lib/googleMapsResolve');
+const { resolveGoogleMapsUrl, isAllowedGoogleMapsUrl } = require('./lib/googleMapsResolve');
 
 if (!global.__SKUAS_PROCESS_GUARDS_INSTALLED__) {
   process.on('uncaughtException', (error) => {
@@ -78,7 +83,8 @@ if (!global.__SKUAS_PROCESS_GUARDS_INSTALLED__) {
 
 const app = express();
 app.disable('x-powered-by');
-app.set('trust proxy', 1);
+app.set('trust proxy', process.env.TRUST_PROXY || 'loopback');
+let sessionRevocations = null;
 
 const SKUAS_API_URL = String(process.env.SKUAS_API_URL || 'https://api.skuaspestcontrol.com').replace(/\/+$/, '');
 const SKUAS_API_KEY = String(process.env.SKUAS_API_KEY || process.env.APP_API_KEY || '').trim();
@@ -87,31 +93,30 @@ const EMAIL_SECRET_KEY = process.env.SMTP_ENCRYPTION_KEY
   || process.env.APP_API_KEY
   || process.env.SKUAS_API_KEY
   || '';
+const isProduction = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
 const allowedCorsOrigins = new Set([
   "https://crm.skuaspestcontrol.com",
   "https://api.skuaspestcontrol.com",
   "https://www.skuaspestcontrol.com",
   "https://skuaspestcontrol.com",
-  "http://localhost:5173",
-  "http://localhost:3000",
+  ...(!isProduction ? ["http://localhost:5173", "http://localhost:3000"] : []),
   ...String(process.env.CORS_ALLOWED_ORIGINS || '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean)
-]);
-const isProduction = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
+].filter(origin => {
+  try { const url = new URL(origin); return url.origin === origin && !url.username && !url.password && (url.protocol === 'https:' || (!isProduction && url.protocol === 'http:')); } catch { return false; }
+}));
 const getClientIp = (req) => String(req.ip || req.socket?.remoteAddress || 'unknown');
 const adminDebugToken = () => String(process.env.ADMIN_MIGRATION_TOKEN || process.env.ADMIN_DEBUG_TOKEN || '').trim();
 const readSecurityToken = (req) => String(
   req.headers['x-admin-migration-token']
   || req.headers['x-migration-token']
   || req.headers.authorization?.replace(/^Bearer\s+/i, '')
-  || req.query?.token
-  || req.body?.token
   || ''
 ).trim();
 const requireAdminDebugAccess = (req, res, next) => {
-  if (!isProduction) return next();
+  if (security.isAdmin(req.portalUser)) return next();
   const expectedToken = adminDebugToken();
   if (expectedToken && readSecurityToken(req) === expectedToken) return next();
   return res.status(404).json({ error: 'Not found' });
@@ -120,7 +125,7 @@ const securityHeaders = (_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
   if (isProduction) {
     res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
@@ -132,7 +137,6 @@ const createRateLimiter = ({ windowMs, max, message }) => rateLimit({
   limit: max,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => getClientIp(req),
   message: { error: message || 'Too many requests. Please try again later.' }
 });
 const apiRateLimit = createRateLimiter({
@@ -148,7 +152,17 @@ const sensitiveRateLimit = createRateLimiter({
 
 app.use(securityHeaders);
 app.use(helmet({
-  contentSecurityPolicy: false
+  strictTransportSecurity: isProduction ? { maxAge: 15552000 } : false,
+  contentSecurityPolicy: { directives: {
+    defaultSrc: ["'self'"], scriptSrc: ["'self'", 'https://maps.googleapis.com', 'https://maps.gstatic.com'],
+    styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+    fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+    imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+    connectSrc: ["'self'", 'https://api.skuaspestcontrol.com', 'https://maps.googleapis.com', 'https://places.googleapis.com', 'https://*.googleapis.com'],
+    frameSrc: ["'self'", 'blob:', 'https://api.skuaspestcontrol.com', 'https://www.google.com'],
+    frameAncestors: ["'self'", 'https://crm.skuaspestcontrol.com'],
+    objectSrc: ["'none'"], upgradeInsecureRequests: isProduction ? [] : null
+  } }
 }));
 app.use(cors({
   origin(origin, callback) {
@@ -160,9 +174,14 @@ app.use(cors({
   credentials: true,
   maxAge: 600
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(security.responseGuard);
+app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(security.inputGuard);
 app.use('/api', apiRateLimit);
+app.use('/api/auth/login', rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, skipSuccessfulRequests: true, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many login attempts. Try again later.' } }));
+app.use('/api/public/website-lead', createRateLimiter({ windowMs: 15 * 60 * 1000, max: 15 }));
+app.use(['/api/whatsapp', '/api/whatsapp-marketing', '/api/email'], createRateLimiter({ windowMs: 60 * 1000, max: 40 }));
 app.use([
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
@@ -190,16 +209,9 @@ const portalPublicRoutePatterns = [
   /^\/health$/,
   /^\/favicon\.ico$/,
   /^\/api\/db-test$/,
-  /^\/api\/admin\/.*$/,
   /^\/api\/auth\/(login|logout|me|forgot-password|reset-password)$/,
   /^\/api\/public\/.*$/,
   /^\/api\/google\/oauth\/callback$/,
-  /^\/api\/invoices\/[^/]+\/pdf$/,
-  /^\/api\/service-visits\/[^/]+\/job-card-pdf$/,
-  /^\/api\/jobs\/[^/]+\/pdf$/,
-  /^\/api\/contracts\/[^/]+\/job-card-summary-pdf$/,
-  /^\/api\/contracts\/[^/]+\/job-card-pdf$/,
-  /^\/api\/payroll\/items\/[^/]+\/slip\/pdf$/
 ];
 
 const isPortalPublicRoute = (req) => {
@@ -211,12 +223,10 @@ const isPortalPublicRoute = (req) => {
 };
 
 const buildPortalCookieOptions = (req) => {
-  const host = String(req?.get?.('host') || '').trim().toLowerCase();
-  const inferredDomain = host.endsWith('.skuaspestcontrol.com') ? '.skuaspestcontrol.com' : '';
   return {
     cookieName: PORTAL_AUTH_COOKIE_NAME,
     maxAgeMs: PORTAL_AUTH_TTL_MS,
-    domain: PORTAL_AUTH_COOKIE_DOMAIN || inferredDomain,
+    domain: PORTAL_AUTH_COOKIE_DOMAIN,
     secure: isProduction,
     sameSite: 'Lax',
     path: '/'
@@ -224,10 +234,13 @@ const buildPortalCookieOptions = (req) => {
 };
 
 const attachPortalUser = (req, _res, next) => {
-  req.portalUser = PORTAL_AUTH_SECRET ? readPortalUserFromRequest(req, {
+  req.portalUser = PORTAL_AUTH_SECRET.length >= 32 ? readPortalUserFromRequest(req, {
     secret: PORTAL_AUTH_SECRET,
-    cookieName: PORTAL_AUTH_COOKIE_NAME
+    cookieName: PORTAL_AUTH_COOKIE_NAME,
+    isRevoked: (payload) => sessionRevocations?.isTokenRevoked(payload)
   }) : null;
+  const share = readDocumentShare(req);
+  if (share) { req.documentShare = share; req.portalUser = share; }
   next();
 };
 
@@ -239,6 +252,55 @@ const requirePortalAuth = (req, res, next) => {
 
 app.use(attachPortalUser);
 app.use(requirePortalAuth);
+app.use(security.csrfGuard(new Set([...allowedCorsOrigins].filter(origin => !['https://www.skuaspestcontrol.com', 'https://skuaspestcontrol.com'].includes(origin))), PORTAL_AUTH_COOKIE_NAME));
+app.use(async (req, res, next) => {
+  if (req.documentShare) return next();
+  const route = req.path.toLowerCase().replace(/\/+$/, '');
+  const user = req.portalUser;
+  const write = !['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+  if (/^\/api\/(admin|uploads-test)(\/|$)/.test(route) || route === '/uploads-test') return requireAdminDebugAccess(req, res, next);
+  if (!user) return next();
+  if ((/^\/api\/settings(\/|$)/.test(route) && write) || /^\/api\/google\/(integration|oauth\/start)/.test(route) || route === '/api/uploads/delete') {
+    if (!security.isAdmin(user)) return res.status(403).json({ error: 'Administrator access required' });
+  }
+  if (/^\/api\/employees(\/|$)/.test(route) && write && !security.isHr(user)) return res.status(403).json({ error: 'HR access required' });
+  if (/^\/api\/whatsapp-marketing(\/|$)/.test(route) && !['admin', 'sales', 'sales person', 'sales manager'].includes(security.role(user))) return res.status(403).json({ error: 'Forbidden' });
+  if (/^\/api\/technicians\/(live|[^/]+\/route-history)$/.test(route) && !security.isAdmin(user) && !['operations', 'operations manager', 'hr', 'hr manager'].includes(security.role(user))) return res.status(403).json({ error: 'Forbidden' });
+  if (route === '/api/attendance' && write && !security.isHr(user)) {
+    if (!security.identities(user).includes(String(req.body?.employeeId || ''))) return res.status(403).json({ error: 'Forbidden' });
+    req.body.source = 'self';
+    delete req.body._id;
+  }
+  if (/^\/api\/attendance\/.*audit$/.test(route) || route === '/api/attendance/audit') {
+    if (!security.isHr(user)) return res.status(403).json({ error: 'Forbidden' });
+  }
+  if (/^\/api\/hr\/(dashboard-summary|kanban|performance|reports|export|employees)(\/|$)/.test(route) && !security.isHr(user)) return res.status(403).json({ error: 'HR access required' });
+  if (['employee', ''].includes(security.role(user)) && !/^\/api\/(auth|public|hr|payroll|attendance|employees)(\/|$)/.test(route)) return res.status(403).json({ error: 'Forbidden' });
+  if (security.isTechnician(user)) {
+    const permitted = /^\/api\/(auth|public|jobs|service-visits|employees|attendance|upload|customers|invoices|service-schedules|stock\/items|settings|payroll|hr|email\/send|technicians\/location)(\/|$)/.test(route);
+    if (!permitted) return res.status(403).json({ error: 'Forbidden' });
+    if (/^\/api\/(customers|invoices|service-schedules|stock)(\/|$)/.test(route) && write) return res.status(403).json({ error: 'Forbidden' });
+    if (['/api/customers', '/api/invoices', '/api/service-schedules'].includes(route) && !write) {
+      try { req.securityJobs = (canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, [])).filter(job => security.ownsJob(user, job)); }
+      catch { return res.status(500).json({ error: 'Unable to authorize records' }); }
+    }
+    if (/^\/api\/(customers|invoices|service-schedules)\//.test(route)) return res.status(403).json({ error: 'Use assigned job records' });
+    const match = req.path.match(/^\/api\/(jobs|service-visits)\/([^/]+)(?:\/(.*))?$/i);
+    if (match) {
+      try {
+        const jobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
+        const job = jobs.find(job => [job._id, job.id, job.external_id].filter(Boolean).map(String).includes(decodeURIComponent(match[2])));
+        if (!job || !security.ownsJob(user, job)) return res.status(403).json({ error: 'Forbidden' });
+        if (req.method === 'PUT') {
+          const allowed = new Set(['status', 'punchInTime', 'punchOutTime', 'serviceStartTime', 'serviceEndTime', 'technicianRemarks', 'remarks', 'chemicalsUsed', 'customerObservation', 'infestationLevel', 'recommendation', 'beforePhotos', 'afterPhotos', 'beforePhoto', 'afterPhoto', 'customerRepresentativeName', 'customerRepresentativeMobile', 'customerSignature', 'technicianSignature', 'reviewRemarks']);
+          if (Object.keys(req.body || {}).some(key => !allowed.has(key))) return res.status(403).json({ error: 'Assignment changes require operations access' });
+        }
+      } catch { return res.status(500).json({ error: 'Unable to authorize job' }); }
+    }
+    if ((route === '/api/jobs' && write) || req.method === 'DELETE') return res.status(403).json({ error: 'Forbidden' });
+  }
+  next();
+});
 
 app.get("/api/db-test", requireAdminDebugAccess, async (req, res) => {
   try {
@@ -553,7 +615,7 @@ const resolvePort = () => {
 };
 const PORT = resolvePort();
 const SERVER_ORIGIN = String(process.env.SERVER_ORIGIN || '').trim();
-const resolveServerOrigin = (req) => SERVER_ORIGIN || `${req.protocol}://${req.get('host')}`;
+const resolveServerOrigin = (_req) => SERVER_ORIGIN || (isProduction ? 'https://crm.skuaspestcontrol.com' : `http://localhost:${PORT}`);
 const MASTER_RESET_EMAIL = String(process.env.MASTER_RESET_EMAIL || 'skuaspestcontrol@gmail.com').trim().toLowerCase();
 const RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const resetOtpStore = new Map();
@@ -625,6 +687,9 @@ const dataDir = configuredDataDir
   : legacyDataDir;
 
 [uploadsDir, dataDir].forEach((dir) => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); });
+sessionRevocations = createSessionRevocationStore({
+  filePath: path.join(dataDir, 'security_session_state.json')
+});
 
 const migrateLegacyJsonDataOnce = () => {
   try {
@@ -748,13 +813,14 @@ recoverUploadsFromMirror();
 
 app.use(
   '/uploads',
+  security.privateUploadGuard,
   express.static(uploadsRootDir, {
     dotfiles: 'deny',
     index: false,
     fallthrough: false,
     setHeaders: (res) => {
       res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.setHeader('Cache-Control', 'public, max-age=86400');
+      if (!res.getHeader('Cache-Control')) res.setHeader('Cache-Control', 'public, max-age=86400');
     }
   })
 );
@@ -847,7 +913,7 @@ const isAllowedUploadFile = (file, allowedExtensions, allowedMimeTypes) => {
   const ext = path.extname(String(file?.originalname || '')).toLowerCase();
   const mime = String(file?.mimetype || '').toLowerCase();
   const extensionAllowed = allowedExtensions.has(ext);
-  const mimeAllowed = allowedMimeTypes.has(mime) || mime.startsWith('image/') || mime === '' || mime === 'application/octet-stream';
+  const mimeAllowed = allowedMimeTypes.has(mime);
   return extensionAllowed && mimeAllowed;
 };
 const createUploadFileFilter = (allowedExtensions, allowedMimeTypes, message) => (_req, file, cb) => {
@@ -858,8 +924,8 @@ const isAllowedFlexibleImageUploadFile = (file) => {
   const ext = path.extname(String(file?.originalname || '')).toLowerCase();
   const mime = String(file?.mimetype || '').toLowerCase();
   const extensionAllowed = allowedImageExtensions.has(ext);
-  const mimeAllowed = allowedImageMimeTypes.has(mime) || mime.startsWith('image/') || mime === '' || mime === 'application/octet-stream';
-  return extensionAllowed || mimeAllowed;
+  const mimeAllowed = allowedImageMimeTypes.has(mime);
+  return extensionAllowed && mimeAllowed;
 };
 const createFlexibleImageUploadFileFilter = (message) => (_req, file, cb) => {
   if (isAllowedFlexibleImageUploadFile(file)) return cb(null, true);
@@ -890,7 +956,10 @@ const persistDataUrlToUpload = (dataUrl = '', fileStem = 'signature', req = null
     const safeStem = String(fileStem || 'signature').replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '') || 'signature';
     const fileName = `${safeStem}-${Date.now()}${ext}`;
     const filePath = path.join(uploadsDir, fileName);
-    fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
+    const content = Buffer.from(base64, 'base64');
+    const type = security.imageType(content);
+    if (!type || content.length > 8 * 1024 * 1024 || !['image/png', 'image/jpeg', 'image/webp'].includes(mime)) return '';
+    fs.writeFileSync(filePath, content);
     const origin = req ? resolveServerOrigin(req) : SERVER_ORIGIN;
     return origin ? `${String(origin).replace(/\/+$/, '')}/uploads/${fileName}` : `/uploads/${fileName}`;
   } catch (error) {
@@ -967,7 +1036,7 @@ if (activeFrontendBuildDir && activeFrontendIndexFile) {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => { cb(null, uploadsDir); },
   filename: (req, file, cb) => {
-    const timestamp = Date.now();
+    const timestamp = crypto.randomUUID();
     const ext = path.extname(String(file.originalname || '')).toLowerCase();
     const baseName = path.basename(String(file.originalname || ''), ext);
     const safeBase = toSafeUploadBaseName(baseName);
@@ -980,7 +1049,7 @@ const customerImportStorage = multer.diskStorage({
     cb(null, customerImportUploadsDir);
   },
   filename: (req, file, cb) => {
-    const timestamp = Date.now();
+    const timestamp = crypto.randomUUID();
     const ext = path.extname(String(file.originalname || '')).toLowerCase();
     const baseName = path.basename(String(file.originalname || ''), ext);
     const safeBase = toSafeUploadBaseName(baseName);
@@ -994,7 +1063,7 @@ const employeePhotoStorage = multer.diskStorage({
   filename: (req, file, cb) => {
     const empCode = toSafeUploadBaseName(String(req.body?.empCode || req.body?.emp_code || 'emp').trim());
     const originalBase = toSafeUploadBaseName(path.basename(String(file.originalname || ''), path.extname(String(file.originalname || ''))));
-    const timestamp = Date.now();
+    const timestamp = crypto.randomUUID();
     const ext = path.extname(String(file.originalname || '')).toLowerCase();
     cb(null, `emp-${empCode}-${timestamp}-${originalBase}${ext}`);
   }
@@ -1020,7 +1089,7 @@ const employeeDocumentStorage = multer.diskStorage({
   filename: (req, file, cb) => {
     const docType = resolveEmployeeDocumentType(req.body?.documentType || req.body?.docType);
     const empCode = toSafeUploadBaseName(String(req.body?.empCode || req.body?.emp_code || 'emp').trim());
-    const timestamp = Date.now();
+    const timestamp = crypto.randomUUID();
     const ext = path.extname(String(file.originalname || '')).toLowerCase();
     const originalBase = toSafeUploadBaseName(path.basename(String(file.originalname || ''), ext));
     cb(null, `${docType}-${empCode}-${timestamp}-${originalBase}${ext}`);
@@ -1047,7 +1116,7 @@ const customerImportUpload = multer({
       'text/plain',
       'application/octet-stream'
     ]);
-    if (allowedExtensions.has(ext) || allowedMimes.has(String(file.mimetype || '').toLowerCase())) {
+    if (allowedExtensions.has(ext) && allowedMimes.has(String(file.mimetype || '').toLowerCase())) {
       cb(null, true);
       return;
     }
@@ -1328,7 +1397,7 @@ const defaultSettings = {
   jobNextNumber: 1,
   jobNumberPadding: 6,
   adminUsername: 'admin',
-  adminPassword: 'admin123',
+  adminPassword: '',
   termsAndConditionsDefault: '',
   gstTermsAndConditions: '',
   nonGstTermsAndConditions: '',
@@ -2312,7 +2381,7 @@ const loadJobPdfLogoBuffer = async (input = '') => {
     } catch (_error) {}
     for (const url of tryUrls) {
       try {
-        const response = await fetch(url);
+        const response = await safeFetch(url);
         if (!response.ok) continue;
         return Buffer.from(await response.arrayBuffer());
       } catch (_error) {
@@ -2320,14 +2389,6 @@ const loadJobPdfLogoBuffer = async (input = '') => {
       }
     }
     return null;
-  }
-
-  if (fs.existsSync(raw)) {
-    try {
-      return fs.readFileSync(raw);
-    } catch (_error) {
-      return null;
-    }
   }
 
   return null;
@@ -2365,7 +2426,7 @@ const resolveJobPdfLogoFilesystemPath = (input = '') => {
     const cleanName = path.basename(String(filename || '').trim());
     if (!cleanName) return '';
     const candidate = path.join(persistentUploadRoot, cleanName);
-    return fs.existsSync(candidate) ? candidate : '';
+    return security.safeLocalFile(persistentUploadRoot, candidate);
   };
 
   if (raw.startsWith('/uploads/')) {
@@ -2377,13 +2438,13 @@ const resolveJobPdfLogoFilesystemPath = (input = '') => {
   }
 
   if (raw.startsWith('/')) {
-    return fs.existsSync(raw) ? raw : joinIfExists(raw);
+    return security.safeLocalFile(persistentUploadRoot, raw) || joinIfExists(raw);
   }
 
   if (!/^https?:\/\//i.test(raw)) {
     const local = joinIfExists(raw);
     if (local) return local;
-    if (fs.existsSync(raw)) return raw;
+    if (security.safeLocalFile(persistentUploadRoot, raw)) return security.safeLocalFile(persistentUploadRoot, raw);
   }
 
   return '';
@@ -2416,6 +2477,8 @@ const normalizeJobPdfSettings = (settings = {}, req = null) => ({
   logo_url: rewriteLocalhostLogoUrl(settings.logo_url, req),
   logoUrl: rewriteLocalhostLogoUrl(settings.logoUrl, req)
 });
+
+const publicBranding = (settings) => Object.fromEntries(['companyName', 'dashboardImageUrl', 'profilePictureUrl', 'profilePicture', 'gstCompanyLogoUrl', 'companyLogoUrl', 'logoUrl', 'logo_url', 'brandingAppearance', 'brandingAccentColor'].map(key => [key, settings[key]]));
 
 const maskClientSettings = (settings = {}) => {
   const smtpPasswordSet = Boolean(String(settings.smtpPass || '').trim());
@@ -3436,10 +3499,10 @@ const resolveEmployeeLoginRecord = async (mobile) => {
 app.get('/api/public/settings', async (req, res) => {
   try {
     const settings = await readSettingsFromMysql();
-    return res.json(maskClientSettings(normalizeJobPdfSettings(settings, req)));
+    return res.json(publicBranding(normalizeJobPdfSettings(settings, req)));
   } catch (error) {
     try {
-      return res.json(maskClientSettings(normalizeJobPdfSettings(readSettings(), req)));
+      return res.json(publicBranding(normalizeJobPdfSettings(readSettings(), req)));
     } catch (fallbackError) {
       console.error('Failed to fetch public settings:', fallbackError.message);
       return res.status(500).json({ error: 'Failed to fetch settings' });
@@ -3454,17 +3517,17 @@ app.post('/api/auth/login', async (req, res) => {
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
-    if (!PORTAL_AUTH_SECRET) {
+    if (PORTAL_AUTH_SECRET.length < 32) {
       return res.status(500).json({ error: 'Portal auth secret is not configured on the server.' });
     }
 
     const settings = await readSettingsFromMysql().catch(() => readSettings());
     const expectedUsername = String(settings.adminUsername || 'admin').trim() || 'admin';
-    const expectedPassword = String(settings.adminPassword || 'admin123').trim();
+    const expectedPassword = String(settings.adminPassword || '').trim();
     const normalizedMobile = normalizeIndianMobileNumber(username);
     let user = null;
 
-    if (username === expectedUsername && password === expectedPassword) {
+    if (username === expectedUsername && await verifyPassword(password, expectedPassword)) {
       user = buildPortalLoginUser({
         id: 'admin',
         employeeId: 'admin',
@@ -3482,8 +3545,9 @@ app.post('/api/auth/login', async (req, res) => {
         || String(employee?.role || '').toLowerCase().includes('technician')
         || String(employee?.role || '').toLowerCase().includes('sales')
       );
+      const employeeActive = normalizeEmploymentStatus(employee?.employmentStatus ?? employee?.employment_status ?? 'Active', 'Active') === 'Active';
       const employeePassword = String(employee?.portalPassword || '').trim();
-      if (employee && hasPortalAccess && employeePassword && password === employeePassword) {
+      if (employee && employeeActive && hasPortalAccess && employeePassword && await verifyPassword(password, employeePassword)) {
         const employeeName = [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee';
         user = buildPortalLoginUser({
           id: employee._id || employee.empCode || normalizedMobile,
@@ -3500,6 +3564,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    user.sessionVersion = sessionRevocations?.getVersion(user) || 1;
     const token = createPortalSession({ user, secret: PORTAL_AUTH_SECRET, ttlMs: PORTAL_AUTH_TTL_MS });
     res.setHeader('Set-Cookie', buildPortalAuthCookie(token, buildPortalCookieOptions(req)));
     return res.json({ success: true, user });
@@ -3517,8 +3582,25 @@ app.get('/api/auth/me', (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
+  if (req.portalUser) sessionRevocations?.revokeUser(req.portalUser, 'logout');
   res.setHeader('Set-Cookie', buildClearPortalAuthCookie(PORTAL_AUTH_COOKIE_NAME, buildPortalCookieOptions(req).domain));
   return res.json({ success: true });
+});
+
+app.post('/api/auth/revoke-sessions', (req, res) => {
+  if (!security.isAdmin(req.portalUser)) return res.status(403).json({ error: 'Administrator access required' });
+  const target = req.body?.target && typeof req.body.target === 'object'
+    ? req.body.target
+    : {
+        type: req.body?.type || 'employee',
+        id: req.body?.id || req.body?.employeeId || req.body?.employeeCode,
+        employeeId: req.body?.employeeId || req.body?.id,
+        employeeCode: req.body?.employeeCode,
+        role: req.body?.role || 'Employee'
+      };
+  if (!target.id && !target.employeeId && !target.employeeCode) return res.status(400).json({ error: 'Target identity is required' });
+  const entry = sessionRevocations?.revokeUser(target, 'admin_forced_logout');
+  return res.json({ success: true, sessionVersion: entry?.sessionVersion || 1 });
 });
 
 app.get('/api/settings', async (req, res) => {
@@ -3533,8 +3615,7 @@ app.get('/api/settings', async (req, res) => {
 
 app.get('/api/public/google-maps-config', (_req, res) => {
   const googleMapsApiKey = String(
-    process.env.GOOGLE_MAPS_API_KEY
-    || process.env.GOOGLE_GEOCODING_API_KEY
+    process.env.GOOGLE_MAPS_BROWSER_API_KEY
     || process.env.VITE_GOOGLE_MAPS_API_KEY
     || ''
   ).trim();
@@ -3548,7 +3629,17 @@ app.get('/api/public/google-maps-config', (_req, res) => {
 app.post('/api/settings', async (req, res) => {
   try {
     const current = await readSettingsFromMysql();
-    const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
+    const allowedKeys = new Set([...Object.keys(defaultSettings), ...Object.keys(current), 'currentPassword']);
+    if (Object.keys(req.body || {}).some(key => !allowedKeys.has(key))) return res.status(400).json({ error: 'Unknown settings field' });
+    const incoming = { ...(req.body || {}) };
+    const adminPasswordChanged = Boolean(incoming.adminPassword);
+    if (incoming.adminPassword) {
+      if (!await verifyPassword(String(incoming.currentPassword || ''), String(current.adminPassword || ''))) return res.status(403).json({ error: 'Current password is incorrect' });
+      incoming.adminPassword = await hashPassword(incoming.adminPassword);
+    }
+    delete incoming.currentPassword;
+    const next = await saveSettingsToMysql(mergeSettingsForSave(current, incoming));
+    if (adminPasswordChanged) sessionRevocations?.revokeUser({ type: 'admin', id: 'admin', employeeId: 'admin', role: 'Admin' }, 'admin_password_changed');
     return res.json({ message: 'Saved', settings: maskClientSettings(normalizeJobPdfSettings(next, req)) });
   } catch (error) {
     console.error('Failed to save settings to MySQL:', error.message);
@@ -3559,7 +3650,17 @@ app.post('/api/settings', async (req, res) => {
 app.post('/api/settings/save', async (req, res) => {
   try {
     const current = await readSettingsFromMysql();
-    const next = await saveSettingsToMysql(mergeSettingsForSave(current, req.body || {}));
+    const allowedKeys = new Set([...Object.keys(defaultSettings), ...Object.keys(current), 'currentPassword']);
+    if (Object.keys(req.body || {}).some(key => !allowedKeys.has(key))) return res.status(400).json({ error: 'Unknown settings field' });
+    const incoming = { ...(req.body || {}) };
+    const adminPasswordChanged = Boolean(incoming.adminPassword);
+    if (incoming.adminPassword) {
+      if (!await verifyPassword(String(incoming.currentPassword || ''), String(current.adminPassword || ''))) return res.status(403).json({ error: 'Current password is incorrect' });
+      incoming.adminPassword = await hashPassword(incoming.adminPassword);
+    }
+    delete incoming.currentPassword;
+    const next = await saveSettingsToMysql(mergeSettingsForSave(current, incoming));
+    if (adminPasswordChanged) sessionRevocations?.revokeUser({ type: 'admin', id: 'admin', employeeId: 'admin', role: 'Admin' }, 'admin_password_changed');
     return res.json({ message: 'Saved', settings: maskClientSettings(normalizeJobPdfSettings(next, req)) });
   } catch (error) {
     console.error('Failed to save settings to MySQL:', error.message);
@@ -3627,7 +3728,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
   const current = await loadCurrentSettingsForNumbering();
   const next = sanitizeSettings({
     ...current,
-    adminPassword: newPassword
+    adminPassword: await hashPassword(newPassword)
   });
   if (canUseMysql()) {
     await saveSettingsToMysql(next);
@@ -3635,10 +3736,11 @@ app.post('/api/auth/reset-password', async (req, res) => {
     fs.writeFileSync(settingsFile, JSON.stringify(next, null, 2));
   }
   resetOtpStore.delete(incomingEmail);
+  sessionRevocations?.revokeUser({ type: 'admin', id: 'admin', employeeId: 'admin', role: 'Admin' }, 'admin_password_reset');
   res.json({ message: 'Password reset successful' });
 });
 
-app.post('/api/settings/upload-dashboard-image', upload.single('dashboardImage'), (req, res) => {
+app.post('/api/settings/upload-dashboard-image', upload.single('dashboardImage'), security.validateUploadedFiles, (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   syncUploadToMirror(req.file.filename);
   const relativePath = resolveUploadRelativePath(req.file.filename);
@@ -3646,7 +3748,7 @@ app.post('/api/settings/upload-dashboard-image', upload.single('dashboardImage')
   res.json({ imageUrl, relativePath });
 });
 
-app.post('/api/settings/upload-branding-image', upload.single('brandingImage'), (req, res) => {
+app.post('/api/settings/upload-branding-image', upload.single('brandingImage'), security.validateUploadedFiles, (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   syncUploadToMirror(req.file.filename);
   const relativePath = resolveUploadRelativePath(req.file.filename);
@@ -3654,7 +3756,7 @@ app.post('/api/settings/upload-branding-image', upload.single('brandingImage'), 
   res.json({ imageUrl, relativePath });
 });
 
-app.post('/api/employees/upload-document', employeeDocumentUpload.single('document'), (req, res) => {
+app.post('/api/employees/upload-document', employeeDocumentUpload.single('document'), security.validateUploadedFiles, (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   const docType = resolveEmployeeDocumentType(req.body?.documentType || req.body?.docType);
   const relativePath = `/uploads/employees/${docType}/${req.file.filename}`;
@@ -5661,7 +5763,7 @@ app.post('/api/maps/geocode', async (req, res) => {
 
   let googleError = '';
   try {
-    const isGoogleMapsUrl = /^https?:\/\/(www\.)?(maps\.app\.goo\.gl|maps\.google\.com|google\.com\/maps)/i.test(address);
+    const isGoogleMapsUrl = isAllowedGoogleMapsUrl(address);
     const parseLatLngFromUrl = (value = '') => {
       const raw = String(value || '').trim();
       if (!raw) return null;
@@ -5721,7 +5823,8 @@ app.post('/api/maps/geocode', async (req, res) => {
         seen.add(current);
         let response = null;
         try {
-          response = await fetch(current, { method: 'GET', redirect: 'manual', headers });
+          if (!isAllowedGoogleMapsUrl(current)) break;
+          response = await safeFetch(current, { method: 'GET', headers });
         } catch (_error) {
           response = null;
         }
@@ -5741,10 +5844,11 @@ app.post('/api/maps/geocode', async (req, res) => {
       }
 
       try {
-        const followResponse = await fetch(current || value, { method: 'GET', redirect: 'follow', headers });
+        if (!isAllowedGoogleMapsUrl(current || value)) return value;
+        const followResponse = await safeFetch(current || value, { method: 'GET', headers });
         return String(followResponse?.url || current || value).trim();
       } catch (_error) {
-        return current || String(value || '').trim();
+        return isAllowedGoogleMapsUrl(current) ? current : String(value || '').trim();
       }
     };
 
@@ -5997,9 +6101,12 @@ app.get('/api/employees', async (req, res) => {
   }
 });
 
-app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (req, res) => {
+app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), security.validateUploadedFiles, async (req, res) => {
   try {
     const emp = normalizePhoneFields(req.body || {}, ['mobile', 'emergencyContactNumber', 'emergency_contact_number'], ['mobile']);
+    if (emp.portalPassword) emp.portalPassword = await hashPassword(emp.portalPassword);
+    delete emp.password;
+    delete emp.portal_password;
     const existingProfilePhoto = String(emp.profile_photo ?? emp.employeePhotoUrl ?? '').trim();
     emp.profile_photo = existingProfilePhoto;
     emp.employeePhotoUrl = existingProfilePhoto;
@@ -6118,7 +6225,7 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), async (re
 
   } catch (error) {
     console.error("Employee save failed:", error.message);
-    res.status(error.statusCode || 500).json({ error: error.message });
+    res.status(error.status || error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -6178,13 +6285,45 @@ const fetchEmployeeByAnyId = async (employeeId) => {
   return null;
 };
 
-app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async (req, res) => {
+const employeeSessionIdentity = (employee = {}, fallbackId = '') => ({
+  type: 'employee',
+  role: employee.role || 'Employee',
+  id: employee._id || fallbackId || employee.employeeId || employee.empCode,
+  employeeId: employee._id || fallbackId || employee.employeeId || employee.empCode,
+  employeeCode: employee.empCode || ''
+});
+
+const shouldRevokeEmployeeSessions = ({ passwordChanged = false, previous = {}, next = {} } = {}) => {
+  if (passwordChanged) return true;
+  const prevStatus = normalizeEmploymentStatus(previous.employmentStatus ?? previous.employment_status ?? 'Active', 'Active');
+  const nextStatus = normalizeEmploymentStatus(next.employmentStatus ?? next.employment_status ?? prevStatus, prevStatus);
+  if (prevStatus === 'Active' && nextStatus !== 'Active') return true;
+  const prevAccess = toBooleanFlag(previous.webPortalAccessEnabled ?? previous.web_portal_access_enabled ?? previous.portalAccess ?? previous.status);
+  const nextAccess = toBooleanFlag(next.webPortalAccessEnabled ?? next.web_portal_access_enabled ?? next.portalAccess ?? next.status ?? prevAccess);
+  return prevAccess && !nextAccess;
+};
+
+app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), security.validateUploadedFiles, async (req, res) => {
   const employeeId = String(req.params.id || '').trim();
   const incoming = normalizePhoneFields(
     req.body && typeof req.body === 'object' ? req.body : {},
     ['mobile', 'emergencyContactNumber', 'emergency_contact_number'],
     ['mobile']
   );
+  const previousEmployeeForRevocation = canUseMysql()
+    ? await fetchEmployeeByAnyId(employeeId).catch(() => null)
+    : (readJsonFile(employeesFile, []).find(row => String(row._id) === employeeId) || null);
+  const employeePasswordChanged = Boolean(String(incoming.portalPassword || '').trim());
+
+  try {
+    if (incoming.portalPassword) incoming.portalPassword = await hashPassword(incoming.portalPassword);
+    else {
+      const existing = previousEmployeeForRevocation;
+      incoming.portalPassword = String(existing?.portalPassword || '');
+    }
+    delete incoming.password;
+    delete incoming.portal_password;
+  } catch (error) { return res.status(error.status || 500).json({ error: error.status ? error.message : 'Unable to update password' }); }
 
   // Handle profile photo upload
   if (req.file) {
@@ -6250,6 +6389,9 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
       if (index === -1) return res.status(404).json({ error: 'Employee not found' });
       nextRows[index] = { ...nextRows[index], ...payloadToSave, ...updatedEmployee };
       fs.writeFileSync(employeesFile, JSON.stringify(nextRows, null, 2));
+      if (shouldRevokeEmployeeSessions({ passwordChanged: employeePasswordChanged, previous: previousEmployeeForRevocation || {}, next: nextRows[index] })) {
+        sessionRevocations?.revokeUser(employeeSessionIdentity(nextRows[index], employeeId), 'employee_access_changed');
+      }
       return res.json({ success: true, employee: nextRows[index] });
     } catch (error) {
       console.error('Employees JSON update failed:', error.message);
@@ -6298,6 +6440,9 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), async 
     });
     if (!affectedRows) return res.status(404).json({ error: 'Employee not found' });
     syncEmployeeJsonMirror(employeeId, { ...payloadToSave, ...updatedEmployee });
+    if (shouldRevokeEmployeeSessions({ passwordChanged: employeePasswordChanged, previous: previousEmployeeForRevocation || {}, next: updatedEmployee })) {
+      sessionRevocations?.revokeUser(employeeSessionIdentity(updatedEmployee, employeeId), 'employee_access_changed');
+    }
     invalidateDashboardSummaryCache();
     return res.json({ success: true, employee: updatedEmployee });
   } catch (error) {
@@ -6316,6 +6461,7 @@ app.delete('/api/employees/:id', async (req, res) => {
         return res.status(404).json({ error: 'Employee not found' });
       }
       fs.writeFileSync(employeesFile, JSON.stringify(nextRows, null, 2));
+      sessionRevocations?.revokeUser(employeeSessionIdentity({ _id: employeeId }, employeeId), 'employee_deleted');
       invalidateDashboardSummaryCache();
       return res.json({ message: 'Employee deleted' });
     }
@@ -6330,6 +6476,7 @@ app.delete('/api/employees/:id', async (req, res) => {
     });
     if (!deletedRows) return res.status(404).json({ error: 'Employee not found' });
     syncEmployeeJsonMirror(employeeId, null);
+    sessionRevocations?.revokeUser(employeeSessionIdentity({ _id: employeeId }, employeeId), 'employee_deleted');
     invalidateDashboardSummaryCache();
     return res.json({ success: true });
   } catch (error) {
@@ -6376,6 +6523,7 @@ app.get('/api/attendance', async (req, res) => {
   const dateFilter = String(req.query.date || '').trim();
   const employeeFilter = String(req.query.employeeId || '').trim();
   const filtered = records.filter((entry) => {
+    if (!security.isHr(req.portalUser) && !security.identities(req.portalUser).includes(String(entry.employeeId))) return false;
     if (dateFilter && entry.date !== dateFilter) return false;
     if (employeeFilter && entry.employeeId !== employeeFilter) return false;
     return true;
@@ -6644,7 +6792,7 @@ app.get('/api/jobs', async (req, res) => {
       if (cleanupResult?.removedCount > 0) {
         res.set('X-Orphan-Jobs-Cleaned', String(cleanupResult.removedCount));
       }
-      return res.json(filterJobs(parsed));
+      return res.json(filterJobs(parsed).filter(job => !security.isTechnician(req.portalUser) || security.ownsJob(req.portalUser, job)));
     } catch (error) {
       console.error('MySQL jobs read failed:', error.message);
       return res.status(500).json({ error: error.message || 'Failed to fetch jobs from MySQL' });
@@ -6658,7 +6806,7 @@ app.get('/api/jobs', async (req, res) => {
   if (cleanupResult?.removedCount > 0) {
     res.set('X-Orphan-Jobs-Cleaned', String(cleanupResult.removedCount));
   }
-  res.json(filterJobs(jobs));
+  res.json(filterJobs(jobs).filter(job => !security.isTechnician(req.portalUser) || security.ownsJob(req.portalUser, job)));
 });
 
 const loadJobsFromMysql = async () => {
@@ -7176,7 +7324,7 @@ app.delete('/api/jobs/:id', async (req, res) => {
   return res.json({ success: true, deletedId: targetId, status: 'Scheduled' });
 });
 
-app.post('/api/jobs/:id/complete', jobCompletionUpload, async (req, res) => {
+app.post('/api/jobs/:id/complete', jobCompletionUpload, security.validateUploadedFiles, async (req, res) => {
   try {
     const targetId = String(req.params.id || '').trim();
     const safeNumericId = /^\d+$/.test(targetId) ? Number(targetId) : null;
@@ -7334,6 +7482,10 @@ const handleServiceVisitJobCardPdf = async (req, res) => {
   }
 };
 
+app.post('/api/service-visits/:id/share-link', (req, res) => {
+  const url = createDocumentShare(resolveServerOrigin(req), `/api/service-visits/${encodeURIComponent(req.params.id)}/job-card-pdf`);
+  res.json({ url, expiresIn: 3600 });
+});
 app.get('/api/service-visits/:id/job-card-pdf', handleServiceVisitJobCardPdf);
 app.get('/api/jobs/:id/pdf', handleServiceVisitJobCardPdf);
 
@@ -10562,7 +10714,7 @@ app.get('/api/google/oauth/start', async (req, res) => {
     const oauth = buildOAuthClient();
     const state = crypto.randomBytes(16).toString('hex');
     googleOauthStateStore.set(state, Date.now());
-    const redirectTo = String(req.query.redirect || '/settings').trim() || '/settings';
+    const redirectTo = '/settings';
     googleOauthStateStore.set(`${state}:redirect`, redirectTo);
 
     const authUrl = oauth.generateAuthUrl({
@@ -10631,7 +10783,7 @@ app.get('/api/google/oauth/callback', async (req, res) => {
     return res.redirect(`${resolveServerOrigin(req)}${redirectTo.includes('?') ? `${redirectTo}&googleConnected=1` : `${redirectTo}?googleConnected=1`}`);
   } catch (error) {
     console.error('Google OAuth callback failed:', error.message);
-    return res.status(500).send(`Google OAuth failed: ${error.message || 'Unknown error'}`);
+    return res.status(500).send('Google OAuth failed. Please retry from Settings.');
   }
 });
 
@@ -14873,7 +15025,18 @@ app.use('/api', createWhatsAppRouter({
 
 app.use('/api', createWhatsAppMarketingRouter({
   dataDir,
-  readJsonFile
+  readJsonFile,
+  settingsFile,
+  customersFile,
+  renewalsFile,
+  jobsFile,
+  invoicesFile,
+  paymentsFile,
+  employeesFile,
+  mysql: {
+    canUseMysql,
+    withMysqlConnection
+  }
 }));
 
 app.use('/api', createEmailRouter({
@@ -14908,6 +15071,11 @@ const ensureTechnicianLocationTable = async (conn) => {
 };
 
 app.post('/api/technicians/location', async (req, res) => {
+  if (!security.isAdmin(req.portalUser)) {
+    req.body.technicianId = req.portalUser.employeeId;
+    req.body.employeeCode = req.portalUser.employeeCode;
+    req.body.technicianName = req.portalUser.name;
+  }
   const latitude = Number(req.body?.latitude);
   const longitude = Number(req.body?.longitude);
   const accuracy = Number(req.body?.accuracy || 0);
@@ -14916,7 +15084,7 @@ app.post('/api/technicians/location', async (req, res) => {
   const technicianName = String(req.body?.technicianName || '').trim();
   const recordedAt = req.body?.recordedAt ? new Date(req.body.recordedAt) : new Date();
 
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
     return res.status(400).json({ success: false, error: 'latitude and longitude are required' });
   }
 
@@ -15017,7 +15185,7 @@ app.get('/api/technicians/:id/route-history', async (req, res) => {
   }
 });
 
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', upload.single('image'), security.validateUploadedFiles, (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   res.json({ imageUrl: `${resolveServerOrigin(req)}/uploads/${req.file.filename}` });
 });
@@ -15027,11 +15195,12 @@ app.use((error, req, res, next) => {
   if (error.message === 'CORS origin denied') {
     return res.status(403).json({ error: 'Origin is not allowed' });
   }
+  if ([400, 413].includes(Number(error.status))) return res.status(Number(error.status)).json({ error: Number(error.status) === 413 ? 'Request too large' : 'Invalid request' });
   if (Number(error.status) === 404) {
     return res.status(404).json({ error: 'Not found' });
   }
-  if (error instanceof multer.MulterError || /file|attachment|upload/i.test(String(error.message || ''))) {
-    return res.status(400).json({ error: error.message || 'Upload failed' });
+  if (error instanceof multer.MulterError) {
+    return res.status(400).json({ error: 'Upload rejected: check file type and size' });
   }
   console.error('Unhandled request error:', error && error.stack ? error.stack : error);
   return res.status(500).json({ error: 'Internal server error' });

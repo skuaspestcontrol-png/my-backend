@@ -1,3 +1,4 @@
+const { safeFetch } = require('./safeFetch');
 const dns = require('dns').promises;
 const net = require('net');
 
@@ -52,7 +53,7 @@ const isAllowedGoogleMapsUrl = (value) => {
   try {
     const url = new URL(normalized);
     const host = url.hostname.toLowerCase();
-    if (!GOOGLE_MAPS_ALLOWED_HOSTS.has(host)) return false;
+    if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || !GOOGLE_MAPS_ALLOWED_HOSTS.has(host)) return false;
     const path = url.pathname.toLowerCase();
     const allowedPrefixes = GOOGLE_MAPS_ALLOWED_PATH_PREFIXES[host] || null;
     if (allowedPrefixes && !allowedPrefixes.some((prefix) => path.startsWith(prefix))) return false;
@@ -126,7 +127,8 @@ const fetchWithTimeout = async (url, { method = 'HEAD', timeoutMs = 5000 } = {})
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, {
+    return await safeFetch(url, {
+      allowedHosts: GOOGLE_MAPS_ALLOWED_HOSTS,
       method,
       redirect: 'manual',
       signal: controller.signal,

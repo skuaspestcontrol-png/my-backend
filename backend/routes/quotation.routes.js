@@ -31,12 +31,7 @@ const toNumber = (v, d = 0) => {
 
 const clean = (v) => String(v ?? '').trim();
 const uploadsDir = path.join(__dirname, '..', 'uploads');
-const resolveServerOrigin = (req) => {
-  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').trim();
-  const proto = forwardedProto || req.protocol || 'http';
-  const host = String(req.get('host') || '').trim();
-  return host ? `${proto}://${host}` : '';
-};
+const resolveServerOrigin = (_req) => String(process.env.SERVER_ORIGIN || 'https://crm.skuaspestcontrol.com').replace(/\/+$/, '');
 
 const readJsonFile = (filePath, fallback) => {
   try {

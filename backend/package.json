@@ -7,7 +7,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "db:init": "node scripts/mysql-init.js",
-    "db:migrate:phase1": "node scripts/migrate-json-to-mysql.js"
+    "db:migrate:phase1": "node scripts/migrate-json-to-mysql.js",
+    "security:passwords": "node scripts/password-security-migration.js --dry-run",
+    "security:check-private-uploads": "node scripts/check-private-uploads.js",
+    "security:staging": "node scripts/staging-security-verification.js",
+    "test:security": "node --test test/security.test.js"
   },
   "keywords": [],
   "author": "",

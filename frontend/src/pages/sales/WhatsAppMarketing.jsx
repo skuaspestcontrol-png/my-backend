@@ -18,7 +18,6 @@ import {
   XCircle
 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
-import { buildTextWhatsAppPayload, sendTextWhatsAppMessage } from '../../utils/whatsapp';
 import { formatWhatsAppPhoneNumber, normalizeWhatsAppPhoneNumber } from '../../utils/phone';
 import { getPortalUserName } from '../../utils/portalAuth';
 
@@ -69,7 +68,15 @@ const emptyFilters = {
   renewalStatus: '',
   outstandingBalance: '',
   salesPerson: '',
-  lastCampaignDate: ''
+  lastCampaignDate: '',
+  state: '',
+  contractAudience: '',
+  renewalDays: '',
+  outstandingAudience: '',
+  dormantMonths: '',
+  hasService: '',
+  doesNotHaveService: '',
+  excludeRecentlyContactedDays: '30'
 };
 
 const emptyForm = {
@@ -421,6 +428,9 @@ export default function WhatsAppMarketing() {
   const [form, setForm] = useState(emptyForm);
   const [sendProgress, setSendProgress] = useState({ busy: false, total: 0, sent: 0, failed: 0, skipped: 0 });
   const [refreshToken, setRefreshToken] = useState(0);
+  const [audiencePreview, setAudiencePreview] = useState(null);
+  const [audienceOptions, setAudienceOptions] = useState({ services: [], areas: [], cities: [], states: [], salesPersons: [] });
+  const [audiencePresets, setAudiencePresets] = useState([]);
 
   const loadData = async () => {
     setLoading(true);
@@ -431,12 +441,18 @@ export default function WhatsAppMarketing() {
         axios.get(`${API_BASE_URL}/api/whatsapp-marketing/campaigns`),
         axios.get(`${API_BASE_URL}/api/whatsapp/logs`)
       ]);
+      const [optionsRes, presetsRes] = await Promise.allSettled([
+        axios.get(`${API_BASE_URL}/api/whatsapp-marketing/audience/options`),
+        axios.get(`${API_BASE_URL}/api/whatsapp-marketing/audience-presets`)
+      ]);
 
       setCustomers(customerRes.status === 'fulfilled' && Array.isArray(customerRes.value.data) ? customerRes.value.data : []);
       setTemplates(templateRes.status === 'fulfilled' && Array.isArray(templateRes.value.data) ? templateRes.value.data : []);
       const campaignPayload = campaignRes.status === 'fulfilled' ? campaignRes.value.data : {};
       setCampaigns(Array.isArray(campaignPayload?.campaigns) ? campaignPayload.campaigns : []);
       setWhatsappLogs(logsRes.status === 'fulfilled' && Array.isArray(logsRes.value.data) ? logsRes.value.data : []);
+      if (optionsRes.status === 'fulfilled') setAudienceOptions(optionsRes.value.data || {});
+      if (presetsRes.status === 'fulfilled') setAudiencePresets(Array.isArray(presetsRes.value.data) ? presetsRes.value.data : []);
       setMessage('');
     } catch (error) {
       setMessage(error?.response?.data?.error || 'Unable to load WhatsApp marketing data.');
@@ -448,6 +464,18 @@ export default function WhatsAppMarketing() {
   useEffect(() => {
     loadData();
   }, [refreshToken]);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const response = await axios.post(`${API_BASE_URL}/api/whatsapp-marketing/audience/preview`, { filters });
+        setAudiencePreview(response.data || null);
+      } catch (_error) {
+        setAudiencePreview(null);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [filters]);
 
   const enrichedCustomers = useMemo(() => {
     const latestLogByPhone = new Map();
@@ -718,14 +746,14 @@ export default function WhatsAppMarketing() {
     }
 
     const recipients = dedupedRecipients.recipients;
-    if (!scheduleOnly && recipients.length === 0) {
+    if (!scheduleOnly && recipients.length === 0 && !audiencePreview?.stats?.finalRecipients) {
       setMessage('No recipients matched your current audience.');
       return;
     }
 
     if (!scheduleOnly) {
       const proceed = window.confirm(
-        `Send this campaign to ${recipients.length} unique WhatsApp number${recipients.length === 1 ? '' : 's'}?`
+        `Queue this campaign for ${audiencePreview?.stats?.finalRecipients || recipients.length} unique WhatsApp number${(audiencePreview?.stats?.finalRecipients || recipients.length) === 1 ? '' : 's'}?`
       );
       if (!proceed) return;
     }
@@ -733,51 +761,12 @@ export default function WhatsAppMarketing() {
     setSaving(true);
     setMessage('');
     try {
-      let sentCount = 0;
-      let failedCount = 0;
-      let skippedCount = 0;
-
-      if (!scheduleOnly) {
-        setSendProgress({
-          busy: true,
-          total: recipients.length,
-          sent: 0,
-          failed: 0,
-          skipped: dedupedRecipients.optedOutCount + dedupedRecipients.duplicatesRemoved
-        });
-
-        for (let index = 0; index < recipients.length; index += 1) {
-          const recipient = recipients[index];
-          const messageText = renderTemplate(form.message || quickTemplates[form.campaignType] || '', recipient.context);
-          try {
-            await sendTextWhatsAppMessage(API_BASE_URL, buildTextWhatsAppPayload({
-              moduleType: 'whatsapp-marketing',
-              templateType: form.templateId || 'custom_message',
-              recipientName: recipient.name,
-              recipientPhone: recipient.phone,
-              recipientType: 'Customer',
-              sentByUser: getPortalUserName() || 'User',
-              moduleName: 'whatsapp-marketing',
-              message: messageText,
-              contextData: recipient.context,
-              attachmentUrl: normalizeText(form.attachmentUrl),
-              attachmentName: normalizeText(form.attachmentName)
-            }));
-            sentCount += 1;
-          } catch (_error) {
-            failedCount += 1;
-          }
-          setSendProgress({
-            busy: true,
-            total: recipients.length,
-            sent: sentCount,
-            failed: failedCount,
-            skipped: dedupedRecipients.optedOutCount + dedupedRecipients.duplicatesRemoved
-          });
-        }
-        skippedCount = dedupedRecipients.optedOutCount + dedupedRecipients.duplicatesRemoved;
-      }
-
+      const backendFilters = { ...filters };
+      if (form.audience === 'Active Customers') backendFilters.contractAudience = 'active';
+      if (form.audience === 'Expired Customers') backendFilters.contractAudience = 'expired';
+      if (form.audience === 'Renewal Due Customers') backendFilters.renewalDays = backendFilters.renewalDays || 30;
+      if (form.audience === 'Outstanding Payment Customers') backendFilters.outstandingAudience = 'outstanding';
+      if (selectedIds.length > 0) backendFilters.customerIds = selectedIds;
       const campaignPayload = {
         campaignName: form.campaignName,
         campaignType: form.campaignType,
@@ -792,32 +781,25 @@ export default function WhatsAppMarketing() {
         notes: form.notes,
         allowDuplicatePhones: form.allowDuplicatePhones,
         allowOptedOut: form.allowOptedOut,
-        status: scheduleOnly ? 'scheduled' : (failedCount > 0 ? (sentCount > 0 ? 'partial' : 'failed') : 'sent'),
+        status: scheduleOnly ? 'scheduled' : 'running',
         recipientCount: dedupedRecipients.selectedCount,
         uniqueRecipientCount: recipients.length,
         duplicateCount: dedupedRecipients.duplicatesRemoved,
-        sentCount,
-        failedCount,
+        sentCount: 0,
+        failedCount: 0,
         optedOutCount: dedupedRecipients.optedOutCount,
         createdBy: getPortalUserName() || 'User',
         selectedCustomerIds: selectedIds,
-        recipients: recipients.map((recipient) => ({
-          id: recipient.id,
-          name: recipient.name,
-          phone: recipient.phone,
-          customerId: recipient.customerId,
-          optedOut: recipient.optedOut
-        })),
-        filters
+        filters: backendFilters,
+        recipients: [],
+        createdBy: getPortalUserName() || 'User'
       };
 
       await axios.post(`${API_BASE_URL}/api/whatsapp-marketing/campaigns`, campaignPayload);
       await loadData();
       setSelectedIds([]);
       setForm(emptyForm);
-      setMessage(scheduleOnly
-        ? 'Campaign scheduled and saved to history.'
-        : `Campaign completed. Sent ${sentCount}, failed ${failedCount}, skipped ${skippedCount}.`);
+      setMessage(scheduleOnly ? 'Campaign scheduled. The server will run it automatically.' : 'Campaign queued. The server is processing recipients in safe batches.');
     } catch (error) {
       setMessage(error?.response?.data?.error || 'Could not save campaign.');
     } finally {
@@ -1119,8 +1101,24 @@ export default function WhatsAppMarketing() {
                 </div>
               </div>
 
+              <div style={{ ...styles.helper, display: 'grid', gap: 10, marginTop: 12 }}>
+                <div style={{ fontSize: 14, fontWeight: 900, color: '#111827' }}>Smart CRM Segmentation</div>
+                <div style={{ ...styles.fieldGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                  <label style={styles.field}><span style={styles.label}>Renewal Window</span><select value={filters.renewalStatus === 'expired' ? 'expired' : filters.renewalDays} onChange={(event) => setFilters((prev) => ({ ...prev, renewalDays: event.target.value === 'expired' ? '' : event.target.value, renewalStatus: event.target.value === 'expired' ? 'expired' : '' }))} style={styles.select}><option value="">Any renewal date</option><option value="7">Next 7 days</option><option value="15">Next 15 days</option><option value="30">Next 30 days</option><option value="60">Next 60 days</option><option value="expired">Already expired</option></select></label>
+                  <label style={styles.field}><span style={styles.label}>Contract Audience</span><select value={filters.contractAudience} onChange={(event) => setFilters((prev) => ({ ...prev, contractAudience: event.target.value }))} style={styles.select}><option value="">Any contract status</option><option value="active">Active contracts</option><option value="expired">Expired contracts</option><option value="expiring">Expiring soon</option><option value="renewed">Renewed contracts</option><option value="without_active">Without active contract</option></select></label>
+                  <label style={styles.field}><span style={styles.label}>Outstanding</span><select value={filters.outstandingAudience} onChange={(event) => setFilters((prev) => ({ ...prev, outstandingAudience: event.target.value }))} style={styles.select}><option value="">Any balance</option><option value="outstanding">Outstanding customers</option><option value="overdue">Overdue customers</option></select></label>
+                  <label style={styles.field}><span style={styles.label}>Dormant Activity</span><select value={filters.dormantMonths} onChange={(event) => setFilters((prev) => ({ ...prev, dormantMonths: event.target.value }))} style={styles.select}><option value="">Any activity</option><option value="3">No activity in 3 months</option><option value="6">No activity in 6 months</option><option value="12">No activity in 12 months</option><option value="18">No activity in 18 months</option><option value="24">No activity in 24 months</option></select></label>
+                  <label style={styles.field}><span style={styles.label}>Has Service</span><select value={filters.hasService} onChange={(event) => setFilters((prev) => ({ ...prev, hasService: event.target.value }))} style={styles.select}><option value="">Any service</option>{audienceOptions.services.map((value) => <option key={`has-${value}`} value={value}>{value}</option>)}</select></label>
+                  <label style={styles.field}><span style={styles.label}>Does Not Have</span><select value={filters.doesNotHaveService} onChange={(event) => setFilters((prev) => ({ ...prev, doesNotHaveService: event.target.value }))} style={styles.select}><option value="">No exclusion</option>{audienceOptions.services.map((value) => <option key={`not-${value}`} value={value}>{value}</option>)}</select></label>
+                  <label style={styles.field}><span style={styles.label}>Area</span><select value={filters.area} onChange={(event) => setFilters((prev) => ({ ...prev, area: event.target.value }))} style={styles.select}><option value="">All areas</option>{audienceOptions.areas.map((value) => <option key={value}>{value}</option>)}</select></label>
+                  <label style={styles.field}><span style={styles.label}>City</span><select value={filters.city} onChange={(event) => setFilters((prev) => ({ ...prev, city: event.target.value }))} style={styles.select}><option value="">All cities</option>{audienceOptions.cities.map((value) => <option key={value}>{value}</option>)}</select></label>
+                  <label style={styles.field}><span style={styles.label}>Sales Person</span><select value={filters.salesPerson} onChange={(event) => setFilters((prev) => ({ ...prev, salesPerson: event.target.value }))} style={styles.select}><option value="">All sales persons</option>{audienceOptions.salesPersons.map((value) => <option key={value}>{value}</option>)}</select></label>
+                  <label style={styles.field}><span style={styles.label}>Exclude Contacted</span><select value={filters.excludeRecentlyContactedDays} onChange={(event) => setFilters((prev) => ({ ...prev, excludeRecentlyContactedDays: event.target.value }))} style={styles.select}><option value="0">Do not exclude</option><option value="7">Last 7 days</option><option value="15">Last 15 days</option><option value="30">Last 30 days</option><option value="60">Last 60 days</option><option value="90">Last 90 days</option></select></label>
+                </div>
+                <div style={styles.checkboxRow}><ShieldAlert size={14} color="#92400e" /><span style={styles.muted}>Opted-out customers are always excluded. Payment audiences should use transactional or service-reminder templates.</span></div>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginTop: 12 }}>
-                {Object.entries(filters).map(([key, value]) => (
+                {Object.entries(filters).filter(([key]) => !['state', 'contractAudience', 'renewalDays', 'renewalStatus', 'outstandingAudience', 'dormantMonths', 'hasService', 'doesNotHaveService', 'excludeRecentlyContactedDays'].includes(key)).map(([key, value]) => (
                   <label key={key} style={styles.field}>
                     <span style={styles.label}>{key.replace(/([A-Z])/g, ' $1')}</span>
                     <input
@@ -1131,6 +1129,18 @@ export default function WhatsAppMarketing() {
                     />
                   </label>
                 ))}
+              </div>
+              <div style={{ ...styles.helper, display: 'grid', gap: 8, marginTop: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}><strong>Server Audience Preview</strong><span style={styles.muted}>Updated from CRM data</span></div>
+                <div style={{ ...styles.grid3, gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' }}>
+                  {[
+                    ['Matched', audiencePreview?.stats?.matched || 0], ['Missing phone', audiencePreview?.stats?.missingPhone || 0], ['Invalid phone', audiencePreview?.stats?.invalidPhone || 0], ['Opted out', audiencePreview?.stats?.optedOut || 0], ['Recent contact', audiencePreview?.stats?.recentlyContacted || 0], ['Final', audiencePreview?.stats?.finalRecipients || 0]
+                  ].map(([label, value]) => <div key={label}><div style={styles.statLabel}>{label}</div><div style={{ ...styles.statValue, fontSize: 18 }}>{value}</div></div>)}
+                </div>
+                <div style={styles.actionBar}>
+                  <button type="button" style={styles.mutedButton} onClick={async () => { const name = window.prompt('Audience preset name'); if (!name) return; await axios.post(`${API_BASE_URL}/api/whatsapp-marketing/audience-presets`, { name, filters }); await loadData(); setMessage('Audience rules saved.'); }}>Save Audience</button>
+                  {audiencePresets.length ? <select style={{ ...styles.select, width: 220 }} defaultValue="" onChange={(event) => { const preset = audiencePresets.find((row) => row.id === event.target.value); if (preset) setFilters({ ...emptyFilters, ...preset.filters }); }}><option value="">Load saved audience</option>{audiencePresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}</select> : null}
+                </div>
               </div>
             </div>
 
@@ -1241,7 +1251,7 @@ export default function WhatsAppMarketing() {
                   <tbody>
                     {campaigns.map((row) => (
                       <tr key={row.id}>
-                        <td style={styles.td}>{row.campaignName || '-'}</td>
+                        <td style={styles.td}><Link to={`/sales/whatsapp-marketing/campaigns/${encodeURIComponent(row.id)}`} style={{ color: 'var(--color-primary-dark)', fontWeight: 800 }}>{row.campaignName || '-'}</Link></td>
                         <td style={styles.td}>{row.campaignType || '-'}</td>
                         <td style={styles.td}>{row.audienceLabel || '-'}</td>
                         <td style={styles.td}><span style={{ ...styles.badge, background: '#f8fafc', color: '#334155' }}>{getCampaignLabel(row)}</span></td>

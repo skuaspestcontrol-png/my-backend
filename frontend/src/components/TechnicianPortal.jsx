@@ -1813,7 +1813,11 @@ export default function TechnicianPortal() {
 
     const jobNumber = String(context.jobNumber || pdfPreview.title.replace(/^Job Card -\s*/i, '') || 'Job').trim();
     const customerName = String(context.customerName || 'Customer').trim() || 'Customer';
-    const shareUrl = String(pdfPreview.publicShareUrl || pdfPreview.pdfUrl || '').trim();
+    let shareUrl = '';
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/service-visits/${encodeURIComponent(context.jobId)}/share-link`);
+      shareUrl = response.data.url;
+    } catch { window.alert('Unable to create a secure job card link.'); return; }
     const subject = `Job Card - ${jobNumber} from SKUAS Pest Control`;
     const body = `
       <div style="font-family:Arial,sans-serif;color:#111827;font-size:14px;line-height:1.5">

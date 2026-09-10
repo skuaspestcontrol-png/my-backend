@@ -1,4 +1,6 @@
 const express = require('express');
+const { validateUploadedFiles } = require('../lib/security');
+const { randomUUID } = require('crypto');
 const multer = require('multer');
 const path = require('path');
 const { createEmailController } = require('../controllers/email.controller');
@@ -29,7 +31,7 @@ function createEmailRouter(deps) {
     filename: (req, file, cb) => {
       const ext = path.extname(String(file.originalname || '')).toLowerCase();
       const base = safeBaseName(path.basename(String(file.originalname || ''), ext));
-      cb(null, `${Date.now()}-${base}${ext}`);
+      cb(null, `${randomUUID()}-${base}${ext}`);
     }
   });
   const upload = multer({
@@ -54,7 +56,7 @@ function createEmailRouter(deps) {
 
   router.post('/email/preview', controller.preview);
   router.post('/email/send', controller.send);
-  router.post('/email/send-with-attachment', upload.single('attachment'), (req, res, next) => {
+  router.post('/email/send-with-attachment', upload.single('attachment'), validateUploadedFiles, (req, res, next) => {
     if (req.body && typeof req.body.contextData === 'string') {
       req.body.contextData = controller.parseJsonSafe(req.body.contextData, {});
     }

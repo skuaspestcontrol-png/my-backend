@@ -1,6 +1,7 @@
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
+const { safeLocalFile } = require('./lib/security');
 
 const toNumber = (v, d = 0) => {
   const n = Number(v);
@@ -316,28 +317,29 @@ const resolveUploadAsset = (input = '', options = {}) => {
     : getUploadRootCandidates();
   const allowRemoteFetch = options.allowRemoteFetch !== false;
   const findFile = (name = '') => {
-    const safeName = decodeURIComponent(String(name || '').trim());
+    let safeName;
+    try { safeName = decodeURIComponent(String(name || '').trim()); } catch { return ''; }
     if (!safeName) return '';
     const normalized = safeName.replace(/\\/g, '/').replace(/^\/?uploads\/?/, '').replace(/^\/+/, '');
     if (!normalized || normalized.includes('..')) return '';
     for (const dir of dirs) {
       const byRelativePath = path.join(dir, normalized);
-      if (fs.existsSync(byRelativePath)) return byRelativePath;
+      if (safeLocalFile(dir, normalized)) return safeLocalFile(dir, normalized);
       const byFileName = path.join(dir, path.basename(normalized));
-      if (fs.existsSync(byFileName)) return byFileName;
+      if (safeLocalFile(dir, path.basename(normalized))) return safeLocalFile(dir, path.basename(normalized));
     }
     return '';
   };
   if (raw.startsWith('/uploads/')) return findFile(raw.split('/uploads/')[1]);
   if (raw.includes('/uploads/')) return findFile(raw.split('/uploads/').pop());
   if (raw.startsWith('/')) {
-    if (fs.existsSync(raw)) return raw;
+    // Absolute and working-directory paths are not trusted assets.
     return findFile(raw);
   }
   if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
     const local = findFile(raw);
     if (local) return local;
-    if (fs.existsSync(raw)) return raw;
+    // Absolute and working-directory paths are not trusted assets.
   }
   if (allowRemoteFetch) {
     try {
@@ -345,7 +347,7 @@ const resolveUploadAsset = (input = '', options = {}) => {
       const fileName = path.basename(url.pathname || '');
       return fileName ? findFile(fileName) : '';
     } catch (_error) {
-      if (fs.existsSync(raw)) return raw;
+      // Absolute and working-directory paths are not trusted assets.
     }
   }
   return '';

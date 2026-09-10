@@ -1,4 +1,6 @@
 const express = require('express');
+const { validateUploadedFiles } = require('../lib/security');
+const { randomUUID } = require('crypto');
 const multer = require('multer');
 const path = require('path');
 const { createWhatsAppController } = require('../controllers/whatsapp.controller');
@@ -19,7 +21,7 @@ function createWhatsAppRouter(deps) {
     filename: (req, file, cb) => {
       const ext = path.extname(String(file.originalname || '')).toLowerCase();
       const base = safeBaseName(path.basename(String(file.originalname || ''), ext));
-      cb(null, `${Date.now()}-${base}${ext}`);
+      cb(null, `${randomUUID()}-${base}${ext}`);
     }
   });
   const upload = multer({
@@ -44,7 +46,7 @@ function createWhatsAppRouter(deps) {
 
   router.post('/whatsapp/preview', controller.preview);
   router.post('/whatsapp/send', controller.send);
-  router.post('/whatsapp/send-with-attachment', upload.single('attachment'), (req, res, next) => {
+  router.post('/whatsapp/send-with-attachment', upload.single('attachment'), validateUploadedFiles, (req, res, next) => {
     if (req.body && typeof req.body.contextData === 'string') {
       req.body.contextData = controller.parseJsonSafe(req.body.contextData, {});
     }

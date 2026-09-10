@@ -1,0 +1,161 @@
+TAP version 13
+# Subtest: unauthenticated admin, business and salary PDF APIs are denied
+ok 1 - unauthenticated admin, business and salary PDF APIs are denied
+  ---
+  duration_ms: 68.102429
+  ...
+# Thu, 10 Sep 2026 15:28:09 GMT router deprecated handlers that are Promise-like are deprecated, use a native Promise instead at backend/node_modules/router/index.js:342:13
+# Subtest: employee cannot change settings or employee roles
+ok 2 - employee cannot change settings or employee roles
+  ---
+  duration_ms: 25.206646
+  ...
+# Subtest: admin can save settings through trusted cookie origin
+ok 3 - admin can save settings through trusted cookie origin
+  ---
+  duration_ms: 4.720815
+  ...
+# Subtest: untrusted same-site origin cannot perform cookie writes
+ok 4 - untrusted same-site origin cannot perform cookie writes
+  ---
+  duration_ms: 4.76325
+  ...
+# Subtest: arbitrary CORS origins denied
+ok 5 - arbitrary CORS origins denied
+  ---
+  duration_ms: 2.367146
+  ...
+# Subtest: technician cannot act on another job or change assignments
+ok 6 - technician cannot act on another job or change assignments
+  ---
+  duration_ms: 10.101048
+  ...
+# Subtest: technician can reach own GPS submission endpoint
+ok 7 - technician can reach own GPS submission endpoint
+  ---
+  duration_ms: 5.356108
+  ...
+# Subtest: case-sensitive external job IDs remain usable
+ok 8 - case-sensitive external job IDs remain usable
+  ---
+  duration_ms: 3.089604
+  ...
+# Subtest: technician cannot submit attendance for another employee or read location history
+ok 9 - technician cannot submit attendance for another employee or read location history
+  ---
+  duration_ms: 5.509707
+  ...
+# Subtest: employee directory hides credentials and HR data, scopes technicians
+ok 10 - employee directory hides credentials and HR data, scopes technicians
+  ---
+  duration_ms: 4.141707
+  ...
+# Subtest: technician customer responses are assigned-job scoped
+ok 11 - technician customer responses are assigned-job scoped
+  ---
+  duration_ms: 4.16057
+  ...
+# Subtest: private uploads need authorized HR session
+ok 12 - private uploads need authorized HR session
+  ---
+  duration_ms: 15.482568
+  ...
+# Subtest: prototype pollution and enormous pagination rejected
+ok 13 - prototype pollution and enormous pagination rejected
+  ---
+  duration_ms: 3.39478
+  ...
+# Subtest: public lead fields bounded and spam throttled
+ok 14 - public lead fields bounded and spam throttled
+  ---
+  duration_ms: 30.675784
+  ...
+# Subtest: login limiter enforces bounded burst
+ok 15 - login limiter enforces bounded burst
+  ---
+  duration_ms: 7.68526
+  ...
+# Subtest: campaign execution requires an authorized role
+ok 16 - campaign execution requires an authorized role
+  ---
+  duration_ms: 5.867734
+  ...
+# Subtest: production errors and nested response credentials are redacted
+ok 17 - production errors and nested response credentials are redacted
+  ---
+  duration_ms: 4.057259
+  ...
+# Subtest: production response headers include CSP, HSTS and frame policy
+ok 18 - production response headers include CSP, HSTS and frame policy
+  ---
+  duration_ms: 2.029411
+  ...
+# Subtest: HMAC rejects expired, missing expiry, malformed and tampered sessions
+ok 19 - HMAC rejects expired, missing expiry, malformed and tampered sessions
+  ---
+  duration_ms: 0.664798
+  ...
+# Subtest: session versions revoke previously issued tokens durably
+ok 20 - session versions revoke previously issued tokens durably
+  ---
+  duration_ms: 3.692126
+  ...
+# Subtest: passwords hash with scrypt and preserve legacy verification
+ok 21 - passwords hash with scrypt and preserve legacy verification
+  ---
+  duration_ms: 810.010822
+  ...
+# Subtest: financial payload validation rejects malformed money fields
+ok 22 - financial payload validation rejects malformed money fields
+  ---
+  duration_ms: 0.747041
+  ...
+# Subtest: outbound fetch rejects unsafe schemes and IP ranges
+ok 23 - outbound fetch rejects unsafe schemes and IP ranges
+  ---
+  duration_ms: 0.463918
+  ...
+# Subtest: path containment rejects traversal and escaping symlinks
+ok 24 - path containment rejects traversal and escaping symlinks
+  ---
+  duration_ms: 2.304759
+  ...
+# Subtest: spoofed file contents are rejected and removed
+ok 25 - spoofed file contents are rejected and removed
+  ---
+  duration_ms: 1.672697
+  ...
+# Subtest: executable extensions, mismatched MIME and oversized uploads rejected
+ok 26 - executable extensions, mismatched MIME and oversized uploads rejected
+  ---
+  duration_ms: 17.075367
+  ...
+# Subtest: payment amount rejects negative, infinite and precision-losing input
+ok 27 - payment amount rejects negative, infinite and precision-losing input
+  ---
+  duration_ms: 10.986401
+  ...
+# Subtest: document shares are path-bound and cannot become login tokens
+ok 28 - document shares are path-bound and cannot become login tokens
+  ---
+  duration_ms: 2.144588
+  ...
+# Subtest: campaigns reject injected phone numbers and recheck opt-out before sending
+ok 29 - campaigns reject injected phone numbers and recheck opt-out before sending
+  ---
+  duration_ms: 12.070552
+  ...
+# Subtest: public Maps config does not return server-only geocoding keys
+ok 30 - public Maps config does not return server-only geocoding keys
+  ---
+  duration_ms: 1.29922
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1303.121162

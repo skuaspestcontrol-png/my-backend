@@ -1,3 +1,4 @@
+const { safeFetch } = require('../lib/safeFetch');
 const {
   normalizeWhatsAppPhoneNumber,
   isValidWhatsAppPhoneNumber
@@ -197,7 +198,7 @@ const createProviderError = ({ status, parsed, cause } = {}) => {
 const requestDeropo = async (baseUrl, params) => {
   let response;
   try {
-    response = await fetch(buildDeropoSendUrl(baseUrl, params), { method: 'GET' });
+    response = await safeFetch(buildDeropoSendUrl(baseUrl, params), { method: 'GET' });
   } catch (error) {
     throw createProviderError({ cause: error });
   }
@@ -400,7 +401,7 @@ const sendWhatsAppMessage = async ({ settings, to, message, attachmentUrl, attac
     Authorization: `Bearer ${provider.accessToken}`
   };
 
-  const response = await fetch(provider.baseUrl, {
+  const response = await safeFetch(provider.baseUrl, {
     method: 'POST',
     headers,
     body: JSON.stringify(payload)

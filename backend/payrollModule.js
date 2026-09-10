@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { createDocumentShare } = require('./lib/documentShares');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 const { formatIndiaDateTime } = require('./lib/indiaTime');
@@ -148,11 +149,11 @@ const roleToPermissions = (rawRole) => {
 
 const getRoleFromReq = (req) => {
   const fromQuery = normalizeText(req.query.role || '');
-  return normalizeText(req.portalUser?.role || fromQuery || normalizeText(req.body?.role || ''));
+  return normalizeText(req.portalUser?.role || '');
 };
 
 const getActorName = (req) => normalizeText(req.portalUser?.name || req.query.userName || req.body?.actor || 'System');
-const getActorEmployeeId = (req) => normalizeText(req.portalUser?.employeeId || req.query.userId || req.query.employeeId || req.body?.actorEmployeeId || '');
+const getActorEmployeeId = (req) => normalizeText(req.portalUser?.employeeId || '');
 const normalizeWhatsappPhone = (raw) => {
   const digits = normalizeIndianMobileNumber(raw);
   if (/^\d{10}$/.test(digits)) return `91${digits}`;
@@ -276,6 +277,7 @@ const tryResolveLocalUploadPath = (rawUrl) => {
 const resolveUploadPath = (logoUrl) => {
   if (!logoUrl) return null;
   const fs = require('fs');
+const { createDocumentShare } = require('./lib/documentShares');
   const path = require('path');
 
   const persistentUploadRoot = String(process.env.UPLOADS_ROOT || '/home/u610009593/uploads-skuas-crm').trim();
@@ -1292,6 +1294,7 @@ const ensureSalarySlipStored = async ({ item, company, branding, withMysqlConnec
 
 const csvSafeValue = (value) => {
   const text = String(value ?? '');
+  if (/^[\s]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text)) return `'${text}`;
   if (/^\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?$/.test(text)) {
     return `'${text}`;
   }
@@ -3102,7 +3105,7 @@ function registerPayrollModule({
       const { absolutePath } = await ensureSalarySlipStored({ item, company, branding: settings, withMysqlConnection });
       const fileName = `${normalizeText(item.employeeCode || item.employeeId || 'EMP')}_${item.year}_${pad2(item.month)}.pdf`.replace(/[^\w.-]+/g, '_');
       const shareOrigin = serverOrigin || 'https://crm.skuaspestcontrol.com';
-      const shareLink = `${shareOrigin}/api/payroll/items/${item._id}/slip/pdf?download=1&role=Employee&userId=${encodeURIComponent(item.employeeId || '')}&userName=${encodeURIComponent(item.employeeName || '')}&_ts=${Date.now()}`;
+      const shareLink = createDocumentShare(shareOrigin, `/api/payroll/items/${encodeURIComponent(item._id)}/slip/pdf`, String(item.employeeId));
       const caption = String(req.body?.message || `Salary slip for ${pad2(item.month)}/${item.year}\n${company.companyName}\n${shareLink}`).trim().slice(0, 1024);
       const useCustomProvider = ['custom', 'deropo'].includes(waConfig.providerType) && Boolean(waConfig.baseUrl);
       let sendDocJson;

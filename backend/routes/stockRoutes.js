@@ -1463,7 +1463,8 @@ router.get('/reports', async (req, res) => {
 });
 
 const csvEscape = (value) => {
-  const raw = String(value ?? '');
+  let raw = String(value ?? '');
+  if (/^[\s]*[=+@-]/.test(raw) || /^[\t\r\n]/.test(raw)) raw = `'${raw}`;
   if (/[,"\n]/.test(raw)) return `"${raw.replace(/"/g, '""')}"`;
   return raw;
 };

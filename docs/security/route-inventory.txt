@@ -1,0 +1,286 @@
+backend/routes/email.routes.js:48:  router.get('/settings/email', controller.getEmailSettings);
+backend/routes/email.routes.js:49:  router.post('/settings/email', controller.saveEmailSettings);
+backend/routes/email.routes.js:50:  router.post('/settings/email/test', controller.sendTestEmail);
+backend/routes/email.routes.js:52:  router.get('/email/templates', controller.listTemplates);
+backend/routes/email.routes.js:53:  router.post('/email/templates', controller.createTemplate);
+backend/routes/email.routes.js:54:  router.put('/email/templates/:id', controller.updateTemplate);
+backend/routes/email.routes.js:55:  router.delete('/email/templates/:id', controller.deleteTemplate);
+backend/routes/email.routes.js:57:  router.post('/email/preview', controller.preview);
+backend/routes/email.routes.js:58:  router.post('/email/send', controller.send);
+backend/routes/email.routes.js:59:  router.post('/email/send-with-attachment', upload.single('attachment'), validateUploadedFiles, (req, res, next) => {
+backend/routes/email.routes.js:66:  router.get('/email/logs', controller.listLogs);
+backend/routes/email.routes.js:67:  router.post('/email/logs/:id/retry', controller.retryLog);
+backend/hrModule.js:1125:  app.get('/api/hr/dashboard-summary', async (req, res) => {
+backend/hrModule.js:1144:  app.get('/api/hr/kanban', async (req, res) => {
+backend/hrModule.js:1232:  app.put('/api/hr/employees/:id/status', async (req, res) => {
+backend/hrModule.js:1258:  app.get('/api/hr/attendance', async (req, res) => {
+backend/hrModule.js:1279:  app.get('/api/hr/attendance/today', async (req, res) => {
+backend/hrModule.js:1290:  app.post('/api/hr/attendance/manual', async (req, res) => {
+backend/hrModule.js:1333:  app.post('/api/hr/attendance/bulk', async (req, res) => {
+backend/hrModule.js:1379:  app.get('/api/hr/leaves', async (req, res) => {
+backend/hrModule.js:1409:  app.get('/api/hr/leaves/calendar', async (req, res) => {
+backend/hrModule.js:1445:  app.get('/api/hr/leaves/balance', async (req, res) => {
+backend/hrModule.js:1481:  app.post('/api/hr/leaves', async (req, res) => {
+backend/hrModule.js:1521:  app.put('/api/hr/leaves/:id/decision', async (req, res) => {
+backend/hrModule.js:1556:  app.get('/api/hr/performance', async (req, res) => {
+backend/hrModule.js:1593:  app.get('/api/hr/payroll-summary', async (req, res) => {
+backend/hrModule.js:1673:  app.get('/api/hr/notifications', async (req, res) => {
+backend/hrModule.js:1726:  app.put('/api/hr/notifications/:id/read', async (req, res) => {
+backend/hrModule.js:1736:  app.get('/api/hr/employees/:id/profile', async (req, res) => {
+backend/hrModule.js:1846:  app.get('/api/hr/filters', (req, res) => {
+backend/hrModule.js:1856:  app.get('/api/hr/reports/monthly-payroll', async (req, res) => {
+backend/hrModule.js:1911:  app.get('/api/hr/reports/employee-salary', async (req, res) => {
+backend/hrModule.js:1956:  app.get('/api/hr/reports/deductions', async (req, res) => {
+backend/hrModule.js:1993:  app.get('/api/hr/reports/advances', async (req, res) => {
+backend/hrModule.js:2026:  app.get('/api/hr/ai-performance-suggestions', async (req, res) => {
+backend/routes/whatsappMarketing.routes.js:8:  router.get('/whatsapp-marketing/campaigns', controller.listCampaigns);
+backend/routes/whatsappMarketing.routes.js:9:  router.get('/whatsapp-marketing/audience/options', controller.audienceOptions);
+backend/routes/whatsappMarketing.routes.js:10:  router.post('/whatsapp-marketing/audience/preview', controller.previewAudience);
+backend/routes/whatsappMarketing.routes.js:11:  router.get('/whatsapp-marketing/audience-presets', controller.listPresets);
+backend/routes/whatsappMarketing.routes.js:12:  router.post('/whatsapp-marketing/audience-presets', controller.savePreset);
+backend/routes/whatsappMarketing.routes.js:13:  router.delete('/whatsapp-marketing/audience-presets/:id', controller.deletePreset);
+backend/routes/whatsappMarketing.routes.js:14:  router.get('/whatsapp-marketing/summary', controller.listCampaigns);
+backend/routes/whatsappMarketing.routes.js:15:  router.post('/whatsapp-marketing/campaigns', controller.createCampaign);
+backend/routes/whatsappMarketing.routes.js:16:  router.get('/whatsapp-marketing/campaigns/:id', controller.getCampaign);
+backend/routes/whatsappMarketing.routes.js:17:  router.post('/whatsapp-marketing/campaigns/:id/action', controller.updateCampaignStatus);
+backend/routes/salesPerformanceRoutes.js:912:router.get('/dashboard', async (req, res) => {
+backend/routes/salesPerformanceRoutes.js:959:router.get('/targets', async (req, res) => {
+backend/routes/salesPerformanceRoutes.js:986:router.get('/audit', async (req, res) => {
+backend/routes/salesPerformanceRoutes.js:1017:router.post('/targets', async (req, res) => {
+backend/routes/salesPerformanceRoutes.js:1094:router.put('/targets/:id', async (req, res) => {
+backend/routes/salesPerformanceRoutes.js:1136:router.delete('/targets/:id', async (req, res) => {
+backend/routes/salesPerformanceRoutes.js:1157:router.get('/team-performance', async (req, res) => {
+backend/routes/salesPerformanceRoutes.js:1170:router.get('/year-month-matrix', async (req, res) => {
+backend/routes/salesPerformanceRoutes.js:1185:router.get('/reports', async (req, res) => {
+backend/payrollModule.js:2273:  app.get('/api/payroll/meta', (req, res) => {
+backend/payrollModule.js:2282:  app.post('/api/payroll/meta', (req, res) => {
+backend/payrollModule.js:2308:  app.get('/api/payroll/salary-structures', async (req, res) => {
+backend/payrollModule.js:2331:  app.post('/api/payroll/salary-structures', async (req, res) => {
+backend/payrollModule.js:2366:  app.post('/api/payroll/salary-structures/sync-employees', async (req, res) => {
+backend/payrollModule.js:2434:  app.get('/api/payroll/salary-structures/:employeeId/current', async (req, res) => {
+backend/payrollModule.js:2448:  app.get('/api/payroll/holidays', (req, res) => {
+backend/payrollModule.js:2459:  app.post('/api/payroll/holidays', (req, res) => {
+backend/payrollModule.js:2482:  app.delete('/api/payroll/holidays/:id', (req, res) => {
+backend/payrollModule.js:2500:  app.get('/api/payroll/advances', (req, res) => {
+backend/payrollModule.js:2515:  app.post('/api/payroll/advances', (req, res) => {
+backend/payrollModule.js:2556:  app.delete('/api/payroll/advances/:id', (req, res) => {
+backend/payrollModule.js:2561:  app.post('/api/payroll/advances/:id/delete', (req, res) => {
+backend/payrollModule.js:2566:  app.post('/api/payroll/advances/delete', (req, res) => {
+backend/payrollModule.js:2570:  app.post('/api/payroll/calculate', async (req, res) => {
+backend/payrollModule.js:2613:  app.post('/api/payroll/generate', async (req, res) => {
+backend/payrollModule.js:2732:  app.get('/api/payroll/debug', async (req, res) => {
+backend/payrollModule.js:2775:  app.get('/api/payroll/runs', (req, res) => {
+backend/payrollModule.js:2780:  app.get('/api/payroll/items', async (req, res) => {
+backend/payrollModule.js:2816:  app.get('/api/payroll/items/:id', async (req, res) => {
+backend/payrollModule.js:2832:  app.put('/api/payroll/items/:id', (req, res) => {
+backend/payrollModule.js:2927:  app.delete('/api/payroll/items/:id', (req, res) => {
+backend/payrollModule.js:2932:  app.post('/api/payroll/items/:id/delete', (req, res) => {
+backend/payrollModule.js:2936:  app.post('/api/payroll/items/:id/mark-paid', (req, res) => {
+backend/payrollModule.js:3011:  app.get('/api/payroll/items/:id/slip/pdf', async (req, res) => {
+backend/payrollModule.js:3037:  app.post('/api/payroll/items/:id/share-email', async (req, res) => {
+backend/payrollModule.js:3088:  app.post('/api/payroll/items/:id/share-whatsapp', async (req, res) => {
+backend/payrollModule.js:3187:  app.get('/api/payroll/dashboard', (req, res) => {
+backend/payrollModule.js:3247:  app.get('/api/payroll/reports', (req, res) => {
+backend/payrollModule.js:3346:  app.post('/api/payroll/seed-sample', async (req, res) => {
+backend/payrollModule.js:3457:  app.get('/api/payroll/audit', (req, res) => {
+backend/server.js:305:app.get("/api/db-test", requireAdminDebugAccess, async (req, res) => {
+backend/server.js:320:app.get("/api", (req, res) => {
+backend/server.js:324:app.get('/api/health', (req, res) => {
+backend/server.js:332:app.get('/health', (req, res) => {
+backend/server.js:336:app.get('/favicon.ico', (req, res) => {
+backend/server.js:385:app.post('/api/admin/apply-hostinger-quotation-sql', (req, res) => {
+backend/server.js:413:app.post('/api/admin/apply-hostinger-all-modules-sql', (req, res) => {
+backend/server.js:474:app.get('/api/admin/migration-status', (req, res) => {
+backend/server.js:481:app.get('/api/admin/attendance-source-health', async (req, res) => {
+backend/server.js:528:app.get('/api/admin/attendance-source-health-summary', async (req, res) => {
+backend/server.js:570:app.post('/api/admin/run-migrations', async (req, res) => {
+backend/server.js:828:app.get(['/uploads-test', '/api/uploads-test'], (req, res) => {
+backend/server.js:3384:app.get('/api/dashboard/summary', async (req, res) => {
+backend/server.js:3499:app.get('/api/public/settings', async (req, res) => {
+backend/server.js:3513:app.post('/api/auth/login', async (req, res) => {
+backend/server.js:3577:app.get('/api/auth/me', (req, res) => {
+backend/server.js:3584:app.post('/api/auth/logout', (req, res) => {
+backend/server.js:3590:app.post('/api/auth/revoke-sessions', (req, res) => {
+backend/server.js:3606:app.get('/api/settings', async (req, res) => {
+backend/server.js:3616:app.get('/api/public/google-maps-config', (_req, res) => {
+backend/server.js:3629:app.post('/api/settings', async (req, res) => {
+backend/server.js:3650:app.post('/api/settings/save', async (req, res) => {
+backend/server.js:3671:app.post('/api/auth/forgot-password', async (req, res) => {
+backend/server.js:3695:app.post('/api/auth/reset-password', async (req, res) => {
+backend/server.js:3743:app.post('/api/settings/upload-dashboard-image', upload.single('dashboardImage'), security.validateUploadedFiles, (req, res) => {
+backend/server.js:3751:app.post('/api/settings/upload-branding-image', upload.single('brandingImage'), security.validateUploadedFiles, (req, res) => {
+backend/server.js:3759:app.post('/api/employees/upload-document', employeeDocumentUpload.single('document'), security.validateUploadedFiles, (req, res) => {
+backend/server.js:3772:app.post('/api/uploads/delete', (req, res) => {
+backend/server.js:5543:app.post('/api/website-leads', async (req, res) => {
+backend/server.js:5594:app.post('/api/public/website-lead', async (req, res) => {
+backend/server.js:5619:app.get('/api/leads', async (req, res) => {
+backend/server.js:5644:app.get('/api/leads/sources', async (_req, res) => {
+backend/server.js:5674:app.post('/api/leads', async (req, res) => {
+backend/server.js:5695:app.get('/api/maps/resolve', async (req, res) => {
+backend/server.js:5724:app.post('/api/maps/geocode', async (req, res) => {
+backend/server.js:6013:app.put('/api/leads/:id', async (req, res) => {
+backend/server.js:6058:app.delete('/api/leads/:id', async (req, res) => {
+backend/server.js:6082:app.get('/api/employees', async (req, res) => {
+backend/server.js:6104:app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), security.validateUploadedFiles, async (req, res) => {
+backend/server.js:6306:app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), security.validateUploadedFiles, async (req, res) => {
+backend/server.js:6454:app.delete('/api/employees/:id', async (req, res) => {
+backend/server.js:6488:app.get('/api/attendance', async (req, res) => {
+backend/server.js:6538:app.get('/api/attendance/audit', async (req, res) => {
+backend/server.js:6582:app.get('/api/attendance/:id/audit', async (req, res) => {
+backend/server.js:6631:app.post('/api/attendance', async (req, res) => {
+backend/server.js:6757:app.get('/api/jobs', async (req, res) => {
+backend/server.js:6954:app.post('/api/jobs', async (req, res) => {
+backend/server.js:7063:app.put('/api/jobs/:id', async (req, res) => {
+backend/server.js:7254:app.delete('/api/jobs/:id', async (req, res) => {
+backend/server.js:7327:app.post('/api/jobs/:id/complete', jobCompletionUpload, security.validateUploadedFiles, async (req, res) => {
+backend/server.js:7485:app.post('/api/service-visits/:id/share-link', (req, res) => {
+backend/server.js:7489:app.get('/api/service-visits/:id/job-card-pdf', handleServiceVisitJobCardPdf);
+backend/server.js:7490:app.get('/api/jobs/:id/pdf', handleServiceVisitJobCardPdf);
+backend/server.js:7492:app.post(['/api/service-visits/:id/send-whatsapp', '/api/jobs/:id/send-whatsapp'], async (req, res) => {
+backend/server.js:7676:app.get('/api/contracts/:id/job-card-summary-pdf', handleContractJobCardSummaryPdf);
+backend/server.js:7677:app.get('/api/contracts/:invoiceId/job-card-pdf', handleContractJobCardSummaryPdf);
+backend/server.js:7679:app.post(['/api/contracts/:id/send-whatsapp', '/api/contracts/:invoiceId/send-whatsapp'], async (req, res) => {
+backend/server.js:8047:app.get('/api/complaints', async (req, res) => {
+backend/server.js:8057:app.post('/api/complaints', async (req, res) => {
+backend/server.js:8076:app.put('/api/complaints/:id', async (req, res) => {
+backend/server.js:8224:app.get('/api/items', async (req, res) => {
+backend/server.js:8243:app.post('/api/items', async (req, res) => {
+backend/server.js:8259:app.put('/api/items/:id', async (req, res) => {
+backend/server.js:8297:app.delete('/api/items/:id', async (req, res) => {
+backend/server.js:8323:app.get('/api/customers', async (req, res) => {
+backend/server.js:8359:app.post('/api/customers', async (req, res) => {
+backend/server.js:8574:app.get('/api/customers/:customerId/premises', async (req, res) => {
+backend/server.js:8585:app.post('/api/customers/:customerId/premises', async (req, res) => {
+backend/server.js:8606:app.put('/api/customers/:customerId/premises/:premiseId', async (req, res) => {
+backend/server.js:8631:app.delete('/api/customers/:customerId/premises/:premiseId', async (req, res) => {
+backend/server.js:8663:app.post('/api/customers/:customerId/premises/:premiseId/set-default', async (req, res) => {
+backend/server.js:8687:app.put('/api/customers/:id', async (req, res) => {
+backend/server.js:8904:app.delete('/api/customers/:id', async (req, res) => {
+backend/server.js:10656:app.get('/api/google/integration/status', async (req, res) => {
+backend/server.js:10676:app.delete('/api/google/integration', async (req, res) => {
+backend/server.js:10712:app.get('/api/google/oauth/start', async (req, res) => {
+backend/server.js:10739:app.get('/api/google/oauth/callback', async (req, res) => {
+backend/server.js:10790:app.post('/api/google/tasks/sync-job/:jobId', async (req, res) => {
+backend/server.js:10895:app.get('/api/invoices/:id/pdf', async (req, res) => {
+backend/server.js:10913:app.post('/api/invoices/:id/send-email', async (req, res) => {
+backend/server.js:10973:app.post('/api/invoices/:id/send-whatsapp', async (req, res) => {
+backend/server.js:11102:app.get('/api/invoices', async (req, res) => {
+backend/server.js:11280:app.get('/api/vendors', async (req, res) => {
+backend/server.js:11319:app.post('/api/vendors', async (req, res) => {
+backend/server.js:11412:app.put('/api/vendors/:id', async (req, res) => {
+backend/server.js:11483:app.delete('/api/vendors/:id', async (req, res) => {
+backend/server.js:11514:app.get('/api/vendor-bills', async (req, res) => {
+backend/server.js:11586:app.post('/api/vendor-bills', async (req, res) => {
+backend/server.js:11656:app.put('/api/vendor-bills/:id', async (req, res) => {
+backend/server.js:11722:app.delete('/api/vendor-bills/:id', async (req, res) => {
+backend/server.js:11747:app.get('/api/payment-received', async (req, res) => {
+backend/server.js:11778:app.post('/api/payment-received', async (req, res) => {
+backend/server.js:11825:app.put('/api/payment-received/:id', async (req, res) => {
+backend/server.js:11867:app.delete('/api/payment-received/:id', async (req, res) => {
+backend/server.js:11886:app.post('/api/invoices', async (req, res) => {
+backend/server.js:12027:app.put('/api/invoices/:id', async (req, res) => {
+backend/server.js:12163:app.delete('/api/invoices/:id', async (req, res) => {
+backend/server.js:12216:app.get('/api/service-schedules', async (req, res) => {
+backend/server.js:12252:app.get('/api/customers/:id/profit-loss', async (req, res) => {
+backend/server.js:12262:app.get('/api/contracts/:id/profit-loss', async (req, res) => {
+backend/server.js:12275:app.get('/api/service-visits/:id/job-cost', async (req, res) => {
+backend/server.js:12301:app.post('/api/service-visits/:id/job-cost-items', async (req, res) => {
+backend/server.js:12397:app.put('/api/job-cost-items/:id', async (req, res) => {
+backend/server.js:12475:app.delete('/api/job-cost-items/:id', async (req, res) => {
+backend/server.js:12494:app.get('/api/payments', (req, res) => {
+backend/server.js:12512:app.post('/api/payments', (req, res) => {
+backend/server.js:12563:app.delete('/api/payments/:id', (req, res) => {
+backend/server.js:13406:app.get('/api/renewals', async (req, res) => {
+backend/server.js:13416:app.get('/api/renewals/summary', async (req, res) => {
+backend/server.js:13426:app.post('/api/renewals/sync', async (req, res) => {
+backend/server.js:13504:app.post('/api/renewals/:id/assign', async (req, res) => {
+backend/server.js:13526:app.post('/api/renewals/:id/edit', async (req, res) => {
+backend/server.js:13556:app.delete('/api/renewals/:id', async (req, res) => {
+backend/server.js:13581:app.post('/api/renewals/:id/followup', async (req, res) => {
+backend/server.js:13604:app.post('/api/renewals/:id/generate-letter', async (req, res) => {
+backend/server.js:14047:app.post('/api/renewals/:id/mark-done', async (req, res) => {
+backend/server.js:14077:app.post('/api/renewals/:id/decline', async (req, res) => {
+backend/server.js:14095:app.post('/api/renewals/:id/convert-contract', async (req, res) => {
+backend/server.js:14175:app.get('/api/renewals/letters', async (req, res) => {
+backend/server.js:14227:app.get('/api/renewals/legacy-json', (req, res) => {
+backend/server.js:14265:app.post('/api/renewals', async (req, res) => {
+backend/server.js:14330:app.put('/api/renewals/:id', async (req, res) => {
+backend/server.js:14394:app.get('/api/renewals/:id/history', async (req, res) => {
+backend/server.js:14439:app.post('/api/renewals/:id/send-reminder', async (req, res) => {
+backend/server.js:14554:app.post('/api/renewals/:id/send-whatsapp', async (req, res) => {
+backend/server.js:14610:app.post('/api/renewals/:id/quotation', async (req, res) => {
+backend/server.js:14667:app.post('/api/renewals/:id/convert-invoice', async (req, res) => {
+backend/server.js:14783:app.post('/api/renewals/:id/assign-technician', async (req, res) => {
+backend/server.js:15073:app.post('/api/technicians/location', async (req, res) => {
+backend/server.js:15121:app.get('/api/technicians/live', async (req, res) => {
+backend/server.js:15157:app.get('/api/technicians/:id/route-history', async (req, res) => {
+backend/server.js:15188:app.post('/api/upload', upload.single('image'), security.validateUploadedFiles, (req, res) => {
+backend/customerDedupModule.js:1855:  app.post('/api/customers/import/upload', importUploadMiddleware, validateUploadedFiles, async (req, res) => {
+backend/customerDedupModule.js:1940:  app.post('/api/customers/import/map', async (req, res) => {
+backend/customerDedupModule.js:1967:  app.post('/api/customers/import/detect-duplicates', async (req, res) => {
+backend/customerDedupModule.js:2001:  app.post('/api/customers/import/merge', (req, res) => {
+backend/customerDedupModule.js:2053:  app.post('/api/customers/import/finalize', async (req, res) => {
+backend/customerDedupModule.js:2067:  app.post('/api/customers/import/batches/:batchId/remap', async (req, res) => {
+backend/customerDedupModule.js:2108:  app.get('/api/customers/import/batches/:batchId/preview', (req, res) => {
+backend/customerDedupModule.js:2118:  app.get('/api/customers/import/batches', (req, res) => {
+backend/customerDedupModule.js:2123:  app.post('/api/customers/import/rows/:rowId/action', (req, res) => {
+backend/customerDedupModule.js:2138:  app.post('/api/customers/import/rows/:rowId/skip', (req, res) => {
+backend/customerDedupModule.js:2145:  app.post('/api/customers/import/batches/:batchId/confirm', async (req, res) => {
+backend/customerDedupModule.js:2159:  app.post('/api/customers/merge', async (req, res) => {
+backend/customerDedupModule.js:2180:  app.get('/api/customers/similar-search', (req, res) => {
+backend/customerDedupModule.js:2269:  app.get('/api/customers/duplicates/report', async (req, res) => {
+backend/customerDedupModule.js:2321:  app.get('/api/customers/export', async (req, res) => {
+backend/customerDedupModule.js:2387:  app.get('/api/customers/import/sample', (req, res) => {
+backend/routes/stockRoutes.js:811:router.get('/dashboard', async (_req, res) => {
+backend/routes/stockRoutes.js:821:router.get('/items', async (_req, res) => {
+backend/routes/stockRoutes.js:830:router.post('/items', async (req, res) => {
+backend/routes/stockRoutes.js:903:router.put('/items/:id', async (req, res) => {
+backend/routes/stockRoutes.js:975:router.delete('/items/:id', async (req, res) => {
+backend/routes/stockRoutes.js:1017:router.get('/purchases', async (_req, res) => {
+backend/routes/stockRoutes.js:1025:router.post('/purchases', async (req, res) => {
+backend/routes/stockRoutes.js:1100:router.get('/technician-balances', async (_req, res) => {
+backend/routes/stockRoutes.js:1108:router.post('/issue', async (req, res) => {
+backend/routes/stockRoutes.js:1165:router.post('/usage', async (req, res) => {
+backend/routes/stockRoutes.js:1225:router.post('/return-wastage', async (req, res) => {
+backend/routes/stockRoutes.js:1344:router.get('/ledger', async (req, res) => {
+backend/routes/stockRoutes.js:1361:router.get('/reports', async (req, res) => {
+backend/routes/stockRoutes.js:1561:router.get('/export', async (req, res) => {
+backend/routes/whatsapp.routes.js:38:  router.get('/settings/whatsapp', controller.getWhatsAppSettings);
+backend/routes/whatsapp.routes.js:39:  router.post('/settings/whatsapp', controller.saveWhatsAppSettings);
+backend/routes/whatsapp.routes.js:40:  router.post('/settings/whatsapp/test', controller.sendTestMessage);
+backend/routes/whatsapp.routes.js:42:  router.get('/whatsapp/templates', controller.listTemplates);
+backend/routes/whatsapp.routes.js:43:  router.post('/whatsapp/templates', controller.createTemplate);
+backend/routes/whatsapp.routes.js:44:  router.put('/whatsapp/templates/:id', controller.updateTemplate);
+backend/routes/whatsapp.routes.js:45:  router.delete('/whatsapp/templates/:id', controller.deleteTemplate);
+backend/routes/whatsapp.routes.js:47:  router.post('/whatsapp/preview', controller.preview);
+backend/routes/whatsapp.routes.js:48:  router.post('/whatsapp/send', controller.send);
+backend/routes/whatsapp.routes.js:49:  router.post('/whatsapp/send-with-attachment', upload.single('attachment'), validateUploadedFiles, (req, res, next) => {
+backend/routes/whatsapp.routes.js:56:  router.get('/whatsapp/logs', controller.listLogs);
+backend/routes/whatsapp.routes.js:57:  router.post('/whatsapp/logs/:id/retry', controller.retryLog);
+backend/test/security.test.js:20:const end = source.indexOf('app.get("/api/db-test"');
+backend/test/security.test.js:32:  app.post('/api/test-upload', multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 }, fileFilter: uploadFilters.createFlexibleImageUploadFileFilter('Invalid image') }).single('file'), (_req, res) => res.json({ ok: true }));
+backend/test/security.test.js:109:  app.post('/login', (_req, res) => res.sendStatus(401));
+backend/test/security.test.js:251:  const start = source.indexOf("app.get('/api/public/google-maps-config'");
+backend/test/security.test.js:252:  const end = source.indexOf("app.post('/api/settings'", start);
+backend/routes/quotation.routes.js:666:router.get('/settings/quotation-template', async (_req, res) => {
+backend/routes/quotation.routes.js:671:router.put('/settings/quotation-template', async (req, res) => {
+backend/routes/quotation.routes.js:700:router.get('/settings/quotation-prefixes', async (_req, res) => {
+backend/routes/quotation.routes.js:705:router.put('/settings/quotation-prefixes', async (req, res) => {
+backend/routes/quotation.routes.js:734:router.get('/settings/quotation-services', async (_req, res) => {
+backend/routes/quotation.routes.js:739:router.post('/settings/quotation-services', async (req, res) => {
+backend/routes/quotation.routes.js:755:router.put('/settings/quotation-services/:id', async (req, res) => {
+backend/routes/quotation.routes.js:772:router.delete('/settings/quotation-services/:id', async (req, res) => {
+backend/routes/quotation.routes.js:779:router.get('/settings/quotation-common-paragraphs', async (_req, res) => {
+backend/routes/quotation.routes.js:793:router.put('/settings/quotation-common-paragraphs', async (req, res) => {
+backend/routes/quotation.routes.js:807:router.get('/settings/infestation-levels', async (_req, res) => {
+backend/routes/quotation.routes.js:812:router.post('/settings/infestation-levels', async (req, res) => {
+backend/routes/quotation.routes.js:821:router.put('/settings/infestation-levels/:id', async (req, res) => {
+backend/routes/quotation.routes.js:832:router.delete('/settings/infestation-levels/:id', async (req, res) => {
+backend/routes/quotation.routes.js:839:router.get('/quotations', async (_req, res) => {
+backend/routes/quotation.routes.js:844:router.get('/quotations/:id', async (req, res) => {
+backend/routes/quotation.routes.js:853:router.post('/quotations', async (req, res) => {
+backend/routes/quotation.routes.js:887:router.put('/quotations/:id', async (req, res) => {
+backend/routes/quotation.routes.js:917:router.delete('/quotations/:id', async (req, res) => {
+backend/routes/quotation.routes.js:924:router.get('/quotations/:id/pdf', async (req, res) => {
+backend/routes/quotation.routes.js:951:router.post('/quotations/:id/send-email', async (req, res) => {
+backend/routes/quotation.routes.js:1028:router.post('/quotations/:id/send-whatsapp', async (req, res) => {

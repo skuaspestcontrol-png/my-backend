@@ -1,0 +1,1 @@
+var e=e=>{if(e==null||e===``)return null;let t=new Date(e);return Number.isNaN(t.getTime())?null:t},t=(t,n,r=`-`)=>{let i=e(t);if(!i)return r;try{return new Intl.DateTimeFormat(`en-IN`,{timeZone:`Asia/Kolkata`,...n}).format(i)}catch{return r}},n=(e,n={})=>t(e,{dateStyle:`medium`,timeStyle:`short`,...n});export{n as t};

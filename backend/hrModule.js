@@ -108,8 +108,8 @@ const rolePermissions = (rawRole) => {
   };
 };
 
-const getReqRole = (req) => normalizeText(req.portalUser?.role || req.query.role || req.body?.role || 'employee');
-const getReqUserId = (req) => normalizeText(req.portalUser?.employeeId || req.query.userId || req.query.employeeId || req.body?.employeeId || '');
+const getReqRole = (req) => normalizeText(req.portalUser?.role || 'employee');
+const getReqUserId = (req) => normalizeText(req.portalUser?.employeeId || '');
 const getReqActor = (req) => normalizeText(req.portalUser?.name || req.body?.actor || 'System');
 
 const ensureFile = (filePath, defaultValue) => {
