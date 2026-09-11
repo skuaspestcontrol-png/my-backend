@@ -5,6 +5,7 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
+import ActionMenu from './ui/ActionMenu';
 import { consumeRenewalsFocus, subscribeRenewalsRefresh, triggerContractsRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { getPortalUserName } from '../utils/portalAuth';
 import { formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
@@ -13,19 +14,22 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  FileText,
   MessageCircleMore,
+  Phone,
   RefreshCw,
-  Search,
-  Trash2,
-  UserCheck,
-  XCircle
+  Search
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const RENEWAL_PAGE_SIZE = 20;
 const RENEWAL_DASHBOARD_CACHE_KEY = 'renewal_dashboard_cache_v1';
-const statuses = ['All', 'Pending', 'Follow-up', 'Done', 'Declined', 'Overdue'];
+const statuses = ['All', 'Not Due', 'Upcoming', 'Due', 'Follow-up', 'Overdue', 'Renewed', 'Declined'];
+const relationshipTypes = [
+  { value: 'All', label: 'All' },
+  { value: 'CONTRACT', label: 'Contract' },
+  { value: 'ONE_TIME', label: 'One-Time' },
+  { value: 'RECURRING', label: 'Recurring' }
+];
 const ranges = [
   { value: 'thisMonth', label: 'This Month' },
   { value: 'threeMonths', label: 'Coming 3 Months' },
@@ -44,7 +48,7 @@ const searchScopes = [
   { value: 'renewalId', label: 'Renewal ID' },
   { value: 'followup', label: 'Follow-up Note' }
 ];
-const tabs = ['Renewals', 'Renewal Letters', 'Renewal List', 'Month Wise View', 'Year Wise View', 'Sales Person Wise View'];
+const tabs = ['Renewals', 'Upcoming', 'Overdue', 'Renewed', 'Declined', 'One-Time Treatments', 'Renewal Letters', 'Reports'];
 const renewalColumns = [
   { key: 'customer', label: 'Customer' },
   { key: 'mobile', label: 'Mobile' },
@@ -71,7 +75,7 @@ const renewalDefaultWidths = {
   salesPerson: 120,
   status: 100,
   followup: 150,
-  actions: 218
+  actions: 122
 };
 const renewalColumnBounds = {
   customer: { min: 150, max: 260 },
@@ -85,7 +89,7 @@ const renewalColumnBounds = {
   salesPerson: { min: 110, max: 180 },
   status: { min: 90, max: 150 },
   followup: { min: 130, max: 220 },
-  actions: { min: 180, max: 260 }
+  actions: { min: 110, max: 160 }
 };
 
 const shell = {
@@ -99,11 +103,11 @@ const shell = {
   dangerBtn: { minHeight: 34, border: '1px solid #fecaca', borderRadius: 9, padding: '0 12px', background: '#fff1f2', color: '#b91c1c', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
   panel: { border: '1px solid var(--color-border)', borderRadius: 12, background: '#fff', overflow: 'hidden', boxShadow: '0 10px 28px rgba(15, 23, 42, 0.04)' },
   panelPad: { padding: 12 },
-  stats: { display: 'grid', gridTemplateColumns: 'repeat(9, minmax(0, 1fr))', gap: 7 },
+  stats: { display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: 7 },
   stat: { border: '1px solid #e5e7eb', borderRadius: 9, padding: '8px 9px', background: '#fff', minHeight: 82, display: 'grid', alignContent: 'space-between', minWidth: 0 },
   statLabel: { fontSize: 9.5, lineHeight: 1.25, textTransform: 'uppercase', color: '#64748b', fontWeight: 800, letterSpacing: 0, whiteSpace: 'normal', overflow: 'hidden' },
   statValue: { marginTop: 4, fontSize: 20, lineHeight: 1.05, fontWeight: 850, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  filters: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))', gap: 8, alignItems: 'end' },
+  filters: { display: 'grid', gridTemplateColumns: 'repeat(8, minmax(120px, 1fr))', gap: 8, alignItems: 'end' },
   field: { display: 'grid', gap: 3 },
   label: { fontSize: 11, lineHeight: 1.1, color: 'var(--color-muted)', fontWeight: 700, letterSpacing: '0.01em', textTransform: 'uppercase' },
   input: { width: '100%', minHeight: 34, height: 34, border: '1px solid #d1d5db', borderRadius: 11, background: '#fff', color: '#111827', fontSize: 14, fontWeight: 500, padding: '0 10px', boxSizing: 'border-box' },
@@ -182,9 +186,13 @@ const serviceShort = (value) => {
 const statusStyle = (status) => {
   const map = {
     Done: ['#dcfce7', '#166534'],
+    Renewed: ['#dcfce7', '#166534'],
     Declined: ['#fee2e2', '#991b1b'],
     Overdue: ['#ffedd5', '#9a3412'],
     'Follow-up': ['#dbeafe', '#1d4ed8'],
+    Upcoming: ['#eef2ff', '#3730a3'],
+    Due: ['#fef9c3', '#854d0e'],
+    'Not Due': ['#f1f5f9', '#334155'],
     Pending: ['#f1f5f9', '#334155']
   };
   const [bg, color] = map[status] || map.Pending;
@@ -243,6 +251,9 @@ export default function RenewalDashboard() {
   const [summary, setSummary] = useState(() => (cachedDashboard?.summary && typeof cachedDashboard.summary === 'object' ? cachedDashboard.summary : {}));
   const [employees, setEmployees] = useState(() => Array.isArray(cachedDashboard?.employees) ? cachedDashboard.employees : []);
   const [letters, setLetters] = useState(() => Array.isArray(cachedDashboard?.letters) ? cachedDashboard.letters : []);
+  const [auditSummary, setAuditSummary] = useState(null);
+  const [auditRows, setAuditRows] = useState([]);
+  const [selectedAuditIds, setSelectedAuditIds] = useState([]);
   const [highlightedRenewalId, setHighlightedRenewalId] = useState('');
   const [activeTab, setActiveTab] = useState(tabs[0]);
   const [loading, setLoading] = useState(() => !cachedDashboard);
@@ -262,6 +273,7 @@ export default function RenewalDashboard() {
     fromDate: '',
     toDate: '',
     status: 'All',
+    relationshipType: 'All',
     assignedSalesPersonId: '',
     searchScope: 'all',
     search: ''
@@ -435,12 +447,13 @@ export default function RenewalDashboard() {
 
   const openRenewalWhatsAppComposer = async (row) => {
     const titleName = String(row?.customerName || row?.customer_name || 'Customer').trim() || 'Customer';
-    const renewalId = String(row?.renewalId || row?.renewal_id || row?.id || '').trim();
-    if (!renewalId) return;
+	  const renewalId = String(row?.renewalId || row?.renewal_id || row?.id || '').trim();
+	  if (!renewalId) return;
+	  const isOneTimeTreatment = row?.serviceRelationshipType === 'ONE_TIME';
 
-    let sourceRow = row;
-    let pdfUrl = buildRenewalPdfUrl(sourceRow);
-    if (!pdfUrl) {
+	  let sourceRow = row;
+	  let pdfUrl = buildRenewalPdfUrl(sourceRow);
+	  if (!pdfUrl && !isOneTimeTreatment) {
       try {
         const response = await axios.post(`${API_BASE}/api/renewals/${renewalId}/generate-letter`);
         const nextRow = response?.data?.renewal || sourceRow;
@@ -457,10 +470,10 @@ export default function RenewalDashboard() {
       }
     }
 
-    if (!pdfUrl) {
-      setMessage('Unable to prepare the renewal letter PDF for WhatsApp.');
-      return;
-    }
+	  if (!pdfUrl && !isOneTimeTreatment) {
+	    setMessage('Unable to prepare the renewal letter PDF for WhatsApp.');
+	    return;
+	  }
 
     const phoneSource = String(
       sourceRow?.mobile
@@ -485,11 +498,11 @@ export default function RenewalDashboard() {
       row: sourceRow,
       previewData: {
         previewMessage: '',
-        attachmentOption: 'Renewal Letter PDF',
+	        attachmentOption: isOneTimeTreatment ? 'None' : 'Renewal Letter PDF',
         template: {
           id: 'renewal_reminder',
           templateType: 'renewal_reminder',
-          templateName: 'Renewal Reminder'
+	          templateName: isOneTimeTreatment ? 'Service Follow-up' : 'Renewal Reminder'
         },
         contextData: {
           customer_name: titleName,
@@ -497,7 +510,7 @@ export default function RenewalDashboard() {
           service_type: serviceType,
           renewal_display_id: renewalDisplayId,
           renewal_id: renewalId,
-          renewal_date: String(sourceRow?.contractEndDate || sourceRow?.renewalDate || '').trim(),
+	          renewal_date: String(sourceRow?.contractEndDate || sourceRow?.renewalDate || sourceRow?.renewalDueDate || '').trim(),
           pdf_url: pdfUrl,
           company_name: 'SKUAS Pest Control'
         }
@@ -550,12 +563,13 @@ export default function RenewalDashboard() {
       }
       if (options.autoGenerateLetters !== false) {
         const letterRenewalIds = new Set(letterRows.map((letter) => String(letter.renewal_id || letter.renewalId || '').trim()).filter(Boolean));
-        const missingLetterRows = renewalRows.filter((row) => {
-          const renewalId = String(row.renewalId || '').trim();
-          if (!renewalId) return false;
-          if (row.renewalLetterUrl || letterRenewalIds.has(renewalId)) return false;
-          return !autoGeneratedLetterIds.current.has(renewalId);
-        });
+	        const missingLetterRows = renewalRows.filter((row) => {
+	          const renewalId = String(row.renewalId || '').trim();
+	          if (!renewalId) return false;
+	          if (row.serviceRelationshipType !== 'CONTRACT' || !row.renewalEligible) return false;
+	          if (row.renewalLetterUrl || letterRenewalIds.has(renewalId)) return false;
+	          return !autoGeneratedLetterIds.current.has(renewalId);
+	        });
         if (missingLetterRows.length > 0) {
           missingLetterRows.forEach((row) => autoGeneratedLetterIds.current.add(String(row.renewalId || '').trim()));
           const results = await Promise.allSettled(
@@ -740,21 +754,38 @@ export default function RenewalDashboard() {
     });
   }, [employees, rows]);
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / RENEWAL_PAGE_SIZE));
+  const serviceOptions = useMemo(() => {
+    const services = new Set(rows.map((row) => String(row.serviceType || '').trim()).filter(Boolean));
+    return Array.from(services).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+  const visibleRows = useMemo(() => {
+    const onlyContracts = (row) => row.serviceRelationshipType === 'CONTRACT' && row.renewalEligible;
+    if (activeTab === 'One-Time Treatments') return rows.filter((row) => row.serviceRelationshipType === 'ONE_TIME');
+    if (activeTab === 'Upcoming') return rows.filter((row) => onlyContracts(row) && row.status === 'Upcoming');
+    if (activeTab === 'Overdue') return rows.filter((row) => onlyContracts(row) && row.status === 'Overdue');
+    if (activeTab === 'Renewed') return rows.filter((row) => onlyContracts(row) && row.status === 'Renewed');
+    if (activeTab === 'Declined') return rows.filter((row) => onlyContracts(row) && row.status === 'Declined');
+    return rows.filter(onlyContracts);
+  }, [activeTab, rows]);
+
+  const totalPages = Math.max(1, Math.ceil(visibleRows.length / RENEWAL_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pagedRows = useMemo(() => {
     const start = (safePage - 1) * RENEWAL_PAGE_SIZE;
-    return rows.slice(start, start + RENEWAL_PAGE_SIZE);
-  }, [rows, safePage]);
-  const firstRecord = rows.length ? ((safePage - 1) * RENEWAL_PAGE_SIZE) + 1 : 0;
-  const lastRecord = Math.min(safePage * RENEWAL_PAGE_SIZE, rows.length);
-  const paginationText = rows.length ? `${firstRecord}-${lastRecord} of ${rows.length} records` : '0 records';
+    return visibleRows.slice(start, start + RENEWAL_PAGE_SIZE);
+  }, [visibleRows, safePage]);
+  const firstRecord = visibleRows.length ? ((safePage - 1) * RENEWAL_PAGE_SIZE) + 1 : 0;
+  const lastRecord = Math.min(safePage * RENEWAL_PAGE_SIZE, visibleRows.length);
+  const paginationText = visibleRows.length ? `${firstRecord}-${lastRecord} of ${visibleRows.length} records` : '0 records';
   const paginationStyle = isMobile ? { ...shell.pagination, flexDirection: 'column', alignItems: 'stretch' } : shell.pagination;
   const paginationActionsStyle = isMobile ? { ...shell.paginationActions, justifyContent: 'flex-end' } : shell.paginationActions;
 
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab]);
   const {
     getColumnWidth,
     startResize,
@@ -809,6 +840,8 @@ export default function RenewalDashboard() {
       renewalDueDate: row?.renewalDueDate || '',
       proposedAmount: row?.proposedAmount || '',
       status: row?.status || 'Pending',
+      contractDurationValue: row?.contractDurationValue || 12,
+      contractDurationUnit: row?.contractDurationUnit || 'MONTH',
       contractStartDate: '',
       contractEndDate: '',
       amount: row?.finalRenewalAmount || row?.proposedAmount || ''
@@ -821,7 +854,7 @@ export default function RenewalDashboard() {
       setBusy(true);
       const response = await axios.post(`${API_BASE}/api/renewals/${modal.row.renewalId}/convert-contract`, {
         ...form,
-        customerType: 'Renewal'
+        customerType: modal.row?.serviceRelationshipType === 'ONE_TIME' ? 'New' : 'Renewal'
       });
       const contract = response?.data?.contract;
       setMessage(response?.data?.message || 'Converted to contract');
@@ -846,7 +879,7 @@ export default function RenewalDashboard() {
       const response = await callback();
       setMessage(response?.data?.message || label);
       closeModal();
-      await loadData();
+      await loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false });
     } catch (error) {
       console.error(label, error);
       setMessage(error?.response?.data?.error || `Unable to complete: ${label}`);
@@ -855,10 +888,41 @@ export default function RenewalDashboard() {
     }
   };
   const syncRenewals = () => runAction('Renewal synced successfully', () => axios.post(`${API_BASE}/api/renewals/sync`));
-  const deleteRenewal = (row) => {
-    if (!row?.renewalId) return;
-    if (!window.confirm(`Delete renewal ${row.renewalId}?`)) return;
-    runAction('Renewal deleted', () => axios.delete(`${API_BASE}/api/renewals/${row.renewalId}`));
+  const loadRenewalAudit = async () => {
+    try {
+      setBusy(true);
+      const response = await axios.get(`${API_BASE}/api/renewals/audit`, { params: { t: Date.now() } });
+      setAuditSummary(response.data || {});
+      setAuditRows(Array.isArray(response.data?.rows) ? response.data.rows : []);
+      setSelectedAuditIds([]);
+    } catch (error) {
+      console.error('Renewal audit load failed', error);
+      setMessage(error?.response?.data?.error || 'Unable to load renewal audit right now.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const toggleAuditRow = (renewalId) => {
+    setSelectedAuditIds((prev) => prev.includes(renewalId) ? prev.filter((id) => id !== renewalId) : [...prev, renewalId]);
+  };
+  const runAuditAction = async (action, label) => {
+    if (selectedAuditIds.length === 0) {
+      setMessage('Select at least one audit record.');
+      return;
+    }
+    if (!window.confirm(`${label} for ${selectedAuditIds.length} selected record(s)?`)) return;
+    try {
+      setBusy(true);
+      const response = await axios.post(`${API_BASE}/api/renewals/audit/classify`, { renewalIds: selectedAuditIds, action });
+      setMessage(response?.data?.message || label);
+      await loadRenewalAudit();
+      await loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false });
+    } catch (error) {
+      console.error(label, error);
+      setMessage(error?.response?.data?.error || 'Unable to update renewal audit records right now.');
+    } finally {
+      setBusy(false);
+    }
   };
   const applyFilters = () => {
     setPage(1);
@@ -870,15 +934,66 @@ export default function RenewalDashboard() {
     const next = { ...filters, assignedSalesPersonId: salesPersonId };
     setFilters(next);
     setPage(1);
-    setActiveTab('Renewal List');
+    setActiveTab('Renewals');
     loadData(next);
   };
   const resetFilters = () => {
-    const next = { range: 'custom', month: 'all', year: currentYear, fromDate: '', toDate: '', status: 'All', assignedSalesPersonId: '', searchScope: 'all', search: '' };
+    const next = { range: 'custom', month: 'all', year: currentYear, fromDate: '', toDate: '', status: 'All', relationshipType: 'All', serviceType: '', assignedSalesPersonId: '', searchScope: 'all', search: '' };
     setPage(1);
     skipNextSearchSyncRef.current = true;
     setFilters(next);
     loadData(next);
+  };
+  const isFinalRow = (row) => ['Renewed', 'Declined'].includes(String(row?.status || ''));
+  const isOneTimeRow = (row) => row?.serviceRelationshipType === 'ONE_TIME';
+  const canRenewRow = (row) => row?.serviceRelationshipType === 'CONTRACT' && row?.renewalEligible && !isFinalRow(row);
+  const canConvertOneTimeRow = (row) => isOneTimeRow(row) && !row?.convertedContractId;
+  const rowMoreItems = (row) => [
+    { label: 'View Details', onClick: () => openModal('view', row) },
+    row.serviceRelationshipType === 'CONTRACT' ? { label: 'Renewal Letter', onClick: () => openRenewalPdfPreview(row) } : null,
+    { label: 'Assign / Change Sales Person', onClick: () => openModal('assign', row) },
+    row.status !== 'Declined' && row.serviceRelationshipType === 'CONTRACT' ? { label: 'Decline Renewal', onClick: () => openModal('decline', row) } : null
+  ];
+  const renderRowActions = (row, mobile = false) => {
+    const buttonBase = mobile ? shell.ghostBtn : shell.iconBtn;
+    return (
+      <div style={{ ...shell.rowActions, justifyContent: 'flex-start', flexWrap: mobile ? 'wrap' : 'nowrap' }}>
+        {!isFinalRow(row) ? (
+          <button
+            className="crm-icon-action-btn"
+            style={buttonBase}
+            title="Follow-up"
+            aria-label="Follow-up"
+            onClick={() => openModal('followup', row)}
+          >
+            {mobile ? 'Follow-up' : <CalendarClock size={15} />}
+          </button>
+        ) : null}
+        {canRenewRow(row) ? (
+          <button
+            className="crm-icon-action-btn"
+            style={mobile ? shell.primaryBtn : shell.iconBtn}
+            title="Renew Contract"
+            aria-label="Renew Contract"
+            onClick={() => openModal('convert', row)}
+          >
+            {mobile ? 'Renew Contract' : <CheckCircle2 size={15} />}
+          </button>
+        ) : null}
+        {canConvertOneTimeRow(row) ? (
+          <button
+            className="crm-icon-action-btn"
+            style={mobile ? shell.primaryBtn : shell.iconBtn}
+            title="Convert to Contract"
+            aria-label="Convert to Contract"
+            onClick={() => openModal('convert', row)}
+          >
+            {mobile ? 'Convert to Contract' : <CheckCircle2 size={15} />}
+          </button>
+        ) : null}
+        <ActionMenu items={rowMoreItems(row)} compact triggerTitle="More Actions" />
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -898,15 +1013,14 @@ export default function RenewalDashboard() {
   }, [filters.search, filters.searchScope]);
 
   const stats = [
-    ['Total Renewals', summary.totalRenewals || 0],
-    ['Total Renewal Amount', formatINR(summary.totalRenewalAmount || 0)],
-    ['No. of Customers', summary.customerCount || 0],
-    ['Renewal Done', summary.doneCount || 0],
-    ['Pending Renewal', summary.pendingCount || 0],
-    ['Declined Renewal', summary.declinedCount || 0],
-    ['Follow-up Renewals', summary.followupCount || 0],
-    ['Overdue Renewals', summary.overdueCount || 0],
-    ['Assigned Sales Person', summary.assignedSalesPersonCount || 0]
+    ['Active Contracts', summary.activeContractCount || summary.totalRenewals || 0],
+    ['Renewal Due', summary.dueCount || summary.pendingCount || 0],
+    ['Due in 30 Days', summary.dueIn30Count || 0],
+    ['Overdue', summary.overdueCount || 0],
+    ['Renewed', summary.doneCount || 0],
+    ['Declined', summary.declinedCount || 0],
+    ['Renewal Value', formatINR(summary.totalRenewalAmount || 0)],
+    ['One-Time Treatments', summary.oneTimeTreatmentCount || 0]
   ];
 
   const headerSearchStyle = isMobile
@@ -947,6 +1061,8 @@ export default function RenewalDashboard() {
         <label style={shell.field}><span style={shell.label}>Month</span><select style={shell.input} value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>{months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Year</span><select style={shell.input} value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>{statuses.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Relationship Type</span><select style={shell.input} value={filters.relationshipType} onChange={(e) => updateFilter('relationshipType', e.target.value)}>{relationshipTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Service</span><select style={shell.input} value={filters.serviceType || ''} onChange={(e) => updateFilter('serviceType', e.target.value)}><option value="">All Services</option>{serviceOptions.map((service) => <option key={service} value={service}>{service}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Sales Person</span><select style={shell.input} value={filters.assignedSalesPersonId} onChange={(e) => updateFilter('assignedSalesPersonId', e.target.value)}><option value="">All Sales</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>All Fields</span><select style={shell.input} value={filters.searchScope} onChange={(e) => updateFilter('searchScope', e.target.value)}>{searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}</select></label>
         <div style={headerSearchActionsStyle}>
@@ -985,14 +1101,7 @@ export default function RenewalDashboard() {
                 <span style={{ textAlign: 'center', justifySelf: 'center', width: '100%' }} title={row.serviceType}>{serviceShort(row.serviceType)}</span>
                 <span>{formatINR(row.proposedAmount)}</span>
               </div>
-              <div style={{ ...shell.rowActions, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-                <button style={shell.ghostBtn} onClick={() => openModal('view', row)}>View</button>
-                <button style={shell.ghostBtn} onClick={() => openModal('assign', row)}>Assign</button>
-                <button style={shell.ghostBtn} onClick={() => openModal('followup', row)}>Follow-up</button>
-                <button style={shell.ghostBtn} onClick={() => openRenewalWhatsAppComposer(row)}>WhatsApp</button>
-                <button style={shell.primaryBtn} onClick={() => openModal('done', row)}>Done</button>
-                <button style={shell.dangerBtn} onClick={() => deleteRenewal(row)}>Delete</button>
-              </div>
+              {renderRowActions(row, true)}
             </div>
           ))}
         </div>
@@ -1040,17 +1149,7 @@ export default function RenewalDashboard() {
                 <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
                 <td style={renewalBodyCellStyle('status', 'center')}><span style={statusStyle(row.status)}>{row.status}</span></td>
                 <td style={renewalBodyCellStyle('followup', 'center')} title={row.lastFollowupNote}>{formatDate(row.followupDate)} {row.lastFollowupNote ? `- ${row.lastFollowupNote}` : ''}</td>
-                <td style={renewalActionCellStyle}>
-                  <div style={shell.rowActions}>
-                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="WhatsApp" onClick={() => openRenewalWhatsAppComposer(row)}><MessageCircleMore size={15} /></button>
-                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="View" onClick={() => openModal('view', row)}><FileText size={15} /></button>
-                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="Assign Sales Person" onClick={() => openModal('assign', row)}><UserCheck size={15} /></button>
-                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="Log Follow-up" onClick={() => openModal('followup', row)}><CalendarClock size={15} /></button>
-                    <button className="crm-icon-action-btn" style={shell.iconBtn} title="Mark Done" onClick={() => openModal('done', row)}><CheckCircle2 size={15} /></button>
-                    <button className="crm-icon-action-btn" style={{ ...shell.iconBtn, color: '#b91c1c', borderColor: '#fecaca' }} title="Decline" onClick={() => openModal('decline', row)}><XCircle size={15} /></button>
-                    <button className="crm-icon-action-btn" style={{ ...shell.iconBtn, color: '#b91c1c', borderColor: '#fecaca' }} title="Delete Renewal" onClick={() => deleteRenewal(row)}><Trash2 size={15} /></button>
-                  </div>
-                </td>
+                <td style={renewalActionCellStyle}>{renderRowActions(row)}</td>
               </tr>
             ))}
           </tbody>
@@ -1113,6 +1212,65 @@ export default function RenewalDashboard() {
     </div>
   );
 
+  const renderAuditPanel = () => (
+    <div style={shell.panel}>
+      <div style={{ ...shell.panelPad, display: 'grid', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          <strong>Renewal Data Audit</strong>
+          <button type="button" style={shell.ghostBtn} disabled={busy} onClick={loadRenewalAudit}>Scan Records</button>
+        </div>
+        {auditSummary ? (
+          <div style={{ ...shell.stats, gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))' }}>
+            {[
+              ['Records Scanned', auditSummary.totalRecordsScanned || 0],
+              ['Likely Contracts', auditSummary.likelyContracts || 0],
+              ['Likely One-Time', auditSummary.likelyOneTimeTreatments || 0],
+              ['Needs Review', auditSummary.needsReview || 0]
+            ].map(([label, value]) => <div key={label} style={shell.stat}><div style={shell.statLabel}>{label}</div><div style={shell.statValue}>{value}</div></div>)}
+          </div>
+        ) : null}
+        {auditRows.length > 0 ? (
+          <>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" style={shell.ghostBtn} disabled={busy} onClick={() => runAuditAction('mark_contract', 'Mark as Contract')}>Mark as Contract</button>
+              <button type="button" style={shell.ghostBtn} disabled={busy} onClick={() => runAuditAction('mark_one_time', 'Mark as One-Time')}>Mark as One-Time</button>
+              <button type="button" style={shell.ghostBtn} disabled={busy} onClick={() => runAuditAction('keep_as_renewal', 'Keep as Renewal')}>Keep as Renewal</button>
+              <button type="button" style={shell.dangerBtn} disabled={busy} onClick={() => runAuditAction('exclude_from_renewal', 'Exclude from Renewal')}>Exclude from Renewal</button>
+            </div>
+            <div style={shell.tableWrap}>
+              <table style={{ ...shell.table, minWidth: 900 }}>
+                <thead>
+                  <tr>
+                    <th style={shell.th}>Select</th>
+                    <th style={shell.th}>Customer</th>
+                    <th style={shell.th}>Service</th>
+                    <th style={shell.th}>Type</th>
+                    <th style={shell.th}>Eligible</th>
+                    <th style={shell.th}>Suggestion</th>
+                    <th style={shell.th}>Evidence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditRows.slice(0, 80).map((row) => (
+                    <tr key={row.renewalId}>
+                      <td style={shell.td}><input type="checkbox" checked={selectedAuditIds.includes(row.renewalId)} onChange={() => toggleAuditRow(row.renewalId)} aria-label={`Select ${row.customerName || row.renewalId}`} /></td>
+                      <td style={shell.td} title={row.customerName}>{row.customerName || '-'}</td>
+                      <td style={shell.td} title={row.serviceType}>{row.serviceType || '-'}</td>
+                      <td style={shell.td}>{row.serviceRelationshipType || '-'}</td>
+                      <td style={shell.td}>{row.renewalEligible ? 'Yes' : 'No'}</td>
+                      <td style={shell.td}>{row.auditSuggestion || '-'}</td>
+                      <td style={shell.td} title={(row.auditEvidence || []).join(', ')}>{(row.auditEvidence || []).join(', ') || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : auditSummary ? <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>No audit rows found.</p> : null}
+      </div>
+    </div>
+  );
+
   const renderModal = () => {
     if (!modal.type || !modal.row) return null;
     const row = modal.row;
@@ -1122,14 +1280,15 @@ export default function RenewalDashboard() {
       edit: 'Edit Renewal',
       assign: 'Assign Sales Person',
       followup: 'Log Follow-up',
-      done: row.status === 'Done' ? 'Renewal Done' : 'Mark Renewal Done',
+      done: row.status === 'Renewed' ? 'Renewal Done' : 'Renew Contract',
       decline: row.status === 'Declined' ? 'Renewal Declined' : 'Decline Renewal',
-      convert: 'Convert to Contract'
+      convert: row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Renew Contract'
     };
+    const declineReasons = ['Price', 'Not Required', 'Using Competitor', 'Service Issue', 'Customer Unreachable', 'Business Closed', 'Other'];
     return (
       <div style={shell.modalOverlay}>
         <div style={shell.modal}>
-          <div style={shell.modalHead}><strong>{titleMap[modal.type]}</strong><button style={shell.iconBtn} onClick={closeModal}>×</button></div>
+          <div style={shell.modalHead}><strong>{titleMap[modal.type]}</strong><button style={shell.iconBtn} onClick={closeModal} title="Close" aria-label="Close">×</button></div>
           <div style={shell.modalBody}>
             {modal.type === 'view' && (
               <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
@@ -1177,9 +1336,20 @@ export default function RenewalDashboard() {
             )}
             {modal.type === 'followup' && (
               <>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 8, fontSize: 13 }}>
+                  <span><strong>Customer:</strong> {row.customerName || '-'}</span>
+                  <span><strong>Mobile:</strong> {row.mobile || '-'}</span>
+                  <span><strong>Service:</strong> {row.serviceType || '-'}</span>
+                  <span><strong>Status:</strong> {row.status || '-'}</span>
+                </div>
                 <label style={shell.field}><span style={shell.label}>Follow-up Date</span><input type="date" style={shell.input} value={form.followupDate} onChange={(e) => setForm((p) => ({ ...p, followupDate: e.target.value }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Note</span><textarea style={{ ...shell.input, height: 86, paddingTop: 8 }} value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))} /></label>
-                <button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Follow-up saved', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/followup`, form))}>Save Follow-up</button>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <a style={{ ...shell.ghostBtn, textDecoration: 'none' }} href={row.mobile ? `tel:${row.mobile}` : undefined} title="Call customer" aria-label="Call customer"><Phone size={15} />Call</a>
+                  <button type="button" style={shell.ghostBtn} title="WhatsApp customer" aria-label="WhatsApp customer" onClick={() => openRenewalWhatsAppComposer(row)}><MessageCircleMore size={15} />WhatsApp</button>
+                  <button type="button" style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Follow-up saved', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/followup`, form))}>Save Follow-up</button>
+                  <button type="button" style={shell.ghostBtn} onClick={closeModal}>Cancel</button>
+                </div>
               </>
             )}
             {modal.type === 'done' && (
@@ -1215,17 +1385,31 @@ export default function RenewalDashboard() {
                 </div>
               ) : (
                 <>
-                  <label style={shell.field}><span style={shell.label}>Decline Reason</span><textarea style={{ ...shell.input, height: 86, paddingTop: 8 }} value={form.reason} onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))} /></label>
-                  <button style={shell.dangerBtn} disabled={busy} onClick={() => runAction('Renewal declined', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/decline`, form))}>Mark Declined</button>
+                  <label style={shell.field}><span style={shell.label}>Decline Reason</span><select style={shell.input} value={form.reasonCategory || ''} onChange={(e) => setForm((p) => ({ ...p, reasonCategory: e.target.value, reason: e.target.value === 'Other' ? p.reason : e.target.value }))}><option value="">Select reason</option>{declineReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label>
+                  {form.reasonCategory === 'Other' ? <label style={shell.field}><span style={shell.label}>Other Note</span><textarea style={{ ...shell.input, height: 76, paddingTop: 8 }} value={form.reason} onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))} /></label> : null}
+                  <button style={shell.dangerBtn} disabled={busy} onClick={() => {
+                    if (!window.confirm('Mark this renewal as declined?')) return;
+                    runAction('Renewal declined', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/decline`, form));
+                  }}>Mark Declined</button>
                 </>
               )
             )}
             {modal.type === 'convert' && (
               <>
+                <div style={{ display: 'grid', gap: 4, fontSize: 13 }}>
+                  <strong>{row.customerName}</strong>
+                  <span>{row.serviceRelationshipType === 'ONE_TIME' ? 'Create a new contract from this one-time treatment.' : 'Renew this contract by creating a new linked contract.'}</span>
+                </div>
                 <label style={shell.field}><span style={shell.label}>New Contract Start</span><input type="date" style={shell.input} value={form.contractStartDate} onChange={(e) => setForm((p) => ({ ...p, contractStartDate: e.target.value }))} /></label>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8 }}>
+                  <label style={shell.field}><span style={shell.label}>Duration</span><input style={shell.input} value={form.contractDurationValue || ''} onChange={(e) => setForm((p) => ({ ...p, contractDurationValue: e.target.value }))} /></label>
+                  <label style={shell.field}><span style={shell.label}>Duration Unit</span><select style={shell.input} value={form.contractDurationUnit || 'MONTH'} onChange={(e) => setForm((p) => ({ ...p, contractDurationUnit: e.target.value }))}><option value="DAY">Day</option><option value="MONTH">Month</option><option value="YEAR">Year</option></select></label>
+                </div>
                 <label style={shell.field}><span style={shell.label}>New Contract End</span><input type="date" style={shell.input} value={form.contractEndDate} onChange={(e) => setForm((p) => ({ ...p, contractEndDate: e.target.value }))} /></label>
+                <label style={shell.field}><span style={shell.label}>Service</span><input style={shell.input} value={form.serviceType} onChange={(e) => setForm((p) => ({ ...p, serviceType: e.target.value }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Amount</span><input style={shell.input} value={form.amount} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))} /></label>
-                <button style={shell.primaryBtn} disabled={busy} onClick={handleConvertToContract}>Convert to Contract</button>
+                <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 70, paddingTop: 8 }} value={form.note || ''} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value, notes: e.target.value }))} /></label>
+                <button style={shell.primaryBtn} disabled={busy} onClick={handleConvertToContract}>{row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Renew Contract'}</button>
               </>
             )}
           </div>
@@ -1288,10 +1472,15 @@ export default function RenewalDashboard() {
           ))}
         </div>
         {loading ? <div style={shell.panelPad}>Loading renewals...</div> : null}
-        {!loading && (activeTab === 'Renewals' || activeTab === 'Renewal List') ? renderRows() : null}
-        {!loading && activeTab === 'Month Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.monthWiseSummary, 'period')}</div> : null}
-        {!loading && activeTab === 'Year Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.yearWiseSummary, 'year')}</div> : null}
-        {!loading && activeTab === 'Sales Person Wise View' ? <div style={shell.chartGrid}>{renderSummaryList(summary.salespersonWiseSummary, 'name', 'total', { onCountClick: drillDownBySalesPerson })}</div> : null}
+        {!loading && ['Renewals', 'Upcoming', 'Overdue', 'Renewed', 'Declined', 'One-Time Treatments'].includes(activeTab) ? renderRows() : null}
+        {!loading && activeTab === 'Reports' ? (
+          <div style={{ ...shell.chartGrid, padding: 12 }}>
+            {renderAuditPanel()}
+            {renderSummaryList(summary.monthWiseSummary, 'period')}
+            {renderSummaryList(summary.yearWiseSummary, 'year')}
+            {renderSummaryList(summary.salespersonWiseSummary, 'name', 'total', { onCountClick: drillDownBySalesPerson })}
+          </div>
+        ) : null}
         {!loading && activeTab === 'Renewal Letters' ? (
           <div style={shell.panelPad}>
             {(visibleLetterRows || []).length === 0 ? <p style={{ margin: 0, color: '#64748b' }}>No renewal letters generated yet.</p> : visibleLetterRows.map((letter) => (

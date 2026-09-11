@@ -1,10 +1,10 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, MoreVertical } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const ACTION_MENU_OPEN_EVENT = 'crm-action-menu-open';
 
-export default function ActionMenu({ items = [] }) {
+export default function ActionMenu({ items = [], triggerLabel = 'Action', triggerTitle = 'Action', compact = false }) {
   const [open, setOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState(null);
   const ref = useRef(null);
@@ -77,7 +77,8 @@ export default function ActionMenu({ items = [] }) {
     <div ref={ref} style={{ position: 'relative' }}>
       <button
         type="button"
-        aria-label="Action"
+        aria-label={triggerTitle}
+        title={triggerTitle}
         data-action-trigger="true"
         onMouseDown={(event) => event.stopPropagation()}
         onClick={() => {
@@ -99,11 +100,11 @@ export default function ActionMenu({ items = [] }) {
           gap: 6,
           cursor: 'pointer',
           boxSizing: 'border-box',
-          minWidth: 86,
+          minWidth: compact ? 30 : 86,
           minHeight: 32,
           height: 32,
-          padding: '0 8px 0 12px',
-          borderRadius: 10,
+          padding: compact ? 0 : '0 8px 0 12px',
+          borderRadius: compact ? 8 : 10,
           fontSize: 12,
           fontWeight: 700,
           lineHeight: 1,
@@ -112,22 +113,26 @@ export default function ActionMenu({ items = [] }) {
           pointerEvents: 'auto'
         }}
       >
-        <span>Action</span>
-        <span
-          style={{
-            width: 16,
-            height: 16,
-            borderRadius: 5,
-            border: '1px solid #d1d5db',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: '#f8fafc',
-            flexShrink: 0
-          }}
-        >
-          <ChevronDown size={11} />
-        </span>
+        {compact ? <MoreVertical size={15} /> : (
+          <>
+            <span>{triggerLabel}</span>
+            <span
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: 5,
+                border: '1px solid #d1d5db',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#f8fafc',
+                flexShrink: 0
+              }}
+            >
+              <ChevronDown size={11} />
+            </span>
+          </>
+        )}
       </button>
       {open && menuPosition ? createPortal(
         <div

@@ -9724,6 +9724,10 @@ const ensureInvoiceMysqlColumns = async (conn) => {
     await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS round_off DECIMAL(12,2) NULL DEFAULT 0');
     await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS customer_type VARCHAR(80) NULL DEFAULT \'New\'');
     await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS lead_source VARCHAR(120) NULL');
+    await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_relationship_type VARCHAR(30) NULL');
+    await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS renewal_eligible TINYINT(1) NULL');
+    await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS contract_duration_value INT NULL');
+    await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS contract_duration_unit VARCHAR(20) NULL');
   } catch (_error) {
     const [cols] = await conn.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='invoices'");
     const names = new Set((cols || []).map((c) => String(c.COLUMN_NAME || '')));
@@ -9733,6 +9737,10 @@ const ensureInvoiceMysqlColumns = async (conn) => {
     if (!names.has('round_off')) await conn.query('ALTER TABLE invoices ADD COLUMN round_off DECIMAL(12,2) NULL DEFAULT 0');
     if (!names.has('customer_type')) await conn.query('ALTER TABLE invoices ADD COLUMN customer_type VARCHAR(80) NULL DEFAULT \'New\'');
     if (!names.has('lead_source')) await conn.query('ALTER TABLE invoices ADD COLUMN lead_source VARCHAR(120) NULL');
+    if (!names.has('service_relationship_type')) await conn.query('ALTER TABLE invoices ADD COLUMN service_relationship_type VARCHAR(30) NULL');
+    if (!names.has('renewal_eligible')) await conn.query('ALTER TABLE invoices ADD COLUMN renewal_eligible TINYINT(1) NULL');
+    if (!names.has('contract_duration_value')) await conn.query('ALTER TABLE invoices ADD COLUMN contract_duration_value INT NULL');
+    if (!names.has('contract_duration_unit')) await conn.query('ALTER TABLE invoices ADD COLUMN contract_duration_unit VARCHAR(20) NULL');
   }
 };
 
@@ -9743,7 +9751,7 @@ const loadInvoicesForContext = async () => {
       const [rows] = await conn.query(`
         SELECT
           external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
-          invoice_date, due_date, total_amount, balance_due, customer_type, lead_source, service_schedule_default_time, service_schedules, discount, round_off,
+          invoice_date, due_date, total_amount, balance_due, customer_type, lead_source, service_relationship_type, renewal_eligible, contract_duration_value, contract_duration_unit, service_schedule_default_time, service_schedules, discount, round_off,
           billing_address_source, shipping_address_source,
           billing_address_text, shipping_address_text, custom_shipping_addresses, customer_premise_id,
           premise_label, premise_address, premise_area_name, premise_city, premise_state, premise_pincode,
@@ -10166,20 +10174,33 @@ const appendFollowUpNote = (record, note, createdBy = 'System') => {
 };
 
 const readUserMeta = (req) => String(req?.body?.updatedBy || req?.portalUser?.name || 'System');
+const insertRenewalAuditLog = async (conn, { renewalId, action, previousValue = null, nextValue = null, req = null }) => {
+  await conn.query(
+    'INSERT INTO renewal_audit_logs (renewal_id, action, previous_value, next_value, created_by) VALUES (?, ?, ?, ?, ?)',
+    [
+      renewalId || null,
+      String(action || '').trim() || 'renewal_update',
+      previousValue == null ? null : JSON.stringify(previousValue),
+      nextValue == null ? null : JSON.stringify(nextValue),
+      readUserMeta(req)
+    ]
+  );
+};
 
 const syncInvoiceToMysql = async (invoice) => {
   if (!invoice || !invoice._id) return;
+  const renewalClass = classifyRenewalSource(invoice);
   await withMysqlConnection(async (conn) => {
     await ensureCustomerPremisesInfrastructure(conn);
     await ensureInvoiceMysqlColumns(conn);
     await conn.query(
       `INSERT INTO invoices (
         external_id, customer_external_id, customer_name, invoice_number, invoice_type, invoice_status,
-        invoice_date, due_date, total_amount, balance_due, customer_type, lead_source, billing_address_source, shipping_address_source,
+        invoice_date, due_date, total_amount, balance_due, customer_type, lead_source, service_relationship_type, renewal_eligible, contract_duration_value, contract_duration_unit, billing_address_source, shipping_address_source,
         billing_address_text, shipping_address_text, custom_shipping_addresses,
         customer_premise_id, premise_label, premise_address, premise_area_name, premise_city, premise_state,
         premise_pincode, premise_google_map_url, service_schedule_default_time, service_schedules, discount, round_off, payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         customer_external_id=VALUES(customer_external_id),
         customer_name=VALUES(customer_name),
@@ -10192,6 +10213,10 @@ const syncInvoiceToMysql = async (invoice) => {
         balance_due=VALUES(balance_due),
         customer_type=VALUES(customer_type),
         lead_source=VALUES(lead_source),
+        service_relationship_type=VALUES(service_relationship_type),
+        renewal_eligible=VALUES(renewal_eligible),
+        contract_duration_value=VALUES(contract_duration_value),
+        contract_duration_unit=VALUES(contract_duration_unit),
         billing_address_source=VALUES(billing_address_source),
         shipping_address_source=VALUES(shipping_address_source),
         billing_address_text=VALUES(billing_address_text),
@@ -10225,6 +10250,10 @@ const syncInvoiceToMysql = async (invoice) => {
         toNumber(invoice.balanceDue, 0),
         invoice.customerType || 'New',
         invoice.leadSource || null,
+        renewalClass.relationshipType,
+        renewalClass.renewalEligible ? 1 : 0,
+        renewalClass.durationValue || null,
+        renewalClass.durationUnit || null,
         invoice.billingAddressSource || null,
         invoice.shippingAddressSource || null,
         invoice.billingAddressText || null,
@@ -11935,6 +11964,10 @@ app.post('/api/invoices', async (req, res) => {
     customerName: req.body.customerName || '',
     invoiceType,
     customerType: String(req.body.customerType || req.body.customer_type || 'New').trim() || 'New',
+    serviceRelationshipType: normalizeRenewalRelationshipType(req.body.serviceRelationshipType || req.body.service_relationship_type || 'ONE_TIME'),
+    renewalEligible: normalizeRenewalEligibleFlag(req.body.renewalEligible ?? req.body.renewal_eligible, false),
+    contractDurationValue: toNumber(req.body.contractDurationValue ?? req.body.contract_duration_value, 0),
+    contractDurationUnit: normalizeRenewalDurationUnit(req.body.contractDurationUnit || req.body.contract_duration_unit || 'MONTH'),
     billingAddressSource: req.body.billingAddressSource || 'billing',
     shippingAddressSource: req.body.shippingAddressSource || 'shipping',
     customShippingAddresses: Array.isArray(req.body.customShippingAddresses) ? req.body.customShippingAddresses : [],
@@ -12090,6 +12123,10 @@ app.put('/api/invoices/:id', async (req, res) => {
     customerName: req.body.customerName ?? current.customerName ?? '',
     invoiceType: String(req.body.invoiceType ?? current.invoiceType ?? ((toNumber(req.body.totalTax ?? current.totalTax, 0) > 0) ? 'GST' : 'NON GST')).trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST',
     customerType: String(req.body.customerType ?? req.body.customer_type ?? current.customerType ?? current.customer_type ?? 'New').trim() || 'New',
+    serviceRelationshipType: normalizeRenewalRelationshipType(req.body.serviceRelationshipType ?? req.body.service_relationship_type ?? current.serviceRelationshipType ?? current.service_relationship_type ?? 'ONE_TIME'),
+    renewalEligible: normalizeRenewalEligibleFlag(req.body.renewalEligible ?? req.body.renewal_eligible ?? current.renewalEligible ?? current.renewal_eligible, false),
+    contractDurationValue: toNumber(req.body.contractDurationValue ?? req.body.contract_duration_value ?? current.contractDurationValue ?? current.contract_duration_value, 0),
+    contractDurationUnit: normalizeRenewalDurationUnit(req.body.contractDurationUnit ?? req.body.contract_duration_unit ?? current.contractDurationUnit ?? current.contract_duration_unit ?? 'MONTH'),
     leadSource: String(req.body.leadSource ?? req.body.lead_source ?? current.leadSource ?? current.lead_source ?? '').trim(),
     discount: toNumber(req.body.discount ?? current.discount, 0),
     roundOff: toNumber(req.body.roundOff ?? req.body.round_off ?? current.roundOff ?? current.round_off, 0),
@@ -12583,7 +12620,10 @@ app.delete('/api/payments/:id', (req, res) => {
   return res.json({ message: 'Payment deleted', payment: deletedPayment, invoice: updatedInvoice });
 });
 
-const renewalStatusesNew = new Set(['Pending', 'Follow-up', 'Done', 'Declined', 'Overdue']);
+const renewalStatusesNew = new Set(['Pending', 'Follow-up', 'Done', 'Declined', 'Overdue', 'NOT_DUE', 'UPCOMING', 'DUE', 'FOLLOW_UP', 'OVERDUE', 'RENEWED', 'DECLINED', 'EXPIRED']);
+const renewalFinalStatuses = new Set(['Done', 'Declined', 'RENEWED', 'DECLINED']);
+const renewalRelationshipTypes = new Set(['CONTRACT', 'ONE_TIME', 'RECURRING']);
+const renewalDurationUnits = new Set(['DAY', 'MONTH', 'YEAR']);
 const renewalSqlDate = (value) => {
   const parsed = parseDateOnly(value);
   return parsed ? parsed.toISOString().slice(0, 10) : null;
@@ -12593,17 +12633,122 @@ const renewalSqlDateTime = (value = new Date()) => {
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toISOString().slice(0, 19).replace('T', ' ');
 };
-const renewalCleanStatus = (status) => renewalStatusesNew.has(String(status || '').trim())
-  ? String(status || '').trim()
-  : 'Pending';
+const normalizeRenewalRelationshipType = (value, fallback = 'ONE_TIME') => {
+  const raw = String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (['CONTRACT', 'ONE_TIME', 'RECURRING'].includes(raw)) return raw;
+  if (['ONE_TIME_TREATMENT', 'SINGLE', 'SINGLE_TIME', 'SINGLE_TREATMENT'].includes(raw)) return 'ONE_TIME';
+  return renewalRelationshipTypes.has(fallback) ? fallback : 'ONE_TIME';
+};
+const normalizeRenewalDurationUnit = (value, fallback = 'MONTH') => {
+  const raw = String(value || '').trim().toUpperCase().replace(/S$/, '');
+  if (renewalDurationUnits.has(raw)) return raw;
+  return renewalDurationUnits.has(fallback) ? fallback : 'MONTH';
+};
+const normalizeRenewalEligibleFlag = (value, fallback = false) => {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  const raw = String(value || '').trim().toLowerCase();
+  if (['true', 'yes', '1', 'eligible'].includes(raw)) return true;
+  if (['false', 'no', '0', 'not eligible', 'not_eligible'].includes(raw)) return false;
+  return Boolean(fallback);
+};
+const renewalCleanStatus = (status) => {
+  const raw = String(status || '').trim();
+  if (!raw) return 'DUE';
+  const normalized = raw.toUpperCase().replace(/[\s-]+/g, '_');
+  if (normalized === 'DONE' || normalized === 'RENEWED') return 'RENEWED';
+  if (normalized === 'DECLINED' || normalized === 'LOST') return 'DECLINED';
+  if (normalized === 'FOLLOW_UP' || normalized === 'FOLLOWUP') return 'FOLLOW_UP';
+  if (normalized === 'PENDING') return 'DUE';
+  if (renewalStatusesNew.has(normalized)) return normalized;
+  if (renewalStatusesNew.has(raw)) return raw;
+  return 'DUE';
+};
 const computeRenewalStatus = (row = {}) => {
-  const stored = renewalCleanStatus(row.status);
-  if (stored === 'Done' || stored === 'Declined' || stored === 'Follow-up') return stored;
-  if (row.followup_date || row.followupDate) return 'Follow-up';
+  const stored = renewalCleanStatus(row.renewal_status || row.renewalStatus || row.status);
+  if (['RENEWED', 'DECLINED'].includes(stored)) return stored;
+  if (stored === 'FOLLOW_UP' || row.followup_date || row.followupDate) return 'FOLLOW_UP';
   const due = parseDateOnly(row.renewal_due_date || row.renewalDueDate || row.previous_contract_end || row.contractEndDate);
   const today = parseDateOnly(new Date());
-  if (due && today && due < today) return 'Overdue';
-  return stored === 'Overdue' ? 'Overdue' : stored;
+  if (due && today) {
+    const days = Math.round((due.getTime() - today.getTime()) / 86400000);
+    if (days < 0) return 'OVERDUE';
+    if (days <= 30) return 'DUE';
+    if (days <= 60) return 'UPCOMING';
+    return 'NOT_DUE';
+  }
+  return stored || 'DUE';
+};
+const renewalUiStatus = (status) => ({
+  NOT_DUE: 'Not Due',
+  UPCOMING: 'Upcoming',
+  DUE: 'Due',
+  FOLLOW_UP: 'Follow-up',
+  OVERDUE: 'Overdue',
+  RENEWED: 'Renewed',
+  DECLINED: 'Declined',
+  EXPIRED: 'Expired',
+  Done: 'Renewed',
+  Declined: 'Declined',
+  'Follow-up': 'Follow-up',
+  Pending: 'Due',
+  Overdue: 'Overdue'
+})[status] || status || 'Due';
+const deriveRenewalDuration = (startValue, endValue, periodValue = '') => {
+  const period = String(periodValue || '').trim();
+  const cfg = contractPeriodConfig[period];
+  if (cfg?.unit === 'months') {
+    const months = Math.max(1, Number(cfg.value || 0));
+    if (months % 12 === 0) return { value: months / 12, unit: 'YEAR' };
+    return { value: months, unit: 'MONTH' };
+  }
+  if (cfg?.unit === 'days') return { value: Math.max(1, Number(cfg.value || 1)), unit: 'DAY' };
+  const start = parseDateOnly(startValue);
+  const end = parseDateOnly(endValue);
+  const days = inclusiveDaysBetween(start, end);
+  if (!days) return { value: 0, unit: 'MONTH' };
+  const months = Math.max(1, Math.round(days / 30.4375));
+  if (months >= 12 && months % 12 === 0) return { value: months / 12, unit: 'YEAR' };
+  if (months > 1) return { value: months, unit: 'MONTH' };
+  return { value: days, unit: 'DAY' };
+};
+const classifyRenewalSource = (invoice = {}) => {
+  const lines = Array.isArray(invoice?.items) ? invoice.items : [];
+  const firstLine = lines[0] || {};
+  const explicitType = invoice.serviceRelationshipType || invoice.service_relationship_type || firstLine.serviceRelationshipType || firstLine.service_relationship_type;
+  const relationshipType = explicitType ? normalizeRenewalRelationshipType(explicitType, 'ONE_TIME') : (() => {
+    const periods = lines.map((line) => String(line?.contractPeriod || '').trim()).filter(Boolean);
+    const frequencies = lines.map((line) => String(line?.serviceFrequency || '').trim()).filter(Boolean);
+    if (periods.some((period) => ['single_time', 'single_time_plus_7', 'single_time_plus_10'].includes(period))) return 'ONE_TIME';
+    if (periods.some((period) => ['half_yearly', 'annual', 'two_years', 'three_years', 'five_years', 'ten_years'].includes(period))) return 'CONTRACT';
+    if (periods.some((period) => ['monthly', 'quarterly', 'bi_monthly', 'three_months'].includes(period))) return 'CONTRACT';
+    if (frequencies.some((frequency) => ['monthly', 'bi_monthly', 'quarterly_visits', 'weekly', 'fortnightly'].includes(frequency))) return 'RECURRING';
+    return 'ONE_TIME';
+  })();
+  const explicitEligible = invoice.renewalEligible ?? invoice.renewal_eligible ?? firstLine.renewalEligible ?? firstLine.renewal_eligible;
+  const renewalEligible = explicitEligible == null
+    ? relationshipType === 'CONTRACT'
+    : normalizeRenewalEligibleFlag(explicitEligible, relationshipType === 'CONTRACT');
+  const window = deriveInvoiceContractWindow(invoice);
+  const duration = deriveRenewalDuration(window.contractStartDate, window.contractEndDate, firstLine.contractPeriod || '');
+  const evidence = [
+    explicitType ? `explicit relationship ${normalizeRenewalRelationshipType(explicitType)}` : '',
+    firstLine.contractPeriod ? `period ${firstLine.contractPeriod}` : '',
+    firstLine.serviceFrequency ? `frequency ${firstLine.serviceFrequency}` : '',
+    lines.length > 1 ? `${lines.length} invoice lines` : '',
+    window.contractStartDate && window.contractEndDate ? `window ${window.contractStartDate} to ${window.contractEndDate}` : ''
+  ].filter(Boolean);
+  return {
+    relationshipType,
+    renewalEligible,
+    durationValue: duration.value,
+    durationUnit: duration.unit,
+    contractStartDate: window.contractStartDate,
+    contractEndDate: window.contractEndDate,
+    serviceType: window.serviceType,
+    auditSuggestion: relationshipType === 'CONTRACT' && renewalEligible ? 'Likely Contract' : relationshipType === 'ONE_TIME' ? 'Likely One-Time' : 'Needs Review',
+    auditEvidence: evidence
+  };
 };
 const renewalPublicRow = (row = {}) => {
   const payload = parseMysqlPayloadObject(row.payload) || {};
@@ -12629,6 +12774,14 @@ const renewalPublicRow = (row = {}) => {
     areaName: merged.area_name || merged.areaName || merged.billingArea || '',
     serviceType: merged.service_type || merged.serviceType || '',
     contractId: merged.contract_id || merged.contractId || merged.invoiceId || '',
+    serviceRelationshipType: normalizeRenewalRelationshipType(merged.service_relationship_type || merged.serviceRelationshipType, 'ONE_TIME'),
+    renewalEligible: normalizeRenewalEligibleFlag(merged.renewal_eligible ?? merged.renewalEligible, false),
+    contractDurationValue: toNumber(merged.contract_duration_value ?? merged.contractDurationValue, 0),
+    contractDurationUnit: normalizeRenewalDurationUnit(merged.contract_duration_unit || merged.contractDurationUnit || 'MONTH'),
+    renewalStatus: computeRenewalStatus(merged),
+    renewalExcluded: Boolean(merged.renewal_excluded ?? merged.renewalExcluded),
+    auditSuggestion: merged.audit_suggestion || merged.auditSuggestion || '',
+    auditEvidence: parseMysqlPayloadArray(merged.audit_evidence ?? merged.auditEvidence, []),
     previousContractStart: renewalSqlDate(merged.previous_contract_start || merged.previousContractStart || merged.contractStartDate),
     previousContractEnd: renewalSqlDate(merged.previous_contract_end || merged.previousContractEnd || merged.contractEndDate),
     renewalDueDate: renewalSqlDate(merged.renewal_due_date || merged.renewalDueDate || merged.previous_contract_end || merged.contractEndDate),
@@ -12639,7 +12792,7 @@ const renewalPublicRow = (row = {}) => {
     assignedSalesPersonName: merged.assigned_sales_person_name || merged.assignedSalesPersonName || '',
     renewedBySalesPersonId: merged.renewed_by_sales_person_id || merged.renewedBySalesPersonId || '',
     renewedBySalesPersonName: merged.renewed_by_sales_person_name || merged.renewedBySalesPersonName || '',
-    status: computeRenewalStatus(merged),
+    status: renewalUiStatus(computeRenewalStatus(merged)),
     storedStatus: renewalCleanStatus(merged.status),
     legacyStatus: merged.legacyStatus || merged.legacy_status || '',
     paymentStatus: merged.paymentStatus || merged.payment_status || 'Pending',
@@ -12717,6 +12870,16 @@ const ensureRenewalTables = async (conn) => {
       area_name VARCHAR(255) NULL,
       service_type VARCHAR(255) NULL,
       contract_id VARCHAR(100) NULL,
+      service_relationship_type VARCHAR(30) NOT NULL DEFAULT 'ONE_TIME',
+      renewal_eligible TINYINT(1) NOT NULL DEFAULT 0,
+      contract_duration_value INT NULL,
+      contract_duration_unit VARCHAR(20) NULL,
+      contract_start_date DATE NULL,
+      contract_end_date DATE NULL,
+      renewal_status VARCHAR(40) NULL,
+      renewal_excluded TINYINT(1) NOT NULL DEFAULT 0,
+      audit_suggestion VARCHAR(80) NULL,
+      audit_evidence JSON NULL,
       previous_contract_start DATE NULL,
       previous_contract_end DATE NULL,
       renewal_due_date DATE NULL,
@@ -12751,6 +12914,16 @@ const ensureRenewalTables = async (conn) => {
     { name: 'area_name', definition: 'VARCHAR(255) NULL' },
     { name: 'service_type', definition: 'VARCHAR(255) NULL' },
     { name: 'contract_id', definition: 'VARCHAR(100) NULL' },
+    { name: 'service_relationship_type', definition: 'VARCHAR(30) NOT NULL DEFAULT \'ONE_TIME\'' },
+    { name: 'renewal_eligible', definition: 'TINYINT(1) NOT NULL DEFAULT 0' },
+    { name: 'contract_duration_value', definition: 'INT NULL' },
+    { name: 'contract_duration_unit', definition: 'VARCHAR(20) NULL' },
+    { name: 'contract_start_date', definition: 'DATE NULL' },
+    { name: 'contract_end_date', definition: 'DATE NULL' },
+    { name: 'renewal_status', definition: 'VARCHAR(40) NULL' },
+    { name: 'renewal_excluded', definition: 'TINYINT(1) NOT NULL DEFAULT 0' },
+    { name: 'audit_suggestion', definition: 'VARCHAR(80) NULL' },
+    { name: 'audit_evidence', definition: 'JSON NULL' },
     { name: 'previous_contract_start', definition: 'DATE NULL' },
     { name: 'previous_contract_end', definition: 'DATE NULL' },
     { name: 'renewal_due_date', definition: 'DATE NULL' },
@@ -12798,6 +12971,20 @@ const ensureRenewalTables = async (conn) => {
       PRIMARY KEY (id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS renewal_audit_logs (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      renewal_id VARCHAR(100) NULL,
+      action VARCHAR(80) NOT NULL,
+      previous_value JSON NULL,
+      next_value JSON NULL,
+      created_by VARCHAR(255) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_renewal_audit_logs_renewal_id (renewal_id),
+      KEY idx_renewal_audit_logs_action (action)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
   const ensureIndex = async (table, indexName, sql) => {
     const [rows] = await conn.query(
       `SELECT COUNT(*) AS count FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?`,
@@ -12813,6 +13000,9 @@ const ensureRenewalTables = async (conn) => {
   await ensureIndex('renewals', 'idx_renewals_assigned_sales', 'CREATE INDEX idx_renewals_assigned_sales ON renewals (assigned_sales_person_id)');
   await ensureIndex('renewals', 'idx_renewals_customer_id', 'CREATE INDEX idx_renewals_customer_id ON renewals (customer_id)');
   await ensureIndex('renewals', 'idx_renewals_contract_id', 'CREATE INDEX idx_renewals_contract_id ON renewals (contract_id)');
+  await ensureIndex('renewals', 'idx_renewals_relationship_type', 'CREATE INDEX idx_renewals_relationship_type ON renewals (service_relationship_type)');
+  await ensureIndex('renewals', 'idx_renewals_renewal_status', 'CREATE INDEX idx_renewals_renewal_status ON renewals (renewal_status)');
+  await ensureIndex('renewals', 'idx_renewals_eligible', 'CREATE INDEX idx_renewals_eligible ON renewals (renewal_eligible)');
   await ensureIndex('renewal_followups', 'idx_renewal_followups_renewal_id', 'CREATE INDEX idx_renewal_followups_renewal_id ON renewal_followups (renewal_id)');
   await ensureIndex('renewal_letters', 'idx_renewal_letters_renewal_id', 'CREATE INDEX idx_renewal_letters_renewal_id ON renewal_letters (renewal_id)');
 };
@@ -12820,7 +13010,9 @@ const loadRenewalRows = async () => {
   await cleanupStoredRenewalAddresses();
   if (!canUseMysql()) {
     const { list } = buildRenewalDataset();
-    return list.map((row) => renewalPublicRow({
+    return list.map((row) => {
+      const classification = classifyRenewalSource(row.sourceInvoice || row);
+      return renewalPublicRow({
       renewal_id: row._id,
       customer_name: row.customerName,
       mobile: row.mobileNumber,
@@ -12829,6 +13021,15 @@ const loadRenewalRows = async () => {
       area_name: row.areaName,
       service_type: row.serviceType,
       contract_id: row.invoiceId,
+      service_relationship_type: classification.relationshipType,
+      renewal_eligible: classification.renewalEligible ? 1 : 0,
+      contract_duration_value: classification.durationValue,
+      contract_duration_unit: classification.durationUnit,
+      contract_start_date: row.contractStartDate,
+      contract_end_date: row.contractEndDate,
+      renewal_status: computeRenewalStatus({ renewal_due_date: row.contractEndDate, status: row.status }),
+      audit_suggestion: classification.auditSuggestion,
+      audit_evidence: classification.auditEvidence,
       previous_contract_start: row.contractStartDate,
       previous_contract_end: row.contractEndDate,
       renewal_due_date: row.contractEndDate,
@@ -12836,11 +13037,12 @@ const loadRenewalRows = async () => {
       proposed_amount: row.quotation?.amount || row.totalAmount,
       status: row.status === 'Renewed' ? 'Done' : row.status === 'Lost' ? 'Declined' : 'Pending',
       payload: row
-    }));
+      });
+    });
   }
   return withMysqlConnection(async (conn) => {
     await ensureRenewalTables(conn);
-    const [rows] = await conn.query('SELECT * FROM renewals ORDER BY renewal_due_date ASC, customer_name ASC');
+    const [rows] = await conn.query('SELECT * FROM renewals WHERE COALESCE(renewal_excluded, 0) = 0 ORDER BY renewal_due_date ASC, customer_name ASC');
     const invoices = await loadInvoicesForContext();
     const { activeContractIds, activeRenewalIds } = collectRenewalSourceKeys(invoices);
     return (Array.isArray(rows) ? rows : [])
@@ -12864,9 +13066,9 @@ const markMatchingRenewalCompleteForInvoice = async (invoice = {}) => {
   const isMatch = (row = {}) => {
     const rowCustomerId = String(row?.customerId || '').trim();
     const rowCustomerName = String(row?.customerName || '').trim().toLowerCase();
-    const rowStatus = normalizeRenewalStatus(row?.status, 'Upcoming');
-    if (rowStatus === 'Declined') return false;
-    if (String(row?.convertedContractId || '').trim() && rowStatus === 'Done') {
+    const rowStatus = renewalCleanStatus(row?.renewalStatus || row?.status);
+    if (rowStatus === 'DECLINED') return false;
+    if (String(row?.convertedContractId || '').trim() && rowStatus === 'RENEWED') {
       return false;
     }
     return (customerId && rowCustomerId === customerId) || (customerName && rowCustomerName === customerName);
@@ -12896,9 +13098,9 @@ const markMatchingRenewalCompleteForInvoice = async (invoice = {}) => {
       await ensureRenewalTables(conn);
       await conn.query(
         `UPDATE renewals
-         SET status = ?, converted_contract_id = ?, renewed_at = COALESCE(renewed_at, ?), final_renewal_amount = CASE WHEN ? > 0 THEN ? ELSE final_renewal_amount END
+         SET status = ?, renewal_status = ?, converted_contract_id = ?, renewed_at = COALESCE(renewed_at, ?), final_renewal_amount = CASE WHEN ? > 0 THEN ? ELSE final_renewal_amount END
          WHERE renewal_id = ?`,
-        ['Done', invoiceId, nowIso, finalAmount, finalAmount, renewal.renewalId]
+        ['Renewed', 'RENEWED', invoiceId, nowIso, finalAmount, finalAmount, renewal.renewalId]
       );
     });
     return findRenewalRow(renewal.renewalId);
@@ -12910,7 +13112,8 @@ const markMatchingRenewalCompleteForInvoice = async (invoice = {}) => {
   const current = records[recordIndex] || {};
   const updated = {
     ...current,
-    status: 'Done',
+    status: 'Renewed',
+    renewalStatus: 'RENEWED',
     convertedContractId: invoiceId,
     renewedAt: current.renewedAt || nowIso,
     finalRenewalAmount: finalAmount > 0 ? finalAmount : toNumber(current.finalRenewalAmount || current.proposedAmount || 0, 0),
@@ -12947,6 +13150,7 @@ const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = n
     || customers.find((entry) => String(entry?.displayName || entry?.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase())
     || {};
   const window = deriveInvoiceContractWindow(invoice);
+  const classification = classifyRenewalSource(invoice);
   const base = existing || {};
   const nowIso = new Date().toISOString();
   const nextLegacyStatus = normalizeRenewalStatus(body.status, base.legacyStatus || 'Upcoming');
@@ -12994,6 +13198,13 @@ const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = n
     ),
     areaName: String(customer.billingArea || customer.areaName || customer.area || '').trim(),
     serviceType: String(body.serviceType || base.serviceType || window.serviceType || 'General Pest Control').trim(),
+    serviceRelationshipType: normalizeRenewalRelationshipType(body.serviceRelationshipType || body.service_relationship_type || base.serviceRelationshipType || base.service_relationship_type || classification.relationshipType, classification.relationshipType),
+    renewalEligible: normalizeRenewalEligibleFlag(body.renewalEligible ?? body.renewal_eligible ?? base.renewalEligible ?? base.renewal_eligible, classification.renewalEligible),
+    contractDurationValue: toNumber(body.contractDurationValue ?? body.contract_duration_value ?? base.contractDurationValue ?? classification.durationValue, classification.durationValue),
+    contractDurationUnit: normalizeRenewalDurationUnit(body.contractDurationUnit || body.contract_duration_unit || base.contractDurationUnit || classification.durationUnit),
+    renewalStatus: renewalFinalStatuses.has(renewalCleanStatus(base.renewalStatus || base.renewal_status || base.status))
+      ? renewalCleanStatus(base.renewalStatus || base.renewal_status || base.status)
+      : computeRenewalStatus({ renewal_due_date: body.renewalDueDate || base.renewalDueDate || window.contractEndDate, status: body.status || base.status }),
     status: mapLegacyRenewalStatusToMysql(nextLegacyStatus),
     legacyStatus: nextLegacyStatus,
     paymentStatus: normalizeRenewalPaymentStatus(body.paymentStatus ?? base.paymentStatus, base.paymentStatus || 'Pending'),
@@ -13034,10 +13245,12 @@ const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = n
     await conn.query(
       `INSERT INTO renewals (
         external_id, renewal_id, renewal_display_id, customer_id, customer_name, mobile, email, address, area_name,
-        service_type, contract_id, previous_contract_start, previous_contract_end, renewal_due_date, previous_amount,
+        service_type, contract_id, service_relationship_type, renewal_eligible, contract_duration_value, contract_duration_unit,
+        contract_start_date, contract_end_date, renewal_status, audit_suggestion, audit_evidence,
+        previous_contract_start, previous_contract_end, renewal_due_date, previous_amount,
         proposed_amount, final_renewal_amount, assigned_sales_person_id, assigned_sales_person_name, status,
         followup_date, last_followup_note, decline_reason, converted_contract_id, payload
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         renewal_display_id=VALUES(renewal_display_id),
         customer_id=VALUES(customer_id),
@@ -13048,6 +13261,15 @@ const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = n
         area_name=VALUES(area_name),
         service_type=VALUES(service_type),
         contract_id=VALUES(contract_id),
+        service_relationship_type=VALUES(service_relationship_type),
+        renewal_eligible=VALUES(renewal_eligible),
+        contract_duration_value=VALUES(contract_duration_value),
+        contract_duration_unit=VALUES(contract_duration_unit),
+        contract_start_date=VALUES(contract_start_date),
+        contract_end_date=VALUES(contract_end_date),
+        renewal_status=IF(renewal_status IN ('RENEWED','DECLINED') OR status IN ('Renewed','Done','Declined'), renewal_status, VALUES(renewal_status)),
+        audit_suggestion=VALUES(audit_suggestion),
+        audit_evidence=VALUES(audit_evidence),
         previous_contract_start=VALUES(previous_contract_start),
         previous_contract_end=VALUES(previous_contract_end),
         renewal_due_date=VALUES(renewal_due_date),
@@ -13074,6 +13296,15 @@ const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = n
         nextRecord.areaName || null,
         nextRecord.serviceType || null,
         nextRecord.invoiceId || null,
+        nextRecord.serviceRelationshipType,
+        nextRecord.renewalEligible ? 1 : 0,
+        nextRecord.contractDurationValue || null,
+        nextRecord.contractDurationUnit || null,
+        renewalSqlDate(nextRecord.previousContractStart),
+        renewalSqlDate(nextRecord.previousContractEnd),
+        nextRecord.renewalStatus,
+        classification.auditSuggestion,
+        JSON.stringify(classification.auditEvidence || []),
         renewalSqlDate(nextRecord.previousContractStart),
         renewalSqlDate(nextRecord.previousContractEnd),
         renewalSqlDate(nextRecord.renewalDueDate),
@@ -13189,12 +13420,16 @@ const applyRenewalFilters = (rows, query = {}) => {
   })[searchScope] || searchScope;
   const status = String(query.status || '').trim();
   const assigned = String(query.assignedSalesPersonId || '').trim();
+  const relationshipType = String(query.relationshipType || '').trim().toUpperCase();
+  const serviceType = String(query.serviceType || '').trim().toLowerCase();
   return rows.filter((row) => {
     const due = parseDateOnly(row.renewalDueDate);
     if (from && due && due < from) return false;
     if (to && due && due > to) return false;
     if (status && status !== 'All' && row.status !== status) return false;
     if (assigned && String(row.assignedSalesPersonId || '') !== assigned && String(row.assignedSalesPersonName || '') !== assigned) return false;
+    if (relationshipType && relationshipType !== 'ALL' && normalizeRenewalRelationshipType(row.serviceRelationshipType) !== relationshipType) return false;
+    if (serviceType && String(row.serviceType || '').trim().toLowerCase() !== serviceType) return false;
     if (search) {
       const haystacks = {
         all: [
@@ -13226,11 +13461,13 @@ const applyRenewalFilters = (rows, query = {}) => {
   });
 };
 const summarizeRenewals = (rows = []) => {
-  const customers = new Set(rows.map((row) => String(row.customerId || row.customerName || '').trim()).filter(Boolean));
+  const contractRows = rows.filter((row) => row.serviceRelationshipType === 'CONTRACT' && row.renewalEligible && !row.renewalExcluded);
+  const oneTimeRows = rows.filter((row) => row.serviceRelationshipType === 'ONE_TIME' && !row.renewalExcluded);
+  const customers = new Set(contractRows.map((row) => String(row.customerId || row.customerName || '').trim()).filter(Boolean));
   const bySales = new Map();
   const byMonth = new Map();
   const byYear = new Map();
-  rows.forEach((row) => {
+  contractRows.forEach((row) => {
     const salesKey = String(row.assignedSalesPersonId || row.assignedSalesPersonName || 'Unassigned').trim() || 'Unassigned';
     const sales = bySales.get(salesKey) || {
       id: String(row.assignedSalesPersonId || '').trim(),
@@ -13243,8 +13480,8 @@ const summarizeRenewals = (rows = []) => {
     if (!sales.id && row.assignedSalesPersonId) sales.id = String(row.assignedSalesPersonId || '').trim();
     if (!sales.name || sales.name === 'Unassigned') sales.name = String(row.assignedSalesPersonName || salesKey || 'Unassigned').trim() || 'Unassigned';
     sales.total += 1;
-    if (row.status === 'Done') sales.done += 1;
-    if (row.status !== 'Done' && row.status !== 'Declined') sales.pending += 1;
+    if (row.status === 'Renewed') sales.done += 1;
+    if (!['Renewed', 'Declined'].includes(row.status)) sales.pending += 1;
     sales.amount += toNumber(row.proposedAmount, 0);
     bySales.set(salesKey, sales);
     const due = parseDateOnly(row.renewalDueDate);
@@ -13256,15 +13493,25 @@ const summarizeRenewals = (rows = []) => {
     y.count += 1; y.amount += toNumber(row.proposedAmount, 0); byYear.set(yearKey, y);
   });
   return {
-    totalRenewals: rows.length,
-    totalRenewalAmount: rows.reduce((sum, row) => sum + toNumber(row.proposedAmount || row.finalRenewalAmount, 0), 0),
+    totalRenewals: contractRows.length,
+    activeContractCount: contractRows.filter((row) => ['Not Due', 'Upcoming', 'Due', 'Follow-up'].includes(row.status)).length,
+    dueCount: contractRows.filter((row) => row.status === 'Due').length,
+    dueIn30Count: contractRows.filter((row) => {
+      const due = parseDateOnly(row.renewalDueDate);
+      const now = parseDateOnly(new Date());
+      if (!due || !now) return false;
+      const days = Math.round((due.getTime() - now.getTime()) / 86400000);
+      return days >= 1 && days <= 30;
+    }).length,
+    oneTimeTreatmentCount: oneTimeRows.length,
+    totalRenewalAmount: contractRows.reduce((sum, row) => sum + toNumber(row.proposedAmount || row.finalRenewalAmount, 0), 0),
     customerCount: customers.size,
-    doneCount: rows.filter((row) => row.status === 'Done').length,
-    pendingCount: rows.filter((row) => row.status === 'Pending').length,
-    declinedCount: rows.filter((row) => row.status === 'Declined').length,
-    followupCount: rows.filter((row) => row.status === 'Follow-up').length,
-    overdueCount: rows.filter((row) => row.status === 'Overdue').length,
-    assignedSalesPersonCount: new Set(rows.map((row) => row.assignedSalesPersonId || row.assignedSalesPersonName).filter(Boolean)).size,
+    doneCount: contractRows.filter((row) => row.status === 'Renewed').length,
+    pendingCount: contractRows.filter((row) => ['Due', 'Upcoming', 'Not Due'].includes(row.status)).length,
+    declinedCount: contractRows.filter((row) => row.status === 'Declined').length,
+    followupCount: contractRows.filter((row) => row.status === 'Follow-up').length,
+    overdueCount: contractRows.filter((row) => row.status === 'Overdue').length,
+    assignedSalesPersonCount: new Set(contractRows.map((row) => row.assignedSalesPersonId || row.assignedSalesPersonName).filter(Boolean)).size,
     salespersonWiseSummary: Array.from(bySales.values()),
     monthWiseSummary: Array.from(byMonth.values()).sort((a, b) => String(a.period).localeCompare(String(b.period))),
     yearWiseSummary: Array.from(byYear.values()).sort((a, b) => String(a.year).localeCompare(String(b.year)))
@@ -13274,19 +13521,18 @@ const sourceRenewalCandidates = async () => {
   const invoices = await loadInvoicesForContext();
   const customers = await loadCustomersForContext();
   const customerById = new Map(customers.map((customer) => [String(customer?._id || ''), customer]));
-  const today = parseDateOnly(new Date());
-  const horizon = addMonthsClamped(today, 3);
   return (Array.isArray(invoices) ? invoices : [])
     .map((invoice) => {
       const window = deriveInvoiceContractWindow(invoice);
       const end = parseDateOnly(window.contractEndDate || invoice.servicePeriodEnd || invoice.dueDate);
-      if (!end || end > horizon) return null;
+      if (!end) return null;
       const customer = customerById.get(String(invoice.customerId || '')) || {};
       const firstItem = Array.isArray(invoice.items) ? invoice.items[0] || {} : {};
       const customerName = invoice.customerName || customer.displayName || customer.name || customer.customerName || '';
       const mobile = customer.mobileNumber || customer.workPhone || invoice.mobileNumber || '';
       if (!customerName || !mobile) return null;
       const amount = toNumber(invoice.total ?? invoice.amount, 0);
+      const classification = classifyRenewalSource(invoice);
       return {
         sourceRenewalKey: renewalIdFromContract(invoice._id, customerName),
         customerId: Number(customer.id || customer.customerId) || null,
@@ -13312,8 +13558,18 @@ const sourceRenewalCandidates = async () => {
           [customerName, customer.displayName, customer.name, customer.contactPersonName, customer.attentionName, invoice.customerName]
         ),
         areaName: customer.billingArea || customer.areaName || customer.area || '',
-        serviceType: firstItem.itemName || invoice.subject || invoice.serviceType || 'Pest Control Service',
+        serviceType: firstItem.itemName || invoice.subject || invoice.serviceType || classification.serviceType || 'Pest Control Service',
         contractId: invoice._id,
+        serviceRelationshipType: classification.relationshipType,
+        renewalEligible: classification.renewalEligible,
+        contractDurationValue: classification.durationValue,
+        contractDurationUnit: classification.durationUnit,
+        renewalStatus: computeRenewalStatus({
+          renewal_due_date: renewalSqlDate(window.contractEndDate || invoice.servicePeriodEnd || invoice.dueDate),
+          status: classification.relationshipType === 'ONE_TIME' || !classification.renewalEligible ? 'NOT_DUE' : 'DUE'
+        }),
+        auditSuggestion: classification.auditSuggestion,
+        auditEvidence: classification.auditEvidence,
         previousContractStart: renewalSqlDate(window.contractStartDate || invoice.servicePeriodStart),
         previousContractEnd: renewalSqlDate(window.contractEndDate || invoice.servicePeriodEnd || invoice.dueDate),
         renewalDueDate: renewalSqlDate(window.contractEndDate || invoice.servicePeriodEnd || invoice.dueDate),
@@ -13423,6 +13679,104 @@ app.get('/api/renewals/summary', async (req, res) => {
   }
 });
 
+app.get('/api/renewals/audit', async (_req, res) => {
+  if (!canUseMysql()) return res.status(503).json({ error: 'MySQL is required for renewal data audit.' });
+  try {
+    const rows = await loadRenewalRows();
+    const scanned = rows.filter((row) => !row.renewalExcluded);
+    const likelyContracts = scanned.filter((row) => row.serviceRelationshipType === 'CONTRACT' && row.renewalEligible);
+    const likelyOneTime = scanned.filter((row) => row.serviceRelationshipType === 'ONE_TIME');
+    const needsReview = scanned.filter((row) => row.serviceRelationshipType === 'RECURRING' || !row.auditSuggestion || row.auditSuggestion === 'Needs Review');
+    return res.json({
+      totalRecordsScanned: scanned.length,
+      likelyContracts: likelyContracts.length,
+      likelyOneTimeTreatments: likelyOneTime.length,
+      needsReview: needsReview.length,
+      rows: scanned.map((row) => ({
+        renewalId: row.renewalId,
+        renewalDisplayId: row.renewalDisplayId,
+        customerName: row.customerName,
+        mobile: row.mobile,
+        serviceType: row.serviceType,
+        contractId: row.contractId,
+        serviceRelationshipType: row.serviceRelationshipType,
+        renewalEligible: row.renewalEligible,
+        renewalStatus: row.renewalStatus,
+        status: row.status,
+        auditSuggestion: row.auditSuggestion || (row.serviceRelationshipType === 'ONE_TIME' ? 'Likely One-Time' : 'Needs Review'),
+        auditEvidence: row.auditEvidence || []
+      }))
+    });
+  } catch (error) {
+    console.error('Renewal audit failed:', error.message);
+    return res.status(500).json({ error: 'Unable to load renewal audit right now.' });
+  }
+});
+
+app.post('/api/renewals/audit/classify', async (req, res) => {
+  if (!canUseMysql()) return res.status(503).json({ error: 'MySQL is required for renewal data cleanup.' });
+  const ids = Array.isArray(req.body?.renewalIds) ? req.body.renewalIds.map((id) => String(id || '').trim()).filter(Boolean) : [];
+  const action = String(req.body?.action || '').trim();
+  if (!ids.length) return res.status(400).json({ error: 'Select at least one renewal record.' });
+  const actionMap = {
+    mark_contract: { service_relationship_type: 'CONTRACT', renewal_eligible: 1, renewal_excluded: 0 },
+    mark_one_time: { service_relationship_type: 'ONE_TIME', renewal_eligible: 0, renewal_excluded: 0, renewal_status: 'NOT_DUE' },
+    exclude_from_renewal: { renewal_eligible: 0, renewal_excluded: 1, renewal_status: 'EXPIRED' },
+    keep_as_renewal: { service_relationship_type: 'CONTRACT', renewal_eligible: 1, renewal_excluded: 0 }
+  };
+  const patch = actionMap[action];
+  if (!patch) return res.status(400).json({ error: 'Unsupported renewal audit action.' });
+  try {
+    const updated = await withMysqlConnection(async (conn) => {
+      await ensureRenewalTables(conn);
+      await conn.beginTransaction();
+      try {
+        let count = 0;
+        for (const renewalId of ids) {
+          const [beforeRows] = await conn.query('SELECT renewal_id, service_relationship_type, renewal_eligible, renewal_status, renewal_excluded FROM renewals WHERE renewal_id = ? OR external_id = ? OR id = ? LIMIT 1', [renewalId, renewalId, /^\d+$/.test(renewalId) ? Number(renewalId) : -1]);
+          const before = Array.isArray(beforeRows) ? beforeRows[0] : null;
+          if (!before) continue;
+          const nextType = patch.service_relationship_type ?? before.service_relationship_type;
+          const nextEligible = patch.renewal_eligible ?? before.renewal_eligible;
+          const nextExcluded = patch.renewal_excluded ?? before.renewal_excluded;
+          const nextStatus = patch.renewal_status || computeRenewalStatus({ ...before, service_relationship_type: nextType, renewal_eligible: nextEligible });
+          const [result] = await conn.query(
+            `UPDATE renewals
+             SET service_relationship_type = ?, renewal_eligible = ?, renewal_excluded = ?, renewal_status = ?, status = ?, audit_suggestion = ?
+             WHERE renewal_id = ?`,
+            [
+              nextType,
+              nextEligible,
+              nextExcluded,
+              nextStatus,
+              renewalUiStatus(nextStatus),
+              nextType === 'CONTRACT' && nextEligible ? 'Likely Contract' : nextType === 'ONE_TIME' ? 'Likely One-Time' : 'Needs Review',
+              before.renewal_id
+            ]
+          );
+          count += Number(result?.affectedRows || 0);
+          await insertRenewalAuditLog(conn, {
+            renewalId: before.renewal_id,
+            action: `audit_${action}`,
+            previousValue: before,
+            nextValue: { service_relationship_type: nextType, renewal_eligible: nextEligible, renewal_excluded: nextExcluded, renewal_status: nextStatus },
+            req
+          });
+        }
+        await conn.commit();
+        return count;
+      } catch (error) {
+        await conn.rollback();
+        throw error;
+      }
+    });
+    return res.json({ success: true, message: 'Renewal audit classification updated', updated });
+  } catch (error) {
+    console.error('Renewal audit classification failed:', error.message);
+    return res.status(500).json({ error: 'Unable to update renewal classifications right now.' });
+  }
+});
+
 app.post('/api/renewals/sync', async (req, res) => {
   if (!canUseMysql()) return res.status(503).json({ error: 'MySQL is required to sync renewal records.' });
   try {
@@ -13446,13 +13800,25 @@ app.post('/api/renewals/sync', async (req, res) => {
           existingRows.push({ renewal_id: renewalId, renewal_display_id: renewalDisplayId, external_id: row.sourceRenewalKey });
           nextRenewalNumber = parsed.nextNumber;
         }
-        const payload = { source: 'invoice-sync', syncedAt: new Date().toISOString(), sourceInvoice: row.sourceInvoice };
+        const payload = {
+          source: 'invoice-sync',
+          syncedAt: new Date().toISOString(),
+          sourceInvoice: row.sourceInvoice,
+          classification: {
+            serviceRelationshipType: row.serviceRelationshipType,
+            renewalEligible: row.renewalEligible,
+            auditSuggestion: row.auditSuggestion,
+            auditEvidence: row.auditEvidence
+          }
+        };
         const [result] = await conn.query(
           `INSERT INTO renewals (
             external_id, renewal_id, renewal_display_id, customer_id, customer_name, mobile, email, address, area_name, service_type,
-            contract_id, previous_contract_start, previous_contract_end, renewal_due_date, previous_amount,
+            contract_id, service_relationship_type, renewal_eligible, contract_duration_value, contract_duration_unit,
+            contract_start_date, contract_end_date, renewal_status, audit_suggestion, audit_evidence,
+            previous_contract_start, previous_contract_end, renewal_due_date, previous_amount,
             proposed_amount, assigned_sales_person_id, assigned_sales_person_name, status, payload
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
             customer_name=VALUES(customer_name),
             renewal_id=IF(renewal_id IS NULL OR renewal_id = '', VALUES(renewal_id), renewal_id),
@@ -13462,6 +13828,15 @@ app.post('/api/renewals/sync', async (req, res) => {
             address=VALUES(address),
             area_name=VALUES(area_name),
             service_type=VALUES(service_type),
+            service_relationship_type=IF(renewal_excluded = 1, service_relationship_type, VALUES(service_relationship_type)),
+            renewal_eligible=IF(renewal_excluded = 1, renewal_eligible, VALUES(renewal_eligible)),
+            contract_duration_value=VALUES(contract_duration_value),
+            contract_duration_unit=VALUES(contract_duration_unit),
+            contract_start_date=VALUES(contract_start_date),
+            contract_end_date=VALUES(contract_end_date),
+            renewal_status=IF(renewal_status IN ('RENEWED','DECLINED') OR status IN ('Renewed','Done','Declined'), renewal_status, VALUES(renewal_status)),
+            audit_suggestion=VALUES(audit_suggestion),
+            audit_evidence=VALUES(audit_evidence),
             previous_contract_start=VALUES(previous_contract_start),
             previous_contract_end=VALUES(previous_contract_end),
             renewal_due_date=VALUES(renewal_due_date),
@@ -13472,26 +13847,17 @@ app.post('/api/renewals/sync', async (req, res) => {
             payload=VALUES(payload)`,
           [
             row.sourceRenewalKey, renewalId, renewalDisplayId, row.customerId, row.customerName, row.mobile, row.email, row.address, row.areaName,
-            row.serviceType, row.contractId, row.previousContractStart, row.previousContractEnd, row.renewalDueDate,
+            row.serviceType, row.contractId, row.serviceRelationshipType, row.renewalEligible ? 1 : 0,
+            row.contractDurationValue || null, row.contractDurationUnit || null, row.previousContractStart, row.previousContractEnd,
+            row.renewalStatus, row.auditSuggestion, JSON.stringify(row.auditEvidence || []),
+            row.previousContractStart, row.previousContractEnd, row.renewalDueDate,
             row.previousAmount, row.proposedAmount, row.assignedSalesPersonId, row.assignedSalesPersonName,
-            computeRenewalStatus({ renewal_due_date: row.renewalDueDate, status: 'Pending' }),
+            renewalUiStatus(row.renewalStatus),
             JSON.stringify(payload)
           ]
         );
         if (result?.affectedRows === 1) inserted += 1;
       }
-      const activeInvoices = await loadInvoicesForContext();
-      const { activeContractIds, activeRenewalIds } = collectRenewalSourceKeys(activeInvoices);
-      const [allRenewals] = await conn.query('SELECT renewal_id, external_id, contract_id FROM renewals ORDER BY id ASC');
-      const staleIdentifiers = (Array.isArray(allRenewals) ? allRenewals : [])
-        .filter((entry) => {
-          const renewalId = String(entry.renewal_id || entry.external_id || '').trim();
-          const contractId = String(entry.contract_id || entry.external_id || '').trim();
-          if (!renewalId && !contractId) return false;
-          return !activeRenewalIds.has(renewalId) && !activeContractIds.has(contractId);
-        })
-        .flatMap((entry) => [entry.external_id, entry.renewal_id, entry.contract_id]);
-      await deleteRenewalRowsByIdentifiers(conn, staleIdentifiers);
     });
     if (nextRenewalNumber) await updateSettingsNextRenewalNumber(nextRenewalNumber);
     return res.json({ success: true, message: 'Renewal synced successfully', inserted, totalCandidates: candidates.length });
@@ -13515,6 +13881,13 @@ app.post('/api/renewals/:id/assign', async (req, res) => {
         'UPDATE renewals SET assigned_sales_person_id = ?, assigned_sales_person_name = ? WHERE renewal_id = ?',
         [salesId, salesName, renewal.renewalId]
       );
+      await insertRenewalAuditLog(conn, {
+        renewalId: renewal.renewalId,
+        action: 'assign_salesperson',
+        previousValue: { assignedSalesPersonId: renewal.assignedSalesPersonId, assignedSalesPersonName: renewal.assignedSalesPersonName },
+        nextValue: { assignedSalesPersonId: salesId, assignedSalesPersonName: salesName },
+        req
+      });
     });
     return res.json({ success: true, message: 'Sales person assigned', renewal: await findRenewalRow(renewal.renewalId) });
   } catch (error) {
@@ -13535,13 +13908,15 @@ app.post('/api/renewals/:id/edit', async (req, res) => {
       await conn.query(
         `UPDATE renewals
          SET service_type = ?, renewal_due_date = ?, proposed_amount = ?, status = ?, last_followup_note = ?, renewal_letter_url = NULL
+             , renewal_status = ?
          WHERE renewal_id = ?`,
         [
           String(req.body.serviceType || renewal.serviceType || '').trim(),
           renewalSqlDate(req.body.renewalDueDate || renewal.renewalDueDate),
           proposedAmount,
-          renewalCleanStatus(req.body.status || renewal.storedStatus || renewal.status),
+          renewalUiStatus(renewalCleanStatus(req.body.status || renewal.renewalStatus || renewal.storedStatus || renewal.status)),
           String(req.body.note || renewal.lastFollowupNote || '').trim(),
+          renewalCleanStatus(req.body.status || renewal.renewalStatus || renewal.storedStatus || renewal.status),
           renewal.renewalId
         ]
       );
@@ -13588,7 +13963,7 @@ app.post('/api/renewals/:id/followup', async (req, res) => {
   try {
     await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
-      await conn.query('UPDATE renewals SET status = ?, followup_date = ?, last_followup_note = ? WHERE renewal_id = ?', ['Follow-up', followupDate, note, renewal.renewalId]);
+      await conn.query('UPDATE renewals SET status = ?, renewal_status = ?, followup_date = ?, last_followup_note = ? WHERE renewal_id = ?', ['Follow-up', 'FOLLOW_UP', followupDate, note, renewal.renewalId]);
       await conn.query(
         'INSERT INTO renewal_followups (external_id, renewal_id, followup_date, note, status, created_by, payload) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [`RFU-${Date.now()}`, renewal.renewalId, followupDate, note, 'Follow-up', readUserMeta(req), JSON.stringify(req.body || {})]
@@ -14055,7 +14430,7 @@ app.post('/api/renewals/:id/mark-done', async (req, res) => {
       await ensureRenewalTables(conn);
       await conn.query(
         `UPDATE renewals
-         SET status = 'Done', final_renewal_amount = ?, renewed_by_sales_person_id = ?, renewed_by_sales_person_name = ?, renewed_at = ?, last_followup_note = ?
+         SET status = 'Renewed', renewal_status = 'RENEWED', final_renewal_amount = ?, renewed_by_sales_person_id = ?, renewed_by_sales_person_name = ?, renewed_at = ?, last_followup_note = ?
          WHERE renewal_id = ?`,
         [
           finalAmount,
@@ -14083,7 +14458,14 @@ app.post('/api/renewals/:id/decline', async (req, res) => {
   try {
     await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
-      await conn.query('UPDATE renewals SET status = ?, decline_reason = ?, last_followup_note = ? WHERE renewal_id = ?', ['Declined', reason, reason, renewal.renewalId]);
+      await conn.query('UPDATE renewals SET status = ?, renewal_status = ?, decline_reason = ?, last_followup_note = ? WHERE renewal_id = ?', ['Declined', 'DECLINED', reason, reason, renewal.renewalId]);
+      await insertRenewalAuditLog(conn, {
+        renewalId: renewal.renewalId,
+        action: 'decline_renewal',
+        previousValue: { status: renewal.status, renewalStatus: renewal.renewalStatus },
+        nextValue: { status: 'Declined', renewalStatus: 'DECLINED', reason },
+        req
+      });
     });
     return res.json({ success: true, message: 'Renewal declined', renewal: await findRenewalRow(renewal.renewalId) });
   } catch (error) {
@@ -14097,7 +14479,7 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
   const renewal = await findRenewalRow(req.params.id);
   if (!renewal) return res.status(404).json({ error: 'Renewal not found' });
   if (renewal.convertedContractId) return res.status(400).json({ error: 'Renewal is already converted to a contract.' });
-  if (renewal.status !== 'Done') return res.status(400).json({ error: 'Mark renewal done before converting to contract.' });
+  if (renewal.status === 'Declined') return res.status(400).json({ error: 'Declined renewals cannot be converted without reopening.' });
   try {
     const invoices = await loadInvoicesForContext();
     const sourceInvoice = invoices.find((entry) => String(entry?._id || '') === String(renewal.contractId || '')) || {};
@@ -14105,11 +14487,21 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
     const invoiceType = String(req.body.invoiceType || sourceInvoice.invoiceType || 'GST').trim() || 'GST';
     const startBase = parseDateOnly(req.body.contractStartDate || renewal.previousContractEnd || new Date()) || new Date();
     const nextStart = renewalSqlDate(req.body.contractStartDate || addMonthsClamped(startBase, 0));
-    const nextEnd = renewalSqlDate(req.body.contractEndDate || addMonthsClamped(parseDateOnly(nextStart) || new Date(), 12));
+    const durationValue = Math.max(1, toNumber(req.body.contractDurationValue || req.body.durationValue, 12));
+    const durationUnit = normalizeRenewalDurationUnit(req.body.contractDurationUnit || req.body.durationUnit || 'MONTH');
+    const durationMonths = durationUnit === 'YEAR' ? durationValue * 12 : durationUnit === 'MONTH' ? durationValue : 0;
+    const durationEnd = durationUnit === 'DAY'
+      ? addDays(parseDateOnly(nextStart) || new Date(), durationValue - 1)
+      : addDays(addMonthsClamped(parseDateOnly(nextStart) || new Date(), durationMonths), -1);
+    const nextEnd = renewalSqlDate(req.body.contractEndDate || durationEnd);
     const amount = toNumber(req.body.amount || renewal.finalRenewalAmount || renewal.proposedAmount, 0);
     const sourceItems = Array.isArray(sourceInvoice.items) ? sourceInvoice.items : [];
     const items = sourceItems.length ? sourceItems.map((item) => ({
       ...item,
+      serviceRelationshipType: 'CONTRACT',
+      renewalEligible: true,
+      contractDurationValue: durationValue,
+      contractDurationUnit: durationUnit,
       contractStartDate: nextStart,
       contractEndDate: nextEnd,
       serviceStartDate: nextStart,
@@ -14120,6 +14512,10 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
     })) : [{
       itemName: renewal.serviceType || 'Renewed Service Contract',
       description: `Renewal for ${renewal.customerName}`,
+      serviceRelationshipType: 'CONTRACT',
+      renewalEligible: true,
+      contractDurationValue: durationValue,
+      contractDurationUnit: durationUnit,
       quantity: 1,
       rate: amount,
       amount,
@@ -14135,7 +14531,11 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
       _id: `INV-${Date.now()}`,
       customerId: sourceInvoice.customerId || renewal.customerId || '',
       customerName: renewal.customerName,
-      customerType: String(req.body.customerType || 'Renewal').trim() || 'Renewal',
+      customerType: String(req.body.customerType || (renewal.serviceRelationshipType === 'ONE_TIME' ? 'New' : 'Renewal')).trim() || 'Renewal',
+      serviceRelationshipType: 'CONTRACT',
+      renewalEligible: true,
+      contractDurationValue: durationValue,
+      contractDurationUnit: durationUnit,
       invoiceType,
       invoiceNumber: req.body.invoiceNumber || createNextInvoiceNumber(invoices, settings, invoiceType),
       date: renewalSqlDate(req.body.date || new Date()),
@@ -14163,7 +14563,24 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
     }
     await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
-      await conn.query('UPDATE renewals SET converted_contract_id = ? WHERE renewal_id = ?', [newInvoice._id, renewal.renewalId]);
+      const isRenewableContract = renewal.serviceRelationshipType === 'CONTRACT' && renewal.renewalEligible;
+      await conn.query(
+        `UPDATE renewals
+         SET converted_contract_id = ?,
+             status = CASE WHEN ? THEN 'Renewed' ELSE status END,
+             renewal_status = CASE WHEN ? THEN 'RENEWED' ELSE renewal_status END,
+             renewed_at = CASE WHEN ? THEN ? ELSE renewed_at END,
+             final_renewal_amount = CASE WHEN ? THEN ? ELSE final_renewal_amount END
+         WHERE renewal_id = ?`,
+        [newInvoice._id, isRenewableContract, isRenewableContract, isRenewableContract, renewalSqlDateTime(new Date()), isRenewableContract, amount, renewal.renewalId]
+      );
+      await insertRenewalAuditLog(conn, {
+        renewalId: renewal.renewalId,
+        action: renewal.serviceRelationshipType === 'ONE_TIME' ? 'one_time_convert_to_contract' : 'renewal_convert_to_contract',
+        previousValue: { status: renewal.status, renewalStatus: renewal.renewalStatus, convertedContractId: renewal.convertedContractId },
+        nextValue: { convertedContractId: newInvoice._id, contractStartDate: nextStart, contractEndDate: nextEnd, amount },
+        req
+      });
     });
     return res.json({ success: true, message: 'Converted to contract', renewal: await findRenewalRow(renewal.renewalId), contract: newInvoice });
   } catch (error) {
@@ -14209,7 +14626,7 @@ app.get('/api/renewals/letters', async (req, res) => {
         mobile: row.renewal_mobile || '',
         areaName: row.renewal_area_name || '',
         serviceType: row.renewal_service_type || '',
-        status: row.renewal_status || 'Pending',
+        status: renewalUiStatus(renewalCleanStatus(row.renewal_status || 'Pending')),
         assignedSalesPersonId: row.renewal_assigned_sales_person_id || '',
         assignedSalesPersonName: row.renewal_assigned_sales_person_name || '',
         renewalDueDate: row.conclude_date || '',

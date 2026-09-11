@@ -137,6 +137,11 @@ const taxOptions = [0, 5, 12, 18];
 const paymentModeOptions = ['Cheque', 'Cash', 'Bank Transfer', 'UPI', 'Card', 'Razorpay'];
 const paymentDepositOptions = ['Current Account', 'Saving Account'];
 const contractCustomerTypeOptions = ['New', 'Existing', 'Renewal'];
+const serviceRelationshipOptions = [
+  { value: 'CONTRACT', label: 'Contract' },
+  { value: 'ONE_TIME', label: 'One-Time Treatment' },
+  { value: 'RECURRING', label: 'Recurring' }
+];
 const getDefaultPaymentDepositTo = (invoiceType = 'GST') => String(invoiceType || '').trim().toUpperCase() === 'NON GST'
   ? 'Saving Account'
   : 'Current Account';
@@ -278,6 +283,10 @@ const createEmptyLine = (defaults = {}) => ({
   frequency: '',
   sac: '',
   itemType: 'service',
+  serviceRelationshipType: defaults.serviceRelationshipType || 'ONE_TIME',
+  renewalEligible: defaults.renewalEligible ?? false,
+  contractDurationValue: defaults.contractDurationValue || '',
+  contractDurationUnit: defaults.contractDurationUnit || 'MONTH',
   contractPeriod: '',
   contractStartDate: defaults.contractStartDate || '',
   contractStartDateSource: defaults.contractStartDateSource || (defaults.contractStartDate ? 'manual' : 'invoice-date'),
@@ -2411,6 +2420,10 @@ export default function InvoiceDashboard() {
         sac: line.sac || '',
         itemType: line.itemType || 'service',
         contractPeriod: line.contractPeriod || '',
+        serviceRelationshipType: line.serviceRelationshipType || line.service_relationship_type || 'ONE_TIME',
+        renewalEligible: line.renewalEligible ?? line.renewal_eligible ?? false,
+        contractDurationValue: line.contractDurationValue || line.contract_duration_value || '',
+        contractDurationUnit: line.contractDurationUnit || line.contract_duration_unit || 'MONTH',
         contractStartDate: line.contractStartDate || '',
         contractStartDateSource: line.contractStartDate && invoiceDate && normalizeDateInput(line.contractStartDate) !== invoiceDate
           ? 'manual'
@@ -3283,6 +3296,10 @@ export default function InvoiceDashboard() {
         ...line,
         description: String(line.frequency || line.description || '').trim(),
         frequency: String(line.frequency || line.description || '').trim(),
+        serviceRelationshipType: String(line.serviceRelationshipType || 'ONE_TIME').trim(),
+        renewalEligible: Boolean(line.renewalEligible || line.serviceRelationshipType === 'CONTRACT'),
+        contractDurationValue: line.contractDurationValue || '',
+        contractDurationUnit: line.contractDurationUnit || 'MONTH',
         quantity: parseDecimalNumber(line.quantity, 0),
         rate: parseDecimalNumber(line.rate, 0),
         taxRate: invoiceType === 'NON GST' ? 0 : parseDecimalNumber(line.taxRate, 0)
@@ -3294,8 +3311,9 @@ export default function InvoiceDashboard() {
       return;
     }
 
-    const totals = computeTotals(validItems, invoiceType);
-    const invoiceTotal = Number(form.total || totals.total || 0);
+	    const totals = computeTotals(validItems, invoiceType);
+	    const primaryRelationshipLine = validItems.find((line) => line.serviceRelationshipType === 'CONTRACT') || validItems[0] || {};
+	    const invoiceTotal = Number(form.total || totals.total || 0);
     const paymentSplitsSource = Array.isArray(form.paymentSplits) && form.paymentSplits.length > 0
       ? form.paymentSplits
       : [createEmptyPaymentSplit(getDefaultPaymentDepositTo(invoiceType))];
@@ -3361,8 +3379,12 @@ export default function InvoiceDashboard() {
       customerId: form.customerId,
       customerName: form.customerName.trim(),
       invoiceType,
-      customerType: String(form.customerType || 'New').trim() || 'New',
-      billingAddressSource: form.billingAddressSource,
+	      customerType: String(form.customerType || 'New').trim() || 'New',
+	      serviceRelationshipType: primaryRelationshipLine.serviceRelationshipType || 'ONE_TIME',
+	      renewalEligible: Boolean(primaryRelationshipLine.renewalEligible || primaryRelationshipLine.serviceRelationshipType === 'CONTRACT'),
+	      contractDurationValue: primaryRelationshipLine.contractDurationValue || '',
+	      contractDurationUnit: primaryRelationshipLine.contractDurationUnit || 'MONTH',
+	      billingAddressSource: form.billingAddressSource,
       shippingAddressSource: form.shippingAddressSource,
       customShippingAddresses: form.customShippingAddresses || [],
       placeOfSupply: normalizeGstState(selectedShippingAddress?.placeOfSupply || form.placeOfSupply),
@@ -4503,9 +4525,24 @@ export default function InvoiceDashboard() {
                                 <span style={shell.tinyText}>
                                   {line.itemType?.toUpperCase() || 'SERVICE'} SAC: {line.sac || '-'}
                                 </span>
-                                <div style={itemMetaGridStyle}>
-                                  <div style={itemMetaFieldStyle}>
-                                    <span style={itemMetaLabelStyle}>Contract Period</span>
+	                                <div style={itemMetaGridStyle}>
+	                                  <div style={itemMetaFieldStyle}>
+	                                    <span style={itemMetaLabelStyle}>Service Relationship</span>
+	                                    <select
+	                                      style={compactItemMetaInputStyle}
+	                                      value={line.serviceRelationshipType || 'ONE_TIME'}
+	                                      onChange={(event) => updateLine(index, {
+	                                        serviceRelationshipType: event.target.value,
+	                                        renewalEligible: event.target.value === 'CONTRACT'
+	                                      })}
+	                                    >
+	                                      {serviceRelationshipOptions.map((option) => (
+	                                        <option key={option.value} value={option.value}>{option.label}</option>
+	                                      ))}
+	                                    </select>
+	                                  </div>
+	                                  <div style={itemMetaFieldStyle}>
+	                                    <span style={itemMetaLabelStyle}>Contract Period</span>
                                     <select
                                       style={compactItemMetaInputStyle}
                                       value={line.contractPeriod || ''}
@@ -4526,17 +4563,52 @@ export default function InvoiceDashboard() {
                                       ariaLabel="contract start date"
                                     />
                                   </div>
-                                  <div style={itemMetaFieldStyle}>
-                                    <span style={itemMetaLabelStyle}>Contract End Date</span>
+	                                  <div style={itemMetaFieldStyle}>
+	                                    <span style={itemMetaLabelStyle}>Contract End Date</span>
                                     <CompactCalendarDateInput
                                       style={compactContractDateInputStyle}
                                       value={line.contractEndDate || ''}
                                       readOnly
                                       ariaLabel="contract end date"
                                     />
-                                  </div>
-                                  <div style={itemMetaFieldStyle}>
-                                    <span style={itemMetaLabelStyle}>Renewal Date</span>
+	                                  </div>
+	                                  {line.serviceRelationshipType === 'CONTRACT' ? (
+	                                    <>
+	                                      <div style={itemMetaFieldStyle}>
+	                                        <span style={itemMetaLabelStyle}>Duration Value</span>
+	                                        <input
+	                                          style={compactItemMetaInputStyle}
+	                                          value={line.contractDurationValue || ''}
+	                                          onChange={(event) => updateLine(index, { contractDurationValue: event.target.value })}
+	                                        />
+	                                      </div>
+	                                      <div style={itemMetaFieldStyle}>
+	                                        <span style={itemMetaLabelStyle}>Duration Unit</span>
+	                                        <select
+	                                          style={compactItemMetaInputStyle}
+	                                          value={line.contractDurationUnit || 'MONTH'}
+	                                          onChange={(event) => updateLine(index, { contractDurationUnit: event.target.value })}
+	                                        >
+	                                          <option value="DAY">Day</option>
+	                                          <option value="MONTH">Month</option>
+	                                          <option value="YEAR">Year</option>
+	                                        </select>
+	                                      </div>
+	                                      <div style={itemMetaFieldStyle}>
+	                                        <span style={itemMetaLabelStyle}>Renewal Eligible</span>
+	                                        <select
+	                                          style={compactItemMetaInputStyle}
+	                                          value={line.renewalEligible ? 'yes' : 'no'}
+	                                          onChange={(event) => updateLine(index, { renewalEligible: event.target.value === 'yes' })}
+	                                        >
+	                                          <option value="yes">Yes</option>
+	                                          <option value="no">No</option>
+	                                        </select>
+	                                      </div>
+	                                    </>
+	                                  ) : null}
+	                                  <div style={itemMetaFieldStyle}>
+	                                    <span style={itemMetaLabelStyle}>Renewal Date</span>
                                     <CompactCalendarDateInput
                                       style={compactContractDateInputStyle}
                                       value={line.renewalDate || ''}
