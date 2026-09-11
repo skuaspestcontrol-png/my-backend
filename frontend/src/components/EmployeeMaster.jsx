@@ -758,7 +758,7 @@ export default function EmployeeMaster() {
       closeModal();
     } catch (error) {
       console.error('Failed to save employee', error);
-      setStatus('Failed to save employee.');
+      setStatus(error?.response?.data?.error || error?.message || 'Failed to save employee.');
     } finally {
       setIsSaving(false);
     }

@@ -5269,7 +5269,8 @@ const ensureEmployeeAuthColumns = async (conn) => {
     { name: 'employment_status', definition: 'VARCHAR(40) NULL' },
     { name: 'resignation_date', definition: 'DATE NULL' },
     { name: 'app_access_enabled', definition: 'TINYINT(1) NOT NULL DEFAULT 0' },
-    { name: 'web_portal_access_enabled', definition: 'TINYINT(1) NOT NULL DEFAULT 0' }
+    { name: 'web_portal_access_enabled', definition: 'TINYINT(1) NOT NULL DEFAULT 0' },
+    { name: 'status', definition: 'VARCHAR(80) NULL' }
   ]);
   employeeAuthColumnsEnsured = true;
 };
@@ -6088,7 +6089,7 @@ app.get('/api/employees', async (req, res) => {
     const mysqlRows = await withMysqlConnection(async (conn) => {
       await ensureEmployeeAuthColumns(conn);
       const [rows] = await conn.query(
-        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, status, payload
+        `SELECT id, external_id, emp_code, first_name, last_name, role, role_name, mobile, password, email, portal_password, city, pincode, profile_photo, present_address, salary, joining_date, employment_status, resignation_date, status, app_access_enabled, web_portal_access_enabled, payload
          FROM employees
          ORDER BY id DESC`
       );
