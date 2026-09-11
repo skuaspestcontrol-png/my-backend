@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS renewals (
   area_name VARCHAR(255) NULL,
   service_type VARCHAR(255) NULL,
   contract_id VARCHAR(100) NULL,
-  service_relationship_type VARCHAR(30) NOT NULL DEFAULT 'ONE_TIME',
+  service_relationship_type VARCHAR(30) NOT NULL DEFAULT 'NEEDS_REVIEW',
   renewal_eligible TINYINT(1) NOT NULL DEFAULT 0,
   contract_duration_value INT NULL,
   contract_duration_unit VARCHAR(20) NULL,
@@ -70,7 +70,7 @@ EXECUTE renewal_display_id_stmt;
 DEALLOCATE PREPARE renewal_display_id_stmt;
 
 SET @renewal_col_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'renewals' AND COLUMN_NAME = 'service_relationship_type');
-SET @renewal_col_sql := IF(@renewal_col_exists = 0, 'ALTER TABLE renewals ADD COLUMN service_relationship_type VARCHAR(30) NOT NULL DEFAULT ''ONE_TIME''', 'SELECT 1');
+SET @renewal_col_sql := IF(@renewal_col_exists = 0, 'ALTER TABLE renewals ADD COLUMN service_relationship_type VARCHAR(30) NOT NULL DEFAULT ''NEEDS_REVIEW''', 'SELECT 1');
 PREPARE renewal_col_stmt FROM @renewal_col_sql; EXECUTE renewal_col_stmt; DEALLOCATE PREPARE renewal_col_stmt;
 
 SET @renewal_col_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'renewals' AND COLUMN_NAME = 'renewal_eligible');

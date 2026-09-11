@@ -541,6 +541,14 @@ const tableDefinitions = [
       'area_name VARCHAR(255) NULL',
       'service_type VARCHAR(255) NULL',
       'contract_id VARCHAR(100) NULL',
+      "service_relationship_type VARCHAR(30) NOT NULL DEFAULT 'NEEDS_REVIEW'",
+      'renewal_eligible TINYINT(1) NOT NULL DEFAULT 0',
+      'contract_duration_value INT NULL',
+      'contract_duration_unit VARCHAR(20) NULL',
+      'renewal_status VARCHAR(40) NULL',
+      'renewal_excluded TINYINT(1) NOT NULL DEFAULT 0',
+      'audit_suggestion VARCHAR(80) NULL',
+      'audit_evidence JSON NULL',
       'previous_contract_start DATE NULL',
       'previous_contract_end DATE NULL',
       'renewal_due_date DATE NULL',
@@ -573,6 +581,9 @@ const tableDefinitions = [
       'KEY idx_renewals_assigned_sales (assigned_sales_person_id)',
       'KEY idx_renewals_customer_id (customer_id)',
       'KEY idx_renewals_contract_id (contract_id)',
+      'KEY idx_renewals_relationship_type (service_relationship_type)',
+      'KEY idx_renewals_renewal_status (renewal_status)',
+      'KEY idx_renewals_eligible (renewal_eligible)',
       'KEY idx_renewals_invoice (invoice_external_id)',
       'KEY idx_renewals_status (status)'
     ]),
@@ -582,7 +593,10 @@ const tableDefinitions = [
       idx_renewals_status: 'CREATE INDEX idx_renewals_status ON renewals (status)',
       idx_renewals_assigned_sales: 'CREATE INDEX idx_renewals_assigned_sales ON renewals (assigned_sales_person_id)',
       idx_renewals_customer_id: 'CREATE INDEX idx_renewals_customer_id ON renewals (customer_id)',
-      idx_renewals_contract_id: 'CREATE INDEX idx_renewals_contract_id ON renewals (contract_id)'
+      idx_renewals_contract_id: 'CREATE INDEX idx_renewals_contract_id ON renewals (contract_id)',
+      idx_renewals_relationship_type: 'CREATE INDEX idx_renewals_relationship_type ON renewals (service_relationship_type)',
+      idx_renewals_renewal_status: 'CREATE INDEX idx_renewals_renewal_status ON renewals (renewal_status)',
+      idx_renewals_eligible: 'CREATE INDEX idx_renewals_eligible ON renewals (renewal_eligible)'
     }
   },
   {
@@ -613,6 +627,23 @@ const tableDefinitions = [
     ], ['KEY idx_renewal_letters_renewal_id (renewal_id)']),
     indexes: {
       idx_renewal_letters_renewal_id: 'CREATE INDEX idx_renewal_letters_renewal_id ON renewal_letters (renewal_id)'
+    }
+  },
+  {
+    name: 'renewal_audit_logs',
+    createSql: createBaseTableSql('renewal_audit_logs', [
+      'renewal_id VARCHAR(100) NULL',
+      'action VARCHAR(80) NOT NULL',
+      'previous_value JSON NULL',
+      'next_value JSON NULL',
+      'created_by VARCHAR(255) NULL'
+    ], [
+      'KEY idx_renewal_audit_logs_renewal_id (renewal_id)',
+      'KEY idx_renewal_audit_logs_action (action)'
+    ]),
+    indexes: {
+      idx_renewal_audit_logs_renewal_id: 'CREATE INDEX idx_renewal_audit_logs_renewal_id ON renewal_audit_logs (renewal_id)',
+      idx_renewal_audit_logs_action: 'CREATE INDEX idx_renewal_audit_logs_action ON renewal_audit_logs (action)'
     }
   },
   {
@@ -1112,6 +1143,9 @@ const collectColumns = () => {
     renewal_id: 'VARCHAR(100) NULL', renewal_display_id: 'VARCHAR(100) NULL', customer_id: 'INT NULL', mobile: 'VARCHAR(50) NULL',
     email: 'VARCHAR(255) NULL', address: 'TEXT NULL', area_name: 'VARCHAR(255) NULL',
     service_type: 'VARCHAR(255) NULL', contract_id: 'VARCHAR(100) NULL',
+    service_relationship_type: "VARCHAR(30) NOT NULL DEFAULT 'NEEDS_REVIEW'", renewal_eligible: 'TINYINT(1) NOT NULL DEFAULT 0',
+    contract_duration_value: 'INT NULL', contract_duration_unit: 'VARCHAR(20) NULL', renewal_status: 'VARCHAR(40) NULL',
+    renewal_excluded: 'TINYINT(1) NOT NULL DEFAULT 0', audit_suggestion: 'VARCHAR(80) NULL', audit_evidence: 'JSON NULL',
     previous_contract_start: 'DATE NULL', previous_contract_end: 'DATE NULL', renewal_due_date: 'DATE NULL',
     previous_amount: 'DECIMAL(12,2) NOT NULL DEFAULT 0', proposed_amount: 'DECIMAL(12,2) NOT NULL DEFAULT 0',
     final_renewal_amount: 'DECIMAL(12,2) NOT NULL DEFAULT 0', assigned_sales_person_id: 'VARCHAR(100) NULL',
@@ -1131,6 +1165,10 @@ const collectColumns = () => {
   add('renewal_letters', {
     renewal_id: 'VARCHAR(100) NULL', pdf_url: 'TEXT NULL', customer_name: 'VARCHAR(255) NULL',
     generated_by: 'VARCHAR(255) NULL', generated_at: 'TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP'
+  });
+  add('renewal_audit_logs', {
+    renewal_id: 'VARCHAR(100) NULL', action: 'VARCHAR(80) NOT NULL', previous_value: 'JSON NULL',
+    next_value: 'JSON NULL', created_by: 'VARCHAR(255) NULL'
   });
   add('payroll_runs', {
     run_key: 'VARCHAR(160) NULL', month: 'INT NULL', year: 'INT NULL', status: 'VARCHAR(80) NULL',

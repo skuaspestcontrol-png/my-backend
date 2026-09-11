@@ -7,7 +7,7 @@ import PdfPreviewModal from './PdfPreviewModal';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import ActionMenu from './ui/ActionMenu';
 import { consumeRenewalsFocus, subscribeRenewalsRefresh, triggerContractsRefresh } from '../pages/sales-performance/salesPerformanceApi';
-import { getPortalUserName } from '../utils/portalAuth';
+import { getPortalUser, getPortalUserId, getPortalUserName, getPortalUserRole } from '../utils/portalAuth';
 import { formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
 import {
   CalendarClock,
@@ -28,7 +28,8 @@ const relationshipTypes = [
   { value: 'All', label: 'All' },
   { value: 'CONTRACT', label: 'Contract' },
   { value: 'ONE_TIME', label: 'One-Time' },
-  { value: 'RECURRING', label: 'Recurring' }
+  { value: 'RECURRING', label: 'Recurring' },
+  { value: 'NEEDS_REVIEW', label: 'Needs Review' }
 ];
 const ranges = [
   { value: 'thisMonth', label: 'This Month' },
@@ -779,6 +780,30 @@ export default function RenewalDashboard() {
   const paginationText = visibleRows.length ? `${firstRecord}-${lastRecord} of ${visibleRows.length} records` : '0 records';
   const paginationStyle = isMobile ? { ...shell.pagination, flexDirection: 'column', alignItems: 'stretch' } : shell.pagination;
   const paginationActionsStyle = isMobile ? { ...shell.paginationActions, justifyContent: 'flex-end' } : shell.paginationActions;
+  const portalUser = getPortalUser() || {};
+  const portalRole = String(getPortalUserRole() || '').trim().toLowerCase();
+  const portalName = String(getPortalUserName() || portalUser.name || '').trim().toLowerCase();
+  const portalIds = new Set([
+    getPortalUserId(),
+    portalUser.id,
+    portalUser.employeeId,
+    portalUser.employeeCode,
+    portalName
+  ].filter(Boolean).map((value) => String(value).trim().toLowerCase()));
+  const canAdminRenewals = portalRole === 'admin' || portalRole === 'super admin' || portalRole === 'superadmin';
+  const canManageRenewals = canAdminRenewals || portalRole.includes('manager') || ['operations', 'sales lead', 'team lead'].includes(portalRole);
+  const canUseAssignedRenewal = (row = {}) => {
+    if (canManageRenewals) return true;
+    if (!portalRole.includes('sales')) return false;
+    return [
+      row.assignedSalesPersonId,
+      row.assigned_sales_person_id,
+      row.assignedSalesPersonName,
+      row.assigned_sales_person_name,
+      row.renewedBySalesPersonId,
+      row.renewedBySalesPersonName
+    ].filter(Boolean).some((value) => portalIds.has(String(value).trim().toLowerCase()));
+  };
 
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
@@ -946,19 +971,19 @@ export default function RenewalDashboard() {
   };
   const isFinalRow = (row) => ['Renewed', 'Declined'].includes(String(row?.status || ''));
   const isOneTimeRow = (row) => row?.serviceRelationshipType === 'ONE_TIME';
-  const canRenewRow = (row) => row?.serviceRelationshipType === 'CONTRACT' && row?.renewalEligible && !isFinalRow(row);
-  const canConvertOneTimeRow = (row) => isOneTimeRow(row) && !row?.convertedContractId;
+  const canRenewRow = (row) => canUseAssignedRenewal(row) && row?.serviceRelationshipType === 'CONTRACT' && row?.renewalEligible && !isFinalRow(row);
+  const canConvertOneTimeRow = (row) => canUseAssignedRenewal(row) && isOneTimeRow(row) && !row?.convertedContractId;
   const rowMoreItems = (row) => [
     { label: 'View Details', onClick: () => openModal('view', row) },
-    row.serviceRelationshipType === 'CONTRACT' ? { label: 'Renewal Letter', onClick: () => openRenewalPdfPreview(row) } : null,
-    { label: 'Assign / Change Sales Person', onClick: () => openModal('assign', row) },
-    row.status !== 'Declined' && row.serviceRelationshipType === 'CONTRACT' ? { label: 'Decline Renewal', onClick: () => openModal('decline', row) } : null
+    canUseAssignedRenewal(row) && row.serviceRelationshipType === 'CONTRACT' ? { label: 'Renewal Letter', onClick: () => openRenewalPdfPreview(row) } : null,
+    canManageRenewals ? { label: 'Assign / Change Sales Person', onClick: () => openModal('assign', row) } : null,
+    canUseAssignedRenewal(row) && row.status !== 'Declined' && row.serviceRelationshipType === 'CONTRACT' ? { label: 'Decline Renewal', onClick: () => openModal('decline', row) } : null
   ];
   const renderRowActions = (row, mobile = false) => {
     const buttonBase = mobile ? shell.ghostBtn : shell.iconBtn;
     return (
       <div style={{ ...shell.rowActions, justifyContent: 'flex-start', flexWrap: mobile ? 'wrap' : 'nowrap' }}>
-        {!isFinalRow(row) ? (
+        {canUseAssignedRenewal(row) && !isFinalRow(row) ? (
           <button
             className="crm-icon-action-btn"
             style={buttonBase}
@@ -1300,8 +1325,8 @@ export default function RenewalDashboard() {
                 <span>Proposed Amount: {formatINR(row.proposedAmount)}</span>
                 <span>Sales Person: {row.assignedSalesPersonName || '-'}</span>
                 {row.renewalLetterUrl ? <a href={`${API_BASE}${row.renewalLetterUrl}`} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(row); }} rel="noreferrer">Open renewal letter</a> : null}
-                <button style={shell.ghostBtn} onClick={() => openModal('edit', row)}>Edit Renewal</button>
-                {row.status === 'Done' && !row.convertedContractId ? <button style={shell.primaryBtn} onClick={() => openModal('convert', row)}>Convert to New Contract</button> : null}
+                {canUseAssignedRenewal(row) ? <button style={shell.ghostBtn} onClick={() => openModal('edit', row)}>Edit Renewal</button> : null}
+                {canUseAssignedRenewal(row) && row.status === 'Done' && !row.convertedContractId ? <button style={shell.primaryBtn} onClick={() => openModal('convert', row)}>Convert to New Contract</button> : null}
               </div>
             )}
             {modal.type === 'edit' && (
@@ -1442,7 +1467,7 @@ export default function RenewalDashboard() {
         </div>
         <div style={shell.actions}>
           <button type="button" style={shell.ghostBtn} onClick={loadData}><RefreshCw size={15} />Refresh</button>
-          <button type="button" style={shell.primaryBtn} onClick={syncRenewals}><RefreshCw size={15} />Sync Renewals</button>
+          {canAdminRenewals ? <button type="button" style={shell.primaryBtn} onClick={syncRenewals}><RefreshCw size={15} />Sync Renewals</button> : null}
         </div>
       </div>
 
@@ -1475,7 +1500,7 @@ export default function RenewalDashboard() {
         {!loading && ['Renewals', 'Upcoming', 'Overdue', 'Renewed', 'Declined', 'One-Time Treatments'].includes(activeTab) ? renderRows() : null}
         {!loading && activeTab === 'Reports' ? (
           <div style={{ ...shell.chartGrid, padding: 12 }}>
-            {renderAuditPanel()}
+            {canAdminRenewals ? renderAuditPanel() : null}
             {renderSummaryList(summary.monthWiseSummary, 'period')}
             {renderSummaryList(summary.yearWiseSummary, 'year')}
             {renderSummaryList(summary.salespersonWiseSummary, 'name', 'total', { onCountClick: drillDownBySalesPerson })}
