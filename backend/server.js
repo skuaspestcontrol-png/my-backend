@@ -1203,6 +1203,7 @@ const parseMysqlEmployeeRow = (row = {}) => {
   if (typeof rawPayload === 'string') {
     try { payload = JSON.parse(rawPayload); } catch { payload = {}; }
   }
+  const storedPortalPassword = firstNonEmptyText(row?.password, row?.portal_password, payload?.portalPassword, payload?.password, payload?.loginPassword, payload?.empPassword);
   const toBooleanDbValue = (value) => ['1', 'true', 'yes', 'enabled', 'active', 'on'].includes(String(value ?? '').trim().toLowerCase());
   const firstName = String(payload.firstName ?? row?.first_name ?? '').trim();
   const lastName = String(payload.lastName ?? row?.last_name ?? '').trim();
@@ -1235,14 +1236,69 @@ const parseMysqlEmployeeRow = (row = {}) => {
     employeePhotoUrl: profilePhoto,
     profile_photo: profilePhoto,
     present_address: String(row?.present_address ?? payload.present_address ?? '').trim(),
-    appAccessEnabled: Boolean(row?.app_access_enabled ?? payload.appAccessEnabled ?? false),
-    webPortalAccessEnabled: Boolean(row?.web_portal_access_enabled ?? payload.webPortalAccessEnabled ?? payload.portalAccess ?? false),
+    appAccessEnabled: toBooleanDbValue(row?.app_access_enabled ?? payload.appAccessEnabled ?? false),
+    webPortalAccessEnabled: toBooleanDbValue(row?.web_portal_access_enabled ?? payload.webPortalAccessEnabled ?? payload.portalAccess ?? false),
     portalAccess,
-    portalPassword: String(row?.password ?? row?.portal_password ?? payload?.portalPassword ?? '').trim()
+    has_portal_password: Boolean(storedPortalPassword),
+    hasPortalPassword: Boolean(storedPortalPassword)
   };
 };
 
 const toBooleanFlag = (value) => ['1', 'true', 'yes', 'y', 'enabled', 'active', 'on'].includes(String(value ?? '').trim().toLowerCase());
+
+function firstNonEmptyText(...values) {
+  for (const value of values) {
+    const text = String(value ?? '').trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+const hasPortalAccessEnabled = (employee = {}) => {
+  const role = String(employee.role || employee.roleName || employee.role_name || '').trim().toLowerCase();
+  return (
+    role.includes('technician')
+    || role.includes('sales')
+    || toBooleanFlag(employee.appAccessEnabled ?? employee.app_access_enabled)
+    || toBooleanFlag(employee.webPortalAccessEnabled ?? employee.web_portal_access_enabled ?? employee.portalAccess)
+  );
+};
+
+const sanitizeEmployeeForClient = (employee = {}) => {
+  if (!employee || typeof employee !== 'object') return employee;
+  const sanitized = { ...employee };
+  const storedPortalPassword = String(
+    employee.portalPassword
+    ?? employee.password
+    ?? employee.portal_password
+    ?? employee.loginPassword
+    ?? employee.empPassword
+    ?? ''
+  ).trim();
+  delete sanitized.password;
+  delete sanitized.portal_password;
+  delete sanitized.portalPassword;
+  delete sanitized.loginPassword;
+  delete sanitized.empPassword;
+  delete sanitized._storedPortalPassword;
+  if (sanitized.payload) {
+    let payload = {};
+    if (typeof sanitized.payload === 'object') {
+      payload = { ...sanitized.payload };
+    } else if (typeof sanitized.payload === 'string') {
+      try { payload = JSON.parse(sanitized.payload); } catch { payload = {}; }
+    }
+    delete payload.password;
+    delete payload.portal_password;
+    delete payload.portalPassword;
+    delete payload.loginPassword;
+    delete payload.empPassword;
+    sanitized.payload = payload;
+  }
+  sanitized.has_portal_password = Boolean(employee.has_portal_password || employee.hasPortalPassword || storedPortalPassword);
+  sanitized.hasPortalPassword = sanitized.has_portal_password;
+  return sanitized;
+};
 
 const writeJsonFile = (filePath, value) => {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
@@ -3477,10 +3533,10 @@ const resolveEmployeeLoginRecord = async (mobile) => {
           role: String(payload.role ?? row.role ?? '').trim(),
           roleName: String(payload.roleName ?? row.role_name ?? '').trim(),
           mobile: String(payload.mobile ?? row.mobile ?? '').trim(),
-          portalPassword: String(payload.portalPassword ?? row.password ?? row.portal_password ?? '').trim(),
-          webPortalAccessEnabled: Boolean(payload.webPortalAccessEnabled ?? payload.portalAccess ?? row.status),
+          portalPassword: firstNonEmptyText(row.password, row.portal_password, payload.portalPassword, payload.password, payload.loginPassword, payload.empPassword),
+          webPortalAccessEnabled: toBooleanFlag(payload.webPortalAccessEnabled ?? payload.portalAccess ?? row.status),
           portalAccess: payload.portalAccess ?? row.status ?? '',
-          appAccessEnabled: Boolean(payload.appAccessEnabled),
+          appAccessEnabled: toBooleanFlag(payload.appAccessEnabled),
           email: String(payload.email ?? payload.emailId ?? row.email ?? '').trim(),
           employmentStatus: normalizeEmploymentStatus(payload.employmentStatus ?? row.employment_status ?? (payload.resignationDate || payload.resignation_date ? 'Resigned' : 'Active'), 'Active'),
           resignationDate: normalizeDateOnly(payload.resignationDate ?? row.resignation_date ?? '')
@@ -6083,7 +6139,7 @@ app.delete('/api/leads/:id', async (req, res) => {
 app.get('/api/employees', async (req, res) => {
   if (!canUseMysql()) {
     const rows = readJsonFile(employeesFile, []);
-    return res.json(Array.isArray(rows) ? rows : []);
+    return res.json((Array.isArray(rows) ? rows : []).map(sanitizeEmployeeForClient));
   }
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
@@ -6095,7 +6151,7 @@ app.get('/api/employees', async (req, res) => {
       );
       return Array.isArray(rows) ? rows : [];
     });
-    return res.json(mysqlRows.map(parseMysqlEmployeeRow));
+    return res.json(mysqlRows.map(parseMysqlEmployeeRow).map(sanitizeEmployeeForClient));
   } catch (error) {
     console.error('MySQL employees read failed:', error.message);
     return res.status(500).json({ error: error.message || 'Failed to fetch employees from MySQL' });
@@ -6105,6 +6161,9 @@ app.get('/api/employees', async (req, res) => {
 app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), security.validateUploadedFiles, async (req, res) => {
   try {
     const emp = normalizePhoneFields(req.body || {}, ['mobile', 'emergencyContactNumber', 'emergency_contact_number'], ['mobile']);
+    if (hasPortalAccessEnabled(emp) && !String(emp.portalPassword || '').trim()) {
+      return res.status(400).json({ error: 'Password is required when App/Web portal access is enabled.' });
+    }
     if (emp.portalPassword) emp.portalPassword = await hashPassword(emp.portalPassword);
     delete emp.password;
     delete emp.portal_password;
@@ -6130,7 +6189,7 @@ app.post("/api/employees", employeePhotoUpload.single('profilePhoto'), security.
       else nextRows.push(next);
       fs.writeFileSync(employeesFile, JSON.stringify(nextRows, null, 2));
       invalidateDashboardSummaryCache();
-      return res.json({ success: true, _id: externalId });
+      return res.json({ success: true, _id: externalId, employee: sanitizeEmployeeForClient(next) });
     }
 
     const externalId = emp._id || Date.now().toString();
@@ -6266,7 +6325,9 @@ const fetchEmployeeByAnyId = async (employeeId) => {
         roleName: String(payload.roleName ?? row.role_name ?? '').trim(),
         mobile: String(payload.mobile ?? row.mobile ?? '').trim(),
         email: String(payload.email ?? payload.emailId ?? row.email ?? '').trim(),
-        portalPassword: String(payload.portalPassword ?? row.password ?? row.portal_password ?? '').trim(),
+        _storedPortalPassword: firstNonEmptyText(row.password, row.portal_password, payload.portalPassword, payload.password, payload.loginPassword, payload.empPassword),
+        has_portal_password: Boolean(firstNonEmptyText(row.password, row.portal_password, payload.portalPassword, payload.password, payload.loginPassword, payload.empPassword)),
+        hasPortalPassword: Boolean(firstNonEmptyText(row.password, row.portal_password, payload.portalPassword, payload.password, payload.loginPassword, payload.empPassword)),
         city: String(payload.city ?? row.city ?? '').trim(),
         pincode: String(payload.pincode ?? row.pincode ?? '').trim(),
         employeePhotoUrl: String(row?.profile_photo ?? payload.profile_photo ?? payload.employeePhotoUrl ?? '').trim(),
@@ -6320,7 +6381,10 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), securi
     if (incoming.portalPassword) incoming.portalPassword = await hashPassword(incoming.portalPassword);
     else {
       const existing = previousEmployeeForRevocation;
-      incoming.portalPassword = String(existing?.portalPassword || '');
+      incoming.portalPassword = String(existing?._storedPortalPassword || existing?.portalPassword || '');
+    }
+    if (hasPortalAccessEnabled(incoming) && !String(incoming.portalPassword || '').trim()) {
+      return res.status(400).json({ error: 'Password is required when App/Web portal access is enabled.' });
     }
     delete incoming.password;
     delete incoming.portal_password;
@@ -6393,7 +6457,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), securi
       if (shouldRevokeEmployeeSessions({ passwordChanged: employeePasswordChanged, previous: previousEmployeeForRevocation || {}, next: nextRows[index] })) {
         sessionRevocations?.revokeUser(employeeSessionIdentity(nextRows[index], employeeId), 'employee_access_changed');
       }
-      return res.json({ success: true, employee: nextRows[index] });
+      return res.json({ success: true, employee: sanitizeEmployeeForClient(nextRows[index]) });
     } catch (error) {
       console.error('Employees JSON update failed:', error.message);
       return res.status(500).json({ error: error.message || 'Failed to update employee in JSON storage' });
@@ -6445,7 +6509,7 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), securi
       sessionRevocations?.revokeUser(employeeSessionIdentity(updatedEmployee, employeeId), 'employee_access_changed');
     }
     invalidateDashboardSummaryCache();
-    return res.json({ success: true, employee: updatedEmployee });
+    return res.json({ success: true, employee: sanitizeEmployeeForClient(updatedEmployee) });
   } catch (error) {
     console.error('MySQL employees update failed:', error.message);
     return res.status(500).json({ error: error.message || 'Failed to update employee in MySQL' });

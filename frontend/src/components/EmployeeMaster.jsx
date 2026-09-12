@@ -50,6 +50,7 @@ const defaultForm = {
   appAccessEnabled: false,
   webPortalAccessEnabled: false,
   portalPassword: '',
+  hasPortalPassword: false,
   bankNo: '',
   bankName: '',
   ifsc: '',
@@ -305,6 +306,7 @@ const buildEmployeeCode = (settings, employees) => {
 
 const normalizeEmployee = (employee = {}) => {
   const salary = Number(employee.salaryPerMonth ?? employee.salary ?? 0);
+  const hasPortalPassword = Boolean(employee.has_portal_password || employee.hasPortalPassword);
   const normalizedEmploymentStatus = normalizeEmploymentStatus(
     employee.employmentStatus
     || employee.employment_status
@@ -347,7 +349,8 @@ const normalizeEmployee = (employee = {}) => {
     annualSalary: String(toAnnual(salary)),
     appAccessEnabled: Boolean(employee.appAccessEnabled),
     webPortalAccessEnabled: Boolean(employee.webPortalAccessEnabled || employee.portalAccess === 'Yes' || employee.portalAccess === true),
-    portalPassword: employee.portalPassword || '',
+    portalPassword: '',
+    hasPortalPassword,
     bankNo: employee.bankNo || '',
     bankName: employee.bankName || '',
     ifsc: employee.ifsc || '',
@@ -619,12 +622,11 @@ export default function EmployeeMaster() {
 
   const openAddEmployee = () => {
     setEditingId('');
-    setForm((prev) => ({
+    setForm({
       ...defaultForm,
-      ...prev,
       empCode: buildEmployeeCode(settings, employees),
       annualSalary: '0'
-    }));
+    });
     setStatus('');
     setSameAsPermanentAddress(false);
     setShowPortalPassword(false);
@@ -679,11 +681,10 @@ export default function EmployeeMaster() {
 
     const portalEligibleRole = isPortalEligibleRole(form.role);
     const anyPortalAccess = portalEligibleRole || form.appAccessEnabled || form.webPortalAccessEnabled;
-    if (anyPortalAccess) {
-      if (!String(form.portalPassword || '').trim()) {
-        setStatus('Password is required when App/Web portal access is enabled.');
-        return;
-      }
+    const newPortalPassword = String(form.portalPassword || '').trim();
+    if (anyPortalAccess && !newPortalPassword && (!editingId || !form.hasPortalPassword)) {
+      setStatus('Password is required when App/Web portal access is enabled.');
+      return;
     }
 
     const payload = {
@@ -724,7 +725,7 @@ export default function EmployeeMaster() {
       appAccessEnabled: portalEligibleRole ? true : Boolean(form.appAccessEnabled),
       webPortalAccessEnabled: portalEligibleRole ? true : Boolean(form.webPortalAccessEnabled),
       portalAccess: (portalEligibleRole ? true : Boolean(form.webPortalAccessEnabled)) ? 'Yes' : 'No',
-      portalPassword: String(form.portalPassword || '').trim(),
+      portalPassword: newPortalPassword,
       bankNo: String(form.bankNo || '').trim(),
       bankName: String(form.bankName || '').trim(),
       ifsc: String(form.ifsc || '').trim().toUpperCase(),
@@ -1227,7 +1228,10 @@ export default function EmployeeMaster() {
                         style={shell.input}
                         value={form.portalPassword}
                         onChange={(event) => updateField('portalPassword', event.target.value)}
-                        placeholder="Enter password for portal login"
+                        placeholder={editingId ? 'Leave blank to keep current password' : 'Enter password for portal login'}
+                        name="employee-portal-password-change"
+                        autoComplete="new-password"
+                        data-lpignore="true"
                       />
                       <button
                         type="button"
