@@ -15702,24 +15702,142 @@ app.use('/api', createEmailRouter({
   resolveServerOrigin
 }));
 
-const ensureTechnicianLocationTable = async (conn) => {
+const isValidTechnicianCoordinate = (latitude, longitude) => (
+  Number.isFinite(latitude)
+  && Number.isFinite(longitude)
+  && Math.abs(latitude) <= 90
+  && Math.abs(longitude) <= 180
+  && !(latitude === 0 && longitude === 0)
+);
+
+const isRecentTechnicianLocation = (value, windowMinutes = 10) => {
+  const timestamp = new Date(value || 0).getTime();
+  if (!Number.isFinite(timestamp)) return false;
+  return Date.now() - timestamp <= windowMinutes * 60 * 1000;
+};
+
+const formatMysqlDateTime = (value) => {
+  const date = value ? new Date(value) : new Date();
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  const pad = (number) => String(number).padStart(2, '0');
+  return `${safeDate.getUTCFullYear()}-${pad(safeDate.getUTCMonth() + 1)}-${pad(safeDate.getUTCDate())} ${pad(safeDate.getUTCHours())}:${pad(safeDate.getUTCMinutes())}:${pad(safeDate.getUTCSeconds())}`;
+};
+
+const technicianLocationKey = ({ technicianId, employeeCode }) => {
+  if (technicianId) return `id:${technicianId}`;
+  if (employeeCode) return `code:${employeeCode}`;
+  return '';
+};
+
+const INDIA_TODAY_RECORDED_SQL = 'DATE(DATE_ADD(recorded_at, INTERVAL 330 MINUTE)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))';
+const INDIA_TODAY_ATTENDANCE_SQL = 'DATE(DATE_ADD(COALESCE(attendance_date, date, created_at), INTERVAL 330 MINUTE)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))';
+
+const getTableColumns = async (conn, tableName) => {
+  const [rows] = await conn.query(
+    `
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+    `,
+    [tableName]
+  );
+  return new Set(rows.map((row) => row.COLUMN_NAME));
+};
+
+const ensureTableColumns = async (conn, tableName, columns) => {
+  const existingColumns = await getTableColumns(conn, tableName);
+  for (const column of columns) {
+    if (!existingColumns.has(column.name)) {
+      await conn.query(`ALTER TABLE ${tableName} ADD COLUMN \`${column.name}\` ${column.definition}`);
+    }
+  }
+};
+
+const ensureIndex = async (conn, tableName, indexName, sql) => {
+  const [rows] = await conn.query(
+    `
+      SELECT COUNT(*) AS count
+      FROM INFORMATION_SCHEMA.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+        AND INDEX_NAME = ?
+    `,
+    [tableName, indexName]
+  );
+  if (!Number(rows[0]?.count || 0)) {
+    await conn.query(sql);
+  }
+};
+
+const liveLocationColumns = [
+  { name: 'location_key', definition: 'VARCHAR(128) NULL' },
+  { name: 'technician_id', definition: 'VARCHAR(64) NULL' },
+  { name: 'employee_code', definition: 'VARCHAR(64) NULL' },
+  { name: 'technician_name', definition: 'VARCHAR(191) NULL' },
+  { name: 'latitude', definition: 'DECIMAL(10,7) NULL' },
+  { name: 'longitude', definition: 'DECIMAL(10,7) NULL' },
+  { name: 'accuracy', definition: 'DECIMAL(10,2) NULL' },
+  { name: 'address', definition: 'TEXT NULL' },
+  { name: 'recorded_at', definition: 'DATETIME NULL' },
+  { name: 'source', definition: "VARCHAR(32) NOT NULL DEFAULT 'live'" },
+  { name: 'created_at', definition: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP' },
+  { name: 'updated_at', definition: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' },
+];
+
+const historyLocationColumns = liveLocationColumns
+  .filter((column) => !['location_key', 'technician_name', 'updated_at'].includes(column.name));
+
+const ensureTechnicianLocationTables = async (conn) => {
   await conn.query(`
     CREATE TABLE IF NOT EXISTS technician_live_locations (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      location_key VARCHAR(128) NOT NULL,
       technician_id VARCHAR(64) NULL,
       employee_code VARCHAR(64) NULL,
       technician_name VARCHAR(191) NULL,
       latitude DECIMAL(10,7) NOT NULL,
       longitude DECIMAL(10,7) NOT NULL,
       accuracy DECIMAL(10,2) NULL,
+      address TEXT NULL,
+      recorded_at DATETIME NOT NULL,
+      source VARCHAR(32) NOT NULL DEFAULT 'live',
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
-      KEY idx_tech_loc_tid (technician_id),
-      KEY idx_tech_loc_emp_code (employee_code),
-      KEY idx_tech_loc_created (created_at)
+      UNIQUE KEY uniq_technician_location_key (location_key),
+      KEY idx_tech_live_technician_id (technician_id),
+      KEY idx_tech_live_employee_code (employee_code),
+      KEY idx_tech_live_recorded_at (recorded_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS technician_location_history (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      technician_id VARCHAR(64) NULL,
+      employee_code VARCHAR(64) NULL,
+      latitude DECIMAL(10,7) NOT NULL,
+      longitude DECIMAL(10,7) NOT NULL,
+      accuracy DECIMAL(10,2) NULL,
+      address TEXT NULL,
+      recorded_at DATETIME NOT NULL,
+      source VARCHAR(32) NOT NULL DEFAULT 'live',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_tech_history_technician_id (technician_id),
+      KEY idx_tech_history_employee_code (employee_code),
+      KEY idx_tech_history_recorded_at (recorded_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await ensureTableColumns(conn, 'technician_live_locations', liveLocationColumns);
+  await ensureTableColumns(conn, 'technician_location_history', historyLocationColumns);
+  await ensureIndex(conn, 'technician_live_locations', 'uniq_technician_location_key', 'ALTER TABLE technician_live_locations ADD UNIQUE KEY uniq_technician_location_key (location_key)');
+  await ensureIndex(conn, 'technician_live_locations', 'idx_tech_live_technician_id', 'ALTER TABLE technician_live_locations ADD KEY idx_tech_live_technician_id (technician_id)');
+  await ensureIndex(conn, 'technician_live_locations', 'idx_tech_live_employee_code', 'ALTER TABLE technician_live_locations ADD KEY idx_tech_live_employee_code (employee_code)');
+  await ensureIndex(conn, 'technician_live_locations', 'idx_tech_live_recorded_at', 'ALTER TABLE technician_live_locations ADD KEY idx_tech_live_recorded_at (recorded_at)');
+  await ensureIndex(conn, 'technician_location_history', 'idx_tech_history_technician_id', 'ALTER TABLE technician_location_history ADD KEY idx_tech_history_technician_id (technician_id)');
+  await ensureIndex(conn, 'technician_location_history', 'idx_tech_history_employee_code', 'ALTER TABLE technician_location_history ADD KEY idx_tech_history_employee_code (employee_code)');
+  await ensureIndex(conn, 'technician_location_history', 'idx_tech_history_recorded_at', 'ALTER TABLE technician_location_history ADD KEY idx_tech_history_recorded_at (recorded_at)');
 };
 
 app.post('/api/technicians/location', async (req, res) => {
@@ -15730,13 +15848,16 @@ app.post('/api/technicians/location', async (req, res) => {
   }
   const latitude = Number(req.body?.latitude);
   const longitude = Number(req.body?.longitude);
-  const accuracy = Number(req.body?.accuracy || 0);
+  const hasAccuracy = req.body?.accuracy !== undefined && req.body?.accuracy !== null && String(req.body.accuracy).trim() !== '';
+  const numericAccuracy = hasAccuracy ? Number(req.body.accuracy) : null;
   const technicianId = String(req.body?.technicianId || '').trim();
   const employeeCode = String(req.body?.employeeCode || '').trim();
   const technicianName = String(req.body?.technicianName || '').trim();
-  const recordedAt = req.body?.recordedAt ? new Date(req.body.recordedAt) : new Date();
+  const address = String(req.body?.address || '').trim();
+  const recordedAt = formatMysqlDateTime(req.body?.recordedAt);
+  const locationKey = technicianLocationKey({ technicianId, employeeCode });
 
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+  if (!isValidTechnicianCoordinate(latitude, longitude) || !locationKey || (hasAccuracy && (!Number.isFinite(numericAccuracy) || numericAccuracy < 0))) {
     return res.status(400).json({ success: false, error: 'latitude and longitude are required' });
   }
 
@@ -15746,23 +15867,67 @@ app.post('/api/technicians/location', async (req, res) => {
 
   try {
     await withMysqlConnection(async (conn) => {
-      await ensureTechnicianLocationTable(conn);
+      await ensureTechnicianLocationTables(conn);
       await conn.query(
         `
           INSERT INTO technician_live_locations
-            (technician_id, employee_code, technician_name, latitude, longitude, accuracy, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+            (location_key, technician_id, employee_code, technician_name, latitude, longitude, accuracy, address, recorded_at, source, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'live', NOW(), NOW())
+          ON DUPLICATE KEY UPDATE
+            technician_id = VALUES(technician_id),
+            employee_code = VALUES(employee_code),
+            technician_name = VALUES(technician_name),
+            latitude = VALUES(latitude),
+            longitude = VALUES(longitude),
+            accuracy = VALUES(accuracy),
+            address = VALUES(address),
+            recorded_at = VALUES(recorded_at),
+            source = VALUES(source),
+            updated_at = NOW()
         `,
         [
+          locationKey,
           technicianId || null,
           employeeCode || null,
           technicianName || null,
           latitude,
           longitude,
-          Number.isFinite(accuracy) ? accuracy : null,
-          Number.isNaN(recordedAt.getTime()) ? new Date() : recordedAt,
+          numericAccuracy,
+          address || null,
+          recordedAt,
         ]
       );
+      const [recentDuplicateRows] = await conn.query(
+        `
+          SELECT id
+          FROM technician_location_history
+          WHERE (technician_id = ? OR employee_code = ?)
+            AND ABS(latitude - ?) < 0.000001
+            AND ABS(longitude - ?) < 0.000001
+            AND ABS(TIMESTAMPDIFF(SECOND, recorded_at, ?)) <= 120
+          ORDER BY recorded_at DESC, id DESC
+          LIMIT 1
+        `,
+        [technicianId || null, employeeCode || '', latitude, longitude, recordedAt]
+      );
+      if (!recentDuplicateRows.length) {
+        await conn.query(
+          `
+            INSERT INTO technician_location_history
+              (technician_id, employee_code, latitude, longitude, accuracy, address, recorded_at, source, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'live', NOW())
+          `,
+          [
+            technicianId || null,
+            employeeCode || null,
+            latitude,
+            longitude,
+            numericAccuracy,
+            address || null,
+            recordedAt,
+          ]
+        );
+      }
     });
     return res.json({ success: true, message: 'Location saved' });
   } catch (error) {
@@ -15775,30 +15940,101 @@ app.get('/api/technicians/live', async (req, res) => {
 
   try {
     const items = await withMysqlConnection(async (conn) => {
-      await ensureTechnicianLocationTable(conn);
+      await ensureTechnicianLocationTables(conn);
       const [rows] = await conn.query(
         `
-          SELECT t1.id, t1.technician_id, t1.employee_code, t1.technician_name, t1.latitude, t1.longitude, t1.created_at AS last_seen
-          FROM technician_live_locations t1
-          INNER JOIN (
-            SELECT COALESCE(NULLIF(technician_id, ''), employee_code) AS tech_key, MAX(id) AS max_id
-            FROM technician_live_locations
-            GROUP BY COALESCE(NULLIF(technician_id, ''), employee_code)
-          ) t2 ON t1.id = t2.max_id
-          ORDER BY t1.id DESC
+          SELECT
+            e.id AS technician_id,
+            e.emp_code AS employee_code,
+            e.full_name AS technician_name,
+            COALESCE(l.latitude, CASE WHEN a.punch_out_latitude IS NOT NULL THEN a.punch_out_latitude ELSE a.punch_in_latitude END) AS latitude,
+            COALESCE(l.longitude, CASE WHEN a.punch_out_longitude IS NOT NULL THEN a.punch_out_longitude ELSE a.punch_in_longitude END) AS longitude,
+            COALESCE(l.accuracy, CASE WHEN a.punch_out_location_accuracy IS NOT NULL THEN a.punch_out_location_accuracy ELSE a.punch_in_location_accuracy END) AS accuracy,
+            COALESCE(l.address, CASE WHEN a.punch_out_address IS NOT NULL AND a.punch_out_address <> '' THEN a.punch_out_address ELSE a.punch_in_address END) AS address,
+            COALESCE(l.recorded_at, a.attendance_time) AS recorded_at,
+            CASE WHEN l.id IS NOT NULL THEN l.source ELSE 'attendance' END AS source
+          FROM employees e
+          LEFT JOIN technician_live_locations l
+            ON l.technician_id = e.id OR l.employee_code = e.emp_code
+          LEFT JOIN (
+            SELECT a1.employee_code, a1.punch_in_latitude, a1.punch_in_longitude, a1.punch_in_location_accuracy,
+                   a1.punch_in_address, a1.punch_out_latitude, a1.punch_out_longitude,
+                   a1.punch_out_location_accuracy, a1.punch_out_address,
+                   COALESCE(a1.updated_at, a1.source_updated_at, a1.created_at, a1.attendance_date, a1.date) AS attendance_time
+            FROM attendance a1
+            INNER JOIN (
+              SELECT employee_code, MAX(id) AS max_id
+              FROM attendance
+              WHERE ${INDIA_TODAY_ATTENDANCE_SQL}
+                AND (
+                  (punch_in_latitude IS NOT NULL AND punch_in_longitude IS NOT NULL)
+                  OR (punch_out_latitude IS NOT NULL AND punch_out_longitude IS NOT NULL)
+                )
+              GROUP BY employee_code
+            ) latest_attendance ON latest_attendance.max_id = a1.id
+          ) a ON a.employee_code = e.emp_code
+          WHERE LOWER(COALESCE(e.role, e.role_name, '')) LIKE '%technician%'
+             OR LOWER(COALESCE(e.role_name, e.role, '')) LIKE '%technician%'
+          ORDER BY recorded_at DESC, e.full_name ASC
           LIMIT 200
         `
       );
-      return rows.map((row) => ({
-        id: row.technician_id || row.employee_code || row.id,
-        technician_id: row.technician_id,
-        emp_code: row.employee_code,
-        full_name: row.technician_name,
-        latitude: Number(row.latitude),
-        longitude: Number(row.longitude),
-        last_seen: row.last_seen,
-        status: 'Active',
-      }));
+      const [routeRows] = await conn.query(
+        `
+          SELECT id, technician_id, employee_code, latitude, longitude, accuracy, address, recorded_at, source
+          FROM technician_location_history
+          WHERE ${INDIA_TODAY_RECORDED_SQL}
+          ORDER BY recorded_at ASC, id ASC
+          LIMIT 2000
+        `
+      );
+      const routeHistoryByKey = new Map();
+      routeRows.forEach((point) => {
+        const latitude = Number(point.latitude);
+        const longitude = Number(point.longitude);
+        if (!isValidTechnicianCoordinate(latitude, longitude)) return;
+        const normalizedPoint = {
+          id: point.id,
+          latitude,
+          longitude,
+          accuracy: point.accuracy == null ? null : Number(point.accuracy),
+          address: point.address || '',
+          recordedAt: point.recorded_at,
+          timestamp: point.recorded_at,
+          source: point.source || 'live',
+        };
+        [point.technician_id, point.employee_code].map((value) => String(value || '').trim()).filter(Boolean).forEach((key) => {
+          if (!routeHistoryByKey.has(key)) routeHistoryByKey.set(key, []);
+          routeHistoryByKey.get(key).push(normalizedPoint);
+        });
+      });
+      return rows.map((row) => {
+        const latitude = Number(row.latitude);
+        const longitude = Number(row.longitude);
+        const hasGps = isValidTechnicianCoordinate(latitude, longitude);
+        const routeHistory = routeHistoryByKey.get(String(row.technician_id || '').trim())
+          || routeHistoryByKey.get(String(row.employee_code || '').trim())
+          || [];
+        return {
+          id: row.technician_id || row.employee_code,
+          technicianId: row.technician_id || '',
+          technician_id: row.technician_id || '',
+          employeeCode: row.employee_code || '',
+          emp_code: row.employee_code || '',
+          name: row.technician_name || '',
+          full_name: row.technician_name || '',
+          latitude: hasGps ? latitude : null,
+          longitude: hasGps ? longitude : null,
+          accuracy: row.accuracy == null ? null : Number(row.accuracy),
+          address: row.address || '',
+          recordedAt: row.recorded_at || null,
+          last_seen: row.recorded_at || null,
+          source: row.source || '',
+          isRecent: hasGps ? isRecentTechnicianLocation(row.recorded_at) : false,
+          status: hasGps && isRecentTechnicianLocation(row.recorded_at) ? 'Active' : 'Stale',
+          routeHistory,
+        };
+      });
     });
     return res.json({ success: true, items });
   } catch {
@@ -15813,23 +16049,42 @@ app.get('/api/technicians/:id/route-history', async (req, res) => {
 
   try {
     const items = await withMysqlConnection(async (conn) => {
-      await ensureTechnicianLocationTable(conn);
+      await ensureTechnicianLocationTables(conn);
+      const routeDate = String(req.query?.date || '').trim();
+      const params = [id, id];
+      let dateWhere = INDIA_TODAY_RECORDED_SQL;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(routeDate)) {
+        dateWhere = 'DATE(DATE_ADD(recorded_at, INTERVAL 330 MINUTE)) = ?';
+        params.push(routeDate);
+      }
       const [rows] = await conn.query(
         `
-          SELECT id, latitude, longitude, created_at AS timestamp
-          FROM technician_live_locations
-          WHERE technician_id = ? OR employee_code = ?
-          ORDER BY id DESC
+          SELECT id, latitude, longitude, accuracy, address, recorded_at, source
+          FROM technician_location_history
+          WHERE (technician_id = ? OR employee_code = ?)
+            AND ${dateWhere}
+          ORDER BY recorded_at DESC, id DESC
           LIMIT 500
         `,
-        [id, id]
+        params
       );
-      return rows.map((row) => ({
-        id: row.id,
-        latitude: Number(row.latitude),
-        longitude: Number(row.longitude),
-        timestamp: row.timestamp,
-      }));
+      return rows
+        .map((row) => {
+          const latitude = Number(row.latitude);
+          const longitude = Number(row.longitude);
+          if (!isValidTechnicianCoordinate(latitude, longitude)) return null;
+          return {
+            id: row.id,
+            latitude,
+            longitude,
+            accuracy: row.accuracy == null ? null : Number(row.accuracy),
+            address: row.address || '',
+            recordedAt: row.recorded_at,
+            timestamp: row.recorded_at,
+            source: row.source || 'live',
+          };
+        })
+        .filter(Boolean);
     });
     return res.json({ success: true, items });
   } catch {

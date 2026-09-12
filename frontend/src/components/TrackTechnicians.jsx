@@ -6,7 +6,7 @@ import { formatIndiaDateTime } from '../utils/indiaTime';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const EARTH_RADIUS_KM = 6371;
 const GEOFENCE_RADIUS_KM = 0.2;
-const TRACK_TECHNICIANS_CACHE_KEY = 'track_technicians_cache_v1';
+const TRACK_TECHNICIANS_CACHE_KEY = 'track_technicians_cache_v2';
 
 const shell = {
   page: { display: 'grid', gap: '14px', background: 'transparent', border: 'none', borderRadius: 0, padding: 0 },
@@ -49,8 +49,59 @@ const haversineKm = (lat1, lng1, lat2, lng2) => {
   return EARTH_RADIUS_KM * c;
 };
 
-const formatDateTime = (value) => {
-  return formatIndiaDateTime(value, {}, 'Unknown time');
+const formatDateTime = (value) => formatIndiaDateTime(value, {}, 'Unknown time');
+const formatAge = (value) => {
+  const timestamp = new Date(value || 0).getTime();
+  if (!Number.isFinite(timestamp)) return '';
+  const minutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  return `${hours} hr ago`;
+};
+const getEmployeeCode = (entry = {}) => String(entry.empCode || entry.emp_code || entry.employeeCode || entry.employee_code || '').trim();
+const getEmployeeId = (entry = {}) => String(entry.id || entry._id || entry.employeeId || entry.technicianId || entry.technician_id || '').trim();
+const getEmployeeName = (entry = {}) => {
+  const fullName = [entry.firstName || entry.first_name, entry.lastName || entry.last_name].filter(Boolean).join(' ').trim();
+  return String(entry.full_name || entry.fullName || entry.name || fullName || getEmployeeCode(entry) || 'Technician').trim();
+};
+const getLocationKey = (entry = {}) => getEmployeeId(entry) || getEmployeeCode(entry) || getEmployeeName(entry);
+
+const normalizePoint = (entry = {}) => {
+  const lat = toNum(entry.latitude);
+  const lng = toNum(entry.longitude);
+  if (!validCoords(lat, lng)) return null;
+  return {
+    id: entry.id || `${entry.recordedAt || entry.timestamp || ''}-${lat}-${lng}`,
+    lat,
+    lng,
+    accuracy: entry.accuracy == null ? null : Number(entry.accuracy),
+    timestamp: entry.recordedAt || entry.recorded_at || entry.timestamp || entry.last_seen || '',
+    source: String(entry.source || 'live').trim() || 'live',
+    isRecent: Boolean(entry.isRecent),
+  };
+};
+
+const uniqueOrderedPoints = (points = []) => {
+  const seen = new Set();
+  return points
+    .filter(Boolean)
+    .sort((a, b) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime())
+    .filter((point) => {
+      const key = `${point.lat.toFixed(6)}:${point.lng.toFixed(6)}:${new Date(point.timestamp || 0).getTime()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+};
+
+const routeDistanceKm = (points = []) => {
+  const ordered = uniqueOrderedPoints(points);
+  return ordered.slice(1).reduce((sum, point, index) => {
+    const previous = ordered[index];
+    if (previous.lat === point.lat && previous.lng === point.lng) return sum;
+    return sum + haversineKm(previous.lat, previous.lng, point.lat, point.lng);
+  }, 0);
 };
 
 const readTrackTechniciansCache = () => {
@@ -60,8 +111,8 @@ const readTrackTechniciansCache = () => {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
     return {
-      jobs: Array.isArray(parsed.jobs) ? parsed.jobs : [],
       employees: Array.isArray(parsed.employees) ? parsed.employees : [],
+      liveLocations: Array.isArray(parsed.liveLocations) ? parsed.liveLocations : [],
       status: String(parsed.status || 'Loading technician tracking data...')
     };
   } catch (_error) {
@@ -69,11 +120,11 @@ const readTrackTechniciansCache = () => {
   }
 };
 
-const writeTrackTechniciansCache = (jobs = [], employees = [], status = '') => {
+const writeTrackTechniciansCache = (employees = [], liveLocations = [], status = '') => {
   try {
     window.sessionStorage.setItem(TRACK_TECHNICIANS_CACHE_KEY, JSON.stringify({
-      jobs: Array.isArray(jobs) ? jobs : [],
       employees: Array.isArray(employees) ? employees : [],
+      liveLocations: Array.isArray(liveLocations) ? liveLocations : [],
       status: String(status || '').trim(),
       updatedAt: Date.now()
     }));
@@ -84,8 +135,8 @@ const writeTrackTechniciansCache = (jobs = [], employees = [], status = '') => {
 
 export default function TrackTechnicians() {
   const [cachedTrackingData] = useState(() => readTrackTechniciansCache());
-  const [jobs, setJobs] = useState(() => cachedTrackingData?.jobs || []);
   const [employees, setEmployees] = useState(() => cachedTrackingData?.employees || []);
+  const [liveLocations, setLiveLocations] = useState(() => cachedTrackingData?.liveLocations || []);
   const [status, setStatus] = useState(() => cachedTrackingData?.status || 'Loading technician tracking data...');
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const loadRequestRef = useRef(null);
@@ -102,22 +153,27 @@ export default function TrackTechnicians() {
       if (loadRequestRef.current) return loadRequestRef.current;
       const request = (async () => {
         try {
-          const [jobsRes, employeesRes] = await Promise.all([
-            axios.get(`${API_BASE_URL}/api/jobs`),
-            axios.get(`${API_BASE_URL}/api/employees`)
+          const [employeesRes, liveRes] = await Promise.all([
+            axios.get(`${API_BASE_URL}/api/employees`),
+            axios.get(`${API_BASE_URL}/api/technicians/live`)
           ]);
           if (!mounted) return;
-          const nextJobs = Array.isArray(jobsRes.data) ? jobsRes.data : [];
+
           const nextEmployees = Array.isArray(employeesRes.data) ? employeesRes.data : [];
-          setJobs(nextJobs);
+          const nextLiveLocations = Array.isArray(liveRes.data?.items) ? liveRes.data.items : Array.isArray(liveRes.data) ? liveRes.data : [];
           setEmployees(nextEmployees);
+          setLiveLocations(nextLiveLocations);
           setStatus('Live technician tracking view.');
-          writeTrackTechniciansCache(nextJobs, nextEmployees, 'Live technician tracking view.');
+          writeTrackTechniciansCache(nextEmployees, nextLiveLocations, 'Live technician tracking view.');
         } catch (error) {
           if (!mounted) return;
           console.error('Failed to load technician tracking data', error);
           setStatus('Unable to load technician tracking data right now.');
-          writeTrackTechniciansCache(cachedTrackingData?.jobs || [], cachedTrackingData?.employees || [], 'Unable to load technician tracking data right now.');
+          writeTrackTechniciansCache(
+            cachedTrackingData?.employees || [],
+            cachedTrackingData?.liveLocations || [],
+            'Unable to load technician tracking data right now.'
+          );
         }
       })();
       loadRequestRef.current = request;
@@ -129,76 +185,84 @@ export default function TrackTechnicians() {
       return request;
     };
     load();
+    const timer = window.setInterval(load, 30000);
     return () => {
       mounted = false;
+      window.clearInterval(timer);
     };
   }, [cachedTrackingData]);
 
   const technicians = useMemo(() => {
-    const technicianNameSet = new Set();
+    const byKey = new Map();
     employees.forEach((entry) => {
-      const role = String(entry.role || '').trim().toLowerCase();
+      const role = String(entry.role || entry.roleName || entry.role_name || '').trim().toLowerCase();
       if (!role.includes('technician')) return;
-      const fullName = [entry.firstName, entry.lastName].filter(Boolean).join(' ').trim();
-      const name = fullName || String(entry.empCode || '').trim();
-      if (name) technicianNameSet.add(name);
-    });
-
-    const byTech = new Map();
-    jobs.forEach((job) => {
-      const name = String(job.technicianName || '').trim();
-      if (!name) return;
-      technicianNameSet.add(name);
-      const lat = toNum(job.latitude);
-      const lng = toNum(job.longitude);
-      const hasCoord = validCoords(lat, lng);
-      const ts = new Date(job.updatedAt || job.createdAt || job.date || 0).getTime();
-      if (!byTech.has(name)) byTech.set(name, []);
-      byTech.get(name).push({
-        jobId: job._id || '',
-        customerName: job.customerName || '-',
-        status: String(job.status || '').toUpperCase() || '-',
-        lat,
-        lng,
-        hasCoord,
-        timestamp: Number.isFinite(ts) ? ts : 0
+      const key = getLocationKey(entry);
+      if (!key) return;
+      byKey.set(key, {
+        key,
+        id: getEmployeeId(entry),
+        employeeCode: getEmployeeCode(entry),
+        name: getEmployeeName(entry),
+        latest: null,
+        routeHistory: [],
       });
     });
 
-    return Array.from(technicianNameSet).map((name) => {
-      const points = (byTech.get(name) || []).sort((a, b) => a.timestamp - b.timestamp);
-      const validPoints = points.filter((point) => point.hasCoord);
-      const latest = validPoints[validPoints.length - 1] || null;
-      const previous = validPoints.length > 1 ? validPoints[validPoints.length - 2] : null;
-      const latestJob = points[points.length - 1] || null;
-      const routeDistance = validPoints.slice(1).reduce((sum, point, index) => {
-        const prev = validPoints[index];
-        return sum + haversineKm(prev.lat, prev.lng, point.lat, point.lng);
-      }, 0);
-      const geofenceDistance = latest && previous
-        ? haversineKm(previous.lat, previous.lng, latest.lat, latest.lng)
-        : 0;
+    liveLocations.forEach((entry) => {
+      const id = getEmployeeId(entry);
+      const employeeCode = getEmployeeCode(entry);
+      const key = id || employeeCode || getEmployeeName(entry);
+      if (!key) return;
+      const current = byKey.get(key) || {
+        key,
+        id,
+        employeeCode,
+        name: getEmployeeName(entry),
+        latest: null,
+        routeHistory: [],
+      };
+      current.id = current.id || id;
+      current.employeeCode = current.employeeCode || employeeCode;
+      current.name = current.name || getEmployeeName(entry);
+      current.latest = normalizePoint(entry);
+      current.routeHistory = Array.isArray(entry.routeHistory) ? entry.routeHistory : [];
+      byKey.set(key, current);
+    });
+
+    return Array.from(byKey.values()).map((tech) => {
+      const routePoints = uniqueOrderedPoints((tech.routeHistory || []).map(normalizePoint));
+      const latest = tech.latest || routePoints[routePoints.length - 1] || null;
+      const previous = routePoints.length > 1 ? routePoints[routePoints.length - 2] : null;
+      const routeDistance = routeDistanceKm(routePoints);
+      const geofenceDistance = latest && previous ? haversineKm(previous.lat, previous.lng, latest.lat, latest.lng) : 0;
       const geofenceState = !latest
         ? 'No GPS'
+        : latest.source === 'attendance'
+          ? 'Attendance fallback'
+          : latest.isRecent
+            ? 'Live / recent'
+            : 'Last seen';
+      const movementState = !latest
+        ? 'No movement data'
         : geofenceDistance <= GEOFENCE_RADIUS_KM
-          ? 'At Site'
+          ? 'No movement data'
           : 'Moving / Left Site';
 
       return {
-        name,
-        totalJobs: points.length,
+        ...tech,
         latest,
-        latestJob,
         routeDistance,
-        routeHistory: validPoints.slice(-5).reverse(),
+        routeHistory: routePoints.slice(-5).reverse(),
         geofenceState,
-        geofenceDistance
+        movementState,
+        geofenceDistance,
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
-  }, [employees, jobs]);
+  }, [employees, liveLocations]);
 
   const withLiveCoords = technicians.filter((tech) => tech.latest);
-  const totalRouteKm = withLiveCoords.reduce((sum, tech) => sum + tech.routeDistance, 0);
+  const totalRouteKm = technicians.reduce((sum, tech) => sum + tech.routeDistance, 0);
   const center = withLiveCoords[0]?.latest || { lat: 28.6139, lng: 77.2090 };
 
   const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${center.lng - 0.03},${center.lat - 0.02},${center.lng + 0.03},${center.lat + 0.02}`)}&layer=mapnik&marker=${encodeURIComponent(`${center.lat},${center.lng}`)}`;
@@ -244,19 +308,19 @@ export default function TrackTechnicians() {
           <h3 style={shell.panelHead}><ShieldAlert size={16} /> Geo-fence Alerts</h3>
           <div style={shell.panelBody}>
             {technicians.map((tech) => (
-              <article key={tech.name} style={shell.techCard}>
+              <article key={tech.key} style={shell.techCard}>
                 <p style={shell.techName}>{tech.name}</p>
-                <p style={shell.meta}>{tech.totalJobs} assigned job(s)</p>
+                <p style={shell.meta}>{tech.employeeCode || '-'} • Source: {tech.latest?.source || 'none'}</p>
                 <div style={shell.pillRow}>
                   <span style={shell.pill}>
-                    {tech.geofenceState === 'At Site' ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
+                    {tech.latest ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
                     {tech.geofenceState}
                   </span>
-                  <span style={shell.pill}>{tech.latest ? `Δ ${tech.geofenceDistance.toFixed(2)} km` : 'No movement data'}</span>
+                  <span style={shell.pill}>{tech.latest ? tech.movementState : 'No movement data'}</span>
                 </div>
                 {tech.latest ? (
                   <p style={shell.meta}>
-                    Last update: {formatDateTime(tech.latest.timestamp)}
+                    Last update: {formatDateTime(tech.latest.timestamp)}{formatAge(tech.latest.timestamp) ? ` • ${formatAge(tech.latest.timestamp)}` : ''}
                   </p>
                 ) : null}
               </article>
@@ -269,11 +333,11 @@ export default function TrackTechnicians() {
         <h3 style={shell.panelHead}><Route size={16} /> Route History and Live Technician List</h3>
         <div style={shell.panelBody}>
           {technicians.map((tech) => (
-            <article key={`${tech.name}-route`} style={shell.techCard}>
+            <article key={`${tech.key}-route`} style={shell.techCard}>
               <p style={shell.techName}>{tech.name}</p>
               <p style={shell.meta}>
                 Current: {tech.latest ? `${tech.latest.lat.toFixed(6)}, ${tech.latest.lng.toFixed(6)}` : 'No GPS yet'}
-                {tech.latest ? ` • ${tech.latest.status}` : ''}
+                {tech.latest ? ` • ${tech.latest.source}` : ''}
               </p>
               {tech.latest ? (
                 <a
@@ -287,10 +351,10 @@ export default function TrackTechnicians() {
               ) : null}
               <div style={shell.routeList}>
                 {tech.routeHistory.length === 0 ? (
-                  <div style={shell.routeItem}>No route history captured yet.</div>
+                  <div style={shell.routeItem}>{tech.latest?.source === 'attendance' ? 'Attendance GPS available. No route history captured yet.' : 'No route history captured yet.'}</div>
                 ) : tech.routeHistory.map((point, idx) => (
-                  <div key={`${tech.name}-point-${idx}`} style={shell.routeItem}>
-                    {formatDateTime(point.timestamp)} • {point.customerName} • {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
+                  <div key={`${tech.key}-point-${point.id || idx}`} style={shell.routeItem}>
+                    {formatDateTime(point.timestamp)} • {point.source} • {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
                   </div>
                 ))}
               </div>
