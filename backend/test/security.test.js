@@ -14,6 +14,99 @@ const secret = 'test-only-secret-with-more-than-thirty-two-characters';
 const admin = { id: 'admin', role: 'Admin' };
 const technician = { id: 't1', employeeId: 't1', role: 'Technician' };
 const source = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+
+test('invoice MySQL insert columns, placeholders and values stay aligned', () => {
+  const match = source.match(/`INSERT INTO invoices \(\n([\s\S]*?)\n\s*\) VALUES \(([\s\S]*?)\)\n\s*ON DUPLICATE KEY UPDATE[\s\S]*?`,\n\s*\[([\s\S]*?)\n\s*\]\n\s*\);/);
+  assert.ok(match, 'invoice INSERT statement should be found');
+
+  const columns = match[1].split(',').map((column) => column.trim()).filter(Boolean);
+  const placeholderCount = (match[2].match(/\?/g) || []).length;
+  const values = match[3].split('\n').map((value) => value.trim()).filter(Boolean).map((value) => value.replace(/,$/, ''));
+
+  const expectedColumns = [
+    'external_id',
+    'customer_external_id',
+    'customer_name',
+    'invoice_number',
+    'invoice_type',
+    'invoice_status',
+    'invoice_date',
+    'due_date',
+    'total_amount',
+    'balance_due',
+    'customer_type',
+    'lead_source',
+    'service_relationship_type',
+    'renewal_eligible',
+    'contract_duration_value',
+    'contract_duration_unit',
+    'billing_address_source',
+    'shipping_address_source',
+    'billing_address_text',
+    'shipping_address_text',
+    'custom_shipping_addresses',
+    'customer_premise_id',
+    'premise_label',
+    'premise_address',
+    'premise_area_name',
+    'premise_city',
+    'premise_state',
+    'premise_pincode',
+    'premise_google_map_url',
+    'service_schedule_default_time',
+    'service_schedules',
+    'discount',
+    'round_off',
+    'payload',
+    'source_created_at',
+    'source_updated_at'
+  ];
+  const expectedValues = [
+    'invoice._id',
+    'invoice.customerId || null',
+    'invoice.customerName || null',
+    'invoice.invoiceNumber || null',
+    'invoice.invoiceType || null',
+    'invoice.status || null',
+    'invoice.date || null',
+    'invoice.dueDate || null',
+    'toNumber(invoice.total ?? invoice.amount, 0)',
+    'toNumber(invoice.balanceDue, 0)',
+    "invoice.customerType || 'New'",
+    'invoice.leadSource || null',
+    'renewalClass.relationshipType',
+    'renewalClass.renewalEligible ? 1 : 0',
+    'renewalClass.durationValue || null',
+    'renewalClass.durationUnit || null',
+    'invoice.billingAddressSource || null',
+    'invoice.shippingAddressSource || null',
+    'invoice.billingAddressText || null',
+    'invoice.shippingAddressText || null',
+    'JSON.stringify(Array.isArray(invoice.customShippingAddresses) ? invoice.customShippingAddresses : [])',
+    'invoice.customerPremiseId || invoice.customer_premise_id || null',
+    'invoice.premiseLabel || invoice.premise_label || null',
+    'invoice.premiseAddress || invoice.premise_address || invoice.billingAddressText || null',
+    'invoice.premiseAreaName || invoice.premise_area_name || null',
+    'invoice.premiseCity || invoice.premise_city || null',
+    'invoice.premiseState || invoice.premise_state || null',
+    'invoice.premisePincode || invoice.premise_pincode || null',
+    'invoice.premiseGoogleMapUrl || invoice.premise_google_map_url || null',
+    "String(invoice.serviceScheduleDefaultTime || '10:00').trim() || '10:00'",
+    'JSON.stringify(Array.isArray(invoice.serviceSchedules) ? invoice.serviceSchedules : [])',
+    'toNumber(invoice.discount, 0)',
+    'toNumber(invoice.roundOff, 0)',
+    'JSON.stringify(invoice)',
+    "invoice.createdAt ? new Date(invoice.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null",
+    "new Date().toISOString().slice(0, 19).replace('T', ' ')"
+  ];
+
+  assert.equal(columns.length, 36);
+  assert.equal(placeholderCount, 36);
+  assert.equal(values.length, 36);
+  assert.deepEqual(columns, expectedColumns);
+  assert.deepEqual(values, expectedValues);
+});
+
 // Execute the actual application middleware, excluding dotenv, DB imports, migrations,
 // persistent-directory initialization, provider schedulers and application startup.
 const start = source.indexOf('const app = express();');
