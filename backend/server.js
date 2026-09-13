@@ -3398,8 +3398,13 @@ const computeWorkingHours = ({ status, checkIn, checkOut }) => {
 
 const sanitizeAttendanceRecord = (raw = {}) => {
   const status = normalizeAttendanceStatus(raw.status);
-  const defaultCheckIn = status === 'present' ? '09:00' : '';
-  const defaultCheckOut = status === 'present' ? '17:00' : '';
+  const rawSource = String(raw.source || raw.source_label || raw.source_type || raw.sourceType || '').trim();
+  const source = rawSource.toLowerCase() === 'technician_app'
+    ? 'technician_app'
+    : normalizeAttendanceSource(rawSource);
+  const isSelfServiceSource = source === 'self' || source === 'technician_app';
+  const defaultCheckIn = status === 'present' && !isSelfServiceSource ? '09:00' : '';
+  const defaultCheckOut = status === 'present' && !isSelfServiceSource ? '17:00' : '';
   const checkIn = normalizeAttendanceTime(raw.checkIn || defaultCheckIn);
   const checkOut = normalizeAttendanceTime(raw.checkOut || defaultCheckOut);
   const punchInLatitude = raw.punchInLatitude ?? raw.punch_in_latitude ?? null;
@@ -3418,7 +3423,7 @@ const sanitizeAttendanceRecord = (raw = {}) => {
     leaveType: normalizeAttendanceLeaveType(raw.leaveType || raw.leave_type),
     leaveReason: String(raw.leaveReason || '').trim(),
     notes: String(raw.notes || '').trim(),
-    source: normalizeAttendanceSource(raw.source || raw.source_label || raw.source_type || raw.sourceType || ''),
+    source,
     punchInLatitude: punchInLatitude === null || punchInLatitude === '' ? null : Number(punchInLatitude),
     punchInLongitude: punchInLongitude === null || punchInLongitude === '' ? null : Number(punchInLongitude),
     punchInAccuracy: raw.punchInAccuracy ?? raw.punch_in_accuracy ?? null,
@@ -6558,23 +6563,95 @@ app.get('/api/attendance', async (req, res) => {
   try {
     const mysqlRows = await withMysqlConnection(async (conn) => {
       await ensureAttendanceTable(conn);
-      const [rows] = await conn.query('SELECT payload, leave_type FROM attendance ORDER BY id DESC');
+      const [rows] = await conn.query(`
+        SELECT
+          a.id,
+          a.external_id,
+          a.employee_id,
+          a.employee_external_id,
+          a.employee_code,
+          a.employee_name,
+          DATE_FORMAT(a.attendance_date, '%Y-%m-%d') AS attendance_date_value,
+          DATE_FORMAT(a.\`date\`, '%Y-%m-%d') AS legacy_date_value,
+          TIME_FORMAT(a.check_in, '%H:%i') AS check_in_value,
+          TIME_FORMAT(a.check_out, '%H:%i') AS check_out_value,
+          TIME_FORMAT(a.check_in_time, '%H:%i') AS legacy_check_in_value,
+          TIME_FORMAT(a.check_out_time, '%H:%i') AS legacy_check_out_value,
+          a.status,
+          a.leave_type,
+          a.notes,
+          a.source,
+          a.punch_in_latitude,
+          a.punch_in_longitude,
+          a.punch_in_location_accuracy,
+          a.punch_in_address,
+          a.punch_in_map_url,
+          a.punch_out_latitude,
+          a.punch_out_longitude,
+          a.punch_out_location_accuracy,
+          a.punch_out_address,
+          a.punch_out_map_url,
+          a.edited_by,
+          a.edited_at,
+          a.edit_reason,
+          a.payload,
+          e.external_id AS resolved_employee_external_id,
+          e.emp_code AS resolved_employee_code,
+          e.first_name AS resolved_first_name,
+          e.last_name AS resolved_last_name
+        FROM attendance a
+        LEFT JOIN employees e
+          ON e.external_id = a.employee_external_id
+          OR e.id = a.employee_external_id
+          OR e.emp_code = a.employee_code
+        ORDER BY a.id DESC
+      `);
       return Array.isArray(rows) ? rows : [];
     });
     if (Array.isArray(mysqlRows) && mysqlRows.length > 0) {
       records = mysqlRows
         .map((row) => {
-          const raw = row?.payload;
+          let raw = row?.payload;
           const leaveType = normalizeAttendanceLeaveType(row?.leave_type);
-          if (!raw) return null;
           if (typeof raw === 'string') {
             try {
-              const parsed = JSON.parse(raw);
-              if (parsed && !parsed.leaveType && leaveType) parsed.leaveType = leaveType;
-              return parsed;
-            } catch { return null; }
+              raw = JSON.parse(raw);
+            } catch {
+              raw = {};
+            }
           }
-          return leaveType && !raw.leaveType ? { ...raw, leaveType } : raw;
+          const parsed = raw && typeof raw === 'object' ? raw : {};
+          const employeeName = [
+            row?.resolved_first_name,
+            row?.resolved_last_name,
+          ].filter(Boolean).join(' ').trim() || row?.employee_name || parsed.employeeName || '';
+          return {
+            ...parsed,
+            _id: parsed._id || row?.external_id || `ATT-${row?.id}`,
+            employeeId: parsed.employeeId || row?.resolved_employee_external_id || row?.employee_external_id || row?.employee_id || '',
+            employeeCode: parsed.employeeCode || row?.resolved_employee_code || row?.employee_code || '',
+            employeeName,
+            date: parsed.date || row?.attendance_date_value || row?.legacy_date_value || '',
+            status: parsed.status || row?.status,
+            checkIn: parsed.checkIn || row?.check_in_value || row?.legacy_check_in_value || '',
+            checkOut: parsed.checkOut || row?.check_out_value || row?.legacy_check_out_value || '',
+            leaveType: parsed.leaveType || leaveType,
+            notes: parsed.notes || row?.notes || '',
+            source: parsed.source || row?.source || '',
+            punchInLatitude: parsed.punchInLatitude ?? row?.punch_in_latitude,
+            punchInLongitude: parsed.punchInLongitude ?? row?.punch_in_longitude,
+            punchInAccuracy: parsed.punchInAccuracy ?? row?.punch_in_location_accuracy,
+            punchInAddress: parsed.punchInAddress || row?.punch_in_address || '',
+            punchInMapUrl: parsed.punchInMapUrl || row?.punch_in_map_url || '',
+            punchOutLatitude: parsed.punchOutLatitude ?? row?.punch_out_latitude,
+            punchOutLongitude: parsed.punchOutLongitude ?? row?.punch_out_longitude,
+            punchOutAccuracy: parsed.punchOutAccuracy ?? row?.punch_out_location_accuracy,
+            punchOutAddress: parsed.punchOutAddress || row?.punch_out_address || '',
+            punchOutMapUrl: parsed.punchOutMapUrl || row?.punch_out_map_url || '',
+            editedBy: parsed.editedBy || row?.edited_by || '',
+            editedAt: parsed.editedAt || row?.edited_at || '',
+            editReason: parsed.editReason || row?.edit_reason || '',
+          };
         })
         .filter(Boolean)
         .map((entry) => sanitizeAttendanceRecord(entry))

@@ -51,8 +51,21 @@ const formatAttendanceSourceLabel = (value) => {
   if (!text) return '-';
   const normalized = text.toLowerCase();
   if (normalized === 'manual_admin' || normalized === 'manual admin') return 'admin';
-  if (normalized === 'technician_app' || normalized === 'sales_app') return 'self';
+  if (normalized === 'technician_app') return 'Technician App';
+  if (normalized === 'sales_app' || normalized === 'self') return 'self';
   return text;
+};
+
+const formatAttendanceDisplayTime = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '--';
+  const [hoursText, minutesText] = raw.split(':');
+  const hours = Number(hoursText);
+  const minutes = Number(minutesText);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return raw;
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
 };
 
 const resolveStatusForLeaveType = (leaveType, fallbackStatus = 'absent') => {
@@ -241,6 +254,8 @@ const shell = {
     color: '#0f172a'
   },
   timeInput: {
+    position: 'absolute',
+    inset: 0,
     minHeight: '30px',
     height: '30px',
     width: '100%',
@@ -251,7 +266,30 @@ const shell = {
     fontSize: '12px',
     color: '#0f172a',
     lineHeight: 1,
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    opacity: 0,
+    cursor: 'pointer'
+  },
+  timePickerShell: {
+    position: 'relative',
+    minHeight: '30px',
+    height: '30px',
+    width: '100%',
+    borderRadius: '8px',
+    border: '1px solid #D1D5DB',
+    background: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxSizing: 'border-box',
+    overflow: 'hidden'
+  },
+  timeDisplay: {
+    color: '#0f172a',
+    fontSize: '12px',
+    fontWeight: 700,
+    whiteSpace: 'nowrap',
+    pointerEvents: 'none'
   },
   hoursBadge: {
     display: 'inline-flex',
@@ -1105,24 +1143,30 @@ export default function Attendance() {
                     </div>
                   </td>
                   <td style={shell.td}>
-                    <input
-                      type="time"
-                      value={record.checkIn || ''}
-                      disabled={timeDisabled}
-                      style={shell.timeInput}
-                      onChange={(event) => updateRecordField(employeeId, 'checkIn', event.target.value)}
-                      onBlur={() => saveRecord(employeeId)}
-                    />
+                    <div style={shell.timePickerShell}>
+                      <span style={shell.timeDisplay}>{formatAttendanceDisplayTime(record.checkIn)}</span>
+                      <input
+                        type="time"
+                        value={record.checkIn || ''}
+                        disabled={timeDisabled}
+                        style={shell.timeInput}
+                        onChange={(event) => updateRecordField(employeeId, 'checkIn', event.target.value)}
+                        onBlur={() => saveRecord(employeeId)}
+                      />
+                    </div>
                   </td>
                   <td style={shell.td}>
-                    <input
-                      type="time"
-                      value={record.checkOut || ''}
-                      disabled={timeDisabled}
-                      style={shell.timeInput}
-                      onChange={(event) => updateRecordField(employeeId, 'checkOut', event.target.value)}
-                      onBlur={() => saveRecord(employeeId)}
-                    />
+                    <div style={shell.timePickerShell}>
+                      <span style={shell.timeDisplay}>{formatAttendanceDisplayTime(record.checkOut)}</span>
+                      <input
+                        type="time"
+                        value={record.checkOut || ''}
+                        disabled={timeDisabled}
+                        style={shell.timeInput}
+                        onChange={(event) => updateRecordField(employeeId, 'checkOut', event.target.value)}
+                        onBlur={() => saveRecord(employeeId)}
+                      />
+                    </div>
                   </td>
                   <td style={shell.td}>
                     <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -1216,8 +1260,8 @@ export default function Attendance() {
               <div key={item.id} style={shell.auditCard}>
                 <p style={shell.auditMeta}>{item.changedBy || '-'} • {item.changedAt ? String(item.changedAt).replace('T', ' ').slice(0, 16) : '-'}</p>
                 <p style={shell.footerNote}>Status: {item.oldStatus || '-'} → {item.newStatus || '-'}</p>
-                <p style={shell.footerNote}>Check In: {item.oldCheckInTime ? String(item.oldCheckInTime).slice(11, 16) : '-'} → {item.newCheckInTime ? String(item.newCheckInTime).slice(11, 16) : '-'}</p>
-                <p style={shell.footerNote}>Check Out: {item.oldCheckOutTime ? String(item.oldCheckOutTime).slice(11, 16) : '-'} → {item.newCheckOutTime ? String(item.newCheckOutTime).slice(11, 16) : '-'}</p>
+                <p style={shell.footerNote}>Check In: {formatAttendanceDisplayTime(item.oldCheckInTime ? String(item.oldCheckInTime).slice(11, 16) : '')} → {formatAttendanceDisplayTime(item.newCheckInTime ? String(item.newCheckInTime).slice(11, 16) : '')}</p>
+                <p style={shell.footerNote}>Check Out: {formatAttendanceDisplayTime(item.oldCheckOutTime ? String(item.oldCheckOutTime).slice(11, 16) : '')} → {formatAttendanceDisplayTime(item.newCheckOutTime ? String(item.newCheckOutTime).slice(11, 16) : '')}</p>
                 <p style={shell.footerNote}>Source: {item.source || '-'}</p>
                 {item.reason ? <p style={shell.footerNote}>Reason: {item.reason}</p> : null}
               </div>
