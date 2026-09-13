@@ -10017,14 +10017,27 @@ const sendPasswordResetOtpEmail = async ({ settings, recipient, otp }) => {
   });
 };
 
-const resolveWhatsappConfig = (settings = {}) => ({
-  apiVersion: settings.whatsappApiVersion || process.env.WHATSAPP_API_VERSION || 'v23.0',
-  providerType: String(settings.whatsappProviderType || (settings.whatsappApiBaseUrl ? 'deropo' : 'meta')).trim().toLowerCase(),
-  baseUrl: String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim(),
-  phoneNumber: String(settings.whatsappPhoneNumber || settings.phoneNumber || '').trim(),
-  phoneNumberId: settings.whatsappInstanceId || settings.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '',
-  accessToken: settings.whatsappAccessToken || process.env.WHATSAPP_ACCESS_TOKEN || ''
-});
+const resolveWhatsappConfig = (settings = {}) => {
+  const baseUrl = String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim();
+  const accessToken = settings.whatsappAccessToken || process.env.WHATSAPP_ACCESS_TOKEN || '';
+  const phoneNumberId = settings.whatsappInstanceId || settings.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+  const configuredProviderType = String(settings.whatsappProviderType || settings.providerType || '').trim().toLowerCase();
+  const providerType = configuredProviderType === 'meta'
+    ? 'meta'
+    : configuredProviderType === 'deropo'
+      ? 'deropo'
+      : configuredProviderType === 'custom' && baseUrl && accessToken && !phoneNumberId
+        ? 'deropo'
+        : configuredProviderType || (baseUrl ? 'deropo' : 'meta');
+  return {
+    apiVersion: settings.whatsappApiVersion || process.env.WHATSAPP_API_VERSION || 'v23.0',
+    providerType,
+    baseUrl,
+    phoneNumber: String(settings.whatsappPhoneNumber || settings.phoneNumber || '').trim(),
+    phoneNumberId,
+    accessToken
+  };
+};
 
 const buildDefaultShareMessage = (invoice, settings) => {
   const lines = [

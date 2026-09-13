@@ -56,7 +56,14 @@ const getProviderSettings = (settings = {}) => {
   const instanceId = normalizeText(settings.whatsappInstanceId || settings.instanceId || settings.whatsappPhoneNumberId || '');
   const accessToken = normalizeText(settings.whatsappAccessToken || settings.accessToken || '');
   const phoneNumber = normalizeText(settings.whatsappPhoneNumber || settings.phoneNumber || '');
-  const providerType = normalizeText(settings.whatsappProviderType || 'custom').toLowerCase() || 'custom';
+  const configuredProviderType = normalizeText(settings.whatsappProviderType || settings.providerType || '').toLowerCase();
+  const providerType = configuredProviderType === 'meta'
+    ? 'meta'
+    : configuredProviderType === 'deropo'
+      ? 'deropo'
+      : configuredProviderType === 'custom' && baseUrl && accessToken && !instanceId
+        ? 'deropo'
+        : configuredProviderType || (baseUrl ? 'deropo' : 'custom');
   const active = resolveActiveFlag(settings);
 
   return {

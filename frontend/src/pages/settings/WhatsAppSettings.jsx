@@ -20,14 +20,17 @@ const empty = {
 const normalizeLoadedForm = (data = {}) => ({
   ...empty,
   apiBaseUrl: String(data.apiBaseUrl || '').trim(),
-  phoneNumber: '',
-  instanceId: '',
+  phoneNumber: normalizeIndianMobileNumber(data.phoneNumber || ''),
+  instanceId: String(data.instanceId || '').trim(),
   accessToken: '',
   accessTokenMasked: String(data.accessTokenMasked || '').trim(),
   hasAccessToken: Boolean(data.hasAccessToken || String(data.accessTokenMasked || '').trim()),
   active: Boolean(data.active),
-  testNumber: '',
-  providerType: String(data.providerType || (String(data.apiBaseUrl || '').includes('deropo') ? 'deropo' : 'custom')).trim() || 'custom'
+  testNumber: normalizeIndianMobileNumber(data.testNumber || ''),
+  providerType: String(
+    data.providerType
+    || (String(data.apiBaseUrl || '').trim() ? 'deropo' : 'custom')
+  ).trim() || 'custom'
 });
 
 const getWhatsAppDiagnostic = (form = {}) => {
