@@ -37,7 +37,7 @@ function inputGuard(req, res, next) {
   next();
 }
 const financialKey = /(amount|total|subtotal|gst|tax|discount|balance|salary|advance|deduction|allowance|rate|quantity|price|cost|roundOff|round_off|paid|received)/i;
-const nonFinancialKey = /(reason|note|status|date|number|mode|type|name|id|url|file|path|description|remarks)$/i;
+const nonFinancialKey = /(reason|note|status|date|number|mode|type|name|id|url|file|path|description|remarks|enabled|visible|inPdf)$/i;
 const signedFinancialKey = /^(roundOff|round_off|adjustment|adjustmentAmount)$/i;
 function validateMoneyValue(value, { allowNegative = false, allowZero = true } = {}) {
   if (value === '' || value === null || value === undefined) return '';
