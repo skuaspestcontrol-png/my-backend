@@ -632,8 +632,10 @@ export default function Attendance() {
           const key = String(entry.employeeId || '').trim();
           if (!key) return;
           const normalizedStatus = entry.status === 'half-day' ? 'leave' : (entry.status || 'absent');
-          const normalizedCheckIn = normalizedStatus === 'present' ? (entry.checkIn || '09:30') : '';
-          const normalizedCheckOut = normalizedStatus === 'present' ? (entry.checkOut || '17:30') : '';
+          const normalizedSource = String(entry.source || '').trim().toLowerCase();
+          const isSelfServiceSource = normalizedSource === 'technician_app' || normalizedSource === 'sales_app' || normalizedSource === 'self';
+          const normalizedCheckIn = normalizedStatus === 'present' ? (entry.checkIn || (isSelfServiceSource ? '' : '09:30')) : '';
+          const normalizedCheckOut = normalizedStatus === 'present' ? (entry.checkOut || (isSelfServiceSource ? '' : '17:30')) : '';
           recordMap[key] = {
             _id: entry._id,
             employeeId: key,

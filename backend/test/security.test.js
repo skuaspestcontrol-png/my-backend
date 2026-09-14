@@ -14,6 +14,14 @@ const secret = 'test-only-secret-with-more-than-thirty-two-characters';
 const admin = { id: 'admin', role: 'Admin' };
 const technician = { id: 't1', employeeId: 't1', role: 'Technician' };
 const source = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+const payroll = require('../payrollModule');
+
+test('CRM attendance keeps Technician App punch times authoritative', () => {
+  const attendanceSource = fs.readFileSync(path.join(__dirname, '../../frontend/src/components/Attendance.jsx'), 'utf8');
+  assert.match(attendanceSource, /normalizedSource === 'technician_app'/);
+  assert.match(attendanceSource, /entry\.checkIn \|\| \(isSelfServiceSource \? '' : '09:30'\)/);
+  assert.match(attendanceSource, /entry\.checkOut \|\| \(isSelfServiceSource \? '' : '17:30'\)/);
+});
 
 test('invoice MySQL insert columns, placeholders and values stay aligned', () => {
   const match = source.match(/`INSERT INTO invoices \(\n([\s\S]*?)\n\s*\) VALUES \(([\s\S]*?)\)\n\s*ON DUPLICATE KEY UPDATE[\s\S]*?`,\n\s*\[([\s\S]*?)\n\s*\]\n\s*\);/);
@@ -105,6 +113,92 @@ test('invoice MySQL insert columns, placeholders and values stay aligned', () =>
   assert.equal(values.length, 36);
   assert.deepEqual(columns, expectedColumns);
   assert.deepEqual(values, expectedValues);
+});
+
+test('payroll late deduction is based on morning punch-in only', () => {
+  const { summarizeAttendanceForPayroll, calcPayrollItem } = payroll.__test__;
+  const base = {
+    employeeId: 'emp1',
+    month: 9,
+    year: 2026,
+    holidays: [],
+    weeklyOffDay: 0,
+    lateMarkGraceMinutes: 15,
+    workStartTime: '09:30',
+    workEndTime: '17:30',
+    standardDailyHours: 8,
+  };
+
+  const hoursBetween = (checkIn, checkOut) => {
+    const [inHours, inMinutes] = checkIn.split(':').map(Number);
+    const [outHours, outMinutes] = checkOut.split(':').map(Number);
+    return Number((((outHours * 60 + outMinutes) - (inHours * 60 + inMinutes)) / 60).toFixed(2));
+  };
+
+  const summarizeOne = (checkIn, checkOut) => summarizeAttendanceForPayroll({
+    ...base,
+    attendance: [{
+      employeeId: 'emp1',
+      date: '2026-09-14',
+      status: 'present',
+      checkIn,
+      checkOut,
+      workingHours: hoursBetween(checkIn, checkOut),
+    }],
+  });
+
+  const onTimeFullShift = summarizeOne('09:30', '17:30');
+  assert.equal(onTimeFullShift.shortHoursDeductionHours, 0);
+  assert.equal(onTimeFullShift.lateMarks, 0);
+  assert.equal(onTimeFullShift.dailyBreakdown[0].workingHours, 8);
+
+  const withinGraceFullShift = summarizeOne('09:40', '17:30');
+  assert.equal(withinGraceFullShift.shortHoursDeductionHours, 0);
+  assert.equal(withinGraceFullShift.lateMarks, 0);
+
+  const graceBoundaryFullShift = summarizeOne('09:45', '17:30');
+  assert.equal(graceBoundaryFullShift.shortHoursDeductionHours, 0);
+  assert.equal(graceBoundaryFullShift.lateMarks, 0);
+
+  const onTimeEarlyOut = summarizeOne('09:30', '15:00');
+  assert.equal(onTimeEarlyOut.shortHoursDeductionHours, 0);
+  assert.equal(onTimeEarlyOut.lateMarks, 0);
+  assert.equal(onTimeEarlyOut.dailyBreakdown[0].workingHours, 5.5);
+  assert.equal(onTimeEarlyOut.dailyBreakdown[0].shortHours, 0);
+
+  const withinGraceEarlyOut = summarizeOne('09:40', '15:00');
+  assert.equal(withinGraceEarlyOut.shortHoursDeductionHours, 0);
+  assert.equal(withinGraceEarlyOut.lateMarks, 0);
+  assert.equal(withinGraceEarlyOut.dailyBreakdown[0].workingHours, 5.33);
+
+  const lateArrival = summarizeOne('10:00', '17:30');
+  assert.equal(lateArrival.shortHoursDeductionHours, 0.5);
+  assert.equal(lateArrival.lateMarks, 1);
+  assert.equal(lateArrival.dailyBreakdown[0].lateMinutes, 30);
+  assert.equal(lateArrival.dailyBreakdown[0].shortHours, 0.5);
+
+  const lateArrivalEarlyOut = summarizeOne('10:00', '15:00');
+  assert.equal(lateArrivalEarlyOut.shortHoursDeductionHours, 0.5);
+  assert.equal(lateArrivalEarlyOut.lateMarks, 1);
+  assert.equal(lateArrivalEarlyOut.dailyBreakdown[0].workingHours, 5);
+  assert.equal(lateArrivalEarlyOut.dailyBreakdown[0].shortHours, 0.5);
+
+  const payrollItem = calcPayrollItem({
+    employee: { _id: 'emp1', empCode: 'EMP1', firstName: 'Test', lastName: 'Employee' },
+    structure: {
+      employeeId: 'emp1',
+      salaryType: 'monthly',
+      basicSalary: 30000,
+      allowances: {},
+      deductions: { late: 0, latePerMark: 0 },
+    },
+    attendanceSummary: onTimeEarlyOut,
+    advances: [],
+    month: 9,
+    year: 2026,
+    manualOverride: {},
+  });
+  assert.equal(payrollItem.deductions.shortHoursDeduction, 0);
 });
 
 // Execute the actual application middleware, excluding dotenv, DB imports, migrations,

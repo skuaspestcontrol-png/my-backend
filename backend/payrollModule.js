@@ -796,7 +796,7 @@ const summarizeAttendanceForPayroll = ({
       const overtimeForDay = overtimeStartMins !== null
         ? Math.max(0, minutesToHours((toMinutes(att.checkOut || '') ?? 0) - overtimeStartMins))
         : 0;
-      const shortHoursForDay = Math.max(0, round2(standardDailyHours - rawHours));
+      const shortHoursForDay = isLate ? round2(minutesToHours(lateMinutes)) : 0;
       overtimeHours += overtimeForDay;
       shortHoursDeductionHours += shortHoursForDay;
       paidHours += round2(Math.min(rawHours, standardDailyHours));
@@ -826,7 +826,7 @@ const summarizeAttendanceForPayroll = ({
       const overtimeForDay = overtimeStartMins !== null
         ? Math.max(0, minutesToHours((toMinutes(att.checkOut || '') ?? 0) - overtimeStartMins))
         : 0;
-      const shortHoursForDay = Math.max(0, round2(halfDayStandardHours - rawHours));
+      const shortHoursForDay = isLate ? round2(minutesToHours(lateMinutes)) : 0;
       overtimeHours += overtimeForDay;
       shortHoursDeductionHours += shortHoursForDay;
       paidHours += round2(Math.min(rawHours, halfDayStandardHours));
@@ -3464,5 +3464,9 @@ function registerPayrollModule({
 }
 
 module.exports = {
-  registerPayrollModule
+  registerPayrollModule,
+  __test__: {
+    summarizeAttendanceForPayroll,
+    calcPayrollItem
+  }
 };
