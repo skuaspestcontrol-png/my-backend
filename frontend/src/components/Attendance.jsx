@@ -46,6 +46,14 @@ const normalizeLeaveType = (value) => {
   return canonical || text;
 };
 
+const firstAttendanceValue = (...values) => {
+  for (const value of values) {
+    const text = String(value || '').trim();
+    if (text) return text;
+  }
+  return '';
+};
+
 const formatAttendanceSourceLabel = (value) => {
   const text = String(value || '').trim();
   if (!text) return '-';
@@ -632,10 +640,28 @@ export default function Attendance() {
           const key = String(entry.employeeId || '').trim();
           if (!key) return;
           const normalizedStatus = entry.status === 'half-day' ? 'leave' : (entry.status || 'absent');
-          const normalizedSource = String(entry.source || '').trim().toLowerCase();
+          const normalizedSource = firstAttendanceValue(entry.source, entry.source_type, entry.sourceType).toLowerCase();
           const isSelfServiceSource = normalizedSource === 'technician_app' || normalizedSource === 'sales_app' || normalizedSource === 'self';
-          const normalizedCheckIn = normalizedStatus === 'present' ? (entry.checkIn || (isSelfServiceSource ? '' : '09:30')) : '';
-          const normalizedCheckOut = normalizedStatus === 'present' ? (entry.checkOut || (isSelfServiceSource ? '' : '17:30')) : '';
+          const realCheckIn = firstAttendanceValue(
+            entry.checkIn,
+            entry.check_in,
+            entry.check_in_time,
+            entry.punchIn,
+            entry.punch_in,
+            entry.punchInTime,
+            entry.punch_in_time
+          );
+          const realCheckOut = firstAttendanceValue(
+            entry.checkOut,
+            entry.check_out,
+            entry.check_out_time,
+            entry.punchOut,
+            entry.punch_out,
+            entry.punchOutTime,
+            entry.punch_out_time
+          );
+          const normalizedCheckIn = normalizedStatus === 'present' ? (realCheckIn || (isSelfServiceSource ? '' : '09:30')) : '';
+          const normalizedCheckOut = normalizedStatus === 'present' ? (realCheckOut || (isSelfServiceSource ? '' : '17:30')) : '';
           recordMap[key] = {
             _id: entry._id,
             employeeId: key,

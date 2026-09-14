@@ -19,8 +19,10 @@ const payroll = require('../payrollModule');
 test('CRM attendance keeps Technician App punch times authoritative', () => {
   const attendanceSource = fs.readFileSync(path.join(__dirname, '../../frontend/src/components/Attendance.jsx'), 'utf8');
   assert.match(attendanceSource, /normalizedSource === 'technician_app'/);
-  assert.match(attendanceSource, /entry\.checkIn \|\| \(isSelfServiceSource \? '' : '09:30'\)/);
-  assert.match(attendanceSource, /entry\.checkOut \|\| \(isSelfServiceSource \? '' : '17:30'\)/);
+  assert.match(attendanceSource, /entry\.checkIn,[\s\S]*entry\.check_in,[\s\S]*entry\.punchIn,[\s\S]*entry\.punch_in_time/);
+  assert.match(attendanceSource, /entry\.checkOut,[\s\S]*entry\.check_out,[\s\S]*entry\.punchOut,[\s\S]*entry\.punch_out_time/);
+  assert.match(attendanceSource, /realCheckIn \|\| \(isSelfServiceSource \? '' : '09:30'\)/);
+  assert.match(attendanceSource, /realCheckOut \|\| \(isSelfServiceSource \? '' : '17:30'\)/);
 });
 
 test('invoice MySQL insert columns, placeholders and values stay aligned', () => {
