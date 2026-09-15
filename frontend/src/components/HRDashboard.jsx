@@ -120,6 +120,8 @@ const leaveOptions = [
   { value: 'Absent', label: 'Absent' }
 ];
 
+const entitlementLeaveTypes = ['Casual Leave (CL)', 'Sick Leave (SL)'];
+
 const roleFlags = () => {
   const roleRaw = String(getPortalUserRole() || 'Admin').trim().toLowerCase();
   const isAdmin = roleRaw === 'admin' || roleRaw === '';
@@ -158,20 +160,23 @@ const hrLeaveBounds = {
 
 const hrBalanceColumns = [
   { key: 'employee', label: 'Employee' },
-  { key: 'paid', label: 'Paid Leave Balance' },
-  { key: 'sick', label: 'Sick Leave Balance' },
+  { key: 'casual', label: 'Casual Available' },
+  { key: 'sick', label: 'Sick Available' },
+  { key: 'pending', label: 'Pending' },
   { key: 'unpaid', label: 'Unpaid Used' }
 ];
 const hrBalanceWidths = {
   employee: 180,
-  paid: 150,
+  casual: 150,
   sick: 150,
+  pending: 120,
   unpaid: 120
 };
 const hrBalanceBounds = {
   employee: { min: 150, max: 260 },
-  paid: { min: 130, max: 220 },
+  casual: { min: 130, max: 220 },
   sick: { min: 130, max: 220 },
+  pending: { min: 100, max: 160 },
   unpaid: { min: 100, max: 160 }
 };
 
@@ -311,6 +316,10 @@ export default function HRDashboard() {
   const [summary, setSummary] = useState(null);
   const [leaves, setLeaves] = useState([]);
   const [leaveBalances, setLeaveBalances] = useState([]);
+  const [leaveEntitlementEmployeeId, setLeaveEntitlementEmployeeId] = useState('');
+  const [leaveEntitlementYear, setLeaveEntitlementYear] = useState(new Date().getFullYear());
+  const [leaveEntitlementRows, setLeaveEntitlementRows] = useState([]);
+  const [leaveEntitlementBusy, setLeaveEntitlementBusy] = useState(false);
   const [payrollQuick, setPayrollQuick] = useState(null);
   const [employees, setEmployees] = useState([]);
 
@@ -436,6 +445,55 @@ export default function HRDashboard() {
       await fetchAll();
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Unable to submit leave request.');
+    }
+  };
+
+  useEffect(() => {
+    if (leaveEntitlementEmployeeId || !employees.length) return;
+    setLeaveEntitlementEmployeeId(employees[0]?._id || '');
+  }, [employees, leaveEntitlementEmployeeId]);
+
+  const fetchLeaveEntitlements = useCallback(async () => {
+    if (!leaveEntitlementEmployeeId) {
+      setLeaveEntitlementRows([]);
+      return;
+    }
+    try {
+      setLeaveEntitlementBusy(true);
+      const response = await axios.get(`${API_BASE}/api/hr/leave-entitlements`, {
+        params: { employeeId: leaveEntitlementEmployeeId, year: leaveEntitlementYear },
+        headers
+      });
+      setLeaveEntitlementRows(Array.isArray(response.data?.balances) ? response.data.balances : []);
+    } catch (error) {
+      setLeaveEntitlementRows([]);
+      setStatus(error?.response?.data?.error || 'Unable to load leave entitlements.');
+    } finally {
+      setLeaveEntitlementBusy(false);
+    }
+  }, [headers, leaveEntitlementEmployeeId, leaveEntitlementYear]);
+
+  useEffect(() => {
+    fetchLeaveEntitlements();
+  }, [fetchLeaveEntitlements]);
+
+  const updateLeaveEntitlement = async (leaveType, allocated) => {
+    if (!role.canManage) return;
+    try {
+      setLeaveEntitlementBusy(true);
+      await axios.put(`${API_BASE}/api/hr/leave-entitlements`, {
+        employeeId: leaveEntitlementEmployeeId,
+        year: leaveEntitlementYear,
+        leaveType,
+        allocated: Number(allocated)
+      }, { headers });
+      setStatus('Leave entitlement updated.');
+      await fetchLeaveEntitlements();
+      await fetchAll(true);
+    } catch (error) {
+      setStatus(error?.response?.data?.error || 'Unable to update leave entitlement.');
+    } finally {
+      setLeaveEntitlementBusy(false);
     }
   };
 
@@ -676,6 +734,90 @@ export default function HRDashboard() {
             </table>
           </div>
 
+          <div style={{ ...shell.panel, boxShadow: 'none', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+              <div>
+                <h4 style={{ ...shell.panelTitle, fontSize: '14px' }}>Leave Entitlements</h4>
+                <p style={shell.panelSub}>Calendar-year allocation for requestable casual and sick leave.</p>
+              </div>
+              {leaveEntitlementBusy ? <span style={shell.badge}>Saving...</span> : null}
+            </div>
+            <div style={leaveFormGridStyle}>
+              <div style={shell.field}>
+                <p style={shell.label}>Employee</p>
+                <select style={shell.input} value={leaveEntitlementEmployeeId} onChange={(event) => setLeaveEntitlementEmployeeId(event.target.value)}>
+                  {employees.map((employee) => <option key={employee._id} value={employee._id}>{[employee.firstName, employee.lastName].filter(Boolean).join(' ') || employee.empCode}</option>)}
+                </select>
+              </div>
+              <div style={shell.field}>
+                <p style={shell.label}>Year</p>
+                <input
+                  style={shell.input}
+                  type="number"
+                  min="2000"
+                  max="2100"
+                  value={leaveEntitlementYear}
+                  onChange={(event) => setLeaveEntitlementYear(Number(event.target.value) || new Date().getFullYear())}
+                />
+              </div>
+            </div>
+            <div style={shell.tableWrap}>
+              <table style={shell.table}>
+                <thead>
+                  <tr>
+                    <th style={shell.th}>Leave Type</th>
+                    <th style={{ ...shell.th, textAlign: 'center' }}>Allocated</th>
+                    <th style={{ ...shell.th, textAlign: 'center' }}>Used</th>
+                    <th style={{ ...shell.th, textAlign: 'center' }}>Pending</th>
+                    <th style={{ ...shell.th, textAlign: 'center' }}>Available</th>
+                    <th style={{ ...shell.th, textAlign: 'center' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entitlementLeaveTypes.map((leaveType) => {
+                    const row = leaveEntitlementRows.find((entry) => entry.leaveType === leaveType) || { leaveType, allocated: 0, used: 0, pending: 0, available: 0 };
+                    return (
+                      <tr key={leaveType}>
+                        <td style={shell.td}>{leaveType}</td>
+                        <td style={{ ...shell.td, textAlign: 'center' }}>
+                          <input
+                            style={{ ...shell.input, minHeight: '32px', textAlign: 'center' }}
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={row.allocated ?? 0}
+                            onChange={(event) => setLeaveEntitlementRows((prev) => {
+                              const nextValue = Math.max(0, Number(event.target.value) || 0);
+                              const existing = prev.find((entry) => entry.leaveType === leaveType);
+                              if (existing) {
+                                return prev.map((entry) => entry.leaveType === leaveType ? { ...entry, allocated: nextValue } : entry);
+                              }
+                              return [...prev, { ...row, allocated: nextValue }];
+                            })}
+                            disabled={!role.canManage}
+                          />
+                        </td>
+                        <td style={{ ...shell.td, textAlign: 'center' }}>{row.used ?? 0}</td>
+                        <td style={{ ...shell.td, textAlign: 'center' }}>{row.pending ?? 0}</td>
+                        <td style={{ ...shell.td, textAlign: 'center' }}>{row.available ?? 0}</td>
+                        <td style={{ ...shell.td, textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            style={shell.btnLight}
+                            disabled={!role.canManage || leaveEntitlementBusy}
+                            onClick={() => updateLeaveEntitlement(leaveType, row.allocated ?? 0)}
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div style={shell.tableWrap}>
             <table style={balanceTableStyle}>
               <colgroup>
@@ -686,8 +828,9 @@ export default function HRDashboard() {
               <thead>
                 <tr>
                   <th style={headStyle(getBalanceColumnWidth, 'employee')}>Employee</th>
-                  <th style={headStyle(getBalanceColumnWidth, 'paid', 'center')}>Paid Leave Balance</th>
+                  <th style={headStyle(getBalanceColumnWidth, 'casual', 'center')}>Casual Available</th>
                   <th style={headStyle(getBalanceColumnWidth, 'sick', 'center')}>Sick Leave Balance</th>
+                  <th style={headStyle(getBalanceColumnWidth, 'pending', 'center')}>Pending</th>
                   <th style={headStyle(getBalanceColumnWidth, 'unpaid', 'center')}>Unpaid Used</th>
                 </tr>
               </thead>
@@ -695,8 +838,9 @@ export default function HRDashboard() {
                 {leaveBalances.slice(0, 10).map((entry) => (
                   <tr key={entry.employeeId}>
                     <td style={bodyStyle(getBalanceColumnWidth, 'employee')}>{entry.employeeName}</td>
-                    <td style={bodyStyle(getBalanceColumnWidth, 'paid', 'center')}>{entry.paidLeave?.balance ?? 0}</td>
+                    <td style={bodyStyle(getBalanceColumnWidth, 'casual', 'center')}>{entry.paidLeave?.balance ?? 0}</td>
                     <td style={bodyStyle(getBalanceColumnWidth, 'sick', 'center')}>{entry.sickLeave?.balance ?? 0}</td>
+                    <td style={bodyStyle(getBalanceColumnWidth, 'pending', 'center')}>{Number(entry.paidLeave?.pending || 0) + Number(entry.sickLeave?.pending || 0)}</td>
                     <td style={bodyStyle(getBalanceColumnWidth, 'unpaid', 'center')}>{entry.unpaidLeave?.used ?? 0}</td>
                   </tr>
                 ))}

@@ -172,6 +172,113 @@ const displayLeaveTypeLabel = (leaveType) => {
   return normalizeText(leaveType || 'Paid Leave');
 };
 
+const entitlementLeaveTypes = [
+  { leaveType: 'Casual Leave (CL)', defaultAllocated: 2 },
+  { leaveType: 'Sick Leave (SL)', defaultAllocated: 4 }
+];
+
+const entitlementLeaveTypeSet = new Set(entitlementLeaveTypes.map((entry) => entry.leaveType));
+
+const normalizeEntitlementLeaveType = (leaveType) => {
+  const label = displayLeaveTypeLabel(leaveType);
+  return entitlementLeaveTypeSet.has(label) ? label : '';
+};
+
+const currentCalendarYear = () => new Date().getFullYear();
+
+const normalizeEntitlementYear = (value, fallback = currentCalendarYear()) => {
+  const year = Number(value === undefined || value === null || value === '' ? fallback : value);
+  return Number.isInteger(year) && year >= 2000 && year <= 2100 ? year : null;
+};
+
+const calculateLeaveRequestDays = (entry = {}) => {
+  const explicit = toNumber(entry.days, 0);
+  if (explicit > 0) return explicit;
+  const from = toDateOnly(entry.fromDate);
+  const to = toDateOnly(entry.toDate || entry.fromDate);
+  if (!from || !to) return 1;
+  const diff = Math.floor((to.getTime() - from.getTime()) / 86400000) + 1;
+  return Math.max(1, diff);
+};
+
+const leaveFallsInYear = (entry = {}, year) => {
+  const from = toDateOnly(entry.fromDate);
+  const to = toDateOnly(entry.toDate || entry.fromDate);
+  if (!from || !to) return false;
+  const start = new Date(year, 0, 1);
+  const end = new Date(year, 11, 31);
+  return to.getTime() >= start.getTime() && from.getTime() <= end.getTime();
+};
+
+const buildLeaveEntitlementBalances = ({
+  employees = [],
+  leaves = [],
+  entitlements = [],
+  year,
+  scope = null,
+  employeeId = '',
+  scopeFilter = (rows) => rows
+}) => {
+  const entitlementMap = new Map();
+  entitlements.forEach((entry) => {
+    const id = normalizeText(entry.employeeId || entry.employee_id);
+    const type = normalizeEntitlementLeaveType(entry.leaveType || entry.leave_type);
+    const rowYear = normalizeEntitlementYear(entry.year, year);
+    if (!id || !type || rowYear !== year) return;
+    entitlementMap.set(`${id}::${type}`, Math.max(0, round2(entry.allocated)));
+  });
+
+  const targetEmployees = scopeFilter(
+    employees.filter((employee) => !employeeId || normalizeText(employee._id) === normalizeText(employeeId)),
+    scope || { ownOnly: false },
+    (entry) => entry._id
+  );
+
+  return targetEmployees.map((employee) => {
+    const id = normalizeText(employee._id);
+    const balances = entitlementLeaveTypes.map((typeConfig) => {
+      const leaveType = typeConfig.leaveType;
+      const relevant = leaves.filter((entry) => (
+        normalizeText(entry.employeeId) === id
+        && displayLeaveTypeLabel(entry.leaveType) === leaveType
+        && leaveFallsInYear(entry, year)
+      ));
+      const used = round2(relevant
+        .filter((entry) => entry.status === 'Approved')
+        .reduce((sum, entry) => sum + calculateLeaveRequestDays(entry), 0));
+      const pending = round2(relevant
+        .filter((entry) => entry.status === 'Pending')
+        .reduce((sum, entry) => sum + calculateLeaveRequestDays(entry), 0));
+      const allocated = entitlementMap.has(`${id}::${leaveType}`)
+        ? entitlementMap.get(`${id}::${leaveType}`)
+        : typeConfig.defaultAllocated;
+      return {
+        leaveType,
+        allocated: round2(allocated),
+        used,
+        pending,
+        available: round2(Math.max(0, allocated - used))
+      };
+    });
+    const casual = balances.find((entry) => entry.leaveType === 'Casual Leave (CL)');
+    const sick = balances.find((entry) => entry.leaveType === 'Sick Leave (SL)');
+    const unpaidUsed = round2(leaves
+      .filter((entry) => normalizeText(entry.employeeId) === id && entry.status === 'Approved' && leaveFallsInYear(entry, year) && classifyLeaveRequestBucket(entry.leaveType) === 'unpaid')
+      .reduce((sum, entry) => sum + calculateLeaveRequestDays(entry), 0));
+
+    return {
+      employeeId: id,
+      employeeCode: normalizeText(employee.empCode),
+      employeeName: buildEmployeeName(employee),
+      year,
+      balances,
+      paidLeave: { total: casual?.allocated ?? 0, used: casual?.used ?? 0, pending: casual?.pending ?? 0, balance: casual?.available ?? 0 },
+      sickLeave: { total: sick?.allocated ?? 0, used: sick?.used ?? 0, pending: sick?.pending ?? 0, balance: sick?.available ?? 0 },
+      unpaidLeave: { used: unpaidUsed }
+    };
+  });
+};
+
 const normalizeNotification = (raw = {}) => ({
   _id: normalizeText(raw._id || `NTF-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
   type: normalizeText(raw.type || 'info'),
@@ -740,6 +847,71 @@ function registerHrModule({
   const getNotifications = async () => (await readMysqlPayloadRows('hr_notifications', readJsonFile(notificationsFile, []))).map((entry) => normalizeNotification(entry));
   const getWorkflow = async () => (await readMysqlPayloadRows('hr_workflow', readJsonFile(workflowFile, []))).map((entry) => normalizeEmployeeWorkflow(entry));
   const getPerformance = async () => (await readMysqlPayloadRows('hr_performance', readJsonFile(performanceFile, []))).map((entry) => normalizePerformance(entry));
+  const getLeaveEntitlements = async () => {
+    if (!canUseMysql) return [];
+    try {
+      return await withMysqlConnection(async (conn) => {
+        const [rows] = await conn.query(
+          `SELECT employee_id, year, leave_type, allocated
+           FROM employee_leave_entitlements
+           ORDER BY employee_id, year, leave_type`
+        );
+        return (Array.isArray(rows) ? rows : []).map((row) => ({
+          employeeId: normalizeText(row.employee_id),
+          year: normalizeEntitlementYear(row.year),
+          leaveType: normalizeEntitlementLeaveType(row.leave_type),
+          allocated: round2(row.allocated)
+        })).filter((row) => row.employeeId && row.year && row.leaveType);
+      });
+    } catch (error) {
+      console.error('Failed to read employee leave entitlements from MySQL:', error.message);
+      return [];
+    }
+  };
+
+  const upsertLeaveEntitlement = async ({ employeeId, year, leaveType, allocated }) => {
+    if (!canUseMysql) throw new Error('MySQL is required for leave entitlement configuration');
+    const safeYear = normalizeEntitlementYear(year);
+    const safeType = normalizeEntitlementLeaveType(leaveType);
+    const safeAllocated = round2(allocated);
+    if (!employeeId) {
+      const error = new Error('employeeId is required');
+      error.status = 400;
+      throw error;
+    }
+    if (!safeYear) {
+      const error = new Error('Valid year is required');
+      error.status = 400;
+      throw error;
+    }
+    if (!safeType) {
+      const error = new Error('Unsupported entitlement leave type');
+      error.status = 400;
+      throw error;
+    }
+    if (safeAllocated < 0) {
+      const error = new Error('allocated cannot be negative');
+      error.status = 400;
+      throw error;
+    }
+    await withMysqlConnection(async (conn) => {
+      await conn.query(
+        `
+        INSERT INTO employee_leave_entitlements (employee_id, year, leave_type, allocated, payload)
+        VALUES (?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE allocated = VALUES(allocated), payload = VALUES(payload), updated_at = NOW()
+        `,
+        [
+          employeeId,
+          safeYear,
+          safeType,
+          safeAllocated,
+          JSON.stringify({ employeeId, year: safeYear, leaveType: safeType, allocated: safeAllocated })
+        ]
+      );
+    });
+    return { employeeId, year: safeYear, leaveType: safeType, allocated: safeAllocated };
+  };
 
   const saveLeaves = async (rows) => {
     fs.writeFileSync(leavesFile, JSON.stringify(rows, null, 2));
@@ -1445,37 +1617,77 @@ function registerHrModule({
   app.get('/api/hr/leaves/balance', async (req, res) => {
     const scope = makeAccessScope(req);
     const employees = getEmployees();
-    const leaves = (await getLeaves()).filter((entry) => entry.status === 'Approved');
-    const month = toNumber(req.query.month, new Date().getMonth() + 1);
-    const year = toNumber(req.query.year, new Date().getFullYear());
-
-    const rows = applyScopeFilter(employees, scope, (entry) => entry._id).map((employee) => {
-      const id = normalizeText(employee._id);
-      const used = leaves.filter((entry) => {
-        if (normalizeText(entry.employeeId) !== id) return false;
-        const date = toDateOnly(entry.fromDate);
-        if (!date) return false;
-        return date.getMonth() + 1 === month && date.getFullYear() === year;
-      });
-
-      const paidUsed = round2(used.filter((entry) => classifyLeaveRequestBucket(entry.leaveType) === 'paid').reduce((sum, entry) => sum + toNumber(entry.days, 0), 0));
-      const sickUsed = round2(used.filter((entry) => classifyLeaveRequestBucket(entry.leaveType) === 'sick').reduce((sum, entry) => sum + toNumber(entry.days, 0), 0));
-      const unpaidUsed = round2(used.filter((entry) => classifyLeaveRequestBucket(entry.leaveType) === 'unpaid').reduce((sum, entry) => sum + toNumber(entry.days, 0), 0));
-
-      const annualPaid = 12;
-      const annualSick = 8;
-
-      return {
-        employeeId: id,
-        employeeCode: normalizeText(employee.empCode),
-        employeeName: buildEmployeeName(employee),
-        paidLeave: { total: annualPaid, used: paidUsed, balance: round2(Math.max(0, annualPaid - paidUsed)) },
-        sickLeave: { total: annualSick, used: sickUsed, balance: round2(Math.max(0, annualSick - sickUsed)) },
-        unpaidLeave: { used: unpaidUsed }
-      };
+    const year = normalizeEntitlementYear(req.query.year);
+    if (!year) return res.status(400).json({ error: 'Valid year is required' });
+    const rows = buildLeaveEntitlementBalances({
+      employees,
+      leaves: await getLeaves(),
+      entitlements: await getLeaveEntitlements(),
+      year,
+      scope,
+      scopeFilter: applyScopeFilter
     });
 
     res.json(rows);
+  });
+
+  app.get('/api/hr/leave-entitlements', async (req, res) => {
+    const scope = makeAccessScope(req);
+    const year = normalizeEntitlementYear(req.query.year);
+    const employeeId = normalizeText(req.query.employeeId || scope.employeeId);
+    if (!year) return res.status(400).json({ error: 'Valid year is required' });
+    if (!employeeId) return res.status(400).json({ error: 'employeeId is required' });
+    if (scope.ownOnly && normalizeText(scope.employeeId) !== employeeId) {
+      return res.status(403).json({ error: 'You can only view your own leave entitlements' });
+    }
+
+    const employees = getEmployees();
+    const employee = employees.find((entry) => normalizeText(entry._id) === employeeId);
+    if (!employee) return res.status(404).json({ error: 'Employee not found' });
+
+    const rows = buildLeaveEntitlementBalances({
+      employees,
+      leaves: await getLeaves(),
+      entitlements: await getLeaveEntitlements(),
+      year,
+      employeeId,
+      scope,
+      scopeFilter: applyScopeFilter
+    });
+    res.json(rows[0] || { employeeId, year, balances: [] });
+  });
+
+  app.put('/api/hr/leave-entitlements', async (req, res) => {
+    const scope = makeAccessScope(req);
+    if (!scope.permissions.canManage) return res.status(403).json({ error: 'Only Admin/HR can update leave entitlements' });
+
+    const employeeId = normalizeText(req.body?.employeeId);
+    const year = normalizeEntitlementYear(req.body?.year);
+    const leaveType = normalizeEntitlementLeaveType(req.body?.leaveType);
+    const allocated = round2(req.body?.allocated);
+    if (!year) return res.status(400).json({ error: 'Valid year is required' });
+    if (!employeeId) return res.status(400).json({ error: 'employeeId is required' });
+    if (!leaveType) return res.status(400).json({ error: 'Unsupported entitlement leave type' });
+    if (allocated < 0) return res.status(400).json({ error: 'allocated cannot be negative' });
+
+    const employee = getEmployees().find((entry) => normalizeText(entry._id) === employeeId);
+    if (!employee) return res.status(404).json({ error: 'Employee not found' });
+
+    try {
+      await upsertLeaveEntitlement({ employeeId, year, leaveType, allocated });
+      const rows = buildLeaveEntitlementBalances({
+        employees: getEmployees(),
+        leaves: await getLeaves(),
+        entitlements: await getLeaveEntitlements(),
+        year,
+        employeeId,
+        scope,
+        scopeFilter: applyScopeFilter
+      });
+      res.json(rows[0]);
+    } catch (error) {
+      res.status(error.status || 500).json({ error: error.message || 'Unable to update leave entitlement' });
+    }
   });
 
   app.post('/api/hr/leaves', async (req, res) => {
@@ -2058,5 +2270,10 @@ function registerHrModule({
 }
 
 module.exports = {
-  registerHrModule
+  registerHrModule,
+  __test__: {
+    buildLeaveEntitlementBalances,
+    normalizeEntitlementLeaveType,
+    normalizeEntitlementYear
+  }
 };

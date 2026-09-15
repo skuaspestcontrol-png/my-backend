@@ -886,6 +886,37 @@ const tableDefinitions = [
     ], ['KEY idx_hr_leaves_employee (employee_id)'])
   },
   {
+    name: 'employee_leave_entitlements',
+    createSql: `
+      CREATE TABLE IF NOT EXISTS employee_leave_entitlements (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        employee_id VARCHAR(120) NOT NULL,
+        year INT NOT NULL,
+        leave_type VARCHAR(80) NOT NULL,
+        allocated DECIMAL(8,2) NOT NULL DEFAULT 0,
+        payload JSON NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uk_employee_leave_entitlement (employee_id, year, leave_type),
+        KEY idx_employee_leave_entitlements_employee_year (employee_id, year)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `,
+    columns: {
+      employee_id: 'VARCHAR(120) NOT NULL',
+      year: 'INT NOT NULL',
+      leave_type: 'VARCHAR(80) NOT NULL',
+      allocated: 'DECIMAL(8,2) NOT NULL DEFAULT 0',
+      payload: 'JSON NULL',
+      created_at: 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
+      updated_at: 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
+    },
+    indexes: {
+      uk_employee_leave_entitlement: 'CREATE UNIQUE INDEX uk_employee_leave_entitlement ON employee_leave_entitlements (employee_id, year, leave_type)',
+      idx_employee_leave_entitlements_employee_year: 'CREATE INDEX idx_employee_leave_entitlements_employee_year ON employee_leave_entitlements (employee_id, year)'
+    }
+  },
+  {
     name: 'hr_notifications',
     createSql: createBaseTableSql('hr_notifications', [
       'employee_id VARCHAR(120) NULL',
@@ -1209,6 +1240,10 @@ const collectColumns = () => {
   add('hr_leaves', {
     employee_id: 'VARCHAR(120) NULL', employee_name: 'VARCHAR(255) NULL', leave_type: 'VARCHAR(80) NULL',
     start_date: 'DATE NULL', end_date: 'DATE NULL', status: 'VARCHAR(80) NULL'
+  });
+  add('employee_leave_entitlements', {
+    employee_id: 'VARCHAR(120) NOT NULL', year: 'INT NOT NULL', leave_type: 'VARCHAR(80) NOT NULL',
+    allocated: 'DECIMAL(8,2) NOT NULL DEFAULT 0'
   });
   add('hr_notifications', {
     employee_id: 'VARCHAR(120) NULL', title: 'VARCHAR(255) NULL', message: 'TEXT NULL',

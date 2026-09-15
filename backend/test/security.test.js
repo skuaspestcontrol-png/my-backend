@@ -15,6 +15,7 @@ const admin = { id: 'admin', role: 'Admin' };
 const technician = { id: 't1', employeeId: 't1', role: 'Technician' };
 const source = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
 const payroll = require('../payrollModule');
+const hrModule = require('../hrModule');
 
 test('CRM attendance keeps Technician App punch times authoritative', () => {
   const attendanceSource = fs.readFileSync(path.join(__dirname, '../../frontend/src/components/Attendance.jsx'), 'utf8');
@@ -23,6 +24,53 @@ test('CRM attendance keeps Technician App punch times authoritative', () => {
   assert.match(attendanceSource, /entry\.checkOut,[\s\S]*entry\.check_out,[\s\S]*entry\.punchOut,[\s\S]*entry\.punch_out_time/);
   assert.match(attendanceSource, /realCheckIn \|\| \(isSelfServiceSource \? '' : '09:30'\)/);
   assert.match(attendanceSource, /realCheckOut \|\| \(isSelfServiceSource \? '' : '17:30'\)/);
+});
+
+test('leave entitlement balances use defaults, overrides and request-day counts', () => {
+  const { buildLeaveEntitlementBalances } = hrModule.__test__;
+  const rows = buildLeaveEntitlementBalances({
+    employees: [{ _id: 'emp1', empCode: 'TECH-1', firstName: 'Nasir', lastName: 'Ali Khan' }],
+    year: 2026,
+    entitlements: [{ employeeId: 'emp1', year: 2026, leaveType: 'Casual Leave (CL)', allocated: 5 }],
+    leaves: [
+      { employeeId: 'emp1', leaveType: 'Casual Leave (CL)', fromDate: '2026-01-01', toDate: '2026-01-01', days: 1, status: 'Approved' },
+      { employeeId: 'emp1', leaveType: 'Casual Leave (CL)', fromDate: '2026-01-10', toDate: '2026-01-11', status: 'Pending' },
+      { employeeId: 'emp1', leaveType: 'Casual Leave (CL)', fromDate: '2026-02-01', toDate: '2026-02-01', status: 'Rejected' },
+      { employeeId: 'emp1', leaveType: 'Sick Leave (SL)', fromDate: '2026-03-01', toDate: '2026-03-03', status: 'Approved' },
+      { employeeId: 'emp2', leaveType: 'Casual Leave (CL)', fromDate: '2026-04-01', toDate: '2026-04-01', status: 'Approved' },
+    ],
+    scopeFilter: (items) => items
+  });
+
+  const casual = rows[0].balances.find((entry) => entry.leaveType === 'Casual Leave (CL)');
+  const sick = rows[0].balances.find((entry) => entry.leaveType === 'Sick Leave (SL)');
+  assert.equal(casual.allocated, 5);
+  assert.equal(casual.used, 1);
+  assert.equal(casual.pending, 2);
+  assert.equal(casual.available, 4);
+  assert.equal(sick.allocated, 4);
+  assert.equal(sick.used, 3);
+  assert.equal(sick.pending, 0);
+  assert.equal(sick.available, 1);
+});
+
+test('leave entitlement validation rejects invalid year and unsupported types', () => {
+  const { normalizeEntitlementLeaveType, normalizeEntitlementYear } = hrModule.__test__;
+  assert.equal(normalizeEntitlementYear('bad'), null);
+  assert.equal(normalizeEntitlementYear(1999), null);
+  assert.equal(normalizeEntitlementLeaveType('Weekly Off'), '');
+  assert.equal(normalizeEntitlementLeaveType('Public Holiday'), '');
+  assert.equal(normalizeEntitlementLeaveType('Outdoor Duty'), '');
+  assert.equal(normalizeEntitlementLeaveType('Absent'), '');
+  assert.equal(normalizeEntitlementLeaveType('Casual Leave'), 'Casual Leave (CL)');
+  assert.equal(normalizeEntitlementLeaveType('Sick Leave'), 'Sick Leave (SL)');
+});
+
+test('leave entitlement API keeps admin-only updates and non-negative allocation guard', () => {
+  const sourceText = fs.readFileSync(path.join(__dirname, '../hrModule.js'), 'utf8');
+  assert.match(sourceText, /app\.put\('\/api\/hr\/leave-entitlements'/);
+  assert.match(sourceText, /Only Admin\/HR can update leave entitlements/);
+  assert.match(sourceText, /allocated cannot be negative/);
 });
 
 test('invoice MySQL insert columns, placeholders and values stay aligned', () => {
