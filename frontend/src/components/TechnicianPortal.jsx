@@ -2557,7 +2557,7 @@ export default function TechnicianPortal() {
                       style={shell.textInput}
                     />
                   </div>
-                  <div style={{ ...shell.field, gridColumn: '1 / -1' }}>
+                  <div style={{ ...shell.field, gridColumn: index === 0 && !isMobile ? 'span 2' : '1 / -1' }}>
                     <p style={shell.label}>Area Treated</p>
                     <input
                       type="text"
@@ -2568,7 +2568,7 @@ export default function TechnicianPortal() {
                     />
                   </div>
                   {index === 0 ? (
-                    <div style={{ ...shell.field, gridColumn: '1 / -1' }}>
+                    <div style={{ ...shell.field, gridColumn: isMobile ? '1 / -1' : 'span 2' }}>
                       <p style={shell.label}>Pest Infestation Level</p>
                       <select
                         style={shell.textInput}
