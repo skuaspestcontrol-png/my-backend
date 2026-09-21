@@ -17,6 +17,8 @@ const initialForm = {
   id: '',
   itemName: '',
   itemCode: '',
+  targetPest: '',
+  chemicalBrandName: '',
   hsnSac: '',
   packSizePerBottle: '',
   noOfBottles: '',
@@ -81,6 +83,8 @@ const badgeStyle = (status) => {
 
 const stockItemColumns = [
   { key: 'item', label: 'Item' },
+  { key: 'targetPest', label: 'Target Pest' },
+  { key: 'chemicalBrandName', label: 'Chemical Brand' },
   { key: 'category', label: 'Category' },
   { key: 'unit', label: 'Unit' },
   { key: 'hsnSac', label: 'HSN Code' },
@@ -92,6 +96,8 @@ const stockItemColumns = [
 ];
 const stockItemWidths = {
   item: 220,
+  targetPest: 150,
+  chemicalBrandName: 180,
   category: 140,
   unit: 110,
   hsnSac: 130,
@@ -103,6 +109,8 @@ const stockItemWidths = {
 };
 const stockItemBounds = {
   item: { min: 180, max: 320 },
+  targetPest: { min: 130, max: 240 },
+  chemicalBrandName: { min: 150, max: 280 },
   category: { min: 120, max: 200 },
   unit: { min: 90, max: 150 },
   hsnSac: { min: 110, max: 180 },
@@ -247,6 +255,8 @@ export default function StockItems() {
       id: row.id,
       itemName: row.itemName || '',
       itemCode: row.itemCode || '',
+      targetPest: row.targetPest || '',
+      chemicalBrandName: row.chemicalBrandName || '',
       hsnSac: row.hsnSac || '',
       packSizePerBottle: row.packSizePerBottle || '',
       noOfBottles: String(row.noOfBottles ?? ''),
@@ -333,6 +343,8 @@ export default function StockItems() {
           <div style={formGridStyle}>
             <AppInput label="Item Name" value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} required style={stockControlStyle} />
             <AppInput label="Item Code" value={form.itemCode} onChange={(e) => setForm({ ...form, itemCode: e.target.value })} style={stockControlStyle} />
+            <AppInput label="Target Pest" value={form.targetPest} onChange={(e) => setForm({ ...form, targetPest: e.target.value })} style={stockControlStyle} />
+            <AppInput label="Chemical Brand Name" value={form.chemicalBrandName} onChange={(e) => setForm({ ...form, chemicalBrandName: e.target.value })} style={stockControlStyle} />
             <AppInput label="HSN Code" value={form.hsnSac} onChange={(e) => setForm({ ...form, hsnSac: e.target.value })} style={stockControlStyle} />
             <AppSelect label="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
               {stockCategories.map((item) => <option key={item} value={item}>{item}</option>)}
@@ -401,6 +413,8 @@ export default function StockItems() {
               <thead>
                 <tr>
                   <th className="table-header-cell table-text-cell" style={headStyle('item')}>Item</th>
+                  <th className="table-header-cell table-text-cell" style={headStyle('targetPest')}>Target Pest</th>
+                  <th className="table-header-cell table-text-cell" style={headStyle('chemicalBrandName')}>Chemical Brand</th>
                   <th className="table-header-cell table-text-cell" style={headStyle('category', 'center')}>Category</th>
                   <th className="table-header-cell table-text-cell" style={headStyle('unit', 'center')}>Unit</th>
                   <th className="table-header-cell table-text-cell" style={headStyle('hsnSac', 'center')}>HSN Code</th>
@@ -418,6 +432,8 @@ export default function StockItems() {
                       <div style={{ fontWeight: 800, color: theme.colors.text, letterSpacing: '-0.01em' }}>{row.itemName}</div>
                       <div style={{ color: theme.colors.muted, fontSize: 12, fontWeight: 600 }}>{row.itemCode || 'No code'}</div>
                     </td>
+                    <td className="table-text-cell" style={bodyStyle('targetPest')}>{row.targetPest || '-'}</td>
+                    <td className="table-text-cell" style={bodyStyle('chemicalBrandName')}>{row.chemicalBrandName || '-'}</td>
                     <td className="table-text-cell" style={bodyStyle('category', 'center')}>{stockCategoryDisplayLabel(row.category)}</td>
                     <td className="table-text-cell" style={bodyStyle('unit', 'center')}>{row.unit}</td>
                     <td className="table-text-cell" style={bodyStyle('hsnSac', 'center')}>{row.hsnSac || '-'}</td>

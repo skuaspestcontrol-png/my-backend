@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS stock_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   item_name VARCHAR(255) NOT NULL,
   item_code VARCHAR(100) NULL UNIQUE,
+  target_pest VARCHAR(255) NULL,
+  chemical_brand_name VARCHAR(255) NULL,
   category VARCHAR(100) DEFAULT 'Other',
   unit VARCHAR(50) NOT NULL,
   pack_size_per_bottle VARCHAR(100) NULL,
@@ -101,3 +103,7 @@ CREATE TABLE IF NOT EXISTS stock_movements (
 UPDATE stock_items
 SET unit = 'piece'
 WHERE LOWER(unit) = 'pcs';
+
+ALTER TABLE stock_items
+  ADD COLUMN IF NOT EXISTS target_pest VARCHAR(255) NULL,
+  ADD COLUMN IF NOT EXISTS chemical_brand_name VARCHAR(255) NULL;

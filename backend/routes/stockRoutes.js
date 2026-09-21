@@ -180,6 +180,8 @@ const ensureSchema = async () => {
     id INT AUTO_INCREMENT PRIMARY KEY,
     item_name VARCHAR(255) NOT NULL,
     item_code VARCHAR(100) NULL UNIQUE,
+    target_pest VARCHAR(255) NULL,
+    chemical_brand_name VARCHAR(255) NULL,
     category VARCHAR(100) DEFAULT 'Other',
     unit VARCHAR(50) NOT NULL,
     hsn_sac VARCHAR(100) NULL,
@@ -276,6 +278,8 @@ const ensureSchema = async () => {
   await ensureColumn('stock_movements', 'unit', 'unit VARCHAR(50) NULL');
   await ensureColumn('stock_movements', 'created_by', 'created_by INT NULL');
   await ensureColumn('stock_items', 'current_stock', 'current_stock DECIMAL(12,3) DEFAULT 0');
+  await ensureColumn('stock_items', 'target_pest', 'target_pest VARCHAR(255) NULL');
+  await ensureColumn('stock_items', 'chemical_brand_name', 'chemical_brand_name VARCHAR(255) NULL');
   await ensureColumn('stock_items', 'min_stock_level', 'min_stock_level DECIMAL(12,3) DEFAULT 0');
   await ensureColumn('stock_items', 'purchase_rate', 'purchase_rate DECIMAL(12,2) DEFAULT 0');
   await ensureColumn('stock_items', 'gst_percent', 'gst_percent DECIMAL(5,2) DEFAULT 0');
@@ -428,6 +432,8 @@ const loadItems = async () => {
       id: row.id,
       itemName: safeName(row.item_name, `Item ${row.id}`),
       itemCode: text(row.item_code),
+      targetPest: text(row.target_pest),
+      chemicalBrandName: text(row.chemical_brand_name),
       category: safeName(row.category, 'Other'),
       unit: safeName(normalizeUnit(row.unit) || 'piece', 'piece'),
       hsnSac: text(row.hsn_sac),
@@ -835,6 +841,8 @@ router.post('/items', async (req, res) => {
     const body = req.body || {};
     const itemName = text(body.itemName || body.item_name);
     const itemCode = text(body.itemCode || body.item_code) || null;
+    const targetPest = coerceOptionalText(getProvidedValue(body, 'targetPest', 'target_pest'));
+    const chemicalBrandName = coerceOptionalText(getProvidedValue(body, 'chemicalBrandName', 'chemical_brand_name'));
     const category = text(body.category || 'Other') || 'Other';
     const unit = normalizeUnit(body.unit) || 'piece';
     const hsnSac = coerceOptionalText(getProvidedValue(body, 'hsnSac', 'hsn_sac'));
@@ -863,10 +871,10 @@ router.post('/items', async (req, res) => {
       await conn.beginTransaction();
       const [insertResult] = await conn.query(
         `INSERT INTO stock_items (
-          item_name, item_code, category, unit, hsn_sac, pack_size_per_bottle, no_of_bottles, opening_stock, current_stock, min_stock_level,
+          item_name, item_code, target_pest, chemical_brand_name, category, unit, hsn_sac, pack_size_per_bottle, no_of_bottles, opening_stock, current_stock, min_stock_level,
           purchase_rate, gst_percent, total_amount, vendor_id, batch_number, expiry_date, storage_location, description, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, noOfBottles, openingStock, currentStock, minStockLevel, purchaseRate, gstPercent, totalAmount, vendorId, batchNumber, expiryDate, storageLocation, description, isActive]
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [itemName, itemCode, targetPest, chemicalBrandName, category, unit, hsnSac, packSizePerBottle, noOfBottles, openingStock, currentStock, minStockLevel, purchaseRate, gstPercent, totalAmount, vendorId, batchNumber, expiryDate, storageLocation, description, isActive]
       );
 
       if (currentStock > 0) {
@@ -917,6 +925,8 @@ router.put('/items/:id', async (req, res) => {
     }
     const itemName = text(body.itemName || body.item_name);
     const itemCode = text(body.itemCode || body.item_code) || null;
+    const targetPest = coerceOptionalText(getProvidedValue(body, 'targetPest', 'target_pest'), text(existing.target_pest));
+    const chemicalBrandName = coerceOptionalText(getProvidedValue(body, 'chemicalBrandName', 'chemical_brand_name'), text(existing.chemical_brand_name));
     const category = text(body.category || 'Other') || 'Other';
     const unit = normalizeUnit(body.unit) || 'piece';
     const hsnSac = coerceOptionalText(getProvidedValue(body, 'hsnSac', 'hsn_sac'), text(existing.hsn_sac));
@@ -943,6 +953,8 @@ router.put('/items/:id', async (req, res) => {
       `UPDATE stock_items SET
         item_name = ?,
         item_code = ?,
+        target_pest = ?,
+        chemical_brand_name = ?,
         category = ?,
         unit = ?,
         hsn_sac = ?,
@@ -961,7 +973,7 @@ router.put('/items/:id', async (req, res) => {
         description = ?,
         is_active = ?
        WHERE id = ?`,
-      [itemName, itemCode, category, unit, hsnSac, packSizePerBottle, noOfBottles, openingStock, currentStock, minStockLevel, purchaseRate, gstPercent, totalAmount, vendorId, batchNumber, expiryDate, storageLocation, description, isActive, itemId]
+      [itemName, itemCode, targetPest, chemicalBrandName, category, unit, hsnSac, packSizePerBottle, noOfBottles, openingStock, currentStock, minStockLevel, purchaseRate, gstPercent, totalAmount, vendorId, batchNumber, expiryDate, storageLocation, description, isActive, itemId]
     );
     if (Number(result?.affectedRows || 0) === 0) {
       return sendError(res, 404, 'Item not found.');
