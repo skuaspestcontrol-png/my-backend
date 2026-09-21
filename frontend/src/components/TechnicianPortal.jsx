@@ -2328,7 +2328,6 @@ export default function TechnicianPortal() {
   const liveTechnicianSignature = String(signatureDraftRef.current.technicianSignature || wizardDraftView.technicianSignature || '').trim();
   const wizardStepIndex = Math.max(0, wizardSteps.findIndex((step) => step.key === wizardStep));
   const wizardLastStepIndex = wizardSteps.length - 1;
-  const chemicalNameDatalistId = 'technician-chemical-name-options';
 
   const handleWizardBack = async () => {
     if (wizardStep === 'photos') {
@@ -2507,18 +2506,26 @@ export default function TechnicianPortal() {
                 <div style={shell.chemicalGrid}>
                   <div style={shell.chemicalNameField}>
                     <p style={shell.label}>Chemical Name</p>
-                    <input
-                      type="text"
-                      list={chemicalNameDatalistId}
+                    <select
                       value={chemical.chemicalName}
                       onChange={(event) => handleChemicalChange(index, 'chemicalName', event.target.value)}
-                      placeholder="Start typing or choose from stock items"
                       title={chemical.stockItemName ? `Matched stock item: ${chemical.stockItemName}` : ''}
                       style={{
                         ...shell.textInput,
                         borderColor: chemical.stockItemName ? 'rgba(15, 118, 110, 0.35)' : shell.textInput.borderColor
                       }}
-                    />
+                    >
+                      <option value="">Select chemical</option>
+                      {chemical.chemicalName && !stockItemsCatalog.some((item) => getStockItemName(item) === chemical.chemicalName) ? (
+                        <option value={chemical.chemicalName}>{chemical.chemicalName}</option>
+                      ) : null}
+                      {stockItemsCatalog.map((item) => {
+                        const name = getStockItemName(item);
+                        return name ? (
+                          <option key={item._id || name} value={name}>{name}</option>
+                        ) : null;
+                      })}
+                    </select>
                   </div>
                   <div style={shell.field}>
                     <p style={shell.label}>Quantity Used</p>
@@ -2560,6 +2567,22 @@ export default function TechnicianPortal() {
                       style={shell.textInput}
                     />
                   </div>
+                  {index === 0 ? (
+                    <div style={{ ...shell.field, gridColumn: '1 / -1' }}>
+                      <p style={shell.label}>Pest Infestation Level</p>
+                      <select
+                        style={shell.textInput}
+                        value={wizardDraftView.infestationLevel}
+                        onChange={(event) => handleInfestationLevelChange(event.target.value)}
+                        required
+                      >
+                        <option value="">Select level</option>
+                        {PEST_INFESTATION_LEVEL_OPTIONS.map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
                 </div>
                 <label style={shell.checkboxItem}>
                   <input
@@ -2572,11 +2595,6 @@ export default function TechnicianPortal() {
                 </label>
               </div>
             ))}
-            <datalist id={chemicalNameDatalistId}>
-              {stockItemsCatalog.map((item) => (
-                <option key={item._id || item.name} value={item.name} />
-              ))}
-            </datalist>
             <button type="button" style={shell.addChemicalBtn} onClick={handleAddChemicalRow}>
               <Plus size={14} /> Add another chemical
             </button>
@@ -2716,20 +2734,6 @@ export default function TechnicianPortal() {
             </div>
             <div style={shell.reviewNote}>
               Confirm that the service details are correct, then complete the job so the CRM can sync the activity back to the portal.
-            </div>
-            <div style={shell.field}>
-              <p style={shell.label}>Pest Infestation Level</p>
-              <select
-                style={shell.textInput}
-                value={wizardDraftView.infestationLevel}
-                onChange={(event) => handleInfestationLevelChange(event.target.value)}
-                required
-              >
-                <option value="">Select level</option>
-                {PEST_INFESTATION_LEVEL_OPTIONS.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
             </div>
             <div style={shell.field}>
               <p style={shell.label}>Remarks</p>
