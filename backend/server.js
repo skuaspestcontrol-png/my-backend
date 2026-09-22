@@ -15762,6 +15762,8 @@ app.use('/api', createWhatsAppRouter({
   settingsFile,
   readJsonFile,
   withMysqlConnection,
+  loadRuntimeSettings: readSettingsFromMysql,
+  saveRuntimeSettings: saveSettingsToMysql,
   resolveServerOrigin
 }));
 

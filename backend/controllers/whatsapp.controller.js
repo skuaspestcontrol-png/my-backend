@@ -94,6 +94,8 @@ function createWhatsAppController(deps) {
     settingsFile,
     readJsonFile,
     withMysqlConnection,
+    loadRuntimeSettings,
+    saveRuntimeSettings,
     resolveServerOrigin
   } = deps;
 
@@ -105,12 +107,27 @@ function createWhatsAppController(deps) {
     fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
   };
 
-  const readSettings = () => {
+  const readSettingsFile = () => {
     const raw = readJsonFile(settingsFile, {});
     return raw && typeof raw === 'object' ? raw : {};
   };
 
-  const saveSettings = (next) => writeJsonFile(settingsFile, next);
+  const readSettings = async () => {
+    if (typeof loadRuntimeSettings === 'function') {
+      const raw = await loadRuntimeSettings();
+      return raw && typeof raw === 'object' ? raw : {};
+    }
+    return readSettingsFile();
+  };
+
+  const saveSettings = async (next) => {
+    if (typeof saveRuntimeSettings === 'function') {
+      const saved = await saveRuntimeSettings(next);
+      return saved && typeof saved === 'object' ? saved : next;
+    }
+    writeJsonFile(settingsFile, next);
+    return next;
+  };
 
   const getTemplates = () => {
     const list = ensureDefaultTemplates(readJsonFile(templatesFile, []));
@@ -195,35 +212,75 @@ function createWhatsAppController(deps) {
 
   const buildContextPayload = (payload = {}, settings = {}) => buildTemplateContext(payload, settings);
 
-  const getWhatsAppSettings = (req, res) => {
-    const settings = readSettings();
-    res.json(sanitizeWhatsAppSettingsForResponse(settings));
+  const getWhatsAppSettings = async (req, res) => {
+    try {
+      const settings = await readSettings();
+      res.json(sanitizeWhatsAppSettingsForResponse(settings));
+    } catch (error) {
+      console.error('Failed to load WhatsApp settings:', error.message);
+      res.status(500).json({ error: 'Failed to load WhatsApp settings' });
+    }
   };
 
-  const saveWhatsAppSettings = (req, res) => {
-    const body = req.body || {};
-    const current = readSettings();
-    const accessTokenInput = Object.prototype.hasOwnProperty.call(body, 'accessToken')
-      ? String(body.accessToken || '').trim()
-      : '';
-    const next = {
-      ...current,
-      whatsappApiBaseUrl: String(body.apiBaseUrl ?? current.whatsappApiBaseUrl ?? '').trim(),
-      whatsappPhoneNumber: String(body.phoneNumber || current.whatsappPhoneNumber || '').trim(),
-      whatsappInstanceId: String(body.instanceId || current.whatsappInstanceId || current.whatsappPhoneNumberId || '').trim(),
-      whatsappPhoneNumberId: String(body.instanceId || current.whatsappInstanceId || current.whatsappPhoneNumberId || '').trim(),
-      whatsappAccessToken: accessTokenInput || String(current.whatsappAccessToken || '').trim(),
-      whatsappApiActive: body.active === undefined ? toBool(current.whatsappApiActive) : toBool(body.active),
-      whatsappTestNumber: String(body.testNumber || current.whatsappTestNumber || '').trim(),
-      whatsappProviderType: String(body.providerType || current.whatsappProviderType || (body.apiBaseUrl && /deropo/i.test(String(body.apiBaseUrl)) ? 'deropo' : 'custom')).trim().toLowerCase()
-    };
-    saveSettings(next);
-    res.json({ success: true, settings: sanitizeWhatsAppSettingsForResponse(next) });
+  const saveWhatsAppSettings = async (req, res) => {
+    try {
+      const body = req.body || {};
+      const current = await readSettings();
+      const hasOwn = (key) => Object.prototype.hasOwnProperty.call(body, key);
+      const bodyText = (...keys) => {
+        for (const key of keys) {
+          if (hasOwn(key)) return String(body[key] || '').trim();
+        }
+        return '';
+      };
+      const firstSaved = (...keys) => {
+        for (const key of keys) {
+          const value = String(current[key] || '').trim();
+          if (value) return value;
+        }
+        return '';
+      };
+
+      const apiBaseUrlInput = bodyText('apiBaseUrl', 'whatsappApiBaseUrl');
+      const phoneNumberInput = bodyText('phoneNumber', 'whatsappPhoneNumber');
+      const instanceIdInput = bodyText('instanceId', 'whatsappInstanceId', 'whatsappPhoneNumberId');
+      const accessTokenInput = bodyText('accessToken', 'whatsappAccessToken');
+      const testNumberInput = bodyText('testNumber', 'whatsappTestNumber');
+      const providerTypeInput = bodyText('providerType', 'whatsappProviderType').toLowerCase();
+      const activeProvided = hasOwn('active') || hasOwn('whatsappApiActive') || hasOwn('whatsappActive');
+      const activeValue = hasOwn('active')
+        ? body.active
+        : hasOwn('whatsappApiActive')
+          ? body.whatsappApiActive
+          : body.whatsappActive;
+      const nextApiBaseUrl = apiBaseUrlInput || firstSaved('whatsappApiBaseUrl', 'apiBaseUrl');
+      const nextProviderType = providerTypeInput
+        || String(current.whatsappProviderType || current.providerType || '').trim().toLowerCase()
+        || (nextApiBaseUrl && /deropo/i.test(nextApiBaseUrl) ? 'deropo' : 'custom');
+      const nextInstanceId = instanceIdInput || firstSaved('whatsappInstanceId', 'whatsappPhoneNumberId', 'instanceId');
+
+      const next = {
+        ...current,
+        whatsappApiBaseUrl: nextApiBaseUrl,
+        whatsappPhoneNumber: phoneNumberInput || firstSaved('whatsappPhoneNumber', 'phoneNumber'),
+        whatsappInstanceId: nextInstanceId,
+        whatsappPhoneNumberId: nextInstanceId,
+        whatsappAccessToken: accessTokenInput || firstSaved('whatsappAccessToken', 'accessToken'),
+        whatsappApiActive: activeProvided ? toBool(activeValue) : toBool(current.whatsappApiActive),
+        whatsappTestNumber: testNumberInput || firstSaved('whatsappTestNumber', 'testNumber'),
+        whatsappProviderType: nextProviderType
+      };
+      const saved = await saveSettings(next);
+      res.json({ success: true, settings: sanitizeWhatsAppSettingsForResponse(saved) });
+    } catch (error) {
+      console.error('Failed to save WhatsApp settings:', error.message);
+      res.status(500).json({ error: 'Failed to save WhatsApp settings' });
+    }
   };
 
   const sendTestMessage = async (req, res) => {
     try {
-      const settings = readSettings();
+      const settings = await readSettings();
       const to = String(req.body?.testNumber || settings.whatsappTestNumber || '').trim();
       const phone = validatePhoneNumber(to);
       if (!phone.ok) return res.status(400).json({ error: phone.error });
@@ -297,8 +354,8 @@ function createWhatsAppController(deps) {
     res.json({ success: true });
   };
 
-  const preview = (req, res) => {
-    const settings = readSettings();
+  const preview = async (req, res) => {
+    const settings = await readSettings();
     const moduleType = String(req.body?.moduleType || '').trim().toLowerCase();
     const templateType = String(req.body?.templateType || '').trim().toLowerCase();
     const contextData = buildContextPayload(req.body?.contextData || {}, settings);
@@ -319,7 +376,7 @@ function createWhatsAppController(deps) {
   };
 
   const send = async (req, res) => {
-    const settings = readSettings();
+    const settings = await readSettings();
     const body = req.body || {};
     const moduleType = String(body.moduleType || '').trim().toLowerCase();
     const templateType = String(body.templateType || '').trim().toLowerCase();
